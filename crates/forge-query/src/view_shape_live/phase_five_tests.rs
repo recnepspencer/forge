@@ -30,13 +30,16 @@ fn schema_view() -> crate::schema_view::QuerySchemaView {
         "phase-five-inspector-view-closure",
         [
             crate::schema_view::SchemaFieldView::new(
-                "identity",
-                "id",
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             ),
             crate::schema_view::SchemaFieldView::new(
-                "profile",
-                "display_name",
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             ),
         ],
@@ -223,7 +226,9 @@ fn focused_inspector_runtime_backed_lane_is_verified_and_still_denies_widening()
     let canonical = detail_canonical();
     let plan = planned_view(
         &canonical,
-        ViewShapeDescriptor::inspector_detail_focused("profile"),
+        ViewShapeDescriptor::inspector_detail_focused(
+            forge_foundational::facade::AspectKey::new("profile").unwrap(),
+        ),
     );
     let live = lower_view_shape_plan_to_live(
         &plan,
@@ -273,7 +278,7 @@ fn identity_aware_focused_inspector_requires_matching_classification() {
     let plan = planned_view(
         &canonical,
         ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-            "profile",
+            forge_foundational::facade::AspectKey::new("profile").unwrap(),
             InspectorIdentityClassification::IdentityBreak,
         ),
     );

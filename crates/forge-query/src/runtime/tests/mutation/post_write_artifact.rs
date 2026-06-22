@@ -5,21 +5,24 @@ fn batch_write_retained_artifact_keeps_receipt_inspection_and_exact_retained_bin
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.post-write-artifact")
         .expect("task runtime should open a named workspace");
-    let live: ForgeQueryLiveView<Value> = workspace
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.post-write-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-post-write-table")
         })
         .expect("live view should declare");
-    let computed: ForgeQueryDerivedViewHandle<Value> = workspace
+    let computed: ForgeQueryDerivedViewHandle<ForgeQueryNativeRow> = workspace
         .computed(
             "tasks.post-write-summary",
             |c| {
                 c.depends_on_live(&live)
-                    .reads(["title.value"])
-                    .produces(["ui.batch_summary"])
+                    .reads(test_aspect_touches(["title.value"]))
+                    .produces(test_aspect_touches(["ui.batch_summary"]))
             },
             TitleListMaintainer,
         )
@@ -28,8 +31,14 @@ fn batch_write_retained_artifact_keeps_receipt_inspection_and_exact_retained_bin
     let receipt = workspace
         .batch(|batch| {
             batch.insert("Task", |task| {
-                task.aspect("identity.id", "task-1")
-                    .aspect("title.value", "Buy milk")
+                task.aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value("task-1"),
+                )
+                .aspect(
+                    test_aspect_touch("title.value"),
+                    test_string_aspect_value("Buy milk"),
+                )
             })
         })
         .expect("batch should execute");
@@ -42,11 +51,19 @@ fn batch_write_retained_artifact_keeps_receipt_inspection_and_exact_retained_bin
         )
         .expect("post-write retained artifact should build");
     let inspection = workspace.inspect(&receipt).expect("receipt should inspect");
-    let expected_row = workspace.materialize(&computed)[0].clone();
-    let retained_row: Value = artifact
+    let expected_row = workspace
+        .materialize_result(&computed)
+        .expect("computed materialization should execute")
+        .single_retained_row()
+        .expect("computed materialization should retain one row")
+        .clone();
+    let retained_row = artifact
         .retained_artifact()
-        .decode_single_row(&computed)
-        .expect("retained artifact should decode the exact retained row");
+        .materialization(&computed)
+        .expect("retained artifact should carry computed materialization")
+        .single_retained_row()
+        .expect("retained artifact should carry one retained row")
+        .clone();
 
     assert_eq!(artifact.receipt().batch_digest(), receipt.batch_digest());
     match inspection {
@@ -66,7 +83,7 @@ fn batch_write_retained_artifact_keeps_receipt_inspection_and_exact_retained_bin
     assert_eq!(
         artifact
             .retained_artifact()
-            .target_view_names()
+            .terminal_target_view_names_projection()
             .collect::<Vec<_>>(),
         vec!["tasks.post-write-summary"]
     );

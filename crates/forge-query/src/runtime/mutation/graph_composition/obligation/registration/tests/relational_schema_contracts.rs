@@ -50,11 +50,16 @@ fn relational_schema_contracts_lower_to_exact_schema_validator_registrations() {
         assert_eq!(registration.rule_identity().name(), case.expected_rule_name);
         assert_eq!(registration.rule_identity().semantic_version(), "v1");
         assert_eq!(
-            registration.touch_selector().selector_kind(),
+            registration
+                .touch_selector()
+                .terminal_selector_kind_for_boundary(),
             "relation-kind-id"
         );
         assert_eq!(
-            registration.touch_selector().selector_value().as_deref(),
+            registration
+                .touch_selector()
+                .terminal_selector_value_for_boundary()
+                .as_deref(),
             Some(case.expected_relation_kind_id)
         );
         assert_eq!(

@@ -54,7 +54,12 @@ fn retained_binding_declaration_preserves_binding_identity_and_target_refs() {
                 &test_result_shape_canonical_digest("result-shape:test"),
                 &["profile.display_name"],
             ),
-            ProjectMaterializedFacts::declare().display_field("profile.display_name"),
+            ProjectMaterializedFacts::declare().display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
         )
         .expect("retained binding declaration should succeed");
 
@@ -99,7 +104,12 @@ fn live_binding_eligibility_admits_honest_fact_families() {
             ),
             ProjectMaterializedFacts::declare()
                 .entity_identities()
-                .display_field("profile.display_name")
+                .display_field_path(
+                    crate::projection_consumption::projection_fact_field_path_from_segments([
+                        "profile",
+                        "display_name",
+                    ]),
+                )
                 .source_references(),
         )
         .expect("live binding declaration should succeed");

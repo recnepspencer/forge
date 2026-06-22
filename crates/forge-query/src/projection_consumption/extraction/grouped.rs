@@ -1,4 +1,4 @@
-use forge_foundational::facade::AspectKey;
+use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_relational::facade::grouped_truth::RelationalGroupedProjectionArtifact;
 use forge_runtime_bridge::facade::BridgeGroupedTruthViewArtifact;
 
@@ -9,7 +9,6 @@ use super::super::consumed::{
 use super::super::contracts::MaterializedProjectionContract;
 use super::super::facts::ProjectionFactKind;
 use super::super::source::ProjectionSourceFamily;
-use super::aspect_value_projection::project_aspect_value_for_consumption_json;
 use crate::projection_consumption::ProjectionFactExtractionError;
 
 pub(super) fn extract_relational_grouped_facts(
@@ -24,8 +23,8 @@ pub(super) fn extract_relational_grouped_facts(
         projection.members().iter().map(|member| {
             (
                 member.row_identity().as_str(),
-                project_aspect_value_for_consumption_json(member.identity_value()),
-                project_aspect_value_for_consumption_json(member.grouping_value()),
+                member.identity_value().clone(),
+                member.grouping_value().clone(),
             )
         }),
     )
@@ -43,8 +42,8 @@ pub(super) fn extract_bridge_grouped_facts(
         grouped_truth_view.members().iter().map(|member| {
             (
                 member.row_identity().as_str(),
-                project_aspect_value_for_consumption_json(member.identity_value()),
-                project_aspect_value_for_consumption_json(member.lane().value()),
+                member.identity_value().clone(),
+                member.lane().value().clone(),
             )
         }),
     )
@@ -58,7 +57,7 @@ fn extract_grouped_facts<'a, Members>(
     members: Members,
 ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError>
 where
-    Members: Iterator<Item = (&'a str, serde_json::Value, serde_json::Value)>,
+    Members: Iterator<Item = (&'a str, AspectValue, AspectValue)>,
 {
     super::ensure_contract_family(contract, expected_family)?;
     super::ensure_source_identity(contract.source_identity(), source_identity)?;

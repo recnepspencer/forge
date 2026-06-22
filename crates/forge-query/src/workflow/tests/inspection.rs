@@ -14,7 +14,6 @@ use crate::workflow::{
 };
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::{EntityId, PartitionId};
-use serde_json::json;
 
 #[test]
 fn lowered_merge_declaration_can_be_inspected_in_query_shape() {
@@ -249,7 +248,11 @@ fn post_merge_inspection_denies_non_authoritative_mutation_outcomes() {
         &authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
-            desired_aspect_fields_external_json: json!({"name":"after"}),
+            desired_aspect_fields:
+                crate::aspect_field_authoring::single_native_string_aspect_field_patch(
+                    "name", "name", "after",
+                )
+                .expect("name patch should lower"),
         },
     )
     .expect("mutation lowering should succeed");

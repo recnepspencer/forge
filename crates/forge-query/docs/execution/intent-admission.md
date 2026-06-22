@@ -77,7 +77,7 @@ Existing-truth work covered by the same lattice:
 - graph-composition existing-target update, retarget, supersession, and retirement lanes
 - graph-composition verified-existing lanes
 - `workspace.read(&view)`
-- `workspace.materialize(&view)`
+- `workspace.materialize_result(&view)?`
 - `workspace.inspect(&view)`
 - `runtime.probe_existing(...)`
 - `workspace.probe_existing_intent(request).execute()`
@@ -287,7 +287,7 @@ let inspection_result = workspace.inspect_intent(&view).execute()?;
 ```
 
 ```rust
-let materialized_rows = workspace.materialize(&view);
+let materialization = workspace.materialize_result(&view)?;
 ```
 
 ```rust

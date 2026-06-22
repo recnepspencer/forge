@@ -14,8 +14,8 @@ fn compose_graph_supports_verified_loop_successor_rewire_with_assumption_summary
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
         loop_successor_verified_profile(),
         TestExistingTruthVerificationAdapter::default()
-            .with_value(&binding, "source.id", json!("he-1"))
-            .with_value(&binding, "target.id", json!("he-2")),
+            .with_value(&binding, "source.id", test_string_aspect_value("he-1"))
+            .with_value(&binding, "target.id", test_string_aspect_value("he-2")),
     );
     let mut workspace = runtime
         .workspace("topology.graph-composition-loop-successor-rewire")
@@ -25,22 +25,22 @@ fn compose_graph_supports_verified_loop_successor_rewire_with_assumption_summary
         .compose_graph(|graph| {
             let successor = graph.insert_entity("draft-half-edge", "HalfEdge", |half_edge| {
                 half_edge
-                    .aspect("identity.id", "he-3")
-                    .aspect("kind.value", "half_edge")
+                    .aspect(test_aspect_touch("identity.id"), test_string_aspect_value("he-3"))
+                    .aspect(test_aspect_touch("kind.value"), test_string_aspect_value("half_edge"))
             })?;
             graph.retarget_existing_verified(
                 binding,
                 |verify| {
                     verify
-                        .aspect("source.id", "he-1")
-                        .aspect("target.id", "he-2")
+                        .aspect(test_aspect_touch("source.id"), test_string_aspect_value("he-1"))
+                        .aspect(test_aspect_touch("target.id"), test_string_aspect_value("he-2"))
                 },
                 |update| {
                     update
-                        .aspect("source.id", "he-1")
+                        .aspect(test_aspect_touch("source.id"), test_string_aspect_value("he-1"))
                         .continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:loop-next-rel").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:loop-next-rel-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         )
-                        .symbolic_entity_identity("target.id", successor.reference().clone())
+                        .symbolic_entity_identity(test_aspect_touch("target.id"), successor.reference().clone())
                 },
             )?;
             Ok(())
@@ -96,7 +96,7 @@ fn compose_graph_supports_verified_loop_successor_rewire_with_assumption_summary
     assert_eq!(evidence.symbolic_resolution_count(), 1);
     assert_eq!(
         assumptions.counter_snapshot(),
-        "verified_steps=1;target_bindings=1;asserted_aspects=2;distinct_asserted_aspect_paths=2;cleared_assertions=0"
+        "verified_steps=1;target_bindings=1;asserted_aspects=2;distinct_asserted_aspect_touches=2;cleared_assertions=0"
     );
     assert_eq!(assumptions.verified_step_count(), 1);
     assert_eq!(assumptions.assumption_snapshot_digests().len(), 1);
@@ -110,7 +110,10 @@ fn compose_graph_supports_verified_loop_successor_rewire_with_assumption_summary
     );
     assert_eq!(resolution_map.len(), 1);
     assert_eq!(resolution_map.entries()[0].component_index(), 1);
-    assert_eq!(resolution_map.entries()[0].aspect_path(), Some("target.id"));
+    assert_eq!(
+        resolution_map.entries()[0].aspect_touch(),
+        Some(&test_aspect_touch("target.id"))
+    );
     assert_eq!(
         resolution_map.entries()[0].symbol().as_str(),
         "draft-half-edge"
@@ -161,8 +164,8 @@ fn compose_graph_supports_verified_loop_successor_rewire_with_assumption_summary
             );
             assert_eq!(inspection.graph_composition_resolution_map().len(), 1);
             assert_eq!(
-                inspection.graph_composition_resolution_map().entries()[0].aspect_path(),
-                Some("target.id")
+                inspection.graph_composition_resolution_map().entries()[0].aspect_touch(),
+                Some(&test_aspect_touch("target.id"))
             );
             assert_eq!(
                 component
@@ -182,8 +185,8 @@ fn compose_graph_supports_verified_loop_successor_rewire_with_assumption_summary
             );
             assert_eq!(component.symbolic_aspect_resolution_evidence().len(), 1);
             assert_eq!(
-                component.symbolic_aspect_resolution_evidence()[0].aspect_path(),
-                "target.id"
+                component.symbolic_aspect_resolution_evidence()[0].aspect_touch(),
+                &test_aspect_touch("target.id")
             );
             assert_eq!(
                 component.symbolic_aspect_resolution_evidence()[0].resolved_entity_identity(),
@@ -217,8 +220,8 @@ fn compose_graph_denies_loop_successor_rewire_when_identity_preservation_is_unav
                 binding,
                 |verify| {
                     verify
-                        .aspect("source.id", "he-1")
-                        .aspect("target.id", "he-2")
+                        .aspect(test_aspect_touch("source.id"), test_string_aspect_value("he-1"))
+                        .aspect(test_aspect_touch("target.id"), test_string_aspect_value("he-2"))
                 },
                 |update| {
                     update
@@ -238,7 +241,7 @@ fn compose_graph_denies_loop_successor_rewire_when_identity_preservation_is_unav
                                 .expect("continuity successor authority label")).expect("continuity successor authority identity"),
                             ],
                         )
-                        .aspect("target.id", "he-3")
+                        .aspect(test_aspect_touch("target.id"), test_string_aspect_value("he-3"))
                 },
             )?;
             Ok(())

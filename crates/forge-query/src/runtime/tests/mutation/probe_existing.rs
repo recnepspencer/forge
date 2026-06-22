@@ -5,18 +5,27 @@ fn probe_existing_returns_backend_verified_values_for_entity_targets() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.probe-existing-entity")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.probe-existing-entity-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-probe-existing-entity-table")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Seed title")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Seed title"),
+            )
         })
         .expect("seed insert should execute");
     let binding = workspace
@@ -32,7 +41,7 @@ fn probe_existing_returns_backend_verified_values_for_entity_targets() {
         .expect("binding should build");
 
     let probe = workspace
-        .probe_existing(binding, ["identity.id", "title.value"])
+        .probe_existing(binding, test_aspect_touches(["identity.id", "title.value"]))
         .expect("probe should execute");
 
     assert_eq!(
@@ -42,17 +51,17 @@ fn probe_existing_returns_backend_verified_values_for_entity_targets() {
     assert_eq!(probe.fields().len(), 2);
     assert_eq!(
         probe
-            .field("identity.id")
+            .field_for_touch(&test_aspect_touch("identity.id"))
             .expect("identity field should exist")
-            .external_value_json(),
-        "\"task-1\""
+            .foundational_value(),
+        &test_string_aspect_value("task-1")
     );
     assert_eq!(
         probe
-            .field("title.value")
+            .field_for_touch(&test_aspect_touch("title.value"))
             .expect("title field should exist")
-            .external_value_json(),
-        "\"Seed title\""
+            .foundational_value(),
+        &test_string_aspect_value("Seed title")
     );
     assert!(!probe.probe_digest().is_empty());
 }
@@ -63,19 +72,28 @@ fn probe_existing_returns_backend_verified_values_for_relation_targets() {
     let mut workspace = runtime
         .workspace("tasks.probe-existing-relation")
         .expect("workspace should open");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.probe-existing-relation-table", |q| {
             q.from("TaskRelation")
-                .select(["identity.id", "kind.value"])
-                .order_by("kind.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("kind", "value").unwrap())
                 .schema_basis("tasks-probe-existing-relation-table")
         })
         .expect("relation live view should declare");
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect("identity.id", "rel-1")
-                .aspect("kind.value", "depends_on")
+                .aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value("rel-1"),
+                )
+                .aspect(
+                    test_aspect_touch("kind.value"),
+                    test_string_aspect_value("depends_on"),
+                )
         })
         .expect("seed insert should execute");
     let binding = workspace
@@ -91,7 +109,7 @@ fn probe_existing_returns_backend_verified_values_for_relation_targets() {
         .expect("relation binding should build");
 
     let probe = workspace
-        .probe_existing(binding, ["kind.value"])
+        .probe_existing(binding, test_aspect_touches(["kind.value"]))
         .expect("relation probe should execute");
 
     assert_eq!(
@@ -100,10 +118,10 @@ fn probe_existing_returns_backend_verified_values_for_relation_targets() {
     );
     assert_eq!(
         probe
-            .field("kind.value")
+            .field_for_touch(&test_aspect_touch("kind.value"))
             .expect("kind field should exist")
-            .external_value_json(),
-        "\"depends_on\""
+            .foundational_value(),
+        &test_string_aspect_value("depends_on")
     );
 }
 
@@ -112,18 +130,27 @@ fn probe_existing_denies_missing_aspect_typed_and_early() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.probe-existing-missing-aspect")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.probe-existing-missing-aspect-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-probe-existing-missing-aspect-table")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Seed title")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Seed title"),
+            )
         })
         .expect("seed insert should execute");
     let binding = workspace
@@ -139,7 +166,7 @@ fn probe_existing_denies_missing_aspect_typed_and_early() {
         .expect("binding should build");
 
     let error = workspace
-        .probe_existing(binding, ["status.value"])
+        .probe_existing(binding, test_aspect_touches(["status.value"]))
         .expect_err("missing probed aspect should deny");
 
     match error {
@@ -148,7 +175,10 @@ fn probe_existing_denies_missing_aspect_typed_and_early() {
                 denial.kind(),
                 ForgeQueryExistingTruthProbeDenialKind::MissingProbedAspect
             );
-            assert_eq!(denial.probed_aspect_path(), Some("status.value"));
+            assert_eq!(
+                denial.probed_aspect_touch(),
+                Some(&test_aspect_touch("status.value"))
+            );
         }
         other => panic!("expected typed probe denial, got {other:?}"),
     }
@@ -159,18 +189,27 @@ fn probe_existing_reports_the_actual_missing_aspect_in_multi_aspect_requests() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.probe-existing-multi-missing-aspect")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.probe-existing-multi-missing-aspect-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-probe-existing-multi-missing-aspect-table")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Seed title")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Seed title"),
+            )
         })
         .expect("seed insert should execute");
     let binding = workspace
@@ -186,7 +225,10 @@ fn probe_existing_reports_the_actual_missing_aspect_in_multi_aspect_requests() {
         .expect("binding should build");
 
     let error = workspace
-        .probe_existing(binding, ["identity.id", "status.value", "title.value"])
+        .probe_existing(
+            binding,
+            test_aspect_touches(["identity.id", "status.value", "title.value"]),
+        )
         .expect_err("missing probed aspect should deny");
 
     match error {
@@ -195,7 +237,10 @@ fn probe_existing_reports_the_actual_missing_aspect_in_multi_aspect_requests() {
                 denial.kind(),
                 ForgeQueryExistingTruthProbeDenialKind::MissingProbedAspect
             );
-            assert_eq!(denial.probed_aspect_path(), Some("status.value"));
+            assert_eq!(
+                denial.probed_aspect_touch(),
+                Some(&test_aspect_touch("status.value"))
+            );
         }
         other => panic!("expected typed probe denial, got {other:?}"),
     }
@@ -221,7 +266,7 @@ fn probe_existing_denies_unsupported_backend_typed_and_early() {
         .expect("binding should build");
 
     let error = workspace
-        .probe_existing(binding, ["title.value"])
+        .probe_existing(binding, test_aspect_touches(["title.value"]))
         .expect_err("unsupported backend probe should deny");
 
     match error {

@@ -1,15 +1,16 @@
 use forge_runtime_bridge::facade::RuntimeBridge;
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde_json::Value;
-
 use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::tests::support::test_bridge_with_writeback_authority;
+use forge_foundational::facade::{AspectValue, CanonicalFieldPath};
+
+pub(super) type NativeExternalRow = BTreeMap<CanonicalFieldPath, AspectValue>;
 
 pub(super) struct StatefulBridgeState {
     pub(super) live_views: BTreeMap<String, String>,
     pub(super) installed_collections: BTreeSet<String>,
-    pub(super) rows_by_collection: BTreeMap<String, BTreeMap<String, Value>>,
+    pub(super) rows_by_collection: BTreeMap<String, BTreeMap<String, NativeExternalRow>>,
     pub(super) collection_by_identity: BTreeMap<String, String>,
     pub(super) identity_by_symbol: BTreeMap<String, ForgeQueryEntityIdentity>,
     pub(super) identity_text_by_symbol: BTreeMap<String, String>,

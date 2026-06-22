@@ -1,7 +1,5 @@
 use std::collections::BTreeMap;
 
-use serde::de::DeserializeOwned;
-
 use super::derived_artifact_binding::ForgeQueryDerivedArtifactBinding;
 use super::derived_materialization_result::ForgeQueryDerivedMaterializationResult;
 use crate::evidence_identity::{
@@ -17,14 +15,23 @@ pub struct ForgeQueryDerivedMaterializationTarget {
 }
 
 impl ForgeQueryDerivedMaterializationTarget {
-    pub fn new(view_name: impl Into<String>) -> Self {
+    pub(in crate::runtime) fn new(view_name: impl Into<String>) -> Self {
         Self {
             view_name: view_name.into(),
         }
     }
 
-    pub fn view_name(&self) -> &str {
+    pub(crate) fn view_name(&self) -> &str {
         &self.view_name
+    }
+
+    pub fn terminal_view_name_projection(&self) -> &str {
+        self.view_name()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(view_name: impl Into<String>) -> Self {
+        Self::new(view_name)
     }
 }
 
@@ -88,12 +95,18 @@ impl ForgeQueryDerivedMaterializationBundle {
         self.materializations.len()
     }
 
-    pub fn target_view_names(&self) -> impl Iterator<Item = &str> {
+    pub fn targets(&self) -> impl Iterator<Item = ForgeQueryDerivedMaterializationTarget> + '_ {
+        self.materializations
+            .keys()
+            .map(ForgeQueryDerivedMaterializationTarget::new)
+    }
+
+    pub fn terminal_target_view_names_projection(&self) -> impl Iterator<Item = &str> {
         self.materializations.keys().map(String::as_str)
     }
 
-    pub fn includes_view_name(&self, view_name: &str) -> bool {
-        self.materializations.contains_key(view_name)
+    pub fn includes_target(&self, target: &ForgeQueryDerivedMaterializationTarget) -> bool {
+        self.materializations.contains_key(target.view_name())
     }
 
     pub fn materialization<T>(
@@ -103,7 +116,7 @@ impl ForgeQueryDerivedMaterializationBundle {
         self.materialization_by_name(view.name())
     }
 
-    pub fn materialization_by_name(
+    pub(crate) fn materialization_by_name(
         &self,
         view_name: &str,
     ) -> Result<&ForgeQueryDerivedMaterializationResult, ForgeQueryRuntimeError> {
@@ -114,16 +127,6 @@ impl ForgeQueryDerivedMaterializationBundle {
                 message: "bundle did not retain the requested derived surface".to_string(),
             }
         })
-    }
-
-    pub fn decode_single_row<V, T>(
-        &self,
-        view: &ForgeQueryDerivedViewHandle<V>,
-    ) -> Result<T, ForgeQueryRuntimeError>
-    where
-        T: DeserializeOwned,
-    {
-        self.materialization(view)?.decode_single_row()
     }
 
     pub fn bind_retained_artifact(

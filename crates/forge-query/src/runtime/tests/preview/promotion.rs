@@ -4,7 +4,11 @@ use super::super::support::*;
 fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residue() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>("tasks.preview-closeout", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.preview-closeout",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
 
     let outcome = {
@@ -16,8 +20,8 @@ fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residu
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("preview-temp-1")),
-                    ("title.value", json!("Temporary one")),
+                    ("identity.id", test_string_aspect_value("preview-temp-1")),
+                    ("title.value", test_string_aspect_value("Temporary one")),
                 ],
             ))
             .expect("first preview write should stage");
@@ -25,8 +29,8 @@ fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residu
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("preview-temp-2")),
-                    ("title.value", json!("Temporary two")),
+                    ("identity.id", test_string_aspect_value("preview-temp-2")),
+                    ("title.value", test_string_aspect_value("Temporary two")),
                 ],
             ))
             .expect("second preview write should stage");
@@ -62,7 +66,7 @@ fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residu
 fn preview_promotion_closeout_records_consumed_staging_without_preview_lane_mutation() {
     let mut runtime = stateful_bridge_task_runtime();
     runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare before preview-safe operation runs");
     let program = preview_safe_program();
     let installed = runtime
@@ -83,7 +87,7 @@ fn preview_promotion_closeout_records_consumed_staging_without_preview_lane_muta
                 operation,
                 vec![ForgeQueryOperationInput::new(
                     "title",
-                    Value::String("Promoted closeout task".to_string()),
+                    ForgeQueryProgramValue::string("Promoted closeout task"),
                 )],
             )
             .expect("preview operation should stage");
@@ -111,7 +115,7 @@ fn preview_promotion_closeout_records_consumed_staging_without_preview_lane_muta
     );
 
     let view = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.after-promotion-closeout",
             task_live_request(),
             task_schema(),
@@ -120,8 +124,8 @@ fn preview_promotion_closeout_records_consumed_staging_without_preview_lane_muta
     let rows = runtime.read_live(&view);
     assert_eq!(rows.len(), 1);
     assert_eq!(
-        rows[0].external_row()["title"]["value"],
-        "Promoted closeout task"
+        test_native_string_value(&rows[0], "title.value").as_deref(),
+        Some("Promoted closeout task")
     );
 }
 
@@ -149,8 +153,11 @@ fn preview_promotion_rejects_stale_basis_before_authority_execution() {
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("stale-preview")),
-                    ("title.value", json!("Should not promote")),
+                    ("identity.id", test_string_aspect_value("stale-preview")),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Should not promote"),
+                    ),
                 ],
             ))
             .expect("preview write should stage");
@@ -201,8 +208,11 @@ fn preview_promotion_write_failure_is_typed_and_not_silently_dropped() {
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("denied-preview")),
-                    ("title.value", json!("Denied preview write")),
+                    ("identity.id", test_string_aspect_value("denied-preview")),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Denied preview write"),
+                    ),
                 ],
             ))
             .expect("preview write should stage");
@@ -254,8 +264,11 @@ fn preview_promotion_rejects_multi_write_batch_before_partial_authority_executio
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("preview-batch-1")),
-                    ("title.value", json!("First staged write")),
+                    ("identity.id", test_string_aspect_value("preview-batch-1")),
+                    (
+                        "title.value",
+                        test_string_aspect_value("First staged write"),
+                    ),
                 ],
             ))
             .expect("first preview write should stage");
@@ -263,8 +276,11 @@ fn preview_promotion_rejects_multi_write_batch_before_partial_authority_executio
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("preview-batch-2")),
-                    ("title.value", json!("Second staged write")),
+                    ("identity.id", test_string_aspect_value("preview-batch-2")),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Second staged write"),
+                    ),
                 ],
             ))
             .expect("second preview write should stage");

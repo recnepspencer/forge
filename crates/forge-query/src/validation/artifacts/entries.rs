@@ -5,21 +5,22 @@ use crate::canonicalization::{
     CanonicalTraversalEntry,
 };
 use crate::schema_view::SchemaFieldKind;
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ValidatedProjectionEntry {
-    aspect: AspectName,
-    field: FieldName,
+    aspect_key: AspectKey,
+    field_key: FieldKey,
     field_kind: SchemaFieldKind,
 }
 
 impl ValidatedProjectionEntry {
-    pub fn aspect(&self) -> &str {
-        self.aspect.as_str()
+    pub fn native_aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
     }
 
-    pub fn field(&self) -> &str {
-        self.field.as_str()
+    pub fn native_field_key(&self) -> &FieldKey {
+        &self.field_key
     }
 
     pub fn field_kind(&self) -> &SchemaFieldKind {
@@ -31,8 +32,8 @@ impl ValidatedProjectionEntry {
         field_kind: SchemaFieldKind,
     ) -> Self {
         Self {
-            aspect: entry.aspect.clone(),
-            field: entry.field.clone(),
+            aspect_key: native_aspect_key(&entry.aspect),
+            field_key: native_field_key(&entry.field),
             field_kind,
         }
     }
@@ -40,7 +41,9 @@ impl ValidatedProjectionEntry {
     pub(crate) fn digest_part(&self) -> String {
         format!(
             "validated-projection:{}:{}:{:?}",
-            self.aspect, self.field, self.field_kind
+            self.aspect_key.as_str(),
+            self.field_key.as_str(),
+            self.field_kind
         )
     }
 }
@@ -53,8 +56,8 @@ pub struct ValidatedTraversalEntry {
 }
 
 impl ValidatedTraversalEntry {
-    pub fn relation(&self) -> &str {
-        self.relation.as_str()
+    pub fn relation_name(&self) -> &RelationName {
+        &self.relation
     }
 
     pub fn depth(&self) -> u8 {
@@ -83,19 +86,19 @@ impl ValidatedTraversalEntry {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ValidatedResultShapeBinding {
-    source_aspect: AspectName,
-    source_field: FieldName,
+    source_aspect_key: AspectKey,
+    source_field_key: FieldKey,
     delivered_name: DeliveredFieldName,
     field_kind: SchemaFieldKind,
 }
 
 impl ValidatedResultShapeBinding {
-    pub fn source_aspect(&self) -> &str {
-        self.source_aspect.as_str()
+    pub fn native_source_aspect_key(&self) -> &AspectKey {
+        &self.source_aspect_key
     }
 
-    pub fn source_field(&self) -> &str {
-        self.source_field.as_str()
+    pub fn native_source_field_key(&self) -> &FieldKey {
+        &self.source_field_key
     }
 
     pub fn delivered_name(&self) -> &str {
@@ -111,8 +114,8 @@ impl ValidatedResultShapeBinding {
         field_kind: SchemaFieldKind,
     ) -> Self {
         Self {
-            source_aspect: field.source_aspect.clone(),
-            source_field: field.source_field.clone(),
+            source_aspect_key: native_aspect_key(&field.source_aspect),
+            source_field_key: native_field_key(&field.source_field),
             delivered_name: field.delivered_name.clone(),
             field_kind,
         }
@@ -121,15 +124,18 @@ impl ValidatedResultShapeBinding {
     pub(crate) fn digest_part(&self) -> String {
         format!(
             "validated-result-binding:{}:{}:{}:{:?}",
-            self.source_aspect, self.source_field, self.delivered_name, self.field_kind
+            self.source_aspect_key.as_str(),
+            self.source_field_key.as_str(),
+            self.delivered_name,
+            self.field_kind
         )
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ValidatedPredicateEntry {
-    aspect: AspectName,
-    field: FieldName,
+    aspect_key: AspectKey,
+    field_key: FieldKey,
     predicate_family: &'static str,
     field_kind: SchemaFieldKind,
     value_kind: &'static str,
@@ -137,12 +143,12 @@ pub struct ValidatedPredicateEntry {
 }
 
 impl ValidatedPredicateEntry {
-    pub fn aspect(&self) -> &str {
-        self.aspect.as_str()
+    pub fn native_aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
     }
 
-    pub fn field(&self) -> &str {
-        self.field.as_str()
+    pub fn native_field_key(&self) -> &FieldKey {
+        &self.field_key
     }
 
     pub fn predicate_family(&self) -> &'static str {
@@ -167,8 +173,8 @@ impl ValidatedPredicateEntry {
         value_kind: &'static str,
     ) -> Self {
         Self {
-            aspect: entry.aspect.clone(),
-            field: entry.field.clone(),
+            aspect_key: native_aspect_key(&entry.aspect),
+            field_key: native_field_key(&entry.field),
             predicate_family: match entry.family {
                 CanonicalPredicateFamily::Equality => "equality",
                 CanonicalPredicateFamily::IntegerGreaterThan => "integer-greater-than",
@@ -186,8 +192,8 @@ impl ValidatedPredicateEntry {
     pub(crate) fn digest_part(&self) -> String {
         format!(
             "validated-predicate:{}:{}:{}:{:?}:{}:{}",
-            self.aspect,
-            self.field,
+            self.aspect_key.as_str(),
+            self.field_key.as_str(),
             self.predicate_family,
             self.field_kind,
             self.value_kind,
@@ -198,20 +204,20 @@ impl ValidatedPredicateEntry {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ValidatedOrderingEntry {
-    aspect: AspectName,
-    field: FieldName,
+    aspect_key: AspectKey,
+    field_key: FieldKey,
     direction: &'static str,
     field_kind: SchemaFieldKind,
     projected: bool,
 }
 
 impl ValidatedOrderingEntry {
-    pub fn aspect(&self) -> &str {
-        self.aspect.as_str()
+    pub fn native_aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
     }
 
-    pub fn field(&self) -> &str {
-        self.field.as_str()
+    pub fn native_field_key(&self) -> &FieldKey {
+        &self.field_key
     }
 
     pub fn direction(&self) -> &'static str {
@@ -232,8 +238,8 @@ impl ValidatedOrderingEntry {
         projected: bool,
     ) -> Self {
         Self {
-            aspect: entry.aspect.clone(),
-            field: entry.field.clone(),
+            aspect_key: native_aspect_key(&entry.aspect),
+            field_key: native_field_key(&entry.field),
             direction: match entry.direction {
                 crate::authoring::OrderingDirection::Ascending => "ascending",
                 crate::authoring::OrderingDirection::Descending => "descending",
@@ -246,9 +252,22 @@ impl ValidatedOrderingEntry {
     pub(crate) fn digest_part(&self) -> String {
         format!(
             "validated-ordering:{}:{}:{}:{:?}:{}",
-            self.aspect, self.field, self.direction, self.field_kind, self.projected
+            self.aspect_key.as_str(),
+            self.field_key.as_str(),
+            self.direction,
+            self.field_kind,
+            self.projected
         )
     }
+}
+
+fn native_aspect_key(aspect: &AspectName) -> AspectKey {
+    AspectKey::new(aspect.as_str())
+        .expect("validated aspect names must be foundational aspect keys")
+}
+
+fn native_field_key(field: &FieldName) -> FieldKey {
+    FieldKey::new(field.as_str()).expect("validated field names must be foundational field keys")
 }
 
 fn canonical_operand_basis(operand: &CanonicalPredicateOperand) -> String {

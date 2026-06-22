@@ -3,7 +3,7 @@ use forge_query::facade::{
     evaluate_requested_domain_capability_contribution,
     materialize_lower_runtime_support_traceability_artifact,
     prepare_admitted_domain_capability_contribution_for_materialization,
-    ForgeQueryIntentAdmissionDecision, ForgeQueryIntentDeclaration,
+    ForgeQueryIntentAdmissionDecision, ForgeQueryIntentDeclaration, ForgeQueryIntentInput,
     ForgeQueryRawIntentAdmissionRequest, ForgeQuerySupportContributionAuthoring,
 };
 
@@ -13,7 +13,7 @@ fn main() {
         "test.strategy",
         "1",
         "test.contract",
-        serde_json::json!({ "entity": "edge:42" }),
+        ForgeQueryIntentInput::object([("entity", ForgeQueryIntentInput::string("edge:42"))]),
     );
     let request = ForgeQueryRawIntentAdmissionRequest::authoritative_runtime_entrypoint(
         declaration.clone(),

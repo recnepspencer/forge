@@ -14,7 +14,7 @@ fn invariant_denial_retains_typed_snapshot_identity() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task-1", "dependency": "cycle" }),
+            test_intent_input([("entity", "task-1"), ("dependency", "cycle")]),
         ))
         .expect_err("invariant violation should deny before publication");
 

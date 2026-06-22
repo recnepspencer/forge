@@ -155,7 +155,7 @@ impl ForgeQueryRuntime {
             delivery.target().to_string(),
             strategy_version,
             input_contract,
-            delivery.payload().clone(),
+            ForgeQueryIntentInput::from_effect_payload(delivery.payload()),
         )
         .with_source_lane(ForgeQueryIntentSourceLane::EffectTriggered)
         .with_effect_trigger(delivery.write_adjacent_trigger().clone());

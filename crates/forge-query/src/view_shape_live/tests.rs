@@ -58,18 +58,23 @@ fn schema_view() -> crate::schema_view::QuerySchemaView {
         "view-shape-live",
         [
             crate::schema_view::SchemaFieldView::new(
-                "identity",
-                "id",
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             ),
             crate::schema_view::SchemaFieldView::new(
-                "profile",
-                "display_name",
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             ),
             crate::schema_view::SchemaFieldView::new(
-                "status",
-                "lane",
+                crate::authoring::AspectName::new("status")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("lane")
+                    .expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             ),
         ],
@@ -476,7 +481,8 @@ fn grouped_truth_view_with_rows(
     let grouping_field = match plan
         .grouped_planning_artifact()
         .expect("grouped plan should carry grouped planning")
-        .grouping_aspect()
+        .native_grouping_aspect_key()
+        .as_str()
     {
         "status" => "status.lane",
         "profile" => "profile.display_name",
@@ -487,7 +493,8 @@ fn grouped_truth_view_with_rows(
         relational_grouped_projection_contract(
             plan.grouped_planning_artifact()
                 .expect("grouped plan should carry grouped planning")
-                .grouping_aspect(),
+                .native_grouping_aspect_key()
+                .as_str(),
             identity_field,
             grouping_field_override.unwrap_or(grouping_field),
         ),
@@ -663,7 +670,9 @@ fn observed_and_focused_inspector_emit_distinct_live_patches() {
     .unwrap();
     let focused_plan = planned_view(
         &canonical,
-        ViewShapeDescriptor::inspector_detail_focused("profile"),
+        ViewShapeDescriptor::inspector_detail_focused(
+            forge_foundational::facade::AspectKey::new("profile").unwrap(),
+        ),
     );
     let focused_live = lower_view_shape_plan_to_live(
         &focused_plan,
@@ -709,7 +718,7 @@ fn identity_aware_focused_inspector_emits_explicit_identity_artifact() {
     let focused_plan = planned_view(
         &canonical,
         ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-            "profile",
+            forge_foundational::facade::AspectKey::new("profile").unwrap(),
             InspectorIdentityClassification::IdentityBreak,
         ),
     );
@@ -759,7 +768,7 @@ fn identity_aware_focused_inspector_requires_matching_identity_binding() {
     let focused_plan = planned_view(
         &canonical,
         ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-            "profile",
+            forge_foundational::facade::AspectKey::new("profile").unwrap(),
             InspectorIdentityClassification::IdentityBreak,
         ),
     );
@@ -813,7 +822,9 @@ fn ordinary_detail_live_lowering_rejects_smuggled_identity_binding() {
 fn focused_inspector_widening_is_denied_and_counted() {
     let planned = planned_view(
         &detail_canonical(),
-        ViewShapeDescriptor::inspector_detail_focused("profile"),
+        ViewShapeDescriptor::inspector_detail_focused(
+            forge_foundational::facade::AspectKey::new("profile").unwrap(),
+        ),
     );
     let live = lower_view_shape_plan_to_live(
         &planned,
@@ -940,13 +951,17 @@ fn grouped_baseline_is_derived_from_authoritative_execution_bindings() {
         materialize_authoritative_grouped_baseline(&planned, basis, &grouped_execution).unwrap();
 
     assert_eq!(
-        grouped_execution.grouped_planning().grouping_aspect(),
-        "status"
+        grouped_execution
+            .grouped_planning()
+            .native_grouping_aspect_key(),
+        &aspect_key("status")
     );
     assert_eq!(grouped_execution.member_rows().len(), 2);
     assert_eq!(
-        grouped_execution.member_rows()[0].lane().grouping_aspect(),
-        "status"
+        grouped_execution.member_rows()[0]
+            .lane()
+            .native_grouping_aspect_key(),
+        &aspect_key("status")
     );
     assert_eq!(
         grouped_execution.truth_view_evidence_identity().as_str(),

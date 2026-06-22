@@ -43,7 +43,7 @@ Stable runtime-backed entry points:
 - `workspace.compose_read(...)`
 - `workspace.read(...)`
 - `workspace.observe(...)`
-- `workspace.materialize(...)`
+- `workspace.materialize_result(...)`
 - `workspace.state(...)`
 - `workspace.inspect(...)`
 - `workspace.public_api_contract()`
@@ -270,7 +270,7 @@ workspace
     .unwrap();
 
 let canvas_patches = workspace.observe(&canvas);
-let readiness_rows = workspace.materialize(&readiness);
+let readiness_rows = workspace.materialize_result(&readiness)?;
 let badge_explanation = workspace.inspect(&badges).unwrap();
 
 match badge_explanation {
@@ -379,7 +379,7 @@ inspection without hand-built cache or invalidation glue.
 - Use preview or branch sessions when the work should remain isolated from
   current truth.
 
-`workspace.read(...)` and `workspace.materialize(...)` are snapshot-style reads.
+`workspace.read(...)` and `workspace.materialize_result(...)` are snapshot-style reads.
 `workspace.observe(...)` is the incremental patch path. `workspace.state(...)`
 and `workspace.inspect(...)` are explanation surfaces, not substitutes for
 domain data access.

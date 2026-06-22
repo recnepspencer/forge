@@ -3,7 +3,7 @@ use std::sync::{
     Arc,
 };
 
-use serde_json::{json, Value};
+use forge_foundational::facade::AspectValue;
 
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath, RawAuthoredQuery,
@@ -42,26 +42,28 @@ impl ForgeQueryDerivedViewMaintainer for SharedReadPublishingMaintainer {
         let next = self.invocations.fetch_add(1, Ordering::SeqCst) + 1;
         match self.mode {
             SharedReadPublicationMode::RefreshTitle(title) => {
-                materialization.replace_rows([published_title_row(title)]);
+                materialization.replace_retained_rows([published_title_retained_row(title)]);
                 ForgeQueryDerivedPatch::whole_refresh_materialized(
                     view.name(),
                     crate::memory_workspace::admit_external_commit_label(format!(
                         "shared-read-refresh-{next}"
                     )),
-                    ["title.value".to_string()],
-                    json!({"published": true, "title": title}),
+                    test_aspect_touches(["title.value"]),
+                    ForgeQueryDerivedPatchPayload::from_retained_row(published_title_retained_row(
+                        title,
+                    )),
                     format!("shared-read-publication-{next}"),
                 )
             }
             SharedReadPublicationMode::EmptyRefresh => {
-                materialization.replace_rows(std::iter::empty());
+                materialization.replace_retained_rows(std::iter::empty());
                 ForgeQueryDerivedPatch::whole_refresh_materialized(
                     view.name(),
                     crate::memory_workspace::admit_external_commit_label(format!(
                         "shared-read-empty-{next}"
                     )),
-                    ["title.value".to_string()],
-                    json!({"published": true, "rows": 0}),
+                    test_aspect_touches(["title.value"]),
+                    ForgeQueryDerivedPatchPayload::empty(),
                     format!("shared-read-empty-publication-{next}"),
                 )
             }
@@ -70,27 +72,31 @@ impl ForgeQueryDerivedViewMaintainer for SharedReadPublishingMaintainer {
                     .get(next.saturating_sub(1))
                     .copied()
                     .unwrap_or_else(|| titles[titles.len() - 1]);
-                materialization.replace_rows([published_title_row(title)]);
+                materialization.replace_retained_rows([published_title_retained_row(title)]);
                 ForgeQueryDerivedPatch::whole_refresh_materialized(
                     view.name(),
                     crate::memory_workspace::admit_external_commit_label(format!(
                         "shared-read-sequenced-{next}"
                     )),
-                    ["title.value".to_string()],
-                    json!({"published": true, "title": title}),
+                    test_aspect_touches(["title.value"]),
+                    ForgeQueryDerivedPatchPayload::from_retained_row(published_title_retained_row(
+                        title,
+                    )),
                     format!("shared-read-sequenced-publication-{next}"),
                 )
             }
             SharedReadPublicationMode::IncrementalTitle(title) => {
-                materialization.replace_rows([published_title_row(title)]);
+                materialization.replace_retained_rows([published_title_retained_row(title)]);
                 ForgeQueryDerivedPatch::incremental(
                     view.name(),
                     crate::memory_workspace::admit_external_commit_label(format!(
                         "shared-read-stale-{next}"
                     )),
                     crate::memory_workspace::admit_authored_entity_label(format!("entity-{next}")),
-                    ["title.value".to_string()],
-                    json!({"published": true, "title": title}),
+                    test_aspect_touches(["title.value"]),
+                    ForgeQueryDerivedPatchPayload::from_retained_row(published_title_retained_row(
+                        title,
+                    )),
                 )
             }
         }
@@ -107,8 +113,8 @@ pub(super) fn declare_shared_read_derived(
     workspace: &mut ForgeQueryWorkspace,
     suffix: &str,
     maintainer: SharedReadPublishingMaintainer,
-) -> ForgeQueryDerivedViewHandle<Value> {
-    let live: ForgeQueryLiveView<Value> = workspace
+) -> ForgeQueryDerivedViewHandle<ForgeQueryNativeRow> {
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view_request(
             &format!("tasks.{suffix}"),
             task_live_request(),
@@ -119,7 +125,7 @@ pub(super) fn declare_shared_read_derived(
         .computed_view(
             crate::program::ForgeQueryDerivedView::new(
                 format!("derived.{suffix}"),
-                ["title.value".to_string()],
+                test_aspect_touches(["title.value"]),
             )
             .depends_on_live(&live),
             maintainer,
@@ -131,8 +137,14 @@ pub(super) fn insert_task(workspace: &mut ForgeQueryWorkspace, id: &str, title: 
     workspace
         .insert("Task", |builder| {
             builder
-                .aspect("identity.id", id)
-                .aspect("title.value", title)
+                .aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value(id),
+                )
+                .aspect(
+                    test_aspect_touch("title.value"),
+                    test_string_aspect_value(title),
+                )
         })
         .expect("task insert should succeed");
 }
@@ -145,7 +157,11 @@ pub(super) fn consume_display_title_attempt(
         .consume_projection_facts(
             &result_shape,
             &authorized_projection,
-            ProjectMaterializedFacts::declare().display_field("title.value"),
+            ProjectMaterializedFacts::declare().display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "title", "value",
+                ]),
+            ),
         )
         .expect("projection consumption should stay on the typed artifact lane")
 }
@@ -161,9 +177,13 @@ pub(super) fn consume_display_title(artifact: &ForgeQueryPublishedDerivedArtifac
         .facts()
         .display_fields()
         .first()
-        .and_then(|fact| fact.value().as_str())
+        .and_then(|fact| match fact.value() {
+            AspectValue::String(forge_foundational::facade::InternedString::Raw(value)) => {
+                Some(value.clone())
+            }
+            _ => None,
+        })
         .expect("display-field title should be present")
-        .to_string()
 }
 
 fn projection_artifacts() -> (CanonicalResultShapeArtifact, AuthorizedProjectionArtifact) {
@@ -190,6 +210,6 @@ fn projection_artifacts() -> (CanonicalResultShapeArtifact, AuthorizedProjection
     (canonical.result_shape().clone(), authorized_projection)
 }
 
-fn published_title_row(title: &str) -> Value {
-    json!({ "title": { "value": title } })
+fn published_title_retained_row(title: &str) -> ForgeQueryRetainedMaterializedRow {
+    retained_string_test_row("title.value", title)
 }

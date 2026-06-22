@@ -14,10 +14,25 @@ pub(crate) fn manager_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "runtime-read-composition",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
-        [SchemaRelationView::new("manager", 1)],
+        [SchemaRelationView::new(
+            crate::authoring::RelationName::new("manager")
+                .expect("schema relation literal must be valid"),
+            1,
+        )],
     )
 }
 
@@ -25,10 +40,25 @@ pub(crate) fn expanded_manager_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "runtime-read-composition-expanded",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
-        [SchemaRelationView::new("manager", 2)],
+        [SchemaRelationView::new(
+            crate::authoring::RelationName::new("manager")
+                .expect("schema relation literal must be valid"),
+            2,
+        )],
     )
 }
 
@@ -36,12 +66,31 @@ pub(crate) fn frontier_manager_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "runtime-read-composition-frontier",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
         [
-            SchemaRelationView::new("manager", 1),
-            SchemaRelationView::new("mentor", 1),
+            SchemaRelationView::new(
+                crate::authoring::RelationName::new("manager")
+                    .expect("schema relation literal must be valid"),
+                1,
+            ),
+            SchemaRelationView::new(
+                crate::authoring::RelationName::new("mentor")
+                    .expect("schema relation literal must be valid"),
+                1,
+            ),
         ],
     )
 }
@@ -50,12 +99,31 @@ pub(crate) fn expanded_frontier_manager_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "runtime-read-composition-frontier-expanded",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
         [
-            SchemaRelationView::new("manager", 2),
-            SchemaRelationView::new("mentor", 2),
+            SchemaRelationView::new(
+                crate::authoring::RelationName::new("manager")
+                    .expect("schema relation literal must be valid"),
+                2,
+            ),
+            SchemaRelationView::new(
+                crate::authoring::RelationName::new("mentor")
+                    .expect("schema relation literal must be valid"),
+                2,
+            ),
         ],
     )
 }
@@ -64,13 +132,28 @@ pub(crate) fn searchable_manager_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "runtime-read-composition-searchable",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String)
-                .text_predicate_queryable()
-                .membership_predicate_queryable()
-                .presence_predicate_queryable(),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            )
+            .text_predicate_queryable()
+            .membership_predicate_queryable()
+            .presence_predicate_queryable(),
         ],
-        [SchemaRelationView::new("manager", 1)],
+        [SchemaRelationView::new(
+            crate::authoring::RelationName::new("manager")
+                .expect("schema relation literal must be valid"),
+            1,
+        )],
     )
 }
 
@@ -78,15 +161,34 @@ pub(crate) fn searchable_expanded_frontier_manager_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "runtime-read-composition-searchable-frontier-expanded",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String)
-                .text_predicate_queryable()
-                .membership_predicate_queryable()
-                .presence_predicate_queryable(),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            )
+            .text_predicate_queryable()
+            .membership_predicate_queryable()
+            .presence_predicate_queryable(),
         ],
         [
-            SchemaRelationView::new("manager", 2),
-            SchemaRelationView::new("mentor", 2),
+            SchemaRelationView::new(
+                crate::authoring::RelationName::new("manager")
+                    .expect("schema relation literal must be valid"),
+                2,
+            ),
+            SchemaRelationView::new(
+                crate::authoring::RelationName::new("mentor")
+                    .expect("schema relation literal must be valid"),
+                2,
+            ),
         ],
     )
 }

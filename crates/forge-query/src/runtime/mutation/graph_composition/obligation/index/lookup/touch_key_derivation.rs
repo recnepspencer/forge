@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use crate::runtime::ForgeQueryGraphTouchDescriptor;
+use crate::runtime::{
+    ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch, ForgeQueryGraphTouchDescriptor,
+};
 
 use super::ForgeQueryGraphObligationTouchLookupKey;
 
@@ -13,7 +15,7 @@ pub(in crate::runtime::mutation::graph_composition::obligation::index) fn touch_
         insert_row_collection_key(&mut keys, row.declared_collection());
         insert_row_relation_kind_key(&mut keys, row.relation_kind_id());
         insert_row_declared_aspect_operation_keys(&mut keys, row.declared_aspect_operations());
-        insert_row_touched_aspect_path_keys(&mut keys, row.touched_aspect_paths());
+        insert_row_touched_aspect_keys(&mut keys, row.admitted_touched_aspects());
         if let Some(read_verb) = row.read_verb() {
             keys.insert(ForgeQueryGraphObligationTouchLookupKey::ReadVerb(read_verb));
         } else {
@@ -54,27 +56,25 @@ fn insert_row_relation_kind_key(
 
 fn insert_row_declared_aspect_operation_keys(
     keys: &mut BTreeSet<ForgeQueryGraphObligationTouchLookupKey>,
-    declared_aspect_operations: &[String],
+    declared_aspect_operations: &[ForgeQueryAspectMutationOperation],
 ) {
     for operation in declared_aspect_operations {
         keys.insert(
             ForgeQueryGraphObligationTouchLookupKey::DeclaredAspectOperation(operation.clone()),
         );
-        if let Some((_, aspect_path)) = operation.split_once(':') {
-            keys.insert(ForgeQueryGraphObligationTouchLookupKey::AspectPath(
-                aspect_path.to_string(),
-            ));
-        }
+        keys.insert(ForgeQueryGraphObligationTouchLookupKey::AspectTouch(
+            operation.aspect_touch().clone(),
+        ));
     }
 }
 
-fn insert_row_touched_aspect_path_keys(
+fn insert_row_touched_aspect_keys(
     keys: &mut BTreeSet<ForgeQueryGraphObligationTouchLookupKey>,
-    touched_aspect_paths: &[String],
+    touched_aspects: &[ForgeQueryAspectTouch],
 ) {
-    for aspect_path in touched_aspect_paths {
-        keys.insert(ForgeQueryGraphObligationTouchLookupKey::AspectPath(
-            aspect_path.clone(),
+    for aspect_touch in touched_aspects {
+        keys.insert(ForgeQueryGraphObligationTouchLookupKey::AspectTouch(
+            aspect_touch.clone(),
         ));
     }
 }

@@ -1,6 +1,9 @@
+use forge_foundational::facade::AspectValue;
+use forge_foundational::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_query::facade::runtime::{
-    ForgeQueryGraphReadAccessAdmissionPosture, ForgeQueryGraphReadBudgetClassKind,
-    ForgeQueryGraphReadStreamingCursorDenialKind, ForgeQueryGraphReadStreamingReceipt,
+    ForgeQueryAspectTouch, ForgeQueryGraphReadAccessAdmissionPosture,
+    ForgeQueryGraphReadBudgetClassKind, ForgeQueryGraphReadStreamingCursorDenialKind,
+    ForgeQueryGraphReadStreamingReceipt,
 };
 
 #[allow(dead_code)]
@@ -217,9 +220,9 @@ fn seed_active_users(
     for index in 0..count {
         workspace
             .insert("user", |user| {
-                user.aspect("identity.id", format!("{prefix}-{index}"))
-                    .aspect("status.value", "active")
-                    .aspect("profile.display_name", format!("User {index}"))
+                user.aspect(touch("identity.id"), text(format!("{prefix}-{index}")))
+                    .aspect(touch("status.value"), text("active"))
+                    .aspect(touch("profile.display_name"), text(format!("User {index}")))
             })
             .expect("seed user should insert through runtime");
     }
@@ -233,11 +236,39 @@ fn seed_frontier_edges(
         for index in 0..2 {
             workspace
                 .insert(relation, |edge| {
-                    edge.aspect("identity.id", format!("{prefix}-{relation}-{index}"))
-                        .aspect("source.id", format!("{prefix}-{index}"))
-                        .aspect("target.id", format!("{prefix}-{}", index + 1))
+                    edge.aspect(
+                        touch("identity.id"),
+                        text(format!("{prefix}-{relation}-{index}")),
+                    )
+                    .aspect(touch("source.id"), text(format!("{prefix}-{index}")))
+                    .aspect(touch("target.id"), text(format!("{prefix}-{}", index + 1)))
                 })
                 .expect("seed frontier relation should insert through runtime");
         }
     }
+}
+
+fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
+    let mut segments = aspect_path.split('.');
+    let aspect = segments
+        .next()
+        .and_then(|segment| AspectKey::new(segment.to_string()))
+        .expect("test aspect path aspect should admit");
+    let fields = segments
+        .map(|segment| {
+            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
+        })
+        .collect::<Vec<_>>();
+    if fields.is_empty() {
+        ForgeQueryAspectTouch::aspect(aspect)
+    } else {
+        ForgeQueryAspectTouch::field_path(
+            aspect,
+            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
+        )
+    }
+}
+
+fn text(value: impl Into<String>) -> AspectValue {
+    AspectValue::String(value.into().into())
 }

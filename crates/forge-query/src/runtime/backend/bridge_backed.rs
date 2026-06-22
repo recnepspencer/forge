@@ -11,13 +11,14 @@ use crate::session_label::ForgeQuerySessionLabel;
 use crate::subscription::SubscriptionActivationInput;
 
 use crate::runtime::{
-    ForgeQueryEffectPolicy, ForgeQueryExistingTruthAssertionDenial,
-    ForgeQueryExistingTruthBindingDenial, ForgeQueryExistingTruthProbe,
-    ForgeQueryExistingTruthProbeDenial, ForgeQueryExistingTruthTargetBinding,
-    ForgeQueryIntentDeclaration, ForgeQueryIntentExecution, ForgeQueryPreviewBasisAdmission,
-    ForgeQueryRuntimeBackend, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile,
-    ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQueryBackendAdmissibleMutation, ForgeQueryEffectPolicy,
+    ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthBindingDenial,
+    ForgeQueryExistingTruthProbe, ForgeQueryExistingTruthProbeDenial,
+    ForgeQueryExistingTruthTargetBinding, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution,
+    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeBackend, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryRuntimeSupportProfile, ForgeQueryVerifiedExistingTruthAssertion,
+    ForgeQueryWriteReceipt,
 };
 
 use super::bootstrap::BridgeBackedRuntimeBootstrap;
@@ -107,14 +108,17 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
 
     fn write(
         &mut self,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+        let expected_mutation = mutation.clone();
         let write_execution = self.write_authority.write(
             &self.runtime_bridge,
             self.relational_runtime.as_mut(),
-            command.clone(),
+            mutation,
         )?;
-        if let Some(message) = write_execution.drift_from_command(&command) {
+        if let Some(message) =
+            write_execution.drift_from_backend_admissible_mutation(&expected_mutation)
+        {
             return Err(ForgeQueryWorkspaceError::new(message));
         }
         let receipt = write_execution.mutation_receipt().clone();
@@ -127,15 +131,16 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
 
     fn write_batch(
         &mut self,
-        commands: Vec<ForgeQueryWriteCommand>,
+        mutations: Vec<ForgeQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
+        let expected_mutations = mutations.clone();
         let write_executions = self.write_authority.write_batch(
             &self.runtime_bridge,
             self.relational_runtime.as_mut(),
-            commands.clone(),
+            mutations,
         )?;
-        for (command, execution) in commands.iter().zip(write_executions.iter()) {
-            if let Some(message) = execution.drift_from_command(command) {
+        for (mutation, execution) in expected_mutations.iter().zip(write_executions.iter()) {
+            if let Some(message) = execution.drift_from_backend_admissible_mutation(mutation) {
                 return Err(ForgeQueryWorkspaceError::new(message));
             }
         }
@@ -182,7 +187,22 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
                 "this runtime backend does not admit backend-verified existing-truth assertions yet",
             ));
         };
-        adapter.verify_existing_truth_assertion(binding, aspects)
+        adapter.verify_existing_truth_assertion(binding, aspects)?;
+        ForgeQueryVerifiedExistingTruthAssertion::from_snapshot_identity(
+            binding,
+            aspects,
+            &self.current_snapshot_identity(),
+        )
+        .map_err(|error| {
+            ForgeQueryExistingTruthAssertionDenial::new(
+                binding,
+                crate::runtime::ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
+                None,
+                None,
+                None,
+                error.to_string(),
+            )
+        })
     }
 
     fn probe_existing_truth(
@@ -197,10 +217,10 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
                 "this runtime backend does not admit backend-verified existing-truth probes yet",
             ));
         };
-        Ok(ForgeQueryExistingTruthProbe::backend_verified(
+        ForgeQueryExistingTruthProbe::backend_verified(
             request,
             adapter.probe_existing_truth(request)?,
-        ))
+        )
     }
 
     fn execute_intent(

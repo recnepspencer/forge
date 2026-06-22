@@ -164,7 +164,10 @@ impl ForgeQueryGraphCompositionBuilder {
 }
 
 fn existing_truth_declared_collection(binding: &ForgeQueryExistingTruthTargetBinding) -> String {
-    binding.target_collection().unwrap_or("").to_string()
+    binding
+        .terminal_target_collection_projection()
+        .unwrap_or("")
+        .to_string()
 }
 
 fn build_verified_existing_update_command(

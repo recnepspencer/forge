@@ -44,7 +44,13 @@ pub(crate) fn representative_effect_relational_mutation_row() -> RepresentativeA
         ),
         input: MutationLoweringInput::IntentReconciliation {
             entity_id,
-            desired_aspect_fields_external_json: serde_json::json!({ "name": "phase6-relational-mutation" }),
+            desired_aspect_fields:
+                crate::aspect_field_authoring::single_native_string_aspect_field_patch(
+                    "name",
+                    "name",
+                    "phase6-relational-mutation",
+                )
+                .expect("name patch should be native"),
         },
     };
     let executed = scope_admitted_effect_plan(admit_effect(

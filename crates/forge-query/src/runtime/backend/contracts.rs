@@ -1,7 +1,3 @@
-use forge_relational::facade::runtime::RelationalRuntime;
-use forge_runtime_bridge::facade::{BridgeMutationAuthorityBundle, RuntimeBridge};
-use serde_json::Value;
-
 use super::{
     LiveViewDeclarationAdmissionBoundaryReceipt, LiveViewDeclarationAdmissionReceipt,
     SignalInvalidationBoundaryReceipt, SignalInvalidationRoutingReceipt,
@@ -21,12 +17,16 @@ use crate::program::ForgeQueryDerivedView;
 use crate::schema_view::QuerySchemaView;
 use crate::session_label::ForgeQuerySessionLabel;
 use crate::subscription::SubscriptionActivationInput;
+use crate::view_shape_live::ForgeQueryGroupedBaselineMember;
+use forge_relational::facade::runtime::RelationalRuntime;
+use forge_runtime_bridge::facade::{BridgeMutationAuthorityBundle, RuntimeBridge};
 
 use crate::runtime::remask_posture::ForgeQueryRuntimeRemaskProjection;
 use crate::runtime::{
-    ForgeQueryEffectPolicy, ForgeQueryExistingTruthAssertionDenial,
-    ForgeQueryExistingTruthBindingDenial, ForgeQueryExistingTruthProbe,
-    ForgeQueryExistingTruthProbeDenial, ForgeQueryExistingTruthProbeRequest,
+    ForgeQueryBackendAdmissibleMutation, ForgeQueryEffectPolicy,
+    ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthBindingDenial,
+    ForgeQueryExistingTruthProbe, ForgeQueryExistingTruthProbeDenial,
+    ForgeQueryExistingTruthProbeField, ForgeQueryExistingTruthProbeRequest,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution,
     ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile,
@@ -68,12 +68,12 @@ pub trait ForgeQueryRuntimeBackend {
 
     fn write(
         &mut self,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError>;
 
     fn write_batch(
         &mut self,
-        commands: Vec<ForgeQueryWriteCommand>,
+        mutations: Vec<ForgeQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError>;
 
     fn admit_existing_truth_binding(
@@ -158,7 +158,7 @@ pub trait ForgeQueryRuntimeBackend {
     fn grouped_baseline_members(
         &self,
         _request: &DeclarativeLiveQueryRequest,
-    ) -> Result<Option<Vec<(String, String)>>, ForgeQueryWorkspaceError> {
+    ) -> Result<Option<Vec<ForgeQueryGroupedBaselineMember>>, ForgeQueryWorkspaceError> {
         Ok(None)
     }
 }
@@ -228,12 +228,12 @@ pub trait ForgeQueryRuntimeExistingTruthVerificationAdapter {
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
         aspects: &[crate::runtime::ForgeQueryAspectValue],
-    ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>;
+    ) -> Result<(), ForgeQueryExistingTruthAssertionDenial>;
 
     fn probe_existing_truth(
         &self,
         request: &ForgeQueryExistingTruthProbeRequest,
-    ) -> Result<Vec<(String, Value)>, ForgeQueryExistingTruthProbeDenial>;
+    ) -> Result<Vec<ForgeQueryExistingTruthProbeField>, ForgeQueryExistingTruthProbeDenial>;
 }
 
 pub trait ForgeQueryRuntimeWriteAuthorityAdapter {
@@ -241,7 +241,7 @@ pub trait ForgeQueryRuntimeWriteAuthorityAdapter {
         &self,
         bridge: &RuntimeBridge,
         snapshot_identity: &ForgeQuerySnapshotIdentity,
-        command: &ForgeQueryWriteCommand,
+        mutation: &ForgeQueryBackendAdmissibleMutation,
         collection: &str,
         entity_identity: &ForgeQueryEntityIdentity,
         mutation_kind: ForgeQueryMutationKind,
@@ -249,7 +249,7 @@ pub trait ForgeQueryRuntimeWriteAuthorityAdapter {
         super::build_bridge_authority_bundle(
             bridge,
             snapshot_identity,
-            command,
+            mutation,
             collection,
             entity_identity,
             mutation_kind,
@@ -258,28 +258,28 @@ pub trait ForgeQueryRuntimeWriteAuthorityAdapter {
 
     fn build_write_authority_execution_receipt(
         &self,
-        command: &ForgeQueryWriteCommand,
+        mutation: &ForgeQueryBackendAdmissibleMutation,
         receipt: ForgeQueryMutationReceipt,
     ) -> WriteAuthorityExecutionReceipt {
-        WriteAuthorityExecutionReceipt::from_command(command, receipt)
+        WriteAuthorityExecutionReceipt::from_backend_admissible_mutation(mutation, receipt)
     }
 
     fn write(
         &mut self,
         bridge: &RuntimeBridge,
         relational_runtime: Option<&mut RelationalRuntime>,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError>;
 
     fn write_batch(
         &mut self,
         bridge: &RuntimeBridge,
         mut relational_runtime: Option<&mut RelationalRuntime>,
-        commands: Vec<ForgeQueryWriteCommand>,
+        mutations: Vec<ForgeQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<WriteAuthorityExecutionReceipt>, ForgeQueryWorkspaceError> {
-        let mut receipts = Vec::with_capacity(commands.len());
-        for command in commands {
-            receipts.push(self.write(bridge, relational_runtime.as_deref_mut(), command)?);
+        let mut receipts = Vec::with_capacity(mutations.len());
+        for mutation in mutations {
+            receipts.push(self.write(bridge, relational_runtime.as_deref_mut(), mutation)?);
         }
         Ok(receipts)
     }

@@ -6,30 +6,33 @@ use crate::application::{
     ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
     ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
 };
+use crate::authoring::AspectFieldKey;
+
+use super::declaration_aspect::terminal_declaration_aspect_projection;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDeclarationAspectPublication {
-    present: Vec<String>,
-    widened: Vec<String>,
-    elided: Vec<String>,
-    masked: Vec<String>,
+    present: Vec<AspectFieldKey>,
+    widened: Vec<AspectFieldKey>,
+    elided: Vec<AspectFieldKey>,
+    masked: Vec<AspectFieldKey>,
 }
 
 impl ForgeQueryDeclarationAspectPublication {
     pub fn empty() -> Self {
         Self::new(
-            Vec::<String>::new(),
-            Vec::<String>::new(),
-            Vec::<String>::new(),
-            Vec::<String>::new(),
+            Vec::<AspectFieldKey>::new(),
+            Vec::<AspectFieldKey>::new(),
+            Vec::<AspectFieldKey>::new(),
+            Vec::<AspectFieldKey>::new(),
         )
     }
 
     pub fn new(
-        present: impl IntoIterator<Item = impl Into<String>>,
-        widened: impl IntoIterator<Item = impl Into<String>>,
-        elided: impl IntoIterator<Item = impl Into<String>>,
-        masked: impl IntoIterator<Item = impl Into<String>>,
+        present: impl IntoIterator<Item = AspectFieldKey>,
+        widened: impl IntoIterator<Item = AspectFieldKey>,
+        elided: impl IntoIterator<Item = AspectFieldKey>,
+        masked: impl IntoIterator<Item = AspectFieldKey>,
     ) -> Self {
         Self {
             present: sorted_unique(present),
@@ -39,20 +42,36 @@ impl ForgeQueryDeclarationAspectPublication {
         }
     }
 
-    pub fn present(&self) -> &[String] {
+    pub fn present(&self) -> &[AspectFieldKey] {
         &self.present
     }
 
-    pub fn widened(&self) -> &[String] {
+    pub fn widened(&self) -> &[AspectFieldKey] {
         &self.widened
     }
 
-    pub fn elided(&self) -> &[String] {
+    pub fn elided(&self) -> &[AspectFieldKey] {
         &self.elided
     }
 
-    pub fn masked(&self) -> &[String] {
+    pub fn masked(&self) -> &[AspectFieldKey] {
         &self.masked
+    }
+
+    pub(crate) fn terminal_present_projections_for_boundary(&self) -> Vec<String> {
+        terminal_declaration_aspect_projections(&self.present)
+    }
+
+    pub(crate) fn terminal_widened_projections_for_boundary(&self) -> Vec<String> {
+        terminal_declaration_aspect_projections(&self.widened)
+    }
+
+    pub(crate) fn terminal_elided_projections_for_boundary(&self) -> Vec<String> {
+        terminal_declaration_aspect_projections(&self.elided)
+    }
+
+    pub(crate) fn terminal_masked_projections_for_boundary(&self) -> Vec<String> {
+        terminal_declaration_aspect_projections(&self.masked)
     }
 }
 
@@ -118,7 +137,7 @@ pub fn declaration_publication_for_tier(
             .collect(),
     };
     let semantic_interest = contract
-        .semantic_interest_paths()
+        .semantic_interest_keys()
         .into_iter()
         .collect::<BTreeSet<_>>();
     let present = selected
@@ -144,8 +163,15 @@ pub fn declaration_publication_for_tier(
     ForgeQueryDeclarationAspectPublication::new(present, widened, elided, masked)
 }
 
-fn sorted_unique(values: impl IntoIterator<Item = impl Into<String>>) -> Vec<String> {
-    let mut values = values.into_iter().map(Into::into).collect::<Vec<_>>();
+pub(crate) fn terminal_declaration_aspect_projections(fields: &[AspectFieldKey]) -> Vec<String> {
+    fields
+        .iter()
+        .map(terminal_declaration_aspect_projection)
+        .collect()
+}
+
+fn sorted_unique(values: impl IntoIterator<Item = AspectFieldKey>) -> Vec<AspectFieldKey> {
+    let mut values = values.into_iter().collect::<Vec<_>>();
     values.sort();
     values.dedup();
     values
@@ -158,7 +184,8 @@ mod tests {
         ForgeQueryDeclarationAspectPublication,
     };
     use crate::application::{
-        ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+        assert_declaration_aspect_projections, ForgeQueryDeclarationAspectContract,
+        ForgeQueryDeclarationAspectCoverage,
         ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
     };
     use forge_foundational::facade::FoundationalBoundaryEvidenceMaterializationProfile;
@@ -198,42 +225,33 @@ mod tests {
             ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive,
         );
 
-        assert_eq!(lean.present(), &["selection.active_edge".to_string()]);
+        assert_declaration_aspect_projections(lean.present(), &["selection.active_edge"]);
         assert!(lean.widened().is_empty());
-        assert_eq!(
+        assert_declaration_aspect_projections(
             lean.elided(),
-            &[
-                "selection.local_topology".to_string(),
-                "selection.material_edit".to_string()
-            ]
+            &["selection.local_topology", "selection.material_edit"],
         );
 
-        assert_eq!(
+        assert_declaration_aspect_projections(
             support_ready.present(),
-            &[
-                "selection.active_edge".to_string(),
-                "selection.local_topology".to_string()
-            ]
+            &["selection.active_edge", "selection.local_topology"],
         );
-        assert_eq!(
+        assert_declaration_aspect_projections(
             support_ready.widened(),
-            &["selection.local_topology".to_string()]
+            &["selection.local_topology"],
         );
 
-        assert_eq!(
+        assert_declaration_aspect_projections(
             full.present(),
             &[
-                "selection.active_edge".to_string(),
-                "selection.local_topology".to_string(),
-                "selection.material_edit".to_string()
-            ]
+                "selection.active_edge",
+                "selection.local_topology",
+                "selection.material_edit",
+            ],
         );
-        assert_eq!(
+        assert_declaration_aspect_projections(
             full.widened(),
-            &[
-                "selection.local_topology".to_string(),
-                "selection.material_edit".to_string()
-            ]
+            &["selection.local_topology", "selection.material_edit"],
         );
     }
 
@@ -262,16 +280,10 @@ mod tests {
             FoundationalBoundaryEvidenceMaterializationProfile::ElideDiagnostics,
         );
 
-        assert_eq!(
-            publication.present(),
-            &["selection.active_edge".to_string()]
-        );
-        assert_eq!(
+        assert_declaration_aspect_projections(publication.present(), &["selection.active_edge"]);
+        assert_declaration_aspect_projections(
             publication.masked(),
-            &[
-                "selection.local_topology".to_string(),
-                "selection.private_authority".to_string()
-            ]
+            &["selection.local_topology", "selection.private_authority"],
         );
     }
 

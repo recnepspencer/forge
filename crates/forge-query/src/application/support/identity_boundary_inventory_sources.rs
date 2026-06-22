@@ -137,9 +137,6 @@ pub fn source_for_format_digest_path(path: &str) -> Option<&'static str> {
         "projection_consumption/envelope.rs" => {
             Some(include_str!("../../projection_consumption/envelope.rs"))
         }
-        "projection_consumption/extraction/aspect_value_projection.rs" => Some(include_str!(
-            "../../projection_consumption/extraction/aspect_value_projection.rs"
-        )),
         "projection_consumption/extraction/grouped.rs" => Some(include_str!(
             "../../projection_consumption/extraction/grouped.rs"
         )),

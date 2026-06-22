@@ -7,7 +7,7 @@ impl ForgeQueryRuntime {
         &mut self,
         receipt: ForgeQueryMutationReceipt,
         mutation_family: ForgeQueryMutationFamily,
-        declared_collection: Option<String>,
+        declared_collection_identity: Option<ForgeQueryMutationTargetCollectionIdentity>,
         declared_entity_identity: Option<ForgeQueryEntityIdentity>,
         existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
         existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
@@ -22,10 +22,13 @@ impl ForgeQueryRuntime {
         execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
         obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        let (_, mut target_collection, mut target_entity_identity) =
+        let (_, target_collection, mut target_entity_identity) =
             classify_receipt_mutation_summary(&receipt);
+        let mut target_collection_identity = target_collection.map(|collection| {
+            ForgeQueryMutationTargetCollectionIdentity::new("write-receipt-target", collection)
+        });
         if let Some(binding) = existing_truth_binding.as_ref() {
-            target_collection = binding.target_collection().map(str::to_string);
+            target_collection_identity = binding.target_collection_identity().cloned();
             target_entity_identity = Some(binding.resolved_entity_artifact_identity());
         }
         let summary = self.route_authoritative_mutation_summary(&receipt, &mutation_metadata)?;
@@ -33,7 +36,7 @@ impl ForgeQueryRuntime {
         Ok(ForgeQueryWriteReceipt::from_mutation_receipt(
             receipt,
             mutation_family,
-            declared_collection,
+            declared_collection_identity,
             declared_entity_identity,
             existing_truth_binding,
             existing_truth_assertion,
@@ -41,13 +44,13 @@ impl ForgeQueryRuntime {
             symbolic_aspect_resolution_evidence,
             naming_intent,
             continuity_intent,
-            target_collection,
+            target_collection_identity,
             target_entity_identity,
             declared_aspect_operations,
             declared_aspect_value_digest,
             mutation_metadata,
-            summary.affected_live_view_ids,
-            summary.affected_derived_view_ids,
+            summary.affected_live_view_targets,
+            summary.affected_derived_view_targets,
             summary.considered_computed_view_count,
             summary.considered_effect_count,
             summary.delivered_effect_count,
@@ -73,6 +76,10 @@ impl ForgeQueryRuntime {
             &self.live_subscription_index,
             receipt,
         )?;
+        let affected_live_view_targets = affected_live_view_ids
+            .iter()
+            .map(|view_name| ForgeQueryLiveArtifactTarget::from_view_name(view_name.clone()))
+            .collect::<Vec<_>>();
         let computed_candidate_live_views = self.computed_candidate_live_views(receipt);
         let retained_live_view_names = retained_live_view_names_for_candidates(
             &self.derived_views,
@@ -97,6 +104,10 @@ impl ForgeQueryRuntime {
         let refresh_fallback = computed_result.refresh_fallback();
         let considered_computed_view_count = computed_result.considered_view_count();
         let affected_derived_view_ids = computed_result.affected_view_ids();
+        let affected_derived_view_targets = affected_derived_view_ids
+            .iter()
+            .map(|view_name| ForgeQueryDerivedMaterializationTarget::new(view_name.clone()))
+            .collect::<Vec<_>>();
         let live_view_targets = self.live_view_targets();
         let effect_result = route_effect_deliveries(
             &mut self.effects,
@@ -104,12 +115,12 @@ impl ForgeQueryRuntime {
             &self.derived_views,
             &live_view_targets,
             receipt,
-            &affected_live_view_ids,
-            &affected_derived_view_ids,
+            &affected_live_view_targets,
+            &affected_derived_view_targets,
         );
         Ok(ForgeQueryRoutedMutationSummary {
-            affected_live_view_ids,
-            affected_derived_view_ids,
+            affected_live_view_targets,
+            affected_derived_view_targets,
             considered_computed_view_count,
             considered_effect_count: effect_result.considered_effect_count(),
             delivered_effect_count: effect_result.delivered_effect_count(),

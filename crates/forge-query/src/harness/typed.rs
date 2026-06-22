@@ -1,8 +1,10 @@
+use crate::authoring::{AspectName, FieldName};
 use crate::facade::{
     validate_canonical_bundle, QueryValidationError, SchemaFieldKind, TypedCollectionQueryBuilder,
     TypedCollectionResultShapeBuilder, TypedDetailQueryBuilder, TypedDetailResultShapeBuilder,
     TypedGuidedAuthoringPath, TypedSchemaField,
 };
+use crate::schema_view::{QuerySchemaView, SchemaFieldView};
 
 forge_query_schema! {
     schema UserSchema("user") {
@@ -58,54 +60,57 @@ fn generated_schema_view_matches_typed_surface_expectations() {
 
     assert_eq!(schema.basis().as_str().len() > 0, true);
     assert_eq!(
-        schema
-            .field(DisplayName::ASPECT, DisplayName::FIELD)
+        schema_field(&schema, DisplayName::ASPECT, DisplayName::FIELD)
             .expect("display name field should exist")
             .kind(),
         &SchemaFieldKind::String
     );
     assert_eq!(
-        schema
-            .field(DisplayName::ASPECT, DisplayName::FIELD)
+        schema_field(&schema, DisplayName::ASPECT, DisplayName::FIELD)
             .expect("display name field should exist")
             .is_text_predicate_queryable(),
         true
     );
     assert_eq!(
-        schema
-            .field(Rank::ASPECT, Rank::FIELD)
+        schema_field(&schema, Rank::ASPECT, Rank::FIELD)
             .expect("rank field should exist")
             .is_queryable(),
         false
     );
     assert_eq!(
-        schema
-            .field(Rank::ASPECT, Rank::FIELD)
+        schema_field(&schema, Rank::ASPECT, Rank::FIELD)
             .expect("rank field should exist")
             .is_orderable(),
         true
     );
     assert_eq!(
-        schema
-            .field(PrivateNote::ASPECT, PrivateNote::FIELD)
+        schema_field(&schema, PrivateNote::ASPECT, PrivateNote::FIELD)
             .expect("private note field should exist")
             .is_queryable(),
         false
     );
     assert_eq!(
-        schema
-            .field(Bio::ASPECT, Bio::FIELD)
+        schema_field(&schema, Bio::ASPECT, Bio::FIELD)
             .expect("bio field should exist")
             .kind(),
         &SchemaFieldKind::StructuredContent
     );
     assert_eq!(
-        schema
-            .field(WorkflowStatus::ASPECT, WorkflowStatus::FIELD)
+        schema_field(&schema, WorkflowStatus::ASPECT, WorkflowStatus::FIELD)
             .expect("workflow field should exist")
             .kind(),
         &SchemaFieldKind::WorkflowState
     );
+}
+
+fn schema_field<'a>(
+    schema: &'a QuerySchemaView,
+    aspect: &str,
+    field: &str,
+) -> Option<&'a SchemaFieldView> {
+    let aspect = AspectName::new(aspect).expect("typed schema aspect constant is valid");
+    let field = FieldName::new(field).expect("typed schema field constant is valid");
+    schema.field(&aspect, &field)
 }
 
 #[test]

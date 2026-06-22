@@ -125,7 +125,7 @@ fn run_phase_sixteen_serialized_replay(label: &'static str) -> ConcurrentMatrixR
 
 struct ConcurrentMatrixState {
     workspace: ForgeQueryWorkspace,
-    derived: ForgeQueryDerivedViewHandle<Value>,
+    derived: ForgeQueryDerivedViewHandle<ForgeQueryNativeRow>,
     receipt_digests: Vec<String>,
     reader_result_digests: Vec<String>,
     published_artifact_digests: Vec<String>,
@@ -141,14 +141,14 @@ impl ConcurrentMatrixState {
         let mut workspace = stateful_bridge_task_runtime()
             .workspace("runtime.phase16.concurrent-hostile")
             .expect("workspace should build");
-        let live: ForgeQueryLiveView<Value> = workspace
+        let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
             .live_view_request("tasks.phase16", task_live_request(), task_schema())
             .expect("live view should declare");
         let derived = workspace
             .computed_view(
                 crate::program::ForgeQueryDerivedView::new(
                     "derived.phase16",
-                    ["title.value".to_string()],
+                    [test_aspect_touch("title.value")],
                 )
                 .depends_on_live(&live),
                 ConcurrentMatrixMaintainer::seeded(),
@@ -326,8 +326,14 @@ impl ConcurrentMatrixState {
                 .expect("preview should admit");
             preview
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "phase16-preview-discard")
-                        .aspect("title.value", "Preview Discard")
+                    task.aspect(
+                        test_aspect_touch("identity.id"),
+                        test_string_aspect_value("phase16-preview-discard"),
+                    )
+                    .aspect(
+                        test_aspect_touch("title.value"),
+                        test_string_aspect_value("Preview Discard"),
+                    )
                 })
                 .expect("preview insert should stage");
             preview.discard()
@@ -345,8 +351,14 @@ impl ConcurrentMatrixState {
                 .expect("preview should admit");
             preview
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "phase16-preview-promote")
-                        .aspect("title.value", "Preview Promote")
+                    task.aspect(
+                        test_aspect_touch("identity.id"),
+                        test_string_aspect_value("phase16-preview-promote"),
+                    )
+                    .aspect(
+                        test_aspect_touch("title.value"),
+                        test_string_aspect_value("Preview Promote"),
+                    )
                 })
                 .expect("preview insert should stage");
             preview.promote().expect("preview should promote")

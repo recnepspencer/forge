@@ -1,7 +1,11 @@
 use super::refresh_context::ForgeQueryRetainedRefreshContext;
 use super::*;
-use crate::runtime::retained_rows::decode_single_retained_row;
-use crate::runtime::ForgeQueryRuntimeError;
+use forge_foundational::facade::AspectValue;
+
+use crate::runtime::{
+    ForgeQueryAspectTouch, ForgeQueryLiveView, ForgeQueryRetainedFieldPath,
+    ForgeQueryRetainedMaterializedRow, ForgeQueryRuntimeError,
+};
 
 use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
@@ -10,12 +14,11 @@ use crate::evidence_identity::{
 use crate::memory_workspace::{
     ForgeQueryCommitIdentity, ForgeQueryEntity, ForgeQueryEntityIdentity,
 };
-use serde::de::DeserializeOwned;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryDerivedViewMaterialization {
-    rows: Vec<Value>,
+    rows: Vec<ForgeQueryRetainedMaterializedRow>,
     published: bool,
 }
 
@@ -31,13 +34,13 @@ impl Default for ForgeQueryDerivedViewMaterialization {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ForgeQueryRetainedUpstreamInputs {
     live_rows: BTreeMap<String, Vec<ForgeQueryEntity>>,
-    computed_rows: BTreeMap<String, Vec<Value>>,
+    computed_rows: BTreeMap<String, Vec<ForgeQueryRetainedMaterializedRow>>,
 }
 
 impl ForgeQueryRetainedUpstreamInputs {
-    pub fn new(
+    pub(in crate::runtime) fn new(
         live_rows: impl IntoIterator<Item = (String, Vec<ForgeQueryEntity>)>,
-        computed_rows: impl IntoIterator<Item = (String, Vec<Value>)>,
+        computed_rows: impl IntoIterator<Item = (String, Vec<ForgeQueryRetainedMaterializedRow>)>,
     ) -> Self {
         Self {
             live_rows: live_rows.into_iter().collect(),
@@ -45,39 +48,159 @@ impl ForgeQueryRetainedUpstreamInputs {
         }
     }
 
-    pub fn live_rows(&self, view_name: &str) -> Option<&[ForgeQueryEntity]> {
+    pub(in crate::runtime) fn from_retained_computed_rows(
+        live_rows: impl IntoIterator<Item = (String, Vec<ForgeQueryEntity>)>,
+        computed_rows: impl IntoIterator<Item = (String, Vec<ForgeQueryRetainedMaterializedRow>)>,
+    ) -> Self {
+        Self::new(live_rows, computed_rows)
+    }
+
+    pub fn live_rows_for<T>(&self, view: &ForgeQueryLiveView<T>) -> Option<&[ForgeQueryEntity]> {
+        self.live_rows_by_name(view.name())
+    }
+
+    fn live_rows_by_name(&self, view_name: &str) -> Option<&[ForgeQueryEntity]> {
         self.live_rows.get(view_name).map(Vec::as_slice)
     }
 
-    pub fn computed_rows(&self, view_name: &str) -> Option<&[Value]> {
-        self.computed_rows.get(view_name).map(Vec::as_slice)
+    pub fn declared_live_rows_for<T>(
+        &self,
+        declaration: &ForgeQueryDerivedView,
+        view: &ForgeQueryLiveView<T>,
+    ) -> Option<&[ForgeQueryEntity]> {
+        self.declared_live_rows_by_name(declaration, view.name())
     }
 
-    pub fn live_view_names(&self) -> impl Iterator<Item = &str> {
-        self.live_rows.keys().map(String::as_str)
+    pub fn declared_live_row_sets<'a>(
+        &'a self,
+        declaration: &'a ForgeQueryDerivedView,
+    ) -> impl Iterator<Item = &'a [ForgeQueryEntity]> + 'a {
+        declaration
+            .upstream_live_views()
+            .iter()
+            .filter_map(|view_name| self.live_rows_by_name(view_name))
     }
 
-    pub fn computed_view_names(&self) -> impl Iterator<Item = &str> {
-        self.computed_rows.keys().map(String::as_str)
+    fn declared_live_rows_by_name(
+        &self,
+        declaration: &ForgeQueryDerivedView,
+        view_name: &str,
+    ) -> Option<&[ForgeQueryEntity]> {
+        declaration
+            .upstream_live_views()
+            .iter()
+            .any(|declared| declared == view_name)
+            .then(|| self.live_rows_by_name(view_name))
+            .flatten()
     }
 
-    pub fn decode_single_computed_row<T>(
+    pub fn retained_computed_rows_for<T>(
+        &self,
+        view: &ForgeQueryDerivedViewHandle<T>,
+    ) -> &[ForgeQueryRetainedMaterializedRow] {
+        self.retained_computed_rows_by_name(view.name())
+    }
+
+    fn retained_computed_rows_by_name(
         &self,
         view_name: &str,
-    ) -> Result<T, ForgeQueryRuntimeError>
-    where
-        T: DeserializeOwned,
-    {
-        decode_single_retained_row(
-            self.computed_rows(view_name).unwrap_or(&[]),
-            view_name,
-            "retained-upstream",
-        )
+    ) -> &[ForgeQueryRetainedMaterializedRow] {
+        self.computed_rows
+            .get(view_name)
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+    }
+
+    pub fn declared_retained_computed_rows_for<T>(
+        &self,
+        declaration: &ForgeQueryDerivedView,
+        view: &ForgeQueryDerivedViewHandle<T>,
+    ) -> &[ForgeQueryRetainedMaterializedRow] {
+        self.declared_retained_computed_rows_by_name(declaration, view.name())
+    }
+
+    pub fn declared_retained_computed_row_sets<'a>(
+        &'a self,
+        declaration: &'a ForgeQueryDerivedView,
+    ) -> impl Iterator<Item = &'a [ForgeQueryRetainedMaterializedRow]> + 'a {
+        declaration
+            .upstream_derived_views()
+            .iter()
+            .map(|view_name| self.retained_computed_rows_by_name(view_name))
+    }
+
+    fn declared_retained_computed_rows_by_name(
+        &self,
+        declaration: &ForgeQueryDerivedView,
+        view_name: &str,
+    ) -> &[ForgeQueryRetainedMaterializedRow] {
+        if declaration
+            .upstream_derived_views()
+            .iter()
+            .any(|declared| declared == view_name)
+        {
+            self.retained_computed_rows_by_name(view_name)
+        } else {
+            &[]
+        }
+    }
+
+    pub fn single_retained_computed_row_for<T>(
+        &self,
+        view: &ForgeQueryDerivedViewHandle<T>,
+    ) -> Result<&ForgeQueryRetainedMaterializedRow, ForgeQueryRuntimeError> {
+        self.single_retained_computed_row_by_name(view.name())
+    }
+
+    pub fn single_declared_retained_computed_row_for<T>(
+        &self,
+        declaration: &ForgeQueryDerivedView,
+        view: &ForgeQueryDerivedViewHandle<T>,
+    ) -> Result<&ForgeQueryRetainedMaterializedRow, ForgeQueryRuntimeError> {
+        self.single_declared_retained_computed_row_by_name(declaration, view.name())
+    }
+
+    fn single_declared_retained_computed_row_by_name(
+        &self,
+        declaration: &ForgeQueryDerivedView,
+        view_name: &str,
+    ) -> Result<&ForgeQueryRetainedMaterializedRow, ForgeQueryRuntimeError> {
+        if !declaration
+            .upstream_derived_views()
+            .iter()
+            .any(|declared| declared == view_name)
+        {
+            return Err(ForgeQueryRuntimeError::RetainedRowDecode {
+                view_name: view_name.to_string(),
+                stage: "retained-upstream",
+                message: "retained computed row was not declared as an upstream".to_string(),
+            });
+        }
+        self.single_retained_computed_row_by_name(view_name)
+    }
+
+    fn single_retained_computed_row_by_name(
+        &self,
+        view_name: &str,
+    ) -> Result<&ForgeQueryRetainedMaterializedRow, ForgeQueryRuntimeError> {
+        match self.retained_computed_rows_by_name(view_name) {
+            [] => Err(ForgeQueryRuntimeError::RetainedRowDecode {
+                view_name: view_name.to_string(),
+                stage: "retained-upstream",
+                message: "expected one retained row, found none".to_string(),
+            }),
+            [row] => Ok(row),
+            rows => Err(ForgeQueryRuntimeError::RetainedRowDecode {
+                view_name: view_name.to_string(),
+                stage: "retained-upstream",
+                message: format!("expected one retained row, found {}", rows.len()),
+            }),
+        }
     }
 }
 
 impl ForgeQueryDerivedViewMaterialization {
-    pub fn rows(&self) -> &[Value] {
+    pub(in crate::runtime) fn retained_rows(&self) -> &[ForgeQueryRetainedMaterializedRow] {
         &self.rows
     }
 
@@ -85,19 +208,35 @@ impl ForgeQueryDerivedViewMaterialization {
         self.published
     }
 
-    pub fn replace_rows(&mut self, rows: impl IntoIterator<Item = Value>) {
+    pub(in crate::runtime) fn replace_retained_rows(
+        &mut self,
+        rows: impl IntoIterator<Item = ForgeQueryRetainedMaterializedRow>,
+    ) {
         self.rows = rows.into_iter().collect();
         self.published = true;
     }
 
-    pub fn push_row(&mut self, row: Value) {
+    pub(in crate::runtime) fn push_retained_row(&mut self, row: ForgeQueryRetainedMaterializedRow) {
         self.rows.push(row);
         self.published = true;
     }
 
-    pub fn retain_rows(&mut self, mut predicate: impl FnMut(&Value) -> bool) {
-        self.rows.retain(|row| predicate(row));
-        self.published = true;
+    pub fn replace_retained_scalar_row(
+        &mut self,
+        scalar_values: impl IntoIterator<Item = (ForgeQueryRetainedFieldPath, AspectValue)>,
+    ) -> Result<(), String> {
+        let row = retained_materialized_row_from_scalar_values(scalar_values)?;
+        self.replace_retained_rows([row]);
+        Ok(())
+    }
+
+    pub fn push_retained_scalar_row(
+        &mut self,
+        scalar_values: impl IntoIterator<Item = (ForgeQueryRetainedFieldPath, AspectValue)>,
+    ) -> Result<(), String> {
+        let row = retained_materialized_row_from_scalar_values(scalar_values)?;
+        self.push_retained_row(row);
+        Ok(())
     }
 }
 
@@ -107,8 +246,8 @@ pub struct ForgeQueryComputedInspectionEvidence {
     authority_lane: ForgeQueryAuthorityLane,
     upstream_live_views: Vec<String>,
     upstream_derived_views: Vec<String>,
-    dependency_aspects: Vec<String>,
-    produced_aspects: Vec<String>,
+    dependency_aspects: Vec<ForgeQueryAspectTouch>,
+    produced_aspects: Vec<ForgeQueryAspectTouch>,
     incremental_delivery: bool,
     materialized_row_count: usize,
     pending_patch_count: usize,
@@ -126,10 +265,10 @@ impl ForgeQueryComputedInspectionEvidence {
     pub(in crate::runtime) fn from_runtime(view: &ForgeQueryDerivedViewRuntime) -> Self {
         let upstream_live_views = view.declaration.upstream_live_views().to_vec();
         let upstream_derived_views = view.declaration.upstream_derived_views().to_vec();
-        let dependency_aspects = view.declaration.dependency_aspects().to_vec();
-        let produced_aspects = view.declaration.produced_aspects().to_vec();
+        let dependency_aspects = view.declaration.dependency_aspect_touches().to_vec();
+        let produced_aspects = view.declaration.produced_aspect_touches().to_vec();
         let incremental_delivery = view.declaration.incremental();
-        let materialized_row_count = view.materialization.rows().len();
+        let materialized_row_count = view.materialization.retained_rows().len();
         let pending_patch_count = view.patches.len();
         let pending_incremental_patch_count = view
             .patches
@@ -165,7 +304,7 @@ impl ForgeQueryComputedInspectionEvidence {
         let materialization_identity = computed_materialization_inspection_identity(
             view.declaration.name(),
             materialized_row_count,
-            view.materialization.rows(),
+            view.materialization.retained_rows(),
         );
         let materialization_digest = materialization_identity.reporting_projection().to_string();
         let patch_identities: Vec<ForgeQueryEvidenceIdentity> = view
@@ -246,11 +385,11 @@ impl ForgeQueryComputedInspectionEvidence {
         &self.upstream_derived_views
     }
 
-    pub fn dependency_aspects(&self) -> &[String] {
+    pub fn dependency_aspect_touches(&self) -> &[ForgeQueryAspectTouch] {
         &self.dependency_aspects
     }
 
-    pub fn produced_aspects(&self) -> &[String] {
+    pub fn produced_aspect_touches(&self) -> &[ForgeQueryAspectTouch] {
         &self.produced_aspects
     }
 
@@ -299,7 +438,9 @@ impl ForgeQueryComputedInspectionEvidence {
             )
             .field_value_sequence(
                 ForgeQueryEvidenceTag::new("dependencies"),
-                self.dependency_aspects.iter().map(String::as_str),
+                self.dependency_aspects
+                    .iter()
+                    .map(|touch| touch.admitted_touch_digest_part()),
             )
             .seal()
     }
@@ -373,14 +514,70 @@ pub enum ForgeQueryDerivedPatchFamily {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct ForgeQueryDerivedPatchPayload {
+    kind: ForgeQueryDerivedPatchPayloadKind,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+enum ForgeQueryDerivedPatchPayloadKind {
+    Empty,
+    RetainedRows(Vec<ForgeQueryRetainedMaterializedRow>),
+}
+
+impl ForgeQueryDerivedPatchPayload {
+    pub fn empty() -> Self {
+        Self {
+            kind: ForgeQueryDerivedPatchPayloadKind::Empty,
+        }
+    }
+
+    pub(in crate::runtime) fn from_retained_row(row: ForgeQueryRetainedMaterializedRow) -> Self {
+        Self::from_retained_rows([row])
+    }
+
+    pub(in crate::runtime) fn from_retained_rows(
+        rows: impl IntoIterator<Item = ForgeQueryRetainedMaterializedRow>,
+    ) -> Self {
+        Self {
+            kind: ForgeQueryDerivedPatchPayloadKind::RetainedRows(rows.into_iter().collect()),
+        }
+    }
+
+    pub fn from_retained_scalar_values(
+        scalar_values: impl IntoIterator<Item = (ForgeQueryRetainedFieldPath, AspectValue)>,
+    ) -> Result<Self, String> {
+        let row = retained_materialized_row_from_scalar_values(scalar_values)?;
+        Ok(Self::from_retained_row(row))
+    }
+
+    pub(in crate::runtime) fn empty_refresh_fallback() -> Self {
+        Self::empty()
+    }
+
+    #[cfg(test)]
+    pub fn retained_rows(&self) -> &[ForgeQueryRetainedMaterializedRow] {
+        match &self.kind {
+            ForgeQueryDerivedPatchPayloadKind::RetainedRows(rows) => rows,
+            ForgeQueryDerivedPatchPayloadKind::Empty => &[],
+        }
+    }
+}
+
+fn retained_materialized_row_from_scalar_values(
+    scalar_values: impl IntoIterator<Item = (ForgeQueryRetainedFieldPath, AspectValue)>,
+) -> Result<ForgeQueryRetainedMaterializedRow, String> {
+    ForgeQueryRetainedMaterializedRow::from_scalar_values(BTreeMap::from_iter(scalar_values))
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryDerivedPatch {
     view_name: String,
     commit_identity: ForgeQueryCommitIdentity,
     authority_lane: ForgeQueryAuthorityLane,
     entity_identity: Option<ForgeQueryEntityIdentity>,
-    aspect_paths: Vec<String>,
+    aspect_touches: Vec<ForgeQueryAspectTouch>,
     family: ForgeQueryDerivedPatchFamily,
-    payload: Value,
+    payload: ForgeQueryDerivedPatchPayload,
     reason: Option<String>,
 }
 
@@ -389,15 +586,15 @@ impl ForgeQueryDerivedPatch {
         view_name: impl Into<String>,
         commit_identity: ForgeQueryCommitIdentity,
         entity_identity: ForgeQueryEntityIdentity,
-        aspect_paths: impl IntoIterator<Item = String>,
-        payload: Value,
+        aspect_touches: impl IntoIterator<Item = ForgeQueryAspectTouch>,
+        payload: ForgeQueryDerivedPatchPayload,
     ) -> Self {
         Self {
             view_name: view_name.into(),
             commit_identity,
             authority_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
             entity_identity: Some(entity_identity),
-            aspect_paths: aspect_paths.into_iter().collect(),
+            aspect_touches: aspect_touches.into_iter().collect(),
             family: ForgeQueryDerivedPatchFamily::Incremental,
             payload,
             reason: None,
@@ -414,9 +611,9 @@ impl ForgeQueryDerivedPatch {
             commit_identity,
             authority_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
             entity_identity: None,
-            aspect_paths: Vec::new(),
+            aspect_touches: Vec::new(),
             family: ForgeQueryDerivedPatchFamily::RefreshFallback,
-            payload: Value::Null,
+            payload: ForgeQueryDerivedPatchPayload::empty_refresh_fallback(),
             reason: Some(reason.into()),
         }
     }
@@ -424,8 +621,8 @@ impl ForgeQueryDerivedPatch {
     pub fn whole_refresh_materialized(
         view_name: impl Into<String>,
         commit_identity: ForgeQueryCommitIdentity,
-        aspect_paths: impl IntoIterator<Item = String>,
-        payload: Value,
+        aspect_touches: impl IntoIterator<Item = ForgeQueryAspectTouch>,
+        payload: ForgeQueryDerivedPatchPayload,
         reason: impl Into<String>,
     ) -> Self {
         Self {
@@ -433,7 +630,7 @@ impl ForgeQueryDerivedPatch {
             commit_identity,
             authority_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
             entity_identity: None,
-            aspect_paths: aspect_paths.into_iter().collect(),
+            aspect_touches: aspect_touches.into_iter().collect(),
             family: ForgeQueryDerivedPatchFamily::RefreshFallback,
             payload,
             reason: Some(reason.into()),
@@ -469,8 +666,9 @@ impl ForgeQueryDerivedPatch {
         self.family == ForgeQueryDerivedPatchFamily::RefreshFallback
     }
 
-    pub fn payload(&self) -> &Value {
-        &self.payload
+    #[cfg(test)]
+    pub fn retained_payload_rows(&self) -> &[ForgeQueryRetainedMaterializedRow] {
+        self.payload.retained_rows()
     }
 
     pub fn view_name(&self) -> &str {
@@ -481,8 +679,8 @@ impl ForgeQueryDerivedPatch {
         &self.commit_identity
     }
 
-    pub fn aspect_paths(&self) -> &[String] {
-        &self.aspect_paths
+    pub fn aspect_touches(&self) -> &[ForgeQueryAspectTouch] {
+        &self.aspect_touches
     }
 
     pub fn authority_lane(&self) -> ForgeQueryAuthorityLane {
@@ -500,14 +698,14 @@ impl ForgeQueryDerivedPatch {
         &self,
         upstream_view: &str,
     ) -> ForgeQueryMutationDelta {
-        ForgeQueryMutationDelta {
-            collection: format!("derived:{upstream_view}"),
-            entity_identity: self.entity_identity.clone().unwrap_or_else(|| {
+        ForgeQueryMutationDelta::from_touched_aspects(
+            format!("derived:{upstream_view}"),
+            self.entity_identity.clone().unwrap_or_else(|| {
                 crate::memory_workspace::admit_authored_entity_label(upstream_view)
             }),
-            kind: ForgeQueryMutationKind::Updated,
-            aspect_paths: self.aspect_paths.clone(),
-        }
+            ForgeQueryMutationKind::Updated,
+            self.aspect_touches.clone(),
+        )
     }
 }
 
@@ -516,8 +714,8 @@ fn computed_definition_inspection_identity(
     incremental_delivery: bool,
     upstream_live_views: &[String],
     upstream_derived_views: &[String],
-    dependency_aspects: &[String],
-    produced_aspects: &[String],
+    dependency_aspects: &[ForgeQueryAspectTouch],
+    produced_aspects: &[ForgeQueryAspectTouch],
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
         .field_shape(
@@ -543,11 +741,15 @@ fn computed_definition_inspection_identity(
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("dependencies"),
-            dependency_aspects.iter().map(String::as_str),
+            dependency_aspects
+                .iter()
+                .map(ForgeQueryAspectTouch::admitted_touch_digest_part),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("produces"),
-            produced_aspects.iter().map(String::as_str),
+            produced_aspects
+                .iter()
+                .map(ForgeQueryAspectTouch::admitted_touch_digest_part),
         )
         .seal()
 }
@@ -556,7 +758,7 @@ fn computed_dependency_inspection_identity(
     name: &str,
     upstream_live_views: &[String],
     upstream_derived_views: &[String],
-    dependency_aspects: &[String],
+    dependency_aspects: &[ForgeQueryAspectTouch],
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
         .field_shape(
@@ -574,14 +776,16 @@ fn computed_dependency_inspection_identity(
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("dependencies"),
-            dependency_aspects.iter().map(String::as_str),
+            dependency_aspects
+                .iter()
+                .map(ForgeQueryAspectTouch::admitted_touch_digest_part),
         )
         .seal()
 }
 
 fn computed_produced_aspect_inspection_identity(
     name: &str,
-    produced_aspects: &[String],
+    produced_aspects: &[ForgeQueryAspectTouch],
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
         .field_shape(
@@ -595,7 +799,9 @@ fn computed_produced_aspect_inspection_identity(
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("produces"),
-            produced_aspects.iter().map(String::as_str),
+            produced_aspects
+                .iter()
+                .map(ForgeQueryAspectTouch::admitted_touch_digest_part),
         )
         .seal()
 }
@@ -603,11 +809,11 @@ fn computed_produced_aspect_inspection_identity(
 fn computed_materialization_inspection_identity(
     name: &str,
     materialized_row_count: usize,
-    rows: &[Value],
+    rows: &[ForgeQueryRetainedMaterializedRow],
 ) -> ForgeQueryEvidenceIdentity {
     let row_shapes: Vec<String> = rows
         .iter()
-        .map(|row| serde_json::to_string(row).unwrap_or_else(|_| row.to_string()))
+        .map(|row| row.native_digest_parts().join(";"))
         .collect();
     forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
         .field_shape(
@@ -685,17 +891,20 @@ fn derived_patch_inspection_identity(
     if let Some(reason) = patch.reason.as_deref() {
         encoder = encoder.field_shape(ForgeQueryEvidenceTag::new("reason"), reason);
     }
-    if !patch.aspect_paths.is_empty() {
+    if !patch.aspect_touches().is_empty() {
         encoder = encoder.field_value_sequence(
             ForgeQueryEvidenceTag::new("aspect_paths"),
-            patch.aspect_paths.iter().map(String::as_str),
+            patch
+                .aspect_touches()
+                .iter()
+                .map(ForgeQueryAspectTouch::admitted_touch_digest_part),
         );
     }
     encoder.seal()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryDerivedViewHandle<T = Value> {
+pub struct ForgeQueryDerivedViewHandle<T = crate::runtime::ForgeQueryNativeRow> {
     name: String,
     authority_lane: ForgeQueryAuthorityLane,
     marker: PhantomData<T>,

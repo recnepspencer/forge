@@ -8,8 +8,6 @@ mod routing;
 mod runtime;
 mod write_authority;
 
-use serde_json::json;
-
 pub(in crate::intent_admission::certification) use basis_projection::{
     certified_basis_observation_intent_fixture, certified_projection_consumption_admitted_fixture,
     certified_projection_consumption_warning_fixture,
@@ -34,14 +32,15 @@ pub(crate) use runtime::{
 };
 
 use crate::facade::runtime::{
-    admit_runtime_intent_request, ForgeQueryEffectDeclaration, ForgeQueryEffectTrigger,
-    ForgeQueryIntentAdmissionDecision, ForgeQueryIntentAdvisoryDecision,
+    admit_runtime_intent_request, ForgeQueryAspectTouch, ForgeQueryEffectDeclaration,
+    ForgeQueryEffectTrigger, ForgeQueryIntentAdmissionDecision, ForgeQueryIntentAdvisoryDecision,
     ForgeQueryIntentDeclaration, ForgeQueryRawIntentAdmissionRequest, ForgeQueryWriteCommand,
 };
 use crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData;
 use crate::memory_workspace::{
     ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
 };
+use crate::runtime::ForgeQueryNativeRow;
 use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 pub(super) fn certification_commit_identity_for(
@@ -276,24 +275,34 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
 
     let mut delegated_effect_runtime = certification_runtime();
     let delegated_live = delegated_effect_runtime
-        .declare_live_view::<serde_json::Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "certification.effect-live",
             certification_task_live_request(),
             certification_task_schema(),
         )
         .expect("live view should declare");
     let delegated_effect = delegated_effect_runtime
-        .declare_effect::<serde_json::Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.certification.reconcile",
-            ForgeQueryEffectTrigger::live_view(&delegated_live, ["title.value"]),
+            ForgeQueryEffectTrigger::live_view(
+                &delegated_live,
+                [ForgeQueryAspectTouch::from_authoring_path("title.value")
+                    .expect("delegated effect aspect should admit")],
+            ),
             "strategy.intent.reconcile",
         ))
         .expect("effect should declare");
     delegated_effect_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
             entity_identity: certification_entity_identity("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from delegated effect"),
+            aspect: crate::facade::ForgeQueryAspectValue::new_set(
+                crate::facade::ForgeQueryAspectTouch::from_authoring_path("title.value")
+                    .expect("delegated effect aspect should admit"),
+                forge_foundational::facade::AspectValue::String(
+                    "title from delegated effect".into(),
+                ),
+            )
+            .expect("delegated effect aspect should admit"),
         })
         .expect("delegated effect write should queue");
     let effect_legacy = delegated_effect_runtime
@@ -302,24 +311,34 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
 
     let mut canonical_effect_runtime = certification_runtime();
     let canonical_live = canonical_effect_runtime
-        .declare_live_view::<serde_json::Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "certification.effect-live",
             certification_task_live_request(),
             certification_task_schema(),
         )
         .expect("canonical live view should declare");
     let canonical_effect = canonical_effect_runtime
-        .declare_effect::<serde_json::Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.certification.reconcile",
-            ForgeQueryEffectTrigger::live_view(&canonical_live, ["title.value"]),
+            ForgeQueryEffectTrigger::live_view(
+                &canonical_live,
+                [ForgeQueryAspectTouch::from_authoring_path("title.value")
+                    .expect("canonical effect aspect should admit")],
+            ),
             "strategy.intent.reconcile",
         ))
         .expect("canonical effect should declare");
     canonical_effect_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
             entity_identity: certification_entity_identity("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from delegated effect"),
+            aspect: crate::facade::ForgeQueryAspectValue::new_set(
+                crate::facade::ForgeQueryAspectTouch::from_authoring_path("title.value")
+                    .expect("canonical effect aspect should admit"),
+                forge_foundational::facade::AspectValue::String(
+                    "title from delegated effect".into(),
+                ),
+            )
+            .expect("canonical effect aspect should admit"),
         })
         .expect("canonical effect write should queue");
     let (pending_delivery, canonical_handoff) = canonical_effect_runtime
@@ -353,6 +372,15 @@ pub(super) fn authoritative_declaration(name: &str) -> ForgeQueryIntentDeclarati
         "strategy.intent.reconcile",
         "1.0",
         "intent.reconcile.input.v1",
-        json!({"entity": "task-1", "title": "Certification committed title"}),
+        crate::runtime::ForgeQueryIntentInput::object([
+            (
+                "entity",
+                crate::runtime::ForgeQueryIntentInput::string("task-1"),
+            ),
+            (
+                "title",
+                crate::runtime::ForgeQueryIntentInput::string("Certification committed title"),
+            ),
+        ]),
     )
 }

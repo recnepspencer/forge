@@ -4,9 +4,10 @@ use super::schema_reference_evidence::{
     ForgeQueryAdmittedGraphReadRelationDirection, ForgeQueryAdmittedQuerySchemaReferences,
     ForgeQueryGraphReadAdmittedSchemaFieldKind, ForgeQueryGraphReadSchemaReferenceAdmissionError,
 };
-use crate::authoring::OrderingDirection;
+use crate::authoring::{AspectName, FieldName, OrderingDirection};
 use crate::declarative_live::DeclarativePredicateFilter;
 use crate::runtime::{ForgeQueryReadBuiltInOperator, ForgeQueryReadGraph};
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 pub(crate) fn admit_query_schema_references_for_read_graph(
     read_graph: &ForgeQueryReadGraph,
@@ -18,7 +19,7 @@ pub(crate) fn admit_query_schema_references_for_read_graph(
         .iter()
         .map(|traversal| {
             ForgeQueryAdmittedGraphReadRelation::new(
-                traversal.relation(),
+                traversal.relation_name().clone(),
                 relation_direction(read_graph),
                 usize::from(traversal.depth()),
             )
@@ -30,8 +31,8 @@ pub(crate) fn admit_query_schema_references_for_read_graph(
         .iter()
         .map(|field| {
             Ok(ForgeQueryAdmittedGraphReadProjectionField::new(
-                field.aspect(),
-                field.field(),
+                admitted_aspect_key(field.aspect()),
+                admitted_field_key(read_graph, field.aspect(), field.field())?,
                 field.delivered_name(),
                 admitted_schema_field_kind(read_graph, field.aspect(), field.field())?,
             ))
@@ -44,8 +45,8 @@ pub(crate) fn admit_query_schema_references_for_read_graph(
         .map(|filter| {
             let (aspect, field, family) = predicate_parts(filter);
             Ok(ForgeQueryAdmittedGraphReadPredicateField::new(
-                aspect,
-                field,
+                admitted_aspect_key(aspect),
+                admitted_field_key(read_graph, aspect, field)?,
                 family,
                 admitted_schema_field_kind(read_graph, aspect, field)?,
             ))
@@ -57,8 +58,8 @@ pub(crate) fn admit_query_schema_references_for_read_graph(
         .iter()
         .map(|ordering| {
             Ok(ForgeQueryAdmittedGraphReadOrderingField::new(
-                ordering.aspect(),
-                ordering.field(),
+                admitted_aspect_key(ordering.aspect()),
+                admitted_field_key(read_graph, ordering.aspect(), ordering.field())?,
                 ordering_direction_label(ordering.direction()),
                 admitted_schema_field_kind(read_graph, ordering.aspect(), ordering.field())?,
             ))
@@ -76,6 +77,20 @@ pub(crate) fn admit_query_schema_references_for_read_graph(
     ))
 }
 
+fn admitted_aspect_key(aspect: &str) -> AspectKey {
+    AspectKey::new(aspect).expect("schema-admitted graph read aspect should be a valid AspectKey")
+}
+
+fn admitted_field_key(
+    read_graph: &ForgeQueryReadGraph,
+    aspect: &str,
+    field: &str,
+) -> Result<FieldKey, ForgeQueryGraphReadSchemaReferenceAdmissionError> {
+    FieldKey::new(field.to_string()).ok_or_else(|| {
+        ForgeQueryGraphReadSchemaReferenceAdmissionError::missing_field(read_graph, aspect, field)
+    })
+}
+
 fn admitted_schema_field_kind(
     read_graph: &ForgeQueryReadGraph,
     aspect: &str,
@@ -84,9 +99,15 @@ fn admitted_schema_field_kind(
     ForgeQueryGraphReadAdmittedSchemaFieldKind,
     ForgeQueryGraphReadSchemaReferenceAdmissionError,
 > {
+    let aspect_name = AspectName::new(aspect.to_string()).map_err(|_| {
+        ForgeQueryGraphReadSchemaReferenceAdmissionError::missing_field(read_graph, aspect, field)
+    })?;
+    let field_name = FieldName::new(field.to_string()).map_err(|_| {
+        ForgeQueryGraphReadSchemaReferenceAdmissionError::missing_field(read_graph, aspect, field)
+    })?;
     read_graph
         .schema_view()
-        .field(aspect, field)
+        .field(&aspect_name, &field_name)
         .map(|field| {
             ForgeQueryGraphReadAdmittedSchemaFieldKind::from_schema_field_kind(field.kind())
         })

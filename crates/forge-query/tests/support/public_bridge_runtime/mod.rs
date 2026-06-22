@@ -13,10 +13,10 @@ mod state;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use forge_foundational::facade::AspectValue;
 use forge_query::facade::{
     ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntime, ForgeQueryRuntimeSupportProfile,
 };
-use serde_json::Value;
 
 use self::adapters::{
     PublicInspectorEvidenceAdapter, PublicPreviewBasisAdapter, PublicSchemaAdapter,

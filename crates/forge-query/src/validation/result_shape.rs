@@ -18,8 +18,7 @@ pub(crate) fn validate_result_shape_bindings(
 
     for field in fields {
         counters.record_schema_lookup();
-        let Some(schema_field) =
-            schema_view.field(field.source_aspect.as_str(), field.source_field.as_str())
+        let Some(schema_field) = schema_view.field(&field.source_aspect, &field.source_field)
         else {
             counters.record_rejection();
             rejection_matrix.record_result_shape_rejection();

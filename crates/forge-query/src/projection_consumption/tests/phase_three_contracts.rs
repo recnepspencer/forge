@@ -9,15 +9,13 @@ use super::super::{
     ProjectionConsumptionWarningKind, ProjectionContractSourcePosture,
     ProjectionContractSupportPosture, ProjectionFactKind, ProjectionSourceFamily,
 };
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
 
 fn test_binding(visible_fields: &[&str]) -> ProjectionConsumptionBindingContext {
     ProjectionConsumptionBindingContext::test_only(
         "result-shape:test",
         "authorized-projection:test",
-        visible_fields
-            .iter()
-            .map(|field| field.to_string())
-            .collect(),
+        crate::projection_consumption::test_authorized_field_paths(visible_fields),
     )
 }
 
@@ -33,10 +31,10 @@ fn binding_with_policy(
         "narrowed-result-shape:test",
         policy_digest,
         tenant_schema_basis_digest,
-        vec![
-            "identity.id".to_string(),
-            "profile.display_name".to_string(),
-        ],
+        crate::projection_consumption::test_authorized_field_paths(&[
+            "identity.id",
+            "profile.display_name",
+        ]),
     )
 }
 
@@ -96,7 +94,12 @@ fn admitted_read_receipt_binds_query_owned_contract() {
         test_binding(&["identity.id", "profile.display_name"]),
         ProjectMaterializedFacts::declare()
             .entity_identities()
-            .display_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
     );
 
     let contract = admitted.bind_contract();
@@ -150,7 +153,12 @@ fn warning_bearing_query_context_contract_carries_warning_posture() {
     let admitted = admitted(
         source,
         test_binding(&["profile.display_name"]),
-        ProjectMaterializedFacts::declare().display_field("profile.display_name"),
+        ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                "profile",
+                "display_name",
+            ]),
+        ),
     );
 
     let contract = admitted.bind_contract();
@@ -251,7 +259,12 @@ fn equivalent_contracts_normalize_to_the_same_digest() {
         test_binding(&["identity.id", "profile.display_name"]),
         ProjectMaterializedFacts::declare()
             .entity_identities()
-            .display_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
     )
     .bind_contract();
     let right = admitted(
@@ -259,7 +272,12 @@ fn equivalent_contracts_normalize_to_the_same_digest() {
         test_binding(&["identity.id", "profile.display_name"]),
         ProjectMaterializedFacts::declare()
             .entity_identities()
-            .display_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
     )
     .bind_contract();
 
@@ -279,7 +297,12 @@ fn contract_digest_changes_for_fact_inventory_and_policy_basis() {
         binding_with_policy("policy:a", "tenant-schema:a"),
         ProjectMaterializedFacts::declare()
             .entity_identities()
-            .display_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
     )
     .bind_contract();
     let different_policy = admitted(
@@ -303,15 +326,31 @@ fn bound_fact_inventory_preserves_requested_kind_and_field_shape() {
         test_binding(&["identity.id", "profile.display_name"]),
         ProjectMaterializedFacts::declare()
             .entity_identities()
-            .display_field("profile.display_name")
-            .derived_scalar_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            )
+            .derived_scalar_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
     )
     .bind_contract();
 
     let kinds = contract
         .fact_families()
         .iter()
-        .map(|fact| (fact.kind(), fact.field_key().map(str::to_string)))
+        .map(|fact| {
+            (
+                fact.kind(),
+                fact.field_path()
+                    .map(|field_path| field_path.canonical_field_path().clone()),
+            )
+        })
         .collect::<Vec<_>>();
     assert_eq!(
         kinds,
@@ -319,12 +358,22 @@ fn bound_fact_inventory_preserves_requested_kind_and_field_shape() {
             (ProjectionFactKind::EntityIdentity, None),
             (
                 ProjectionFactKind::DisplayField,
-                Some("profile.display_name".to_string())
+                Some(canonical_field_path("profile.display_name"))
             ),
             (
                 ProjectionFactKind::DerivedScalarField,
-                Some("profile.display_name".to_string())
+                Some(canonical_field_path("profile.display_name"))
             ),
         ]
     );
+}
+
+fn canonical_field_path(path: &str) -> CanonicalFieldPath {
+    CanonicalFieldPath::new(
+        path.split('.')
+            .map(|segment| FieldKey::new(segment.to_string()))
+            .collect::<Option<Vec<_>>>()
+            .expect("test field path should be canonical"),
+    )
+    .expect("test field path should not be empty")
 }

@@ -4,13 +4,25 @@ use super::*;
 fn batch_write_delegates_to_canonical_admission_and_execution_handoff() {
     let commands = vec![
         ForgeQueryAspectMutationBuilder::new()
-            .aspect("identity.id", "task-batch-1")
-            .aspect("title.value", "batch title one")
+            .aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-batch-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("batch title one"),
+            )
             .build_insert("Task")
             .expect("batch command should build"),
         ForgeQueryAspectMutationBuilder::new()
-            .aspect("identity.id", "task-batch-2")
-            .aspect("title.value", "batch title two")
+            .aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-batch-2"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("batch title two"),
+            )
             .build_insert("Task")
             .expect("batch command should build"),
     ];

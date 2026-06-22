@@ -3,43 +3,45 @@ use super::*;
 fn derived_titles_view(
     runtime: &mut ForgeQueryRuntime,
     view_name: &str,
-) -> ForgeQueryDerivedViewHandle<Value> {
+) -> ForgeQueryDerivedViewHandle<ForgeQueryNativeRow> {
     let live = runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
     runtime
-        .declare_maintained_derived_view::<Value>(
-            ForgeQueryDerivedView::new(view_name, ["title".to_string()])
+        .declare_maintained_derived_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new(view_name, test_aspect_touches(["title"]))
                 .depends_on_live(&live)
-                .produces(["title.summary".to_string()]),
+                .produces(test_aspect_touches(["title.summary"])),
             TitleListMaintainer,
         )
         .expect("derived view should declare")
 }
 
 #[test]
-fn workspace_materialize_delegates_to_derived_materialization_intent_execution() {
+fn workspace_materialize_result_delegates_to_derived_materialization_intent_execution() {
     let mut runtime = read_runtime();
     let derived = derived_titles_view(&mut runtime, "computed.intent.materialize");
     runtime
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("materialize-1")),
-                ("title.value", json!("Materialize me")),
+                ("identity.id", test_string_aspect_value("materialize-1")),
+                ("title.value", test_string_aspect_value("Materialize me")),
             ],
         ))
         .expect("write should materialize derived output");
     let mut workspace = ForgeQueryWorkspace::new("materialize-delegation", runtime)
         .expect("workspace should build");
 
-    let delegated = workspace.materialize(&derived);
+    let delegated = workspace
+        .materialize_result(&derived)
+        .expect("derived materialization should execute");
     let canonical = workspace
         .materialize_intent(&derived)
         .execute()
         .expect("canonical materialization should execute");
 
-    assert_eq!(delegated, canonical.rows());
+    assert_eq!(delegated, canonical);
     assert_eq!(canonical.receipt().view_name(), derived.name());
     assert_eq!(
         canonical
@@ -51,20 +53,28 @@ fn workspace_materialize_delegates_to_derived_materialization_intent_execution()
 }
 
 #[test]
-fn runtime_read_derived_delegates_to_derived_materialization_intent_execution() {
+fn runtime_read_derived_result_delegates_to_derived_materialization_intent_execution() {
     let mut runtime = read_runtime();
     let derived = derived_titles_view(&mut runtime, "computed.intent.runtime-materialize");
     runtime
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("runtime-materialize-1")),
-                ("title.value", json!("Runtime materialize me")),
+                (
+                    "identity.id",
+                    test_string_aspect_value("runtime-materialize-1"),
+                ),
+                (
+                    "title.value",
+                    test_string_aspect_value("Runtime materialize me"),
+                ),
             ],
         ))
         .expect("write should materialize derived output");
 
-    let delegated = runtime.read_derived(&derived);
+    let delegated = runtime
+        .read_derived_result(&derived)
+        .expect("derived materialization should execute");
     let canonical = runtime
         .review_runtime_derived_materialization(derived.name().to_string())
         .and_then(|review| {
@@ -74,7 +84,7 @@ fn runtime_read_derived_delegates_to_derived_materialization_intent_execution() 
         .and_then(|binding| runtime.execute_derived_materialization_execution_binding(binding))
         .expect("canonical derived materialization should execute");
 
-    assert_eq!(delegated, canonical.rows());
+    assert_eq!(delegated, canonical);
     assert_eq!(canonical.receipt().view_name(), derived.name());
     assert_eq!(
         canonical
@@ -93,8 +103,8 @@ fn workspace_inspect_derived_view_delegates_to_derived_inspection_intent_executi
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("inspect-1")),
-                ("title.value", json!("Inspect me")),
+                ("identity.id", test_string_aspect_value("inspect-1")),
+                ("title.value", test_string_aspect_value("Inspect me")),
             ],
         ))
         .expect("write should materialize derived output");
@@ -132,8 +142,11 @@ fn runtime_inspect_derived_view_delegates_to_derived_inspection_intent_execution
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("runtime-inspect-1")),
-                ("title.value", json!("Runtime inspect me")),
+                ("identity.id", test_string_aspect_value("runtime-inspect-1")),
+                (
+                    "title.value",
+                    test_string_aspect_value("Runtime inspect me"),
+                ),
             ],
         ))
         .expect("write should materialize derived output");
@@ -163,11 +176,14 @@ fn workspace_inspect_live_view_delegates_to_unified_inspection_intent_execution(
     let runtime = read_runtime();
     let mut workspace =
         ForgeQueryWorkspace::new("generic-inspect-delegation", runtime).expect("workspace build");
-    let live: ForgeQueryLiveView<Value> = workspace
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("intent-admission-generic-inspection-delegation")
         })
         .expect("live view should declare");
@@ -193,7 +209,7 @@ fn workspace_inspect_live_view_delegates_to_unified_inspection_intent_execution(
 #[test]
 fn runtime_inspect_live_view_delegates_to_unified_inspection_intent_execution() {
     let mut runtime = read_runtime();
-    let live: ForgeQueryLiveView<Value> = runtime
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
 
@@ -224,7 +240,7 @@ fn runtime_specific_intent_inspection_wrappers_delegate_to_unified_inspection_ex
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task-1", "title": "Delegated intent title" }),
+            test_intent_input([("entity", "task-1"), ("title", "Delegated intent title")]),
         ))
         .expect("intent should execute");
 
@@ -258,7 +274,7 @@ fn runtime_specific_intent_denial_wrapper_delegates_to_unified_inspection_execut
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task-1", "dependency": "cycle" }),
+            test_intent_input([("entity", "task-1"), ("dependency", "cycle")]),
         ))
         .expect_err("invariant violation must deny");
     let evidence = match error {
@@ -284,16 +300,16 @@ fn runtime_specific_intent_denial_wrapper_delegates_to_unified_inspection_execut
 fn runtime_specific_effect_and_preview_wrappers_delegate_to_unified_inspection_execution() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.wrapper-delegation",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::deliver(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::deliver(
             "ui.wrapper-delegation",
-            ForgeQueryEffectTrigger::live_view(&live, ["title"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "ui.preview",
         ))
         .expect("effect should declare");

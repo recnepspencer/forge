@@ -9,6 +9,7 @@ use crate::workflow::{
 use crate::ForgeQueryEvidenceIdentity;
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::EntityId;
+use forge_relational::facade::transactions::AspectFieldPatch;
 use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 
 use super::bind_requested;
@@ -115,7 +116,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
         runtime_snapshot_identity: ForgeQuerySnapshotIdentity,
         authority_binding_identity: ForgeQueryEvidenceIdentity,
         entity_id: EntityId,
-        desired_aspect_fields_external_json: serde_json::Value,
+        desired_aspect_fields: AspectFieldPatch,
     ) -> Self {
         Self::with_runtime_and_lowering_semantics(
             ForgeQueryWorkflowContributionPosture::ConfirmationRequired,
@@ -135,7 +136,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
                 authority_binding_identity,
                 MutationLoweringInput::IntentReconciliation {
                     entity_id,
-                    desired_aspect_fields_external_json,
+                    desired_aspect_fields,
                 },
             ),
         )
@@ -147,7 +148,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
         preflight: ExecutionPreflightBundle,
         authority_binding_identity: ForgeQueryEvidenceIdentity,
         entity_id: EntityId,
-        desired_aspect_fields_external_json: serde_json::Value,
+        desired_aspect_fields: AspectFieldPatch,
     ) -> Self {
         Self::with_runtime_and_lowering_semantics(
             ForgeQueryWorkflowContributionPosture::ConfirmationRequired,
@@ -165,7 +166,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
                 authority_binding_identity,
                 MutationLoweringInput::IntentReconciliation {
                     entity_id,
-                    desired_aspect_fields_external_json,
+                    desired_aspect_fields,
                 },
             ),
         )

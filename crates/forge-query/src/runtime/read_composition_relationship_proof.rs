@@ -1,4 +1,3 @@
-use crate::authoring::RelationName;
 use crate::canonicalization::CanonicalQueryArtifact;
 use crate::identity::SchemaBasisDigest;
 use crate::policy_basis::{
@@ -135,12 +134,7 @@ fn descriptor_set_for_read_traversals(
     let use_descendant_topology = built_in_operators
         .contains(&crate::runtime::ForgeQueryReadBuiltInOperator::BoundedDescendant);
     for traversal in traversals {
-        let relation = RelationName::new(traversal.relation()).map_err(|error| {
-            ForgeQueryReadDenial::new(
-                ForgeQueryReadDenialKind::ValidationDenied,
-                format!("{error:?}"),
-            )
-        })?;
+        let relation = traversal.relation_name().clone();
         if traversal.depth() <= 1 {
             descriptors.push(RelationshipProofDescriptor::direct_edge_relation_name(
                 relation,

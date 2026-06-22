@@ -1,9 +1,8 @@
 
 use forge_query::facade::{
     ForgeQueryExistingTruthProbeRequest, ForgeQueryLiveView, ForgeQueryRuntime,
-    ForgeQueryRuntimeError, ForgeQueryWorkspace,
+    ForgeQueryNativeRow, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
-use serde_json::Value;
 
 fn mutation_common_path(
     runtime: &mut ForgeQueryRuntime,
@@ -27,7 +26,7 @@ fn live_read_common_path<T>(
 
 fn inspection_common_path(
     workspace: &ForgeQueryWorkspace,
-    target: &ForgeQueryLiveView<Value>,
+    target: &ForgeQueryLiveView<ForgeQueryNativeRow>,
 ) -> Result<(), ForgeQueryRuntimeError> {
     let inspection = workspace.inspect(target)?;
     let inspection_result = workspace.inspect_intent(target).execute()?;

@@ -1,0 +1,21 @@
+error[E0061]: this function takes 2 arguments but 3 arguments were supplied
+ --> tests/ui/aspect_native_query/declarative_writeback_change_rejects_raw_strings.rs:4:13
+  |
+4 |     let _ = DeclarativeWritebackChange::new(
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         "title",
+  |         ------- expected `AspectFieldKey`, found `&str`
+6 |         "value",
+  |         ------- unexpected argument #2 of type `&'static str`
+  |
+note: associated function defined here
+ --> src/declarative_live.rs
+  |
+  |     pub fn new(source: AspectFieldKey, value: DeclarativeWritebackValue) -> Self {
+  |            ^^^
+help: remove the extra argument
+  |
+5 -         "title",
+6 -         "value",
+5 +         /* AspectFieldKey */,
+  |

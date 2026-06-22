@@ -1,6 +1,6 @@
 use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQueryEntityIdentity};
 use crate::runtime::{
-    ForgeQueryAspectMutationOperation, ForgeQueryContinuityMutationEvidence,
+    ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch, ForgeQueryContinuityMutationEvidence,
     ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,
     ForgeQueryMutationCausalityEvidence, ForgeQueryMutationProvenanceEvidence,
     ForgeQueryMutationTargetEvidence, ForgeQueryNamingMutationEvidence,
@@ -27,14 +27,14 @@ pub struct ForgeQueryBatchWriteComponentInspection {
     target_entity_identity: Option<ForgeQueryEntityIdentity>,
     collections: Vec<String>,
     entity_identities: Vec<ForgeQueryEntityIdentity>,
-    touched_aspect_paths: Vec<String>,
+    touched_aspects: Vec<ForgeQueryAspectTouch>,
     declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
 }
 
 impl ForgeQueryBatchWriteComponentInspection {
     pub(super) fn from_write_receipt(receipt: &ForgeQueryWriteReceipt) -> Self {
         let collections = receipt
-            .declared_collection()
+            .terminal_declared_collection_projection()
             .map(|collection| vec![collection.to_string()])
             .unwrap_or_else(|| {
                 let mut collections = receipt
@@ -61,13 +61,17 @@ impl ForgeQueryBatchWriteComponentInspection {
                 entity_identities
             });
 
-        let mut touched_aspect_paths = receipt
+        let mut touched_aspects = std::collections::BTreeMap::new();
+        for touch in receipt
             .deltas()
             .iter()
-            .flat_map(|delta| delta.aspect_paths.iter().cloned())
-            .collect::<Vec<_>>();
-        touched_aspect_paths.sort();
-        touched_aspect_paths.dedup();
+            .flat_map(|delta| delta.admitted_touched_aspects())
+        {
+            touched_aspects.insert(
+                touch.admitted_touch_digest_part().to_string(),
+                touch.clone(),
+            );
+        }
 
         Self {
             family: receipt.mutation_family().as_str().to_string(),
@@ -85,13 +89,17 @@ impl ForgeQueryBatchWriteComponentInspection {
             continuity_mutation_evidence: receipt.continuity_mutation_evidence().cloned(),
             causality_evidence: receipt.causality_evidence().cloned(),
             provenance_evidence: receipt.provenance_evidence().cloned(),
-            declared_collection: receipt.declared_collection().map(str::to_string),
+            declared_collection: receipt
+                .terminal_declared_collection_projection()
+                .map(str::to_string),
             declared_entity_identity: receipt.declared_entity_identity().cloned(),
-            target_collection: receipt.target_collection().map(str::to_string),
+            target_collection: receipt
+                .terminal_target_collection_projection()
+                .map(str::to_string),
             target_entity_identity: receipt.target_entity_identity().cloned(),
             collections,
             entity_identities,
-            touched_aspect_paths,
+            touched_aspects: touched_aspects.into_values().collect(),
             declared_aspect_operations: receipt.declared_aspect_operations().to_vec(),
         }
     }
@@ -172,8 +180,8 @@ impl ForgeQueryBatchWriteComponentInspection {
         &self.entity_identities
     }
 
-    pub fn touched_aspect_paths(&self) -> &[String] {
-        &self.touched_aspect_paths
+    pub fn admitted_touched_aspects(&self) -> &[ForgeQueryAspectTouch] {
+        &self.touched_aspects
     }
 
     pub fn declared_aspect_operations(&self) -> &[ForgeQueryAspectMutationOperation] {

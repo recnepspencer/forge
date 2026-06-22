@@ -6,13 +6,25 @@ fn write_batch_intent_common_path_helper_executes_through_canonical_handoff() {
     let receipt = runtime
         .write_batch_intent(vec![
             ForgeQueryAspectMutationBuilder::new()
-                .aspect("identity.id", "task-batch-helper-1")
-                .aspect("title.value", "batch helper one")
+                .aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value("task-batch-helper-1"),
+                )
+                .aspect(
+                    test_aspect_touch("title.value"),
+                    test_string_aspect_value("batch helper one"),
+                )
                 .build_insert("Task")
                 .expect("batch command should build"),
             ForgeQueryAspectMutationBuilder::new()
-                .aspect("identity.id", "task-batch-helper-2")
-                .aspect("title.value", "batch helper two")
+                .aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value("task-batch-helper-2"),
+                )
+                .aspect(
+                    test_aspect_touch("title.value"),
+                    test_string_aspect_value("batch helper two"),
+                )
                 .build_insert("Task")
                 .expect("batch command should build"),
         ])
@@ -40,8 +52,14 @@ fn write_batch_intent_advanced_path_helper_exposes_request_eligibility_decision_
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
     let review = runtime
         .write_batch_intent(vec![ForgeQueryAspectMutationBuilder::new()
-            .aspect("identity.id", "task-batch-advanced-1")
-            .aspect("title.value", "batch advanced one")
+            .aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-batch-advanced-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("batch advanced one"),
+            )
             .build_insert("Task")
             .expect("batch command should build")])
         .review()
@@ -69,13 +87,25 @@ fn workspace_write_batch_intent_common_path_helper_executes_through_canonical_ha
     let receipt = workspace
         .write_batch_intent(vec![
             ForgeQueryAspectMutationBuilder::new()
-                .aspect("identity.id", "workspace-batch-helper-1")
-                .aspect("title.value", "workspace batch helper one")
+                .aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value("workspace-batch-helper-1"),
+                )
+                .aspect(
+                    test_aspect_touch("title.value"),
+                    test_string_aspect_value("workspace batch helper one"),
+                )
                 .build_insert("Task")
                 .expect("batch command should build"),
             ForgeQueryAspectMutationBuilder::new()
-                .aspect("identity.id", "workspace-batch-helper-2")
-                .aspect("title.value", "workspace batch helper two")
+                .aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value("workspace-batch-helper-2"),
+                )
+                .aspect(
+                    test_aspect_touch("title.value"),
+                    test_string_aspect_value("workspace batch helper two"),
+                )
                 .build_insert("Task")
                 .expect("batch command should build"),
         ])

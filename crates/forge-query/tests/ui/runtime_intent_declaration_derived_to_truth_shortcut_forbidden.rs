@@ -1,5 +1,6 @@
-use forge_query::facade::{ForgeQueryIntentDeclaration, ForgeQueryIntentSourceLane};
-use serde_json::json;
+use forge_query::facade::{
+    ForgeQueryIntentDeclaration, ForgeQueryIntentInput, ForgeQueryIntentSourceLane,
+};
 
 fn main() {
     let declaration = ForgeQueryIntentDeclaration::strategy_commit(
@@ -7,7 +8,7 @@ fn main() {
         "commit-derived-output",
         "v1",
         "contract",
-        json!({}),
+        ForgeQueryIntentInput::object([]),
     );
 
     let _ = declaration.with_source_lane(ForgeQueryIntentSourceLane::DerivedRuntime);

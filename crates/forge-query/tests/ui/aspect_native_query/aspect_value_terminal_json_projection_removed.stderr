@@ -1,0 +1,11 @@
+error[E0599]: no method named `terminal_json_projection` found for reference `&ForgeQueryAspectValue` in the current scope
+  --> tests/ui/aspect_native_query/aspect_value_terminal_json_projection_removed.rs:14:20
+   |
+14 |     let _ = aspect.terminal_json_projection();
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryAspectValue`
+
+error[E0599]: no method named `terminal_json_projection_string` found for reference `&ForgeQueryAspectValue` in the current scope
+  --> tests/ui/aspect_native_query/aspect_value_terminal_json_projection_removed.rs:15:20
+   |
+15 |     let _ = aspect.terminal_json_projection_string();
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryAspectValue`

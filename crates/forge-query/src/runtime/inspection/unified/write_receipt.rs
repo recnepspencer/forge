@@ -125,9 +125,13 @@ impl ForgeQueryWriteReceiptInspection {
             continuity_mutation_evidence,
             causality_evidence,
             provenance_evidence,
-            declared_collection: receipt.declared_collection().map(str::to_string),
+            declared_collection: receipt
+                .terminal_declared_collection_projection()
+                .map(str::to_string),
             declared_entity_identity: receipt.declared_entity_identity().cloned(),
-            target_collection: receipt.target_collection().map(str::to_string),
+            target_collection: receipt
+                .terminal_target_collection_projection()
+                .map(str::to_string),
             target_entity_identity: receipt.target_entity_identity().cloned(),
             commit_identity: receipt.commit_identity().clone(),
             snapshot_identity: receipt.snapshot_identity().clone(),

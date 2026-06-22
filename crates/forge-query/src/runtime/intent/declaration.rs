@@ -29,7 +29,7 @@ pub struct ForgeQueryIntentDeclaration {
     strategy_name: String,
     strategy_version: String,
     input_contract: String,
-    input: Value,
+    input: ForgeQueryIntentInput,
     source_lane: ForgeQueryIntentSourceLane,
     target_lane: ForgeQueryAuthorityLane,
     effect_trigger: Option<ForgeQueryEffectWriteAdjacentTrigger>,
@@ -47,7 +47,23 @@ impl ForgeQueryIntentDeclaration {
         strategy_name: impl Into<String>,
         strategy_version: impl Into<String>,
         input_contract: impl Into<String>,
-        input: Value,
+        input: ForgeQueryIntentInput,
+    ) -> Self {
+        Self::strategy_commit_with_input(
+            name,
+            strategy_name,
+            strategy_version,
+            input_contract,
+            input,
+        )
+    }
+
+    pub fn strategy_commit_with_input(
+        name: impl Into<String>,
+        strategy_name: impl Into<String>,
+        strategy_version: impl Into<String>,
+        input_contract: impl Into<String>,
+        input: ForgeQueryIntentInput,
     ) -> Self {
         Self {
             name: name.into(),
@@ -110,8 +126,12 @@ impl ForgeQueryIntentDeclaration {
         &self.input_contract
     }
 
-    pub fn input(&self) -> &Value {
+    pub fn input(&self) -> &ForgeQueryIntentInput {
         &self.input
+    }
+
+    pub fn input_string_field(&self, field: &str) -> Option<&str> {
+        self.input.string_field(field)
     }
 
     pub fn source_lane(&self) -> ForgeQueryIntentSourceLane {
@@ -131,8 +151,7 @@ impl ForgeQueryIntentDeclaration {
     }
 
     pub fn input_digest(&self) -> String {
-        let input = serde_json::to_string(&self.input)
-            .unwrap_or_else(|error| format!("unserializable-intent-input:{error}"));
+        let input = self.input.digest_material();
         hash_parts(&[
             "forge_query_intent_input_v1".to_string(),
             format!("name:{}", self.name),

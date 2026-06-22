@@ -3,19 +3,23 @@ use crate::evidence_identity::{
     ForgeQueryEvidenceTag,
 };
 use crate::runtime::{
-    ForgeQueryAuthorityLane, ForgeQueryBatchMutationEvidence, ForgeQueryGraphCompositionBreadth,
+    ForgeQueryAspectTouch, ForgeQueryAuthorityLane, ForgeQueryBatchMutationEvidence,
+    ForgeQueryDerivedMaterializationTarget, ForgeQueryGraphCompositionBreadth,
     ForgeQueryGraphCompositionLifecycleOutcomes, ForgeQueryGraphCompositionProgram,
     ForgeQueryGraphCompositionResolutionMap, ForgeQueryIntentDecisionTraceEnvelope,
-    ForgeQueryIntentExecutionProvenance, ForgeQueryJournalPosition, ForgeQueryRuntimeError,
+    ForgeQueryIntentExecutionProvenance, ForgeQueryJournalPosition, ForgeQueryLiveArtifactTarget,
+    ForgeQueryRuntimeError,
 };
 
 use super::batch_receipt_aggregates::{
     batch_bridge_evidence_from_receipts, derive_batch_receipt_aggregates,
 };
+use super::batch_receipt_identity::{evidence_touch_identities, evidence_value_identities};
 use super::ForgeQueryWriteReceipt;
 
 mod graph_composition_accessors;
 mod graph_obligation_accessors;
+mod terminal_affected_view_accessors;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryBatchWriteReceipt {
@@ -27,9 +31,9 @@ pub struct ForgeQueryBatchWriteReceipt {
     graph_composition_program: ForgeQueryGraphCompositionProgram,
     graph_composition_resolution_map: ForgeQueryGraphCompositionResolutionMap,
     batch_digest: ForgeQueryEvidenceIdentity,
-    touched_aspect_paths: Vec<String>,
-    affected_live_view_ids: Vec<String>,
-    affected_derived_view_ids: Vec<String>,
+    touched_aspects: Vec<ForgeQueryAspectTouch>,
+    affected_live_view_targets: Vec<ForgeQueryLiveArtifactTarget>,
+    affected_derived_view_targets: Vec<ForgeQueryDerivedMaterializationTarget>,
     considered_computed_view_count: usize,
     considered_effect_count: usize,
     delivered_effect_count: usize,
@@ -50,9 +54,9 @@ impl ForgeQueryBatchWriteReceipt {
         basis_lane: ForgeQueryAuthorityLane,
         graph_composition_breadth: ForgeQueryGraphCompositionBreadth,
         graph_composition_program: ForgeQueryGraphCompositionProgram,
-        touched_aspect_paths: Vec<String>,
-        affected_live_view_ids: Vec<String>,
-        affected_derived_view_ids: Vec<String>,
+        touched_aspects: Vec<ForgeQueryAspectTouch>,
+        affected_live_view_targets: Vec<ForgeQueryLiveArtifactTarget>,
+        affected_derived_view_targets: Vec<ForgeQueryDerivedMaterializationTarget>,
         considered_computed_view_count: usize,
         considered_effect_count: usize,
         delivered_effect_count: usize,
@@ -118,20 +122,22 @@ impl ForgeQueryBatchWriteReceipt {
                     journal_position_identities.iter(),
                 )
                 .field_evidence_identity_sequence(
-                    ForgeQueryEvidenceTag::new("touched_aspect_path"),
-                    evidence_value_identities("batch-touched-aspect-path", &touched_aspect_paths)
-                        .iter(),
+                    ForgeQueryEvidenceTag::new("touched_aspect"),
+                    evidence_touch_identities("batch-touched-aspect", &touched_aspects).iter(),
                 )
                 .field_evidence_identity_sequence(
                     ForgeQueryEvidenceTag::new("affected_live_view_id"),
-                    evidence_value_identities("batch-affected-live-view", &affected_live_view_ids)
-                        .iter(),
+                    evidence_value_identities(
+                        "batch-affected-live-view",
+                        &terminal_live_view_ids(&affected_live_view_targets),
+                    )
+                    .iter(),
                 )
                 .field_evidence_identity_sequence(
                     ForgeQueryEvidenceTag::new("affected_derived_view_id"),
                     evidence_value_identities(
                         "batch-affected-derived-view",
-                        &affected_derived_view_ids,
+                        &terminal_derived_view_ids(&affected_derived_view_targets),
                     )
                     .iter(),
                 )
@@ -204,9 +210,9 @@ impl ForgeQueryBatchWriteReceipt {
             graph_composition_program,
             graph_composition_resolution_map,
             batch_digest,
-            touched_aspect_paths,
-            affected_live_view_ids,
-            affected_derived_view_ids,
+            touched_aspects,
+            affected_live_view_targets,
+            affected_derived_view_targets,
             considered_computed_view_count,
             considered_effect_count,
             delivered_effect_count,
@@ -262,9 +268,9 @@ impl ForgeQueryBatchWriteReceipt {
             basis_lane,
             ForgeQueryGraphCompositionBreadth::empty(),
             ForgeQueryGraphCompositionProgram::empty(),
-            aggregates.touched_aspect_paths,
-            aggregates.affected_live_view_ids,
-            aggregates.affected_derived_view_ids,
+            aggregates.touched_aspects,
+            aggregates.affected_live_view_targets,
+            aggregates.affected_derived_view_targets,
             aggregates.considered_computed_view_count,
             aggregates.considered_effect_count,
             aggregates.delivered_effect_count,
@@ -321,16 +327,8 @@ impl ForgeQueryBatchWriteReceipt {
             .map(ForgeQueryWriteReceipt::journal_position)
     }
 
-    pub fn touched_aspect_paths(&self) -> &[String] {
-        &self.touched_aspect_paths
-    }
-
-    pub fn affected_live_view_ids(&self) -> &[String] {
-        &self.affected_live_view_ids
-    }
-
-    pub fn affected_derived_view_ids(&self) -> &[String] {
-        &self.affected_derived_view_ids
+    pub fn admitted_touched_aspects(&self) -> &[ForgeQueryAspectTouch] {
+        &self.touched_aspects
     }
 
     pub fn considered_computed_view_count(&self) -> usize {
@@ -380,17 +378,20 @@ impl ForgeQueryBatchWriteReceipt {
     }
 }
 
-fn evidence_value_identities(
-    role: &'static str,
-    values: &[String],
-) -> Vec<ForgeQueryEvidenceIdentity> {
-    values
+pub(in crate::runtime) fn terminal_live_view_ids(
+    targets: &[ForgeQueryLiveArtifactTarget],
+) -> Vec<String> {
+    targets
         .iter()
-        .map(|value| {
-            forge_query_evidence_identity(ForgeQueryEvidenceScope::BatchWriteReceipt)
-                .field_shape(ForgeQueryEvidenceTag::new("role"), role)
-                .field_value(ForgeQueryEvidenceTag::new("value"), value)
-                .seal()
-        })
+        .map(|target| target.view_name().to_string())
+        .collect()
+}
+
+pub(in crate::runtime) fn terminal_derived_view_ids(
+    targets: &[ForgeQueryDerivedMaterializationTarget],
+) -> Vec<String> {
+    targets
+        .iter()
+        .map(|target| target.view_name().to_string())
         .collect()
 }

@@ -32,12 +32,18 @@ pub(super) fn enforce_admitted_authored_boundary(
     }
 
     for traversal in query.traversal() {
-        if traversal.relation().trim().is_empty() {
+        if traversal
+            .terminal_relation_projection_for_boundary()
+            .trim()
+            .is_empty()
+        {
             return Err(QueryCanonicalizationError::EmptyTraversalRelation);
         }
         if traversal.depth() == 0 {
             return Err(QueryCanonicalizationError::UnsupportedTraversalDepth {
-                relation: traversal.relation().to_string(),
+                relation: traversal
+                    .terminal_relation_projection_for_boundary()
+                    .to_string(),
                 depth: traversal.depth(),
             });
         }

@@ -9,7 +9,9 @@ use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeRouteKind, ForgeQueryLowerRuntimeSeamKey,
 };
 use crate::projection_consumption::ProjectionConsumptionSource;
-use crate::runtime::{ForgeQueryAspectMutationBuilder, ForgeQueryWriteReceipt};
+use crate::runtime::{
+    ForgeQueryAspectMutationBuilder, ForgeQueryAspectTouch, ForgeQueryWriteReceipt,
+};
 use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
 use forge_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
@@ -198,8 +200,16 @@ fn certification_query_write_receipt() -> ForgeQueryWriteReceipt {
         .expect("projection query receipt workspace should build");
     workspace
         .insert("Task", |task: ForgeQueryAspectMutationBuilder| {
-            task.aspect("title.value", "Projection fixture")
-                .aspect("status.value", "todo")
+            task.aspect(
+                ForgeQueryAspectTouch::from_authoring_path("title.value")
+                    .expect("projection query title aspect should admit"),
+                AspectValue::String("Projection fixture".into()),
+            )
+            .aspect(
+                ForgeQueryAspectTouch::from_authoring_path("status.value")
+                    .expect("projection query status aspect should admit"),
+                AspectValue::String("todo".into()),
+            )
         })
         .expect("projection query receipt write should execute")
 }

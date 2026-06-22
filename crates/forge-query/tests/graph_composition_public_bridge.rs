@@ -1,13 +1,13 @@
+use forge_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
-    ForgeQueryContinuityPriorAuthorityLabel, ForgeQueryContinuitySuccessorAuthorityLabel,
-    ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthBindingAuthorityLabel,
-    ForgeQueryExistingTruthTargetBinding, ForgeQueryGraphCompositionAdmissionTraceStage,
-    ForgeQueryGraphCompositionLifecycleOutcomeKind, ForgeQueryGraphCompositionProgramStepKind,
-    ForgeQueryInspection, ForgeQueryLiveView, ForgeQueryMutationAuthorityIdentity,
-    ForgeQueryRuntimeError, ForgeQuerySymbolicTargetReference,
+    ForgeQueryAspectTouch, ForgeQueryContinuityPriorAuthorityLabel,
+    ForgeQueryContinuitySuccessorAuthorityLabel, ForgeQueryExistingRelationTarget,
+    ForgeQueryExistingTruthBindingAuthorityLabel, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryGraphCompositionAdmissionTraceStage, ForgeQueryGraphCompositionLifecycleOutcomeKind,
+    ForgeQueryGraphCompositionProgramStepKind, ForgeQueryInspection, ForgeQueryLiveView,
+    ForgeQueryMutationAuthorityIdentity, ForgeQueryNativeRow, ForgeQueryRuntimeError,
+    ForgeQuerySymbolicTargetReference,
 };
-use serde_json::{json, Value};
-
 mod support;
 
 use support::public_bridge_runtime::{public_graph_support_profile, PublicBridgeRuntimeHarness};
@@ -55,19 +55,26 @@ fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retir
     let mut workspace = runtime
         .workspace("public.graph-composition-lifecycle")
         .expect("runtime should open a named workspace");
-    let tasks: ForgeQueryLiveView<Value> = workspace
+    let tasks: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("public.graph-composition-lifecycle-tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
+                    forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(forge_query::facade::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("public-graph-composition-lifecycle-tasks")
         })
         .expect("task live view should declare");
-    let edges: ForgeQueryLiveView<Value> = workspace
+    let edges: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("public.graph-composition-lifecycle-edges", |q| {
             q.from("TaskEdge")
-                .select(["edge.kind", "edge.source_identity", "edge.target_identity"])
-                .order_by("edge.kind")
+                .select([
+                    forge_query::facade::AspectFieldKey::new("edge", "kind").unwrap(),
+                    forge_query::facade::AspectFieldKey::new("edge", "source_identity").unwrap(),
+                    forge_query::facade::AspectFieldKey::new("edge", "target_identity").unwrap(),
+                ])
+                .order_by(forge_query::facade::AspectFieldKey::new("edge", "kind").unwrap())
                 .schema_basis("public-graph-composition-lifecycle-edges")
         })
         .expect("edge live view should declare");
@@ -75,21 +82,27 @@ fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retir
     let receipt = workspace
         .compose_graph(|graph| {
             let draft = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-lifecycle")
-                    .aspect("title.value", "Draft task")
+                task.aspect(touch("identity.id"), text("task-lifecycle"))
+                    .aspect(touch("title.value"), text("Draft task"))
             })?;
             let edge = graph.insert_symbolic_relation("draft-edge", "TaskEdge", |relation| {
                 relation
-                    .aspect("edge.kind", "depends_on")
-                    .symbolic_entity_identity("edge.source_identity", &draft)
+                    .aspect(touch("edge.kind"), text("depends_on"))
+                    .symbolic_entity_identity(touch("edge.source_identity"), &draft)
                     .existing_entity_identity(
-                        "edge.target_identity",
+                        touch("edge.target_identity"),
                         relational_test_entity_identity("task-existing"),
                     )
             })?;
-            graph.update_entity(&draft, |task| task.aspect("title.value", "Published task"))?;
+            graph.update_entity(&draft, |task| {
+                task.aspect(touch("title.value"), text("Published task"))
+            })?;
             graph.delete_relation(&edge, |delete| {
-                delete.touches(["edge.kind", "edge.source_identity", "edge.target_identity"])
+                delete.touches([
+                    touch("edge.kind"),
+                    touch("edge.source_identity"),
+                    touch("edge.target_identity"),
+                ])
             })?;
             Ok(())
         })
@@ -135,8 +148,8 @@ fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retir
     assert_eq!(task_rows.len(), 1);
     assert_eq!(edge_rows.len(), 0);
     assert_eq!(
-        task_rows[0].external_row()["title"]["value"].as_str(),
-        Some("Published task")
+        task_rows[0].scalar_value_at(&field_path("title.value")),
+        Some(&text("Published task"))
     );
 
     match inspection {
@@ -173,8 +186,8 @@ fn graph_composition_public_bridge_preserves_domain_invariant_denial_lane() {
     .expect("existing relation target collection should build");
     let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(binding)
         .expect("relation binding should build");
-    harness.seed_backend_authoritative_truth(&binding, "source.id", json!("he-1"));
-    harness.seed_backend_authoritative_truth(&binding, "target.id", json!("he-2"));
+    harness.seed_backend_authoritative_truth(&binding, "source.id", text("he-1"));
+    harness.seed_backend_authoritative_truth(&binding, "target.id", text("he-2"));
     let runtime = harness
         .bridge_backed_runtime_builder()
         .support_profile(public_verified_relation_profile("update_existing_verified"))
@@ -189,25 +202,25 @@ fn graph_composition_public_bridge_preserves_domain_invariant_denial_lane() {
                 let successor =
                     graph.insert_entity("draft-half-edge", "HalfEdge", |half_edge| {
                         half_edge
-                            .aspect("identity.id", "he-3")
-                            .aspect("kind.value", "half_edge")
+                            .aspect(touch("identity.id"), text("he-3"))
+                            .aspect(touch("kind.value"), text("half_edge"))
                     })?;
                 graph.retarget_existing_verified(
                     binding,
                     |verify| {
                         verify
-                            .aspect("source.id", "he-1")
-                            .aspect("target.id", "he-2")
+                            .aspect(touch("source.id"), text("he-1"))
+                            .aspect(touch("target.id"), text("he-2"))
                     },
                     |update| {
                         update
-                            .aspect("source.id", "he-1")
+                            .aspect(touch("source.id"), text("he-1"))
                             .continuity_rebind_existing_target(
                                 continuity_prior("authority:loop-next-rel"),
                                 continuity_successor("authority:loop-next-rel-successor"),
                             )
                             .symbolic_entity_identity(
-                                "target.id",
+                                touch("target.id"),
                                 ForgeQuerySymbolicTargetReference::new(successor.symbol())
                                     .expect("symbolic successor reference should build")
                                     .in_target_collection("HalfEdge")
@@ -256,4 +269,38 @@ fn graph_composition_public_bridge_preserves_domain_invariant_denial_lane() {
         }
         other => panic!("expected domain invariant denial, got {other:?}"),
     }
+}
+
+fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
+    let mut segments = aspect_path.split('.');
+    let aspect = segments
+        .next()
+        .and_then(|segment| AspectKey::new(segment.to_string()))
+        .expect("test aspect path aspect should admit");
+    let fields = segments
+        .map(|segment| {
+            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
+        })
+        .collect::<Vec<_>>();
+    if fields.is_empty() {
+        ForgeQueryAspectTouch::aspect(aspect)
+    } else {
+        ForgeQueryAspectTouch::field_path(
+            aspect,
+            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
+        )
+    }
+}
+
+fn text(value: impl Into<String>) -> AspectValue {
+    AspectValue::String(value.into().into())
+}
+
+fn field_path(path: &str) -> CanonicalFieldPath {
+    CanonicalFieldPath::new(
+        path.split('.').map(|segment| {
+            FieldKey::new(segment).expect("test field path segment should be valid")
+        }),
+    )
+    .expect("test field path should be non-empty")
 }

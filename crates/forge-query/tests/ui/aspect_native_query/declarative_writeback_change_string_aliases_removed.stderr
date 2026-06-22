@@ -1,0 +1,21 @@
+error[E0624]: method `aspect` is private
+ --> tests/ui/aspect_native_query/declarative_writeback_change_string_aliases_removed.rs:8:20
+  |
+8 |     let _ = change.aspect();
+  |                    ^^^^^^ private method
+  |
+ ::: src/declarative_live.rs
+  |
+  |     pub(crate) fn aspect(&self) -> &str {
+  |     ----------------------------------- private method defined here
+
+error[E0624]: method `field` is private
+ --> tests/ui/aspect_native_query/declarative_writeback_change_string_aliases_removed.rs:9:20
+  |
+9 |     let _ = change.field();
+  |                    ^^^^^ private method
+  |
+ ::: src/declarative_live.rs
+  |
+  |     pub(crate) fn field(&self) -> &str {
+  |     ---------------------------------- private method defined here

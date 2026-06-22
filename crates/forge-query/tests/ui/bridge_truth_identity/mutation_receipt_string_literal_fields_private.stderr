@@ -17,3 +17,11 @@ error[E0308]: mismatched types
    |
 11 |             entity_identity: "entity:employee-1".to_string(),
    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `ForgeQueryEntityIdentity`, found `String`
+
+error[E0560]: struct `ForgeQueryMutationDelta` has no field named `aspect_paths`
+  --> tests/ui/bridge_truth_identity/mutation_receipt_string_literal_fields_private.rs:13:13
+   |
+13 |             aspect_paths: Vec::new(),
+   |             ^^^^^^^^^^^^ `ForgeQueryMutationDelta` does not have this field
+   |
+   = note: all struct fields are already assigned

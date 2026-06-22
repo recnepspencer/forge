@@ -177,15 +177,15 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
         .build_backend_from_parts()
         .build()
         .expect("complete backend parts should build");
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("external.tasks", task_live_request(), task_schema())
         .expect("external backend should declare live view");
     let receipt = runtime
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("external-1")),
-                ("title.value", json!("External task")),
+                ("identity.id", test_string_aspect_value("external-1")),
+                ("title.value", test_string_aspect_value("External task")),
             ],
         ))
         .expect("external write authority should execute");
@@ -278,7 +278,7 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
         Some(1)
     );
     assert_eq!(
-        receipt.affected_live_view_ids(),
+        receipt.terminal_affected_live_view_ids_projection(),
         &["external.tasks".to_string()]
     );
     {

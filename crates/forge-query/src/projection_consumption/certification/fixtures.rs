@@ -11,7 +11,7 @@ use crate::projection_consumption::{
     ProjectionConsumptionBindingContext, ProjectionConsumptionDeclaration,
     ProjectionConsumptionEligibility, ProjectionConsumptionSource,
 };
-use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
+use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, ScalarAspectType};
 use forge_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
     project_relational_grouped_truth, RelationalAuthoritativeRowSetArtifact,
@@ -78,7 +78,12 @@ pub fn control_row_set_lifecycle(row_count: usize) -> ProjectionConsumptionCerti
         ]),
         ProjectMaterializedFacts::declare()
             .entity_identities()
-            .display_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
     )
     .expect("control declaration should author cleanly");
     let contract = admitted_contract(&declaration);
@@ -127,7 +132,12 @@ pub fn parity_row_set_lifecycle(row_count: usize) -> ProjectionConsumptionCertif
     let row_set = certification_row_set(row_count);
     let declaration = ProjectMaterializedFacts::declare()
         .entity_identities()
-        .display_field("profile.display_name")
+        .display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                "profile",
+                "display_name",
+            ]),
+        )
         .source(
             ProjectionConsumptionAuthoringSurface::from_relational_row_set(
                 &row_set,
@@ -165,7 +175,12 @@ pub fn denied_masked_field_failure_digest() -> String {
         control_binding(&["identity.id"]),
         ProjectMaterializedFacts::declare()
             .entity_identities()
-            .display_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
     )
     .expect("denial declaration should author cleanly");
     match evaluate_projection_consumption_eligibility(&declaration) {
@@ -224,13 +239,10 @@ fn control_authorized_projection(visible_fields: &[&str]) -> AuthorizedProjectio
         RESULT_SHAPE_DIGEST,
         "policy:projection-consumption-certification",
         "tenant-schema:projection-consumption-certification",
-        visible_fields
-            .iter()
-            .map(|field| field.to_string())
-            .collect(),
+        visible_fields.iter().map(field_path).collect(),
         MaskedProjectionArtifact::new(
-            vec!["masked-field:test".to_string()],
-            vec!["masked-family:test".to_string()],
+            vec![field_path(&"masked.field")],
+            vec![field_path(&"masked.family")],
         ),
         "narrowed-result-shape:projection-consumption-certification".to_string(),
         PolicyFieldInfluenceSet::new(&["policy-influence:test".to_string()], 1),
@@ -327,7 +339,11 @@ pub(crate) fn intent_admission_admitted_projection_declaration() -> ProjectionCo
             Vec::new(),
         ),
         intent_admission_projection_binding("query-read:certification-admitted"),
-        ProjectMaterializedFacts::declare().display_field("field.visible"),
+        ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                "field", "visible",
+            ]),
+        ),
     )
     .expect("intent-admission admitted projection declaration should build")
 }
@@ -348,7 +364,11 @@ pub(crate) fn intent_admission_warning_projection_declaration() -> ProjectionCon
             Vec::new(),
         ),
         intent_admission_projection_binding("query-context:certification-warning"),
-        ProjectMaterializedFacts::declare().display_field("field.visible"),
+        ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                "field", "visible",
+            ]),
+        ),
     )
     .expect("intent-admission warning projection declaration should build")
 }
@@ -364,6 +384,17 @@ fn intent_admission_projection_binding(
         "narrowed-shape-digest",
         "policy-digest",
         "tenant-schema-digest",
-        vec!["field.visible".to_string()],
+        vec![field_path(&"field.visible")],
+    )
+}
+
+fn field_path(field: &&str) -> crate::authorized_projection::AuthorizedProjectionFieldPath {
+    let Some((aspect, field)) = field.split_once('.') else {
+        panic!("certification field path should include an aspect and field");
+    };
+    crate::authorized_projection::AuthorizedProjectionFieldPath::from_native_keys(
+        AspectKey::new(aspect.to_string())
+            .expect("certification aspect key should be foundational"),
+        FieldKey::new(field.to_string()).expect("certification field key should be foundational"),
     )
 }

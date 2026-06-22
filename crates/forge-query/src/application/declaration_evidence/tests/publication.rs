@@ -1,7 +1,8 @@
 use forge_foundational::facade::FoundationalBoundaryEvidenceMaterializationProfile;
 
 use crate::application::{
-    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationFoundationalEvidenceInput,
+    assert_declaration_aspect_projections, ForgeQueryDeclarationAspectCoverageBasis,
+    ForgeQueryDeclarationFoundationalEvidenceInput,
 };
 
 use super::domain::{admitted_handle, AspectRichFamily, ConflictingAspectFamily, Declaration};
@@ -36,42 +37,36 @@ fn foundational_profiles_publish_semantic_slices_honestly() {
         )
         .expect("full foundational evidence should describe");
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         lean.aspect_publication().present(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
     assert!(lean.aspect_publication().widened().is_empty());
-    assert_eq!(
+    assert_declaration_aspect_projections(
         lean.aspect_publication().elided(),
-        &[
-            "selection.local_topology".to_string(),
-            "selection.material_edit".to_string()
-        ]
+        &["selection.local_topology", "selection.material_edit"],
     );
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         support_ready.aspect_publication().present(),
-        &[
-            "selection.active_edge".to_string(),
-            "selection.local_topology".to_string()
-        ]
+        &["selection.active_edge", "selection.local_topology"],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         support_ready.aspect_publication().widened(),
-        &["selection.local_topology".to_string()]
+        &["selection.local_topology"],
     );
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         full.aspect_publication().present(),
         &[
-            "selection.active_edge".to_string(),
-            "selection.local_topology".to_string(),
-            "selection.material_edit".to_string()
-        ]
+            "selection.active_edge",
+            "selection.local_topology",
+            "selection.material_edit",
+        ],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         full.aspect_publication().masked(),
-        &["selection.private_authority".to_string()]
+        &["selection.private_authority"],
     );
     assert_eq!(lean.aspect_contract(), support_ready.aspect_contract());
     assert_eq!(support_ready.aspect_coverage(), full.aspect_coverage());
@@ -147,18 +142,12 @@ fn conflicting_aspects_stay_masked_even_on_full_foundational_publication() {
         )
         .expect("full foundational evidence should describe");
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         evidence.aspect_publication().present(),
-        &[
-            "selection.active_edge".to_string(),
-            "selection.local_topology".to_string()
-        ]
+        &["selection.active_edge", "selection.local_topology"],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         evidence.aspect_publication().masked(),
-        &[
-            "selection.material_edit".to_string(),
-            "selection.private_authority".to_string()
-        ]
+        &["selection.material_edit", "selection.private_authority"],
     );
 }

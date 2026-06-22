@@ -6,8 +6,8 @@ use crate::runtime::{
 
 use super::super::fixtures::{
     blocking_registration, catalog, collection_selector, multi_component_descriptor,
-    relation_kind_id_selector, schema_registration, symbolic_relation_retirement_descriptor,
-    unrelated_collection_selector,
+    relation_kind_id_selector, schema_registration, set_operation,
+    symbolic_relation_retirement_descriptor, touch, unrelated_collection_selector,
 };
 
 #[test]
@@ -72,17 +72,17 @@ fn selection_derives_keys_across_multi_component_descriptors() {
         ),
         schema_registration(
             "declared-aspect-operation",
-            ForgeQueryGraphTouchSelector::declared_aspect_operation("set:capacity").unwrap(),
+            ForgeQueryGraphTouchSelector::declared_aspect_operation(set_operation("capacity")),
             world,
         ),
         schema_registration(
             "aspect-capacity",
-            ForgeQueryGraphTouchSelector::aspect_path("capacity").unwrap(),
+            ForgeQueryGraphTouchSelector::aspect_touch(touch("capacity")),
             world,
         ),
         schema_registration(
             "aspect-boundary",
-            ForgeQueryGraphTouchSelector::aspect_path("boundary").unwrap(),
+            ForgeQueryGraphTouchSelector::aspect_touch(touch("boundary")),
             world,
         ),
         schema_registration(

@@ -40,11 +40,15 @@ impl EqualityPredicate {
         Ok(Self { target, value })
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn target_field_key(&self) -> &AspectFieldKey {
+        &self.target
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
         self.target.aspect().as_str()
     }
 
-    pub fn field(&self) -> &str {
+    pub(crate) fn field(&self) -> &str {
         self.target.field().as_str()
     }
 
@@ -101,11 +105,15 @@ impl IntegerComparisonPredicate {
         })
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn target_field_key(&self) -> &AspectFieldKey {
+        &self.target
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
         self.target.aspect().as_str()
     }
 
-    pub fn field(&self) -> &str {
+    pub(crate) fn field(&self) -> &str {
         self.target.field().as_str()
     }
 
@@ -143,11 +151,15 @@ impl StringContainsPredicate {
         Ok(Self { target, value })
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn target_field_key(&self) -> &AspectFieldKey {
+        &self.target
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
         self.target.aspect().as_str()
     }
 
-    pub fn field(&self) -> &str {
+    pub(crate) fn field(&self) -> &str {
         self.target.field().as_str()
     }
 
@@ -184,11 +196,15 @@ impl SetMembershipPredicate {
         Ok(Self { target, values })
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn target_field_key(&self) -> &AspectFieldKey {
+        &self.target
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
         self.target.aspect().as_str()
     }
 
-    pub fn field(&self) -> &str {
+    pub(crate) fn field(&self) -> &str {
         self.target.field().as_str()
     }
 
@@ -228,11 +244,15 @@ impl PresencePredicate {
         })
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn target_field_key(&self) -> &AspectFieldKey {
+        &self.target
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
         self.target.aspect().as_str()
     }
 
-    pub fn field(&self) -> &str {
+    pub(crate) fn field(&self) -> &str {
         self.target.field().as_str()
     }
 
@@ -267,7 +287,17 @@ pub enum PredicateSelector {
 }
 
 impl PredicateSelector {
-    pub fn aspect(&self) -> &str {
+    pub fn target_field_key(&self) -> &AspectFieldKey {
+        match self {
+            Self::Equality(predicate) => predicate.target_field_key(),
+            Self::IntegerComparison(predicate) => predicate.target_field_key(),
+            Self::StringContains(predicate) => predicate.target_field_key(),
+            Self::SetMembership(predicate) => predicate.target_field_key(),
+            Self::Presence(predicate) => predicate.target_field_key(),
+        }
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
         match self {
             Self::Equality(predicate) => predicate.aspect(),
             Self::IntegerComparison(predicate) => predicate.aspect(),
@@ -277,7 +307,7 @@ impl PredicateSelector {
         }
     }
 
-    pub fn field(&self) -> &str {
+    pub(crate) fn field(&self) -> &str {
         match self {
             Self::Equality(predicate) => predicate.field(),
             Self::IntegerComparison(predicate) => predicate.field(),

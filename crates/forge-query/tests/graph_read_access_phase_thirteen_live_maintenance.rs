@@ -1,13 +1,15 @@
+use forge_foundational::{AspectKey, CanonicalFieldPath, FieldKey};
 #[allow(dead_code)]
 mod graph_read_access_cost_model_support;
 #[path = "support/mod.rs"]
 mod support;
 
+use forge_foundational::facade::AspectValue;
 use forge_query::facade::runtime::{
-    plan_admitted_graph_read_access_for_family, ForgeQueryLiveGraphReadAccessPosture,
-    ForgeQueryLiveGraphReadMaintenanceBudget, QueryPatchGroupKind,
+    plan_admitted_graph_read_access_for_family, ForgeQueryAspectTouch,
+    ForgeQueryLiveGraphReadAccessPosture, ForgeQueryLiveGraphReadMaintenanceBudget,
+    ForgeQueryNativeRow, QueryPatchGroupKind,
 };
-use serde_json::Value;
 
 use graph_read_access_cost_model_support::{
     dense_traversal_family, simple_traversal_family, workspace,
@@ -95,11 +97,14 @@ fn dense_live_planning_denial_still_returns_live_specific_support_posture() {
 fn live_read_receipt_exposes_live_graph_access_counters() {
     let mut workspace = workspace("phase-thirteen-live-receipt");
     let live_view = workspace
-        .live_view::<Value>("tasks.table", |query| {
+        .live_view::<ForgeQueryNativeRow>("tasks.table", |query| {
             query
                 .from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
+                    forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(forge_query::facade::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("phase-thirteen-live-receipt")
         })
         .expect("live view should declare");
@@ -130,19 +135,22 @@ fn live_read_receipt_exposes_live_graph_access_counters() {
 fn live_mutation_delivery_carries_graph_read_maintenance_receipt() {
     let mut workspace = workspace("phase-thirteen-live-mutation-maintenance");
     let live_view = workspace
-        .live_view::<Value>("tasks.table", |query| {
+        .live_view::<ForgeQueryNativeRow>("tasks.table", |query| {
             query
                 .from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
+                    forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(forge_query::facade::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("phase-thirteen-live-mutation-maintenance")
         })
         .expect("live view should declare");
 
     workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-maintained")
-                .aspect("title.value", "Maintained task")
+            task.aspect(touch("identity.id"), text("task-maintained"))
+                .aspect(touch("title.value"), text("Maintained task"))
         })
         .expect("insert should execute through the public runtime");
 
@@ -182,19 +190,22 @@ fn live_mutation_delivery_carries_graph_read_maintenance_receipt() {
 fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery() {
     let mut workspace = workspace("phase-thirteen-live-update-maintenance");
     let live_view = workspace
-        .live_view::<Value>("tasks.update.table", |query| {
+        .live_view::<ForgeQueryNativeRow>("tasks.update.table", |query| {
             query
                 .from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
+                    forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(forge_query::facade::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("phase-thirteen-live-update-maintenance")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-updated")
-                .aspect("title.value", "Original title")
-                .aspect("description.value", "hidden")
+            task.aspect(touch("identity.id"), text("task-updated"))
+                .aspect(touch("title.value"), text("Original title"))
+                .aspect(touch("description.value"), text("hidden"))
         })
         .expect("seed insert should execute");
     let entity_identity = seed.deltas()[0].entity_identity().clone();
@@ -202,7 +213,7 @@ fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery
 
     workspace
         .update(entity_identity.clone(), |task| {
-            task.aspect("title.value", "Updated title")
+            task.aspect(touch("title.value"), text("Updated title"))
         })
         .expect("projected update should execute");
     let projected = workspace.observe(&live_view);
@@ -213,7 +224,7 @@ fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery
 
     workspace
         .update(entity_identity, |task| {
-            task.aspect("description.value", "hidden again")
+            task.aspect(touch("description.value"), text("hidden again"))
         })
         .expect("hidden update should execute");
     let hidden_only = workspace.observe(&live_view);
@@ -238,4 +249,29 @@ fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery
     assert_eq!(projected_counters.strategy_recompute_count(), 0);
     assert_eq!(projected_counters.background_index_build_count(), 0);
     assert!(hidden_only.query_delivery_batches.is_empty());
+}
+
+fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
+    let mut segments = aspect_path.split('.');
+    let aspect = segments
+        .next()
+        .and_then(|segment| AspectKey::new(segment.to_string()))
+        .expect("test aspect path aspect should admit");
+    let fields = segments
+        .map(|segment| {
+            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
+        })
+        .collect::<Vec<_>>();
+    if fields.is_empty() {
+        ForgeQueryAspectTouch::aspect(aspect)
+    } else {
+        ForgeQueryAspectTouch::field_path(
+            aspect,
+            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
+        )
+    }
+}
+
+fn text(value: impl Into<String>) -> AspectValue {
+    AspectValue::String(value.into().into())
 }

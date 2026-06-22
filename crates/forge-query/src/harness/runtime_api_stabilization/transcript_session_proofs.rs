@@ -1,20 +1,21 @@
-use serde_json::{json, Value};
-
 use crate::facade::{
     ForgeQueryAuthorityLane, ForgeQueryBranchOptions, ForgeQueryEffectHandle,
-    ForgeQueryIntentDeclaration, ForgeQueryLiveView, ForgeQueryPreviewOptions,
-    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimePublicApiContract, ForgeQueryWorkspace,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentInput, ForgeQueryLiveView,
+    ForgeQueryPreviewOptions, ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimePublicApiContract,
+    ForgeQueryWorkspace,
 };
 use crate::identity::hash_parts;
+use crate::runtime::ForgeQueryNativeRow;
 use crate::ForgeQuerySessionLabel;
+use forge_foundational::facade::AspectValue;
 
 use super::transcripts::TranscriptSpec;
 
 pub(super) fn preview_proof(
     workspace: &mut ForgeQueryWorkspace,
-    live: &ForgeQueryLiveView<Value>,
-    computed: &crate::facade::ForgeQueryDerivedViewHandle<Value>,
-    effect: &ForgeQueryEffectHandle<Value>,
+    live: &ForgeQueryLiveView<ForgeQueryNativeRow>,
+    computed: &crate::facade::ForgeQueryDerivedViewHandle<ForgeQueryNativeRow>,
+    effect: &ForgeQueryEffectHandle<ForgeQueryNativeRow>,
     spec: &TranscriptSpec,
 ) -> (String, usize) {
     let mut preview = workspace
@@ -34,12 +35,18 @@ pub(super) fn preview_proof(
         .expect("effect should bind in preview");
     let preview_write = preview
         .insert(spec.collection, |entity| {
-            let entity = entity.aspect("identity.id", format!("{}-preview-1", spec.family));
+            let entity = entity.aspect(
+                aspect_touch("identity.id"),
+                string_aspect_value(format!("{}-preview-1", spec.family)),
+            );
             spec.produced_aspects
                 .iter()
                 .enumerate()
                 .fold(entity, |builder, (index, aspect)| {
-                    builder.aspect(*aspect, format!("{}-preview-{index}", spec.family))
+                    builder.aspect(
+                        aspect_touch(*aspect),
+                        string_aspect_value(format!("{}-preview-{index}", spec.family)),
+                    )
                 })
         })
         .expect("preview write should stage");
@@ -155,6 +162,21 @@ pub(super) fn intent_declaration(
         "strategy.intent.transcript",
         "1.0",
         "transcript.intent.input.v1",
-        json!({ "collection": collection, "entity": "transcript-entity-1" }),
+        ForgeQueryIntentInput::object([
+            ("collection", ForgeQueryIntentInput::string(collection)),
+            (
+                "entity",
+                ForgeQueryIntentInput::string("transcript-entity-1"),
+            ),
+        ]),
     )
+}
+
+fn aspect_touch(aspect_path: impl Into<String>) -> crate::runtime::ForgeQueryAspectTouch {
+    crate::runtime::ForgeQueryAspectTouch::from_authoring_path(aspect_path)
+        .expect("runtime transcript aspect should admit")
+}
+
+fn string_aspect_value(value: impl Into<String>) -> AspectValue {
+    AspectValue::String(value.into().into())
 }

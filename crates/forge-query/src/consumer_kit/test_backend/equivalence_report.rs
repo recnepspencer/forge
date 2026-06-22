@@ -2,7 +2,7 @@ use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
 };
-use crate::runtime::ForgeQueryWriteReceipt;
+use crate::runtime::{ForgeQueryAspectTouch, ForgeQueryWriteReceipt};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryTestBackendEquivalenceRow {
@@ -118,8 +118,8 @@ pub fn compare_test_backend_write_receipts(
         ),
         ForgeQueryTestBackendEquivalenceRow::compare(
             "affected_live_view_count",
-            in_memory.affected_live_view_ids().len().to_string(),
-            bridge.affected_live_view_ids().len().to_string(),
+            in_memory.affected_live_view_targets().len().to_string(),
+            bridge.affected_live_view_targets().len().to_string(),
         ),
         ForgeQueryTestBackendEquivalenceRow::present(
             "in_memory_commit_identity_present",
@@ -157,8 +157,7 @@ fn semantic_delta_rows(receipt: &ForgeQueryWriteReceipt) -> String {
                 "{}:{:?}:{}",
                 delta.collection(),
                 delta.kind(),
-                delta
-                    .aspect_paths()
+                native_aspect_digest_parts(delta.admitted_touched_aspects())
                     .iter()
                     .map(String::as_str)
                     .collect::<Vec<_>>()
@@ -167,4 +166,11 @@ fn semantic_delta_rows(receipt: &ForgeQueryWriteReceipt) -> String {
         })
         .collect::<Vec<_>>()
         .join("|")
+}
+
+fn native_aspect_digest_parts(touches: &[ForgeQueryAspectTouch]) -> Vec<String> {
+    touches
+        .iter()
+        .map(ForgeQueryAspectTouch::admitted_touch_digest_part)
+        .collect()
 }

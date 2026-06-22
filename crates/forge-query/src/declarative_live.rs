@@ -1,11 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use forge_foundational::facade::AspectKey;
+use forge_foundational::facade::{AspectKey, AspectValue, InternedString};
 
 use crate::authoring::{
-    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, GuidedAuthoringPath,
-    IntegerComparisonOperator, IntegerComparisonPredicate, OrderingDirection, OrderingSelector,
-    PresencePredicate, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
+    AspectFieldKey, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
+    GuidedAuthoringPath, IntegerComparisonOperator, IntegerComparisonPredicate, OrderingDirection,
+    OrderingSelector, PresencePredicate, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
     ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate, TraversalSelector,
 };
 use crate::basis::{
@@ -24,7 +24,7 @@ use crate::view_shape::{
 };
 use crate::view_shape_live::{
     lower_view_shape_plan_to_live, materialize_authoritative_grouped_baseline_from_members,
-    AuthoritativeGroupedBaselineArtifact, LiveViewShapeArtifact,
+    AuthoritativeGroupedBaselineArtifact, ForgeQueryGroupedBaselineMember, LiveViewShapeArtifact,
 };
 use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context, lower_query_writeback_declaration,
@@ -35,20 +35,27 @@ use crate::workflow::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclarativeProjectionField {
-    aspect: String,
-    field: String,
+    source: AspectFieldKey,
     delivered_name: String,
 }
 
 impl DeclarativeProjectionField {
-    pub fn new(aspect: impl Into<String>, field: impl Into<String>) -> Self {
-        let aspect = aspect.into();
-        let field = field.into();
+    pub fn new(source: AspectFieldKey) -> Self {
+        let delivered_name = source.field().as_str().to_string();
         Self {
-            delivered_name: field.clone(),
-            aspect,
-            field,
+            delivered_name,
+            source,
         }
+    }
+
+    pub(crate) fn from_authoring_parts(
+        aspect: impl Into<String>,
+        field: impl Into<String>,
+    ) -> Self {
+        Self::new(
+            AspectFieldKey::new(aspect, field)
+                .expect("declarative projection fields require non-empty aspect and field names"),
+        )
     }
 
     pub fn delivered_as(mut self, delivered_name: impl Into<String>) -> Self {
@@ -56,12 +63,16 @@ impl DeclarativeProjectionField {
         self
     }
 
-    pub fn aspect(&self) -> &str {
-        &self.aspect
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        &self.source
     }
 
-    pub fn field(&self) -> &str {
-        &self.field
+    pub(crate) fn aspect(&self) -> &str {
+        self.source.aspect().as_str()
+    }
+
+    pub(crate) fn field(&self) -> &str {
+        self.source.field().as_str()
     }
 
     pub fn delivered_name(&self) -> &str {
@@ -71,34 +82,55 @@ impl DeclarativeProjectionField {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclarativeOrderingField {
-    aspect: String,
-    field: String,
+    source: AspectFieldKey,
     direction: OrderingDirection,
 }
 
 impl DeclarativeOrderingField {
-    pub fn ascending(aspect: impl Into<String>, field: impl Into<String>) -> Self {
+    pub fn ascending(source: AspectFieldKey) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            source,
             direction: OrderingDirection::Ascending,
         }
     }
 
-    pub fn descending(aspect: impl Into<String>, field: impl Into<String>) -> Self {
+    pub fn descending(source: AspectFieldKey) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            source,
             direction: OrderingDirection::Descending,
         }
     }
 
-    pub fn aspect(&self) -> &str {
-        &self.aspect
+    pub(crate) fn ascending_from_authoring_parts(
+        aspect: impl Into<String>,
+        field: impl Into<String>,
+    ) -> Self {
+        Self::ascending(
+            AspectFieldKey::new(aspect, field)
+                .expect("declarative ordering fields require non-empty aspect and field names"),
+        )
     }
 
-    pub fn field(&self) -> &str {
-        &self.field
+    pub(crate) fn descending_from_authoring_parts(
+        aspect: impl Into<String>,
+        field: impl Into<String>,
+    ) -> Self {
+        Self::descending(
+            AspectFieldKey::new(aspect, field)
+                .expect("declarative ordering fields require non-empty aspect and field names"),
+        )
+    }
+
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        &self.source
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
+        self.source.aspect().as_str()
+    }
+
+    pub(crate) fn field(&self) -> &str {
+        self.source.field().as_str()
     }
 
     pub fn direction(&self) -> OrderingDirection {
@@ -108,44 +140,70 @@ impl DeclarativeOrderingField {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclarativeEqualityFilter {
-    aspect: String,
-    field: String,
+    source: AspectFieldKey,
     value: ScalarPredicateValue,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclarativeIntegerComparisonFilter {
-    aspect: String,
-    field: String,
+    source: AspectFieldKey,
     operator: IntegerComparisonOperator,
     value: i64,
 }
 
 impl DeclarativeIntegerComparisonFilter {
-    pub fn greater_than(aspect: impl Into<String>, field: impl Into<String>, value: i64) -> Self {
+    pub fn greater_than(source: AspectFieldKey, value: i64) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            source,
             operator: IntegerComparisonOperator::GreaterThan,
             value,
         }
     }
 
-    pub fn less_than(aspect: impl Into<String>, field: impl Into<String>, value: i64) -> Self {
+    pub fn less_than(source: AspectFieldKey, value: i64) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            source,
             operator: IntegerComparisonOperator::LessThan,
             value,
         }
     }
 
-    pub fn aspect(&self) -> &str {
-        &self.aspect
+    pub(crate) fn greater_than_from_authoring_parts(
+        aspect: impl Into<String>,
+        field: impl Into<String>,
+        value: i64,
+    ) -> Self {
+        Self::greater_than(
+            AspectFieldKey::new(aspect, field).expect(
+                "declarative integer comparison filters require non-empty aspect and field names",
+            ),
+            value,
+        )
     }
 
-    pub fn field(&self) -> &str {
-        &self.field
+    pub(crate) fn less_than_from_authoring_parts(
+        aspect: impl Into<String>,
+        field: impl Into<String>,
+        value: i64,
+    ) -> Self {
+        Self::less_than(
+            AspectFieldKey::new(aspect, field).expect(
+                "declarative integer comparison filters require non-empty aspect and field names",
+            ),
+            value,
+        )
+    }
+
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        &self.source
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
+        self.source.aspect().as_str()
+    }
+
+    pub(crate) fn field(&self) -> &str {
+        self.source.field().as_str()
     }
 
     pub fn operator(&self) -> IntegerComparisonOperator {
@@ -159,30 +217,41 @@ impl DeclarativeIntegerComparisonFilter {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclarativeStringContainsFilter {
-    aspect: String,
-    field: String,
+    source: AspectFieldKey,
     value: String,
 }
 
 impl DeclarativeStringContainsFilter {
-    pub fn new(
-        aspect: impl Into<String>,
-        field: impl Into<String>,
-        value: impl Into<String>,
-    ) -> Self {
+    pub fn new(source: AspectFieldKey, value: impl Into<String>) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            source,
             value: value.into(),
         }
     }
 
-    pub fn aspect(&self) -> &str {
-        &self.aspect
+    pub(crate) fn from_authoring_parts(
+        aspect: impl Into<String>,
+        field: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Self {
+        Self::new(
+            AspectFieldKey::new(aspect, field).expect(
+                "declarative string contains filters require non-empty aspect and field names",
+            ),
+            value,
+        )
     }
 
-    pub fn field(&self) -> &str {
-        &self.field
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        &self.source
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
+        self.source.aspect().as_str()
+    }
+
+    pub(crate) fn field(&self) -> &str {
+        self.source.field().as_str()
     }
 
     pub fn value(&self) -> &str {
@@ -192,30 +261,44 @@ impl DeclarativeStringContainsFilter {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclarativeSetMembershipFilter {
-    aspect: String,
-    field: String,
+    source: AspectFieldKey,
     values: Vec<ScalarPredicateValue>,
 }
 
 impl DeclarativeSetMembershipFilter {
     pub fn new(
-        aspect: impl Into<String>,
-        field: impl Into<String>,
+        source: AspectFieldKey,
         values: impl IntoIterator<Item = ScalarPredicateValue>,
     ) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            source,
             values: values.into_iter().collect(),
         }
     }
 
-    pub fn aspect(&self) -> &str {
-        &self.aspect
+    pub(crate) fn from_authoring_parts(
+        aspect: impl Into<String>,
+        field: impl Into<String>,
+        values: impl IntoIterator<Item = ScalarPredicateValue>,
+    ) -> Self {
+        Self::new(
+            AspectFieldKey::new(aspect, field).expect(
+                "declarative set membership filters require non-empty aspect and field names",
+            ),
+            values,
+        )
     }
 
-    pub fn field(&self) -> &str {
-        &self.field
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        &self.source
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
+        self.source.aspect().as_str()
+    }
+
+    pub(crate) fn field(&self) -> &str {
+        self.source.field().as_str()
     }
 
     pub fn values(&self) -> &[ScalarPredicateValue] {
@@ -230,26 +313,38 @@ pub enum DeclarativePresenceFilterKind {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclarativePresenceFilter {
-    aspect: String,
-    field: String,
+    source: AspectFieldKey,
     kind: DeclarativePresenceFilterKind,
 }
 
 impl DeclarativePresenceFilter {
-    pub fn is_present(aspect: impl Into<String>, field: impl Into<String>) -> Self {
+    pub fn is_present(source: AspectFieldKey) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            source,
             kind: DeclarativePresenceFilterKind::IsPresent,
         }
     }
 
-    pub fn aspect(&self) -> &str {
-        &self.aspect
+    pub(crate) fn is_present_from_authoring_parts(
+        aspect: impl Into<String>,
+        field: impl Into<String>,
+    ) -> Self {
+        Self::is_present(
+            AspectFieldKey::new(aspect, field)
+                .expect("declarative presence filters require non-empty aspect and field names"),
+        )
     }
 
-    pub fn field(&self) -> &str {
-        &self.field
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        &self.source
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
+        self.source.aspect().as_str()
+    }
+
+    pub(crate) fn field(&self) -> &str {
+        self.source.field().as_str()
     }
 
     pub fn kind(&self) -> DeclarativePresenceFilterKind {
@@ -267,7 +362,17 @@ pub enum DeclarativePredicateFilter {
 }
 
 impl DeclarativePredicateFilter {
-    pub fn aspect(&self) -> &str {
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        match self {
+            Self::Equality(filter) => filter.source_field_key(),
+            Self::IntegerComparison(filter) => filter.source_field_key(),
+            Self::StringContains(filter) => filter.source_field_key(),
+            Self::SetMembership(filter) => filter.source_field_key(),
+            Self::Presence(filter) => filter.source_field_key(),
+        }
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
         match self {
             Self::Equality(filter) => filter.aspect(),
             Self::IntegerComparison(filter) => filter.aspect(),
@@ -277,7 +382,7 @@ impl DeclarativePredicateFilter {
         }
     }
 
-    pub fn field(&self) -> &str {
+    pub(crate) fn field(&self) -> &str {
         match self {
             Self::Equality(filter) => filter.field(),
             Self::IntegerComparison(filter) => filter.field(),
@@ -289,24 +394,32 @@ impl DeclarativePredicateFilter {
 }
 
 impl DeclarativeEqualityFilter {
-    pub fn new(
+    pub fn new(source: AspectFieldKey, value: ScalarPredicateValue) -> Self {
+        Self { source, value }
+    }
+
+    pub(crate) fn from_authoring_parts(
         aspect: impl Into<String>,
         field: impl Into<String>,
         value: ScalarPredicateValue,
     ) -> Self {
-        Self {
-            aspect: aspect.into(),
-            field: field.into(),
+        Self::new(
+            AspectFieldKey::new(aspect, field)
+                .expect("declarative equality filters require non-empty aspect and field names"),
             value,
-        }
+        )
     }
 
-    pub fn aspect(&self) -> &str {
-        &self.aspect
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        &self.source
     }
 
-    pub fn field(&self) -> &str {
-        &self.field
+    pub(crate) fn aspect(&self) -> &str {
+        self.source.aspect().as_str()
+    }
+
+    pub(crate) fn field(&self) -> &str {
+        self.source.field().as_str()
     }
 
     pub fn value(&self) -> &ScalarPredicateValue {
@@ -321,10 +434,10 @@ pub enum DeclarativeLiveViewShape {
     Detail,
     InspectorObserved,
     InspectorFocused {
-        focused_aspect: String,
+        focused_aspect: AspectKey,
     },
     IdentityAwareInspectorFocused {
-        focused_aspect: String,
+        focused_aspect: AspectKey,
         classification: InspectorIdentityClassification,
     },
     KanbanGrouped {
@@ -349,18 +462,16 @@ impl DeclarativeLiveViewShape {
         Self::InspectorObserved
     }
 
-    pub fn inspector_focused(focused_aspect: impl Into<String>) -> Self {
-        Self::InspectorFocused {
-            focused_aspect: focused_aspect.into(),
-        }
+    pub fn inspector_focused(focused_aspect: AspectKey) -> Self {
+        Self::InspectorFocused { focused_aspect }
     }
 
     pub fn identity_aware_inspector_focused(
-        focused_aspect: impl Into<String>,
+        focused_aspect: AspectKey,
         classification: InspectorIdentityClassification,
     ) -> Self {
         Self::IdentityAwareInspectorFocused {
-            focused_aspect: focused_aspect.into(),
+            focused_aspect,
             classification,
         }
     }
@@ -394,13 +505,13 @@ impl DeclarativeLiveViewShape {
             Self::Detail => ViewShapeDescriptor::detail(),
             Self::InspectorObserved => ViewShapeDescriptor::inspector_detail_observed(),
             Self::InspectorFocused { focused_aspect } => {
-                ViewShapeDescriptor::inspector_detail_focused(focused_aspect)
+                ViewShapeDescriptor::inspector_detail_focused(focused_aspect.clone())
             }
             Self::IdentityAwareInspectorFocused {
                 focused_aspect,
                 classification,
             } => ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-                focused_aspect,
+                focused_aspect.clone(),
                 *classification,
             ),
             Self::KanbanGrouped { grouping_aspect } => {
@@ -520,10 +631,11 @@ impl DeclarativeLiveQueryRequest {
     }
 
     pub fn order_by(mut self, field: DeclarativeProjectionField) -> Self {
-        self.ordering.push(DeclarativeOrderingField::ascending(
-            field.aspect(),
-            field.field(),
-        ));
+        self.ordering
+            .push(DeclarativeOrderingField::ascending_from_authoring_parts(
+                field.aspect(),
+                field.field(),
+            ));
         self
     }
 
@@ -608,8 +720,7 @@ impl DeclarativeLiveQuerySession {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclarativeBranchCompareValue {
-    aspect: String,
-    field: String,
+    source: AspectFieldKey,
     value: String,
 }
 
@@ -620,26 +731,23 @@ impl DeclarativeBranchCompareValue {
         value: impl Into<String>,
     ) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            source: AspectFieldKey::new(aspect, field).expect(
+                "declarative branch compare values require non-empty aspect and field names",
+            ),
             value: value.into(),
         }
     }
 
-    pub fn aspect(&self) -> &str {
-        &self.aspect
-    }
-
-    pub fn field(&self) -> &str {
-        &self.field
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        &self.source
     }
 
     pub fn value(&self) -> &str {
         &self.value
     }
 
-    fn key(&self) -> String {
-        format!("{}.{}", self.aspect, self.field)
+    fn key(&self) -> AspectFieldKey {
+        self.source.clone()
     }
 }
 
@@ -675,8 +783,10 @@ impl DeclarativeBranchCompareInputRow {
         &self.values
     }
 
-    fn value_for(&self, key: &str) -> Option<&DeclarativeBranchCompareValue> {
-        self.values.iter().find(|value| value.key() == key)
+    fn value_for(&self, key: &AspectFieldKey) -> Option<&DeclarativeBranchCompareValue> {
+        self.values
+            .iter()
+            .find(|value| value.source_field_key() == key)
     }
 }
 
@@ -716,20 +826,23 @@ impl DeclarativeBranchCompareIdentityClass {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclarativeBranchCompareFieldDelta {
-    aspect: String,
-    field: String,
+    source: AspectFieldKey,
     left_value: Option<String>,
     right_value: Option<String>,
     family: DeclarativeBranchCompareChangeFamily,
 }
 
 impl DeclarativeBranchCompareFieldDelta {
-    pub fn aspect(&self) -> &str {
-        &self.aspect
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        &self.source
     }
 
-    pub fn field(&self) -> &str {
-        &self.field
+    pub(crate) fn aspect(&self) -> &str {
+        self.source.aspect().as_str()
+    }
+
+    pub(crate) fn field(&self) -> &str {
+        self.source.field().as_str()
     }
 
     pub fn left_value(&self) -> Option<&str> {
@@ -747,8 +860,8 @@ impl DeclarativeBranchCompareFieldDelta {
     fn digest_part(&self) -> String {
         format!(
             "delta:{}:{}:{}:{}:{}",
-            self.aspect,
-            self.field,
+            self.aspect(),
+            self.field(),
             self.left_value.as_deref().unwrap_or("none"),
             self.right_value.as_deref().unwrap_or("none"),
             self.family.as_str()
@@ -845,50 +958,114 @@ impl DeclarativeBranchCompareArtifact {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum DeclarativeWritebackValue {
-    String(String),
-    Integer(i64),
-    Boolean(bool),
-    StructuredJson(String),
+pub struct DeclarativeWritebackValue {
+    value: AspectValue,
 }
 
 impl DeclarativeWritebackValue {
-    fn digest_part(&self) -> String {
-        match self {
-            Self::String(value) => format!("string:{value}"),
-            Self::Integer(value) => format!("integer:{value}"),
-            Self::Boolean(value) => format!("boolean:{value}"),
-            Self::StructuredJson(value) => format!("structured_json:{value}"),
+    pub fn string(value: impl Into<String>) -> Self {
+        Self {
+            value: AspectValue::String(value.into().into()),
         }
+    }
+
+    pub fn integer(value: i64) -> Self {
+        Self {
+            value: AspectValue::Int64(value),
+        }
+    }
+
+    pub fn boolean(value: bool) -> Self {
+        Self {
+            value: AspectValue::Bool(value),
+        }
+    }
+
+    pub fn aspect_value(&self) -> &AspectValue {
+        &self.value
+    }
+
+    fn digest_part(&self) -> String {
+        format!(
+            "aspect_value:{}",
+            declarative_writeback_value_digest_text(&self.value)
+        )
+    }
+}
+
+fn declarative_writeback_value_digest_text(value: &AspectValue) -> String {
+    match value {
+        AspectValue::Null => "null".to_string(),
+        AspectValue::Bool(value) => format!("bool:{value}"),
+        AspectValue::Int8(value) => format!("i8:{value}"),
+        AspectValue::Int16(value) => format!("i16:{value}"),
+        AspectValue::Int32(value) => format!("i32:{value}"),
+        AspectValue::Int64(value) => format!("i64:{value}"),
+        AspectValue::UInt8(value) => format!("u8:{value}"),
+        AspectValue::UInt16(value) => format!("u16:{value}"),
+        AspectValue::UInt32(value) => format!("u32:{value}"),
+        AspectValue::UInt64(value) => format!("u64:{value}"),
+        AspectValue::Float32(value) => format!("f32-bits:{}", value.bits()),
+        AspectValue::Float64(value) => format!("f64-bits:{}", value.bits()),
+        AspectValue::Decimal(value) => format!("decimal:{}", value.as_str()),
+        AspectValue::BigInt(value) => format!("bigint:{}", value.as_str()),
+        AspectValue::Rational(value) => {
+            format!(
+                "rational:{}/{}",
+                value.numerator.as_str(),
+                value.denominator.as_str()
+            )
+        }
+        AspectValue::String(value) => format!("string:{}", declarative_interned_string_text(value)),
+        AspectValue::Bytes(value) => format!("bytes-ref:{}", value.0),
+        AspectValue::Uuid(value) => value.iter().map(|byte| format!("{byte:02x}")).collect(),
+        AspectValue::Date(value) => format!("date-days:{}", value.days_from_unix_epoch),
+        AspectValue::Time(value) => format!("time-nanos:{}", value.nanos_since_midnight),
+        AspectValue::Timestamp(value) => {
+            format!("timestamp-micros:{}", value.micros_since_unix_epoch)
+        }
+        AspectValue::TimestampTz(value) => format!(
+            "timestamp-tz:{}:{}",
+            value.utc_micros_since_unix_epoch, value.offset_minutes
+        ),
+        AspectValue::EntityRef(value) => {
+            format!(
+                "entity-ref:{}:{}:{}",
+                value.partition_id.0, value.local_slot.0, value.generation.0
+            )
+        }
+        AspectValue::ContentRef(value) => format!("content-ref:{}", value.0),
+    }
+}
+
+fn declarative_interned_string_text(value: &InternedString) -> String {
+    match value {
+        InternedString::Raw(value) => value.clone(),
+        InternedString::Symbol(symbol) => format!("symbol:{}", symbol.0),
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclarativeWritebackChange {
-    aspect: String,
-    field: String,
+    source: AspectFieldKey,
     value: DeclarativeWritebackValue,
 }
 
 impl DeclarativeWritebackChange {
-    pub fn new(
-        aspect: impl Into<String>,
-        field: impl Into<String>,
-        value: DeclarativeWritebackValue,
-    ) -> Self {
-        Self {
-            aspect: aspect.into(),
-            field: field.into(),
-            value,
-        }
+    pub fn new(source: AspectFieldKey, value: DeclarativeWritebackValue) -> Self {
+        Self { source, value }
     }
 
-    pub fn aspect(&self) -> &str {
-        &self.aspect
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        &self.source
     }
 
-    pub fn field(&self) -> &str {
-        &self.field
+    pub(crate) fn aspect(&self) -> &str {
+        self.source.aspect().as_str()
+    }
+
+    pub(crate) fn field(&self) -> &str {
+        self.source.field().as_str()
     }
 
     pub fn value(&self) -> &DeclarativeWritebackValue {
@@ -898,8 +1075,8 @@ impl DeclarativeWritebackChange {
     fn digest_part(&self) -> String {
         format!(
             "change:{}:{}:{}",
-            self.aspect,
-            self.field,
+            self.aspect(),
+            self.field(),
             self.value.digest_part()
         )
     }
@@ -917,12 +1094,8 @@ impl DeclarativeWritebackIntent {
         }
     }
 
-    pub fn update_aspect(
-        aspect: impl Into<String>,
-        field: impl Into<String>,
-        value: DeclarativeWritebackValue,
-    ) -> Self {
-        Self::new([DeclarativeWritebackChange::new(aspect, field, value)])
+    pub fn update_aspect(source: AspectFieldKey, value: DeclarativeWritebackValue) -> Self {
+        Self::new([DeclarativeWritebackChange::new(source, value)])
     }
 
     pub fn changes(&self) -> &[DeclarativeWritebackChange] {
@@ -980,7 +1153,7 @@ pub fn declare_runtime_live_query_session(
         request,
         schema_view,
         snapshot_identity,
-        None::<Vec<(String, String)>>,
+        None::<Vec<ForgeQueryGroupedBaselineMember>>,
     )
 }
 
@@ -988,7 +1161,7 @@ pub fn declare_runtime_live_query_session_with_grouped_baseline(
     request: DeclarativeLiveQueryRequest,
     schema_view: QuerySchemaView,
     snapshot_identity: ForgeQuerySnapshotIdentity,
-    grouped_baseline_members: Option<impl IntoIterator<Item = (String, String)>>,
+    grouped_baseline_members: Option<impl IntoIterator<Item = ForgeQueryGroupedBaselineMember>>,
 ) -> Result<DeclarativeLiveQuerySession, DeclarativeLiveQueryError> {
     let basis_intent = ExecutionBasisIntent::new(
         BasisAuthorityFamily::Runtime,
@@ -1129,7 +1302,6 @@ pub fn declare_branch_compare_from_live_sessions(
             .collect::<BTreeSet<_>>();
         let mut field_deltas = Vec::new();
         for key in value_keys {
-            let (aspect, field) = key.split_once('.').unwrap_or((&key, "value"));
             let left_value = left_row
                 .and_then(|row| row.value_for(&key))
                 .map(|value| value.value().to_string());
@@ -1144,8 +1316,7 @@ pub fn declare_branch_compare_from_live_sessions(
                 (None, None) => continue,
             };
             field_deltas.push(DeclarativeBranchCompareFieldDelta {
-                aspect: aspect.to_string(),
-                field: field.to_string(),
+                source: key,
                 left_value,
                 right_value,
                 family,
@@ -1377,7 +1548,9 @@ fn normalized_query_projection(
 ) -> Vec<DeclarativeProjectionField> {
     let mut fields = request.query_projection().to_vec();
     if fields.is_empty() {
-        fields.push(DeclarativeProjectionField::new("identity", "id"));
+        fields.push(DeclarativeProjectionField::from_authoring_parts(
+            "identity", "id",
+        ));
         for filter in request.predicate_filters() {
             push_unique_field(&mut fields, declarative_field_from_predicate(filter));
         }
@@ -1387,7 +1560,7 @@ fn normalized_query_projection(
         for field in ordering {
             push_unique_field(
                 &mut fields,
-                DeclarativeProjectionField::new(field.aspect(), field.field()),
+                DeclarativeProjectionField::from_authoring_parts(field.aspect(), field.field()),
             );
         }
     }
@@ -1407,7 +1580,9 @@ fn normalized_result_fields(
 
 fn normalized_ordering(request: &DeclarativeLiveQueryRequest) -> Vec<DeclarativeOrderingField> {
     if request.ordering().is_empty() && request.view_shape().collection_backed() {
-        vec![DeclarativeOrderingField::ascending("identity", "id")]
+        vec![DeclarativeOrderingField::ascending_from_authoring_parts(
+            "identity", "id",
+        )]
     } else {
         request.ordering().to_vec()
     }
@@ -1416,7 +1591,7 @@ fn normalized_ordering(request: &DeclarativeLiveQueryRequest) -> Vec<Declarative
 fn declarative_field_from_predicate(
     filter: &DeclarativePredicateFilter,
 ) -> DeclarativeProjectionField {
-    DeclarativeProjectionField::new(filter.aspect(), filter.field())
+    DeclarativeProjectionField::from_authoring_parts(filter.aspect(), filter.field())
 }
 
 pub(crate) fn validate_declared_traversal_contract(
@@ -1425,12 +1600,14 @@ pub(crate) fn validate_declared_traversal_contract(
 ) -> Result<(), DeclarativeLiveQueryError> {
     let mut seen = BTreeSet::new();
     for traversal in request.traversal() {
-        let relation = traversal.relation().to_string();
+        let relation = traversal
+            .terminal_relation_projection_for_boundary()
+            .to_string();
         let depth = traversal.depth();
         if !seen.insert((relation.clone(), depth)) {
             return Err(DeclarativeLiveQueryError::DuplicateTraversal { relation, depth });
         }
-        let Some(schema_relation) = schema_view.relation(&relation) else {
+        let Some(schema_relation) = schema_view.relation(traversal.relation_name()) else {
             return Err(DeclarativeLiveQueryError::TraversalNotDeclaredInSchema {
                 relation,
                 requested_depth: depth,
@@ -1536,9 +1713,27 @@ mod tests {
         QuerySchemaView::new(
             "todo-demo-schema",
             [
-                SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-                SchemaFieldView::new("status", "state", SchemaFieldKind::String),
-                SchemaFieldView::new("title", "value", SchemaFieldKind::String),
+                SchemaFieldView::new(
+                    crate::authoring::AspectName::new("identity")
+                        .expect("schema aspect literal must be valid"),
+                    crate::authoring::FieldName::new("id")
+                        .expect("schema field literal must be valid"),
+                    SchemaFieldKind::String,
+                ),
+                SchemaFieldView::new(
+                    crate::authoring::AspectName::new("status")
+                        .expect("schema aspect literal must be valid"),
+                    crate::authoring::FieldName::new("state")
+                        .expect("schema field literal must be valid"),
+                    SchemaFieldKind::String,
+                ),
+                SchemaFieldView::new(
+                    crate::authoring::AspectName::new("title")
+                        .expect("schema aspect literal must be valid"),
+                    crate::authoring::FieldName::new("value")
+                        .expect("schema field literal must be valid"),
+                    SchemaFieldKind::String,
+                ),
             ],
             [],
         )
@@ -1558,7 +1753,7 @@ mod tests {
     fn runtime_list_splice_declaration_mints_real_live_session_with_hidden_basis() {
         let request =
             DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::list_splice())
-                .where_equal(DeclarativeEqualityFilter::new(
+                .where_equal(DeclarativeEqualityFilter::from_authoring_parts(
                     "status",
                     "state",
                     ScalarPredicateValue::String("incomplete".to_string()),
@@ -1592,7 +1787,7 @@ mod tests {
     fn projection_defaults_include_filter_and_ordering_fields_without_host_knobs() {
         let request =
             DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::list_splice())
-                .where_equal(DeclarativeEqualityFilter::new(
+                .where_equal(DeclarativeEqualityFilter::from_authoring_parts(
                     "status",
                     "state",
                     ScalarPredicateValue::String("incomplete".to_string()),
@@ -1613,7 +1808,7 @@ mod tests {
     fn writeback_from_live_session_preserves_basis_and_detected_aspect_intent() {
         let session = declare_runtime_live_query_session(
             DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::list_splice())
-                .where_equal(DeclarativeEqualityFilter::new(
+                .where_equal(DeclarativeEqualityFilter::from_authoring_parts(
                     "status",
                     "state",
                     ScalarPredicateValue::String("incomplete".to_string()),
@@ -1626,16 +1821,21 @@ mod tests {
         let artifact = declare_writeback_from_live_session(
             &session,
             DeclarativeWritebackIntent::update_aspect(
-                "title",
-                "value",
-                DeclarativeWritebackValue::String("Buy oat milk".to_string()),
+                AspectFieldKey::new("title", "value").unwrap(),
+                DeclarativeWritebackValue::string("Buy oat milk"),
             ),
         )
         .expect("SDK-detected local proxy edit should lower to bridge writeback declaration");
 
         assert_eq!(artifact.changes().len(), 1);
-        assert_eq!(artifact.changes()[0].aspect(), "title");
-        assert_eq!(artifact.changes()[0].field(), "value");
+        assert_eq!(
+            artifact.changes()[0].source_field_key().aspect().as_str(),
+            "title"
+        );
+        assert_eq!(
+            artifact.changes()[0].source_field_key().field().as_str(),
+            "value"
+        );
         assert_eq!(
             artifact.live_view_basis_digest(),
             session.preflight().basis().proof().digest().as_str()
@@ -1671,16 +1871,40 @@ mod tests {
     #[test]
     fn runtime_declarative_request_preserves_traversal_into_canonical_query() {
         let request = DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::detail())
-            .project(DeclarativeProjectionField::new("identity", "id"))
+            .project(DeclarativeProjectionField::from_authoring_parts(
+                "identity", "id",
+            ))
             .traverse(TraversalSelector::bounded("worth.todo_parent", 2).unwrap());
         let schema = QuerySchemaView::new(
             "todo-demo-schema-with-traversal",
             [
-                SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-                SchemaFieldView::new("status", "state", SchemaFieldKind::String),
-                SchemaFieldView::new("title", "value", SchemaFieldKind::String),
+                SchemaFieldView::new(
+                    crate::authoring::AspectName::new("identity")
+                        .expect("schema aspect literal must be valid"),
+                    crate::authoring::FieldName::new("id")
+                        .expect("schema field literal must be valid"),
+                    SchemaFieldKind::String,
+                ),
+                SchemaFieldView::new(
+                    crate::authoring::AspectName::new("status")
+                        .expect("schema aspect literal must be valid"),
+                    crate::authoring::FieldName::new("state")
+                        .expect("schema field literal must be valid"),
+                    SchemaFieldKind::String,
+                ),
+                SchemaFieldView::new(
+                    crate::authoring::AspectName::new("title")
+                        .expect("schema aspect literal must be valid"),
+                    crate::authoring::FieldName::new("value")
+                        .expect("schema field literal must be valid"),
+                    SchemaFieldKind::String,
+                ),
             ],
-            [SchemaRelationView::new("worth.todo_parent", 2)],
+            [SchemaRelationView::new(
+                crate::authoring::RelationName::new("worth.todo_parent")
+                    .expect("schema relation literal must be valid"),
+                2,
+            )],
         );
 
         let session = declare_runtime_live_query_session(
@@ -1702,17 +1926,41 @@ mod tests {
     #[test]
     fn runtime_declarative_request_rejects_duplicate_traversal_before_canonicalization() {
         let request = DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::detail())
-            .project(DeclarativeProjectionField::new("identity", "id"))
+            .project(DeclarativeProjectionField::from_authoring_parts(
+                "identity", "id",
+            ))
             .traverse(TraversalSelector::bounded("worth.todo_parent", 2).unwrap())
             .traverse(TraversalSelector::bounded("worth.todo_parent", 2).unwrap());
         let schema = QuerySchemaView::new(
             "todo-demo-schema-with-traversal",
             [
-                SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-                SchemaFieldView::new("status", "state", SchemaFieldKind::String),
-                SchemaFieldView::new("title", "value", SchemaFieldKind::String),
+                SchemaFieldView::new(
+                    crate::authoring::AspectName::new("identity")
+                        .expect("schema aspect literal must be valid"),
+                    crate::authoring::FieldName::new("id")
+                        .expect("schema field literal must be valid"),
+                    SchemaFieldKind::String,
+                ),
+                SchemaFieldView::new(
+                    crate::authoring::AspectName::new("status")
+                        .expect("schema aspect literal must be valid"),
+                    crate::authoring::FieldName::new("state")
+                        .expect("schema field literal must be valid"),
+                    SchemaFieldKind::String,
+                ),
+                SchemaFieldView::new(
+                    crate::authoring::AspectName::new("title")
+                        .expect("schema aspect literal must be valid"),
+                    crate::authoring::FieldName::new("value")
+                        .expect("schema field literal must be valid"),
+                    SchemaFieldKind::String,
+                ),
             ],
-            [SchemaRelationView::new("worth.todo_parent", 2)],
+            [SchemaRelationView::new(
+                crate::authoring::RelationName::new("worth.todo_parent")
+                    .expect("schema relation literal must be valid"),
+                2,
+            )],
         );
 
         let error = declare_runtime_live_query_session(
@@ -1731,9 +1979,16 @@ mod tests {
     #[test]
     fn declarative_request_preserves_query_only_projection_and_delivered_result_fields() {
         let request = DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::table())
-            .project_query_only(DeclarativeProjectionField::new("identity", "id"))
-            .result_field(DeclarativeProjectionField::new("title", "value").delivered_as("title"))
-            .order_by_direction(DeclarativeOrderingField::descending("title", "value"));
+            .project_query_only(DeclarativeProjectionField::from_authoring_parts(
+                "identity", "id",
+            ))
+            .result_field(
+                DeclarativeProjectionField::from_authoring_parts("title", "value")
+                    .delivered_as("title"),
+            )
+            .order_by_direction(DeclarativeOrderingField::descending_from_authoring_parts(
+                "title", "value",
+            ));
 
         let query_projection = normalized_query_projection(&request);
         let result_fields = normalized_result_fields(&request, &query_projection);
@@ -1757,14 +2012,18 @@ mod tests {
     #[test]
     fn runtime_declarative_request_preserves_non_equality_predicates_and_descending_ordering() {
         let request = DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::table())
-            .project(DeclarativeProjectionField::new("identity", "id"))
-            .where_greater_than(DeclarativeIntegerComparisonFilter::greater_than(
-                "metrics", "priority", 5,
+            .project(DeclarativeProjectionField::from_authoring_parts(
+                "identity", "id",
             ))
-            .where_contains(DeclarativeStringContainsFilter::new(
+            .where_greater_than(
+                DeclarativeIntegerComparisonFilter::greater_than_from_authoring_parts(
+                    "metrics", "priority", 5,
+                ),
+            )
+            .where_contains(DeclarativeStringContainsFilter::from_authoring_parts(
                 "title", "value", "milk",
             ))
-            .where_in(DeclarativeSetMembershipFilter::new(
+            .where_in(DeclarativeSetMembershipFilter::from_authoring_parts(
                 "status",
                 "state",
                 [
@@ -1772,8 +2031,12 @@ mod tests {
                     ScalarPredicateValue::String("doing".to_string()),
                 ],
             ))
-            .where_present(DeclarativePresenceFilter::is_present("owner", "name"))
-            .order_by_direction(DeclarativeOrderingField::descending("metrics", "priority"));
+            .where_present(DeclarativePresenceFilter::is_present_from_authoring_parts(
+                "owner", "name",
+            ))
+            .order_by_direction(DeclarativeOrderingField::descending_from_authoring_parts(
+                "metrics", "priority",
+            ));
 
         let canonical = canonicalize_declarative_request(&request)
             .expect("declarative request should preserve full predicate families");

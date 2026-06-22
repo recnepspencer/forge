@@ -5,19 +5,28 @@ fn assert_existing_preserves_binding_evidence_without_mutation_deltas() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.assert-existing")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.assert-existing-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-assert-existing-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Seed title")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Seed title"),
+            )
         })
         .expect("seed insert should execute");
     let binding = workspace
@@ -33,7 +42,12 @@ fn assert_existing_preserves_binding_evidence_without_mutation_deltas() {
         .expect("binding should build");
 
     let receipt = workspace
-        .assert_existing(binding, |task| task.aspect("title.value", "Seed title"))
+        .assert_existing(binding, |task| {
+            task.aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Seed title"),
+            )
+        })
         .expect("existing-truth assertion should execute");
 
     assert_eq!(
@@ -45,7 +59,10 @@ fn assert_existing_preserves_binding_evidence_without_mutation_deltas() {
         receipt.target_entity_identity(),
         Some(&seed.deltas()[0].entity_identity)
     );
-    assert_eq!(receipt.target_collection(), Some("Task"));
+    assert_eq!(
+        receipt.terminal_target_collection_projection(),
+        Some("Task")
+    );
     assert!(receipt.declared_aspect_value_digest().is_some());
 
     let binding = receipt
@@ -94,19 +111,28 @@ fn assert_existing_inspection_digest_changes_with_asserted_value() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.assert-existing-digest")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.assert-existing-digest-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-assert-existing-digest-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Seed title")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Seed title"),
+            )
         })
         .expect("seed insert should execute");
 
@@ -135,12 +161,18 @@ fn assert_existing_inspection_digest_changes_with_asserted_value() {
 
     let left = workspace
         .assert_existing(left_binding, |task| {
-            task.aspect("title.value", "Seed title")
+            task.aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Seed title"),
+            )
         })
         .expect("left assertion should execute");
     let right = workspace
         .assert_existing(right_binding, |task| {
-            task.aspect("title.value", "Different title")
+            task.aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Different title"),
+            )
         })
         .expect("right assertion should execute");
 
@@ -169,25 +201,40 @@ fn batch_assert_existing_mixes_with_existing_delete_and_retains_binding_evidence
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-assert-existing")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.batch-assert-existing-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-batch-assert-existing-table")
         })
         .expect("live view should declare");
 
     let seed_one = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "First")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("First"),
+            )
         })
         .expect("first seed should execute");
     let seed_two = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-2")
-                .aspect("title.value", "Second")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-2"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Second"),
+            )
         })
         .expect("second seed should execute");
 
@@ -217,8 +264,15 @@ fn batch_assert_existing_mixes_with_existing_delete_and_retains_binding_evidence
     let receipt = workspace
         .batch(|batch| {
             batch
-                .assert_existing(binding_one, |task| task.aspect("title.value", "First"))
-                .delete_existing_with(binding_two, |delete| delete.touch("title.value"))
+                .assert_existing(binding_one, |task| {
+                    task.aspect(
+                        test_aspect_touch("title.value"),
+                        test_string_aspect_value("First"),
+                    )
+                })
+                .delete_existing_with(binding_two, |delete| {
+                    delete.touch(test_aspect_touch("title.value"))
+                })
         })
         .expect("mixed existing-target batch should execute");
 
@@ -251,19 +305,28 @@ fn preview_assert_existing_requires_authoritative_lane() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-assert-existing")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.preview-assert-existing-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-preview-assert-existing-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Seed title")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Seed title"),
+            )
         })
         .expect("seed insert should execute");
     let mut preview = workspace
@@ -282,7 +345,12 @@ fn preview_assert_existing_requires_authoritative_lane() {
         .expect("binding should build");
 
     let error = preview
-        .assert_existing(binding, |task| task.aspect("title.value", "Seed title"))
+        .assert_existing(binding, |task| {
+            task.aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Seed title"),
+            )
+        })
         .expect_err("preview assertion should require authoritative lane");
 
     match error.stop_class() {

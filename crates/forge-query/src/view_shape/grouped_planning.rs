@@ -14,10 +14,6 @@ pub struct GroupedBaselineMaterializationContract {
 }
 
 impl GroupedBaselineMaterializationContract {
-    pub fn grouping_aspect(&self) -> &str {
-        self.grouping_aspect.as_str()
-    }
-
     pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
@@ -60,10 +56,6 @@ pub struct GroupedViewPlanningArtifact {
 }
 
 impl GroupedViewPlanningArtifact {
-    pub fn grouping_aspect(&self) -> &str {
-        self.grouping_aspect.as_str()
-    }
-
     pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
@@ -131,12 +123,13 @@ impl GroupedViewPlanningArtifact {
             .iter()
             .enumerate()
             .find(|(_, binding)| {
-                binding.source_aspect() == "identity" && binding.source_field() == "id"
+                binding.native_source_aspect_key().as_str() == "identity"
+                    && binding.native_source_field_key().as_str() == "id"
             })
             .map(|(binding_index, binding)| {
                 QueryResultBindingProof::new(
-                    binding.source_aspect(),
-                    binding.source_field(),
+                    binding.native_source_aspect_key().as_str(),
+                    binding.native_source_field_key().as_str(),
                     binding_index,
                 )
             })??;
@@ -145,11 +138,11 @@ impl GroupedViewPlanningArtifact {
             .bindings()
             .iter()
             .enumerate()
-            .find(|(_, binding)| binding.source_aspect() == grouping_aspect.as_str())
+            .find(|(_, binding)| binding.native_source_aspect_key() == grouping_aspect)
             .map(|(binding_index, binding)| {
                 QueryResultBindingProof::new(
-                    binding.source_aspect(),
-                    binding.source_field(),
+                    binding.native_source_aspect_key().as_str(),
+                    binding.native_source_field_key().as_str(),
                     binding_index,
                 )
             })??;

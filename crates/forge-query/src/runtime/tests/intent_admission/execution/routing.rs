@@ -7,16 +7,21 @@ fn workspace_probe_existing_delegates_to_routing_intent_execution() {
         .expect("workspace should open");
     let delegated_binding = seeded_probe_binding(&mut delegated_workspace);
     let delegated = delegated_workspace
-        .probe_existing(delegated_binding, ["identity.id", "title.value"])
+        .probe_existing(
+            delegated_binding,
+            test_aspect_touches(["identity.id", "title.value"]),
+        )
         .expect("legacy workspace probe should execute");
 
     let mut canonical_workspace = stateful_bridge_task_runtime()
         .workspace("intent-admission-probe-canonical")
         .expect("workspace should open");
     let canonical_binding = seeded_probe_binding(&mut canonical_workspace);
-    let request =
-        ForgeQueryExistingTruthProbeRequest::new(canonical_binding, ["identity.id", "title.value"])
-            .expect("probe request should build");
+    let request = ForgeQueryExistingTruthProbeRequest::new(
+        canonical_binding,
+        test_aspect_touches(["identity.id", "title.value"]),
+    )
+    .expect("probe request should build");
     let canonical = canonical_workspace
         .probe_existing_intent(request)
         .execute()
@@ -51,9 +56,11 @@ fn runtime_probe_existing_delegates_to_canonical_routing_intent_execution() {
         .workspace("intent-admission-probe-runtime-delegated")
         .expect("workspace should open");
     let delegated_binding = seeded_probe_binding(&mut delegated_workspace);
-    let delegated_request =
-        ForgeQueryExistingTruthProbeRequest::new(delegated_binding, ["identity.id", "title.value"])
-            .expect("probe request should build");
+    let delegated_request = ForgeQueryExistingTruthProbeRequest::new(
+        delegated_binding,
+        test_aspect_touches(["identity.id", "title.value"]),
+    )
+    .expect("probe request should build");
     let delegated_runtime = delegated_workspace.into_runtime();
     let delegated = delegated_runtime
         .probe_existing(delegated_request)
@@ -63,9 +70,11 @@ fn runtime_probe_existing_delegates_to_canonical_routing_intent_execution() {
         .workspace("intent-admission-probe-runtime-canonical")
         .expect("workspace should open");
     let canonical_binding = seeded_probe_binding(&mut canonical_workspace);
-    let canonical_request =
-        ForgeQueryExistingTruthProbeRequest::new(canonical_binding, ["identity.id", "title.value"])
-            .expect("probe request should build");
+    let canonical_request = ForgeQueryExistingTruthProbeRequest::new(
+        canonical_binding,
+        test_aspect_touches(["identity.id", "title.value"]),
+    )
+    .expect("probe request should build");
     let canonical_runtime = canonical_workspace.into_runtime();
     let canonical = canonical_runtime
         .probe_existing_intent(canonical_request)
@@ -84,8 +93,14 @@ fn seeded_probe_binding(
 ) -> ForgeQueryExistingTruthTargetBinding {
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Seed title")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Seed title"),
+            )
         })
         .expect("seed insert should execute");
     workspace

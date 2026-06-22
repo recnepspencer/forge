@@ -3,8 +3,10 @@ use crate::runtime::{
 };
 use forge_relational::facade::identity::KindId;
 
+use super::super::super::registration::ForgeQueryGraphTouchSelectorClass;
 use super::super::selection::ForgeQueryGraphObligationOperatingWorldDescriptorKind;
 use crate::runtime::{
+    ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch,
     ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphTouchSelector,
 };
 
@@ -14,8 +16,8 @@ pub(in crate::runtime::mutation::graph_composition::obligation::index) enum Forg
     AnyGraphTouch,
     Collection(String),
     RelationKindId(KindId),
-    AspectPath(String),
-    DeclaredAspectOperation(String),
+    AspectTouch(ForgeQueryAspectTouch),
+    DeclaredAspectOperation(ForgeQueryAspectMutationOperation),
     MutationFamily(ForgeQueryMutationFamily),
     LifecycleFamily(ForgeQueryGraphTouchLifecycleFamily),
     ReadVerb(ForgeQueryGraphTouchReadVerb),
@@ -35,23 +37,54 @@ impl ForgeQueryGraphObligationTouchLookupKey {
     pub(in crate::runtime::mutation::graph_composition::obligation::index) fn from_selector(
         selector: &ForgeQueryGraphTouchSelector,
     ) -> Self {
-        match selector.selector_kind() {
-            "any-graph-touch" => Self::AnyGraphTouch,
-            "collection" => Self::Collection(selector_value(selector)),
-            "relation-kind-id" => Self::RelationKindId(KindId(selector_u32_value(selector))),
-            "aspect-path" => Self::AspectPath(selector_value(selector)),
-            "declared-aspect-operation" => Self::DeclaredAspectOperation(selector_value(selector)),
-            "declared-mutation-collection" => {
-                Self::Collection(declared_mutation_collection_name(selector))
+        match selector.selector_class() {
+            ForgeQueryGraphTouchSelectorClass::Any => Self::AnyGraphTouch,
+            ForgeQueryGraphTouchSelectorClass::Collection => Self::Collection(
+                selector
+                    .collection_value()
+                    .expect("collection selector has a native collection")
+                    .to_string(),
+            ),
+            ForgeQueryGraphTouchSelectorClass::RelationKindId => Self::RelationKindId(
+                selector
+                    .relation_kind_id_value()
+                    .expect("relation kind id selector has a native kind id"),
+            ),
+            ForgeQueryGraphTouchSelectorClass::AspectTouch => Self::AspectTouch(
+                selector
+                    .aspect_touch_value()
+                    .expect("aspect touch selector has a native touch")
+                    .clone(),
+            ),
+            ForgeQueryGraphTouchSelectorClass::DeclaredAspectOperation => {
+                Self::DeclaredAspectOperation(
+                    selector
+                        .declared_aspect_operation_value()
+                        .expect("declared aspect selector has a native operation")
+                        .clone(),
+                )
             }
-            "mutation-family" => {
-                Self::MutationFamily(mutation_family_from_selector_value(selector))
-            }
-            "lifecycle-family" => {
-                Self::LifecycleFamily(lifecycle_family_from_selector_value(selector))
-            }
-            "read-verb" => Self::ReadVerb(read_verb_from_selector_value(selector)),
-            other => unreachable!("unknown graph touch selector kind `{other}`"),
+            ForgeQueryGraphTouchSelectorClass::DeclaredMutationCollection => Self::Collection(
+                selector
+                    .declared_mutation_collection_value()
+                    .expect("declared mutation collection selector has a native collection")
+                    .to_string(),
+            ),
+            ForgeQueryGraphTouchSelectorClass::MutationFamily => Self::MutationFamily(
+                selector
+                    .mutation_family_value()
+                    .expect("mutation family selector has a native family"),
+            ),
+            ForgeQueryGraphTouchSelectorClass::LifecycleFamily => Self::LifecycleFamily(
+                selector
+                    .lifecycle_family_value()
+                    .expect("lifecycle family selector has a native family"),
+            ),
+            ForgeQueryGraphTouchSelectorClass::ReadVerb => Self::ReadVerb(
+                selector
+                    .read_verb_value()
+                    .expect("read verb selector has a native verb"),
+            ),
         }
     }
 
@@ -62,7 +95,7 @@ impl ForgeQueryGraphObligationTouchLookupKey {
             Self::AnyGraphTouch => "any-graph-touch",
             Self::Collection(_) => "collection",
             Self::RelationKindId(_) => "relation-kind-id",
-            Self::AspectPath(_) => "aspect-path",
+            Self::AspectTouch(_) => "aspect-touch",
             Self::DeclaredAspectOperation(_) => "declared-aspect-operation",
             Self::MutationFamily(_) => "mutation-family",
             Self::LifecycleFamily(_) => "lifecycle-family",
@@ -75,9 +108,11 @@ impl ForgeQueryGraphObligationTouchLookupKey {
     ) -> Option<String> {
         match self {
             Self::AnyGraphTouch => None,
-            Self::Collection(value)
-            | Self::AspectPath(value)
-            | Self::DeclaredAspectOperation(value) => Some(value.clone()),
+            Self::Collection(value) => Some(value.clone()),
+            Self::AspectTouch(value) => Some(value.admitted_touch_digest_part()),
+            Self::DeclaredAspectOperation(value) => {
+                Some(native_declared_aspect_operation_digest_part(value))
+            }
             Self::RelationKindId(value) => Some(value.0.to_string()),
             Self::MutationFamily(value) => Some(value.as_str().to_string()),
             Self::LifecycleFamily(value) => Some(value.as_str().to_string()),
@@ -133,89 +168,12 @@ impl ForgeQueryGraphObligationOperatingWorldLookupKey {
     }
 }
 
-fn selector_value(selector: &ForgeQueryGraphTouchSelector) -> String {
-    selector
-        .selector_value()
-        .expect("non-any graph touch selector has a value")
-}
-
-fn selector_u32_value(selector: &ForgeQueryGraphTouchSelector) -> u32 {
-    selector_value(selector)
-        .parse()
-        .expect("relation kind id selector value is numeric")
-}
-
-fn declared_mutation_collection_name(selector: &ForgeQueryGraphTouchSelector) -> String {
-    selector_value(selector)
-        .split('|')
-        .next()
-        .expect("declared mutation collection selector includes collection")
-        .to_string()
-}
-
-fn mutation_family_from_selector_value(
-    selector: &ForgeQueryGraphTouchSelector,
-) -> ForgeQueryMutationFamily {
-    match selector_value(selector).as_str() {
-        "insert" => ForgeQueryMutationFamily::Insert,
-        "update" => ForgeQueryMutationFamily::Update,
-        "assertion" => ForgeQueryMutationFamily::Assertion,
-        "delete" => ForgeQueryMutationFamily::Delete,
-        other => unreachable!("unknown mutation family selector value `{other}`"),
-    }
-}
-
-fn lifecycle_family_from_selector_value(
-    selector: &ForgeQueryGraphTouchSelector,
-) -> ForgeQueryGraphTouchLifecycleFamily {
-    match selector_value(selector).as_str() {
-        "declaration" => ForgeQueryGraphTouchLifecycleFamily::Declaration,
-        "same-batch-symbolic-entity-followup" => {
-            ForgeQueryGraphTouchLifecycleFamily::SameBatchSymbolicEntityFollowup
-        }
-        "same-batch-symbolic-relation-followup" => {
-            ForgeQueryGraphTouchLifecycleFamily::SameBatchSymbolicRelationFollowup
-        }
-        "same-batch-symbolic-relation-retirement" => {
-            ForgeQueryGraphTouchLifecycleFamily::SameBatchSymbolicRelationRetirement
-        }
-        "existing-target-followup" => ForgeQueryGraphTouchLifecycleFamily::ExistingTargetFollowup,
-        "existing-target-retarget" => ForgeQueryGraphTouchLifecycleFamily::ExistingTargetRetarget,
-        "existing-target-supersession" => {
-            ForgeQueryGraphTouchLifecycleFamily::ExistingTargetSupersession
-        }
-        "existing-target-retirement" => {
-            ForgeQueryGraphTouchLifecycleFamily::ExistingTargetRetirement
-        }
-        "verified-existing-target-followup" => {
-            ForgeQueryGraphTouchLifecycleFamily::VerifiedExistingTargetFollowup
-        }
-        "verified-existing-target-retarget" => {
-            ForgeQueryGraphTouchLifecycleFamily::VerifiedExistingTargetRetarget
-        }
-        "verified-existing-target-supersession" => {
-            ForgeQueryGraphTouchLifecycleFamily::VerifiedExistingTargetSupersession
-        }
-        "verified-existing-target-retirement" => {
-            ForgeQueryGraphTouchLifecycleFamily::VerifiedExistingTargetRetirement
-        }
-        other => unreachable!("unknown graph lifecycle selector value `{other}`"),
-    }
-}
-
-fn read_verb_from_selector_value(
-    selector: &ForgeQueryGraphTouchSelector,
-) -> ForgeQueryGraphTouchReadVerb {
-    match selector_value(selector).as_str() {
-        "observes-collection" => ForgeQueryGraphTouchReadVerb::ObservesCollection,
-        "observes-relation-kind" => ForgeQueryGraphTouchReadVerb::ObservesRelationKind,
-        "observes-aspect-path" => ForgeQueryGraphTouchReadVerb::ObservesAspectPath,
-        "exposes-derived-topology" => ForgeQueryGraphTouchReadVerb::ExposesDerivedTopology,
-        "materializes-diagnostic" => ForgeQueryGraphTouchReadVerb::MaterializesDiagnostic,
-        "requires-policy-basis" => ForgeQueryGraphTouchReadVerb::RequiresPolicyBasis,
-        "retains-live-subscription" => ForgeQueryGraphTouchReadVerb::RetainsLiveSubscription,
-        "crosses-operating-world" => ForgeQueryGraphTouchReadVerb::CrossesOperatingWorld,
-        "reads-stale-basis-allowed" => ForgeQueryGraphTouchReadVerb::ReadsStaleBasisAllowed,
-        other => unreachable!("unknown graph read verb selector value `{other}`"),
-    }
+fn native_declared_aspect_operation_digest_part(
+    operation: &ForgeQueryAspectMutationOperation,
+) -> String {
+    format!(
+        "{}:{}",
+        operation.kind().as_str(),
+        operation.aspect_touch().admitted_touch_digest_part()
+    )
 }

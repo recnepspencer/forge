@@ -5,7 +5,7 @@ use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvide
 fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
     let mut runtime = stateful_bridge_task_runtime();
     runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare before preview-safe operation runs");
     let program = preview_safe_program();
     let installed = runtime
@@ -27,7 +27,7 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
                 operation.clone(),
                 vec![ForgeQueryOperationInput::new(
                     "title",
-                    Value::String("Preview-only task".to_string()),
+                    ForgeQueryProgramValue::string("Preview-only task"),
                 )],
             )
             .expect("preview operation should run");
@@ -57,7 +57,10 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
     };
 
     assert_eq!(
-        preview_run.outputs()[0].value().as_array().unwrap().len(),
+        preview_run.outputs()[0]
+            .value()
+            .array_len()
+            .expect("preview output should be an array"),
         0
     );
 
@@ -73,7 +76,7 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
                 operation,
                 vec![ForgeQueryOperationInput::new(
                     "title",
-                    Value::String("Promoted preview task".to_string()),
+                    ForgeQueryProgramValue::string("Promoted preview task"),
                 )],
             )
             .expect("preview operation should stage");
@@ -92,13 +95,17 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
     }
 
     let view = runtime
-        .declare_live_view::<Value>("tasks.after-preview", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.after-preview",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare");
     let rows = runtime.read_live(&view);
     assert_eq!(rows.len(), 1);
     assert_eq!(
-        rows[0].external_row()["title"]["value"],
-        "Promoted preview task"
+        test_native_string_value(&rows[0], "title.value").as_deref(),
+        Some("Promoted preview task")
     );
 }
 
@@ -106,7 +113,7 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
 fn preview_run_operation_discard_keeps_authoritative_state_unchanged() {
     let mut runtime = stateful_bridge_task_runtime();
     runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare before preview-safe operation runs");
     let program = preview_safe_program();
     let installed = runtime
@@ -128,7 +135,7 @@ fn preview_run_operation_discard_keeps_authoritative_state_unchanged() {
                 operation,
                 vec![ForgeQueryOperationInput::new(
                     "title",
-                    Value::String("Discarded preview task".to_string()),
+                    ForgeQueryProgramValue::string("Discarded preview task"),
                 )],
             )
             .expect("preview operation should stage");
@@ -137,7 +144,11 @@ fn preview_run_operation_discard_keeps_authoritative_state_unchanged() {
     }
 
     let view = runtime
-        .declare_live_view::<Value>("tasks.after-discard", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.after-discard",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare");
     assert!(runtime.read_live(&view).is_empty());
 }
@@ -165,7 +176,7 @@ fn preview_run_operation_rejects_declaration_effects_before_runtime_mutation() {
             operation,
             vec![ForgeQueryOperationInput::new(
                 "title",
-                Value::String("Should never install runtime declarations".to_string()),
+                ForgeQueryProgramValue::string("Should never install runtime declarations"),
             )],
         )
         .expect_err("preview operation must deny declaration effects");
@@ -184,7 +195,7 @@ fn preview_run_operation_rejects_declaration_effects_before_runtime_mutation() {
     }
 
     let view = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.after-denied-declaration",
             task_live_request(),
             task_schema(),

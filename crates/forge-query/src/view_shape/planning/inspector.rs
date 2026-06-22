@@ -25,10 +25,7 @@ pub(super) fn planning_posture(admitted: &AdmittedViewShape) -> ViewShapePlannin
         },
         ViewShapeFamily::InspectorDetailFocused => ViewShapePlanningPosture {
             delivery_metadata: ViewShapeDeliveryMetadata::new(
-                admitted
-                    .descriptor()
-                    .focused_aspect()
-                    .map(ToString::to_string),
+                admitted.descriptor().native_focused_aspect_key().cloned(),
                 None,
                 admitted.identity_binding().identity_consumption().clone(),
                 false,

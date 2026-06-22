@@ -6,8 +6,11 @@ fn existing_truth_probe_intent_common_path_executes_through_canonical_handoff() 
         .workspace("intent-admission-probe-dx")
         .expect("workspace should open");
     let binding = seeded_probe_binding(&mut workspace);
-    let request = ForgeQueryExistingTruthProbeRequest::new(binding, ["identity.id", "title.value"])
-        .expect("probe request should build");
+    let request = ForgeQueryExistingTruthProbeRequest::new(
+        binding,
+        test_aspect_touches(["identity.id", "title.value"]),
+    )
+    .expect("probe request should build");
     let runtime = workspace.into_runtime();
 
     let result = runtime
@@ -40,8 +43,11 @@ fn existing_truth_probe_intent_advanced_path_exposes_request_eligibility_decisio
         .workspace("intent-admission-probe-advanced")
         .expect("workspace should open");
     let binding = seeded_probe_binding(&mut workspace);
-    let request = ForgeQueryExistingTruthProbeRequest::new(binding, ["identity.id", "title.value"])
-        .expect("probe request should build");
+    let request = ForgeQueryExistingTruthProbeRequest::new(
+        binding,
+        test_aspect_touches(["identity.id", "title.value"]),
+    )
+    .expect("probe request should build");
     let runtime = workspace.into_runtime();
 
     let review = runtime
@@ -80,8 +86,11 @@ fn workspace_existing_truth_probe_intent_common_path_executes_through_canonical_
         .workspace("intent-admission-workspace-probe-dx")
         .expect("workspace should open");
     let binding = seeded_probe_binding(&mut workspace);
-    let request = ForgeQueryExistingTruthProbeRequest::new(binding, ["identity.id", "title.value"])
-        .expect("probe request should build");
+    let request = ForgeQueryExistingTruthProbeRequest::new(
+        binding,
+        test_aspect_touches(["identity.id", "title.value"]),
+    )
+    .expect("probe request should build");
 
     let result = workspace
         .probe_existing_intent(request)
@@ -112,8 +121,14 @@ fn seeded_probe_binding(
 ) -> ForgeQueryExistingTruthTargetBinding {
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Seed title")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Seed title"),
+            )
         })
         .expect("seed insert should execute");
     workspace

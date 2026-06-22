@@ -5,7 +5,7 @@ use crate::evidence_identity::{
 };
 use crate::memory_workspace::ForgeQueryCommitIdentity;
 use crate::runtime::{
-    ForgeQueryBatchMutationEvidence, ForgeQueryGraphCompositionBreadth,
+    ForgeQueryAspectTouch, ForgeQueryBatchMutationEvidence, ForgeQueryGraphCompositionBreadth,
     ForgeQueryGraphCompositionEvidence, ForgeQueryGraphCompositionLifecycleOutcomes,
     ForgeQueryGraphCompositionProgram, ForgeQueryGraphCompositionResolutionMap,
     ForgeQueryGraphObligationAttachmentEvidence,
@@ -29,7 +29,7 @@ pub(super) struct ForgeQueryBatchWriteDigestInputs<'a> {
     pub component_operations: &'a [ForgeQueryBatchWriteComponentInspection],
     pub graph_composition_resolution_map: &'a ForgeQueryGraphCompositionResolutionMap,
     pub graph_obligation_evidence: Option<&'a ForgeQueryGraphObligationAttachmentEvidence>,
-    pub touched_aspect_paths: &'a [String],
+    pub touched_aspects: &'a [ForgeQueryAspectTouch],
     pub affected_live_view_ids: &'a [String],
     pub affected_derived_view_ids: &'a [String],
 }
@@ -329,12 +329,9 @@ pub(super) fn build_batch_write_receipt_inspection_digest(
                 .map(ForgeQueryGraphObligationAttachmentEvidence::evidence_digest),
         )
         .field_evidence_identity_sequence(
-            ForgeQueryEvidenceTag::new("touched_aspect_path"),
-            evidence_value_identities(
-                "batch-inspection-touched-aspect-path",
-                inputs.touched_aspect_paths,
-            )
-            .iter(),
+            ForgeQueryEvidenceTag::new("touched_aspect"),
+            evidence_touch_identities("batch-inspection-touched-aspect", inputs.touched_aspects)
+                .iter(),
         )
         .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("affected_live_view_id"),
@@ -367,6 +364,26 @@ fn evidence_value_identities(
             )
             .field_shape(ForgeQueryEvidenceTag::new("role"), role)
             .field_value(ForgeQueryEvidenceTag::new("value"), value)
+            .seal()
+        })
+        .collect()
+}
+
+fn evidence_touch_identities(
+    role: &'static str,
+    touches: &[ForgeQueryAspectTouch],
+) -> Vec<ForgeQueryEvidenceIdentity> {
+    touches
+        .iter()
+        .map(|touch| {
+            forge_query_evidence_identity(
+                ForgeQueryEvidenceScope::BatchWriteReceiptInspectionArtifact,
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+            .field_value(
+                ForgeQueryEvidenceTag::new("value"),
+                touch.admitted_touch_digest_part(),
+            )
             .seal()
         })
         .collect()

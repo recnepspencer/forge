@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use crate::runtime::ForgeQueryMutationFamily;
+use crate::runtime::{
+    ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch, ForgeQueryMutationFamily,
+};
 use forge_relational::facade::identity::KindId;
 
 use super::touch_rows::ForgeQueryGraphTouchDescriptorRow;
@@ -9,9 +11,9 @@ use super::touch_rows::ForgeQueryGraphTouchDescriptorRow;
 pub(super) struct ForgeQueryGraphTouchDescriptorInventory {
     declared_collections: BTreeSet<String>,
     relation_kind_ids: BTreeSet<KindId>,
-    declared_aspect_paths: BTreeSet<String>,
-    declared_aspect_operations: BTreeSet<String>,
-    touched_aspect_paths: BTreeSet<String>,
+    declared_aspect_touches: BTreeSet<ForgeQueryAspectTouch>,
+    declared_aspect_operations: BTreeSet<ForgeQueryAspectMutationOperation>,
+    touched_aspects: BTreeSet<ForgeQueryAspectTouch>,
     insert_command_count: usize,
     update_command_count: usize,
     assertion_command_count: usize,
@@ -23,8 +25,8 @@ impl ForgeQueryGraphTouchDescriptorInventory {
         let declared_collections = collect_declared_collections(rows);
         let relation_kind_ids = collect_relation_kind_ids(rows);
         let declared_aspect_operations = collect_declared_aspect_operations(rows);
-        let declared_aspect_paths = collect_declared_aspect_paths(&declared_aspect_operations);
-        let touched_aspect_paths = collect_touched_aspect_paths(rows);
+        let declared_aspect_touches = collect_declared_aspect_touches(&declared_aspect_operations);
+        let touched_aspects = collect_touched_aspects(rows);
         let insert_command_count = count_command_family(rows, ForgeQueryMutationFamily::Insert);
         let update_command_count = count_command_family(rows, ForgeQueryMutationFamily::Update);
         let assertion_command_count =
@@ -34,9 +36,9 @@ impl ForgeQueryGraphTouchDescriptorInventory {
         Self {
             declared_collections,
             relation_kind_ids,
-            declared_aspect_paths,
+            declared_aspect_touches,
             declared_aspect_operations,
-            touched_aspect_paths,
+            touched_aspects,
             insert_command_count,
             update_command_count,
             assertion_command_count,
@@ -68,8 +70,8 @@ impl ForgeQueryGraphTouchDescriptorInventory {
         self.relation_kind_ids.len()
     }
 
-    pub(super) fn declared_aspect_path_count(&self) -> usize {
-        self.declared_aspect_paths.len()
+    pub(super) fn declared_aspect_touch_count(&self) -> usize {
+        self.declared_aspect_touches.len()
     }
 
     pub(super) fn declared_aspect_operation_count(&self) -> usize {
@@ -77,12 +79,8 @@ impl ForgeQueryGraphTouchDescriptorInventory {
     }
 
     pub(super) fn touched_aspect_count(&self) -> usize {
-        self.touched_aspect_paths.len()
+        self.touched_aspects.len()
     }
-}
-
-pub(super) fn declared_operation_path(operation: &str) -> Option<&str> {
-    operation.split_once(':').map(|(_, path)| path)
 }
 
 fn collect_declared_collections(rows: &[ForgeQueryGraphTouchDescriptorRow]) -> BTreeSet<String> {
@@ -100,25 +98,27 @@ fn collect_relation_kind_ids(rows: &[ForgeQueryGraphTouchDescriptorRow]) -> BTre
 
 fn collect_declared_aspect_operations(
     rows: &[ForgeQueryGraphTouchDescriptorRow],
-) -> BTreeSet<String> {
+) -> BTreeSet<ForgeQueryAspectMutationOperation> {
     rows.iter()
         .flat_map(ForgeQueryGraphTouchDescriptorRow::declared_aspect_operations)
         .cloned()
         .collect()
 }
 
-fn collect_declared_aspect_paths(
-    declared_aspect_operations: &BTreeSet<String>,
-) -> BTreeSet<String> {
+fn collect_declared_aspect_touches(
+    declared_aspect_operations: &BTreeSet<ForgeQueryAspectMutationOperation>,
+) -> BTreeSet<ForgeQueryAspectTouch> {
     declared_aspect_operations
         .iter()
-        .filter_map(|operation| declared_operation_path(operation).map(str::to_string))
+        .map(|operation| operation.aspect_touch().clone())
         .collect()
 }
 
-fn collect_touched_aspect_paths(rows: &[ForgeQueryGraphTouchDescriptorRow]) -> BTreeSet<String> {
+fn collect_touched_aspects(
+    rows: &[ForgeQueryGraphTouchDescriptorRow],
+) -> BTreeSet<ForgeQueryAspectTouch> {
     rows.iter()
-        .flat_map(ForgeQueryGraphTouchDescriptorRow::touched_aspect_paths)
+        .flat_map(ForgeQueryGraphTouchDescriptorRow::admitted_touched_aspects)
         .cloned()
         .collect()
 }

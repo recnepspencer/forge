@@ -8,13 +8,17 @@ fn effect_triggered_async_completion_receipt_preserves_write_adjacent_trigger_cl
         "async-completion:cause:task-title",
     );
     let live = runtime
-        .declare_live_view::<Value>("tasks.async-follow-on", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.async-follow-on",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(
+        .declare_effect::<ForgeQueryNativeRow>(
             ForgeQueryEffectDeclaration::write_intent(
                 "effects.async-follow-on",
-                ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+                ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
                 "strategy.intent.reconcile",
             )
             .with_write_adjacent_trigger(
@@ -25,11 +29,11 @@ fn effect_triggered_async_completion_receipt_preserves_write_adjacent_trigger_cl
         .expect("async completion write-intent effect should declare");
 
     runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from async completion"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title from async completion",
+        ))
         .expect("write should queue pending intent");
 
     let receipt = runtime
@@ -72,17 +76,17 @@ fn consumed_pending_write_intent_cannot_admit_a_second_authority_path() {
         "replay-drift:cause:task-title",
     );
     let live = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.duplicate-follow-on",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(
+        .declare_effect::<ForgeQueryNativeRow>(
             ForgeQueryEffectDeclaration::write_intent(
                 "effects.duplicate-follow-on",
-                ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+                ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
                 "strategy.intent.reconcile",
             )
             .with_write_adjacent_trigger(
@@ -93,11 +97,11 @@ fn consumed_pending_write_intent_cannot_admit_a_second_authority_path() {
         .expect("replay drift write-intent effect should declare");
 
     runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from replay drift"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title from replay drift",
+        ))
         .expect("write should queue pending intent");
 
     let (pending_delivery, handoff) = runtime

@@ -31,6 +31,10 @@ fn in_memory_test_runtime_validates_schema_denials_before_workspace_creation() {
         ForgeQueryTestBackendSchema::single_collection("Task").aspect("title.value", " "),
         ForgeQueryTestBackendErrorKind::BlankProjectionPath,
     );
+    assert_schema_error(
+        ForgeQueryTestBackendSchema::single_collection("Task").aspect("title.value", "title value"),
+        ForgeQueryTestBackendErrorKind::InvalidProjectionPath,
+    );
     assert_eq!(
         workspace_build_error_kind(
             in_memory_test_runtime().workspace("consumer-kit.test-backend.missing-schema")

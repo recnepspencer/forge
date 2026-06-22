@@ -1,11 +1,10 @@
 use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::projection_consumption::identity::{
     certification_scope_encoder, compose_certification_sequence_digest,
-    compose_json_canonical_digest, compose_labeled_entry_digest, seal,
+    compose_labeled_entry_digest, seal,
 };
 use crate::projection_consumption::ConsumedProjectionFactSet;
 use crate::ForgeQueryEvidenceTag;
-use serde_json::Value;
 
 use super::super::fixtures::{certification_grouped_projection, certification_row_set};
 use super::value_terms::canonical_aspect_value;
@@ -61,8 +60,8 @@ pub(super) fn row_set_control_actual_digest(facts: &ConsumedProjectionFactSet) -
         .chain(facts.display_fields().iter().map(|fact| {
             compose_oracle_display_field_entry(
                 fact.source_row_identity(),
-                fact.field_key(),
-                &compose_json_canonical_digest(fact.value()),
+                fact.field_path().terminal_projection_for_boundary(),
+                &canonical_aspect_value(fact.value()),
             )
         }))
         .collect::<Vec<_>>();
@@ -112,16 +111,20 @@ pub(super) fn grouped_worth_actual_digest(facts: &ConsumedProjectionFactSet) -> 
             compose_oracle_membership_entry(
                 fact.source_row_identity(),
                 fact.native_grouping_aspect_key().as_str(),
-                &compose_json_canonical_digest(fact.grouping_value()),
+                &canonical_aspect_value(fact.grouping_value()),
             )
         })
         .chain(facts.relation_endpoints().iter().map(|fact| {
+            let grouping_value = fact
+                .grouping_value()
+                .map(canonical_aspect_value)
+                .unwrap_or_else(|| "none".to_string());
             compose_oracle_relation_endpoint_entry(
                 fact.source_row_identity().unwrap_or("none"),
                 fact.native_grouping_aspect_key()
                     .map(|key| key.as_str())
                     .unwrap_or("none"),
-                &compose_json_canonical_digest(fact.grouping_value().unwrap_or(&Value::Null)),
+                &grouping_value,
             )
         }))
         .chain(facts.view_local_identities().iter().map(|fact| {

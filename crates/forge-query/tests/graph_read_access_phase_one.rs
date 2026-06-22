@@ -253,7 +253,7 @@ fn graph_read_access_shape_digest_is_stable_across_frontier_relation_ordering() 
         .iter()
         .map(|relation| {
             (
-                relation.relation().to_string(),
+                relation.relation_name().as_str().to_string(),
                 relation.direction().as_str(),
                 relation.depth(),
             )
@@ -345,10 +345,26 @@ fn manager_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "graph-read-access-manager",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("id")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
-        [SchemaRelationView::new("manager", 2)],
+        [SchemaRelationView::new(
+            forge_query::facade::RelationName::new("manager")
+                .expect("schema relation literal must be valid"),
+            2,
+        )],
     )
 }
 
@@ -356,12 +372,32 @@ fn frontier_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "graph-read-access-frontier",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("id")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
         [
-            SchemaRelationView::new("manager", 2),
-            SchemaRelationView::new("mentor", 2),
+            SchemaRelationView::new(
+                forge_query::facade::RelationName::new("manager")
+                    .expect("schema relation literal must be valid"),
+                2,
+            ),
+            SchemaRelationView::new(
+                forge_query::facade::RelationName::new("mentor")
+                    .expect("schema relation literal must be valid"),
+                2,
+            ),
         ],
     )
 }
@@ -370,11 +406,39 @@ fn wide_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "graph-read-access-wide",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "title", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "department", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("id")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("title")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("department")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
-        [SchemaRelationView::new("manager", 2)],
+        [SchemaRelationView::new(
+            forge_query::facade::RelationName::new("manager")
+                .expect("schema relation literal must be valid"),
+            2,
+        )],
     )
 }

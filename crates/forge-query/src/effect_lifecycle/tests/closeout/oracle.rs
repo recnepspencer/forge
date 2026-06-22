@@ -1,6 +1,5 @@
 use forge_relational::facade::history::BranchId;
 use forge_runtime_bridge::facade::BridgeWritebackOutcomeClass;
-use serde_json::json;
 
 use crate::effect_lifecycle::{
     bridge_observation_execution_receipt_subject_identity,
@@ -18,8 +17,9 @@ use super::execution_support::{
 };
 use super::support::{
     admitted_branch_merge_effect, admitted_mutation_effect_for_entity_with_binding,
-    admitted_tenant_writeback_effect, branch_mutation_basis, raw_mutation_effect_with_binding,
-    runtime_workflow_binding_for_branch, runtime_workflow_binding_with_snapshot,
+    admitted_tenant_writeback_effect, branch_mutation_basis, native_name_patch,
+    raw_mutation_effect_with_binding, runtime_workflow_binding_for_branch,
+    runtime_workflow_binding_with_snapshot,
 };
 
 #[test]
@@ -39,7 +39,7 @@ fn mutation_execution_verifies_against_independent_relational_runtime_state() {
             "branch-a",
         ),
         entity_id,
-        json!({ "name": "oracle-plan" }),
+        native_name_patch("oracle-plan"),
     ))
     .lower()
     .expect("mutation should lower");
@@ -157,12 +157,12 @@ fn mutation_batch_verifies_against_independent_relational_runtime_state() {
         .push(raw_mutation_effect_with_binding(
             binding.clone(),
             left,
-            json!({ "name": "left-oracle" }),
+            native_name_patch("left-oracle"),
         ))
         .push(raw_mutation_effect_with_binding(
             binding,
             right,
-            json!({ "name": "right-oracle" }),
+            native_name_patch("right-oracle"),
         ))
         .admit()
         .expect("batch should admit")
@@ -199,7 +199,7 @@ fn relational_oracle_rejects_independent_commit_mismatch() {
             "branch-a",
         ),
         entity_id,
-        json!({ "name": "oracle-plan" }),
+        native_name_patch("oracle-plan"),
     ))
     .lower()
     .expect("mutation should lower");

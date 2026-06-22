@@ -1,4 +1,5 @@
 use crate::runtime::ForgeQueryReadGraph;
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryGraphReadSchemaReferenceAdmissionErrorKind {
@@ -17,8 +18,8 @@ impl ForgeQueryGraphReadSchemaReferenceAdmissionErrorKind {
 pub struct ForgeQueryGraphReadSchemaReferenceAdmissionError {
     kind: ForgeQueryGraphReadSchemaReferenceAdmissionErrorKind,
     read_graph_digest: String,
-    aspect: String,
-    field: String,
+    aspect: AspectKey,
+    field: FieldKey,
 }
 
 impl ForgeQueryGraphReadSchemaReferenceAdmissionError {
@@ -30,11 +31,11 @@ impl ForgeQueryGraphReadSchemaReferenceAdmissionError {
         &self.read_graph_digest
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn native_aspect_key(&self) -> &AspectKey {
         &self.aspect
     }
 
-    pub fn field(&self) -> &str {
+    pub fn native_field_key(&self) -> &FieldKey {
         &self.field
     }
 
@@ -47,8 +48,11 @@ impl ForgeQueryGraphReadSchemaReferenceAdmissionError {
             kind:
                 ForgeQueryGraphReadSchemaReferenceAdmissionErrorKind::MissingFieldInFrozenSchemaView,
             read_graph_digest: read_graph.digest().to_string(),
-            aspect: aspect.to_string(),
-            field: field.to_string(),
+            aspect: AspectKey::new(aspect).expect(
+                "schema reference admission error aspect must be a foundational aspect key",
+            ),
+            field: FieldKey::new(field)
+                .expect("schema reference admission error field must be a foundational field key"),
         }
     }
 }

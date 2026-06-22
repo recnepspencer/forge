@@ -1,5 +1,4 @@
 use forge_proof::TransitionOutcome;
-use serde_json::json;
 
 use super::authoring::{
     ForgeQueryAdmissionContributionAuthoring, ForgeQueryAftermathContributionAuthoring,
@@ -231,7 +230,10 @@ fn sample_declaration(name: &str) -> ForgeQueryIntentDeclaration {
         format!("worth.spatial.{name}"),
         "1",
         "worth.spatial.intent",
-        json!({ "entity": format!("edge:{name}") }),
+        crate::runtime::ForgeQueryIntentInput::object([(
+            "entity",
+            crate::runtime::ForgeQueryIntentInput::string(format!("edge:{name}")),
+        )]),
     )
 }
 

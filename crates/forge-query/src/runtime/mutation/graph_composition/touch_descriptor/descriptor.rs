@@ -3,14 +3,14 @@ use crate::evidence_identity::{
     ForgeQueryEvidenceTag,
 };
 use crate::runtime::{
-    ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram, ForgeQueryWriteCommand,
+    ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch, ForgeQueryGraphCompositionBreadth,
+    ForgeQueryGraphCompositionProgram, ForgeQueryMutationTargetCollectionIdentity,
+    ForgeQueryWriteCommand,
 };
 use forge_relational::facade::identity::KindId;
 
 use super::denial::ForgeQueryGraphTouchDescriptorDenial;
-use super::descriptor_inventory::{
-    declared_operation_path, ForgeQueryGraphTouchDescriptorInventory,
-};
+use super::descriptor_inventory::ForgeQueryGraphTouchDescriptorInventory;
 use super::descriptor_kind::ForgeQueryGraphTouchDescriptorKind;
 use super::lifecycle_family::ForgeQueryGraphTouchLifecycleFamily;
 use super::read_verb::ForgeQueryGraphTouchReadVerb;
@@ -33,7 +33,7 @@ pub struct ForgeQueryGraphTouchDescriptor {
     delete_command_count: usize,
     declared_collection_count: usize,
     relation_kind_count: usize,
-    declared_aspect_path_count: usize,
+    declared_aspect_touch_count: usize,
     declared_aspect_operation_count: usize,
     touched_aspect_count: usize,
     descriptor_digest: ForgeQueryEvidenceIdentity,
@@ -117,8 +117,8 @@ impl ForgeQueryGraphTouchDescriptor {
         collection: impl Into<String>,
         mutation_family: crate::runtime::ForgeQueryMutationFamily,
         lifecycle_family: Option<ForgeQueryGraphTouchLifecycleFamily>,
-        declared_aspect_operations: impl IntoIterator<Item = impl Into<String>>,
-        touched_aspect_paths: impl IntoIterator<Item = impl Into<String>>,
+        declared_aspect_operations: impl IntoIterator<Item = ForgeQueryAspectMutationOperation>,
+        touched_aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
     ) -> Result<Self, ForgeQueryGraphTouchDescriptorDenial> {
         let collection = collection.into().trim().to_string();
         if collection.is_empty() {
@@ -136,8 +136,8 @@ impl ForgeQueryGraphTouchDescriptor {
             declared_collection: Some(collection),
             relation_kind_id: None,
             declared_symbol: None,
-            declared_aspect_operations: sorted_unique_strings(declared_aspect_operations),
-            touched_aspect_paths: sorted_unique_strings(touched_aspect_paths),
+            declared_aspect_operations: sorted_unique_operations(declared_aspect_operations),
+            touched_aspects: sorted_unique_touches(touched_aspects),
             has_symbolic_target_reference: false,
             has_existing_truth_binding: false,
             symbolic_aspect_reference_count: 0,
@@ -233,8 +233,8 @@ impl ForgeQueryGraphTouchDescriptor {
                     inventory.relation_kind_count(),
                 )
                 .field_usize(
-                    ForgeQueryEvidenceTag::new("declared_aspect_path_count"),
-                    inventory.declared_aspect_path_count(),
+                    ForgeQueryEvidenceTag::new("declared_aspect_touch_count"),
+                    inventory.declared_aspect_touch_count(),
                 )
                 .field_usize(
                     ForgeQueryEvidenceTag::new("declared_aspect_operation_count"),
@@ -258,7 +258,7 @@ impl ForgeQueryGraphTouchDescriptor {
             delete_command_count: inventory.delete_command_count(),
             declared_collection_count: inventory.declared_collection_count(),
             relation_kind_count: inventory.relation_kind_count(),
-            declared_aspect_path_count: inventory.declared_aspect_path_count(),
+            declared_aspect_touch_count: inventory.declared_aspect_touch_count(),
             declared_aspect_operation_count: inventory.declared_aspect_operation_count(),
             touched_aspect_count: inventory.touched_aspect_count(),
             descriptor_digest,
@@ -309,8 +309,8 @@ impl ForgeQueryGraphTouchDescriptor {
         self.relation_kind_count
     }
 
-    pub fn declared_aspect_path_count(&self) -> usize {
-        self.declared_aspect_path_count
+    pub fn declared_aspect_touch_count(&self) -> usize {
+        self.declared_aspect_touch_count
     }
 
     pub fn declared_aspect_operation_count(&self) -> usize {
@@ -321,7 +321,14 @@ impl ForgeQueryGraphTouchDescriptor {
         self.touched_aspect_count
     }
 
-    pub fn touches_collection(&self, collection: &str) -> bool {
+    pub fn touches_target_collection(
+        &self,
+        collection: &ForgeQueryMutationTargetCollectionIdentity,
+    ) -> bool {
+        self.touches_collection(collection.as_str())
+    }
+
+    pub(crate) fn touches_collection(&self, collection: &str) -> bool {
         self.rows
             .iter()
             .any(|row| row.declared_collection() == Some(collection))
@@ -333,7 +340,10 @@ impl ForgeQueryGraphTouchDescriptor {
             .any(|row| row.relation_kind_id() == Some(relation_kind_id))
     }
 
-    pub fn touches_declared_aspect_operation(&self, operation: &str) -> bool {
+    pub fn touches_declared_aspect_operation(
+        &self,
+        operation: &ForgeQueryAspectMutationOperation,
+    ) -> bool {
         self.rows.iter().any(|row| {
             row.declared_aspect_operations()
                 .iter()
@@ -341,15 +351,15 @@ impl ForgeQueryGraphTouchDescriptor {
         })
     }
 
-    pub fn touches_aspect_path(&self, aspect_path: &str) -> bool {
+    pub fn touches_aspect(&self, aspect_touch: &ForgeQueryAspectTouch) -> bool {
         self.rows.iter().any(|row| {
             row.declared_aspect_operations()
                 .iter()
-                .any(|item| declared_operation_path(item) == Some(aspect_path))
+                .any(|operation| operation.aspect_touch() == aspect_touch)
                 || row
-                    .touched_aspect_paths()
+                    .admitted_touched_aspects()
                     .iter()
-                    .any(|item| item == aspect_path)
+                    .any(|touch| touch == aspect_touch)
         })
     }
 
@@ -362,12 +372,21 @@ impl ForgeQueryGraphTouchDescriptor {
     }
 }
 
-fn sorted_unique_strings(values: impl IntoIterator<Item = impl Into<String>>) -> Vec<String> {
+fn sorted_unique_operations(
+    values: impl IntoIterator<Item = ForgeQueryAspectMutationOperation>,
+) -> Vec<ForgeQueryAspectMutationOperation> {
     values
         .into_iter()
-        .map(Into::into)
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+fn sorted_unique_touches(
+    values: impl IntoIterator<Item = ForgeQueryAspectTouch>,
+) -> Vec<ForgeQueryAspectTouch> {
+    values
+        .into_iter()
         .collect::<std::collections::BTreeSet<_>>()
         .into_iter()
         .collect()

@@ -1,6 +1,8 @@
+use forge_foundational::facade::AspectValue;
+use forge_foundational::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_query::facade::runtime::{
-    ForgeQueryEphemeralGraphIndexScopeKind, ForgeQueryGraphReadAccessAdmissionPosture,
-    ForgeQueryGraphReadAccessRequirementKind,
+    ForgeQueryAspectTouch, ForgeQueryEphemeralGraphIndexScopeKind,
+    ForgeQueryGraphReadAccessAdmissionPosture, ForgeQueryGraphReadAccessRequirementKind,
 };
 
 #[allow(dead_code)]
@@ -170,8 +172,11 @@ fn bounded_ephemeral_receipt_changes_when_snapshot_scope_changes() {
         traversal_collection_family(&mut second_workspace, "phase-eight-scope-sensitive");
     second_workspace
         .insert("user", |user| {
-            user.aspect("identity.id", "phase-eight-scope-sensitive-user")
-                .aspect("status.value", "active")
+            user.aspect(
+                touch("identity.id"),
+                text("phase-eight-scope-sensitive-user"),
+            )
+            .aspect(touch("status.value"), text("active"))
         })
         .expect("state change should create a distinct snapshot scope");
     let second_receipt = second_workspace
@@ -246,4 +251,29 @@ fn ordinary_inline_indexed_read_does_not_emit_ephemeral_receipt() {
             .posture(),
         &ForgeQueryGraphReadAccessAdmissionPosture::InlineIndexed
     );
+}
+
+fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
+    let mut segments = aspect_path.split('.');
+    let aspect = segments
+        .next()
+        .and_then(|segment| AspectKey::new(segment.to_string()))
+        .expect("test aspect path aspect should admit");
+    let fields = segments
+        .map(|segment| {
+            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
+        })
+        .collect::<Vec<_>>();
+    if fields.is_empty() {
+        ForgeQueryAspectTouch::aspect(aspect)
+    } else {
+        ForgeQueryAspectTouch::field_path(
+            aspect,
+            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
+        )
+    }
+}
+
+fn text(value: impl Into<String>) -> AspectValue {
+    AspectValue::String(value.into().into())
 }

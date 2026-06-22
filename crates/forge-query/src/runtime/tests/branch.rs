@@ -18,6 +18,16 @@ fn branch_intent_runtime(attempted: std::rc::Rc<std::cell::Cell<usize>>) -> Forg
         .expect("intent-capable runtime should build")
 }
 
+fn branch_intent_input(
+    fields: impl IntoIterator<Item = (&'static str, &'static str)>,
+) -> ForgeQueryIntentInput {
+    ForgeQueryIntentInput::object(
+        fields
+            .into_iter()
+            .map(|(field, value)| (field, ForgeQueryIntentInput::string(value))),
+    )
+}
+
 #[test]
 fn branch_local_intent_is_policy_admitted_without_authoritative_execution() {
     let attempted = std::rc::Rc::new(std::cell::Cell::new(0));
@@ -35,7 +45,7 @@ fn branch_local_intent_is_policy_admitted_without_authoritative_execution() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task-1", "title": "branch title" }),
+            branch_intent_input([("entity", "task-1"), ("title", "branch title")]),
         ))
         .expect("sandboxed branch intent should be admitted");
 
@@ -116,7 +126,7 @@ fn derive_only_branch_intent_denies_before_authoritative_execution() {
                 "strategy.intent.reconcile",
                 "1.0",
                 "intent.reconcile.input.v1",
-                json!({ "entity": "task-1" }),
+                branch_intent_input([("entity", "task-1")]),
             ))
             .expect_err("derive-only branch must deny write intents")
     };
@@ -188,7 +198,7 @@ fn branch_local_intent_requires_intent_support_for_branch_lane() {
                 "strategy.intent.reconcile",
                 "1.0",
                 "intent.reconcile.input.v1",
-                json!({ "entity": "task-1" }),
+                branch_intent_input([("entity", "task-1")]),
             ))
             .expect_err("branch-local intent requires branch-local support metadata")
     };

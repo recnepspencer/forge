@@ -11,6 +11,7 @@ use super::follow_on::{
 use super::inspection_identity::effect_inspection_digests;
 use super::phase::ForgeQueryEffectPhaseEvidence;
 use super::registry::ForgeQueryEffectRuntime;
+use crate::runtime::ForgeQueryAspectTouch;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryEffectInspectionEvidence {
@@ -18,10 +19,10 @@ pub struct ForgeQueryEffectInspectionEvidence {
     trigger_source: String,
     trigger_source_kind: ForgeQueryEffectTriggerSourceKind,
     write_adjacent_trigger: ForgeQueryEffectWriteAdjacentTrigger,
-    trigger_aspects: Vec<String>,
+    trigger_aspects: Vec<ForgeQueryAspectTouch>,
     condition_descriptor: String,
-    condition_inputs: Vec<String>,
-    condition_outputs: Vec<String>,
+    condition_inputs: Vec<ForgeQueryAspectTouch>,
+    condition_outputs: Vec<ForgeQueryAspectTouch>,
     condition_failure_posture: Option<ForgeQueryEffectExpressionFailurePosture>,
     action: ForgeQueryEffectAction,
     target_lane: ForgeQueryAuthorityLane,
@@ -52,8 +53,8 @@ impl ForgeQueryEffectInspectionEvidence {
                 ForgeQueryEffectCondition::Always => ("always".to_string(), Vec::new(), Vec::new()),
                 ForgeQueryEffectCondition::Expression(expression) => (
                     expression.descriptor().to_string(),
-                    expression.input_aspects().to_vec(),
-                    expression.output_aspects().to_vec(),
+                    expression.input_aspect_touches().to_vec(),
+                    expression.output_aspect_touches().to_vec(),
                 ),
             };
         let condition_failure_posture = match effect.declaration.condition() {
@@ -114,7 +115,7 @@ impl ForgeQueryEffectInspectionEvidence {
             trigger_source: effect.declaration.trigger().source_name().to_string(),
             trigger_source_kind: effect.declaration.trigger().source_kind(),
             write_adjacent_trigger: effect.declaration.write_adjacent_trigger().clone(),
-            trigger_aspects: effect.declaration.trigger().aspects().to_vec(),
+            trigger_aspects: effect.declaration.trigger().aspect_touches().to_vec(),
             condition_descriptor,
             condition_inputs,
             condition_outputs,
@@ -162,7 +163,7 @@ impl ForgeQueryEffectInspectionEvidence {
         self.write_adjacent_trigger.class()
     }
 
-    pub fn trigger_aspects(&self) -> &[String] {
+    pub fn trigger_aspect_touches(&self) -> &[ForgeQueryAspectTouch] {
         &self.trigger_aspects
     }
 
@@ -170,11 +171,11 @@ impl ForgeQueryEffectInspectionEvidence {
         &self.condition_descriptor
     }
 
-    pub fn condition_inputs(&self) -> &[String] {
+    pub fn condition_input_touches(&self) -> &[ForgeQueryAspectTouch] {
         &self.condition_inputs
     }
 
-    pub fn condition_outputs(&self) -> &[String] {
+    pub fn condition_output_touches(&self) -> &[ForgeQueryAspectTouch] {
         &self.condition_outputs
     }
 

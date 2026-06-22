@@ -1,3 +1,4 @@
+mod digest_projection;
 mod execute;
 mod outcome;
 mod prepare;

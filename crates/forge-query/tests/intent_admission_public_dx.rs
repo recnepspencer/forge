@@ -1,13 +1,14 @@
+use forge_foundational::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
     forge_query_basis_observation_intent, forge_query_projection_consumption_intent,
-    AdmittedQueryBasisContext, ForgeQueryBatchWriteReceipt, ForgeQueryEffectHandle,
-    ForgeQueryEffectIntentReceipt, ForgeQueryExistingTruthProbeRequest,
+    AdmittedQueryBasisContext, ForgeQueryAspectTouch, ForgeQueryBatchWriteReceipt,
+    ForgeQueryEffectHandle, ForgeQueryEffectIntentReceipt, ForgeQueryExistingTruthProbeRequest,
     ForgeQueryExistingTruthProbeResult, ForgeQueryExistingTruthTargetBinding,
     ForgeQueryIntentAdmissionDecision, ForgeQueryIntentConsumerOutcomeClass,
-    ForgeQueryIntentDeclaration, ForgeQueryIntentReceipt, ForgeQueryReadFamily,
-    ForgeQueryReadResult, ForgeQueryRuntime, ForgeQueryRuntimeError, ForgeQueryWorkspace,
-    ForgeQueryWriteCommand, ForgeQueryWriteReceipt, ProjectionConsumptionDeclaration,
-    RawBasisIntent,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentReceipt, ForgeQueryNativeRow,
+    ForgeQueryReadFamily, ForgeQueryReadResult, ForgeQueryRuntime, ForgeQueryRuntimeError,
+    ForgeQueryWorkspace, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ProjectionConsumptionDeclaration, RawBasisIntent,
 };
 
 fn authoritative_common_path_compiles(
@@ -423,7 +424,28 @@ fn existing_truth_probe_advanced_path_compiles(
 fn existing_truth_probe_request_typecheck(
     binding: ForgeQueryExistingTruthTargetBinding,
 ) -> Result<ForgeQueryExistingTruthProbeRequest, forge_query::facade::ForgeQueryWorkspaceError> {
-    ForgeQueryExistingTruthProbeRequest::new(binding, ["identity.id"])
+    ForgeQueryExistingTruthProbeRequest::new(binding, [touch("identity.id")])
+}
+
+fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
+    let mut segments = aspect_path.split('.');
+    let aspect = segments
+        .next()
+        .and_then(|segment| AspectKey::new(segment.to_string()))
+        .expect("test aspect path aspect should admit");
+    let fields = segments
+        .map(|segment| {
+            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
+        })
+        .collect::<Vec<_>>();
+    if fields.is_empty() {
+        ForgeQueryAspectTouch::aspect(aspect)
+    } else {
+        ForgeQueryAspectTouch::field_path(
+            aspect,
+            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
+        )
+    }
 }
 
 #[test]
@@ -504,62 +526,62 @@ fn public_dx_signatures_are_referenced() {
             &ForgeQueryReadFamily,
             &AdmittedQueryBasisContext,
         ) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError>;
-    let _ = live_read_common_path_compiles::<serde_json::Value>
+    let _ = live_read_common_path_compiles::<ForgeQueryNativeRow>
         as fn(
             &mut ForgeQueryWorkspace,
-            &forge_query::facade::ForgeQueryLiveView<serde_json::Value>,
+            &forge_query::facade::ForgeQueryLiveView<ForgeQueryNativeRow>,
         )
             -> Result<forge_query::facade::ForgeQueryLiveReadResult, ForgeQueryRuntimeError>;
-    let _ = live_read_advanced_path_compiles::<serde_json::Value>
+    let _ = live_read_advanced_path_compiles::<ForgeQueryNativeRow>
         as fn(
             &mut ForgeQueryWorkspace,
-            &forge_query::facade::ForgeQueryLiveView<serde_json::Value>,
+            &forge_query::facade::ForgeQueryLiveView<ForgeQueryNativeRow>,
         )
             -> Result<forge_query::facade::ForgeQueryLiveReadResult, ForgeQueryRuntimeError>;
-    let _ = derived_materialization_common_path_compiles::<serde_json::Value>
+    let _ = derived_materialization_common_path_compiles::<ForgeQueryNativeRow>
         as fn(
             &mut ForgeQueryWorkspace,
-            &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
+            &forge_query::facade::ForgeQueryDerivedViewHandle<ForgeQueryNativeRow>,
         ) -> Result<
             forge_query::facade::ForgeQueryDerivedMaterializationResult,
             ForgeQueryRuntimeError,
         >;
-    let _ = derived_materialization_advanced_path_compiles::<serde_json::Value>
+    let _ = derived_materialization_advanced_path_compiles::<ForgeQueryNativeRow>
         as fn(
             &mut ForgeQueryWorkspace,
-            &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
+            &forge_query::facade::ForgeQueryDerivedViewHandle<ForgeQueryNativeRow>,
         ) -> Result<
             forge_query::facade::ForgeQueryDerivedMaterializationResult,
             ForgeQueryRuntimeError,
         >;
-    let _ = derived_inspection_common_path_compiles::<serde_json::Value>
+    let _ = derived_inspection_common_path_compiles::<ForgeQueryNativeRow>
         as fn(
             &mut ForgeQueryWorkspace,
-            &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
+            &forge_query::facade::ForgeQueryDerivedViewHandle<ForgeQueryNativeRow>,
         ) -> Result<
             forge_query::facade::ForgeQueryDerivedInspectionResult,
             ForgeQueryRuntimeError,
         >;
-    let _ = derived_inspection_advanced_path_compiles::<serde_json::Value>
+    let _ = derived_inspection_advanced_path_compiles::<ForgeQueryNativeRow>
         as fn(
             &mut ForgeQueryWorkspace,
-            &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
+            &forge_query::facade::ForgeQueryDerivedViewHandle<ForgeQueryNativeRow>,
         ) -> Result<
             forge_query::facade::ForgeQueryDerivedInspectionResult,
             ForgeQueryRuntimeError,
         >;
-    let _ = generic_inspection_common_path_compiles::<serde_json::Value>
+    let _ = generic_inspection_common_path_compiles::<ForgeQueryNativeRow>
         as fn(
             &ForgeQueryWorkspace,
-            &forge_query::facade::ForgeQueryLiveView<serde_json::Value>,
+            &forge_query::facade::ForgeQueryLiveView<ForgeQueryNativeRow>,
         ) -> Result<
             forge_query::facade::ForgeQueryUnifiedInspectionResult,
             ForgeQueryRuntimeError,
         >;
-    let _ = generic_inspection_advanced_path_compiles::<serde_json::Value>
+    let _ = generic_inspection_advanced_path_compiles::<ForgeQueryNativeRow>
         as fn(
             &ForgeQueryWorkspace,
-            &forge_query::facade::ForgeQueryLiveView<serde_json::Value>,
+            &forge_query::facade::ForgeQueryLiveView<ForgeQueryNativeRow>,
         ) -> Result<
             forge_query::facade::ForgeQueryUnifiedInspectionResult,
             ForgeQueryRuntimeError,

@@ -1,0 +1,5 @@
+error[E0599]: no method named `aspect_paths` found for reference `&ForgeQueryLivePatch` in the current scope
+ --> tests/ui/aspect_native_query/live_patch_aspect_paths_alias_removed.rs:4:19
+  |
+4 |     let _ = patch.aspect_paths();
+  |                   ^^^^^^^^^^^^ method not found in `&ForgeQueryLivePatch`

@@ -215,19 +215,24 @@ fn detail_schema_view() -> crate::schema_view::QuerySchemaView {
         "milestone-eight-detail",
         [
             crate::schema_view::SchemaFieldView::new(
-                "identity",
-                "id",
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             ),
             crate::schema_view::SchemaFieldView::new(
-                "profile",
-                "display_name",
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             )
             .text_predicate_queryable(),
             crate::schema_view::SchemaFieldView::new(
-                "status",
-                "lane",
+                crate::authoring::AspectName::new("status")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("lane")
+                    .expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             )
             .text_predicate_queryable(),
@@ -648,7 +653,8 @@ fn grouped_truth_view_for_plan_with_rows(
     let grouping_field = match plan
         .grouped_planning_artifact()
         .expect("grouped plan should carry grouped planning")
-        .grouping_aspect()
+        .native_grouping_aspect_key()
+        .as_str()
     {
         "status" => "status.lane",
         "profile" => "profile.display_name",
@@ -659,7 +665,8 @@ fn grouped_truth_view_for_plan_with_rows(
         relational_grouped_projection_contract(
             plan.grouped_planning_artifact()
                 .expect("grouped plan should carry grouped planning")
-                .grouping_aspect(),
+                .native_grouping_aspect_key()
+                .as_str(),
             "identity.id",
             grouping_field,
         ),
@@ -1638,9 +1645,11 @@ fn canonical_rows() -> Vec<MilestoneEightCertificationRow> {
             parity_anchor: ParityAnchor::Hostile,
             control_lane: inspector_bundle(ViewShapeDescriptor::inspector_detail_observed()),
             hostile_lane: inspector_bundle(ViewShapeDescriptor::inspector_detail_focused(
-                "profile",
+                forge_foundational::facade::AspectKey::new("profile").unwrap(),
             )),
-            parity_lane: inspector_bundle(ViewShapeDescriptor::inspector_detail_focused("profile")),
+            parity_lane: inspector_bundle(ViewShapeDescriptor::inspector_detail_focused(
+                forge_foundational::facade::AspectKey::new("profile").unwrap(),
+            )),
         },
         MilestoneEightCertificationRow {
             row_name: "identity-aware-focused-inspector-parity",
@@ -1649,19 +1658,19 @@ fn canonical_rows() -> Vec<MilestoneEightCertificationRow> {
             parity_anchor: ParityAnchor::Control,
             control_lane: inspector_bundle(
                 ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-                    "profile",
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
                     InspectorIdentityClassification::AuthoritativeContinuity,
                 ),
             ),
             hostile_lane: inspector_bundle(
                 ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-                    "profile",
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
                     InspectorIdentityClassification::AdvisoryCandidates,
                 ),
             ),
             parity_lane: inspector_bundle(
                 ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-                    "profile",
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
                     InspectorIdentityClassification::AuthoritativeContinuity,
                 ),
             ),
@@ -1673,19 +1682,19 @@ fn canonical_rows() -> Vec<MilestoneEightCertificationRow> {
             parity_anchor: ParityAnchor::Hostile,
             control_lane: inspector_bundle(
                 ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-                    "profile",
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
                     InspectorIdentityClassification::AuthoritativeContinuity,
                 ),
             ),
             hostile_lane: inspector_bundle(
                 ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-                    "profile",
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
                     InspectorIdentityClassification::IdentityBreak,
                 ),
             ),
             parity_lane: inspector_bundle(
                 ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-                    "profile",
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
                     InspectorIdentityClassification::IdentityBreak,
                 ),
             ),

@@ -3,7 +3,7 @@ use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
 };
-use crate::runtime::ForgeQueryGraphCompositionResolutionMap;
+use crate::runtime::{ForgeQueryAspectTouch, ForgeQueryGraphCompositionResolutionMap};
 
 pub(super) fn component_artifact_identities(
     components: &[ForgeQueryBatchWriteComponentInspection],
@@ -22,6 +22,9 @@ pub(super) fn graph_resolution_identities(
         .entries()
         .iter()
         .map(|entry| {
+            let aspect_digest = entry
+                .aspect_touch()
+                .map(ForgeQueryAspectTouch::admitted_touch_digest_part);
             forge_query_evidence_identity(ForgeQueryEvidenceScope::BatchWriteReceiptGraphResolution)
                 .field_usize(
                     ForgeQueryEvidenceTag::new("component_index"),
@@ -29,7 +32,7 @@ pub(super) fn graph_resolution_identities(
                 )
                 .optional_value(
                     ForgeQueryEvidenceTag::new("aspect_path"),
-                    entry.aspect_path(),
+                    aspect_digest.as_deref(),
                 )
                 .field_evidence_identity(
                     ForgeQueryEvidenceTag::new("symbol_identity"),
@@ -74,7 +77,6 @@ fn component_artifact_identity(
         .iter()
         .map(|identity| identity.evidence_identity())
         .collect::<Vec<_>>();
-
     forge_query_evidence_identity(ForgeQueryEvidenceScope::BatchWriteReceiptComponent)
         .field_usize(ForgeQueryEvidenceTag::new("index"), index)
         .field_shape(ForgeQueryEvidenceTag::new("family"), component.family())
@@ -204,10 +206,10 @@ fn component_artifact_identity(
             declared_aspect_operation_identities.iter(),
         )
         .field_evidence_identity_sequence(
-            ForgeQueryEvidenceTag::new("touched_aspect_path"),
-            evidence_value_identities(
-                "component-touched-aspect-path",
-                component.touched_aspect_paths(),
+            ForgeQueryEvidenceTag::new("touched_aspect"),
+            evidence_touch_identities(
+                "component-touched-aspect",
+                component.admitted_touched_aspects(),
             )
             .iter(),
         )
@@ -231,6 +233,26 @@ fn evidence_value_identities(
         .collect()
 }
 
+fn evidence_touch_identities(
+    role: &'static str,
+    touches: &[ForgeQueryAspectTouch],
+) -> Vec<ForgeQueryEvidenceIdentity> {
+    touches
+        .iter()
+        .map(|touch| {
+            forge_query_evidence_identity(
+                ForgeQueryEvidenceScope::BatchWriteReceiptInspectionArtifact,
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+            .field_value(
+                ForgeQueryEvidenceTag::new("value"),
+                touch.admitted_touch_digest_part(),
+            )
+            .seal()
+        })
+        .collect()
+}
+
 fn symbolic_aspect_resolution_identities(
     component: &ForgeQueryBatchWriteComponentInspection,
 ) -> Vec<ForgeQueryEvidenceIdentity> {
@@ -243,7 +265,7 @@ fn symbolic_aspect_resolution_identities(
             )
             .field_value(
                 ForgeQueryEvidenceTag::new("aspect_path"),
-                evidence.aspect_path(),
+                evidence.aspect_touch().admitted_touch_digest_part(),
             )
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("symbol_identity"),
@@ -280,7 +302,7 @@ fn declared_aspect_operation_identities(
             )
             .field_value(
                 ForgeQueryEvidenceTag::new("aspect_path"),
-                operation.aspect_path(),
+                operation.aspect_touch().admitted_touch_digest_part(),
             )
             .seal()
         })

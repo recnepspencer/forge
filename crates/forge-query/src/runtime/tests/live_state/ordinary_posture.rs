@@ -27,7 +27,7 @@ fn inspect_live_view_posture<T>(
 #[test]
 fn runtime_state_and_inspection_share_time_only_compact_posture() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.compact-time-only",
             task_live_request(),
@@ -45,7 +45,7 @@ fn runtime_state_and_inspection_share_time_only_compact_posture() {
         .expect("time-only delivery should emit");
     let _ = runtime.drain_patches(&view);
 
-    let state = <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
+    let state = <&ForgeQueryLiveView<ForgeQueryNativeRow> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
         &view, &runtime,
     )
     .expect("state should snapshot");
@@ -106,7 +106,7 @@ fn runtime_state_and_inspection_share_mixed_async_compact_posture() {
         .expect("mixed-cause delivery window should plan");
 
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.compact-mixed-async",
             task_live_request(),
@@ -130,7 +130,7 @@ fn runtime_state_and_inspection_share_mixed_async_compact_posture() {
         .expect("async result state should project");
     let _ = runtime.drain_patches(&view);
 
-    let state = <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
+    let state = <&ForgeQueryLiveView<ForgeQueryNativeRow> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
         &view, &runtime,
     )
     .expect("state should snapshot");
@@ -166,7 +166,7 @@ fn runtime_state_and_inspection_share_mixed_async_compact_posture() {
 #[test]
 fn runtime_compact_posture_keeps_basis_sensitive_denied_async_state_typed_on_scalar_surfaces() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.compact-async-denied",
             task_live_request(),
@@ -189,7 +189,7 @@ fn runtime_compact_posture_keeps_basis_sensitive_denied_async_state_typed_on_sca
         )
         .expect("denied async state should project");
 
-    let state = <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
+    let state = <&ForgeQueryLiveView<ForgeQueryNativeRow> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
         &view, &runtime,
     )
     .expect("state should snapshot");

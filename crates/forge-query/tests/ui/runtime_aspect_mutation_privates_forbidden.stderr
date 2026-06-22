@@ -1,11 +1,15 @@
-error: cannot construct `ForgeQueryAspectValue` with struct literal syntax due to private fields
- --> tests/ui/runtime_aspect_mutation_privates_forbidden.rs:5:19
+error[E0560]: struct `ForgeQueryAspectValue` has no field named `aspect_path`
+ --> tests/ui/runtime_aspect_mutation_privates_forbidden.rs:6:9
   |
-5 |     let _aspect = ForgeQueryAspectValue {
-  |                   ^^^^^^^^^^^^^^^^^^^^^
 6 |         aspect_path: "title.value".to_string(),
-  |         -------------------------------------- private field
-7 |         value: Value::String("Buy milk".to_string()),
-  |         -------------------------------------------- private field
+  |         ^^^^^^^^^^^ `ForgeQueryAspectValue` does not have this field
   |
-  = note: ...and other private field `clears_existing_value` that was not provided
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryAspectValue` has no field named `value`
+ --> tests/ui/runtime_aspect_mutation_privates_forbidden.rs:7:9
+  |
+7 |         value: Value::String("Buy milk".to_string()),
+  |         ^^^^^ `ForgeQueryAspectValue` does not have this field
+  |
+  = note: all struct fields are already assigned

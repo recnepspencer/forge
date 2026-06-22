@@ -1,0 +1,5 @@
+error[E0599]: no method named `terminal_projection_for_boundary` found for struct `ForgeQueryAspectTouch` in the current scope
+ --> tests/ui/aspect_native_query/aspect_touch_terminal_boundary_projection_removed.rs:6:19
+  |
+6 |     let _ = touch.terminal_projection_for_boundary();
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryAspectTouch`

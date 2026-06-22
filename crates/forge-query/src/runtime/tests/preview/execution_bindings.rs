@@ -4,27 +4,31 @@ use super::super::support::*;
 fn derive_only_preview_binds_handles_and_mutes_effects_without_residue() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>("tasks.preview-bind", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.preview-bind",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<Value>(
-            ForgeQueryDerivedView::new("computed.preview-bind", ["title".to_string()])
+        .declare_maintained_derived_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new("computed.preview-bind", test_aspect_touches(["title"]))
                 .depends_on_live(&live)
-                .produces(["title.summary".to_string()]),
+                .produces(test_aspect_touches(["title.summary"])),
             TitleListMaintainer,
         )
         .expect("computed should declare");
     let delivery_effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::deliver(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::deliver(
             "ui.preview-bind",
-            ForgeQueryEffectTrigger::live_view(&live, ["title"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "ui.preview",
         ))
         .expect("delivery effect should declare");
     let intent_effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "intent.preview-bind",
-            ForgeQueryEffectTrigger::live_view(&live, ["title"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "preview-intent",
         ))
         .expect("write-intent effect should declare");
@@ -168,24 +172,30 @@ fn derive_only_preview_binds_handles_and_mutes_effects_without_residue() {
 fn preview_write_routes_bound_live_computed_and_redirected_effect_without_authoritative_residue() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.preview-execution",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<Value>(
-            ForgeQueryDerivedView::new("computed.preview-execution", ["title".to_string()])
-                .depends_on_live(&live)
-                .produces(["title.summary".to_string()]),
+        .declare_maintained_derived_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new(
+                "computed.preview-execution",
+                test_aspect_touches(["title"]),
+            )
+            .depends_on_live(&live)
+            .produces(test_aspect_touches(["title.summary"])),
             TitleListMaintainer,
         )
         .expect("computed should declare");
     let delivery_effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::deliver(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::deliver(
             "ui.preview-execution",
-            ForgeQueryEffectTrigger::computed_view(&computed, ["title.summary"]),
+            ForgeQueryEffectTrigger::computed_view(
+                &computed,
+                test_aspect_touches(["title.summary"]),
+            ),
             "ui.preview",
         ))
         .expect("delivery effect should declare");
@@ -206,8 +216,14 @@ fn preview_write_routes_bound_live_computed_and_redirected_effect_without_author
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("preview-execution-task")),
-                    ("title.value", json!("Preview execution task")),
+                    (
+                        "identity.id",
+                        test_string_aspect_value("preview-execution-task"),
+                    ),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Preview execution task"),
+                    ),
                 ],
             ))
             .expect("preview write should stage and route");
@@ -227,7 +243,7 @@ fn preview_write_routes_bound_live_computed_and_redirected_effect_without_author
     assert!(execution_evidence.iter().any(|evidence| {
         evidence.kind() == ForgeQueryPreviewExecutionKind::ComputedPatch
             && evidence.handle_name() == "computed.preview-execution"
-            && evidence.aspect_paths() == ["title.summary"]
+            && evidence.aspect_touches() == test_aspect_touches(["title.summary"]).as_slice()
     }));
     assert!(execution_evidence.iter().any(|evidence| {
         evidence.kind() == ForgeQueryPreviewExecutionKind::EffectDelivery
@@ -250,7 +266,13 @@ fn preview_write_routes_bound_live_computed_and_redirected_effect_without_author
         .drain_patches(&live)
         .query_delivery_batches
         .is_empty());
-    assert!(runtime.read_derived(&computed).is_empty());
+    assert_eq!(
+        runtime
+            .read_derived_result(&computed)
+            .expect("computed materialization should execute")
+            .row_count(),
+        0
+    );
     assert!(runtime
         .drain_effect_deliveries(&delivery_effect)
         .expect("authoritative effect queue should exist")
@@ -261,16 +283,16 @@ fn preview_write_routes_bound_live_computed_and_redirected_effect_without_author
 fn preview_sandboxed_write_intent_execution_stays_separate_from_delivery_residue() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.preview-intent-exec",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let intent_effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "intent.preview-execution",
-            ForgeQueryEffectTrigger::live_view(&live, ["title"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "preview-intent",
         ))
         .expect("write-intent effect should declare");
@@ -290,8 +312,14 @@ fn preview_sandboxed_write_intent_execution_stays_separate_from_delivery_residue
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("preview-intent-task")),
-                    ("title.value", json!("Preview intent task")),
+                    (
+                        "identity.id",
+                        test_string_aspect_value("preview-intent-task"),
+                    ),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Preview intent task"),
+                    ),
                 ],
             ))
             .expect("preview write should route pending intent");

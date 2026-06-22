@@ -85,7 +85,7 @@ fn state_scope_for_execution_scope(
         ForgeQueryGraphObligationExecutionScope::SelectionOnly => 0,
         ForgeQueryGraphObligationExecutionScope::TouchedRelationKind
         | ForgeQueryGraphObligationExecutionScope::TouchedCollection
-        | ForgeQueryGraphObligationExecutionScope::TouchedAspectPath
+        | ForgeQueryGraphObligationExecutionScope::TouchedAspect
         | ForgeQueryGraphObligationExecutionScope::PolicyScope => 1,
         ForgeQueryGraphObligationExecutionScope::CandidateTopologyComponent
         | ForgeQueryGraphObligationExecutionScope::ConstructionFamily => 2,

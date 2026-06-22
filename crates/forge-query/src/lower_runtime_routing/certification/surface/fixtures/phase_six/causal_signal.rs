@@ -11,8 +11,8 @@ use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeSeamKey,
 };
 use crate::runtime::{
-    CausalInspection, ForgeQueryAspectMutationBuilder, ForgeQueryReadFamily, ForgeQueryReadResult,
-    ForgeQueryWorkspace, QueryObservationReceipt,
+    CausalInspection, ForgeQueryAspectMutationBuilder, ForgeQueryAspectTouch, ForgeQueryReadFamily,
+    ForgeQueryReadResult, ForgeQueryWorkspace, QueryObservationReceipt,
 };
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
 use forge_signal::facade::adapters::{
@@ -213,7 +213,11 @@ fn certification_read_result() -> ForgeQueryReadResult {
         .expect("causal bridge workspace should build");
     workspace
         .insert("Task", |task: ForgeQueryAspectMutationBuilder| {
-            task.aspect("title.value", "Causal fixture")
+            task.aspect(
+                ForgeQueryAspectTouch::from_authoring_path("title.value")
+                    .expect("causal bridge title aspect should admit"),
+                forge_foundational::facade::AspectValue::String("Causal fixture".into()),
+            )
         })
         .expect("causal bridge seed write should succeed");
     let family = certification_read_family(&mut workspace, "lower-runtime-causal-family");
@@ -233,8 +237,20 @@ fn certification_read_family(
                 QuerySchemaView::new(
                     "lower-runtime-causal-read",
                     [
-                        SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-                        SchemaFieldView::new("title", "value", SchemaFieldKind::String),
+                        SchemaFieldView::new(
+                            crate::authoring::AspectName::new("identity")
+                                .expect("schema aspect literal must be valid"),
+                            crate::authoring::FieldName::new("id")
+                                .expect("schema field literal must be valid"),
+                            SchemaFieldKind::String,
+                        ),
+                        SchemaFieldView::new(
+                            crate::authoring::AspectName::new("title")
+                                .expect("schema aspect literal must be valid"),
+                            crate::authoring::FieldName::new("value")
+                                .expect("schema field literal must be valid"),
+                            SchemaFieldKind::String,
+                        ),
                     ],
                     [],
                 ),

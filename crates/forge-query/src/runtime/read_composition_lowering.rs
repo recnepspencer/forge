@@ -247,58 +247,64 @@ pub(in crate::runtime) fn declarative_request_from_authored_shape(
             .map(|result_field| result_field.delivered_name())
             .unwrap_or(field.field());
         request = request.project_query_only(
-            DeclarativeProjectionField::new(field.aspect(), field.field())
+            DeclarativeProjectionField::from_authoring_parts(field.aspect(), field.field())
                 .delivered_as(delivered_name),
         );
     }
     for field in result_shape.fields() {
         request = request.result_field(
-            DeclarativeProjectionField::new(field.source_aspect(), field.source_field())
-                .delivered_as(field.delivered_name()),
+            DeclarativeProjectionField::from_authoring_parts(
+                field.source_aspect(),
+                field.source_field(),
+            )
+            .delivered_as(field.delivered_name()),
         );
     }
     for predicate in query.predicates() {
         request = match predicate {
             PredicateSelector::Equality(predicate) => {
-                request.where_equal(DeclarativeEqualityFilter::new(
+                request.where_equal(DeclarativeEqualityFilter::from_authoring_parts(
                     predicate.aspect(),
                     predicate.field(),
                     predicate.value().clone(),
                 ))
             }
             PredicateSelector::IntegerComparison(predicate) => match predicate.operator() {
-                IntegerComparisonOperator::GreaterThan => {
-                    request.where_greater_than(DeclarativeIntegerComparisonFilter::greater_than(
+                IntegerComparisonOperator::GreaterThan => request.where_greater_than(
+                    DeclarativeIntegerComparisonFilter::greater_than_from_authoring_parts(
                         predicate.aspect(),
                         predicate.field(),
                         predicate.value(),
-                    ))
-                }
-                IntegerComparisonOperator::LessThan => {
-                    request.where_less_than(DeclarativeIntegerComparisonFilter::less_than(
+                    ),
+                ),
+                IntegerComparisonOperator::LessThan => request.where_less_than(
+                    DeclarativeIntegerComparisonFilter::less_than_from_authoring_parts(
                         predicate.aspect(),
                         predicate.field(),
                         predicate.value(),
-                    ))
-                }
+                    ),
+                ),
             },
             PredicateSelector::StringContains(predicate) => {
-                request.where_contains(DeclarativeStringContainsFilter::new(
+                request.where_contains(DeclarativeStringContainsFilter::from_authoring_parts(
                     predicate.aspect(),
                     predicate.field(),
                     predicate.value(),
                 ))
             }
             PredicateSelector::SetMembership(predicate) => {
-                request.where_in(DeclarativeSetMembershipFilter::new(
+                request.where_in(DeclarativeSetMembershipFilter::from_authoring_parts(
                     predicate.aspect(),
                     predicate.field(),
                     predicate.values().iter().cloned(),
                 ))
             }
-            PredicateSelector::Presence(predicate) => request.where_present(
-                DeclarativePresenceFilter::is_present(predicate.aspect(), predicate.field()),
-            ),
+            PredicateSelector::Presence(predicate) => {
+                request.where_present(DeclarativePresenceFilter::is_present_from_authoring_parts(
+                    predicate.aspect(),
+                    predicate.field(),
+                ))
+            }
         };
     }
     for traversal in query.traversal() {
@@ -307,10 +313,16 @@ pub(in crate::runtime) fn declarative_request_from_authored_shape(
     for ordering in query.ordering() {
         let ordering = match ordering.direction() {
             crate::authoring::OrderingDirection::Ascending => {
-                DeclarativeOrderingField::ascending(ordering.aspect(), ordering.field())
+                DeclarativeOrderingField::ascending_from_authoring_parts(
+                    ordering.aspect(),
+                    ordering.field(),
+                )
             }
             crate::authoring::OrderingDirection::Descending => {
-                DeclarativeOrderingField::descending(ordering.aspect(), ordering.field())
+                DeclarativeOrderingField::descending_from_authoring_parts(
+                    ordering.aspect(),
+                    ordering.field(),
+                )
             }
         };
         request = request.order_by_direction(ordering);

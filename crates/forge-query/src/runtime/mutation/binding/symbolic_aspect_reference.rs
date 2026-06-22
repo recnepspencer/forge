@@ -1,4 +1,4 @@
-use crate::memory_workspace::ForgeQueryWorkspaceError;
+use crate::runtime::ForgeQueryAspectTouch;
 
 use super::ForgeQuerySymbolicTargetReference;
 
@@ -24,34 +24,28 @@ impl std::fmt::Display for ForgeQuerySymbolicAspectReferenceFamily {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQuerySymbolicAspectReference {
     family: ForgeQuerySymbolicAspectReferenceFamily,
-    aspect_path: String,
+    aspect_touch: ForgeQueryAspectTouch,
     reference: ForgeQuerySymbolicTargetReference,
 }
 
 impl ForgeQuerySymbolicAspectReference {
     pub fn same_batch_entity_identity(
-        aspect_path: impl Into<String>,
+        aspect_touch: ForgeQueryAspectTouch,
         reference: ForgeQuerySymbolicTargetReference,
-    ) -> Result<Self, ForgeQueryWorkspaceError> {
-        let aspect_path = aspect_path.into();
-        if aspect_path.trim().is_empty() {
-            return Err(ForgeQueryWorkspaceError::new(
-                "symbolic aspect reference path may not be empty",
-            ));
-        }
-        Ok(Self {
+    ) -> Self {
+        Self {
             family: ForgeQuerySymbolicAspectReferenceFamily::SameBatchDeclaredEntityIdentity,
-            aspect_path,
+            aspect_touch,
             reference,
-        })
+        }
     }
 
     pub fn family(&self) -> ForgeQuerySymbolicAspectReferenceFamily {
         self.family
     }
 
-    pub fn aspect_path(&self) -> &str {
-        &self.aspect_path
+    pub fn aspect_touch(&self) -> &ForgeQueryAspectTouch {
+        &self.aspect_touch
     }
 
     pub fn reference(&self) -> &ForgeQuerySymbolicTargetReference {

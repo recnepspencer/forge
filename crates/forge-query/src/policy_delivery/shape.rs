@@ -1,3 +1,4 @@
+use crate::authorized_projection::AuthorizedProjectionFieldPath;
 use crate::identity::hash_parts;
 use crate::policy_execution_seam::{
     PolicyAwareExecutionMode, PolicyAwareExecutionSeam, PolicyAwareExecutionSeamError,
@@ -29,29 +30,31 @@ pub struct PolicyAwareDeliveryReport {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PolicyPlaceholderMaskingRequest {
-    requested_placeholder_fields: Vec<String>,
+    requested_placeholder_fields: Vec<AuthorizedProjectionFieldPath>,
 }
 
 impl PolicyPlaceholderMaskingRequest {
-    pub fn new(requested_placeholder_fields: Vec<String>) -> Self {
+    pub fn from_authorized_field_paths(
+        requested_placeholder_fields: Vec<AuthorizedProjectionFieldPath>,
+    ) -> Self {
         Self {
             requested_placeholder_fields,
         }
     }
 
-    pub fn requested_placeholder_fields(&self) -> &[String] {
+    pub fn requested_placeholder_field_paths(&self) -> &[AuthorizedProjectionFieldPath] {
         &self.requested_placeholder_fields
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PolicyPlaceholderMaskingDenial {
-    requested_placeholder_fields: Vec<String>,
+    requested_placeholder_fields: Vec<AuthorizedProjectionFieldPath>,
     failure_digest: String,
 }
 
 impl PolicyPlaceholderMaskingDenial {
-    pub fn requested_placeholder_fields(&self) -> &[String] {
+    pub fn requested_placeholder_field_paths(&self) -> &[AuthorizedProjectionFieldPath] {
         &self.requested_placeholder_fields
     }
 
@@ -79,7 +82,7 @@ pub struct PolicyAwareDeliveryShape {
     digest: PolicyAwareDeliveryDigest,
     seam: PolicyAwareExecutionSeam,
     narrowed_result_shape_digest: String,
-    delivered_fields: Vec<String>,
+    delivered_fields: Vec<AuthorizedProjectionFieldPath>,
     width_class: DeliveryWidthClass,
     report: PolicyAwareDeliveryReport,
 }
@@ -97,7 +100,7 @@ impl PolicyAwareDeliveryShape {
         &self.narrowed_result_shape_digest
     }
 
-    pub fn delivered_fields(&self) -> &[String] {
+    pub fn delivered_field_paths(&self) -> &[AuthorizedProjectionFieldPath] {
         &self.delivered_fields
     }
 
@@ -114,7 +117,10 @@ pub fn lower_policy_aware_delivery_shape(
     artifact: &NarrowedPolicyQueryArtifact,
     width_class: DeliveryWidthClass,
 ) -> Result<PolicyAwareDeliveryShape, PolicyAwareExecutionSeamError> {
-    let delivered_fields = artifact.authorized_projection().visible_fields().to_vec();
+    let delivered_fields = artifact
+        .authorized_projection()
+        .visible_field_paths()
+        .to_vec();
     let delivery_width = delivered_fields.len();
     if width_class == DeliveryWidthClass::DeniedWidthInflation
         || delivery_width > width_class.budget_limit()
@@ -129,7 +135,7 @@ pub fn lower_policy_aware_delivery_shape(
         artifact
             .authorized_projection()
             .masked_projection()
-            .masked_fields()
+            .masked_field_paths()
             .contains(field)
     }) {
         return Err(PolicyAwareExecutionSeamError::new(
@@ -139,7 +145,7 @@ pub fn lower_policy_aware_delivery_shape(
         ));
     }
     let counters = PolicyAwareSeamCounters::admitted(
-        artifact.authorized_projection().visible_fields().len(),
+        artifact.authorized_projection().visible_field_paths().len(),
         artifact.relationship_proof().topology_classes().len(),
         delivery_width,
         0,
@@ -154,7 +160,10 @@ pub fn lower_policy_aware_delivery_shape(
         format!("seam:{}", seam.identity().as_str()),
         format!("narrowed_shape:{}", artifact.narrowed_result_shape_digest()),
         format!("width_class:{}", width_class.as_str()),
-        format!("fields:{}", hash_parts(&delivered_fields)),
+        format!(
+            "fields:{}",
+            hash_parts(&terminal_field_projections(&delivered_fields))
+        ),
     ]));
     let report = PolicyAwareDeliveryReport {
         digest: hash_parts(&[
@@ -182,11 +191,11 @@ pub fn deny_policy_placeholder_masking(
     let masked_fields = artifact
         .authorized_projection()
         .masked_projection()
-        .masked_fields();
+        .masked_field_paths();
     if request
-        .requested_placeholder_fields()
+        .requested_placeholder_field_paths()
         .iter()
-        .any(|field| masked_fields.contains(field))
+        .any(|requested| masked_fields.iter().any(|masked| masked == requested))
     {
         return Err(PolicyAwareExecutionSeamError::new(
             PolicyAwareExecutionSeamFailureClass::PlaceholderMaskingForbidden,
@@ -200,10 +209,19 @@ pub fn deny_policy_placeholder_masking(
             format!("narrowed:{}", artifact.digest()),
             format!(
                 "placeholder_fields:{}",
-                hash_parts(request.requested_placeholder_fields())
+                hash_parts(&terminal_field_projections(
+                    request.requested_placeholder_field_paths()
+                ))
             ),
             "no_placeholder_masking_denial".to_string(),
         ]),
         requested_placeholder_fields: request.requested_placeholder_fields,
     })
+}
+
+fn terminal_field_projections(fields: &[AuthorizedProjectionFieldPath]) -> Vec<String> {
+    fields
+        .iter()
+        .map(|field| field.terminal_projection_for_boundary().to_string())
+        .collect()
 }

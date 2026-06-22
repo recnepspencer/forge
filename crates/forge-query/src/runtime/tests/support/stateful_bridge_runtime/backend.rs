@@ -78,29 +78,33 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
 
     fn write(
         &mut self,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
         let mut state = self.state.borrow_mut();
-        let collection = command
-            .declared_collection_ref()
-            .map(str::to_string)
+        let collection = mutation
+            .declared_collection_identity()
+            .map(|collection| collection.as_str().to_string())
             .or_else(|| {
-                command
-                    .existing_truth_binding()
-                    .and_then(|binding| binding.target_collection().map(str::to_string))
+                mutation.existing_truth_binding().and_then(|binding| {
+                    binding
+                        .terminal_target_collection_projection()
+                        .map(str::to_string)
+                })
             })
             .or_else(|| {
-                command.declared_entity_identity_ref().and_then(|identity| {
-                    state
-                        .collection_by_identity
-                        .get(&identity.terminal_projection_for_reporting())
-                        .cloned()
-                })
+                mutation
+                    .declared_entity_identity_ref()
+                    .and_then(|identity| {
+                        state
+                            .collection_by_identity
+                            .get(&identity.terminal_projection_for_reporting())
+                            .cloned()
+                    })
             })
             .ok_or_else(|| {
                 ForgeQueryWorkspaceError::new("stateful bridge could not resolve collection")
             })?;
-        let (entity_identity, entity_identity_text) = match command.mutation_family() {
+        let (entity_identity, entity_identity_text) = match mutation.mutation_family() {
             ForgeQueryMutationFamily::Insert => {
                 state.next_entity_identity += 1;
                 let identity = ForgeQueryEntityIdentity::from_relational_record(
@@ -114,16 +118,16 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                 (identity, identity_text)
             }
             _ => {
-                let identity = command
+                let identity = mutation
                     .declared_entity_identity_ref()
                     .cloned()
                     .or_else(|| {
-                        command
+                        mutation
                             .existing_truth_binding()
                             .map(|binding| binding.resolved_target_identity().clone())
                     })
                     .or_else(|| {
-                        command.symbolic_target_reference().and_then(|reference| {
+                        mutation.symbolic_target_reference().and_then(|reference| {
                             state.identity_by_symbol.get(reference.symbol()).cloned()
                         })
                     })
@@ -132,7 +136,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                             "stateful bridge could not resolve target entity identity",
                         )
                     })?;
-                let identity_text = command
+                let identity_text = mutation
                     .symbolic_target_reference()
                     .and_then(|reference| state.identity_text_by_symbol.get(reference.symbol()))
                     .cloned()
@@ -142,7 +146,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         };
         let mutation_kind = apply_command(
             &mut state,
-            &command,
+            &mutation,
             &collection,
             &entity_identity,
             &entity_identity_text,
@@ -160,7 +164,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         let bridge_authority = build_bridge_authority_bundle(
             &state.bridge,
             &snapshot_identity,
-            &command,
+            &mutation,
             &collection,
             &entity_identity,
             mutation_kind.clone(),
@@ -171,18 +175,18 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
             collection,
             entity_identity,
             mutation_kind,
-            command.declared_aspect_paths(),
+            mutation.declared_aspect_touches(),
             bridge_authority,
         ))
     }
 
     fn write_batch(
         &mut self,
-        commands: Vec<ForgeQueryWriteCommand>,
+        mutations: Vec<ForgeQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
-        let mut receipts = Vec::with_capacity(commands.len());
-        for command in commands {
-            receipts.push(self.write(command)?);
+        let mut receipts = Vec::with_capacity(mutations.len());
+        for mutation in mutations {
+            receipts.push(self.write(mutation)?);
         }
         Ok(receipts)
     }
@@ -192,7 +196,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         binding: &ForgeQueryExistingTruthTargetBinding,
     ) -> Result<(), ForgeQueryExistingTruthBindingDenial> {
         let state = self.state.borrow();
-        if let Some(expected_collection) = binding.target_collection() {
+        if let Some(expected_collection) = binding.terminal_target_collection_projection() {
             if !state.installed_collections.contains(expected_collection) {
                 return Err(ForgeQueryExistingTruthBindingDenial::new(
                     binding,
@@ -215,7 +219,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                 ),
             ));
         };
-        if let Some(expected_collection) = binding.target_collection() {
+        if let Some(expected_collection) = binding.terminal_target_collection_projection() {
             if actual_collection != expected_collection {
                 return Err(ForgeQueryExistingTruthBindingDenial::new(
                     binding,
@@ -265,7 +269,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         };
         rows.iter()
             .map(|(identity, external_row)| {
-                ForgeQueryEntity::from_external_projection(
+                ForgeQueryEntity::from_native_field_values(
                     state
                         .identity_by_storage_key
                         .get(identity)
@@ -330,7 +334,10 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
     fn grouped_baseline_members(
         &self,
         request: &DeclarativeLiveQueryRequest,
-    ) -> Result<Option<Vec<(String, String)>>, ForgeQueryWorkspaceError> {
+    ) -> Result<
+        Option<Vec<crate::view_shape_live::ForgeQueryGroupedBaselineMember>>,
+        ForgeQueryWorkspaceError,
+    > {
         let DeclarativeLiveViewShape::KanbanGrouped { grouping_aspect } = request.view_shape()
         else {
             return Ok(None);
@@ -359,7 +366,12 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                 let member = external_row_text(external_row, &identity_path)
                     .unwrap_or_else(|| entity_identity.clone());
                 let lane = external_row_text(external_row, &grouping_path)?;
-                Some((member, lane))
+                Some(
+                    crate::view_shape_live::ForgeQueryGroupedBaselineMember::from_authoritative_member_lane_keys(
+                        member,
+                        lane,
+                    ),
+                )
             })
             .collect::<Vec<_>>();
         Ok(Some(members))

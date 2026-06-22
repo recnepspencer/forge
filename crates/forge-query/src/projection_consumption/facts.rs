@@ -1,6 +1,52 @@
 use std::collections::BTreeSet;
 
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
+
 use super::identity::compose_materialized_fact_posture_digest;
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ProjectionFactFieldPath {
+    path: CanonicalFieldPath,
+    terminal_projection: String,
+}
+
+impl ProjectionFactFieldPath {
+    pub fn from_canonical_field_path(path: CanonicalFieldPath) -> Self {
+        let terminal_projection = path
+            .fields()
+            .iter()
+            .map(FieldKey::as_str)
+            .collect::<Vec<_>>()
+            .join(".");
+        Self {
+            path,
+            terminal_projection,
+        }
+    }
+
+    pub(crate) fn terminal_projection_for_boundary(&self) -> &str {
+        &self.terminal_projection
+    }
+
+    pub fn canonical_field_path(&self) -> &CanonicalFieldPath {
+        &self.path
+    }
+}
+
+pub(crate) fn projection_fact_field_path_from_segments(
+    segments: impl IntoIterator<Item = impl Into<String>>,
+) -> ProjectionFactFieldPath {
+    let fields = segments
+        .into_iter()
+        .map(|segment| {
+            FieldKey::new(segment.into()).expect("projection fact field segments must be non-empty")
+        })
+        .collect::<Vec<_>>();
+    ProjectionFactFieldPath::from_canonical_field_path(
+        CanonicalFieldPath::new(fields)
+            .expect("projection fact field paths must contain at least one field"),
+    )
+}
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ProjectionFactRequest {
@@ -11,8 +57,8 @@ pub enum ProjectionFactRequest {
     EffectContinuity,
     Membership,
     RelationEndpoint,
-    DisplayField(String),
-    DerivedScalarField(String),
+    DisplayField(ProjectionFactFieldPath),
+    DerivedScalarField(ProjectionFactFieldPath),
 }
 
 impl ProjectionFactRequest {
@@ -30,9 +76,9 @@ impl ProjectionFactRequest {
         }
     }
 
-    pub fn field_key(&self) -> Option<&str> {
+    pub fn field_path(&self) -> Option<&ProjectionFactFieldPath> {
         match self {
-            Self::DisplayField(field) | Self::DerivedScalarField(field) => Some(field.as_str()),
+            Self::DisplayField(field) | Self::DerivedScalarField(field) => Some(field),
             _ => None,
         }
     }
@@ -214,15 +260,15 @@ impl ProjectMaterializedFacts {
         self
     }
 
-    pub fn display_field(mut self, field: impl Into<String>) -> Self {
+    pub fn display_field_path(mut self, field: ProjectionFactFieldPath) -> Self {
         self.requested
-            .insert(ProjectionFactRequest::DisplayField(field.into()));
+            .insert(ProjectionFactRequest::DisplayField(field));
         self
     }
 
-    pub fn derived_scalar_field(mut self, field: impl Into<String>) -> Self {
+    pub fn derived_scalar_field_path(mut self, field: ProjectionFactFieldPath) -> Self {
         self.requested
-            .insert(ProjectionFactRequest::DerivedScalarField(field.into()));
+            .insert(ProjectionFactRequest::DerivedScalarField(field));
         self
     }
 

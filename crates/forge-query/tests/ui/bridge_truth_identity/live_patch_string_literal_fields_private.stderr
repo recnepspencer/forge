@@ -10,6 +10,14 @@ error[E0308]: mismatched types
 7 |         entity_identity: "entity:todo-1".to_string(),
   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `ForgeQueryEntityIdentity`, found `String`
 
+error[E0560]: struct `ForgeQueryLivePatch` has no field named `aspect_paths`
+ --> tests/ui/bridge_truth_identity/live_patch_string_literal_fields_private.rs:9:9
+  |
+9 |         aspect_paths: Vec::new(),
+  |         ^^^^^^^^^^^^ `ForgeQueryLivePatch` does not have this field
+  |
+  = note: all struct fields are already assigned
+
 warning: unreachable expression
   --> tests/ui/bridge_truth_identity/live_patch_string_literal_fields_private.rs:4:18
    |

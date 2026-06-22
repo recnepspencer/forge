@@ -35,9 +35,17 @@ pub(super) fn route_aspect_publication_summary(
 ) -> String {
     format!(
         "present:{}|widened:{}|elided:{}|masked:{}",
-        publication.present().join(","),
-        publication.widened().join(","),
-        publication.elided().join(","),
-        publication.masked().join(",")
+        publication
+            .terminal_present_projections_for_boundary()
+            .join(","),
+        publication
+            .terminal_widened_projections_for_boundary()
+            .join(","),
+        publication
+            .terminal_elided_projections_for_boundary()
+            .join(","),
+        publication
+            .terminal_masked_projections_for_boundary()
+            .join(",")
     )
 }

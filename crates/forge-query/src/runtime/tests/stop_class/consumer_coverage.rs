@@ -1,5 +1,5 @@
 use super::super::support::*;
-use super::completeness_support::existing_binding;
+use super::completeness_support::{existing_binding, status_value_touch};
 use super::consumer_support::routing::{route_consumer_stop_class, ConsumerStopRoute};
 
 #[test]
@@ -14,6 +14,7 @@ fn consumer_router_handles_all_representative_runtime_stop_errors() {
 #[test]
 fn consumer_router_handles_manually_constructed_stop_classes_without_string_matching() {
     let binding = existing_binding();
+    let status_touch = status_value_touch();
     let continuity_intent = ForgeQueryContinuityMutationIntent::rebind_existing_target(
         crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(
             crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-1")
@@ -46,7 +47,7 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
                 ForgeQueryExistingTruthAssertionDenial::new(
                     &binding,
                     ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
-                    Some("status.value".to_string()),
+                    Some(status_touch.clone()),
                     Some("\"open\"".to_string()),
                     None,
                     "missing asserted aspect",
@@ -61,7 +62,7 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
                 ForgeQueryExistingTruthProbeDenial::new(
                     &binding,
                     ForgeQueryExistingTruthProbeDenialKind::MissingProbedAspect,
-                    Some("status.value".to_string()),
+                    Some(status_touch),
                     "missing probed aspect",
                 ),
             ),

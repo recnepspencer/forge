@@ -1,5 +1,6 @@
 use crate::application::{
-    route_scoped_declaration_aspect_contract, ForgeQueryDeclarationAspectContract,
+    assert_declaration_aspect_projections, route_scoped_declaration_aspect_contract,
+    test_declaration_aspect_keys, ForgeQueryDeclarationAspectContract,
     ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationAspectFit,
 };
 
@@ -13,15 +14,17 @@ fn aspect_fit_reports_exact_and_superset_matches() {
         &[],
     );
     assert_eq!(
-        ForgeQueryDeclarationAspectCoverage::from_present(["selection.active_edge"])
-            .fit_against(&contract),
+        ForgeQueryDeclarationAspectCoverage::from_present(test_declaration_aspect_keys(&[
+            "selection.active_edge"
+        ]))
+        .fit_against(&contract),
         ForgeQueryDeclarationAspectFit::Exact
     );
     assert_eq!(
-        ForgeQueryDeclarationAspectCoverage::from_present([
+        ForgeQueryDeclarationAspectCoverage::from_present(test_declaration_aspect_keys(&[
             "selection.active_edge",
             "selection.local_topology"
-        ])
+        ]))
         .fit_against(&contract),
         ForgeQueryDeclarationAspectFit::CompatibleSuperset
     );
@@ -37,13 +40,17 @@ fn aspect_fit_reports_partial_missing_and_conflict() {
         &["selection.material_edit"],
     );
     assert_eq!(
-        ForgeQueryDeclarationAspectCoverage::from_present(["selection.active_edge"])
-            .fit_against(&contract),
+        ForgeQueryDeclarationAspectCoverage::from_present(test_declaration_aspect_keys(&[
+            "selection.active_edge"
+        ]))
+        .fit_against(&contract),
         ForgeQueryDeclarationAspectFit::Partial
     );
     assert_eq!(
-        ForgeQueryDeclarationAspectCoverage::from_present(["selection.active_face"])
-            .fit_against(&contract),
+        ForgeQueryDeclarationAspectCoverage::from_present(test_declaration_aspect_keys(&[
+            "selection.active_face"
+        ]))
+        .fit_against(&contract),
         ForgeQueryDeclarationAspectFit::MissingRequired
     );
     assert_eq!(
@@ -97,12 +104,9 @@ fn scoped_coverage_keeps_only_contract_relevant_slices() {
     )
     .scoped_to_contract(&contract);
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         scoped.present(),
-        &[
-            "selection.active_edge".to_string(),
-            "selection.local_topology".to_string()
-        ]
+        &["selection.active_edge", "selection.local_topology"],
     );
     assert!(scoped.masked().is_empty());
     assert!(scoped.conflicting().is_empty());

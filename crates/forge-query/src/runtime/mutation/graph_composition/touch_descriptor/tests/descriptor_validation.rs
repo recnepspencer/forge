@@ -5,7 +5,7 @@ use crate::runtime::{
     ForgeQueryMutationMetadata, ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
 };
 
-use super::fixtures::one_step_delete_program;
+use super::fixtures::{one_step_delete_program, touch};
 
 #[test]
 fn mismatched_program_command_breadth_is_denied_before_descriptor_identity() {
@@ -54,7 +54,7 @@ fn mismatched_symbolic_relation_breadth_is_denied_before_descriptor_identity() {
 fn mismatched_program_command_collection_is_denied_with_matching_counts() {
     let command = ForgeQueryWriteCommand::DeleteSymbolicAspects {
         reference: reference("edge", "topology.edge"),
-        touched_aspect_paths: vec!["weight".to_string()],
+        touched_aspects: vec![touch("weight")],
         metadata: ForgeQueryMutationMetadata::new(),
         naming_intent: None,
     };
@@ -86,7 +86,7 @@ fn mismatched_program_command_collection_is_denied_with_matching_counts() {
 fn mismatched_program_command_symbol_is_denied_with_matching_counts() {
     let command = ForgeQueryWriteCommand::DeleteSymbolicAspects {
         reference: reference("edge", "topology.edge"),
-        touched_aspect_paths: vec!["weight".to_string()],
+        touched_aspects: vec![touch("weight")],
         metadata: ForgeQueryMutationMetadata::new(),
         naming_intent: None,
     };

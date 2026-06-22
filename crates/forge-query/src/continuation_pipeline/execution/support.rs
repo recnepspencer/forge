@@ -11,6 +11,7 @@ use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 
+use super::digest_projection::{hex_byte, terminal_declaration_aspect_projection_for_digest};
 use crate::continuation_pipeline::artifacts::ForgeQueryPreparedContinuationSignalPosture;
 use crate::continuation_pipeline::ForgeQueryPreparedContinuation;
 
@@ -251,23 +252,38 @@ pub(super) fn prepared_digest<
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("required_aspects"),
-            required_contract.required().iter().map(String::as_str),
+            required_contract
+                .required()
+                .iter()
+                .map(terminal_declaration_aspect_projection_for_digest),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("preserved_aspects"),
-            required_contract.preserved().iter().map(String::as_str),
+            required_contract
+                .preserved()
+                .iter()
+                .map(terminal_declaration_aspect_projection_for_digest),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("published_aspects"),
-            required_contract.published().iter().map(String::as_str),
+            required_contract
+                .published()
+                .iter()
+                .map(terminal_declaration_aspect_projection_for_digest),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("masked_aspects"),
-            required_contract.masked().iter().map(String::as_str),
+            required_contract
+                .masked()
+                .iter()
+                .map(terminal_declaration_aspect_projection_for_digest),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("incompatible_aspects"),
-            required_contract.incompatible().iter().map(String::as_str),
+            required_contract
+                .incompatible()
+                .iter()
+                .map(terminal_declaration_aspect_projection_for_digest),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("signal_posture"),
@@ -377,12 +393,4 @@ fn canonical_derived_digest_identity(
         .seal()
         .as_str()
         .to_string()
-}
-
-fn hex_byte(byte: u8) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut encoded = String::with_capacity(2);
-    encoded.push(HEX[(byte >> 4) as usize] as char);
-    encoded.push(HEX[(byte & 0x0f) as usize] as char);
-    encoded
 }

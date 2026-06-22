@@ -5,11 +5,11 @@ fn effect_declaration_rejects_missing_triggers_before_registration() {
     let mut runtime = stateful_bridge_task_runtime();
     let missing = ForgeQueryEffectDeclaration::deliver(
         "ui.missing",
-        ForgeQueryEffectTrigger::live_view_name("tasks.missing", ["title"]),
+        ForgeQueryEffectTrigger::live_view_name("tasks.missing", test_aspect_touches(["title"])),
         "ui.badges",
     );
     let error = runtime
-        .declare_effect::<Value>(missing)
+        .declare_effect::<ForgeQueryNativeRow>(missing)
         .expect_err("missing live trigger should reject");
 
     match error {
@@ -30,17 +30,17 @@ fn effect_declaration_rejects_missing_triggers_before_registration() {
 fn effect_declaration_rejects_truth_delivery_without_intent_boundary() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");
     let declaration = ForgeQueryEffectDeclaration::deliver(
         "ui.truth-smuggle",
-        ForgeQueryEffectTrigger::live_view(&live, ["title"]),
+        ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
         "Task",
     )
     .with_target_lane(ForgeQueryAuthorityLane::AuthoritativeTruth);
 
     let error = runtime
-        .declare_effect::<Value>(declaration)
+        .declare_effect::<ForgeQueryNativeRow>(declaration)
         .expect_err("effect delivery must not target truth");
 
     match error {

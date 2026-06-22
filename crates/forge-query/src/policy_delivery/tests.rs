@@ -1,4 +1,6 @@
+use crate::authorized_projection::AuthorizedProjectionFieldPath;
 use crate::harness::milestone_nine_certification::phase_three_test_narrowed_artifact;
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 use super::{
     deny_policy_placeholder_masking, lower_policy_aware_delivery_shape, DeliveryWidthClass,
@@ -15,9 +17,11 @@ fn delivery_shape_uses_narrowed_result_shape() {
         delivery.narrowed_result_shape_digest(),
         artifact.narrowed_result_shape_digest()
     );
-    assert!(!delivery
-        .delivered_fields()
-        .contains(&"secret.salary".to_string()));
+    assert!(!delivery.delivered_field_paths().iter().any(|field| field
+        .native_aspect_key()
+        .as_str()
+        == "secret"
+        && field.native_field_key().as_str() == "salary"));
     assert_eq!(delivery.report().delivery_width(), 2);
 }
 
@@ -36,7 +40,9 @@ fn placeholder_masking_is_a_distinct_typed_denial() {
     let artifact = phase_three_test_narrowed_artifact();
     let placeholder = deny_policy_placeholder_masking(
         &artifact,
-        PolicyPlaceholderMaskingRequest::new(vec!["secret.salary".to_string()]),
+        PolicyPlaceholderMaskingRequest::from_authorized_field_paths(vec![authorized_field(
+            "secret", "salary",
+        )]),
     )
     .expect_err("masked placeholder delivery should fail distinctly");
     let width =
@@ -50,4 +56,11 @@ fn placeholder_masking_is_a_distinct_typed_denial() {
     );
     assert_eq!(width.counters().delivery_overexposure_denial_count(), 1);
     assert_ne!(placeholder.failure_class(), width.failure_class());
+}
+
+fn authorized_field(aspect: &str, field: &str) -> AuthorizedProjectionFieldPath {
+    AuthorizedProjectionFieldPath::from_native_keys(
+        AspectKey::new(aspect).expect("aspect key should admit"),
+        FieldKey::new(field).expect("field key should admit"),
+    )
 }

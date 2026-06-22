@@ -1,0 +1,69 @@
+error[E0624]: method `materialization_by_name` is private
+ --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:8:28
+  |
+8 |       let _ = derived_bundle.materialization_by_name("derived.example");
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/runtime/surface/derived_materialization_bundle.rs
+  |
+  | /     pub(crate) fn materialization_by_name(
+  | |         &self,
+  | |         view_name: &str,
+  | |     ) -> Result<&ForgeQueryDerivedMaterializationResult, ForgeQueryRuntimeError> {
+  | |________________________________________________________________________________- private method defined here
+
+error[E0599]: no method named `target_view_names` found for struct `ForgeQueryDerivedMaterializationBundle` in the current scope
+ --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:9:28
+  |
+9 |     let _ = derived_bundle.target_view_names();
+  |                            ^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryDerivedMaterializationBundle`
+
+error[E0599]: no method named `materialization_by_name` found for struct `ForgeQueryDerivedArtifactBinding` in the current scope
+  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:12:29
+   |
+12 |     let _ = derived_binding.materialization_by_name("derived.example");
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: there is a method `materialization` with a similar name
+   |
+12 -     let _ = derived_binding.materialization_by_name("derived.example");
+12 +     let _ = derived_binding.materialization("derived.example");
+   |
+
+error[E0599]: no method named `target_view_names` found for struct `ForgeQueryDerivedArtifactBinding` in the current scope
+  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:13:29
+   |
+13 |     let _ = derived_binding.target_view_names();
+   |                             ^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryDerivedArtifactBinding`
+
+error[E0624]: method `read_by_name` is private
+  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:16:25
+   |
+16 |       let _ = live_bundle.read_by_name("live.example");
+   |                           ^^^^^^^^^^^^ private method
+   |
+  ::: src/runtime/surface/live_artifact_bundle.rs
+   |
+   | /     pub(crate) fn read_by_name(
+   | |         &self,
+   | |         view_name: &str,
+   | |     ) -> Result<&ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
+   | |__________________________________________________________________- private method defined here
+
+error[E0599]: no method named `target_view_names` found for struct `ForgeQueryLiveArtifactBundle` in the current scope
+  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:17:25
+   |
+17 |     let _ = live_bundle.target_view_names();
+   |                         ^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryLiveArtifactBundle`
+
+error[E0599]: no method named `read_by_name` found for struct `ForgeQueryLiveArtifactBinding` in the current scope
+  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:20:26
+   |
+20 |     let _ = live_binding.read_by_name("live.example");
+   |                          ^^^^^^^^^^^^ method not found in `ForgeQueryLiveArtifactBinding`
+
+error[E0599]: no method named `target_view_names` found for struct `ForgeQueryLiveArtifactBinding` in the current scope
+  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:21:26
+   |
+21 |     let _ = live_binding.target_view_names();
+   |                          ^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryLiveArtifactBinding`

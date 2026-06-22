@@ -2,9 +2,9 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::RuntimeBridge;
 
 use crate::facade::{
-    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
-    ForgeQueryRuntimeWriteAuthorityAdapter, ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
-    WriteAuthorityExecutionReceipt,
+    ForgeQueryAspectTouch, ForgeQueryBackendAdmissibleMutation, ForgeQueryMutationDelta,
+    ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQueryRuntimeWriteAuthorityAdapter,
+    ForgeQueryWorkspaceError, WriteAuthorityExecutionReceipt,
 };
 use crate::runtime::build_bridge_authority_bundle;
 use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
@@ -18,9 +18,9 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for CertificationWriteAuthority {
         &mut self,
         bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
-        let (collection, aspect_paths) = write_receipt_shape(&command);
+        let (collection, aspect_touches) = write_receipt_shape(&mutation);
         let entity_identity = "certification-entity-1";
         let commit_identity =
             crate::memory_workspace::ForgeQueryCommitIdentity::from_relational_commit_id(1);
@@ -32,7 +32,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for CertificationWriteAuthority {
         let bridge_authority = build_bridge_authority_bundle(
             bridge,
             &snapshot_identity,
-            &command,
+            &mutation,
             &collection,
             &entity_identity_handle,
             ForgeQueryMutationKind::Updated,
@@ -40,89 +40,26 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for CertificationWriteAuthority {
         let receipt = ForgeQueryMutationReceipt::from_bridge_authoritative_parts(
             commit_identity,
             snapshot_identity,
-            vec![ForgeQueryMutationDelta::new(
+            vec![ForgeQueryMutationDelta::from_touched_aspects(
                 collection,
                 entity_identity_handle,
                 ForgeQueryMutationKind::Updated,
-                aspect_paths,
+                aspect_touches,
             )],
             bridge_authority,
         );
-        Ok(self.build_write_authority_execution_receipt(&command, receipt))
+        Ok(self.build_write_authority_execution_receipt(&mutation, receipt))
     }
 }
 
-fn write_receipt_shape(command: &ForgeQueryWriteCommand) -> (String, Vec<String>) {
-    match command {
-        ForgeQueryWriteCommand::UpdateAspect { aspect_path, .. } => {
-            ("Task".to_string(), vec![aspect_path.clone()])
-        }
-        ForgeQueryWriteCommand::UpdateAspects { aspects, .. } => (
-            "Task".to_string(),
-            aspects
-                .iter()
-                .map(|aspect| aspect.aspect_path().to_string())
-                .collect(),
-        ),
-        ForgeQueryWriteCommand::InsertAspects {
-            collection,
-            aspects,
-            ..
-        } => (
-            collection.clone(),
-            aspects
-                .iter()
-                .map(|aspect| aspect.aspect_path().to_string())
-                .collect(),
-        ),
-        ForgeQueryWriteCommand::UpdateExistingAspects {
-            aspects, binding, ..
-        }
-        | ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects {
-            aspects, binding, ..
-        }
-        | ForgeQueryWriteCommand::AssertExistingAspects {
-            aspects, binding, ..
-        }
-        | ForgeQueryWriteCommand::VerifyExistingAspects {
-            aspects, binding, ..
-        } => (
-            binding.target_collection().unwrap_or("Task").to_string(),
-            aspects
-                .iter()
-                .map(|aspect| aspect.aspect_path().to_string())
-                .collect(),
-        ),
-        ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects {
-            binding,
-            touched_aspect_paths,
-            ..
-        }
-        | ForgeQueryWriteCommand::DeleteExistingAspects {
-            binding,
-            touched_aspect_paths,
-            ..
-        } => (
-            binding.target_collection().unwrap_or("Task").to_string(),
-            touched_aspect_paths.clone(),
-        ),
-        ForgeQueryWriteCommand::UpdateSymbolicAspects {
-            aspects, reference, ..
-        } => (
-            reference.target_collection().unwrap_or("Task").to_string(),
-            aspects
-                .iter()
-                .map(|aspect| aspect.aspect_path().to_string())
-                .collect(),
-        ),
-        ForgeQueryWriteCommand::DeleteAspects {
-            touched_aspect_paths,
-            ..
-        }
-        | ForgeQueryWriteCommand::DeleteSymbolicAspects {
-            touched_aspect_paths,
-            ..
-        } => ("Task".to_string(), touched_aspect_paths.clone()),
-        ForgeQueryWriteCommand::Delete { .. } => ("Task".to_string(), Vec::new()),
-    }
+fn write_receipt_shape(
+    mutation: &ForgeQueryBackendAdmissibleMutation,
+) -> (String, Vec<ForgeQueryAspectTouch>) {
+    (
+        mutation
+            .declared_collection_identity()
+            .map(|collection| collection.as_str().to_string())
+            .unwrap_or("Task".to_string()),
+        mutation.declared_aspect_touches(),
+    )
 }

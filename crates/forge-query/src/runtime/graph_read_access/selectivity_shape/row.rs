@@ -2,11 +2,12 @@ use super::super::{
     ForgeQueryGraphReadAdmittedSchemaFieldKind, ForgeQueryPredicateOperandOperator,
     ForgeQueryPredicateSelectivityClass,
 };
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryBooleanPredicateSelectivityRow {
-    aspect: String,
-    field: String,
+    aspect: AspectKey,
+    field: FieldKey,
     family: String,
     operand_identity: String,
     operator: ForgeQueryPredicateOperandOperator,
@@ -17,11 +18,11 @@ pub struct ForgeQueryBooleanPredicateSelectivityRow {
 }
 
 impl ForgeQueryBooleanPredicateSelectivityRow {
-    pub fn aspect(&self) -> &str {
+    pub fn native_aspect_key(&self) -> &AspectKey {
         &self.aspect
     }
 
-    pub fn field(&self) -> &str {
+    pub fn native_field_key(&self) -> &FieldKey {
         &self.field
     }
 
@@ -54,8 +55,8 @@ impl ForgeQueryBooleanPredicateSelectivityRow {
     }
 
     pub(crate) fn new(
-        aspect: impl Into<String>,
-        field: impl Into<String>,
+        aspect: AspectKey,
+        field: FieldKey,
         family: impl Into<String>,
         operator: ForgeQueryPredicateOperandOperator,
         normalized_operand_values: Vec<String>,
@@ -69,8 +70,8 @@ impl ForgeQueryBooleanPredicateSelectivityRow {
             normalized_operand_values.join("|")
         );
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            aspect,
+            field,
             family: family.into(),
             operand_identity,
             operator,
@@ -84,8 +85,8 @@ impl ForgeQueryBooleanPredicateSelectivityRow {
     pub(crate) fn digest_part(&self) -> String {
         format!(
             "predicate_selectivity:{}:{}:{}:{}:{}:{}:{}:{}:{}",
-            self.aspect,
-            self.field,
+            self.aspect.as_str(),
+            self.field.as_str(),
             self.family,
             self.operand_identity,
             self.operator.as_str(),

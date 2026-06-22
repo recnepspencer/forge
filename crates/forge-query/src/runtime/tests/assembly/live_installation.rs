@@ -18,7 +18,11 @@ fn runtime_live_declaration_denies_backend_admission_before_subscription_install
         .expect("backend with denying schema admission should still build");
 
     let error = runtime
-        .declare_live_view::<Value>("external.schema-denied", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "external.schema-denied",
+            task_live_request(),
+            task_schema(),
+        )
         .expect_err("backend admission denial must block subscription installation");
 
     assert_live_subscription_installation_error(
@@ -48,7 +52,11 @@ fn runtime_live_declaration_closes_active_subscription_when_source_declaration_f
         .expect("backend with failing source declaration should still build");
 
     let error = runtime
-        .declare_live_view::<Value>("external.source-denied", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "external.source-denied",
+            task_live_request(),
+            task_schema(),
+        )
         .expect_err("source declaration denial must close active subscription");
 
     match error {
@@ -85,10 +93,10 @@ fn runtime_equivalent_live_declarations_share_active_lane_with_distinct_consumer
         .build()
         .expect("complete backend parts should build");
 
-    let first: ForgeQueryLiveView<Value> = runtime
+    let first: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("external.tasks.first", task_live_request(), task_schema())
         .expect("first live view should install active lane");
-    let second: ForgeQueryLiveView<Value> = runtime
+    let second: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("external.tasks.second", task_live_request(), task_schema())
         .expect("equivalent live view should join active lane");
 
@@ -160,7 +168,11 @@ fn runtime_live_declaration_denies_before_source_when_subscription_activation_re
         .expect("backend with denying activation should still build");
 
     let error = runtime
-        .declare_live_view::<Value>("external.denied", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "external.denied",
+            task_live_request(),
+            task_schema(),
+        )
         .expect_err("activation denial must block source declaration");
 
     assert_live_subscription_installation_error(
@@ -191,7 +203,11 @@ fn runtime_live_declaration_denies_when_admission_receipt_drifts_from_request() 
         .expect("backend with drifting schema receipt should still build");
 
     let error = runtime
-        .declare_live_view::<Value>("external.receipt-drift", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "external.receipt-drift",
+            task_live_request(),
+            task_schema(),
+        )
         .expect_err("admission receipt drift must deny live declaration");
 
     assert_live_subscription_installation_error(
@@ -222,7 +238,7 @@ fn runtime_live_declaration_denies_when_activation_receipt_drifts_from_request()
         .expect("backend with drifting activation receipt should still build");
 
     let error = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "external.activation-receipt-drift",
             task_live_request(),
             task_schema(),

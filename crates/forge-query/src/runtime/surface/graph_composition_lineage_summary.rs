@@ -36,21 +36,9 @@ impl ForgeQueryGraphCompositionLineageEntry {
                 .successor_authoritative_identities()
                 .to_vec(),
             target_collection: receipt
-                .target_collection()
-                .map(|collection| {
-                    ForgeQueryMutationTargetCollectionIdentity::new(
-                        "graph-lineage-receipt-target",
-                        collection,
-                    )
-                })
-                .or_else(|| {
-                    receipt.declared_collection().map(|collection| {
-                        ForgeQueryMutationTargetCollectionIdentity::new(
-                            "graph-lineage-receipt-declared",
-                            collection,
-                        )
-                    })
-                })
+                .target_collection_identity()
+                .cloned()
+                .or_else(|| receipt.declared_collection_identity().cloned())
                 .or_else(|| evidence.target_collection().cloned()),
             lineage_digest: evidence.lineage_digest().clone(),
             continuity_resolution_digest: evidence.continuity_resolution_digest().clone(),

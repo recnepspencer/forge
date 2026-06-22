@@ -1,6 +1,7 @@
 use crate::authoring::QueryFamily;
 use crate::identity::CollectionPlanDigest;
 use crate::validation::ValidatedQueryBundle;
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum CollectionPlanningMode {
@@ -14,23 +15,25 @@ pub(crate) enum CollectionPlanningMode {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct OrderingKeyPath {
-    aspect: String,
-    field: String,
+    aspect_key: AspectKey,
+    field_key: FieldKey,
 }
 
 impl OrderingKeyPath {
-    pub fn aspect(&self) -> &str {
-        &self.aspect
+    pub fn native_aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
     }
 
-    pub fn field(&self) -> &str {
-        &self.field
+    pub fn native_field_key(&self) -> &FieldKey {
+        &self.field_key
     }
 
     pub(crate) fn new(aspect: impl Into<String>, field: impl Into<String>) -> Self {
+        let aspect = aspect.into();
+        let field = field.into();
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            aspect_key: AspectKey::new(aspect).expect("ordering aspect must be foundational"),
+            field_key: FieldKey::new(field).expect("ordering field must be foundational"),
         }
     }
 }
@@ -98,8 +101,8 @@ impl CollectionOrderingEntry {
     pub(crate) fn digest_part(&self) -> String {
         format!(
             "ordering:{}:{}:{}",
-            self.key_path.aspect(),
-            self.key_path.field(),
+            self.key_path.native_aspect_key().as_str(),
+            self.key_path.native_field_key().as_str(),
             match self.direction {
                 CollectionOrderingDirection::Ascending => "ascending",
                 CollectionOrderingDirection::Descending => "descending",
@@ -642,7 +645,10 @@ impl CollectionPlanBundle {
                 .iter()
                 .map(|entry| {
                     CollectionOrderingEntry::new(
-                        OrderingKeyPath::new(entry.aspect(), entry.field()),
+                        OrderingKeyPath::new(
+                            entry.native_aspect_key().as_str(),
+                            entry.native_field_key().as_str(),
+                        ),
                         CollectionOrderingDirection::from_validated_direction(entry.direction()),
                     )
                 })
@@ -659,7 +665,7 @@ impl CollectionPlanBundle {
             .query()
             .traversal()
             .iter()
-            .map(|entry| TraversalEdgeClass::new(entry.relation()))
+            .map(|entry| TraversalEdgeClass::new(entry.relation_name().as_str()))
             .collect();
         let traversal_bound = TraversalBoundContract::new(
             TraversalDepthLimit::new(max_depth),

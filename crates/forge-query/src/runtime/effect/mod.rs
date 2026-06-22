@@ -1,5 +1,7 @@
 mod declaration;
 mod delivery;
+mod delivery_handle;
+mod delivery_helpers;
 mod follow_on;
 mod inspection;
 mod inspection_identity;
@@ -14,8 +16,9 @@ pub use declaration::{
 };
 pub use delivery::{
     ForgeQueryEffectCounters, ForgeQueryEffectDelivery, ForgeQueryEffectDeliveryFamily,
-    ForgeQueryEffectHandle,
+    ForgeQueryEffectPayload,
 };
+pub use delivery_handle::ForgeQueryEffectHandle;
 pub use follow_on::{
     ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryEffectWriteAdjacentTriggerClass,
 };

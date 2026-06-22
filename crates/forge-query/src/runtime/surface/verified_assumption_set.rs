@@ -3,13 +3,14 @@ use crate::evidence_identity::{
     ForgeQueryEvidenceTag,
 };
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
+use crate::runtime::ForgeQueryAspectTouch;
 use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryVerificationReadSetBreadth {
     target_binding_count: usize,
     asserted_aspect_count: usize,
-    distinct_asserted_aspect_path_count: usize,
+    distinct_asserted_aspect_touch_count: usize,
     cleared_assertion_count: usize,
     counter_snapshot: String,
 }
@@ -18,24 +19,27 @@ impl ForgeQueryVerificationReadSetBreadth {
     pub(in crate::runtime) fn new(
         target_binding_count: usize,
         asserted_aspect_count: usize,
-        asserted_aspect_paths: &[String],
+        asserted_aspects: &[ForgeQueryAspectTouch],
         cleared_assertion_count: usize,
     ) -> Self {
-        let distinct_asserted_aspect_path_count =
-            asserted_aspect_paths.iter().collect::<BTreeSet<_>>().len();
+        let distinct_asserted_aspect_touch_count = asserted_aspects
+            .iter()
+            .map(|touch| touch.admitted_touch_digest_part())
+            .collect::<BTreeSet<_>>()
+            .len();
         let counter_snapshot = diagnostic_counter_snapshot(&[
             ("target_bindings", target_binding_count),
             ("asserted_aspects", asserted_aspect_count),
             (
-                "distinct_asserted_aspect_paths",
-                distinct_asserted_aspect_path_count,
+                "distinct_asserted_aspect_touches",
+                distinct_asserted_aspect_touch_count,
             ),
             ("cleared_assertions", cleared_assertion_count),
         ]);
         Self {
             target_binding_count,
             asserted_aspect_count,
-            distinct_asserted_aspect_path_count,
+            distinct_asserted_aspect_touch_count,
             cleared_assertion_count,
             counter_snapshot,
         }
@@ -49,8 +53,8 @@ impl ForgeQueryVerificationReadSetBreadth {
         self.asserted_aspect_count
     }
 
-    pub fn distinct_asserted_aspect_path_count(&self) -> usize {
-        self.distinct_asserted_aspect_path_count
+    pub fn distinct_asserted_aspect_touch_count(&self) -> usize {
+        self.distinct_asserted_aspect_touch_count
     }
 
     pub fn cleared_assertion_count(&self) -> usize {
@@ -78,7 +82,7 @@ fn diagnostic_counter_snapshot(fields: &[(&str, usize)]) -> String {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryVerifiedAssumptionSet {
     binding_digest: ForgeQueryEvidenceIdentity,
-    asserted_aspect_paths: Vec<String>,
+    asserted_aspects: Vec<ForgeQueryAspectTouch>,
     assumption_snapshot_identity: ForgeQuerySnapshotIdentity,
     assumption_snapshot_evidence_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
     assumption_snapshot_digest: ForgeQueryEvidenceIdentity,
@@ -90,7 +94,7 @@ pub struct ForgeQueryVerifiedAssumptionSet {
 impl ForgeQueryVerifiedAssumptionSet {
     pub(in crate::runtime) fn new(
         binding_digest: ForgeQueryEvidenceIdentity,
-        asserted_aspect_paths: Vec<String>,
+        asserted_aspects: Vec<ForgeQueryAspectTouch>,
         assumed_value_fragments: Vec<ForgeQueryEvidenceIdentity>,
         cleared_assertion_count: usize,
         snapshot_identity: ForgeQuerySnapshotIdentity,
@@ -98,8 +102,8 @@ impl ForgeQueryVerifiedAssumptionSet {
         let assumption_snapshot_evidence_identity = snapshot_identity.evidence_identity();
         let verification_read_set_breadth = ForgeQueryVerificationReadSetBreadth::new(
             1,
-            asserted_aspect_paths.len(),
-            &asserted_aspect_paths,
+            asserted_aspects.len(),
+            &asserted_aspects,
             cleared_assertion_count,
         );
         let assumption_snapshot_digest =
@@ -145,8 +149,10 @@ impl ForgeQueryVerifiedAssumptionSet {
                     &verified_precondition_digest,
                 )
                 .field_value_sequence(
-                    ForgeQueryEvidenceTag::new("asserted_aspect_path"),
-                    asserted_aspect_paths.iter().map(String::as_str),
+                    ForgeQueryEvidenceTag::new("asserted_aspect_touch"),
+                    asserted_aspects
+                        .iter()
+                        .map(|touch| touch.admitted_touch_digest_part()),
                 )
                 .field_usize(
                     ForgeQueryEvidenceTag::new("target_binding_count"),
@@ -157,8 +163,8 @@ impl ForgeQueryVerifiedAssumptionSet {
                     verification_read_set_breadth.asserted_aspect_count(),
                 )
                 .field_usize(
-                    ForgeQueryEvidenceTag::new("distinct_asserted_aspect_path_count"),
-                    verification_read_set_breadth.distinct_asserted_aspect_path_count(),
+                    ForgeQueryEvidenceTag::new("distinct_asserted_aspect_touch_count"),
+                    verification_read_set_breadth.distinct_asserted_aspect_touch_count(),
                 )
                 .field_usize(
                     ForgeQueryEvidenceTag::new("cleared_assertion_count"),
@@ -167,7 +173,7 @@ impl ForgeQueryVerifiedAssumptionSet {
                 .seal();
         Self {
             binding_digest,
-            asserted_aspect_paths,
+            asserted_aspects,
             assumption_snapshot_identity: snapshot_identity,
             assumption_snapshot_evidence_identity,
             assumption_snapshot_digest,
@@ -185,8 +191,8 @@ impl ForgeQueryVerifiedAssumptionSet {
         &self.binding_digest
     }
 
-    pub fn asserted_aspect_paths(&self) -> &[String] {
-        &self.asserted_aspect_paths
+    pub fn asserted_aspects(&self) -> &[ForgeQueryAspectTouch] {
+        &self.asserted_aspects
     }
 
     pub fn assumption_snapshot_token(&self) -> &str {

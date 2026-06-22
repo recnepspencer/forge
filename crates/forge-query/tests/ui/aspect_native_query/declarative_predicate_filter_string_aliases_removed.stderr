@@ -1,0 +1,131 @@
+error[E0624]: method `aspect` is private
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:12:22
+   |
+12 |     let _ = equality.aspect();
+   |                      ^^^^^^ private method
+   |
+  ::: src/declarative_live.rs
+   |
+   |     pub(crate) fn aspect(&self) -> &str {
+   |     ----------------------------------- private method defined here
+
+error[E0624]: method `field` is private
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:13:22
+   |
+13 |     let _ = equality.field();
+   |                      ^^^^^ private method
+   |
+  ::: src/declarative_live.rs
+   |
+   |     pub(crate) fn field(&self) -> &str {
+   |     ---------------------------------- private method defined here
+
+error[E0624]: method `aspect` is private
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:19:21
+   |
+19 |     let _ = integer.aspect();
+   |                     ^^^^^^ private method
+   |
+  ::: src/declarative_live.rs
+   |
+   |     pub(crate) fn aspect(&self) -> &str {
+   |     ----------------------------------- private method defined here
+
+error[E0624]: method `field` is private
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:20:21
+   |
+20 |     let _ = integer.field();
+   |                     ^^^^^ private method
+   |
+  ::: src/declarative_live.rs
+   |
+   |     pub(crate) fn field(&self) -> &str {
+   |     ---------------------------------- private method defined here
+
+error[E0624]: method `aspect` is private
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:26:22
+   |
+26 |     let _ = contains.aspect();
+   |                      ^^^^^^ private method
+   |
+  ::: src/declarative_live.rs
+   |
+   |     pub(crate) fn aspect(&self) -> &str {
+   |     ----------------------------------- private method defined here
+
+error[E0624]: method `field` is private
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:27:22
+   |
+27 |     let _ = contains.field();
+   |                      ^^^^^ private method
+   |
+  ::: src/declarative_live.rs
+   |
+   |     pub(crate) fn field(&self) -> &str {
+   |     ---------------------------------- private method defined here
+
+error[E0624]: method `aspect` is private
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:33:24
+   |
+33 |     let _ = membership.aspect();
+   |                        ^^^^^^ private method
+   |
+  ::: src/declarative_live.rs
+   |
+   |     pub(crate) fn aspect(&self) -> &str {
+   |     ----------------------------------- private method defined here
+
+error[E0624]: method `field` is private
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:34:24
+   |
+34 |     let _ = membership.field();
+   |                        ^^^^^ private method
+   |
+  ::: src/declarative_live.rs
+   |
+   |     pub(crate) fn field(&self) -> &str {
+   |     ---------------------------------- private method defined here
+
+error[E0624]: method `aspect` is private
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:38:22
+   |
+38 |     let _ = presence.aspect();
+   |                      ^^^^^^ private method
+   |
+  ::: src/declarative_live.rs
+   |
+   |     pub(crate) fn aspect(&self) -> &str {
+   |     ----------------------------------- private method defined here
+
+error[E0624]: method `field` is private
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:39:22
+   |
+39 |     let _ = presence.field();
+   |                      ^^^^^ private method
+   |
+  ::: src/declarative_live.rs
+   |
+   |     pub(crate) fn field(&self) -> &str {
+   |     ---------------------------------- private method defined here
+
+error[E0624]: method `aspect` is private
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:42:23
+   |
+42 |     let _ = predicate.aspect();
+   |                       ^^^^^^ private method
+   |
+  ::: src/declarative_live.rs
+   |
+   |     pub(crate) fn aspect(&self) -> &str {
+   |     ----------------------------------- private method defined here
+
+error[E0624]: method `field` is private
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:43:23
+   |
+43 |     let _ = predicate.field();
+   |                       ^^^^^ private method
+   |
+  ::: src/declarative_live.rs
+   |
+   |     pub(crate) fn field(&self) -> &str {
+   |     ---------------------------------- private method defined here

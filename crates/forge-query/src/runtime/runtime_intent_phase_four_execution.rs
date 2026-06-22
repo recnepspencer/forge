@@ -87,7 +87,12 @@ impl ForgeQueryRuntime {
             .route_authoritative_mutation_receipt(
                 execution.mutation_receipt().clone(),
                 summary.0,
-                summary.1,
+                summary.1.map(|collection| {
+                    ForgeQueryMutationTargetCollectionIdentity::new(
+                        "intent-write-receipt-declared",
+                        collection,
+                    )
+                }),
                 summary.2,
                 None,
                 None,
@@ -190,7 +195,12 @@ impl ForgeQueryRuntime {
             .route_authoritative_mutation_receipt(
                 execution.mutation_receipt().clone(),
                 summary.0,
-                summary.1,
+                summary.1.map(|collection| {
+                    ForgeQueryMutationTargetCollectionIdentity::new(
+                        "effect-write-receipt-declared",
+                        collection,
+                    )
+                }),
                 summary.2,
                 None,
                 None,

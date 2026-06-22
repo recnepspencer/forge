@@ -94,8 +94,8 @@ pub(super) fn classify_scope_shape_with_operators(
 }
 
 fn is_identity_anchor_predicate(predicate: &crate::validation::ValidatedPredicateEntry) -> bool {
-    predicate.aspect() == "identity"
-        && predicate.field() == "id"
+    predicate.native_aspect_key().as_str() == "identity"
+        && predicate.native_field_key().as_str() == "id"
         && predicate.predicate_family() == "equality"
         && predicate.value_kind() == "String"
 }

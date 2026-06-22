@@ -294,9 +294,10 @@ retained-artifact seams named in this milestone.
   `workspace.observe(...)`, `workspace.materialize(...)`, and the forbidden
   special-case helper path.
 - Test requirements: require exact zero assertions for fallback to
-  `consume_scalar_fields(...)`, `decode_row_pair(...)`, `decode_row_triple(...)`,
-  `verify_scalar_alignment(...)`, `read_live_artifact_bundle(...)`,
-  `bind_live_artifact(...)`, and `read_live_artifact_binding(...)`.
+  `consume_scalar_fields(...)`, `terminal_json_decode_row_pair(...)`,
+  `terminal_json_decode_row_triple(...)`, `verify_scalar_alignment(...)`,
+  `read_live_artifact_bundle(...)`, `bind_live_artifact(...)`, and
+  `read_live_artifact_binding(...)`.
 
 ### Phase 13: Saved-Query Temporal/Async Reuse Matrix Closure
 

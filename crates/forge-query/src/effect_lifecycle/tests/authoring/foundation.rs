@@ -14,7 +14,7 @@ use crate::effect_lifecycle::{
 };
 
 use super::support::{
-    branch_mutation_basis, preview_closeout_basis, preview_workflow_binding,
+    branch_mutation_basis, native_name_patch, preview_closeout_basis, preview_workflow_binding,
     runtime_workflow_binding, tenant_mutation_basis, workflow_request,
 };
 
@@ -31,7 +31,7 @@ fn mutation_effect_normalizes_and_admits_from_raw_workflow_request() {
             ),
             input: MutationLoweringInput::IntentReconciliation {
                 entity_id: EntityId::new(PartitionId(1), 7, 0),
-                desired_aspect_fields_external_json: serde_json::json!({ "name": "esther" }),
+                desired_aspect_fields: native_name_patch("esther"),
             },
         },
     )
@@ -114,7 +114,7 @@ fn preview_mutation_authoring_is_real_and_returns_typed_rebind() {
             ),
             input: MutationLoweringInput::IntentReconciliation {
                 entity_id: EntityId::new(PartitionId(1), 17, 0),
-                desired_aspect_fields_external_json: serde_json::json!({ "name": "preview-mutation" }),
+                desired_aspect_fields: native_name_patch("preview-mutation"),
             },
         },
     )

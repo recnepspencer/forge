@@ -1,9 +1,8 @@
 use forge_query::facade::runtime::{
     prepare_admitted_domain_capability_contribution_for_materialization,
     ForgeQueryAdmissionContributionAuthoring, ForgeQueryDeclarationBoundContributionTarget,
-    ForgeQueryIntentDeclaration,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentInput,
 };
-use serde_json::json;
 
 fn main() {
     let declaration = ForgeQueryIntentDeclaration::strategy_commit(
@@ -11,7 +10,7 @@ fn main() {
         "worth.spatial.offset",
         "1",
         "worth.spatial.intent",
-        json!({ "entity": "edge:42" }),
+        ForgeQueryIntentInput::object([("entity", ForgeQueryIntentInput::string("edge:42"))]),
     );
     let requested = ForgeQueryAdmissionContributionAuthoring::violation(
         "spatial.binding.changed",

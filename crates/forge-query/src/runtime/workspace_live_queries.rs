@@ -1,14 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
-use serde_json::Value;
 
 #[cfg(test)]
 use super::{record_forbidden_fallback_seam_invocation, ForgeQueryForbiddenFallbackSeam};
 use super::{
-    ForgeQueryDerivedViewHandle, ForgeQueryLiveArtifactBinding, ForgeQueryLiveArtifactBundle,
-    ForgeQueryLiveArtifactTarget, ForgeQueryLiveReadResult, ForgeQueryPatchBatch,
-    ForgeQueryRuntimeError, ForgeQueryWorkspace,
+    ForgeQueryDerivedMaterializationResult, ForgeQueryDerivedViewHandle,
+    ForgeQueryLiveArtifactBinding, ForgeQueryLiveArtifactBundle, ForgeQueryLiveArtifactTarget,
+    ForgeQueryLiveReadResult, ForgeQueryPatchBatch, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
 
 impl ForgeQueryWorkspace {
@@ -29,28 +28,18 @@ impl ForgeQueryWorkspace {
         self.read_live_intent(view).execute()
     }
 
-    pub fn state_live_by_name(
+    pub fn state_live<T>(
+        &self,
+        view: &super::ForgeQueryLiveView<T>,
+    ) -> Result<super::ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeError> {
+        self.state_live_by_name(view.name())
+    }
+
+    pub(crate) fn state_live_by_name(
         &self,
         view_name: &str,
     ) -> Result<super::ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeError> {
         super::state::snapshot_live_view_name(&self.runtime, view_name)
-    }
-
-    pub fn read_live_by_name(
-        &mut self,
-        view_name: &str,
-    ) -> Result<ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
-        let installation = self
-            .runtime
-            .inspect_live_view_name_installation(view_name)?
-            .clone();
-        let review = self.review_live_read_execution(super::ForgeQueryLiveView::<Value>::new(
-            crate::memory_workspace::ForgeQueryLiveViewHandle::new(view_name),
-            installation,
-        ))?;
-        let handoff = self.resolve_reviewed_admitted_live_read_execution_handoff(review)?;
-        let binding = self.into_runtime_live_read_execution_binding(handoff)?;
-        self.execute_bound_live_read_execution(binding)
     }
 
     pub fn read_live_artifact_binding(
@@ -81,7 +70,12 @@ impl ForgeQueryWorkspace {
 
         let mut reads = BTreeMap::new();
         for target in retained_targets {
-            let result = self.runtime.execute_live_read_by_name(target.view_name())?;
+            let installation = target.subscription_installation().cloned().ok_or_else(|| {
+                ForgeQueryRuntimeError::MissingLiveView(target.view_name().to_string())
+            })?;
+            let result = self
+                .runtime
+                .execute_live_read_for_installation(installation)?;
             reads.insert(target.view_name().to_string(), result);
         }
         let snapshot_identity = live_bundle_snapshot_identity(&reads)?;
@@ -92,15 +86,28 @@ impl ForgeQueryWorkspace {
         self.runtime.drain_patches(view)
     }
 
-    pub fn materialize<T>(&self, view: &ForgeQueryDerivedViewHandle<T>) -> Vec<Value> {
-        self.runtime.read_derived(view)
+    pub fn materialize_result<T>(
+        &self,
+        view: &ForgeQueryDerivedViewHandle<T>,
+    ) -> Result<ForgeQueryDerivedMaterializationResult, ForgeQueryRuntimeError> {
+        self.runtime.read_derived_result(view)
     }
 
-    pub fn observe_computed(&mut self, view_name: &str) -> ForgeQueryPatchBatch {
-        self.runtime.drain_derived_patches(view_name)
+    pub fn observe_computed<T>(
+        &mut self,
+        view: &ForgeQueryDerivedViewHandle<T>,
+    ) -> ForgeQueryPatchBatch {
+        self.runtime.drain_derived_patches(view)
     }
 
-    pub fn subscription_basis_digest_by_name(
+    pub fn subscription_basis_digest<T>(
+        &self,
+        view: &super::ForgeQueryLiveView<T>,
+    ) -> Result<String, ForgeQueryRuntimeError> {
+        self.subscription_basis_digest_by_name(view.name())
+    }
+
+    pub(crate) fn subscription_basis_digest_by_name(
         &self,
         view_name: &str,
     ) -> Result<String, ForgeQueryRuntimeError> {

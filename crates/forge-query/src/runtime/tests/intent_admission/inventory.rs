@@ -97,7 +97,7 @@ fn family_inventory_freezes_inspection_materialization_common_path() {
     assert_eq!(
         row.common_path_front_door(),
         ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
-            "workspace.materialize(&view); workspace.materialize_intent(&view).execute(); workspace.inspect(&target); runtime.inspect(&target); workspace.inspect_intent(target).execute(); workspace.inspect_derived_intent(&view).execute()"
+            "workspace.materialize_result(&view)?; workspace.materialize_intent(&view).execute(); workspace.inspect(&target); runtime.inspect(&target); workspace.inspect_intent(target).execute(); workspace.inspect_derived_intent(&view).execute()"
         )
     );
     assert_eq!(

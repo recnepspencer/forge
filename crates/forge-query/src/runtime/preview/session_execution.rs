@@ -33,8 +33,8 @@ impl<'a> ForgeQueryPreviewSession<'a> {
     }
 
     pub(super) fn route_preview_execution(&mut self, receipt: &ForgeQueryWriteReceipt) {
-        let mut live_affected: BTreeMap<String, Vec<String>> = BTreeMap::new();
-        let mut computed_affected: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        let mut live_affected: BTreeMap<String, Vec<ForgeQueryAspectTouch>> = BTreeMap::new();
+        let mut computed_affected: BTreeMap<String, Vec<ForgeQueryAspectTouch>> = BTreeMap::new();
 
         for binding in self
             .handle_bindings
@@ -50,7 +50,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             }
             live_affected.insert(binding.handle_name().to_string(), affected_aspects.clone());
             self.execution_evidence
-                .push(ForgeQueryPreviewExecutionEvidence::new(
+                .push(ForgeQueryPreviewExecutionEvidence::for_aspect_touches(
                     &self.basis_admission,
                     ForgeQueryPreviewExecutionKind::LivePatch,
                     binding.handle_name(),
@@ -76,7 +76,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             }
             computed_affected.insert(binding.handle_name().to_string(), affected_aspects.clone());
             self.execution_evidence
-                .push(ForgeQueryPreviewExecutionEvidence::new(
+                .push(ForgeQueryPreviewExecutionEvidence::for_aspect_touches(
                     &self.basis_admission,
                     ForgeQueryPreviewExecutionKind::ComputedPatch,
                     binding.handle_name(),
@@ -117,7 +117,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     ForgeQueryPreviewExecutionKind::MutedEffect
                 }
             };
-            pending_effect_evidence.push(ForgeQueryPreviewExecutionEvidence::new(
+            pending_effect_evidence.push(ForgeQueryPreviewExecutionEvidence::for_aspect_touches(
                 &self.basis_admission,
                 kind,
                 binding.handle_name(),

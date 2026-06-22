@@ -258,8 +258,13 @@ fn retained_upstream_inputs_for_declaration(
         .upstream_live_views()
         .iter()
         .map(|view_name| {
+            let installation = runtime
+                .live_subscriptions
+                .get(view_name)
+                .map(|state| state.installation.clone())
+                .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveView(view_name.clone()))?;
             runtime
-                .execute_live_read_by_name(view_name)
+                .execute_live_read_for_installation(installation)
                 .map(|read| (view_name.clone(), read.rows().to_vec()))
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -267,14 +272,13 @@ fn retained_upstream_inputs_for_declaration(
         .upstream_derived_views()
         .iter()
         .filter_map(|view_name| {
-            runtime
-                .derived_views
-                .get(view_name)
-                .map(|runtime| (view_name.clone(), runtime.materialization.rows().to_vec()))
+            runtime.derived_views.get(view_name).map(|runtime| {
+                (
+                    view_name.clone(),
+                    runtime.materialization.retained_rows().to_vec(),
+                )
+            })
         })
         .collect::<Vec<_>>();
-    Ok(ForgeQueryRetainedUpstreamInputs::new(
-        live_rows,
-        computed_rows,
-    ))
+    Ok(ForgeQueryRetainedUpstreamInputs::from_retained_computed_rows(live_rows, computed_rows))
 }

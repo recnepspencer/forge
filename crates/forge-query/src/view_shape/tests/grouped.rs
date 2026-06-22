@@ -39,8 +39,8 @@ fn kanban_grouped_is_admitted_with_explicit_grouping_aspect() {
 
     assert_eq!(planned.family().as_str(), "kanban_grouped");
     assert_eq!(
-        planned.delivery_metadata().grouping_aspect(),
-        Some("status")
+        planned.delivery_metadata().native_grouping_aspect_key(),
+        Some(&aspect_key("status"))
     );
     assert!(planned.delivery_metadata().grouped_delivery());
     let grouped_policy = planned
@@ -53,7 +53,6 @@ fn kanban_grouped_is_admitted_with_explicit_grouping_aspect() {
         grouped_policy.contract(),
         &crate::view_shape::KanbanGroupedLiveContract::DeltaBound
     );
-    assert_eq!(grouped_evidence.grouping_aspect(), "status");
     assert_eq!(
         grouped_evidence.native_grouping_aspect_key(),
         &aspect_key("status")
@@ -61,18 +60,10 @@ fn kanban_grouped_is_admitted_with_explicit_grouping_aspect() {
     assert_eq!(grouped_evidence.identity_binding_index(), 0);
     assert_eq!(grouped_evidence.grouping_binding_index(), 2);
     assert_eq!(
-        grouped_evidence.identity_binding().field_key(),
-        "identity.id"
-    );
-    assert_eq!(
         grouped_evidence
             .identity_binding()
             .native_binding_aspect_key(),
         &aspect_key("identity.id")
-    );
-    assert_eq!(
-        grouped_evidence.grouping_binding().field_key(),
-        "status.lane"
     );
     assert_eq!(
         grouped_evidence

@@ -1,5 +1,3 @@
-use serde_json::Value;
-
 use super::{
     ForgeQueryAspectMutationOperation, ForgeQueryAspectMutationOperationKind,
     ForgeQueryAspectValue, ForgeQuerySymbolicAspectReference,
@@ -13,10 +11,12 @@ use crate::runtime::{
     ForgeQueryWriteCommand,
 };
 
-pub(crate) fn command_declared_aspect_paths(command: &ForgeQueryWriteCommand) -> Vec<String> {
+pub(crate) fn command_declared_aspect_touches(
+    command: &ForgeQueryWriteCommand,
+) -> Vec<crate::runtime::ForgeQueryAspectTouch> {
     command_declared_aspect_operations(command)
         .into_iter()
-        .map(|operation| operation.aspect_path().to_string())
+        .map(|operation| operation.aspect_touch().clone())
         .collect()
 }
 
@@ -59,35 +59,26 @@ pub(crate) fn command_declared_aspect_operations(
             )
             .collect(),
         ForgeQueryWriteCommand::DeleteAspects {
-            touched_aspect_paths,
-            ..
+            touched_aspects, ..
         }
         | ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects {
-            touched_aspect_paths,
-            ..
+            touched_aspects, ..
         }
         | ForgeQueryWriteCommand::DeleteExistingAspects {
-            touched_aspect_paths,
-            ..
+            touched_aspects, ..
         }
         | ForgeQueryWriteCommand::DeleteSymbolicAspects {
-            touched_aspect_paths,
-            ..
-        } => touched_aspect_paths
+            touched_aspects, ..
+        } => touched_aspects
             .iter()
-            .map(|path| {
-                ForgeQueryAspectMutationOperation::new(
-                    path.clone(),
+            .map(|touch| {
+                ForgeQueryAspectMutationOperation::from_touch(
+                    touch.clone(),
                     crate::runtime::ForgeQueryAspectMutationOperationKind::Clear,
                 )
             })
             .collect(),
-        ForgeQueryWriteCommand::UpdateAspect { aspect_path, .. } => {
-            vec![ForgeQueryAspectMutationOperation::new(
-                aspect_path.clone(),
-                crate::runtime::ForgeQueryAspectMutationOperationKind::Set,
-            )]
-        }
+        ForgeQueryWriteCommand::UpdateAspect { aspect, .. } => vec![aspect.declared_operation()],
         ForgeQueryWriteCommand::Delete { .. } => Vec::new(),
     }
 }
@@ -113,9 +104,9 @@ pub(crate) fn command_declared_aspect_value_identity(
                     .map(|aspect| {
                         declared_aspect_value_digest_row(
                             "declared",
-                            aspect.aspect_path(),
+                            aspect.aspect_touch().admitted_touch_digest_part(),
                             aspect.clears_existing_value(),
-                            aspect.value(),
+                            aspect.native_digest_material(),
                         )
                     })
                     .chain(symbolic_aspect_references.iter().map(|reference| {
@@ -140,17 +131,17 @@ pub(crate) fn command_declared_aspect_value_identity(
                 .map(|aspect| {
                     declared_aspect_value_digest_row(
                         "assert",
-                        aspect.aspect_path(),
+                        aspect.aspect_touch().admitted_touch_digest_part(),
                         aspect.clears_existing_value(),
-                        aspect.value(),
+                        aspect.native_digest_material(),
                     )
                 })
                 .chain(aspects.iter().map(|aspect| {
                     declared_aspect_value_digest_row(
                         "update",
-                        aspect.aspect_path(),
+                        aspect.aspect_touch().admitted_touch_digest_part(),
                         aspect.clears_existing_value(),
-                        aspect.value(),
+                        aspect.native_digest_material(),
                     )
                 }))
                 .chain(symbolic_aspect_references.iter().map(|reference| {
@@ -161,7 +152,7 @@ pub(crate) fn command_declared_aspect_value_identity(
         }
         ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects {
             asserted_aspects,
-            touched_aspect_paths,
+            touched_aspects,
             ..
         } => {
             let rows = asserted_aspects
@@ -169,21 +160,28 @@ pub(crate) fn command_declared_aspect_value_identity(
                 .map(|aspect| {
                     declared_aspect_value_digest_row(
                         "assert",
-                        aspect.aspect_path(),
+                        aspect.aspect_touch().admitted_touch_digest_part(),
                         aspect.clears_existing_value(),
-                        aspect.value(),
+                        aspect.native_digest_material(),
                     )
                 })
-                .chain(
-                    touched_aspect_paths
-                        .iter()
-                        .map(|path| touched_aspect_digest_row("delete", path)),
-                )
+                .chain(touched_aspects.iter().map(|touch| {
+                    touched_aspect_digest_row("delete", touch.admitted_touch_digest_part())
+                }))
                 .collect::<Vec<_>>();
             return Some(declared_aspect_value_identity(rows));
         }
-        ForgeQueryWriteCommand::UpdateAspect { .. }
-        | ForgeQueryWriteCommand::DeleteAspects { .. }
+        ForgeQueryWriteCommand::UpdateAspect { aspect, .. } => {
+            return Some(declared_aspect_value_identity(vec![
+                declared_aspect_value_digest_row(
+                    "declared",
+                    aspect.aspect_touch().admitted_touch_digest_part(),
+                    aspect.clears_existing_value(),
+                    aspect.native_digest_material(),
+                ),
+            ]));
+        }
+        ForgeQueryWriteCommand::DeleteAspects { .. }
         | ForgeQueryWriteCommand::DeleteExistingAspects { .. }
         | ForgeQueryWriteCommand::DeleteSymbolicAspects { .. }
         | ForgeQueryWriteCommand::Delete { .. } => return None,
@@ -194,9 +192,9 @@ pub(crate) fn command_declared_aspect_value_identity(
             .map(|aspect| {
                 declared_aspect_value_digest_row(
                     "declared",
-                    aspect.aspect_path(),
+                    aspect.aspect_touch().admitted_touch_digest_part(),
                     aspect.clears_existing_value(),
-                    aspect.value(),
+                    aspect.native_digest_material(),
                 )
             })
             .collect::<Vec<_>>(),
@@ -206,26 +204,28 @@ pub(crate) fn command_declared_aspect_value_identity(
 fn symbolic_aspect_reference_operation(
     reference: &ForgeQuerySymbolicAspectReference,
 ) -> ForgeQueryAspectMutationOperation {
-    ForgeQueryAspectMutationOperation::new(
-        reference.aspect_path().to_string(),
+    ForgeQueryAspectMutationOperation::from_touch(
+        reference.aspect_touch().clone(),
         ForgeQueryAspectMutationOperationKind::Set,
     )
 }
 
 fn declared_aspect_value_digest_row(
     prefix: &str,
-    aspect_path: &str,
+    aspect_touch_digest: String,
     clears_existing_value: bool,
-    value: &Value,
+    native_value_digest: String,
 ) -> ForgeQueryEvidenceIdentity {
-    let value_json = serde_json::to_string(value).unwrap_or_else(|_| value.to_string());
     forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
         .field_shape(
             ForgeQueryEvidenceTag::new("role"),
             "declared-aspect-value-row",
         )
         .field_shape(ForgeQueryEvidenceTag::new("prefix"), prefix)
-        .field_value(ForgeQueryEvidenceTag::new("aspect_path"), aspect_path)
+        .field_value(
+            ForgeQueryEvidenceTag::new("aspect_touch"),
+            aspect_touch_digest,
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("operation"),
             if clears_existing_value {
@@ -234,7 +234,10 @@ fn declared_aspect_value_digest_row(
                 "set"
             },
         )
-        .field_value(ForgeQueryEvidenceTag::new("value"), value_json)
+        .field_value(
+            ForgeQueryEvidenceTag::new("native_value"),
+            native_value_digest,
+        )
         .seal()
 }
 
@@ -257,8 +260,8 @@ fn symbolic_aspect_reference_digest_row(
             )
             .field_shape(ForgeQueryEvidenceTag::new("prefix"), prefix)
             .field_value(
-                ForgeQueryEvidenceTag::new("aspect_path"),
-                reference.aspect_path(),
+                ForgeQueryEvidenceTag::new("aspect_touch"),
+                reference.aspect_touch().admitted_touch_digest_part(),
             )
             .field_shape(
                 ForgeQueryEvidenceTag::new("family"),
@@ -279,12 +282,15 @@ fn symbolic_aspect_reference_digest_row(
 
 fn touched_aspect_digest_row(
     prefix: &'static str,
-    aspect_path: &str,
+    aspect_touch_digest: String,
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
         .field_shape(ForgeQueryEvidenceTag::new("role"), "touched-aspect-row")
         .field_shape(ForgeQueryEvidenceTag::new("prefix"), prefix)
-        .field_value(ForgeQueryEvidenceTag::new("aspect_path"), aspect_path)
+        .field_value(
+            ForgeQueryEvidenceTag::new("aspect_touch"),
+            aspect_touch_digest,
+        )
         .seal()
 }
 

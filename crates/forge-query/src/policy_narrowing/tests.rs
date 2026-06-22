@@ -1,6 +1,6 @@
 use crate::authoring::{
-    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, GuidedAuthoringPath,
-    OrderingSelector, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
+    AspectFieldKey, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
+    GuidedAuthoringPath, OrderingSelector, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
     ScalarPredicateValue,
 };
 use crate::authorized_projection::{PolicyAspectMask, PolicyInfluenceSet, PolicyMaskSnapshot};
@@ -109,6 +109,24 @@ fn mask_snapshot(
     PolicyMaskSnapshot::synthetic_authority(admitted.bundle().policy_digest(), mask)
 }
 
+fn secret_salary_key() -> AspectFieldKey {
+    AspectFieldKey::new("secret", "salary").unwrap()
+}
+
+fn native_field_pairs(
+    fields: &[crate::authorized_projection::AuthorizedProjectionFieldPath],
+) -> Vec<(String, String)> {
+    fields
+        .iter()
+        .map(|field| {
+            (
+                field.native_aspect_key().as_str().to_string(),
+                field.native_field_key().as_str().to_string(),
+            )
+        })
+        .collect()
+}
+
 #[test]
 fn narrowed_artifact_binds_policy_tenant_projection_and_proof() {
     let canonical = canonical_query();
@@ -126,7 +144,7 @@ fn narrowed_artifact_binds_policy_tenant_projection_and_proof() {
         admitted.clone(),
         mask_snapshot(
             &admitted,
-            PolicyAspectMask::allow_all().with_masked("secret", "salary"),
+            PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
         ),
         PolicyInfluenceSet::none(),
         descriptors,
@@ -137,13 +155,18 @@ fn narrowed_artifact_binds_policy_tenant_projection_and_proof() {
         narrowed.canonical_query_digest(),
         canonical.query().digest().as_str()
     );
-    assert_eq!(narrowed.authorized_projection().visible_fields().len(), 2);
     assert_eq!(
-        narrowed
-            .authorized_projection()
-            .masked_projection()
-            .masked_fields(),
-        &["secret.salary".to_string()]
+        narrowed.authorized_projection().visible_field_paths().len(),
+        2
+    );
+    assert_eq!(
+        native_field_pairs(
+            narrowed
+                .authorized_projection()
+                .masked_projection()
+                .masked_field_paths()
+        ),
+        vec![("secret".to_string(), "salary".to_string())]
     );
     assert_eq!(narrowed.relationship_proof().descriptor_count(), 1);
     assert_eq!(narrowed.counters().narrowed_artifact_count(), 1);
@@ -164,7 +187,7 @@ fn masked_predicate_denies_before_narrowed_artifact_construction() {
         admitted.clone(),
         mask_snapshot(
             &admitted,
-            PolicyAspectMask::allow_all().with_masked("secret", "salary"),
+            PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
         ),
         PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::none(),
@@ -196,7 +219,7 @@ fn masked_ordering_denies_before_optimizer_input_exists() {
         admitted.clone(),
         mask_snapshot(
             &admitted,
-            PolicyAspectMask::allow_all().with_non_disclosing_use_only("secret", "salary"),
+            PolicyAspectMask::allow_all().with_non_disclosing_use_only(secret_salary_key()),
         ),
         PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::none(),
@@ -228,7 +251,7 @@ fn relationship_proof_host_callback_is_forbidden_before_truth_touch() {
         admitted.clone(),
         mask_snapshot(
             &admitted,
-            PolicyAspectMask::allow_all().with_masked("secret", "salary"),
+            PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
         ),
         PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::new(
@@ -263,7 +286,7 @@ fn optimizer_input_is_derived_from_narrowed_artifact_only() {
         admitted.clone(),
         mask_snapshot(
             &admitted,
-            PolicyAspectMask::allow_all().with_masked("secret", "salary"),
+            PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
         ),
         PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::none(),
@@ -277,15 +300,17 @@ fn optimizer_input_is_derived_from_narrowed_artifact_only() {
         narrowed.digest()
     );
     assert_eq!(
-        optimizer.visible_fields(),
-        &[
-            "identity.id".to_string(),
-            "profile.display_name".to_string()
+        native_field_pairs(optimizer.visible_field_paths()),
+        vec![
+            ("identity".to_string(), "id".to_string()),
+            ("profile".to_string(), "display_name".to_string())
         ]
     );
-    assert!(!optimizer
-        .visible_fields()
-        .contains(&"secret.salary".to_string()));
+    assert!(!optimizer.visible_field_paths().iter().any(|field| field
+        .native_aspect_key()
+        .as_str()
+        == "secret"
+        && field.native_field_key().as_str() == "salary"));
     assert_eq!(
         optimizer.authorized_projection_digest(),
         narrowed.authorized_projection().identity().as_str()
@@ -302,7 +327,7 @@ fn policy_mask_snapshot_must_match_admitted_policy_authority() {
         admitted,
         PolicyMaskSnapshot::synthetic_authority(
             "wrong-policy-digest",
-            PolicyAspectMask::allow_all().with_masked("secret", "salary"),
+            PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
         ),
         PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::none(),
@@ -327,7 +352,7 @@ fn digest_part_budget_denies_before_artifact_construction() {
         admitted.clone(),
         mask_snapshot(
             &admitted,
-            PolicyAspectMask::allow_all().with_masked("secret", "salary"),
+            PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
         ),
         PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::none(),
@@ -358,7 +383,7 @@ fn validation_report_digest_binds_authorized_projection_identity() {
         admitted.clone(),
         mask_snapshot(
             &admitted,
-            PolicyAspectMask::allow_all().with_masked("secret", "salary"),
+            PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
         ),
         PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::none(),

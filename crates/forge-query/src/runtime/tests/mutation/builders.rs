@@ -18,8 +18,14 @@ fn aspect_native_mutation_builders_reject_empty_or_duplicate_authoring() {
 
     let duplicate = workspace
         .insert("Task", |task| {
-            task.aspect("title.value", "Buy milk")
-                .aspect("title.value", "Buy oat milk")
+            task.aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Buy milk"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Buy oat milk"),
+            )
         })
         .expect_err("duplicate aspect paths should fail closed");
     match duplicate {
@@ -31,7 +37,10 @@ fn aspect_native_mutation_builders_reject_empty_or_duplicate_authoring() {
 
     let duplicate_clear = workspace
         .update(test_entity_identity("entity:1:1:1"), |task| {
-            task.clear("title.value").aspect("title.value", "Buy milk")
+            task.clear(test_aspect_touch("title.value")).aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Buy milk"),
+            )
         })
         .expect_err("clear and set of the same aspect should fail closed");
     match duplicate_clear {

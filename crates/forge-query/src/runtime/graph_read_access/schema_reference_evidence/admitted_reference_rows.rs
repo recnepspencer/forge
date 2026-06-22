@@ -1,4 +1,6 @@
 use super::admitted_field_kind::ForgeQueryGraphReadAdmittedSchemaFieldKind;
+use crate::authoring::RelationName;
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryAdmittedGraphReadRelationDirection {
@@ -19,14 +21,18 @@ impl ForgeQueryAdmittedGraphReadRelationDirection {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryAdmittedGraphReadRelation {
-    relation: String,
+    relation: RelationName,
     direction: ForgeQueryAdmittedGraphReadRelationDirection,
     depth: usize,
 }
 
 impl ForgeQueryAdmittedGraphReadRelation {
-    pub fn relation(&self) -> &str {
+    pub fn relation_name(&self) -> &RelationName {
         &self.relation
+    }
+
+    pub(crate) fn terminal_relation_projection_for_boundary(&self) -> &str {
+        self.relation.as_str()
     }
 
     pub fn direction(&self) -> &ForgeQueryAdmittedGraphReadRelationDirection {
@@ -38,7 +44,7 @@ impl ForgeQueryAdmittedGraphReadRelation {
     }
 
     pub(crate) fn new(
-        relation: impl Into<String>,
+        relation: RelationName,
         direction: ForgeQueryAdmittedGraphReadRelationDirection,
         depth: usize,
     ) -> Self {
@@ -52,7 +58,7 @@ impl ForgeQueryAdmittedGraphReadRelation {
     pub(crate) fn digest_part(&self) -> String {
         format!(
             "relation:{}:{}:{}",
-            self.relation,
+            self.relation.as_str(),
             self.direction.as_str(),
             self.depth
         )
@@ -61,18 +67,18 @@ impl ForgeQueryAdmittedGraphReadRelation {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryAdmittedGraphReadProjectionField {
-    aspect: String,
-    field: String,
+    aspect: AspectKey,
+    field: FieldKey,
     delivered_name: String,
     kind: ForgeQueryGraphReadAdmittedSchemaFieldKind,
 }
 
 impl ForgeQueryAdmittedGraphReadProjectionField {
-    pub fn aspect(&self) -> &str {
+    pub fn native_aspect_key(&self) -> &AspectKey {
         &self.aspect
     }
 
-    pub fn field(&self) -> &str {
+    pub fn native_field_key(&self) -> &FieldKey {
         &self.field
     }
 
@@ -85,14 +91,14 @@ impl ForgeQueryAdmittedGraphReadProjectionField {
     }
 
     pub(crate) fn new(
-        aspect: impl Into<String>,
-        field: impl Into<String>,
+        aspect: AspectKey,
+        field: FieldKey,
         delivered_name: impl Into<String>,
         kind: ForgeQueryGraphReadAdmittedSchemaFieldKind,
     ) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            aspect,
+            field,
             delivered_name: delivered_name.into(),
             kind,
         }
@@ -101,8 +107,8 @@ impl ForgeQueryAdmittedGraphReadProjectionField {
     pub(crate) fn digest_part(&self) -> String {
         format!(
             "projection:{}:{}:{}:{}",
-            self.aspect,
-            self.field,
+            self.aspect.as_str(),
+            self.field.as_str(),
             self.delivered_name,
             self.kind.as_str()
         )
@@ -111,18 +117,18 @@ impl ForgeQueryAdmittedGraphReadProjectionField {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryAdmittedGraphReadPredicateField {
-    aspect: String,
-    field: String,
+    aspect: AspectKey,
+    field: FieldKey,
     family: String,
     kind: ForgeQueryGraphReadAdmittedSchemaFieldKind,
 }
 
 impl ForgeQueryAdmittedGraphReadPredicateField {
-    pub fn aspect(&self) -> &str {
+    pub fn native_aspect_key(&self) -> &AspectKey {
         &self.aspect
     }
 
-    pub fn field(&self) -> &str {
+    pub fn native_field_key(&self) -> &FieldKey {
         &self.field
     }
 
@@ -135,14 +141,14 @@ impl ForgeQueryAdmittedGraphReadPredicateField {
     }
 
     pub(crate) fn new(
-        aspect: impl Into<String>,
-        field: impl Into<String>,
+        aspect: AspectKey,
+        field: FieldKey,
         family: impl Into<String>,
         kind: ForgeQueryGraphReadAdmittedSchemaFieldKind,
     ) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            aspect,
+            field,
             family: family.into(),
             kind,
         }
@@ -151,8 +157,8 @@ impl ForgeQueryAdmittedGraphReadPredicateField {
     pub(crate) fn digest_part(&self) -> String {
         format!(
             "predicate:{}:{}:{}:{}",
-            self.aspect,
-            self.field,
+            self.aspect.as_str(),
+            self.field.as_str(),
             self.family,
             self.kind.as_str()
         )
@@ -161,18 +167,18 @@ impl ForgeQueryAdmittedGraphReadPredicateField {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryAdmittedGraphReadOrderingField {
-    aspect: String,
-    field: String,
+    aspect: AspectKey,
+    field: FieldKey,
     direction: String,
     kind: ForgeQueryGraphReadAdmittedSchemaFieldKind,
 }
 
 impl ForgeQueryAdmittedGraphReadOrderingField {
-    pub fn aspect(&self) -> &str {
+    pub fn native_aspect_key(&self) -> &AspectKey {
         &self.aspect
     }
 
-    pub fn field(&self) -> &str {
+    pub fn native_field_key(&self) -> &FieldKey {
         &self.field
     }
 
@@ -185,14 +191,14 @@ impl ForgeQueryAdmittedGraphReadOrderingField {
     }
 
     pub(crate) fn new(
-        aspect: impl Into<String>,
-        field: impl Into<String>,
+        aspect: AspectKey,
+        field: FieldKey,
         direction: impl Into<String>,
         kind: ForgeQueryGraphReadAdmittedSchemaFieldKind,
     ) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            aspect,
+            field,
             direction: direction.into(),
             kind,
         }
@@ -201,8 +207,8 @@ impl ForgeQueryAdmittedGraphReadOrderingField {
     pub(crate) fn digest_part(&self) -> String {
         format!(
             "ordering:{}:{}:{}:{}",
-            self.aspect,
-            self.field,
+            self.aspect.as_str(),
+            self.field.as_str(),
             self.direction,
             self.kind.as_str()
         )

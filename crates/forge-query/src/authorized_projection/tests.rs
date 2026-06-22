@@ -1,6 +1,6 @@
 use crate::authoring::{
-    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, GuidedAuthoringPath,
-    OrderingSelector, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
+    AspectFieldKey, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
+    GuidedAuthoringPath, OrderingSelector, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
     ScalarPredicateValue,
 };
 
@@ -25,6 +25,10 @@ fn canonical_query() -> crate::canonicalization::CanonicalQueryBundle {
     GuidedAuthoringPath::canonicalize_detail(query, result_shape).unwrap()
 }
 
+fn secret_salary_key() -> AspectFieldKey {
+    AspectFieldKey::new("secret", "salary").unwrap()
+}
+
 #[test]
 fn masked_projection_is_excluded_from_authorized_projection() {
     let canonical = canonical_query();
@@ -33,17 +37,17 @@ fn masked_projection_is_excluded_from_authorized_projection() {
         canonical.result_shape(),
         "policy-a",
         "schema-a",
-        &PolicyAspectMask::allow_all().with_masked("secret", "salary"),
+        &PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
         &PolicyInfluenceSet::none(),
         8,
         8,
     )
     .unwrap();
 
-    assert_eq!(artifact.visible_fields().len(), 2);
+    assert_eq!(artifact.visible_field_paths().len(), 2);
     assert_eq!(
-        artifact.masked_projection().masked_fields(),
-        &["secret.salary".to_string()]
+        native_field_pairs(artifact.masked_projection().masked_field_paths()),
+        vec![("secret".to_string(), "salary".to_string())]
     );
     assert_eq!(artifact.counters().masked_projection_entry_count(), 1);
 }
@@ -68,15 +72,30 @@ fn non_disclosing_predicate_is_allowed_when_not_emitted() {
         canonical.result_shape(),
         "policy-a",
         "schema-a",
-        &PolicyAspectMask::allow_all().with_non_disclosing_use_only("secret", "salary"),
+        &PolicyAspectMask::allow_all().with_non_disclosing_use_only(secret_salary_key()),
         &PolicyInfluenceSet::none(),
         8,
         8,
     )
     .unwrap();
 
-    assert_eq!(artifact.visible_fields(), &["identity.id".to_string()]);
+    assert_eq!(
+        native_field_pairs(artifact.visible_field_paths()),
+        vec![("identity".to_string(), "id".to_string())]
+    );
     assert_eq!(artifact.counters().hidden_predicate_denial_count(), 0);
+}
+
+fn native_field_pairs(fields: &[super::AuthorizedProjectionFieldPath]) -> Vec<(String, String)> {
+    fields
+        .iter()
+        .map(|field| {
+            (
+                field.native_aspect_key().as_str().to_string(),
+                field.native_field_key().as_str().to_string(),
+            )
+        })
+        .collect()
 }
 
 #[test]
@@ -97,7 +116,7 @@ fn masked_ordering_is_a_typed_denial() {
         canonical.result_shape(),
         "policy-a",
         "schema-a",
-        &PolicyAspectMask::allow_all().with_masked("secret", "salary"),
+        &PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
         &PolicyInfluenceSet::none(),
         8,
         8,
@@ -119,10 +138,8 @@ fn masked_grouping_influence_is_a_typed_denial() {
         canonical.result_shape(),
         "policy-a",
         "schema-a",
-        &PolicyAspectMask::allow_all().with_masked("secret", "salary"),
-        &PolicyInfluenceSet::none().with_grouping_field(
-            crate::authoring::AspectFieldKey::new("secret", "salary").unwrap(),
-        ),
+        &PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
+        &PolicyInfluenceSet::none().with_grouping_field(secret_salary_key()),
         8,
         8,
     )
@@ -143,10 +160,8 @@ fn masked_derived_field_influence_is_a_typed_denial() {
         canonical.result_shape(),
         "policy-a",
         "schema-a",
-        &PolicyAspectMask::allow_all().with_non_disclosing_use_only("secret", "salary"),
-        &PolicyInfluenceSet::none().with_derived_result_field(
-            crate::authoring::AspectFieldKey::new("secret", "salary").unwrap(),
-        ),
+        &PolicyAspectMask::allow_all().with_non_disclosing_use_only(secret_salary_key()),
+        &PolicyInfluenceSet::none().with_derived_result_field(secret_salary_key()),
         8,
         8,
     )
@@ -167,10 +182,8 @@ fn masked_aggregation_influence_is_a_typed_denial() {
         canonical.result_shape(),
         "policy-a",
         "schema-a",
-        &PolicyAspectMask::allow_all().with_non_disclosing_use_only("secret", "salary"),
-        &PolicyInfluenceSet::none().with_aggregation_field(
-            crate::authoring::AspectFieldKey::new("secret", "salary").unwrap(),
-        ),
+        &PolicyAspectMask::allow_all().with_non_disclosing_use_only(secret_salary_key()),
+        &PolicyInfluenceSet::none().with_aggregation_field(secret_salary_key()),
         8,
         8,
     )
@@ -191,9 +204,8 @@ fn masked_cursor_influence_is_a_typed_denial() {
         canonical.result_shape(),
         "policy-a",
         "schema-a",
-        &PolicyAspectMask::allow_all().with_masked("secret", "salary"),
-        &PolicyInfluenceSet::none()
-            .with_cursor_field(crate::authoring::AspectFieldKey::new("secret", "salary").unwrap()),
+        &PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
+        &PolicyInfluenceSet::none().with_cursor_field(secret_salary_key()),
         8,
         8,
     )
@@ -214,10 +226,8 @@ fn masked_view_membership_influence_is_a_typed_denial() {
         canonical.result_shape(),
         "policy-a",
         "schema-a",
-        &PolicyAspectMask::allow_all().with_masked("secret", "salary"),
-        &PolicyInfluenceSet::none().with_view_membership_field(
-            crate::authoring::AspectFieldKey::new("secret", "salary").unwrap(),
-        ),
+        &PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
+        &PolicyInfluenceSet::none().with_view_membership_field(secret_salary_key()),
         8,
         8,
     )
@@ -233,8 +243,8 @@ fn masked_view_membership_influence_is_a_typed_denial() {
 #[test]
 fn non_disclosing_predicate_permission_does_not_admit_other_influence_purposes() {
     let canonical = canonical_query();
-    let hidden = crate::authoring::AspectFieldKey::new("secret", "salary").unwrap();
-    let mask = PolicyAspectMask::allow_all().with_non_disclosing_use_only("secret", "salary");
+    let hidden = secret_salary_key();
+    let mask = PolicyAspectMask::allow_all().with_non_disclosing_use_only(secret_salary_key());
     let aggregation = derive_authorized_projection(
         canonical.query(),
         canonical.result_shape(),

@@ -15,11 +15,15 @@ impl AspectFieldSelector {
         })
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        &self.key
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
         self.key.aspect().as_str()
     }
 
-    pub fn field(&self) -> &str {
+    pub(crate) fn field(&self) -> &str {
         self.key.field().as_str()
     }
 

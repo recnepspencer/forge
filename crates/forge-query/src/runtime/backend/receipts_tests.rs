@@ -5,9 +5,11 @@ use crate::memory_workspace::{
 };
 use crate::runtime::tests::support::test_bridge_with_writeback_authority;
 use crate::runtime::{
-    build_bridge_authority_bundle, ForgeQueryAspectValue, ForgeQueryWriteCommand,
+    build_bridge_authority_bundle, ForgeQueryAspectTouch, ForgeQueryAspectValue,
+    ForgeQueryBackendAdmissibleMutation, ForgeQueryWriteCommand,
 };
 use crate::ForgeQueryEvidenceScope;
+use forge_foundational::facade::AspectValue;
 use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 #[test]
@@ -44,15 +46,24 @@ fn signal_invalidation_routing_receipt_summarizes_delta_width() {
     let command = ForgeQueryWriteCommand::UpdateAspects {
         entity_identity: command_entity_identity.clone(),
         aspects: vec![
-            ForgeQueryAspectValue::new_set("title.value", "Done")
-                .expect("title aspect should build"),
-            ForgeQueryAspectValue::new_set("status.value", "closed")
-                .expect("status aspect should build"),
+            ForgeQueryAspectValue::new_set(
+                ForgeQueryAspectTouch::from_authoring_path("title.value")
+                    .expect("title aspect should admit"),
+                AspectValue::String("Done".into()),
+            )
+            .expect("title aspect should build"),
+            ForgeQueryAspectValue::new_set(
+                ForgeQueryAspectTouch::from_authoring_path("status.value")
+                    .expect("status aspect should admit"),
+                AspectValue::String("closed".into()),
+            )
+            .expect("status aspect should build"),
         ],
         metadata: Default::default(),
         naming_intent: None,
         continuity_intent: None,
     };
+    let mutation = ForgeQueryBackendAdmissibleMutation::from_admitted_command(command);
     let bridge = test_bridge_with_writeback_authority();
     let snapshot_identity =
         crate::memory_workspace::ForgeQuerySnapshotIdentity::from_relational_snapshot(
@@ -61,7 +72,7 @@ fn signal_invalidation_routing_receipt_summarizes_delta_width() {
     let bridge_authority = build_bridge_authority_bundle(
         &bridge,
         &snapshot_identity,
-        &command,
+        &mutation,
         "Task",
         &command_entity_identity,
         ForgeQueryMutationKind::Updated,
@@ -71,17 +82,23 @@ fn signal_invalidation_routing_receipt_summarizes_delta_width() {
         crate::memory_workspace::ForgeQueryCommitIdentity::from_relational_commit_id(1),
         snapshot_identity,
         vec![
-            ForgeQueryMutationDelta::new(
+            ForgeQueryMutationDelta::from_touched_aspects(
                 "Task",
                 crate::memory_workspace::admit_authored_entity_label("task-1"),
                 ForgeQueryMutationKind::Created,
-                vec!["title.value".to_string()],
+                vec![
+                    crate::runtime::ForgeQueryAspectTouch::from_authoring_path("title.value")
+                        .expect("test title aspect touch should admit"),
+                ],
             ),
-            ForgeQueryMutationDelta::new(
+            ForgeQueryMutationDelta::from_touched_aspects(
                 "Task",
                 crate::memory_workspace::admit_authored_entity_label("task-2"),
                 ForgeQueryMutationKind::Updated,
-                vec!["status.value".to_string()],
+                vec![
+                    crate::runtime::ForgeQueryAspectTouch::from_authoring_path("status.value")
+                        .expect("test status aspect touch should admit"),
+                ],
             ),
         ],
         bridge_authority,
@@ -98,4 +115,86 @@ fn signal_invalidation_routing_receipt_summarizes_delta_width() {
         ForgeQueryEvidenceScope::SignalInvalidationRoutingReceipt
     );
     assert!(!routed.receipt_identity().as_str().is_empty());
+}
+
+#[test]
+fn bridge_writeback_effect_intent_is_bound_to_admitted_aspect_patch() {
+    let baseline = bridge_authority_for_title_value("Done");
+    let changed = bridge_authority_for_title_value("Blocked");
+
+    let baseline_basis = baseline.provenance().effect_intent_patch_canonical_basis();
+    let changed_basis = changed.provenance().effect_intent_patch_canonical_basis();
+
+    assert_ne!(baseline_basis, changed_basis);
+    assert!(baseline_basis.contains("domain=authoritative-patch"));
+    assert!(baseline_basis.contains("title.field.value.set"));
+    assert!(
+        baseline_basis.contains("exact-text:Done"),
+        "{baseline_basis}"
+    );
+    assert!(!baseline_basis.contains("forge.query.writeback"));
+}
+
+#[test]
+fn bridge_writeback_effect_intent_accepts_whole_entity_delete_empty_patch() {
+    let entity_identity = crate::memory_workspace::admit_authored_entity_label("task-1");
+    let command = ForgeQueryWriteCommand::Delete {
+        entity_identity: entity_identity.clone(),
+    };
+    let mutation = ForgeQueryBackendAdmissibleMutation::from_admitted_command(command);
+    let bridge = test_bridge_with_writeback_authority();
+    let snapshot_identity =
+        crate::memory_workspace::ForgeQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(1, 1),
+        );
+
+    let bridge_authority = build_bridge_authority_bundle(
+        &bridge,
+        &snapshot_identity,
+        &mutation,
+        "Task",
+        &entity_identity,
+        ForgeQueryMutationKind::Deleted,
+    )
+    .expect("whole-entity delete should lower through an empty native patch");
+    let basis = bridge_authority
+        .provenance()
+        .effect_intent_patch_canonical_basis();
+
+    assert!(basis.contains("domain=authoritative-patch"));
+    assert!(!basis.contains(".set"));
+    assert!(!basis.contains(".clear"));
+}
+
+fn bridge_authority_for_title_value(
+    value: &str,
+) -> forge_runtime_bridge::facade::BridgeMutationAuthorityBundle {
+    let entity_identity = crate::memory_workspace::admit_authored_entity_label("task-1");
+    let command = ForgeQueryWriteCommand::UpdateAspects {
+        entity_identity: entity_identity.clone(),
+        aspects: vec![ForgeQueryAspectValue::new_set(
+            ForgeQueryAspectTouch::from_authoring_path("title.value")
+                .expect("title aspect should admit"),
+            AspectValue::String(value.into()),
+        )
+        .expect("title aspect should build")],
+        metadata: Default::default(),
+        naming_intent: None,
+        continuity_intent: None,
+    };
+    let mutation = ForgeQueryBackendAdmissibleMutation::from_admitted_command(command);
+    let bridge = test_bridge_with_writeback_authority();
+    let snapshot_identity =
+        crate::memory_workspace::ForgeQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(1, 1),
+        );
+    build_bridge_authority_bundle(
+        &bridge,
+        &snapshot_identity,
+        &mutation,
+        "Task",
+        &entity_identity,
+        ForgeQueryMutationKind::Updated,
+    )
+    .expect("test bridge authority should build")
 }

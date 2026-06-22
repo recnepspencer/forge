@@ -82,8 +82,14 @@ fn single_task_graph_program(
     graph
         .insert_entity("task", "Task", |entity| {
             entity
-                .aspect("identity.id", id)
-                .aspect("title.value", "Graph task")
+                .aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value(id),
+                )
+                .aspect(
+                    test_aspect_touch("title.value"),
+                    test_string_aspect_value("Graph task"),
+                )
         })
         .unwrap();
     graph.finish().unwrap()
@@ -93,8 +99,16 @@ fn task_insert_command(id: &str) -> ForgeQueryWriteCommand {
     ForgeQueryWriteCommand::InsertAspects {
         collection: "Task".to_string(),
         aspects: vec![
-            ForgeQueryAspectValue::new("identity.id", id).unwrap(),
-            ForgeQueryAspectValue::new("title.value", "Projected task").unwrap(),
+            ForgeQueryAspectValue::new(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value(id),
+            )
+            .unwrap(),
+            ForgeQueryAspectValue::new(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Projected task"),
+            )
+            .unwrap(),
         ],
         symbolic_aspect_references: Vec::new(),
         metadata: ForgeQueryMutationMetadata::new(),

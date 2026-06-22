@@ -43,7 +43,7 @@ fn runtime_remask_posture_projects_parity_across_state_and_inspection() {
         "relationship-proof:verified",
         "schema-context:task-table",
     ));
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.remask-policy", task_live_request(), task_schema())
         .expect("live view should declare");
     runtime
@@ -68,7 +68,7 @@ fn runtime_remask_posture_projects_parity_across_state_and_inspection() {
         )
         .expect("async current state should project");
 
-    let state = <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
+    let state = <&ForgeQueryLiveView<ForgeQueryNativeRow> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
         &view, &runtime,
     )
     .expect("state should snapshot");
@@ -134,7 +134,7 @@ fn runtime_remask_denial_stays_typed_and_does_not_collapse_into_generic_async_fa
             "relationship-proof:drifted",
             "schema-context:drifted",
         ));
-        let view: ForgeQueryLiveView<Value> = runtime
+        let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
             .declare_live_view(view_name, task_live_request(), task_schema())
             .expect("live view should declare");
         let (basis_digest, generation_digest) =
@@ -152,7 +152,7 @@ fn runtime_remask_denial_stays_typed_and_does_not_collapse_into_generic_async_fa
             .expect("async current state should project");
 
         let state =
-            <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
+            <&ForgeQueryLiveView<ForgeQueryNativeRow> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
                 &view, &runtime,
             )
             .expect("state should snapshot");

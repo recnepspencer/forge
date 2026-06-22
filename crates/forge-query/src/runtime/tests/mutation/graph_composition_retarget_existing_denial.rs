@@ -8,21 +8,38 @@ fn seed_relation_binding(
     workspace: &mut ForgeQueryWorkspace,
     workspace_name: &str,
 ) -> ForgeQueryExistingTruthTargetBinding {
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view(workspace_name, |q| {
             q.from("TaskRelation")
-                .select(["identity.id", "kind.value", "source.id", "target.id"])
-                .order_by("identity.id")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::new("source", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("target", "id").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
                 .schema_basis(workspace_name)
         })
         .expect("relation live view should declare");
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect("identity.id", "rel-next")
-                .aspect("kind.value", "loop_successor")
-                .aspect("source.id", "loop-a")
-                .aspect("target.id", "loop-b")
+                .aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value("rel-next"),
+                )
+                .aspect(
+                    test_aspect_touch("kind.value"),
+                    test_string_aspect_value("loop_successor"),
+                )
+                .aspect(
+                    test_aspect_touch("source.id"),
+                    test_string_aspect_value("loop-a"),
+                )
+                .aspect(
+                    test_aspect_touch("target.id"),
+                    test_string_aspect_value("loop-b"),
+                )
         })
         .expect("seed insert should execute");
     workspace
@@ -68,7 +85,7 @@ fn compose_graph_denies_existing_target_retarget_with_split_successor_continuity
                             .expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         ],
                     )
-                    .aspect("target.id", "loop-c")
+                    .aspect(test_aspect_touch("target.id"), test_string_aspect_value("loop-c"))
             })?;
             Ok(())
         })
@@ -102,7 +119,12 @@ fn compose_graph_denies_existing_target_retarget_without_rebind_intent() {
 
     let error = workspace
         .compose_graph(|graph| {
-            graph.retarget_existing(binding, |relation| relation.aspect("target.id", "loop-c"))?;
+            graph.retarget_existing(binding, |relation| {
+                relation.aspect(
+                    test_aspect_touch("target.id"),
+                    test_string_aspect_value("loop-c"),
+                )
+            })?;
             Ok(())
         })
         .expect_err("retarget lanes should deny without rebind intent");

@@ -45,6 +45,9 @@ impl ForgeQueryGraphCompositionEvidence {
             .entries()
             .iter()
             .map(|entry| {
+                let aspect_digest = entry
+                    .aspect_touch()
+                    .map(crate::runtime::ForgeQueryAspectTouch::admitted_touch_digest_part);
                 let mut entry_identity = forge_query_evidence_identity(
                     ForgeQueryEvidenceScope::BatchWriteReceiptGraphResolution,
                 )
@@ -54,7 +57,7 @@ impl ForgeQueryGraphCompositionEvidence {
                 )
                 .optional_value(
                     ForgeQueryEvidenceTag::new("aspect_path"),
-                    entry.aspect_path(),
+                    aspect_digest.as_deref(),
                 )
                 .field_evidence_identity(
                     ForgeQueryEvidenceTag::new("symbol"),

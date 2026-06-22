@@ -61,7 +61,7 @@ fn remasked_runtime(projection: ForgeQueryRuntimeRemaskProjection) -> ForgeQuery
 #[test]
 fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and_follow_on_lanes() {
     let mut time_only_runtime = stateful_bridge_task_runtime();
-    let time_view: ForgeQueryLiveView<Value> = time_only_runtime
+    let time_view: ForgeQueryLiveView<ForgeQueryNativeRow> = time_only_runtime
         .declare_live_view(
             "tasks.phase26-time-only",
             task_live_request(),
@@ -111,7 +111,7 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         )
         .expect("mixed-cause delivery should plan");
     let mut mixed_runtime = stateful_bridge_task_runtime();
-    let mixed_view: ForgeQueryLiveView<Value> = mixed_runtime
+    let mixed_view: ForgeQueryLiveView<ForgeQueryNativeRow> = mixed_runtime
         .declare_live_view(
             "tasks.phase26-mixed-cause",
             task_live_request(),
@@ -148,7 +148,7 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         "relationship-proof:stable",
         "schema-context:drifted",
     ));
-    let remask_view: ForgeQueryLiveView<Value> = remask_runtime
+    let remask_view: ForgeQueryLiveView<ForgeQueryNativeRow> = remask_runtime
         .declare_live_view(
             "tasks.phase26-remask-denied",
             task_live_request(),
@@ -176,17 +176,20 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         "async-completion:cause:phase26-title",
     );
     let follow_on_view = follow_on_runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.phase26-follow-on",
             task_live_request(),
             task_schema(),
         )
         .expect("follow-on live view should declare");
     let follow_on_effect = follow_on_runtime
-        .declare_effect::<Value>(
+        .declare_effect::<ForgeQueryNativeRow>(
             ForgeQueryEffectDeclaration::write_intent(
                 "effects.phase26-follow-on",
-                ForgeQueryEffectTrigger::live_view(&follow_on_view, ["title.value"]),
+                ForgeQueryEffectTrigger::live_view(
+                    &follow_on_view,
+                    test_aspect_touches(["title.value"]),
+                ),
                 "strategy.intent.reconcile",
             )
             .with_write_adjacent_trigger(
@@ -196,11 +199,11 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         )
         .expect("follow-on effect should declare");
     follow_on_runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from phase26 async completion"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title from phase26 async completion",
+        ))
         .expect("follow-on write should queue pending intent");
     let follow_on_receipt = follow_on_runtime
         .next_effect_write_intent(&follow_on_effect, "1.0", "effect.intent.input.v1")

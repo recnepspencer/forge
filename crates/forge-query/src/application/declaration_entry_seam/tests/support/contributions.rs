@@ -187,7 +187,10 @@ fn declaration_target(label: &str) -> ForgeQueryDeclarationBoundContributionTarg
         format!("forge.declaration_entry_seam.{label}"),
         "1",
         "forge.declaration-entry-seam.fixture",
-        serde_json::json!({ "fixture": label }),
+        crate::runtime::ForgeQueryIntentInput::object([(
+            "fixture",
+            crate::runtime::ForgeQueryIntentInput::string(label),
+        )]),
     );
     ForgeQueryDeclarationBoundContributionTarget::for_intent_declaration(&declaration)
 }

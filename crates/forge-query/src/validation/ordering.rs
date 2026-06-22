@@ -18,7 +18,7 @@ pub(crate) fn validate_ordering_entries(
 
     for entry in ordering {
         counters.record_schema_lookup();
-        let Some(field) = schema_view.field(entry.aspect.as_str(), entry.field.as_str()) else {
+        let Some(field) = schema_view.field(&entry.aspect, &entry.field) else {
             counters.record_rejection();
             rejection_matrix.record_ordering_rejection();
             return Err(ValidationFailureArtifact::new(

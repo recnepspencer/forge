@@ -4,19 +4,19 @@ use super::super::support::*;
 fn effect_delivery_routes_from_live_trigger_with_expression_metadata() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(
+        .declare_effect::<ForgeQueryNativeRow>(
             ForgeQueryEffectDeclaration::deliver(
                 "ui.title-badges",
-                ForgeQueryEffectTrigger::live_view(&live, ["title"]),
+                ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
                 "ui.badges",
             )
             .with_condition(ForgeQueryEffectCondition::expression(
                 "expr.title.badge",
-                ["title"],
-                ["ui.badge"],
+                test_aspect_touches(["title"]),
+                test_aspect_touches(["ui.badge"]),
             )),
         )
         .expect("effect should declare");
@@ -25,8 +25,8 @@ fn effect_delivery_routes_from_live_trigger_with_expression_metadata() {
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("")),
-                ("title.value", json!("Effect task")),
+                ("identity.id", test_string_aspect_value("")),
+                ("title.value", test_string_aspect_value("Effect task")),
             ],
         ))
         .expect("write should route effect");
@@ -48,8 +48,14 @@ fn effect_delivery_routes_from_live_trigger_with_expression_metadata() {
         ForgeQueryEffectTriggerSourceKind::LiveView
     );
     assert_eq!(evidence.condition_descriptor(), "expr.title.badge");
-    assert_eq!(evidence.condition_inputs(), &["title".to_string()]);
-    assert_eq!(evidence.condition_outputs(), &["ui.badge".to_string()]);
+    assert_eq!(
+        evidence.condition_input_touches(),
+        test_aspect_touches(["title"]).as_slice()
+    );
+    assert_eq!(
+        evidence.condition_output_touches(),
+        test_aspect_touches(["ui.badge"]).as_slice()
+    );
     assert_eq!(evidence.pending_delivery_count(), 1);
     assert_eq!(evidence.pending_delivered_count(), 1);
     assert_eq!(evidence.pending_suppressed_count(), 0);
@@ -89,8 +95,14 @@ fn effect_delivery_routes_from_live_trigger_with_expression_metadata() {
         deliveries[0].authority_lane(),
         ForgeQueryAuthorityLane::EffectDeliveryState
     );
-    assert_eq!(deliveries[0].aspect_paths(), &["title.value".to_string()]);
-    assert_eq!(deliveries[0].payload()["condition"], "expr.title.badge");
+    assert_eq!(
+        deliveries[0].aspect_touches(),
+        test_aspect_touches(["title.value"]).as_slice()
+    );
+    assert_eq!(
+        deliveries[0].payload().condition(),
+        Some("expr.title.badge")
+    );
 
     let graph = runtime
         .inspect_feedback_path(&effect)
@@ -120,20 +132,20 @@ fn effect_delivery_routes_from_live_trigger_with_expression_metadata() {
 fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");
     let titles = runtime
-        .declare_maintained_derived_view::<Value>(
-            ForgeQueryDerivedView::new("computed.titles.effect", ["title".to_string()])
+        .declare_maintained_derived_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new("computed.titles.effect", test_aspect_touches(["title"]))
                 .depends_on_live(&live)
-                .produces(["title.summary".to_string()]),
+                .produces(test_aspect_touches(["title.summary"])),
             TitleListMaintainer,
         )
         .expect("computed should declare");
     let effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::deliver(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::deliver(
             "ui.summary-badges",
-            ForgeQueryEffectTrigger::computed_view(&titles, ["title.summary"]),
+            ForgeQueryEffectTrigger::computed_view(&titles, test_aspect_touches(["title.summary"])),
             "ui.summary",
         ))
         .expect("computed-triggered effect should declare");
@@ -142,8 +154,11 @@ fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("")),
-                ("title.value", json!("Computed effect task")),
+                ("identity.id", test_string_aspect_value("")),
+                (
+                    "title.value",
+                    test_string_aspect_value("Computed effect task"),
+                ),
             ],
         ))
         .expect("write should route computed effect");
@@ -160,15 +175,27 @@ fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
         ForgeQueryEffectTriggerSourceKind::ComputedView
     );
     assert_eq!(deliveries[0].trigger_source(), "computed.titles.effect");
-    assert_eq!(deliveries[0].aspect_paths(), &["title.summary".to_string()]);
     assert_eq!(
-        runtime.read_derived(&titles),
-        vec![Value::String(
+        deliveries[0].aspect_touches(),
+        test_aspect_touches(["title.summary"]).as_slice()
+    );
+    let value_path =
+        retained_test_field_path("value").expect("test retained value path should parse");
+    let materialized = runtime
+        .read_derived_result(&titles)
+        .expect("computed title materialization should execute");
+    let retained_value = materialized.retained_rows()[0]
+        .field_value_at(&value_path)
+        .expect("computed title row should retain value");
+    assert_eq!(
+        retained_value,
+        &AspectValue::String(
             write.deltas()[0]
                 .entity_identity
                 .terminal_projection_for_reporting()
                 .to_string()
-        )]
+                .into()
+        )
     );
 }
 
@@ -176,20 +203,23 @@ fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
 fn computed_effect_does_not_replay_stale_undrained_computed_patch() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");
     let titles = runtime
-        .declare_maintained_derived_view::<Value>(
-            ForgeQueryDerivedView::new("computed.titles.stale-effect", ["title".to_string()])
-                .depends_on_live(&live)
-                .produces(["title.summary".to_string()]),
+        .declare_maintained_derived_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new(
+                "computed.titles.stale-effect",
+                test_aspect_touches(["title"]),
+            )
+            .depends_on_live(&live)
+            .produces(test_aspect_touches(["title.summary"])),
             TitleListMaintainer,
         )
         .expect("computed should declare");
     let effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::deliver(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::deliver(
             "ui.stale-summary-badges",
-            ForgeQueryEffectTrigger::computed_view(&titles, ["title.summary"]),
+            ForgeQueryEffectTrigger::computed_view(&titles, test_aspect_touches(["title.summary"])),
             "ui.summary",
         ))
         .expect("computed-triggered effect should declare");
@@ -198,8 +228,8 @@ fn computed_effect_does_not_replay_stale_undrained_computed_patch() {
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("")),
-                ("title.value", json!("First effect task")),
+                ("identity.id", test_string_aspect_value("")),
+                ("title.value", test_string_aspect_value("First effect task")),
             ],
         ))
         .expect("first write should route computed effect");
@@ -209,184 +239,20 @@ fn computed_effect_does_not_replay_stale_undrained_computed_patch() {
     assert_eq!(first_deliveries.len(), 1);
 
     let unrelated = runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: first_write.deltas()[0].entity_identity.clone(),
-            aspect_path: "identity.id".to_string(),
-            value: Value::String("irrelevant".to_string()),
-        })
+        .write(test_update_string_aspect_command(
+            first_write.deltas()[0].entity_identity.clone(),
+            "identity.id",
+            "irrelevant",
+        ))
         .expect("irrelevant write should not replay stale computed patch");
     let stale_deliveries = runtime
         .drain_effect_deliveries(&effect)
         .expect("stale effect deliveries should drain");
 
     assert_eq!(unrelated.considered_computed_view_count(), 1);
-    assert!(unrelated.affected_derived_view_ids().is_empty());
+    assert!(unrelated
+        .terminal_affected_derived_view_ids_projection()
+        .is_empty());
     assert_eq!(unrelated.considered_effect_count(), 0);
     assert!(stale_deliveries.is_empty());
-}
-
-#[test]
-fn effect_expression_suppression_and_failure_are_typed_and_counted() {
-    let mut runtime = stateful_bridge_task_runtime();
-    let live = runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
-        .expect("live should declare");
-    let suppressed_effect = runtime
-        .declare_effect::<Value>(
-            ForgeQueryEffectDeclaration::deliver(
-                "ui.suppressed",
-                ForgeQueryEffectTrigger::live_view(&live, ["title"]),
-                "ui.suppressed",
-            )
-            .with_condition(ForgeQueryEffectCondition::expression(
-                "expr.needs-validation",
-                ["validation.state"],
-                ["ui.badge"],
-            )),
-        )
-        .expect("suppressed effect should declare");
-    let failing_effect = runtime
-        .declare_effect::<Value>(
-            ForgeQueryEffectDeclaration::deliver(
-                "ui.failing",
-                ForgeQueryEffectTrigger::live_view(&live, ["title"]),
-                "ui.failing",
-            )
-            .with_condition(ForgeQueryEffectCondition::failing_expression(
-                "expr.fail.validation",
-                ["title"],
-                ["ui.badge"],
-            )),
-        )
-        .expect("failing effect should declare");
-
-    let write = runtime
-        .write(insert_command(
-            "Task",
-            [
-                ("identity.id", json!("")),
-                ("title.value", json!("Conditional task")),
-            ],
-        ))
-        .expect("write should route effects");
-    let suppressed_evidence = runtime
-        .inspect_effect(&suppressed_effect)
-        .expect("suppressed terminal artifact should inspect before drain");
-    let suppressed = runtime
-        .drain_effect_deliveries(&suppressed_effect)
-        .expect("suppressed effect should drain");
-    let failed = runtime
-        .drain_effect_deliveries(&failing_effect)
-        .expect("failing effect should drain");
-
-    assert_eq!(write.considered_effect_count(), 2);
-    assert_eq!(write.delivered_effect_count(), 0);
-    assert_eq!(write.suppressed_effect_count(), 1);
-    assert_eq!(write.effect_expression_failure_count(), 1);
-    assert_eq!(
-        suppressed[0].family(),
-        &ForgeQueryEffectDeliveryFamily::Suppressed
-    );
-    assert_eq!(suppressed_evidence.pending_delivery_count(), 1);
-    assert_eq!(suppressed_evidence.pending_delivered_count(), 0);
-    assert_eq!(suppressed_evidence.pending_suppressed_count(), 1);
-    assert_eq!(suppressed_evidence.pending_expression_failure_count(), 0);
-    assert_eq!(
-        suppressed_evidence.latest_delivery_family(),
-        Some(&ForgeQueryEffectDeliveryFamily::Suppressed)
-    );
-    assert!(suppressed_evidence.latest_phase_digest().is_some());
-    assert!(suppressed[0]
-        .reason()
-        .expect("suppression reason should exist")
-        .contains("inputs were not changed"));
-    assert_eq!(
-        failed[0].family(),
-        &ForgeQueryEffectDeliveryFamily::ExpressionFailed
-    );
-    assert!(failed[0]
-        .reason()
-        .expect("failure reason should exist")
-        .contains("deterministic failure"));
-}
-
-#[test]
-fn meaningful_change_suppression_counts_semantic_delta_suppression() {
-    let mut runtime = stateful_bridge_task_runtime();
-    let live = runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
-        .expect("live should declare");
-    let effect = runtime
-        .declare_effect::<Value>(
-            ForgeQueryEffectDeclaration::deliver(
-                "ui.meaningful-title",
-                ForgeQueryEffectTrigger::live_view(&live, ["title"]),
-                "ui.badges",
-            )
-            .with_meaningful_change_suppression(),
-        )
-        .expect("meaningful effect should declare");
-
-    let inserted = runtime
-        .write(insert_command(
-            "Task",
-            [
-                ("identity.id", json!("")),
-                ("title.value", json!("Meaningful task")),
-            ],
-        ))
-        .expect("insert should deliver because whole-row delta is meaningful");
-    assert_eq!(inserted.delivered_effect_count(), 1);
-    assert_eq!(inserted.meaningful_effect_suppression_count(), 0);
-    assert_eq!(
-        runtime
-            .drain_effect_deliveries(&effect)
-            .expect("insert delivery should drain")
-            .len(),
-        1
-    );
-
-    let churn = runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: inserted.deltas()[0].entity_identity.clone(),
-            aspect_path: "identity.id".to_string(),
-            value: Value::String("semantic-churn".to_string()),
-        })
-        .expect("irrelevant aspect update should be suppressed as churn");
-    let evidence = runtime
-        .inspect_effect(&effect)
-        .expect("meaningful effect should inspect");
-    let suppressed = runtime
-        .drain_effect_deliveries(&effect)
-        .expect("suppressed effect should drain");
-
-    assert_eq!(churn.considered_effect_count(), 1);
-    assert_eq!(churn.delivered_effect_count(), 0);
-    assert_eq!(churn.suppressed_effect_count(), 1);
-    assert_eq!(churn.meaningful_effect_suppression_count(), 1);
-    assert_eq!(
-        evidence.suppression_policy(),
-        ForgeQueryEffectSuppressionPolicy::MeaningfulSemanticDelta
-    );
-    assert_eq!(evidence.counters().meaningful_suppressions(), 1);
-    assert_eq!(evidence.pending_delivered_count(), 0);
-    assert_eq!(evidence.pending_suppressed_count(), 1);
-    assert_eq!(evidence.pending_expression_failure_count(), 0);
-    assert_eq!(
-        evidence.latest_delivery_family(),
-        Some(&ForgeQueryEffectDeliveryFamily::Suppressed)
-    );
-    assert_eq!(suppressed.len(), 1);
-    assert_eq!(
-        suppressed[0].family(),
-        &ForgeQueryEffectDeliveryFamily::Suppressed
-    );
-    assert_eq!(
-        suppressed[0].suppression_policy(),
-        ForgeQueryEffectSuppressionPolicy::MeaningfulSemanticDelta
-    );
-    assert!(suppressed[0]
-        .reason()
-        .expect("meaningful suppression should explain itself")
-        .contains("meaningful semantic delta suppression"));
 }

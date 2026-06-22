@@ -1,3 +1,4 @@
+use super::writeback_effect_intent::ForgeQueryBridgeWritebackEffectIntent;
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
@@ -5,7 +6,7 @@ use crate::memory_workspace::{
     ForgeQueryEntityIdentity, ForgeQueryMutationKind, ForgeQuerySnapshotIdentity,
     ForgeQueryWorkspaceError,
 };
-use crate::runtime::{ForgeQueryExistingTruthBindingFamily, ForgeQueryWriteCommand};
+use crate::runtime::{ForgeQueryBackendAdmissibleMutation, ForgeQueryExistingTruthBindingFamily};
 
 use forge_runtime_bridge::facade::{
     BridgeDiagnosticsTier, BridgeExecutionPolicyClass,
@@ -15,23 +16,22 @@ use forge_runtime_bridge::facade::{
     BridgeRequestKind, BridgeRouteIdentity, BridgeWritebackAuthoritativeStateBasis,
     BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
     BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackEffectIdentity,
-    BridgeWritebackEffectIntent, BridgeWritebackFamilyKind, BridgeWritebackFeedbackProvenance,
-    BridgeWritebackIdempotenceClass, BridgeWritebackIdempotenceIdentity,
-    BridgeWritebackNativeCausalityInputs, BridgeWritebackStrategyClass,
-    RelationalBridgeSnapshotIdentityParts, RuntimeBridge, TruthCommitIdentity,
-    TruthSnapshotIdentity,
+    BridgeWritebackFamilyKind, BridgeWritebackFeedbackProvenance, BridgeWritebackIdempotenceClass,
+    BridgeWritebackIdempotenceIdentity, BridgeWritebackNativeCausalityInputs,
+    BridgeWritebackStrategyClass, RelationalBridgeSnapshotIdentityParts, RuntimeBridge,
+    TruthCommitIdentity, TruthSnapshotIdentity,
 };
 
 pub(crate) fn build_bridge_authority_bundle(
     bridge: &RuntimeBridge,
     snapshot_identity: &ForgeQuerySnapshotIdentity,
-    command: &ForgeQueryWriteCommand,
+    mutation: &ForgeQueryBackendAdmissibleMutation,
     collection: &str,
     entity_identity: &ForgeQueryEntityIdentity,
     mutation_kind: ForgeQueryMutationKind,
 ) -> Result<BridgeMutationAuthorityBundle, ForgeQueryWorkspaceError> {
     let writeback_identity = writeback_identity(
-        command,
+        mutation,
         collection,
         entity_identity,
         &mutation_kind,
@@ -85,10 +85,11 @@ pub(crate) fn build_bridge_authority_bundle(
         &contract,
         &causality,
         BridgeWritebackEffectIdentity::from_bridge_evidence(&writeback_bridge_identity),
-        writeback_effect_intent(
+        ForgeQueryBridgeWritebackEffectIntent::from_admitted_mutation(
             BridgeWritebackEffectClass::AspectReconciliation,
-            &writeback_identity,
-        ),
+            mutation,
+        )?
+        .into_bridge_intent(),
     );
     let authoritative_state_basis = BridgeWritebackAuthoritativeStateBasis::from_effect(&effect);
     let feedback = BridgeWritebackFeedbackProvenance::new(&effect);
@@ -116,27 +117,12 @@ pub(crate) fn build_bridge_authority_bundle(
             &execution_record,
             Some(&outcome),
         ),
-        command,
+        mutation,
     )?)
 }
 
-fn writeback_effect_intent(
-    effect_class: BridgeWritebackEffectClass,
-    writeback_identity: &ForgeQueryEvidenceIdentity,
-) -> BridgeWritebackEffectIntent {
-    BridgeWritebackEffectIntent::validated_scalar_patch(
-        effect_class,
-        forge_foundational::facade::AspectKey::new("forge.query.writeback")
-            .expect("valid writeback effect aspect key"),
-        forge_foundational::facade::AspectValue::String(
-            writeback_identity.as_str().to_string().into(),
-        ),
-    )
-    .expect("bridge writeback effect intent should validate")
-}
-
 fn writeback_identity(
-    command: &ForgeQueryWriteCommand,
+    mutation: &ForgeQueryBackendAdmissibleMutation,
     collection: &str,
     entity_identity: &ForgeQueryEntityIdentity,
     mutation_kind: &ForgeQueryMutationKind,
@@ -156,7 +142,7 @@ fn writeback_identity(
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("mutation_family"),
-            command.mutation_family().as_str(),
+            mutation.mutation_family().as_str(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("mutation_kind"),
@@ -164,32 +150,37 @@ fn writeback_identity(
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("declared_aspect_operations"),
-            command
+            mutation
                 .declared_aspect_operations()
                 .into_iter()
-                .map(|operation| format!("{}:{}", operation.kind(), operation.aspect_path())),
+                .map(|operation| {
+                    format!(
+                        "{}:{}",
+                        operation.kind(),
+                        operation.aspect_touch().admitted_touch_digest_part()
+                    )
+                }),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("aspect_values"),
-            command
-                .aspect_values()
+            mutation
+                .admitted_aspect_values()
                 .iter()
-                .map(|aspect| format!("{}={}", aspect.aspect_path(), aspect.value())),
+                .map(|aspect| aspect.native_digest_material()),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("asserted_aspect_values"),
-            command
-                .asserted_aspect_values()
+            mutation
+                .asserted_admitted_aspect_values()
                 .iter()
-                .map(|aspect| format!("{}={}", aspect.aspect_path(), aspect.value())),
+                .map(|aspect| aspect.native_digest_material()),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("mutation_metadata"),
-            command
+            mutation
                 .mutation_metadata()
                 .entries()
-                .iter()
-                .map(|(key, value)| format!("{key}={value}")),
+                .map(|(key, value)| format!("{}={}", key.as_str(), value.native_digest_text())),
         )
         .seal()
 }
@@ -204,9 +195,9 @@ fn mutation_kind_label(mutation_kind: &ForgeQueryMutationKind) -> &'static str {
 
 fn attach_existing_truth_binding(
     bridge_authority: BridgeMutationAuthorityBundle,
-    command: &ForgeQueryWriteCommand,
+    mutation: &ForgeQueryBackendAdmissibleMutation,
 ) -> Result<BridgeMutationAuthorityBundle, ForgeQueryWorkspaceError> {
-    let Some(binding) = command.existing_truth_binding() else {
+    let Some(binding) = mutation.existing_truth_binding() else {
         return Ok(bridge_authority);
     };
     let authoritative_identity =
@@ -217,8 +208,8 @@ fn attach_existing_truth_binding(
                 .bridge_evidence_identity(),
         );
     let target_collection = binding
-        .target_collection()
-        .map(BridgeExistingTruthBindingTargetCollection::new);
+        .target_collection_identity()
+        .map(|collection| BridgeExistingTruthBindingTargetCollection::new(collection.as_str()));
     let bundle = match binding.family() {
         ForgeQueryExistingTruthBindingFamily::DirectEntityIdentity => {
             let resolved_entity_identity = bridge_existing_truth_resolved_target_identity(

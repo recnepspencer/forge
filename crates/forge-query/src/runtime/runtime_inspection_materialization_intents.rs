@@ -263,7 +263,7 @@ impl ForgeQueryRuntime {
         let rows = self
             .derived_views
             .get(binding.view_name())
-            .map(|runtime| runtime.materialization.rows().to_vec())
+            .map(|runtime| runtime.materialization.retained_rows().to_vec())
             .ok_or_else(|| {
                 ForgeQueryRuntimeError::MissingDerivedView(binding.view_name().to_string())
             })?;
@@ -272,7 +272,7 @@ impl ForgeQueryRuntime {
             &evidence,
             snapshot_identity.clone(),
         );
-        let mut result = ForgeQueryDerivedMaterializationResult::new(rows, receipt);
+        let mut result = ForgeQueryDerivedMaterializationResult::from_retained_rows(rows, receipt);
         let decision_trace_envelope =
             ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
                 binding.family(),
@@ -346,7 +346,8 @@ impl ForgeQueryRuntime {
         &self,
         view_name: &str,
     ) -> Result<ForgeQueryDerivedViewIntentSeed, ForgeQueryRuntimeError> {
-        let handle = ForgeQueryDerivedViewHandle::<Value>::new(view_name);
+        let handle =
+            ForgeQueryDerivedViewHandle::<crate::runtime::ForgeQueryNativeRow>::new(view_name);
         let evidence = self.derived_view_evidence(view_name)?;
         Ok(ForgeQueryDerivedViewIntentSeed::new(
             &handle,

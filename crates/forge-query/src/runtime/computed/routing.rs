@@ -1,4 +1,5 @@
 use super::*;
+use crate::runtime::ForgeQueryAspectTouch;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::runtime) struct ForgeQueryComputedRouteResult {
@@ -96,7 +97,7 @@ pub(in crate::runtime) fn route_derived_view_patches(
         receipt
             .deltas
             .iter()
-            .flat_map(|delta| delta.aspect_paths.iter().cloned()),
+            .flat_map(|delta| delta.admitted_touched_aspects().iter().cloned()),
         mutation_metadata.clone(),
     );
 
@@ -168,7 +169,7 @@ pub(in crate::runtime) fn route_derived_view_patches(
                     receipt.commit_identity.clone(),
                     delta.entity_identity.clone(),
                     effective_patch_aspects(&view.declaration, &delta),
-                    Value::Null,
+                    ForgeQueryDerivedPatchPayload::empty(),
                 )
             };
             patch.bind_commit_identity(receipt.commit_identity.clone());
@@ -225,7 +226,7 @@ fn retained_upstream_inputs(
     retained_live_rows: &BTreeMap<String, Vec<crate::memory_workspace::ForgeQueryEntity>>,
     derived_views: &BTreeMap<String, ForgeQueryDerivedViewRuntime>,
 ) -> ForgeQueryRetainedUpstreamInputs {
-    ForgeQueryRetainedUpstreamInputs::new(
+    ForgeQueryRetainedUpstreamInputs::from_retained_computed_rows(
         declaration.upstream_live_views().iter().filter_map(|name| {
             retained_live_rows
                 .get(name)
@@ -238,7 +239,7 @@ fn retained_upstream_inputs(
             .filter_map(|name| {
                 derived_views
                     .get(name)
-                    .map(|view| (name.clone(), view.materialization.rows().to_vec()))
+                    .map(|view| (name.clone(), view.materialization.retained_rows().to_vec()))
             }),
     )
 }
@@ -338,26 +339,22 @@ fn mutation_delta_matches_view(
     view: &ForgeQueryDerivedViewRuntime,
     delta: &ForgeQueryMutationDelta,
 ) -> bool {
-    delta.aspect_paths.is_empty()
-        || delta.aspect_paths.iter().any(|aspect_path| {
+    delta.admitted_touched_aspects().is_empty()
+        || delta.admitted_touched_aspects().iter().any(|aspect_touch| {
             view.declaration
-                .dependency_aspects()
+                .dependency_aspect_touches()
                 .iter()
-                .any(|dependency| {
-                    aspect_path == dependency
-                        || aspect_path.starts_with(&format!("{dependency}."))
-                        || dependency.starts_with(&format!("{aspect_path}."))
-                })
+                .any(|dependency| dependency.matches_or_contains(aspect_touch))
         })
 }
 
 fn effective_patch_aspects(
     view: &ForgeQueryDerivedView,
     delta: &ForgeQueryMutationDelta,
-) -> Vec<String> {
-    if !view.produced_aspects().is_empty() {
-        view.produced_aspects().to_vec()
+) -> Vec<ForgeQueryAspectTouch> {
+    if !view.produced_aspect_touches().is_empty() {
+        view.produced_aspect_touches().to_vec()
     } else {
-        delta.aspect_paths.clone()
+        delta.admitted_touched_aspects().to_vec()
     }
 }

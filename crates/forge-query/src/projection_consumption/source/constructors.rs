@@ -204,7 +204,7 @@ impl ProjectionConsumptionSource {
         Self {
             source_reference_identities: retained_target_references(
                 "retained_target_view",
-                binding.target_view_names(),
+                binding.terminal_target_view_names_projection(),
             ),
             family: ProjectionSourceFamily::RetainedDerivedArtifactBinding,
             capability_profile: ProjectionSourceCapabilityProfile::RetainedDerivedArtifactBinding,
@@ -227,7 +227,7 @@ impl ProjectionConsumptionSource {
         Self {
             source_reference_identities: retained_target_references(
                 "live_target_view",
-                binding.target_view_names(),
+                binding.terminal_target_view_names_projection(),
             ),
             family: ProjectionSourceFamily::LiveArtifactBinding,
             capability_profile: ProjectionSourceCapabilityProfile::LiveArtifactBinding,

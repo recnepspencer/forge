@@ -25,8 +25,8 @@ pub(crate) fn predicate_field_authorities(
         .map(|row| {
             ForgeQueryGraphReadPredicateFieldAuthority::new(
                 schema_basis_digest,
-                row.aspect(),
-                row.field(),
+                row.native_aspect_key().clone(),
+                row.native_field_key().clone(),
                 row.field_kind().as_str(),
             )
         })
@@ -43,8 +43,8 @@ pub(crate) fn ordering_field_authorities(
         .map(|row| {
             ForgeQueryGraphReadOrderingFieldAuthority::new(
                 references.schema_basis_digest(),
-                row.aspect(),
-                row.field(),
+                row.native_aspect_key().clone(),
+                row.native_field_key().clone(),
                 row.direction(),
                 row.kind().as_str(),
             )

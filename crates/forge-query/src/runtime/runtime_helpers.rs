@@ -189,7 +189,7 @@ pub(super) fn resolve_symbolic_aspect_references(
             resolve_same_batch_symbolic_target(symbolic_targets, reference.reference())?;
         let resolved_entity_evidence_identity = resolved_entity_identity.evidence_identity();
         aspects.push(ForgeQueryAspectValue::new_set_evidence_identity(
-            reference.aspect_path().to_string(),
+            reference.aspect_touch().clone(),
             &resolved_entity_evidence_identity,
         )?);
     }

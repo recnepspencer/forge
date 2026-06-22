@@ -5,10 +5,12 @@ use crate::consumer_kit::{
 
 use super::live_support_matrix;
 
+type TerminalSupportSnapshotDocumentJson = serde_json::Value;
+
 #[test]
 fn support_snapshot_load_denies_schema_version_boundary_with_typed_error() {
-    let json = support_snapshot_json_with_mutation(|value| {
-        value["schema_version"] = serde_json::Value::Number(2.into());
+    let json = terminal_support_snapshot_json_with_mutation(|value| {
+        value["schema_version"] = terminal_document_number(2);
     });
 
     let error =
@@ -23,9 +25,8 @@ fn support_snapshot_load_denies_schema_version_boundary_with_typed_error() {
 
 #[test]
 fn support_snapshot_load_denies_row_digest_drift_with_typed_error() {
-    let json = support_snapshot_json_with_mutation(|value| {
-        value["rows"][0]["live_row_digest"] =
-            serde_json::Value::String("fake-live-row-digest".to_string());
+    let json = terminal_support_snapshot_json_with_mutation(|value| {
+        value["rows"][0]["live_row_digest"] = terminal_document_string("fake-live-row-digest");
     });
 
     let error =
@@ -42,8 +43,8 @@ fn support_snapshot_load_denies_row_digest_drift_with_typed_error() {
 fn support_snapshot_load_denies_unknown_status_before_digest_acceptance() {
     let matrix = live_support_matrix();
     let snapshot = project_support_snapshot(&matrix);
-    let json = support_snapshot_json_from_snapshot_with_mutation(&snapshot, |value| {
-        value["rows"][0]["status"] = serde_json::Value::String("maybe-supported".to_string());
+    let json = terminal_support_snapshot_json_from_snapshot_with_mutation(&snapshot, |value| {
+        value["rows"][0]["status"] = terminal_document_string("maybe-supported");
     });
 
     let error =
@@ -60,8 +61,8 @@ fn support_snapshot_load_denies_unknown_status_before_digest_acceptance() {
 
 #[test]
 fn support_snapshot_load_denies_unknown_backend_posture_with_structured_context() {
-    let json = support_snapshot_json_with_mutation(|value| {
-        value["backend_posture"] = serde_json::Value::String("ambient-runtime".to_string());
+    let json = terminal_support_snapshot_json_with_mutation(|value| {
+        value["backend_posture"] = terminal_document_string("ambient-runtime");
     });
 
     let error =
@@ -78,8 +79,8 @@ fn support_snapshot_load_denies_unknown_backend_posture_with_structured_context(
 
 #[test]
 fn support_snapshot_load_denies_unknown_facade_family() {
-    let json = support_snapshot_json_with_mutation(|value| {
-        value["rows"][0]["facade_family"] = serde_json::Value::String("side-channel".to_string());
+    let json = terminal_support_snapshot_json_with_mutation(|value| {
+        value["rows"][0]["facade_family"] = terminal_document_string("side-channel");
     });
 
     let error =
@@ -95,9 +96,8 @@ fn support_snapshot_load_denies_unknown_facade_family() {
 
 #[test]
 fn support_snapshot_load_denies_unknown_teaching_posture() {
-    let json = support_snapshot_json_with_mutation(|value| {
-        value["rows"][0]["teaching_posture"] =
-            serde_json::Value::String("ambient-teaching".to_string());
+    let json = terminal_support_snapshot_json_with_mutation(|value| {
+        value["rows"][0]["teaching_posture"] = terminal_document_string("ambient-teaching");
     });
 
     let error =
@@ -113,8 +113,8 @@ fn support_snapshot_load_denies_unknown_teaching_posture() {
 
 #[test]
 fn support_snapshot_load_denies_blank_required_field() {
-    let json = support_snapshot_json_with_mutation(|value| {
-        value["rows"][0]["owner_milestone"] = serde_json::Value::String(" ".to_string());
+    let json = terminal_support_snapshot_json_with_mutation(|value| {
+        value["rows"][0]["owner_milestone"] = terminal_document_string(" ");
     });
 
     let error =
@@ -144,8 +144,8 @@ fn support_snapshot_load_denies_malformed_json_with_typed_error() {
 
 #[test]
 fn support_snapshot_load_denies_document_digest_drift() {
-    let json = support_snapshot_json_with_mutation(|value| {
-        value["snapshot_digest"] = serde_json::Value::String("fake-document-digest".to_string());
+    let json = terminal_support_snapshot_json_with_mutation(|value| {
+        value["snapshot_digest"] = terminal_document_string("fake-document-digest");
     });
 
     let error =
@@ -158,18 +158,28 @@ fn support_snapshot_load_denies_document_digest_drift() {
     );
 }
 
-fn support_snapshot_json_with_mutation(mutate: impl FnOnce(&mut serde_json::Value)) -> String {
+fn terminal_support_snapshot_json_with_mutation(
+    mutate: impl FnOnce(&mut TerminalSupportSnapshotDocumentJson),
+) -> String {
     let matrix = live_support_matrix();
     let snapshot = project_support_snapshot(&matrix);
-    support_snapshot_json_from_snapshot_with_mutation(&snapshot, mutate)
+    terminal_support_snapshot_json_from_snapshot_with_mutation(&snapshot, mutate)
 }
 
-fn support_snapshot_json_from_snapshot_with_mutation(
+fn terminal_support_snapshot_json_from_snapshot_with_mutation(
     snapshot: &crate::consumer_kit::ForgeQuerySupportSnapshot,
-    mutate: impl FnOnce(&mut serde_json::Value),
+    mutate: impl FnOnce(&mut TerminalSupportSnapshotDocumentJson),
 ) -> String {
     let document = snapshot.to_document();
     let mut value = serde_json::to_value(&document).expect("document should serialize");
     mutate(&mut value);
     serde_json::to_string_pretty(&value).expect("mutated JSON should encode")
+}
+
+fn terminal_document_string(value: impl Into<String>) -> TerminalSupportSnapshotDocumentJson {
+    TerminalSupportSnapshotDocumentJson::String(value.into())
+}
+
+fn terminal_document_number(value: u16) -> TerminalSupportSnapshotDocumentJson {
+    TerminalSupportSnapshotDocumentJson::Number(value.into())
 }

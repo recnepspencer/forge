@@ -5,19 +5,28 @@ fn update_existing_preserves_authoritative_binding_evidence() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.update-existing")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.update-existing-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-update-existing-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Before existing update")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Before existing update"),
+            )
         })
         .expect("seed insert should execute");
     let binding_authority =
@@ -40,7 +49,10 @@ fn update_existing_preserves_authoritative_binding_evidence() {
 
     let receipt = workspace
         .update_existing(binding, |task| {
-            task.aspect("title.value", "After existing update")
+            task.aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("After existing update"),
+            )
         })
         .expect("existing-target update should execute");
     let inspection = workspace
@@ -123,7 +135,12 @@ fn update_existing_denies_missing_target_typed_and_early() {
         .expect("binding should build");
 
     let error = workspace
-        .update_existing(binding, |task| task.aspect("title.value", "No target"))
+        .update_existing(binding, |task| {
+            task.aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("No target"),
+            )
+        })
         .expect_err("missing existing target should deny early");
 
     match error {
@@ -143,25 +160,40 @@ fn batch_existing_targets_preserve_component_and_aggregate_binding_evidence() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-existing")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.batch-existing-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-batch-existing-table")
         })
         .expect("live view should declare");
 
     let seed_one = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "First")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("First"),
+            )
         })
         .expect("first seed should execute");
     let seed_two = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-2")
-                .aspect("title.value", "Second")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-2"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Second"),
+            )
         })
         .expect("second seed should execute");
 
@@ -204,9 +236,14 @@ fn batch_existing_targets_preserve_component_and_aggregate_binding_evidence() {
         .batch(|batch| {
             batch
                 .update_existing(binding_one, |task| {
-                    task.aspect("title.value", "First renamed")
+                    task.aspect(
+                        test_aspect_touch("title.value"),
+                        test_string_aspect_value("First renamed"),
+                    )
                 })
-                .delete_existing_with(binding_two, |delete| delete.touch("title.value"))
+                .delete_existing_with(binding_two, |delete| {
+                    delete.touch(test_aspect_touch("title.value"))
+                })
         })
         .expect("existing-target batch should execute");
     let inspection = workspace
@@ -266,19 +303,28 @@ fn mixed_existing_and_symbolic_batch_preserves_aggregate_session_digests() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-existing-symbolic")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.batch-existing-symbolic-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-batch-existing-symbolic-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-existing")
-                .aspect("title.value", "Existing")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-existing"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Existing"),
+            )
         })
         .expect("seed should execute");
     let binding = workspace
@@ -297,18 +343,32 @@ fn mixed_existing_and_symbolic_batch_preserves_aggregate_session_digests() {
         .batch(|batch| {
             batch
                 .insert_symbolic("draft-task", "Task", |task| {
-                    task.aspect("identity.id", "task-draft")
-                        .aspect("title.value", "Draft")
+                    task.aspect(
+                        test_aspect_touch("identity.id"),
+                        test_string_aspect_value("task-draft"),
+                    )
+                    .aspect(
+                        test_aspect_touch("title.value"),
+                        test_string_aspect_value("Draft"),
+                    )
                 })
                 .update_existing(binding, |task| {
-                    task.aspect("title.value", "Existing renamed")
+                    task.aspect(
+                        test_aspect_touch("title.value"),
+                        test_string_aspect_value("Existing renamed"),
+                    )
                 })
                 .update_symbolic(
                     ForgeQuerySymbolicTargetReference::new("draft-task")
                         .expect("symbolic reference should build")
                         .in_target_collection("Task")
                         .expect("symbolic collection should build"),
-                    |task| task.aspect("title.value", "Draft renamed"),
+                    |task| {
+                        task.aspect(
+                            test_aspect_touch("title.value"),
+                            test_string_aspect_value("Draft renamed"),
+                        )
+                    },
                 )
         })
         .expect("mixed existing/symbolic batch should execute");
@@ -330,11 +390,14 @@ fn delete_existing_relation_preserves_relation_binding_family() {
     let mut workspace = runtime
         .workspace("tasks.delete-existing-relation")
         .expect("workspace should open");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.relation-table", |q| {
             q.from("TaskRelation")
-                .select(["identity.id", "kind.value"])
-                .order_by("kind.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("kind", "value").unwrap())
                 .schema_basis("tasks-relation-table")
         })
         .expect("relation live view should declare");
@@ -342,8 +405,14 @@ fn delete_existing_relation_preserves_relation_binding_family() {
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect("identity.id", "rel-1")
-                .aspect("kind.value", "depends_on")
+                .aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value("rel-1"),
+                )
+                .aspect(
+                    test_aspect_touch("kind.value"),
+                    test_string_aspect_value("depends_on"),
+                )
         })
         .expect("seed insert should execute");
     let binding_authority =

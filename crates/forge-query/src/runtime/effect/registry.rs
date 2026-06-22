@@ -75,7 +75,7 @@ impl ForgeQueryEffectIndex {
     }
     pub(in crate::runtime::effect) fn live_candidates<'a>(
         &self,
-        view_names: impl IntoIterator<Item = &'a String>,
+        view_names: impl IntoIterator<Item = &'a str>,
     ) -> Vec<String> {
         view_names
             .into_iter()
@@ -86,7 +86,7 @@ impl ForgeQueryEffectIndex {
     }
     pub(in crate::runtime::effect) fn computed_candidates<'a>(
         &self,
-        view_names: impl IntoIterator<Item = &'a String>,
+        view_names: impl IntoIterator<Item = &'a str>,
     ) -> Vec<String> {
         view_names
             .into_iter()

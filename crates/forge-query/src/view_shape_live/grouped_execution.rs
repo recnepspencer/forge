@@ -17,10 +17,6 @@ pub struct GroupedExecutionLaneValue {
 }
 
 impl GroupedExecutionLaneValue {
-    pub fn grouping_aspect(&self) -> &str {
-        self.grouping_aspect.as_str()
-    }
-
     pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
@@ -127,7 +123,7 @@ pub fn materialize_grouped_execution_surface_from_truth_view(
             format!(
                 "grouped truth-view aspect '{}' does not match planned grouping aspect '{}'",
                 truth_view.contract().grouping_aspect(),
-                grouped_planning.grouping_aspect()
+                grouped_planning.native_grouping_aspect_key().as_str()
             ),
             ViewShapeLiveCounters::default(),
         ));
@@ -162,7 +158,10 @@ pub fn materialize_grouped_execution_surface_from_truth_view(
             format!(
                 "grouped truth-view identity binding '{}' does not match planned identity binding '{}'",
                 truth_view.contract().identity_binding().aspect_key(),
-                grouped_planning.identity_binding().field_key()
+                grouped_planning
+                    .identity_binding()
+                    .native_binding_aspect_key()
+                    .as_str()
             ),
             ViewShapeLiveCounters::default(),
         ));
@@ -177,7 +176,10 @@ pub fn materialize_grouped_execution_surface_from_truth_view(
             format!(
                 "grouped truth-view grouping binding '{}' does not match planned grouping binding '{}'",
                 truth_view.contract().grouping_binding().aspect_key(),
-                grouped_planning.grouping_binding().field_key()
+                grouped_planning
+                    .grouping_binding()
+                    .native_binding_aspect_key()
+                    .as_str()
             ),
             ViewShapeLiveCounters::default(),
         ));

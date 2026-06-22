@@ -1,0 +1,11 @@
+error[E0599]: no method named `terminal_aspect_projection` found for struct `SchemaFieldView` in the current scope
+ --> tests/ui/aspect_native_query/schema_field_view_terminal_key_projections_removed.rs:5:19
+  |
+5 |     let _ = field.terminal_aspect_projection();
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `SchemaFieldView`
+
+error[E0599]: no method named `terminal_field_projection` found for struct `SchemaFieldView` in the current scope
+ --> tests/ui/aspect_native_query/schema_field_view_terminal_key_projections_removed.rs:6:19
+  |
+6 |     let _ = field.terminal_field_projection();
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `SchemaFieldView`

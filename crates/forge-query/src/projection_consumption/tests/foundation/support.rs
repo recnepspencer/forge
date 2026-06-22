@@ -7,10 +7,7 @@ pub(super) fn test_binding(visible_fields: &[&str]) -> ProjectionConsumptionBind
     ProjectionConsumptionBindingContext::test_only(
         "result-shape:test",
         "authorized-projection:test",
-        visible_fields
-            .iter()
-            .map(|field| field.to_string())
-            .collect(),
+        crate::projection_consumption::test_authorized_field_paths(visible_fields),
     )
 }
 
@@ -27,10 +24,7 @@ pub(super) fn test_binding_with_projection_metadata(
         "narrowed-result-shape:test",
         "policy:test",
         "tenant-schema:test",
-        visible_fields
-            .iter()
-            .map(|field| field.to_string())
-            .collect(),
+        crate::projection_consumption::test_authorized_field_paths(visible_fields),
     )
 }
 
@@ -151,12 +145,19 @@ pub(super) fn request_for_kind(kind: ProjectionFactKind) -> ProjectMaterializedF
         ProjectionFactKind::RelationEndpoint => {
             ProjectMaterializedFacts::declare().relation_endpoints()
         }
-        ProjectionFactKind::DisplayField => {
-            ProjectMaterializedFacts::declare().display_field("profile.display_name")
-        }
-        ProjectionFactKind::DerivedScalarField => {
-            ProjectMaterializedFacts::declare().derived_scalar_field("profile.display_name")
-        }
+        ProjectionFactKind::DisplayField => ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                "profile",
+                "display_name",
+            ]),
+        ),
+        ProjectionFactKind::DerivedScalarField => ProjectMaterializedFacts::declare()
+            .derived_scalar_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
     }
 }
 

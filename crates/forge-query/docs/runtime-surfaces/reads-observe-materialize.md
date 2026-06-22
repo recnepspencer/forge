@@ -30,7 +30,7 @@ through Query.
 
 - `workspace.read(...)`
 - `workspace.observe(...)`
-- `workspace.materialize(...)`
+- `workspace.materialize_result(...)`
 
 Related explanation surfaces:
 
@@ -68,9 +68,10 @@ Good to know:
   view-shape-qualified facts from retained read/materialization work, use
   [Projection Consumption](../capabilities/projection-consumption.md) as the
   ordinary typed lane instead of reopening retained-artifact helper seams
-- if you need one typed retained computed row, use the admitted materialization
-  result and `decode_single_row::<T>()` instead of rebuilding local
-  `serde_json` decode helpers over `workspace.materialize(...)`
+- if you need one typed retained computed row through serde export, use the
+  admitted materialization result and `terminal_json_decode_single_row::<T>()`
+  instead of rebuilding local
+  `serde_json` decode helpers over `workspace.materialize_result(...)`
 - if you need several typed retained computed rows as one coherent next-step
   artifact, use `workspace.materialize_derived_artifact_bundle(...)` instead of
   local loops over repeated derived materialization calls
@@ -176,7 +177,7 @@ workspace
 
 let live_rows = workspace.read(&view);
 let live_patches = workspace.observe(&view);
-let computed_rows = workspace.materialize(&titles);
+let computed_rows = workspace.materialize_result(&titles)?;
 ```
 
 What is authoritative:
@@ -232,10 +233,11 @@ If the data does not look right:
 - Assuming a drain returns historical truth forever instead of retained
   incremental evidence since the last drain.
 - Reconstructing a typed single retained computed row from raw `materialize(...)`
-  rows when `materialize_intent(...).execute().decode_single_row::<T>()` is the
-  admitted runtime-owned floor.
+  rows when
+  `materialize_intent(...).execute().terminal_json_decode_single_row::<T>()` is
+  the admitted runtime-owned terminal export floor.
 - Rebuilding a multi-surface retained artifact in caller code from repeated
-  `workspace.materialize(...)` or repeated one-off materialization entry when
+  `workspace.materialize_result(...)` or repeated one-off materialization entry when
   `materialize_derived_artifact_bundle(...)` is the runtime-owned floor for
   that job.
 - Treating a retained derived-materialization bundle as if it were already a

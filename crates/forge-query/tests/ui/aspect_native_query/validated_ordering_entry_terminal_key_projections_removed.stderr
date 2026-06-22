@@ -1,0 +1,21 @@
+warning: unreachable statement
+ --> tests/ui/aspect_native_query/validated_ordering_entry_terminal_key_projections_removed.rs:5:5
+  |
+4 |     let entry: ValidatedOrderingEntry = unreachable!();
+  |                                         -------------- any code following this expression is unreachable
+5 |     let _ = entry.terminal_aspect_projection();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `terminal_aspect_projection` found for struct `ValidatedOrderingEntry` in the current scope
+ --> tests/ui/aspect_native_query/validated_ordering_entry_terminal_key_projections_removed.rs:5:19
+  |
+5 |     let _ = entry.terminal_aspect_projection();
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ValidatedOrderingEntry`
+
+error[E0599]: no method named `terminal_field_projection` found for struct `ValidatedOrderingEntry` in the current scope
+ --> tests/ui/aspect_native_query/validated_ordering_entry_terminal_key_projections_removed.rs:6:19
+  |
+6 |     let _ = entry.terminal_field_projection();
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ValidatedOrderingEntry`

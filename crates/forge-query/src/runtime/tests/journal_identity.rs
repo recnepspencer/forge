@@ -5,7 +5,6 @@ use crate::application::{
     ForgeQueryJournalIdentityCertification, ForgeQueryJournalIdentityInventoryEvidence,
     ForgeQueryJournalIdentityOperationKind, ForgeQueryJournalIdentityScheduleEvidence,
 };
-
 #[test]
 fn journal_identity_inventory_is_seeded_and_scans_clean() {
     let workspace_root = workspace_root();
@@ -36,8 +35,14 @@ fn submitted_write_receipt_carries_typed_committed_journal_position() {
         .workspace("tasks.journal-position.single")
         .expect("task runtime should open a named workspace");
     let command = ForgeQueryAspectMutationBuilder::new()
-        .aspect("identity.id", "task-1")
-        .aspect("title.value", "First")
+        .aspect(
+            test_aspect_touch("identity.id"),
+            test_string_aspect_value("task-1"),
+        )
+        .aspect(
+            test_aspect_touch("title.value"),
+            test_string_aspect_value("First"),
+        )
         .build_insert("Task")
         .expect("insert command should build");
     let receipt = workspace
@@ -151,14 +156,26 @@ fn preview_receipt_carries_preview_journal_position_without_commit_collision() {
             .expect("preview session should admit");
         let first_receipt = preview
             .insert("Task", |task| {
-                task.aspect("identity.id", "preview-task")
-                    .aspect("title.value", "Preview")
+                task.aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value("preview-task"),
+                )
+                .aspect(
+                    test_aspect_touch("title.value"),
+                    test_string_aspect_value("Preview"),
+                )
             })
             .expect("preview insert should stage");
         let second_receipt = preview
             .insert("Task", |task| {
-                task.aspect("identity.id", "preview-task-2")
-                    .aspect("title.value", "Preview Two")
+                task.aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value("preview-task-2"),
+                )
+                .aspect(
+                    test_aspect_touch("title.value"),
+                    test_string_aspect_value("Preview Two"),
+                )
             })
             .expect("second preview insert should stage");
         (first_receipt, second_receipt)
@@ -221,16 +238,34 @@ fn submitted_batch_positions_with_inspection(
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "task-1")
-                        .aspect("title.value", "First")
+                    task.aspect(
+                        test_aspect_touch("identity.id"),
+                        test_string_aspect_value("task-1"),
+                    )
+                    .aspect(
+                        test_aspect_touch("title.value"),
+                        test_string_aspect_value("First"),
+                    )
                 })
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "task-2")
-                        .aspect("title.value", "Second")
+                    task.aspect(
+                        test_aspect_touch("identity.id"),
+                        test_string_aspect_value("task-2"),
+                    )
+                    .aspect(
+                        test_aspect_touch("title.value"),
+                        test_string_aspect_value("Second"),
+                    )
                 })
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "task-3")
-                        .aspect("title.value", "Third")
+                    task.aspect(
+                        test_aspect_touch("identity.id"),
+                        test_string_aspect_value("task-3"),
+                    )
+                    .aspect(
+                        test_aspect_touch("title.value"),
+                        test_string_aspect_value("Third"),
+                    )
                 })
         })
         .expect("batch should commit");
@@ -306,8 +341,14 @@ fn submission_schedule_commands() -> Vec<ForgeQueryWriteCommand> {
         .enumerate()
         .map(|(index, title)| {
             ForgeQueryAspectMutationBuilder::new()
-                .aspect("identity.id", format!("task-{}", index + 1))
-                .aspect("title.value", *title)
+                .aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value(format!("task-{}", index + 1)),
+                )
+                .aspect(
+                    test_aspect_touch("title.value"),
+                    test_string_aspect_value(*title),
+                )
                 .build_insert("Task")
                 .expect("schedule insert command should build")
         })

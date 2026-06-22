@@ -59,8 +59,8 @@ impl ForgeQueryPublishedArtifactEntry {
             &evidence,
             snapshot_identity.clone(),
         );
-        let materialization = ForgeQueryDerivedMaterializationResult::new(
-            runtime_view.materialization.rows().to_vec(),
+        let materialization = ForgeQueryDerivedMaterializationResult::from_retained_rows(
+            runtime_view.materialization.retained_rows().to_vec(),
             receipt,
         );
         let async_result_state = async_result_state_for_shared_read_entry(

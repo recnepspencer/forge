@@ -109,7 +109,7 @@ fn shared_read_pinning_boundary_closes_only_with_all_phase_thirteen_evidence() {
 
 fn shared_read_portability_evidence(
     stable: &crate::runtime::ForgeQuerySharedReadContext,
-    derived: &crate::runtime::ForgeQueryDerivedViewHandle,
+    derived: &crate::runtime::ForgeQueryDerivedViewHandle<crate::runtime::ForgeQueryNativeRow>,
     stable_binding: &str,
 ) -> ForgeQuerySharedReadPortabilityEvidence {
     let sibling = stable.clone();
@@ -151,7 +151,7 @@ fn shared_read_portability_evidence(
 
 fn shared_read_stale_denial_evidence(
     stable: &crate::runtime::ForgeQuerySharedReadContext,
-    derived: &crate::runtime::ForgeQueryDerivedViewHandle,
+    derived: &crate::runtime::ForgeQueryDerivedViewHandle<crate::runtime::ForgeQueryNativeRow>,
     stable_basis: &crate::runtime::ForgeQuerySharedReadBasisInspection,
 ) -> ForgeQuerySharedReadStaleBasisDenialEvidence {
     let error = stable

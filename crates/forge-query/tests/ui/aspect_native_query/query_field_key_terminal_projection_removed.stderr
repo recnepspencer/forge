@@ -1,0 +1,11 @@
+error[E0599]: no method named `terminal_aspect_projection` found for struct `QueryFieldKey` in the current scope
+ --> tests/ui/aspect_native_query/query_field_key_terminal_projection_removed.rs:5:17
+  |
+5 |     let _ = key.terminal_aspect_projection();
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `QueryFieldKey`
+
+error[E0599]: no method named `terminal_field_projection` found for struct `QueryFieldKey` in the current scope
+ --> tests/ui/aspect_native_query/query_field_key_terminal_projection_removed.rs:6:17
+  |
+6 |     let _ = key.terminal_field_projection();
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `QueryFieldKey`

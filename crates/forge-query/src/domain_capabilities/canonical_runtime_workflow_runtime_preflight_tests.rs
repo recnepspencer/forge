@@ -1,5 +1,4 @@
 use forge_relational::facade::identity::{EntityId, PartitionId};
-use serde_json::json;
 
 use super::test_support::{declaration_target, ready, success};
 use super::{
@@ -120,7 +119,10 @@ fn workflow_runtime_preflight_lowering_from_bundle_preserves_real_runtime_author
             preflight.clone(),
             authority_binding_identity.clone(),
             EntityId::new(PartitionId(7), 11, 0),
-            json!({"name":"after"}),
+            crate::aspect_field_authoring::single_native_string_aspect_field_patch(
+                "name", "name", "after",
+            )
+            .expect("name patch should build"),
         )
         .bind_to_declaration_target(declaration_target("intent-workflow-runtime-lowering")),
     )));

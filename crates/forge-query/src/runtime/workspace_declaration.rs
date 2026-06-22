@@ -1,66 +1,31 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+#[path = "workspace_declaration_schema.rs"]
+mod workspace_declaration_schema;
+#[path = "workspace_live_view_declaration.rs"]
+mod workspace_live_view_declaration;
+
 use super::{
     DeclarativeLiveQueryRequest, DeclarativeLiveViewShape, ForgeQueryDerivedViewHandle,
     ForgeQueryEffectCondition, ForgeQueryEffectDeclaration, ForgeQueryEffectTrigger,
     ForgeQueryLiveView, ForgeQueryRuntimeError, QuerySchemaView,
 };
-use crate::authoring::TraversalSelector;
-use crate::declarative_live::validate_declared_traversal_contract;
+use crate::authoring::{AspectFieldKey, TraversalSelector};
 use crate::declarative_live::DeclarativeProjectionField;
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 use crate::program::ForgeQueryDerivedView;
-use crate::schema_view::{SchemaFieldKind, SchemaFieldView, SchemaRelationView};
+use crate::runtime::ForgeQueryAspectTouch;
+use crate::schema_view::SchemaFieldKind;
 use forge_foundational::facade::AspectKey;
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryWorkspaceLiveViewDeclaration {
-    request: DeclarativeLiveQueryRequest,
-    schema_view: QuerySchemaView,
-}
-
-impl ForgeQueryWorkspaceLiveViewDeclaration {
-    pub fn try_from_request(
-        request: DeclarativeLiveQueryRequest,
-        schema_view: QuerySchemaView,
-    ) -> Result<Self, ForgeQueryRuntimeError> {
-        validate_declared_traversal_contract(&request, &schema_view)
-            .map_err(|error| workspace_error(format!("{error:?}")))?;
-        Ok(Self {
-            request,
-            schema_view,
-        })
-    }
-
-    pub fn request(&self) -> &DeclarativeLiveQueryRequest {
-        &self.request
-    }
-
-    pub fn schema_view(&self) -> &QuerySchemaView {
-        &self.schema_view
-    }
-
-    pub(in crate::runtime) fn into_parts(self) -> (DeclarativeLiveQueryRequest, QuerySchemaView) {
-        (self.request, self.schema_view)
-    }
-
-    pub(in crate::runtime) fn from_request(
-        request: DeclarativeLiveQueryRequest,
-        schema_view: QuerySchemaView,
-    ) -> Self {
-        Self {
-            request,
-            schema_view,
-        }
-    }
-}
+use workspace_declaration_schema::{schema_field_view, schema_relation_view};
+pub use workspace_live_view_declaration::ForgeQueryWorkspaceLiveViewDeclaration;
 
 pub struct ForgeQueryLiveViewBuilder {
     surface_name: String,
     collection: Option<String>,
     view_shape: DeclarativeLiveViewShape,
-    projection: Vec<String>,
-    ordering: Option<String>,
+    projection: Vec<AspectFieldKey>,
+    ordering: Option<AspectFieldKey>,
     schema_relations: Vec<(String, u8)>,
     schema_basis_marker: Option<String>,
 }
@@ -107,13 +72,13 @@ impl ForgeQueryLiveViewBuilder {
         self
     }
 
-    pub fn select(mut self, aspects: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.projection.extend(aspects.into_iter().map(Into::into));
+    pub fn select(mut self, fields: impl IntoIterator<Item = AspectFieldKey>) -> Self {
+        self.projection.extend(fields);
         self
     }
 
-    pub fn order_by(mut self, aspect: impl Into<String>) -> Self {
-        self.ordering = Some(aspect.into());
+    pub fn order_by(mut self, field: AspectFieldKey) -> Self {
+        self.ordering = Some(field);
         self
     }
 
@@ -139,19 +104,29 @@ impl ForgeQueryLiveViewBuilder {
         )?;
         let mut projected = self.projection;
         if projected.is_empty() {
-            projected.push("identity.id".to_string());
+            projected.push(
+                AspectFieldKey::new("identity", "id")
+                    .map_err(|error| workspace_error(format!("{error:?}")))?,
+            );
         }
         let mut request = DeclarativeLiveQueryRequest::new(collection, self.view_shape);
         let mut schema_fields = BTreeSet::new();
         for aspect in &projected {
-            let (section, field) = split_aspect(aspect)?;
-            request = request
-                .project(DeclarativeProjectionField::new(section, field).delivered_as(aspect));
+            let section = aspect.aspect().as_str();
+            let field = aspect.field().as_str();
+            let delivered_name = terminal_aspect_field_key_projection(aspect);
+            request = request.project(
+                DeclarativeProjectionField::from_authoring_parts(section, field)
+                    .delivered_as(delivered_name),
+            );
             schema_fields.insert((section.to_string(), field.to_string()));
         }
         if let Some(ordering) = self.ordering {
-            let (section, field) = split_aspect(&ordering)?;
-            request = request.order_by(DeclarativeProjectionField::new(section, field));
+            let section = ordering.aspect().as_str();
+            let field = ordering.field().as_str();
+            request = request.order_by(DeclarativeProjectionField::from_authoring_parts(
+                section, field,
+            ));
             schema_fields.insert((section.to_string(), field.to_string()));
         }
         let schema_relations = normalize_schema_relations(self.schema_relations)?;
@@ -161,20 +136,28 @@ impl ForgeQueryLiveViewBuilder {
                     .map_err(|error| workspace_error(format!("{error:?}")))?,
             );
         }
+        let schema_field_views = schema_fields
+            .into_iter()
+            .map(|(section, field)| schema_field_view(section, field, SchemaFieldKind::String))
+            .collect::<Result<Vec<_>, ForgeQueryRuntimeError>>()?;
+        let schema_relation_views = schema_relations
+            .into_iter()
+            .map(|(relation, max_depth)| schema_relation_view(relation, max_depth))
+            .collect::<Result<Vec<_>, ForgeQueryRuntimeError>>()?;
         let schema_view = QuerySchemaView::new(
             self.schema_basis_marker.unwrap_or_else(|| {
                 format!(
                     "workspace-live-view:{}:{}",
                     self.surface_name,
-                    projected.join("|")
+                    projected
+                        .iter()
+                        .map(terminal_aspect_field_key_projection)
+                        .collect::<Vec<_>>()
+                        .join("|")
                 )
             }),
-            schema_fields.into_iter().map(|(section, field)| {
-                SchemaFieldView::new(section, field, SchemaFieldKind::String)
-            }),
-            schema_relations
-                .into_iter()
-                .map(|(relation, max_depth)| SchemaRelationView::new(relation, max_depth)),
+            schema_field_views,
+            schema_relation_views,
         );
         Ok(ForgeQueryWorkspaceLiveViewDeclaration::from_request(
             request,
@@ -185,8 +168,8 @@ impl ForgeQueryLiveViewBuilder {
 
 pub struct ForgeQueryComputedBuilder {
     view_name: String,
-    reads: Vec<String>,
-    produces: Vec<String>,
+    reads: Vec<ForgeQueryAspectTouch>,
+    produces: Vec<ForgeQueryAspectTouch>,
     upstream_live_views: Vec<String>,
     upstream_computed_views: Vec<String>,
     incremental: bool,
@@ -208,13 +191,13 @@ impl ForgeQueryComputedBuilder {
         }
     }
 
-    pub fn reads(mut self, aspects: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.reads.extend(aspects.into_iter().map(Into::into));
+    pub fn reads(mut self, aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>) -> Self {
+        self.reads.extend(aspects);
         self
     }
 
-    pub fn produces(mut self, aspects: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        self.produces.extend(aspects.into_iter().map(Into::into));
+    pub fn produces(mut self, aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>) -> Self {
+        self.produces.extend(aspects);
         self
     }
 
@@ -237,10 +220,10 @@ impl ForgeQueryComputedBuilder {
         let mut view =
             ForgeQueryDerivedView::new(self.view_name, self.reads).produces(self.produces);
         for upstream in self.upstream_live_views {
-            view = view.depends_on_live_name(upstream);
+            view = view.depends_on_live_name_from_workspace_declaration(upstream);
         }
         for upstream in self.upstream_computed_views {
-            view = view.depends_on_derived_name(upstream);
+            view = view.depends_on_derived_name_from_workspace_declaration(upstream);
         }
         if !self.incremental {
             view = view.whole_refresh_fallback();
@@ -276,7 +259,7 @@ impl ForgeQueryEffectBuilder {
     pub fn when_live<T>(
         mut self,
         view: &ForgeQueryLiveView<T>,
-        aspects: impl IntoIterator<Item = impl Into<String>>,
+        aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
     ) -> Self {
         self.trigger = Some(ForgeQueryEffectTrigger::live_view(view, aspects));
         self
@@ -285,7 +268,7 @@ impl ForgeQueryEffectBuilder {
     pub fn when_computed<T>(
         mut self,
         view: &ForgeQueryDerivedViewHandle<T>,
-        aspects: impl IntoIterator<Item = impl Into<String>>,
+        aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
     ) -> Self {
         self.trigger = Some(ForgeQueryEffectTrigger::computed_view(view, aspects));
         self
@@ -294,8 +277,8 @@ impl ForgeQueryEffectBuilder {
     pub fn condition_expression(
         mut self,
         descriptor: impl Into<String>,
-        input_aspects: impl IntoIterator<Item = impl Into<String>>,
-        output_aspects: impl IntoIterator<Item = impl Into<String>>,
+        input_aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
+        output_aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
     ) -> Self {
         self.condition =
             ForgeQueryEffectCondition::expression(descriptor, input_aspects, output_aspects);
@@ -341,18 +324,8 @@ impl ForgeQueryEffectBuilder {
     }
 }
 
-fn split_aspect(aspect_path: &str) -> Result<(&str, &str), ForgeQueryRuntimeError> {
-    let (aspect, field) = aspect_path.split_once('.').ok_or_else(|| {
-        workspace_error(format!(
-            "workspace aspect path `{aspect_path}` must use aspect.field form"
-        ))
-    })?;
-    if aspect.trim().is_empty() || field.trim().is_empty() {
-        return Err(workspace_error(format!(
-            "workspace aspect path `{aspect_path}` must use non-empty aspect.field segments"
-        )));
-    }
-    Ok((aspect, field))
+fn terminal_aspect_field_key_projection(field: &AspectFieldKey) -> String {
+    format!("{}.{}", field.aspect().as_str(), field.field().as_str())
 }
 
 fn non_empty(value: Option<String>, message: &str) -> Result<String, ForgeQueryRuntimeError> {

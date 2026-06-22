@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/domain_capabilities/boundaries/progression/domain_capability_requested_cannot_prepare_materialization.rs:22:81
+  --> tests/ui/domain_capabilities/boundaries/progression/domain_capability_requested_cannot_prepare_materialization.rs:21:81
    |
-22 |     let _ = prepare_admitted_domain_capability_contribution_for_materialization(requested, target);
+21 |     let _ = prepare_admitted_domain_capability_contribution_for_materialization(requested, target);
    |             ------------------------------------------------------------------- ^^^^^^^^^ expected `ForgeQueryAdmittedDomainCapabilityContribution<_, ...>`, found `ForgeQueryRequestedDomainCapabilityContribution<..., ...>`
    |             |
    |             arguments to this function are incorrect

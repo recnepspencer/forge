@@ -3,7 +3,7 @@ use forge_query::facade::{
     materialize_graph_composition_capability_support_row,
     prepare_admitted_domain_capability_contribution_for_materialization,
     ForgeQueryGraphCompositionCapabilityClass,
-    ForgeQueryIntentDeclaration, ForgeQueryInvariantCapabilityContributionAuthoring,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentInput, ForgeQueryInvariantCapabilityContributionAuthoring,
 };
 
 fn main() {
@@ -12,7 +12,7 @@ fn main() {
         "test.strategy",
         "1",
         "test.contract",
-        serde_json::json!({ "entity": "edge:42" }),
+        ForgeQueryIntentInput::object([("entity", ForgeQueryIntentInput::string("edge:42"))]),
     );
     let requested = ForgeQueryInvariantCapabilityContributionAuthoring::graph_capability_gap(
         "graph.face_inner_loop_insertion",

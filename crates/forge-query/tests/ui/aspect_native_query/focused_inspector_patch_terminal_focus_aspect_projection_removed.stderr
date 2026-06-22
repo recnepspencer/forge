@@ -1,0 +1,5 @@
+error[E0599]: no method named `terminal_focus_aspect_projection` found for reference `&FocusedInspectorAspectPatchArtifact` in the current scope
+ --> tests/ui/aspect_native_query/focused_inspector_patch_terminal_focus_aspect_projection_removed.rs:4:19
+  |
+4 |     let _ = patch.terminal_focus_aspect_projection();
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&FocusedInspectorAspectPatchArtifact`

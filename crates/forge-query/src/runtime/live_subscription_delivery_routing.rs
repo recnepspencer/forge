@@ -12,15 +12,16 @@ use crate::subscription::{
     MaintenanceDeltaWidth, PatchGroupWidth, QueryDeliveryWindowBudget,
     QuerySubscriptionMaintenanceDelta, QuerySubscriptionMaintenanceDeltaKind,
 };
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 
 use super::delivery::{
     ForgeQueryRuntimeDeliveryBatch, ForgeQueryRuntimeLiveSubscriptionState,
     ForgeQueryRuntimeRetainedDelivery,
 };
 use super::{
-    ForgeQueryLiveGraphReadAccessPlan, ForgeQueryLiveGraphReadMaintenanceBudget,
-    ForgeQueryLiveGraphReadMaintenanceReceipt, ForgeQueryMutationTargetCollectionIdentity,
-    ForgeQueryRuntimeError,
+    ForgeQueryAspectTouch, ForgeQueryLiveGraphReadAccessPlan,
+    ForgeQueryLiveGraphReadMaintenanceBudget, ForgeQueryLiveGraphReadMaintenanceReceipt,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryRuntimeError,
 };
 
 pub(super) fn route_live_subscription_delivery(
@@ -41,7 +42,7 @@ pub(super) fn route_live_subscription_delivery(
             let Some(delta_kind) = maintenance_delta_kind_for_live_change(
                 &state.request,
                 &delta.kind,
-                &delta.aspect_paths,
+                delta.admitted_touched_aspects(),
             ) else {
                 continue;
             };
@@ -70,7 +71,7 @@ fn route_relevant_live_subscription_delta(
     delta_kind: QuerySubscriptionMaintenanceDeltaKind,
     affected: &mut Vec<String>,
 ) -> Result<(), ForgeQueryRuntimeError> {
-    let patch_width = delta.aspect_paths.len().max(1) as u64;
+    let patch_width = delta.admitted_touched_aspects().len().max(1) as u64;
     let maintenance_delta =
         admitted_subscription_maintenance_delta(receipt, delta, delta_kind, state, patch_width);
     let live_graph_read_maintenance =
@@ -214,9 +215,9 @@ fn runtime_delivery_window_budget(patch_width: u64) -> QueryDeliveryWindowBudget
 fn maintenance_delta_kind_for_live_change(
     request: &DeclarativeLiveQueryRequest,
     mutation_kind: &ForgeQueryMutationKind,
-    aspect_paths: &[String],
+    aspect_touches: &[ForgeQueryAspectTouch],
 ) -> Option<QuerySubscriptionMaintenanceDeltaKind> {
-    if !live_change_is_relevant(request, mutation_kind, aspect_paths) {
+    if !live_change_is_relevant(request, mutation_kind, aspect_touches) {
         return None;
     }
     match request.view_shape() {
@@ -226,11 +227,10 @@ fn maintenance_delta_kind_for_live_change(
             Some(QuerySubscriptionMaintenanceDeltaKind::InspectorFocusDelta)
         }
         DeclarativeLiveViewShape::KanbanGrouped { grouping_aspect } => {
-            let grouping_aspect_text = grouping_aspect.as_str();
             if is_membership_change(mutation_kind)
-                || aspect_paths
+                || aspect_touches
                     .iter()
-                    .any(|path| path.starts_with(grouping_aspect_text))
+                    .any(|touch| touch.native_aspect_key() == grouping_aspect)
             {
                 Some(QuerySubscriptionMaintenanceDeltaKind::GroupedMembershipDelta)
             } else {
@@ -257,22 +257,21 @@ fn maintenance_delta_kind_for_live_change(
 fn live_change_is_relevant(
     request: &DeclarativeLiveQueryRequest,
     mutation_kind: &ForgeQueryMutationKind,
-    aspect_paths: &[String],
+    aspect_touches: &[ForgeQueryAspectTouch],
 ) -> bool {
-    if is_membership_change(mutation_kind) || aspect_paths.is_empty() {
+    if is_membership_change(mutation_kind) || aspect_touches.is_empty() {
         return true;
     }
-    aspect_paths.iter().any(|changed| {
+    aspect_touches.iter().any(|changed| {
         request.projection().iter().any(|field| {
-            changed == &format!("{}.{}", field.aspect(), field.field())
-                || changed.starts_with(&format!("{}.", field.aspect()))
+            changed.matches_or_contains(&live_request_field_touch(field.source_field_key()))
         }) || match request.view_shape() {
             DeclarativeLiveViewShape::InspectorFocused { focused_aspect }
             | DeclarativeLiveViewShape::IdentityAwareInspectorFocused { focused_aspect, .. } => {
-                changed.starts_with(focused_aspect)
+                changed.native_aspect_key() == focused_aspect
             }
             DeclarativeLiveViewShape::KanbanGrouped { grouping_aspect } => {
-                changed.starts_with(grouping_aspect.as_str())
+                changed.native_aspect_key() == grouping_aspect
             }
             _ => false,
         }
@@ -283,5 +282,16 @@ fn is_membership_change(mutation_kind: &ForgeQueryMutationKind) -> bool {
     matches!(
         mutation_kind,
         ForgeQueryMutationKind::Created | ForgeQueryMutationKind::Deleted
+    )
+}
+
+fn live_request_field_touch(field: &crate::authoring::AspectFieldKey) -> ForgeQueryAspectTouch {
+    ForgeQueryAspectTouch::from_native_parts(
+        AspectKey::new(field.aspect().as_str())
+            .expect("declarative live aspect should already be a foundational aspect key"),
+        Some(CanonicalFieldPath::single(
+            FieldKey::new(field.field().as_str())
+                .expect("declarative live field should already be a foundational field key"),
+        )),
     )
 }

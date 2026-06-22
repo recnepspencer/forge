@@ -1,6 +1,6 @@
 use crate::runtime::{
-    ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchReadVerb, ForgeQueryGraphTouchSelector,
-    ForgeQueryMutationFamily,
+    ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch, ForgeQueryGraphTouchDescriptor,
+    ForgeQueryGraphTouchReadVerb, ForgeQueryGraphTouchSelector, ForgeQueryMutationFamily,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -24,36 +24,36 @@ impl ForgeQueryGraphObligationSelectorPerturbationCase {
             ),
             Self::new(
                 "aspect path",
-                ForgeQueryGraphTouchSelector::aspect_path("capacity").unwrap(),
+                ForgeQueryGraphTouchSelector::aspect_touch(aspect_touch("capacity")),
                 mutation_touch_with_aspect(
                     "topology.edge",
                     ForgeQueryMutationFamily::Update,
-                    "set:capacity",
-                    "capacity",
+                    set_operation("capacity"),
+                    aspect_touch("capacity"),
                 ),
-                ForgeQueryGraphTouchSelector::aspect_path("capacity").unwrap(),
+                ForgeQueryGraphTouchSelector::aspect_touch(aspect_touch("capacity")),
                 mutation_touch_with_aspect(
                     "topology.edge",
                     ForgeQueryMutationFamily::Update,
-                    "set:boundary",
-                    "boundary",
+                    set_operation("boundary"),
+                    aspect_touch("boundary"),
                 ),
             ),
             Self::new(
                 "declared operation",
-                ForgeQueryGraphTouchSelector::declared_aspect_operation("set:capacity").unwrap(),
+                ForgeQueryGraphTouchSelector::declared_aspect_operation(set_operation("capacity")),
                 mutation_touch_with_aspect(
                     "topology.edge",
                     ForgeQueryMutationFamily::Update,
-                    "set:capacity",
-                    "capacity",
+                    set_operation("capacity"),
+                    aspect_touch("capacity"),
                 ),
-                ForgeQueryGraphTouchSelector::declared_aspect_operation("set:capacity").unwrap(),
+                ForgeQueryGraphTouchSelector::declared_aspect_operation(set_operation("capacity")),
                 mutation_touch_with_aspect(
                     "topology.edge",
                     ForgeQueryMutationFamily::Update,
-                    "remove:capacity",
-                    "capacity",
+                    ForgeQueryAspectMutationOperation::clear(aspect_touch("capacity")),
+                    aspect_touch("capacity"),
                 ),
             ),
             Self::new(
@@ -118,23 +118,37 @@ fn mutation_touch(
     collection: &str,
     family: ForgeQueryMutationFamily,
 ) -> ForgeQueryGraphTouchDescriptor {
-    mutation_touch_with_aspect(collection, family, "set:capacity", "capacity")
+    mutation_touch_with_aspect(
+        collection,
+        family,
+        set_operation("capacity"),
+        aspect_touch("capacity"),
+    )
 }
 
 fn mutation_touch_with_aspect(
     collection: &str,
     family: ForgeQueryMutationFamily,
-    declared_aspect_operation: &str,
-    touched_aspect_path: &str,
+    declared_aspect_operation: ForgeQueryAspectMutationOperation,
+    touched_aspect: ForgeQueryAspectTouch,
 ) -> ForgeQueryGraphTouchDescriptor {
     ForgeQueryGraphTouchDescriptor::declared_mutation_collection(
         collection,
         family,
         None,
         [declared_aspect_operation],
-        [touched_aspect_path],
+        [touched_aspect],
     )
     .expect("static selector perturbation touch is valid")
+}
+
+fn set_operation(aspect_path: &str) -> ForgeQueryAspectMutationOperation {
+    ForgeQueryAspectMutationOperation::set(aspect_touch(aspect_path))
+}
+
+fn aspect_touch(aspect_path: &str) -> ForgeQueryAspectTouch {
+    ForgeQueryAspectTouch::from_authoring_path(aspect_path)
+        .expect("static selector aspect path should admit")
 }
 
 fn read_touch(verb: ForgeQueryGraphTouchReadVerb) -> ForgeQueryGraphTouchDescriptor {

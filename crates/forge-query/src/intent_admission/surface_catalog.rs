@@ -78,11 +78,11 @@ pub(crate) const DERIVED_MATERIALIZATION_RAW_ENTRYPOINT: &str =
 pub(crate) const DERIVED_INSPECTION_RAW_ENTRYPOINT: &str =
     "ForgeQueryRawIntentAdmissionRequest::derived_inspection_entrypoint(...)";
 pub(crate) const INSPECTION_FAMILY_COMMON_PATHS: &str =
-    "workspace.materialize(&view); workspace.materialize_intent(&view).execute(); workspace.inspect(&target); runtime.inspect(&target); workspace.inspect_intent(target).execute(); workspace.inspect_derived_intent(&view).execute()";
+    "workspace.materialize_result(&view)?; workspace.materialize_intent(&view).execute(); workspace.inspect(&target); runtime.inspect(&target); workspace.inspect_intent(target).execute(); workspace.inspect_derived_intent(&view).execute()";
 pub(crate) const UNIFIED_INSPECTION_COMMON_PATHS: &str =
     "workspace.inspect(&target); runtime.inspect(&target); workspace.inspect_intent(target).execute()";
 pub(crate) const DERIVED_MATERIALIZATION_COMMON_PATHS: &str =
-    "workspace.materialize(&view); workspace.materialize_intent(&view).execute()";
+    "workspace.materialize_result(&view)?; workspace.materialize_intent(&view).execute()";
 pub(crate) const DERIVED_INSPECTION_COMMON_PATHS: &str =
     "workspace.inspect(&view); runtime.inspect(&view); workspace.inspect_derived_intent(&view).execute()";
 pub(crate) const INSPECTION_FAMILY_ADVANCED_PATHS: &str =

@@ -212,7 +212,7 @@ fn symbolic_aspect_resolution_identity(
             )
             .field_value(
                 ForgeQueryEvidenceTag::new("aspect_path"),
-                resolution.aspect_path(),
+                resolution.aspect_touch().admitted_touch_digest_part(),
             )
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("symbol"),

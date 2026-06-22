@@ -1,14 +1,14 @@
 use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::{
-    ForgeQueryMutationSymbolIdentity, ForgeQueryMutationTargetCollectionIdentity,
-    ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReferenceEvidence,
-    ForgeQueryWriteReceipt,
+    ForgeQueryAspectTouch, ForgeQueryMutationSymbolIdentity,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQuerySymbolicAspectResolutionEvidence,
+    ForgeQuerySymbolicTargetReferenceEvidence, ForgeQueryWriteReceipt,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGraphCompositionResolutionEntry {
     component_index: usize,
-    aspect_path: Option<String>,
+    aspect_touch: Option<ForgeQueryAspectTouch>,
     symbol: ForgeQueryMutationSymbolIdentity,
     resolved_entity_identity: ForgeQueryEntityIdentity,
     target_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
@@ -21,7 +21,7 @@ impl ForgeQueryGraphCompositionResolutionEntry {
     ) -> Self {
         Self {
             component_index,
-            aspect_path: None,
+            aspect_touch: None,
             symbol: evidence.symbol().clone(),
             resolved_entity_identity: evidence.resolved_entity_identity().clone(),
             target_collection: evidence.target_collection().cloned(),
@@ -34,7 +34,7 @@ impl ForgeQueryGraphCompositionResolutionEntry {
     ) -> Self {
         Self {
             component_index,
-            aspect_path: Some(evidence.aspect_path().to_string()),
+            aspect_touch: Some(evidence.aspect_touch().clone()),
             symbol: evidence.symbol().clone(),
             resolved_entity_identity: evidence.resolved_entity_identity().clone(),
             target_collection: evidence.target_collection().cloned(),
@@ -45,8 +45,8 @@ impl ForgeQueryGraphCompositionResolutionEntry {
         self.component_index
     }
 
-    pub fn aspect_path(&self) -> Option<&str> {
-        self.aspect_path.as_deref()
+    pub fn aspect_touch(&self) -> Option<&ForgeQueryAspectTouch> {
+        self.aspect_touch.as_ref()
     }
 
     pub fn symbol(&self) -> &ForgeQueryMutationSymbolIdentity {

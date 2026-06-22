@@ -1,6 +1,6 @@
 use crate::application::{
-    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
-    ForgeQueryDeclarationEntryOrchestrationArtifactPolicy,
+    assert_declaration_aspect_projections, ForgeQueryDeclarationAspectCoverageBasis,
+    ForgeQueryDeclarationAspectFit, ForgeQueryDeclarationEntryOrchestrationArtifactPolicy,
     ForgeQueryDeclarationEntryOrchestrationExposureLevel,
     ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
     ForgeQueryDeclarationEntryOrchestrationProduct, ForgeQueryDeclarationEntryOrchestrationStage,
@@ -37,44 +37,38 @@ fn orchestration_policy_exposes_semantic_publication_by_lane() {
         ForgeQueryDeclarationEntryOrchestrationArtifactPolicy::ProofVisibleTranscript,
     );
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         ordinary.plan.foundational_aspect_publication().present(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
     assert_eq!(
         ordinary.plan.aspect_coverage_basis(),
         ForgeQueryDeclarationAspectCoverageBasis::DeclaredFamilyCoverage
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         ordinary.plan.receipt_aspect_publication().present(),
-        &[
-            "selection.active_edge".to_string(),
-            "selection.local_topology".to_string()
-        ]
+        &["selection.active_edge", "selection.local_topology"],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         ordinary.plan.envelope_aspect_publication().present(),
-        &[
-            "selection.active_edge".to_string(),
-            "selection.local_topology".to_string()
-        ]
+        &["selection.active_edge", "selection.local_topology"],
     );
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         checked.plan.receipt_aspect_publication().present(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         proof.plan.foundational_aspect_publication().present(),
         &[
-            "selection.active_edge".to_string(),
-            "selection.local_topology".to_string(),
-            "selection.material_edit".to_string()
-        ]
+            "selection.active_edge",
+            "selection.local_topology",
+            "selection.material_edit",
+        ],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         proof.plan.envelope_aspect_publication().masked(),
-        &["selection.private_authority".to_string()]
+        &["selection.private_authority"],
     );
     assert_eq!(
         proof.plan.materialization_tier(),
@@ -166,19 +160,13 @@ fn declared_family_coverage_keeps_conflicting_publication_out_of_visible_surface
         proof.plan.aspect_coverage_basis(),
         ForgeQueryDeclarationAspectCoverageBasis::DeclaredFamilyCoverage
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         proof.plan.foundational_aspect_publication().present(),
-        &[
-            "selection.active_edge".to_string(),
-            "selection.local_topology".to_string()
-        ]
+        &["selection.active_edge", "selection.local_topology"],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         proof.plan.foundational_aspect_publication().masked(),
-        &[
-            "selection.material_edit".to_string(),
-            "selection.private_authority".to_string()
-        ]
+        &["selection.material_edit", "selection.private_authority"],
     );
 }
 
@@ -273,12 +261,12 @@ fn envelope_proof_keeps_envelope_ceiling_while_exposing_authority_summaries() {
         proof.bridge_authority_summary().mapping_fit(),
         ForgeQueryDeclarationAspectFit::MissingRequired
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         proof
             .signal_authority_summary()
             .produced_aspects()
             .required(),
-        &["signal.preview_patch".to_string()]
+        &["signal.preview_patch"],
     );
 }
 

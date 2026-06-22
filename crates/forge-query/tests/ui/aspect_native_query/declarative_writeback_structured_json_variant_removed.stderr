@@ -1,0 +1,20 @@
+error[E0599]: no associated item named `StructuredJson` found for struct `DeclarativeWritebackValue` in the current scope
+ --> tests/ui/aspect_native_query/declarative_writeback_structured_json_variant_removed.rs:4:40
+  |
+4 |     let _ = DeclarativeWritebackValue::StructuredJson("{\"title\":\"Buy oat milk\"}".into());
+  |                                        ^^^^^^^^^^^^^^ associated item not found in `DeclarativeWritebackValue`
+  |
+note: if you're trying to build a new `DeclarativeWritebackValue` consider using one of the following associated functions:
+      DeclarativeWritebackValue::string
+      DeclarativeWritebackValue::integer
+      DeclarativeWritebackValue::boolean
+ --> src/declarative_live.rs
+  |
+  |     pub fn string(value: impl Into<String>) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn integer(value: i64) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn boolean(value: bool) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

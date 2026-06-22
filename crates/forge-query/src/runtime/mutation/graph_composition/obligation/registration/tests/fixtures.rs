@@ -1,5 +1,5 @@
 use crate::runtime::{
-    ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram,
+    ForgeQueryAspectTouch, ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram,
     ForgeQueryGraphCompositionProgramStep, ForgeQueryGraphCompositionProgramStepKind,
     ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphObligationRegistration,
     ForgeQueryGraphObligationRuleIdentity, ForgeQueryGraphTouchDescriptor,
@@ -25,7 +25,7 @@ pub(super) fn symbolic_relation_touch_descriptor_with_relation_kind_id(
             .unwrap()
             .in_target_collection(collection)
             .unwrap(),
-        touched_aspect_paths: vec![touched_aspect_path.to_string()],
+        touched_aspects: vec![touch(touched_aspect_path)],
         metadata: ForgeQueryMutationMetadata::new(),
         naming_intent: None,
     };
@@ -46,6 +46,11 @@ pub(super) fn symbolic_relation_touch_descriptor_with_relation_kind_id(
         &[command],
     )
     .unwrap()
+}
+
+pub(super) fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
+    ForgeQueryAspectTouch::from_authoring_path(aspect_path.to_string())
+        .expect("test aspect path should parse")
 }
 
 pub(super) fn registration(

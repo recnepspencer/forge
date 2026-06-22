@@ -1,12 +1,11 @@
+use forge_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
-    ForgeQueryEntityIdentity, ForgeQueryExistingEntityTarget,
+    ForgeQueryAspectTouch, ForgeQueryEntityIdentity, ForgeQueryExistingEntityTarget,
     ForgeQueryExistingTruthBindingAuthorityLabel, ForgeQueryExistingTruthProbeDenialKind,
     ForgeQueryExistingTruthProbeMode, ForgeQueryExistingTruthProbeRequest,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryLiveView, ForgeQueryMutationAuthorityIdentity,
-    ForgeQueryRuntimeError,
+    ForgeQueryNativeRow, ForgeQueryRuntimeError,
 };
-use serde_json::{json, Value};
-
 mod support;
 
 use support::public_bridge_runtime::{
@@ -60,19 +59,22 @@ fn public_bridge_runtime_common_bootstrap_lane_builds_runtime_backed_live_reads(
     let mut workspace = runtime
         .workspace("public.bridge-runtime-bootstrap.common-lane")
         .expect("runtime should open a named workspace");
-    let tasks: ForgeQueryLiveView<Value> = workspace
+    let tasks: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("public.bridge-runtime-bootstrap.common-lane.tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
+                    forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(forge_query::facade::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("public-bridge-runtime-bootstrap-common-lane-tasks")
         })
         .expect("task live view should declare");
 
     workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-bootstrap")
-                .aspect("title.value", "Bootstrap task")
+            task.aspect(touch("identity.id"), text("task-bootstrap"))
+                .aspect(touch("title.value"), text("Bootstrap task"))
         })
         .expect("insert should execute through the public bridge-backed bootstrap lane");
 
@@ -80,12 +82,12 @@ fn public_bridge_runtime_common_bootstrap_lane_builds_runtime_backed_live_reads(
 
     assert_eq!(rows.len(), 1);
     assert_eq!(
-        rows[0].external_row()["identity"]["id"].as_str(),
-        Some("task-bootstrap")
+        rows[0].scalar_value_at(&field_path("identity.id")),
+        Some(&text("task-bootstrap"))
     );
     assert_eq!(
-        rows[0].external_row()["title"]["value"].as_str(),
-        Some("Bootstrap task")
+        rows[0].scalar_value_at(&field_path("title.value")),
+        Some(&text("Bootstrap task"))
     );
 }
 
@@ -103,15 +105,15 @@ fn public_bridge_runtime_builder_lane_supports_seeded_existing_truth_probe() {
     let seed = harness.seed_backend_authoritative_truth(
         &binding,
         "title.value",
-        json!("Seeded bootstrap task"),
+        text("Seeded bootstrap task"),
     );
     assert_eq!(seed.binding_digest(), binding.binding_digest());
     assert_eq!(seed.target_collection(), "Task");
-    assert_eq!(seed.aspect_path(), "title.value");
+    assert_eq!(seed.terminal_aspect_path_projection(), "title.value");
 
     let probe = workspace
         .probe_existing_intent(
-            ForgeQueryExistingTruthProbeRequest::new(binding, ["title.value"])
+            ForgeQueryExistingTruthProbeRequest::new(binding, [touch("title.value")])
                 .expect("probe request should build"),
         )
         .execute()
@@ -125,10 +127,10 @@ fn public_bridge_runtime_builder_lane_supports_seeded_existing_truth_probe() {
     );
     assert_eq!(
         probe
-            .field("title.value")
+            .field_for_touch(&touch("title.value"))
             .expect("title field should exist")
-            .external_value_json(),
-        "\"Seeded bootstrap task\""
+            .foundational_value(),
+        &text("Seeded bootstrap task")
     );
 }
 
@@ -147,7 +149,7 @@ fn public_bridge_runtime_builder_lane_missing_existing_truth_probe_fails_closed(
 
     let error = workspace
         .probe_existing_intent(
-            ForgeQueryExistingTruthProbeRequest::new(binding, ["title.value"])
+            ForgeQueryExistingTruthProbeRequest::new(binding, [touch("title.value")])
                 .expect("probe request should build"),
         )
         .execute()
@@ -176,7 +178,7 @@ fn public_bridge_runtime_common_lane_fail_closes_existing_truth_probe_without_ve
 
     let error = workspace
         .probe_existing_intent(
-            ForgeQueryExistingTruthProbeRequest::new(binding, ["title.value"])
+            ForgeQueryExistingTruthProbeRequest::new(binding, [touch("title.value")])
                 .expect("probe request should build"),
         )
         .execute()
@@ -211,6 +213,40 @@ fn public_bridge_runtime_builder_lane_usage_stays_explicit() {
         public_bridge_runtime_bootstrap_invocation_count(PublicBridgeRuntimeBootstrapPath::Builder),
         1
     );
+}
+
+fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
+    let mut segments = aspect_path.split('.');
+    let aspect = segments
+        .next()
+        .and_then(|segment| AspectKey::new(segment.to_string()))
+        .expect("test aspect path aspect should admit");
+    let fields = segments
+        .map(|segment| {
+            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
+        })
+        .collect::<Vec<_>>();
+    if fields.is_empty() {
+        ForgeQueryAspectTouch::aspect(aspect)
+    } else {
+        ForgeQueryAspectTouch::field_path(
+            aspect,
+            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
+        )
+    }
+}
+
+fn text(value: impl Into<String>) -> AspectValue {
+    AspectValue::String(value.into().into())
+}
+
+fn field_path(path: &str) -> CanonicalFieldPath {
+    CanonicalFieldPath::new(
+        path.split('.').map(|segment| {
+            FieldKey::new(segment).expect("test field path segment should be valid")
+        }),
+    )
+    .expect("test field path should be non-empty")
 }
 
 #[test]

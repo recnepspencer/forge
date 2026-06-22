@@ -5,19 +5,28 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.continuity-existing")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.continuity-existing-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-continuity-existing-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Before continuity rebind")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Before continuity rebind"),
+            )
         })
         .expect("seed insert should execute");
     let binding_authority =
@@ -57,7 +66,10 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
                 prior_authority.clone(),
                 successor_authority.clone(),
             )
-            .aspect("title.value", "After continuity rebind")
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("After continuity rebind"),
+            )
         })
         .expect("continuity-aware existing-target update should execute");
     let inspection = workspace
@@ -143,19 +155,28 @@ fn mixed_batch_preserves_continuity_and_naming_session_evidence() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.continuity-batch")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.continuity-batch-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-continuity-batch-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-existing")
-                .aspect("title.value", "Existing")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-existing"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Existing"),
+            )
         })
         .expect("seed insert should execute");
     let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
@@ -175,8 +196,8 @@ fn mixed_batch_preserves_continuity_and_naming_session_evidence() {
         .batch(|batch| {
             batch
                 .insert_symbolic("draft-task", "Task", |task| {
-                    task.aspect("identity.id", "task-draft")
-                        .aspect("title.value", "Draft")
+                    task.aspect(test_aspect_touch("identity.id"), test_string_aspect_value("task-draft"))
+                        .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Draft"))
                 })
                 .update_symbolic(
                     ForgeQuerySymbolicTargetReference::new("draft-task")
@@ -190,13 +211,13 @@ fn mixed_batch_preserves_continuity_and_naming_session_evidence() {
                             )
                             .expect("naming attachment authority label")).expect("naming attachment identity"),
                         )
-                        .aspect("title.value", "Draft named")
+                        .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Draft named"))
                     },
                 )
                 .update_existing(binding, |task| {
                     task.continuity_rebind_merge_successor(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-existing").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-existing-merged").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                     )
-                    .aspect("title.value", "Existing continuity merged")
+                    .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Existing continuity merged"))
                 })
         })
         .expect("mixed continuity batch should execute");
@@ -267,7 +288,7 @@ fn continuity_update_denies_missing_binding_typed_and_early() {
     let error = workspace
         .update(test_entity_identity("entity:0:1:0"), |task| {
             task.continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-1").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-1-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"))
-                .aspect("title.value", "No binding")
+                .aspect(test_aspect_touch("title.value"), test_string_aspect_value("No binding"))
         })
         .expect_err("continuity-aware update should deny without existing binding");
 
@@ -292,7 +313,7 @@ fn continuity_insert_denies_non_update_family_typed_and_early() {
     let error = workspace
         .insert("Task", |task| {
             task.continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-1").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-1-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"))
-                .aspect("identity.id", "task-2")
+                .aspect(test_aspect_touch("identity.id"), test_string_aspect_value("task-2"))
         })
         .expect_err("continuity-aware insert should deny on non-update family");
 
@@ -313,18 +334,27 @@ fn preview_update_existing_denies_continuity_without_authoritative_lane() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-continuity-denial")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.preview-continuity-denial-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-preview-continuity-denial-table")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-preview")
-                .aspect("title.value", "Preview continuity")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-preview"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Preview continuity"),
+            )
         })
         .expect("seed insert should execute");
     let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
@@ -347,7 +377,7 @@ fn preview_update_existing_denies_continuity_without_authoritative_lane() {
         .update_existing(binding, |task| {
             task.continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-preview").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-preview-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
             )
-            .aspect("title.value", "Preview continuity denied")
+            .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Preview continuity denied"))
         })
         .expect_err("preview continuity should deny outside authoritative lane");
 
@@ -369,18 +399,27 @@ fn preview_batch_denies_continuity_without_authoritative_lane() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-batch-continuity-denial")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.preview-batch-continuity-denial-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-preview-batch-continuity-denial-table")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-preview-batch")
-                .aspect("title.value", "Preview continuity batch")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-preview-batch"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Preview continuity batch"),
+            )
         })
         .expect("seed insert should execute");
     let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
@@ -404,7 +443,7 @@ fn preview_batch_denies_continuity_without_authoritative_lane() {
             batch.update_existing(binding, |task| {
                 task.continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-preview-batch").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-preview-batch-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                 )
-                .aspect("title.value", "Preview continuity batch denied")
+                .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Preview continuity batch denied"))
             })
         })
         .expect_err("preview batch continuity should deny outside authoritative lane");

@@ -108,7 +108,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     request,
                     schema_view,
                 } => {
-                    let _: ForgeQueryLiveView<Value> =
+                    let _: ForgeQueryLiveView<crate::runtime::ForgeQueryNativeRow> =
                         self.runtime
                             .declare_live_view(name.clone(), request, schema_view)?;
                     trace.record_declaration(format!("preview-live:{name}"));
@@ -133,13 +133,9 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 }
                 ForgeQueryProgramEffect::ReadLive { view_name } => {
                     let rows = self.runtime.backend.live_entities(&view_name);
-                    outputs.push(ForgeQueryOperationOutput::new(
+                    outputs.push(ForgeQueryOperationOutput::from_live_read_entities(
                         format!("preview-live:{view_name}"),
-                        Value::Array(
-                            rows.into_iter()
-                                .map(|row| row.into_external_row())
-                                .collect(),
-                        ),
+                        rows,
                     ));
                     trace.record_replay_or_parity(format!("preview-read-live:{view_name}"));
                 }

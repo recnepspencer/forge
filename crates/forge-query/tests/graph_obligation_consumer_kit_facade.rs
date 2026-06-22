@@ -1,3 +1,4 @@
+use forge_foundational::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_query::facade::consumer_kit::{
     graph_obligation_consumer_kit, ForgeQueryBoundaryAuditSourceSet,
     ForgeQueryGraphObligationAdoptionManifest, ForgeQueryGraphObligationAdoptionProof,
@@ -9,6 +10,7 @@ use forge_query::facade::consumer_kit::{
     ForgeQueryGraphObligationSelectorCoverageDeclaration, ForgeQueryGraphObligationSupportPin,
 };
 use forge_query::facade::runtime::{
+    ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch,
     ForgeQueryGraphObligationExecutionResultEnvelope, ForgeQueryGraphObligationExecutionStatus,
     ForgeQueryGraphObligationKind, ForgeQueryGraphObligationOperatingWorldDescriptor,
     ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphObligationRegistration,
@@ -290,8 +292,8 @@ fn graph_obligation_consumer_kit_public_facade_proves_execution_backed_adoption(
                 "topology.edge",
                 ForgeQueryMutationFamily::Update,
                 None,
-                ["set:capacity"],
-                ["capacity"],
+                [set_operation("capacity")],
+                [touch("capacity")],
             )
             .unwrap(),
             &ForgeQueryGraphObligationOperatingWorldDescriptor::any_committed_authority(),
@@ -365,8 +367,8 @@ fn selection_only_adoption_cannot_claim_execution_backed_closeout() {
                 "topology.edge",
                 ForgeQueryMutationFamily::Update,
                 None,
-                ["set:capacity"],
-                ["capacity"],
+                [set_operation("capacity")],
+                [touch("capacity")],
             )
             .unwrap(),
             &ForgeQueryGraphObligationOperatingWorldDescriptor::any_committed_authority(),
@@ -380,4 +382,29 @@ fn selection_only_adoption_cannot_claim_execution_backed_closeout() {
         ForgeQueryGraphObligationConsumerKitErrorKind::MissingInMemoryProof
     );
     assert!(error.message().contains("real execution proof"));
+}
+
+fn set_operation(aspect_path: &str) -> ForgeQueryAspectMutationOperation {
+    ForgeQueryAspectMutationOperation::set(touch(aspect_path))
+}
+
+fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
+    let mut segments = aspect_path.split('.');
+    let aspect = segments
+        .next()
+        .and_then(|segment| AspectKey::new(segment.to_string()))
+        .expect("test aspect path aspect should admit");
+    let fields = segments
+        .map(|segment| {
+            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
+        })
+        .collect::<Vec<_>>();
+    if fields.is_empty() {
+        ForgeQueryAspectTouch::aspect(aspect)
+    } else {
+        ForgeQueryAspectTouch::field_path(
+            aspect,
+            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
+        )
+    }
 }

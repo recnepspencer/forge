@@ -1,5 +1,3 @@
-use serde::de::DeserializeOwned;
-
 use super::{
     ForgeQueryDerivedMaterializationBundle, ForgeQueryDerivedMaterializationResult,
     ForgeQueryDerivedMaterializationTarget,
@@ -11,15 +9,13 @@ use crate::evidence_identity::{
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::computed::ForgeQueryDerivedViewHandle;
 use crate::runtime::ForgeQueryRuntimeError;
-#[cfg(test)]
-use crate::runtime::{record_forbidden_fallback_seam_invocation, ForgeQueryForbiddenFallbackSeam};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryDerivedArtifactBinding {
     artifact_name: String,
     binding_identity: ForgeQueryEvidenceIdentity,
     bundle: ForgeQueryDerivedMaterializationBundle,
-    target_view_names: Vec<String>,
+    targets: Vec<ForgeQueryDerivedMaterializationTarget>,
 }
 
 impl ForgeQueryDerivedArtifactBinding {
@@ -49,18 +45,19 @@ impl ForgeQueryDerivedArtifactBinding {
         artifact_name: String,
         required_targets: impl IntoIterator<Item = ForgeQueryDerivedMaterializationTarget>,
     ) -> Result<Self, ForgeQueryRuntimeError> {
-        let mut target_view_names = required_targets
-            .into_iter()
+        let mut targets = required_targets.into_iter().collect::<Vec<_>>();
+        targets.sort();
+        targets.dedup();
+        let target_view_names = targets
+            .iter()
             .map(|target| target.view_name().to_string())
             .collect::<Vec<_>>();
-        target_view_names.sort();
-        target_view_names.dedup();
 
-        let bundle_view_names = bundle.target_view_names().collect::<Vec<_>>();
+        let bundle_view_names = bundle
+            .terminal_target_view_names_projection()
+            .collect::<Vec<_>>();
         if bundle.target_count() != target_view_names.len()
-            || !target_view_names
-                .iter()
-                .all(|view_name| bundle.includes_view_name(view_name))
+            || !targets.iter().all(|target| bundle.includes_target(target))
         {
             return Err(ForgeQueryRuntimeError::RetainedRowDecode {
                 view_name: artifact_name.clone(),
@@ -90,7 +87,7 @@ impl ForgeQueryDerivedArtifactBinding {
             artifact_name,
             binding_identity,
             bundle,
-            target_view_names,
+            targets,
         })
     }
 
@@ -111,11 +108,15 @@ impl ForgeQueryDerivedArtifactBinding {
     }
 
     pub fn target_count(&self) -> usize {
-        self.target_view_names.len()
+        self.targets.len()
     }
 
-    pub fn target_view_names(&self) -> impl Iterator<Item = &str> {
-        self.target_view_names.iter().map(String::as_str)
+    pub fn targets(&self) -> &[ForgeQueryDerivedMaterializationTarget] {
+        &self.targets
+    }
+
+    pub fn terminal_target_view_names_projection(&self) -> impl Iterator<Item = &str> {
+        self.targets.iter().map(|target| target.view_name())
     }
 
     pub fn materialization<T>(
@@ -125,58 +126,11 @@ impl ForgeQueryDerivedArtifactBinding {
         self.bundle.materialization(view)
     }
 
-    pub fn materialization_by_name(
+    pub(crate) fn materialization_for_target(
         &self,
-        view_name: &str,
+        target: &ForgeQueryDerivedMaterializationTarget,
     ) -> Result<&ForgeQueryDerivedMaterializationResult, ForgeQueryRuntimeError> {
-        self.bundle.materialization_by_name(view_name)
-    }
-
-    pub fn decode_single_row<V, T>(
-        &self,
-        view: &ForgeQueryDerivedViewHandle<V>,
-    ) -> Result<T, ForgeQueryRuntimeError>
-    where
-        T: DeserializeOwned,
-    {
-        self.bundle.decode_single_row(view)
-    }
-
-    pub fn decode_row_pair<V1, T1, V2, T2>(
-        &self,
-        first: &ForgeQueryDerivedViewHandle<V1>,
-        second: &ForgeQueryDerivedViewHandle<V2>,
-    ) -> Result<(T1, T2), ForgeQueryRuntimeError>
-    where
-        T1: DeserializeOwned,
-        T2: DeserializeOwned,
-    {
-        #[cfg(test)]
-        record_forbidden_fallback_seam_invocation(ForgeQueryForbiddenFallbackSeam::DecodeRowPair);
-        Ok((
-            self.decode_single_row(first)?,
-            self.decode_single_row(second)?,
-        ))
-    }
-
-    pub fn decode_row_triple<V1, T1, V2, T2, V3, T3>(
-        &self,
-        first: &ForgeQueryDerivedViewHandle<V1>,
-        second: &ForgeQueryDerivedViewHandle<V2>,
-        third: &ForgeQueryDerivedViewHandle<V3>,
-    ) -> Result<(T1, T2, T3), ForgeQueryRuntimeError>
-    where
-        T1: DeserializeOwned,
-        T2: DeserializeOwned,
-        T3: DeserializeOwned,
-    {
-        #[cfg(test)]
-        record_forbidden_fallback_seam_invocation(ForgeQueryForbiddenFallbackSeam::DecodeRowTriple);
-        Ok((
-            self.decode_single_row(first)?,
-            self.decode_single_row(second)?,
-            self.decode_single_row(third)?,
-        ))
+        self.bundle.materialization_by_name(target.view_name())
     }
 
     pub fn into_bundle(self) -> ForgeQueryDerivedMaterializationBundle {
@@ -188,7 +142,7 @@ impl ForgeQueryDerivedArtifactBinding {
 mod tests {
     use std::collections::BTreeMap;
 
-    use serde_json::json;
+    use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey, InternedString};
 
     use super::ForgeQueryDerivedArtifactBinding;
 
@@ -196,14 +150,24 @@ mod tests {
     use crate::runtime::surface::{
         ForgeQueryDerivedMaterializationBundle, ForgeQueryDerivedMaterializationReceipt,
         ForgeQueryDerivedMaterializationResult, ForgeQueryDerivedMaterializationTarget,
+        ForgeQueryRetainedFieldPath, ForgeQueryRetainedMaterializedRow,
     };
+    use crate::runtime::ForgeQueryNativeRow;
 
-    fn retained_row(
-        view_name: &str,
-        value: serde_json::Value,
-    ) -> ForgeQueryDerivedMaterializationResult {
-        ForgeQueryDerivedMaterializationResult::new(
-            vec![value],
+    fn scalar_row(field: &str, value: AspectValue) -> ForgeQueryRetainedMaterializedRow {
+        ForgeQueryRetainedMaterializedRow::from_scalar_values(BTreeMap::from([(
+            retained_field_path(field).expect("field path admits"),
+            value,
+        )]))
+        .expect("retained row should build")
+    }
+
+    fn retained_row(view_name: &str, value: &str) -> ForgeQueryDerivedMaterializationResult {
+        ForgeQueryDerivedMaterializationResult::from_retained_rows(
+            vec![scalar_row(
+                "value",
+                AspectValue::String(InternedString::Raw(value.to_string())),
+            )],
             ForgeQueryDerivedMaterializationReceipt::test_only(
                 view_name,
                 crate::memory_workspace::admit_external_snapshot_label("snapshot-test"),
@@ -214,9 +178,9 @@ mod tests {
 
     fn binding() -> (
         ForgeQueryDerivedArtifactBinding,
-        ForgeQueryDerivedViewHandle<serde_json::Value>,
-        ForgeQueryDerivedViewHandle<serde_json::Value>,
-        ForgeQueryDerivedViewHandle<serde_json::Value>,
+        ForgeQueryDerivedViewHandle<ForgeQueryNativeRow>,
+        ForgeQueryDerivedViewHandle<ForgeQueryNativeRow>,
+        ForgeQueryDerivedViewHandle<ForgeQueryNativeRow>,
     ) {
         let first = ForgeQueryDerivedViewHandle::new("derived.first");
         let second = ForgeQueryDerivedViewHandle::new("derived.second");
@@ -226,15 +190,15 @@ mod tests {
             BTreeMap::from([
                 (
                     first.name().to_string(),
-                    retained_row(first.name(), json!({"value": "first"})),
+                    retained_row(first.name(), "first"),
                 ),
                 (
                     second.name().to_string(),
-                    retained_row(second.name(), json!({"value": "second"})),
+                    retained_row(second.name(), "second"),
                 ),
                 (
                     third.name().to_string(),
-                    retained_row(third.name(), json!({"value": "third"})),
+                    retained_row(third.name(), "third"),
                 ),
             ]),
         );
@@ -251,26 +215,51 @@ mod tests {
         (binding, first, second, third)
     }
 
-    #[test]
-    fn decode_row_pair_uses_bound_retained_artifact_identity() {
-        let (binding, first, second, _) = binding();
-        let rows: (serde_json::Value, serde_json::Value) = binding
-            .decode_row_pair(&first, &second)
-            .expect("pair decode should succeed");
-
-        assert_eq!(rows.0["value"], "first");
-        assert_eq!(rows.1["value"], "second");
+    fn retained_string_value(
+        binding: &ForgeQueryDerivedArtifactBinding,
+        view: &ForgeQueryDerivedViewHandle<ForgeQueryNativeRow>,
+    ) -> String {
+        let value_path = retained_field_path("value").expect("value path admits");
+        let value = binding
+            .materialization(view)
+            .expect("bound materialization should exist")
+            .single_retained_row()
+            .expect("bound materialization should carry one row")
+            .field_value_at(&value_path)
+            .expect("bound materialization should carry value field");
+        let AspectValue::String(InternedString::Raw(value)) = value else {
+            panic!("expected retained string value, got {value:?}");
+        };
+        value.clone()
     }
 
     #[test]
-    fn decode_row_triple_uses_bound_retained_artifact_identity() {
-        let (binding, first, second, third) = binding();
-        let rows: (serde_json::Value, serde_json::Value, serde_json::Value) = binding
-            .decode_row_triple(&first, &second, &third)
-            .expect("triple decode should succeed");
+    fn row_pair_uses_bound_retained_artifact_identity() {
+        let (binding, first, second, _) = binding();
 
-        assert_eq!(rows.0["value"], "first");
-        assert_eq!(rows.1["value"], "second");
-        assert_eq!(rows.2["value"], "third");
+        assert_eq!(retained_string_value(&binding, &first), "first");
+        assert_eq!(retained_string_value(&binding, &second), "second");
+    }
+
+    #[test]
+    fn row_triple_uses_bound_retained_artifact_identity() {
+        let (binding, first, second, third) = binding();
+
+        assert_eq!(retained_string_value(&binding, &first), "first");
+        assert_eq!(retained_string_value(&binding, &second), "second");
+        assert_eq!(retained_string_value(&binding, &third), "third");
+    }
+
+    fn retained_field_path(path: &str) -> Result<ForgeQueryRetainedFieldPath, String> {
+        let fields = path
+            .split('.')
+            .map(|segment| {
+                FieldKey::new(segment.to_string())
+                    .ok_or_else(|| format!("`{path}` is not a retained scalar field path"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let path = CanonicalFieldPath::new(fields)
+            .ok_or_else(|| format!("`{path}` is not a retained scalar field path"))?;
+        Ok(ForgeQueryRetainedFieldPath::from_canonical_field_path(path))
     }
 }

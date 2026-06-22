@@ -12,6 +12,9 @@ use crate::facade::{
     QueryContextFamily, ResolvedSnapshotIdentity, SnapshotLineageClass,
 };
 use crate::harness::fixtures::preview_bridge::active_preview_artifacts;
+use crate::runtime::tests::support::{
+    test_has_native_field_prefix, test_native_scalar_value, test_native_string_value,
+};
 use crate::runtime::{
     ForgeQueryReadDenialKind, ForgeQueryReadExecutionEngine, ForgeQueryReadFamily,
     ForgeQueryRuntimeError, ForgeQueryWorkspace,
@@ -350,15 +353,15 @@ fn assert_context_materialized_rows(
     assert!(!rows.is_empty());
     assert!(rows
         .iter()
-        .all(|row| row.external_row().get("query_context").is_some()));
+        .all(|row| test_native_scalar_value(row, "query_context.basis_digest").is_some()));
     assert!(rows.iter().all(|row| {
-        row.external_row()["query_context"]["basis_digest"]
-            .as_str()
+        test_native_string_value(row, "query_context.basis_digest")
+            .as_deref()
             .is_some_and(|digest| digest == context.basis_digest())
     }));
     assert!(rows.iter().all(|row| {
-        row.external_row()["query_context"]["query_digest"]
-            .as_str()
+        test_native_string_value(row, "query_context.query_digest")
+            .as_deref()
             .is_some_and(|digest| digest == context.query_digest())
     }));
     assert!(rows
@@ -370,10 +373,10 @@ fn assert_runtime_materialized_rows(rows: &[crate::facade::ForgeQueryEntity]) {
     assert!(!rows.is_empty());
     assert!(rows
         .iter()
-        .all(|row| row.external_row().get("query_context").is_none()));
+        .all(|row| test_native_scalar_value(row, "query_context.basis_digest").is_none()));
     assert!(rows
         .iter()
-        .any(|row| row.external_row().get("read").is_some()));
+        .any(|row| test_has_native_field_prefix(row, "read")));
     assert!(rows.iter().all(|row| !row
         .identity()
         .evidence_identity()

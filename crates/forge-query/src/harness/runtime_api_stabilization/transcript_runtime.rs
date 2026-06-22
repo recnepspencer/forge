@@ -1,17 +1,5 @@
 use std::collections::BTreeMap;
 
-use forge_relational::facade::runtime::RelationalRuntime;
-use forge_runtime_bridge::facade::{
-    BridgeCommittedPatchEnvelope, BridgeCommittedPatchItem, BridgeDeliveryReceipt, BridgeMappingId,
-    BridgeMappingRegistration, CoarseRoutingMode, InvalidationSink, MappingSelector,
-    RelationalBridgeSnapshotIdentityParts, RelationalBridgeSourceError,
-    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
-    SignalInvalidationScope, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
-    SnapshotReadSource, TruthBranchIdentity, TruthPatchIdentity, TruthPatchScope,
-    TruthSnapshotIdentity, TruthSnapshotReader,
-};
-use serde_json::Value;
-
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
@@ -35,6 +23,16 @@ use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQuerySnapshotIdenti
 use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryLivePatch};
 use crate::runtime::runtime_subscription_support_evidence_identity;
 use crate::ForgeQuerySessionLabel;
+use forge_relational::facade::runtime::RelationalRuntime;
+use forge_runtime_bridge::facade::{
+    BridgeCommittedPatchEnvelope, BridgeCommittedPatchItem, BridgeDeliveryReceipt, BridgeMappingId,
+    BridgeMappingRegistration, CoarseRoutingMode, InvalidationSink, MappingSelector,
+    RelationalBridgeSnapshotIdentityParts, RelationalBridgeSourceError,
+    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
+    SnapshotReadSource, TruthBranchIdentity, TruthPatchIdentity, TruthPatchScope,
+    TruthSnapshotIdentity, TruthSnapshotReader,
+};
 
 mod transcript_authority;
 
@@ -161,15 +159,13 @@ impl ForgeQueryIntentAuthorityAdapter for TranscriptIntentAuthority {
         declaration: &ForgeQueryIntentDeclaration,
     ) -> Result<ForgeQueryIntentExecution, ForgeQueryWorkspaceError> {
         let collection = declaration
-            .input()
-            .get("collection")
-            .and_then(Value::as_str)
+            .input_string_field("collection")
             .unwrap_or("TranscriptEntity")
             .to_string();
         let mutation_receipt = ForgeQueryMutationReceipt::from_authoritative_parts(
             transcript_commit_identity("transcript-intent-commit", &collection),
             transcript_snapshot_identity("transcript-intent-snapshot", &collection),
-            vec![ForgeQueryMutationDelta::new(
+            vec![ForgeQueryMutationDelta::from_touched_aspects(
                 collection,
                 crate::memory_workspace::admit_authored_entity_label("transcript-intent-entity-1"),
                 ForgeQueryMutationKind::Updated,

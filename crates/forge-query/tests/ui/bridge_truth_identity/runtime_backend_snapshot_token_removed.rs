@@ -2,9 +2,10 @@ use forge_query::facade::{
     DeclarativeLiveQueryRequest, ForgeQueryDerivedView, ForgeQueryEffectPolicy,
     ForgeQueryEntity, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution, ForgeQueryLivePatch,
     ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission,
-    ForgeQueryRuntimeBackend, ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeError,
-    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile, ForgeQuerySessionLabel,
-    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQueryBackendAdmissibleMutation, ForgeQueryRuntimeBackend,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeError, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryRuntimeSupportProfile, ForgeQuerySessionLabel, ForgeQueryWorkspaceError,
+    ForgeQueryWriteReceipt,
     LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput,
     SubscriptionActivationReceipt,
 };
@@ -36,14 +37,14 @@ impl ForgeQueryRuntimeBackend for StringSnapshotBackend {
 
     fn write(
         &mut self,
-        _command: ForgeQueryWriteCommand,
+        _command: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
         panic!("not executed")
     }
 
     fn write_batch(
         &mut self,
-        _commands: Vec<ForgeQueryWriteCommand>,
+        _commands: Vec<ForgeQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
         panic!("not executed")
     }

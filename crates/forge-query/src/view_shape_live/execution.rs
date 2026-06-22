@@ -3,6 +3,7 @@ use crate::live::{
     execute_live_change, BridgeChangeSummary, DetailPatch, LiveCollectionPatchError,
     LiveExecutionError, LivePatchPayload, OrderedCollectionPatch, ProjectionFieldDelta,
 };
+use forge_foundational::facade::AspectKey;
 
 use super::artifact::{
     DetailFieldPatchArtifact, FocusedInspectorAspectPatchArtifact, GroupedLiveViewShapeArtifact,
@@ -15,7 +16,7 @@ use super::error::{ViewShapeLiveError, ViewShapeLiveFailureClass};
 use super::family::LiveViewShapeFamily;
 use super::grouped_delta::{build_grouped_delta, GroupedDeltaInvariantFailure};
 use super::grouped_execution::GroupedExecutionSurfaceArtifact;
-use super::grouped_state::desired_state_from_members;
+use super::grouped_state::{desired_state_from_members, ForgeQueryGroupedBaselineMember};
 
 fn patch_field_count(patch: &DetailPatch) -> usize {
     patch.field_deltas().len()
@@ -27,15 +28,15 @@ fn ordered_patch_width(patch: &OrderedCollectionPatch) -> usize {
 
 fn focus_projection<'a>(
     deltas: &'a [ProjectionFieldDelta],
-    focus_aspect: &str,
+    focus_aspect: &AspectKey,
 ) -> Result<Vec<&'a ProjectionFieldDelta>, Vec<String>> {
     let mut accepted = Vec::new();
     let mut rejected = Vec::new();
     for delta in deltas {
-        if delta.field().aspect() == focus_aspect {
+        if delta.field().native_aspect_key() == focus_aspect {
             accepted.push(delta);
         } else {
-            rejected.push(delta.field().aspect().to_string());
+            rejected.push(delta.field().native_aspect_key().as_str().to_string());
         }
     }
     if rejected.is_empty() {
@@ -199,17 +200,18 @@ fn execute_live_view_shape_change_inner(
             let focus_aspect = live_view
                 .plan()
                 .delivery_metadata()
-                .focus_aspect()
-                .unwrap_or("none");
+                .native_focus_aspect_key()
+                .expect("focused inspector planning guarantees a native focus aspect")
+                .clone();
             let focused =
-                focus_projection(patch.field_deltas(), focus_aspect).map_err(|received| {
+                focus_projection(patch.field_deltas(), &focus_aspect).map_err(|received| {
                     counters.add_focused_inspector_widening_denial();
                     counters.add_view_family_fallback_denial();
                     ViewShapeLiveError::new(
                         ViewShapeLiveFailureClass::FocusedInspectorWideningDenied,
                         format!(
                             "focused inspector aspect '{}' denied widening into aspects '{}'",
-                            focus_aspect,
+                            focus_aspect.as_str(),
                             received.join(",")
                         ),
                         counters.clone(),
@@ -230,7 +232,7 @@ fn execute_live_view_shape_change_inner(
                         "core_replay:{}",
                         core_execution.patch_envelope().replay_digest()
                     ),
-                    format!("focus:{focus_aspect}"),
+                    format!("focus:{}", focus_aspect.as_str()),
                     format!(
                         "identity:{}",
                         inspector_identity
@@ -408,7 +410,7 @@ fn execute_grouped_live_view_shape_change_inner(
             .member_rows()
             .iter()
             .map(|member_row| {
-                (
+                ForgeQueryGroupedBaselineMember::from_authoritative_member_lane_keys(
                     member_row.member_key().to_string(),
                     member_row.lane().lane_key().to_string(),
                 )

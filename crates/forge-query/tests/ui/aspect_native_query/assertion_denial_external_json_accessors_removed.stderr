@@ -1,0 +1,21 @@
+warning: unreachable statement
+ --> tests/ui/aspect_native_query/assertion_denial_external_json_accessors_removed.rs:5:5
+  |
+4 |     let denial: ForgeQueryExistingTruthAssertionDenial = unreachable!();
+  |                                                          -------------- any code following this expression is unreachable
+5 |     let _ = denial.expected_external_value_json();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `expected_external_value_json` found for struct `ForgeQueryExistingTruthAssertionDenial` in the current scope
+ --> tests/ui/aspect_native_query/assertion_denial_external_json_accessors_removed.rs:5:20
+  |
+5 |     let _ = denial.expected_external_value_json();
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryExistingTruthAssertionDenial`
+
+error[E0599]: no method named `found_external_value_json` found for struct `ForgeQueryExistingTruthAssertionDenial` in the current scope
+ --> tests/ui/aspect_native_query/assertion_denial_external_json_accessors_removed.rs:6:20
+  |
+6 |     let _ = denial.found_external_value_json();
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryExistingTruthAssertionDenial`

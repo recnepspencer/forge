@@ -1,11 +1,14 @@
-use crate::runtime::ForgeQueryWriteReceipt;
+use crate::runtime::{
+    ForgeQueryAspectTouch, ForgeQueryDerivedMaterializationTarget, ForgeQueryLiveArtifactTarget,
+    ForgeQueryWriteReceipt,
+};
 
 use forge_runtime_bridge::facade::BridgeBatchMutationAuthorityBundle;
 
 pub(super) struct ForgeQueryBatchReceiptAggregates {
-    pub(super) touched_aspect_paths: Vec<String>,
-    pub(super) affected_live_view_ids: Vec<String>,
-    pub(super) affected_derived_view_ids: Vec<String>,
+    pub(super) touched_aspects: Vec<ForgeQueryAspectTouch>,
+    pub(super) affected_live_view_targets: Vec<ForgeQueryLiveArtifactTarget>,
+    pub(super) affected_derived_view_targets: Vec<ForgeQueryDerivedMaterializationTarget>,
     pub(super) considered_computed_view_count: usize,
     pub(super) considered_effect_count: usize,
     pub(super) delivered_effect_count: usize,
@@ -19,36 +22,36 @@ pub(super) struct ForgeQueryBatchReceiptAggregates {
 pub(super) fn derive_batch_receipt_aggregates(
     write_receipts: &[ForgeQueryWriteReceipt],
 ) -> ForgeQueryBatchReceiptAggregates {
-    let mut touched_aspect_paths = write_receipts
+    let mut touched_aspects = std::collections::BTreeMap::new();
+    for touch in write_receipts
         .iter()
-        .flat_map(|receipt| {
-            receipt
-                .deltas()
-                .iter()
-                .flat_map(|delta| delta.aspect_paths.iter().cloned())
-        })
-        .collect::<Vec<_>>();
-    touched_aspect_paths.sort();
-    touched_aspect_paths.dedup();
+        .flat_map(|receipt| receipt.deltas())
+        .flat_map(|delta| delta.admitted_touched_aspects())
+    {
+        touched_aspects.insert(
+            touch.admitted_touch_digest_part().to_string(),
+            touch.clone(),
+        );
+    }
 
-    let mut affected_live_view_ids = write_receipts
+    let mut affected_live_view_targets = write_receipts
         .iter()
-        .flat_map(|receipt| receipt.affected_live_view_ids().iter().cloned())
+        .flat_map(|receipt| receipt.affected_live_view_targets().iter().cloned())
         .collect::<Vec<_>>();
-    affected_live_view_ids.sort();
-    affected_live_view_ids.dedup();
+    affected_live_view_targets.sort();
+    affected_live_view_targets.dedup();
 
-    let mut affected_derived_view_ids = write_receipts
+    let mut affected_derived_view_targets = write_receipts
         .iter()
-        .flat_map(|receipt| receipt.affected_derived_view_ids().iter().cloned())
+        .flat_map(|receipt| receipt.affected_derived_view_targets().iter().cloned())
         .collect::<Vec<_>>();
-    affected_derived_view_ids.sort();
-    affected_derived_view_ids.dedup();
+    affected_derived_view_targets.sort();
+    affected_derived_view_targets.dedup();
 
     ForgeQueryBatchReceiptAggregates {
-        touched_aspect_paths,
-        affected_live_view_ids,
-        affected_derived_view_ids,
+        touched_aspects: touched_aspects.into_values().collect(),
+        affected_live_view_targets,
+        affected_derived_view_targets,
         considered_computed_view_count: write_receipts
             .iter()
             .map(ForgeQueryWriteReceipt::considered_computed_view_count)

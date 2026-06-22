@@ -17,6 +17,7 @@ use crate::runtime::{
     ForgeQueryReadReceipt, ForgeQueryReadResult, ForgeQueryWriteReceipt,
 };
 use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
 use forge_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
     project_relational_grouped_truth, GroupedProjectionContract,
@@ -27,7 +28,6 @@ use forge_runtime_bridge::facade::{
     SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
     SnapshotReadRequest, TruthSnapshotIdentity,
 };
-use serde_json::json;
 
 use super::super::super::{
     declare_projection_consumption, evaluate_projection_consumption_eligibility,
@@ -39,10 +39,7 @@ pub(crate) fn binding(visible_fields: &[&str]) -> ProjectionConsumptionBindingCo
     ProjectionConsumptionBindingContext::test_only(
         "result-shape:test",
         "authorized-projection:test",
-        visible_fields
-            .iter()
-            .map(|field| field.to_string())
-            .collect(),
+        crate::projection_consumption::test_authorized_field_paths(visible_fields),
     )
 }
 
@@ -56,10 +53,7 @@ pub(crate) fn authorized_projection(
         result_shape_digest,
         "policy:test",
         "tenant-schema:test",
-        visible_fields
-            .iter()
-            .map(|field| field.to_string())
-            .collect(),
+        crate::projection_consumption::test_authorized_field_paths(visible_fields),
         MaskedProjectionArtifact::new(Vec::new(), Vec::new()),
         "narrowed-result-shape:test".to_string(),
         PolicyFieldInfluenceSet::new(&["influence:test".to_string()], 1),
@@ -79,10 +73,7 @@ pub(crate) fn binding_for_result_shape(
         "narrowed-result-shape:test",
         "policy:test",
         "tenant-schema:test",
-        visible_fields
-            .iter()
-            .map(|field| field.to_string())
-            .collect(),
+        crate::projection_consumption::test_authorized_field_paths(visible_fields),
     )
 }
 
@@ -229,19 +220,19 @@ pub(crate) fn write_receipt_without_source_references() -> ForgeQueryWriteReceip
 pub(crate) fn read_result() -> ForgeQueryReadResult {
     ForgeQueryReadResult::test_only(
         vec![
-            ForgeQueryEntity::from_external_projection(
+            entity_from_projection(
                 test_entity_identity("task-1"),
-                json!({
-                    "profile": { "display_name": "Task One" },
-                    "metrics": { "priority": 1 }
-                }),
+                [
+                    ("profile.display_name", text_value("Task One")),
+                    ("metrics.priority", int_value(1)),
+                ],
             ),
-            ForgeQueryEntity::from_external_projection(
+            entity_from_projection(
                 test_entity_identity("task-2"),
-                json!({
-                    "profile": { "display_name": "Task Two" },
-                    "metrics": { "priority": 2 }
-                }),
+                [
+                    ("profile.display_name", text_value("Task Two")),
+                    ("metrics.priority", int_value(2)),
+                ],
             ),
         ],
         ForgeQueryReadReceipt::test_only(
@@ -252,6 +243,37 @@ pub(crate) fn read_result() -> ForgeQueryReadResult {
             ForgeQueryReadExecutionEngine::QueryRuntimeCurrent,
         ),
     )
+}
+
+pub(crate) fn entity_from_projection(
+    identity: ForgeQueryEntityIdentity,
+    values: impl IntoIterator<Item = (&'static str, AspectValue)>,
+) -> ForgeQueryEntity {
+    ForgeQueryEntity::from_native_field_values(
+        identity,
+        values
+            .into_iter()
+            .map(|(path, value)| (canonical_field_path(path), value))
+            .collect(),
+    )
+}
+
+pub(crate) fn text_value(value: impl Into<String>) -> AspectValue {
+    AspectValue::String(value.into().into())
+}
+
+pub(crate) fn int_value(value: i64) -> AspectValue {
+    AspectValue::Int64(value)
+}
+
+pub(crate) fn canonical_field_path(path: &str) -> CanonicalFieldPath {
+    CanonicalFieldPath::new(
+        path.split('.')
+            .map(|segment| FieldKey::new(segment.to_string()))
+            .collect::<Option<Vec<_>>>()
+            .expect("test field path should be canonical"),
+    )
+    .expect("test field path should not be empty")
 }
 
 pub(crate) fn phase_four_commit_identity(label: &str) -> ForgeQueryCommitIdentity {

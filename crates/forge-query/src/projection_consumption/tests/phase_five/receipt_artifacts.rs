@@ -13,7 +13,12 @@ fn consumed_fact_set_issues_receipt_with_stable_operational_fields() {
         binding(&["identity.id", "profile.display_name"]),
         ProjectMaterializedFacts::declare()
             .entity_identities()
-            .display_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
     )
     .bind_contract();
     let consumed = contract.extract_from_relational_row_set(&row_set).unwrap();
@@ -69,7 +74,12 @@ fn receipt_derives_self_describing_projection_consumption_envelope() {
         binding(&["identity.id", "profile.display_name"]),
         ProjectMaterializedFacts::declare()
             .entity_identities()
-            .display_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
     )
     .bind_contract();
     let consumed = contract.extract_from_relational_row_set(&row_set).unwrap();

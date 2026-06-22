@@ -17,7 +17,7 @@ fn compiled_typed_program_installs_runs_and_emits_trace() {
             operation,
             vec![ForgeQueryOperationInput::new(
                 "title",
-                Value::String("Typed task".to_string()),
+                ForgeQueryProgramValue::string("Typed task"),
             )],
         )
         .expect("program should run");
@@ -25,7 +25,17 @@ fn compiled_typed_program_installs_runs_and_emits_trace() {
 
     assert_eq!(trace.operation_id(), "create_task");
     assert_eq!(run.outputs()[0].name(), "live:tasks.table");
-    assert_eq!(run.outputs()[0].value()[0]["title"]["value"], "Typed task");
+    let title_value_path = CanonicalFieldPath::new([
+        FieldKey::new("title".to_owned()).expect("valid test field"),
+        FieldKey::new("value".to_owned()).expect("valid test field"),
+    ])
+    .expect("valid title value path");
+    assert_eq!(
+        run.outputs()[0]
+            .value()
+            .array_field_path_string_value(0, &title_value_path),
+        Some("Typed task")
+    );
     assert!(trace
         .generated_declarations()
         .iter()
@@ -53,7 +63,10 @@ fn compiled_typed_program_rejects_type_mismatch_before_execution() {
     let error = runtime
         .run_operation(
             operation,
-            vec![ForgeQueryOperationInput::new("title", Value::Bool(true))],
+            vec![ForgeQueryOperationInput::new(
+                "title",
+                ForgeQueryProgramValue::bool(true),
+            )],
         )
         .expect_err("type mismatch should reject before effects execute");
 

@@ -2,7 +2,10 @@ use super::certification_entity_identity;
 use super::runtime::{
     certification_runtime, certification_task_live_request, certification_task_schema,
 };
-use crate::facade::runtime::{ForgeQueryEffectDeclaration, ForgeQueryEffectTrigger};
+use crate::facade::runtime::{
+    ForgeQueryAspectTouch, ForgeQueryEffectDeclaration, ForgeQueryEffectTrigger,
+};
+use crate::runtime::ForgeQueryNativeRow;
 
 #[derive(Clone)]
 pub(in crate::intent_admission::certification) struct CertifiedEffectIntentFixture {
@@ -20,24 +23,34 @@ pub(in crate::intent_admission::certification) fn certified_effect_intent_fixtur
 ) -> CertifiedEffectIntentFixture {
     let mut runtime = certification_runtime();
     let live = runtime
-        .declare_live_view::<serde_json::Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "certification.effect-live",
             certification_task_live_request(),
             certification_task_schema(),
         )
         .expect("effect certification live view should declare");
     let effect = runtime
-        .declare_effect::<serde_json::Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.certification.reconcile",
-            ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+            ForgeQueryEffectTrigger::live_view(
+                &live,
+                [ForgeQueryAspectTouch::from_authoring_path("title.value")
+                    .expect("effect certification aspect should admit")],
+            ),
             "strategy.intent.reconcile",
         ))
         .expect("effect certification effect should declare");
     runtime
         .write(crate::facade::ForgeQueryWriteCommand::UpdateAspect {
             entity_identity: certification_entity_identity("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: serde_json::json!("title from certification effect"),
+            aspect: crate::facade::ForgeQueryAspectValue::new_set(
+                ForgeQueryAspectTouch::from_authoring_path("title.value")
+                    .expect("effect certification aspect should admit"),
+                forge_foundational::facade::AspectValue::String(
+                    "title from certification effect".into(),
+                ),
+            )
+            .expect("effect certification aspect should admit"),
         })
         .expect("effect certification write should queue");
 

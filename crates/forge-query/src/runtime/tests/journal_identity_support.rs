@@ -63,8 +63,14 @@ fn submit_task(
     title: &str,
 ) -> ForgeQueryWriteReceipt {
     let command = ForgeQueryAspectMutationBuilder::new()
-        .aspect("identity.id", id)
-        .aspect("title.value", title)
+        .aspect(
+            test_aspect_touch("identity.id"),
+            test_string_aspect_value(id),
+        )
+        .aspect(
+            test_aspect_touch("title.value"),
+            test_string_aspect_value(title),
+        )
         .build_insert("Task")
         .expect("insert command should build");
     workspace

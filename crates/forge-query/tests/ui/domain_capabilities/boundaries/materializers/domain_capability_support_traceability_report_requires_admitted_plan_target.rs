@@ -2,7 +2,7 @@ use forge_query::facade::{
     admit_eligible_domain_capability_contribution, evaluate_requested_domain_capability_contribution,
     materialize_intent_admission_support_traceability_report,
     prepare_admitted_domain_capability_contribution_for_materialization,
-    ForgeQueryIntentDeclaration, ForgeQuerySupportContributionAuthoring,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentInput, ForgeQuerySupportContributionAuthoring,
 };
 
 fn main() {
@@ -11,7 +11,7 @@ fn main() {
         "test.strategy",
         "1",
         "test.contract",
-        serde_json::json!({ "entity": "edge:42" }),
+        ForgeQueryIntentInput::object([("entity", ForgeQueryIntentInput::string("edge:42"))]),
     );
     let requested = ForgeQuerySupportContributionAuthoring::declaration_support(
         "spatial.support",

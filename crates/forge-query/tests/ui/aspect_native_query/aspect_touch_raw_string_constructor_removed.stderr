@@ -1,0 +1,21 @@
+error[E0599]: no function or associated item named `new` found for struct `ForgeQueryAspectTouch` in the current scope
+ --> tests/ui/aspect_native_query/aspect_touch_raw_string_constructor_removed.rs:4:36
+  |
+4 |     let _ = ForgeQueryAspectTouch::new("title.value");
+  |                                    ^^^ function or associated item not found in `ForgeQueryAspectTouch`
+  |
+note: if you're trying to build a new `ForgeQueryAspectTouch` consider using one of the following associated functions:
+      ForgeQueryAspectTouch::aspect
+      ForgeQueryAspectTouch::field_path
+ --> src/runtime/mutation/touch.rs
+  |
+  |     pub fn aspect(aspect_key: AspectKey) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn field_path(aspect_key: AspectKey, field_path: CanonicalFieldPath) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: there is a method `ne` with a similar name
+  |
+4 -     let _ = ForgeQueryAspectTouch::new("title.value");
+4 +     let _ = ForgeQueryAspectTouch::ne("title.value");
+  |

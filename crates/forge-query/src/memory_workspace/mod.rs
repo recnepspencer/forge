@@ -1,12 +1,10 @@
 use crate::view_shape_live::ViewShapePatchEnvelope;
-use forge_foundational::facade::AspectValue;
+use forge_foundational::facade::CanonicalFieldPath;
 use forge_relational::facade::identity::{EntityId, KindId};
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::BridgeMutationAuthorityBundle;
-use serde_json::Value;
-use std::collections::BTreeMap;
 
-mod external_projection;
+mod entity_row;
 mod identities;
 mod runtime_identity;
 #[cfg(test)]
@@ -14,6 +12,7 @@ mod tests;
 mod truth_identity_admission;
 mod workspace;
 
+pub use entity_row::ForgeQueryEntity;
 pub use identities::{
     ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
 };
@@ -28,117 +27,37 @@ pub use truth_identity_admission::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForgeQueryAspect {
-    label: String,
-    external_projection_path: String,
+    touch: crate::runtime::ForgeQueryAspectTouch,
+    external_projection_path: CanonicalFieldPath,
 }
 
 impl ForgeQueryAspect {
-    pub fn new(label: impl Into<String>, external_projection_path: impl Into<String>) -> Self {
+    pub fn new(
+        touch: crate::runtime::ForgeQueryAspectTouch,
+        external_projection_path: CanonicalFieldPath,
+    ) -> Self {
         Self {
-            label: label.into(),
-            external_projection_path: external_projection_path.into(),
+            touch,
+            external_projection_path,
         }
     }
 
-    pub fn label(&self) -> &str {
-        &self.label
+    pub(crate) fn from_native_external_projection_path(
+        touch: crate::runtime::ForgeQueryAspectTouch,
+        external_projection_path: CanonicalFieldPath,
+    ) -> Self {
+        Self {
+            touch,
+            external_projection_path,
+        }
     }
 
-    pub fn external_projection_path(&self) -> &str {
+    pub fn aspect_touch(&self) -> &crate::runtime::ForgeQueryAspectTouch {
+        &self.touch
+    }
+
+    pub fn external_projection_path(&self) -> &CanonicalFieldPath {
         &self.external_projection_path
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ForgeQueryEntity {
-    identity: ForgeQueryEntityIdentity,
-    row: ForgeQueryEntityRow,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum ForgeQueryEntityRow {
-    AspectProjection {
-        aspect_values: BTreeMap<String, AspectValue>,
-        external_projection: Value,
-    },
-    ExternalProjection(Value),
-}
-
-impl ForgeQueryEntity {
-    pub fn from_aspect_projection(
-        identity: ForgeQueryEntityIdentity,
-        aspect_values: BTreeMap<String, AspectValue>,
-        external_projection: Value,
-    ) -> Self {
-        Self {
-            identity,
-            row: ForgeQueryEntityRow::AspectProjection {
-                aspect_values,
-                external_projection,
-            },
-        }
-    }
-
-    pub fn from_external_projection(
-        identity: ForgeQueryEntityIdentity,
-        external_projection: Value,
-    ) -> Self {
-        Self {
-            identity,
-            row: ForgeQueryEntityRow::ExternalProjection(external_projection),
-        }
-    }
-
-    pub fn identity(&self) -> &ForgeQueryEntityIdentity {
-        &self.identity
-    }
-
-    pub fn external_row(&self) -> &Value {
-        match &self.row {
-            ForgeQueryEntityRow::AspectProjection {
-                external_projection,
-                ..
-            }
-            | ForgeQueryEntityRow::ExternalProjection(external_projection) => external_projection,
-        }
-    }
-
-    pub fn aspect_value(&self, aspect_path: &str) -> Option<&AspectValue> {
-        match &self.row {
-            ForgeQueryEntityRow::AspectProjection { aspect_values, .. } => {
-                aspect_values.get(aspect_path)
-            }
-            ForgeQueryEntityRow::ExternalProjection(_) => None,
-        }
-    }
-
-    pub fn aspect_values(&self) -> Box<dyn Iterator<Item = (&str, &AspectValue)> + '_> {
-        match &self.row {
-            ForgeQueryEntityRow::AspectProjection { aspect_values, .. } => Box::new(
-                aspect_values
-                    .iter()
-                    .map(|(path, value)| (path.as_str(), value)),
-            ),
-            ForgeQueryEntityRow::ExternalProjection(_) => Box::new(std::iter::empty()),
-        }
-    }
-
-    pub fn into_external_row(self) -> Value {
-        match self.row {
-            ForgeQueryEntityRow::AspectProjection {
-                external_projection,
-                ..
-            }
-            | ForgeQueryEntityRow::ExternalProjection(external_projection) => external_projection,
-        }
-    }
-
-    pub fn external_row_path(&self, dotted_path: &str) -> Option<&Value> {
-        let mut current = self.external_row();
-        for segment in dotted_path.split('.') {
-            current = current.get(segment)?;
-        }
-        Some(current)
     }
 }
 
@@ -154,21 +73,21 @@ pub struct ForgeQueryMutationDelta {
     pub(crate) collection: String,
     pub(crate) entity_identity: ForgeQueryEntityIdentity,
     pub(crate) kind: ForgeQueryMutationKind,
-    pub(crate) aspect_paths: Vec<String>,
+    pub(crate) touched_aspects: Vec<crate::runtime::ForgeQueryAspectTouch>,
 }
 
 impl ForgeQueryMutationDelta {
-    pub fn new(
+    pub fn from_touched_aspects(
         collection: impl Into<String>,
         entity_identity: ForgeQueryEntityIdentity,
         kind: ForgeQueryMutationKind,
-        aspect_paths: Vec<String>,
+        touched_aspects: Vec<crate::runtime::ForgeQueryAspectTouch>,
     ) -> Self {
         Self {
             collection: collection.into(),
             entity_identity,
             kind,
-            aspect_paths,
+            touched_aspects,
         }
     }
 
@@ -184,8 +103,8 @@ impl ForgeQueryMutationDelta {
         &self.kind
     }
 
-    pub fn aspect_paths(&self) -> &[String] {
-        &self.aspect_paths
+    pub fn admitted_touched_aspects(&self) -> &[crate::runtime::ForgeQueryAspectTouch] {
+        &self.touched_aspects
     }
 }
 
@@ -259,8 +178,14 @@ pub struct ForgeQueryLivePatch {
     pub(crate) commit_identity: ForgeQueryCommitIdentity,
     pub(crate) entity_identity: ForgeQueryEntityIdentity,
     pub(crate) mutation_kind: ForgeQueryMutationKind,
-    pub(crate) aspect_paths: Vec<String>,
+    pub(crate) touched_aspects: Vec<crate::runtime::ForgeQueryAspectTouch>,
     pub(crate) envelope: ViewShapePatchEnvelope,
+}
+
+impl ForgeQueryLivePatch {
+    pub fn admitted_touched_aspects(&self) -> &[crate::runtime::ForgeQueryAspectTouch] {
+        &self.touched_aspects
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

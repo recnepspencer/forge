@@ -1,7 +1,7 @@
+use forge_foundational::facade::{AspectKey, FieldKey};
 use forge_proof::TransitionOutcome;
 use forge_relational::facade::runtime::InvariantCatalog;
 use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
-use serde_json::json;
 
 use crate::domain_capabilities::{
     admit_eligible_domain_capability_contribution,
@@ -31,7 +31,7 @@ use crate::runtime::{
     CausalEvidenceFamily, CausalEvidenceReferenceResolution, CausalEvidenceReferenceSet,
     CausalInspectionMaterializationPolicy, CausalInspectionReason, CausalInspectionRedactionPolicy,
     CausalInspectionTarget, ForgeQueryAdmittedIntentPlan,
-    ForgeQueryGraphCompositionCapabilityClass, ForgeQueryIntentDeclaration,
+    ForgeQueryGraphCompositionCapabilityClass, ForgeQueryIntentDeclaration, ForgeQueryIntentInput,
     QueryObservationReceipt,
 };
 
@@ -41,7 +41,7 @@ pub(super) fn intent_declaration(name: &str) -> ForgeQueryIntentDeclaration {
         "spatial.commit",
         "1",
         "geometry.patch",
-        json!({"edge":"e-1"}),
+        ForgeQueryIntentInput::object([("edge", ForgeQueryIntentInput::string("e-1"))]),
     )
 }
 
@@ -62,7 +62,11 @@ pub(super) fn admitted_projection_consumption_plan() -> ForgeQueryAdmittedIntent
     let declaration = crate::projection_consumption::declare_projection_consumption(
         admitted_projection_source(),
         admitted_projection_binding(),
-        ProjectMaterializedFacts::declare().display_field("field.visible"),
+        ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                "field", "visible",
+            ]),
+        ),
     )
     .expect("projection declaration should build");
     let request =
@@ -81,7 +85,11 @@ pub(super) fn projection_contract_request() -> ForgeQueryProjectionContractReque
     ForgeQueryProjectionContractRequest::new(
         admitted_projection_source(),
         admitted_projection_binding(),
-        ProjectMaterializedFacts::declare().display_field("field.visible"),
+        ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                "field", "visible",
+            ]),
+        ),
     )
 }
 
@@ -198,7 +206,17 @@ fn admitted_projection_binding() -> ProjectionConsumptionBindingContext {
         "narrowed-shape-digest",
         "policy-digest",
         "tenant-schema-digest",
-        vec!["field.visible".to_string()],
+        vec![field_path("field.visible")],
+    )
+}
+
+fn field_path(path: &str) -> crate::authorized_projection::AuthorizedProjectionFieldPath {
+    let Some((aspect, field)) = path.split_once('.') else {
+        panic!("domain capability fixture field path should include an aspect and field");
+    };
+    crate::authorized_projection::AuthorizedProjectionFieldPath::from_native_keys(
+        AspectKey::new(aspect.to_string()).expect("fixture aspect key"),
+        FieldKey::new(field.to_string()).expect("fixture field key"),
     )
 }
 

@@ -18,7 +18,7 @@ pub(crate) fn validate_projection_entries(
     for projection in projections {
         counters.record_schema_lookup();
 
-        if !schema_view.has_aspect(projection.aspect.as_str()) {
+        if !schema_view.has_aspect(&projection.aspect) {
             counters.record_rejection();
             counters.record_projection_widening_denial();
             rejection_matrix.record_projection_rejection();
@@ -31,8 +31,7 @@ pub(crate) fn validate_projection_entries(
             ));
         }
 
-        let Some(field) = schema_view.field(projection.aspect.as_str(), projection.field.as_str())
-        else {
+        let Some(field) = schema_view.field(&projection.aspect, &projection.field) else {
             counters.record_rejection();
             counters.record_projection_widening_denial();
             rejection_matrix.record_projection_rejection();

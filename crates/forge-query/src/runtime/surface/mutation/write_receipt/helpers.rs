@@ -7,10 +7,10 @@ use crate::runtime::{
     ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationIntent,
     ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthAssertionMode,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationFamily, ForgeQueryMutationTargetClass,
-    ForgeQueryMutationTargetDescriptor, ForgeQueryMutationTargetEvidence,
-    ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationIntent,
-    ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceEvidence,
-    ForgeQueryVerifiedExistingTruthAssertion,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryMutationTargetDescriptor,
+    ForgeQueryMutationTargetEvidence, ForgeQueryNamingMutationEvidence,
+    ForgeQueryNamingMutationIntent, ForgeQuerySymbolicTargetReference,
+    ForgeQuerySymbolicTargetReferenceEvidence, ForgeQueryVerifiedExistingTruthAssertion,
 };
 
 pub(super) fn symbolic_target_reference_evidence(
@@ -149,9 +149,9 @@ fn retained_assertion_verification_digest(
 
 pub(super) fn target_evidence_from_receipt(
     mutation_family: ForgeQueryMutationFamily,
-    declared_collection: Option<String>,
+    declared_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
     declared_entity_identity: Option<ForgeQueryEntityIdentity>,
-    target_collection: Option<String>,
+    target_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
     target_entity_identity: Option<ForgeQueryEntityIdentity>,
 ) -> ForgeQueryMutationTargetEvidence {
     let declared_target_class = match mutation_family {
@@ -168,12 +168,12 @@ pub(super) fn target_evidence_from_receipt(
     ForgeQueryMutationTargetEvidence::new(
         ForgeQueryMutationTargetDescriptor::new(
             declared_target_class,
-            declared_collection,
+            declared_collection.map(|collection| collection.as_str().to_string()),
             declared_entity_identity,
         ),
         ForgeQueryMutationTargetDescriptor::new(
             resolved_target_class,
-            target_collection,
+            target_collection.map(|collection| collection.as_str().to_string()),
             target_entity_identity,
         ),
     )

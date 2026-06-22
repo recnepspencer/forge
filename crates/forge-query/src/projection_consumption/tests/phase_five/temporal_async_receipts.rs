@@ -9,7 +9,8 @@ use crate::projection_consumption::{
 use crate::runtime::{ForgeQueryReadExecutionEngine, ForgeQueryReadReceipt, ForgeQueryReadResult};
 
 use super::super::phase_four::support::{
-    authorized_projection, query_context_execution_preview, read_result_shape,
+    authorized_projection, entity_from_projection, int_value, query_context_execution_preview,
+    read_result_shape, text_value,
 };
 
 fn temporal_async_posture(
@@ -34,15 +35,13 @@ fn read_result_with_posture(
     support_digest: &str,
 ) -> ForgeQueryReadResult {
     ForgeQueryReadResult::test_only(
-        vec![
-            crate::memory_workspace::ForgeQueryEntity::from_external_projection(
-                crate::memory_workspace::admit_authored_entity_label("task-1"),
-                serde_json::json!({
-                    "profile": { "display_name": "Task One" },
-                    "metrics": { "priority": 1 }
-                }),
-            ),
-        ],
+        vec![entity_from_projection(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            [
+                ("profile.display_name", text_value("Task One")),
+                ("metrics.priority", int_value(1)),
+            ],
+        )],
         ForgeQueryReadReceipt::test_only(
             "read-graph:test",
             "query:test",
@@ -68,7 +67,7 @@ fn authorized_projection_with_policy(
         result_shape_digest,
         policy_digest,
         "tenant-schema:test",
-        vec!["profile.display_name".to_string()],
+        crate::projection_consumption::test_authorized_field_paths(&["profile.display_name"]),
         MaskedProjectionArtifact::new(Vec::new(), Vec::new()),
         "narrowed-result-shape:test".to_string(),
         PolicyFieldInfluenceSet::new(&["influence:test".to_string()], 1),
@@ -95,7 +94,12 @@ fn time_only_materialized_read_receipt_retains_projection_consumption_posture() 
         .consume_projection_facts(
             &result_shape,
             &authorized_projection,
-            ProjectMaterializedFacts::declare().display_field("profile.display_name"),
+            ProjectMaterializedFacts::declare().display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
         )
         .expect("time-only read consumption should stay typed");
 
@@ -136,7 +140,12 @@ fn async_backed_query_context_consumption_receipt_retains_materialized_posture()
     let attempt = execution
         .consume_projection_facts(
             &authorized_projection,
-            ProjectMaterializedFacts::declare().display_field("profile.display_name"),
+            ProjectMaterializedFacts::declare().display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
         )
         .expect("async-backed query-context consumption should stay typed");
 
@@ -185,7 +194,12 @@ fn temporal_async_consumed_facts_remain_basis_policy_and_support_bound() {
         .consume_projection_facts(
             &result_shape,
             &authorized_projection_left,
-            ProjectMaterializedFacts::declare().display_field("profile.display_name"),
+            ProjectMaterializedFacts::declare().display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
         )
         .expect("left mixed-cause consumption should stay typed")
         .completed()
@@ -195,7 +209,12 @@ fn temporal_async_consumed_facts_remain_basis_policy_and_support_bound() {
         .consume_projection_facts(
             &result_shape,
             &authorized_projection_right,
-            ProjectMaterializedFacts::declare().display_field("profile.display_name"),
+            ProjectMaterializedFacts::declare().display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    "profile",
+                    "display_name",
+                ]),
+            ),
         )
         .expect("right mixed-cause consumption should stay typed")
         .completed()

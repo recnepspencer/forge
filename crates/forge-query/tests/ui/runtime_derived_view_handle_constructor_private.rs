@@ -1,7 +1,9 @@
-use forge_query::facade::{ForgeQueryAuthorityLane, ForgeQueryDerivedViewHandle};
+use forge_query::facade::{
+    ForgeQueryAuthorityLane, ForgeQueryDerivedViewHandle, ForgeQueryNativeRow,
+};
 
 fn main() {
-    let _forged = ForgeQueryDerivedViewHandle::<serde_json::Value> {
+    let _forged = ForgeQueryDerivedViewHandle::<ForgeQueryNativeRow> {
         name: "forged.computed".to_string(),
         authority_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
         marker: std::marker::PhantomData,

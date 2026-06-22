@@ -27,7 +27,10 @@ pub(super) fn intent_declaration() -> ForgeQueryIntentDeclaration {
         "spatial.commit",
         "1",
         "geometry.patch",
-        serde_json::json!({"edge":"e-1"}),
+        crate::runtime::ForgeQueryIntentInput::object([(
+            "edge",
+            crate::runtime::ForgeQueryIntentInput::string("e-1"),
+        )]),
     )
 }
 
@@ -48,8 +51,11 @@ pub(super) fn admitted_projection_consumption_plan() -> ForgeQueryAdmittedIntent
     let declaration = crate::projection_consumption::declare_projection_consumption(
         projection_source(),
         projection_binding(),
-        crate::projection_consumption::ProjectMaterializedFacts::declare()
-            .display_field("field.visible"),
+        crate::projection_consumption::ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                "field", "visible",
+            ]),
+        ),
     )
     .expect("projection declaration should build");
     let request =
@@ -164,7 +170,7 @@ pub(super) fn projection_binding(
         "narrowed-shape-digest",
         "policy-digest",
         "tenant-schema-digest",
-        vec!["field.visible".to_string()],
+        crate::projection_consumption::test_authorized_field_paths(&["field.visible"]),
     )
 }
 

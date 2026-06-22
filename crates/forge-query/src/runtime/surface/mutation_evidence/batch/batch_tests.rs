@@ -328,8 +328,9 @@ fn existing_truth_mode_summary_digest_changes_with_mutation_family() {
             )
             .expect("binding should build"),
             &[crate::runtime::ForgeQueryAspectValue::new(
-                "title.value",
-                serde_json::json!("Seed title"),
+                crate::runtime::ForgeQueryAspectTouch::from_authoring_path("title.value".to_string())
+                    .expect("test aspect path should parse"),
+                forge_foundational::facade::AspectValue::String("Seed title".into()),
             )
             .expect("aspect should build")],
             crate::memory_workspace::admit_external_snapshot_label("snapshot:test"),
@@ -363,8 +364,9 @@ fn existing_truth_mode_summary_digest_changes_with_assertion_mode() {
             )
             .expect("binding should build"),
             &[crate::runtime::ForgeQueryAspectValue::new(
-                "title.value",
-                serde_json::json!("Seed title"),
+                crate::runtime::ForgeQueryAspectTouch::from_authoring_path("title.value".to_string())
+                    .expect("test aspect path should parse"),
+                forge_foundational::facade::AspectValue::String("Seed title".into()),
             )
             .expect("aspect should build")],
             crate::memory_workspace::admit_external_snapshot_label("snapshot:test"),

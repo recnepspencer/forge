@@ -9,6 +9,7 @@ use crate::runtime::{
     ForgeQueryReadGraph, ForgeQueryRuntime,
 };
 use crate::schema_view::QuerySchemaView;
+use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey, InternedString};
 
 pub(in crate::runtime) fn materialize_read_rows(
     runtime: &mut ForgeQueryRuntime,
@@ -32,24 +33,40 @@ pub(in crate::runtime) fn materialize_query_context_rows(
         .iter()
         .enumerate()
         .map(|(index, row)| {
-            ForgeQueryEntity::from_external_projection(
+            ForgeQueryEntity::from_native_field_values(
                 crate::memory_workspace::admit_authored_entity_label(format!(
                     "query-context:{}:{}",
                     context_execution.family().as_str(),
                     index
                 )),
-                serde_json::json!({
-                "query_context": {
-                    "basis_digest": context_execution.basis_digest(),
-                    "query_digest": context_execution.query_digest(),
-                    "row": row,
-                    "result_digest": context_execution.result_digest(),
-                },
-                "relations": {},
-                }),
+                query_context_row_values(context_execution, row),
             )
         })
         .collect()
+}
+
+fn query_context_row_values(
+    context_execution: &QueryContextExecutionArtifact,
+    row: &str,
+) -> BTreeMap<CanonicalFieldPath, AspectValue> {
+    BTreeMap::from([
+        (
+            native_field_path("query_context.basis_digest"),
+            AspectValue::String(context_execution.basis_digest().to_string().into()),
+        ),
+        (
+            native_field_path("query_context.query_digest"),
+            AspectValue::String(context_execution.query_digest().to_string().into()),
+        ),
+        (
+            native_field_path("query_context.result_digest"),
+            AspectValue::String(context_execution.result_digest().to_string().into()),
+        ),
+        (
+            native_field_path("query_context.row"),
+            AspectValue::String(row.to_string().into()),
+        ),
+    ])
 }
 
 fn ensure_materialized_read_view(
@@ -160,15 +177,20 @@ fn collect_shared_neighborhood_rows(
     let anchor_targets = request
         .traversal()
         .iter()
-        .filter_map(|selector| relation_target(anchor_row, selector.relation()))
+        .filter_map(|selector| {
+            relation_target(
+                anchor_row,
+                selector.terminal_relation_projection_for_boundary(),
+            )
+        })
         .collect::<BTreeSet<_>>();
     Some(
         rows.iter()
             .filter(|row| {
                 row_identity_label(row).as_deref() == Some(anchor_identity.as_str())
                     || request.traversal().iter().any(|selector| {
-                        relation_target(row, selector.relation())
-                            .is_some_and(|target| anchor_targets.contains(target))
+                        relation_target(row, selector.terminal_relation_projection_for_boundary())
+                            .is_some_and(|target| anchor_targets.contains(&target))
                     })
             })
             .cloned()
@@ -186,13 +208,12 @@ fn collect_traversal_rows(
     for selector in request.traversal() {
         let mut current = anchor_identity.clone();
         for _ in 0..usize::from(selector.depth()) {
-            let Some(next_identity) = row_index
-                .get(&current)
-                .and_then(|row| relation_target(row, selector.relation()))
-            else {
+            let Some(next_identity) = row_index.get(&current).and_then(|row| {
+                relation_target(row, selector.terminal_relation_projection_for_boundary())
+            }) else {
                 break;
             };
-            let Some(next_row) = row_index.get(next_identity) else {
+            let Some(next_row) = row_index.get(&next_identity) else {
                 break;
             };
             let Some(next_identity_label) = row_identity_label(next_row) else {
@@ -236,8 +257,10 @@ fn identity_anchor(request: &DeclarativeLiveQueryRequest) -> Option<&str> {
         })
 }
 
-fn relation_target<'a>(row: &'a ForgeQueryEntity, relation: &str) -> Option<&'a str> {
-    row.external_row_path("relations")?.get(relation)?.as_str()
+fn relation_target(row: &ForgeQueryEntity, relation: &str) -> Option<String> {
+    row.scalar_value_at(&native_field_path(format!("relations.{relation}")))
+        .and_then(as_string_scalar)
+        .map(str::to_string)
 }
 
 fn row_index(rows: &[ForgeQueryEntity]) -> BTreeMap<String, ForgeQueryEntity> {
@@ -248,19 +271,39 @@ fn row_index(rows: &[ForgeQueryEntity]) -> BTreeMap<String, ForgeQueryEntity> {
 }
 
 fn row_identity_label(row: &ForgeQueryEntity) -> Option<String> {
-    row.external_row_path("identity.id")
-        .and_then(serde_json::Value::as_str)
+    row.scalar_value_at(&native_field_path("identity.id"))
+        .and_then(as_string_scalar)
         .map(str::to_string)
+}
+
+fn as_string_scalar(value: &AspectValue) -> Option<&str> {
+    match value {
+        AspectValue::String(InternedString::Raw(value)) => Some(value.as_str()),
+        _ => None,
+    }
 }
 
 fn synthetic_rows_for_request(request: &DeclarativeLiveQueryRequest) -> Vec<ForgeQueryEntity> {
     let anchor_identity = identity_anchor(request).unwrap_or("synthetic-anchor");
-    vec![ForgeQueryEntity::from_external_projection(
+    vec![ForgeQueryEntity::from_native_field_values(
         crate::memory_workspace::admit_authored_entity_label(anchor_identity),
-        serde_json::json!({
-            "identity": { "id": anchor_identity },
-            "read": { "synthetic": true },
-            "relations": {}
-        }),
+        BTreeMap::from([
+            (
+                native_field_path("identity.id"),
+                AspectValue::String(anchor_identity.to_string().into()),
+            ),
+            (native_field_path("read.synthetic"), AspectValue::Bool(true)),
+        ]),
     )]
+}
+
+fn native_field_path(path: impl AsRef<str>) -> CanonicalFieldPath {
+    CanonicalFieldPath::new(
+        path.as_ref()
+            .split('.')
+            .map(FieldKey::new)
+            .collect::<Option<Vec<_>>>()
+            .expect("synthetic row field path segments must be valid foundational field keys"),
+    )
+    .expect("synthetic row field path must not be empty")
 }

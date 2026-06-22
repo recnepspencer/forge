@@ -9,19 +9,26 @@ fn compose_graph_supports_symbolic_relation_followup_mutation() {
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition-relation-followup")
         .expect("runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.graph-composition-relation-followup-tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-graph-composition-relation-followup-tasks")
         })
         .expect("task live view should declare");
-    let edges: ForgeQueryLiveView<Value> = workspace
+    let edges: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.graph-composition-relation-followup-edges", |q| {
             q.from("TaskEdge")
-                .select(["edge.kind", "edge.source_identity", "edge.target_identity"])
-                .order_by("edge.kind")
+                .select([
+                    crate::authoring::AspectFieldKey::new("edge", "kind").unwrap(),
+                    crate::authoring::AspectFieldKey::new("edge", "source_identity").unwrap(),
+                    crate::authoring::AspectFieldKey::new("edge", "target_identity").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("edge", "kind").unwrap())
                 .schema_basis("tasks-graph-composition-relation-followup-edges")
         })
         .expect("edge live view should declare");
@@ -29,19 +36,33 @@ fn compose_graph_supports_symbolic_relation_followup_mutation() {
     let receipt = workspace
         .compose_graph(|graph| {
             let draft = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-draft")
-                    .aspect("title.value", "Draft task")
+                task.aspect(
+                    test_aspect_touch("identity.id"),
+                    test_string_aspect_value("task-draft"),
+                )
+                .aspect(
+                    test_aspect_touch("title.value"),
+                    test_string_aspect_value("Draft task"),
+                )
             })?;
             let edge = graph.insert_symbolic_relation("draft-edge", "TaskEdge", |relation| {
                 relation
-                    .aspect("edge.kind", "depends_on")
-                    .symbolic_entity_identity("edge.source_identity", &draft)
+                    .aspect(
+                        test_aspect_touch("edge.kind"),
+                        test_string_aspect_value("depends_on"),
+                    )
+                    .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &draft)
                     .existing_entity_identity(
-                        "edge.target_identity",
+                        test_aspect_touch("edge.target_identity"),
                         test_entity_identity("task-existing"),
                     )
             })?;
-            graph.update_relation(&edge, |relation| relation.aspect("edge.kind", "blocks"))?;
+            graph.update_relation(&edge, |relation| {
+                relation.aspect(
+                    test_aspect_touch("edge.kind"),
+                    test_string_aspect_value("blocks"),
+                )
+            })?;
             Ok(())
         })
         .expect("graph composition with relation followup should execute");
@@ -129,7 +150,7 @@ fn compose_graph_supports_symbolic_relation_followup_mutation() {
     assert_eq!(receipt.graph_composition_resolution_map().len(), 2);
     assert_eq!(edge_rows.len(), 1);
     assert_eq!(
-        edge_rows[0].external_row()["edge"]["kind"].as_str(),
+        test_native_string_value(&edge_rows[0], "edge.kind").as_deref(),
         Some("blocks")
     );
 

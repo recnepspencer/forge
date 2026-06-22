@@ -14,35 +14,49 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
     let mut workspace = face_loop_runtime()
         .workspace("topology.graph-composition-face-inner-loop")
         .expect("workspace should open");
-    let loops: ForgeQueryLiveView<Value> = workspace
+    let loops: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("topology.face-inner-loop-loops", |q| {
             q.from("Loop")
-                .select(["identity.id", "kind.value"])
-                .order_by("identity.id")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
                 .schema_basis("topology-face-inner-loop-loops")
         })
         .expect("loop live view should declare");
-    let half_edges: ForgeQueryLiveView<Value> = workspace
+    let half_edges: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("topology.face-inner-loop-half-edges", |q| {
             q.from("HalfEdge")
-                .select(["identity.id", "kind.value"])
-                .order_by("identity.id")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
                 .schema_basis("topology-face-inner-loop-half-edges")
         })
         .expect("half-edge live view should declare");
-    let face_loops: ForgeQueryLiveView<Value> = workspace
+    let face_loops: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("topology.face-inner-loop-face-loops", |q| {
             q.from("FaceLoopRelation")
-                .select(["face.id", "loop.id", "role.value"])
-                .order_by("face.id")
+                .select([
+                    crate::authoring::AspectFieldKey::new("face", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("loop", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("role", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("face", "id").unwrap())
                 .schema_basis("topology-face-inner-loop-face-loops")
         })
         .expect("face-loop live view should declare");
-    let loop_edges: ForgeQueryLiveView<Value> = workspace
+    let loop_edges: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("topology.face-inner-loop-loop-edges", |q| {
             q.from("LoopHalfEdgeRelation")
-                .select(["loop.id", "half_edge.id", "position.ordinal"])
-                .order_by("position.ordinal")
+                .select([
+                    crate::authoring::AspectFieldKey::new("loop", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("half_edge", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("position", "ordinal").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("position", "ordinal").unwrap())
                 .schema_basis("topology-face-inner-loop-loop-edges")
         })
         .expect("loop-edge live view should declare");
@@ -51,38 +65,68 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
         .compose_graph(|graph| {
             let inner_loop = graph.insert_entity("draft-loop", "Loop", |loop_entity| {
                 loop_entity
-                    .aspect("identity.id", "loop-inner-1")
-                    .aspect("kind.value", "inner")
+                    .aspect(
+                        test_aspect_touch("identity.id"),
+                        test_string_aspect_value("loop-inner-1"),
+                    )
+                    .aspect(
+                        test_aspect_touch("kind.value"),
+                        test_string_aspect_value("inner"),
+                    )
             })?;
             let first_half_edge =
                 graph.insert_entity("draft-half-edge-a", "HalfEdge", |half_edge| {
                     half_edge
-                        .aspect("identity.id", "he-inner-1")
-                        .aspect("kind.value", "half_edge")
+                        .aspect(
+                            test_aspect_touch("identity.id"),
+                            test_string_aspect_value("he-inner-1"),
+                        )
+                        .aspect(
+                            test_aspect_touch("kind.value"),
+                            test_string_aspect_value("half_edge"),
+                        )
                 })?;
             let second_half_edge =
                 graph.insert_entity("draft-half-edge-b", "HalfEdge", |half_edge| {
                     half_edge
-                        .aspect("identity.id", "he-inner-2")
-                        .aspect("kind.value", "half_edge")
+                        .aspect(
+                            test_aspect_touch("identity.id"),
+                            test_string_aspect_value("he-inner-2"),
+                        )
+                        .aspect(
+                            test_aspect_touch("kind.value"),
+                            test_string_aspect_value("half_edge"),
+                        )
                 })?;
             graph.insert_relation("FaceLoopRelation", |relation| {
                 relation
-                    .existing_entity_identity("face.id", test_entity_identity("face-1"))
-                    .symbolic_entity_identity("loop.id", &inner_loop)
-                    .aspect("role.value", "inner")
+                    .existing_entity_identity(
+                        test_aspect_touch("face.id"),
+                        test_entity_identity("face-1"),
+                    )
+                    .symbolic_entity_identity(test_aspect_touch("loop.id"), &inner_loop)
+                    .aspect(
+                        test_aspect_touch("role.value"),
+                        test_string_aspect_value("inner"),
+                    )
             })?;
             graph.insert_relation("LoopHalfEdgeRelation", |relation| {
                 relation
-                    .symbolic_entity_identity("loop.id", &inner_loop)
-                    .symbolic_entity_identity("half_edge.id", &first_half_edge)
-                    .aspect("position.ordinal", "0")
+                    .symbolic_entity_identity(test_aspect_touch("loop.id"), &inner_loop)
+                    .symbolic_entity_identity(test_aspect_touch("half_edge.id"), &first_half_edge)
+                    .aspect(
+                        test_aspect_touch("position.ordinal"),
+                        test_string_aspect_value("0"),
+                    )
             })?;
             graph.insert_relation("LoopHalfEdgeRelation", |relation| {
                 relation
-                    .symbolic_entity_identity("loop.id", &inner_loop)
-                    .symbolic_entity_identity("half_edge.id", &second_half_edge)
-                    .aspect("position.ordinal", "1")
+                    .symbolic_entity_identity(test_aspect_touch("loop.id"), &inner_loop)
+                    .symbolic_entity_identity(test_aspect_touch("half_edge.id"), &second_half_edge)
+                    .aspect(
+                        test_aspect_touch("position.ordinal"),
+                        test_string_aspect_value("1"),
+                    )
             })?;
             Ok(())
         })
@@ -186,32 +230,30 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
     let face_loop_rows = workspace.read(&face_loops);
     let mut loop_edge_rows = workspace.read(&loop_edges);
     half_edge_rows.sort_by(|left, right| {
-        left.external_row()["identity"]["id"]
-            .as_str()
-            .cmp(&right.external_row()["identity"]["id"].as_str())
+        test_native_string_value(left, "identity.id")
+            .cmp(&test_native_string_value(right, "identity.id"))
     });
     loop_edge_rows.sort_by(|left, right| {
-        left.external_row()["half_edge"]["id"]
-            .as_str()
-            .cmp(&right.external_row()["half_edge"]["id"].as_str())
+        test_native_string_value(left, "half_edge.id")
+            .cmp(&test_native_string_value(right, "half_edge.id"))
     });
     assert_eq!(loop_rows.len(), 1);
     assert_eq!(half_edge_rows.len(), 2);
     assert_eq!(
-        loop_rows[0].external_row()["identity"]["id"].as_str(),
+        test_native_string_value(&loop_rows[0], "identity.id").as_deref(),
         Some("loop-inner-1")
     );
     assert_eq!(
-        half_edge_rows[0].external_row()["identity"]["id"].as_str(),
+        test_native_string_value(&half_edge_rows[0], "identity.id").as_deref(),
         Some("he-inner-1")
     );
     assert_eq!(
-        half_edge_rows[1].external_row()["identity"]["id"].as_str(),
+        test_native_string_value(&half_edge_rows[1], "identity.id").as_deref(),
         Some("he-inner-2")
     );
     assert_eq!(face_loop_rows.len(), 1);
     assert_eq!(
-        face_loop_rows[0].external_row()["loop"]["id"].as_str(),
+        test_native_string_value(&face_loop_rows[0], "loop.id").as_deref(),
         Some(
             loop_identity
                 .evidence_identity()
@@ -219,24 +261,24 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
         )
     );
     assert_eq!(
-        face_loop_rows[0].external_row()["face"]["id"].as_str(),
+        test_native_string_value(&face_loop_rows[0], "face.id").as_deref(),
         Some(test_relational_endpoint_identity_label(&test_entity_identity("face-1")).as_str())
     );
     assert_eq!(loop_edge_rows.len(), 2);
     let loop_edge_half_edge_ids = loop_edge_rows
         .iter()
-        .filter_map(|row| row.external_row()["half_edge"]["id"].as_str())
+        .filter_map(|row| test_native_string_value(row, "half_edge.id"))
         .collect::<Vec<_>>();
-    assert!(loop_edge_half_edge_ids.contains(
-        &first_half_edge_identity
+    assert!(loop_edge_half_edge_ids.iter().any(|id| {
+        id == first_half_edge_identity
             .evidence_identity()
             .terminal_projection_for_reporting()
-    ));
-    assert!(loop_edge_half_edge_ids.contains(
-        &second_half_edge_identity
+    }));
+    assert!(loop_edge_half_edge_ids.iter().any(|id| {
+        id == second_half_edge_identity
             .evidence_identity()
             .terminal_projection_for_reporting()
-    ));
+    }));
 
     match workspace.inspect(&receipt).expect("receipt should inspect") {
         ForgeQueryInspection::BatchWriteReceipt(inspection) => {

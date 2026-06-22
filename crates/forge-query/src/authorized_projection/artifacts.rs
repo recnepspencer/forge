@@ -1,84 +1,16 @@
+use crate::authoring::{AspectFieldKey, AspectName, FieldName};
 use crate::canonicalization::{
     CanonicalQueryArtifact, CanonicalResultField, CanonicalResultShapeArtifact,
 };
 use crate::identity::{hash_parts, CanonicalResultShapeDigest};
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 use super::{
     AuthorizedProjectionCounters, AuthorizedProjectionError, AuthorizedProjectionFailureClass,
-    PolicyAspectMask, PolicyInfluencePurpose, PolicyInfluenceSet, ProjectionVisibility,
+    AuthorizedProjectionFieldPath, AuthorizedProjectionIdentity, MaskedProjectionArtifact,
+    PolicyAspectMask, PolicyFieldInfluenceSet, PolicyInfluencePurpose, PolicyInfluenceSet,
+    ProjectionVisibility,
 };
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AuthorizedProjectionIdentity(String);
-
-impl AuthorizedProjectionIdentity {
-    pub(crate) fn new(value: String) -> Self {
-        Self(value)
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PolicyFieldInfluenceSet {
-    digest: String,
-    field_reference_count: usize,
-}
-
-impl PolicyFieldInfluenceSet {
-    pub(crate) fn new(parts: &[String], field_reference_count: usize) -> Self {
-        Self {
-            digest: hash_parts(parts),
-            field_reference_count,
-        }
-    }
-
-    pub fn digest(&self) -> &str {
-        &self.digest
-    }
-
-    pub fn field_reference_count(&self) -> usize {
-        self.field_reference_count
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MaskedProjectionArtifact {
-    masked_fields: Vec<String>,
-    non_disclosing_fields: Vec<String>,
-    digest: String,
-}
-
-impl MaskedProjectionArtifact {
-    pub(crate) fn new(masked_fields: Vec<String>, non_disclosing_fields: Vec<String>) -> Self {
-        let mut parts = vec!["masked_projection".to_string()];
-        parts.extend(masked_fields.iter().map(|field| format!("masked:{field}")));
-        parts.extend(
-            non_disclosing_fields
-                .iter()
-                .map(|field| format!("non_disclosing:{field}")),
-        );
-        Self {
-            masked_fields,
-            non_disclosing_fields,
-            digest: hash_parts(&parts),
-        }
-    }
-
-    pub fn masked_fields(&self) -> &[String] {
-        &self.masked_fields
-    }
-
-    pub fn non_disclosing_fields(&self) -> &[String] {
-        &self.non_disclosing_fields
-    }
-
-    pub fn digest(&self) -> &str {
-        &self.digest
-    }
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AuthorizedProjectionArtifact {
@@ -87,7 +19,7 @@ pub struct AuthorizedProjectionArtifact {
     result_shape_digest: String,
     policy_digest: String,
     tenant_schema_basis_digest: String,
-    visible_fields: Vec<String>,
+    visible_fields: Vec<AuthorizedProjectionFieldPath>,
     masked_projection: MaskedProjectionArtifact,
     narrowed_result_shape_digest: String,
     influence_set: PolicyFieldInfluenceSet,
@@ -101,7 +33,7 @@ impl AuthorizedProjectionArtifact {
         result_shape_digest: &str,
         policy_digest: &str,
         tenant_schema_basis_digest: &str,
-        visible_fields: Vec<String>,
+        visible_fields: Vec<AuthorizedProjectionFieldPath>,
         masked_projection: MaskedProjectionArtifact,
         narrowed_result_shape_digest: String,
         influence_set: PolicyFieldInfluenceSet,
@@ -112,7 +44,10 @@ impl AuthorizedProjectionArtifact {
             format!("result_shape:{result_shape_digest}"),
             format!("policy:{policy_digest}"),
             format!("tenant_schema:{tenant_schema_basis_digest}"),
-            format!("visible:{}", hash_parts(&visible_fields)),
+            format!(
+                "visible:{}",
+                hash_parts(&terminal_field_projections(&visible_fields))
+            ),
             format!("masked:{}", masked_projection.digest()),
             format!("influence:{}", influence_set.digest()),
         ]));
@@ -142,7 +77,7 @@ impl AuthorizedProjectionArtifact {
         &self.result_shape_digest
     }
 
-    pub fn visible_fields(&self) -> &[String] {
+    pub fn visible_field_paths(&self) -> &[AuthorizedProjectionFieldPath] {
         &self.visible_fields
     }
 
@@ -205,9 +140,13 @@ pub(crate) fn derive_authorized_projection(
 
     for projection in query.projection() {
         counters.inspect_field_reference();
-        let field_key = field_key(projection.aspect.as_str(), projection.field.as_str());
-        influence_parts.push(format!("projection:{field_key}"));
-        match mask.visibility_for_parts(projection.aspect.as_str(), projection.field.as_str()) {
+        let field_key = field_path(projection.aspect.as_str(), projection.field.as_str())?;
+        let mask_key = aspect_field_key(&projection.aspect, &projection.field);
+        influence_parts.push(format!(
+            "projection:{}",
+            field_key.terminal_projection_for_boundary()
+        ));
+        match mask.visibility_for(&mask_key) {
             ProjectionVisibility::Visible => visible_fields.push(field_key),
             ProjectionVisibility::Masked | ProjectionVisibility::DeniedHiddenInfluence => {
                 masked_fields.push(field_key)
@@ -219,8 +158,9 @@ pub(crate) fn derive_authorized_projection(
     for field in result_shape.fields() {
         counters.inspect_field_reference();
         let key = result_field_key(field);
+        let mask_key = aspect_field_key(&field.source_aspect, &field.source_field);
         influence_parts.push(format!("result:{key}"));
-        match mask.visibility_for_parts(field.source_aspect.as_str(), field.source_field.as_str()) {
+        match mask.visibility_for(&mask_key) {
             ProjectionVisibility::Visible => {}
             ProjectionVisibility::Masked | ProjectionVisibility::DeniedHiddenInfluence => {
                 counters.deny_post_read_redaction();
@@ -244,8 +184,9 @@ pub(crate) fn derive_authorized_projection(
     for predicate in query.predicates() {
         counters.inspect_field_reference();
         let key = field_key(predicate.aspect.as_str(), predicate.field.as_str());
+        let mask_key = aspect_field_key(&predicate.aspect, &predicate.field);
         influence_parts.push(format!("predicate:{key}"));
-        match mask.visibility_for_parts(predicate.aspect.as_str(), predicate.field.as_str()) {
+        match mask.visibility_for(&mask_key) {
             ProjectionVisibility::Visible | ProjectionVisibility::NonDisclosingUseOnly => {}
             ProjectionVisibility::Masked | ProjectionVisibility::DeniedHiddenInfluence => {
                 counters.deny_hidden_predicate();
@@ -261,8 +202,9 @@ pub(crate) fn derive_authorized_projection(
     for ordering in query.ordering() {
         counters.inspect_field_reference();
         let key = field_key(ordering.aspect.as_str(), ordering.field.as_str());
+        let mask_key = aspect_field_key(&ordering.aspect, &ordering.field);
         influence_parts.push(format!("ordering:{key}"));
-        match mask.visibility_for_parts(ordering.aspect.as_str(), ordering.field.as_str()) {
+        match mask.visibility_for(&mask_key) {
             ProjectionVisibility::Visible => {}
             ProjectionVisibility::Masked
             | ProjectionVisibility::DeniedHiddenInfluence
@@ -395,7 +337,8 @@ fn narrowed_result_shape_digest(
 ) -> Result<String, AuthorizedProjectionFailureClass> {
     let mut parts = vec!["narrowed_result_shape".to_string()];
     for field in fields {
-        match mask.visibility_for_parts(field.source_aspect.as_str(), field.source_field.as_str()) {
+        let mask_key = aspect_field_key(&field.source_aspect, &field.source_field);
+        match mask.visibility_for(&mask_key) {
             ProjectionVisibility::Visible => parts.push(field.digest_part()),
             ProjectionVisibility::Masked | ProjectionVisibility::DeniedHiddenInfluence => {
                 return Err(AuthorizedProjectionFailureClass::MaskedProjectionRequested);
@@ -414,6 +357,40 @@ fn result_field_key(field: &CanonicalResultField) -> String {
     field_key(field.source_aspect.as_str(), field.source_field.as_str())
 }
 
+fn aspect_field_key(aspect: &AspectName, field: &FieldName) -> AspectFieldKey {
+    AspectFieldKey::from_parts(aspect.clone(), field.clone())
+}
+
 fn field_key(aspect: &str, field: &str) -> String {
     format!("{aspect}.{field}")
+}
+
+fn field_path(
+    aspect: &str,
+    field: &str,
+) -> Result<AuthorizedProjectionFieldPath, AuthorizedProjectionError> {
+    let Some(aspect_key) = AspectKey::new(aspect.to_string()) else {
+        return Err(authorized_projection_field_path_error());
+    };
+    let Some(field_key) = FieldKey::new(field.to_string()) else {
+        return Err(authorized_projection_field_path_error());
+    };
+    Ok(AuthorizedProjectionFieldPath::from_native_keys(
+        aspect_key, field_key,
+    ))
+}
+
+fn authorized_projection_field_path_error() -> AuthorizedProjectionError {
+    AuthorizedProjectionError::new(
+        AuthorizedProjectionFailureClass::ProjectionBudgetExceeded,
+        "authorized projection field path is not foundational",
+        AuthorizedProjectionCounters::default(),
+    )
+}
+
+pub(crate) fn terminal_field_projections(fields: &[AuthorizedProjectionFieldPath]) -> Vec<String> {
+    fields
+        .iter()
+        .map(|field| field.terminal_projection_for_boundary().to_string())
+        .collect()
 }

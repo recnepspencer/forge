@@ -145,7 +145,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         self.write(ForgeQueryWriteCommand::DeleteExistingAspects {
             binding,
-            touched_aspect_paths: Vec::new(),
+            touched_aspects: Vec::new(),
             metadata: ForgeQueryMutationMetadata::default(),
             naming_intent: None,
         })
@@ -230,7 +230,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 }
                 ForgeQueryWriteCommand::DeleteSymbolicAspects {
                     reference,
-                    touched_aspect_paths,
+                    touched_aspects,
                     metadata,
                     naming_intent,
                 } => {
@@ -239,7 +239,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     let concrete = ForgeQueryWriteCommand::DeleteAspects {
                         entity_identity: resolved_entity_identity.clone(),
                         declared_collection: resolved_collection.clone(),
-                        touched_aspect_paths: touched_aspect_paths.clone(),
+                        touched_aspects: touched_aspects.clone(),
                         metadata: metadata.clone(),
                         naming_intent: naming_intent.clone(),
                     };
@@ -310,7 +310,12 @@ fn record_planned_preview_symbolic_target(
     ));
     planned_symbolic_targets.insert(
         reference.symbol().to_string(),
-        (planned_identity, command.declared_collection()),
+        (
+            planned_identity,
+            command
+                .terminal_declared_collection_projection()
+                .map(str::to_string),
+        ),
     );
 }
 
@@ -329,7 +334,9 @@ fn record_preview_symbolic_target(
         reference.symbol().to_string(),
         (
             target_entity_identity.clone(),
-            receipt.target_collection().map(str::to_string),
+            receipt
+                .terminal_target_collection_projection()
+                .map(str::to_string),
         ),
     );
 }

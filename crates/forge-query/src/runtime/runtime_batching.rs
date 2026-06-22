@@ -4,15 +4,16 @@ use crate::memory_workspace::{ForgeQueryWorkspaceError, ForgeQueryWorkspaceError
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryContinuityMutationIntent,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationFamily, ForgeQueryMutationMetadata,
-    ForgeQueryNamingMutationIntent, ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeError,
-    ForgeQueryRuntimeSupportProfile, ForgeQuerySymbolicAspectReference,
-    ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReference,
-    ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryNamingMutationIntent,
+    ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeError, ForgeQueryRuntimeSupportProfile,
+    ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicAspectResolutionEvidence,
+    ForgeQuerySymbolicTargetReference, ForgeQueryVerifiedExistingTruthAssertion,
+    ForgeQueryWriteCommand,
 };
 
 pub(crate) struct BatchCommandSummary {
     mutation_family: ForgeQueryMutationFamily,
-    declared_collection: Option<String>,
+    declared_collection_identity: Option<ForgeQueryMutationTargetCollectionIdentity>,
     declared_entity_identity: Option<ForgeQueryEntityIdentity>,
     existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
     verified_existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
@@ -29,7 +30,7 @@ pub(crate) struct BatchCommandSummary {
 impl BatchCommandSummary {
     pub(crate) fn new(
         mutation_family: ForgeQueryMutationFamily,
-        declared_collection: Option<String>,
+        declared_collection_identity: Option<ForgeQueryMutationTargetCollectionIdentity>,
         declared_entity_identity: Option<ForgeQueryEntityIdentity>,
         existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
         verified_existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
@@ -44,7 +45,7 @@ impl BatchCommandSummary {
     ) -> Self {
         Self {
             mutation_family,
-            declared_collection,
+            declared_collection_identity,
             declared_entity_identity,
             existing_truth_binding,
             verified_existing_truth_assertion,
@@ -71,8 +72,10 @@ impl BatchCommandSummary {
         self.mutation_family
     }
 
-    pub(crate) fn declared_collection(&self) -> Option<String> {
-        self.declared_collection.clone()
+    pub(crate) fn declared_collection_identity(
+        &self,
+    ) -> Option<ForgeQueryMutationTargetCollectionIdentity> {
+        self.declared_collection_identity.clone()
     }
 
     pub(crate) fn declared_entity_identity(&self) -> Option<ForgeQueryEntityIdentity> {

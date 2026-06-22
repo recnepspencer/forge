@@ -17,8 +17,8 @@ error: cannot construct `ForgeQueryGraphTouchDescriptorRow` with struct literal 
    |         --------------------- private field
 13 |         declared_aspect_operations: Vec::new(),
    |         -------------------------------------- private field
-14 |         touched_aspect_paths: Vec::new(),
-   |         -------------------------------- private field
+14 |         touched_aspects: Vec::new(),
+   |         --------------------------- private field
 15 |         has_symbolic_target_reference: false,
    |         ------------------------------------ private field
 16 |         has_existing_truth_binding: false,
@@ -37,7 +37,7 @@ help: you might have meant to use the `new` associated function
 11 -         declared_collection: None,
 12 -         declared_symbol: None,
 13 -         declared_aspect_operations: Vec::new(),
-14 -         touched_aspect_paths: Vec::new(),
+14 -         touched_aspects: Vec::new(),
 15 -         has_symbolic_target_reference: false,
 16 -         has_existing_truth_binding: false,
 17 -         symbolic_aspect_reference_count: 0,

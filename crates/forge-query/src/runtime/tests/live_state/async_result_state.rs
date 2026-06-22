@@ -61,7 +61,7 @@ fn bridge_projection_for(
 #[test]
 fn runtime_state_and_inspection_project_async_result_state_parity() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.async-state", task_live_request(), task_schema())
         .expect("live view should declare");
     let (basis_identity, checkpoint_identity) =
@@ -116,7 +116,7 @@ fn runtime_state_and_inspection_project_async_result_state_parity() {
             )
             .expect("async result state should project");
         let state =
-            <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
+            <&ForgeQueryLiveView<ForgeQueryNativeRow> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
                 &view, &runtime,
             )
             .expect("state should snapshot");
@@ -134,11 +134,11 @@ fn runtime_state_and_inspection_project_async_result_state_parity() {
 #[test]
 fn runtime_async_result_state_preserves_runtime_and_replay_parity() {
     let mut runtime_a = stateful_bridge_task_runtime();
-    let view_a: ForgeQueryLiveView<Value> = runtime_a
+    let view_a: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime_a
         .declare_live_view("tasks.async-replay", task_live_request(), task_schema())
         .expect("first live view should declare");
     let mut runtime_b = stateful_bridge_task_runtime();
-    let view_b: ForgeQueryLiveView<Value> = runtime_b
+    let view_b: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime_b
         .declare_live_view("tasks.async-replay", task_live_request(), task_schema())
         .expect("second live view should declare");
 
@@ -160,14 +160,14 @@ fn runtime_async_result_state_preserves_runtime_and_replay_parity() {
         replay_state.result_state_for_reporting()
     );
     assert_eq!(
-        <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
+        <&ForgeQueryLiveView<ForgeQueryNativeRow> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
             &view_a, &runtime_a,
         )
         .expect("runtime-backed state should snapshot")
         .async_result_state()
         .expect("runtime-backed async result state should exist")
         .result_state_for_reporting(),
-        <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
+        <&ForgeQueryLiveView<ForgeQueryNativeRow> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
             &view_b, &runtime_b,
         )
         .expect("replayed state should snapshot")
@@ -180,7 +180,7 @@ fn runtime_async_result_state_preserves_runtime_and_replay_parity() {
 #[test]
 fn runtime_async_result_state_fails_closed_for_generation_drift_and_preview_mismatch() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.async-drift", task_live_request(), task_schema())
         .expect("live view should declare");
     let (basis_identity, checkpoint_identity) =
@@ -248,7 +248,7 @@ fn runtime_async_result_state_fails_closed_for_generation_drift_and_preview_mism
         other => panic!("expected preview mismatch denial, got {other:?}"),
     }
 
-    let state = <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
+    let state = <&ForgeQueryLiveView<ForgeQueryNativeRow> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
         &view, &runtime,
     )
     .expect("state should snapshot");

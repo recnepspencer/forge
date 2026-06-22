@@ -1,22 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroUsize;
 
-use forge_relational::facade::runtime::RelationalRuntime;
-pub use forge_relational::facade::runtime::{
-    CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
-    CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
-    CustomInvariantRegistration, CustomInvariantRegistrationError, CustomInvariantRule,
-    CustomInvariantRuleId, CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
-    CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCatalog, InvariantCostClass,
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup, InvariantGroupSet,
-    InvariantRegistration, InvariantRule,
-};
-use forge_runtime_bridge::facade::{
-    BridgeContinuityMutationBundle, BridgeNamingMutationBundle,
-    BridgeSymbolicTargetReferenceBundle, RuntimeBridge,
-};
-use serde_json::Value;
-
 use crate::declarative_live::{
     declare_runtime_live_query_session_with_grouped_baseline, DeclarativeLiveQueryError,
     DeclarativeLiveQueryRequest, DeclarativeLiveViewShape,
@@ -197,6 +181,20 @@ use crate::subscription::{
     SubscriptionConsumerAttachmentRequest, SubscriptionLifecycleCloseRequest,
 };
 use crate::view_shape_live::LiveViewShapeFamily;
+use forge_relational::facade::runtime::RelationalRuntime;
+pub use forge_relational::facade::runtime::{
+    CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
+    CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
+    CustomInvariantRegistration, CustomInvariantRegistrationError, CustomInvariantRule,
+    CustomInvariantRuleId, CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
+    CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCatalog, InvariantCostClass,
+    InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup, InvariantGroupSet,
+    InvariantRegistration, InvariantRule,
+};
+use forge_runtime_bridge::facade::{
+    BridgeContinuityMutationBundle, BridgeNamingMutationBundle,
+    BridgeSymbolicTargetReferenceBundle, RuntimeBridge,
+};
 
 mod aspect_api_closeout;
 mod async_result_state;
@@ -260,7 +258,6 @@ mod read_composition_successor;
 mod read_composition_support_report;
 mod read_composition_walks;
 mod remask_posture;
-mod retained_rows;
 mod runtime_api_contract;
 mod runtime_authoritative_mutation_obligation_dispatch;
 mod runtime_authoritative_mutation_routing;
@@ -364,7 +361,7 @@ use computed::{
 };
 pub use computed::{
     ForgeQueryComputedInspectionEvidence, ForgeQueryDerivedPatch, ForgeQueryDerivedPatchFamily,
-    ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
+    ForgeQueryDerivedPatchPayload, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
     ForgeQueryDerivedViewMaterialization, ForgeQueryRetainedRefreshContext,
     ForgeQueryRetainedRefreshOrigin, ForgeQueryRetainedUpstreamInputs,
 };
@@ -395,10 +392,10 @@ pub use effect::{
     ForgeQueryEffectCondition, ForgeQueryEffectCounters, ForgeQueryEffectDeclaration,
     ForgeQueryEffectDelivery, ForgeQueryEffectDeliveryFamily, ForgeQueryEffectExpression,
     ForgeQueryEffectExpressionFailurePosture, ForgeQueryEffectHandle, ForgeQueryEffectIdempotence,
-    ForgeQueryEffectInspectionEvidence, ForgeQueryEffectLoopPrevention, ForgeQueryEffectPhase,
-    ForgeQueryEffectPhaseEvidence, ForgeQueryEffectSuppressionPolicy, ForgeQueryEffectTrigger,
-    ForgeQueryEffectTriggerSourceKind, ForgeQueryEffectWriteAdjacentTrigger,
-    ForgeQueryEffectWriteAdjacentTriggerClass,
+    ForgeQueryEffectInspectionEvidence, ForgeQueryEffectLoopPrevention, ForgeQueryEffectPayload,
+    ForgeQueryEffectPhase, ForgeQueryEffectPhaseEvidence, ForgeQueryEffectSuppressionPolicy,
+    ForgeQueryEffectTrigger, ForgeQueryEffectTriggerSourceKind,
+    ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryEffectWriteAdjacentTriggerClass,
 };
 #[allow(unused_imports)]
 pub use error::{
@@ -612,8 +609,9 @@ pub use intent::{
     ForgeQueryBranchIntentReceipt, ForgeQueryEffectIntentReceipt, ForgeQueryIntentDeclaration,
     ForgeQueryIntentDenialEvidence, ForgeQueryIntentExecution,
     ForgeQueryIntentExecutionFailureEvidence, ForgeQueryIntentExecutionKind,
-    ForgeQueryIntentExecutionProvenance, ForgeQueryIntentReceipt, ForgeQueryIntentSourceLane,
-    ForgeQueryPreviewIntentReceipt, ForgeQueryTouchBearingIntentDeclaration,
+    ForgeQueryIntentExecutionProvenance, ForgeQueryIntentInput, ForgeQueryIntentReceipt,
+    ForgeQueryIntentSourceLane, ForgeQueryPreviewIntentReceipt,
+    ForgeQueryTouchBearingIntentDeclaration,
 };
 #[allow(unused_imports)]
 pub use journal_position::{ForgeQueryJournalPosition, ForgeQueryJournalPositionAuthority};
@@ -650,23 +648,23 @@ pub(crate) use mutation::{
 #[allow(unused_imports)]
 pub use mutation::{
     ForgeQueryAspectMutationBuilder, ForgeQueryAspectMutationOperation,
-    ForgeQueryAspectMutationOperationKind, ForgeQueryAspectValue,
+    ForgeQueryAspectMutationOperationKind, ForgeQueryAspectTouch, ForgeQueryAspectValue,
     ForgeQueryAuthoritativeMutationObligationDispatch,
     ForgeQueryAuthoritativeMutationObligationDispatchProjection,
     ForgeQueryAuthoritativeMutationObligationDispatchProjectionRow,
-    ForgeQueryContinuityMutationDenial, ForgeQueryContinuityMutationDenialKind,
-    ForgeQueryContinuityMutationFamily, ForgeQueryContinuityMutationIntent,
-    ForgeQueryContinuityMutationOutcomeClass, ForgeQueryDeleteMutationBuilder,
-    ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
-    ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthAssertionDenialKind,
-    ForgeQueryExistingTruthAssertionMode, ForgeQueryExistingTruthBindingDenial,
-    ForgeQueryExistingTruthBindingDenialKind, ForgeQueryExistingTruthBindingFamily,
-    ForgeQueryExistingTruthProbe, ForgeQueryExistingTruthProbeDenial,
-    ForgeQueryExistingTruthProbeDenialKind, ForgeQueryExistingTruthProbeField,
-    ForgeQueryExistingTruthProbeMode, ForgeQueryExistingTruthProbeRequest,
-    ForgeQueryExistingTruthTargetBinding, ForgeQueryGraphCompositionBuilder,
-    ForgeQueryGraphCompositionDenial, ForgeQueryGraphCompositionDenialKind,
-    ForgeQueryGraphCompositionDomainInvariantDenial,
+    ForgeQueryBackendAdmissibleMutation, ForgeQueryContinuityMutationDenial,
+    ForgeQueryContinuityMutationDenialKind, ForgeQueryContinuityMutationFamily,
+    ForgeQueryContinuityMutationIntent, ForgeQueryContinuityMutationOutcomeClass,
+    ForgeQueryDeleteMutationBuilder, ForgeQueryExistingEntityTarget,
+    ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthAssertionDenial,
+    ForgeQueryExistingTruthAssertionDenialKind, ForgeQueryExistingTruthAssertionMode,
+    ForgeQueryExistingTruthBindingDenial, ForgeQueryExistingTruthBindingDenialKind,
+    ForgeQueryExistingTruthBindingFamily, ForgeQueryExistingTruthProbe,
+    ForgeQueryExistingTruthProbeDenial, ForgeQueryExistingTruthProbeDenialKind,
+    ForgeQueryExistingTruthProbeField, ForgeQueryExistingTruthProbeMode,
+    ForgeQueryExistingTruthProbeRequest, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryGraphCompositionBuilder, ForgeQueryGraphCompositionDenial,
+    ForgeQueryGraphCompositionDenialKind, ForgeQueryGraphCompositionDomainInvariantDenial,
     ForgeQueryGraphCompositionInvariantPackContext,
     ForgeQueryGraphCompositionInvariantPackViolation, ForgeQueryGraphEntitySymbol,
     ForgeQueryGraphMutationPolicyGateEvidence, ForgeQueryGraphMutationPolicyGateVerdict,
@@ -707,7 +705,8 @@ pub use mutation::{
     ForgeQueryGraphTouchDescriptorDenialKind, ForgeQueryGraphTouchDescriptorKind,
     ForgeQueryGraphTouchDescriptorRow, ForgeQueryGraphTouchLifecycleFamily,
     ForgeQueryGraphTouchReadVerb, ForgeQueryGraphTouchSelector, ForgeQueryMutationBatchBuilder,
-    ForgeQueryMutationMetadata, ForgeQueryNamingMutationDenial, ForgeQueryNamingMutationDenialKind,
+    ForgeQueryMutationMetadata, ForgeQueryMutationMetadataKey, ForgeQueryMutationMetadataValue,
+    ForgeQueryNamingMutationDenial, ForgeQueryNamingMutationDenialKind,
     ForgeQueryNamingMutationFamily, ForgeQueryNamingMutationIntent,
     ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicAspectReferenceFamily,
     ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceDenial,
@@ -832,18 +831,19 @@ pub use surface::{
     ForgeQueryLiveReadResult, ForgeQueryLiveView, ForgeQueryMutationCausalityEvidence,
     ForgeQueryMutationFamily, ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetClass,
     ForgeQueryMutationTargetDescriptor, ForgeQueryMutationTargetEvidence,
-    ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationOutcome, ForgeQueryPatchBatch,
-    ForgeQueryReadAccessPlanBindingMismatch, ForgeQueryReadBreadth, ForgeQueryReadBuiltInOperator,
-    ForgeQueryReadBuiltInOperatorDenial, ForgeQueryReadBuiltInOperatorDenialReason,
-    ForgeQueryReadCompositionExtensionHookBoundary, ForgeQueryReadCompositionExtensionHookFamily,
-    ForgeQueryReadCompositionExtensionHookSupportRow, ForgeQueryReadDenial,
-    ForgeQueryReadDenialKind, ForgeQueryReadDomainInvariantDenial,
+    ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationOutcome, ForgeQueryNativeRow,
+    ForgeQueryPatchBatch, ForgeQueryReadAccessPlanBindingMismatch, ForgeQueryReadBreadth,
+    ForgeQueryReadBuiltInOperator, ForgeQueryReadBuiltInOperatorDenial,
+    ForgeQueryReadBuiltInOperatorDenialReason, ForgeQueryReadCompositionExtensionHookBoundary,
+    ForgeQueryReadCompositionExtensionHookFamily, ForgeQueryReadCompositionExtensionHookSupportRow,
+    ForgeQueryReadDenial, ForgeQueryReadDenialKind, ForgeQueryReadDomainInvariantDenial,
     ForgeQueryReadDomainInvariantSummary, ForgeQueryReadExecutionEngine,
     ForgeQueryReadFallbackClass, ForgeQueryReadFamily, ForgeQueryReadFamilyAdmission,
     ForgeQueryReadFamilyInvariantEvidence, ForgeQueryReadGraph, ForgeQueryReadGraphFamily,
     ForgeQueryReadOperatorFamily, ForgeQueryReadReceipt, ForgeQueryReadRelationshipProofDenial,
     ForgeQueryReadRelationshipProofDenialStage, ForgeQueryReadRelationshipProofPosture,
     ForgeQueryReadResult, ForgeQueryReadScopeClass, ForgeQueryReadScopeShapeMismatch,
+    ForgeQueryRetainedFieldPath, ForgeQueryRetainedMaterializedRow,
     ForgeQueryRetainedScalarAlignment, ForgeQueryRetainedScalarAlignmentFact,
     ForgeQueryRetainedScalarFactSet, ForgeQueryRetainedScalarFieldFact, ForgeQueryRunReceipt,
     ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReferenceEvidence,
@@ -882,8 +882,8 @@ pub struct ForgeQueryRuntime {
 }
 
 struct ForgeQueryRoutedMutationSummary {
-    affected_live_view_ids: Vec<String>,
-    affected_derived_view_ids: Vec<String>,
+    affected_live_view_targets: Vec<ForgeQueryLiveArtifactTarget>,
+    affected_derived_view_targets: Vec<ForgeQueryDerivedMaterializationTarget>,
     considered_computed_view_count: usize,
     considered_effect_count: usize,
     delivered_effect_count: usize,

@@ -168,8 +168,8 @@ fn live_read_helper_fronts_retain_equivalent_obligation_evidence() {
     let mut helper_workspace = workspace_with_live_read_obligation("live-read-helper-front");
     let helper_view = live_view(&mut helper_workspace);
     let helper_result = helper_workspace
-        .read_live_by_name(helper_view.name())
-        .expect("read_live_by_name should execute");
+        .read_live_result(&helper_view)
+        .expect("read_live_result should execute");
 
     assert_eq!(
         intent_result.receipt().graph_obligation_envelope_digest(),
@@ -363,12 +363,15 @@ fn identity_read_family(
         .expect("read family should define")
 }
 
-fn live_view(workspace: &mut ForgeQueryWorkspace) -> ForgeQueryLiveView<Value> {
+fn live_view(workspace: &mut ForgeQueryWorkspace) -> ForgeQueryLiveView<ForgeQueryNativeRow> {
     workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("read-obligation-live")
         })
         .expect("live view should declare")
@@ -378,9 +381,24 @@ fn manager_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "runtime-read-obligation-dispatch",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
-        [SchemaRelationView::new("manager", 1)],
+        [SchemaRelationView::new(
+            crate::authoring::RelationName::new("manager")
+                .expect("schema relation literal must be valid"),
+            1,
+        )],
     )
 }

@@ -1,6 +1,7 @@
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
     AuthorizedProjectionArtifact, ProjectMaterializedFacts, ProjectionFactConsumptionPathError,
-    QueryContextExecutionArtifact,
+    ProjectionFactFieldPath, QueryContextExecutionArtifact,
 };
 
 fn common_query_context_path(
@@ -9,7 +10,7 @@ fn common_query_context_path(
 ) -> Result<String, ProjectionFactConsumptionPathError> {
     let attempt = execution.consume_projection_facts(
         authorized_projection,
-        ProjectMaterializedFacts::declare().display_field("profile.display_name"),
+        ProjectMaterializedFacts::declare().display_field_path(profile_display_name_field_path()),
     )?;
 
     if let Some(completed) = attempt.completed() {
@@ -36,6 +37,16 @@ fn common_query_context_path(
     }
 
     unreachable!()
+}
+
+fn profile_display_name_field_path() -> ProjectionFactFieldPath {
+    ProjectionFactFieldPath::from_canonical_field_path(
+        CanonicalFieldPath::new(vec![
+            FieldKey::new("profile").expect("test field segment must be valid"),
+            FieldKey::new("display_name").expect("test field segment must be valid"),
+        ])
+        .expect("test field path must be valid"),
+    )
 }
 
 fn main() {

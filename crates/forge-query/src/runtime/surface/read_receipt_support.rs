@@ -11,15 +11,11 @@ pub(super) fn materialized_result_digest(
         &rows
             .iter()
             .flat_map(|row| {
-                let external_row = serde_json::to_string(row.external_row())
-                    .expect("read external row should serialize");
-                [
-                    format!(
-                        "row_identity:{}",
-                        row.identity().terminal_projection_for_reporting()
-                    ),
-                    format!("external_row:{external_row}"),
-                ]
+                std::iter::once(format!(
+                    "row_identity:{}",
+                    row.identity().terminal_projection_for_reporting()
+                ))
+                .chain(row.native_result_digest_parts())
             })
             .chain(std::iter::once(format!("query:{query_digest}")))
             .chain(std::iter::once(format!("basis:{basis_digest}")))

@@ -1,0 +1,5 @@
+error[E0599]: no method named `terminal_aspect_path_projection` found for reference `&ForgeQueryGraphCompositionResolutionEntry` in the current scope
+ --> tests/ui/aspect_native_query/graph_composition_resolution_entry_terminal_aspect_path_projection_removed.rs:4:19
+  |
+4 |     let _ = entry.terminal_aspect_path_projection();
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryGraphCompositionResolutionEntry`

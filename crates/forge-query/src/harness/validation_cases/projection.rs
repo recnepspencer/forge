@@ -73,7 +73,10 @@ fn structured_content_projection_validates_when_schema_admits_it() {
         .result_shape()
         .bindings()
         .iter()
-        .find(|binding| binding.source_aspect() == "content" && binding.source_field() == "bio")
+        .find(|binding| {
+            binding.native_source_aspect_key().as_str() == "content"
+                && binding.native_source_field_key().as_str() == "bio"
+        })
         .expect("structured content binding should be present");
     assert_eq!(
         bio_binding.field_kind(),

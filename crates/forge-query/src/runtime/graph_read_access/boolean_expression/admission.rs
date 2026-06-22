@@ -52,8 +52,8 @@ fn admitted_predicate_index<'a>(
         .map(|field| {
             (
                 (
-                    field.aspect().to_string(),
-                    field.field().to_string(),
+                    field.native_aspect_key().as_str().to_string(),
+                    field.native_field_key().as_str().to_string(),
                     field.family().to_string(),
                 ),
                 field,
@@ -77,8 +77,8 @@ fn predicate_leaf(
 ) -> ForgeQueryAdmittedBooleanPredicateLeaf {
     let (operator, normalized_operand_values) = predicate_operand(filter);
     ForgeQueryAdmittedBooleanPredicateLeaf::admitted(
-        filter.aspect(),
-        filter.field(),
+        admitted_field.native_aspect_key().clone(),
+        admitted_field.native_field_key().clone(),
         family,
         operator,
         normalized_operand_values,

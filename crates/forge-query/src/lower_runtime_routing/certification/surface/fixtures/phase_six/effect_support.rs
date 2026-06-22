@@ -23,8 +23,7 @@ use forge_runtime_bridge::facade::{
 };
 
 use crate::aspect_field_authoring::{
-    entity_string_field_aspect, lifecycle_string_aspect,
-    single_aspect_field_patch_from_external_json,
+    entity_string_field_aspect, lifecycle_string_aspect, single_native_string_aspect_field_patch,
 };
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 
@@ -56,12 +55,8 @@ pub(crate) fn create_entity(
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: ClientKey::raw(name),
-                fields: single_aspect_field_patch_from_external_json(
-                    "name",
-                    "name",
-                    serde_json::json!(name),
-                )
-                .expect("seed name aspect patch"),
+                fields: single_native_string_aspect_field_patch("name", "name", name)
+                    .expect("seed name aspect patch"),
             }),
         )),
     );

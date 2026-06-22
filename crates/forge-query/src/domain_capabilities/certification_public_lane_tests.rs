@@ -21,8 +21,11 @@ fn projection_contract_request() -> crate::domain_capabilities::ForgeQueryProjec
     crate::domain_capabilities::ForgeQueryProjectionContractRequest::new(
         projection_source(),
         projection_binding(),
-        crate::projection_consumption::ProjectMaterializedFacts::declare()
-            .display_field("field.visible"),
+        crate::projection_consumption::ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                "field", "visible",
+            ]),
+        ),
     )
 }
 

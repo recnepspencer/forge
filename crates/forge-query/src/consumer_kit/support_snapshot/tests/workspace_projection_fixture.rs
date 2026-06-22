@@ -4,13 +4,13 @@ use crate::memory_workspace::{
     ForgeQueryWorkspaceError,
 };
 use crate::runtime::{
-    ForgeQueryEffectPolicy, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime, ForgeQueryRuntimeBackend,
-    ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimePublicApiContract,
-    ForgeQueryRuntimePublicSupportMatrix, ForgeQueryRuntimeSupportProfile, ForgeQueryWorkspace,
-    ForgeQueryWriteCommand, ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt,
-    SubscriptionActivationReceipt,
+    ForgeQueryBackendAdmissibleMutation, ForgeQueryEffectPolicy, ForgeQueryIntentDeclaration,
+    ForgeQueryIntentExecution, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime,
+    ForgeQueryRuntimeBackend, ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimePublicSupportMatrix,
+    ForgeQueryRuntimeSupportProfile, ForgeQueryWorkspace, ForgeQueryWriteReceipt,
+    LiveViewDeclarationAdmissionBoundaryReceipt, SubscriptionActivationReceipt,
 };
 use crate::schema_view::QuerySchemaView;
 use crate::session_label::ForgeQuerySessionLabel;
@@ -77,14 +77,14 @@ impl ForgeQueryRuntimeBackend for SupportSnapshotRuntimeBackend {
 
     fn write(
         &mut self,
-        _command: ForgeQueryWriteCommand,
+        _mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
         panic!("support snapshot tests only exercise workspace support matrix projection")
     }
 
     fn write_batch(
         &mut self,
-        _commands: Vec<ForgeQueryWriteCommand>,
+        _mutations: Vec<ForgeQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
         panic!("support snapshot tests only exercise workspace support matrix projection")
     }

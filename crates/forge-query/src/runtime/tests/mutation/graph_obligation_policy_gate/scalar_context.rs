@@ -146,10 +146,13 @@ fn assert_task_live_row_count(runtime: ForgeQueryRuntime, workspace: &str, expec
     let mut workspace = runtime
         .workspace(workspace)
         .expect("runtime should open workspace for state verification");
-    let live: ForgeQueryLiveView<Value> = workspace
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.policy-denial-state", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
                 .schema_basis("tasks-policy-denial-state")
         })
         .expect("state verification live view should declare");

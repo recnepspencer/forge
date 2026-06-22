@@ -288,7 +288,14 @@ impl ForgeQueryWorkspace {
         self.runtime.inspect(target)
     }
 
-    pub fn inspect_live_by_name(
+    pub fn inspect_live<T>(
+        &self,
+        view: &super::ForgeQueryLiveView<T>,
+    ) -> Result<ForgeQueryUnifiedInspectionResult, ForgeQueryRuntimeError> {
+        self.inspect_live_by_name(view.name())
+    }
+
+    pub(crate) fn inspect_live_by_name(
         &self,
         view_name: &str,
     ) -> Result<ForgeQueryUnifiedInspectionResult, ForgeQueryRuntimeError> {

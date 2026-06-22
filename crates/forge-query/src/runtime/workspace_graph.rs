@@ -89,7 +89,10 @@ impl ForgeQueryWorkspace {
                 Err(graph_composition_error(
                     kind,
                     None,
-                    denial.binding().target_collection().map(str::to_string),
+                    denial
+                        .binding()
+                        .terminal_target_collection_projection()
+                        .map(str::to_string),
                     denial.message().to_string(),
                 ))
             }
@@ -108,7 +111,10 @@ impl ForgeQueryWorkspace {
                 Err(graph_composition_error(
                     kind,
                     None,
-                    denial.binding().target_collection().map(str::to_string),
+                    denial
+                        .binding()
+                        .terminal_target_collection_projection()
+                        .map(str::to_string),
                     denial.message().to_string(),
                 ))
             }

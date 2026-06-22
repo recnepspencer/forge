@@ -1,5 +1,3 @@
-use serde_json::Value;
-
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
@@ -78,14 +76,18 @@ pub(super) fn write_observation_query_identity(
                 ForgeQueryEvidenceTag::new("snapshot_identity"),
                 &snapshot_identity,
             );
-    if !inspection.mutation_metadata().entries().is_empty() {
+    if !inspection.mutation_metadata().is_empty() {
         encoder = encoder.field_value_sequence(
             ForgeQueryEvidenceTag::new("metadata_entries"),
             inspection
                 .mutation_metadata()
                 .entries()
-                .iter()
-                .flat_map(|(key, value)| [key.to_string(), stable_json_value(value)]),
+                .flat_map(|(key, value)| {
+                    [
+                        key.as_str().to_string(),
+                        value.native_digest_text().to_string(),
+                    ]
+                }),
         );
     }
     encoder.seal().into()
@@ -149,8 +151,4 @@ pub(super) fn read_observation_result_reference_digest(
         )
         .seal()
         .into()
-}
-
-fn stable_json_value(value: &Value) -> String {
-    serde_json::to_string(value).expect("mutation metadata values are valid JSON")
 }

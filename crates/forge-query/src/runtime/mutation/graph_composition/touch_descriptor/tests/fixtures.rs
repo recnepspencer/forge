@@ -1,9 +1,10 @@
 use crate::runtime::{
-    ForgeQueryAspectValue, ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram,
-    ForgeQueryGraphCompositionProgramStep, ForgeQueryGraphCompositionProgramStepKind,
-    ForgeQueryGraphTouchDescriptor, ForgeQueryMutationMetadata, ForgeQuerySymbolicTargetReference,
-    ForgeQueryWriteCommand,
+    ForgeQueryAspectMutationOperation, ForgeQueryAspectValue, ForgeQueryGraphCompositionBreadth,
+    ForgeQueryGraphCompositionProgram, ForgeQueryGraphCompositionProgramStep,
+    ForgeQueryGraphCompositionProgramStepKind, ForgeQueryGraphTouchDescriptor,
+    ForgeQueryMutationMetadata, ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
 };
+use forge_foundational::facade::AspectValue;
 use forge_relational::facade::identity::KindId;
 
 pub(super) fn descriptor_for_step_kind(
@@ -78,7 +79,7 @@ pub(super) fn one_step_delete_program(
 ) {
     let command = ForgeQueryWriteCommand::DeleteSymbolicAspects {
         reference: reference(symbol, collection),
-        touched_aspect_paths: touched_paths.into_iter().map(str::to_string).collect(),
+        touched_aspects: touched_paths.into_iter().map(touch).collect(),
         metadata: ForgeQueryMutationMetadata::new(),
         naming_intent: None,
     };
@@ -98,7 +99,7 @@ pub(super) fn one_step_delete_program_with_relation_kind_id(
 ) {
     let command = ForgeQueryWriteCommand::DeleteSymbolicAspects {
         reference: reference(symbol, collection),
-        touched_aspect_paths: touched_paths.into_iter().map(str::to_string).collect(),
+        touched_aspects: touched_paths.into_iter().map(touch).collect(),
         metadata: ForgeQueryMutationMetadata::new(),
         naming_intent: None,
     };
@@ -123,12 +124,25 @@ pub(super) fn one_step_update_program(
 ) {
     let command = ForgeQueryWriteCommand::UpdateSymbolicAspects {
         reference: reference(symbol, collection),
-        aspects: vec![ForgeQueryAspectValue::new(aspect_path, 1).unwrap()],
+        aspects: vec![ForgeQueryAspectValue::new(touch(aspect_path), int_value(1)).unwrap()],
         metadata: ForgeQueryMutationMetadata::new(),
         naming_intent: None,
         continuity_intent: None,
     };
     one_step_program(kind, collection, symbol, command)
+}
+
+pub(super) fn touch(aspect_path: &str) -> crate::runtime::ForgeQueryAspectTouch {
+    crate::runtime::ForgeQueryAspectTouch::from_authoring_path(aspect_path.to_string())
+        .expect("test aspect path should parse")
+}
+
+pub(super) fn set_operation(aspect_path: &str) -> ForgeQueryAspectMutationOperation {
+    ForgeQueryAspectMutationOperation::set(touch(aspect_path))
+}
+
+fn int_value(value: i64) -> AspectValue {
+    AspectValue::Int64(value)
 }
 
 fn one_step_program(

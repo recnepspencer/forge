@@ -32,7 +32,12 @@ pub(super) fn record_planned_same_batch_symbolic_target(
     ));
     planned_symbolic_targets.insert(
         reference.symbol().to_string(),
-        (planned_identity, command.declared_collection()),
+        (
+            planned_identity,
+            command
+                .terminal_declared_collection_projection()
+                .map(str::to_string),
+        ),
     );
 }
 

@@ -108,8 +108,14 @@ fn representative_touch_for_lane(
             "topology.edge",
             crate::runtime::ForgeQueryMutationFamily::Update,
             None,
-            ["set:capacity"],
-            ["capacity"],
+            [crate::runtime::ForgeQueryAspectMutationOperation::set(
+                crate::runtime::ForgeQueryAspectTouch::from_authoring_path("capacity")
+                    .expect("static support matrix aspect should admit"),
+            )],
+            [
+                crate::runtime::ForgeQueryAspectTouch::from_authoring_path("capacity")
+                    .expect("static support matrix aspect should admit"),
+            ],
         )
         .expect("static mutation certification touch is valid"),
     }

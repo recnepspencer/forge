@@ -4,38 +4,10 @@ error[E0308]: mismatched types
 14 |         batch_digest: String::new(),
    |                       ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`
 
-error: cannot construct `forge_query::facade::ForgeQueryBatchWriteReceipt` with struct literal syntax due to private fields
-  --> tests/ui/runtime_batch_mutation_privates_forbidden.rs:11:13
+error[E0560]: struct `forge_query::facade::ForgeQueryBatchWriteReceipt` has no field named `touched_aspect_paths`
+  --> tests/ui/runtime_batch_mutation_privates_forbidden.rs:15:9
    |
-11 |     let _ = ForgeQueryBatchWriteReceipt {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-12 |         write_receipts: Vec::new(),
-   |         -------------------------- private field
-13 |         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-   |         ----------------------------------------------------------- private field
-14 |         batch_digest: String::new(),
-   |         --------------------------- private field
 15 |         touched_aspect_paths: Vec::new(),
-   |         -------------------------------- private field
-16 |         affected_live_view_ids: Vec::new(),
-   |         ---------------------------------- private field
-17 |         affected_derived_view_ids: Vec::new(),
-   |         ------------------------------------- private field
-18 |         considered_computed_view_count: 0,
-   |         --------------------------------- private field
-19 |         considered_effect_count: 0,
-   |         -------------------------- private field
-20 |         delivered_effect_count: 0,
-   |         ------------------------- private field
-21 |         pending_write_intent_count: 0,
-   |         ----------------------------- private field
-22 |         suppressed_effect_count: 0,
-   |         -------------------------- private field
-23 |         meaningful_effect_suppression_count: 0,
-   |         -------------------------------------- private field
-24 |         effect_expression_failure_count: 0,
-   |         ---------------------------------- private field
-25 |         refresh_fallback: false,
-   |         ----------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^^^ `forge_query::facade::ForgeQueryBatchWriteReceipt` does not have this field
    |
-   = note: ...and other private fields that were not provided
+   = note: all struct fields are already assigned

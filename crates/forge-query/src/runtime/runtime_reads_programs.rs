@@ -13,7 +13,7 @@ impl ForgeQueryRuntime {
         &mut self,
         view: &ForgeQueryLiveView<T>,
     ) -> Result<ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
-        self.execute_live_read_by_name(view.name())
+        self.execute_live_read_for_installation(view.subscription_installation().clone())
     }
 
     pub fn drain_patches<T>(&mut self, view: &ForgeQueryLiveView<T>) -> ForgeQueryPatchBatch {
@@ -33,7 +33,17 @@ impl ForgeQueryRuntime {
         }
     }
 
-    pub fn drain_derived_patches(&mut self, view_name: &str) -> ForgeQueryPatchBatch {
+    pub fn drain_derived_patches<T>(
+        &mut self,
+        view: &ForgeQueryDerivedViewHandle<T>,
+    ) -> ForgeQueryPatchBatch {
+        self.drain_derived_patches_by_name(view.name())
+    }
+
+    pub(crate) fn drain_derived_patches_by_name(
+        &mut self,
+        view_name: &str,
+    ) -> ForgeQueryPatchBatch {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Computed)
             .expect("computed support was admitted before derived patch draining");
         let derived_patches = self
@@ -53,15 +63,16 @@ impl ForgeQueryRuntime {
         }
     }
 
-    pub fn read_derived<T>(&self, view: &ForgeQueryDerivedViewHandle<T>) -> Vec<Value> {
+    pub fn read_derived_result<T>(
+        &self,
+        view: &ForgeQueryDerivedViewHandle<T>,
+    ) -> Result<ForgeQueryDerivedMaterializationResult, ForgeQueryRuntimeError> {
         self.review_runtime_derived_materialization(view.name().to_string())
             .and_then(|review| {
                 self.resolve_reviewed_admitted_derived_materialization_handoff(review)
             })
             .map(|handoff| self.prepare_derived_materialization_execution_binding(handoff))
             .and_then(|binding| self.execute_derived_materialization_execution_binding(binding))
-            .map(|result| result.rows().to_vec())
-            .expect("derived view declaration admitted before runtime.read_derived execution")
     }
 
     pub fn inspect_derived_view<T>(
@@ -167,7 +178,7 @@ impl ForgeQueryRuntime {
                     request,
                     schema_view,
                 } => {
-                    let _: ForgeQueryLiveView<Value> =
+                    let _: ForgeQueryLiveView<ForgeQueryNativeRow> =
                         self.declare_live_view(name.clone(), request, schema_view)?;
                     trace.record_declaration(format!("live:{name}"));
                 }
@@ -188,16 +199,17 @@ impl ForgeQueryRuntime {
                     write_receipts.push(receipt);
                 }
                 ForgeQueryProgramEffect::ReadLive { view_name } => {
-                    let read = self.execute_live_read_by_name(&view_name)?;
-                    outputs.push(ForgeQueryOperationOutput::new(
+                    let installation = self
+                        .live_subscriptions
+                        .get(&view_name)
+                        .map(|state| state.installation.clone())
+                        .ok_or_else(|| {
+                            ForgeQueryRuntimeError::MissingLiveView(view_name.clone())
+                        })?;
+                    let read = self.execute_live_read_for_installation(installation)?;
+                    outputs.push(ForgeQueryOperationOutput::from_live_read_entities(
                         format!("live:{view_name}"),
-                        Value::Array(
-                            read.rows()
-                                .iter()
-                                .cloned()
-                                .map(ForgeQueryEntity::into_external_row)
-                                .collect(),
-                        ),
+                        read.rows().iter().cloned(),
                     ));
                     trace.record_replay_or_parity(format!("read-live:{view_name}"));
                 }
@@ -272,15 +284,10 @@ impl ForgeQueryRuntime {
             .ok_or_else(|| ForgeQueryRuntimeError::UnknownProgram(run.run_id().to_string()))
     }
 
-    pub(crate) fn execute_live_read_by_name(
+    pub(crate) fn execute_live_read_for_installation(
         &mut self,
-        view_name: &str,
+        installation: ForgeQueryRuntimeLiveSubscriptionInstallation,
     ) -> Result<ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
-        let installation = self
-            .live_subscriptions
-            .get(view_name)
-            .map(|state| state.installation.clone())
-            .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveView(view_name.to_string()))?;
         let review = self.review_runtime_live_read_execution(installation)?;
         let handoff = self.resolve_reviewed_admitted_live_read_execution_handoff(review)?;
         let binding = self.prepare_live_read_execution_binding(handoff)?;

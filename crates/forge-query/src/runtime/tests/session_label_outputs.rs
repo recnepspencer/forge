@@ -3,7 +3,6 @@ use crate::facade::runtime::{
     ForgeQueryBranchOptions, ForgeQueryPreviewOptions, ForgeQueryRuntime, ForgeQuerySessionLabel,
 };
 use crate::runtime::ForgeQueryStopClass;
-use serde_json::{json, Value};
 
 fn session_entry_runtime() -> ForgeQueryRuntime {
     ForgeQueryRuntime::builder()
@@ -61,8 +60,14 @@ fn display_colliding_preview_labels_produce_distinct_write_receipt_identities() 
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("left-receipt-render-collision")),
-                    ("title.value", json!("Left receipt render collision")),
+                    (
+                        "identity.id",
+                        test_string_aspect_value("left-receipt-render-collision"),
+                    ),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Left receipt render collision"),
+                    ),
                 ],
             ))
             .expect("left preview write should stage")
@@ -75,8 +80,14 @@ fn display_colliding_preview_labels_produce_distinct_write_receipt_identities() 
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("right-receipt-render-collision")),
-                    ("title.value", json!("Right receipt render collision")),
+                    (
+                        "identity.id",
+                        test_string_aspect_value("right-receipt-render-collision"),
+                    ),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Right receipt render collision"),
+                    ),
                 ],
             ))
             .expect("right preview write should stage")
@@ -100,7 +111,7 @@ fn display_colliding_preview_labels_produce_distinct_write_receipt_identities() 
 fn display_colliding_preview_labels_produce_distinct_execution_digests() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.render-collision-execution",
             task_live_request(),
             task_schema(),
@@ -121,8 +132,14 @@ fn display_colliding_preview_labels_produce_distinct_execution_digests() {
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("left-render-collision")),
-                    ("title.value", json!("Left render collision")),
+                    (
+                        "identity.id",
+                        test_string_aspect_value("left-render-collision"),
+                    ),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Left render collision"),
+                    ),
                 ],
             ))
             .expect("left preview write should stage");
@@ -145,8 +162,14 @@ fn display_colliding_preview_labels_produce_distinct_execution_digests() {
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("right-render-collision")),
-                    ("title.value", json!("Right render collision")),
+                    (
+                        "identity.id",
+                        test_string_aspect_value("right-render-collision"),
+                    ),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Right render collision"),
+                    ),
                 ],
             ))
             .expect("right preview write should stage");

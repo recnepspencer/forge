@@ -42,7 +42,7 @@ impl PublicBridgeRuntimeHarness {
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
         aspect_path: &str,
-        value: Value,
+        value: AspectValue,
     ) -> PublicExistingTruthSeedRecord {
         let record = PublicExistingTruthSeedRecord::new(binding, aspect_path);
         let key = (
@@ -69,7 +69,10 @@ impl PublicExistingTruthSeedRecord {
     fn new(binding: &ForgeQueryExistingTruthTargetBinding, aspect_path: &str) -> Self {
         Self {
             binding_digest: binding.binding_digest(),
-            target_collection: binding.target_collection().unwrap_or("none").to_string(),
+            target_collection: binding
+                .terminal_target_collection_projection()
+                .unwrap_or("none")
+                .to_string(),
             aspect_path: aspect_path.to_string(),
         }
     }
@@ -85,7 +88,7 @@ impl PublicExistingTruthSeedRecord {
     }
 
     #[allow(dead_code)]
-    pub fn aspect_path(&self) -> &str {
+    pub fn terminal_aspect_path_projection(&self) -> &str {
         &self.aspect_path
     }
 }

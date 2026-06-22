@@ -1,5 +1,3 @@
-use serde_json::Value;
-
 use super::super::consumed::{
     ConsumedEntityIdentityFact, ConsumedFieldValueFact, ConsumedProjectionFactSet,
     ConsumedSourceReferenceFact, ConsumedViewLocalIdentityFact, ProjectionFactExtractionCounters,
@@ -10,6 +8,7 @@ use super::super::identity::compose_query_context_row_identity;
 use super::super::source::ProjectionSourceFamily;
 use crate::projection_consumption::ProjectionFactExtractionError;
 use crate::query_context::QueryContextExecutionArtifact;
+use forge_foundational::facade::AspectValue;
 
 pub(super) fn extract_query_context_facts(
     contract: &MaterializedProjectionContract,
@@ -47,7 +46,7 @@ pub(super) fn extract_query_context_facts(
 
     for (index, row) in execution.rows().iter().enumerate() {
         let row_identity = query_context_row_identity(execution, index);
-        let row_value = Value::String(row.clone());
+        let row_value = AspectValue::String(row.clone().into());
         for fact_family in contract.fact_families() {
             match fact_family.kind() {
                 ProjectionFactKind::EntityIdentity => {
@@ -63,10 +62,13 @@ pub(super) fn extract_query_context_facts(
                     ));
                 }
                 ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
-                    let field_key = fact_family.field_key().expect("field key required");
+                    let field_path = fact_family
+                        .field_path()
+                        .expect("field path required")
+                        .clone();
                     let fact = ConsumedFieldValueFact::new(
                         row_identity.clone(),
-                        field_key,
+                        field_path,
                         row_value.clone(),
                     );
                     if fact_family.kind() == ProjectionFactKind::DisplayField {

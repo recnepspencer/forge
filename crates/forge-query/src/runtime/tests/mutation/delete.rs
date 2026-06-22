@@ -5,19 +5,28 @@ fn workspace_delete_receipt_preserves_family_target_and_inspection_posture() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-delete")
         .expect("task runtime should open a named workspace");
-    let live: ForgeQueryLiveView<Value> = workspace
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.delete-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-delete-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Buy milk")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Buy milk"),
+            )
         })
         .expect("seed insert should execute");
     let _ = workspace.observe(&live);
@@ -33,12 +42,15 @@ fn workspace_delete_receipt_preserves_family_target_and_inspection_posture() {
         .expect("delete receipt should inspect");
 
     assert_eq!(receipt.mutation_family(), ForgeQueryMutationFamily::Delete);
-    assert_eq!(receipt.declared_collection(), None);
+    assert_eq!(receipt.terminal_declared_collection_projection(), None);
     assert_eq!(
         receipt.declared_entity_identity(),
         Some(&seed.deltas()[0].entity_identity)
     );
-    assert_eq!(receipt.target_collection(), Some("Task"));
+    assert_eq!(
+        receipt.terminal_target_collection_projection(),
+        Some("Task")
+    );
     assert_eq!(
         receipt.target_entity_identity(),
         Some(&seed.deltas()[0].entity_identity)
@@ -91,26 +103,37 @@ fn workspace_delete_with_preserves_touched_aspects_and_metadata_for_routing() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-delete-with")
         .expect("task runtime should open a named workspace");
-    let live: ForgeQueryLiveView<Value> = workspace
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.delete-with-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-delete-with-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Buy milk")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Buy milk"),
+            )
         })
         .expect("seed insert should execute");
     let _ = workspace.observe(&live);
 
     let receipt = workspace
         .delete_with(seed.deltas()[0].entity_identity.clone(), |delete| {
-            delete.touch("title.value").metadata("author", "worth-topo")
+            delete
+                .touch(test_aspect_touch("title.value"))
+                .metadata("author", "worth-topo")
         })
         .expect("delete with declared meaning should execute");
     let patches = workspace.observe(&live);
@@ -119,21 +142,27 @@ fn workspace_delete_with_preserves_touched_aspects_and_metadata_for_routing() {
         .expect("delete-with receipt should inspect");
 
     assert_eq!(receipt.mutation_family(), ForgeQueryMutationFamily::Delete);
-    assert_eq!(receipt.declared_collection(), None);
+    assert_eq!(receipt.terminal_declared_collection_projection(), None);
     assert_eq!(
-        receipt.deltas()[0].aspect_paths,
-        vec!["title.value".to_string()]
+        receipt.deltas()[0].admitted_touched_aspects(),
+        test_aspect_touches(["title.value"]).as_slice()
     );
     assert_eq!(
         receipt
             .declared_aspect_operations()
             .iter()
-            .map(|operation| format!("{}:{}", operation.kind(), operation.aspect_path()))
+            .map(|operation| {
+                format!(
+                    "{}:{}",
+                    operation.kind(),
+                    operation.aspect_touch().admitted_touch_digest_part()
+                )
+            })
             .collect::<Vec<_>>(),
-        vec!["clear:title.value".to_string()]
+        vec!["clear:title:value".to_string()]
     );
     assert_eq!(
-        receipt.affected_live_view_ids(),
+        receipt.terminal_affected_live_view_ids_projection(),
         &["tasks.delete-with-table".to_string()]
     );
     assert_eq!(patches.query_delivery_batches.len(), 1);
@@ -144,17 +173,23 @@ fn workspace_delete_with_preserves_touched_aspects_and_metadata_for_routing() {
             assert_eq!(
                 inspection
                     .mutation_metadata()
-                    .get("author")
-                    .and_then(Value::as_str),
+                    .get(&test_mutation_metadata_key("author"))
+                    .map(|value| value.native_digest_text()),
                 Some("worth-topo")
             );
             assert_eq!(
                 inspection
                     .declared_aspect_operations()
                     .iter()
-                    .map(|operation| format!("{}:{}", operation.kind(), operation.aspect_path()))
+                    .map(|operation| {
+                        format!(
+                            "{}:{}",
+                            operation.kind(),
+                            operation.aspect_touch().admitted_touch_digest_part()
+                        )
+                    })
                     .collect::<Vec<_>>(),
-                vec!["clear:title.value".to_string()]
+                vec!["clear:title:value".to_string()]
             );
         }
         other => panic!("expected write receipt inspection, got {other:?}"),
@@ -166,18 +201,27 @@ fn preview_delete_with_preserves_declared_target_collection_and_delete_meaning()
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-delete-with")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.preview-delete-with-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-preview-delete-with-table")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Preview delete target")
+            task.aspect(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-1"),
+            )
+            .aspect(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Preview delete target"),
+            )
         })
         .expect("seed insert should execute");
     let mut preview = workspace
@@ -191,7 +235,7 @@ fn preview_delete_with_preserves_declared_target_collection_and_delete_meaning()
         .delete_with(seed.deltas()[0].entity_identity.clone(), |delete| {
             delete
                 .target_collection("Task")
-                .touch("title.value")
+                .touch(test_aspect_touch("title.value"))
                 .metadata("author", "worth-topo")
         })
         .expect("preview delete with declared target should stage");
@@ -203,15 +247,27 @@ fn preview_delete_with_preserves_declared_target_collection_and_delete_meaning()
         receipt.authority_lane(),
         ForgeQueryAuthorityLane::PreviewTruth
     );
-    assert_eq!(receipt.declared_collection(), Some("Task"));
-    assert_eq!(receipt.target_collection(), Some("Task"));
+    assert_eq!(
+        receipt.terminal_declared_collection_projection(),
+        Some("Task")
+    );
+    assert_eq!(
+        receipt.terminal_target_collection_projection(),
+        Some("Task")
+    );
     assert_eq!(
         receipt
             .declared_aspect_operations()
             .iter()
-            .map(|operation| format!("{}:{}", operation.kind(), operation.aspect_path()))
+            .map(|operation| {
+                format!(
+                    "{}:{}",
+                    operation.kind(),
+                    operation.aspect_touch().admitted_touch_digest_part()
+                )
+            })
             .collect::<Vec<_>>(),
-        vec!["clear:title.value".to_string()]
+        vec!["clear:title:value".to_string()]
     );
 
     match inspection {
@@ -221,8 +277,8 @@ fn preview_delete_with_preserves_declared_target_collection_and_delete_meaning()
             assert_eq!(
                 inspection
                     .mutation_metadata()
-                    .get("author")
-                    .and_then(Value::as_str),
+                    .get(&test_mutation_metadata_key("author"))
+                    .map(|value| value.native_digest_text()),
                 Some("worth-topo")
             );
         }
@@ -235,21 +291,24 @@ fn workspace_batch_routes_shared_computeds_once_per_batch_boundary() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-computed-routing")
         .expect("task runtime should open a named workspace");
-    let live: ForgeQueryLiveView<Value> = workspace
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.batch-routing-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                ])
+                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
                 .schema_basis("tasks-batch-routing-table")
         })
         .expect("live view should declare");
-    let _computed: ForgeQueryDerivedViewHandle<Value> = workspace
+    let _computed: ForgeQueryDerivedViewHandle<ForgeQueryNativeRow> = workspace
         .computed(
             "tasks.batch-routing-summary",
             |c| {
                 c.depends_on_live(&live)
-                    .reads(["title.value"])
-                    .produces(["ui.batch_routing_summary"])
+                    .reads(test_aspect_touches(["title.value"]))
+                    .produces(test_aspect_touches(["ui.batch_routing_summary"]))
             },
             TitleListMaintainer,
         )
@@ -259,12 +318,24 @@ fn workspace_batch_routes_shared_computeds_once_per_batch_boundary() {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "task-1")
-                        .aspect("title.value", "Buy milk")
+                    task.aspect(
+                        test_aspect_touch("identity.id"),
+                        test_string_aspect_value("task-1"),
+                    )
+                    .aspect(
+                        test_aspect_touch("title.value"),
+                        test_string_aspect_value("Buy milk"),
+                    )
                 })
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "task-2")
-                        .aspect("title.value", "Buy bread")
+                    task.aspect(
+                        test_aspect_touch("identity.id"),
+                        test_string_aspect_value("task-2"),
+                    )
+                    .aspect(
+                        test_aspect_touch("title.value"),
+                        test_string_aspect_value("Buy bread"),
+                    )
                 })
         })
         .expect("aspect-native batch should execute");

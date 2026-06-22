@@ -25,8 +25,7 @@ pub(crate) fn validate_predicate_entries(
 
     for predicate in predicates {
         counters.record_schema_lookup();
-        let Some(field) = schema_view.field(predicate.aspect.as_str(), predicate.field.as_str())
-        else {
+        let Some(field) = schema_view.field(&predicate.aspect, &predicate.field) else {
             counters.record_rejection();
             rejection_matrix.record_predicate_rejection();
             return Err(ValidationFailureArtifact::new(

@@ -1,6 +1,8 @@
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
     AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ForgeQueryReadResult,
     ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError,
+    ProjectionFactFieldPath,
 };
 
 fn common_read_path(
@@ -13,7 +15,7 @@ fn common_read_path(
         authorized_projection,
         ProjectMaterializedFacts::declare()
             .entity_identities()
-            .display_field("profile.display_name"),
+            .display_field_path(profile_display_name_field_path()),
     )?;
 
     if let Some(completed) = attempt.completed() {
@@ -38,6 +40,16 @@ fn common_read_path(
         ProjectionFactConsumptionAttempt::Admitted(_)
         | ProjectionFactConsumptionAttempt::AdmittedWithWarnings(_, _) => unreachable!(),
     }
+}
+
+fn profile_display_name_field_path() -> ProjectionFactFieldPath {
+    ProjectionFactFieldPath::from_canonical_field_path(
+        CanonicalFieldPath::new(vec![
+            FieldKey::new("profile").expect("test field segment must be valid"),
+            FieldKey::new("display_name").expect("test field segment must be valid"),
+        ])
+        .expect("test field path must be valid"),
+    )
 }
 
 fn main() {

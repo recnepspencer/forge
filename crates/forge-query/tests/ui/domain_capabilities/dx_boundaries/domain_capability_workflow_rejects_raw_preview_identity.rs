@@ -1,5 +1,4 @@
-use forge_query::facade::runtime::{forge_query_domain, ForgeQueryIntentDeclaration};
-use serde_json::json;
+use forge_query::facade::runtime::{forge_query_domain, ForgeQueryIntentDeclaration, ForgeQueryIntentInput};
 
 fn main() {
     let declaration = ForgeQueryIntentDeclaration::strategy_commit(
@@ -7,7 +6,7 @@ fn main() {
         "spatial.commit",
         "1",
         "geometry.patch",
-        json!({"edge":"e-1"}),
+        ForgeQueryIntentInput::object([("edge", ForgeQueryIntentInput::string("e-1"))]),
     );
 
     let _ = forge_query_domain("worth.spatial")

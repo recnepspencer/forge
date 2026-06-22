@@ -5,11 +5,10 @@ use crate::runtime::tests::support::{
     BridgeAsyncCompletionClass, BridgeAsyncCompletionState, ForgeQueryRuntimeAsyncResultProjection,
 };
 use crate::runtime::{
-    ForgeQueryLiveView, ForgeQueryReadFamily, ForgeQueryRuntimeAsyncResultStateKind,
-    ForgeQueryWorkspace,
+    ForgeQueryLiveView, ForgeQueryNativeRow, ForgeQueryReadFamily,
+    ForgeQueryRuntimeAsyncResultStateKind, ForgeQueryWorkspace,
 };
 use crate::subscription::QuerySubscriptionDeliveryCauseKind;
-use serde_json::Value;
 
 fn task_table_read_family(
     workspace: &mut ForgeQueryWorkspace,
@@ -54,7 +53,7 @@ fn task_table_read_family(
 #[test]
 fn runtime_read_family_receipt_retains_time_only_materialized_fact_posture() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
     let expected_query_digest = view
@@ -128,7 +127,7 @@ fn runtime_read_family_receipt_retains_time_only_materialized_fact_posture() {
 #[test]
 fn runtime_read_family_receipt_retains_async_backed_materialized_fact_posture() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.async-table", task_live_request(), task_schema())
         .expect("live view should declare");
     let expected_query_digest = view

@@ -67,8 +67,12 @@ fn primary_bridge_backed_entity_verification_family_executes_when_profile_and_ad
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
         admitted_primary_profile("direct_entity_identity"),
         TestExistingTruthVerificationAdapter::default()
-            .with_value(&binding, "status.value", json!("open"))
-            .with_value(&binding, "title.value", json!("Seed title")),
+            .with_value(&binding, "status.value", test_string_aspect_value("open"))
+            .with_value(
+                &binding,
+                "title.value",
+                test_string_aspect_value("Seed title"),
+            ),
     );
     let mut workspace = runtime
         .workspace("tasks.primary-bridge-backed-entity-verification")
@@ -91,7 +95,12 @@ fn primary_bridge_backed_entity_verification_family_executes_when_profile_and_ad
     }
 
     let verify_receipt = workspace
-        .verify_existing(binding.clone(), |task| task.aspect("status.value", "open"))
+        .verify_existing(binding.clone(), |task| {
+            task.aspect(
+                test_aspect_touch("status.value"),
+                test_string_aspect_value("open"),
+            )
+        })
         .expect("entity verify_existing should execute");
     assert_eq!(
         verify_receipt.mutation_family(),
@@ -116,14 +125,14 @@ fn primary_bridge_backed_entity_verification_family_executes_when_profile_and_ad
             .as_str()
     );
     assert_eq!(
-        verify_assumptions.asserted_aspect_paths(),
-        &["status.value".to_string()]
+        verify_assumptions.asserted_aspects(),
+        test_aspect_touches(["status.value"]).as_slice()
     );
     assert_eq!(
         verify_assumptions
             .verification_read_set_breadth()
             .counter_snapshot(),
-        "target_bindings=1;asserted_aspects=1;distinct_asserted_aspect_paths=1;cleared_assertions=0"
+        "target_bindings=1;asserted_aspects=1;distinct_asserted_aspect_touches=1;cleared_assertions=0"
     );
     assert_eq!(
         verify_assumptions.assumption_snapshot_digest(),
@@ -139,21 +148,34 @@ fn primary_bridge_backed_entity_verification_family_executes_when_profile_and_ad
     );
 
     let probe = workspace
-        .probe_existing(binding.clone(), ["status.value", "title.value"])
+        .probe_existing(
+            binding.clone(),
+            test_aspect_touches(["status.value", "title.value"]),
+        )
         .expect("entity probe_existing should execute");
     assert_eq!(
         probe
-            .field("status.value")
+            .field_for_touch(&test_aspect_touch("status.value"))
             .expect("status field should exist")
-            .external_value_json(),
-        "\"open\""
+            .foundational_value(),
+        &test_string_aspect_value("open")
     );
 
     let update_receipt = workspace
         .update_existing_verified(
             binding.clone(),
-            |task| task.aspect("status.value", "open"),
-            |task| task.aspect("status.value", "closed"),
+            |task| {
+                task.aspect(
+                    test_aspect_touch("status.value"),
+                    test_string_aspect_value("open"),
+                )
+            },
+            |task| {
+                task.aspect(
+                    test_aspect_touch("status.value"),
+                    test_string_aspect_value("closed"),
+                )
+            },
         )
         .expect("entity update_existing_verified should execute");
     assert_eq!(
@@ -172,14 +194,19 @@ fn primary_bridge_backed_entity_verification_family_executes_when_profile_and_ad
             .verification_read_set_breadth()
             .expect("verified update should retain read-set breadth")
             .counter_snapshot(),
-        "target_bindings=1;asserted_aspects=1;distinct_asserted_aspect_paths=1;cleared_assertions=0"
+        "target_bindings=1;asserted_aspects=1;distinct_asserted_aspect_touches=1;cleared_assertions=0"
     );
 
     let delete_receipt = workspace
         .delete_existing_verified(
             binding,
-            |task| task.aspect("title.value", "Seed title"),
-            |delete| delete.touch("title.value"),
+            |task| {
+                task.aspect(
+                    test_aspect_touch("title.value"),
+                    test_string_aspect_value("Seed title"),
+                )
+            },
+            |delete| delete.touch(test_aspect_touch("title.value")),
         )
         .expect("entity delete_existing_verified should execute");
     assert_eq!(
@@ -222,8 +249,12 @@ fn primary_bridge_backed_relation_verification_family_executes_when_profile_and_
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
         admitted_primary_profile("direct_relation_identity"),
         TestExistingTruthVerificationAdapter::default()
-            .with_value(&binding, "kind.value", json!("depends_on"))
-            .with_value(&binding, "status.value", json!("active")),
+            .with_value(
+                &binding,
+                "kind.value",
+                test_string_aspect_value("depends_on"),
+            )
+            .with_value(&binding, "status.value", test_string_aspect_value("active")),
     );
     let mut workspace = runtime
         .workspace("tasks.primary-bridge-backed-relation-verification")
@@ -237,21 +268,34 @@ fn primary_bridge_backed_relation_verification_family_executes_when_profile_and_
     );
 
     let probe = workspace
-        .probe_existing(binding.clone(), ["kind.value", "status.value"])
+        .probe_existing(
+            binding.clone(),
+            test_aspect_touches(["kind.value", "status.value"]),
+        )
         .expect("relation probe_existing should execute");
     assert_eq!(
         probe
-            .field("kind.value")
+            .field_for_touch(&test_aspect_touch("kind.value"))
             .expect("kind field should exist")
-            .external_value_json(),
-        "\"depends_on\""
+            .foundational_value(),
+        &test_string_aspect_value("depends_on")
     );
 
     let update_receipt = workspace
         .update_existing_verified(
             binding.clone(),
-            |relation| relation.aspect("status.value", "active"),
-            |relation| relation.aspect("status.value", "retired"),
+            |relation| {
+                relation.aspect(
+                    test_aspect_touch("status.value"),
+                    test_string_aspect_value("active"),
+                )
+            },
+            |relation| {
+                relation.aspect(
+                    test_aspect_touch("status.value"),
+                    test_string_aspect_value("retired"),
+                )
+            },
         )
         .expect("relation update_existing_verified should execute");
     assert_eq!(
@@ -265,14 +309,14 @@ fn primary_bridge_backed_relation_verification_family_executes_when_profile_and_
         .verified_assumption_set()
         .expect("relation update should retain assumption set");
     assert_eq!(
-        update_assumptions.asserted_aspect_paths(),
-        &["status.value".to_string()]
+        update_assumptions.asserted_aspects(),
+        test_aspect_touches(["status.value"]).as_slice()
     );
     assert_eq!(
         update_assumptions
             .verification_read_set_breadth()
             .counter_snapshot(),
-        "target_bindings=1;asserted_aspects=1;distinct_asserted_aspect_paths=1;cleared_assertions=0"
+        "target_bindings=1;asserted_aspects=1;distinct_asserted_aspect_touches=1;cleared_assertions=0"
     );
     assert_eq!(
         update_assumptions.verified_precondition_digest(),
@@ -308,8 +352,13 @@ fn primary_bridge_backed_relation_verification_family_executes_when_profile_and_
     let delete_receipt = workspace
         .delete_existing_verified(
             binding,
-            |relation| relation.aspect("kind.value", "depends_on"),
-            |delete| delete.touch("kind.value"),
+            |relation| {
+                relation.aspect(
+                    test_aspect_touch("kind.value"),
+                    test_string_aspect_value("depends_on"),
+                )
+            },
+            |delete| delete.touch(test_aspect_touch("kind.value")),
         )
         .expect("relation delete_existing_verified should execute");
     assert_eq!(

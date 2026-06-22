@@ -1,7 +1,5 @@
 use std::marker::PhantomData;
 
-use serde_json::Value;
-
 use super::super::{
     ForgeQueryAuthorityLane, ForgeQueryDerivedPatch, ForgeQueryRuntimeDeliveryBatch,
     ForgeQueryRuntimeLiveSubscriptionInstallation,
@@ -17,8 +15,11 @@ pub struct ForgeQueryPatchBatch {
     pub derived_patches: Vec<ForgeQueryDerivedPatch>,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct ForgeQueryNativeRow;
+
 #[derive(Debug, Eq, PartialEq)]
-pub struct ForgeQueryLiveView<T = Value> {
+pub struct ForgeQueryLiveView<T = ForgeQueryNativeRow> {
     pub(super) handle: ForgeQueryLiveViewHandle,
     pub(super) authority_lane: ForgeQueryAuthorityLane,
     pub(super) subscription_installation: ForgeQueryRuntimeLiveSubscriptionInstallation,

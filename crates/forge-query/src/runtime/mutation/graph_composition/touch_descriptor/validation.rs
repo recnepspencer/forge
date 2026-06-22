@@ -114,13 +114,14 @@ fn validate_program_command_collection(
     step: &crate::runtime::ForgeQueryGraphCompositionProgramStep,
     command: &ForgeQueryWriteCommand,
 ) -> Result<(), ForgeQueryGraphTouchDescriptorDenial> {
-    if let Some(collection) = command.declared_collection_ref() {
-        if collection != step.declared_collection() {
+    if let Some(collection) = command.declared_collection_identity() {
+        if collection.as_str() != step.declared_collection() {
             return Err(ForgeQueryGraphTouchDescriptorDenial::new(
                 ForgeQueryGraphTouchDescriptorDenialKind::ProgramCommandCollectionMismatch,
                 format!(
-                    "program collection `{}` does not match command collection `{collection}`",
-                    step.declared_collection()
+                    "program collection `{}` does not match command collection `{}`",
+                    step.declared_collection(),
+                    collection.as_str()
                 ),
             ));
         }

@@ -1,3 +1,4 @@
+use crate::authorized_projection::AuthorizedProjectionFieldPath;
 use crate::identity::hash_parts;
 use crate::policy_execution_seam::{
     PolicyAwareExecutionMode, PolicyAwareExecutionSeam, PolicyAwareExecutionSeamError,
@@ -70,17 +71,17 @@ impl PolicyAwareLivePlan {
 
 pub fn admit_policy_aware_live_plan(
     artifact: &NarrowedPolicyQueryArtifact,
-    requested_relevance_fields: &[String],
+    requested_relevance_fields: &[AuthorizedProjectionFieldPath],
     drift_disposition: PolicyDriftDisposition,
     density_posture: PolicyLiveDensityPosture,
 ) -> Result<PolicyAwareLivePlan, PolicyAwareExecutionSeamError> {
     let masked = artifact
         .authorized_projection()
         .masked_projection()
-        .masked_fields();
+        .masked_field_paths();
     if requested_relevance_fields
         .iter()
-        .any(|field| masked.contains(field))
+        .any(|requested| masked.iter().any(|masked| masked == requested))
     {
         return Err(PolicyAwareExecutionSeamError::new(
             PolicyAwareExecutionSeamFailureClass::RawLiveRelevanceForbidden,
@@ -97,23 +98,24 @@ pub fn admit_policy_aware_live_plan(
         ));
     }
 
-    let authorized_fields = requested_relevance_fields
+    let authorized_field_paths = requested_relevance_fields
         .iter()
-        .filter(|field| {
+        .filter_map(|field| {
             artifact
                 .authorized_projection()
-                .visible_fields()
-                .contains(*field)
+                .visible_field_paths()
+                .iter()
+                .find(|path| *path == field)
+                .cloned()
         })
-        .cloned()
         .collect::<Vec<_>>();
-    let relevance = PolicyAwareLiveRelevanceContract::new(authorized_fields);
+    let relevance = PolicyAwareLiveRelevanceContract::new(authorized_field_paths);
     let core = PolicyAwarePlanCore::from_narrowed_with_counter_adjustment(
         artifact,
         PolicyAwareExecutionMode::LiveSubscription,
         PolicyAwarePlanCostPosture::LiveSparseAuthorized,
-        artifact.authorized_projection().visible_fields().len(),
-        relevance.authorized_fields().len(),
+        artifact.authorized_projection().visible_field_paths().len(),
+        relevance.authorized_field_paths().len(),
         |mut counters| {
             if matches!(density_posture, PolicyLiveDensityPosture::BurstReadmission) {
                 counters = counters.record_policy_sparse_to_burst_readmission();

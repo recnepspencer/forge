@@ -1,5 +1,4 @@
 use forge_relational::facade::history::BranchId;
-use serde_json::json;
 
 use crate::basis_lifecycle::BasisFamily;
 use crate::effect_lifecycle::{
@@ -43,7 +42,13 @@ pub(super) fn batch_lane_denial_row() -> EffectLifecyclePhase4CertificationRow {
                     99,
                     0,
                 ),
-                desired_aspect_fields_external_json: json!({ "name": "mixed-authority" }),
+                desired_aspect_fields:
+                    crate::aspect_field_authoring::single_native_string_aspect_field_patch(
+                        "name",
+                        "name",
+                        "mixed-authority",
+                    )
+                    .expect("name patch should be native"),
             },
         })
         .push(RawEffectIntent::Writeback {
@@ -81,7 +86,13 @@ pub(super) fn preview_rebind_row() -> EffectLifecyclePhase4CertificationRow {
                 77,
                 0,
             ),
-            desired_aspect_fields_external_json: json!({ "name": "preview-rebind" }),
+            desired_aspect_fields:
+                crate::aspect_field_authoring::single_native_string_aspect_field_patch(
+                    "name",
+                    "name",
+                    "preview-rebind",
+                )
+                .expect("name patch should be native"),
         },
     };
     let normalized = normalize_raw_effect_intent(&basis, raw).expect("preview mutation normalizes");

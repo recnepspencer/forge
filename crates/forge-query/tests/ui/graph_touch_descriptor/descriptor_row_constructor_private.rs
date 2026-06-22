@@ -11,7 +11,7 @@ fn main() {
         declared_collection: None,
         declared_symbol: None,
         declared_aspect_operations: Vec::new(),
-        touched_aspect_paths: Vec::new(),
+        touched_aspects: Vec::new(),
         has_symbolic_target_reference: false,
         has_existing_truth_binding: false,
         symbolic_aspect_reference_count: 0,

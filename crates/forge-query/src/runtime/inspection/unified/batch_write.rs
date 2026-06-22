@@ -5,11 +5,12 @@ use super::ForgeQueryBatchWriteComponentInspection;
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::memory_workspace::ForgeQueryCommitIdentity;
 use crate::runtime::{
-    ForgeQueryAuthorityLane, ForgeQueryBatchMutationEvidence, ForgeQueryBatchWriteReceipt,
-    ForgeQueryGraphCompositionAssumptionSummary, ForgeQueryGraphCompositionBreadth,
-    ForgeQueryGraphCompositionEvidence, ForgeQueryGraphCompositionLifecycleOutcomes,
-    ForgeQueryGraphCompositionLineageSummary, ForgeQueryGraphCompositionProgram,
-    ForgeQueryGraphCompositionResolutionMap, ForgeQueryGraphObligationAttachmentEvidence,
+    ForgeQueryAspectTouch, ForgeQueryAuthorityLane, ForgeQueryBatchMutationEvidence,
+    ForgeQueryBatchWriteReceipt, ForgeQueryGraphCompositionAssumptionSummary,
+    ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionEvidence,
+    ForgeQueryGraphCompositionLifecycleOutcomes, ForgeQueryGraphCompositionLineageSummary,
+    ForgeQueryGraphCompositionProgram, ForgeQueryGraphCompositionResolutionMap,
+    ForgeQueryGraphObligationAttachmentEvidence,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -28,7 +29,7 @@ pub struct ForgeQueryBatchWriteReceiptInspection {
     commit_identities: Vec<ForgeQueryCommitIdentity>,
     journal_position_identities: Vec<ForgeQueryEvidenceIdentity>,
     component_operations: Vec<ForgeQueryBatchWriteComponentInspection>,
-    touched_aspect_paths: Vec<String>,
+    touched_aspects: Vec<ForgeQueryAspectTouch>,
     affected_live_view_ids: Vec<String>,
     affected_derived_view_ids: Vec<String>,
     inspection_identity: ForgeQueryEvidenceIdentity,
@@ -57,9 +58,9 @@ impl ForgeQueryBatchWriteReceiptInspection {
         let graph_composition_evidence = receipt.graph_composition_evidence();
         let graph_composition_resolution_map = receipt.graph_composition_resolution_map().clone();
         let graph_obligation_evidence = receipt.graph_obligation_evidence();
-        let touched_aspect_paths = receipt.touched_aspect_paths().to_vec();
-        let affected_live_view_ids = receipt.affected_live_view_ids().to_vec();
-        let affected_derived_view_ids = receipt.affected_derived_view_ids().to_vec();
+        let touched_aspects = receipt.admitted_touched_aspects().to_vec();
+        let affected_live_view_ids = receipt.terminal_affected_live_view_ids_projection();
+        let affected_derived_view_ids = receipt.terminal_affected_derived_view_ids_projection();
         let inspection_identity =
             build_batch_write_receipt_inspection_digest(ForgeQueryBatchWriteDigestInputs {
                 authority_lane: receipt.authority_lane().as_str(),
@@ -75,7 +76,7 @@ impl ForgeQueryBatchWriteReceiptInspection {
                 component_operations: &component_operations,
                 graph_composition_resolution_map: &graph_composition_resolution_map,
                 graph_obligation_evidence: graph_obligation_evidence.as_ref(),
-                touched_aspect_paths: &touched_aspect_paths,
+                touched_aspects: &touched_aspects,
                 affected_live_view_ids: &affected_live_view_ids,
                 affected_derived_view_ids: &affected_derived_view_ids,
             });
@@ -94,7 +95,7 @@ impl ForgeQueryBatchWriteReceiptInspection {
             commit_identities,
             journal_position_identities,
             component_operations,
-            touched_aspect_paths,
+            touched_aspects,
             affected_live_view_ids,
             affected_derived_view_ids,
             inspection_identity,
@@ -183,15 +184,15 @@ impl ForgeQueryBatchWriteReceiptInspection {
         &self.component_operations
     }
 
-    pub fn touched_aspect_paths(&self) -> &[String] {
-        &self.touched_aspect_paths
+    pub fn admitted_touched_aspects(&self) -> &[ForgeQueryAspectTouch] {
+        &self.touched_aspects
     }
 
-    pub fn affected_live_view_ids(&self) -> &[String] {
+    pub fn terminal_affected_live_view_ids_projection(&self) -> &[String] {
         &self.affected_live_view_ids
     }
 
-    pub fn affected_derived_view_ids(&self) -> &[String] {
+    pub fn terminal_affected_derived_view_ids_projection(&self) -> &[String] {
         &self.affected_derived_view_ids
     }
 

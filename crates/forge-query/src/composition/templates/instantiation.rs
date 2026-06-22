@@ -283,7 +283,11 @@ impl TemplateBindingValue {
                 format!("{}:{}", projection.aspect(), projection.field())
             }
             Self::Traversal(traversal) => {
-                format!("{}:{}", traversal.relation(), traversal.depth())
+                format!(
+                    "{}:{}",
+                    traversal.terminal_relation_projection_for_boundary(),
+                    traversal.depth()
+                )
             }
         }
     }

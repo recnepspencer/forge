@@ -133,7 +133,7 @@ fn symbolic_relation_retirement_descriptor() -> ForgeQueryGraphTouchDescriptor {
             .unwrap()
             .in_target_collection("topology.edge")
             .unwrap(),
-        touched_aspect_paths: vec!["weight".to_string()],
+        touched_aspects: vec![test_aspect_touch("weight")],
         metadata: ForgeQueryMutationMetadata::new(),
         naming_intent: None,
     };

@@ -2,6 +2,7 @@ use crate::memory_workspace::{
     ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQueryMutationDelta,
     ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQuerySnapshotIdentity,
 };
+use crate::runtime::ForgeQueryAspectTouch;
 use forge_runtime_bridge::facade::BridgeMutationAuthorityBundle;
 use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
@@ -11,16 +12,16 @@ pub(in crate::runtime::tests) fn test_mutation_receipt(
     collection: impl Into<String>,
     entity_identity: ForgeQueryEntityIdentity,
     kind: ForgeQueryMutationKind,
-    aspect_paths: Vec<String>,
+    aspect_touches: Vec<ForgeQueryAspectTouch>,
 ) -> ForgeQueryMutationReceipt {
     ForgeQueryMutationReceipt::from_authoritative_parts(
         commit_identity,
         snapshot_identity,
-        vec![ForgeQueryMutationDelta::new(
+        vec![ForgeQueryMutationDelta::from_touched_aspects(
             collection,
             entity_identity,
             kind,
-            aspect_paths,
+            aspect_touches,
         )],
     )
 }
@@ -31,17 +32,17 @@ pub(in crate::runtime::tests) fn test_mutation_receipt_with_bridge_authority(
     collection: impl Into<String>,
     entity_identity: ForgeQueryEntityIdentity,
     kind: ForgeQueryMutationKind,
-    aspect_paths: Vec<String>,
+    aspect_touches: Vec<ForgeQueryAspectTouch>,
     bridge_authority: BridgeMutationAuthorityBundle,
 ) -> ForgeQueryMutationReceipt {
     ForgeQueryMutationReceipt::from_bridge_authoritative_parts(
         commit_identity,
         snapshot_identity,
-        vec![ForgeQueryMutationDelta::new(
+        vec![ForgeQueryMutationDelta::from_touched_aspects(
             collection,
             entity_identity,
             kind,
-            aspect_paths,
+            aspect_touches,
         )],
         bridge_authority,
     )

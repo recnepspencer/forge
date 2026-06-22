@@ -170,12 +170,7 @@ fn mutation_input_identity(command: &ForgeQueryWriteCommand) -> ForgeQueryEviden
     let declared_entity_identity = command
         .declared_entity_identity_ref()
         .map(|identity| identity.evidence_identity());
-    let declared_collection_identity = command.declared_collection_ref().map(|collection| {
-        ForgeQueryMutationTargetCollectionIdentity::new(
-            "authoritative-mutation-seed-declared",
-            collection,
-        )
-    });
+    let declared_collection_identity = command.declared_collection_identity();
     let aspect_value_identity = command_declared_aspect_value_digest(command).map(|digest| {
         forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeMutationIntentSeed)
             .field_shape(ForgeQueryEvidenceTag::new("role"), "declared-aspect-values")
@@ -218,7 +213,11 @@ fn mutation_input_identity(command: &ForgeQueryWriteCommand) -> ForgeQueryEviden
                     .declared_aspect_operations()
                     .into_iter()
                     .map(|operation| {
-                        format!("{}:{}", operation.kind().as_str(), operation.aspect_path())
+                        format!(
+                            "{}:{}",
+                            operation.kind().as_str(),
+                            operation.aspect_touch().admitted_touch_digest_part()
+                        )
                     }),
             )
             .optional_evidence_identity(
@@ -275,7 +274,7 @@ fn symbolic_aspect_reference_identity(
         .field_shape(ForgeQueryEvidenceTag::new("role"), "symbolic-aspect")
         .field_value(
             ForgeQueryEvidenceTag::new("aspect_path"),
-            reference.aspect_path(),
+            reference.aspect_touch().admitted_touch_digest_part(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("family"),
@@ -297,6 +296,10 @@ fn mutation_target_label(command: &ForgeQueryWriteCommand) -> String {
                 .reporting_projection()
                 .to_string()
         })
-        .or_else(|| command.declared_collection_ref().map(str::to_string))
+        .or_else(|| {
+            command
+                .declared_collection_identity()
+                .map(|collection| collection.as_str().to_string())
+        })
         .unwrap_or_else(|| "unspecified-target".to_string())
 }

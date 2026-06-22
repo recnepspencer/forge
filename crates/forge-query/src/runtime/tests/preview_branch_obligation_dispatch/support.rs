@@ -1,7 +1,5 @@
 pub(super) use crate::runtime::tests::support::*;
 
-use serde_json::json;
-
 pub(super) fn runtime_with_obligation(
     label: &str,
     support_posture: ForgeQueryGraphObligationSupportPosture,
@@ -78,7 +76,7 @@ pub(super) fn plain_intent(name: &str) -> ForgeQueryIntentDeclaration {
         "strategy.intent.reconcile",
         "1.0",
         "intent.reconcile.input.v1",
-        json!({ "entity": "task-1" }),
+        test_intent_input([("entity", "task-1")]),
     )
 }
 
@@ -91,8 +89,16 @@ pub(super) fn task_insert_command(id: &str) -> ForgeQueryWriteCommand {
     ForgeQueryWriteCommand::InsertAspects {
         collection: "Task".to_string(),
         aspects: vec![
-            ForgeQueryAspectValue::new("identity.id", id).unwrap(),
-            ForgeQueryAspectValue::new("title.value", "Preview task").unwrap(),
+            ForgeQueryAspectValue::new(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value(id),
+            )
+            .unwrap(),
+            ForgeQueryAspectValue::new(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Preview task"),
+            )
+            .unwrap(),
         ],
         symbolic_aspect_references: Vec::new(),
         metadata: ForgeQueryMutationMetadata::new(),

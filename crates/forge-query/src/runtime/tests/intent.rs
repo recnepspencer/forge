@@ -19,20 +19,27 @@ fn strategy_intent_commit_routes_query_delivery_and_returns_canonical_receipt() 
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<Value>("tasks.intent", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.intent",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<Value>(
-            ForgeQueryDerivedView::new("computed.intent", ["title".to_string()])
+        .declare_maintained_derived_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new("computed.intent", test_aspect_touches(["title"]))
                 .depends_on_live(&live)
-                .produces(["title.summary".to_string()]),
+                .produces(test_aspect_touches(["title.summary"])),
             TitleListMaintainer,
         )
         .expect("computed should declare");
     let delivery_effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::deliver(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::deliver(
             "ui.intent",
-            ForgeQueryEffectTrigger::computed_view(&computed, ["title.summary"]),
+            ForgeQueryEffectTrigger::computed_view(
+                &computed,
+                test_aspect_touches(["title.summary"]),
+            ),
             "ui.intent",
         ))
         .expect("effect should declare");
@@ -43,10 +50,7 @@ fn strategy_intent_commit_routes_query_delivery_and_returns_canonical_receipt() 
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({
-                "entity": "task-1",
-                "title": "Intent committed title"
-            }),
+            test_intent_input([("entity", "task-1"), ("title", "Intent committed title")]),
         ))
         .expect("intent should execute");
 
@@ -65,10 +69,7 @@ fn strategy_intent_commit_routes_query_delivery_and_returns_canonical_receipt() 
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({
-                "entity": "task-1",
-                "title": "Intent committed title"
-            }),
+            test_intent_input([("entity", "task-1"), ("title", "Intent committed title"),]),
         )
         .input_digest()
     );
@@ -76,8 +77,14 @@ fn strategy_intent_commit_routes_query_delivery_and_returns_canonical_receipt() 
         receipt.target_lane(),
         ForgeQueryAuthorityLane::AuthoritativeTruth
     );
-    assert_eq!(receipt.affected_live_view_ids(), ["tasks.intent"]);
-    assert_eq!(receipt.affected_derived_view_ids(), ["computed.intent"]);
+    assert_eq!(
+        receipt.terminal_affected_live_view_ids_projection(),
+        ["tasks.intent"]
+    );
+    assert_eq!(
+        receipt.terminal_affected_derived_view_ids_projection(),
+        ["computed.intent"]
+    );
     assert_eq!(receipt.considered_computed_view_count(), 1);
     assert_eq!(receipt.considered_effect_count(), 1);
     assert_eq!(receipt.delivered_effect_count(), 1);
@@ -91,7 +98,13 @@ fn strategy_intent_commit_routes_query_delivery_and_returns_canonical_receipt() 
     assert!(!receipt.receipt_digest().is_empty());
     assert_eq!(receipt.invariant_evidence(), ["test-invariant-authority"]);
     assert_eq!(runtime.drain_patches(&live).query_delivery_batches.len(), 1);
-    assert_eq!(runtime.read_derived(&computed).len(), 1);
+    assert_eq!(
+        runtime
+            .read_derived_result(&computed)
+            .expect("computed materialization should execute")
+            .row_count(),
+        1
+    );
     assert_eq!(
         runtime
             .drain_effect_deliveries(&delivery_effect)
@@ -119,24 +132,30 @@ fn intent_receipt_inspection_explains_strategy_lanes_and_delivery_counters() {
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.intent-inspection",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<Value>(
-            ForgeQueryDerivedView::new("computed.intent-inspection", ["title".to_string()])
-                .depends_on_live(&live)
-                .produces(["title.summary".to_string()]),
+        .declare_maintained_derived_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new(
+                "computed.intent-inspection",
+                test_aspect_touches(["title"]),
+            )
+            .depends_on_live(&live)
+            .produces(test_aspect_touches(["title.summary"])),
             TitleListMaintainer,
         )
         .expect("computed should declare");
     runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::deliver(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::deliver(
             "ui.intent-inspection",
-            ForgeQueryEffectTrigger::computed_view(&computed, ["title.summary"]),
+            ForgeQueryEffectTrigger::computed_view(
+                &computed,
+                test_aspect_touches(["title.summary"]),
+            ),
             "ui.intent-inspection",
         ))
         .expect("effect should declare");
@@ -147,10 +166,7 @@ fn intent_receipt_inspection_explains_strategy_lanes_and_delivery_counters() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({
-                "entity": "task-1",
-                "title": "Intent committed title"
-            }),
+            test_intent_input([("entity", "task-1"), ("title", "Intent committed title")]),
         ))
         .expect("intent should execute");
     let inspection = runtime
@@ -214,20 +230,27 @@ fn idempotent_intent_noop_emits_receipt_without_mutation_or_signal_routing() {
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<Value>("tasks.noop-intent", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.noop-intent",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<Value>(
-            ForgeQueryDerivedView::new("computed.noop-intent", ["title".to_string()])
+        .declare_maintained_derived_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new("computed.noop-intent", test_aspect_touches(["title"]))
                 .depends_on_live(&live)
-                .produces(["title.summary".to_string()]),
+                .produces(test_aspect_touches(["title.summary"])),
             TitleListMaintainer,
         )
         .expect("computed should declare");
     let delivery_effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::deliver(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::deliver(
             "ui.noop-intent",
-            ForgeQueryEffectTrigger::computed_view(&computed, ["title.summary"]),
+            ForgeQueryEffectTrigger::computed_view(
+                &computed,
+                test_aspect_touches(["title.summary"]),
+            ),
             "ui.noop-intent",
         ))
         .expect("effect should declare");
@@ -238,10 +261,7 @@ fn idempotent_intent_noop_emits_receipt_without_mutation_or_signal_routing() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({
-                "entity": "task-1",
-                "title": "already committed"
-            }),
+            test_intent_input([("entity", "task-1"), ("title", "already committed")]),
         ))
         .expect("idempotent intent should still mint a receipt");
 
@@ -250,8 +270,12 @@ fn idempotent_intent_noop_emits_receipt_without_mutation_or_signal_routing() {
         ForgeQueryIntentExecutionKind::IdempotentNoop
     );
     assert!(receipt.is_idempotent_noop());
-    assert!(receipt.affected_live_view_ids().is_empty());
-    assert!(receipt.affected_derived_view_ids().is_empty());
+    assert!(receipt
+        .terminal_affected_live_view_ids_projection()
+        .is_empty());
+    assert!(receipt
+        .terminal_affected_derived_view_ids_projection()
+        .is_empty());
     assert_eq!(receipt.considered_computed_view_count(), 0);
     assert_eq!(receipt.considered_effect_count(), 0);
     assert_eq!(receipt.delivered_effect_count(), 0);
@@ -271,7 +295,13 @@ fn idempotent_intent_noop_emits_receipt_without_mutation_or_signal_routing() {
         "no-op intent must not route signal invalidation"
     );
     assert_eq!(runtime.drain_patches(&live).query_delivery_batches.len(), 0);
-    assert_eq!(runtime.read_derived(&computed).len(), 0);
+    assert_eq!(
+        runtime
+            .read_derived_result(&computed)
+            .expect("computed materialization should execute")
+            .row_count(),
+        0
+    );
     assert_eq!(
         runtime
             .drain_effect_deliveries(&delivery_effect)
@@ -305,7 +335,7 @@ fn idempotent_intent_inspection_preserves_outcome_without_mutation_claim() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task-1", "title": "already committed" }),
+            test_intent_input([("entity", "task-1"), ("title", "already committed")]),
         ))
         .expect("idempotent intent should execute");
     let inspection = runtime
@@ -350,7 +380,7 @@ fn mutating_intent_with_empty_delta_denies_before_signal_routing() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task-1" }),
+            test_intent_input([("entity", "task-1")]),
         ))
         .expect_err("empty mutating execution must use the no-op constructor");
 
@@ -406,7 +436,7 @@ fn invariant_denial_inspection_explains_failed_invariants_without_commit_identit
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task-1", "dependency": "cycle" }),
+            test_intent_input([("entity", "task-1"), ("dependency", "cycle")]),
         ))
         .expect_err("invariant violation must deny");
 
@@ -465,20 +495,27 @@ fn invariant_violation_intent_denies_with_evidence_without_partial_publication()
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<Value>("tasks.invariant-denial", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.invariant-denial",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<Value>(
-            ForgeQueryDerivedView::new("computed.invariant-denial", ["title".to_string()])
+        .declare_maintained_derived_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new("computed.invariant-denial", test_aspect_touches(["title"]))
                 .depends_on_live(&live)
-                .produces(["title.summary".to_string()]),
+                .produces(test_aspect_touches(["title.summary"])),
             TitleListMaintainer,
         )
         .expect("computed should declare");
     let delivery_effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::deliver(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::deliver(
             "ui.invariant-denial",
-            ForgeQueryEffectTrigger::computed_view(&computed, ["title.summary"]),
+            ForgeQueryEffectTrigger::computed_view(
+                &computed,
+                test_aspect_touches(["title.summary"]),
+            ),
             "ui.invariant-denial",
         ))
         .expect("effect should declare");
@@ -489,7 +526,7 @@ fn invariant_violation_intent_denies_with_evidence_without_partial_publication()
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task-1", "dependency": "cycle" }),
+            test_intent_input([("entity", "task-1"), ("dependency", "cycle")]),
         ))
         .expect_err("invariant violation must not mint an intent receipt");
 
@@ -528,7 +565,13 @@ fn invariant_violation_intent_denies_with_evidence_without_partial_publication()
         "invariant-denied intent must not route signal invalidation"
     );
     assert_eq!(runtime.drain_patches(&live).query_delivery_batches.len(), 0);
-    assert_eq!(runtime.read_derived(&computed).len(), 0);
+    assert_eq!(
+        runtime
+            .read_derived_result(&computed)
+            .expect("computed materialization should execute")
+            .row_count(),
+        0
+    );
     assert_eq!(
         runtime
             .drain_effect_deliveries(&delivery_effect)
@@ -600,7 +643,7 @@ fn intent_source_lanes_that_need_policy_deny_before_authority_execution() {
                     "strategy.intent.reconcile",
                     "1.0",
                     "intent.reconcile.input.v1",
-                    json!({ "entity": "task-1" }),
+                    test_intent_input([("entity", "task-1")]),
                 )
                 .with_source_lane(source_lane),
             )
@@ -657,7 +700,7 @@ fn intent_execution_strategy_drift_denies_before_signal_routing() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task-1" }),
+            test_intent_input([("entity", "task-1")]),
         ))
         .expect_err("strategy drift must not mint an intent receipt");
 
@@ -718,7 +761,7 @@ fn strategy_drift_denial_inspection_keeps_declared_and_returned_strategy_separat
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task-1" }),
+            test_intent_input([("entity", "task-1")]),
         ))
         .expect_err("strategy drift must deny");
 
@@ -768,22 +811,26 @@ fn effect_triggered_pending_write_intent_executes_through_intent_authority_once(
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<Value>("tasks.effect-intent", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.effect-intent",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.reconcile-title",
-            ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",
         ))
         .expect("write-intent effect should declare");
 
     let write = runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from write"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title from write",
+        ))
         .expect("write should route pending effect intent");
     assert_eq!(write.pending_write_intent_count(), 1);
     assert_eq!(
@@ -932,35 +979,45 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<Value>("tasks.deep-runtime", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.deep-runtime",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should install a subscription");
     let titles = runtime
-        .declare_maintained_derived_view::<Value>(
-            ForgeQueryDerivedView::new("computed.deep.titles", ["title".to_string()])
+        .declare_maintained_derived_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new("computed.deep.titles", test_aspect_touches(["title"]))
                 .depends_on_live(&live)
-                .produces(["title.summary".to_string()]),
+                .produces(test_aspect_touches(["title.summary"])),
             TitleListMaintainer,
         )
         .expect("source computed should declare");
     let readiness = runtime
-        .declare_maintained_derived_view::<Value>(
-            ForgeQueryDerivedView::new("computed.deep.readiness", ["title.summary".to_string()])
-                .depends_on_derived(&titles)
-                .produces(["validation.state".to_string()]),
+        .declare_maintained_derived_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new(
+                "computed.deep.readiness",
+                test_aspect_touches(["title.summary"]),
+            )
+            .depends_on_derived(&titles)
+            .produces(test_aspect_touches(["validation.state"])),
             SummaryMaintainer,
         )
         .expect("nested computed should declare");
     let effect = runtime
-        .declare_effect::<Value>(
+        .declare_effect::<ForgeQueryNativeRow>(
             ForgeQueryEffectDeclaration::write_intent(
                 "effects.deep.reconcile-readiness",
-                ForgeQueryEffectTrigger::computed_view(&readiness, ["validation.state"]),
+                ForgeQueryEffectTrigger::computed_view(
+                    &readiness,
+                    test_aspect_touches(["validation.state"]),
+                ),
                 "strategy.intent.reconcile",
             )
             .with_condition(ForgeQueryEffectCondition::expression(
                 "expr.validation.ready",
-                ["validation.state"],
-                ["intent.reconcile"],
+                test_aspect_touches(["validation.state"]),
+                test_aspect_touches(["intent.reconcile"]),
             )),
         )
         .expect("conditional write-intent effect should declare");
@@ -982,8 +1039,11 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("preview-deep-task")),
-                    ("title.value", json!("Preview-only deep task")),
+                    ("identity.id", test_string_aspect_value("preview-deep-task")),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Preview-only deep task"),
+                    ),
                 ],
             ))
             .expect("preview write should route only preview evidence");
@@ -1001,12 +1061,12 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
     assert!(preview_evidence.iter().any(|evidence| {
         evidence.kind() == ForgeQueryPreviewExecutionKind::ComputedPatch
             && evidence.handle_name() == "computed.deep.titles"
-            && evidence.aspect_paths() == ["title.summary"]
+            && evidence.aspect_touches() == test_aspect_touches(["title.summary"]).as_slice()
     }));
     assert!(preview_evidence.iter().any(|evidence| {
         evidence.kind() == ForgeQueryPreviewExecutionKind::ComputedPatch
             && evidence.handle_name() == "computed.deep.readiness"
-            && evidence.aspect_paths() == ["validation.state"]
+            && evidence.aspect_touches() == test_aspect_touches(["validation.state"]).as_slice()
     }));
     assert!(preview_evidence.iter().any(|evidence| {
         evidence.kind() == ForgeQueryPreviewExecutionKind::PendingWriteIntent
@@ -1020,7 +1080,13 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
         .drain_patches(&live)
         .query_delivery_batches
         .is_empty());
-    assert!(runtime.read_derived(&readiness).is_empty());
+    assert_eq!(
+        runtime
+            .read_derived_result(&readiness)
+            .expect("readiness materialization should execute")
+            .row_count(),
+        0
+    );
     assert!(runtime
         .drain_effect_deliveries(&effect)
         .expect("authoritative effect queue should exist")
@@ -1032,7 +1098,10 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "intent-task-1", "title": "Committed deep title" }),
+            test_intent_input([
+                ("entity", "intent-task-1"),
+                ("title", "Committed deep title"),
+            ]),
         ))
         .expect("authoritative intent should execute");
 
@@ -1040,9 +1109,12 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
         receipt.execution_kind(),
         ForgeQueryIntentExecutionKind::Mutating
     );
-    assert_eq!(receipt.affected_live_view_ids(), ["tasks.deep-runtime"]);
     assert_eq!(
-        receipt.affected_derived_view_ids(),
+        receipt.terminal_affected_live_view_ids_projection(),
+        ["tasks.deep-runtime"]
+    );
+    assert_eq!(
+        receipt.terminal_affected_derived_view_ids_projection(),
         ["computed.deep.readiness", "computed.deep.titles"]
     );
     assert_eq!(receipt.considered_computed_view_count(), 2);
@@ -1079,8 +1151,8 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
         &["computed.deep.titles".to_string()]
     );
     assert_eq!(
-        readiness_inspection.produced_aspects(),
-        &["validation.state".to_string()]
+        readiness_inspection.produced_aspect_touches(),
+        test_aspect_touches(["validation.state"]).as_slice()
     );
     assert_eq!(readiness_inspection.materialized_row_count(), 1);
     assert_eq!(readiness_inspection.pending_incremental_patch_count(), 1);
@@ -1167,7 +1239,7 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
                 "strategy.intent.reconcile",
                 "1.0",
                 "intent.reconcile.input.v1",
-                json!({ "entity": "intent-task-1", "title": "Branch-only title" }),
+                test_intent_input([("entity", "intent-task-1"), ("title", "Branch-only title")]),
             ))
             .expect("branch-local intent should stay branch-local")
     };
@@ -1206,26 +1278,26 @@ fn effect_triggered_idempotent_intent_noop_consumes_pending_work_without_feedbac
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.effect-noop-intent",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.noop-reconcile-title",
-            ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",
         ))
         .expect("write-intent effect should declare");
 
     let write = runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("already reconciled title"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "already reconciled title",
+        ))
         .expect("write should route pending effect intent");
     assert_eq!(write.pending_write_intent_count(), 1);
     assert_eq!(

@@ -2,6 +2,8 @@ use crate::consumer_kit::project_support_snapshot;
 
 use super::live_support_matrix;
 
+type TerminalSupportSnapshotDocumentJson = serde_json::Value;
+
 #[test]
 fn support_snapshot_export_is_deterministic_for_the_same_live_matrix() {
     let matrix = live_support_matrix();
@@ -42,9 +44,10 @@ fn support_snapshot_digest_includes_schema_identity() {
     let matrix = live_support_matrix();
     let snapshot = project_support_snapshot(&matrix);
     let document = snapshot.to_document();
-    let mut value = serde_json::to_value(&document).expect("document should serialize");
+    let mut value: TerminalSupportSnapshotDocumentJson =
+        serde_json::to_value(&document).expect("document should serialize");
 
-    value["schema_identity"] = serde_json::Value::String("fake-schema".to_string());
+    value["schema_identity"] = TerminalSupportSnapshotDocumentJson::String("fake-schema".into());
     let json = serde_json::to_string_pretty(&value).expect("mutated JSON should encode");
 
     let error = crate::consumer_kit::load_support_snapshot_document(

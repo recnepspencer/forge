@@ -182,7 +182,7 @@ impl ForgeQueryMutationBatchBuilder {
         self.commands
             .push(ForgeQueryWriteCommand::DeleteExistingAspects {
                 binding,
-                touched_aspect_paths: Vec::new(),
+                touched_aspects: Vec::new(),
                 metadata: ForgeQueryMutationMetadata::default(),
                 naming_intent: None,
             });
@@ -196,7 +196,7 @@ impl ForgeQueryMutationBatchBuilder {
         self.commands
             .push(ForgeQueryWriteCommand::DeleteSymbolicAspects {
                 reference,
-                touched_aspect_paths: Vec::new(),
+                touched_aspects: Vec::new(),
                 metadata: ForgeQueryMutationMetadata::default(),
                 naming_intent: None,
             });

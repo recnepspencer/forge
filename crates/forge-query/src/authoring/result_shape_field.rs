@@ -19,11 +19,15 @@ impl AuthoredResultShapeField {
         })
     }
 
-    pub fn source_aspect(&self) -> &str {
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        &self.source
+    }
+
+    pub(crate) fn source_aspect(&self) -> &str {
         self.source.aspect().as_str()
     }
 
-    pub fn source_field(&self) -> &str {
+    pub(crate) fn source_field(&self) -> &str {
         self.source.field().as_str()
     }
 

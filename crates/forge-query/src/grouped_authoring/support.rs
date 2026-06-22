@@ -1,4 +1,5 @@
 use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
+use crate::authoring::AspectFieldKey;
 
 use super::artifact::ForgeQueryGroupedDeclarationArtifact;
 use super::posture::ForgeQueryGroupedSharedPostureClaim;
@@ -161,17 +162,21 @@ fn claim_supported<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput
             .aspect_participation()
             .present_all()
             .iter()
-            .any(|value| value == "selection.active_face"),
+            .any(|value| aspect_field_key_matches(value, "selection", "active_face")),
         ForgeQueryGroupedSharedPostureClaim::SharedMaterialPreview => {
             declaration
                 .aspect_participation()
                 .present_all()
                 .iter()
-                .any(|value| value == "selection.material_preview")
+                .any(|value| aspect_field_key_matches(value, "selection", "material_preview"))
                 && declaration.grouping_intent().as_str() == "authoritative"
         }
         ForgeQueryGroupedSharedPostureClaim::SharedContinuity => {
             declaration.continuity_assumption().as_str() == "preserve_neighborhood"
         }
     }
+}
+
+fn aspect_field_key_matches(key: &AspectFieldKey, aspect: &str, field: &str) -> bool {
+    key.aspect().as_str() == aspect && key.field().as_str() == field
 }

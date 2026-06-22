@@ -1,23 +1,26 @@
 mod aspect;
 mod assertion;
+mod backend_admissible;
 mod batch;
 mod binding;
 mod continuity;
 mod delete;
+mod denied_aspect_touch;
 mod graph_composition;
 mod lowering;
 mod metadata;
 mod naming;
+mod native_intent;
+mod operation;
 mod probe;
+mod touch;
 
-pub use aspect::{
-    ForgeQueryAspectMutationBuilder, ForgeQueryAspectMutationOperation,
-    ForgeQueryAspectMutationOperationKind, ForgeQueryAspectValue,
-};
+pub use aspect::{ForgeQueryAspectMutationBuilder, ForgeQueryAspectValue};
 pub use assertion::{
     ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthAssertionDenialKind,
     ForgeQueryExistingTruthAssertionMode, ForgeQueryVerifiedExistingTruthAssertion,
 };
+pub use backend_admissible::ForgeQueryBackendAdmissibleMutation;
 pub use batch::ForgeQueryMutationBatchBuilder;
 pub use binding::{
     ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
@@ -89,17 +92,25 @@ pub(crate) use graph_composition::{
     GRAPH_COMPOSITION_TARGET_COMBINATION_FAMILIES,
 };
 pub(crate) use lowering::{
-    command_declared_aspect_operations, command_declared_aspect_paths,
+    command_declared_aspect_operations, command_declared_aspect_touches,
     command_declared_aspect_value_digest, command_declared_aspect_value_identity,
 };
-pub use metadata::ForgeQueryMutationMetadata;
+pub use metadata::{
+    ForgeQueryMutationMetadata, ForgeQueryMutationMetadataKey, ForgeQueryMutationMetadataValue,
+};
 pub(crate) use naming::admit_naming_intent;
 pub use naming::{
     ForgeQueryNamingMutationDenial, ForgeQueryNamingMutationDenialKind,
     ForgeQueryNamingMutationFamily, ForgeQueryNamingMutationIntent,
 };
+pub(crate) use native_intent::{
+    aspect_value_native_digest_text, ForgeQueryDesiredAspectValue, ForgeQueryParsedAspectTarget,
+    ForgeQueryParsedDesiredAspect,
+};
+pub use operation::{ForgeQueryAspectMutationOperation, ForgeQueryAspectMutationOperationKind};
 pub use probe::{
     ForgeQueryExistingTruthProbe, ForgeQueryExistingTruthProbeDenial,
     ForgeQueryExistingTruthProbeDenialKind, ForgeQueryExistingTruthProbeField,
     ForgeQueryExistingTruthProbeMode, ForgeQueryExistingTruthProbeRequest,
 };
+pub use touch::ForgeQueryAspectTouch;
