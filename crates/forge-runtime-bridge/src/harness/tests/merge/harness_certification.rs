@@ -5,7 +5,7 @@ use forge_harness::facade::{
 
 use crate::facade::{
     BridgeMergeConsumptionClass, BridgeMergeDenialClass, BridgeMergePrecedenceStage,
-    BridgeMergeStructuralAdvisoryDisposition, MergeHistoryDeclarationIdentity, TruthCommitIdentity,
+    BridgeMergeStructuralAdvisoryDisposition, MergeHistoryDeclarationIdentity,
 };
 use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessTargetId};
 use crate::harness::fixtures::BridgeHarnessFixture;
@@ -19,11 +19,11 @@ fn harness_fixture_registers_merge_declarations_into_runtime() {
     let fixture = ScenarioPlan::new(
         "bridge-merge-fixture-load",
         BridgeHarnessFixture::new(vec![registration()]).with_merge_declaration(merge_declaration(
-            MergeHistoryDeclarationIdentity::new("merge:fixture-load"),
+            MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:fixture-load"),
             BridgeMergeConsumptionClass::AspectReconciliationMerge,
             [
-                TruthCommitIdentity::new("parent-a"),
-                TruthCommitIdentity::new("parent-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
             ],
         )),
     )
@@ -50,11 +50,11 @@ fn harness_fixture_registers_merge_declarations_into_runtime() {
 #[test]
 fn merge_harness_certification_matrix_reports_candidate_profile_parity() {
     let declaration = merge_declaration(
-        MergeHistoryDeclarationIdentity::new("merge:certification"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:certification"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
         [
-            TruthCommitIdentity::new("parent-a"),
-            TruthCommitIdentity::new("parent-b"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
         ],
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);
@@ -79,11 +79,11 @@ fn merge_harness_certification_matrix_reports_candidate_profile_parity() {
 #[test]
 fn merge_harness_parity_proves_truth_is_invariant_across_diagnostics_tiers() {
     let declaration = merge_declaration(
-        MergeHistoryDeclarationIdentity::new("merge:diagnostics-parity"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:diagnostics-parity"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
         [
-            TruthCommitIdentity::new("parent-a"),
-            TruthCommitIdentity::new("parent-b"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
         ],
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);
@@ -110,11 +110,11 @@ fn merge_harness_parity_proves_truth_is_invariant_across_diagnostics_tiers() {
 #[test]
 fn merge_harness_replay_remains_parity_safe_across_candidate_profiles() {
     let declaration = merge_declaration(
-        MergeHistoryDeclarationIdentity::new("merge:replay-certification"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:replay-certification"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
         [
-            TruthCommitIdentity::new("parent-a"),
-            TruthCommitIdentity::new("parent-b"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
         ],
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);
@@ -138,11 +138,11 @@ fn merge_harness_replay_remains_parity_safe_across_candidate_profiles() {
 #[test]
 fn merge_harness_topology_rewire_lane_executes_terminal_export_without_json_proof() {
     let declaration = merge_declaration(
-        MergeHistoryDeclarationIdentity::new("merge:topology-certification"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:topology-certification"),
         BridgeMergeConsumptionClass::TopologyRewireMerge,
         [
-            TruthCommitIdentity::new("parent-a"),
-            TruthCommitIdentity::new("parent-b"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
         ],
     );
     let adapter = BridgeHarnessAdapter;
@@ -174,11 +174,11 @@ fn merge_harness_topology_rewire_lane_executes_terminal_export_without_json_proo
 #[test]
 fn merge_harness_denial_localizes_stage_without_reopening_continuity() {
     let declaration = merge_declaration(
-        MergeHistoryDeclarationIdentity::new("merge:causal-denial-certification"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:causal-denial-certification"),
         BridgeMergeConsumptionClass::PolicyResolvedConflictMerge,
         [
-            TruthCommitIdentity::new("parent-a"),
-            TruthCommitIdentity::new("parent-b"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
         ],
     )
     .with_causal_frontier(crate::facade::BridgeMergeCausalFrontierDisposition::Truncated)

@@ -57,7 +57,11 @@ fn runtime_read_family_receipt_retains_time_only_materialized_fact_posture() {
     let view: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
-    let expected_query_digest = view.subscription_installation().query_digest().to_string();
+    let expected_query_digest = view
+        .subscription_installation()
+        .query_projection()
+        .label()
+        .to_string();
 
     runtime
         .emit_time_only_delivery(
@@ -93,20 +97,31 @@ fn runtime_read_family_receipt_retains_time_only_materialized_fact_posture() {
         result.receipt().query_digest(),
         family.read_graph().query_digest()
     );
+    let expected_posture_basis = result
+        .receipt()
+        .snapshot_identity()
+        .evidence_identity()
+        .as_str()
+        .to_string();
     assert_eq!(
         posture.basis_digest(),
-        result.receipt().basis_digest(),
-        "time-only posture basis should match receipt basis"
+        expected_posture_basis,
+        "time-only posture basis should match receipt snapshot evidence"
     );
     assert_eq!(
         posture.kind(),
         ProjectionMaterializedFactPostureKind::TimeOnly
     );
     assert_eq!(posture.lower_declaration_digest(), expected_query_digest);
-    assert_eq!(posture.basis_digest(), result.receipt().basis_digest());
+    assert_eq!(posture.basis_digest(), expected_posture_basis);
     assert_eq!(
         posture.runtime_origin_digest(),
-        Some(view.subscription_installation().installation_digest())
+        Some(
+            view.subscription_installation()
+                .installation_projection()
+                .label()
+                .as_str()
+        )
     );
 }
 
@@ -116,7 +131,11 @@ fn runtime_read_family_receipt_retains_async_backed_materialized_fact_posture() 
     let view: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.async-table", task_live_request(), task_schema())
         .expect("live view should declare");
-    let expected_query_digest = view.subscription_installation().query_digest().to_string();
+    let expected_query_digest = view
+        .subscription_installation()
+        .query_projection()
+        .label()
+        .to_string();
     let (basis_digest, generation_digest) = live_subscription_async_identity(&runtime, view.name());
 
     runtime
@@ -155,20 +174,31 @@ fn runtime_read_family_receipt_retains_async_backed_materialized_fact_posture() 
         result.receipt().query_digest(),
         family.read_graph().query_digest()
     );
+    let expected_posture_basis = result
+        .receipt()
+        .snapshot_identity()
+        .evidence_identity()
+        .as_str()
+        .to_string();
     assert_eq!(
         posture.basis_digest(),
-        result.receipt().basis_digest(),
-        "async-backed posture basis should match receipt basis"
+        expected_posture_basis,
+        "async-backed posture basis should match receipt snapshot evidence"
     );
     assert_eq!(
         posture.kind(),
         ProjectionMaterializedFactPostureKind::AsyncBacked
     );
     assert_eq!(posture.lower_declaration_digest(), expected_query_digest);
-    assert_eq!(posture.basis_digest(), result.receipt().basis_digest());
+    assert_eq!(posture.basis_digest(), expected_posture_basis);
     assert_eq!(
         posture.runtime_origin_digest(),
-        Some(view.subscription_installation().installation_digest())
+        Some(
+            view.subscription_installation()
+                .installation_projection()
+                .label()
+                .as_str()
+        )
     );
     assert_eq!(
         workspace

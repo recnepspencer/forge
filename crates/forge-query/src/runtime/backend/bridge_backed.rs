@@ -4,9 +4,10 @@ use forge_runtime_bridge::facade::RuntimeBridge;
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::memory_workspace::{
     ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt,
-    ForgeQueryWorkspaceError,
+    ForgeQuerySnapshotIdentity, ForgeQueryWorkspaceError,
 };
 use crate::schema_view::QuerySchemaView;
+use crate::session_label::ForgeQuerySessionLabel;
 use crate::subscription::SubscriptionActivationInput;
 
 use crate::runtime::{
@@ -26,6 +27,7 @@ pub struct ForgeQueryBridgeBackedRuntimeBackend {
     runtime_bridge: RuntimeBridge,
     schema_adapter: Box<dyn super::ForgeQueryRuntimeSchemaAdapter>,
     source_adapter: Box<dyn super::ForgeQueryRuntimeSourceAdapter>,
+    snapshot_identity: Option<Box<dyn super::ForgeQueryRuntimeSnapshotIdentityAdapter>>,
     existing_truth_verification:
         Option<Box<dyn super::ForgeQueryRuntimeExistingTruthVerificationAdapter>>,
     write_authority: Box<dyn super::ForgeQueryRuntimeWriteAuthorityAdapter>,
@@ -57,6 +59,7 @@ impl ForgeQueryBridgeBackedRuntimeBackend {
             runtime_bridge: bootstrap.runtime_bridge,
             schema_adapter: bootstrap.schema_adapter,
             source_adapter: bootstrap.source_adapter,
+            snapshot_identity: bootstrap.snapshot_identity,
             existing_truth_verification: bootstrap.existing_truth_verification,
             write_authority: bootstrap.write_authority,
             signal_sink: bootstrap.signal_sink,
@@ -73,6 +76,13 @@ impl ForgeQueryBridgeBackedRuntimeBackend {
 impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
     fn support_profile(&self) -> ForgeQueryRuntimeSupportProfile {
         self.support_profile.clone()
+    }
+
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        match self.snapshot_identity.as_ref() {
+            Some(adapter) => adapter.current_snapshot_identity(),
+            None => super::contracts::unavailable_snapshot_identity(),
+        }
     }
 
     fn declare_live_view(
@@ -172,18 +182,7 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
                 "this runtime backend does not admit backend-verified existing-truth assertions yet",
             ));
         };
-        adapter.verify_existing_truth_assertion(binding, aspects)?;
-        ForgeQueryVerifiedExistingTruthAssertion::new(binding, aspects, &self.snapshot_token())
-            .map_err(|error| {
-                ForgeQueryExistingTruthAssertionDenial::new(
-                binding,
-                crate::runtime::ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
-                None,
-                None,
-                None,
-                error.to_string(),
-            )
-            })
+        adapter.verify_existing_truth_assertion(binding, aspects)
     }
 
     fn probe_existing_truth(
@@ -233,10 +232,6 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
         self.source_adapter.affected_live_view_ids(receipt)
     }
 
-    fn snapshot_token(&self) -> String {
-        self.source_adapter.snapshot_token()
-    }
-
     fn install_live_subscription(
         &mut self,
         view_name: &str,
@@ -253,7 +248,7 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
 
     fn admit_preview_basis(
         &self,
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
@@ -273,10 +268,9 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
     fn declaration_initialization_metadata(
         &self,
         view: &crate::program::ForgeQueryDerivedView,
-        snapshot_token: &str,
     ) -> Result<crate::runtime::ForgeQueryMutationMetadata, ForgeQueryWorkspaceError> {
         match self.declaration_initialization.as_ref() {
-            Some(adapter) => adapter.declaration_initialization_metadata(view, snapshot_token),
+            Some(adapter) => adapter.declaration_initialization_metadata(view),
             None => Ok(crate::runtime::ForgeQueryMutationMetadata::default()),
         }
     }

@@ -3,9 +3,12 @@ use crate::domain_capabilities::certification::reports::fixtures::{
     intent_declaration, lower_runtime_envelope, plan_support_requested,
     projection_contract_request, store_backed_replay_gap_request, success,
 };
+use crate::domain_capabilities::identity::{
+    compose_scaled_category_digest, compose_scaled_contribution_digest,
+    compose_scaled_support_digest, compose_scaled_trace_digest,
+};
 use crate::domain_capabilities::materialize_intent_admission_support_traceability_report;
 use crate::domain_capabilities::{forge_query_domain, ForgeQueryDomainCapabilityCategory};
-use crate::identity::hash_parts;
 use crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData;
 use crate::intent_admission::ForgeQueryIntentAdmissionCoveredEntrypoint;
 
@@ -105,7 +108,9 @@ fn scaled_evidence(scale: usize) -> ForgeQueryDomainCapabilityScaledEvidence {
             .for_intent(&declaration)
             .plans_preview_mutation(
                 format!("workflow.scale_{scale}"),
-                format!("preview-session:scale-{scale}"),
+                crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(format!(
+                    "preview-session:scale-{scale}"
+                )),
             )
             .because("scaled workflow evidence should remain canonical")
             .materialize()
@@ -130,7 +135,12 @@ fn scaled_evidence(scale: usize) -> ForgeQueryDomainCapabilityScaledEvidence {
             .because("scaled continuity evidence should remain canonical")
             .materialize()
             .expect("scaled continuity should materialize");
-        contribution_digests.push(continuity.continuity_resolution_digest().to_string());
+        contribution_digests.push(
+            continuity
+                .continuity_resolution_digest()
+                .as_str()
+                .to_string(),
+        );
     }
 
     if categories.contains(&ForgeQueryDomainCapabilityCategory::ConsequenceAftermath) {
@@ -156,7 +166,7 @@ fn scaled_evidence(scale: usize) -> ForgeQueryDomainCapabilityScaledEvidence {
             .because("scaled explanation evidence should remain canonical")
             .materialize_artifact()
             .expect("scaled explanation should materialize");
-        contribution_digests.push(explanation.artifact_digest().to_string());
+        contribution_digests.push(explanation.artifact_for_reporting().to_string());
     }
 
     if categories.contains(&ForgeQueryDomainCapabilityCategory::InvariantCapability) {
@@ -193,15 +203,10 @@ fn scaled_evidence(scale: usize) -> ForgeQueryDomainCapabilityScaledEvidence {
         trace_width,
         category_width: categories.len(),
         support_width,
-        contribution_digest: hash_parts(&contribution_digests),
-        trace_digest: hash_parts(&trace_digests),
-        category_digest: hash_parts(
-            &categories
-                .iter()
-                .map(|category| category.as_str().to_string())
-                .collect::<Vec<_>>(),
-        ),
-        support_digest: hash_parts(&support_digests),
+        contribution_digest: compose_scaled_contribution_digest(&contribution_digests),
+        trace_digest: compose_scaled_trace_digest(&trace_digests),
+        category_digest: compose_scaled_category_digest(&categories),
+        support_digest: compose_scaled_support_digest(&support_digests),
     }
 }
 

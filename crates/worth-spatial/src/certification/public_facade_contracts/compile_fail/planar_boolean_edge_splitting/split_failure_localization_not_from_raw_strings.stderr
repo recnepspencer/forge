@@ -1,0 +1,27 @@
+error[E0451]: fields `localization_identity`, `decision_identity`, `phase`, `kind`, `affected_artifact`, `affected_artifact_identity`, `source_edge_identity`, `carrier_identity`, `event_identities`, `event_group_identities` and `policy_or_denial_kind` of struct `PlanarBooleanSplitFailureLocalization` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_failure_localization_not_from_raw_strings.rs:8:9
+   |
+ 7 |     let _localization = PlanarBooleanSplitFailureLocalization {
+   |                         ------------------------------------- in this type
+ 8 |         localization_identity: "localization".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         decision_identity: "decision".to_string(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+10 |         phase: PlanarBooleanSplitDecisionPhase::PhaseStop,
+   |         ^^^^^ private field
+11 |         kind: PlanarBooleanSplitDecisionKind::SplitPhaseDenied,
+   |         ^^^^ private field
+12 |         affected_artifact: PlanarBooleanSplitAffectedArtifact::PhaseStop,
+   |         ^^^^^^^^^^^^^^^^^ private field
+13 |         affected_artifact_identity: "artifact".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         source_edge_identity: "source edge".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+15 |         carrier_identity: "carrier".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+16 |         event_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+17 |         event_group_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         policy_or_denial_kind: Some("denial".to_string()),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field

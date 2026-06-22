@@ -1,5 +1,8 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
+use super::super::identity::CausalInspectionOutcomeIdentity;
 use super::{
     CausalInspectionMaterializationPolicy, CausalInspectionPerformanceEnvelope,
     CausalInspectionRedactionPolicy,
@@ -7,82 +10,138 @@ use super::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalMaterializationReceipt {
-    query_admission_digest: String,
-    bridge_envelope_digest: Option<String>,
-    bridge_receipt_digest: Option<String>,
-    policy_digest: String,
-    performance_digest: String,
-    materialization_digest: String,
-    receipt_digest: String,
+    query_admission_identity: CausalInspectionOutcomeIdentity,
+    bridge_envelope_identity: Option<ForgeQueryEvidenceIdentity>,
+    bridge_receipt_identity: Option<ForgeQueryEvidenceIdentity>,
+    policy_identity: ForgeQueryEvidenceIdentity,
+    performance_identity: ForgeQueryEvidenceIdentity,
+    materialization_identity: ForgeQueryEvidenceIdentity,
+    receipt_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl CausalMaterializationReceipt {
     pub(super) fn new(
-        query_admission_digest: &str,
-        bridge_envelope_digest: Option<&str>,
-        bridge_receipt_digest: Option<&str>,
+        query_admission_identity: &CausalInspectionOutcomeIdentity,
+        bridge_envelope_identity: Option<&ForgeQueryEvidenceIdentity>,
+        bridge_receipt_identity: Option<&ForgeQueryEvidenceIdentity>,
         redaction_policy: CausalInspectionRedactionPolicy,
         materialization_policy: CausalInspectionMaterializationPolicy,
         performance: &CausalInspectionPerformanceEnvelope,
-        detail_digest: &str,
+        detail_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
-        let policy_digest = hash_parts(&[
-            "causal_inspection_materialization_policy_v1".to_string(),
-            format!("redaction:{}", redaction_policy.as_str()),
-            format!("materialization:{}", materialization_policy.as_str()),
-        ]);
-        let materialization_digest = hash_parts(&[
-            "causal_inspection_materialization_v1".to_string(),
-            format!("query-admission:{query_admission_digest}"),
-            format!(
-                "bridge-envelope:{}",
-                bridge_envelope_digest.unwrap_or("none")
-            ),
-            format!("bridge-receipt:{}", bridge_receipt_digest.unwrap_or("none")),
-            format!("policy:{policy_digest}"),
-            format!("performance:{}", performance.performance_digest()),
-            format!("detail:{detail_digest}"),
-        ]);
-        let receipt_digest = hash_parts(&[
-            "causal_materialization_receipt_v1".to_string(),
-            materialization_digest.clone(),
-        ]);
+        let policy_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalInspectionArtifact)
+                .field_shape(ForgeQueryEvidenceTag::new("role"), "materialization-policy")
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("redaction"),
+                    redaction_policy.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("materialization"),
+                    materialization_policy.as_str(),
+                )
+                .seal();
+        let materialization_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalInspectionArtifact)
+                .field_shape(ForgeQueryEvidenceTag::new("role"), "materialization")
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("query_admission"),
+                    query_admission_identity.evidence_identity(),
+                )
+                .optional_evidence_identity(
+                    ForgeQueryEvidenceTag::new("bridge_envelope"),
+                    bridge_envelope_identity,
+                )
+                .optional_evidence_identity(
+                    ForgeQueryEvidenceTag::new("bridge_receipt"),
+                    bridge_receipt_identity,
+                )
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("policy"), &policy_identity)
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("performance"),
+                    performance.performance_identity(),
+                )
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("detail"), detail_identity)
+                .seal();
+        let receipt_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalInspectionArtifact)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "materialization-receipt",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("materialization"),
+                    &materialization_identity,
+                )
+                .seal();
         Self {
-            query_admission_digest: query_admission_digest.to_string(),
-            bridge_envelope_digest: bridge_envelope_digest.map(str::to_string),
-            bridge_receipt_digest: bridge_receipt_digest.map(str::to_string),
-            policy_digest,
-            performance_digest: performance.performance_digest().to_string(),
-            materialization_digest,
-            receipt_digest,
+            query_admission_identity: query_admission_identity.clone(),
+            bridge_envelope_identity: bridge_envelope_identity.cloned(),
+            bridge_receipt_identity: bridge_receipt_identity.cloned(),
+            policy_identity,
+            performance_identity: performance.performance_identity().clone(),
+            materialization_identity,
+            receipt_identity,
         }
     }
 
-    pub fn query_admission_digest(&self) -> &str {
-        &self.query_admission_digest
+    pub fn query_admission_for_reporting(&self) -> &str {
+        self.query_admission_identity.as_str()
     }
 
-    pub fn bridge_envelope_digest(&self) -> Option<&str> {
-        self.bridge_envelope_digest.as_deref()
+    pub fn query_admission_identity(&self) -> &CausalInspectionOutcomeIdentity {
+        &self.query_admission_identity
     }
 
-    pub fn bridge_receipt_digest(&self) -> Option<&str> {
-        self.bridge_receipt_digest.as_deref()
+    pub fn bridge_envelope_for_reporting(&self) -> Option<&str> {
+        self.bridge_envelope_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
     }
 
-    pub fn policy_digest(&self) -> &str {
-        &self.policy_digest
+    pub fn bridge_envelope_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.bridge_envelope_identity.as_ref()
     }
 
-    pub fn performance_digest(&self) -> &str {
-        &self.performance_digest
+    pub fn bridge_receipt_for_reporting(&self) -> Option<&str> {
+        self.bridge_receipt_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
     }
 
-    pub fn materialization_digest(&self) -> &str {
-        &self.materialization_digest
+    pub fn bridge_receipt_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.bridge_receipt_identity.as_ref()
     }
 
-    pub fn receipt_digest(&self) -> &str {
-        &self.receipt_digest
+    pub fn policy_for_reporting(&self) -> &str {
+        self.policy_identity.as_str()
+    }
+
+    pub fn policy_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.policy_identity
+    }
+
+    pub fn performance_for_reporting(&self) -> &str {
+        self.performance_identity.as_str()
+    }
+
+    pub fn performance_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.performance_identity
+    }
+
+    pub fn materialization_for_reporting(&self) -> &str {
+        self.materialization_identity.as_str()
+    }
+
+    pub fn materialization_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.materialization_identity
+    }
+
+    pub fn receipt_for_reporting(&self) -> &str {
+        self.receipt_identity.as_str()
+    }
+
+    pub(super) fn receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.receipt_identity
     }
 }

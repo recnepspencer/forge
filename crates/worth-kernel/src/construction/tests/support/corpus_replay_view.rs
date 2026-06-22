@@ -9,7 +9,6 @@ use worth_geom::facade::{
     PrimitiveSupportNormalClass,
 };
 
-use crate::construction::digest::digest_owned_parts;
 use crate::construction::outcome::{
     PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
 };
@@ -23,6 +22,7 @@ use crate::construction::tests::support::corpus_replay_generation::prepare_primi
 use crate::construction::tests::support::corpus_replay_row::{
     PrimitiveConstructionCorpusParameterRole, PrimitiveConstructionCorpusReplaySiegeRow,
 };
+use crate::construction::tests::support::evidence_reports::sealed_report_identity;
 use crate::construction::tests::support::runtime_truth::PrimitiveConstructionCertificationRuntimeTruth;
 
 use super::corpus_replay_digest::{
@@ -177,17 +177,29 @@ impl PrimitiveConstructionCorpusReplaySiegeView {
     }
 
     pub(crate) fn report_digest(&self) -> String {
-        let mut parts = self.canonical_row_digests.clone();
-        parts.push(format!("accepted-count:{}", self.accepted_count()));
-        parts.push(format!("rejected-count:{}", self.rejected_count()));
-        parts.extend(self.authoring_order_lanes.iter().flat_map(|lane| {
-            [
-                lane_name(lane).to_string(),
-                lane_digest_of(lane).to_string(),
-                normalized_matrix_digest_of(lane).to_string(),
-            ]
-        }));
-        digest_owned_parts(&parts)
+        sealed_report_identity(
+            "worth-kernel.construction.corpus-replay",
+            "corpus-replay-siege",
+            |report| {
+                report
+                    .value_sequence_participating(
+                        "canonical-row-identities",
+                        self.canonical_row_digests.clone(),
+                    )?
+                    .usize_participating("accepted-count", self.accepted_count())?
+                    .usize_participating("rejected-count", self.rejected_count())?
+                    .value_sequence_participating(
+                        "authoring-order-lanes",
+                        self.authoring_order_lanes.iter().flat_map(|lane| {
+                            [
+                                lane_name(lane).to_string(),
+                                lane_digest_of(lane).to_string(),
+                                normalized_matrix_digest_of(lane).to_string(),
+                            ]
+                        }),
+                    )
+            },
+        )
     }
 }
 

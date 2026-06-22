@@ -1,7 +1,7 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
 use super::super::error::TopologyReadError;
-use super::super::request::TopologyReadRequest;
+use super::super::request::{TopologyReadAnchorIdentity, TopologyReadRequest};
 use super::super::TopologyReadLedger;
 use crate::projection::read_views::{
     TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
@@ -18,21 +18,22 @@ impl TopologyReadLedger {
         &self,
         workspace: &mut ForgeQueryWorkspace,
         execution_target: &TopologyReadExecutionTarget,
-        source_identity: &str,
+        source_identity: &TopologyReadAnchorIdentity,
     ) -> Result<TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyReadError> {
+        let source_identity_value = source_identity.as_str();
         let request = TopologyReadRequest::HalfEdgeSharedVertexNeighborhood {
-            source_half_edge_identity: source_identity.to_string(),
+            source_half_edge_identity: source_identity.clone(),
         };
         let executed = self.execute_shared_vertex_read(
             workspace,
             execution_target,
             &request,
-            source_identity,
+            source_identity_value,
         )?;
         let request_report = self.record_report(executed.report);
         let decoded = decode_shared_vertex_neighborhood(
             executed.result.rows(),
-            source_identity,
+            source_identity_value,
             &uses_edge_relation_name(),
             &[
                 starts_at_vertex_relation_name(),
@@ -42,7 +43,7 @@ impl TopologyReadLedger {
         )?;
         Ok(TopologyHalfEdgeSharedVertexNeighborhoodView {
             request_report,
-            source_half_edge_identity: source_identity.to_string(),
+            source_half_edge_identity: source_identity_value.to_string(),
             source_edge_identity: decoded.source_edge_identity,
             source_vertex_identities: decoded.source_vertex_identities,
             vertex_adjacent_half_edge_identities: decoded.vertex_adjacent_half_edge_identities,
@@ -57,24 +58,25 @@ impl TopologyReadLedger {
         &self,
         workspace: &mut ForgeQueryWorkspace,
         execution_target: &TopologyReadExecutionTarget,
-        source_identity: &str,
+        source_identity: &TopologyReadAnchorIdentity,
     ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyReadError> {
+        let source_identity_value = source_identity.as_str();
         let request = TopologyReadRequest::HalfEdgeRadialNeighborhood {
-            source_half_edge_identity: source_identity.to_string(),
+            source_half_edge_identity: source_identity.clone(),
         };
         let executed =
-            self.execute_radial_read(workspace, execution_target, &request, source_identity)?;
+            self.execute_radial_read(workspace, execution_target, &request, source_identity_value)?;
         let request_report = self.record_report(executed.report);
         let decoded = decode_radial_neighborhood(
             executed.result.rows(),
-            source_identity,
+            source_identity_value,
             &uses_edge_relation_name(),
             &radial_next_relation_name(),
             "radial neighborhood",
         )?;
         Ok(TopologyHalfEdgeRadialNeighborhoodView {
             request_report,
-            source_half_edge_identity: source_identity.to_string(),
+            source_half_edge_identity: source_identity_value.to_string(),
             source_edge_identity: decoded.source_edge_identity,
             current_target_half_edge_identity: decoded.current_target_half_edge_identity,
             current_target_edge_identity: decoded.current_target_edge_identity,

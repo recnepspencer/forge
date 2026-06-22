@@ -1,0 +1,25 @@
+error[E0451]: fields `row_identity`, `source_edge_identity`, `artifact_kind`, `artifact_identity`, `persistent_name_identity`, `identity_evolution_query_digest`, `identity_evolution_result_digest`, `identity_evolution_lineage_digest`, `event_cause_identities` and `subshape_signature_identity` of struct `PlanarBooleanSplitPersistentNameRow` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_persistent_name_row_not_forgeable.rs:7:9
+   |
+ 6 |     let _ = PlanarBooleanSplitPersistentNameRow {
+   |             ----------------------------------- in this type
+ 7 |         row_identity: "forged".to_string(),
+   |         ^^^^^^^^^^^^ private field
+ 8 |         source_edge_identity: "source".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         artifact_kind: PlanarBooleanSplitNamedArtifactKind::SplitFragment,
+   |         ^^^^^^^^^^^^^ private field
+10 |         artifact_identity: "fragment".to_string(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+11 |         persistent_name_identity: "name".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         identity_evolution_query_digest: "query".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         identity_evolution_result_digest: "result".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         identity_evolution_lineage_digest: "lineage".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         event_cause_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         subshape_signature_identity: "signature".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::runtime::{
     ForgeQueryGraphCompositionAdmissionTrace, ForgeQueryGraphCompositionAdmissionTraceStage,
     ForgeQueryRuntimeError,
@@ -76,17 +78,26 @@ impl ForgeQueryGraphCompositionDenial {
     ) -> Self {
         let message = message.into();
         let admission_trace = default_admission_trace(kind);
-        let denial_digest = hash_parts(&[
-            "forge_query_graph_composition_denial_v1".to_string(),
-            format!("kind:{kind}"),
-            format!("symbol:{}", symbol.as_deref().unwrap_or("")),
-            format!(
-                "target_collection:{}",
-                target_collection.as_deref().unwrap_or("")
-            ),
-            format!("trace:{}", admission_trace.admission_trace_digest()),
-            format!("message:{message}"),
-        ]);
+        let denial_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "graph-composition-denial",
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .optional_value(ForgeQueryEvidenceTag::new("symbol"), symbol.as_deref())
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("target_collection"),
+                    target_collection.as_deref(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("trace"),
+                    admission_trace.admission_trace_digest(),
+                )
+                .field_value(ForgeQueryEvidenceTag::new("message"), &message)
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             kind,
             symbol,

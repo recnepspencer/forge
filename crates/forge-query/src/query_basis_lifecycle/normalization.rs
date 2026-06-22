@@ -1,126 +1,12 @@
-use crate::identity::hash_parts;
-
+use super::identity::basis_lifecycle_digest;
 use super::intent::{
     BasisOperationLaneRequest, RawBasisIntent, RawBasisSelector, RawBasisSourcePath,
     RawFutureBasisNeighborFamily,
 };
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum NormalizedBasisFamily {
-    CurrentHead,
-    BranchHead,
-    BranchSnapshot,
-    RuntimeSnapshot,
-    HistoricalSnapshot,
-    HistoricalCommit,
-    Preview,
-    PreviewDerivedHistorical,
-}
-
-impl NormalizedBasisFamily {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::CurrentHead => "current_head",
-            Self::BranchHead => "branch_head",
-            Self::BranchSnapshot => "branch_snapshot",
-            Self::RuntimeSnapshot => "runtime_snapshot",
-            Self::HistoricalSnapshot => "historical_snapshot",
-            Self::HistoricalCommit => "historical_commit",
-            Self::Preview => "preview",
-            Self::PreviewDerivedHistorical => "preview_derived_historical",
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum BasisAuthorityPosture {
-    RuntimeBackedCurrentHead,
-    RuntimeBackedBranch,
-    RuntimeBackedHistorical,
-    PreviewScoped,
-}
-
-impl BasisAuthorityPosture {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::RuntimeBackedCurrentHead => "runtime_backed_current_head",
-            Self::RuntimeBackedBranch => "runtime_backed_branch",
-            Self::RuntimeBackedHistorical => "runtime_backed_historical",
-            Self::PreviewScoped => "preview_scoped",
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum BasisTenantSchemaPosture {
-    Unscoped,
-    TenantScoped,
-    PolicyScoped,
-    SchemaScoped,
-    TenantAndPolicyScoped,
-    TenantAndSchemaScoped,
-    PolicyAndSchemaScoped,
-    TenantPolicyAndSchemaScoped,
-}
-
-impl BasisTenantSchemaPosture {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Unscoped => "unscoped",
-            Self::TenantScoped => "tenant_scoped",
-            Self::PolicyScoped => "policy_scoped",
-            Self::SchemaScoped => "schema_scoped",
-            Self::TenantAndPolicyScoped => "tenant_and_policy_scoped",
-            Self::TenantAndSchemaScoped => "tenant_and_schema_scoped",
-            Self::PolicyAndSchemaScoped => "policy_and_schema_scoped",
-            Self::TenantPolicyAndSchemaScoped => "tenant_policy_and_schema_scoped",
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BasisNormalizationCounters {
-    raw_intent_width: usize,
-    normalized_family_count: usize,
-    source_path_count: usize,
-    rejection_width: usize,
-}
-
-impl BasisNormalizationCounters {
-    pub fn raw_intent_width(&self) -> usize {
-        self.raw_intent_width
-    }
-
-    pub fn normalized_family_count(&self) -> usize {
-        self.normalized_family_count
-    }
-
-    pub fn source_path_count(&self) -> usize {
-        self.source_path_count
-    }
-
-    pub fn rejection_width(&self) -> usize {
-        self.rejection_width
-    }
-
-    fn admitted() -> Self {
-        Self {
-            raw_intent_width: 1,
-            normalized_family_count: 1,
-            source_path_count: 1,
-            rejection_width: 0,
-        }
-    }
-
-    fn denied() -> Self {
-        Self {
-            raw_intent_width: 1,
-            normalized_family_count: 0,
-            source_path_count: 1,
-            rejection_width: 1,
-        }
-    }
-}
+use super::{
+    BasisAuthorityPosture, BasisNormalizationCounters, BasisTenantSchemaPosture,
+    NormalizedBasisFamily, NormalizedBasisSubject,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BasisIntentDenialKind {
@@ -185,6 +71,7 @@ pub struct NormalizedBasisIntent {
     schema_scope: Option<String>,
     tenant_schema_posture: BasisTenantSchemaPosture,
     source_path: RawBasisSourcePath,
+    normalized_subject: NormalizedBasisSubject,
     normalized_label: String,
     counters: BasisNormalizationCounters,
 }
@@ -228,6 +115,10 @@ impl NormalizedBasisIntent {
 
     pub fn source_path(&self) -> &RawBasisSourcePath {
         &self.source_path
+    }
+
+    pub fn normalized_subject(&self) -> &NormalizedBasisSubject {
+        &self.normalized_subject
     }
 
     pub fn normalized_label(&self) -> &str {
@@ -279,16 +170,18 @@ pub fn normalize_raw_basis(
         (Some(_), Some(_), Some(_)) => BasisTenantSchemaPosture::TenantPolicyAndSchemaScoped,
     };
 
-    let (family, authority_posture, normalized_label) = match intent.selector() {
+    let (family, authority_posture, normalized_subject) = match intent.selector() {
         RawBasisSelector::CurrentHead => (
             NormalizedBasisFamily::CurrentHead,
             BasisAuthorityPosture::RuntimeBackedCurrentHead,
-            "current_head".to_string(),
+            NormalizedBasisSubject::CurrentHead,
         ),
         RawBasisSelector::BranchHead { branch_identity } => (
             NormalizedBasisFamily::BranchHead,
             BasisAuthorityPosture::RuntimeBackedBranch,
-            branch_identity.trim().to_string(),
+            NormalizedBasisSubject::BranchHead {
+                branch_identity: branch_identity.clone(),
+            },
         ),
         RawBasisSelector::BranchSnapshot {
             branch_identity,
@@ -296,52 +189,84 @@ pub fn normalize_raw_basis(
         } => (
             NormalizedBasisFamily::BranchSnapshot,
             BasisAuthorityPosture::RuntimeBackedBranch,
-            format!("{}@{}", branch_identity.trim(), snapshot_identity.trim()),
+            NormalizedBasisSubject::BranchSnapshot {
+                branch_identity: branch_identity.clone(),
+                snapshot_identity: snapshot_identity.clone(),
+            },
         ),
         RawBasisSelector::RuntimeSnapshot { snapshot_identity } => (
             NormalizedBasisFamily::RuntimeSnapshot,
             BasisAuthorityPosture::RuntimeBackedBranch,
-            snapshot_identity.trim().to_string(),
+            NormalizedBasisSubject::RuntimeSnapshot {
+                snapshot_identity: snapshot_identity.clone(),
+            },
         ),
         RawBasisSelector::HistoricalSnapshot { snapshot_identity } => (
             NormalizedBasisFamily::HistoricalSnapshot,
             BasisAuthorityPosture::RuntimeBackedHistorical,
-            snapshot_identity.trim().to_string(),
+            NormalizedBasisSubject::HistoricalSnapshot {
+                snapshot_identity: snapshot_identity.clone(),
+            },
         ),
         RawBasisSelector::HistoricalCommit { commit_identity } => (
             NormalizedBasisFamily::HistoricalCommit,
             BasisAuthorityPosture::RuntimeBackedHistorical,
-            commit_identity.trim().to_string(),
+            NormalizedBasisSubject::HistoricalCommit {
+                commit_identity: commit_identity.clone(),
+            },
         ),
         RawBasisSelector::Preview { preview_identity } => (
             NormalizedBasisFamily::Preview,
             BasisAuthorityPosture::PreviewScoped,
-            preview_identity.trim().to_string(),
+            NormalizedBasisSubject::Preview {
+                preview_identity: preview_identity.clone(),
+            },
         ),
         RawBasisSelector::PreviewDerivedHistorical { preview_identity } => (
             NormalizedBasisFamily::PreviewDerivedHistorical,
             BasisAuthorityPosture::PreviewScoped,
-            preview_identity.trim().to_string(),
+            NormalizedBasisSubject::PreviewDerivedHistorical {
+                preview_identity: preview_identity.clone(),
+            },
         ),
         RawBasisSelector::FutureNeighbor { family } => {
             return Err(unsupported_future_neighbor_denial(&intent, family.clone()));
         }
     };
+    let normalized_label = normalized_subject.projection_label();
 
     if normalized_label.is_empty() {
         return Err(malformed_identifier_denial(&intent, "basis_identifier"));
     }
 
-    let canonical_digest = hash_parts(&[
-        format!("family:{}", family.as_str()),
-        format!("authority:{}", authority_posture.as_str()),
-        format!("operation_lane:{}", intent.operation_lane().as_str()),
-        format!("tenant_scope:{}", intent.tenant_scope().unwrap_or("-")),
-        format!("policy_scope:{}", intent.policy_scope().unwrap_or("-")),
-        format!("schema_scope:{}", intent.schema_scope().unwrap_or("-")),
-        format!("tenant_schema_posture:{}", tenant_schema_posture.as_str()),
-        format!("normalized_label:{normalized_label}"),
-    ]);
+    let canonical_digest = basis_lifecycle_digest(
+        "normalized_basis_intent_v1",
+        [
+            ("family", family.as_str().to_string()),
+            ("authority", authority_posture.as_str().to_string()),
+            (
+                "operation_lane",
+                intent.operation_lane().as_str().to_string(),
+            ),
+            (
+                "tenant_scope",
+                intent.tenant_scope().unwrap_or("-").to_string(),
+            ),
+            (
+                "policy_scope",
+                intent.policy_scope().unwrap_or("-").to_string(),
+            ),
+            (
+                "schema_scope",
+                intent.schema_scope().unwrap_or("-").to_string(),
+            ),
+            (
+                "tenant_schema_posture",
+                tenant_schema_posture.as_str().to_string(),
+            ),
+            ("normalized_label", normalized_label.to_string()),
+        ],
+    );
 
     Ok(NormalizedBasisIntent {
         raw_basis_intent_digest: intent.raw_digest().to_string(),
@@ -354,6 +279,7 @@ pub fn normalize_raw_basis(
         schema_scope: intent.schema_scope().map(str::to_string),
         tenant_schema_posture,
         source_path: *intent.source_path(),
+        normalized_subject,
         normalized_label,
         counters: BasisNormalizationCounters::admitted(),
     })
@@ -372,11 +298,20 @@ pub(crate) fn unsupported_compatibility_family_denial(
         operation_lane,
         kind: BasisIntentDenialKind::UnsupportedCompatibilityFamily { family, owner },
         counters: BasisNormalizationCounters::denied(),
-        failure_digest: hash_parts(&[
-            format!("raw_basis_intent_digest:{raw_basis_intent_digest}"),
-            format!("failure:unsupported_compatibility_family:{family}"),
-            format!("owner:{owner}"),
-        ]),
+        failure_digest: basis_lifecycle_digest(
+            "basis_unsupported_compatibility_family_v1",
+            [
+                (
+                    "raw_basis_intent_digest",
+                    raw_basis_intent_digest.to_string(),
+                ),
+                (
+                    "failure",
+                    format!("unsupported_compatibility_family:{family}"),
+                ),
+                ("owner", owner.to_string()),
+            ],
+        ),
     }
 }
 
@@ -394,11 +329,14 @@ fn validate_optional_scope(
             operation_lane: operation_lane.clone(),
             kind: BasisIntentDenialKind::MalformedIdentifier { field },
             counters: BasisNormalizationCounters::denied(),
-            failure_digest: hash_parts(&[
-                format!("raw_basis_intent_digest:{raw_digest}"),
-                format!("field:{field}"),
-                "failure:malformed_identifier".to_string(),
-            ]),
+            failure_digest: basis_lifecycle_digest(
+                "basis_malformed_scope_denial_v1",
+                [
+                    ("raw_basis_intent_digest", raw_digest.to_string()),
+                    ("field", field.to_string()),
+                    ("failure", "malformed_identifier".to_string()),
+                ],
+            ),
         }),
         _ => Ok(()),
     }
@@ -411,11 +349,14 @@ fn malformed_identifier_denial(intent: &RawBasisIntent, field: &'static str) -> 
         operation_lane: intent.operation_lane().clone(),
         kind: BasisIntentDenialKind::MalformedIdentifier { field },
         counters: BasisNormalizationCounters::denied(),
-        failure_digest: hash_parts(&[
-            format!("raw_basis_intent_digest:{}", intent.raw_digest()),
-            format!("field:{field}"),
-            "failure:malformed_identifier".to_string(),
-        ]),
+        failure_digest: basis_lifecycle_digest(
+            "basis_malformed_identifier_denial_v1",
+            [
+                ("raw_basis_intent_digest", intent.raw_digest().to_string()),
+                ("field", field.to_string()),
+                ("failure", "malformed_identifier".to_string()),
+            ],
+        ),
     }
 }
 
@@ -437,9 +378,12 @@ fn unsupported_future_neighbor_denial(
         operation_lane: intent.operation_lane().clone(),
         kind: BasisIntentDenialKind::UnsupportedFutureNeighbor { family, owner },
         counters: BasisNormalizationCounters::denied(),
-        failure_digest: hash_parts(&[
-            format!("raw_basis_intent_digest:{}", intent.raw_digest()),
-            format!("failure:unsupported_future_neighbor:{owner}"),
-        ]),
+        failure_digest: basis_lifecycle_digest(
+            "basis_unsupported_future_neighbor_v1",
+            [
+                ("raw_basis_intent_digest", intent.raw_digest().to_string()),
+                ("failure", format!("unsupported_future_neighbor:{owner}")),
+            ],
+        ),
     }
 }

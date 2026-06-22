@@ -1,11 +1,12 @@
-mod digest_basis;
-mod retained_artifact_digest;
+pub(crate) mod digest_basis;
+pub(crate) mod retained_artifact_digest;
 
 use super::{
     BridgeCausalEnvelopeCounters, BridgeCausalEnvelopeDenial, BridgeCausalEnvelopeDenialKind,
     BridgeCausalEvidenceFamily, BridgeCausalEvidenceReference,
 };
 use crate::diagnostics::BridgeDiagnosticsFacade;
+use crate::identity::BridgeIdentityEvidence;
 use retained_artifact_digest::{
     bulk_planning_record_digest, continuity_record_digest,
     historical_evaluation_failure_record_digest, historical_evaluation_record_digest,
@@ -19,11 +20,11 @@ use retained_artifact_digest::{
     writeback_replay_record_digest,
 };
 
-pub(crate) fn retained_record_digest(
+pub(crate) fn retained_record_evidence_identity(
     facade: &BridgeDiagnosticsFacade,
     reference: &BridgeCausalEvidenceReference,
-) -> Result<Option<String>, BridgeCausalEnvelopeDenial> {
-    let reference_identity = reference.reference_identity();
+) -> Result<Option<BridgeIdentityEvidence>, BridgeCausalEnvelopeDenial> {
+    let reference_identity = reference.reference_evidence_identity();
     match reference.family() {
         BridgeCausalEvidenceFamily::BridgeBulkPlanning => {
             Ok(bulk_planning_record_digest(facade, reference_identity))
@@ -100,7 +101,7 @@ pub(crate) fn retained_record_digest(
             reference.family(),
             reference.owner(),
             reference.family().expected_owner(),
-            reference.reference_identity().into(),
+            reference.reference_evidence_identity().clone(),
             BridgeCausalEnvelopeCounters::new(1, 1, 1, 0, 0, 0, 1),
         )),
     }

@@ -2,13 +2,22 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
-use crate::identity::{BridgeIdentity, WritebackEffectIdentityTag};
+use crate::identity::{BridgeIdentity, BridgeIdentityEvidence, WritebackEffectIdentityTag};
 use crate::writeback::{
     BridgeMappedWritebackFamilyInput, BridgeWritebackEffectClass, BridgeWritebackEffectIntent,
     BridgeWritebackStrategyDescriptorBasis,
 };
 
 pub type BridgeWritebackEffectIdentity = BridgeIdentity<WritebackEffectIdentityTag>;
+
+impl BridgeWritebackEffectIdentity {
+    pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
+        Self::admit_bridge_owned(format!(
+            "bridge-writeback-effect:external-authority-evidence:{}",
+            evidence_identity.as_str()
+        ))
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeDerivedWritebackEffect {

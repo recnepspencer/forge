@@ -1,0 +1,25 @@
+error[E0599]: no function or associated item named `from_complete_ledger` found for struct `M6PremetabossPlatformTarget` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/planar_m6_closeout/generic_ledger_premetaboss_target_not_exported.rs:9:42
+  |
+9 |     let _ = M6PremetabossPlatformTarget::from_complete_ledger(
+  |                                          ^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `M6PremetabossPlatformTarget`
+  |
+note: if you're trying to build a new `M6PremetabossPlatformTarget` consider using one of the following associated functions:
+      M6PremetabossPlatformTarget::from_coplanar_overlap_storm
+      M6PremetabossPlatformTarget::from_high_valence_singularity
+      M6PremetabossPlatformTarget::from_thin_feature_scale_separation
+      M6PremetabossPlatformTarget::from_retained_cancellation_chain
+      and $N others
+ --> src/planar_contracts/m6_closeout/platform_targets.rs
+  |
+  |     pub fn from_coplanar_overlap_storm(receipt: &CoplanarOverlapStormReceipt) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn from_high_valence_singularity(receipt: &HighValenceSingularityReceipt) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn from_thin_feature_scale_separation(receipt: &ThinFeatureScaleSeparationReceipt) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn from_retained_cancellation_chain(receipt: &RetainedCancellationChainReceipt) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -118,7 +118,7 @@ fn current_context_for_family(
     let identity = ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         None,
-        snapshot_token.to_string(),
+        crate::memory_workspace::admit_external_snapshot_label(snapshot_token).evidence_identity(),
         family.read_graph().schema_basis().clone(),
         SnapshotLineageClass::CurrentHead,
     );

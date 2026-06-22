@@ -1,0 +1,37 @@
+error[E0451]: fields `decision_identity`, `normalized_cut_identity`, `duplicate_report_identity`, `source_edge_identity`, `carrier_identity`, `boundary_position`, `posture`, `source_endpoint_identity`, `projected_endpoint_fact_identity`, `provenance_entry_identities`, `event_group_identities`, `shared_endpoint_source_identities` and `shared_endpoint_projection_fact_digests` of struct `PlanarBooleanEndpointContactDecision` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/endpoint_contact_decision_not_forgeable.rs:7:9
+   |
+ 6 |     let _ = PlanarBooleanEndpointContactDecision {
+   |             ------------------------------------ in this type
+ 7 |         decision_identity: "forged".to_string(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+ 8 |         normalized_cut_identity: "cut".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         duplicate_report_identity: "duplicate-report".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         source_edge_identity: "source".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+11 |         carrier_identity: "carrier".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+12 |         boundary_position: Default::default(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+13 |         posture: PlanarBooleanPointSplitPosture::EndpointNoOp,
+   |         ^^^^^^^ private field
+14 |         source_endpoint_identity: "endpoint".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         projected_endpoint_fact_identity: "projection".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         provenance_entry_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         event_group_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         shared_endpoint_source_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         shared_endpoint_projection_fact_digests: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+
+error: type `worth_spatial::workload_platform::planar_boolean_edge_splitting::endpoint_boundary_normalization::boundary_position::PlanarBooleanSplitBoundaryPosition` is private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/endpoint_contact_decision_not_forgeable.rs:12:28
+   |
+12 |         boundary_position: Default::default(),
+   |                            ^^^^^^^^^^^^^^^^^^ private type

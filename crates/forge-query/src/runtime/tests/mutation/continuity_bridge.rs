@@ -30,21 +30,37 @@ fn bridge_split_successor_continuity_preserves_successor_set() {
         ForgeQueryContinuityOutcomeClass::ContinuesAsSplitSuccessors
     );
     assert_eq!(
-        evidence.successor_authoritative_identities(),
-        &[
-            "authority:task-1:a".to_string(),
-            "authority:task-1:b".to_string()
-        ]
+        evidence
+            .successor_authoritative_identities()
+            .iter()
+            .map(|identity| identity.as_str())
+            .collect::<Vec<_>>(),
+        vec!["authority:task-1:a", "authority:task-1:b"]
     );
     assert_eq!(evidence.successor_authoritative_identity(), None);
-    assert!(evidence.basis_binding_digest().is_some());
+    assert!(
+        evidence.basis_binding_digest().is_none(),
+        "direct bridge-only continuity evidence must not invent a query binding basis"
+    );
 }
 
 #[test]
 fn split_successor_intent_requires_at_least_two_successors() {
     let error = ForgeQueryContinuityMutationIntent::split_existing_target(
-        "authority:task-1",
-        ["authority:task-1:a"],
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(
+            crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-1")
+                .expect("continuity prior authority label"),
+        )
+        .expect("continuity prior authority identity"),
+        [
+            crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(
+                crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                    "authority:task-1:a",
+                )
+                .expect("continuity successor authority label"),
+            )
+            .expect("continuity successor authority identity"),
+        ],
     )
     .expect_err("split-successor continuity should reject a singleton successor set");
 

@@ -9,7 +9,7 @@ use super::{
 };
 use crate::input::envelope::{
     BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem,
-    BridgeCommittedPatchTarget, BridgeProducerMetadata, TruthBranchIdentity, TruthPatchIdentity,
+    BridgeCommittedPatchTarget, BridgeProducerMetadata,
 };
 use crate::mapping::{
     BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeMappingId,
@@ -22,7 +22,7 @@ use crate::routing::eligibility::validate_route_request;
 use crate::routing::lowering::BridgeSubscriptionSlice;
 use crate::routing::matching::FineGrainedMatchStatus;
 use crate::routing::planning::BridgeRouteIdentity;
-use crate::snapshot::{SnapshotReadContract, SnapshotReadRequest, TruthSnapshotIdentity};
+use crate::snapshot::{SnapshotReadContract, SnapshotReadRequest};
 
 #[test]
 fn route_digest_inputs_use_digest_shaped_route_entry_identity_not_raw_target_text() {
@@ -52,7 +52,8 @@ fn route_digest_inputs_use_digest_shaped_route_entry_identity_not_raw_target_tex
         &target_basis,
     );
 
-    let route_identity = BridgeRouteIdentity::new(digest_string("route", &route_basis));
+    let route_identity =
+        BridgeRouteIdentity::admit_bridge_owned(digest_string("route", &route_basis));
     let provenance_basis = planning_provenance_digest_basis(
         &route_identity,
         &envelope,
@@ -96,7 +97,7 @@ fn subscription_slice_digest_inputs_consume_slice_canonical_basis_not_target_bas
     );
 
     let lowering_summary_basis = lowering_summary_digest_basis(
-        &BridgeRouteIdentity::new(digest_string("route", "route-basis")),
+        &BridgeRouteIdentity::admit_bridge_owned(digest_string("route", "route-basis")),
         &[],
         std::slice::from_ref(&slice),
         0,
@@ -245,10 +246,10 @@ fn envelope_for_target(target: BridgeCommittedPatchTarget) -> BridgeCommittedPat
     BridgeCommittedPatchEnvelope::new(
         BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
             BridgeProducerMetadata::bridge_harness_fixture(),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
-            TruthPatchIdentity::new("patch-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
         ),
         vec![BridgeCommittedPatchItem::with_target("entity-1", target)],
     )
@@ -257,7 +258,7 @@ fn envelope_for_target(target: BridgeCommittedPatchTarget) -> BridgeCommittedPat
 
 fn mapping_registry() -> FrozenMappingRegistry {
     FrozenMappingRegistry::freeze(vec![BridgeMappingRegistration::new(
-        BridgeMappingId::new("native-target-route"),
+        BridgeMappingId::admit_bridge_owned("native-target-route"),
         TruthPatchScope::for_target(
             MappingSelector::exact("entity-1"),
             aspect_key("profile"),
@@ -267,7 +268,7 @@ fn mapping_registry() -> FrozenMappingRegistry {
             aspect_key("profile"),
             ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal.native-target"),
+        SignalInvalidationScope::admit_bridge_owned("signal.native-target"),
         CoarseRoutingMode::Direct,
     )])
     .expect("mapping registry should freeze")
@@ -283,7 +284,7 @@ fn dual_mapping_registry_for_same_surface() -> FrozenMappingRegistry {
 
 fn mapping_registration(mapping_id: &str, signal_scope: &str) -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new(mapping_id),
+        BridgeMappingId::admit_bridge_owned(mapping_id),
         TruthPatchScope::for_target(
             MappingSelector::exact("entity-1"),
             aspect_key("profile"),
@@ -293,14 +294,14 @@ fn mapping_registration(mapping_id: &str, signal_scope: &str) -> BridgeMappingRe
             aspect_key("profile"),
             ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new(signal_scope),
+        SignalInvalidationScope::admit_bridge_owned(signal_scope),
         CoarseRoutingMode::Direct,
     )
 }
 
 fn aspect_registry() -> FrozenAspectMappingRegistry {
     FrozenAspectMappingRegistry::freeze(vec![BridgeAspectRegistration::new(
-        BridgeAspectRegistrationId::new("native-target-aspect"),
+        BridgeAspectRegistrationId::admit_bridge_owned("native-target-aspect"),
         TruthPatchScope::for_target(
             MappingSelector::exact("entity-1"),
             aspect_key("profile"),

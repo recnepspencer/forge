@@ -1,0 +1,7 @@
+error: cannot construct `ForgeQueryAdmittedGraphReadAccessPlan` with struct literal syntax due to private fields
+ --> tests/ui/graph_read_access_admission/admitted_plan_constructor_private.rs:4:13
+  |
+4 |     let _ = ForgeQueryAdmittedGraphReadAccessPlan {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields `digest`, `admission`, `execution_strategy`, `ephemeral_index_plan` and `streaming_plan` that were not provided

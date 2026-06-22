@@ -195,6 +195,31 @@ later milestones can extend the same model, but not every visible concept is
 already admitted as a stable production lane. That is why support posture and
 admission belong beside the facade instead of after it.
 
+The ordinary runtime-backed product lane also has four hard boundary rules:
+
+- canonical machine identity comes from `ForgeQueryEvidenceIdentity::compose(...)`,
+  not from caller-owned string hashing, `Debug`, `Display`, or joined delimiters
+- `error.stop_class()` is the machine lane for runtime denials; messages are presentation and may change wording without changing the contract
+- preview and branch entry take `ForgeQuerySessionLabel`, not raw strings, so
+  label identity, replay collision posture, and basis-admission evidence stay
+  runtime-owned
+- preview binding and preview outcome inspection keep that same
+  `ForgeQuerySessionLabel` artifact on the ordinary path; rendered labels are
+  DX, not the identity lane
+- workflow preview capability authoring takes
+  `BridgePreviewSessionIdentity`, not ad hoc preview-session strings, so
+  preview-planning evidence stays on the typed artifact lane too
+
+Those last two bullets are intentionally different:
+
+- `ForgeQuerySessionLabel` names an opened preview or branch session on the
+  workspace runtime surface
+- `BridgePreviewSessionIdentity` names the retained preview foundation artifact
+  that declaration-bound workflow evidence binds against
+
+Do not collapse them into one caller-owned string just because both refer to
+"the preview."
+
 Reach for this category when the task sounds like ordinary runtime-backed
 product behavior: declaring retained surfaces, reading them, mutating truth,
 opening preview or branch sessions, inspecting retained handles, or deciding
@@ -231,6 +256,49 @@ Read next:
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
 - [Workspace Overview](./foundations/workspace-overview.md)
 
+## Shared Read Authority And Journal Replay
+
+Milestone `9.7` changed the runtime mental model from "one mutable workspace
+borrow owns everything" to "read authority, mutation intake, derived
+publication, and replay each have a named lane."
+
+The important rule is that shared reads are real runtime-owned read authority,
+not copied snapshot convenience. A shared read context is basis-bound, sealed,
+and backed by generation pinning. Readers consume already-published facts; they
+do not evaluate derived state, warm caches, repair indexes, or trigger bridge or
+signal work as a side effect of looking.
+
+Submission is the single writer lane. Journal order is represented by typed
+journal position and journal segment identity, not by parsing commit labels,
+receipt strings, or display text. Consumer replay asks the runtime to replay a
+typed segment and returns ordinary receipts and artifacts; it does not expose a
+raw journal format as the public contract.
+
+Published derived artifacts are read through projection consumption. If a
+public bridge or downstream runtime needs materialized facts, it should consume
+typed projection receipts rather than spelunking materialization rows or
+bridge-only helper state.
+
+Milestone `9.7` closure is also derived, not declared. The support/profile row
+`milestone-9.7-derived-closure-posture` is honest only when the phase-local
+pinning, journal/replay, concurrent hostile matrix, and public-bridge reader
+proofs are present, closed, and evidence-bearing.
+
+Use this category when work touches concurrent reads, submission order, replay,
+published derived artifacts, or public-bridge read certification.
+
+The mistakes to avoid are copied-snapshot "pinning," `Mutex` or `RwLock`
+around committed-read hot paths, reader-side derived evaluation, string-derived
+journal order, and direct materialization-row reads where projection
+consumption owns the public lane.
+
+Read next:
+
+- [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
+- [Projection Consumption](./capabilities/projection-consumption.md)
+- [Read Composition](./authoring/read-composition.md)
+- [Query Operating Modes](./foundations/query-operating-modes.md)
+
 ## Support And Admission
 
 Support and admission explain what the runtime actually promises today.
@@ -250,12 +318,333 @@ The mistake to avoid here is assuming that visibility implies support. Query
 wants support posture to be machine-checkable, not guessed from API surface
 shape.
 
+That same machine-checkable posture applies to identity and denial handling.
+If a caller is matching runtime denial text, formatting values into digests, or
+passing raw strings into preview or branch entry, it is bypassing the
+supported ordinary path even if the surrounding surface compiles.
+The same warning applies to workflow preview contribution authoring: use the
+typed preview-session identity artifact instead of smuggling preview identity
+through free-form strings.
+If identity matters to support, replay, inspection, workflow binding, or
+recovery, prefer the Query-owned typed artifact over a caller-owned string.
+
+For Milestone `9.6`, the application support surface also publishes
+`support_report().identity_boundary_closure()`. Read that closure posture
+literally:
+
+- `Closed` means the ordinary runtime-backed identity boundary is live and the
+  hostile residue scans are clean
+- `Partial` means the typed closure work exists but the current support posture
+  does not expose the full ordinary path or a same-class residue class is
+  still open
+- `Open` is reserved for genuinely unclosed posture, not for "not checked yet"
+
 Read next:
 
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
 - [Async Resources And Result State](./capabilities/async-resources-and-result-state.md)
 - [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md)
 - [Writes And Intent Boundaries](./execution/writes-and-intents.md)
+
+## Consumer Kit
+
+The Consumer Kit is Query's product surface for downstream proof. It is the
+ordinary downstream path for any crate that needs to prove it consumes Query
+correctly. It is not optional convenience, not a testing helper pile, and not a
+wrapper around folklore that the consumer still owns.
+
+The practical meaning is blunt:
+
+```text
+consumer owns domain facts and source files
+Query owns proof of Query consumption
+```
+
+So when a downstream crate needs digest-bearing evidence, hard-prohibition
+enforcement, support posture pinning, in-memory Query test workspaces, or
+adoption/residue proof, it should enter through
+`forge_query::facade::consumer_kit` instead of building local proof machinery.
+
+This milestone moved consumer proof out of downstream folklore and into Query.
+The old patterns were hand-written report structs, local digest strings,
+consumer-owned source greps, local required-family rows, and fabricated test
+receipts. Those are not alternate implementations. They are the failure modes
+the kit exists to remove.
+
+The required Consumer Kit families are:
+
+- `evidence-report-kit`
+- `hard-prohibition-registry`
+- `boundary-audit`
+- `support-snapshot`
+- `support-pinning`
+- `in-memory-test-backend`
+- `consumer-residue-audit`
+- `reference-consumer-adoption`
+
+Use this category when a downstream crate is about to hand-roll report structs,
+format digests, grep for forbidden Query seams, assemble required support rows,
+or build runtime adapter piles just to test Query behavior. Those patterns are
+folklore. The kit gives the consumer typed declarations, sealed evidence,
+runtime-owned audits, support-profile pinning, and honestly postured test
+workspaces through the public facade.
+
+Choose the surface by proof job:
+
+- use `EvidenceReportDeclaration` for sealed evidence reports and canonical
+  report identity
+- use `hard_prohibition_registry()` and `hard_prohibition_boundary_audit()` for
+  Query hard-prohibition enforcement
+- use `project_workspace_support_snapshot(...)` for a schema-versioned
+  projection of the live support matrix
+- use `support_pinning_contract(...)` when a consumer must fail on support-row
+  regressions
+- use `in_memory_test_runtime()` and `ForgeQueryTestBackendSchema` when tests
+  need a real `ForgeQueryWorkspace` without adapter or receipt fabrication
+- use `query_consumer_residue_audit(...)` when a consumer must prove it did
+  not rebuild Query proof locally through report structs, proof structs, raw
+  support-row spelunking, support-matrix row searches, debug-derived proof
+  strings, or delimiter-derived proof strings
+- use the adoption audits when a reference consumer must prove it deleted
+  Query-owned folklore rather than merely hiding it
+
+`query_consumer_residue_audit(...)` returns a typed
+`ForgeQueryConsumerResidueReport`, not a lint string. The report carries typed
+findings, finding identities, report identity, audited source paths, skipped
+non-Rust source count, and a source-inventory digest. Consumers should assert
+that report and inventory evidence directly. They should not build local source
+manifests, local residue classes, local scanners, or local replacement
+matrices around it.
+
+Milestone `9.8` closure for `consumer-residue-audit` is backed by typed
+consumer-residue certification evidence. Do not "certify" this family by
+checking that a test name or marker string appears in source text. The
+certification evidence must come from Query-owned detector execution, the
+reference-consumer audit report, and the report/inventory identities those
+surfaces produce.
+
+Do not confuse `query_consumer_residue_audit(...)` with the Milestone `9.9`
+graph-obligation local ceremony audit. The generic residue audit owns
+Query-proof folklore across Consumer Kit adoption: fake reports, fake proofs,
+raw support rows, row searches, debug proof strings, and delimiter proof
+strings. The graph-obligation audit is a narrower specialized lane for manual
+graph obligation ceremony such as local invariant packs, validator phase
+chains, and graph-obligation support pins. Use both only when both proof
+families are actually in play.
+
+Real support pinning means typed row identity, live row digest binding, and a
+localized typed failure when a required row regresses. A checked-in list of row
+names or a local admission loop is not pinning.
+
+Graph obligation support pins are narrower: they bind required support posture
+by obligation kind, support lane, expected status, and budget digest where the
+consumer depends on a specific execution budget.
+
+The shipped boundary audit is honest about its mechanism. Associated-path
+coverage checks registry public-symbol suffixes. Method-call coverage is
+syntax/AST based and method-name resolved, not compiler-backed type
+resolution. Do not describe it as closing macro expansion, trait dispatch, or
+type-alias resolution.
+
+The closure signal for this family lives in the support report:
+
+```rust
+let closure = ForgeQueryApplicationFacade::runtime_backed_default()
+    .support_report()
+    .consumer_kit_closure();
+```
+
+The mistake to avoid is teaching these kit surfaces as nice-to-have wrappers.
+For downstream evidence and certification, they are the canonical lane.
+
+Read next:
+
+- [Consumer Kit](./foundations/consumer-kit.md)
+- [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
+- [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md)
+- [Hard Prohibitions](./foundations/hard-prohibitions.md)
+- [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
+
+## Graph Touch Obligation Authority
+
+Graph Touch Obligation Authority is one of Query's core runtime advantages.
+
+Most runtimes can traverse a DAG, run callbacks, or let callers attach
+validators near graph operations. That is not what this is.
+
+Graph Touch Obligation Authority lets Query understand that a graph touch
+carries semantic obligations. A write, read, live view, preview, branch
+operation, operator catalog entry, or construction step can declare what graph
+meaning it touches, and Query can derive the obligations that must follow from
+that touch.
+
+This enables something ordinary runtimes do not provide:
+
+- graph checks selected from declared touch meaning, not caller memory
+- obligation behavior that changes by operating world: authoritative, preview,
+  branch, live read, policy-aware mutation, construction, or downstream
+  adoption
+- one canonical path for blocking invariants, schema contracts, advisory
+  checks, preflight sequencing, capability-gap screens, and operating-context
+  gates
+- receipts, decision traces, mutation evidence, support rows, budgets, and
+  adoption manifests that all describe the same selected obligations
+- downstream crates proving they deleted local graph legality folklore instead
+  of rebuilding Query in miniature
+- budget-aware graph obligation execution that can deny honestly before broad
+  state load rather than hiding unbounded graph walks behind "validation"
+
+The practical effect is that graph semantics stop leaking into every caller.
+Consumers do not have to remember which checks apply, build local validator
+tables, run private graph walks, or invent per-crate legality systems. They
+declare the graph touch and operating world; Query selects, dispatches,
+budgets, executes, records, and proves the obligations.
+
+This is why it is not a DAG traversal helper. A DAG helper answers "what nodes
+are connected?" Graph Touch Obligation Authority answers "given this graph
+meaning, in this runtime world, what obligations does the system owe before
+this operation can be treated as honest?"
+
+The ordinary path is:
+
+```text
+touch descriptor + operating world descriptor + obligation index
+  -> selected obligations
+  -> dispatch plan
+  -> runtime executor verdict
+  -> receipt, trace, support row, and diagnostic evidence
+```
+
+Use this category when graph-shaped work needs automatic obligation selection
+from entity kinds, relation kinds, aspects, ownership moves, read shape, live
+retention, boundary posture, branch or preview posture, or other touch facts.
+The obligation kinds are
+`BlockingInvariant`, `SchemaContractValidator`, `AdvisoryObligation`,
+`PreflightSequencingObligation`, `CapabilityGapScreen`, and
+`OperatingContextGate`. The support statuses are `Supported`, `Unsupported`,
+`NotApplicable`, `DiagnosticOnly`, and `DeferredToBackstop`.
+
+Canonical kind labels are `blocking-invariant`,
+`schema-contract-validator`, `advisory-obligation`,
+`preflight-sequencing-obligation`, `capability-gap-screen`, and
+`operating-context-gate`. Canonical support status labels are `supported`,
+`unsupported`, `not-applicable`, `diagnostic-only`, and
+`deferred-to-backstop`.
+
+Budget honesty is part of the contract. Large graph or boolean-like operations
+can deny with `BudgetExceeded`; the evidence must preserve state-load counters,
+`budget-exceeded`, cost classes such as `sparse-topology`, and
+artifact-policy-gated diagnostics instead of implying unbounded automatic
+execution.
+
+The Consumer Kit is the ordinary downstream adoption path for graph obligation
+registration, selector coverage, support pinning, in-memory proof, bypass
+audit, adoption manifests, and residue manifests. If a consumer is building
+local ceremony for any of those jobs, treat that as a product gap or adoption
+residue, not as a parallel authority.
+
+Milestone 9.9 closure allows only explicit certified residue. Do not describe
+covered graph obligation authority as zero-residue everywhere; describe it as
+closed for covered lanes with any remaining downstream residue named in an
+owner-tagged manifest with caps and removal triggers.
+
+Use bypass audit as the named proof job when checking for local graph walks,
+local validator tables, or other consumer-owned ceremony.
+
+The covered lane vocabulary must match the `Milestone 9.9 Graph Touch Obligation Authority Hostile Certification Matrix`: graph composition, authoritative command batch, scalar mutation, effect-triggered write intent, declaration entry, contribution orchestration, read family, live read, preview mutation, preview intent, branch intent, policy-aware graph mutation, primitive construction birth, worth-topo operator catalog, and worth-kernel phase chain.
+Canonical covered lane labels are `graph-composition`,
+`authoritative-command-batch`, `scalar-mutation`,
+`effect-triggered-write-intent`, `declaration-entry`,
+`contribution-orchestration`, `read-family`, `live-read`,
+`preview-mutation`, `preview-intent`, `branch-intent`,
+`policy-aware-graph-mutation`, `primitive-construction-birth`,
+`worth-topo-operator-catalog`, and `worth-kernel-phase-chain`.
+
+The mistake to avoid is describing manual invariant packs as the primary
+covered graph obligation path. Manual invariant packs are compatibility/custom extension surfaces;
+registered graph obligations are the covered path.
+
+Do not reduce this to "index reads for a DAG." Milestone 9.9 closes graph
+obligation authority. Milestone 9.10 is separate: graph read access planning,
+admitted access postures, typed required-capability or materialization
+postures, and receipt-backed no-N+1 proof.
+
+Read next:
+
+- [Graph Touch Obligation Authority](./authoring/graph-touch-obligation-authority.md)
+- [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
+- [Graph Composition Authoring](./authoring/graph-composition-authoring.md)
+- [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
+
+## Graph Read Access Planning
+
+Graph read access planning is one of Query's core runtime advantages. It lets
+Query take a declared graph-shaped read and prove, before and after execution,
+which access structures made that read honest.
+
+The thing Query does here that ordinary ORMs, graph helpers, reactive runtimes,
+and application frameworks do not do is make graph-read access a proof-bearing
+runtime lane. Query does not merely run a traversal, infer an index behind the
+caller, or ask the caller to trust that a helper avoided N+1 work. It derives
+the required adjacency, predicate, ordering, frontier, visited-set, result, live
+maintenance, streaming, persistent-index, or materialization support from the
+read declaration; admits or denies that shape against typed runtime support;
+and then emits receipts proving which plan was consumed and which counters were
+observed.
+
+The declaration is the authoring surface. The access plan is the accountability
+surface. Query derives access requirements from read declarations, admits those
+requirements against runtime support rows and budgets, and proves execution
+through the read receipt's access-plan consumption counters.
+
+This is not graph touch obligation authority. Obligation authority decides which
+graph meaning must be checked. Graph read access planning decides which access
+structures are required to read graph-shaped data without caller-owned relation
+loops, hidden N+1 traversal, broad RAM expansion, or surface-local graph caches.
+
+This is also not a magic "route resources" or "automatic index everything"
+feature. The endpoints and access shapes stay visible as declared read families,
+admitted access plans, typed required-capability postures, and receipt fields.
+If Query cannot prove a safe runtime-owned path, it returns a typed denial or a
+typed required posture instead of silently crossing into caller-owned traversal.
+
+Use this category when a task mentions graph read cost, adjacency indexes,
+frontier scans, broad boolean graph predicates, read-family access plans,
+streaming graph reads, persistent index requirements, async materialization, or
+receipt counters for no-N+1 proof.
+
+The access admission postures are `inline_indexed`,
+`bounded_ephemeral_index`, `admitted_paged_streaming`,
+`paged_streaming_required`, `persistent_index_required`,
+`async_materialization_required`, `store_backed_capability_required`,
+`access_capability_registration_required`, and `denied`.
+
+The denial kinds are `budget_exceeded`, `required_async_materialization`,
+`required_access_capability_registration`, `required_persistent_index`, and
+`unsupported_graph_index_support`.
+
+The required capability owners are `query_runtime`, `lower_runtime`,
+`persistent_store`, `domain_registration`, and `async_materializer`.
+
+Representative access requirement rows include `directional_adjacency`,
+`reverse_adjacency`, `predicate_support`, `ordering_support`,
+`traversal_workset`, `visited_set`, `dedup_set`, `proof_support`,
+`result_buffer`, `materialization_lifecycle`, `live_maintenance_support`, and
+`domain_operation_capability_registration`.
+
+Receipt proof fields include `graph_read_access_plan_consumption`,
+`ephemeral_graph_index_receipt`, `graph_read_streaming_receipt`,
+`live_graph_read_access`, and `graph_read_access_summary`.
+
+The mistake to avoid is saying a graph read is safe because the helper is
+friendly. A graph read is safe only when the admitted access plan and receipt
+prove the selected posture ran and the counters show no caller-owned N+1 work.
+
+Read next:
+
+- [Graph Read Access Planning](./authoring/graph-read-access-planning.md)
+- [Read Composition](./authoring/read-composition.md)
+- [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
 
 ## Aspects And Authority Lanes
 
@@ -948,6 +1337,17 @@ writeback execution themselves. This is why workflow declarations, mutation
 lowering, merge inspection, and writeback declarations can be public Query
 surfaces without turning Query into the owner of all lower bridge semantics.
 
+There is also an important identity split inside this category:
+
+- preview session entry on the workspace runtime surface uses
+  `ForgeQuerySessionLabel`
+- preview-bound workflow inspection and mutation planning use
+  `BridgePreviewSessionIdentity`
+
+The first names the opened runtime session. The second names the retained
+preview foundation artifact used by workflow-capability binding. Treating them
+as interchangeable loses the exact distinction this milestone closed.
+
 Use this category when the job sounds like workflow declaration, preview-bound
 inspection, mutation lowering, merge analysis, or writeback planning.
 
@@ -1044,6 +1444,8 @@ Read next:
 
 - [Read Composition](./authoring/read-composition.md)
 - [Graph Composition Authoring](./authoring/graph-composition-authoring.md)
+- [Graph Touch Obligation Authority](./authoring/graph-touch-obligation-authority.md)
+- [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
 - [Query Expressions And Result Shapes](./authoring/query-expressions-and-result-shapes.md)
 - [Registering Domain Invariants Through Query](./domain-capabilities/invariants/registering-domain-invariants-through-query.md)
 
@@ -1265,6 +1667,12 @@ Need family support:
 - use family taxonomy, capability matrix, readiness, inventory, and support
   admission
 
+Need downstream consumer proof:
+
+- use the Consumer Kit for evidence reports, hard-prohibition audits, support
+  snapshots, support pins, in-memory test workspaces, and adoption/residue
+  proof; do not hand-roll Query proof in the consumer crate
+
 Need basis for read, mutate, replay, inspect, or materialize:
 
 - use basis capability lifecycle, not raw branch or snapshot ids
@@ -1287,6 +1695,16 @@ Need one-shot or live read execution:
 
 - use planning and snapshot-backed execution first; use live views for durable
   query-shaped surfaces; use subscriptions for long-lived admitted live meaning
+
+Need concurrent committed reads:
+
+- use shared read authority and basis-pinned contexts; do not copy snapshots or
+  take committed-read locks to imitate concurrency
+
+Need submission order or replay:
+
+- use typed journal position and journal segment identity; do not parse
+  `commit_identity`, receipt strings, or display text for order
 
 Need signal/reactive behavior:
 
@@ -1342,6 +1760,16 @@ Need materialized facts without reopening authority:
 
 - use projection consumption declarations and receipts
 
+Need public-bridge read certification:
+
+- consume published derived artifacts through projection consumption; do not
+  read materialization rows or bridge-only helper state directly
+
+Need support pinning:
+
+- use Consumer Kit support snapshots and `support_pinning_contract(...)`; a
+  local required-family list or admission loop is not real pinning
+
 Need lower-runtime contact:
 
 - use lower-runtime capability routing and boundary envelopes
@@ -1384,12 +1812,25 @@ Need public DX:
   layers.
 - Do not assume a public method is supported because it compiles.
 - Do not teach `workspace.write(...)` as the default runtime mutation story.
+- Do not smuggle identity through raw strings when Query ships a typed artifact
+  or typed label for that boundary.
 - Do not add sibling public APIs for future async or temporal work; check support
   matrix for admitted neighbors instead.
 - Do not replace Query async result-state with local `loading`, `retrying`, or
   `cancelled` enums unless you are intentionally projecting it for product UX.
 - Do not implement temporal or time-aware live semantics with ambient host
   clocks or timers outside the shipped Query runtime-backed temporal surface.
+- Do not implement shared-read pinning by copying snapshots or materialized
+  rows into a side registry.
+- Do not implement consumer proof with local digest helpers, source greps,
+  required-family row lists, or fabricated test receipts when the Consumer Kit
+  owns that proof surface.
+- Do not put `Mutex` or `RwLock` on the committed-read hot path to manufacture
+  apparent concurrency.
+- Do not parse `commit_identity`, receipt strings, or rendered labels to infer
+  journal order.
+- Do not let public-bridge readers bypass projection consumption to read
+  materialization rows directly.
 
 ## AI Checklist Before Editing Code
 
@@ -1398,10 +1839,18 @@ Before building on a Query category, answer these:
 1. What category am I actually in?
 2. What is the public entrypoint for that category?
 3. What is the canonical identity boundary?
+   If this is preview work: is it `ForgeQuerySessionLabel` or
+   `BridgePreviewSessionIdentity`?
 4. What Query artifact or outcome should be preserved instead of flattened?
 5. What support row or admission gate decides whether the surface is real now?
-6. Am I using Query to carry lower-runtime semantics, or am I bypassing Query
+6. If this is shared-read or replay work, what pins the read basis and what
+   typed journal identity carries order?
+7. If this reads published derived facts, am I using projection consumption
+   rather than direct materialization access?
+8. Am I using Query to carry lower-runtime semantics, or am I bypassing Query
    and inventing a local runtime path?
+9. If this is downstream consumer proof, am I using the Consumer Kit instead of
+   a local report, grep, pinning, adapter, or receipt-fabrication path?
 
 If you cannot answer those, read the owning docs before writing code.
 

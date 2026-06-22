@@ -1,0 +1,4 @@
+mod theme_token_accepted_registration_proof;
+mod theme_token_registration;
+
+pub(crate) use theme_token_accepted_registration_proof::ThemeTokenAcceptedRegistrationProof;

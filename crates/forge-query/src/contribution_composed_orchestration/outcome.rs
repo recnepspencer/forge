@@ -1,6 +1,7 @@
 use crate::application::{
     ForgeQueryDeclarationEntryOrchestrationStage, ForgeQueryDeclarationInput,
-    ForgeQueryDomainEntryMarker,
+    ForgeQueryDomainEntryMarker, ForgeQueryGraphObligationOrchestrationDispatch,
+    ForgeQueryGraphObligationOrchestrationDispatchError,
 };
 use crate::binding_pipeline::ForgeQueryBindingLinkedArtifacts;
 use crate::ordinary_outcome::{
@@ -37,6 +38,8 @@ pub struct ForgeQueryContributionComposedOrchestrationPosture<
     contribution_digest: Option<String>,
     declaration_aspect_record: Option<ForgeQueryContributionComposedDeclarationAspectRecord>,
     primary_intent_descriptor: Option<ForgeQueryContributionComposedIntentRequestDescriptor>,
+    graph_obligation_dispatch: Option<ForgeQueryGraphObligationOrchestrationDispatch>,
+    graph_obligation_dispatch_error: Option<ForgeQueryGraphObligationOrchestrationDispatchError>,
     _marker: std::marker::PhantomData<(D, I)>,
 }
 
@@ -62,8 +65,26 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             contribution_digest,
             declaration_aspect_record,
             primary_intent_descriptor,
+            graph_obligation_dispatch: None,
+            graph_obligation_dispatch_error: None,
             _marker: std::marker::PhantomData,
         }
+    }
+
+    pub(crate) fn with_graph_obligation_dispatch(
+        mut self,
+        dispatch: Option<ForgeQueryGraphObligationOrchestrationDispatch>,
+    ) -> Self {
+        self.graph_obligation_dispatch = dispatch;
+        self
+    }
+
+    pub(crate) fn with_graph_obligation_dispatch_error(
+        mut self,
+        error: ForgeQueryGraphObligationOrchestrationDispatchError,
+    ) -> Self {
+        self.graph_obligation_dispatch_error = Some(error);
+        self
     }
 
     pub fn kind(&self) -> ForgeQueryContributionComposedOrchestrationCheckedKind {
@@ -100,6 +121,102 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         &self,
     ) -> Option<&ForgeQueryContributionComposedIntentRequestDescriptor> {
         self.primary_intent_descriptor.as_ref()
+    }
+
+    pub fn graph_obligation_dispatch(
+        &self,
+    ) -> Option<&ForgeQueryGraphObligationOrchestrationDispatch> {
+        self.graph_obligation_dispatch.as_ref()
+    }
+
+    pub fn graph_obligation_dispatch_error(
+        &self,
+    ) -> Option<&ForgeQueryGraphObligationOrchestrationDispatchError> {
+        self.graph_obligation_dispatch_error.as_ref()
+    }
+}
+
+impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
+    ForgeQueryContributionComposedOrchestrationOutcome<D, I>
+{
+    pub(crate) fn with_graph_obligation_dispatch(
+        self,
+        dispatch: Option<ForgeQueryGraphObligationOrchestrationDispatch>,
+    ) -> Self {
+        match self {
+            Self::Bound(value) => Self::Bound(value.with_graph_obligation_dispatch(dispatch)),
+            Self::Deferred(value) => Self::Deferred(value.with_graph_obligation_dispatch(dispatch)),
+            Self::DeclarationDenied(value) => {
+                Self::DeclarationDenied(value.with_graph_obligation_dispatch(dispatch))
+            }
+            Self::ContributionDenied(value) => {
+                Self::ContributionDenied(value.with_graph_obligation_dispatch(dispatch))
+            }
+            Self::Stale(value) => Self::Stale(value.with_graph_obligation_dispatch(dispatch)),
+            Self::RebindRequired(value) => {
+                Self::RebindRequired(value.with_graph_obligation_dispatch(dispatch))
+            }
+            Self::Unsupported(value) => {
+                Self::Unsupported(value.with_graph_obligation_dispatch(dispatch))
+            }
+            Self::Failed(value) => Self::Failed(value.with_graph_obligation_dispatch(dispatch)),
+        }
+    }
+
+    pub(crate) fn with_graph_obligation_dispatch_error(
+        self,
+        error: ForgeQueryGraphObligationOrchestrationDispatchError,
+    ) -> Self {
+        match self {
+            Self::Bound(value) => Self::Bound(value),
+            Self::Deferred(value) => {
+                Self::Deferred(value.with_graph_obligation_dispatch_error(error))
+            }
+            Self::DeclarationDenied(value) => {
+                Self::DeclarationDenied(value.with_graph_obligation_dispatch_error(error))
+            }
+            Self::ContributionDenied(value) => {
+                Self::ContributionDenied(value.with_graph_obligation_dispatch_error(error))
+            }
+            Self::Stale(value) => Self::Stale(value.with_graph_obligation_dispatch_error(error)),
+            Self::RebindRequired(value) => {
+                Self::RebindRequired(value.with_graph_obligation_dispatch_error(error))
+            }
+            Self::Unsupported(value) => {
+                Self::Unsupported(value.with_graph_obligation_dispatch_error(error))
+            }
+            Self::Failed(value) => Self::Failed(value.with_graph_obligation_dispatch_error(error)),
+        }
+    }
+
+    pub fn graph_obligation_dispatch(
+        &self,
+    ) -> Option<&ForgeQueryGraphObligationOrchestrationDispatch> {
+        match self {
+            Self::Bound(value) => value.graph_obligation_dispatch(),
+            Self::Deferred(value)
+            | Self::DeclarationDenied(value)
+            | Self::ContributionDenied(value)
+            | Self::Stale(value)
+            | Self::RebindRequired(value)
+            | Self::Unsupported(value)
+            | Self::Failed(value) => value.graph_obligation_dispatch(),
+        }
+    }
+
+    pub fn graph_obligation_dispatch_error(
+        &self,
+    ) -> Option<&ForgeQueryGraphObligationOrchestrationDispatchError> {
+        match self {
+            Self::Bound(_) => None,
+            Self::Deferred(value)
+            | Self::DeclarationDenied(value)
+            | Self::ContributionDenied(value)
+            | Self::Stale(value)
+            | Self::RebindRequired(value)
+            | Self::Unsupported(value)
+            | Self::Failed(value) => value.graph_obligation_dispatch_error(),
+        }
     }
 }
 

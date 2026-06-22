@@ -40,9 +40,9 @@ impl BridgeMappedWritebackFamilyInput {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            mapped_input_identity: BridgeMappedWritebackFamilyInputIdentity::new(format!(
-                "bridge-mapped-writeback-family-input:sha256:{digest:x}"
-            )),
+            mapped_input_identity: BridgeMappedWritebackFamilyInputIdentity::admit_bridge_owned(
+                format!("bridge-mapped-writeback-family-input:sha256:{digest:x}"),
+            ),
             mapper_envelope_digest: Arc::from(envelope.digest().to_owned()),
             contract_digest: Arc::from(envelope.contract_digest().to_owned()),
             family_kind: envelope.family_kind(),

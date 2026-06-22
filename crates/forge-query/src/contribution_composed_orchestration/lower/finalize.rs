@@ -3,7 +3,10 @@ use crate::application::{
     ForgeQueryDeclarationEntryContributionComposition, ForgeQueryDeclarationFamilyMarker,
     ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
 };
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 
 use super::super::artifact::{
     ForgeQueryContributionComposedContribution, ForgeQueryContributionComposedOrchestration,
@@ -36,29 +39,53 @@ pub(crate) fn request_descriptor<
     )
 }
 
-pub(crate) fn request_digest<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
+pub(crate) fn request_identity<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
     input: &ForgeQueryContributionComposedOrchestrationInput<D, I>,
-) -> String {
-    let mut parts = vec![
-        format!("family:{}", I::Family::semantic_family_key()),
-        format!(
-            "declaration_entries:{:?}",
-            input.declaration_input().canonical_declaration_entries()
-        ),
-        format!("contribution_count:{}", input.contributions().len()),
-    ];
-    parts.extend(
-        input
-            .contributions()
-            .iter()
-            .enumerate()
-            .map(|(index, value)| format!("intent:{index}:{value:?}")),
-    );
-    parts.push(format!(
-        "materialization:{:?}",
-        input.materialization_policy()
-    ));
-    hash_parts(&parts)
+) -> ForgeQueryEvidenceIdentity {
+    let contribution_identities = input
+        .contributions()
+        .iter()
+        .enumerate()
+        .map(|(index, value)| {
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "forge_query_contribution_composed_request_intent_v1",
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("order"), index.to_string())
+                .field_shape(ForgeQueryEvidenceTag::new("intent"), format!("{value:?}"))
+                .seal()
+        })
+        .collect::<Vec<_>>();
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_contribution_composed_request_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            I::Family::semantic_family_key(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("declaration_entries"),
+            format!(
+                "{:?}",
+                input.declaration_input().canonical_declaration_entries()
+            ),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("contribution_count"),
+            input.contributions().len().to_string(),
+        )
+        .field_evidence_identity_sequence(
+            ForgeQueryEvidenceTag::new("contributions"),
+            contribution_identities.iter(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("materialization"),
+            format!("{:?}", input.materialization_policy()),
+        )
+        .seal()
 }
 
 pub(crate) fn build_composed_artifact<
@@ -87,7 +114,7 @@ pub(crate) fn build_composed_artifact<
     if contributions.is_empty() && !intent_results.is_empty() {
         return Err((
             strongest_stop(&intent_results),
-            composition.composition_digest().to_string(),
+            composition.composition_for_reporting().to_string(),
         ));
     }
     Ok(ForgeQueryContributionComposedOrchestration::new(

@@ -175,14 +175,15 @@ pub(super) fn plan_packet_set(
         .enumerate()
         .map(
             |(packet_index, (reduced_subscription_slice_identity, packets))| {
-                let reduced_target_identity = ReducedRoutingTargetIdentity::new(digest_string(
-                    "reduced-routing-target",
-                    &reduced_publication_packet_digest_basis(
-                        &workload_identity,
-                        &reduced_subscription_slice_identity,
-                        &packets,
-                    ),
-                ));
+                let reduced_target_identity =
+                    ReducedRoutingTargetIdentity::admit_bridge_owned(digest_string(
+                        "reduced-routing-target",
+                        &reduced_publication_packet_digest_basis(
+                            &workload_identity,
+                            &reduced_subscription_slice_identity,
+                            &packets,
+                        ),
+                    ));
                 InvalidationReductionPacket::new(
                     workload_identity.clone(),
                     BridgeInvalidationReductionFamily::Publication,
@@ -234,16 +235,17 @@ pub(super) fn reduce_packet_set(
                 continuity_member_identity,
                 (branch_identity, snapshot_identity, reduced_route_count, prior_slice_count),
             )| {
-                let continuity_identity = ReducedContinuityIdentity::new(digest_string(
-                    "reduced-continuity",
-                    &format!(
+                let continuity_identity =
+                    ReducedContinuityIdentity::admit_bridge_owned(digest_string(
+                        "reduced-continuity",
+                        &format!(
                         "reduced-continuity|workload={}|continuity-member={}|branch={}|snapshot={}",
                         workload_identity.as_str(),
                         continuity_member_identity.as_str(),
                         branch_identity.as_str(),
                         snapshot_identity.as_str(),
                     ),
-                ));
+                    ));
                 ReducedContinuityRemap::new(
                     continuity_identity,
                     continuity_member_identity,
@@ -259,7 +261,7 @@ pub(super) fn reduce_packet_set(
         .truth_view_packets()
         .iter()
         .map(|packet| {
-            let truth_view_identity = ReducedTruthViewIdentity::new(digest_string(
+            let truth_view_identity = ReducedTruthViewIdentity::admit_bridge_owned(digest_string(
                 "reduced-truth-view",
                 &format!(
                     "reduced-truth-view|workload={}|truth-view-member={}|branch={}|commit={}|snapshot={}",
@@ -299,7 +301,7 @@ pub(super) fn reduce_packet_set(
         .map(
             |((widening_class, bounded_scope_identity), mut reduced_route_identities)| {
                 reduced_route_identities.sort();
-                let widening_identity = ReducedWideningIdentity::new(digest_string(
+                let widening_identity = ReducedWideningIdentity::admit_bridge_owned(digest_string(
                     "reduced-widening",
                     &format!(
                         "reduced-widening|workload={}|widening-class={}|bounded-scope={}",
@@ -337,7 +339,7 @@ pub(super) fn reduce_packet_set(
                 .iter()
                 .map(|route| route.invalidation_target_count())
                 .sum();
-            let publication_identity = ReducedPublicationIdentity::new(digest_string(
+            let publication_identity = ReducedPublicationIdentity::admit_bridge_owned(digest_string(
                 "reduced-publication",
                 &format!(
                     "reduced-publication|workload={}|routing-target={}|subscription-slice={}|route-count={}|invalidation-target-count={}",

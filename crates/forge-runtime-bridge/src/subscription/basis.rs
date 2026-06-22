@@ -161,7 +161,7 @@ impl ValidatedSubscriptionBasisBinding {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Ok(Self {
-            basis_identity: BridgeSubscriptionBasisIdentity::new(format!(
+            basis_identity: BridgeSubscriptionBasisIdentity::admit_bridge_owned(format!(
                 "bridge-subscription-basis-id:sha256:{digest:x}"
             )),
             basis_kind,

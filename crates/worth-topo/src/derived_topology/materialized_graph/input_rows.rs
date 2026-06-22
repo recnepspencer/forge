@@ -6,7 +6,8 @@ use schema::facade::platform::entities::EntityKind;
 use schema::facade::platform::relations::RelationKind;
 
 use crate::derived_topology::materialized_graph::query_input_decode::{
-    parse_entity_identity, parse_entity_kind, parse_relation_kind, required_text,
+    entity_id_from_query_identity, parse_entity_identity, parse_entity_kind, parse_relation_kind,
+    required_text,
 };
 use crate::derived_topology::materialized_graph::TopologyMaterializationError;
 
@@ -39,7 +40,7 @@ impl MaterializationEntityRow {
         row: &ForgeQueryEntity,
     ) -> Result<Self, TopologyMaterializationError> {
         let external_row = row.external_row();
-        let entity_id = parse_entity_identity(row.identity())?;
+        let entity_id = entity_id_from_query_identity(row.identity())?;
         let kind = parse_entity_kind(required_text(external_row, "topology.kind")?)?;
         let label = external_row
             .get("topology")

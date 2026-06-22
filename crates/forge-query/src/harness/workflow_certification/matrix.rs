@@ -192,7 +192,7 @@ fn merge_lowering_lane() -> WorkflowCertificationLane {
     let replay = build_workflow_replay_bundle(&outcome);
 
     let mut lane = WorkflowCertificationLane::from_declaration(&declaration);
-    lane.lowered_request_digest = Some(lowered.lowering_digest().to_string());
+    lane.lowered_request_digest = Some(lowered.lowering_for_reporting().to_string());
     lane.lowered_freshness_binding = Some(lowered.freshness_binding().as_str().to_string());
     lane.authority_outcome_family = Some(outcome.family().as_str().to_string());
     lane.replay_bundle_digest = Some(replay.bundle_digest().to_string());
@@ -236,7 +236,7 @@ fn writeback_lowering_lane() -> WorkflowCertificationLane {
     let replay = build_workflow_replay_bundle(&outcome);
 
     let mut lane = WorkflowCertificationLane::from_declaration(&declaration);
-    lane.lowered_request_digest = Some(lowered.lowering_digest().to_string());
+    lane.lowered_request_digest = Some(lowered.lowering_for_reporting().to_string());
     lane.lowered_freshness_binding = Some(lowered.freshness_binding().as_str().to_string());
     lane.authority_outcome_family = Some(outcome.family().as_str().to_string());
     lane.replay_bundle_digest = Some(replay.bundle_digest().to_string());
@@ -309,10 +309,10 @@ fn preview_merge_lowering_lane() -> WorkflowCertificationLane {
     .expect("preview merge lowering should succeed");
 
     let mut lane = WorkflowCertificationLane::from_declaration(&declaration);
-    lane.lowered_request_digest = Some(lowered.lowering_digest().to_string());
+    lane.lowered_request_digest = Some(lowered.lowering_for_reporting().to_string());
     lane.lowered_freshness_binding = Some(lowered.freshness_binding().as_str().to_string());
-    lane.result_digest = lowered.lowering_digest().to_string();
-    lane.delivery_digest = lowered.lowering_digest().to_string();
+    lane.result_digest = lowered.lowering_for_reporting().to_string();
+    lane.delivery_digest = lowered.lowering_for_reporting().to_string();
     lane.lowering_width = Some(lowered.counters().workflow_lowering_width());
     lane.lowering_executor_rediscovery_count =
         Some(lowered.counters().workflow_executor_rediscovery_count());
@@ -364,7 +364,7 @@ fn conflict_inspection_lane() -> WorkflowCertificationLane {
         .expect("source-only addition row should be present");
 
     let mut lane = WorkflowCertificationLane::from_declaration(&inspection_declaration);
-    lane.lowered_request_digest = Some(lowered.lowering_digest().to_string());
+    lane.lowered_request_digest = Some(lowered.lowering_for_reporting().to_string());
     lane.inspection_family = Some(inspection.family().as_str().to_string());
     lane.result_digest = source_addition_row.conflict_scope_digest().to_string();
     lane.delivery_digest = inspection.declaration_digest().to_string();
@@ -428,7 +428,7 @@ fn denied_conflict_inspection_lane() -> WorkflowCertificationLane {
         .expect("topology-region row should be present");
 
     let mut lane = WorkflowCertificationLane::from_declaration(&inspection_declaration);
-    lane.lowered_request_digest = Some(lowered.lowering_digest().to_string());
+    lane.lowered_request_digest = Some(lowered.lowering_for_reporting().to_string());
     lane.inspection_family = Some(inspection.family().as_str().to_string());
     lane.result_digest = topology_row.conflict_scope_digest().to_string();
     lane.delivery_digest = inspection.rows()[0].conflict_scope_digest().to_string();
@@ -482,7 +482,7 @@ fn post_merge_inspection_lane() -> WorkflowCertificationLane {
         .expect("inspection should succeed");
 
     let mut lane = WorkflowCertificationLane::from_declaration(&declaration);
-    lane.lowered_request_digest = Some(lowered.lowering_digest().to_string());
+    lane.lowered_request_digest = Some(lowered.lowering_for_reporting().to_string());
     lane.authority_outcome_family = Some(outcome.family().as_str().to_string());
     lane.inspection_family = Some(inspection.family().as_str().to_string());
     lane.result_digest = inspection.rows()[0]
@@ -824,9 +824,10 @@ fn rejection_row(
                 ),
             )
             .expect("mutation declaration should admit");
+            let authority_binding_identity = binding.basis_identity();
             let lowered = lower_mutation_intent_declaration(
                 &declaration,
-                binding.basis_digest(),
+                &authority_binding_identity,
                 MutationLoweringInput::IntentReconciliation {
                     entity_id: EntityId::new(PartitionId(1), 41, 0),
                     desired_aspect_fields_external_json: json!({"name":"after"}),

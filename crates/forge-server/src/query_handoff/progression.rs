@@ -1,24 +1,24 @@
 use forge_foundational::DiagnosticRichnessProfile;
 use forge_proof::TransitionOutcome;
-use forge_query::facade::{
-    ForgeQueryRuntimeDownstreamDeliveryContract, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryWorkspace,
-};
 
 use crate::{config::ForgeServerQueryHandoffConfig, ForgeServerPreparedQueryHandoffKind};
 
 use super::{
     ForgeServerQueryHandoff, ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffDenialCode,
     ForgeServerQueryHandoffInput, ForgeServerQueryHandoffOperation,
-    ForgeServerQueryRequestedResume, ForgeServerQuerySupportPosture,
     ForgeServerQueryWorkspaceBindingRequest,
+};
+use crate::{
+    ForgeServerOperationQuerySupportContext, ForgeServerOperationReadinessDenialCode,
+    ForgeServerOperationReadinessFacade,
 };
 
 pub(crate) fn prepare_query_handoff(
     config: &ForgeServerQueryHandoffConfig,
     input: ForgeServerQueryHandoffInput,
 ) -> super::ForgeServerQueryHandoffOutcome {
-    let (admission, operation) = input.into_parts();
+    let (operation_admission, operation) = input.into_parts();
+    let admission = operation_admission.authorization_proof().admission();
     let diagnostics_profile = admission.request_context().diagnostics_profile();
 
     if let Some(denial) = validate_prepared_intent(&admission, &operation) {
@@ -41,15 +41,41 @@ pub(crate) fn prepare_query_handoff(
     };
 
     let downstream_delivery_contract = workspace.public_downstream_delivery_contract();
-    let support_posture = match derive_support_posture(
-        admission.query_handoff_intent().kind(),
-        &operation,
-        &workspace,
-        &downstream_delivery_contract,
-        diagnostics_profile,
+    let readiness = ForgeServerOperationReadinessFacade::default();
+    let operation_support_posture = match readiness.compose_support(
+        &operation_admission,
+        Some(ForgeServerOperationQuerySupportContext::new(
+            admission.query_handoff_intent().kind(),
+            &operation,
+            &workspace,
+            &downstream_delivery_contract,
+        )),
     ) {
-        Ok(support_posture) => support_posture,
-        Err(denial) => return TransitionOutcome::Denied(denial),
+        Ok(value) => value,
+        Err(denial) => {
+            return TransitionOutcome::Denied(map_readiness_denial(denial, diagnostics_profile));
+        }
+    };
+    let support_posture = match operation_support_posture.query_support_posture() {
+        Some(value) => value.clone(),
+        None => {
+            return TransitionOutcome::Denied(ForgeServerQueryHandoffDenial::new(
+                ForgeServerQueryHandoffDenialCode::UnsupportedQueryFacadeFamily,
+                diagnostics_profile,
+                "query handoff requires resolved query support posture before planning",
+            ));
+        }
+    };
+    let precondition_posture = readiness.default_precondition_posture(&operation_admission);
+    let concurrency_class = match readiness.classify_concurrency(
+        &operation_admission,
+        &operation_support_posture,
+        &precondition_posture,
+    ) {
+        Ok(value) => value,
+        Err(denial) => {
+            return TransitionOutcome::Denied(map_readiness_denial(denial, diagnostics_profile));
+        }
     };
 
     let canonical_digest = canonical_digest(
@@ -65,15 +91,22 @@ pub(crate) fn prepare_query_handoff(
             .workspace_id(),
         workspace.name(),
         &operation,
-        &support_posture,
-        downstream_delivery_contract.contract_digest(),
+        operation_admission.canonical_digest(),
+        operation_support_posture.canonical_digest(),
+        precondition_posture.canonical_digest(),
+        concurrency_class_label(&concurrency_class),
+        downstream_delivery_contract.contract_for_reporting(),
     );
 
     TransitionOutcome::Success(ForgeServerQueryHandoff::new(
-        admission,
+        operation_admission,
         operation,
         workspace,
         downstream_delivery_contract,
+        operation_support_posture.clone(),
+        operation_support_posture.composition_receipt().clone(),
+        precondition_posture,
+        concurrency_class,
         support_posture,
         canonical_digest,
     ))
@@ -91,7 +124,7 @@ fn validate_prepared_intent(
         {
             None
         }
-        ForgeServerQueryHandoffOperation::QueryMutation { operation_name }
+        ForgeServerQueryHandoffOperation::QueryMutation { operation_name, .. }
             if prepared.kind() == ForgeServerPreparedQueryHandoffKind::QueryMutation
                 && prepared.operation_name() == operation_name =>
         {
@@ -124,198 +157,62 @@ fn validate_prepared_intent(
     }
 }
 
-fn derive_support_posture(
-    prepared_kind: crate::ForgeServerPreparedQueryHandoffKind,
-    operation: &ForgeServerQueryHandoffOperation,
-    workspace: &ForgeQueryWorkspace,
-    contract: &ForgeQueryRuntimeDownstreamDeliveryContract,
-    diagnostics_profile: DiagnosticRichnessProfile,
-) -> Result<ForgeServerQuerySupportPosture, ForgeServerQueryHandoffDenial> {
-    if prepared_kind == ForgeServerPreparedQueryHandoffKind::ForgeNativeSession {
-        match operation {
-            ForgeServerQueryHandoffOperation::DirectRead { .. }
-            | ForgeServerQueryHandoffOperation::DirectState { .. }
-            | ForgeServerQueryHandoffOperation::DirectInspection { .. }
-            | ForgeServerQueryHandoffOperation::DirectProjection { .. }
-            | ForgeServerQueryHandoffOperation::DirectMutation { .. }
-            | ForgeServerQueryHandoffOperation::DownstreamDelivery { .. } => {}
-            _ => {
-                return Err(ForgeServerQueryHandoffDenial::new(
-                    ForgeServerQueryHandoffDenialCode::PreparedIntentMismatch,
-                    diagnostics_profile,
-                    "forge-native session entry only supports direct read/state/inspection/projection/mutation/downstream-delivery handoff operations",
-                ));
-            }
-        }
-    }
-
-    match operation {
-        ForgeServerQueryHandoffOperation::QueryRead { .. } => {
-            Ok(ForgeServerQuerySupportPosture::QueryReadSupported {
-                family_contract: admit_query_family(
-                    workspace,
-                    ForgeQueryRuntimeFacadeFamily::Read,
-                    diagnostics_profile,
-                )?,
-            })
-        }
-        ForgeServerQueryHandoffOperation::DirectRead { .. } => {
-            Ok(ForgeServerQuerySupportPosture::DirectReadSupported {
-                family_contract: admit_query_family(
-                    workspace,
-                    ForgeQueryRuntimeFacadeFamily::Read,
-                    diagnostics_profile,
-                )?,
-            })
-        }
-        ForgeServerQueryHandoffOperation::DirectState { .. } => {
-            Ok(ForgeServerQuerySupportPosture::DirectStateSupported {
-                family_contract: admit_query_family(
-                    workspace,
-                    ForgeQueryRuntimeFacadeFamily::Live,
-                    diagnostics_profile,
-                )?,
-            })
-        }
-        ForgeServerQueryHandoffOperation::DirectInspection { .. } => {
-            Ok(ForgeServerQuerySupportPosture::DirectInspectionSupported {
-                family_contract: admit_query_family(
-                    workspace,
-                    ForgeQueryRuntimeFacadeFamily::Inspect,
-                    diagnostics_profile,
-                )?,
-            })
-        }
-        ForgeServerQueryHandoffOperation::DirectProjection { .. } => {
-            Ok(ForgeServerQuerySupportPosture::DirectProjectionSupported {
-                family_contract: admit_query_family(
-                    workspace,
-                    ForgeQueryRuntimeFacadeFamily::Read,
-                    diagnostics_profile,
-                )?,
-            })
-        }
-        ForgeServerQueryHandoffOperation::DirectMutation { .. } => {
-            Ok(ForgeServerQuerySupportPosture::DirectMutationSupported {
-                family_contract: admit_query_family(
-                    workspace,
-                    ForgeQueryRuntimeFacadeFamily::Write,
-                    diagnostics_profile,
-                )?,
-            })
-        }
-        ForgeServerQueryHandoffOperation::QueryMutation { .. } => {
-            Ok(ForgeServerQuerySupportPosture::QueryMutationSupported {
-                family_contract: admit_query_family(
-                    workspace,
-                    ForgeQueryRuntimeFacadeFamily::Write,
-                    diagnostics_profile,
-                )?,
-            })
-        }
-        ForgeServerQueryHandoffOperation::DownstreamDelivery {
-            requested_resume, ..
-        } => {
-            if !matches!(
-                prepared_kind,
-                ForgeServerPreparedQueryHandoffKind::QueryRead
-                    | ForgeServerPreparedQueryHandoffKind::ForgeNativeSession
-            ) {
-                return Err(ForgeServerQueryHandoffDenial::new(
-                    ForgeServerQueryHandoffDenialCode::DownstreamDeliveryRequiresReadIntent,
-                    diagnostics_profile,
-                    "downstream delivery handoff requires a read-admitted middleware intent or a forge-native direct session",
-                ));
-            }
-
-            let family_contract = admit_query_family(
-                workspace,
-                ForgeQueryRuntimeFacadeFamily::Live,
-                diagnostics_profile,
-            )?;
-            match requested_resume {
-                ForgeServerQueryRequestedResume::None => Ok(
-                    ForgeServerQuerySupportPosture::DownstreamDeliverySupported {
-                        family_contract,
-                        runtime_resume_support_posture: contract.runtime_resume_support_posture(),
-                        durable_resume_support_posture: contract.durable_resume_support_posture(),
-                        contract_digest: contract.contract_digest().to_string(),
-                    },
-                ),
-                ForgeServerQueryRequestedResume::RuntimeBacked { .. }
-                    if contract.runtime_backed_resume_supported() =>
-                {
-                    Ok(
-                        ForgeServerQuerySupportPosture::RuntimeBackedResumeSupported {
-                            family_contract,
-                            runtime_resume_support_posture: contract
-                                .runtime_resume_support_posture(),
-                            support_digest: contract.runtime_resume_support_digest().to_string(),
-                            contract_digest: contract.contract_digest().to_string(),
-                        },
-                    )
-                }
-                ForgeServerQueryRequestedResume::RuntimeBacked { .. } => {
-                    Err(ForgeServerQueryHandoffDenial::new(
-                        ForgeServerQueryHandoffDenialCode::RuntimeBackedResumeUnsupported,
-                        diagnostics_profile,
-                        format!(
-                            "runtime-backed resume posture is {:?}",
-                            contract.runtime_resume_support_posture()
-                        ),
-                    ))
-                }
-                ForgeServerQueryRequestedResume::Durable if contract.durable_resume_deferred() => {
-                    Err(ForgeServerQueryHandoffDenial::new(
-                        ForgeServerQueryHandoffDenialCode::DurableResumeDeferred,
-                        diagnostics_profile,
-                        format!(
-                            "durable resume remains deferred with digest {}",
-                            contract.durable_resume_support_digest()
-                        ),
-                    ))
-                }
-                ForgeServerQueryRequestedResume::Durable => {
-                    Ok(ForgeServerQuerySupportPosture::DurableResumeSupported {
-                        family_contract,
-                        durable_resume_support_posture: contract.durable_resume_support_posture(),
-                        support_digest: contract.durable_resume_support_digest().to_string(),
-                        contract_digest: contract.contract_digest().to_string(),
-                    })
-                }
-            }
-        }
-    }
-}
-
-fn admit_query_family(
-    workspace: &ForgeQueryWorkspace,
-    family: ForgeQueryRuntimeFacadeFamily,
-    diagnostics_profile: DiagnosticRichnessProfile,
-) -> Result<ForgeQueryRuntimePublicApiFamilyContract, ForgeServerQueryHandoffDenial> {
-    workspace.admit_public_api_family(family).map_err(|error| {
-        ForgeServerQueryHandoffDenial::new(
-            ForgeServerQueryHandoffDenialCode::UnsupportedQueryFacadeFamily,
-            diagnostics_profile,
-            format!(
-                "query workspace does not admit `{}` facade family: {error}",
-                family.as_str()
-            ),
-        )
-    })
-}
-
 fn canonical_digest(
     tenant_id: &str,
     workspace_id: &str,
     workspace_name: &str,
     operation: &ForgeServerQueryHandoffOperation,
-    support_posture: &ForgeServerQuerySupportPosture,
+    operation_admission_digest: &str,
+    support_digest: &str,
+    precondition_digest: &str,
+    concurrency_label: &str,
     contract_digest: &str,
 ) -> String {
     format!(
-        "forge-server-query-handoff-v1|tenant:{tenant_id}|workspace:{workspace_id}|bound:{workspace_name}|operation:{}|support:{}|contract:{contract_digest}",
+        "forge-server-query-handoff-v3|tenant:{tenant_id}|workspace:{workspace_id}|bound:{workspace_name}|operation:{}|operation_admission:{operation_admission_digest}|support:{support_digest}|precondition:{precondition_digest}|concurrency:{concurrency_label}|contract:{contract_digest}",
         operation.canonical_label(),
-        support_posture.canonical_label(),
     )
+}
+
+fn map_readiness_denial(
+    denial: crate::ForgeServerOperationReadinessDenial,
+    diagnostics_profile: DiagnosticRichnessProfile,
+) -> ForgeServerQueryHandoffDenial {
+    let code = match denial.code() {
+        ForgeServerOperationReadinessDenialCode::MissingQuerySupport
+        | ForgeServerOperationReadinessDenialCode::UnsupportedQuerySupport
+        | ForgeServerOperationReadinessDenialCode::UnsupportedProductSupport
+        | ForgeServerOperationReadinessDenialCode::UnknownProductSupport
+        | ForgeServerOperationReadinessDenialCode::FixtureOnlyProductSupport
+        | ForgeServerOperationReadinessDenialCode::IncompatibleSupportBasis => {
+            ForgeServerQueryHandoffDenialCode::UnsupportedQueryFacadeFamily
+        }
+        ForgeServerOperationReadinessDenialCode::DownstreamDeliveryRequiresReadIntent => {
+            ForgeServerQueryHandoffDenialCode::DownstreamDeliveryRequiresReadIntent
+        }
+        ForgeServerOperationReadinessDenialCode::RuntimeBackedResumeUnsupported => {
+            ForgeServerQueryHandoffDenialCode::RuntimeBackedResumeUnsupported
+        }
+        ForgeServerOperationReadinessDenialCode::DurableResumeDeferred => {
+            ForgeServerQueryHandoffDenialCode::DurableResumeDeferred
+        }
+        ForgeServerOperationReadinessDenialCode::InvalidPreconditionInput
+        | ForgeServerOperationReadinessDenialCode::PreconditionFailed => {
+            ForgeServerQueryHandoffDenialCode::CompatibilityMutationPreconditionFailed
+        }
+    };
+    ForgeServerQueryHandoffDenial::new(code, diagnostics_profile, denial.detail())
+}
+
+fn concurrency_class_label(
+    concurrency_class: &crate::ForgeServerOperationConcurrencyClass,
+) -> &'static str {
+    match concurrency_class {
+        crate::ForgeServerOperationConcurrencyClass::ConcurrentSharedRead => {
+            "concurrent-shared-read"
+        }
+        crate::ForgeServerOperationConcurrencyClass::SerializeDeterministically => {
+            "serialize-deterministically"
+        }
+    }
 }

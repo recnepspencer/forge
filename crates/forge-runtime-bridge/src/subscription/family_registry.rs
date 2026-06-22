@@ -139,9 +139,9 @@ impl FrozenSubscriptionFamilyRegistry {
             .map(|registration| registration.supported_slice_kinds().len())
             .sum();
         Ok(Self {
-            registry_identity: BridgeSubscriptionFamilyRegistryIdentity::new(format!(
-                "bridge-subscription-family-registry:sha256:{digest:x}"
-            )),
+            registry_identity: BridgeSubscriptionFamilyRegistryIdentity::admit_bridge_owned(
+                format!("bridge-subscription-family-registry:sha256:{digest:x}"),
+            ),
             registrations,
             detail_exact_index,
             collection_membership_index,
@@ -188,7 +188,7 @@ pub(crate) fn phase_one_subscription_families(
 ) -> Result<Vec<BridgeSubscriptionDeclarationFamily>, BridgeBuildError> {
     Ok(vec![
         BridgeSubscriptionDeclarationFamily::new(
-            BridgeSubscriptionDeclarationFamilyIdentity::new(
+            BridgeSubscriptionDeclarationFamilyIdentity::admit_bridge_owned(
                 "subscription-family:collection-membership",
             ),
             BridgeSubscriptionDeclarationFamilyKind::CollectionMembership,
@@ -200,7 +200,9 @@ pub(crate) fn phase_one_subscription_families(
             false,
         )?,
         BridgeSubscriptionDeclarationFamily::new(
-            BridgeSubscriptionDeclarationFamilyIdentity::new("subscription-family:detail-exact"),
+            BridgeSubscriptionDeclarationFamilyIdentity::admit_bridge_owned(
+                "subscription-family:detail-exact",
+            ),
             BridgeSubscriptionDeclarationFamilyKind::DetailExact,
             "detail_exact",
             vec![

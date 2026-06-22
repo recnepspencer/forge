@@ -1,4 +1,5 @@
 use super::super::super::*;
+use crate::runtime::inspection::{CausalObservationTargetHandle, CausalResultShapeContextHandle};
 
 fn changed_reference_set() -> CausalEvidenceReferenceSet {
     let anchor = anchor_causal_observation(
@@ -7,15 +8,21 @@ fn changed_reference_set() -> CausalEvidenceReferenceSet {
             vec![
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::QueryInspection,
-                    "admission-query-inspection-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "admission-query-inspection-reference",
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::BridgeRoute,
-                    "admission-bridge-route-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "admission-bridge-route-reference",
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::SignalInvalidation,
-                    "admission-signal-invalidation-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "admission-signal-invalidation-reference",
+                    ),
                 ),
             ],
         ),
@@ -41,8 +48,8 @@ fn changed_reference_set() -> CausalEvidenceReferenceSet {
 fn target_for(reference_set: &CausalEvidenceReferenceSet) -> CausalInspectionTarget {
     let receipt = reference_set.anchor().observation_receipt();
     causal_inspection_target(
-        receipt.observation_target_digest(),
-        receipt.result_shape_context_digest(),
+        receipt.observation_target().clone(),
+        receipt.result_shape_context().clone(),
     )
     .unwrap()
 }
@@ -69,7 +76,7 @@ fn causal_inspection_admission_success_carries_reference_permissions_and_trace()
         CausalInspectionRichness::ReferenceOnly,
         CausalInspectionExplanationFamily::CrossRuntimeCausalExplanation,
     );
-    let request_digest = request.request_digest().to_string();
+    let request_digest = request.request_for_reporting().to_string();
     let flow = admit_causal_inspection(request);
 
     let CausalInspectionProofFlow::Admitted(admitted) = flow else {
@@ -99,8 +106,8 @@ fn causal_inspection_admission_success_carries_reference_permissions_and_trace()
         .is_some());
     assert!(!admitted.admitted_inspection_digest().is_empty());
     assert_eq!(
-        admitted.receipt().decision_trace_index_digest(),
-        admitted.decision_trace().trace_digest()
+        admitted.receipt().decision_trace_index_for_reporting(),
+        admitted.decision_trace().trace_for_reporting()
     );
     assert_eq!(admitted.counters().causal_inspection_request_count(), 1);
     assert_eq!(admitted.counters().causal_inspection_admission_count(), 1);
@@ -195,7 +202,11 @@ fn causal_inspection_denies_unsupported_explanation_family_before_envelope_reque
 #[test]
 fn causal_inspection_request_denies_target_and_unresolved_family_mismatches() {
     let reference_set = changed_reference_set();
-    let bad_target = causal_inspection_target("different-target", "fixture-result-shape").unwrap();
+    let bad_target = causal_inspection_target(
+        CausalObservationTargetHandle::from_rendered("different-target"),
+        CausalResultShapeContextHandle::from_rendered("fixture-result-shape"),
+    )
+    .unwrap();
     let target_mismatch = request_causal_inspection(
         reference_set.clone(),
         bad_target,
@@ -209,7 +220,7 @@ fn causal_inspection_request_denies_target_and_unresolved_family_mismatches() {
         target_mismatch.kind(),
         CausalInspectionRequestErrorKind::TargetObservationMismatch
     );
-    assert!(!target_mismatch.failure_digest().is_empty());
+    assert!(!target_mismatch.failure_for_reporting().is_empty());
 
     let missing_family = request_causal_inspection(
         reference_set.clone(),

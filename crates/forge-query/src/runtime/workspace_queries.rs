@@ -1,17 +1,9 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use serde_json::Value;
-
 use super::read_composition_hooks::{
     ForgeQueryReadInvariantPackContext, ForgeQueryReadInvariantPackViolation,
 };
-#[cfg(test)]
-use super::{record_forbidden_fallback_seam_invocation, ForgeQueryForbiddenFallbackSeam};
 use super::{
-    ForgeQueryDerivedViewHandle, ForgeQueryGenericInspectionIntentTarget, ForgeQueryInspection,
-    ForgeQueryInspectionTarget, ForgeQueryInstalledProgram, ForgeQueryLiveArtifactBinding,
-    ForgeQueryLiveArtifactBundle, ForgeQueryLiveArtifactTarget, ForgeQueryLiveReadResult,
-    ForgeQueryPatchBatch, ForgeQueryProgram, ForgeQueryReadBuilder,
+    ForgeQueryGenericInspectionIntentTarget, ForgeQueryInspection, ForgeQueryInspectionTarget,
+    ForgeQueryInstalledProgram, ForgeQueryProgram, ForgeQueryReadBuilder,
     ForgeQueryReadDomainInvariantDenial, ForgeQueryReadFamily,
     ForgeQueryReadFamilyInvariantEvidence, ForgeQueryReadGraph, ForgeQueryReadResult,
     ForgeQueryRuntimeError, ForgeQueryUnifiedInspectionResult, ForgeQueryWorkspace,
@@ -108,6 +100,55 @@ impl ForgeQueryWorkspace {
         self.read_family_intent(family).execute()
     }
 
+    pub fn execute_read_family_with_access_plan(
+        &mut self,
+        family: &ForgeQueryReadFamily,
+        graph_read_access_plan: super::ForgeQueryAdmittedGraphReadAccessPlan,
+    ) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError> {
+        self.runtime
+            .admit_facade_family(super::ForgeQueryRuntimeFacadeFamily::Read)?;
+        let handoff = self
+            .read_family_intent(family)
+            .review()?
+            .admitted_handoff()
+            .ok_or_else(|| {
+                ForgeQueryRuntimeError::ReadCompositionDenied(super::ForgeQueryReadDenial::new(
+                    super::ForgeQueryReadDenialKind::BasisPreflightDenied,
+                    "read family was not admitted for access-plan execution",
+                ))
+            })?;
+        let binding = self.into_runtime_read_execution_binding_with_access_plan(
+            handoff,
+            graph_read_access_plan,
+        )?;
+        self.execute_bound_read_execution(binding)
+    }
+
+    pub fn execute_read_family_in_basis_context_with_access_plan(
+        &mut self,
+        family: &ForgeQueryReadFamily,
+        context: &crate::query_context::AdmittedQueryBasisContext,
+        graph_read_access_plan: super::ForgeQueryAdmittedGraphReadAccessPlan,
+    ) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError> {
+        self.runtime
+            .admit_facade_family(super::ForgeQueryRuntimeFacadeFamily::Read)?;
+        let handoff = self
+            .read_family_in_basis_context_intent(family, context)
+            .review()?
+            .admitted_handoff()
+            .ok_or_else(|| {
+                ForgeQueryRuntimeError::ReadCompositionDenied(super::ForgeQueryReadDenial::new(
+                    super::ForgeQueryReadDenialKind::BasisPreflightDenied,
+                    "read family basis context was not admitted for access-plan execution",
+                ))
+            })?;
+        let binding = self.into_runtime_read_execution_binding_with_access_plan(
+            handoff,
+            graph_read_access_plan,
+        )?;
+        self.execute_bound_read_execution(binding)
+    }
+
     pub fn execute_read_family_in_basis_context(
         &mut self,
         family: &ForgeQueryReadFamily,
@@ -119,82 +160,105 @@ impl ForgeQueryWorkspace {
             .execute()
     }
 
-    pub fn read<T>(
-        &mut self,
-        view: &super::ForgeQueryLiveView<T>,
-    ) -> Vec<crate::memory_workspace::ForgeQueryEntity> {
-        self.read_live_intent(view)
-            .execute()
-            .expect("live view declaration admitted before workspace.read execution")
-            .rows()
-            .to_vec()
-    }
-
-    pub fn state_live_by_name(
+    pub fn explain_graph_read_access_shape(
         &self,
-        view_name: &str,
-    ) -> Result<super::ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeError> {
-        super::state::snapshot_live_view_name(&self.runtime, view_name)
+        family: &ForgeQueryReadFamily,
+    ) -> Result<
+        super::ForgeQueryGraphReadAccessShapeExplanation,
+        super::ForgeQueryGraphReadAccessShapeExplanationError,
+    > {
+        super::explain_graph_read_access_shape_for_family(family)
     }
 
-    pub fn read_live_by_name(
-        &mut self,
-        view_name: &str,
-    ) -> Result<ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
-        let installation = self
-            .runtime
-            .inspect_live_view_name_installation(view_name)?
-            .clone();
-        let review = self.review_live_read_execution(super::ForgeQueryLiveView::<Value>::new(
-            crate::memory_workspace::ForgeQueryLiveViewHandle::new(view_name),
-            installation,
-        ))?;
-        let handoff = self.resolve_reviewed_admitted_live_read_execution_handoff(review)?;
-        let binding = self.into_runtime_live_read_execution_binding(handoff);
-        self.execute_bound_live_read_execution(binding)
+    pub fn admit_graph_read_access_authority(
+        &self,
+        request: super::ForgeQueryGraphReadAccessAuthorityRequest,
+    ) -> Result<
+        super::ForgeQueryGraphReadAccessAuthorityContext,
+        super::ForgeQueryGraphReadAccessAuthorityDenial,
+    > {
+        super::admit_graph_read_access_authority(request)
     }
 
-    pub fn read_live_artifact_binding(
-        &mut self,
-        artifact_name: impl Into<String>,
-        targets: impl IntoIterator<Item = ForgeQueryLiveArtifactTarget>,
-    ) -> Result<ForgeQueryLiveArtifactBinding, ForgeQueryRuntimeError> {
-        #[cfg(test)]
-        record_forbidden_fallback_seam_invocation(
-            ForgeQueryForbiddenFallbackSeam::ReadLiveArtifactBinding,
-        );
-        let retained_targets = targets.into_iter().collect::<Vec<_>>();
-        self.read_live_artifact_bundle(retained_targets.clone())?
-            .bind_live_artifact(artifact_name, retained_targets)
+    pub fn admit_graph_read_access_authority_from_policy_tenant_request(
+        &self,
+        request: super::ForgeQueryGraphReadPolicyTenantAuthorityRequest,
+    ) -> Result<
+        super::ForgeQueryGraphReadAccessAuthorityContext,
+        super::ForgeQueryGraphReadAccessAuthorityDenial,
+    > {
+        super::admit_graph_read_access_authority_from_policy_tenant_request(request)
     }
 
-    pub fn read_live_artifact_bundle(
-        &mut self,
-        targets: impl IntoIterator<Item = ForgeQueryLiveArtifactTarget>,
-    ) -> Result<ForgeQueryLiveArtifactBundle, ForgeQueryRuntimeError> {
-        #[cfg(test)]
-        record_forbidden_fallback_seam_invocation(
-            ForgeQueryForbiddenFallbackSeam::ReadLiveArtifactBundle,
-        );
-        let mut retained_targets = targets.into_iter().collect::<Vec<_>>();
-        retained_targets.sort();
-        retained_targets.dedup();
-
-        let mut reads = BTreeMap::new();
-        for target in retained_targets {
-            let result = self.runtime.execute_live_read_by_name(target.view_name())?;
-            reads.insert(target.view_name().to_string(), result);
-        }
-        let snapshot_token = live_bundle_snapshot_token(&reads)?;
-        Ok(ForgeQueryLiveArtifactBundle::new(snapshot_token, reads))
+    pub fn explain_graph_read_access_shape_in_authority(
+        &self,
+        family: &ForgeQueryReadFamily,
+        authority: &super::ForgeQueryGraphReadAccessAuthorityContext,
+    ) -> Result<
+        super::ForgeQueryGraphReadAccessShapeExplanation,
+        super::ForgeQueryGraphReadAccessShapeExplanationError,
+    > {
+        super::explain_graph_read_access_shape_for_family_in_authority(family, authority)
     }
 
-    pub fn observe<T>(&mut self, view: &super::ForgeQueryLiveView<T>) -> ForgeQueryPatchBatch {
-        self.runtime.drain_patches(view)
+    pub fn admit_graph_read_access_in_authority(
+        &self,
+        family: &ForgeQueryReadFamily,
+        authority: &super::ForgeQueryGraphReadAccessAuthorityContext,
+    ) -> Result<
+        super::ForgeQueryGraphReadAccessAdmission,
+        super::ForgeQueryGraphReadAccessShapeExplanationError,
+    > {
+        self.admit_graph_read_access_for_family_in_authority(family, authority)
     }
 
-    pub fn materialize<T>(&self, view: &ForgeQueryDerivedViewHandle<T>) -> Vec<Value> {
-        self.runtime.read_derived(view)
+    pub fn plan_graph_read_access_in_authority(
+        &self,
+        family: &ForgeQueryReadFamily,
+        authority: &super::ForgeQueryGraphReadAccessAuthorityContext,
+    ) -> Result<
+        Option<super::ForgeQueryAdmittedGraphReadAccessPlan>,
+        super::ForgeQueryGraphReadAccessShapeExplanationError,
+    > {
+        super::plan_admitted_graph_read_access_for_family_in_authority(family, authority)
+    }
+
+    pub fn explain_boolean_selectivity_shape(
+        &self,
+        family: &ForgeQueryReadFamily,
+    ) -> Result<
+        super::ForgeQueryBooleanSelectivityShape,
+        super::ForgeQueryGraphReadAccessShapeExplanationError,
+    > {
+        super::explain_boolean_selectivity_shape_for_family(family)
+    }
+
+    pub fn plan_live_graph_read_access(
+        &self,
+        family: &ForgeQueryReadFamily,
+        budget: super::ForgeQueryLiveGraphReadMaintenanceBudget,
+    ) -> Result<super::ForgeQueryLiveGraphReadAccessPlan, super::ForgeQueryLiveGraphReadAccessDenial>
+    {
+        let one_shot = match super::plan_admitted_graph_read_access_for_family(family) {
+            Ok(Some(one_shot)) => one_shot,
+            Ok(None) => {
+                return Err(super::ForgeQueryLiveGraphReadAccessDenial::new(
+                    super::ForgeQueryLiveGraphReadAccessPosture::DeniedLiveMaintenanceSupport,
+                    family.family_digest(),
+                    &budget,
+                    "live graph read access planning requires an admitted one-shot access plan",
+                ));
+            }
+            Err(error) => {
+                return Err(super::ForgeQueryLiveGraphReadAccessDenial::new(
+                    super::ForgeQueryLiveGraphReadAccessPosture::DeniedLiveMaintenanceSupport,
+                    family.family_digest(),
+                    &budget,
+                    format!("live graph read access planning could not derive one-shot access: {error:?}"),
+                ));
+            }
+        };
+        super::ForgeQueryLiveGraphReadAccessPlan::from_one_shot_access_plan(&one_shot, budget)
     }
 
     pub fn inspect_intent<'a, T>(
@@ -205,10 +269,6 @@ impl ForgeQueryWorkspace {
         T: ForgeQueryGenericInspectionIntentTarget<'a>,
     {
         self.runtime.inspect_intent(target)
-    }
-
-    pub fn observe_computed(&mut self, view_name: &str) -> ForgeQueryPatchBatch {
-        self.runtime.drain_derived_patches(view_name)
     }
 
     pub fn install_program(
@@ -233,52 +293,5 @@ impl ForgeQueryWorkspace {
         view_name: &str,
     ) -> Result<ForgeQueryUnifiedInspectionResult, ForgeQueryRuntimeError> {
         self.runtime.inspect_live_view_name_result(view_name)
-    }
-
-    pub fn subscription_basis_digest_by_name(
-        &self,
-        view_name: &str,
-    ) -> Result<String, ForgeQueryRuntimeError> {
-        Ok(self
-            .runtime
-            .inspect_live_view_name_installation(view_name)?
-            .basis_binding_digest()
-            .to_string())
-    }
-}
-
-fn live_bundle_snapshot_token(
-    reads: &BTreeMap<String, ForgeQueryLiveReadResult>,
-) -> Result<String, ForgeQueryRuntimeError> {
-    let snapshot_tokens = reads
-        .iter()
-        .map(|(view_name, result)| {
-            (
-                view_name.clone(),
-                result.receipt().snapshot_token().to_string(),
-            )
-        })
-        .collect::<Vec<_>>();
-    let distinct_snapshot_tokens = snapshot_tokens
-        .iter()
-        .map(|(_, snapshot_token)| snapshot_token.clone())
-        .collect::<BTreeSet<_>>();
-    match snapshot_tokens.as_slice() {
-        [] => Ok(String::new()),
-        [(_, snapshot_token)] if distinct_snapshot_tokens.len() == 1 => Ok(snapshot_token.clone()),
-        _ if distinct_snapshot_tokens.len() == 1 => Ok(snapshot_tokens[0].1.clone()),
-        _ => Err(ForgeQueryRuntimeError::ReadCompositionDenied(
-            super::ForgeQueryReadDenial::new(
-                super::ForgeQueryReadDenialKind::ExecutionDenied,
-                format!(
-                    "live artifact bundle materialized multiple snapshot tokens: {}",
-                    snapshot_tokens
-                        .iter()
-                        .map(|(view_name, snapshot_token)| format!("{view_name}:{snapshot_token}"))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ),
-            ),
-        )),
     }
 }

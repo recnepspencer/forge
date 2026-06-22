@@ -110,9 +110,9 @@ impl BridgeSharedDeliveryAcknowledgementFrontier {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
             shared_delivery_acknowledgement_identity:
-                BridgeSubscriptionSharedDeliveryAcknowledgementIdentity::new(format!(
-                    "bridge-shared-delivery-acknowledgement-id:sha256:{digest:x}"
-                )),
+                BridgeSubscriptionSharedDeliveryAcknowledgementIdentity::admit_bridge_owned(
+                    format!("bridge-shared-delivery-acknowledgement-id:sha256:{digest:x}"),
+                ),
             bundle_identity: Arc::from(
                 bundle
                     .shared_delivery_bundle_sealed_identity()

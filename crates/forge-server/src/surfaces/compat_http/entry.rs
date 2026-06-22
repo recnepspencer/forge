@@ -7,6 +7,7 @@ use crate::{
 };
 
 use super::{
+    abuse_accounting::{byte_class_for_request, ForgeServerAbuseBudgetReceipt},
     request_contract::{
         canonicalization::canonicalize_request, input::RawForgeServerCompatibilityBranchTarget,
         negotiation::negotiate_request,
@@ -88,6 +89,19 @@ impl ForgeServerCompatibilityFacade {
             }
         };
 
+        let tenant_id = resolved_request_context
+            .request_context()
+            .workspace_target()
+            .tenant_id()
+            .to_string();
+        let workspace_digest = resolved_request_context
+            .request_context()
+            .workspace_target()
+            .workspace_digest();
+        let branch_digest = resolved_request_context
+            .request_context()
+            .branch_target()
+            .branch_digest();
         let admission = self.middleware.admit(ForgeServerPipelineInput::new(
             resolved_request_context,
             lower_pipeline_intent(input.route_family()),
@@ -109,11 +123,31 @@ impl ForgeServerCompatibilityFacade {
                 ForgeServerCompatibilityPreparedRequest::new(admission, request_contract),
             ),
             TransitionOutcome::Denied(denial) => {
-                TransitionOutcome::denied(ForgeServerCompatibilityDenial::new(
+                let compatibility_denial = ForgeServerCompatibilityDenial::new(
                     ForgeServerCompatibilityDenialCode::MiddlewareDenied,
                     diagnostics_profile,
                     denial.detail(),
-                ))
+                );
+                let compatibility_denial = if denial.code()
+                    == crate::ForgeServerDenialCode::CompatHttpDiagnosticsBudgetExceeded
+                {
+                    compatibility_denial.with_abuse_budget_receipt(
+                        ForgeServerAbuseBudgetReceipt::denied(
+                            input.route_family(),
+                            byte_class_for_request(
+                                input.route_family(),
+                                canonical_request.method(),
+                            ),
+                            tenant_id,
+                            workspace_digest,
+                            branch_digest,
+                            denial.detail(),
+                        ),
+                    )
+                } else {
+                    compatibility_denial
+                };
+                TransitionOutcome::denied(compatibility_denial)
             }
             TransitionOutcome::Deferred(reason) => {
                 TransitionOutcome::deferred(ForgeServerCompatibilityDeferred::Middleware(reason))
@@ -223,6 +257,9 @@ fn lower_pipeline_intent(
 ) -> ForgeServerPipelineIntent {
     match route_family {
         ForgeServerCompatHttpRouteFamily::Mutation => {
+            ForgeServerPipelineIntent::query_mutation("compat_http.request_contract")
+        }
+        ForgeServerCompatHttpRouteFamily::Upload => {
             ForgeServerPipelineIntent::query_mutation("compat_http.request_contract")
         }
         _ => ForgeServerPipelineIntent::query_read("compat_http.request_contract"),

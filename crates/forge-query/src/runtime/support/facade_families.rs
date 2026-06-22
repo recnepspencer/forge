@@ -28,6 +28,9 @@ pub enum ForgeQueryRuntimeFacadeFamily {
     Read,
     Live,
     Computed,
+    SharedRead,
+    Submission,
+    Replay,
     Effect,
     BranchPreview,
     Write,
@@ -46,6 +49,9 @@ impl ForgeQueryRuntimeFacadeFamily {
             Self::Read => "read",
             Self::Live => "live",
             Self::Computed => "computed",
+            Self::SharedRead => "shared-read",
+            Self::Submission => "submission",
+            Self::Replay => "replay",
             Self::Effect => "effect",
             Self::BranchPreview => "branch-preview",
             Self::Write => "write",
@@ -161,6 +167,26 @@ impl ForgeQueryRuntimeFamilySupport {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn supported_with_teaching_posture_and_reason(
+        family: ForgeQueryRuntimeFacadeFamily,
+        teaching_posture: ForgeQueryRuntimeFamilyTeachingPosture,
+        authority_lanes: impl IntoIterator<Item = ForgeQueryAuthorityLane>,
+        effect_policies: impl IntoIterator<Item = ForgeQueryEffectPolicy>,
+        evidence: impl IntoIterator<Item = impl Into<String>>,
+        reason: impl Into<String>,
+    ) -> Self {
+        Self {
+            family,
+            status: ForgeQueryRuntimeFamilySupportStatus::Supported,
+            teaching_posture,
+            authority_lanes: authority_lanes.into_iter().collect(),
+            effect_policies: effect_policies.into_iter().collect(),
+            evidence: evidence.into_iter().map(Into::into).collect(),
+            denial_reason: Some(reason.into()),
+        }
+    }
+
     pub fn unsupported(family: ForgeQueryRuntimeFacadeFamily, reason: impl Into<String>) -> Self {
         Self::unsupported_with_evidence(family, reason, std::iter::empty::<String>())
     }
@@ -237,6 +263,12 @@ impl ForgeQueryRuntimeFamilySupport {
                 | ForgeQueryRuntimeFacadeFamily::Inspect,
                 ForgeQueryRuntimeFamilySupportStatus::Supported,
             ) => "Milestone 9.3",
+            (
+                ForgeQueryRuntimeFacadeFamily::SharedRead
+                | ForgeQueryRuntimeFacadeFamily::Submission
+                | ForgeQueryRuntimeFacadeFamily::Replay,
+                ForgeQueryRuntimeFamilySupportStatus::Supported,
+            ) => "Milestone 9.7",
             (
                 ForgeQueryRuntimeFacadeFamily::Intent,
                 ForgeQueryRuntimeFamilySupportStatus::Unsupported,

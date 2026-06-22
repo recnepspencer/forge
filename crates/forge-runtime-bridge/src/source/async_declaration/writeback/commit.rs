@@ -74,7 +74,7 @@ impl BridgeAsyncCommittedWriteback {
         staged: &StagedBridgeAsyncWritebackEffect,
         authority_receipt: TruthWritebackReceipt,
     ) -> Self {
-        let committed_identity = BridgeAsyncCommittedWritebackIdentity::new(
+        let committed_identity = BridgeAsyncCommittedWritebackIdentity::admit_bridge_owned(
             committed_receipt_identity(
                 staged.admitted().completion().completion_identity(),
                 authority_receipt.authoritative_artifact_digest(),
@@ -129,7 +129,7 @@ impl BridgeAsyncNoopWriteback {
         prior_receipt: &TruthWritebackReceipt,
     ) -> Self {
         Self {
-            noop_identity: BridgeAsyncNoopWritebackIdentity::new(format!(
+            noop_identity: BridgeAsyncNoopWritebackIdentity::admit_bridge_owned(format!(
                 "bridge-async-noop-writeback:{}",
                 noop_receipt_identity(
                     staged.admitted().completion().completion_identity(),
@@ -155,7 +155,7 @@ impl BridgeAsyncNoopWriteback {
         authoritative_artifact_digest: &str,
     ) -> Self {
         Self {
-            noop_identity: BridgeAsyncNoopWritebackIdentity::new(format!(
+            noop_identity: BridgeAsyncNoopWritebackIdentity::admit_bridge_owned(format!(
                 "bridge-async-noop-writeback:{}",
                 noop_receipt_identity(
                     staged.admitted().completion().completion_identity(),
@@ -207,7 +207,7 @@ impl BridgeAsyncWritebackRejectedWriteback {
         counters: BridgeAsyncWritebackCounters,
     ) -> Self {
         Self {
-            rejected_identity: BridgeAsyncRejectedWritebackIdentity::new(format!(
+            rejected_identity: BridgeAsyncRejectedWritebackIdentity::admit_bridge_owned(format!(
                 "bridge-async-rejected-writeback:{}",
                 rejected_receipt_identity(
                     staged.admitted().completion().completion_identity(),

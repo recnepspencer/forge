@@ -1,4 +1,8 @@
-use crate::runtime::{ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand};
+use crate::runtime::{
+    ForgeQueryAuthoritativeMutationObligationDispatch, ForgeQueryGraphTouchDescriptor,
+    ForgeQueryGraphTouchDescriptorDenial, ForgeQueryVerifiedExistingTruthAssertion,
+    ForgeQueryWriteCommand,
+};
 
 use super::{
     ForgeQueryAdmittedIntentPlanCore, ForgeQueryIntentAdmissionCoveredEntrypoint,
@@ -18,6 +22,7 @@ pub struct ForgeQueryAuthoritativeMutationExecutionPlan {
 pub struct ForgeQueryAuthoritativeMutationBatchExecutionPlan {
     inner: ForgeQueryAdmittedIntentPlanCore,
     seed: ForgeQueryAuthoritativeMutationBatchIntentSeed,
+    obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
 }
 
 impl ForgeQueryAuthoritativeMutationExecutionPlan {
@@ -104,6 +109,7 @@ impl ForgeQueryAuthoritativeMutationBatchExecutionPlan {
                 Some(execution_seam),
             ),
             seed,
+            obligation_dispatch: None,
         }
     }
 
@@ -125,6 +131,18 @@ impl ForgeQueryAuthoritativeMutationBatchExecutionPlan {
 
     pub fn batch_seed(&self) -> &ForgeQueryAuthoritativeMutationBatchIntentSeed {
         &self.seed
+    }
+
+    pub fn graph_touch_descriptor(
+        &self,
+    ) -> Result<ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchDescriptorDenial> {
+        self.seed.graph_touch_descriptor()
+    }
+
+    pub fn obligation_dispatch(
+        &self,
+    ) -> Option<&ForgeQueryAuthoritativeMutationObligationDispatch> {
+        self.obligation_dispatch.as_ref()
     }
 
     pub fn request_digest(&self) -> &str {

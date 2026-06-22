@@ -4,6 +4,9 @@ use crate::effect_lifecycle::{
     EffectPolicyPosture, EffectPreviewPosture, EffectStrategyIdentityTarget,
     LoweredEffectExecutionArtifact,
 };
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::workflow::WorkflowStalenessClass;
 
 use super::support::{
@@ -56,7 +59,9 @@ fn admitted_mutation_plan_lowers_into_one_executable_effect_artifact() {
         EffectStrategyIdentityTarget::NativeStrategyCommitRequest
     );
     assert_eq!(lowered.counters().lowered_effect_count(), 1);
-    assert!(!lowered.lowered_effect_execution_plan_digest().is_empty());
+    assert!(!lowered
+        .lowered_effect_execution_plan_for_reporting()
+        .is_empty());
 
     let mutation = lowered
         .as_mutation()
@@ -132,14 +137,27 @@ fn admitted_writeback_plan_lowers_into_one_executable_effect_artifact() {
         writeback.counters().workflow_writeback_declaration_count(),
         1
     );
+    let binding = lowered
+        .authority_scoped_plan()
+        .admitted()
+        .workflow_declaration()
+        .binding();
+    let expected_basis_identity = ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority,
+    )
+    .field_shape(ForgeQueryEvidenceTag::new("role"), "writeback_basis")
+    .field_shape(
+        ForgeQueryEvidenceTag::new("basis_family"),
+        binding.basis_family().as_str(),
+    )
+    .field_evidence_identity(
+        ForgeQueryEvidenceTag::new("basis"),
+        binding.basis_identity(),
+    )
+    .seal();
     assert_eq!(
-        writeback.causality_binding().basis_digest(),
-        lowered
-            .authority_scoped_plan()
-            .admitted()
-            .workflow_declaration()
-            .binding()
-            .basis_digest()
+        writeback.causality_binding().basis_identity(),
+        &expected_basis_identity
     );
     assert_eq!(
         lowered.counters().effect_lowering_width(),
@@ -168,5 +186,5 @@ fn lowering_denials_stay_typed_for_admitted_but_invalid_merge_pairs() {
     );
     assert_eq!(denial.counters().lowering_denied_count(), 1);
     assert_eq!(denial.counters().effect_lowering_width(), 1);
-    assert!(!denial.denial_digest().is_empty());
+    assert!(!denial.denial_for_reporting().is_empty());
 }

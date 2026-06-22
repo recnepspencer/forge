@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn reduced_merge_routing_artifact_tracks_continuity_candidate() {
         let declaration = MergeHistoryDeclaration::new(
-            MergeHistoryDeclarationIdentity::new("merge:test"),
+            MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:test"),
             BridgeMergeConsumptionClass::AspectReconciliationMerge,
             BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1"),
             BridgeMergeAuthorityBasis::new(
@@ -94,8 +94,8 @@ mod tests {
                 "rel-merge-v1",
                 "schema-policy-v1",
                 BridgeMergeParentOrderProof::new(vec![
-                    crate::facade::TruthCommitIdentity::new("parent-a"),
-                    crate::facade::TruthCommitIdentity::new("parent-b"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
                 ]),
             ),
         );

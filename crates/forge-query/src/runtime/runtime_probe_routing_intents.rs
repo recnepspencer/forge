@@ -90,17 +90,22 @@ impl ForgeQueryRuntime {
             .backend
             .probe_existing_truth(binding.request())
             .map_err(ForgeQueryRuntimeError::ExistingTruthProbeDenied)?;
+        let snapshot_identity = self.current_snapshot_identity();
         let receipt = ForgeQueryExistingTruthProbeReceipt::from_probe(
             binding.request(),
             &probe,
-            self.backend.snapshot_token(),
+            snapshot_identity,
         );
         let mut result = ForgeQueryExistingTruthProbeResult::new(probe, receipt);
         let decision_trace_envelope =
             ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
                 binding.family(),
                 binding.entrypoint(),
-                binding.request().binding().authoritative_identity(),
+                binding
+                    .request()
+                    .binding()
+                    .authoritative_identity()
+                    .as_str(),
                 binding.handoff().request_digest(),
                 binding.handoff().eligibility_trace().clone(),
                 binding.handoff().decision_digest(),
@@ -110,16 +115,18 @@ impl ForgeQueryRuntime {
                 result.receipt().probe_digest(),
                 "existing-truth-probe",
             );
-        let execution_provenance = ForgeQueryIntentExecutionProvenance::for_shared_execution_parts(
-            binding.family(),
-            binding.entrypoint(),
-            binding.execution_seam(),
-            binding.handoff().decision_digest(),
-            binding.handoff().handoff_digest(),
-            binding.binding_digest(),
-            result.receipt().probe_digest(),
-            result.receipt().snapshot_token(),
-        );
+        let snapshot_evidence_identity = self.current_snapshot_identity().evidence_identity();
+        let execution_provenance =
+            ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+                binding.family(),
+                binding.entrypoint(),
+                binding.execution_seam(),
+                binding.handoff().decision_digest(),
+                binding.handoff().handoff_digest(),
+                binding.binding_digest(),
+                result.receipt().probe_digest(),
+                &snapshot_evidence_identity,
+            );
         result.attach_intent_admission_evidence(decision_trace_envelope, execution_provenance);
         Ok(result)
     }

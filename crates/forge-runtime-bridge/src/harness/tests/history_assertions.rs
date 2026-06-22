@@ -37,18 +37,18 @@ pub(super) fn assert_historical_record(
 ) {
     assert_eq!(
         record.decision_log().snapshot_identity().as_str(),
-        snapshot_identity
+        crate::truth_identity_fixtures::truth_snapshot_fixture(snapshot_identity).as_str()
     );
     assert_eq!(
         record.decision_log().branch_identity().as_str(),
-        branch_identity
+        crate::truth_identity_fixtures::truth_branch_fixture(branch_identity).as_str()
     );
     assert_eq!(
         record
             .decision_log()
             .commit_identity()
             .map(|identity| identity.as_str()),
-        Some(commit_identity)
+        Some(crate::truth_identity_fixtures::truth_commit_fixture(commit_identity).as_str())
     );
     assert_eq!(
         record.decision_log().materialization_path(),
@@ -69,6 +69,6 @@ pub(super) fn assert_historical_replay_summary(
     );
     assert_eq!(
         replay_summary.snapshot_identity().as_str(),
-        snapshot_identity
+        crate::truth_identity_fixtures::truth_snapshot_fixture(snapshot_identity).as_str()
     );
 }

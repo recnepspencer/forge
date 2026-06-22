@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
+use crate::input::envelope::TruthCommitIdentity;
 use crate::routing::{
     BridgeCanonicalBulkPlanRecord, BridgeInvalidationIdentity, BridgeRouteIdentity,
     BridgeWorkloadIdentity,
@@ -18,6 +19,7 @@ use super::merge::{BridgeCanonicalMergeRecord, BridgeMergeRecordIdentity};
 use super::records::{BridgeFailureRecord, BridgeRouteRecord};
 use super::structural::{
     BridgeCanonicalStructuralBranchComparisonRecord, BridgeCanonicalStructuralRemapRecord,
+    BridgeStructuralBranchComparisonRecordIdentity, BridgeStructuralRemapRecordIdentity,
 };
 use crate::speculation::{
     BridgePreviewDiscardRecord, BridgePreviewDiscardRecordIdentity, BridgePreviewExecutionRecord,
@@ -67,9 +69,10 @@ pub(crate) struct BridgeDiagnosticsState {
     stream_checkpoints: VecDeque<Arc<ConsumerCheckpointToken>>,
     stream_replay_records: VecDeque<Arc<CanonicalStreamReplayRecord>>,
     failure_records: VecDeque<Arc<BridgeFailureRecord>>,
-    latest_route_by_route_identity: BTreeMap<String, Arc<BridgeRouteRecord>>,
+    latest_route_by_route_identity: BTreeMap<BridgeRouteIdentity, Arc<BridgeRouteRecord>>,
     latest_bulk_by_workload_identity: BTreeMap<String, Arc<BridgeCanonicalBulkPlanRecord>>,
-    latest_continuity_by_route_identity: BTreeMap<String, Arc<BridgeCanonicalContinuityRecord>>,
+    latest_continuity_by_route_identity:
+        BTreeMap<BridgeRouteIdentity, Arc<BridgeCanonicalContinuityRecord>>,
     latest_merge_by_record_identity: BTreeMap<String, Arc<BridgeCanonicalMergeRecord>>,
     latest_historical_by_record_identity:
         BTreeMap<String, Arc<BridgeCanonicalHistoricalEvaluationRecord>>,
@@ -120,6 +123,7 @@ pub(crate) struct BridgeDiagnosticsState {
     latest_stream_checkpoint_by_identity: BTreeMap<String, Arc<ConsumerCheckpointToken>>,
     latest_stream_replay_by_identity: BTreeMap<String, Arc<CanonicalStreamReplayRecord>>,
     latest_stream_replay_by_checkpoint_identity: BTreeMap<String, Arc<CanonicalStreamReplayRecord>>,
-    latest_route_by_invalidation_identity: BTreeMap<String, Arc<BridgeRouteRecord>>,
-    latest_route_by_source_commit: BTreeMap<String, Arc<BridgeRouteRecord>>,
+    latest_route_by_invalidation_identity:
+        BTreeMap<BridgeInvalidationIdentity, Arc<BridgeRouteRecord>>,
+    latest_route_by_source_commit: BTreeMap<TruthCommitIdentity, Arc<BridgeRouteRecord>>,
 }

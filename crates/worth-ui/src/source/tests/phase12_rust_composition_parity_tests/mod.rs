@@ -1,0 +1,4 @@
+mod rust_composition_fixture_support;
+mod rust_escape_hatch_containment_cases;
+mod rust_file_canonical_parity_cases;
+mod rust_resolution_rejection_cases;

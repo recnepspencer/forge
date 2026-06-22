@@ -86,7 +86,10 @@ Use the explicit primitives when you need certification-grade control over each 
 ```rust
 let anchor = anchor_causal_observation(receipt, reason)?;
 let references = resolve_causal_evidence_references(anchor, families);
-let target = causal_inspection_target(observation_digest, shape_digest)?;
+let target = causal_inspection_target(
+    CausalObservationTargetHandle::new(observation_digest),
+    CausalResultShapeContextHandle::new(shape_digest),
+)?;
 let request = request_causal_inspection(reference_set, target, family, richness, families)?;
 let admission = admit_causal_inspection(request);
 ```

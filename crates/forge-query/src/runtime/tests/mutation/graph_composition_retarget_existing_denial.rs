@@ -28,7 +28,7 @@ fn seed_relation_binding(
     workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-next",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-next").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing relation target should build")
@@ -53,8 +53,20 @@ fn compose_graph_denies_existing_target_retarget_with_split_successor_continuity
             graph.retarget_existing(binding, |relation| {
                 relation
                     .continuity_split_successors(
-                        "authority:rel-next",
-                        ["authority:rel-next-left", "authority:rel-next-right"],
+                        crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new(
+                            "authority:rel-next",
+                        )
+                        .expect("continuity prior authority label")).expect("continuity prior authority identity"),
+                        [
+                            crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                                "authority:rel-next-left",
+                            )
+                            .expect("continuity successor authority label")).expect("continuity successor authority identity"),
+                            crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                                "authority:rel-next-right",
+                            )
+                            .expect("continuity successor authority label")).expect("continuity successor authority identity"),
+                        ],
                     )
                     .aspect("target.id", "loop-c")
             })?;

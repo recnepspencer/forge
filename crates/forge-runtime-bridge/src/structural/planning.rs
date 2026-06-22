@@ -11,6 +11,12 @@ use super::{
 
 pub type StructuralCandidateIdentity = BridgeIdentity<StructuralCandidateIdentityTag>;
 
+impl StructuralCandidateIdentity {
+    pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
+        Self::admit_bridge_owned(value)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum StructuralMatchCandidateKind {
     ExactAdvisoryMatch,
@@ -204,8 +210,8 @@ mod tests {
         PlannedStructuralMatchPacketSet, StructuralCandidateIdentity, StructuralMatchCandidate,
         StructuralMatchCandidateKind,
     };
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::structural::{
         AdmittedStructuralRegistry, StructuralFingerprintEquivalenceContract,
         StructuralFingerprintFamily, StructuralFingerprintNormalizationRule,
@@ -216,10 +222,10 @@ mod tests {
 
     fn admitted_contract() -> crate::structural::AdmittedStructuralComparisonContract {
         let declaration = StructuralIdentityDeclaration::advisory_remap(
-            StructuralIdentityDeclarationIdentity::new("structural:geometry"),
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintEquivalenceContract::new(
-                StructuralSchemaIdentity::new("schema:geometry"),
+                StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                 StructuralFingerprintFamily::TopologyFingerprint,
                 "topology-v1",
                 StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -228,8 +234,8 @@ mod tests {
             ),
             StructuralTruthViewBasis::explicit_snapshot(
                 BridgeTruthViewSelector::committed_snapshot(
-                    TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             ),
         );
@@ -248,7 +254,7 @@ mod tests {
             None,
             None,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:a"),
+                StructuralCandidateIdentity::admit_bridge_owned("candidate:a"),
                 StructuralMatchCandidateKind::ExactAdvisoryMatch,
             )],
         );
@@ -258,7 +264,7 @@ mod tests {
             None,
             None,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:a"),
+                StructuralCandidateIdentity::admit_bridge_owned("candidate:a"),
                 StructuralMatchCandidateKind::ExactAdvisoryMatch,
             )],
         );

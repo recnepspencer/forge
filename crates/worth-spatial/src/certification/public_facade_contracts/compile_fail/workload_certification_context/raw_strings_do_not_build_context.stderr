@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `from_raw_strings` found for struct `WorkloadCertificationContext<'a, OC, SC, PC, PRC, WC, AC, PXC, FC>` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/workload_certification_context/raw_strings_do_not_build_context.rs:4:43
+  |
+4 |     let _ = WorkloadCertificationContext::from_raw_strings(
+  |                                           ^^^^^^^^^^^^^^^^ function or associated item not found in `WorkloadCertificationContext<'_, _, _, _, _, _, _, _, _>`

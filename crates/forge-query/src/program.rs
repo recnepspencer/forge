@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::Value;
 
 use crate::declarative_live::DeclarativeLiveQueryRequest;
+use crate::memory_workspace::ForgeQueryCommitIdentity;
 use crate::schema_view::QuerySchemaView;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -116,19 +117,17 @@ impl ForgeQueryWriteCommandTemplate {
                 aspect_path,
                 value,
             } => Ok(crate::runtime::ForgeQueryWriteCommand::UpdateAspect {
-                entity_identity: expect_string(
-                    entity_identity.evaluate(inputs)?,
-                    "entity_identity",
-                )?,
+                entity_identity: crate::memory_workspace::admit_authored_entity_label(
+                    expect_string(entity_identity.evaluate(inputs)?, "entity_identity")?,
+                ),
                 aspect_path: aspect_path.clone(),
                 value: value.evaluate(inputs)?,
             }),
             Self::Delete { entity_identity } => {
                 Ok(crate::runtime::ForgeQueryWriteCommand::Delete {
-                    entity_identity: expect_string(
-                        entity_identity.evaluate(inputs)?,
-                        "entity_identity",
-                    )?,
+                    entity_identity: crate::memory_workspace::admit_authored_entity_label(
+                        expect_string(entity_identity.evaluate(inputs)?, "entity_identity")?,
+                    ),
                 })
             }
         }
@@ -525,7 +524,7 @@ pub struct ForgeQueryProgramTrace {
     bound_inputs: Vec<String>,
     authority_requirements: Vec<ForgeQueryAuthorityRequirement>,
     generated_declarations: Vec<String>,
-    write_receipts: Vec<String>,
+    write_receipts: Vec<ForgeQueryCommitIdentity>,
     patch_artifacts: Vec<String>,
     replay_or_parity_metadata: Vec<String>,
 }
@@ -553,8 +552,8 @@ impl ForgeQueryProgramTrace {
         self.generated_declarations.push(declaration.into());
     }
 
-    pub(crate) fn record_write_receipt(&mut self, receipt: impl Into<String>) {
-        self.write_receipts.push(receipt.into());
+    pub(crate) fn record_write_receipt(&mut self, receipt: ForgeQueryCommitIdentity) {
+        self.write_receipts.push(receipt);
     }
 
     pub(crate) fn record_patch_artifact(&mut self, artifact: impl Into<String>) {
@@ -577,7 +576,7 @@ impl ForgeQueryProgramTrace {
         &self.generated_declarations
     }
 
-    pub fn write_receipts(&self) -> &[String] {
+    pub fn write_receipts(&self) -> &[ForgeQueryCommitIdentity] {
         &self.write_receipts
     }
 

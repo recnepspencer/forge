@@ -1,0 +1,25 @@
+error: cannot construct `ForgeQueryGraphReadPolicyTenantProofBinding` with struct literal syntax due to private fields
+  --> tests/ui/graph_read_access/policy_tenant_proof_constructor_private.rs:7:13
+   |
+ 7 |     let _ = ForgeQueryGraphReadPolicyTenantProofBinding {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 8 |         read_graph_digest: String::new(),
+   |         -------------------------------- private field
+ 9 |         policy_tenant_posture: ForgeQueryGraphReadPolicyTenantPosture::SyntheticRuntimeCurrentRead,
+   |         ------------------------------------------------------------------------------------------ private field
+10 |         relationship_proof_posture: ForgeQueryGraphReadRelationshipProofBindingPosture::NotRequired,
+   |         ------------------------------------------------------------------------------------------- private field
+11 |         relationship_proof_admission_digest: None,
+   |         ----------------------------------------- private field
+   |
+   = note: ...and other private fields `policy_tenant_admission_digest` and `authority_receipt_digest` that were not provided
+help: you might have meant to use the `new` associated function
+   |
+ 7 -     let _ = ForgeQueryGraphReadPolicyTenantProofBinding {
+ 8 -         read_graph_digest: String::new(),
+ 9 -         policy_tenant_posture: ForgeQueryGraphReadPolicyTenantPosture::SyntheticRuntimeCurrentRead,
+10 -         relationship_proof_posture: ForgeQueryGraphReadRelationshipProofBindingPosture::NotRequired,
+11 -         relationship_proof_admission_digest: None,
+12 -     };
+ 7 +     let _ = ForgeQueryGraphReadPolicyTenantProofBinding::new(_, _, _, _, _, _);
+   |

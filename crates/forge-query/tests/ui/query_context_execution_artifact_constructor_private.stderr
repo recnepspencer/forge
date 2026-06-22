@@ -38,4 +38,4 @@ error: cannot construct `QueryContextExecutionArtifact` with struct literal synt
 21 |         counters: unsafe { std::mem::zeroed() },
    |         --------------------------------------- private field
    |
-   = note: ...and other private field `result_shape_digest` that was not provided
+   = note: ...and other private fields `result_shape_digest` and `materialized_fact_posture` that were not provided

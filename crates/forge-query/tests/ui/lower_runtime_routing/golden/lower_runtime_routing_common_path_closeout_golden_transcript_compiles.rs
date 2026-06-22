@@ -4,6 +4,15 @@ use forge_query::facade::{
 };
 
 fn main() {
+    std::thread::Builder::new()
+        .stack_size(16 * 1024 * 1024)
+        .spawn(run)
+        .expect("golden transcript thread should spawn")
+        .join()
+        .expect("golden transcript should run");
+}
+
+fn run() {
     let report = forge_query_lower_runtime_closeout_report();
     let manifest = forge_query_lower_runtime_phase_manifest();
     let closure = forge_query_lower_runtime_closure_test();

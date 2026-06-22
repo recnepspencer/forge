@@ -281,9 +281,10 @@ impl BridgeSubscriptionPreviewLifecycleDiscardProof {
         );
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            proof_identity: BridgeSubscriptionPreviewDiscardResidueProofIdentity::new(format!(
-                "bridge-subscription-preview-lifecycle-discard-proof-id:sha256:{digest:x}"
-            )),
+            proof_identity:
+                BridgeSubscriptionPreviewDiscardResidueProofIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-preview-lifecycle-discard-proof-id:sha256:{digest:x}"
+                )),
             preview_active_subscription_identity: preview_active
                 .preview_active_subscription_identity()
                 .clone(),

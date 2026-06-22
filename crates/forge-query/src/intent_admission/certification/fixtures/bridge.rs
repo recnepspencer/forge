@@ -6,19 +6,21 @@ use forge_runtime_bridge::facade::{
     AspectKeySelector, BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity,
     BridgeCommittedPatchItem, BridgeCommittedPatchTarget, BridgeDeliveryReceipt, BridgeMappingId,
     BridgeMappingRegistration, CoarseRoutingMode, InvalidationSink, MappingSelector,
-    RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
-    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
-    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
-    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
-    TruthPatchTargetSelector, TruthSnapshotIdentity, TruthSnapshotReader,
+    RelationalBridgeSnapshotIdentityParts, RelationalBridgeSourceError,
+    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult,
+    SnapshotReadRecord, SnapshotReadSource, TruthBranchIdentity, TruthCommitIdentity,
+    TruthPatchIdentity, TruthPatchScope, TruthPatchTargetSelector, TruthSnapshotIdentity,
+    TruthSnapshotReader,
 };
 
 pub(crate) fn certification_bridge() -> RuntimeBridge {
     RuntimeBridgeBuilder::new()
         .with_relational_source(CertificationBridgeSource)
         .with_signal_sink(CertificationBridgeSink)
+        .with_writeback_authority(CertificationWritebackAuthority)
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("certification-external"),
+            BridgeMappingId::from_stable_name("certification-external"),
             TruthPatchScope::new(
                 MappingSelector::any(),
                 AspectKeySelector::exact(aspect_key("certification-aspect")),
@@ -28,7 +30,7 @@ pub(crate) fn certification_bridge() -> RuntimeBridge {
                 aspect_key("certification-aspect"),
                 ScalarAspectType::String,
             ),
-            SignalInvalidationScope::new("certification-external"),
+            SignalInvalidationScope::from_stable_name("certification-external"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -45,8 +47,6 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for CertificationBridgeS
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(native_patch_envelope(
             request.commit_identity().clone(),
-            "certification-external-snapshot",
-            "main",
             "certification-entity",
             "certification-aspect",
             "value",
@@ -92,19 +92,21 @@ impl TruthSnapshotReader for CertificationSnapshotReader {
 
 fn native_patch_envelope(
     commit_identity: TruthCommitIdentity,
-    snapshot_identity: &str,
-    branch_identity: &str,
     entity_identity: &str,
     aspect: &str,
     field: &str,
 ) -> BridgeCommittedPatchEnvelope {
-    let patch_identity = TruthPatchIdentity::new(format!("patch:{}", commit_identity.as_str()));
+    let commit_id = commit_identity.relational_commit_id().expect(
+        "intent certification fixture commit identity must retain relational commit payload",
+    );
     BridgeCommittedPatchEnvelope::new(
         BridgeCommittedPatchEnvelopeIdentity::new(
             commit_identity,
-            patch_identity,
-            TruthSnapshotIdentity::new(snapshot_identity),
-            TruthBranchIdentity::new(branch_identity),
+            TruthPatchIdentity::from_relational_patch_position(commit_id),
+            TruthSnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(1, commit_id),
+            ),
+            TruthBranchIdentity::from_relational_branch_id("main"),
         ),
         vec![BridgeCommittedPatchItem::with_target(
             entity_identity,
@@ -135,6 +137,24 @@ impl InvalidationSink for CertificationBridgeSink {
         Ok(BridgeDeliveryReceipt::new(
             delivery.invalidation_targets().len(),
             delivery.source_snapshot().clone(),
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+struct CertificationWritebackAuthority;
+
+impl forge_runtime_bridge::facade::TruthWritebackAuthority for CertificationWritebackAuthority {
+    fn execute_writeback(
+        &self,
+        request: forge_runtime_bridge::facade::TruthWritebackRequest,
+    ) -> Result<
+        forge_runtime_bridge::facade::TruthWritebackReceipt,
+        forge_runtime_bridge::facade::TruthWritebackAuthorityError,
+    > {
+        Ok(forge_runtime_bridge::facade::TruthWritebackReceipt::new(
+            forge_runtime_bridge::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
+            &request,
         ))
     }
 }

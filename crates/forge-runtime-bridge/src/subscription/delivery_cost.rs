@@ -136,9 +136,10 @@ impl BridgeSubscriptionDeliveryCostProfile {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            cost_profile_identity: BridgeSubscriptionDeliveryCostProfileIdentity::new(format!(
-                "bridge-subscription-delivery-cost-profile-id:sha256:{digest:x}"
-            )),
+            cost_profile_identity:
+                BridgeSubscriptionDeliveryCostProfileIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-delivery-cost-profile-id:sha256:{digest:x}"
+                )),
             density_posture,
             max_member_count,
             max_coalesced_member_width,

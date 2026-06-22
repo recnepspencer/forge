@@ -1,4 +1,7 @@
 use super::super::support::*;
+use crate::runtime::evidence_identities::{
+    runtime_state_snapshot_basis_label_identity, runtime_state_snapshot_test_subject_identity,
+};
 use crate::subscription::QuerySubscriptionDeliveryCauseKind;
 use forge_runtime_bridge::facade::{
     BridgeAsyncCompletionClass, BridgeAsyncCompletionState, BridgeAsyncRequestTruthViewBasis,
@@ -11,6 +14,7 @@ fn remasked_runtime(projection: ForgeQueryRuntimeRemaskProjection) -> ForgeQuery
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(RemaskingSubscriptionActivation { projection })
@@ -46,7 +50,11 @@ fn runtime_downstream_delivery_projects_time_only_contract_with_explicit_resume_
         .downstream_delivery(&view)
         .expect("downstream delivery should project")
         .expect("retained time-only delivery should exist");
-    let basis_digest = view.subscription_installation().basis_binding_digest();
+    let basis_digest = view
+        .subscription_installation()
+        .basis_binding_projection()
+        .label()
+        .to_string();
 
     assert_eq!(
         delivery.delivery_class(),
@@ -68,9 +76,13 @@ fn runtime_downstream_delivery_projects_time_only_contract_with_explicit_resume_
         delivery.delivery_cause_kind(),
         QuerySubscriptionDeliveryCauseKind::WindowEntry
     );
-    assert_eq!(delivery.basis_digest(), basis_digest);
+    assert_eq!(delivery.basis_for_reporting(), basis_digest);
     assert_eq!(
-        delivery.negotiate_runtime_resume(Some(basis_digest)).kind(),
+        delivery
+            .negotiate_runtime_resume(Some(
+                view.subscription_installation().basis_binding_identity()
+            ))
+            .kind(),
         ForgeQueryRuntimeDownstreamResumePostureKind::RuntimeBackedAdmitted
     );
     assert_eq!(
@@ -96,9 +108,9 @@ fn runtime_downstream_delivery_projects_mixed_cause_and_async_truth_without_recl
         &bridge,
         forge_signal::facade::NodeId::new(301, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::from_bridge_harness_label("truth-main"),
+            TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
         ),
         64,
     );
@@ -151,12 +163,12 @@ fn runtime_downstream_delivery_projects_mixed_cause_and_async_truth_without_recl
         delivery.delivery_class(),
         ForgeQueryRuntimeDownstreamDeliveryClass::MixedCause
     );
-    assert!(delivery.mixed_cause_digest().is_some());
-    assert!(delivery.async_result_state_digest().is_some());
+    assert!(delivery.mixed_cause_for_reporting().is_some());
+    assert!(delivery.async_result_state_for_reporting().is_some());
     assert_eq!(
         delivery
             .negotiate_runtime_resume(Some(
-                view.subscription_installation().basis_binding_digest()
+                view.subscription_installation().basis_binding_identity()
             ))
             .kind(),
         ForgeQueryRuntimeDownstreamResumePostureKind::RuntimeBackedAdmitted
@@ -200,10 +212,12 @@ fn runtime_downstream_delivery_fails_closed_for_stale_basis_and_preserves_remask
         delivery.support_posture(),
         ForgeQueryRuntimeDownstreamSupportPosture::Denied
     );
-    assert!(delivery.remask_digest().is_some());
+    assert!(delivery.remask_for_reporting().is_some());
     assert_eq!(
         delivery
-            .negotiate_runtime_resume(Some("basis:drifted"))
+            .negotiate_runtime_resume(Some(&runtime_state_snapshot_basis_label_identity(
+                &runtime_state_snapshot_test_subject_identity("basis:drifted"),
+            )))
             .kind(),
         ForgeQueryRuntimeDownstreamResumePostureKind::StaleBasisDenied
     );

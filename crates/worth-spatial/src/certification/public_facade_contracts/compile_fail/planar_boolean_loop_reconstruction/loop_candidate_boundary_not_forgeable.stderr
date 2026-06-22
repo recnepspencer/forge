@@ -1,0 +1,11 @@
+error[E0451]: fields `loop_candidates`, `denied_loop_candidates` and `counters` of struct `PlanarBooleanLoopCandidateBoundary` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_loop_reconstruction/loop_candidate_boundary_not_forgeable.rs:12:9
+   |
+11 |     let _ = PlanarBooleanLoopCandidateBoundary {
+   |             ---------------------------------- in this type
+12 |         loop_candidates: bogus::<PlanarBooleanLoopCandidateSet>(),
+   |         ^^^^^^^^^^^^^^^ private field
+13 |         denied_loop_candidates: bogus::<PlanarBooleanDeniedLoopCandidateSet>(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         counters: PlanarBooleanLoopCandidateCounters::default(),
+   |         ^^^^^^^^ private field

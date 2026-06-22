@@ -33,15 +33,25 @@ fn runtime_family_certification_closes_with_admitted_and_hostile_family_coverage
         CoverageResolutionPosture::IndexedCoverageSet,
     )
     .unwrap();
-    let support_report_digest = artifacts.support_report.report_digest().to_string();
+    let support_report_digest = artifacts
+        .support_report
+        .report_projection()
+        .label()
+        .to_string();
     let bridge_parity_digest = artifacts
         .parity_explanation
-        .explanation_digest()
+        .explanation_projection()
+        .label()
         .to_string();
-    let diagnostic_bundle_digest = artifacts.admitted_bundle.bundle_digest().to_string();
+    let diagnostic_bundle_digest = artifacts
+        .admitted_bundle
+        .bundle_projection()
+        .label()
+        .to_string();
     let lifecycle_certification_digest = artifacts
         .lifecycle_bundle
-        .certification_bundle_digest()
+        .certification_bundle_projection()
+        .label()
         .to_string();
     let scope = build_query_subscription_runtime_certification_scope(
         artifacts.support_report,
@@ -64,12 +74,21 @@ fn runtime_family_certification_closes_with_admitted_and_hostile_family_coverage
     assert_eq!(receipt.uncovered_variation_width(), 0);
     assert_eq!(bundle.counters().certified_family_count(), 1);
     assert_eq!(bundle.counters().hostile_row_coverage_count(), 1);
-    assert_eq!(bundle.support_report_digest(), support_report_digest);
-    assert_eq!(bundle.bridge_parity_digest(), bridge_parity_digest);
-    assert_eq!(bundle.diagnostic_bundle_digest(), diagnostic_bundle_digest);
     assert_eq!(
-        bundle.lifecycle_certification_digest(),
-        lifecycle_certification_digest
+        bundle.support_report_projection().label().as_str(),
+        support_report_digest.as_str()
+    );
+    assert_eq!(
+        bundle.bridge_parity_projection().label().as_str(),
+        bridge_parity_digest.as_str()
+    );
+    assert_eq!(
+        bundle.diagnostic_bundle_projection().label().as_str(),
+        diagnostic_bundle_digest.as_str()
+    );
+    assert_eq!(
+        bundle.lifecycle_certification_projection().label().as_str(),
+        lifecycle_certification_digest.as_str()
     );
 }
 
@@ -418,13 +437,13 @@ fn runtime_certification_artifacts_for_source(
         ),
     )
     .unwrap();
-    let delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         attachment.lane_digest().clone(),
         "affected-scope",
         MaintenanceDeltaWidth::measured(1),
     );
-    let delivery_window_digest = window.delivery_window_digest().to_string();
+    let _delivery_window_digest = window.delivery_window_projection().label().to_string();
     let (delta, lowering_report, _) = lower_query_subscription_maintenance_delta(delta).unwrap();
     let work_packet = build_active_delivery_work_packet(
         &mut runtime,
@@ -463,7 +482,7 @@ fn runtime_certification_artifacts_for_source(
         &active_admission,
         &handle,
         &attachment,
-        delivery_window_digest,
+        delivery_batch.delivery_window_identity(),
         &delta,
         &lowering_report,
         &work_packet,
@@ -475,7 +494,11 @@ fn runtime_certification_artifacts_for_source(
     )
     .unwrap();
     let support_report = report_query_subscription_support(
-        QuerySubscriptionSupportSubject::active_lifecycle(&declaration, &active_admission),
+        QuerySubscriptionSupportSubject::active_lifecycle(
+            &declaration,
+            &admission,
+            &active_admission,
+        ),
         QuerySubscriptionSupportEvidence::admission(&declaration, &admission).unwrap(),
     )
     .unwrap()

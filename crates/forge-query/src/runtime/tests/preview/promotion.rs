@@ -9,7 +9,7 @@ fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residu
 
     let outcome = {
         let mut preview = runtime
-            .preview("discard closeout")
+            .preview(test_session_label("discard closeout"))
             .expect("preview session should be admitted");
         preview.use_view(&live);
         preview
@@ -50,6 +50,10 @@ fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residu
     assert_eq!(closeout.authoritative_residue_count(), 0);
     assert_eq!(closeout.effect_delivery_residue_count(), 0);
     assert_eq!(closeout.pending_write_intent_residue_count(), 0);
+    assert_eq!(
+        closeout.closeout_identity().as_str(),
+        closeout.closeout_digest()
+    );
     assert!(!closeout.closeout_digest().is_empty());
     assert!(runtime.read_live(&live).is_empty());
 }
@@ -70,7 +74,7 @@ fn preview_promotion_closeout_records_consumed_staging_without_preview_lane_muta
     let outcome = {
         let mut preview = runtime
             .preview_with_options(
-                "promotion closeout",
+                test_session_label("promotion closeout"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should be admitted");
@@ -101,6 +105,10 @@ fn preview_promotion_closeout_records_consumed_staging_without_preview_lane_muta
         closeout.effect_policy(),
         ForgeQueryEffectPolicy::SandboxedWriteIntent
     );
+    assert_eq!(
+        closeout.closeout_identity().as_str(),
+        closeout.closeout_digest()
+    );
 
     let view = runtime
         .declare_live_view::<Value>(
@@ -122,7 +130,8 @@ fn preview_promotion_rejects_stale_basis_before_authority_execution() {
     let mut runtime = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
-        .source_adapter(DriftingSnapshotSourceAdapter::default())
+        .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(DriftingSnapshotIdentityAdapter::default())
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -134,7 +143,7 @@ fn preview_promotion_rejects_stale_basis_before_authority_execution() {
 
     let error = {
         let mut preview = runtime
-            .preview("stale basis")
+            .preview(test_session_label("stale basis"))
             .expect("preview session should be admitted");
         preview
             .write(insert_command(
@@ -159,8 +168,8 @@ fn preview_promotion_rejects_stale_basis_before_authority_execution() {
             assert_eq!(evidence.staged_preview_write_count(), 1);
             assert_eq!(evidence.promoted_write_count(), 0);
             assert_ne!(
-                evidence.basis_snapshot_token(),
-                evidence.promotion_snapshot_token()
+                evidence.basis_snapshot_identity(),
+                evidence.promotion_snapshot_identity()
             );
             assert!(!evidence.denial_digest().is_empty());
         }
@@ -174,6 +183,7 @@ fn preview_promotion_write_failure_is_typed_and_not_silently_dropped() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(DenyingWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -185,7 +195,7 @@ fn preview_promotion_write_failure_is_typed_and_not_silently_dropped() {
 
     let error = {
         let mut preview = runtime
-            .preview("write failure")
+            .preview(test_session_label("write failure"))
             .expect("preview session should be admitted");
         preview
             .write(insert_command(
@@ -224,6 +234,7 @@ fn preview_promotion_rejects_multi_write_batch_before_partial_authority_executio
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(CountingWriteAuthority {
             attempted_writes: attempted_writes.clone(),
         })
@@ -237,7 +248,7 @@ fn preview_promotion_rejects_multi_write_batch_before_partial_authority_executio
 
     let error = {
         let mut preview = runtime
-            .preview("multi write promotion")
+            .preview(test_session_label("multi write promotion"))
             .expect("preview session should be admitted");
         preview
             .write(insert_command(

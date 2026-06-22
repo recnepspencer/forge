@@ -98,9 +98,10 @@ impl AdmittedBridgeHistoricalTruthViewBasis {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            historical_truth_basis_identity: BridgeSubscriptionHistoricalTruthBasisIdentity::new(
-                format!("bridge-historical-truth-view-basis-id:sha256:{digest:x}"),
-            ),
+            historical_truth_basis_identity:
+                BridgeSubscriptionHistoricalTruthBasisIdentity::admit_bridge_owned(format!(
+                    "bridge-historical-truth-view-basis-id:sha256:{digest:x}"
+                )),
             truth_basis: truth_basis.clone(),
             counters: BridgeSubscriptionCounters::from_historical_truth_basis_admission(),
             canonical_basis,
@@ -175,9 +176,9 @@ impl RetainedHistoricalPreviousValueEvidence {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             previous_value_evidence_identity:
-                BridgeSubscriptionHistoricalPreviousValueEvidenceIdentity::new(format!(
-                    "bridge-historical-previous-value-evidence-id:sha256:{digest:x}"
-                )),
+                BridgeSubscriptionHistoricalPreviousValueEvidenceIdentity::admit_bridge_owned(
+                    format!("bridge-historical-previous-value-evidence-id:sha256:{digest:x}"),
+                ),
             truth_branch_identity,
             truth_snapshot_identity,
             references,

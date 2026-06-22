@@ -26,9 +26,10 @@ impl BridgeSubscriptionDeliveryBufferPlan {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            buffer_lifecycle_identity: BridgeSubscriptionDeliveryBufferLifecycleIdentity::new(
-                format!("bridge-subscription-delivery-buffer-lifecycle-id:sha256:{digest:x}"),
-            ),
+            buffer_lifecycle_identity:
+                BridgeSubscriptionDeliveryBufferLifecycleIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-delivery-buffer-lifecycle-id:sha256:{digest:x}"
+                )),
             member_capacity,
             counters: BridgeSubscriptionCounters::from_delivery_buffer_plan(),
             canonical_basis,

@@ -30,7 +30,7 @@ impl BridgeInvalidationTarget {
             routing_mode,
             surface_identity.as_str(),
         );
-        let target_identity = BridgeInvalidationTargetIdentity::new(digest_value(
+        let target_identity = BridgeInvalidationTargetIdentity::admit_bridge_owned(digest_value(
             "invalidation-target",
             &canonical_basis,
         ));
@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn invalidation_target_identity_consumes_surface_proof_not_native_target_basis() {
         let surface_identity =
-            TruthDeltaSurfaceIdentity::new("truth-delta-surface:sha256:surface-a");
+            TruthDeltaSurfaceIdentity::admit_bridge_owned("truth-delta-surface:sha256:surface-a");
         let field_target = BridgeInvalidationTarget::new(
             Arc::from("signal.profile"),
             CoarseRoutingMode::Direct,
@@ -141,7 +141,7 @@ mod tests {
             Arc::from("signal.profile"),
             CoarseRoutingMode::Direct,
             "committed-patch-target|kind=entity-field|projection-mask=name",
-            TruthDeltaSurfaceIdentity::new("truth-delta-surface:sha256:surface-b"),
+            TruthDeltaSurfaceIdentity::admit_bridge_owned("truth-delta-surface:sha256:surface-b"),
         );
 
         assert_eq!(

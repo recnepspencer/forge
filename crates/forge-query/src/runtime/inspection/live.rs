@@ -1,6 +1,9 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::ordinary_outcome::ForgeQueryOrdinaryRuntimePosture;
 
+use super::super::evidence_identities::{
+    runtime_live_view_inspection_identity, RuntimeLiveViewInspectionIdentityParts,
+};
 use super::super::ordinary_runtime_posture::project_live_subscription_ordinary_runtime_posture;
 use super::super::{
     ForgeQueryAuthorityLane, ForgeQueryRuntimeAsyncResultState,
@@ -12,37 +15,42 @@ use crate::subscription::QuerySubscriptionDeliveryCauseKind;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryLiveViewInspection {
-    view_name: String,
-    authority_lane: ForgeQueryAuthorityLane,
-    query_digest: String,
-    view_shape_digest: String,
-    subscription_family: String,
-    subscription_family_digest: String,
-    subscription_declaration_digest: String,
-    bridge_declaration_digest: String,
-    admission_digest: String,
-    activation_digest: String,
-    basis_binding_digest: String,
-    signal_strategy_digest: String,
-    active_lane_digest: String,
-    consumer_attachment_digest: String,
-    consumer_digest: String,
-    delivery_cursor_digest: String,
-    subscription_budget_policy: String,
-    active_lifecycle_budget_policy: String,
-    consumer_attachment_budget_policy: String,
-    runtime_budget_digest: String,
-    support_evidence: String,
-    last_delivery_cause_kind: Option<QuerySubscriptionDeliveryCauseKind>,
-    last_delivery_cause_digest: Option<String>,
-    last_delivery_had_relational_patch: bool,
-    mixed_cause_delivery: Option<ForgeQueryRuntimeMixedCauseDelivery>,
-    ordinary_runtime_posture: ForgeQueryOrdinaryRuntimePosture,
-    async_result_state: Option<ForgeQueryRuntimeAsyncResultState>,
-    remask_posture: Option<ForgeQueryRuntimeRemaskPosture>,
-    installation_digest: String,
-    counters: ForgeQueryLiveSubscriptionInspectionCounters,
-    inspection_digest: String,
+    pub(in crate::runtime::inspection) view_name: String,
+    pub(in crate::runtime::inspection) authority_lane: ForgeQueryAuthorityLane,
+    pub(in crate::runtime::inspection) query_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) view_shape_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) subscription_family: String,
+    pub(in crate::runtime::inspection) subscription_family_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) subscription_declaration_identity:
+        ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) bridge_declaration_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) admission_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) activation_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) basis_binding_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) signal_strategy_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) active_lane_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) consumer_attachment_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) consumer_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) delivery_cursor_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) subscription_budget_policy: String,
+    pub(in crate::runtime::inspection) active_lifecycle_budget_policy: String,
+    pub(in crate::runtime::inspection) consumer_attachment_budget_policy: String,
+    pub(in crate::runtime::inspection) runtime_budget_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) support_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) last_delivery_cause_kind:
+        Option<QuerySubscriptionDeliveryCauseKind>,
+    pub(in crate::runtime::inspection) last_delivery_cause_identity:
+        Option<ForgeQueryEvidenceIdentity>,
+    pub(in crate::runtime::inspection) last_delivery_had_relational_patch: bool,
+    pub(in crate::runtime::inspection) mixed_cause_delivery:
+        Option<ForgeQueryRuntimeMixedCauseDelivery>,
+    pub(in crate::runtime::inspection) ordinary_runtime_posture: ForgeQueryOrdinaryRuntimePosture,
+    pub(in crate::runtime::inspection) async_result_state:
+        Option<ForgeQueryRuntimeAsyncResultState>,
+    pub(in crate::runtime::inspection) remask_posture: Option<ForgeQueryRuntimeRemaskPosture>,
+    pub(in crate::runtime::inspection) installation_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) counters: ForgeQueryLiveSubscriptionInspectionCounters,
+    pub(in crate::runtime::inspection) inspection_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryLiveViewInspection {
@@ -54,10 +62,10 @@ impl ForgeQueryLiveViewInspection {
             .last_delivery
             .as_ref()
             .map(|delivery| delivery.delivery_cause_kind());
-        let last_delivery_cause_digest = state
+        let last_delivery_cause_identity = state
             .last_delivery
             .as_ref()
-            .map(|delivery| delivery.delivery_cause_digest().to_string());
+            .map(|delivery| delivery.delivery_cause_identity().clone());
         let last_delivery_had_relational_patch = state
             .last_delivery
             .as_ref()
@@ -70,94 +78,62 @@ impl ForgeQueryLiveViewInspection {
         let ordinary_runtime_posture = project_live_subscription_ordinary_runtime_posture(state);
         let async_result_state = state.async_result_state.clone();
         let remask_posture = state.remask_posture.clone();
-        let inspection_digest = hash_parts(&[
-            "forge_query_live_view_inspection_v1".to_string(),
-            format!("view:{}", installation.view_name()),
-            format!("authority-lane:{}", installation.authority_lane()),
-            format!("query:{}", installation.query_digest()),
-            format!("view-shape:{}", installation.view_shape_digest()),
-            format!("family:{}", installation.subscription_family()),
-            format!(
-                "family-digest:{}",
-                installation.subscription_family_digest()
-            ),
-            format!(
-                "subscription-declaration:{}",
-                installation.subscription_declaration_digest()
-            ),
-            format!("bridge:{}", installation.bridge_declaration_digest()),
-            format!("admission:{}", installation.admission_digest()),
-            format!("activation:{}", installation.activation_digest()),
-            format!("basis:{}", installation.basis_binding_digest()),
-            format!("signal:{}", installation.signal_strategy_digest()),
-            format!("active-lane:{}", installation.active_lane_digest()),
-            format!(
-                "consumer-attachment:{}",
-                installation.consumer_attachment_digest()
-            ),
-            format!("consumer:{}", installation.consumer_digest()),
-            format!("delivery-cursor:{}", installation.delivery_cursor_digest()),
-            format!("runtime-budget:{}", installation.runtime_budget_digest()),
-            format!("support:{}", installation.support_evidence()),
-            format!(
-                "last-delivery-cause:{}",
-                last_delivery_cause_kind
-                    .map(QuerySubscriptionDeliveryCauseKind::as_str)
-                    .unwrap_or("none")
-            ),
-            format!(
-                "last-delivery-digest:{}",
-                last_delivery_cause_digest.as_deref().unwrap_or("none")
-            ),
-            format!("last-delivery-relational:{last_delivery_had_relational_patch}"),
-            format!(
-                "mixed-cause:{}",
-                mixed_cause_delivery
-                    .as_ref()
-                    .map(|delivery| delivery.mixed_cause_digest())
-                    .unwrap_or("none")
-            ),
-            format!(
-                "ordinary-runtime-posture:{}",
-                ordinary_runtime_posture.posture_digest()
-            ),
-            format!(
-                "async-result-state:{}",
-                async_result_state
-                    .as_ref()
-                    .map(|state| state.result_state_digest())
-                    .unwrap_or("none")
-            ),
-            format!(
-                "remask:{}",
-                remask_posture
-                    .as_ref()
-                    .map(|posture| posture.remask_digest())
-                    .unwrap_or("none")
-            ),
-            format!("installation:{}", installation.installation_digest()),
-            format!("counters:{}", counters.counter_digest()),
-        ]);
+        let mixed_cause_identity = mixed_cause_delivery
+            .as_ref()
+            .map(ForgeQueryRuntimeMixedCauseDelivery::mixed_cause_identity);
+        let inspection_identity =
+            runtime_live_view_inspection_identity(RuntimeLiveViewInspectionIdentityParts {
+                view_name: installation.view_name(),
+                authority_lane: installation.authority_lane(),
+                query_identity: installation.query_identity(),
+                view_shape_identity: installation.view_shape_identity(),
+                subscription_family: installation.subscription_family(),
+                subscription_family_identity: installation.subscription_family_identity(),
+                subscription_declaration_identity: installation.subscription_declaration_identity(),
+                bridge_declaration_identity: installation.bridge_declaration_identity(),
+                admission_identity: installation.admission_identity(),
+                activation_identity: installation.activation_identity(),
+                basis_binding_identity: installation.basis_binding_identity(),
+                signal_strategy_identity: installation.signal_strategy_identity(),
+                active_lane_identity: installation.active_lane_identity(),
+                consumer_attachment_identity: installation.consumer_attachment_identity(),
+                consumer_identity: installation.consumer_identity(),
+                delivery_cursor_identity: installation.delivery_cursor_identity(),
+                subscription_budget_policy: installation.subscription_budget_policy(),
+                active_lifecycle_budget_policy: installation.active_lifecycle_budget_policy(),
+                consumer_attachment_budget_policy: installation.consumer_attachment_budget_policy(),
+                runtime_budget_identity: installation.runtime_budget_identity(),
+                support_identity: installation.support_identity(),
+                last_delivery_cause_kind,
+                last_delivery_cause_identity: last_delivery_cause_identity.as_ref(),
+                last_delivery_had_relational_patch,
+                mixed_cause_identity,
+                ordinary_runtime_posture: Some(&ordinary_runtime_posture),
+                async_result_state: async_result_state.as_ref(),
+                remask_posture: remask_posture.as_ref(),
+                installation_identity: installation.installation_identity(),
+                counter_inspection_identity: counters.counter_inspection_identity(),
+            });
 
         Self {
             view_name: installation.view_name().to_string(),
             authority_lane: installation.authority_lane(),
-            query_digest: installation.query_digest().to_string(),
-            view_shape_digest: installation.view_shape_digest().to_string(),
+            query_identity: installation.query_identity().clone(),
+            view_shape_identity: installation.view_shape_identity().clone(),
             subscription_family: installation.subscription_family().to_string(),
-            subscription_family_digest: installation.subscription_family_digest().to_string(),
-            subscription_declaration_digest: installation
-                .subscription_declaration_digest()
-                .to_string(),
-            bridge_declaration_digest: installation.bridge_declaration_digest().to_string(),
-            admission_digest: installation.admission_digest().to_string(),
-            activation_digest: installation.activation_digest().to_string(),
-            basis_binding_digest: installation.basis_binding_digest().to_string(),
-            signal_strategy_digest: installation.signal_strategy_digest().to_string(),
-            active_lane_digest: installation.active_lane_digest().to_string(),
-            consumer_attachment_digest: installation.consumer_attachment_digest().to_string(),
-            consumer_digest: installation.consumer_digest().to_string(),
-            delivery_cursor_digest: installation.delivery_cursor_digest().to_string(),
+            subscription_family_identity: installation.subscription_family_identity().clone(),
+            subscription_declaration_identity: installation
+                .subscription_declaration_identity()
+                .clone(),
+            bridge_declaration_identity: installation.bridge_declaration_identity().clone(),
+            admission_identity: installation.admission_identity().clone(),
+            activation_identity: installation.activation_identity().clone(),
+            basis_binding_identity: installation.basis_binding_identity().clone(),
+            signal_strategy_identity: installation.signal_strategy_identity().clone(),
+            active_lane_identity: installation.active_lane_identity().clone(),
+            consumer_attachment_identity: installation.consumer_attachment_identity().clone(),
+            consumer_identity: installation.consumer_identity().clone(),
+            delivery_cursor_identity: installation.delivery_cursor_identity().clone(),
             subscription_budget_policy: installation.subscription_budget_policy().to_string(),
             active_lifecycle_budget_policy: installation
                 .active_lifecycle_budget_policy()
@@ -165,18 +141,18 @@ impl ForgeQueryLiveViewInspection {
             consumer_attachment_budget_policy: installation
                 .consumer_attachment_budget_policy()
                 .to_string(),
-            runtime_budget_digest: installation.runtime_budget_digest().to_string(),
-            support_evidence: installation.support_evidence().to_string(),
+            runtime_budget_identity: installation.runtime_budget_identity().clone(),
+            support_identity: installation.support_identity().clone(),
             last_delivery_cause_kind,
-            last_delivery_cause_digest,
+            last_delivery_cause_identity,
             last_delivery_had_relational_patch,
             mixed_cause_delivery,
             ordinary_runtime_posture,
             async_result_state,
             remask_posture,
-            installation_digest: installation.installation_digest().to_string(),
+            installation_identity: installation.installation_identity().clone(),
             counters,
-            inspection_digest,
+            inspection_identity,
         }
     }
 
@@ -188,60 +164,8 @@ impl ForgeQueryLiveViewInspection {
         self.authority_lane
     }
 
-    pub fn query_digest(&self) -> &str {
-        &self.query_digest
-    }
-
-    pub fn view_shape_digest(&self) -> &str {
-        &self.view_shape_digest
-    }
-
     pub fn subscription_family(&self) -> &str {
         &self.subscription_family
-    }
-
-    pub fn subscription_family_digest(&self) -> &str {
-        &self.subscription_family_digest
-    }
-
-    pub fn subscription_declaration_digest(&self) -> &str {
-        &self.subscription_declaration_digest
-    }
-
-    pub fn bridge_declaration_digest(&self) -> &str {
-        &self.bridge_declaration_digest
-    }
-
-    pub fn admission_digest(&self) -> &str {
-        &self.admission_digest
-    }
-
-    pub fn activation_digest(&self) -> &str {
-        &self.activation_digest
-    }
-
-    pub fn basis_binding_digest(&self) -> &str {
-        &self.basis_binding_digest
-    }
-
-    pub fn signal_strategy_digest(&self) -> &str {
-        &self.signal_strategy_digest
-    }
-
-    pub fn active_lane_digest(&self) -> &str {
-        &self.active_lane_digest
-    }
-
-    pub fn consumer_attachment_digest(&self) -> &str {
-        &self.consumer_attachment_digest
-    }
-
-    pub fn consumer_digest(&self) -> &str {
-        &self.consumer_digest
-    }
-
-    pub fn delivery_cursor_digest(&self) -> &str {
-        &self.delivery_cursor_digest
     }
 
     pub fn subscription_budget_policy(&self) -> &str {
@@ -256,20 +180,8 @@ impl ForgeQueryLiveViewInspection {
         &self.consumer_attachment_budget_policy
     }
 
-    pub fn runtime_budget_digest(&self) -> &str {
-        &self.runtime_budget_digest
-    }
-
-    pub fn support_evidence(&self) -> &str {
-        &self.support_evidence
-    }
-
     pub fn last_delivery_cause_kind(&self) -> Option<QuerySubscriptionDeliveryCauseKind> {
         self.last_delivery_cause_kind
-    }
-
-    pub fn last_delivery_cause_digest(&self) -> Option<&str> {
-        self.last_delivery_cause_digest.as_deref()
     }
 
     pub fn last_delivery_had_relational_patch(&self) -> bool {
@@ -292,15 +204,11 @@ impl ForgeQueryLiveViewInspection {
         self.remask_posture.as_ref()
     }
 
-    pub fn installation_digest(&self) -> &str {
-        &self.installation_digest
-    }
-
     pub fn counters(&self) -> &ForgeQueryLiveSubscriptionInspectionCounters {
         &self.counters
     }
 
-    pub fn inspection_digest(&self) -> &str {
-        &self.inspection_digest
+    pub fn inspection_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.inspection_identity
     }
 }

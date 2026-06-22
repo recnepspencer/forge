@@ -9,6 +9,7 @@ use super::grouped_contract::{
 use super::row_set::{
     BridgeMaterializedFieldValue, BridgeMaterializedRowSetArtifact, BridgeRowIdentity,
 };
+use crate::identity::BridgeIdentityEvidence;
 
 mod digest_basis;
 
@@ -69,6 +70,12 @@ pub struct BridgeGroupedTruthViewDigest(Arc<str>);
 impl BridgeGroupedTruthViewDigest {
     pub fn as_str(&self) -> &str {
         self.0.as_ref()
+    }
+
+    pub fn bridge_admission_evidence(&self) -> BridgeIdentityEvidence {
+        BridgeIdentityEvidence::from_external_authority(
+            crate::identity_authority::bridge_truth_external_identity_token(Arc::clone(&self.0)),
+        )
     }
 }
 

@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `forge_query::facade::runtime::match_graph_index_inventory_for_requirements`
+ --> tests/ui/graph_index_inventory/synthetic_matcher_not_exported.rs:1:5
+  |
+1 | use forge_query::facade::runtime::match_graph_index_inventory_for_requirements;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------------------------------------------
+  |     |                             |
+  |     |                             help: a similar name exists in the module: `match_current_graph_index_inventory_for_requirements`
+  |     no `match_graph_index_inventory_for_requirements` in `facade::runtime`

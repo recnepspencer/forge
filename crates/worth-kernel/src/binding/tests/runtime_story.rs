@@ -72,7 +72,7 @@ fn geometry_runtime_story_stays_coherent_across_live_projection_historical_branc
         ),
     );
 
-    let live_handle = admitted_rebinding_handle("phase-nine-runtime-story-live");
+    let live_handle = admitted_rebinding_handle("geometry-runtime-story-live");
     let left_facts =
         primitive_rebinding_projection_facts(&left, &live_handle).expect("left projection facts");
     let right_facts =
@@ -93,8 +93,8 @@ fn geometry_runtime_story_stays_coherent_across_live_projection_historical_branc
     .expect("right projection receipt");
 
     let bundle = certification_bundle_for_pair(
-        admitted_rebinding_handle("phase-nine-runtime-story-bundle"),
-        scoped_branch_head_inspection_basis("branch:phase-nine-runtime-story"),
+        admitted_rebinding_handle("geometry-runtime-story-bundle"),
+        scoped_branch_head_inspection_basis("branch:geometry-runtime-story"),
         left.clone(),
         right.clone(),
         "branch-evidence:left",
@@ -199,14 +199,14 @@ fn geometry_runtime_story_fails_loudly_when_retained_histories_are_semantically_
         ),
     );
 
-    let handle = admitted_rebinding_handle("phase-nine-runtime-story-mismatch");
+    let handle = admitted_rebinding_handle("geometry-runtime-story-mismatch");
     let exact_source = primitive_rebinding_retained_fact_source(&exact_entry, &handle)
         .expect("exact retained source");
     let planarized_source = primitive_rebinding_retained_fact_source(&planarized_entry, &handle)
         .expect("planarized retained source");
     let exact_historical = historical_rebinding_inspection(&exact_entry, &handle);
     let branch_basis =
-        scoped_branch_head_inspection_basis("branch:phase-nine-runtime-story-mismatch");
+        scoped_branch_head_inspection_basis("branch:geometry-runtime-story-mismatch");
     let planarized_branch = branch_local_rebinding_inspection(
         &planarized_entry,
         &handle,

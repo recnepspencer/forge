@@ -96,7 +96,7 @@ impl<'a> ForgeQueryWorkspaceLiveReadIntentAdmissionReview<'a> {
             })?;
         let execution_binding = self
             .workspace
-            .into_runtime_live_read_execution_binding(handoff.clone());
+            .into_runtime_live_read_execution_binding(handoff.clone())?;
         Ok(ForgeQueryAdmittedWorkspaceLiveReadIntent {
             workspace: self.workspace,
             review: self.review,

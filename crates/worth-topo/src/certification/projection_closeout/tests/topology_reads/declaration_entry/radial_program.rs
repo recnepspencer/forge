@@ -9,6 +9,7 @@ use crate::facade::{
     TopologyOperatorEnvelopeTerminalError, TopologyOperatorWorkflowHandleExt,
     TopologyRuntimeAdapters,
 };
+use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use crate::projection::{query_entity_id_from_row, query_relation_id_from_row};
 use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::{
@@ -290,7 +291,7 @@ fn entity_id_for_identity(
 ) -> forge_relational::facade::identity::EntityId {
     let row = entity_rows
         .iter()
-        .find(|row| row.identity() == identity)
+        .find(|row| query_entity_identity_reporting_label(row.identity()) == identity)
         .expect("entity identity should resolve");
     query_entity_id_from_row(row).expect("entity id should decode")
 }

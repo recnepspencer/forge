@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+  --> src/certification/public_facade_contracts/compile_fail/surface_support_workload/unsupported_surface_not_projectable.rs:7:37
+   |
+ 7 |     let _ = consume_certified_plane(unsupported);
+   |             ----------------------- ^^^^^^^^^^^ expected `CertifiedPlaneSupport`, found `UnsupportedSurfaceSupport`
+   |             |
+   |             arguments to this function are incorrect
+   |
+note: function defined here
+  --> src/certification/public_facade_contracts/compile_fail/surface_support_workload/unsupported_surface_not_projectable.rs:10:4
+   |
+10 | fn consume_certified_plane(_support: CertifiedPlaneSupport) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^^^ -------------------------------

@@ -50,13 +50,20 @@ impl fmt::Display for MilestoneOneRuntimeSetupError {
 pub fn milestone_one_invariant_registrations(
 ) -> Result<Vec<CustomInvariantRegistration>, CustomInvariantRegistrationError> {
     Ok(vec![
-        ownership::registration()?,
-        loop_wiring::registration()?,
-        radial_rings::registration()?,
-        wire_connectivity::registration()?,
-        vertex_disks::registration()?,
-        shell_closure::registration()?,
-        naming::registration()?,
+        ownership::graph_composition_registration()?,
+        ownership::commit_backstop_registration()?,
+        loop_wiring::graph_composition_registration()?,
+        loop_wiring::commit_backstop_registration()?,
+        radial_rings::graph_composition_registration()?,
+        radial_rings::commit_backstop_registration()?,
+        wire_connectivity::graph_composition_registration()?,
+        wire_connectivity::commit_backstop_registration()?,
+        vertex_disks::graph_composition_registration()?,
+        vertex_disks::commit_backstop_registration()?,
+        shell_closure::graph_composition_registration()?,
+        shell_closure::commit_backstop_registration()?,
+        naming::graph_composition_registration()?,
+        naming::commit_backstop_registration()?,
     ])
 }
 

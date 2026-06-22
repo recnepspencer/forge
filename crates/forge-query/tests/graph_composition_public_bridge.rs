@@ -1,7 +1,9 @@
 use forge_query::facade::{
-    ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthTargetBinding,
-    ForgeQueryGraphCompositionAdmissionTraceStage, ForgeQueryGraphCompositionLifecycleOutcomeKind,
-    ForgeQueryGraphCompositionProgramStepKind, ForgeQueryInspection, ForgeQueryLiveView,
+    ForgeQueryContinuityPriorAuthorityLabel, ForgeQueryContinuitySuccessorAuthorityLabel,
+    ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthBindingAuthorityLabel,
+    ForgeQueryExistingTruthTargetBinding, ForgeQueryGraphCompositionAdmissionTraceStage,
+    ForgeQueryGraphCompositionLifecycleOutcomeKind, ForgeQueryGraphCompositionProgramStepKind,
+    ForgeQueryInspection, ForgeQueryLiveView, ForgeQueryMutationAuthorityIdentity,
     ForgeQueryRuntimeError, ForgeQuerySymbolicTargetReference,
 };
 use serde_json::{json, Value};
@@ -9,6 +11,7 @@ use serde_json::{json, Value};
 mod support;
 
 use support::public_bridge_runtime::{public_graph_support_profile, PublicBridgeRuntimeHarness};
+use support::test_entity_identities::relational_test_entity_identity;
 
 fn public_verified_relation_profile(
     operation_family: &str,
@@ -20,6 +23,29 @@ fn public_verified_relation_profile(
         true,
         None,
     )
+}
+
+fn existing_authority(label: &str) -> ForgeQueryMutationAuthorityIdentity {
+    ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+        ForgeQueryExistingTruthBindingAuthorityLabel::new(label)
+            .expect("existing-truth authority label"),
+    )
+    .expect("existing-truth authority identity")
+}
+
+fn continuity_prior(label: &str) -> ForgeQueryMutationAuthorityIdentity {
+    ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(
+        ForgeQueryContinuityPriorAuthorityLabel::new(label).expect("continuity prior label"),
+    )
+    .expect("continuity prior identity")
+}
+
+fn continuity_successor(label: &str) -> ForgeQueryMutationAuthorityIdentity {
+    ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(
+        ForgeQueryContinuitySuccessorAuthorityLabel::new(label)
+            .expect("continuity successor label"),
+    )
+    .expect("continuity successor identity")
 }
 
 #[test]
@@ -56,7 +82,10 @@ fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retir
                 relation
                     .aspect("edge.kind", "depends_on")
                     .symbolic_entity_identity("edge.source_identity", &draft)
-                    .existing_entity_identity("edge.target_identity", "task-existing")
+                    .existing_entity_identity(
+                        "edge.target_identity",
+                        relational_test_entity_identity("task-existing"),
+                    )
             })?;
             graph.update_entity(&draft, |task| task.aspect("title.value", "Published task"))?;
             graph.delete_relation(&edge, |delete| {
@@ -135,15 +164,17 @@ fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retir
 #[test]
 fn graph_composition_public_bridge_preserves_domain_invariant_denial_lane() {
     let harness = PublicBridgeRuntimeHarness::new();
-    let binding =
-        ForgeQueryExistingRelationTarget::new("authority:loop-next-rel", "HalfEdgeNextRelation:1")
-            .expect("existing relation target should build")
-            .in_target_collection("HalfEdgeNextRelation")
-            .expect("existing relation target collection should build");
+    let binding = ForgeQueryExistingRelationTarget::new(
+        existing_authority("authority:loop-next-rel"),
+        relational_test_entity_identity("HalfEdgeNextRelation:1"),
+    )
+    .expect("existing relation target should build")
+    .in_target_collection("HalfEdgeNextRelation")
+    .expect("existing relation target collection should build");
     let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(binding)
         .expect("relation binding should build");
-    harness.seed_existing_truth_value(&binding, "source.id", json!("he-1"));
-    harness.seed_existing_truth_value(&binding, "target.id", json!("he-2"));
+    harness.seed_backend_authoritative_truth(&binding, "source.id", json!("he-1"));
+    harness.seed_backend_authoritative_truth(&binding, "target.id", json!("he-2"));
     let runtime = harness
         .bridge_backed_runtime_builder()
         .support_profile(public_verified_relation_profile("update_existing_verified"))
@@ -172,8 +203,8 @@ fn graph_composition_public_bridge_preserves_domain_invariant_denial_lane() {
                         update
                             .aspect("source.id", "he-1")
                             .continuity_rebind_existing_target(
-                                "authority:loop-next-rel",
-                                "authority:loop-next-rel-successor",
+                                continuity_prior("authority:loop-next-rel"),
+                                continuity_successor("authority:loop-next-rel-successor"),
                             )
                             .symbolic_entity_identity(
                                 "target.id",

@@ -28,6 +28,8 @@ mod mutation;
 mod mutation_evidence;
 mod naming_mutation_evidence;
 mod program;
+mod read_access_counters;
+mod read_access_summary;
 mod read_breadth;
 mod read_built_in_operator_denial;
 mod read_composition;
@@ -37,6 +39,7 @@ mod read_domain_invariant_summary;
 mod read_extension_hook_support;
 mod read_family;
 mod read_operator_coverage;
+mod read_receipt_accessors;
 mod read_receipt_construction;
 mod read_receipt_support;
 mod read_relationship_proof_denial;
@@ -106,6 +109,8 @@ pub use naming_mutation_evidence::{
     ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationOutcome,
 };
 pub use program::{ForgeQueryInstalledOperation, ForgeQueryInstalledProgram, ForgeQueryRunReceipt};
+pub use read_access_counters::ForgeQueryGraphReadAccessComplexityCounters;
+pub use read_access_summary::ForgeQueryGraphReadAccessReceiptSummary;
 pub use read_breadth::ForgeQueryReadBreadth;
 pub use read_built_in_operator_denial::{
     ForgeQueryReadBuiltInOperatorDenial, ForgeQueryReadBuiltInOperatorDenialReason,
@@ -116,7 +121,8 @@ pub use read_composition::{
     ForgeQueryReadScopeClass,
 };
 pub use read_denial::{
-    ForgeQueryReadDenial, ForgeQueryReadDenialKind, ForgeQueryReadScopeShapeMismatch,
+    ForgeQueryReadAccessPlanBindingMismatch, ForgeQueryReadDenial, ForgeQueryReadDenialKind,
+    ForgeQueryReadScopeShapeMismatch,
 };
 pub use read_domain_invariant_denial::ForgeQueryReadDomainInvariantDenial;
 pub use read_domain_invariant_summary::ForgeQueryReadDomainInvariantSummary;

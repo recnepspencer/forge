@@ -1,4 +1,4 @@
-use super::super::shared::{entity_id_from_query_identity, relation_id_from_query_identity};
+use super::super::shared::{entity_id_from_query_identity, relation_id_from_query_identity_label};
 use crate::certification::error::TopologyCertificationError;
 use crate::query_domain::{TopologyLocalRewireNeighborhoodView, TopologyLoopNeighborEvidence};
 use crate::topology_operators::{
@@ -27,37 +27,37 @@ pub(in crate::certification::topology_operator_closeout) fn successor_relocation
 
     Ok(TopologyRewireLoopSuccessorProgramDeclaration::new(vec![
         TopologyLoopSuccessorRewireMember::new(
-            relation_id_from_query_identity(moved.next_relation_identity())?,
+            relation_id_from_query_identity_label(moved.next_relation_identity())?,
             LoopSuccessorKind::Next,
             moved_half_edge_id,
             new_successor_id,
         ),
         TopologyLoopSuccessorRewireMember::new(
-            relation_id_from_query_identity(moved.previous_relation_identity())?,
+            relation_id_from_query_identity_label(moved.previous_relation_identity())?,
             LoopSuccessorKind::Prev,
             moved_half_edge_id,
             new_predecessor_id,
         ),
         TopologyLoopSuccessorRewireMember::new(
-            relation_id_from_query_identity(old_predecessor.next_relation_identity())?,
+            relation_id_from_query_identity_label(old_predecessor.next_relation_identity())?,
             LoopSuccessorKind::Next,
             old_predecessor_id,
             old_successor_id,
         ),
         TopologyLoopSuccessorRewireMember::new(
-            relation_id_from_query_identity(old_successor.previous_relation_identity())?,
+            relation_id_from_query_identity_label(old_successor.previous_relation_identity())?,
             LoopSuccessorKind::Prev,
             old_successor_id,
             old_predecessor_id,
         ),
         TopologyLoopSuccessorRewireMember::new(
-            relation_id_from_query_identity(new_predecessor.next_relation_identity())?,
+            relation_id_from_query_identity_label(new_predecessor.next_relation_identity())?,
             LoopSuccessorKind::Next,
             new_predecessor_id,
             moved_half_edge_id,
         ),
         TopologyLoopSuccessorRewireMember::new(
-            relation_id_from_query_identity(new_successor.previous_relation_identity())?,
+            relation_id_from_query_identity_label(new_successor.previous_relation_identity())?,
             LoopSuccessorKind::Prev,
             new_successor_id,
             moved_half_edge_id,

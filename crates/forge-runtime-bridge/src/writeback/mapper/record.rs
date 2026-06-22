@@ -47,7 +47,7 @@ impl BridgeWritebackMapperRecord {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            record_identity: BridgeWritebackMapperRecordIdentity::new(format!(
+            record_identity: BridgeWritebackMapperRecordIdentity::admit_bridge_owned(format!(
                 "bridge-writeback-mapper-record:sha256:{digest:x}"
             )),
             mapper_envelope_digest: Arc::from(witness.mapper_envelope_digest().to_owned()),

@@ -1,4 +1,5 @@
 use crate::runtime::tests::support::*;
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 #[derive(Clone, Debug)]
 pub(in crate::runtime::tests) struct TestBridgeSource;
@@ -10,8 +11,6 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for TestBridgeSource {
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(native_patch_envelope(
             request.commit_identity().clone(),
-            "external-snapshot",
-            "main",
             "entity",
             "aspect",
             "field",
@@ -96,35 +95,36 @@ pub(in crate::runtime::tests) fn test_bridge() -> RuntimeBridge {
     RuntimeBridgeBuilder::new()
         .with_relational_source(TestBridgeSource)
         .with_signal_sink(TestBridgeSink)
+        .with_writeback_authority(StaticWritebackAuthority)
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("external-test"),
+            BridgeMappingId::from_stable_name("external-test"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::any(),
                 aspect_key("aspect"),
                 field_key("field"),
             ),
             SnapshotReadContract::scalar(aspect_key("aspect"), ScalarAspectType::String),
-            SignalInvalidationScope::new("external-test"),
+            SignalInvalidationScope::from_stable_name("external-test"),
             CoarseRoutingMode::Direct,
         ))
         .build()
         .expect("test bridge should build")
 }
 
-pub(in crate::runtime::tests) fn test_bridge_with_writeback_authority() -> RuntimeBridge {
+pub(crate) fn test_bridge_with_writeback_authority() -> RuntimeBridge {
     RuntimeBridgeBuilder::new()
         .with_relational_source(TestBridgeSource)
         .with_signal_sink(TestBridgeSink)
         .with_writeback_authority(StaticWritebackAuthority)
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("external-test"),
+            BridgeMappingId::from_stable_name("external-test"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::any(),
                 aspect_key("aspect"),
                 field_key("field"),
             ),
             SnapshotReadContract::scalar(aspect_key("aspect"), ScalarAspectType::String),
-            SignalInvalidationScope::new("external-test"),
+            SignalInvalidationScope::from_stable_name("external-test"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -133,19 +133,21 @@ pub(in crate::runtime::tests) fn test_bridge_with_writeback_authority() -> Runti
 
 fn native_patch_envelope(
     commit_identity: TruthCommitIdentity,
-    snapshot_identity: &str,
-    branch_identity: &str,
     entity_identity: &str,
     aspect: &str,
     field: &str,
 ) -> BridgeCommittedPatchEnvelope {
-    let patch_identity = TruthPatchIdentity::new(format!("patch:{}", commit_identity.as_str()));
+    let commit_id = commit_identity
+        .relational_commit_id()
+        .expect("runtime bridge fixture commit identity must retain relational commit payload");
     BridgeCommittedPatchEnvelope::new(
         BridgeCommittedPatchEnvelopeIdentity::new(
             commit_identity,
-            patch_identity,
-            TruthSnapshotIdentity::new(snapshot_identity),
-            TruthBranchIdentity::new(branch_identity),
+            TruthPatchIdentity::from_relational_patch_position(commit_id),
+            TruthSnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(1, commit_id),
+            ),
+            TruthBranchIdentity::from_relational_branch_id("main"),
         ),
         vec![BridgeCommittedPatchItem::with_target(
             entity_identity,

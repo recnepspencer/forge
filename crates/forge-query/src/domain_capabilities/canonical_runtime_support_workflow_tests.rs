@@ -14,9 +14,11 @@ use super::{
     ForgeQueryWorkflowContributionPosture, ForgeQueryWorkflowRuntimeBindingSemantics,
     ForgeQueryWorkflowRuntimeSemantics,
 };
+use crate::domain_capabilities::targets::ForgeQueryDomainCapabilityTargetBinding;
 
 #[test]
 fn support_traceability_materializer_builds_domain_scoped_report() {
+    let plan_target = admitted_plan_target("plan-support");
     let report = success(materialize_intent_admission_support_traceability_report(
         ready_support(ForgeQuerySupportContributionAuthoring::declaration_support(
             "spatial.arbitration.support",
@@ -34,9 +36,13 @@ fn support_traceability_materializer_builds_domain_scoped_report() {
         "spatial.arbitration.support:multiple candidates remain admissible"
     );
     assert!(row.target_binding_digest().is_some());
-    assert_eq!(row.request_digest(), Some("test.request"));
-    assert_eq!(row.eligibility_digest(), Some("test.eligibility"));
-    assert_eq!(row.decision_digest(), Some("test.decision"));
+    let (_, _, request_digest, eligibility_digest, decision_digest) = plan_target
+        .semantics()
+        .admitted_intent_plan()
+        .expect("plan semantics");
+    assert_eq!(row.request_digest(), Some(request_digest));
+    assert_eq!(row.eligibility_digest(), Some(eligibility_digest));
+    assert_eq!(row.decision_digest(), Some(decision_digest));
 }
 
 #[test]
@@ -52,7 +58,7 @@ fn equivalent_support_meaning_materializes_same_traceability_digest() {
     let direct = success(materialize_intent_admission_support_traceability_report(
         ready(
             super::proof_integration::create_requested_domain_capability_contribution(
-                ForgeQueryAdmittedPlanBoundContributionTarget::from_digest("plan-support"),
+                admitted_plan_target("plan-support"),
                 ForgeQuerySupportContributionPayload::new(
                     ForgeQuerySupportContributionPosture::DeclarationTraceability,
                     "spatial.traceability",
@@ -117,14 +123,16 @@ fn workflow_materializer_builds_preview_and_runtime_declarations() {
         ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
             "spatial.preview.only",
             "preview remains read-only",
-            "preview-session:42",
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                "preview-session:42",
+            ),
         ),
     )));
     let confirmation = success(materialize_query_workflow_declaration(ready_workflow(
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_query_inspection(
             "spatial.confirmation.required",
             "authoritative confirmation is required before writeback",
-            "runtime-snapshot:42",
+            crate::memory_workspace::admit_external_snapshot_label("runtime-snapshot:42"),
         ),
     )));
 
@@ -146,8 +154,14 @@ fn workflow_materializer_builds_preview_and_runtime_declarations() {
         &crate::workflow::WorkflowBasisFamily::RuntimePreflight
     );
     assert_eq!(
-        confirmation.binding().runtime_snapshot_token(),
-        Some("runtime-snapshot:42")
+        confirmation
+            .binding()
+            .runtime_snapshot_identity()
+            .map(|identity| identity.evidence_identity()),
+        Some(
+            crate::memory_workspace::admit_external_snapshot_label("runtime-snapshot:42",)
+                .evidence_identity()
+        )
     );
 }
 
@@ -157,7 +171,9 @@ fn workflow_materializer_accepts_admitted_plan_targets() {
         ForgeQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
             "spatial.preview.lowering",
             "promotion-eligible preview can lower a bounded mutation workflow",
-            "preview-session:77",
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                "preview-session:77",
+            ),
         ),
         admitted_plan_target_parts(
             "plan-workflow-preview",
@@ -170,7 +186,7 @@ fn workflow_materializer_accepts_admitted_plan_targets() {
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_query_inspection(
             "spatial.confirmation.runtime",
             "authoritative confirmation requires runtime preflight context",
-            "runtime-snapshot:77",
+            crate::memory_workspace::admit_external_snapshot_label("runtime-snapshot:77"),
         ),
         admitted_plan_target_parts(
             "plan-workflow-runtime",
@@ -197,8 +213,14 @@ fn workflow_materializer_accepts_admitted_plan_targets() {
         &crate::workflow::WorkflowBasisFamily::RuntimePreflight
     );
     assert_eq!(
-        confirmation.binding().runtime_snapshot_token(),
-        Some("runtime-snapshot:77")
+        confirmation
+            .binding()
+            .runtime_snapshot_identity()
+            .map(|identity| identity.evidence_identity()),
+        Some(
+            crate::memory_workspace::admit_external_snapshot_label("runtime-snapshot:77",)
+                .evidence_identity()
+        )
     );
 }
 
@@ -208,7 +230,9 @@ fn discard_required_workflow_materializer_uses_promotion_eligible_preview_bindin
         ForgeQueryWorkflowContributionAuthoring::discard_required_query_inspection(
             "spatial.preview.discard",
             "discard-required preview semantics should now carry promotable preview authority at the workflow seam",
-            "preview-session:discard",
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                "preview-session:discard",
+            ),
         ),
     )));
 
@@ -241,7 +265,9 @@ fn workflow_materialization_digest_changes_when_declaration_scope_changes() {
                 "preview remains read-only",
                 Some(ForgeQueryWorkflowRuntimeSemantics::new(
                     ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                        "preview-session:42",
+                        crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                            "preview-session:42",
+                        ),
                         crate::workflow::WorkflowPreviewEvaluationClass::ReadOnly,
                     ),
                     crate::workflow::WorkflowDeclarationFamily::ConflictInspectionNarrow,
@@ -262,7 +288,9 @@ fn workflow_materialization_digest_changes_when_declaration_scope_changes() {
                 "preview remains read-only",
                 Some(ForgeQueryWorkflowRuntimeSemantics::new(
                     ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                        "preview-session:42",
+                        crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                            "preview-session:42",
+                        ),
                         crate::workflow::WorkflowPreviewEvaluationClass::ReadOnly,
                     ),
                     crate::workflow::WorkflowDeclarationFamily::ConflictInspectionNarrow,
@@ -279,7 +307,10 @@ fn workflow_materialization_digest_changes_when_declaration_scope_changes() {
         left.report().declaration_digest(),
         right.report().declaration_digest()
     );
-    assert_ne!(left.binding().digest(), right.binding().digest());
+    assert_ne!(
+        left.binding().binding_digest(),
+        right.binding().binding_digest()
+    );
 }
 
 #[test]
@@ -288,7 +319,9 @@ fn workflow_materialization_digest_changes_when_admitted_plan_scope_changes() {
         ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
             "spatial.preview.only",
             "preview remains read-only",
-            "preview-session:42",
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                "preview-session:42",
+            ),
         ),
         admitted_plan_target_parts(
             "plan-workflow-left",
@@ -301,7 +334,9 @@ fn workflow_materialization_digest_changes_when_admitted_plan_scope_changes() {
         ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
             "spatial.preview.only",
             "preview remains read-only",
-            "preview-session:42",
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                "preview-session:42",
+            ),
         ),
         admitted_plan_target_parts(
             "plan-workflow-right",
@@ -315,7 +350,10 @@ fn workflow_materialization_digest_changes_when_admitted_plan_scope_changes() {
         left.report().declaration_digest(),
         right.report().declaration_digest()
     );
-    assert_ne!(left.binding().digest(), right.binding().digest());
+    assert_ne!(
+        left.binding().binding_digest(),
+        right.binding().binding_digest()
+    );
 }
 
 #[test]
@@ -339,7 +377,9 @@ fn workflow_materializer_denies_missing_or_inconsistent_runtime_semantics() {
                 "preview remains read-only",
                 Some(ForgeQueryWorkflowRuntimeSemantics::new(
                     ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                        "preview-session:42",
+                        crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                            "preview-session:42",
+                        ),
                         crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,
                     ),
                     crate::workflow::WorkflowDeclarationFamily::MutationLoweringNarrow,

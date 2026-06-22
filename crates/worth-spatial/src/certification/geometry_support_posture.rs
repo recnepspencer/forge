@@ -1,22 +1,16 @@
 use forge_query::facade::{
-    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationLegalityContract,
-    ForgeQueryDeclarationRouteContract,
+    ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationRouteContract,
 };
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
-use crate::anchor_selection::SpatialAnchorSelectionDeclarationFamily;
-use crate::bindings::query_native::{
-    PrimitiveAnchorBindingDeclarationFamily, PrimitiveBindingDeclarationFamily,
-};
 use crate::bindings::query_native_geometry_inventory::GeometryPublicSurface;
-use crate::bindings::query_native_rebinding::PrimitiveRebindingDeclarationFamily;
-use crate::bindings::query_native_rebinding_neighborhood_replacement::TopologyNeighborhoodReplacementDeclarationFamily;
-use crate::bindings::query_native_rebinding_projection_consumption::GeometryProjectionConsumptionDeclarationFamily;
-use crate::bindings::query_native_retained_geometry::{
-    BranchLocalGeometryInspectionDeclarationFamily, GeometryRecoveryActionDeclarationFamily,
-    GeometryReplayParityDeclarationFamily, HistoricalGeometryInspectionDeclarationFamily,
+
+#[path = "geometry_support_family_contracts.rs"]
+mod geometry_support_family_contracts;
+
+use geometry_support_family_contracts::{
+    declared_family_key_for, legality_contract_for, route_contract_for,
 };
-use crate::bindings::query_native_tolerance_precision::ToleranceAndPrecisionCertificationDeclarationFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GeometryPublicSupportStatus {
@@ -187,127 +181,6 @@ pub fn admit_geometry_public_surface(
     }
 }
 
-fn declared_family_key_for(surface: GeometryPublicSurface) -> Option<&'static str> {
-    match surface {
-        GeometryPublicSurface::GeometryTargetIdentity => None,
-        GeometryPublicSurface::SpatialAnchorSelection => {
-            Some(SpatialAnchorSelectionDeclarationFamily::semantic_family_key())
-        }
-        GeometryPublicSurface::PrimitiveBinding => {
-            Some(PrimitiveBindingDeclarationFamily::semantic_family_key())
-        }
-        GeometryPublicSurface::PrimitiveAnchorBinding => {
-            Some(PrimitiveAnchorBindingDeclarationFamily::semantic_family_key())
-        }
-        GeometryPublicSurface::PrimitiveRebinding => {
-            Some(PrimitiveRebindingDeclarationFamily::semantic_family_key())
-        }
-        GeometryPublicSurface::TopologyNeighborhoodReplacement => {
-            Some(TopologyNeighborhoodReplacementDeclarationFamily::semantic_family_key())
-        }
-        GeometryPublicSurface::ToleranceAndPrecisionCertification => {
-            Some(ToleranceAndPrecisionCertificationDeclarationFamily::semantic_family_key())
-        }
-        GeometryPublicSurface::HistoricalGeometryInspection => {
-            Some(HistoricalGeometryInspectionDeclarationFamily::semantic_family_key())
-        }
-        GeometryPublicSurface::BranchLocalGeometryInspection => {
-            Some(BranchLocalGeometryInspectionDeclarationFamily::semantic_family_key())
-        }
-        GeometryPublicSurface::GeometryReplayParity => {
-            Some(GeometryReplayParityDeclarationFamily::semantic_family_key())
-        }
-        GeometryPublicSurface::GeometryRecoveryAction => {
-            Some(GeometryRecoveryActionDeclarationFamily::semantic_family_key())
-        }
-        GeometryPublicSurface::GeometryProjectionConsumption => {
-            Some(GeometryProjectionConsumptionDeclarationFamily::semantic_family_key())
-        }
-    }
-}
-
-fn legality_contract_for(
-    surface: GeometryPublicSurface,
-) -> Option<ForgeQueryDeclarationLegalityContract> {
-    match surface {
-        GeometryPublicSurface::GeometryTargetIdentity => None,
-        GeometryPublicSurface::SpatialAnchorSelection => {
-            Some(SpatialAnchorSelectionDeclarationFamily::legality_contract())
-        }
-        GeometryPublicSurface::PrimitiveBinding => {
-            Some(PrimitiveBindingDeclarationFamily::legality_contract())
-        }
-        GeometryPublicSurface::PrimitiveAnchorBinding => {
-            Some(PrimitiveAnchorBindingDeclarationFamily::legality_contract())
-        }
-        GeometryPublicSurface::PrimitiveRebinding => {
-            Some(PrimitiveRebindingDeclarationFamily::legality_contract())
-        }
-        GeometryPublicSurface::TopologyNeighborhoodReplacement => {
-            Some(TopologyNeighborhoodReplacementDeclarationFamily::legality_contract())
-        }
-        GeometryPublicSurface::ToleranceAndPrecisionCertification => {
-            Some(ToleranceAndPrecisionCertificationDeclarationFamily::legality_contract())
-        }
-        GeometryPublicSurface::HistoricalGeometryInspection => {
-            Some(HistoricalGeometryInspectionDeclarationFamily::legality_contract())
-        }
-        GeometryPublicSurface::BranchLocalGeometryInspection => {
-            Some(BranchLocalGeometryInspectionDeclarationFamily::legality_contract())
-        }
-        GeometryPublicSurface::GeometryReplayParity => {
-            Some(GeometryReplayParityDeclarationFamily::legality_contract())
-        }
-        GeometryPublicSurface::GeometryRecoveryAction => {
-            Some(GeometryRecoveryActionDeclarationFamily::legality_contract())
-        }
-        GeometryPublicSurface::GeometryProjectionConsumption => {
-            Some(GeometryProjectionConsumptionDeclarationFamily::legality_contract())
-        }
-    }
-}
-
-fn route_contract_for(
-    surface: GeometryPublicSurface,
-) -> Option<ForgeQueryDeclarationRouteContract> {
-    match surface {
-        GeometryPublicSurface::GeometryTargetIdentity => None,
-        GeometryPublicSurface::SpatialAnchorSelection => {
-            Some(SpatialAnchorSelectionDeclarationFamily::route_contract())
-        }
-        GeometryPublicSurface::PrimitiveBinding => {
-            Some(PrimitiveBindingDeclarationFamily::route_contract())
-        }
-        GeometryPublicSurface::PrimitiveAnchorBinding => {
-            Some(PrimitiveAnchorBindingDeclarationFamily::route_contract())
-        }
-        GeometryPublicSurface::PrimitiveRebinding => {
-            Some(PrimitiveRebindingDeclarationFamily::route_contract())
-        }
-        GeometryPublicSurface::TopologyNeighborhoodReplacement => {
-            Some(TopologyNeighborhoodReplacementDeclarationFamily::route_contract())
-        }
-        GeometryPublicSurface::ToleranceAndPrecisionCertification => {
-            Some(ToleranceAndPrecisionCertificationDeclarationFamily::route_contract())
-        }
-        GeometryPublicSurface::HistoricalGeometryInspection => {
-            Some(HistoricalGeometryInspectionDeclarationFamily::route_contract())
-        }
-        GeometryPublicSurface::BranchLocalGeometryInspection => {
-            Some(BranchLocalGeometryInspectionDeclarationFamily::route_contract())
-        }
-        GeometryPublicSurface::GeometryReplayParity => {
-            Some(GeometryReplayParityDeclarationFamily::route_contract())
-        }
-        GeometryPublicSurface::GeometryRecoveryAction => {
-            Some(GeometryRecoveryActionDeclarationFamily::route_contract())
-        }
-        GeometryPublicSurface::GeometryProjectionConsumption => {
-            Some(GeometryProjectionConsumptionDeclarationFamily::route_contract())
-        }
-    }
-}
-
 fn admission_rule_for(surface: GeometryPublicSurface) -> &'static str {
     match surface {
         GeometryPublicSurface::GeometryTargetIdentity => {
@@ -327,6 +200,66 @@ fn admission_rule_for(surface: GeometryPublicSurface) -> &'static str {
         }
         GeometryPublicSurface::TopologyNeighborhoodReplacement => {
             "support comes from admitted topology neighborhood replacement declaration family workflow"
+        }
+        GeometryPublicSurface::PlanarPredicateAuthority => {
+            "support comes from admitted planar predicate authority declaration family workflow backed by worth-math certified predicates"
+        }
+        GeometryPublicSurface::PlanarPrecisionCertification => {
+            "support comes from admitted planar precision certification workflow consuming retained planar predicate receipts and local feature-scale basis"
+        }
+        GeometryPublicSurface::PlanarLocalFrameCertificate => {
+            "support comes from admitted planar local-frame certificate workflow consuming retained precision basis and transform posture"
+        }
+        GeometryPublicSurface::ProjectPointToCertifiedPlane2D => {
+            "support comes from admitted certified plane-to-2D point projection consuming retained local-frame certificates"
+        }
+        GeometryPublicSurface::CertifiedSegmentSegment2D => {
+            "support comes from admitted certified segment classification consuming projected endpoint receipts and exact planar predicate authority"
+        }
+        GeometryPublicSurface::CertifiedPolygonWinding2D => {
+            "support comes from admitted certified polygon winding consuming projected loop receipts, exact planar predicates, and segment contact certificates"
+        }
+        GeometryPublicSurface::CertifiedSignedArea2D => {
+            "support comes from admitted certified signed-area classification consuming winding, projection, local-frame, and precision receipts without boolean repair"
+        }
+        GeometryPublicSurface::CoplanarOverlapContractExtractor => {
+            "support comes from admitted coplanar overlap contract extraction consuming signed-area, winding, segment-contact, projection, local-frame, and movement receipts without imprinting"
+        }
+        GeometryPublicSurface::PlanarContractBundleValidator => {
+            "support comes from admitted planar contract bundle validation consuming complete M6 receipts as boolean-readiness input without computing boolean topology"
+        }
+        GeometryPublicSurface::PredicateCertificateConsumptionValidator => {
+            "support comes from admitted predicate certificate consumption validation proving retained planar classifications consumed worth-math certified signs and precision metadata"
+        }
+        GeometryPublicSurface::PlanarStructuralIdentity => {
+            "support comes from admitted planar structural identity certification over boolean-readiness receipts and canonical transform basis, not topology names or final coordinates"
+        }
+        GeometryPublicSurface::PlanarMotionPosture => {
+            "support comes from admitted planar motion posture certification over boolean-readiness receipts, typed movement, rotation, reorientation, cancellation, signal compatibility, and continuation basis"
+        }
+        GeometryPublicSurface::PlanarTopologyContractCompleteness => {
+            "support comes from admitted topology-to-spatial completeness certification consuming Query-owned topology receipts, declared surfaces, validation facts, and planar neighborhood basis before planar fact emission"
+        }
+        GeometryPublicSurface::RetainedPlanarFacts => {
+            "support comes from admitted retained planar fact certification freezing boolean-readiness, structural identity, movement/rotation posture, topology completeness, and retained family rows for historical and branch-local replay without live-state repair"
+        }
+        GeometryPublicSurface::ProjectionConsumedPlanarFacts => {
+            "support comes from admitted projection-consumed planar fact certification consuming retained planar facts and exact bundle projection receipts for downstream boolean-readiness without payload spelunking or recomputation"
+        }
+        GeometryPublicSurface::PlanarRecoveryPosture => {
+            "support comes from admitted planar recovery posture certification consuming typed planar blockers and basis receipts to produce next-step recovery without changing planar truth"
+        }
+        GeometryPublicSurface::PlanarDiagnosticBundle => {
+            "support comes from admitted planar diagnostic bundle certification deriving machine-checkable locality and causal references from typed receipts without changing planar truth"
+        }
+        GeometryPublicSurface::PlanarLocalRebuildParity => {
+            "support comes from admitted local planar rebuild parity certification consuming grouped neighborhood replacement, rebinding continuity, retained/projection-consumed facts, motion, recovery, and diagnostics without broad search"
+        }
+        GeometryPublicSurface::PlanarCleanFailBoundary => {
+            "support comes from admitted planar clean-fail boundary certification consuming admission, movement/rotation, recovery, and diagnostics while proving no repair or bounded conversion was attempted"
+        }
+        GeometryPublicSurface::PlanarBooleanReadinessWorkload => {
+            "support comes from admitted final-boss boolean-readiness workload certification consuming complete workload evidence, projection parity, diagnostics, and user-response blockers before M7 without boolean execution"
         }
         GeometryPublicSurface::ToleranceAndPrecisionCertification => {
             "support comes from admitted tolerance and precision certification declaration family workflow"

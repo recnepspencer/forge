@@ -2,10 +2,15 @@ pub use crate::authoring::{
     AspectFieldSelector, AuthoredBundleError, AuthoredBundleFailureClass, AuthoredResultShapeField,
     AuthoringError, AuthoringFailureClass, CollectionAuthoredQuery, CollectionAuthoredResultShape,
     CollectionQueryBuilder, CollectionResultShapeBuilder, DetailAuthoredQuery,
-    DetailAuthoredResultShape, DetailQueryBuilder, DetailResultShapeBuilder, EqualityPredicate,
-    GuidedAuthoringPath, IntegerComparisonOperator, IntegerComparisonPredicate, OrderingDirection,
-    OrderingSelector, PredicateSelector, QueryFamily, RelationName, ResultShapeFamily,
-    RootEntityKey, ScalarPredicateValue, TraversalSelector,
+    DetailAuthoredResultShape, DetailQueryBuilder, DetailResultShapeBuilder,
+    DomainGraphOperationDeclarationError, EqualityPredicate,
+    ForgeQueryAdmittedGraphReadDomainOperationReference, ForgeQueryDomainOwner,
+    ForgeQueryGraphReadDomainOperationDeclaration, ForgeQueryGraphReadOperationKey,
+    ForgeQueryGraphReadOperationName, ForgeQueryGraphReadOperationVersion, GuidedAuthoringPath,
+    IntegerComparisonOperator, IntegerComparisonPredicate, OrderingDirection, OrderingSelector,
+    PredicateSelector, PresencePredicate, QueryFamily, RelationName, ResultShapeFamily,
+    RootEntityKey, ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate,
+    TraversalSelector,
 };
 pub use crate::authorized_projection::{
     runtime_backed_authorized_projection_support_profile, AuthorizedProjectionArtifact,
@@ -235,6 +240,7 @@ pub use crate::identity::{
     HistoricalPathClassDigest, LineageDigest, PlanDigest, ResultDigest, SchemaBasisDigest,
     ValidatedQueryDigest, ValidatedResultShapeDigest,
 };
+pub use crate::identity_authority::QueryExternalIdentityToken;
 pub use crate::identity_evolution::{
     admit_identity_evolution_query, compare_identity_evolution_denial_classification,
     compare_identity_evolution_denial_replay, compare_identity_evolution_result_classification,
@@ -307,9 +313,11 @@ pub use crate::live_performance::{
     RefreshCostClass, VerifiedPerformance,
 };
 pub use crate::memory_workspace::{
-    ForgeQueryAspect, ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
-    ForgeQueryMemoryWorkspace, ForgeQueryMutationDelta, ForgeQueryMutationKind,
-    ForgeQueryMutationReceipt, ForgeQueryWorkspaceError,
+    admit_authored_entity_token, admit_external_commit_token, admit_external_snapshot_token,
+    ForgeQueryAspect, ForgeQueryCommitIdentity, ForgeQueryEntity, ForgeQueryEntityIdentity,
+    ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMemoryWorkspace,
+    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
+    ForgeQuerySnapshotIdentity, ForgeQueryWorkspaceError, ForgeQueryWorkspaceErrorKind,
 };
 pub use crate::projection_consumption::{
     certify_projection_consumption_closeout_core, declare_projection_consumption,
@@ -317,10 +325,11 @@ pub use crate::projection_consumption::{
     projection_consumption_family_inventory, projection_consumption_phase_progression_digest,
     projection_consumption_proof_shape_audit, projection_consumption_public_boundary_audit,
     projection_consumption_support_matrix, AdmittedProjectionConsumption,
-    BoundProjectionFactFamily, CompletedProjectionFactConsumption, ConsumedEffectContinuityFact,
-    ConsumedEntityIdentityFact, ConsumedFieldValueFact, ConsumedMembershipFact,
-    ConsumedProjectionFactSet, ConsumedRelationEndpointFact, ConsumedSourceReferenceFact,
-    ConsumedTargetIdentityFact, ConsumedViewLocalIdentityFact, DeferredProjectionConsumption,
+    BoundProjectionFactFamily, CompletedProjectionFactConsumption,
+    ConsumedContinuityAuthorityIdentity, ConsumedEffectContinuityFact, ConsumedEntityIdentityFact,
+    ConsumedFieldValueFact, ConsumedMembershipFact, ConsumedProjectionFactSet,
+    ConsumedRelationEndpointFact, ConsumedSourceReferenceFact, ConsumedTargetIdentityFact,
+    ConsumedViewLocalIdentityFact, DeferredProjectionConsumption,
     DeferredProjectionConsumptionReason, DeniedProjectionConsumption,
     MaterializedProjectionContract, ProjectMaterializedFacts,
     ProjectionConsumptionAuthoringSurface, ProjectionConsumptionBindingContext,
@@ -348,3 +357,4 @@ pub use crate::projection_consumption::{
     ProjectionFactRequest, ProjectionSourceFamily, ProjectionSourceReferenceIdentity,
     SelfDescribingProjectionConsumptionEnvelope, SourceMismatchedProjectionConsumption,
 };
+pub use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;

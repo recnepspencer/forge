@@ -8,9 +8,9 @@ fn runtime_replays_equal_temporal_inputs_to_equal_cause_digests() {
         .admit_temporal_subscription(
             &admitted,
             admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-                TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             )),
             BridgeTemporalSubscriptionFamilyKind::WakeDriven,
         )
@@ -19,9 +19,9 @@ fn runtime_replays_equal_temporal_inputs_to_equal_cause_digests() {
         .admit_temporal_subscription(
             &admitted,
             admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-                TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             )),
             BridgeTemporalSubscriptionFamilyKind::WakeDriven,
         )
@@ -52,9 +52,9 @@ fn runtime_keeps_truth_plus_time_routing_and_delivery_plan_invariant_to_prior_ti
             &admitted,
             admitted_temporal_basis_with_wake(
                 BridgeTemporalTruthViewBasis::authoritative(
-                    TruthBranchIdentity::new("analysis"),
-                    TruthCommitIdentity::new("commit-a"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
                 31,
                 8,
@@ -75,9 +75,9 @@ fn runtime_keeps_truth_plus_time_routing_and_delivery_plan_invariant_to_prior_ti
             &admitted,
             admitted_temporal_basis_with_wake(
                 BridgeTemporalTruthViewBasis::authoritative(
-                    TruthBranchIdentity::new("analysis"),
-                    TruthCommitIdentity::new("commit-a"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
                 32,
                 9,
@@ -90,10 +90,10 @@ fn runtime_keeps_truth_plus_time_routing_and_delivery_plan_invariant_to_prior_ti
         &runtime.prepare_temporal_subscription_activation(&later_temporal),
     );
     let truth_patch = committed_patch(
-        TruthBranchIdentity::new("analysis"),
-        TruthSnapshotIdentity::new("snapshot-a"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthPatchIdentity::new("patch-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
     );
 
     let routed_after_prior = runtime

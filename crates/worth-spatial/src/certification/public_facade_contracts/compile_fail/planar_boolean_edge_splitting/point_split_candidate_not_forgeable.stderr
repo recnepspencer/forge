@@ -1,0 +1,55 @@
+error: cannot construct `PlanarBooleanPointSplitCandidate` with struct literal syntax due to private fields
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/point_split_candidate_not_forgeable.rs:4:13
+   |
+ 4 |     let _ = PlanarBooleanPointSplitCandidate {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         candidate_identity: String::from("forged"),
+   |         ------------------------------------------ private field
+ 6 |         point_event_identity: String::from("synthetic point event"),
+   |         ----------------------------------------------------------- private field
+ 7 |         point_event_kind: unavailable_point_event_kind(),
+   |         ------------------------------------------------ private field
+ 8 |         carrier_identity: String::from("carrier"),
+   |         ----------------------------------------- private field
+ 9 |         source_edge_identity: String::from("edge"),
+   |         ------------------------------------------ private field
+10 |         segment_identity: String::from("segment"),
+   |         ----------------------------------------- private field
+11 |         coordinate_fact: unavailable_coordinate_fact(),
+   |         ---------------------------------------------- private field
+12 |         parameter_fact_identity: String::from("parameter fact"),
+   |         ------------------------------------------------------- private field
+13 |         parameter: 0.5,
+   |         -------------- private field
+14 |         participation_row_identity: String::from("row"),
+   |         ----------------------------------------------- private field
+15 |         start_source_endpoint_identity: String::from("start endpoint"),
+   |         -------------------------------------------------------------- private field
+16 |         start_projected_endpoint_fact_identity: String::from("start projection"),
+   |         ------------------------------------------------------------------------ private field
+17 |         end_source_endpoint_identity: String::from("end endpoint"),
+   |         ---------------------------------------------------------- private field
+18 |         end_projected_endpoint_fact_identity: String::from("end projection"),
+   |         -------------------------------------------------------------------- private field
+   |
+   = note: ...and other private fields that were not provided
+help: you might have meant to use the `new` associated function
+   |
+ 4 -     let _ = PlanarBooleanPointSplitCandidate {
+ 5 -         candidate_identity: String::from("forged"),
+ 6 -         point_event_identity: String::from("synthetic point event"),
+ 7 -         point_event_kind: unavailable_point_event_kind(),
+ 8 -         carrier_identity: String::from("carrier"),
+ 9 -         source_edge_identity: String::from("edge"),
+10 -         segment_identity: String::from("segment"),
+11 -         coordinate_fact: unavailable_coordinate_fact(),
+12 -         parameter_fact_identity: String::from("parameter fact"),
+13 -         parameter: 0.5,
+14 -         participation_row_identity: String::from("row"),
+15 -         start_source_endpoint_identity: String::from("start endpoint"),
+16 -         start_projected_endpoint_fact_identity: String::from("start projection"),
+17 -         end_source_endpoint_identity: String::from("end endpoint"),
+18 -         end_projected_endpoint_fact_identity: String::from("end projection"),
+19 -     };
+ 4 +     let _ = PlanarBooleanPointSplitCandidate::new(_);
+   |

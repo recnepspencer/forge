@@ -1,0 +1,11 @@
+error[E0603]: module `runtime` is private
+ --> tests/ui/runtime_authority/fail/runtime_internal_module_is_not_public.rs:1:15
+  |
+1 | use worth_ui::runtime::WorthUiRuntimeHost;
+  |               ^^^^^^^ private module
+  |
+note: the module `runtime` is defined here
+ --> src/lib.rs
+  |
+  | mod runtime;
+  | ^^^^^^^^^^^

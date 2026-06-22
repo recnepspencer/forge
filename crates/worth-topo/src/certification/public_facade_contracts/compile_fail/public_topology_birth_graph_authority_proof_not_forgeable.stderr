@@ -1,0 +1,17 @@
+error[E0451]: fields `mutation_surface`, `compose_program_digest`, `execution_evidence_digest`, `graph_obligation_envelope_digest`, `graph_obligation_selected_count` and `proof_digest` of struct `TopologyPrimitiveConstructionBirthGraphAuthorityProof` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_topology_birth_graph_authority_proof_not_forgeable.rs:8:9
+   |
+ 7 |     let _ = TopologyPrimitiveConstructionBirthGraphAuthorityProof {
+   |             ----------------------------------------------------- in this type
+ 8 |         mutation_surface: TopologyConstructionQueryMutationSurface::ComposeGraph,
+   |         ^^^^^^^^^^^^^^^^ private field
+ 9 |         compose_program_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         execution_evidence_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         graph_obligation_envelope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         graph_obligation_selected_count: 1,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         proof_digest: String::new(),
+   |         ^^^^^^^^^^^^ private field

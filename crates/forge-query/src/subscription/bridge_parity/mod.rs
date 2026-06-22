@@ -1,11 +1,16 @@
 mod explanation;
+mod identities;
+mod support;
+mod validation;
 mod witness;
 
 pub use explanation::{
-    explain_query_subscription_bridge_parity, BridgeParityReceipt,
-    QuerySubscriptionBridgeParityClass, QuerySubscriptionBridgeParityComparison,
-    QuerySubscriptionBridgeParityCounters, QuerySubscriptionBridgeParityError,
-    QuerySubscriptionBridgeParityExplanation, QuerySubscriptionBridgeParityFailure,
+    explain_query_subscription_bridge_parity, QuerySubscriptionBridgeParityComparison,
+    QuerySubscriptionBridgeParityExplanation,
+};
+pub use support::{
+    BridgeParityReceipt, QuerySubscriptionBridgeParityClass, QuerySubscriptionBridgeParityCounters,
+    QuerySubscriptionBridgeParityError, QuerySubscriptionBridgeParityFailure,
     QuerySubscriptionBridgeParityFailureKind, SubscriptionBridgeParityWidth,
 };
 pub use witness::{

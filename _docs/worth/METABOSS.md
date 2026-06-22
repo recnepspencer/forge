@@ -5,7 +5,10 @@
 
 > This document contains the ultimate stress tests — scenarios where every commercial geometry kernel (ACIS, Parasolid, Open CASCADE) breaks. These tests combine multiple failure modes simultaneously. A green Tier 4 suite means the kernel has surpassed the state of the art.
 >
-> **Naming convention:** `MB-T4-*` (planar), `MB-CT4-*` (curved), `MB-FT4-*` (fillet). These extend the MB series defined in `PROOF_SYSTEM.md`.
+> **Naming convention:** `MB-T4-*` (planar), `MB-CT4-*` (curved), `MB-FT4-*` (fillet),
+> `MB-*-NMT-*` (non-manifold topology + mixed-surface extensions). These extend the MB
+> series defined in `PROOF_SYSTEM.md`. M6 boolean-readiness counterparts live in
+> `m6-premetaboss.md` as `MB-M6-NMT-*`.
 >
 > **Acceptance rule:** A Tier 4 test either (a) produces a correct manifold result, or (b) cleanly fails with a structured `ProofFailure` / `PolicyRequired` trace pointing to the exact trigger. Crashing, hanging, or producing non-manifold output is **never acceptable**.
 
@@ -158,6 +161,105 @@ These tests stress the planar Boolean pipeline to its absolute mathematical limi
 
 ---
 
+## Planar NMT and Mixed-Surface Extensions (MB-T4-NMT-1 through MB-T4-NMT-3)
+
+These extend Part 1 with the failure modes commercial kernels hide before booleans:
+open non-manifold topology, mixed surface families on one carrier, and silent
+open-class normalization. M6 readiness counterparts: `MB-M6-NMT-1` through
+`MB-M6-NMT-3` in `m6-premetaboss.md`.
+
+---
+
+### MB-T4-NMT-1 — The Open Radial Fan Laundering Trap 🔴
+
+**Test:** Build an open-shell non-manifold edge fan (`k = 4` radial edges, open
+boundary half-edges on every spoke) with planar face carriers only. Boolean-union
+it with a closed 10k-face storm solid whose overlap regions are exactly coplanar
+with the fan blades, then difference with a tool that grazes the radial vertex at
+1e-14. Chain 50 micro-rotated unions while retaining the open boundary. Inject
+one attempt to cap the fan into a closed shell mid-chain at step 19.
+
+**Failure modes triggered:**
+- Silent manifold repair capping open NMT fans into closed solids
+- Inconsistent coplanar winner decisions across open-boundary vs closed-shell faces
+- Radial-edge topology shredding over 50 chained operations
+- 1e-14 graze at the non-manifold hub forcing precision escalation on every spoke
+- Mid-chain shell capping altering Euler class without typed `PolicyRequired`
+- Retained-history replay treating closed-storm checkpoints as valid on open fan
+
+**Required infrastructure:**
+- Open non-manifold shell interpreter that never promotes `OpenNonManifold` to
+  closed manifold without explicit policy
+- Per-step invariant checkpoints (P4.5) preserving radial edge count and open
+  boundary count
+- Coplanar classifier + `CoincidenceGraph` (D0) scoped per overlap region, not
+  whole-model scan
+- Transaction rollback (D6) when shell-capping is attempted
+- Structured `ProofFailure` naming radial vertex, open boundary, and exact step —
+  crashing or emitting closed manifold output is never acceptable
+
+---
+
+### MB-T4-NMT-2 — The Mixed-Surface Planar Boolean Kill Box 🔴
+
+**Test:** One valid closed topology (cube tessellated to 2k faces) with identical
+face adjacency across five surface-family variants: all-plane control, one-face
+analytic patch, one-face freeform patch, one-face generated feature, and
+unknown-family carrier. Run union + difference + intersection with the same
+planar tool set on each variant. Smuggle plane-surface receipts from the control
+run onto the freeform variant at step 3 of a 200-step chain. Fuzz CGAL Nef on the
+control path only.
+
+**Failure modes triggered:**
+- Plane boolean success laundered onto non-plane face carriers
+- Distinct surface families collapsing to one generic unsupported string
+- False coplanar overlap on NURBS/analytic faces treated as certified planes
+- Receipt substitution across families surviving 200 steps undetected
+- Stable topology ids hiding wrong surface-family authority
+
+**Required infrastructure:**
+- Surface-family typed admission matrix: only `Plane` may enter planar boolean
+  execution; other families must `PolicyRequired` or structured `ProofFailure`
+  with distinct digests per family
+- Per-step surface-support checkpoints binding face carrier to family receipt
+- Dual-path cross-check (P1.1) on the all-plane control only
+- Causal replay (P3) localizing family-smuggling to exact step 3
+- Zero silent downgrade from unsupported to admitted via kernel summary substitution
+
+---
+
+### MB-T4-NMT-3 — The Open-Class Triad Boolean Storm 🔴
+
+**Test:** In one 200-step chain, alternate three open-valid topology classes
+with the same transform recipe: open wire (500 edges), open sheet (800 coplanar
+faces, unbounded), open NMT edge fan (`k = 4`). After each segment, union with a
+closed storm subset sized to the open class. Inject cross-class retained replay
+from the prior segment at steps 9, 37, and 71. Attempt to clip open wire into a
+bounded sheet at step 44 and open sheet into a closed solid at step 88.
+
+**Failure modes triggered:**
+- Open wire → bounded sheet → closed solid normalization cascade
+- Cross-class retained checkpoint replay masquerading as equivalent topology
+- Coplanar storm receipts from closed solids certifying open-wire segments
+- Unbounded half-space posture lost after bounded conversion (T4-6 regression)
+- Distinct open-class diagnostics collapsing to shared boilerplate
+- Identity lookup breadth scaling with whole-model face count instead of touched
+  open scope
+
+**Required infrastructure:**
+- Winding-number / open-domain classifier (P1.2) per topology class without
+  hidden clipping
+- Per-class structural identity basis separate from topology naming identity
+- Retained-history checkpoints (P4.5) that break on cross-class replay at named
+  steps
+- Recovery posture suggesting typed next steps only — no synthesized bounded truth
+- Nine-view parity law (live / retained / projection-consumed / recovery / replay /
+  transform / rebuild / diagnostics) enforced per open class
+- Must produce typed failure or class-correct open result — never a closed
+  manifold laundered from wire or fan input
+
+---
+
 # Part 2: Curved Geometry Tier 4 (MB-CT4-1 through MB-CT4-8)
 
 These tests extend the planar Tier 4 into analytic curved geometry — circles, helices, ellipses. They prove the curve layer has inherited full planar robustness.
@@ -288,6 +390,88 @@ These tests extend the planar Tier 4 into analytic curved geometry — circles, 
 - Full integration of curve pipeline with all proof layers
 - When this test goes green, the curve layer has inherited full planar god-tier robustness
 - Reference comparison against Parasolid/OpenCascade at every checkpoint — must match or cleanly exceed
+
+---
+
+## Curved NMT and Mixed-Surface Extensions (MB-CT4-NMT-1 through MB-CT4-NMT-3)
+
+Curved-domain counterparts to the planar NMT extensions. Relevant wherever analytic
+patches, parametric trims, or freeform carriers meet open topology or mixed
+surface families. M6 readiness counterparts: `MB-M6-NMT-*` (surface-family and
+open-posture gates).
+
+---
+
+### MB-CT4-NMT-1 — The Open NMT Fan With Analytic Radials 🔴
+
+**Test:** Open non-manifold edge fan where each spoke carries a different analytic
+patch (cylinder, cone, sphere segment, torus segment) meeting at one radial
+vertex with open boundary edges. Boolean with a helical tool tangent to 6 spokes
+at 1e-14. Chain 30 micro-rotated unions. Attempt mid-chain to weld open boundary
+half-edges into a closed analytic star at step 11.
+
+**Failure modes triggered:**
+- Analytic patch intersection at open non-manifold hub producing NaN curvature
+- Tangent classification inconsistency across spokes with different surface families
+- Silent welding of open radial boundaries into closed manifold star
+- Predicate explosion at NMT vertex with mixed analytic curvatures
+- Zero-length curved edges from tangent collapse on open boundary spokes
+
+**Required infrastructure:**
+- Non-manifold post-processor for open analytic stars (valence = radial count)
+- Full SoS extended to surface-parameter space per spoke family
+- Adaptive precision curve-surface / surface-surface predicates localized to hub
+- Transaction rollback when open-boundary weld is attempted
+- Euler auditor (P0.2) holding open-boundary edge count across 30 steps
+
+---
+
+### MB-CT4-NMT-2 — The Mixed-Surface Curve Boolean Kill Box 🔴
+
+**Test:** One closed solid topology with five surface-family variants on the same
+edge graph: all-analytic control, single freeform face, single plane face on
+otherwise analytic body, generated-feature face, unknown carrier. Run 50 chained
+curve-trim booleans with identical tools. Smuggle analytic trim receipts from the
+control onto the freeform variant. Graze every non-plane face at 1e-14 with a
+helical cutter.
+
+**Failure modes triggered:**
+- Analytic curve trim success laundered onto freeform or unknown carriers
+- Plane-face shortcut on bodies whose true authority is mixed-surface
+- Inconsistent In/On/Out at analytic/freeform seams
+- Trim-curve drift over 50 steps when family receipts are swapped
+- Distinct unsupported families sharing one denial digest
+
+**Required infrastructure:**
+- Surface-family admission matrix for curved boolean execution
+- Per-step trim receipts binding edge classification to surface-family authority
+- Symbolic curve representation invalidated when family receipt mismatches
+- Causal replay (P3) localizing smuggling to exact chain step
+- Reference compare OpenCascade/Parasolid on all-analytic control only
+
+---
+
+### MB-CT4-NMT-3 — The Open Curve-Class Triad Trim Storm 🔴
+
+**Test:** 150-step chain alternating open wire (500 analytic curves), open sheet
+(800 trimmed analytic patches, unbounded), and open NMT analytic fan (`k = 4`).
+After each segment, trim against a closed curved tool sized to the class. Inject
+cross-class retained replay at steps 9 and 53. Attempt open-wire → open-sheet
+closure at step 60 and open-sheet → closed solid at step 105.
+
+**Failure modes triggered:**
+- Open wire curves promoted to face loops without typed policy
+- Cross-class retained trim history replayed as equivalent basis
+- Unbounded curve trimming (CT4-7) broken by hidden bounded conversion
+- Winding-number classifier treating wire, sheet, and fan as one open class
+- Distinct class diagnostics collapsing to shared strings
+
+**Required infrastructure:**
+- Winding-number classifier extended to curved edges per open class (P1.4)
+- Per-class parametric trim basis separate from topology naming identity
+- Retained trim checkpoints breaking on cross-class replay at named steps
+- Manifold repair forbidden on wire/fan without explicit `PolicyRequired`
+- Fuel-bounded quadrature (P5) scoped to touched open scope, not whole model
 
 ---
 
@@ -427,16 +611,99 @@ These tests target the hardest problem in B-rep modeling: fillet operations. Fil
 
 ---
 
+## Fillet NMT and Mixed-Surface Extensions (MB-FT4-NMT-1 through MB-FT4-NMT-3)
+
+Fillet-specific NMT and mixed-surface pressure. Most relevant at open boundaries,
+multi-junction stars, and plane/non-plane seams — where blend surfaces are most
+likely to manifold-launder or smuggle surface authority.
+
+---
+
+### MB-FT4-NMT-1 — The Open NMT Junction Fillet Pinch 🔴
+
+**Test:** 16-way fillet junction on an open non-manifold edge fan: 12 spokes
+carry blendable edges, 4 terminate at open boundary half-edges. Apply
+variable-radius fillet (5mm → 0.0001mm) on all blendable spokes. Subtract a tool
+grazing the radial hub at 1e-14. Chain 20 fillet operations with micro-rotations.
+Attempt to fillet across open boundary spokes at step 7.
+
+**Failure modes triggered:**
+- Non-manifold pinch at open radial hub from blend surface closure
+- Fillet rail crossing open boundary and inventing closed topology
+- Zero-radius collapse on spokes meeting open half-edges
+- G1/G2 break across spokes with different surface families at the hub
+- Orientation flip on blend faces from 1e-14 hub graze
+
+**Required infrastructure:**
+- Junction topology solver refusing open-boundary spokes without `PolicyRequired`
+- Symbolic fillet-surface representation stopping at open half-edges
+- Non-manifold post-processor extended to open NMT blend vertices
+- Per-step blend-continuity checkpoints preserving open boundary count
+- Transaction rollback when fillet crosses open boundary
+
+---
+
+### MB-FT4-NMT-2 — The Mixed-Surface Fillet Family Kill Box 🔴
+
+**Test:** One closed edge graph with five surface-family variants: all-plane
+control, analytic/non-planar face, freeform face, generated-feature face,
+unknown carrier. Fillet every edge at 2mm constant radius, then variable-radius
+on 40 seam edges. Smuggle plane fillet receipts onto the freeform variant.
+Overflow fillet past a plane/freeform seam on 20 edges.
+
+**Failure modes triggered:**
+- Plane fillet success laundered onto freeform or unknown face carriers
+- Blend surface crossing plane/non-plane seam with uncertified continuity
+- Radius overflow inventing topology at mixed-surface seams
+- Distinct surface families sharing one fillet denial string
+- Feature-size vs radius misclassification at analytic/freeform boundaries
+
+**Required infrastructure:**
+- Surface-family admission matrix for fillet execution (DZ-4 extension)
+- Pre-fillet auto-refine detecting seams where radius exceeds certified material
+- Per-edge fillet receipts binding blend authority to surface-family evidence
+- Stop-and-split at mixed-surface seams without silent repair
+- Causal replay localizing receipt smuggling to exact operation index
+
+---
+
+### MB-FT4-NMT-3 — The Open Boundary Fillet vs Closed Shell Trap 🔴
+
+**Test:** Three open-class carriers in one 100-step fillet chain: open wire edges
+(200 edges), open sheet boundary (120 edges), open NMT fan spokes (16 blendable +
+4 open-boundary). After each segment, apply large-radius outer fillet on a closed
+reference block that shares coplanar/tangent contact with the open class. Inject
+closed-shell fillet receipts into open-wire segment at step 15. Attempt to close
+open sheet boundary with fillet overflow at step 42.
+
+**Failure modes triggered:**
+- Closed-shell fillet receipts certifying open-wire segments
+- Fillet overflow capping open sheet into bounded solid
+- Open-class blend rails normalized to closed junction stars
+- Recovery suggesting bounded fillet success without typed policy
+- Cross-class fillet history replay at wrong open posture
+
+**Required infrastructure:**
+- Open-boundary fillet gate: blend rails must stop at half-edges unless
+  `PolicyRequired`
+- Per-class fillet identity basis separate from closed reference block
+- Retained fillet checkpoints breaking on cross-class receipt injection
+- Relative-epsilon radius clamping (DZ-4) per open class scope
+- Must fail typed or produce class-correct open blend posture — never closed
+  manifold from open input
+
+---
+
 # Part 4: Summary Tables
 
 ## Test Count by Domain
 
 | Domain | Tests | Risk Profile | Key Challenge |
 |--------|-------|-------|---------------|
-| Planar (MB-T4) | 8 | 🔴🧪 | Coplanar storms + extreme valence + scale separation |
-| Curved (MB-CT4) | 8 | 🔴🧪 | Parametric precision + tangent classification + symbolic curves |
-| Fillet (MB-FT4) | 8 | 🔴🧪 | Junction topology + radius overflow + G2 continuity |
-| **Total** | **24** | | |
+| Planar (MB-T4) | 8 + 3 NMT | 🔴🧪 | Coplanar storms + extreme valence + scale separation + open NMT |
+| Curved (MB-CT4) | 8 + 3 NMT | 🔴🧪 | Parametric precision + tangent + mixed-surface trims + open NMT |
+| Fillet (MB-FT4) | 8 + 3 NMT | 🔴🧪 | Junction topology + radius overflow + open-boundary fillet gates |
+| **Total** | **33** | | |
 
 ## Failure Mode Coverage Matrix
 
@@ -455,6 +722,10 @@ These tests target the hardest problem in B-rep modeling: fillet operations. Fil
 | Radius overflow/collapse | — | — | FT4-2, FT4-4 |
 | G2 continuity enforcement | — | — | FT4-3, FT4-6 |
 | **All-at-once final boss** | T4-8 | CT4-8 | FT4-8 |
+| Open NMT / manifold laundering | T4-NMT-1, T4-NMT-3 | CT4-NMT-1, CT4-NMT-3 | FT4-NMT-1, FT4-NMT-3 |
+| Mixed surface family smuggling | T4-NMT-2 | CT4-NMT-2 | FT4-NMT-2 |
+| Open-class cross-topology replay | T4-NMT-3 | CT4-NMT-3 | FT4-NMT-3 |
+| Open-boundary blend / fillet gate | — | CT4-NMT-1 | FT4-NMT-1, FT4-NMT-3 |
 
 ## Prerequisites from PROOF_SYSTEM.md
 
@@ -462,13 +733,15 @@ Each Tier 4 test depends on proof infrastructure from the parent spec:
 
 | Proof System Component | Tier 4 Tests That Depend On It |
 |---|---|
-| Layer 1: Topological Invariants (P0) | All 24 tests (Euler validation at every step) |
+| Layer 1: Topological Invariants (P0) | All 33 tests (Euler validation at every step) |
 | Layer 2: Dual-Path Verification (P1) | T4-6, T4-8, CT4-7, CT4-8 (unbounded conversion) |
 | Layer 3: Precision Pipeline (P2) | T4-3, T4-5, T4-7, CT4-2, CT4-3, FT4-7 (scale + tangent) |
 | Layer 4: Causal Replay (P3) | T4-5, T4-8, CT4-5, CT4-8, FT4-5, FT4-8 (chain debugging) |
 | Layer 5: Self-Consistency (P4) | T4-5, CT4-5, FT4-5 (cancellation identity) |
 | Doctrine P5 (Det. Fuel) | CT4-7, FT4-7 (quadrature on curved surfaces) |
-| Doctrine P6 (Gen. Handles) | All 24 tests (extreme mutation sequences) |
+| Doctrine P6 (Gen. Handles) | All 33 tests (extreme mutation sequences) |
+| Open NMT posture law | T4-NMT-1/3, CT4-NMT-1/3, FT4-NMT-1/3 (no silent shell repair) |
+| Surface-family admission matrix | T4-NMT-2, CT4-NMT-2, FT4-NMT-2 (M6 `MB-M6-NMT-2` gate) |
 | DZ-1 (Local Coordinates) | T4-7, CT4-2, FT4-7 (scale separation) |
 | DZ-4 (Fillet Cascade) | FT4-1, FT4-2, FT4-4 (radius vs. feature size) |
 

@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::ordinary_outcome::ForgeQueryOrdinaryRuntimePosture;
 
 use super::{
@@ -48,27 +51,27 @@ impl std::fmt::Display for ForgeQueryRuntimeStateKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimeStateSnapshot {
     kind: ForgeQueryRuntimeStateKind,
-    basis_digest: String,
-    result_shape_digest: String,
+    basis_identity: ForgeQueryEvidenceIdentity,
+    result_shape_identity: ForgeQueryEvidenceIdentity,
     authority_lane: ForgeQueryAuthorityLane,
     explanation: String,
     ordinary_runtime_posture: Option<ForgeQueryOrdinaryRuntimePosture>,
     async_result_state: Option<ForgeQueryRuntimeAsyncResultState>,
     remask_posture: Option<ForgeQueryRuntimeRemaskPosture>,
-    state_digest: String,
+    state_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimeStateSnapshot {
     pub fn ready(
-        basis_digest: impl Into<String>,
-        result_shape_digest: impl Into<String>,
+        basis_identity: ForgeQueryEvidenceIdentity,
+        result_shape_identity: ForgeQueryEvidenceIdentity,
         authority_lane: ForgeQueryAuthorityLane,
         explanation: impl Into<String>,
     ) -> Self {
         Self::new(
             ForgeQueryRuntimeStateKind::Ready,
-            basis_digest,
-            result_shape_digest,
+            basis_identity,
+            result_shape_identity,
             authority_lane,
             explanation,
         )
@@ -76,8 +79,8 @@ impl ForgeQueryRuntimeStateSnapshot {
 
     pub fn deferred(
         kind: ForgeQueryRuntimeStateKind,
-        basis_digest: impl Into<String>,
-        result_shape_digest: impl Into<String>,
+        basis_identity: ForgeQueryEvidenceIdentity,
+        result_shape_identity: ForgeQueryEvidenceIdentity,
         authority_lane: ForgeQueryAuthorityLane,
         explanation: impl Into<String>,
     ) -> Self {
@@ -87,8 +90,8 @@ impl ForgeQueryRuntimeStateSnapshot {
         );
         Self::new(
             kind,
-            basis_digest,
-            result_shape_digest,
+            basis_identity,
+            result_shape_identity,
             authority_lane,
             explanation,
         )
@@ -104,8 +107,8 @@ impl ForgeQueryRuntimeStateSnapshot {
         self.async_result_state = Some(async_result_state);
         self.state_digest = compute_state_digest(
             self.kind,
-            &self.basis_digest,
-            &self.result_shape_digest,
+            &self.basis_identity,
+            &self.result_shape_identity,
             self.authority_lane,
             &self.explanation,
             self.ordinary_runtime_posture.as_ref(),
@@ -122,8 +125,8 @@ impl ForgeQueryRuntimeStateSnapshot {
         self.ordinary_runtime_posture = Some(ordinary_runtime_posture);
         self.state_digest = compute_state_digest(
             self.kind,
-            &self.basis_digest,
-            &self.result_shape_digest,
+            &self.basis_identity,
+            &self.result_shape_identity,
             self.authority_lane,
             &self.explanation,
             self.ordinary_runtime_posture.as_ref(),
@@ -138,8 +141,8 @@ impl ForgeQueryRuntimeStateSnapshot {
         self.remask_posture = Some(remask_posture);
         self.state_digest = compute_state_digest(
             self.kind,
-            &self.basis_digest,
-            &self.result_shape_digest,
+            &self.basis_identity,
+            &self.result_shape_identity,
             self.authority_lane,
             &self.explanation,
             self.ordinary_runtime_posture.as_ref(),
@@ -151,21 +154,19 @@ impl ForgeQueryRuntimeStateSnapshot {
 
     fn new(
         kind: ForgeQueryRuntimeStateKind,
-        basis_digest: impl Into<String>,
-        result_shape_digest: impl Into<String>,
+        basis_identity: ForgeQueryEvidenceIdentity,
+        result_shape_identity: ForgeQueryEvidenceIdentity,
         authority_lane: ForgeQueryAuthorityLane,
         explanation: impl Into<String>,
     ) -> Self {
-        let basis_digest = basis_digest.into();
-        let result_shape_digest = result_shape_digest.into();
         let explanation = explanation.into();
         let ordinary_runtime_posture = None;
         let async_result_state = None;
         let remask_posture = None;
         let state_digest = compute_state_digest(
             kind,
-            &basis_digest,
-            &result_shape_digest,
+            &basis_identity,
+            &result_shape_identity,
             authority_lane,
             &explanation,
             ordinary_runtime_posture.as_ref(),
@@ -174,8 +175,8 @@ impl ForgeQueryRuntimeStateSnapshot {
         );
         Self {
             kind,
-            basis_digest,
-            result_shape_digest,
+            basis_identity,
+            result_shape_identity,
             authority_lane,
             explanation,
             ordinary_runtime_posture,
@@ -189,12 +190,20 @@ impl ForgeQueryRuntimeStateSnapshot {
         self.kind
     }
 
-    pub fn basis_digest(&self) -> &str {
-        &self.basis_digest
+    pub fn basis_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_identity
     }
 
-    pub fn result_shape_digest(&self) -> &str {
-        &self.result_shape_digest
+    pub fn basis_for_reporting(&self) -> &str {
+        self.basis_identity.as_str()
+    }
+
+    pub fn result_shape_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.result_shape_identity
+    }
+
+    pub fn result_shape_for_reporting(&self) -> &str {
+        self.result_shape_identity.as_str()
     }
 
     pub fn authority_lane(&self) -> ForgeQueryAuthorityLane {
@@ -217,42 +226,44 @@ impl ForgeQueryRuntimeStateSnapshot {
         self.remask_posture.as_ref()
     }
 
-    pub fn state_digest(&self) -> &str {
+    pub fn state_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.state_digest
     }
 }
 
 fn compute_state_digest(
     kind: ForgeQueryRuntimeStateKind,
-    basis_digest: &str,
-    result_shape_digest: &str,
+    basis_identity: &ForgeQueryEvidenceIdentity,
+    result_shape_identity: &ForgeQueryEvidenceIdentity,
     authority_lane: ForgeQueryAuthorityLane,
     explanation: &str,
     ordinary_runtime_posture: Option<&ForgeQueryOrdinaryRuntimePosture>,
     async_result_state: Option<&ForgeQueryRuntimeAsyncResultState>,
     remask_posture: Option<&ForgeQueryRuntimeRemaskPosture>,
-) -> String {
-    let mut parts = vec![
-        format!("kind:{}", kind.as_str()),
-        format!("basis:{basis_digest}"),
-        format!("result_shape:{result_shape_digest}"),
-        format!("lane:{}", authority_lane.as_str()),
-        format!("explanation:{explanation}"),
-    ];
-    if let Some(ordinary_runtime_posture) = ordinary_runtime_posture {
-        parts.push(format!(
-            "ordinary_runtime_posture:{}",
-            ordinary_runtime_posture.posture_digest()
-        ));
-    }
-    if let Some(async_result_state) = async_result_state {
-        parts.push(format!(
-            "async_result_state:{}",
-            async_result_state.result_state_digest()
-        ));
-    }
-    if let Some(remask_posture) = remask_posture {
-        parts.push(format!("remask_posture:{}", remask_posture.remask_digest()));
-    }
-    hash_parts(&parts)
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimeStateSnapshot)
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis_digest"), basis_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("result_shape_digest"),
+            result_shape_identity,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authority_lane"),
+            authority_lane.as_str(),
+        )
+        .field_value(ForgeQueryEvidenceTag::new("explanation"), explanation)
+        .optional_evidence_identity(
+            ForgeQueryEvidenceTag::new("ordinary_runtime_posture"),
+            ordinary_runtime_posture.map(ForgeQueryOrdinaryRuntimePosture::evidence_identity),
+        )
+        .optional_evidence_identity(
+            ForgeQueryEvidenceTag::new("async_result_state"),
+            async_result_state.map(ForgeQueryRuntimeAsyncResultState::result_state_identity),
+        )
+        .optional_evidence_identity(
+            ForgeQueryEvidenceTag::new("remask_posture"),
+            remask_posture.map(ForgeQueryRuntimeRemaskPosture::remask_identity),
+        )
+        .seal()
 }

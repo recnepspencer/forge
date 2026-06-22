@@ -160,6 +160,18 @@ pub enum ForgeQueryDeclarationAspectCoverageBasis {
     BridgeMappedCoverage,
 }
 
+impl ForgeQueryDeclarationAspectCoverageBasis {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::DeclaredFamilyCoverage => "declared_family_coverage",
+            Self::ReviewedRetainedCoverage => "reviewed_retained_coverage",
+            Self::SupportReportedCoverage => "support_reported_coverage",
+            Self::EnvelopePublishedCoverage => "envelope_published_coverage",
+            Self::BridgeMappedCoverage => "bridge_mapped_coverage",
+        }
+    }
+}
+
 impl ForgeQueryDeclarationAspectCoverage {
     pub fn empty() -> Self {
         Self::new(
@@ -291,6 +303,18 @@ pub enum ForgeQueryDeclarationAspectFit {
     Partial,
     MissingRequired,
     Conflict,
+}
+
+impl ForgeQueryDeclarationAspectFit {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Exact => "exact",
+            Self::CompatibleSuperset => "compatible_superset",
+            Self::Partial => "partial",
+            Self::MissingRequired => "missing_required",
+            Self::Conflict => "conflict",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

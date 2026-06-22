@@ -2,10 +2,4 @@ error[E0599]: no method named `with_relationship_proof_digest` found for struct 
  --> tests/ui/subscription_relationship_proof_digest_patch_forbidden.rs:6:29
   |
 6 |     let _patched = artifact.with_relationship_proof_digest("proof-v2");
-  |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |
-help: there is a method `relationship_proof_digest` with a similar name, but with different arguments
- --> src/subscription/input.rs
-  |
-  |     pub fn relationship_proof_digest(&self) -> Option<&str> {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `LiveQueryAdmissionArtifact`

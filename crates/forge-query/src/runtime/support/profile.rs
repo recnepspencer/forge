@@ -10,8 +10,10 @@ use super::{
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
     ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryRuntimeSupportDenial,
 };
 use crate::runtime::{ForgeQueryAuthorityLane, ForgeQueryEffectPolicy};
+use crate::runtime::{ForgeQueryGraphIndexSupportRow, ForgeQueryGraphReadAccessRequirementKind};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimeSupportProfile {
@@ -20,6 +22,7 @@ pub struct ForgeQueryRuntimeSupportProfile {
     bridge_backed_verification_support_rows:
         Vec<ForgeQueryBridgeBackedVerificationSupportProfileRow>,
     graph_composition_capability_support_rows: Vec<ForgeQueryGraphCompositionCapabilitySupportRow>,
+    pub(super) graph_index_support_rows: Vec<ForgeQueryGraphIndexSupportRow>,
 }
 
 impl ForgeQueryRuntimeSupportProfile {
@@ -31,6 +34,7 @@ impl ForgeQueryRuntimeSupportProfile {
                 default_bridge_backed_verification_support_rows(),
             graph_composition_capability_support_rows:
                 default_graph_composition_capability_support_rows(),
+            graph_index_support_rows: default_graph_index_support_rows(),
         }
     }
 
@@ -53,6 +57,34 @@ impl ForgeQueryRuntimeSupportProfile {
                 [ForgeQueryAuthorityLane::DerivedRuntimeState],
                 [ForgeQueryEffectPolicy::DeriveOnly],
                 ["query-local-derived-view-runtime"],
+            ),
+            ForgeQueryRuntimeFamilySupport::supported(
+                ForgeQueryRuntimeFacadeFamily::SharedRead,
+                [ForgeQueryAuthorityLane::DerivedRuntimeState],
+                [],
+                ["published-derived-artifact-consumption"],
+            ),
+            ForgeQueryRuntimeFamilySupport::supported(
+                ForgeQueryRuntimeFacadeFamily::Submission,
+                [
+                    ForgeQueryAuthorityLane::PendingWriteIntent,
+                    ForgeQueryAuthorityLane::AuthoritativeTruth,
+                ],
+                [],
+                [
+                    "deterministic-submission-seam",
+                    "authoritative-mutation-evidence",
+                ],
+            ),
+            ForgeQueryRuntimeFamilySupport::supported(
+                ForgeQueryRuntimeFacadeFamily::Replay,
+                [ForgeQueryAuthorityLane::AuthoritativeTruth],
+                [],
+                [
+                    "journal-segment-identity",
+                    "journal-replay-outcome",
+                    "published-derived-artifact-consumption",
+                ],
             ),
             ForgeQueryRuntimeFamilySupport::supported(
                 ForgeQueryRuntimeFacadeFamily::Effect,
@@ -282,31 +314,31 @@ impl ForgeQueryRuntimeSupportProfile {
         family: ForgeQueryRuntimeFacadeFamily,
     ) -> Result<(), ForgeQueryRuntimeSupportDenial> {
         let Some(row) = self.support_for(family) else {
-            return Err(ForgeQueryRuntimeSupportDenial {
+            return Err(ForgeQueryRuntimeSupportDenial::unsupported(
                 family,
-                reason: "backend support profile does not declare this facade family".to_string(),
-            });
+                "backend support profile does not declare this facade family",
+            ));
         };
 
         match row.status() {
             ForgeQueryRuntimeFamilySupportStatus::Supported => Ok(()),
             ForgeQueryRuntimeFamilySupportStatus::DeferredDebt => {
-                Err(ForgeQueryRuntimeSupportDenial {
+                Err(ForgeQueryRuntimeSupportDenial::new(
                     family,
-                    reason: row
-                        .denial_reason()
-                        .unwrap_or("backend support profile marks this facade family deferred")
-                        .to_string(),
-                })
+                    ForgeQueryRuntimeFamilySupportStatus::DeferredDebt,
+                    Some(row.teaching_posture()),
+                    row.denial_reason()
+                        .unwrap_or("backend support profile marks this facade family deferred"),
+                ))
             }
             ForgeQueryRuntimeFamilySupportStatus::Unsupported => {
-                Err(ForgeQueryRuntimeSupportDenial {
+                Err(ForgeQueryRuntimeSupportDenial::new(
                     family,
-                    reason: row
-                        .denial_reason()
-                        .unwrap_or("backend support profile marks this facade family unsupported")
-                        .to_string(),
-                })
+                    ForgeQueryRuntimeFamilySupportStatus::Unsupported,
+                    Some(row.teaching_posture()),
+                    row.denial_reason()
+                        .unwrap_or("backend support profile marks this facade family unsupported"),
+                ))
             }
         }
     }
@@ -322,6 +354,9 @@ impl ForgeQueryRuntimeSupportProfile {
         {
             return Err(ForgeQueryRuntimeSupportDenial::new(
                 ForgeQueryRuntimeFacadeFamily::Intent,
+                ForgeQueryRuntimeFamilySupportStatus::Supported,
+                self.support_for(ForgeQueryRuntimeFacadeFamily::Intent)
+                    .map(ForgeQueryRuntimeFamilySupport::teaching_posture),
                 "intent support requires an executable intent authority adapter",
             ));
         }
@@ -330,37 +365,12 @@ impl ForgeQueryRuntimeSupportProfile {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryRuntimeSupportDenial {
-    family: ForgeQueryRuntimeFacadeFamily,
-    reason: String,
-}
-
-impl ForgeQueryRuntimeSupportDenial {
-    pub(crate) fn new(family: ForgeQueryRuntimeFacadeFamily, reason: impl Into<String>) -> Self {
-        Self {
-            family,
-            reason: reason.into(),
-        }
-    }
-
-    pub fn family(&self) -> ForgeQueryRuntimeFacadeFamily {
-        self.family
-    }
-
-    pub fn reason(&self) -> &str {
-        &self.reason
-    }
-}
-
-impl std::fmt::Display for ForgeQueryRuntimeSupportDenial {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "runtime backend does not admit `{}` facade family: {}",
-            self.family, self.reason
-        )
-    }
+pub(super) fn default_graph_index_support_rows() -> Vec<ForgeQueryGraphIndexSupportRow> {
+    ForgeQueryGraphReadAccessRequirementKind::all()
+        .iter()
+        .cloned()
+        .map(ForgeQueryGraphIndexSupportRow::for_requirement_kind)
+        .collect()
 }
 
 fn _keep_types_visible(

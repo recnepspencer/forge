@@ -186,8 +186,10 @@ pub(crate) fn lower_validated_route(
         .with_digest_computations(2)
         .with_digest_input_bytes(invalidation_basis.len() + snapshot_basis.len());
     let plan = validated.plan();
-    let invalidation_identity =
-        BridgeInvalidationIdentity::new(digest_string("invalidation", &invalidation_basis));
+    let invalidation_identity = BridgeInvalidationIdentity::admit_bridge_owned(digest_string(
+        "invalidation",
+        &invalidation_basis,
+    ));
     let snapshot_token = BridgeSnapshotToken::issued(
         plan.source_snapshot().clone(),
         digest_string("snapshot-token", &snapshot_basis),

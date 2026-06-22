@@ -7,9 +7,9 @@ fn runtime_prepares_historical_temporal_readiness_from_pinned_truth_and_retained
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::historical(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-historical"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-historical"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -22,8 +22,8 @@ fn runtime_prepares_historical_temporal_readiness_from_pinned_truth_and_retained
         .admit_historical_truth_view_basis(temporal_basis.truth_basis())
         .expect("historical truth basis should admit");
     let retained = runtime.retain_historical_previous_value_evidence(
-        TruthBranchIdentity::new("analysis"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         vec![retained_previous_value_reference(11, "1:0", 5)],
     );
 
@@ -58,9 +58,9 @@ fn runtime_rejects_historical_replay_without_retained_previous_values() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::historical(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-historical"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-historical"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -73,8 +73,8 @@ fn runtime_rejects_historical_replay_without_retained_previous_values() {
         .admit_historical_truth_view_basis(temporal_basis.truth_basis())
         .expect("historical truth basis should admit");
     let retained = runtime.retain_historical_previous_value_evidence(
-        TruthBranchIdentity::new("analysis"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         vec![],
     );
 
@@ -99,9 +99,9 @@ fn runtime_rejects_historical_replay_when_previous_values_cross_branches() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::historical(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-historical"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-historical"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -114,8 +114,8 @@ fn runtime_rejects_historical_replay_when_previous_values_cross_branches() {
         .admit_historical_truth_view_basis(temporal_basis.truth_basis())
         .expect("historical truth basis should admit");
     let retained = runtime.retain_historical_previous_value_evidence(
-        TruthBranchIdentity::new("analysis-drift"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis-drift"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         vec![retained_previous_value_reference(11, "1:0", 5)],
     );
 
@@ -134,9 +134,9 @@ fn runtime_rejects_nonhistorical_truth_basis_for_historical_replay() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted_truth_basis = match crate::facade::AdmittedBridgeTemporalTruthViewBasis::admit(
         BridgeTemporalTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("analysis"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     ) {
         TransitionOutcome::Success(admitted) => admitted,
@@ -158,9 +158,9 @@ fn runtime_historical_temporal_readiness_digest_ignores_unrelated_current_truth_
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::historical(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-historical"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-historical"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -178,8 +178,8 @@ fn runtime_historical_temporal_readiness_digest_ignores_unrelated_current_truth_
             &temporal,
             &historical_truth_basis,
             runtime.retain_historical_previous_value_evidence(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 retained_rows.clone(),
             ),
         )
@@ -190,17 +190,17 @@ fn runtime_historical_temporal_readiness_digest_ignores_unrelated_current_truth_
 
     let _unrelated_current_basis =
         admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("analysis"),
-            TruthCommitIdentity::new("commit-current"),
-            TruthSnapshotIdentity::new("snapshot-z"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-current"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-z"),
         ));
     let replay_basis_again = runtime
         .admit_historical_temporal_replay_basis(
             &temporal,
             &historical_truth_basis,
             runtime.retain_historical_previous_value_evidence(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 retained_rows,
             ),
         )
@@ -217,9 +217,9 @@ fn runtime_rejects_historical_replay_when_historical_truth_snapshot_drifts() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::historical(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-historical"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-historical"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -230,9 +230,9 @@ fn runtime_rejects_historical_replay_when_historical_truth_snapshot_drifts() {
         .expect("historical temporal subscription should admit");
     let mismatched_truth_basis = match crate::facade::AdmittedBridgeTemporalTruthViewBasis::admit(
         BridgeTemporalTruthViewBasis::historical(
-            TruthBranchIdentity::new("analysis"),
-            TruthCommitIdentity::new("commit-historical"),
-            TruthSnapshotIdentity::new("snapshot-b"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-historical"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
         ),
     ) {
         TransitionOutcome::Success(admitted) => admitted,
@@ -242,8 +242,8 @@ fn runtime_rejects_historical_replay_when_historical_truth_snapshot_drifts() {
         .admit_historical_truth_view_basis(&mismatched_truth_basis)
         .expect("historical truth basis should admit");
     let retained = runtime.retain_historical_previous_value_evidence(
-        TruthBranchIdentity::new("analysis"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         vec![retained_previous_value_reference(11, "1:0", 5)],
     );
 
@@ -262,9 +262,9 @@ fn runtime_rejects_historical_replay_when_historical_truth_branch_drifts() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::historical(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-historical"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-historical"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -275,9 +275,9 @@ fn runtime_rejects_historical_replay_when_historical_truth_branch_drifts() {
         .expect("historical temporal subscription should admit");
     let mismatched_truth_basis = match crate::facade::AdmittedBridgeTemporalTruthViewBasis::admit(
         BridgeTemporalTruthViewBasis::historical(
-            TruthBranchIdentity::new("analysis-drift"),
-            TruthCommitIdentity::new("commit-historical"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis-drift"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-historical"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     ) {
         TransitionOutcome::Success(admitted) => admitted,
@@ -287,8 +287,8 @@ fn runtime_rejects_historical_replay_when_historical_truth_branch_drifts() {
         .admit_historical_truth_view_basis(&mismatched_truth_basis)
         .expect("historical truth basis should admit");
     let retained = runtime.retain_historical_previous_value_evidence(
-        TruthBranchIdentity::new("analysis"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         vec![retained_previous_value_reference(11, "1:0", 5)],
     );
 

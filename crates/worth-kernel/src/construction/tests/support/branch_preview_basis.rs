@@ -1,16 +1,16 @@
 use forge_query::facade::{
     ForgeQueryAuthorityLane, ForgeQueryBranchOptions, ForgeQueryEffectPolicy,
     ForgeQueryPreviewOptions, ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryWorkspace,
+    ForgeQuerySessionLabel, ForgeQueryWorkspace,
 };
 use worth_geom::facade::{
     PrimitiveNormalizationDisposition, PrimitiveRealizationExhaustionReason,
     PrimitiveRealizationStrategy, PrimitiveStabilityClass, PrimitiveSupportNormalClass,
 };
 
-use crate::construction::digest::digest_owned_parts;
 use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::request::PrimitiveConstructionFamily;
+use crate::construction::tests::support::evidence_reports::sealed_report_identity;
 use crate::construction::tests::support::runtime_truth::{
     prepare_primitive_construction_certification_runtime_truth,
     PrimitiveConstructionCertificationRuntimeTruth,
@@ -187,19 +187,39 @@ impl BranchPreviewBasisReport {
                     .map(|value| value.as_str().to_string()),
             ),
         };
-        digest_owned_parts(&[
-            self.runtime_truth.family().as_str().to_string(),
-            self.basis_capture.branch_preview_contract_digest.clone(),
-            self.basis_capture.preview_admission_digest.clone(),
-            self.basis_capture.branch_admission_digest.clone(),
-            realization_strategy.unwrap_or_default(),
-            attempted_realization_strategies,
-            stability_class.unwrap_or_default(),
-            support_normal_class.unwrap_or_default(),
-            normalization_disposition.unwrap_or_default(),
-            exhaustion_reason.unwrap_or_default(),
-            self.parity_verified().to_string(),
-        ])
+        sealed_report_identity(
+            "worth-kernel.construction.branch-preview-basis",
+            "branch-preview-basis",
+            |report| {
+                report
+                    .shape_participating("family", self.runtime_truth.family().as_str())?
+                    .value_participating(
+                        "branch-preview-contract",
+                        self.basis_capture.branch_preview_contract_digest.clone(),
+                    )?
+                    .value_participating(
+                        "preview-admission",
+                        self.basis_capture.preview_admission_digest.clone(),
+                    )?
+                    .value_participating(
+                        "branch-admission",
+                        self.basis_capture.branch_admission_digest.clone(),
+                    )?
+                    .optional_value_participating("realization-strategy", realization_strategy)?
+                    .value_participating(
+                        "attempted-realization-strategies",
+                        attempted_realization_strategies,
+                    )?
+                    .optional_value_participating("stability-class", stability_class)?
+                    .optional_value_participating("support-normal-class", support_normal_class)?
+                    .optional_value_participating(
+                        "normalization-disposition",
+                        normalization_disposition,
+                    )?
+                    .optional_value_participating("exhaustion-reason", exhaustion_reason)?
+                    .bool_participating("parity-verified", self.parity_verified())
+            },
+        )
     }
 }
 
@@ -222,60 +242,50 @@ fn capture_branch_preview_basis(
         .map_err(BranchPreviewBasisError::QueryRuntime)?
         .contract_digest()
         .to_string();
-    let (preview_label, preview_effect_policy, preview_authority_lane, preview_evidence) = {
+    let (preview_admission_digest, preview_effect_policy, preview_authority_lane) = {
         let preview = workspace
             .preview_with_options(
-                format!("worth-kernel.{}.preview", family.as_str()),
+                ForgeQuerySessionLabel::scoped_strs("worth-kernel", [family.as_str(), "preview"])
+                    .expect("preview label"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .map_err(BranchPreviewBasisError::QueryRuntime)?;
         let preview_basis = preview.basis_admission();
         (
-            preview_basis.label().to_string(),
+            preview_basis
+                .admission_identity()
+                .terminal_projection_for_reporting()
+                .to_string(),
             preview_basis.effect_policy(),
             preview_basis.authority_lane(),
-            preview_basis.evidence().to_vec(),
         )
     };
-    let branch = workspace
-        .branch_with_options(
-            format!("worth-kernel.{}.branch", family.as_str()),
-            ForgeQueryBranchOptions::sandboxed_write_intent(),
+    let (branch_admission_digest, branch_effect_policy, branch_authority_lane) = {
+        let branch = workspace
+            .branch_with_options(
+                ForgeQuerySessionLabel::scoped_strs("worth-kernel", [family.as_str(), "branch"])
+                    .expect("branch label"),
+                ForgeQueryBranchOptions::sandboxed_write_intent(),
+            )
+            .map_err(BranchPreviewBasisError::QueryRuntime)?;
+        let branch_basis = branch.basis_admission();
+        (
+            branch_basis
+                .admission_identity()
+                .terminal_projection_for_reporting()
+                .to_string(),
+            branch_basis.effect_policy(),
+            branch_basis.authority_lane(),
         )
-        .map_err(BranchPreviewBasisError::QueryRuntime)?;
-    let branch_basis = branch.basis_admission();
+    };
 
     Ok(BranchPreviewBasisCapture {
         branch_preview_contract_digest,
-        preview_admission_digest: basis_admission_digest(
-            &preview_label,
-            preview_effect_policy,
-            preview_authority_lane,
-            &preview_evidence,
-        ),
+        preview_admission_digest,
         preview_effect_policy,
         preview_authority_lane,
-        branch_admission_digest: basis_admission_digest(
-            branch_basis.label(),
-            branch_basis.effect_policy(),
-            branch_basis.authority_lane(),
-            branch_basis.evidence(),
-        ),
-        branch_effect_policy: branch_basis.effect_policy(),
-        branch_authority_lane: branch_basis.authority_lane(),
+        branch_admission_digest,
+        branch_effect_policy,
+        branch_authority_lane,
     })
-}
-
-fn basis_admission_digest(
-    label: &str,
-    effect_policy: ForgeQueryEffectPolicy,
-    authority_lane: ForgeQueryAuthorityLane,
-    evidence: &[String],
-) -> String {
-    digest_owned_parts(&[
-        label.to_string(),
-        effect_policy.to_string(),
-        authority_lane.to_string(),
-        evidence.join("|"),
-    ])
 }

@@ -166,7 +166,6 @@ mod tests {
     use crate::input::envelope::{
         BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity,
         BridgeCommittedPatchItem, BridgeCommittedPatchTarget, BridgeProducerMetadata,
-        TruthBranchIdentity, TruthPatchIdentity,
     };
     use crate::mapping::{
         BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeMappingId,
@@ -174,17 +173,16 @@ mod tests {
         FrozenMappingRegistry, MappingSelector, SignalInvalidationScope, SliceWideningPolicy,
         SubscriptionSliceKind, TruthDeltaSurfaceKind, TruthPatchScope, TruthPatchTargetSelector,
     };
-    use crate::snapshot::TruthSnapshotIdentity;
 
     #[test]
     fn missing_mapping_registration_retains_native_patch_target_coordinate() {
         let envelope = BridgeCommittedPatchEnvelope::new(
             BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
                 BridgeProducerMetadata::bridge_harness_fixture(),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
-                TruthBranchIdentity::new("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
             ),
             vec![BridgeCommittedPatchItem::with_target(
                 "entity-1",
@@ -317,10 +315,10 @@ mod tests {
         BridgeCommittedPatchEnvelope::new(
             BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
                 BridgeProducerMetadata::bridge_harness_fixture(),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
-                TruthBranchIdentity::new("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
             ),
             vec![BridgeCommittedPatchItem::with_target("entity-1", target)],
         )
@@ -329,7 +327,7 @@ mod tests {
 
     fn mapping_registry(target_selector: TruthPatchTargetSelector) -> FrozenMappingRegistry {
         FrozenMappingRegistry::freeze(vec![BridgeMappingRegistration::new(
-            BridgeMappingId::new("native-target-route"),
+            BridgeMappingId::admit_bridge_owned("native-target-route"),
             TruthPatchScope::for_target(
                 MappingSelector::exact("entity-1"),
                 aspect_key("profile"),
@@ -339,7 +337,7 @@ mod tests {
                 aspect_key("profile"),
                 ScalarAspectType::String,
             ),
-            SignalInvalidationScope::new("signal.native-target"),
+            SignalInvalidationScope::admit_bridge_owned("signal.native-target"),
             CoarseRoutingMode::Direct,
         )])
         .expect("mapping registry should freeze")
@@ -351,7 +349,7 @@ mod tests {
         slice_kind: SubscriptionSliceKind,
     ) -> FrozenAspectMappingRegistry {
         FrozenAspectMappingRegistry::freeze(vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("native-target-aspect"),
+            BridgeAspectRegistrationId::admit_bridge_owned("native-target-aspect"),
             TruthPatchScope::for_target(
                 MappingSelector::exact("entity-1"),
                 aspect_key("profile"),

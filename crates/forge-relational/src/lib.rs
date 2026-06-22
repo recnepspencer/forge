@@ -34,6 +34,7 @@ mod errors;
 mod grouped_truth;
 mod history;
 mod identity;
+mod identity_authority;
 mod indexes;
 mod inspection;
 mod lineage;

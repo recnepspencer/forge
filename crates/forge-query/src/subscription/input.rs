@@ -1,9 +1,15 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::live::{LivePromotionDescriptor, LiveQueryFamily};
 use crate::view_shape_live::LiveViewShapeFamily;
 
 use super::construction_source::QuerySubscriptionConstructionSource;
 use super::dimensions::QuerySubscriptionAdmissionDimensions;
+use super::evidence_identities::{
+    diagnostic_source_identity, lifecycle_context_collection_absent_identity,
+    lifecycle_context_policy_identity, lifecycle_context_relationship_proof_identity,
+    lifecycle_context_tenant_basis_identity, live_delivery_intent_projection_identity,
+    live_relevance_identity,
+};
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::posture::QuerySubscriptionBasisPosture;
 use super::relationship_proof::QuerySubscriptionRelationshipProofPosture;
@@ -11,18 +17,21 @@ use super::relationship_proof::QuerySubscriptionRelationshipProofPosture;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LiveQueryAdmissionArtifact {
     pub(super) live_family: LiveQueryFamily,
-    pub(super) query_digest: String,
-    pub(super) plan_digest: String,
-    pub(super) collection_digest: Option<String>,
+    pub(super) query_identity: ForgeQueryEvidenceIdentity,
+    pub(super) plan_identity: ForgeQueryEvidenceIdentity,
+    pub(super) collection_identity: ForgeQueryEvidenceIdentity,
     pub(super) view_family: Option<LiveViewShapeFamily>,
     pub(super) basis_posture: QuerySubscriptionBasisPosture,
     pub(super) future_selection: QuerySubscriptionFutureSelection,
-    pub(super) policy_digest: Option<String>,
-    pub(super) tenant_digest: Option<String>,
-    pub(super) relationship_proof_digest: Option<String>,
+    pub(super) policy_context_identity: ForgeQueryEvidenceIdentity,
+    pub(super) tenant_context_identity: ForgeQueryEvidenceIdentity,
+    pub(super) relationship_proof_context_identity: ForgeQueryEvidenceIdentity,
+    pub(super) policy_context_width: usize,
+    pub(super) tenant_context_width: usize,
     pub(super) relationship_proof_posture: QuerySubscriptionRelationshipProofPosture,
-    pub(super) relevance_digest: String,
-    pub(super) delivery_intent_digest: String,
+    pub(super) relevance_identity: ForgeQueryEvidenceIdentity,
+    pub(super) delivery_intent_identity: ForgeQueryEvidenceIdentity,
+    pub(super) diagnostic_source_identity: ForgeQueryEvidenceIdentity,
     pub(super) authorized_projection_width: usize,
     pub(super) ordering_width: usize,
     pub(super) grouping_width: usize,
@@ -58,9 +67,6 @@ impl LiveQueryAdmissionArtifact {
             dimensions,
             QuerySubscriptionConstructionSource::FacadeLive,
             future_selection,
-            None,
-            None,
-            None,
         )
     }
 
@@ -93,9 +99,6 @@ impl LiveQueryAdmissionArtifact {
             dimensions,
             QuerySubscriptionConstructionSource::FacadeLive,
             future_selection,
-            None,
-            None,
-            None,
         )
     }
 
@@ -106,45 +109,50 @@ impl LiveQueryAdmissionArtifact {
         dimensions: QuerySubscriptionAdmissionDimensions,
         construction_source: QuerySubscriptionConstructionSource,
         future_selection: QuerySubscriptionFutureSelection,
-        policy_digest: Option<String>,
-        tenant_digest: Option<String>,
-        relationship_proof_digest: Option<String>,
     ) -> Self {
-        let relationship_proof_posture = relationship_proof_digest
-            .as_ref()
-            .map(|_| QuerySubscriptionRelationshipProofPosture::Admitted)
-            .unwrap_or(QuerySubscriptionRelationshipProofPosture::NotRequired);
-        Self {
+        let query_identity = descriptor.query_digest().evidence_identity().clone();
+        let plan_identity = descriptor.plan_digest().evidence_identity().clone();
+        let collection_identity = descriptor
+            .collection_digest()
+            .map(|digest| digest.evidence_identity())
+            .unwrap_or_else(lifecycle_context_collection_absent_identity);
+        let relevance_identity =
+            live_relevance_identity(descriptor.family(), &query_identity, &plan_identity);
+        let delivery_intent_identity =
+            live_delivery_intent_projection_identity(descriptor.family());
+        let policy_context_identity = lifecycle_context_policy_identity("none");
+        let tenant_context_identity = lifecycle_context_tenant_basis_identity("none");
+        let relationship_proof_context_identity =
+            lifecycle_context_relationship_proof_identity("none");
+        let mut artifact = Self {
             live_family: descriptor.family().clone(),
-            query_digest: descriptor.query_digest().as_str().to_string(),
-            plan_digest: descriptor.plan_digest().as_str().to_string(),
-            collection_digest: descriptor
-                .collection_digest()
-                .map(|digest| digest.as_str().to_string()),
+            query_identity,
+            plan_identity,
+            collection_identity,
             view_family,
             basis_posture,
             future_selection,
-            policy_digest,
-            tenant_digest,
-            relationship_proof_digest,
-            relationship_proof_posture,
-            relevance_digest: hash_parts(&[
-                "live_relevance".to_string(),
-                descriptor.family().as_str().to_string(),
-                descriptor.query_digest().as_str().to_string(),
-                descriptor.plan_digest().as_str().to_string(),
-            ]),
-            delivery_intent_digest: hash_parts(&[
-                "live_delivery_intent".to_string(),
-                descriptor.family().as_str().to_string(),
-            ]),
+            policy_context_identity,
+            tenant_context_identity,
+            relationship_proof_context_identity,
+            policy_context_width: "none".len(),
+            tenant_context_width: "none".len(),
+            relationship_proof_posture: QuerySubscriptionRelationshipProofPosture::NotRequired,
+            relevance_identity,
+            delivery_intent_identity,
+            diagnostic_source_identity: ForgeQueryEvidenceIdentity::compose(
+                crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+            )
+            .seal(),
             authorized_projection_width: dimensions.authorized_projection_width,
             ordering_width: dimensions.ordering_width,
             grouping_width: dimensions.grouping_width,
             relation_scope_width: dimensions.relation_scope_width,
             view_shape_metadata_width: dimensions.view_shape_metadata_width,
             construction_source,
-        }
+        };
+        artifact.diagnostic_source_identity = diagnostic_source_identity(&artifact);
+        artifact
     }
 
     pub fn live_family(&self) -> &LiveQueryFamily {
@@ -167,20 +175,64 @@ impl LiveQueryAdmissionArtifact {
         &self.construction_source
     }
 
-    pub fn query_digest(&self) -> &str {
-        &self.query_digest
+    pub fn query_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.query_identity
     }
 
-    pub fn policy_digest(&self) -> Option<&str> {
-        self.policy_digest.as_deref()
+    pub(super) fn plan_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.plan_identity
     }
 
-    pub fn tenant_digest(&self) -> Option<&str> {
-        self.tenant_digest.as_deref()
+    pub(super) fn collection_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.collection_identity
     }
 
-    pub fn relationship_proof_digest(&self) -> Option<&str> {
-        self.relationship_proof_digest.as_deref()
+    pub(super) fn ordering_width(&self) -> usize {
+        self.ordering_width
+    }
+
+    pub(super) fn grouping_width(&self) -> usize {
+        self.grouping_width
+    }
+
+    pub(super) fn relation_scope_width(&self) -> usize {
+        self.relation_scope_width
+    }
+
+    pub(super) fn relationship_proof_posture(&self) -> &QuerySubscriptionRelationshipProofPosture {
+        &self.relationship_proof_posture
+    }
+
+    pub(super) fn policy_context_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.policy_context_identity
+    }
+
+    pub(super) fn tenant_context_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.tenant_context_identity
+    }
+
+    pub(super) fn relationship_proof_context_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.relationship_proof_context_identity
+    }
+
+    pub(super) fn policy_context_width(&self) -> usize {
+        self.policy_context_width
+    }
+
+    pub(super) fn tenant_context_width(&self) -> usize {
+        self.tenant_context_width
+    }
+
+    pub fn relevance_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.relevance_identity
+    }
+
+    pub fn delivery_intent_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_intent_identity
+    }
+
+    pub fn diagnostic_source_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.diagnostic_source_identity
     }
 
     pub fn authorized_projection_width(&self) -> usize {
@@ -189,47 +241,5 @@ impl LiveQueryAdmissionArtifact {
 
     pub fn view_shape_metadata_width(&self) -> usize {
         self.view_shape_metadata_width
-    }
-
-    pub(super) fn diagnostic_source_digest(&self) -> String {
-        hash_parts(&[
-            "query_subscription_live_admission_source_v1".to_string(),
-            format!("live_family:{}", self.live_family.as_str()),
-            format!("query:{}", self.query_digest),
-            format!("plan:{}", self.plan_digest),
-            format!(
-                "collection:{}",
-                self.collection_digest.as_deref().unwrap_or("none")
-            ),
-            format!(
-                "view_family:{}",
-                self.view_family
-                    .map(|family| family.as_str())
-                    .unwrap_or("none")
-            ),
-            format!("basis:{}", self.basis_posture.as_str()),
-            format!(
-                "future_selection:{}",
-                self.future_selection.projection_digest()
-            ),
-            format!("policy:{}", self.policy_digest.as_deref().unwrap_or("none")),
-            format!("tenant:{}", self.tenant_digest.as_deref().unwrap_or("none")),
-            format!(
-                "relationship_proof:{}",
-                self.relationship_proof_digest.as_deref().unwrap_or("none")
-            ),
-            format!(
-                "relationship_proof_posture:{}",
-                self.relationship_proof_posture.as_str()
-            ),
-            format!("relevance:{}", self.relevance_digest),
-            format!("delivery:{}", self.delivery_intent_digest),
-            format!("projection_width:{}", self.authorized_projection_width),
-            format!("ordering_width:{}", self.ordering_width),
-            format!("grouping_width:{}", self.grouping_width),
-            format!("relation_scope_width:{}", self.relation_scope_width),
-            format!("metadata_width:{}", self.view_shape_metadata_width),
-            format!("source:{}", self.construction_source.as_str()),
-        ])
     }
 }

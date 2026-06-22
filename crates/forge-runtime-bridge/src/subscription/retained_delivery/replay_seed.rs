@@ -34,7 +34,7 @@ impl BridgeSubscriptionRetainedDeliveryReplaySeed {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             retained_delivery_replay_seed_identity:
-                BridgeSubscriptionRetainedDeliveryReplaySeedIdentity::new(format!(
+                BridgeSubscriptionRetainedDeliveryReplaySeedIdentity::admit_bridge_owned(format!(
                     "bridge-subscription-retained-delivery-replay-seed-id:sha256:{digest:x}"
                 )),
             fanout_projection_set_identity: projection_set

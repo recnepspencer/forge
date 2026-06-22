@@ -41,7 +41,7 @@ impl BridgePreviewExecutionRecord {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            record_identity: PreviewExecutionRecordIdentity::new(format!(
+            record_identity: PreviewExecutionRecordIdentity::admit_bridge_owned(format!(
                 "preview-execution-record:sha256:{digest:x}"
             )),
             preview_session_identity: Arc::from(session.session_identity().as_str()),
@@ -81,7 +81,7 @@ impl BridgePreviewExecutionRecord {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            record_identity: PreviewExecutionRecordIdentity::new(format!(
+            record_identity: PreviewExecutionRecordIdentity::admit_bridge_owned(format!(
                 "preview-execution-record:sha256:{digest:x}"
             )),
             preview_session_identity: Arc::from(target_session.session_identity().as_str()),

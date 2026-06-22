@@ -1,13 +1,11 @@
 use super::*;
+use crate::truth_identity_fixtures::{truth_branch, truth_commit, truth_snapshot};
 
 #[test]
 fn runtime_admits_snapshot_bound_truth_view_policy() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = HistoricalEvaluationDeclaration::new(
-        BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-        ),
+        BridgeTruthViewSelector::branch_snapshot(truth_branch("analysis"), truth_snapshot(1, 1)),
         BridgeReplayMode::Enabled,
         BridgeDiagnosticsTier::Standard,
         BridgeDeliveryIntent::PrepareSignalEvaluation,
@@ -42,10 +40,7 @@ fn runtime_rejects_required_replay_when_runtime_policy_disallows_replay_artifact
             .with_replay_artifacts(false),
     );
     let declaration = HistoricalEvaluationDeclaration::new(
-        BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("main"),
-            crate::input::envelope::TruthCommitIdentity::new("commit-a"),
-        ),
+        BridgeTruthViewSelector::historical_commit(truth_branch("main"), truth_commit(1)),
         BridgeReplayMode::Required,
         BridgeDiagnosticsTier::Exhaustive,
         BridgeDeliveryIntent::PrepareOnly,
@@ -69,10 +64,7 @@ fn runtime_rejects_required_replay_when_runtime_policy_disallows_replay_artifact
 fn runtime_plans_truth_view_packet_from_admitted_policy() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = HistoricalEvaluationDeclaration::new(
-        BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-        ),
+        BridgeTruthViewSelector::branch_snapshot(truth_branch("analysis"), truth_snapshot(1, 1)),
         BridgeReplayMode::Enabled,
         BridgeDiagnosticsTier::Standard,
         BridgeDeliveryIntent::PrepareSignalEvaluation,
@@ -90,8 +82,10 @@ fn runtime_plans_truth_view_packet_from_admitted_policy() {
         planned
             .authority_basis()
             .snapshot_identity()
-            .map(|id: &TruthSnapshotIdentity| id.as_str()),
-        Some("snapshot-a")
+            .and_then(TruthSnapshotIdentity::relational_snapshot_parts),
+        Some(crate::facade::RelationalBridgeSnapshotIdentityParts::new(
+            1, 1
+        ))
     );
 }
 
@@ -99,10 +93,7 @@ fn runtime_plans_truth_view_packet_from_admitted_policy() {
 fn runtime_admits_commit_bound_truth_view_policy() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = HistoricalEvaluationDeclaration::new(
-        BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("analysis"),
-            crate::input::envelope::TruthCommitIdentity::new("commit-a"),
-        ),
+        BridgeTruthViewSelector::historical_commit(truth_branch("analysis"), truth_commit(1)),
         BridgeReplayMode::Enabled,
         BridgeDiagnosticsTier::Standard,
         BridgeDeliveryIntent::PrepareSignalEvaluation,
@@ -129,10 +120,7 @@ fn runtime_admits_commit_bound_truth_view_policy() {
 fn runtime_materializes_commit_bound_truth_view_observation() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = HistoricalEvaluationDeclaration::new(
-        BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("analysis"),
-            crate::input::envelope::TruthCommitIdentity::new("commit-a"),
-        ),
+        BridgeTruthViewSelector::historical_commit(truth_branch("analysis"), truth_commit(1)),
         BridgeReplayMode::Enabled,
         BridgeDiagnosticsTier::Standard,
         BridgeDeliveryIntent::PrepareSignalEvaluation,
@@ -145,13 +133,18 @@ fn runtime_materializes_commit_bound_truth_view_observation() {
         .materialize_truth_view_observation(planned)
         .expect("commit-bound declaration should materialize");
 
-    assert_eq!(observation.snapshot_identity().as_str(), "snapshot-a");
+    assert_eq!(
+        observation.snapshot_identity().relational_snapshot_parts(),
+        Some(crate::facade::RelationalBridgeSnapshotIdentityParts::new(
+            1, 1
+        ))
+    );
     assert_eq!(
         observation
             .authority_basis()
             .commit_identity()
-            .map(crate::input::envelope::TruthCommitIdentity::as_str),
-        Some("commit-a")
+            .and_then(crate::input::envelope::TruthCommitIdentity::relational_commit_id),
+        Some(1)
     );
 }
 
@@ -159,7 +152,7 @@ fn runtime_materializes_commit_bound_truth_view_observation() {
 fn runtime_materializes_branch_head_truth_view_observation() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = HistoricalEvaluationDeclaration::new(
-        BridgeTruthViewSelector::branch_head(TruthBranchIdentity::new("analysis")),
+        BridgeTruthViewSelector::branch_head(truth_branch("analysis")),
         BridgeReplayMode::Enabled,
         BridgeDiagnosticsTier::Standard,
         BridgeDeliveryIntent::PrepareSignalEvaluation,
@@ -172,13 +165,18 @@ fn runtime_materializes_branch_head_truth_view_observation() {
         .materialize_truth_view_observation(planned)
         .expect("branch-head declaration should materialize");
 
-    assert_eq!(observation.snapshot_identity().as_str(), "snapshot-a");
+    assert_eq!(
+        observation.snapshot_identity().relational_snapshot_parts(),
+        Some(crate::facade::RelationalBridgeSnapshotIdentityParts::new(
+            1, 1
+        ))
+    );
     assert_eq!(
         observation
             .authority_basis()
             .commit_identity()
-            .map(crate::input::envelope::TruthCommitIdentity::as_str),
-        Some("head-analysis")
+            .and_then(crate::input::envelope::TruthCommitIdentity::relational_commit_id),
+        Some(100)
     );
 }
 
@@ -186,10 +184,7 @@ fn runtime_materializes_branch_head_truth_view_observation() {
 fn runtime_materializes_snapshot_bound_truth_view_observation() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = HistoricalEvaluationDeclaration::new(
-        BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-        ),
+        BridgeTruthViewSelector::branch_snapshot(truth_branch("analysis"), truth_snapshot(1, 1)),
         BridgeReplayMode::Enabled,
         BridgeDiagnosticsTier::Standard,
         BridgeDeliveryIntent::PrepareSignalEvaluation,
@@ -205,22 +200,36 @@ fn runtime_materializes_snapshot_bound_truth_view_observation() {
         .read_planned_packet()
         .expect("materialized observation should execute its planned packet");
 
-    assert_eq!(observation.snapshot_identity().as_str(), "snapshot-a");
     assert_eq!(
-        observation.snapshot_token().snapshot_identity().as_str(),
-        "snapshot-a"
+        observation.snapshot_identity().relational_snapshot_parts(),
+        Some(crate::facade::RelationalBridgeSnapshotIdentityParts::new(
+            1, 1
+        ))
     );
-    assert_eq!(validated_reads.snapshot_identity().as_str(), "snapshot-a");
+    assert_eq!(
+        observation
+            .snapshot_token()
+            .snapshot_identity()
+            .relational_snapshot_parts(),
+        Some(crate::facade::RelationalBridgeSnapshotIdentityParts::new(
+            1, 1
+        ))
+    );
+    assert_eq!(
+        validated_reads
+            .snapshot_identity()
+            .relational_snapshot_parts(),
+        Some(crate::facade::RelationalBridgeSnapshotIdentityParts::new(
+            1, 1
+        ))
+    );
 }
 
 #[test]
 fn runtime_canonicalizes_historical_evaluation_record() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = HistoricalEvaluationDeclaration::new(
-        BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("analysis"),
-            crate::input::envelope::TruthCommitIdentity::new("commit-a"),
-        ),
+        BridgeTruthViewSelector::historical_commit(truth_branch("analysis"), truth_commit(1)),
         BridgeReplayMode::Enabled,
         BridgeDiagnosticsTier::Standard,
         BridgeDeliveryIntent::PrepareSignalEvaluation,
@@ -235,8 +244,13 @@ fn runtime_canonicalizes_historical_evaluation_record() {
     let record = runtime.canonicalize_historical_evaluation_record(&observation);
 
     assert_eq!(
-        record.decision_log().snapshot_identity().as_str(),
-        "snapshot-a"
+        record
+            .decision_log()
+            .snapshot_identity()
+            .relational_snapshot_parts(),
+        Some(crate::facade::RelationalBridgeSnapshotIdentityParts::new(
+            1, 1
+        ))
     );
     assert_eq!(
         record.decision_log().materialization_path(),
@@ -256,10 +270,7 @@ fn runtime_canonicalizes_historical_evaluation_record() {
 fn runtime_lowers_identical_historical_requests_to_identical_artifacts() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = HistoricalEvaluationDeclaration::new(
-        BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("analysis"),
-            crate::input::envelope::TruthCommitIdentity::new("commit-a"),
-        ),
+        BridgeTruthViewSelector::historical_commit(truth_branch("analysis"), truth_commit(1)),
         BridgeReplayMode::Enabled,
         BridgeDiagnosticsTier::Standard,
         BridgeDeliveryIntent::PrepareSignalEvaluation,
@@ -283,7 +294,12 @@ fn runtime_lowers_identical_historical_requests_to_identical_artifacts() {
     let right = runtime.lower_historical_evaluation_artifact(&right_observation);
 
     assert_eq!(left, right);
-    assert_eq!(left.snapshot_identity().as_str(), "snapshot-a");
+    assert_eq!(
+        left.snapshot_identity().relational_snapshot_parts(),
+        Some(crate::facade::RelationalBridgeSnapshotIdentityParts::new(
+            1, 1
+        ))
+    );
 }
 
 mod source_declaration;

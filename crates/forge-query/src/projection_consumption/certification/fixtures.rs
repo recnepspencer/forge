@@ -2,7 +2,9 @@ use crate::authorized_projection::{
     AuthorizedProjectionArtifact, AuthorizedProjectionCounters, MaskedProjectionArtifact,
     PolicyFieldInfluenceSet,
 };
-use crate::identity::hash_parts;
+use crate::projection_consumption::identity::{
+    compose_certified_source_digest, compose_certified_source_receipt_digest,
+};
 use crate::projection_consumption::{
     declare_projection_consumption, evaluate_projection_consumption_eligibility,
     ProjectMaterializedFacts, ProjectionConsumptionAuthoringSurface,
@@ -16,6 +18,7 @@ use forge_relational::facade::grouped_truth::{
     RelationalGroupedProjectionArtifact,
 };
 use forge_runtime_bridge::facade::{
+    RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
     SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
     SnapshotReadRequest, TruthSnapshotIdentity,
 };
@@ -189,45 +192,11 @@ pub fn source_mismatch_failure_digest() -> String {
 }
 
 pub fn source_digest(contract: &MaterializedProjectionContract) -> String {
-    hash_parts(&[
-        "projection_consumption_certified_source_v1".to_string(),
-        format!("family:{}", contract.source_family().as_str()),
-        format!("identity:{}", contract.source_identity()),
-        format!(
-            "source_references:{}",
-            contract
-                .source_reference_identities()
-                .iter()
-                .map(|identity| format!("{}:{}", identity.label(), identity.identity()))
-                .collect::<Vec<_>>()
-                .join(",")
-        ),
-    ])
+    compose_certified_source_digest(contract)
 }
 
 pub fn source_receipt_digest(contract: &MaterializedProjectionContract) -> String {
-    hash_parts(&[
-        "projection_consumption_certified_source_receipt_v1".to_string(),
-        source_digest(contract),
-        format!(
-            "query:{}",
-            contract
-                .query_digest()
-                .unwrap_or("no-query-owned-source-receipt")
-        ),
-        format!(
-            "basis:{}",
-            contract
-                .basis_digest()
-                .unwrap_or("no-query-owned-source-basis-receipt")
-        ),
-        format!(
-            "result:{}",
-            contract
-                .result_digest()
-                .unwrap_or("no-query-owned-source-result-receipt")
-        ),
-    ])
+    compose_certified_source_receipt_digest(contract, &compose_certified_source_digest(contract))
 }
 
 fn admitted_contract(
@@ -281,18 +250,14 @@ pub fn certification_row_set(row_count: usize) -> RelationalAuthoritativeRowSetA
     let mut reads = Vec::new();
     let mut records = Vec::new();
     for index in 0..row_count {
-        let entity = format!("entity-{}", index + 1);
+        let entity = RelationalBridgeRecordIdentityParts::entity(1, (index + 1) as u64, 1);
         let task = format!("task-{}", index + 1);
         let lane = if index % 2 == 0 { "todo" } else { "doing" };
         let name = format!("Task {}", index + 1);
-        let identity_read = string_read(entity.as_str(), "identity.id");
-        let lane_read = string_read(entity.as_str(), "status.lane");
-        let display_name_read = string_read(entity.as_str(), "profile.display_name");
-        let priority_read = scalar_read(
-            entity.as_str(),
-            "metrics.priority",
-            ScalarAspectType::UInt64,
-        );
+        let identity_read = string_read(entity, "identity.id");
+        let lane_read = string_read(entity, "status.lane");
+        let display_name_read = string_read(entity, "profile.display_name");
+        let priority_read = scalar_read(entity, "metrics.priority", ScalarAspectType::UInt64);
         records.push(SnapshotReadRecord::for_request(
             &identity_read,
             aspect_value(AspectValue::String(task.into())),
@@ -314,7 +279,9 @@ pub fn certification_row_set(row_count: usize) -> RelationalAuthoritativeRowSetA
     materialize_relational_authoritative_row_set(
         &SnapshotReadPacket::new(reads),
         &SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new(format!("snapshot-certification-{row_count}")),
+            TruthSnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(row_count as u64, 1),
+            ),
             records,
         ),
     )
@@ -325,12 +292,16 @@ fn snapshot_aspect_key(value: &str) -> AspectKey {
     AspectKey::new(value).expect("valid certification snapshot aspect key")
 }
 
-fn string_read(entity: &str, aspect: &str) -> SnapshotReadRequest {
+fn string_read(entity: RelationalBridgeRecordIdentityParts, aspect: &str) -> SnapshotReadRequest {
     scalar_read(entity, aspect, ScalarAspectType::String)
 }
 
-fn scalar_read(entity: &str, aspect: &str, scalar_type: ScalarAspectType) -> SnapshotReadRequest {
-    SnapshotReadRequest::for_coarse(
+fn scalar_read(
+    entity: RelationalBridgeRecordIdentityParts,
+    aspect: &str,
+    scalar_type: ScalarAspectType,
+) -> SnapshotReadRequest {
+    SnapshotReadRequest::for_relational_record(
         entity,
         SnapshotReadContract::scalar(snapshot_aspect_key(aspect), scalar_type),
     )

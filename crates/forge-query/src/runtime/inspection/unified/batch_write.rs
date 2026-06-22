@@ -2,32 +2,36 @@ use super::batch_write_digest::{
     build_batch_write_receipt_inspection_digest, ForgeQueryBatchWriteDigestInputs,
 };
 use super::ForgeQueryBatchWriteComponentInspection;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::memory_workspace::ForgeQueryCommitIdentity;
 use crate::runtime::{
     ForgeQueryAuthorityLane, ForgeQueryBatchMutationEvidence, ForgeQueryBatchWriteReceipt,
     ForgeQueryGraphCompositionAssumptionSummary, ForgeQueryGraphCompositionBreadth,
     ForgeQueryGraphCompositionEvidence, ForgeQueryGraphCompositionLifecycleOutcomes,
     ForgeQueryGraphCompositionLineageSummary, ForgeQueryGraphCompositionProgram,
-    ForgeQueryGraphCompositionResolutionMap,
+    ForgeQueryGraphCompositionResolutionMap, ForgeQueryGraphObligationAttachmentEvidence,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryBatchWriteReceiptInspection {
     authority_lane: ForgeQueryAuthorityLane,
     basis_lane: ForgeQueryAuthorityLane,
-    batch_digest: String,
+    batch_digest: ForgeQueryEvidenceIdentity,
     batch_mutation_evidence: ForgeQueryBatchMutationEvidence,
     graph_composition_breadth: ForgeQueryGraphCompositionBreadth,
     graph_composition_lifecycle_outcomes: Option<ForgeQueryGraphCompositionLifecycleOutcomes>,
     graph_composition_program: Option<ForgeQueryGraphCompositionProgram>,
     graph_composition_evidence: Option<ForgeQueryGraphCompositionEvidence>,
     graph_composition_resolution_map: ForgeQueryGraphCompositionResolutionMap,
+    graph_obligation_evidence: Option<ForgeQueryGraphObligationAttachmentEvidence>,
     write_receipt_count: usize,
-    commit_identities: Vec<String>,
+    commit_identities: Vec<ForgeQueryCommitIdentity>,
+    journal_position_identities: Vec<ForgeQueryEvidenceIdentity>,
     component_operations: Vec<ForgeQueryBatchWriteComponentInspection>,
     touched_aspect_paths: Vec<String>,
     affected_live_view_ids: Vec<String>,
     affected_derived_view_ids: Vec<String>,
-    inspection_digest: String,
+    inspection_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryBatchWriteReceiptInspection {
@@ -35,12 +39,16 @@ impl ForgeQueryBatchWriteReceiptInspection {
         let commit_identities = receipt
             .write_receipts()
             .iter()
-            .map(|entry| entry.commit_identity().to_string())
+            .map(|entry| entry.commit_identity().clone())
             .collect::<Vec<_>>();
         let component_operations = receipt
             .write_receipts()
             .iter()
             .map(ForgeQueryBatchWriteComponentInspection::from_write_receipt)
+            .collect::<Vec<_>>();
+        let journal_position_identities = receipt
+            .journal_positions()
+            .map(|position| position.evidence_identity())
             .collect::<Vec<_>>();
         let batch_mutation_evidence = receipt.batch_mutation_evidence().clone();
         let graph_composition_breadth = receipt.graph_composition_breadth().clone();
@@ -48,22 +56,25 @@ impl ForgeQueryBatchWriteReceiptInspection {
         let graph_composition_program = receipt.graph_composition_program().cloned();
         let graph_composition_evidence = receipt.graph_composition_evidence();
         let graph_composition_resolution_map = receipt.graph_composition_resolution_map().clone();
+        let graph_obligation_evidence = receipt.graph_obligation_evidence();
         let touched_aspect_paths = receipt.touched_aspect_paths().to_vec();
         let affected_live_view_ids = receipt.affected_live_view_ids().to_vec();
         let affected_derived_view_ids = receipt.affected_derived_view_ids().to_vec();
-        let inspection_digest =
+        let inspection_identity =
             build_batch_write_receipt_inspection_digest(ForgeQueryBatchWriteDigestInputs {
                 authority_lane: receipt.authority_lane().as_str(),
                 basis_lane: receipt.basis_lane().as_str(),
-                batch_digest: receipt.batch_digest(),
+                batch_digest: receipt.batch_identity(),
                 graph_composition_breadth: &graph_composition_breadth,
                 graph_composition_lifecycle_outcomes: graph_composition_lifecycle_outcomes.as_ref(),
                 graph_composition_program: graph_composition_program.as_ref(),
                 graph_composition_evidence: graph_composition_evidence.as_ref(),
                 batch_mutation_evidence: &batch_mutation_evidence,
                 commit_identities: &commit_identities,
+                journal_position_identities: &journal_position_identities,
                 component_operations: &component_operations,
                 graph_composition_resolution_map: &graph_composition_resolution_map,
+                graph_obligation_evidence: graph_obligation_evidence.as_ref(),
                 touched_aspect_paths: &touched_aspect_paths,
                 affected_live_view_ids: &affected_live_view_ids,
                 affected_derived_view_ids: &affected_derived_view_ids,
@@ -71,20 +82,22 @@ impl ForgeQueryBatchWriteReceiptInspection {
         Self {
             authority_lane: receipt.authority_lane(),
             basis_lane: receipt.basis_lane(),
-            batch_digest: receipt.batch_digest().to_string(),
+            batch_digest: receipt.batch_identity().clone(),
             batch_mutation_evidence,
             graph_composition_breadth,
             graph_composition_lifecycle_outcomes,
             graph_composition_program,
             graph_composition_evidence,
             graph_composition_resolution_map,
+            graph_obligation_evidence,
             write_receipt_count: receipt.write_count(),
             commit_identities,
+            journal_position_identities,
             component_operations,
             touched_aspect_paths,
             affected_live_view_ids,
             affected_derived_view_ids,
-            inspection_digest,
+            inspection_identity,
         }
     }
 
@@ -97,7 +110,7 @@ impl ForgeQueryBatchWriteReceiptInspection {
     }
 
     pub fn batch_digest(&self) -> &str {
-        &self.batch_digest
+        self.batch_digest.as_str()
     }
 
     pub fn batch_mutation_evidence(&self) -> &ForgeQueryBatchMutationEvidence {
@@ -142,12 +155,28 @@ impl ForgeQueryBatchWriteReceiptInspection {
         &self.graph_composition_resolution_map
     }
 
+    pub fn graph_obligation_evidence(
+        &self,
+    ) -> Option<&ForgeQueryGraphObligationAttachmentEvidence> {
+        self.graph_obligation_evidence.as_ref()
+    }
+
+    pub fn graph_obligation_envelope_digest(&self) -> Option<&str> {
+        self.graph_obligation_evidence
+            .as_ref()
+            .and_then(ForgeQueryGraphObligationAttachmentEvidence::envelope_digest)
+    }
+
     pub fn write_receipt_count(&self) -> usize {
         self.write_receipt_count
     }
 
-    pub fn commit_identities(&self) -> &[String] {
+    pub fn commit_identities(&self) -> &[ForgeQueryCommitIdentity] {
         &self.commit_identities
+    }
+
+    pub fn journal_position_identities(&self) -> &[ForgeQueryEvidenceIdentity] {
+        &self.journal_position_identities
     }
 
     pub fn component_operations(&self) -> &[ForgeQueryBatchWriteComponentInspection] {
@@ -167,6 +196,10 @@ impl ForgeQueryBatchWriteReceiptInspection {
     }
 
     pub fn inspection_digest(&self) -> &str {
-        &self.inspection_digest
+        self.inspection_identity.as_str()
+    }
+
+    pub fn inspection_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.inspection_identity
     }
 }

@@ -92,7 +92,9 @@ impl ChangeStreamDeclaration {
         );
         let digest = digest_string("change-stream-declaration", &basis);
         Self {
-            declaration_identity: ChangeStreamDeclarationIdentity::new(digest.clone()),
+            declaration_identity: ChangeStreamDeclarationIdentity::admit_bridge_owned(
+                digest.clone(),
+            ),
             consumer_shape,
             resume_mode,
             checkpoint_publication_mode,

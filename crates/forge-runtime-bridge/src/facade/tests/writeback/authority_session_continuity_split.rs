@@ -1,21 +1,26 @@
 use super::support::*;
+use std::sync::Arc;
+
+fn authoritative_identity(value: impl Into<Arc<str>>) -> BridgeContinuityAuthoritativeIdentity {
+    BridgeContinuityAuthoritativeIdentity::new(value)
+        .expect("test continuity authoritative identity should be valid")
+}
+
+fn resolved_target_identity(value: impl Into<Arc<str>>) -> BridgeContinuityResolvedTargetIdentity {
+    BridgeContinuityResolvedTargetIdentity::new(value)
+        .expect("test continuity resolved target should be valid")
+}
 
 #[test]
 fn split_successor_bundle_preserves_successor_set() {
     let bundle = crate::facade::BridgeContinuityMutationBundle::split_existing_target(
         crate::continuity::BridgeContinuityOutcomeClass::ContinuesAsSplitSuccessors,
-        BridgeContinuityAuthoritativeIdentity::new("authority:task-1")
-            .expect("test continuity authoritative identity should be native"),
+        authoritative_identity("authority:task-1"),
         [
-            BridgeContinuityAuthoritativeIdentity::new("authority:task-1:a")
-                .expect("test continuity authoritative identity should be native"),
-            BridgeContinuityAuthoritativeIdentity::new("authority:task-1:b")
-                .expect("test continuity authoritative identity should be native"),
+            authoritative_identity("authority:task-1:a"),
+            authoritative_identity("authority:task-1:b"),
         ],
-        Some(
-            BridgeContinuityResolvedTargetIdentity::new("entity:task-1")
-                .expect("test continuity resolved target should be native"),
-        ),
+        Some(resolved_target_identity("entity:task-1")),
         Some(
             BridgeContinuityTargetCollection::new("Task")
                 .expect("test continuity target collection should be native"),
@@ -26,10 +31,8 @@ fn split_successor_bundle_preserves_successor_set() {
     assert_eq!(
         bundle.successor_authoritative_identities(),
         [
-            BridgeContinuityAuthoritativeIdentity::new("authority:task-1:a")
-                .expect("test continuity authoritative identity should be native"),
-            BridgeContinuityAuthoritativeIdentity::new("authority:task-1:b")
-                .expect("test continuity authoritative identity should be native"),
+            authoritative_identity("authority:task-1:a"),
+            authoritative_identity("authority:task-1:b"),
         ]
         .as_slice()
     );
@@ -50,16 +53,9 @@ fn split_successor_bundle_preserves_successor_set() {
 fn split_successor_bundle_rejects_singleton_successor_set() {
     let error = crate::facade::BridgeContinuityMutationBundle::split_existing_target(
         crate::continuity::BridgeContinuityOutcomeClass::ContinuesAsSplitSuccessors,
-        BridgeContinuityAuthoritativeIdentity::new("authority:task-1")
-            .expect("test continuity authoritative identity should be native"),
-        [
-            BridgeContinuityAuthoritativeIdentity::new("authority:task-1:a")
-                .expect("test continuity authoritative identity should be native"),
-        ],
-        Some(
-            BridgeContinuityResolvedTargetIdentity::new("entity:task-1")
-                .expect("test continuity resolved target should be native"),
-        ),
+        authoritative_identity("authority:task-1"),
+        [authoritative_identity("authority:task-1:a")],
+        Some(resolved_target_identity("entity:task-1")),
         Some(
             BridgeContinuityTargetCollection::new("Task")
                 .expect("test continuity target collection should be native"),

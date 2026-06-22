@@ -2,7 +2,7 @@ use forge_query::facade::{ActiveSubscriptionAllocationPosture, QueryDeliveryWind
 
 fn main() {
     let _window = QueryDeliveryWindow {
-        delivery_window_digest: String::new(),
+        delivery_window_identity: todo!(),
         active_lane_digest: todo!(),
         attachment_digest: todo!(),
         next_sequence: todo!(),

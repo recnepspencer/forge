@@ -122,7 +122,7 @@ impl BridgeSubscriptionCheckpoint {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            checkpoint_identity: BridgeSubscriptionCheckpointIdentity::new(format!(
+            checkpoint_identity: BridgeSubscriptionCheckpointIdentity::admit_bridge_owned(format!(
                 "bridge-subscription-checkpoint-id:sha256:{digest:x}"
             )),
             checkpoint_ready_identity: ready.checkpoint_ready_identity().clone(),

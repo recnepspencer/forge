@@ -96,9 +96,10 @@ impl BridgeRetainedSubscriptionResumeBasis {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            retained_resume_basis_identity: BridgeSubscriptionRetainedResumeBasisIdentity::new(
-                format!("bridge-retained-subscription-resume-basis-id:sha256:{digest:x}"),
-            ),
+            retained_resume_basis_identity:
+                BridgeSubscriptionRetainedResumeBasisIdentity::admit_bridge_owned(format!(
+                    "bridge-retained-subscription-resume-basis-id:sha256:{digest:x}"
+                )),
             active_subscription_identity: Arc::from(
                 active_subscription
                     .active_subscription_identity()

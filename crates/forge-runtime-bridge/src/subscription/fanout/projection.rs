@@ -98,7 +98,7 @@ impl BridgeSubscriptionFanoutDeliveryProjection {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             fanout_delivery_projection_identity:
-                BridgeSubscriptionFanoutDeliveryProjectionIdentity::new(format!(
+                BridgeSubscriptionFanoutDeliveryProjectionIdentity::admit_bridge_owned(format!(
                     "bridge-subscription-fanout-delivery-projection-id:sha256:{digest:x}"
                 )),
             fanout_layout_identity: layout.fanout_layout_identity().clone(),
@@ -260,7 +260,7 @@ impl BridgeSubscriptionFanoutDeliveryProjectionSet {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             fanout_delivery_projection_set_identity:
-                BridgeSubscriptionFanoutDeliveryProjectionSetIdentity::new(format!(
+                BridgeSubscriptionFanoutDeliveryProjectionSetIdentity::admit_bridge_owned(format!(
                     "bridge-subscription-fanout-delivery-projection-set-id:sha256:{digest:x}"
                 )),
             fanout_layout_identity: layout.fanout_layout_identity().clone(),

@@ -6,9 +6,7 @@ use crate::facade::{
     BridgeSubscriptionDeliveryIntentClass, BridgeSubscriptionReplayMismatchKind,
     NormalizedSubscriptionSliceIntent,
 };
-use crate::input::envelope::TruthBranchIdentity;
 use crate::mapping::SubscriptionSliceKind;
-use crate::snapshot::TruthSnapshotIdentity;
 
 #[test]
 fn bridge_harness_subscription_suite_28_declaration_equivalence_is_canonical_and_policy_invariant()
@@ -84,13 +82,17 @@ fn bridge_harness_subscription_suite_28_declaration_equivalence_is_canonical_and
     let left_admitted = development
         .admit_subscription(
             &left,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            ),
         )
         .expect("left admission should succeed");
     let right_admitted = forensic
         .admit_subscription(
             &right,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            ),
         )
         .expect("right admission should succeed");
 
@@ -116,13 +118,17 @@ fn bridge_harness_subscription_suite_29_basis_binding_is_explicit_and_fail_close
     let snapshot_admitted = baseline
         .admit_subscription(
             &declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            ),
         )
         .expect("snapshot admission should succeed");
     let branch_admitted = baseline
         .admit_subscription(
             &declaration,
-            BridgeSubscriptionBasisRequest::branch_head(TruthBranchIdentity::new("analysis")),
+            BridgeSubscriptionBasisRequest::branch_head(
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            ),
         )
         .expect("branch-head admission should succeed");
 
@@ -156,9 +162,9 @@ fn bridge_harness_subscription_suite_29_basis_binding_is_explicit_and_fail_close
     let missing_snapshot = baseline
         .admit_subscription(
             &declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new(
-                "snapshot-missing",
-            )),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-missing"),
+            ),
         )
         .expect_err("missing snapshot should reject");
     assert_eq!(
@@ -176,7 +182,9 @@ fn bridge_harness_subscription_suite_29_basis_binding_is_explicit_and_fail_close
     let snapshot_mismatch = misbound_runtime
         .admit_subscription(
             &misbound_declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            ),
         )
         .expect_err("snapshot identity mismatch should reject");
     assert_eq!(
@@ -190,7 +198,9 @@ fn bridge_harness_subscription_suite_29_basis_binding_is_explicit_and_fail_close
     let branch_mismatch = wrong_branch_runtime
         .admit_subscription(
             &wrong_branch_declaration,
-            BridgeSubscriptionBasisRequest::branch_head(TruthBranchIdentity::new("analysis")),
+            BridgeSubscriptionBasisRequest::branch_head(
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            ),
         )
         .expect_err("branch mismatch should reject");
     assert_eq!(
@@ -217,13 +227,17 @@ fn bridge_harness_subscription_suite_30_lifecycle_replay_parity_is_canonical() {
     let development_admitted = development
         .admit_subscription(
             &development_declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            ),
         )
         .expect("development admission should succeed");
     let forensic_admitted = forensic
         .admit_subscription(
             &forensic_declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            ),
         )
         .expect("forensic admission should succeed");
 
@@ -270,7 +284,9 @@ fn bridge_harness_subscription_suite_30_lifecycle_replay_parity_is_canonical() {
     );
 
     let mismatch = crate::facade::BridgeSubscriptionReplaySummary::replay(
-        &crate::facade::BridgeSubscriptionFamilyRegistryIdentity::new("registry-drift"),
+        &crate::facade::BridgeSubscriptionFamilyRegistryIdentity::admit_bridge_owned(
+            "registry-drift",
+        ),
         forensic_ready.retained_bundle(),
     )
     .expect_err("registry drift should reject");

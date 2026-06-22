@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+
+use super::evidence_identities::delivery_cause_identity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QuerySubscriptionDeliveryCauseKind {
@@ -44,48 +46,50 @@ impl QuerySubscriptionDeliveryCauseKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionDeliveryCause {
     kind: QuerySubscriptionDeliveryCauseKind,
-    evidence_digest: String,
-    delivery_cause_digest: String,
+    evidence_identity: ForgeQueryEvidenceIdentity,
+    delivery_cause_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionDeliveryCause {
-    pub fn relational_patch(evidence_digest: impl Into<String>) -> Self {
+    pub fn relational_patch(evidence_identity: &ForgeQueryEvidenceIdentity) -> Self {
         Self::new(
             QuerySubscriptionDeliveryCauseKind::RelationalPatch,
-            evidence_digest,
+            evidence_identity,
         )
     }
 
     pub fn time_only(
         kind: QuerySubscriptionDeliveryCauseKind,
-        evidence_digest: impl Into<String>,
+        evidence_label: impl AsRef<str>,
     ) -> Self {
         assert!(
             !kind.has_relational_patch(),
             "time-only delivery causes cannot reuse the relational patch kind"
         );
-        Self::new(kind, evidence_digest)
+        Self::new(
+            kind,
+            &delivery_cause_evidence_label_identity(evidence_label.as_ref()),
+        )
     }
 
     #[allow(dead_code)]
     pub(crate) fn classified(
         kind: QuerySubscriptionDeliveryCauseKind,
-        evidence_digest: impl Into<String>,
+        evidence_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
-        Self::new(kind, evidence_digest)
+        Self::new(kind, evidence_identity)
     }
 
-    fn new(kind: QuerySubscriptionDeliveryCauseKind, evidence_digest: impl Into<String>) -> Self {
-        let evidence_digest = evidence_digest.into();
-        let delivery_cause_digest = hash_parts(&[
-            "query_subscription_delivery_cause_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("evidence:{evidence_digest}"),
-        ]);
+    fn new(
+        kind: QuerySubscriptionDeliveryCauseKind,
+        evidence_identity: &ForgeQueryEvidenceIdentity,
+    ) -> Self {
+        let evidence_identity = evidence_identity.clone();
+        let delivery_cause_identity = delivery_cause_identity(kind, &evidence_identity);
         Self {
             kind,
-            evidence_digest,
-            delivery_cause_digest,
+            evidence_identity,
+            delivery_cause_identity,
         }
     }
 
@@ -93,15 +97,19 @@ impl QuerySubscriptionDeliveryCause {
         self.kind
     }
 
-    pub fn evidence_digest(&self) -> &str {
-        &self.evidence_digest
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.evidence_identity
     }
 
-    pub fn delivery_cause_digest(&self) -> &str {
-        &self.delivery_cause_digest
+    pub fn delivery_cause_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_cause_identity
     }
 
     pub fn has_relational_patch(&self) -> bool {
         self.kind.has_relational_patch()
     }
+}
+
+pub(crate) fn delivery_cause_evidence_label_identity(label: &str) -> ForgeQueryEvidenceIdentity {
+    super::evidence_identities::delivery_cause_evidence_label_identity(label)
 }

@@ -83,9 +83,10 @@ impl BridgeMixedCauseOrderingRequest {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            ordering_request_identity: BridgeSubscriptionMixedCauseOrderingRequestIdentity::new(
-                format!("bridge-mixed-cause-ordering-request-id:sha256:{digest:x}"),
-            ),
+            ordering_request_identity:
+                BridgeSubscriptionMixedCauseOrderingRequestIdentity::admit_bridge_owned(format!(
+                    "bridge-mixed-cause-ordering-request-id:sha256:{digest:x}"
+                )),
             lane_kind,
             inputs,
             counters: BridgeSubscriptionCounters::from_mixed_cause_ordering_request(),

@@ -1,10 +1,12 @@
 use super::*;
+use crate::runtime::runtime_subscription_support_evidence_identity;
+use crate::ForgeQueryEvidenceIdentity;
 
 pub(in crate::runtime::tests) struct TestSubscriptionActivation;
 
 impl ForgeQueryRuntimeSubscriptionActivationAdapter for TestSubscriptionActivation {
-    fn support_evidence(&self) -> String {
-        "test-subscription-activation".to_string()
+    fn support_evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        runtime_subscription_support_evidence_identity("test-subscription-activation")
     }
 
     fn admit_activation(
@@ -20,8 +22,8 @@ impl ForgeQueryRuntimeSubscriptionActivationAdapter for TestSubscriptionActivati
 pub(in crate::runtime::tests) struct DenyingSubscriptionActivation;
 
 impl ForgeQueryRuntimeSubscriptionActivationAdapter for DenyingSubscriptionActivation {
-    fn support_evidence(&self) -> String {
-        "denying-subscription-activation".to_string()
+    fn support_evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        runtime_subscription_support_evidence_identity("denying-subscription-activation")
     }
 
     fn admit_activation(
@@ -38,8 +40,8 @@ impl ForgeQueryRuntimeSubscriptionActivationAdapter for DenyingSubscriptionActiv
 pub(in crate::runtime::tests) struct DriftingSubscriptionActivation;
 
 impl ForgeQueryRuntimeSubscriptionActivationAdapter for DriftingSubscriptionActivation {
-    fn support_evidence(&self) -> String {
-        "drifting-subscription-activation".to_string()
+    fn support_evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        runtime_subscription_support_evidence_identity("drifting-subscription-activation")
     }
 
     fn admit_activation(
@@ -63,8 +65,8 @@ pub(in crate::runtime::tests) struct RemaskingSubscriptionActivation {
 }
 
 impl ForgeQueryRuntimeSubscriptionActivationAdapter for RemaskingSubscriptionActivation {
-    fn support_evidence(&self) -> String {
-        "test-subscription-activation".to_string()
+    fn support_evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        runtime_subscription_support_evidence_identity("test-subscription-activation")
     }
 
     fn remask_projection(
@@ -90,15 +92,18 @@ pub(in crate::runtime::tests) struct TestPreviewBasis;
 impl ForgeQueryRuntimePreviewBasisAdapter for TestPreviewBasis {
     fn admit_preview_basis(
         &self,
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
         Ok(ForgeQueryPreviewBasisAdmission::new(
             authority,
-            label,
+            label.clone(),
             effect_policy,
-            ["test-preview-basis"],
+            [ForgeQueryBasisAdmissionEvidenceRow::tagged(
+                "preview-basis-admission",
+                "test-preview-basis",
+            )],
         ))
     }
 }

@@ -77,7 +77,7 @@ impl BridgeSubscriptionDeliveryWindowReplayReadiness {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             delivery_replay_readiness_identity:
-                BridgeSubscriptionDeliveryReplayReadinessIdentity::new(format!(
+                BridgeSubscriptionDeliveryReplayReadinessIdentity::admit_bridge_owned(format!(
                     "bridge-subscription-delivery-replay-readiness-id:sha256:{digest:x}"
                 )),
             readiness_class,

@@ -144,7 +144,7 @@ impl AdmittedBridgePolicyContract {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            contract_identity: BridgePolicyContractIdentity::new(format!(
+            contract_identity: BridgePolicyContractIdentity::admit_bridge_owned(format!(
                 "bridge-policy-contract:sha256:{digest:x}"
             )),
             validated_declaration: parts.validated_declaration,

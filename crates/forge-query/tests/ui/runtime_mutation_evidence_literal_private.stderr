@@ -1,33 +1,153 @@
-error: cannot construct `ForgeQueryBatchMutationEvidence` with struct literal syntax due to private fields
-  --> tests/ui/runtime_mutation_evidence_literal_private.rs:40:13
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:10:26
    |
-40 |     let _ = ForgeQueryBatchMutationEvidence {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-41 |         component_count: 0,
-   |         ------------------ private field
-42 |         target_evidence_count: 0,
-   |         ------------------------ private field
-43 |         resolved_target_count: 0,
-   |         ------------------------ private field
-44 |         target_collection_count: 0,
-   |         -------------------------- private field
-45 |         target_entity_count: 0,
-   |         ---------------------- private field
-46 |         causality_bundle_count: 0,
-   |         ------------------------- private field
-47 |         provenance_bundle_count: 0,
-   |         -------------------------- private field
-48 |         outcome_class_count: 0,
-   |         ---------------------- private field
-49 |         request_digest_count: 0,
-   |         ----------------------- private field
-50 |         receipt_digest_count: 0,
-   |         ----------------------- private field
-51 |         aggregate_target_digest: String::new(),
-   |         -------------------------------------- private field
-52 |         aggregate_causality_digest: None,
-   |         -------------------------------- private field
-53 |         aggregate_provenance_digest: None,
-   |         --------------------------------- private field
+10 |         collection: Some(String::new()),
+   |                     ---- ^^^^^^^^^^^^^ expected `ForgeQueryMutationTargetCollectionIdentity`, found `String`
+   |                     |
+   |                     arguments to this enum variant are incorrect
    |
-   = note: ...and other private fields that were not provided
+help: the type constructed contains `std::string::String` due to the type of the argument passed
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:10:21
+   |
+10 |         collection: Some(String::new()),
+   |                     ^^^^^-------------^
+   |                          |
+   |                          this argument influences the type of `Some`
+note: tuple variant defined here
+  --> $RUST/core/src/option.rs
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:15:26
+   |
+15 |         collection: Some(String::new()),
+   |                     ---- ^^^^^^^^^^^^^ expected `ForgeQueryMutationTargetCollectionIdentity`, found `String`
+   |                     |
+   |                     arguments to this enum variant are incorrect
+   |
+help: the type constructed contains `std::string::String` due to the type of the argument passed
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:15:21
+   |
+15 |         collection: Some(String::new()),
+   |                     ^^^^^-------------^
+   |                          |
+   |                          this argument influences the type of `Some`
+note: tuple variant defined here
+  --> $RUST/core/src/option.rs
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:16:31
+   |
+16 |         entity_identity: Some(String::new()),
+   |                          ---- ^^^^^^^^^^^^^ expected `ForgeQueryEntityIdentity`, found `String`
+   |                          |
+   |                          arguments to this enum variant are incorrect
+   |
+help: the type constructed contains `std::string::String` due to the type of the argument passed
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:16:26
+   |
+16 |         entity_identity: Some(String::new()),
+   |                          ^^^^^-------------^
+   |                               |
+   |                               this argument influences the type of `Some`
+note: tuple variant defined here
+  --> $RUST/core/src/option.rs
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:20:27
+   |
+20 |         causality_digest: String::new(),
+   |                           ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:21:31
+   |
+21 |         truth_trigger_digest: String::new(),
+   |                               ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:22:23
+   |
+22 |         route_digest: String::new(),
+   |                       ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:23:36
+   |
+23 |         evaluation_surface_digest: String::new(),
+   |                                    ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:24:28
+   |
+24 |         truth_view_digest: String::new(),
+   |                            ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:27:26
+   |
+27 |         contract_digest: String::new(),
+   |                          ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:28:43
+   |
+28 |         writeback_effect_artifact_digest: String::new(),
+   |                                           ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:29:31
+   |
+29 |         effect_intent_digest: String::new(),
+   |                               ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:30:46
+   |
+30 |         effect_intent_patch_canonical_basis: String::new(),
+   |                                              ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:31:37
+   |
+31 |         feedback_provenance_digest: String::new(),
+   |                                     ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:32:27
+   |
+32 |         causality_digest: String::new(),
+   |                           ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:33:37
+   |
+33 |         strategy_descriptor_digest: String::new(),
+   |                                     ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:34:34
+   |
+34 |         execution_record_digest: String::new(),
+   |                                  ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`
+
+error[E0560]: struct `ForgeQueryBatchMutationEvidence` has no field named `request_digest_count`
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:50:9
+   |
+50 |         request_digest_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^ `ForgeQueryBatchMutationEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryBatchMutationEvidence` has no field named `receipt_digest_count`
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:51:9
+   |
+51 |         receipt_digest_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^ `ForgeQueryBatchMutationEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:52:34
+   |
+52 |         aggregate_target_digest: String::new(),
+   |                                  ^^^^^^^^^^^^^ expected `ForgeQueryMutationEvidenceDigest`, found `String`

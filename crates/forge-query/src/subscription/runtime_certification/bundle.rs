@@ -1,18 +1,25 @@
-use crate::identity::hash_parts;
-
 use super::coverage::CoverageResolutionPosture;
 use super::error::{
     QuerySubscriptionRuntimeCertificationCounters, QuerySubscriptionRuntimeCertificationError,
     QuerySubscriptionRuntimeCertificationErrorKind,
 };
+use super::identities::{
+    coverage_receipt_identity, coverage_width_identity, hostile_coverage_identity,
+    runtime_certification_bundle_identity, runtime_certification_counter_identity,
+};
 use super::scope::QuerySubscriptionRuntimeCertificationScope;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::subscription::validation_evidence::{
+    validation_role_evidence_identity, validation_shape_role_evidence_identity,
+    validation_usize_role_evidence_identity,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubscriptionCertificationCoverageWidth {
     admitted_row_count: usize,
     hostile_row_count: usize,
     covered_variation_axis_count: usize,
-    digest: String,
+    pub(in crate::subscription) width_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl SubscriptionCertificationCoverageWidth {
@@ -21,17 +28,16 @@ impl SubscriptionCertificationCoverageWidth {
         hostile_row_count: usize,
         covered_variation_axis_count: usize,
     ) -> Self {
-        let digest = hash_parts(&[
-            "query_subscription_certification_coverage_width_v1".to_string(),
-            format!("admitted_rows:{admitted_row_count}"),
-            format!("hostile_rows:{hostile_row_count}"),
-            format!("covered_variation_axes:{covered_variation_axis_count}"),
-        ]);
+        let width_identity = coverage_width_identity(
+            admitted_row_count,
+            hostile_row_count,
+            covered_variation_axis_count,
+        );
         Self {
             admitted_row_count,
             hostile_row_count,
             covered_variation_axis_count,
-            digest,
+            width_identity,
         }
     }
 
@@ -47,8 +53,8 @@ impl SubscriptionCertificationCoverageWidth {
         self.covered_variation_axis_count
     }
 
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn width_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.width_identity
     }
 }
 
@@ -58,7 +64,7 @@ pub struct CertificationCoverageReceipt {
     family_coverage_index_lookup_count: usize,
     covered_row_width: SubscriptionCertificationCoverageWidth,
     uncovered_variation_width: usize,
-    digest: String,
+    pub(in crate::subscription) receipt_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl CertificationCoverageReceipt {
@@ -68,19 +74,18 @@ impl CertificationCoverageReceipt {
         covered_row_width: SubscriptionCertificationCoverageWidth,
         uncovered_variation_width: usize,
     ) -> Self {
-        let digest = hash_parts(&[
-            "query_subscription_certification_coverage_receipt_v1".to_string(),
-            coverage_resolution_posture.as_str().to_string(),
-            format!("family_coverage_index_lookup_count:{family_coverage_index_lookup_count}"),
-            format!("covered_row_width:{}", covered_row_width.digest()),
-            format!("uncovered_variation_width:{uncovered_variation_width}"),
-        ]);
+        let receipt_identity = coverage_receipt_identity(
+            coverage_resolution_posture,
+            family_coverage_index_lookup_count,
+            covered_row_width.width_identity(),
+            uncovered_variation_width,
+        );
         Self {
             coverage_resolution_posture,
             family_coverage_index_lookup_count,
             covered_row_width,
             uncovered_variation_width,
-            digest,
+            receipt_identity,
         }
     }
 
@@ -100,80 +105,80 @@ impl CertificationCoverageReceipt {
         self.uncovered_variation_width
     }
 
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.receipt_identity
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionRuntimeCertificationBundle {
-    query_digest: String,
-    subscription_family_digest: String,
-    subscription_declaration_digest: String,
-    bridge_declaration_digest: String,
-    signal_strategy_digest: String,
-    support_report_digest: String,
-    bridge_parity_digest: String,
-    diagnostic_bundle_digest: String,
-    lifecycle_certification_digest: String,
-    hostile_coverage_digest: String,
-    family_coverage_digest: String,
-    runtime_certification_bundle_digest: String,
-    counter_snapshot: String,
+    pub(in crate::subscription) query_scope_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) subscription_family_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) subscription_declaration_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) bridge_declaration_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) signal_strategy_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) support_report_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) bridge_parity_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) diagnostic_bundle_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) lifecycle_certification_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) hostile_coverage_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) family_coverage_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) runtime_certification_bundle_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) counter_identity: ForgeQueryEvidenceIdentity,
     counters: QuerySubscriptionRuntimeCertificationCounters,
 }
 
 impl QuerySubscriptionRuntimeCertificationBundle {
-    pub fn query_digest(&self) -> &str {
-        &self.query_digest
+    pub fn query_scope_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.query_scope_identity
     }
 
-    pub fn subscription_family_digest(&self) -> &str {
-        &self.subscription_family_digest
+    pub fn subscription_family_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.subscription_family_identity
     }
 
-    pub fn subscription_declaration_digest(&self) -> &str {
-        &self.subscription_declaration_digest
+    pub fn subscription_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.subscription_declaration_identity
     }
 
-    pub fn bridge_declaration_digest(&self) -> &str {
-        &self.bridge_declaration_digest
+    pub fn bridge_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bridge_declaration_identity
     }
 
-    pub fn signal_strategy_digest(&self) -> &str {
-        &self.signal_strategy_digest
+    pub fn signal_strategy_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.signal_strategy_identity
     }
 
-    pub fn support_report_digest(&self) -> &str {
-        &self.support_report_digest
+    pub fn support_report_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.support_report_identity
     }
 
-    pub fn bridge_parity_digest(&self) -> &str {
-        &self.bridge_parity_digest
+    pub fn bridge_parity_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bridge_parity_identity
     }
 
-    pub fn diagnostic_bundle_digest(&self) -> &str {
-        &self.diagnostic_bundle_digest
+    pub fn diagnostic_bundle_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.diagnostic_bundle_identity
     }
 
-    pub fn lifecycle_certification_digest(&self) -> &str {
-        &self.lifecycle_certification_digest
+    pub fn lifecycle_certification_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.lifecycle_certification_identity
     }
 
-    pub fn hostile_coverage_digest(&self) -> &str {
-        &self.hostile_coverage_digest
+    pub fn hostile_coverage_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.hostile_coverage_identity
     }
 
-    pub fn family_coverage_digest(&self) -> &str {
-        &self.family_coverage_digest
+    pub fn family_coverage_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.family_coverage_identity
     }
 
-    pub fn runtime_certification_bundle_digest(&self) -> &str {
-        &self.runtime_certification_bundle_digest
+    pub fn runtime_certification_bundle_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.runtime_certification_bundle_identity
     }
 
-    pub fn counter_snapshot(&self) -> &str {
-        &self.counter_snapshot
+    pub fn counter_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.counter_identity
     }
 
     pub fn counters(&self) -> &QuerySubscriptionRuntimeCertificationCounters {
@@ -229,8 +234,11 @@ pub fn certify_query_subscription_runtime_family(
             QuerySubscriptionRuntimeCertificationErrorKind::MissingHostileCoverage,
             "runtime family certification requires at least one hostile family coverage row for every supported family",
             &[
-                format!("family:{}", scope.family().as_str()),
-                format!("coverage:{}", coverage_handle.family_coverage_digest()),
+                validation_shape_role_evidence_identity("family", scope.family().as_str()),
+                validation_role_evidence_identity(
+                    "coverage",
+                    coverage_handle.family_coverage_identity(),
+                ),
             ],
             QuerySubscriptionRuntimeCertificationCounters::uncovered_family(false),
         ));
@@ -241,24 +249,21 @@ pub fn certify_query_subscription_runtime_family(
             QuerySubscriptionRuntimeCertificationErrorKind::UncoveredFamily,
             "runtime family certification requires admitted coverage plus non-empty basis, policy, tenant, relationship-proof, view-shape, and lifecycle variation sets",
             &[
-                format!("family:{}", scope.family().as_str()),
-                format!("coverage:{}", coverage_handle.family_coverage_digest()),
-                format!("uncovered_variation_width:{uncovered_variation_width}"),
+                validation_shape_role_evidence_identity("family", scope.family().as_str()),
+                validation_role_evidence_identity(
+                    "coverage",
+                    coverage_handle.family_coverage_identity(),
+                ),
+                validation_usize_role_evidence_identity(
+                    "uncovered_variation_width",
+                    uncovered_variation_width,
+                ),
             ],
             QuerySubscriptionRuntimeCertificationCounters::uncovered_family(false),
         ));
     }
 
-    let hostile_coverage_digest = hash_parts(
-        &std::iter::once("query_subscription_runtime_hostile_coverage_v1".to_string())
-            .chain(
-                coverage_handle
-                    .hostile_rows()
-                    .iter()
-                    .map(|row| row.row_digest().to_string()),
-            )
-            .collect::<Vec<_>>(),
-    );
+    let hostile_coverage_identity = hostile_coverage_identity(coverage_handle.hostile_rows());
     let coverage_resolution_posture = *coverage_handle.coverage_resolution_posture();
     let receipt = CertificationCoverageReceipt::new(
         coverage_resolution_posture,
@@ -270,59 +275,57 @@ pub fn certify_query_subscription_runtime_family(
         coverage_handle.hostile_rows().len(),
         coverage_resolution_posture,
     );
-    let counter_snapshot = counters.digest();
-    let runtime_certification_bundle_digest = hash_parts(&[
-        "query_subscription_runtime_certification_bundle_v1".to_string(),
-        scope.scope_digest().to_string(),
-        scope.support_report().report_digest().to_string(),
-        scope.bridge_parity().explanation_digest().to_string(),
-        scope
-            .admitted_diagnostic_bundle()
-            .bundle_digest()
-            .to_string(),
+    let counter_identity = runtime_certification_counter_identity(&counters);
+    let runtime_certification_bundle_identity = runtime_certification_bundle_identity(
+        scope.scope_identity(),
+        scope.support_report().report_identity(),
+        scope.bridge_parity().explanation_identity(),
+        scope.admitted_diagnostic_bundle().bundle_identity(),
         scope
             .lifecycle_certification()
-            .certification_bundle_digest()
-            .to_string(),
-        coverage_handle.family_coverage_digest().to_string(),
-        hostile_coverage_digest.clone(),
-        receipt.digest().to_string(),
-        counter_snapshot.clone(),
-    ]);
+            .certification_bundle_identity(),
+        coverage_handle.family_coverage_identity(),
+        &hostile_coverage_identity,
+        receipt.receipt_identity(),
+        &counter_identity,
+    );
 
     Ok((
         QuerySubscriptionRuntimeCertificationBundle {
-            query_digest: scope.lifecycle_certification().query_digest().to_string(),
-            subscription_family_digest: scope
+            query_scope_identity: scope
                 .lifecycle_certification()
-                .subscription_family_digest()
-                .to_string(),
-            subscription_declaration_digest: scope
+                .query_scope_identity()
+                .clone(),
+            subscription_family_identity: scope
                 .lifecycle_certification()
-                .subscription_declaration_digest()
-                .to_string(),
-            bridge_declaration_digest: scope
+                .subscription_family_identity()
+                .clone(),
+            subscription_declaration_identity: scope
                 .lifecycle_certification()
-                .bridge_declaration_digest()
-                .to_string(),
-            signal_strategy_digest: scope
+                .subscription_declaration_identity()
+                .clone(),
+            bridge_declaration_identity: scope
                 .lifecycle_certification()
-                .signal_strategy_digest()
-                .to_string(),
-            support_report_digest: scope.support_report().report_digest().to_string(),
-            bridge_parity_digest: scope.bridge_parity().explanation_digest().to_string(),
-            diagnostic_bundle_digest: scope
+                .bridge_declaration_identity()
+                .clone(),
+            signal_strategy_identity: scope
+                .lifecycle_certification()
+                .signal_strategy_identity()
+                .clone(),
+            support_report_identity: scope.support_report().report_identity().clone(),
+            bridge_parity_identity: scope.bridge_parity().explanation_identity().clone(),
+            diagnostic_bundle_identity: scope
                 .admitted_diagnostic_bundle()
-                .bundle_digest()
-                .to_string(),
-            lifecycle_certification_digest: scope
+                .bundle_identity()
+                .clone(),
+            lifecycle_certification_identity: scope
                 .lifecycle_certification()
-                .certification_bundle_digest()
-                .to_string(),
-            hostile_coverage_digest,
-            family_coverage_digest: coverage_handle.family_coverage_digest().to_string(),
-            runtime_certification_bundle_digest,
-            counter_snapshot,
+                .certification_bundle_identity()
+                .clone(),
+            hostile_coverage_identity,
+            family_coverage_identity: coverage_handle.family_coverage_identity().clone(),
+            runtime_certification_bundle_identity,
+            counter_identity,
             counters,
         },
         receipt,

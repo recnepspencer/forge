@@ -1,9 +1,10 @@
-use std::sync::Arc;
-
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 
 use super::super::{ForgeQueryMutationFamily, ForgeQueryWriteCommand};
+use crate::runtime::ForgeQueryMutationAuthorityIdentity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ForgeQueryContinuityMutationFamily {
@@ -43,14 +44,14 @@ impl ForgeQueryContinuityMutationOutcomeClass {
 pub struct ForgeQueryContinuityMutationIntent {
     family: ForgeQueryContinuityMutationFamily,
     outcome_class: ForgeQueryContinuityMutationOutcomeClass,
-    prior_authoritative_identity: Arc<str>,
-    successor_authoritative_identities: Vec<String>,
+    prior_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
+    successor_authoritative_identities: Vec<ForgeQueryMutationAuthorityIdentity>,
 }
 
 impl ForgeQueryContinuityMutationIntent {
     pub fn rebind_existing_target(
-        prior_authoritative_identity: impl Into<String>,
-        successor_authoritative_identity: impl Into<String>,
+        prior_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
+        successor_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
     ) -> Result<Self, ForgeQueryWorkspaceError> {
         Self::new(
             ForgeQueryContinuityMutationFamily::RebindExistingTarget,
@@ -61,8 +62,8 @@ impl ForgeQueryContinuityMutationIntent {
     }
 
     pub fn rebind_merge_successor(
-        prior_authoritative_identity: impl Into<String>,
-        successor_authoritative_identity: impl Into<String>,
+        prior_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
+        successor_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
     ) -> Result<Self, ForgeQueryWorkspaceError> {
         Self::new(
             ForgeQueryContinuityMutationFamily::RebindExistingTarget,
@@ -72,13 +73,12 @@ impl ForgeQueryContinuityMutationIntent {
         )
     }
 
-    pub fn split_existing_target<I, S>(
-        prior_authoritative_identity: impl Into<String>,
+    pub fn split_existing_target<I>(
+        prior_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
         successor_authoritative_identities: I,
     ) -> Result<Self, ForgeQueryWorkspaceError>
     where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
+        I: IntoIterator<Item = ForgeQueryMutationAuthorityIdentity>,
     {
         Self::new(
             ForgeQueryContinuityMutationFamily::SplitExistingTarget,
@@ -88,19 +88,17 @@ impl ForgeQueryContinuityMutationIntent {
         )
     }
 
-    fn new<I, S>(
+    fn new<I>(
         family: ForgeQueryContinuityMutationFamily,
         outcome_class: ForgeQueryContinuityMutationOutcomeClass,
-        prior_authoritative_identity: impl Into<String>,
+        prior_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
         successor_authoritative_identities: I,
     ) -> Result<Self, ForgeQueryWorkspaceError>
     where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
+        I: IntoIterator<Item = ForgeQueryMutationAuthorityIdentity>,
     {
         let successor_authoritative_identities = successor_authoritative_identities
             .into_iter()
-            .map(Into::into)
             .collect::<Vec<_>>();
         if successor_authoritative_identities.is_empty() {
             return Err(ForgeQueryWorkspaceError::new(
@@ -117,17 +115,8 @@ impl ForgeQueryContinuityMutationIntent {
         Ok(Self {
             family,
             outcome_class,
-            prior_authoritative_identity: validate_identity(
-                "prior authoritative identity",
-                prior_authoritative_identity,
-            )?,
-            successor_authoritative_identities: successor_authoritative_identities
-                .into_iter()
-                .map(|value| validate_identity("successor authoritative identity", value))
-                .collect::<Result<Vec<_>, _>>()?
-                .into_iter()
-                .map(|value| value.as_ref().to_string())
-                .collect(),
+            prior_authoritative_identity,
+            successor_authoritative_identities,
         })
     }
 
@@ -139,18 +128,17 @@ impl ForgeQueryContinuityMutationIntent {
         self.outcome_class
     }
 
-    pub fn prior_authoritative_identity(&self) -> &str {
-        self.prior_authoritative_identity.as_ref()
+    pub fn prior_authoritative_identity(&self) -> &ForgeQueryMutationAuthorityIdentity {
+        &self.prior_authoritative_identity
     }
 
-    pub fn successor_authoritative_identity(&self) -> &str {
+    pub fn successor_authoritative_identity(&self) -> &ForgeQueryMutationAuthorityIdentity {
         self.successor_authoritative_identities
             .first()
-            .map(String::as_str)
             .expect("continuity intent must retain at least one successor authoritative identity")
     }
 
-    pub fn successor_authoritative_identities(&self) -> &[String] {
+    pub fn successor_authoritative_identities(&self) -> &[ForgeQueryMutationAuthorityIdentity] {
         &self.successor_authoritative_identities
     }
 }
@@ -176,9 +164,9 @@ impl ForgeQueryContinuityMutationDenialKind {
 pub struct ForgeQueryContinuityMutationDenial {
     family: ForgeQueryContinuityMutationFamily,
     kind: ForgeQueryContinuityMutationDenialKind,
-    prior_authoritative_identity: String,
-    successor_authoritative_identities: Vec<String>,
-    basis_binding_digest: Option<String>,
+    prior_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
+    successor_authoritative_identities: Vec<ForgeQueryMutationAuthorityIdentity>,
+    basis_binding_digest: Option<crate::runtime::ForgeQueryMutationEvidenceDigest>,
     reason: String,
     denial_digest: String,
 }
@@ -191,30 +179,57 @@ impl ForgeQueryContinuityMutationDenial {
         reason: impl Into<String>,
     ) -> Self {
         let reason = reason.into();
-        let basis_binding_digest = existing_truth_binding.map(|binding| binding.binding_digest());
-        let denial_digest = hash_parts(&[
-            "forge_query_continuity_mutation_denial_v1".to_string(),
-            format!("family:{}", intent.family().as_str()),
-            format!("kind:{}", kind.as_str()),
-            format!("outcome:{}", intent.outcome_class().as_str()),
-            format!("prior:{}", intent.prior_authoritative_identity()),
-            format!(
-                "successors:{}",
-                intent.successor_authoritative_identities().join("|")
-            ),
-            format!(
-                "basis-binding:{}",
-                basis_binding_digest.as_deref().unwrap_or("none")
-            ),
-            format!("reason:{reason}"),
-        ]);
+        let basis_binding_identity =
+            existing_truth_binding.map(|binding| binding.binding_evidence_identity());
+        let basis_binding_digest = basis_binding_identity.map(|identity| {
+            crate::runtime::ForgeQueryMutationEvidenceDigest::source_identity(
+                "continuity-basis-binding",
+                identity,
+            )
+        });
+        let denial_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "continuity-mutation-denial",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("family"),
+                    intent.family().as_str(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("outcome"),
+                    intent.outcome_class().as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("prior"),
+                    intent.prior_authoritative_identity().evidence_identity(),
+                )
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("successor"),
+                    intent
+                        .successor_authoritative_identities()
+                        .iter()
+                        .map(ForgeQueryMutationAuthorityIdentity::evidence_identity),
+                )
+                .optional_evidence_identity(
+                    ForgeQueryEvidenceTag::new("basis_binding"),
+                    basis_binding_identity,
+                )
+                .field_value(ForgeQueryEvidenceTag::new("reason"), &reason)
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             family: intent.family(),
             kind,
-            prior_authoritative_identity: intent.prior_authoritative_identity().to_string(),
+            prior_authoritative_identity: intent.prior_authoritative_identity().clone(),
             successor_authoritative_identities: intent
                 .successor_authoritative_identities()
-                .to_vec(),
+                .iter()
+                .cloned()
+                .collect(),
             basis_binding_digest,
             reason,
             denial_digest,
@@ -229,23 +244,25 @@ impl ForgeQueryContinuityMutationDenial {
         self.kind
     }
 
-    pub fn prior_authoritative_identity(&self) -> &str {
+    pub fn prior_authoritative_identity(&self) -> &ForgeQueryMutationAuthorityIdentity {
         &self.prior_authoritative_identity
     }
 
-    pub fn successor_authoritative_identity(&self) -> Option<&str> {
+    pub fn successor_authoritative_identity(&self) -> Option<&ForgeQueryMutationAuthorityIdentity> {
         match self.successor_authoritative_identities.as_slice() {
-            [only] => Some(only.as_str()),
+            [only] => Some(only),
             _ => None,
         }
     }
 
-    pub fn successor_authoritative_identities(&self) -> &[String] {
+    pub fn successor_authoritative_identities(&self) -> &[ForgeQueryMutationAuthorityIdentity] {
         &self.successor_authoritative_identities
     }
 
     pub fn basis_binding_digest(&self) -> Option<&str> {
-        self.basis_binding_digest.as_deref()
+        self.basis_binding_digest
+            .as_ref()
+            .map(crate::runtime::ForgeQueryMutationEvidenceDigest::as_str)
     }
 
     pub fn reason(&self) -> &str {
@@ -261,12 +278,17 @@ impl std::fmt::Display for ForgeQueryContinuityMutationDenial {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "continuity mutation `{}` -> `{}` denied during {}: {}",
-            self.prior_authoritative_identity,
-            self.successor_authoritative_identities.join("|"),
-            self.kind.as_str(),
-            self.reason
-        )
+            "continuity mutation `{}` -> ",
+            self.prior_authoritative_identity.as_str(),
+        )?;
+        write!(f, "[")?;
+        for (index, successor) in self.successor_authoritative_identities.iter().enumerate() {
+            if index > 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "`{}`", successor.as_str())?;
+        }
+        write!(f, "] denied during {}: {}", self.kind.as_str(), self.reason)
     }
 }
 
@@ -295,17 +317,4 @@ pub(crate) fn admit_continuity_intent(
         ));
     }
     Ok(())
-}
-
-fn validate_identity(
-    label: &str,
-    value: impl Into<String>,
-) -> Result<Arc<str>, ForgeQueryWorkspaceError> {
-    let value = value.into();
-    if value.trim().is_empty() {
-        return Err(ForgeQueryWorkspaceError::new(format!(
-            "{label} may not be empty"
-        )));
-    }
-    Ok(Arc::from(value))
 }

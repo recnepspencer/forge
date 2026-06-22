@@ -1,12 +1,15 @@
 use crate::basis::ExecutionPreflightBundle;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::{ForgeQueryAdmittedIntentPlan, ForgeQueryIntentDeclaration};
 use crate::workflow::{
     MergeLoweringInput, MutationLoweringInput, WorkflowAuthorityTargetFamily, WorkflowBudgetClass,
     WorkflowCostClass, WorkflowDeclarationFamily, WorkflowFreshnessPolicy,
     WorkflowPreviewEvaluationClass, WritebackLoweringInput,
 };
+use crate::ForgeQueryEvidenceIdentity;
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::EntityId;
+use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 
 use super::bind_requested;
 use crate::domain_capabilities::payloads::{
@@ -63,7 +66,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
     pub fn preview_only_query_inspection(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        preview_session_identity: impl Into<String>,
+        preview_session_identity: BridgePreviewSessionIdentity,
     ) -> Self {
         Self::with_runtime_semantics(
             ForgeQueryWorkflowContributionPosture::PreviewOnly,
@@ -86,7 +89,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
     pub fn promotion_eligible_mutation_lowering(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        preview_session_identity: impl Into<String>,
+        preview_session_identity: BridgePreviewSessionIdentity,
     ) -> Self {
         Self::with_runtime_semantics(
             ForgeQueryWorkflowContributionPosture::PromotionEligible,
@@ -109,8 +112,8 @@ impl ForgeQueryWorkflowContributionAuthoring {
     pub fn confirmation_required_mutation_reconciliation(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        runtime_snapshot_token: impl Into<String>,
-        authority_binding_digest: impl Into<String>,
+        runtime_snapshot_identity: ForgeQuerySnapshotIdentity,
+        authority_binding_identity: ForgeQueryEvidenceIdentity,
         entity_id: EntityId,
         desired_aspect_fields_external_json: serde_json::Value,
     ) -> Self {
@@ -119,8 +122,8 @@ impl ForgeQueryWorkflowContributionAuthoring {
             semantic_code,
             detail,
             ForgeQueryWorkflowRuntimeSemantics::new(
-                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight(
-                    runtime_snapshot_token,
+                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight_snapshot_identity(
+                    runtime_snapshot_identity,
                 ),
                 WorkflowDeclarationFamily::MutationLoweringNarrow,
                 WorkflowAuthorityTargetFamily::RelationalMutation,
@@ -129,7 +132,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
                 WorkflowFreshnessPolicy::ExactBasis,
             ),
             ForgeQueryWorkflowLoweringSemantics::mutation(
-                authority_binding_digest,
+                authority_binding_identity,
                 MutationLoweringInput::IntentReconciliation {
                     entity_id,
                     desired_aspect_fields_external_json,
@@ -142,7 +145,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
         preflight: ExecutionPreflightBundle,
-        authority_binding_digest: impl Into<String>,
+        authority_binding_identity: ForgeQueryEvidenceIdentity,
         entity_id: EntityId,
         desired_aspect_fields_external_json: serde_json::Value,
     ) -> Self {
@@ -159,7 +162,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
                 WorkflowFreshnessPolicy::ExactBasis,
             ),
             ForgeQueryWorkflowLoweringSemantics::mutation(
-                authority_binding_digest,
+                authority_binding_identity,
                 MutationLoweringInput::IntentReconciliation {
                     entity_id,
                     desired_aspect_fields_external_json,
@@ -171,7 +174,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
     pub fn promotion_eligible_merge_reconciliation(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        preview_session_identity: impl Into<String>,
+        preview_session_identity: BridgePreviewSessionIdentity,
         target_branch: BranchId,
         source_branch: BranchId,
     ) -> Self {
@@ -200,15 +203,15 @@ impl ForgeQueryWorkflowContributionAuthoring {
     pub fn confirmation_required_query_inspection(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        runtime_snapshot_token: impl Into<String>,
+        runtime_snapshot_identity: ForgeQuerySnapshotIdentity,
     ) -> Self {
         Self::with_runtime_semantics(
             ForgeQueryWorkflowContributionPosture::ConfirmationRequired,
             semantic_code,
             detail,
             ForgeQueryWorkflowRuntimeSemantics::new(
-                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight(
-                    runtime_snapshot_token,
+                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight_snapshot_identity(
+                    runtime_snapshot_identity,
                 ),
                 WorkflowDeclarationFamily::ConflictInspectionNarrow,
                 WorkflowAuthorityTargetFamily::QueryInspection,
@@ -242,15 +245,15 @@ impl ForgeQueryWorkflowContributionAuthoring {
     pub fn confirmation_required_writeback_projected_state_diff(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        runtime_snapshot_token: impl Into<String>,
+        runtime_snapshot_identity: ForgeQuerySnapshotIdentity,
     ) -> Self {
         Self::with_runtime_and_lowering_semantics(
             ForgeQueryWorkflowContributionPosture::ConfirmationRequired,
             semantic_code,
             detail,
             ForgeQueryWorkflowRuntimeSemantics::new(
-                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight(
-                    runtime_snapshot_token,
+                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight_snapshot_identity(
+                    runtime_snapshot_identity,
                 ),
                 WorkflowDeclarationFamily::WritebackLoweringNarrow,
                 WorkflowAuthorityTargetFamily::BridgeWriteback,
@@ -290,7 +293,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
     pub fn discard_required_query_inspection(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        preview_session_identity: impl Into<String>,
+        preview_session_identity: BridgePreviewSessionIdentity,
     ) -> Self {
         Self::with_runtime_semantics(
             ForgeQueryWorkflowContributionPosture::DiscardRequired,
@@ -313,7 +316,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
     pub fn discard_required_writeback_projected_state_diff(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        preview_session_identity: impl Into<String>,
+        preview_session_identity: BridgePreviewSessionIdentity,
     ) -> Self {
         Self::with_runtime_and_lowering_semantics(
             ForgeQueryWorkflowContributionPosture::DiscardRequired,

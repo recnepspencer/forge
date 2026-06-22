@@ -1,0 +1,361 @@
+use std::sync::atomic::Ordering;
+
+use forge_foundational::facade::DiagnosticRichnessProfile;
+use forge_server::ForgeServerQueryHandoffDenialCode;
+
+use crate::{
+    compat_http_phase_thirteen_assertions::{
+        assert_bundle_digests_equal, assert_bundle_digests_not_equal, assert_denial_contains,
+    },
+    compat_http_phase_thirteen_bundle::{
+        ForgeServerPhaseThirteenBundle, AUDIT_EVIDENCE_DIGEST, BASIS_DIGEST, DECLARATION_DIGEST,
+        FAILURE_DIGEST, MUTATION_RESULT_DIGEST, POLICY_DIGEST, PROVENANCE_DIGEST, RESPONSE_DIGEST,
+        SUPPORT_POSTURE_DIGEST,
+    },
+    compat_http_phase_thirteen_runtime::{
+        buffered_export, compat_read_with_diagnostics, direct_and_compat_mutation,
+        direct_and_compat_read, finished_incremental_export, idempotent_mutation,
+        phase_thirteen_counting_server, phase_thirteen_server,
+    },
+    compat_http_phase_two_runtime, forge_native_assertions,
+};
+
+#[test]
+fn compat_http_phase_thirteen_cross_surface_parity_matrix_stays_narrow_and_retry_honest() {
+    let server = phase_thirteen_server();
+    let (declaration, direct_read, compat_read) = direct_and_compat_read(&server, "users.profile");
+    let incremental = finished_incremental_export(&server, "users.profile", 11);
+    let buffered = buffered_export(&server, "users.profile");
+    let forensic_read = compat_read_with_diagnostics(
+        &server,
+        "users.profile",
+        DiagnosticRichnessProfile::Forensic,
+    );
+    let basis_denial =
+        match server
+            .compat_http()
+            .read(forge_server::ForgeServerCompatibilityExecutionInput::new(
+                compat_http_phase_two_runtime::prepared_read_request(
+                    &server,
+                    compat_http_phase_two_runtime::read_input("users.profile")
+                        .with_query_pair("basis", "basis:drifted")
+                        .build()
+                        .expect("drifted basis request should validate"),
+                ),
+                "users.profile",
+            )) {
+            forge_proof::TransitionOutcome::Denied(value) => value,
+            other => panic!("expected basis denial, got {other:?}"),
+        };
+
+    let direct_read_bundle = ForgeServerPhaseThirteenBundle::new()
+        .with_digest(DECLARATION_DIGEST, declaration.declaration_digest())
+        .with_optional_digest(BASIS_DIGEST, direct_read.direct_context().basis_digest())
+        .with_digest(
+            SUPPORT_POSTURE_DIGEST,
+            direct_read.direct_context().support_posture_digest(),
+        )
+        .with_digest(
+            PROVENANCE_DIGEST,
+            forge_native_assertions::direct_provenance_digest(
+                direct_read.direct_context().provenance(),
+            ),
+        )
+        .with_digest(
+            AUDIT_EVIDENCE_DIGEST,
+            forge_native_assertions::operator_evidence_record(
+                &server,
+                direct_read.response_envelope().clone(),
+            )
+            .response_digest(),
+        );
+    let compat_read_bundle = ForgeServerPhaseThirteenBundle::new()
+        .with_digest(DECLARATION_DIGEST, compat_read.declaration_digest())
+        .with_optional_digest(BASIS_DIGEST, compat_read.direct_context().basis_digest())
+        .with_digest(
+            SUPPORT_POSTURE_DIGEST,
+            compat_read.direct_context().support_posture_digest(),
+        )
+        .with_digest(
+            PROVENANCE_DIGEST,
+            forge_native_assertions::direct_provenance_digest(
+                compat_read.direct_context().provenance(),
+            ),
+        )
+        .with_digest(
+            RESPONSE_DIGEST,
+            compat_read.response_envelope().canonical_digest(),
+        )
+        .with_digest(
+            POLICY_DIGEST,
+            compat_read
+                .file_envelope()
+                .policy_decision()
+                .canonical_digest(),
+        )
+        .with_digest(
+            AUDIT_EVIDENCE_DIGEST,
+            compat_read
+                .certification_bundle()
+                .operator_evidence_record()
+                .canonical_digest(),
+        );
+    let incremental_bundle = ForgeServerPhaseThirteenBundle::new()
+        .with_digest(DECLARATION_DIGEST, incremental.read().declaration_digest())
+        .with_optional_digest(
+            BASIS_DIGEST,
+            incremental.read().direct_context().basis_digest(),
+        )
+        .with_digest(
+            SUPPORT_POSTURE_DIGEST,
+            incremental.read().direct_context().support_posture_digest(),
+        )
+        .with_digest(
+            PROVENANCE_DIGEST,
+            forge_native_assertions::direct_provenance_digest(
+                incremental.read().direct_context().provenance(),
+            ),
+        )
+        .with_digest(
+            RESPONSE_DIGEST,
+            incremental.read().response_envelope().canonical_digest(),
+        )
+        .with_digest(
+            POLICY_DIGEST,
+            incremental
+                .file_envelope()
+                .policy_decision()
+                .canonical_digest(),
+        )
+        .with_digest(
+            AUDIT_EVIDENCE_DIGEST,
+            incremental
+                .certification_bundle()
+                .operator_evidence_record()
+                .canonical_digest(),
+        );
+    let buffered_bundle = ForgeServerPhaseThirteenBundle::new()
+        .with_digest(DECLARATION_DIGEST, buffered.read().declaration_digest())
+        .with_optional_digest(
+            BASIS_DIGEST,
+            buffered.read().direct_context().basis_digest(),
+        )
+        .with_digest(
+            SUPPORT_POSTURE_DIGEST,
+            buffered.read().direct_context().support_posture_digest(),
+        )
+        .with_digest(
+            PROVENANCE_DIGEST,
+            forge_native_assertions::direct_provenance_digest(
+                buffered.read().direct_context().provenance(),
+            ),
+        )
+        .with_digest(
+            RESPONSE_DIGEST,
+            buffered.read().response_envelope().canonical_digest(),
+        )
+        .with_digest(
+            POLICY_DIGEST,
+            buffered
+                .file_envelope()
+                .policy_decision()
+                .canonical_digest(),
+        )
+        .with_digest(
+            AUDIT_EVIDENCE_DIGEST,
+            buffered
+                .certification_bundle()
+                .operator_evidence_record()
+                .canonical_digest(),
+        );
+    let forensic_bundle = ForgeServerPhaseThirteenBundle::new()
+        .with_digest(DECLARATION_DIGEST, forensic_read.declaration_digest())
+        .with_optional_digest(BASIS_DIGEST, forensic_read.direct_context().basis_digest())
+        .with_digest(
+            SUPPORT_POSTURE_DIGEST,
+            forensic_read.direct_context().support_posture_digest(),
+        )
+        .with_digest(
+            PROVENANCE_DIGEST,
+            forge_native_assertions::direct_provenance_digest(
+                forensic_read.direct_context().provenance(),
+            ),
+        )
+        .with_digest(
+            POLICY_DIGEST,
+            forensic_read
+                .file_envelope()
+                .policy_decision()
+                .canonical_digest(),
+        );
+
+    assert_bundle_digests_equal(
+        &direct_read_bundle,
+        &compat_read_bundle,
+        &[
+            DECLARATION_DIGEST,
+            BASIS_DIGEST,
+            SUPPORT_POSTURE_DIGEST,
+            PROVENANCE_DIGEST,
+        ],
+    );
+    assert_bundle_digests_equal(
+        &compat_read_bundle,
+        &incremental_bundle,
+        &[
+            DECLARATION_DIGEST,
+            BASIS_DIGEST,
+            SUPPORT_POSTURE_DIGEST,
+            PROVENANCE_DIGEST,
+            RESPONSE_DIGEST,
+        ],
+    );
+    assert_bundle_digests_equal(
+        &compat_read_bundle,
+        &buffered_bundle,
+        &[
+            DECLARATION_DIGEST,
+            BASIS_DIGEST,
+            SUPPORT_POSTURE_DIGEST,
+            PROVENANCE_DIGEST,
+            RESPONSE_DIGEST,
+        ],
+    );
+    assert_bundle_digests_equal(
+        &compat_read_bundle,
+        &forensic_bundle,
+        &[
+            DECLARATION_DIGEST,
+            BASIS_DIGEST,
+            SUPPORT_POSTURE_DIGEST,
+            PROVENANCE_DIGEST,
+        ],
+    );
+
+    let (counting_server, attempted_writes) = phase_thirteen_counting_server();
+    let (direct_mutation, compat_mutation) =
+        direct_and_compat_mutation(&counting_server, "phase-thirteen-cross-surface");
+    let replay = idempotent_mutation(&counting_server, "phase-thirteen-replay", "phase-13-idem");
+    let replay_again =
+        idempotent_mutation(&counting_server, "phase-thirteen-replay", "phase-13-idem");
+
+    let direct_mutation_bundle = ForgeServerPhaseThirteenBundle::new()
+        .with_digest(
+            MUTATION_RESULT_DIGEST,
+            direct_mutation.mutation_result().result_digest(),
+        )
+        .with_digest(
+            SUPPORT_POSTURE_DIGEST,
+            direct_mutation.direct_context().support_posture_digest(),
+        )
+        .with_digest(
+            PROVENANCE_DIGEST,
+            forge_native_assertions::direct_provenance_digest(
+                direct_mutation.direct_context().provenance(),
+            ),
+        );
+    let compat_mutation_bundle = ForgeServerPhaseThirteenBundle::new()
+        .with_digest(
+            MUTATION_RESULT_DIGEST,
+            compat_mutation.mutation_result().result_digest(),
+        )
+        .with_digest(
+            SUPPORT_POSTURE_DIGEST,
+            compat_mutation
+                .envelope()
+                .direct_context()
+                .support_posture_digest(),
+        )
+        .with_digest(
+            PROVENANCE_DIGEST,
+            forge_native_assertions::direct_provenance_digest(
+                compat_mutation.envelope().direct_context().provenance(),
+            ),
+        );
+    let replay_bundle = ForgeServerPhaseThirteenBundle::new()
+        .with_digest(
+            MUTATION_RESULT_DIGEST,
+            replay.mutation_result().result_digest(),
+        )
+        .with_digest(
+            RESPONSE_DIGEST,
+            replay.envelope().response_envelope().canonical_digest(),
+        )
+        .with_digest(
+            SUPPORT_POSTURE_DIGEST,
+            replay.envelope().direct_context().support_posture_digest(),
+        )
+        .with_digest(
+            PROVENANCE_DIGEST,
+            forge_native_assertions::direct_provenance_digest(
+                replay.envelope().direct_context().provenance(),
+            ),
+        );
+    let replay_again_bundle = ForgeServerPhaseThirteenBundle::new()
+        .with_digest(
+            MUTATION_RESULT_DIGEST,
+            replay_again.mutation_result().result_digest(),
+        )
+        .with_digest(
+            RESPONSE_DIGEST,
+            replay_again
+                .envelope()
+                .response_envelope()
+                .canonical_digest(),
+        )
+        .with_digest(
+            SUPPORT_POSTURE_DIGEST,
+            replay_again
+                .envelope()
+                .direct_context()
+                .support_posture_digest(),
+        )
+        .with_digest(
+            PROVENANCE_DIGEST,
+            forge_native_assertions::direct_provenance_digest(
+                replay_again.envelope().direct_context().provenance(),
+            ),
+        );
+
+    assert_bundle_digests_equal(
+        &direct_mutation_bundle,
+        &compat_mutation_bundle,
+        &[PROVENANCE_DIGEST],
+    );
+    assert_bundle_digests_not_equal(
+        &direct_mutation_bundle,
+        &compat_mutation_bundle,
+        &[SUPPORT_POSTURE_DIGEST],
+    );
+    assert_bundle_digests_equal(
+        &replay_bundle,
+        &replay_again_bundle,
+        &[
+            MUTATION_RESULT_DIGEST,
+            RESPONSE_DIGEST,
+            SUPPORT_POSTURE_DIGEST,
+            PROVENANCE_DIGEST,
+        ],
+    );
+    assert!(!replay.envelope().replay_receipt().is_replayed());
+    assert!(replay_again.envelope().replay_receipt().is_replayed());
+    assert_eq!(
+        attempted_writes.load(Ordering::Relaxed),
+        3,
+        "direct write, compat write, and the first idempotent mutation should be the only authority effects",
+    );
+
+    assert_denial_contains(
+        &basis_denial,
+        ForgeServerQueryHandoffDenialCode::CompatibilityBasisRequestInvalid,
+        "drifted from the admitted retained basis",
+    );
+    let basis_denial_bundle = ForgeServerPhaseThirteenBundle::new().with_digest(
+        FAILURE_DIGEST,
+        format!("{:?}:{}", basis_denial.code(), basis_denial.detail()),
+    );
+    assert!(basis_denial_bundle
+        .digest(FAILURE_DIGEST)
+        .expect("basis denial bundle should preserve failure digest")
+        .contains("CompatibilityBasisRequestInvalid"),);
+}

@@ -1,0 +1,33 @@
+error[E0308]: mismatched types
+ --> tests/ui/query_runtime_phase_eight/entity_identity_display_authority_removed.rs:5:35
+  |
+5 |     let entity_id = EntityId::new(1, 1, 1);
+  |                     ------------- ^ expected `PartitionId`, found integer
+  |                     |
+  |                     arguments to this function are incorrect
+  |
+note: associated function defined here
+ --> $WORKSPACE/crates/forge-relational/src/identity/data/record_ids.rs
+  |
+  |     pub const fn new(partition_id: PartitionId, local_slot: u64, generation: u32) -> Self {
+  |                  ^^^
+help: try wrapping the expression in `forge_relational::facade::identity::PartitionId`
+  |
+5 |     let entity_id = EntityId::new(forge_relational::facade::identity::PartitionId(1), 1, 1);
+  |                                   ++++++++++++++++++++++++++++++++++++++++++++++++ +
+
+error[E0308]: mismatched types
+ --> tests/ui/query_runtime_phase_eight/entity_identity_display_authority_removed.rs:6:55
+  |
+6 |     let _target = ForgeQueryExistingEntityTarget::new(format!("{entity_id:?}"), todo!())
+  |                                                       ^^^^^^^^^^^^^^^^^^^^^^^^ expected `ForgeQueryMutationAuthorityIdentity`, found `String`
+  |
+  = note: this error originates in the macro `format` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unreachable call
+ --> tests/ui/query_runtime_phase_eight/entity_identity_display_authority_removed.rs:6:19
+  |
+6 |     let _target = ForgeQueryExistingEntityTarget::new(format!("{entity_id:?}"), todo!())
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable call          ------- any code following this expression is unreachable
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

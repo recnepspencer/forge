@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::runtime::{
     ForgeQueryBatchWriteReceipt, ForgeQueryBranchIntentReceipt, ForgeQueryEffectHandle,
     ForgeQueryEffectIntentReceipt, ForgeQueryInspectionTarget, ForgeQueryIntentDenialEvidence,
@@ -22,9 +25,28 @@ pub enum ForgeQueryGenericInspectionIntentTargetSeed {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryGenericInspectionRequestLabel(String);
+
+impl ForgeQueryGenericInspectionRequestLabel {
+    fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for ForgeQueryGenericInspectionRequestLabel {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGenericInspectionIntentSeed {
     target: ForgeQueryGenericInspectionIntentTargetSeed,
-    request_label: String,
+    request_label: ForgeQueryGenericInspectionRequestLabel,
     request_input_digest: String,
 }
 
@@ -91,11 +113,12 @@ impl ForgeQueryGenericInspectionIntentSeed {
             ForgeQueryGenericInspectionIntentTargetSeed::LiveView {
                 view_name: view_name.to_string(),
             },
-            format!("inspect.live.{view_name}"),
-            hash_parts(&[
-                "forge_query_generic_inspection_live_view_seed_v1".to_string(),
-                format!("view:{view_name}"),
-            ]),
+            ForgeQueryGenericInspectionRequestLabel::new(format!("inspect.live.{view_name}")),
+            generic_inspection_seed_identity("live_view")
+                .field_shape(ForgeQueryEvidenceTag::new("view_name"), view_name)
+                .seal()
+                .as_str()
+                .to_string(),
         )
     }
 
@@ -108,121 +131,162 @@ impl ForgeQueryGenericInspectionIntentSeed {
             ForgeQueryGenericInspectionIntentTargetSeed::Effect {
                 effect_name: effect_name.to_string(),
             },
-            format!("inspect.effect.{effect_name}"),
-            hash_parts(&[
-                "forge_query_generic_inspection_effect_seed_v1".to_string(),
-                format!("effect:{effect_name}"),
-            ]),
+            ForgeQueryGenericInspectionRequestLabel::new(format!("inspect.effect.{effect_name}")),
+            generic_inspection_seed_identity("effect")
+                .field_shape(ForgeQueryEvidenceTag::new("effect_name"), effect_name)
+                .seal()
+                .as_str()
+                .to_string(),
         )
     }
 
     pub(crate) fn write_receipt(receipt: &ForgeQueryWriteReceipt) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::WriteReceipt(receipt.clone()),
-            format!("inspect.write_receipt.{}", receipt.commit_identity()),
-            hash_parts(&[
-                "forge_query_generic_inspection_write_receipt_seed_v1".to_string(),
-                format!("commit:{}", receipt.commit_identity()),
-                format!("snapshot:{}", receipt.snapshot_token()),
-            ]),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.write_receipt.{}",
+                receipt
+                    .commit_identity()
+                    .evidence_identity()
+                    .reporting_projection()
+            )),
+            generic_inspection_seed_identity("write_receipt")
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("commit_identity"),
+                    receipt.commit_evidence_identity(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("snapshot_token"),
+                    receipt.snapshot_evidence_identity(),
+                )
+                .seal()
+                .as_str()
+                .to_string(),
         )
     }
 
     pub(crate) fn batch_write_receipt(receipt: &ForgeQueryBatchWriteReceipt) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::BatchWriteReceipt(receipt.clone()),
-            format!("inspect.batch_write_receipt.{}", receipt.batch_digest()),
-            hash_parts(&[
-                "forge_query_generic_inspection_batch_write_receipt_seed_v1".to_string(),
-                format!("receipt:{}", receipt.batch_digest()),
-            ]),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.batch_write_receipt.{}",
+                receipt.batch_digest()
+            )),
+            generic_inspection_seed_identity("batch_write_receipt")
+                .field_value(
+                    ForgeQueryEvidenceTag::new("batch_receipt"),
+                    receipt.batch_digest(),
+                )
+                .seal()
+                .as_str()
+                .to_string(),
         )
     }
 
     pub(crate) fn intent_receipt(receipt: &ForgeQueryIntentReceipt) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::IntentReceipt(receipt.clone()),
-            format!("inspect.intent_receipt.{}", receipt.intent_name()),
-            hash_parts(&[
-                "forge_query_generic_inspection_intent_receipt_seed_v1".to_string(),
-                format!("receipt:{}", receipt.receipt_digest()),
-            ]),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.intent_receipt.{}",
+                receipt.intent_name()
+            )),
+            receipt_seed_input_digest("intent_receipt", receipt.receipt_identity()),
         )
     }
 
     pub(crate) fn intent_denial(evidence: &ForgeQueryIntentDenialEvidence) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::IntentDenial(evidence.clone()),
-            format!("inspect.intent_denial.{}", evidence.intent_name()),
-            hash_parts(&[
-                "forge_query_generic_inspection_intent_denial_seed_v1".to_string(),
-                format!("evidence:{}", evidence.denial_digest()),
-            ]),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.intent_denial.{}",
+                evidence.intent_name()
+            )),
+            receipt_seed_input_digest("intent_denial", evidence.denial_digest()),
         )
     }
 
     pub(crate) fn effect_intent_receipt(receipt: &ForgeQueryEffectIntentReceipt) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::EffectIntentReceipt(receipt.clone()),
-            format!("inspect.effect_intent_receipt.{}", receipt.effect_name()),
-            hash_parts(&[
-                "forge_query_generic_inspection_effect_intent_receipt_seed_v1".to_string(),
-                format!("receipt:{}", receipt.receipt_digest()),
-            ]),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.effect_intent_receipt.{}",
+                receipt.effect_name()
+            )),
+            receipt_seed_input_digest("effect_intent_receipt", receipt.receipt_identity()),
         )
     }
 
     pub(crate) fn preview_binding(binding: &ForgeQueryPreviewHandleBindingEvidence) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::PreviewBinding(binding.clone()),
-            format!("inspect.preview_binding.{}", binding.label()),
-            hash_parts(&[
-                "forge_query_generic_inspection_preview_binding_seed_v1".to_string(),
-                format!("label:{}", binding.label()),
-                format!("handle:{}", binding.handle_name()),
-            ]),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.preview_binding.{}",
+                binding.session_label().display()
+            )),
+            generic_inspection_seed_identity("preview_binding")
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("label_identity"),
+                    binding.label_identity(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("handle_name"),
+                    binding.handle_name(),
+                )
+                .seal()
+                .as_str()
+                .to_string(),
         )
     }
 
     pub(crate) fn preview_outcome(outcome: &ForgeQueryPreviewOutcome) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::PreviewOutcome(outcome.clone()),
-            format!("inspect.preview_outcome.{}", outcome.label()),
-            hash_parts(&[
-                "forge_query_generic_inspection_preview_outcome_seed_v1".to_string(),
-                format!("label:{}", outcome.label()),
-                format!("writes:{}", outcome.write_count()),
-                format!("promoted:{}", outcome.promoted()),
-                format!("discarded:{}", outcome.discarded()),
-            ]),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.preview_outcome.{}",
+                outcome.label()
+            )),
+            generic_inspection_seed_identity("preview_outcome")
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("label_identity"),
+                    outcome.session_label().identity_digest(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("write_count"),
+                    outcome.write_count(),
+                )
+                .field_bool(ForgeQueryEvidenceTag::new("promoted"), outcome.promoted())
+                .field_bool(ForgeQueryEvidenceTag::new("discarded"), outcome.discarded())
+                .seal()
+                .as_str()
+                .to_string(),
         )
     }
 
     pub(crate) fn preview_intent_receipt(receipt: &ForgeQueryPreviewIntentReceipt) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::PreviewIntentReceipt(receipt.clone()),
-            format!("inspect.preview_intent_receipt.{}", receipt.intent_name()),
-            hash_parts(&[
-                "forge_query_generic_inspection_preview_intent_receipt_seed_v1".to_string(),
-                format!("receipt:{}", receipt.receipt_digest()),
-            ]),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.preview_intent_receipt.{}",
+                receipt.intent_name()
+            )),
+            receipt_seed_input_digest("preview_intent_receipt", receipt.receipt_identity()),
         )
     }
 
     pub(crate) fn branch_intent_receipt(receipt: &ForgeQueryBranchIntentReceipt) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::BranchIntentReceipt(receipt.clone()),
-            format!("inspect.branch_intent_receipt.{}", receipt.intent_name()),
-            hash_parts(&[
-                "forge_query_generic_inspection_branch_intent_receipt_seed_v1".to_string(),
-                format!("receipt:{}", receipt.receipt_digest()),
-            ]),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.branch_intent_receipt.{}",
+                receipt.intent_name()
+            )),
+            receipt_seed_input_digest("branch_intent_receipt", receipt.receipt_identity()),
         )
     }
 
     fn new(
         target: ForgeQueryGenericInspectionIntentTargetSeed,
-        request_label: String,
+        request_label: ForgeQueryGenericInspectionRequestLabel,
         request_input_digest: String,
     ) -> Self {
         Self {
@@ -236,13 +300,34 @@ impl ForgeQueryGenericInspectionIntentSeed {
         &self.target
     }
 
-    pub fn request_label(&self) -> &str {
+    pub fn request_label(&self) -> &ForgeQueryGenericInspectionRequestLabel {
         &self.request_label
     }
 
     pub fn request_input_digest(&self) -> &str {
         &self.request_input_digest
     }
+}
+
+fn receipt_seed_input_digest(
+    target_family: &'static str,
+    receipt_identity: &ForgeQueryEvidenceIdentity,
+) -> String {
+    generic_inspection_seed_identity(target_family)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("receipt_digest"),
+            receipt_identity,
+        )
+        .seal()
+        .as_str()
+        .to_string()
+}
+
+fn generic_inspection_seed_identity(
+    target_family: &'static str,
+) -> crate::evidence_identity::ForgeQueryEvidenceIdentityEncoder {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::GenericInspectionIntentSeed)
+        .field_shape(ForgeQueryEvidenceTag::new("target_family"), target_family)
 }
 
 impl<'a, T> ForgeQueryGenericInspectionIntentTarget<'a> for &'a ForgeQueryLiveView<T> {

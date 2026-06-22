@@ -41,15 +41,7 @@ fn runtime_builder_rejects_support_profiles_that_overclaim_unimplemented_familie
         ),
     );
 
-    let error = ForgeQueryRuntime::builder()
-        .runtime_bridge(test_bridge())
-        .schema_adapter(TestSchemaAdapter)
-        .source_adapter(TestSourceAdapter::default())
-        .write_authority(TestWriteAuthority)
-        .signal_sink(TestSignalSink)
-        .subscription_activation(TestSubscriptionActivation)
-        .preview_basis(TestPreviewBasis)
-        .inspector_evidence(TestInspectorEvidence)
+    let error = complete_backend_from_parts_builder()
         .support_profile(profile)
         .build_backend_from_parts()
         .build();
@@ -105,11 +97,11 @@ fn runtime_support_denies_unsupported_preview_and_branch_sessions_without_panick
         ),
     );
 
-    let preview_error = match runtime.preview("unsupported preview") {
+    let preview_error = match runtime.preview(test_session_label("unsupported preview")) {
         Ok(_) => panic!("unsupported preview should return a typed denial"),
         Err(error) => error,
     };
-    let branch_error = match runtime.branch("unsupported branch") {
+    let branch_error = match runtime.branch(test_session_label("unsupported branch")) {
         Ok(_) => panic!("unsupported branch should return a typed denial"),
         Err(error) => error,
     };

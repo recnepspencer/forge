@@ -3,7 +3,7 @@ use forge_proof::{
     BoundaryBridgedAuthorityRevalidationRequiredBasis, CurrentValidity, FreshnessScopedBasis,
     NoProofs, PhaseMarker,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::logic::transaction::runtime::state::merge::proof::canonical_digest;
 use crate::logic::transaction::runtime::state::SignalBranchBasisIdentity;
@@ -40,13 +40,13 @@ impl SignalMergeCompatibilityReadmissionAuthority {
 impl AuthorityMarker for SignalMergeCompatibilityReadmissionAuthority {}
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalMergeCompatibilityPostureKind {
     CurrentBasis,
     BoundaryBridgedAuthorityRevalidationRequired,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignalMergeCompatibilityBasis {
     branch_basis_identity: SignalBranchBasisIdentity,
     declaration_digest: String,
@@ -86,7 +86,7 @@ impl SignalMergeCompatibilityBasis {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignalMergeCompatibilityWitness {
     schema_version: String,
     fact_inventory: SignalMergeCompatibilityFactInventory,

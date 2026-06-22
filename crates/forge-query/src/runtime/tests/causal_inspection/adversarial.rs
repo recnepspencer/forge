@@ -1,5 +1,3 @@
-use forge_runtime_bridge::facade::TruthCommitIdentity;
-
 use super::super::super::*;
 use super::materialization::support::*;
 
@@ -116,7 +114,7 @@ fn future_explanation_families_deny_without_bridge_assembly() {
             .materialize_with_bridge(&runtime)
             .expect("denied future family should materialize without bridge assembly");
         assert!(artifact.is_denied());
-        assert!(artifact.bridge_envelope_digest().is_none());
+        assert!(artifact.bridge_envelope_for_reporting().is_none());
         assert_eq!(artifact.performance().bridge_envelope_assembly_count(), 0);
         assert_eq!(
             artifact.denial_reason(),
@@ -129,12 +127,15 @@ fn future_explanation_families_deny_without_bridge_assembly() {
 fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-causal-adversarial-policy"))
+        .route(super::causal_truth_commit_identity(
+            "commit-causal-adversarial-policy",
+        ))
         .unwrap();
     let mut causal_identity_digest = None;
     let mut policy_digests = Vec::new();
     let mut artifact_digests = Vec::new();
 
+    let route_identity = routed.route_identity().bridge_admission_evidence();
     for redaction_policy in [
         CausalInspectionRedactionPolicy::PreserveDetail,
         CausalInspectionRedactionPolicy::DigestOnly,
@@ -143,29 +144,35 @@ fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
             CausalInspectionMaterializationPolicy::OfflineInterpretableArtifact,
             CausalInspectionMaterializationPolicy::DigestReferenceOnly,
         ] {
-            let plan = CausalInspection::for_observation(receipt_with_evidence(
+            let receipt = QueryObservationReceipt::fixture(
                 CausalObservationOutcome::Changed,
-                &[
-                    (CausalEvidenceFamily::QueryInspection, "query-inspection"),
-                    (
+                vec![
+                    CausalObservationEvidenceIdentity::new(
+                        CausalEvidenceFamily::QueryInspection,
+                        crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                            "query-inspection",
+                        ),
+                    ),
+                    CausalObservationEvidenceIdentity::new(
                         CausalEvidenceFamily::BridgeRoute,
-                        routed.route_identity().as_str(),
+                        route_identity.clone(),
                     ),
                 ],
-            ))
-            .why_changed()
-            .reference_only()
-            .redaction(redaction_policy)
-            .materialization(materialization_policy)
-            .plan()
-            .expect("policy matrix row should plan");
+            );
+            let plan = CausalInspection::for_observation(receipt)
+                .why_changed()
+                .reference_only()
+                .redaction(redaction_policy)
+                .materialization(materialization_policy)
+                .plan()
+                .expect("policy matrix row should plan");
             let artifact = plan
                 .materialize_with_bridge(&runtime)
                 .expect("policy matrix row should materialize");
 
             assert!(artifact.is_admitted());
             assert_eq!(artifact.denial_reason(), None);
-            assert!(!artifact.receipt().policy_digest().is_empty());
+            assert!(!artifact.receipt().policy_for_reporting().is_empty());
             assert_eq!(
                 artifact
                     .evidence()
@@ -175,13 +182,14 @@ fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
             );
 
             match causal_identity_digest {
-                Some(ref digest) => assert_eq!(artifact.causal_identity_digest(), digest),
+                Some(ref digest) => assert_eq!(artifact.causal_identity_for_reporting(), digest),
                 None => {
-                    causal_identity_digest = Some(artifact.causal_identity_digest().to_string())
+                    causal_identity_digest =
+                        Some(artifact.causal_identity_for_reporting().to_string())
                 }
             }
-            policy_digests.push(artifact.receipt().policy_digest().to_string());
-            artifact_digests.push(artifact.artifact_digest().to_string());
+            policy_digests.push(artifact.receipt().policy_for_reporting().to_string());
+            artifact_digests.push(artifact.artifact_for_reporting().to_string());
         }
     }
 
@@ -201,7 +209,12 @@ fn receipt_with_evidence(
         outcome,
         evidence
             .iter()
-            .map(|(family, digest)| CausalObservationEvidenceIdentity::new(*family, *digest))
+            .map(|(family, digest)| {
+                CausalObservationEvidenceIdentity::new(
+                    *family,
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(digest),
+                )
+            })
             .collect(),
     )
 }

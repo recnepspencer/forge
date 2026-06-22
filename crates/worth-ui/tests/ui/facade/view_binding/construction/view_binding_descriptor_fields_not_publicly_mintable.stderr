@@ -1,0 +1,27 @@
+error[E0451]: fields `id`, `family`, `query_capability`, `query_composition_profile_digest`, `view_shape`, `result_shape`, `basis_posture`, `live_compatibility`, `visible_state_bindings`, `denial_presentation` and `local_pseudo_query_claim` of struct `ViewBindingDescriptor` are private
+  --> tests/ui/facade/view_binding/construction/view_binding_descriptor_fields_not_publicly_mintable.rs:5:9
+   |
+ 4 |     let _descriptor = ViewBindingDescriptor {
+   |                       --------------------- in this type
+ 5 |         id: ViewBindingId::new("workspace.view_binding.tasks").unwrap(),
+   |         ^^ private field
+ 6 |         family: ViewBindingFamily::collection(),
+   |         ^^^^^^ private field
+ 7 |         query_capability: None,
+   |         ^^^^^^^^^^^^^^^^ private field
+ 8 |         query_composition_profile_digest: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         view_shape: None,
+   |         ^^^^^^^^^^ private field
+10 |         result_shape: None,
+   |         ^^^^^^^^^^^^ private field
+11 |         basis_posture: None,
+   |         ^^^^^^^^^^^^^ private field
+12 |         live_compatibility: None,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+13 |         visible_state_bindings: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         denial_presentation: None,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+15 |         local_pseudo_query_claim: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field

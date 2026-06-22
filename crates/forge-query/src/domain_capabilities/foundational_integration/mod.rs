@@ -1,3 +1,4 @@
+mod identity;
 mod profiles;
 mod provenance;
 mod rows;

@@ -45,6 +45,11 @@ impl AspectMask {
         (self.0 & other.0) != 0
     }
 
+    /// Return a mask containing bits from both masks.
+    pub const fn union(self, other: Self) -> Self {
+        Self(self.0 | other.0)
+    }
+
     /// Insert one aspect bit into this mask.
     pub fn insert(&mut self, aspect: Aspect) {
         self.0 |= Self::from_aspect(aspect).0;

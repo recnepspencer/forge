@@ -15,6 +15,7 @@ use forge_runtime_bridge::facade::{
     BridgeMappingId, BridgeMappingRegistration, BridgeProducerMetadata,
     BridgeSignalInvalidationDelivery, CoarseRoutingMode, CommittedPatchSource,
     ContinuityLineageSource, InvalidationSink, MappingSelector, NormalizedSubscriptionSliceIntent,
+    RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
     RelationalBridgeSourceError, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
     SignalInvalidationScope, SliceWideningPolicy, SnapshotReadContract, SnapshotReadPacket,
     SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource, SubscriptionSliceKind,
@@ -46,20 +47,37 @@ impl TestRelationalSource {
             .write()
             .expect("fixture bridge source lock poisoned");
         state.branch_heads.insert(
-            patch.branch_identity().as_str().to_string(),
-            patch.commit_identity().as_str().to_string(),
+            patch
+                .branch_identity()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
+                .to_string(),
+            patch
+                .commit_identity()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
+                .to_string(),
         );
-        state
-            .committed_patches
-            .insert(patch.commit_identity().as_str().to_string(), patch);
+        state.committed_patches.insert(
+            patch
+                .commit_identity()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
+                .to_string(),
+            patch,
+        );
     }
 
     fn insert_snapshot(&self, snapshot_identity: &str, records: Vec<SnapshotReadRecord>) {
+        let snapshot_key = fixture_snapshot_identity(snapshot_identity)
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
+            .to_string();
         self.state
             .write()
             .expect("fixture bridge source lock poisoned")
             .snapshots
-            .insert(snapshot_identity.to_string(), records);
+            .insert(snapshot_key, records);
     }
 }
 
@@ -72,11 +90,16 @@ impl CommittedPatchSource for TestRelationalSource {
             .read()
             .expect("fixture bridge source lock poisoned")
             .committed_patches
-            .get(request.commit_identity().as_str())
+            .get(
+                request
+                    .commit_identity()
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
+            )
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
-                    "no committed patch registered for `{}`",
+                    "no committed patch registered for `{:?}`",
                     request.commit_identity()
                 ))
             })
@@ -93,12 +116,16 @@ impl SnapshotReadSource for TestRelationalSource {
             .read()
             .expect("fixture bridge source lock poisoned")
             .snapshots
-            .get(identity.as_str())
+            .get(
+                identity
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
+            )
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
-                    "no snapshot registered for `{}`",
-                    identity.as_str()
+                    "no snapshot registered for `{:?}`",
+                    identity
                 ))
             })?;
         Ok(Box::new(TestSnapshotReader {
@@ -119,11 +146,15 @@ impl TruthBranchHeadSource for TestRelationalSource {
             .expect("fixture bridge source lock poisoned");
         let commit_identity = state
             .branch_heads
-            .get(branch_identity.as_str())
+            .get(
+                branch_identity
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
+            )
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
-                    "no branch head registered for `{}`",
-                    branch_identity.as_str()
+                    "no branch head registered for `{:?}`",
+                    branch_identity
                 ))
             })?;
         state
@@ -134,7 +165,9 @@ impl TruthBranchHeadSource for TestRelationalSource {
                 RelationalBridgeSourceError::new(format!(
                     "branch head `{}` for `{}` had no patch envelope",
                     commit_identity,
-                    branch_identity.as_str()
+                    branch_identity
+                        .bridge_admission_evidence()
+                        .terminal_projection_for_reporting()
                 ))
             })
     }
@@ -184,7 +217,7 @@ impl InvalidationSink for NoopSignalSink {
     ) -> Result<BridgeDeliveryReceipt, SignalBridgeSinkError> {
         Ok(BridgeDeliveryReceipt::new(
             1,
-            TruthSnapshotIdentity::new(SNAPSHOT_A),
+            fixture_snapshot_identity(SNAPSHOT_A),
         ))
     }
 }
@@ -199,10 +232,12 @@ impl ContinuityLineageSource for FixedLineageSource {
     ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError> {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            vec![BridgeHistoricalResolvedLineageIdentity::new(
-                "lineage:successor",
-            )],
-            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
+            vec![BridgeHistoricalResolvedLineageIdentity::from_relational_lineage_id(1)],
+            vec![
+                BridgeHistoricalResolvedRecordIdentity::from_relational_record(
+                    RelationalBridgeRecordIdentityParts::entity(0, 4, 2),
+                ),
+            ],
             vec![1],
         )
     }
@@ -238,7 +273,7 @@ pub(crate) fn detail_subscription(runtime: &RuntimeBridge) -> AdmittedBridgeSubs
         .admit_subscription(
             &declaration,
             forge_runtime_bridge::facade::BridgeSubscriptionBasisRequest::branch_head(
-                TruthBranchIdentity::new(PHASE_SIX_MAIN_BRANCH),
+                fixture_branch_identity(PHASE_SIX_MAIN_BRANCH),
             ),
         )
         .expect("branch-head subscription basis should admit")
@@ -247,13 +282,13 @@ pub(crate) fn detail_subscription(runtime: &RuntimeBridge) -> AdmittedBridgeSubs
 pub(crate) fn delivered_continuity(runtime: &RuntimeBridge) -> BridgeDeliveredContinuityResult {
     let route = runtime
         .plan_committed_patch_with_mapping_context(
-            forge_runtime_bridge::facade::BridgeRouteRequest::for_commit(TruthCommitIdentity::new(
+            forge_runtime_bridge::facade::BridgeRouteRequest::for_commit(fixture_commit_identity(
                 COMMIT_A,
             )),
             forge_runtime_bridge::facade::BridgeMappingContext::default().with_lineage_context(
                 BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
-                    TruthBranchIdentity::new(PHASE_SIX_MAIN_BRANCH),
-                    TruthSnapshotIdentity::new(SNAPSHOT_A),
+                    fixture_branch_identity(PHASE_SIX_MAIN_BRANCH),
+                    fixture_snapshot_identity(SNAPSHOT_A),
                 )),
             ),
         )
@@ -272,21 +307,21 @@ pub(crate) fn delivered_continuity(runtime: &RuntimeBridge) -> BridgeDeliveredCo
 
 fn registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("profile-name"),
+        BridgeMappingId::from_stable_name("profile-name"),
         TruthPatchScope::new(
             MappingSelector::exact("user"),
             AspectKeySelector::exact(aspect_key("profile")),
             TruthPatchTargetSelector::entity_field(field_key("name")),
         ),
         SnapshotReadContract::scalar(aspect_key("profile"), ScalarAspectType::String),
-        SignalInvalidationScope::new("signal.profile"),
+        SignalInvalidationScope::from_stable_name("signal.profile"),
         CoarseRoutingMode::Direct,
     )
 }
 
 fn field_aspect_registration() -> BridgeAspectRegistration {
     BridgeAspectRegistration::new(
-        BridgeAspectRegistrationId::new("profile-name-field"),
+        BridgeAspectRegistrationId::from_stable_name("profile-name-field"),
         TruthPatchScope::new(
             MappingSelector::exact("user"),
             AspectKeySelector::exact(aspect_key("profile")),
@@ -353,10 +388,10 @@ fn committed_patch(
     BridgeCommittedPatchEnvelope::new(
         BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
             BridgeProducerMetadata::bridge_harness_fixture(),
-            TruthCommitIdentity::new(commit),
-            TruthPatchIdentity::new(format!("patch-{commit}")),
-            TruthSnapshotIdentity::new(snapshot),
-            TruthBranchIdentity::new(branch),
+            fixture_commit_identity(commit),
+            fixture_patch_identity(commit),
+            fixture_snapshot_identity(snapshot),
+            fixture_branch_identity(branch),
         ),
         vec![BridgeCommittedPatchItem::with_target(
             "user",
@@ -386,4 +421,34 @@ fn aspect_key(value: &str) -> AspectKey {
 
 fn field_key(value: &str) -> FieldKey {
     FieldKey::new(value.to_owned()).expect("valid phase-six bridge field key")
+}
+
+fn fixture_branch_identity(branch: &str) -> TruthBranchIdentity {
+    TruthBranchIdentity::from_relational_branch_id(branch)
+}
+
+fn fixture_commit_identity(commit: &str) -> TruthCommitIdentity {
+    TruthCommitIdentity::from_relational_commit_id(match commit {
+        COMMIT_A => 6,
+        _ => 7,
+    })
+}
+
+fn fixture_patch_identity(commit: &str) -> TruthPatchIdentity {
+    TruthPatchIdentity::from_relational_patch_position(match commit {
+        COMMIT_A => 6,
+        _ => 7,
+    })
+}
+
+fn fixture_snapshot_identity(snapshot: &str) -> TruthSnapshotIdentity {
+    let snapshot_id = match snapshot {
+        SNAPSHOT_A => 6,
+        "external-snapshot" => 7,
+        _ => 8,
+    };
+    TruthSnapshotIdentity::from_relational_snapshot(RelationalBridgeSnapshotIdentityParts::new(
+        snapshot_id,
+        1,
+    ))
 }

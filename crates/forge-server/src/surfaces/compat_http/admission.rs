@@ -94,6 +94,9 @@ pub enum ForgeServerCompatibilityDenialCode {
     CompatHttpSurfaceAbsent,
     CompatHttpSurfaceDisabled,
     UnsupportedRouteFamily,
+    OperationFamilyNotRegistered,
+    OperationFamilyDisabled,
+    OperationFamilyNotExposedOnSurface,
     UnsupportedHttpMethod,
     InvalidPath,
     InvalidHeader,
@@ -114,6 +117,7 @@ pub struct ForgeServerCompatibilityDenial {
     code: ForgeServerCompatibilityDenialCode,
     diagnostics_profile: crate::request_context::DiagnosticRichnessProfile,
     detail: String,
+    pub(crate) abuse_budget_receipt: Option<crate::ForgeServerAbuseBudgetReceipt>,
 }
 
 impl ForgeServerCompatibilityDenial {
@@ -126,7 +130,16 @@ impl ForgeServerCompatibilityDenial {
             code,
             diagnostics_profile,
             detail: detail.into(),
+            abuse_budget_receipt: None,
         }
+    }
+
+    pub(crate) fn with_abuse_budget_receipt(
+        mut self,
+        abuse_budget_receipt: crate::ForgeServerAbuseBudgetReceipt,
+    ) -> Self {
+        self.abuse_budget_receipt = Some(abuse_budget_receipt);
+        self
     }
 
     pub fn code(&self) -> ForgeServerCompatibilityDenialCode {

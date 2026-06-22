@@ -139,9 +139,10 @@ impl AdmittedTemporalBridgeSubscription {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            temporal_admission_identity: BridgeSubscriptionTemporalAdmissionIdentity::new(format!(
-                "bridge-temporal-subscription-admission-id:sha256:{digest:x}"
-            )),
+            temporal_admission_identity:
+                BridgeSubscriptionTemporalAdmissionIdentity::admit_bridge_owned(format!(
+                    "bridge-temporal-subscription-admission-id:sha256:{digest:x}"
+                )),
             admitted: admitted.clone(),
             temporal_basis,
             family,

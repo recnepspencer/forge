@@ -2,6 +2,10 @@ use super::*;
 
 impl<'a> ForgeQueryPreviewSession<'a> {
     pub fn label(&self) -> &str {
+        self.label.display()
+    }
+
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
         &self.label
     }
 
@@ -31,7 +35,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             &self.label,
             view.name(),
             self.effect_policy,
-            self.basis_admission.evidence(),
+            &self.basis_admission.evidence(),
         );
         self.handle_bindings.push(evidence.clone());
         evidence
@@ -45,7 +49,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             &self.label,
             computed.name(),
             self.effect_policy,
-            self.basis_admission.evidence(),
+            &self.basis_admission.evidence(),
         );
         self.handle_bindings.push(evidence.clone());
         evidence
@@ -67,7 +71,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             inspected.target_lane(),
             self.effect_policy,
             disposition,
-            self.basis_admission.evidence(),
+            &self.basis_admission.evidence(),
         );
         self.handle_bindings.push(evidence.clone());
         Ok(evidence)
@@ -91,7 +95,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 .cloned()
                 .collect(),
         );
-        trace.record_replay_or_parity(format!("preview-session:{}", self.label));
+        trace.record_replay_or_parity(format!("preview-session:{}", self.label.display()));
         let mut outputs = Vec::new();
         let mut write_receipts = Vec::new();
         let mut patch_batches = Vec::new();
@@ -117,14 +121,14 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 ForgeQueryProgramEffect::Write(command) => {
                     self.admit_preview_write_intent()?;
                     let receipt = self.stage_command(command);
-                    trace.record_write_receipt(receipt.commit_identity().to_string());
+                    trace.record_write_receipt(receipt.commit_identity().clone());
                     write_receipts.push(receipt);
                 }
                 ForgeQueryProgramEffect::WriteTemplate(template) => {
                     self.admit_preview_write_intent()?;
                     let command = template.bind(&bound_inputs)?;
                     let receipt = self.stage_command(command);
-                    trace.record_write_receipt(receipt.commit_identity().to_string());
+                    trace.record_write_receipt(receipt.commit_identity().clone());
                     write_receipts.push(receipt);
                 }
                 ForgeQueryProgramEffect::ReadLive { view_name } => {
@@ -146,7 +150,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                         query_delivery_batches: Vec::new(),
                         derived_patch_notes: vec![format!(
                             "preview:{}:patch-drain-deferred",
-                            self.label
+                            self.label.display()
                         )],
                         derived_patches: Vec::new(),
                     });

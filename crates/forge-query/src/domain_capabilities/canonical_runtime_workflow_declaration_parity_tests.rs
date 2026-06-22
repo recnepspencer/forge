@@ -6,6 +6,7 @@ use super::{
     materialize_admitted_preview_workflow_foundation, materialize_query_workflow_declaration,
     ForgeQueryWorkflowContributionAuthoring,
 };
+use crate::workflow::{bind_workflow_context, WorkflowBindingSource};
 
 #[test]
 fn workflow_materializer_reuses_admitted_preview_foundation_identity() {
@@ -13,25 +14,32 @@ fn workflow_materializer_reuses_admitted_preview_foundation_identity() {
         ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
             "spatial.preview.identity",
             "workflow declarations should bind through the same admitted preview foundation identity",
-            "preview-session:identity",
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name("preview-session:identity"),
         ),
     )));
     let foundation = success(materialize_admitted_preview_workflow_foundation(ready_workflow(
         ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
             "spatial.preview.identity",
             "workflow declarations should bind through the same admitted preview foundation identity",
-            "preview-session:identity",
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name("preview-session:identity"),
         ),
     )));
 
-    assert_eq!(declaration.binding().source_digest(), foundation.digest());
+    let expected_binding =
+        bind_workflow_context(WorkflowBindingSource::PreviewFoundation(&foundation))
+            .expect("preview foundation should bind");
+
     assert_eq!(
-        declaration.binding().query_identity_digest(),
-        foundation.validated_query_digest().as_str()
+        declaration.binding().source_for_reporting(),
+        expected_binding.source_for_reporting()
     );
     assert_eq!(
-        declaration.binding().basis_digest(),
-        foundation.binding_digest()
+        declaration.binding().query_for_reporting(),
+        expected_binding.query_for_reporting()
+    );
+    assert_eq!(
+        declaration.binding().basis_for_reporting(),
+        expected_binding.basis_for_reporting()
     );
     assert_eq!(
         declaration.binding().preview_request_family(),
@@ -49,7 +57,9 @@ fn workflow_materializer_denies_runtime_only_postures_at_preview_foundation_boun
             "workflow declaration materialization must deny the same dishonest read-only discard-required preview semantics as preview foundation admission",
             Some(super::ForgeQueryWorkflowRuntimeSemantics::new(
                 super::ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                    "preview-session:denied",
+                    crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                        "preview-session:denied",
+                    ),
                     crate::workflow::WorkflowPreviewEvaluationClass::ReadOnly,
                 ),
                 crate::workflow::WorkflowDeclarationFamily::ConflictInspectionNarrow,

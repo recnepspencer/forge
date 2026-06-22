@@ -1,0 +1,32 @@
+error[E0432]: unresolved imports `topology::facade::topology_operator_graph_obligation_audit_sources`, `topology::facade::topology_operator_graph_obligation_local_ceremony_audit`, `topology::facade::topology_operator_legacy_guard_audit`, `topology::facade::topology_operator_local_guard_residue_inventory`, `topology::facade::topology_operator_local_guard_residue_total`, `topology::facade::TopologyOperatorLegacyGuardAudit`, `topology::facade::TopologyOperatorLegacyGuardAuditRow`, `topology::facade::TopologyOperatorLocalGuardResidueClass`, `topology::facade::TopologyOperatorLocalGuardResidueRow`
+ --> src/certification/public_facade_contracts/compile_fail/public_topology_local_ceremony_guard_surfaces_not_exported.rs:2:5
+  |
+2 |     topology_operator_graph_obligation_audit_sources,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `topology_operator_graph_obligation_audit_sources` in `facade`
+3 |     topology_operator_graph_obligation_local_ceremony_audit,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `topology_operator_graph_obligation_local_ceremony_audit` in `facade`
+4 |     topology_operator_legacy_guard_audit, topology_operator_local_guard_residue_inventory,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `topology_operator_local_guard_residue_inventory` in `facade`
+  |     |
+  |     no `topology_operator_legacy_guard_audit` in `facade`
+5 |     topology_operator_local_guard_residue_total, TopologyOperatorLegacyGuardAudit,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyOperatorLegacyGuardAudit` in `facade`
+  |     |
+  |     no `topology_operator_local_guard_residue_total` in `facade`
+6 |     TopologyOperatorLegacyGuardAuditRow, TopologyOperatorLocalGuardResidueClass,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyOperatorLocalGuardResidueClass` in `facade`
+  |     |
+  |     no `TopologyOperatorLegacyGuardAuditRow` in `facade`
+7 |     TopologyOperatorLocalGuardResidueRow,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyOperatorLocalGuardResidueRow` in `facade`
+  |
+help: a similar name exists in the module
+  |
+2 -     topology_operator_graph_obligation_audit_sources,
+2 +     topology_operator_graph_obligation_adoption_proof,
+  |
+help: a similar name exists in the module
+  |
+3 -     topology_operator_graph_obligation_local_ceremony_audit,
+3 +     topology_operator_graph_obligation_adoption_proof,
+  |

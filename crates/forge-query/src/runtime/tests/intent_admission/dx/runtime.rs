@@ -91,7 +91,7 @@ fn effect_write_intent_common_path_helper_executes_through_canonical_handoff() {
         .expect("write-intent effect should declare");
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from helper"),
         })
@@ -114,7 +114,7 @@ fn write_intent_common_path_helper_executes_through_canonical_handoff() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
     let receipt = runtime
         .write_intent(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from write helper"),
         })
@@ -145,7 +145,7 @@ fn write_intent_advanced_path_helper_exposes_request_eligibility_decision_and_ha
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
     let review = runtime
         .write_intent(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from advanced write helper"),
         })

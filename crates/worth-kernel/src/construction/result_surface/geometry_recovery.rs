@@ -1,9 +1,6 @@
-#[cfg(test)]
 use super::super::digest::digest_owned_parts;
-#[cfg(test)]
 use super::super::request::PrimitiveConstructionFamily;
 
-#[cfg(test)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GeometryRecoveryAction {
     CorrectRequestFamilyOrCounts,
@@ -13,7 +10,6 @@ pub enum GeometryRecoveryAction {
     RetryTopologyExecution,
 }
 
-#[cfg(test)]
 impl GeometryRecoveryAction {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -26,16 +22,13 @@ impl GeometryRecoveryAction {
     }
 }
 
-#[cfg(test)]
 pub type PrimitiveConstructionRecoveryAction = GeometryRecoveryAction;
 
-#[cfg(test)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GeometryRecoverySourcePosture {
     RejectedConstructionOutcome,
 }
 
-#[cfg(test)]
 impl GeometryRecoverySourcePosture {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -44,7 +37,6 @@ impl GeometryRecoverySourcePosture {
     }
 }
 
-#[cfg(test)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GeometryRecoveryTargetScope {
     RequestFamilyOrCounts,
@@ -54,7 +46,6 @@ pub enum GeometryRecoveryTargetScope {
     TopologyExecution,
 }
 
-#[cfg(test)]
 impl GeometryRecoveryTargetScope {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -67,7 +58,6 @@ impl GeometryRecoveryTargetScope {
     }
 }
 
-#[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GeometryRecoveryActionFactReceipt {
     recovery_action_kind: GeometryRecoveryAction,
@@ -79,7 +69,6 @@ pub struct GeometryRecoveryActionFactReceipt {
     fact_digest: String,
 }
 
-#[cfg(test)]
 impl GeometryRecoveryActionFactReceipt {
     fn new(
         recovery_action_kind: GeometryRecoveryAction,
@@ -142,7 +131,6 @@ impl GeometryRecoveryActionFactReceipt {
     }
 }
 
-#[cfg(test)]
 pub fn geometry_recovery_actions_for_rejection_class(
     rejection_class: super::outcome_rejection::PrimitiveConstructionRejectionClass,
 ) -> &'static [GeometryRecoveryAction] {
@@ -166,7 +154,6 @@ pub fn geometry_recovery_actions_for_rejection_class(
     }
 }
 
-#[cfg(test)]
 pub fn geometry_recovery_receipts_for_rejection_class(
     family: PrimitiveConstructionFamily,
     rejection_class: super::outcome_rejection::PrimitiveConstructionRejectionClass,

@@ -33,7 +33,7 @@ const DIRECT_IMPORT_AUDIT_ROWS: &[ForgeQueryLowerRuntimeDirectImportAuditRow] = 
     ),
     ForgeQueryLowerRuntimeDirectImportAuditRow::new(
         ForgeQueryLowerRuntimeSeamKey::ProjectionConsumptionSourceModule,
-        "crates/forge-query/src/projection_consumption/source.rs",
+        "crates/forge-query/src/projection_consumption/source/mod.rs",
         ForgeQueryLowerRuntimeDirectImportPosture::AllowedAdapter,
         "projection-consumption source intake remains an allowed Query boundary adapter",
     ),

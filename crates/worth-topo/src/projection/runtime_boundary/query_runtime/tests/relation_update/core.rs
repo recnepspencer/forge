@@ -1,4 +1,9 @@
-use forge_query::facade::{ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthAssertionMode};
+use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
+use crate::topology_operators::authority_identity::existing_relation_authority;
+use forge_query::facade::{
+    ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthAssertionMode,
+    ForgeQueryExistingTruthTargetBinding, ForgeQueryInspection,
+};
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
@@ -57,41 +62,69 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
         .and_then(|value| value.as_str())
         .expect("seeded relation should expose topology.target_identity")
         .to_string();
-    let binding = workspace
-        .bind_existing_relation(
-            ForgeQueryExistingRelationTarget::new(
-                format!("{:?}", query_relation_id_from_row(relation)),
-                relation.identity().to_string(),
-            )
-            .expect("non-empty relation binding identity")
-            .in_target_collection("TopologyRelation")
-            .expect("target collection"),
+    let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(
+        ForgeQueryExistingRelationTarget::new(
+            existing_relation_authority(query_relation_id_from_row(relation))
+                .expect("relation authority"),
+            relation.identity().clone(),
         )
-        .expect("bind existing relation");
+        .expect("non-empty relation binding identity")
+        .in_target_collection("TopologyRelation")
+        .expect("target collection"),
+    )
+    .expect("bind existing relation");
 
     let receipt = workspace
-        .update_existing(binding, |mutation| {
-            mutation
-                .aspect(
-                    "topology.kind",
-                    TopologyRelationKind::HalfEdgeNext.kind_name(),
-                )
-                .aspect("topology.source_identity", &source_identity)
-                .aspect("topology.target_identity", &target_vertex_identity)
+        .compose_graph(|graph| {
+            graph.update_existing_verified(
+                binding,
+                |verify| {
+                    verify
+                        .aspect(
+                            "topology.kind",
+                            TopologyRelationKind::HalfEdgeNext.kind_name(),
+                        )
+                        .aspect("topology.source_identity", &source_identity)
+                        .aspect("topology.target_identity", &target_vertex_identity)
+                },
+                |mutation| {
+                    mutation
+                        .aspect(
+                            "topology.kind",
+                            TopologyRelationKind::HalfEdgeNext.kind_name(),
+                        )
+                        .aspect("topology.source_identity", &source_identity)
+                        .aspect("topology.target_identity", &target_vertex_identity)
+                },
+            )?;
+            Ok(())
         })
         .expect("direct relation update substrate should execute through the real runtime");
 
+    assert_eq!(receipt.write_receipts().len(), 1);
     assert_eq!(
-        receipt.mutation_family(),
+        receipt.write_receipts()[0].mutation_family(),
         forge_query::facade::ForgeQueryMutationFamily::Update
     );
-    assert_eq!(
-        receipt
-            .existing_truth_binding_evidence()
-            .expect("relation update receipt should retain direct binding evidence")
-            .family(),
-        forge_query::facade::ForgeQueryExistingTruthBindingFamily::DirectRelationIdentity
-    );
+    match workspace.inspect(&receipt).expect("receipt should inspect") {
+        ForgeQueryInspection::BatchWriteReceipt(inspection) => {
+            assert_eq!(
+                inspection.component_operations()[0]
+                    .existing_truth_assertion_evidence()
+                    .expect("relation update receipt should retain assertion evidence")
+                    .mode(),
+                ForgeQueryExistingTruthAssertionMode::BackendVerifiedAssertion
+            );
+            assert_eq!(
+                receipt.write_receipts()[0]
+                    .existing_truth_binding_evidence()
+                    .expect("relation update receipt should retain direct binding evidence")
+                    .family(),
+                forge_query::facade::ForgeQueryExistingTruthBindingFamily::DirectRelationIdentity
+            );
+        }
+        other => panic!("expected batch receipt inspection, got {other:?}"),
+    }
 
     let relation_rows_after = workspace.read(surfaces.relations());
     let original_relation = relation_rows_after
@@ -159,13 +192,13 @@ fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_mutation_
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
                 .is_some_and(|kind_name| kind_name == ".vertex")
-                && row.identity() != current_target_identity
+                && query_entity_identity_reporting_label(row.identity()) != current_target_identity
         })
         .map(query_entity_id_from_row)
         .expect("seeded sheet disk should provide an alternate vertex");
     let half_edge_id = entity_rows
         .iter()
-        .find(|row| row.identity() == source_identity)
+        .find(|row| query_entity_identity_reporting_label(row.identity()) == source_identity)
         .map(query_entity_id_from_row)
         .expect("relation source identity should resolve to a halfedge");
     let declaration = TopologyRewireLoopEndpointDeclaration::new(

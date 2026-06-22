@@ -10,9 +10,8 @@ use serde_json::{json, Value};
 
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::{interpret_topology_view, InterpretedTopologyView};
-use crate::validation::{
-    validate_interpreted_topology, DerivedTopologyValidationReport, TopologyValidationError,
-};
+use crate::projection::diagnostic_surfaces::derived_read_diagnostics::derive_topology_validation_report;
+use crate::validation::{DerivedTopologyValidationReport, TopologyValidationError};
 
 use super::QUERY_SURFACE_FAILURE_ROW_KEY;
 
@@ -60,17 +59,19 @@ impl ForgeQueryDerivedViewMaintainer for TopologyInterpretedMaintainer {
         let payload = json!({
             QUERY_SURFACE_FAILURE_ROW_KEY: format!(
                 "incremental delivery reached `{}` for `{}`; whole-refresh fallback was expected",
-                delta.collection,
+                delta.collection(),
                 view.name(),
             ),
         });
         materialization.replace_rows([payload.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            "topology-interpreted-incremental-unexpected",
-            delta.entity_identity.clone(),
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
+                "topology-interpreted-incremental-unexpected",
+            ),
+            delta.entity_identity().clone(),
             if view.produced_aspects().is_empty() {
-                delta.aspect_paths.clone()
+                delta.aspect_paths().to_vec()
             } else {
                 view.produced_aspects().to_vec()
             },
@@ -94,7 +95,9 @@ impl ForgeQueryDerivedViewMaintainer for TopologyInterpretedMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            "topology-interpreted",
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
+                "topology-interpreted",
+            ),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {
@@ -134,17 +137,19 @@ impl ForgeQueryDerivedViewMaintainer for TopologyValidationMaintainer {
         let payload = json!({
             QUERY_SURFACE_FAILURE_ROW_KEY: format!(
                 "incremental delivery reached `{}` for `{}`; whole-refresh fallback was expected",
-                delta.collection,
+                delta.collection(),
                 view.name(),
             ),
         });
         materialization.replace_rows([payload.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            "topology-validation-incremental-unexpected",
-            delta.entity_identity.clone(),
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
+                "topology-validation-incremental-unexpected",
+            ),
+            delta.entity_identity().clone(),
             if view.produced_aspects().is_empty() {
-                delta.aspect_paths.clone()
+                delta.aspect_paths().to_vec()
             } else {
                 view.produced_aspects().to_vec()
             },
@@ -172,7 +177,9 @@ impl ForgeQueryDerivedViewMaintainer for TopologyValidationMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            "topology-validation",
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
+                "topology-validation",
+            ),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {
@@ -263,7 +270,7 @@ pub(crate) fn validation_report_from_query_rows(
         decode_query_surface_row(materialized_rows, "materialized topology")?;
     let interpreted: InterpretedTopologyView =
         decode_query_surface_row(interpreted_rows, "interpreted topology")?;
-    validate_interpreted_topology(&materialized, &interpreted).map_err(validation_surface_error)
+    derive_topology_validation_report(&materialized, &interpreted).map_err(validation_surface_error)
 }
 
 fn interpreted_topology_from_upstreams(
@@ -287,7 +294,7 @@ fn validation_report_from_upstreams(
     let interpreted: InterpretedTopologyView = upstreams
         .decode_single_computed_row(interpreted_view_name)
         .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
-    validate_interpreted_topology(&materialized, &interpreted).map_err(validation_surface_error)
+    derive_topology_validation_report(&materialized, &interpreted).map_err(validation_surface_error)
 }
 
 pub(crate) fn decode_query_surface_row<T>(

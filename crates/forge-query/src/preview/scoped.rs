@@ -2,7 +2,8 @@ use crate::basis::SnapshotLineageClass;
 use crate::live::LiveQueryPlan;
 use crate::query_basis_lifecycle::{
     scope_observation_basis_intent, BasisCapabilityAdmission, BasisOperationLaneRequest,
-    BasisScopedAdmissionDenial, NormalizedBasisFamily, RawBasisIntent, ScopedObservationBasis,
+    BasisScopedAdmissionDenial, NormalizedBasisFamily, NormalizedBasisSubject, RawBasisIdentity,
+    RawBasisIntent, ScopedObservationBasis,
 };
 
 use super::{
@@ -97,7 +98,8 @@ pub fn scoped_observation_basis_for_preview_binding(
                     .preflight()
                     .basis()
                     .identity()
-                    .snapshot_token(),
+                    .snapshot_identity()
+                    .clone(),
                 BasisOperationLaneRequest::Observation,
             )
         }
@@ -110,15 +112,15 @@ fn ensure_scoped_preview_basis_coherence(
     scoped_basis: &ScopedObservationBasis,
     preview_binding: &PreviewSessionPlanBinding,
 ) -> Result<(), PreviewLiveError> {
-    let (observed_family, observed_scope_label, observed_lane) = match scoped_basis.admission() {
+    let (observed_family, observed_scope_subject, observed_lane) = match scoped_basis.admission() {
         BasisCapabilityAdmission::Admitted(capability) => (
             capability.family(),
-            capability.scope_label(),
+            capability.scope_subject(),
             capability.operation_lane(),
         ),
         BasisCapabilityAdmission::Advisory(capability) => (
             capability.family(),
-            capability.scope_label(),
+            capability.scope_subject(),
             capability.operation_lane(),
         ),
     };
@@ -136,10 +138,10 @@ fn ensure_scoped_preview_basis_coherence(
         ));
     }
 
-    let expected_scope_label = expected_scope_label(preview_binding);
-    if observed_scope_label != expected_scope_label {
+    let expected_scope_subject = expected_scope_subject(preview_binding);
+    if observed_scope_subject != &expected_scope_subject {
         return Err(scoped_basis_mismatch(
-            "scoped preview binding requires semantic basis-label parity with the preview preflight basis lineage",
+            "scoped preview binding requires typed basis-subject parity with the preview preflight basis lineage",
         ));
     }
 
@@ -160,20 +162,25 @@ fn expected_family(preview_binding: &PreviewSessionPlanBinding) -> &NormalizedBa
     }
 }
 
-fn expected_scope_label(preview_binding: &PreviewSessionPlanBinding) -> &str {
+fn expected_scope_subject(preview_binding: &PreviewSessionPlanBinding) -> NormalizedBasisSubject {
     match preview_binding
         .preflight()
         .basis()
         .identity()
         .lineage_class()
     {
-        SnapshotLineageClass::CurrentHead => "current_head",
+        SnapshotLineageClass::CurrentHead => NormalizedBasisSubject::CurrentHead,
         SnapshotLineageClass::ReplayEquivalent | SnapshotLineageClass::FutureExtension => {
-            preview_binding
-                .preflight()
-                .basis()
-                .identity()
-                .snapshot_token()
+            NormalizedBasisSubject::RuntimeSnapshot {
+                snapshot_identity: RawBasisIdentity::from(
+                    preview_binding
+                        .preflight()
+                        .basis()
+                        .identity()
+                        .snapshot_identity()
+                        .clone(),
+                ),
+            }
         }
     }
 }

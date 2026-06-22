@@ -1,10 +1,12 @@
 use std::sync::{Arc, RwLock};
 
+use forge_query::facade::ForgeQuerySnapshotIdentity;
 use forge_relational::facade::bridge::bridge_snapshot_identity_for_handle;
 use forge_relational::facade::runtime::{
     EntityReadRecord, RelationReadRecord, RelationalReadView, RelationalRuntime,
 };
 use forge_relational::facade::snapshots::SnapshotHandle;
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 #[derive(Debug, Clone)]
 pub enum TopologyRuntimeBinding {
@@ -92,7 +94,7 @@ impl TopologyRuntimeBinding {
         }
     }
 
-    pub(super) fn snapshot_token(&self) -> String {
+    pub(super) fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
         match self {
             Self::CurrentHead(runtime) => runtime
                 .read()
@@ -100,18 +102,19 @@ impl TopologyRuntimeBinding {
                 .publication()
                 .latest_bundle()
                 .map(|bundle| {
-                    forge_relational::facade::bridge::bridge_snapshot_identity_for_commit(
-                        bundle.commit.commit_id,
-                        bundle.commit.version_id,
+                    ForgeQuerySnapshotIdentity::from_relational_snapshot(
+                        RelationalBridgeSnapshotIdentityParts::new(
+                            bundle.commit.commit_id.0,
+                            bundle.commit.version_id.0,
+                        ),
                     )
-                    .as_str()
-                    .to_string()
                 })
-                .unwrap_or_else(|| "relational-snapshot:empty:version:0".to_string()),
+                .unwrap_or_else(ForgeQuerySnapshotIdentity::empty_relational_state),
             Self::SnapshotReadOnly { snapshot, .. } => {
-                bridge_snapshot_identity_for_handle(snapshot)
-                    .as_str()
-                    .to_string()
+                let parts = bridge_snapshot_identity_for_handle(snapshot)
+                    .relational_snapshot_parts()
+                    .expect("relational snapshot handles must lower to typed bridge parts");
+                ForgeQuerySnapshotIdentity::from_relational_snapshot(parts)
             }
         }
     }

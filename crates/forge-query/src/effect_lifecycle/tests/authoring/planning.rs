@@ -54,7 +54,7 @@ fn admitted_mutation_scopes_into_one_authority_plan() {
             .basis_family()
             .as_str()
     );
-    assert!(!plan.plan_digest().is_empty());
+    assert!(!plan.plan_for_reporting().is_empty());
 }
 
 #[test]

@@ -4,11 +4,11 @@ use super::support::*;
 fn pricing_shock_reference_matrix_preserves_semantic_truth_across_diagnostics_profiles() {
     let baseline = capture_pricing_certification_matrix(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-baseline"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-baseline"),
     );
     let forensic = capture_pricing_certification_matrix(
         BridgeRuntimePolicy::forensic(),
-        BridgePreviewSessionIdentity::new("pricing:preview-forensic"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-forensic"),
     );
 
     assert_eq!(baseline.reference, forensic.reference);
@@ -19,17 +19,17 @@ fn pricing_shock_reference_matrix_preserves_semantic_truth_across_diagnostics_pr
 fn pricing_shock_route_replay_preserves_canonical_main_branch_truth() {
     let replay = capture_pricing_certification_matrix(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-replay-control"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-replay-control"),
     )
     .replay;
 
     assert_eq!(
         replay.source_commit,
-        TruthCommitIdentity::new("commit:steel-main")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main")
     );
     assert_eq!(
         replay.source_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-main")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main")
     );
     assert!(!replay.route_identity.as_str().is_empty());
     assert!(!replay.invalidation_identity.as_str().is_empty());
@@ -43,7 +43,9 @@ fn pricing_shock_duplicate_commit_identity_with_conflicting_route_meaning_is_det
     );
 
     let route = runtime
-        .route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
+            "commit:steel-main",
+        ))
         .expect("conflicting duplicate commit identity should still route as retained truth");
 
     assert_eq!(
@@ -155,7 +157,7 @@ fn pricing_shock_duplicate_conflicting_commit_identity_permutation_sweep_is_dete
     ] {
         let runtime = build_pricing_runtime(source, RecordingSignalBridgeSink::default());
         let route = runtime
-            .route(crate::facade::TruthCommitIdentity::new(commit))
+            .route(crate::truth_identity_fixtures::truth_commit_fixture(commit))
             .unwrap_or_else(|_| panic!("{label} should still route as retained truth"));
 
         assert_eq!(
@@ -202,7 +204,9 @@ fn pricing_shock_non_commuting_route_history_attack_fails_closed_on_replay() {
         RecordingSignalBridgeSink::default(),
     );
     original_runtime
-        .route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
+            "commit:steel-main",
+        ))
         .expect("original steel route should succeed before replay attack");
     let canonical_record = original_runtime
         .diagnostics()
@@ -316,7 +320,9 @@ fn pricing_shock_non_commuting_route_history_permutation_sweep_fails_closed() {
             RecordingSignalBridgeSink::default(),
         );
         original_runtime
-            .route(crate::facade::TruthCommitIdentity::new(clean_commit))
+            .route(crate::truth_identity_fixtures::truth_commit_fixture(
+                clean_commit,
+            ))
             .unwrap_or_else(|_| panic!("{label} should route canonically before replay attack"));
         let canonical_record = original_runtime
             .diagnostics()

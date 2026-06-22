@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{
+    project_query_subscription_evidence, QueryProjectionIdentity, QuerySubscriptionIdentityKind,
+};
 
 use super::basis_request::QuerySubscriptionBasisBindingRequest;
 use super::bridge_family::{
@@ -14,6 +17,7 @@ use super::bridge_slice::{BridgeSubscriptionSliceKind, QueryToBridgeSliceMap};
 use super::counters::QuerySubscriptionDeclarationCounters;
 use super::declaration::QuerySubscriptionDeclarationArtifact;
 use super::diagnostic::QuerySubscriptionDiagnosticStage;
+use super::evidence_identities::bridge_lowering_plan_identity;
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::posture::QuerySubscriptionBasisPosture;
 use super::posture::QuerySubscriptionBridgePosture;
@@ -21,8 +25,8 @@ use super::signal_strategy::QuerySubscriptionSignalStrategyRequest;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeSubscriptionLoweringPlan {
-    query_declaration_digest: String,
-    bridge_declaration_digest: String,
+    query_declaration_identity: ForgeQueryEvidenceIdentity,
+    bridge_declaration_identity: ForgeQueryEvidenceIdentity,
     family_map: QueryToBridgeSubscriptionFamilyMap,
     slice_map: QueryToBridgeSliceMap,
     future_selection: QuerySubscriptionFutureSelection,
@@ -33,12 +37,24 @@ pub struct BridgeSubscriptionLoweringPlan {
 }
 
 impl BridgeSubscriptionLoweringPlan {
-    pub fn query_declaration_digest(&self) -> &str {
-        &self.query_declaration_digest
+    pub fn query_declaration_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.query_declaration_identity)
     }
 
-    pub fn bridge_declaration_digest(&self) -> &str {
-        &self.bridge_declaration_digest
+    pub fn query_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.query_declaration_identity
+    }
+
+    pub fn bridge_declaration_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.bridge_declaration_identity)
+    }
+
+    pub fn bridge_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bridge_declaration_identity
     }
 
     pub fn bridge_family(&self) -> &BridgeSubscriptionDeclarationFamilyKind {
@@ -75,7 +91,7 @@ pub fn lower_query_subscription_to_bridge(
     lowering_budget: QuerySubscriptionBridgeLoweringBudget,
 ) -> Result<BridgeSubscriptionLoweringPlan, QuerySubscriptionBridgeLoweringError> {
     let mut counters = declaration.counters().clone();
-    let source_digest = declaration.declaration_digest().as_str().to_string();
+    let source_identity = declaration.declaration_identity();
     counters.bridge_family_registry_lookup_count = 1;
 
     let family_map = QueryToBridgeSubscriptionFamilyMap::for_query_family(declaration.family());
@@ -85,7 +101,7 @@ pub fn lower_query_subscription_to_bridge(
             QuerySubscriptionBridgeLoweringDenialKind::BridgeFamilyUnsupported,
             "bridge family registry does not admit this query subscription family",
             QuerySubscriptionDiagnosticStage::BridgeFamilyLowering,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -99,7 +115,7 @@ pub fn lower_query_subscription_to_bridge(
             QuerySubscriptionBridgeLoweringDenialKind::BridgeSliceUnsupported,
             "bridge slice registry does not admit every query subscription slice",
             QuerySubscriptionDiagnosticStage::BridgeSliceLowering,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -113,7 +129,7 @@ pub fn lower_query_subscription_to_bridge(
             QuerySubscriptionBridgeLoweringDenialKind::BridgeFallbackUnsupported,
             "bridge fallback lowering is explicit debt and is not admitted by this lowering budget",
             QuerySubscriptionDiagnosticStage::BridgeFamilyLowering,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -124,7 +140,7 @@ pub fn lower_query_subscription_to_bridge(
             QuerySubscriptionBridgeLoweringDenialKind::BasisBindingUnsupported,
             "bridge basis binding cannot honestly bind this query subscription basis",
             QuerySubscriptionDiagnosticStage::BasisBinding,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -135,7 +151,7 @@ pub fn lower_query_subscription_to_bridge(
             QuerySubscriptionBridgeLoweringDenialKind::LoweringBudgetExceeded,
             "bridge lowering exceeds its explicit bridge lowering budget",
             QuerySubscriptionDiagnosticStage::BridgeSliceLowering,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -148,29 +164,18 @@ pub fn lower_query_subscription_to_bridge(
     counters.basis_binding_request_count = 1;
     counters.signal_strategy_request_count = 1;
 
-    let mut digest_parts = vec![
-        "query_subscription_bridge_lowering_v1".to_string(),
-        format!(
-            "query_declaration:{}",
-            declaration.declaration_digest().as_str()
-        ),
-        format!("bridge_family:{}", family_map.bridge_family().as_str()),
-        format!("basis:{}", basis_request.digest()),
-        format!("signal_strategy:{}", signal_strategy_request.digest()),
-    ];
-    digest_parts.extend(
-        slice_map
-            .bridge_slices()
-            .iter()
-            .enumerate()
-            .map(|(index, slice)| format!("bridge_slice:{index}:{}", slice.as_str())),
+    let query_declaration_identity = declaration.declaration_identity().clone();
+    let bridge_declaration_identity = bridge_lowering_plan_identity(
+        &query_declaration_identity,
+        family_map.bridge_family(),
+        basis_request.evidence_identity(),
+        signal_strategy_request.evidence_identity(),
+        slice_map.bridge_slices(),
     );
-    digest_parts.sort();
-    let bridge_declaration_digest = hash_parts(&digest_parts);
 
     Ok(BridgeSubscriptionLoweringPlan {
-        query_declaration_digest: declaration.declaration_digest().as_str().to_string(),
-        bridge_declaration_digest,
+        query_declaration_identity,
+        bridge_declaration_identity,
         family_map,
         slice_map,
         future_selection: declaration.future_selection().clone(),

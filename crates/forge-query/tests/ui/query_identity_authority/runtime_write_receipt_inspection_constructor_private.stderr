@@ -1,0 +1,75 @@
+error[E0451]: fields `authority_lane`, `commit_identity`, `snapshot_token`, `canonical_artifact`, `workflow_artifact`, `bridge_authority_artifact`, `runtime_evidence`, `live_patch_artifacts` and `inspection_digest` of struct `ForgeQueryWriteReceiptInspection` are private
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:8:9
+   |
+ 7 |     let _ = ForgeQueryWriteReceiptInspection {
+   |             -------------------------------- in this type
+ 8 |         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+   |         ^^^^^^^^^^^^^^ private field
+ 9 |         commit_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+10 |         snapshot_token: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+11 |         canonical_artifact: ForgeQueryInspectedArtifact {
+   |         ^^^^^^^^^^^^^^^^^^ private field
+...
+16 |         workflow_artifact: ForgeQueryInspectedArtifact {
+   |         ^^^^^^^^^^^^^^^^^ private field
+...
+21 |         bridge_authority_artifact: ForgeQueryInspectedArtifact {
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+...
+26 |         runtime_evidence: ForgeQueryRuntimeInspectionEvidence {
+   |         ^^^^^^^^^^^^^^^^ private field
+...
+31 |         live_patch_artifacts: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+32 |         inspection_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `family`, `identity` and `basis` of struct `ForgeQueryInspectedArtifact` are private
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:12:13
+   |
+11 |         canonical_artifact: ForgeQueryInspectedArtifact {
+   |                             --------------------------- in this type
+12 |             family: String::new(),
+   |             ^^^^^^ private field
+13 |             identity: String::new(),
+   |             ^^^^^^^^ private field
+14 |             basis: String::new(),
+   |             ^^^^^ private field
+
+error[E0451]: fields `family`, `identity` and `basis` of struct `ForgeQueryInspectedArtifact` are private
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:17:13
+   |
+16 |         workflow_artifact: ForgeQueryInspectedArtifact {
+   |                            --------------------------- in this type
+17 |             family: String::new(),
+   |             ^^^^^^ private field
+18 |             identity: String::new(),
+   |             ^^^^^^^^ private field
+19 |             basis: String::new(),
+   |             ^^^^^ private field
+
+error[E0451]: fields `family`, `identity` and `basis` of struct `ForgeQueryInspectedArtifact` are private
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:22:13
+   |
+21 |         bridge_authority_artifact: ForgeQueryInspectedArtifact {
+   |                                    --------------------------- in this type
+22 |             family: String::new(),
+   |             ^^^^^^ private field
+23 |             identity: String::new(),
+   |             ^^^^^^^^ private field
+24 |             basis: String::new(),
+   |             ^^^^^ private field
+
+error[E0451]: fields `artifact_family`, `authority_lane` and `evidence` of struct `ForgeQueryRuntimeInspectionEvidence` are private
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:27:13
+   |
+26 |         runtime_evidence: ForgeQueryRuntimeInspectionEvidence {
+   |                           ----------------------------------- in this type
+27 |             artifact_family: String::new(),
+   |             ^^^^^^^^^^^^^^^ private field
+28 |             authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+   |             ^^^^^^^^^^^^^^ private field
+29 |             evidence: Vec::new(),
+   |             ^^^^^^^^ private field

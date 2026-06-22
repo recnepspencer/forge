@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::workflow::{
     QueryWorkflowDeclaration, WorkflowBasisFamily, WorkflowContextBinding, WorkflowFreshnessPolicy,
     WorkflowLoweringCounters,
@@ -24,7 +26,7 @@ pub struct LoweredMergeWorkflowDeclaration {
     merge_request: MergeExecutionRequest,
     freshness_binding: WorkflowFreshnessBinding,
     staleness_class: WorkflowStalenessClass,
-    lowering_digest: String,
+    lowering_identity: ForgeQueryEvidenceIdentity,
     counters: WorkflowLoweringCounters,
 }
 
@@ -53,8 +55,12 @@ impl LoweredMergeWorkflowDeclaration {
         &self.staleness_class
     }
 
-    pub fn lowering_digest(&self) -> &str {
-        &self.lowering_digest
+    pub fn lowering_for_reporting(&self) -> &str {
+        self.lowering_identity.as_str()
+    }
+
+    pub fn lowering_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.lowering_identity
     }
 
     pub fn counters(&self) -> &WorkflowLoweringCounters {
@@ -77,8 +83,8 @@ pub fn lower_merge_workflow_declaration(
         source_branch: input.source_branch().clone(),
         merge_intent: MergeIntent::ReconcileIntoTarget,
     };
-    let lowering_digest =
-        merge_lowering_digest(declaration, &input, &freshness_binding, &staleness_class);
+    let lowering_identity =
+        merge_lowering_identity(declaration, &input, &freshness_binding, &staleness_class);
 
     Ok(LoweredMergeWorkflowDeclaration {
         declaration: declaration.clone(),
@@ -87,7 +93,7 @@ pub fn lower_merge_workflow_declaration(
         merge_request,
         freshness_binding,
         staleness_class,
-        lowering_digest,
+        lowering_identity,
         counters: merge_lowering_success_counters(1),
     })
 }
@@ -150,18 +156,37 @@ fn merge_staleness_class(freshness_binding: &WorkflowFreshnessBinding) -> Workfl
     }
 }
 
-fn merge_lowering_digest(
+fn merge_lowering_identity(
     declaration: &QueryWorkflowDeclaration,
     input: &MergeLoweringInput,
     freshness_binding: &WorkflowFreshnessBinding,
     staleness_class: &WorkflowStalenessClass,
-) -> String {
-    hash_parts(&[
-        format!("declaration:{}", declaration.report().declaration_digest()),
-        format!("merge_intent:{}", input.intent().as_str()),
-        format!("target_branch:{}", input.target_branch().0),
-        format!("source_branch:{}", input.source_branch().0),
-        format!("freshness:{}", freshness_binding.as_str()),
-        format!("staleness:{}", staleness_class.as_str()),
-    ])
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+        .field_shape(ForgeQueryEvidenceTag::new("lowering_kind"), "merge")
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("declaration"),
+            declaration.report().declaration_identity(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("merge_intent"),
+            input.intent().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("target_branch"),
+            &input.target_branch().0,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("source_branch"),
+            &input.source_branch().0,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("freshness"),
+            freshness_binding.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("staleness"),
+            staleness_class.as_str(),
+        )
+        .seal()
 }

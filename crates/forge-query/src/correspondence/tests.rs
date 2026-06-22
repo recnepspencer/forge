@@ -51,9 +51,9 @@ mod tests {
             Ok(BridgeCommittedPatchEnvelope::new(
                 forge_runtime_bridge::facade::BridgeCommittedPatchEnvelopeIdentity::new(
                     request.commit_identity().clone(),
-                    TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                    TruthBranchIdentity::new("analysis"),
+                    TruthPatchIdentity::from_relational_patch_position(1),
+                    TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
+                    TruthBranchIdentity::from_bridge_harness_label("analysis"),
                 ),
                 vec![BridgeCommittedPatchItem::with_target(
                     "entity-1",
@@ -79,7 +79,7 @@ mod tests {
 
     impl TruthSnapshotReader for StaticSnapshotReader {
         fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-            TruthSnapshotIdentity::new("snapshot-a")
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a")
         }
 
         fn read_packet(
@@ -87,7 +87,7 @@ mod tests {
             request: &SnapshotReadPacket,
         ) -> Result<SnapshotReadPacketResult, BridgeSnapshotReadError> {
             Ok(SnapshotReadPacketResult::new(
-                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
                 request
                     .reads()
                     .iter()
@@ -107,12 +107,14 @@ mod tests {
             &self,
             identity: &TruthSnapshotIdentity,
         ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-            if identity.as_str() == "snapshot-a" {
+            if identity == &TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a") {
                 Ok(Box::new(StaticSnapshotReader))
             } else {
                 Err(RelationalBridgeSourceError::new(format!(
                     "unknown snapshot `{}`",
-                    identity.as_str()
+                    identity
+                        .bridge_admission_evidence()
+                        .terminal_projection_for_reporting()
                 )))
             }
         }
@@ -125,9 +127,9 @@ mod tests {
         ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
             Ok(BridgeCommittedPatchEnvelope::new(
                 forge_runtime_bridge::facade::BridgeCommittedPatchEnvelopeIdentity::new(
-                    TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
-                    TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    TruthCommitIdentity::from_relational_commit_id(100),
+                    TruthPatchIdentity::from_relational_patch_position(100),
+                    TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
                     branch_identity.clone(),
                 ),
                 vec![BridgeCommittedPatchItem::with_target(
@@ -166,12 +168,18 @@ mod tests {
             &self,
             identity: &TruthSnapshotIdentity,
         ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-            if identity.as_str() == "snapshot-a" {
+            if identity
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
+                == "snapshot-a"
+            {
                 Ok(Box::new(StaticSnapshotReader))
             } else {
                 Err(RelationalBridgeSourceError::new(format!(
                     "unknown snapshot `{}`",
-                    identity.as_str()
+                    identity
+                        .bridge_admission_evidence()
+                        .terminal_projection_for_reporting()
                 )))
             }
         }
@@ -470,13 +478,15 @@ mod tests {
     fn bridge_lineage_single_successor_becomes_authoritative_continuity() {
         let authority = BridgeHistoricalLineageAuthority::try_new(
             forge_runtime_bridge::facade::BridgeContinuityAuthorityBasis::new(
-                TruthBranchIdentity::new("main"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthBranchIdentity::from_bridge_harness_label("main"),
+                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
             ),
-            vec![BridgeHistoricalResolvedLineageIdentity::new(
-                "lineage:subject-a",
-            )],
-            vec![BridgeHistoricalResolvedRecordIdentity::new("record:a")],
+            vec![
+                BridgeHistoricalResolvedLineageIdentity::from_bridge_harness_label(
+                    "lineage:subject-a",
+                ),
+            ],
+            vec![BridgeHistoricalResolvedRecordIdentity::from_bridge_harness_label("record:a")],
             vec![1],
         )
         .expect("lineage authority should build");
@@ -502,16 +512,16 @@ mod tests {
     fn bridge_lineage_non_single_successor_does_not_promote_to_continuity() {
         let authority = BridgeHistoricalLineageAuthority::try_new(
             forge_runtime_bridge::facade::BridgeContinuityAuthorityBasis::new(
-                TruthBranchIdentity::new("main"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthBranchIdentity::from_bridge_harness_label("main"),
+                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
             ),
             vec![
-                BridgeHistoricalResolvedLineageIdentity::new("lineage:a"),
-                BridgeHistoricalResolvedLineageIdentity::new("lineage:b"),
+                BridgeHistoricalResolvedLineageIdentity::from_bridge_harness_label("lineage:a"),
+                BridgeHistoricalResolvedLineageIdentity::from_bridge_harness_label("lineage:b"),
             ],
             vec![
-                BridgeHistoricalResolvedRecordIdentity::new("record:a"),
-                BridgeHistoricalResolvedRecordIdentity::new("record:b"),
+                BridgeHistoricalResolvedRecordIdentity::from_bridge_harness_label("record:a"),
+                BridgeHistoricalResolvedRecordIdentity::from_bridge_harness_label("record:b"),
             ],
             vec![1, 2],
         )
@@ -542,11 +552,11 @@ mod tests {
     fn bridge_reduced_structural_candidates_lower_without_exposing_bridge_records() {
         let reduced = advisory_reduced_set(vec![
             StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:b"),
+                StructuralCandidateIdentity::from_stable_name("candidate:b"),
                 StructuralMatchCandidateKind::ExactAdvisoryMatch,
             ),
             StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:a"),
+                StructuralCandidateIdentity::from_stable_name("candidate:a"),
                 StructuralMatchCandidateKind::AdvisoryReuseCandidate,
             ),
         ]);
@@ -581,11 +591,11 @@ mod tests {
     fn bridge_lowering_preserves_candidate_order() {
         let reduced = advisory_reduced_set(vec![
             StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:z"),
+                StructuralCandidateIdentity::from_stable_name("candidate:z"),
                 StructuralMatchCandidateKind::ExactAdvisoryMatch,
             ),
             StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:a"),
+                StructuralCandidateIdentity::from_stable_name("candidate:a"),
                 StructuralMatchCandidateKind::AdvisoryReuseCandidate,
             ),
         ]);
@@ -624,8 +634,8 @@ mod tests {
             "structural:analysis-snapshot",
             StructuralFingerprintFamily::TopologyFingerprint,
             StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
             )),
         );
         let contract = runtime
@@ -649,8 +659,8 @@ mod tests {
             .register_source(registered_source(
                 "source:analysis-snapshot",
                 BridgeTruthViewSelector::branch_snapshot(
-                    TruthBranchIdentity::new("analysis"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                    TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
                 ),
                 vec![
                     BridgeSourceCapability::SnapshotRead,
@@ -660,8 +670,8 @@ mod tests {
             .register_source(registered_source(
                 "source:analysis-history",
                 BridgeTruthViewSelector::historical_commit(
-                    TruthBranchIdentity::new("analysis"),
-                    TruthCommitIdentity::new("commit-a"),
+                    TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                    TruthCommitIdentity::from_bridge_harness_label("commit-a"),
                 ),
                 vec![
                     BridgeSourceCapability::SnapshotRead,
@@ -675,13 +685,13 @@ mod tests {
                 StructuralFingerprintFamily::TopologyFingerprint,
                 StructuralTruthViewBasis::explicit_snapshot(
                     BridgeTruthViewSelector::branch_snapshot(
-                        TruthBranchIdentity::new("analysis"),
-                        TruthSnapshotIdentity::new("snapshot-a"),
+                        TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                        TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
                     ),
                 ),
             ))
             .register_mapping(BridgeMappingRegistration::new(
-                BridgeMappingId::new("mapping"),
+                BridgeMappingId::from_stable_name("mapping"),
                 TruthPatchScope::new(
                     forge_runtime_bridge::facade::MappingSelector::exact("entity-1"),
                     forge_runtime_bridge::facade::AspectKeySelector::exact(
@@ -698,7 +708,7 @@ mod tests {
                         .expect("valid native snapshot aspect key"),
                     forge_foundational::facade::ScalarAspectType::String,
                 ),
-                SignalInvalidationScope::new("signal:profile"),
+                SignalInvalidationScope::from_stable_name("signal:profile"),
                 CoarseRoutingMode::Direct,
             ))
             .build()
@@ -711,7 +721,7 @@ mod tests {
         capabilities: Vec<BridgeSourceCapability>,
     ) -> SourceDeclaration {
         SourceDeclaration::new(
-            SourceDeclarationIdentity::new(id),
+            SourceDeclarationIdentity::from_stable_name(id),
             selector,
             BridgeSourceCapabilitySet::new(capabilities),
         )
@@ -723,10 +733,10 @@ mod tests {
         truth_view_basis: StructuralTruthViewBasis,
     ) -> StructuralIdentityDeclaration {
         StructuralIdentityDeclaration::advisory_remap(
-            StructuralIdentityDeclarationIdentity::new(id),
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralIdentityDeclarationIdentity::from_stable_name(id),
+            StructuralSchemaIdentity::from_stable_name("schema:geometry"),
             StructuralFingerprintEquivalenceContract::new(
-                StructuralSchemaIdentity::new("schema:geometry"),
+                StructuralSchemaIdentity::from_stable_name("schema:geometry"),
                 family,
                 "geometry-v1",
                 StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,

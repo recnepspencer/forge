@@ -12,8 +12,6 @@ use crate::facade::{
     BridgeAsyncCompletionDenialClass, BridgeAsyncCompletionRejectionKind,
     BridgeAsyncRequestTruthViewBasis,
 };
-use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity};
-use crate::snapshot::TruthSnapshotIdentity;
 use forge_signal::facade::NodeId;
 
 #[test]
@@ -24,9 +22,9 @@ fn equivalent_request_response_fulfilled_completions_admit_identically() {
         &first_runtime,
         NodeId::new(11, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         64,
     );
@@ -34,9 +32,9 @@ fn equivalent_request_response_fulfilled_completions_admit_identically() {
         &second_runtime,
         NodeId::new(88, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         64,
     );
@@ -62,9 +60,9 @@ fn equivalent_subscription_backed_fulfilled_completions_admit_identically() {
         &first_runtime,
         NodeId::new(31, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         48,
     )
@@ -73,9 +71,9 @@ fn equivalent_subscription_backed_fulfilled_completions_admit_identically() {
         &second_runtime,
         NodeId::new(67, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         48,
     )
@@ -99,9 +97,9 @@ fn oversized_payload_is_retained_as_denied_completion() {
         &runtime,
         NodeId::new(29, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         4096,
     );
@@ -125,9 +123,9 @@ fn late_completion_after_rejection_maps_to_rejected_denial() {
         &runtime,
         NodeId::new(45, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     );
     let denied = report
@@ -148,9 +146,9 @@ fn late_completion_after_cancellation_maps_to_cancelled_denial() {
         &runtime,
         NodeId::new(46, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     );
     let denied = report
@@ -171,9 +169,9 @@ fn late_completion_after_supersession_maps_to_superseded_denial() {
         &runtime,
         NodeId::new(47, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     );
     let denied = report
@@ -194,9 +192,9 @@ fn late_completion_after_timeout_maps_to_timed_out_denial() {
         &runtime,
         NodeId::new(48, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         3,
     );
@@ -218,9 +216,9 @@ fn pre_restore_completion_maps_to_stale_denial() {
         &runtime,
         NodeId::new(49, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     );
     let denied = report
@@ -263,9 +261,9 @@ fn diagnostics_tier_variation_does_not_change_completion_digest() {
         &development,
         NodeId::new(101, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         64,
     );
@@ -273,9 +271,9 @@ fn diagnostics_tier_variation_does_not_change_completion_digest() {
         &operational,
         NodeId::new(101, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         64,
     );
@@ -300,9 +298,9 @@ fn completion_runtime_rejects_cross_thread_admission() {
         &runtime,
         NodeId::new(91, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     );
     let validated = runtime

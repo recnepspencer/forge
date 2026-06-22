@@ -127,7 +127,7 @@ pub(super) fn detail_replay_bundle(profile: CertificationProfile) -> LiveCertifi
             LiveChangeOrdinal::from_value(1),
             crate::harness::fixtures::resolved_bases::runtime_basis(
                 &crate::harness::fixtures::validated_bundles::runtime_detail_bundle(),
-                "snapshot-2",
+                &crate::harness::fixtures::resolved_bases::alternate_snapshot_identity(),
             ),
         )],
     )
@@ -166,7 +166,7 @@ pub(super) fn ordered_collection_replay_bundle(
             LiveChangeOrdinal::from_value(1),
             crate::harness::fixtures::resolved_bases::runtime_basis(
                 &crate::harness::fixtures::validated_bundles::ordered_collection_without_traversal_bundle(),
-                "snapshot-2",
+                &crate::harness::fixtures::resolved_bases::alternate_snapshot_identity(),
             ),
         )],
     )
@@ -204,7 +204,7 @@ pub(super) fn bounded_materialization_replay_bundle(
             LiveChangeOrdinal::from_value(1),
             crate::harness::fixtures::resolved_bases::runtime_basis(
                 &crate::harness::fixtures::validated_bundles::ordered_collection_bundle(),
-                "snapshot-2",
+                &crate::harness::fixtures::resolved_bases::alternate_snapshot_identity(),
             ),
         )],
     )
@@ -329,7 +329,7 @@ pub(super) fn non_monotonic_sequence_rejection_bundle(
             LiveChangeOrdinal::from_value(1),
             crate::harness::fixtures::resolved_bases::runtime_basis(
                 &crate::harness::fixtures::validated_bundles::runtime_detail_bundle(),
-                "snapshot-2",
+                &crate::harness::fixtures::resolved_bases::alternate_snapshot_identity(),
             ),
         )
         .expect("first ordinal advance should succeed");
@@ -339,7 +339,7 @@ pub(super) fn non_monotonic_sequence_rejection_bundle(
         LiveChangeOrdinal::from_value(1),
         crate::harness::fixtures::resolved_bases::runtime_basis(
             &crate::harness::fixtures::validated_bundles::runtime_detail_bundle(),
-            "snapshot-3",
+            &crate::harness::fixtures::resolved_bases::relational_snapshot_identity(3, 1),
         ),
     )
     .expect("backward progress should be rejected");

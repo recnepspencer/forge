@@ -15,14 +15,27 @@ use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use super::shared::{RuntimeEntityRef, RuntimeTopologyGraph};
 use super::shared_queries::connected_components;
 
-pub fn registration() -> Result<
+pub(super) fn graph_composition_registration() -> Result<
     CustomInvariantRegistration,
     forge_relational::facade::runtime::CustomInvariantRegistrationError,
 > {
-    CustomInvariantRegistration::new(WireConnectivityRule)
+    CustomInvariantRegistration::new(WireConnectivityRule {
+        execution_point: InvariantExecutionPoint::GraphComposition,
+    })
 }
 
-struct WireConnectivityRule;
+pub(super) fn commit_backstop_registration() -> Result<
+    CustomInvariantRegistration,
+    forge_relational::facade::runtime::CustomInvariantRegistrationError,
+> {
+    CustomInvariantRegistration::new(WireConnectivityRule {
+        execution_point: InvariantExecutionPoint::CommitBoundary,
+    })
+}
+
+struct WireConnectivityRule {
+    execution_point: InvariantExecutionPoint,
+}
 
 impl CustomInvariantRule for WireConnectivityRule {
     type Scope = RuntimeTopologyGraph;
@@ -37,7 +50,7 @@ impl CustomInvariantRule for WireConnectivityRule {
             },
             display_name: Arc::from(" Milestone 1 Wire Connectivity"),
             operational: CustomInvariantOperationalMetadata {
-                execution_point: InvariantExecutionPoint::CommitBoundary,
+                execution_point: self.execution_point,
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
                 cost_class: InvariantCostClass::Touched,
                 failure_effect: InvariantFailureEffect::BlockCommit,

@@ -46,6 +46,8 @@ fn spatial_public_geometry_support_matrix_keeps_family_contracts_and_surface_adm
         GeometryPublicSurface::PrimitiveAnchorBinding,
         GeometryPublicSurface::PrimitiveRebinding,
         GeometryPublicSurface::TopologyNeighborhoodReplacement,
+        GeometryPublicSurface::PlanarPredicateAuthority,
+        GeometryPublicSurface::CertifiedSegmentSegment2D,
         GeometryPublicSurface::ToleranceAndPrecisionCertification,
         GeometryPublicSurface::HistoricalGeometryInspection,
         GeometryPublicSurface::BranchLocalGeometryInspection,

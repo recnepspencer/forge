@@ -4,7 +4,7 @@ use super::super::support::*;
 fn pricing_shock_ml_pipeline_export_contains_full_traceable_simulation_artifacts() {
     let bundle = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-ml-export"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-ml-export"),
     );
     let export = bundle.ml_pipeline_export_json();
     let reference_comparison = bundle.reference_workload_comparison_evidence();
@@ -49,7 +49,7 @@ fn pricing_shock_ml_pipeline_export_contains_full_traceable_simulation_artifacts
     );
     assert_eq!(
         bundle.provenance.shock_commit,
-        TruthCommitIdentity::new("commit:rubber-shock")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock")
     );
     assert!(!bundle.matrix.reference.source_commit.as_str().is_empty());
     assert!(!bundle
@@ -109,7 +109,7 @@ fn pricing_shock_ml_pipeline_export_contains_full_traceable_simulation_artifacts
 fn pricing_shock_ml_pipeline_export_lineage_graph_is_well_formed() {
     let bundle = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-ml-graph"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-ml-graph"),
     );
     let export = bundle.ml_pipeline_export_json();
     let edges = export["lineage_provenance_edges"]
@@ -211,7 +211,9 @@ fn pricing_shock_ml_pipeline_export_lineage_graph_is_well_formed() {
 fn pricing_shock_ml_pipeline_export_simulation_summaries_match_iteration_traces() {
     let bundle = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-ml-simulation-consistency"),
+        BridgePreviewSessionIdentity::admit_bridge_owned(
+            "pricing:preview-ml-simulation-consistency",
+        ),
     );
     let export = bundle.ml_pipeline_export_json();
     assert_eq!(

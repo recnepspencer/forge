@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
-use forge_query::facade::{ForgeQueryEntity, RelationName};
+use forge_query::facade::{ForgeQueryEntity, ForgeQueryEntityIdentity, RelationName};
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
 use serde_json::Value;
 
 use crate::projection::read_views::domain::error::TopologyReadError;
@@ -22,17 +23,23 @@ impl<'a> RetainedTopologyRows<'a> {
     ) -> Result<RetainedTopologyRow<'a>, TopologyReadError> {
         self.rows
             .iter()
-            .find(|row| row.identity() == identity)
+            .find(|row| retained_row_identity_label(row).as_deref() == Some(identity))
             .map(|row| RetainedTopologyRow { row })
             .ok_or_else(|| {
+                let inventory = self
+                    .identities()
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 TopologyReadError::read_family_execution_denied(format!(
-                    "{label} rows did not retain anchor `{identity}`"
+                    "{label} rows did not retain anchor `{identity}`; retained identities: [{inventory}]"
                 ))
             })
     }
 
-    pub(crate) fn identities(&self) -> impl Iterator<Item = &'a str> {
-        self.rows.iter().map(|row| row.identity())
+    pub(crate) fn identities(&self) -> impl Iterator<Item = String> + 'a {
+        self.rows
+            .iter()
+            .filter_map(|row| retained_row_identity_label(row))
     }
 }
 
@@ -109,15 +116,15 @@ pub(crate) fn adjacent_row_identities_sharing_targets(
     label: &str,
 ) -> Result<Vec<String>, TopologyReadError> {
     rows.identities()
-        .filter(|identity| *identity != source_identity)
+        .filter(|identity| identity != source_identity)
         .try_fold(BTreeSet::new(), |mut identities, identity| {
-            let row = rows.row(identity, label)?;
+            let row = rows.row(&identity, label)?;
             let row_target_identities = row.relation_target_identities(relations, label)?;
             if row_target_identities
                 .iter()
                 .any(|target| source_target_identities.contains(target))
             {
-                identities.insert(identity.to_string());
+                identities.insert(identity);
             }
             Ok(identities)
         })
@@ -133,12 +140,12 @@ pub(crate) fn filter_row_identities_by_edge_match(
     label: &str,
 ) -> Result<Vec<String>, TopologyReadError> {
     rows.identities()
-        .filter(|identity| *identity != source_identity)
+        .filter(|identity| identity != source_identity)
         .try_fold(BTreeSet::new(), |mut identities, identity| {
-            let row = rows.row(identity, label)?;
+            let row = rows.row(&identity, label)?;
             let edge_identity = row.relation_target_identity(edge_relation, label)?;
             if (edge_identity == source_edge_identity) == same_edge {
-                identities.insert(identity.to_string());
+                identities.insert(identity);
             }
             Ok(identities)
         })
@@ -192,4 +199,36 @@ pub(crate) fn edge_identity_by_row(
     rows.row(identity, label)?
         .relation_target_identity(edge_relation, label)
         .map(str::to_string)
+}
+
+fn retained_row_identity_label(row: &ForgeQueryEntity) -> Option<String> {
+    row_projection_identity_label(row).or_else(|| query_identity_label(row.identity()))
+}
+
+fn row_projection_identity_label(row: &ForgeQueryEntity) -> Option<String> {
+    row.external_row()
+        .get("identity")
+        .and_then(|value| value.get("id"))
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| {
+            row.external_row()
+                .get("id")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
+}
+
+fn query_identity_label(identity: &ForgeQueryEntityIdentity) -> Option<String> {
+    let parts = identity.relational_record_parts()?;
+    let kind = match parts.kind() {
+        RelationalBridgeRecordIdentityKind::Entity => "entity",
+        RelationalBridgeRecordIdentityKind::Relation => "relation",
+    };
+    Some(format!(
+        "{kind}:{}:{}:{}",
+        parts.partition_id(),
+        parts.local_slot(),
+        parts.generation()
+    ))
 }

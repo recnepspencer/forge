@@ -38,9 +38,10 @@ fn runtime_mutation_lowering_emits_explicit_strategy_request() {
     )
     .expect("mutation declaration should admit");
 
+    let authority_binding_identity = binding.basis_identity();
     let lowered = lower_mutation_intent_declaration(
         &declaration,
-        binding.basis_digest(),
+        &authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
             desired_aspect_fields_external_json: json!({"name":"after"}),
@@ -297,7 +298,10 @@ fn runtime_writeback_lowering_emits_bridge_declaration_and_causality() {
         lowered.bridge_declaration().request_mode(),
         BridgeWritebackRequestMode::WritebackCapable
     );
-    assert!(!lowered.causality_binding().causality_digest().is_empty());
+    assert!(!lowered
+        .causality_binding()
+        .causality_for_reporting()
+        .is_empty());
     assert_eq!(lowered.counters().workflow_staleness_check_count(), 1);
     assert_eq!(lowered.counters().workflow_writeback_declaration_count(), 1);
     assert_eq!(

@@ -46,8 +46,8 @@ pub use crate::diagnostics::{
     BridgePreviewDiscardExplanation, BridgePreviewExecutionExplanation,
     BridgePreviewPromotionExplanation, BridgePreviewReplayExplanation, BridgeReplayRecord,
     BridgeReplaySummary, BridgeRouteExplanation, BridgeRouteExplanationEntry, BridgeRouteRecord,
-    BridgeRouteRecordEntry, BridgeRouteRecordMatch, BridgeRouteSourceRecord,
-    BridgeRoutingDiagnosticsRecord, BridgeSourceFailureExplanation,
+    BridgeRouteRecordEntityIdentity, BridgeRouteRecordEntry, BridgeRouteRecordMatch,
+    BridgeRouteSourceRecord, BridgeRoutingDiagnosticsRecord, BridgeSourceFailureExplanation,
     BridgeSourceMaterializationExplanation, BridgeStreamCheckpointExplanation,
     BridgeStreamReplayExplanation, BridgeStreamResumeSummary,
     BridgeStructuralBranchComparisonExplanation, BridgeStructuralBranchComparisonRecord,
@@ -79,6 +79,13 @@ pub use crate::error::{
     BridgeRouteErrorKind, BridgeSnapshotReadCoordinate, BridgeSpeculationError,
     BridgeSpeculationErrorKind, BridgeStreamError, BridgeStreamErrorKind, BridgeWritebackError,
     BridgeWritebackErrorKind,
+};
+pub use crate::identity::{bridge_identity_reporting_label, BridgeIdentityEvidence};
+#[allow(unused_imports)]
+pub use crate::identity_authority::{
+    bridge_truth_digest_identity_evidence_from_external_token,
+    bridge_truth_external_identity_token, bridge_truth_projection_identity_from_external_token,
+    BridgeEvidenceReferenceIdentityKind, BridgeTruthBoundaryBridgedIdentity,
 };
 pub use crate::input::envelope::{
     BridgeCommittedPatchBody, BridgeCommittedPatchDigest, BridgeCommittedPatchEnvelope,
@@ -119,6 +126,10 @@ pub use crate::policy::{
     BridgePolicyRejectionStage, BridgePolicyReplayBundle, BridgePolicyResolution,
     BridgePolicySourceClass, BridgeRoutePlanningPolicy, BridgeRuntimePolicy, BridgeRuntimePosture,
     LoweredBridgeExecutionPolicy, ValidatedBridgePolicyDeclaration,
+};
+pub use crate::relational_identity::{
+    RelationalBridgeRecordIdentityKind, RelationalBridgeRecordIdentityParts,
+    RelationalBridgeSnapshotIdentityParts,
 };
 pub use crate::routing::{
     AdmittedBridgeExecutionPlan, AdmittedPreparationPartitionSet, BridgeAdmissionProfileIdentity,
@@ -237,14 +248,14 @@ pub use crate::speculation::{
 pub use crate::stream::{
     AdmittedConsumerContract, BackpressureDecisionRecord, CanonicalStreamMember,
     CanonicalStreamPosition, CanonicalStreamReplayRecord, ChangeStreamDeclaration,
-    ChangeStreamDeclarationIdentity, ConsumerCheckpointToken, ConsumerContractIdentity,
-    LoweredConsumedChangeSet, PlannedChangeStreamWindow, StreamCheckpointFrontierKind,
-    StreamCheckpointPublicationMode, StreamCoalescingFamily, StreamCoalescingIntent,
-    StreamConsumerShape, StreamDeliveryIntent, StreamDiagnosticsPolicyClass,
-    StreamProtocolCounters, StreamProtocolIdentity, StreamReplayAuditResult,
-    StreamReplayAuditSummary, StreamReplayMode, StreamReplayRecordIdentity, StreamResumeMode,
-    StreamWindowDeliveryResult, StreamWindowDeliverySummary, StreamWindowIdentity,
-    ValidatedStreamProtocol,
+    ChangeStreamDeclarationIdentity, CheckpointTokenIdentity, ConsumerCheckpointToken,
+    ConsumerContractIdentity, LoweredConsumedChangeSet, PlannedChangeStreamWindow,
+    StreamCheckpointFrontierKind, StreamCheckpointPublicationMode, StreamCoalescingFamily,
+    StreamCoalescingIntent, StreamConsumerShape, StreamDeliveryIntent,
+    StreamDiagnosticsPolicyClass, StreamProtocolCounters, StreamProtocolIdentity,
+    StreamReplayAuditResult, StreamReplayAuditSummary, StreamReplayMode,
+    StreamReplayRecordIdentity, StreamResumeMode, StreamWindowDeliveryResult,
+    StreamWindowDeliverySummary, StreamWindowIdentity, ValidatedStreamProtocol,
 };
 pub use crate::structural::{
     AdmittedStructuralComparisonContract, AdmittedStructuralRegistry,

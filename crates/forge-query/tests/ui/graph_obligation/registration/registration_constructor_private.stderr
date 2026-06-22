@@ -1,0 +1,22 @@
+error: cannot construct `ForgeQueryGraphObligationRegistration` with struct literal syntax due to private fields
+ --> tests/ui/graph_obligation/registration/registration_constructor_private.rs:4:13
+  |
+4 |     let _ = ForgeQueryGraphObligationRegistration {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields `kind`, `rule_identity`, `touch_selector`, `operating_world_selector`, `support_posture` and `registration_digest` that were not provided
+help: you might have meant to use an associated function to build this type
+  |
+4 -     let _ = ForgeQueryGraphObligationRegistration {};
+4 +     let _ = ForgeQueryGraphObligationRegistration::new(_, _, _, _);
+  |
+4 -     let _ = ForgeQueryGraphObligationRegistration {};
+4 +     let _ = ForgeQueryGraphObligationRegistration::schema_contract_validator(_, _, _);
+  |
+4 -     let _ = ForgeQueryGraphObligationRegistration {};
+4 +     let _ = ForgeQueryGraphObligationRegistration::blocking_invariant(_, _, _);
+  |
+4 -     let _ = ForgeQueryGraphObligationRegistration {};
+4 +     let _ = ForgeQueryGraphObligationRegistration::advisory_obligation(_, _, _);
+  |
+  = and 4 other candidates

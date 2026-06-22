@@ -5,7 +5,9 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_reference_bundle
     preview_session_identity: BridgePreviewSessionIdentity,
 ) -> PricingReferenceBundle {
     let route = runtime
-        .route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
+            "commit:steel-main",
+        ))
         .expect("pricing reference route should succeed");
     let route_record = runtime
         .diagnostics()
@@ -13,8 +15,10 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_reference_bundle
         .expect("pricing reference route should retain its route record");
     let main_eval = runtime
         .evaluate(
-            BridgeTruthViewEvaluationRequest::for_branch_head(TruthBranchIdentity::new("main"))
-                .with_read_packet(pricing_component_read_packet("rubber")),
+            BridgeTruthViewEvaluationRequest::for_branch_head(
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            )
+            .with_read_packet(pricing_component_read_packet("rubber")),
         )
         .expect("pricing main evaluation should succeed");
     let comparison = runtime
@@ -62,15 +66,15 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_aspect_bundle(
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(pricing_patch(
         pricing_patch_envelope_identity(
-            TruthBranchIdentity::new("main"),
-            TruthCommitIdentity::new("commit:steel-aspect"),
-            TruthPatchIdentity::new("patch:steel-aspect"),
-            TruthSnapshotIdentity::new("snapshot:pricing-aspect"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-aspect"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch:steel-aspect"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-aspect"),
         ),
         "steel",
     ));
     source.insert_snapshot(pricing_aspect_snapshot(
-        TruthSnapshotIdentity::new("snapshot:pricing-aspect"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-aspect"),
         "145",
         "40",
     ));
@@ -78,7 +82,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_aspect_bundle(
     let runtime =
         build_pricing_runtime_with_aspects(source, RecordingSignalBridgeSink::default(), policy);
     let route = runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit:steel-aspect",
         ))
         .expect("aspect-aware pricing route should succeed");
@@ -119,7 +123,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_missing_snapshot
     runtime: &RuntimeBridge,
 ) -> PricingFailureBundle {
     let error = runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit:steel-missing-snapshot",
         ))
         .expect_err("pricing route should fail when the source snapshot is absent");
@@ -147,7 +151,9 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_replay_bundle(
     runtime: &RuntimeBridge,
 ) -> PricingReplayBundle {
     runtime
-        .route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
+            "commit:steel-main",
+        ))
         .expect("pricing replay control route should succeed");
     let canonical_record = runtime
         .diagnostics()

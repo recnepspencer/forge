@@ -101,9 +101,10 @@ impl BridgeTemporalCauseRecord {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            cause_record_identity: BridgeSubscriptionTemporalCauseRecordIdentity::new(format!(
-                "bridge-temporal-cause-record-id:sha256:{digest:x}"
-            )),
+            cause_record_identity:
+                BridgeSubscriptionTemporalCauseRecordIdentity::admit_bridge_owned(format!(
+                    "bridge-temporal-cause-record-id:sha256:{digest:x}"
+                )),
             routing_lane_kind: input.routing_lane_kind,
             subscription_identity: input.subscription_identity,
             activation_lane_identity: input.activation_lane_identity,

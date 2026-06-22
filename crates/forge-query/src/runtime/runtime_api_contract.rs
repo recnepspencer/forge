@@ -136,12 +136,40 @@ impl ForgeQueryRuntime {
     ) -> Result<ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryRuntimeError> {
         let contract = self.public_api_contract();
         let row = contract.family(family).cloned().ok_or_else(|| {
-            ForgeQueryRuntimeError::UnsupportedFacadeFamily(ForgeQueryRuntimeSupportDenial::new(
-                family,
-                "runtime support matrix does not declare this public API family",
-            ))
+            ForgeQueryRuntimeError::UnsupportedFacadeFamily(
+                ForgeQueryRuntimeSupportDenial::unsupported(
+                    family,
+                    "runtime support matrix does not declare this public API family",
+                ),
+            )
         })?;
         self.admit_facade_family(family)?;
+        if row.admission_fail_closed() {
+            let reason = row
+                .reason()
+                .unwrap_or_else(|| match row.teaching_posture() {
+                    ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly => {
+                        "public runtime DX for this facade family remains support-gated"
+                    }
+                    ForgeQueryRuntimeFamilyTeachingPosture::VisibleButDeferred => {
+                        "public runtime DX for this facade family remains deferred"
+                    }
+                    ForgeQueryRuntimeFamilyTeachingPosture::VisibleVocabularyOnly => {
+                        "public runtime DX for this facade family remains vocabulary-only"
+                    }
+                    ForgeQueryRuntimeFamilyTeachingPosture::OrdinaryRuntimeDx => {
+                        "public runtime DX for this facade family is not admitted"
+                    }
+                });
+            return Err(ForgeQueryRuntimeError::UnsupportedFacadeFamily(
+                ForgeQueryRuntimeSupportDenial::new(
+                    family,
+                    row.status(),
+                    Some(row.teaching_posture()),
+                    reason,
+                ),
+            ));
+        }
         Ok(row)
     }
 }

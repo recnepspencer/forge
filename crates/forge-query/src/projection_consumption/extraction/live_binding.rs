@@ -4,6 +4,9 @@ use super::super::consumed::{
 };
 use super::super::contracts::MaterializedProjectionContract;
 use super::super::facts::ProjectionFactKind;
+use super::super::identity::{
+    compose_live_binding_row_identity, compose_scoped_row_source_identity,
+};
 use super::super::source::ProjectionSourceFamily;
 use crate::projection_consumption::ProjectionFactExtractionError;
 use crate::runtime::ForgeQueryLiveArtifactBinding;
@@ -58,7 +61,7 @@ pub(super) fn extract_live_binding_facts(
                     ProjectionFactKind::EntityIdentity => {
                         entity_identities.push(ConsumedEntityIdentityFact::new(
                             row_identity.as_str(),
-                            row.identity(),
+                            row.identity().clone(),
                         ));
                     }
                     ProjectionFactKind::ViewLocalIdentity => {
@@ -72,10 +75,9 @@ pub(super) fn extract_live_binding_facts(
                         let value = row.external_row_path(field_key).ok_or_else(|| {
                             ProjectionFactExtractionError::MissingDeclaredFieldEvidence {
                                 source_family: contract.source_family(),
-                                source_identity: format!(
-                                    "{}::{}",
+                                source_identity: compose_scoped_row_source_identity(
                                     contract.source_identity(),
-                                    row_identity
+                                    row_identity.as_str(),
                                 ),
                                 field_key: field_key.to_string(),
                                 fact_kind: fact_family.kind(),
@@ -134,7 +136,7 @@ pub(super) fn extract_live_binding_facts(
         contract.declaration_digest(),
         contract.contract_digest(),
         contract.source_family(),
-        contract.source_identity(),
+        contract.source_identity_handle().clone(),
         contract.support_posture().clone(),
         contract.materialized_fact_posture().cloned(),
         ProjectionFactExtractionCounters::new(
@@ -157,7 +159,7 @@ pub(super) fn extract_live_binding_facts(
 }
 
 fn live_binding_row_identity(binding_digest: &str, view_name: &str, index: usize) -> String {
-    format!("live-binding:{binding_digest}:{view_name}:{index}")
+    compose_live_binding_row_identity(binding_digest, view_name, index)
 }
 
 fn binding_target_source_references<'a>(

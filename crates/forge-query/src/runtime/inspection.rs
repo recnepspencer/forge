@@ -1,10 +1,15 @@
 mod basis_lifecycle;
 mod causal;
 mod feedback;
+mod feedback_identity;
 mod intent;
 mod intent_consumer;
+mod intent_delivery_counters;
+mod intent_denial;
+mod intent_identity;
 mod live;
 mod live_counters;
+mod live_view_accessors;
 mod preview;
 mod unified;
 
@@ -59,18 +64,21 @@ pub use causal::{
 pub(in crate::runtime) use causal::{
     causal_evidence_reference_index, causal_evidence_reference_index_record,
 };
+#[cfg(test)]
+pub(crate) use causal::{CausalObservationTargetHandle, CausalResultShapeContextHandle};
 pub use feedback::{
     ForgeQueryFeedbackPhaseGraphInspection, ForgeQueryFeedbackPhaseNode,
     ForgeQueryFeedbackTermination,
 };
 pub use intent::{
     ForgeQueryBranchIntentReceiptInspection, ForgeQueryEffectIntentReceiptInspection,
-    ForgeQueryIntentDenialInspection, ForgeQueryIntentInspectionDeliveryCounters,
     ForgeQueryIntentReceiptInspection,
 };
 pub use intent_consumer::{
     ForgeQueryIntentConsumerInspection, ForgeQueryIntentConsumerOutcomeClass,
 };
+pub use intent_delivery_counters::ForgeQueryIntentInspectionDeliveryCounters;
+pub use intent_denial::ForgeQueryIntentDenialInspection;
 pub use live::ForgeQueryLiveViewInspection;
 pub use live_counters::ForgeQueryLiveSubscriptionInspectionCounters;
 pub use preview::{
@@ -80,4 +88,13 @@ pub use preview::{
 pub use unified::{
     ForgeQueryBatchWriteComponentInspection, ForgeQueryBatchWriteReceiptInspection,
     ForgeQueryInspection, ForgeQueryInspectionTarget, ForgeQueryWriteReceiptInspection,
+};
+
+#[cfg(test)]
+pub(crate) use causal::{
+    causal_test_bridge_binding_reference_for_reporting,
+    causal_test_compose_bridge_causal_denial_for_reporting,
+    causal_test_compose_bridge_causal_envelope_identity_for_reporting,
+    causal_test_compose_bridge_causal_envelope_receipt_identity_for_reporting,
+    causal_test_compose_bridge_causal_explanation_envelope_identity_for_reporting,
 };

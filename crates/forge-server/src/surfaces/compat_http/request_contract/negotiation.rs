@@ -40,21 +40,40 @@ fn negotiate_representation(
         .canonical_headers()
         .values("accept")
         .unwrap_or(&[]);
-    if accept_values.is_empty() {
-        Ok(ForgeServerNegotiatedRepresentation::Json)
-    } else if accept_values
+    let accepts_json = accept_values
         .iter()
         .flat_map(|value| value.split(','))
         .map(str::trim)
-        .any(|token| matches!(token, "application/json" | "*/*"))
-    {
-        Ok(ForgeServerNegotiatedRepresentation::Json)
-    } else {
-        Err(ForgeServerCompatibilityDenial::new(
-            ForgeServerCompatibilityDenialCode::UnsupportedRepresentation,
-            diagnostics_profile,
-            format!("unsupported accept header `{}`", accept_values.join(", ")),
-        ))
+        .any(|token| matches!(token, "application/json" | "*/*"));
+    let accepts_binary = accept_values
+        .iter()
+        .flat_map(|value| value.split(','))
+        .map(str::trim)
+        .any(|token| matches!(token, "application/octet-stream" | "*/*"));
+
+    match canonical_request.route_family() {
+        crate::ForgeServerCompatHttpRouteFamily::Download => {
+            if accept_values.is_empty() || accepts_binary {
+                Ok(ForgeServerNegotiatedRepresentation::Binary)
+            } else {
+                Err(ForgeServerCompatibilityDenial::new(
+                    ForgeServerCompatibilityDenialCode::UnsupportedRepresentation,
+                    diagnostics_profile,
+                    format!("unsupported accept header `{}`", accept_values.join(", ")),
+                ))
+            }
+        }
+        _ => {
+            if accept_values.is_empty() || accepts_json {
+                Ok(ForgeServerNegotiatedRepresentation::Json)
+            } else {
+                Err(ForgeServerCompatibilityDenial::new(
+                    ForgeServerCompatibilityDenialCode::UnsupportedRepresentation,
+                    diagnostics_profile,
+                    format!("unsupported accept header `{}`", accept_values.join(", ")),
+                ))
+            }
+        }
     }
 }
 

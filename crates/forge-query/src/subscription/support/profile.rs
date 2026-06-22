@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum QuerySubscriptionRuntimeBackedSupport {
@@ -64,35 +66,35 @@ pub struct QuerySubscriptionSupportProfile {
     active_lifecycle_support: QuerySubscriptionActiveLifecycleSupport,
     lifecycle_closeout_support: QuerySubscriptionLifecycleCloseoutSupport,
     durable_support: QuerySubscriptionDurableSupport,
-    source_digest: String,
-    digest: String,
+    source_identity: ForgeQueryEvidenceIdentity,
+    profile_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionSupportProfile {
-    pub(crate) fn admitted(source_digest: &str) -> Self {
+    pub(crate) fn admitted(source_identity: &ForgeQueryEvidenceIdentity) -> Self {
         Self::new(
             QuerySubscriptionRuntimeBackedSupport::Admitted,
             QuerySubscriptionActiveLifecycleSupport::Admitted,
             QuerySubscriptionLifecycleCloseoutSupport::Admitted,
-            source_digest,
+            source_identity,
         )
     }
 
-    pub(crate) fn denied(source_digest: &str) -> Self {
+    pub(crate) fn denied(source_identity: &ForgeQueryEvidenceIdentity) -> Self {
         Self::new(
             QuerySubscriptionRuntimeBackedSupport::Denied,
             QuerySubscriptionActiveLifecycleSupport::Denied,
             QuerySubscriptionLifecycleCloseoutSupport::Denied,
-            source_digest,
+            source_identity,
         )
     }
 
-    pub(crate) fn active_runtime_admitted(source_digest: &str) -> Self {
+    pub(crate) fn active_runtime_admitted(source_identity: &ForgeQueryEvidenceIdentity) -> Self {
         Self::new(
             QuerySubscriptionRuntimeBackedSupport::Admitted,
             QuerySubscriptionActiveLifecycleSupport::Admitted,
             QuerySubscriptionLifecycleCloseoutSupport::Admitted,
-            source_digest,
+            source_identity,
         )
     }
 
@@ -100,24 +102,41 @@ impl QuerySubscriptionSupportProfile {
         runtime_backed_support: QuerySubscriptionRuntimeBackedSupport,
         active_lifecycle_support: QuerySubscriptionActiveLifecycleSupport,
         lifecycle_closeout_support: QuerySubscriptionLifecycleCloseoutSupport,
-        source_digest: &str,
+        source_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
         let durable_support = QuerySubscriptionDurableSupport::ExplicitDebt;
-        let digest = hash_parts(&[
-            "query_subscription_support_profile_v1".to_string(),
-            runtime_backed_support.as_str().to_string(),
-            active_lifecycle_support.as_str().to_string(),
-            lifecycle_closeout_support.as_str().to_string(),
-            durable_support.as_str().to_string(),
-            source_digest.to_string(),
-        ]);
+        let profile_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "query_subscription_support_profile_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("runtime_backed"),
+            runtime_backed_support.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("active_lifecycle"),
+            active_lifecycle_support.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("lifecycle_closeout"),
+            lifecycle_closeout_support.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("durable"),
+            durable_support.as_str(),
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
+        .seal();
         Self {
             runtime_backed_support,
             active_lifecycle_support,
             lifecycle_closeout_support,
             durable_support,
-            source_digest: source_digest.to_string(),
-            digest,
+            source_identity: source_identity.clone(),
+            profile_identity,
         }
     }
 
@@ -137,11 +156,11 @@ impl QuerySubscriptionSupportProfile {
         &self.durable_support
     }
 
-    pub fn source_digest(&self) -> &str {
-        &self.source_digest
+    pub fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_identity
     }
 
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn profile_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.profile_identity
     }
 }

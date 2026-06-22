@@ -27,7 +27,7 @@ fn admitted_progression_yields_proof_bearing_artifact() {
     );
     assert_eq!(
         progressed.canonical_declaration().handle_identity_digest(),
-        world_basis.handle_identity_digest()
+        world_basis.handle_identity_for_reporting()
     );
     assert_eq!(
         progressed

@@ -1,0 +1,7 @@
+error[E0432]: unresolved imports `topology::facade::topology_geometry_only_evidence_touched_graph_basis`, `topology::facade::TopologyGeometryOnlyEvidenceDigest`
+ --> tests/ui/touched_graph_basis/geometry_evidence_from_copied_receipt_identity.rs:3:5
+  |
+3 |     topology_geometry_only_evidence_touched_graph_basis, TopologyGeometryOnlyEvidenceDigest,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyGeometryOnlyEvidenceDigest` in `facade`
+  |     |
+  |     no `topology_geometry_only_evidence_touched_graph_basis` in `facade`

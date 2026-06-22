@@ -112,7 +112,7 @@ fn runtime_backed_read_bootstrap_narrows_observation_to_touched_projection_meani
     let _ = workspace.observe(&tasks);
 
     workspace
-        .update(seed.deltas()[0].entity_identity.clone(), |task| {
+        .update(seed.deltas()[0].entity_identity().clone(), |task| {
             task.aspect("title.value", "Bootstrap title updated")
                 .aspect("description.value", "still hidden")
         })
@@ -120,7 +120,7 @@ fn runtime_backed_read_bootstrap_narrows_observation_to_touched_projection_meani
     let projected = workspace.observe(&tasks);
 
     workspace
-        .update(seed.deltas()[0].entity_identity.clone(), |task| {
+        .update(seed.deltas()[0].entity_identity().clone(), |task| {
             task.aspect("description.value", "hidden again")
         })
         .expect("hidden-only update should execute through the public bootstrap lane");
@@ -164,7 +164,7 @@ fn runtime_backed_read_bootstrap_removes_deleted_members_from_read_and_observe()
     let _ = workspace.observe(&tasks);
 
     workspace
-        .delete(seed.deltas()[0].entity_identity.clone())
+        .delete(seed.deltas()[0].entity_identity().clone())
         .expect("delete should execute through the public bootstrap lane");
 
     let patches = workspace.observe(&tasks);

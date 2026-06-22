@@ -51,7 +51,10 @@ declaration, not a lowered mutation execution on its own.
 ```rust
 let artifact = forge_query_domain("worth.spatial")
     .for_intent(&declaration)
-    .inspects_query_preview("topology.preview_conflict", "preview-session:42")
+    .inspects_query_preview(
+        "topology.preview_conflict",
+        forge_query::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:42"),
+    )
     .because("the edge split must stay read-only while conflict topology is inspected")
     .materialize()?;
 ```
@@ -61,7 +64,10 @@ let artifact = forge_query_domain("worth.spatial")
 ```rust
 let plan = forge_query_domain("worth.spatial")
     .for_intent(&declaration)
-    .plans_preview_mutation("topology.preview_mutation", "preview-session:77")
+    .plans_preview_mutation(
+        "topology.preview_mutation",
+        forge_query::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:77"),
+    )
     .because("a manifold-preserving edge split can be planned for later promotion")
     .materialize()?;
 

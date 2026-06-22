@@ -1,17 +1,14 @@
+use crate::application::{
+    ForgeQueryMilestoneClosureStatus, ForgeQueryMilestoneNineSevenDerivedClosure,
+    ForgeQuerySharedReadPinningCertification,
+};
+
 use super::super::super::support::*;
 
 #[test]
 fn runtime_support_profiles_expose_facade_family_posture() {
     let primary_runtime = stateful_bridge_task_runtime();
-    let bridge_runtime = ForgeQueryRuntime::builder()
-        .runtime_bridge(test_bridge())
-        .schema_adapter(TestSchemaAdapter)
-        .source_adapter(TestSourceAdapter::default())
-        .write_authority(TestWriteAuthority)
-        .signal_sink(TestSignalSink)
-        .subscription_activation(TestSubscriptionActivation)
-        .preview_basis(TestPreviewBasis)
-        .inspector_evidence(TestInspectorEvidence)
+    let bridge_runtime = complete_backend_from_parts_builder()
         .build_backend_from_parts()
         .build()
         .expect("complete backend parts should build");
@@ -20,6 +17,8 @@ fn runtime_support_profiles_expose_facade_family_posture() {
         ForgeQueryRuntimeFacadeFamily::Read,
         ForgeQueryRuntimeFacadeFamily::Live,
         ForgeQueryRuntimeFacadeFamily::Computed,
+        ForgeQueryRuntimeFacadeFamily::SharedRead,
+        ForgeQueryRuntimeFacadeFamily::Submission,
         ForgeQueryRuntimeFacadeFamily::Effect,
         ForgeQueryRuntimeFacadeFamily::BranchPreview,
         ForgeQueryRuntimeFacadeFamily::Write,
@@ -189,7 +188,7 @@ fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() 
     );
     assert_eq!(
         matrix.stable_row_count(),
-        contract.stable_family_count() + 4
+        contract.stable_family_count() + 6
     );
     assert_eq!(
         matrix.deferred_row_count(),
@@ -205,7 +204,7 @@ fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() 
     );
     assert_eq!(
         matrix.fail_closed_row_count(),
-        matrix.deferred_row_count() + matrix.unsupported_row_count() + 4
+        matrix.deferred_row_count() + matrix.unsupported_row_count() + 6
     );
 
     let certification = matrix
@@ -231,6 +230,48 @@ fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() 
     assert_eq!(
         certification.extension_rule(),
         "must-extend-target-binding-naming-continuity-causality-provenance-contract"
+    );
+
+    let shared_read_pinning = matrix
+        .row("shared-read-pinning-boundary-closure")
+        .expect("shared-read pinning boundary closure row must be explicit");
+    assert_eq!(
+        shared_read_pinning.support_contract_digest(),
+        Some(
+            ForgeQuerySharedReadPinningCertification::support_gate_required()
+                .closure()
+                .closure_digest()
+        )
+    );
+    assert_ne!(
+        ForgeQuerySharedReadPinningCertification::support_gate_required()
+            .closure()
+            .posture()
+            .as_str(),
+        "closed"
+    );
+
+    let milestone_nine_seven_closure = matrix
+        .row("milestone-9.7-derived-closure-posture")
+        .expect("milestone 9.7 derived closure row must be explicit");
+    let expected_closure =
+        ForgeQueryMilestoneNineSevenDerivedClosure::support_profile_publication_contract();
+    assert_eq!(
+        milestone_nine_seven_closure.support_contract_digest(),
+        Some(expected_closure.closure_digest())
+    );
+    assert_eq!(
+        expected_closure.status(),
+        ForgeQueryMilestoneClosureStatus::Partial
+    );
+    assert_eq!(
+        milestone_nine_seven_closure.owner_milestone(),
+        "Milestone 9.7 Phase 18"
+    );
+    assert!(milestone_nine_seven_closure.admission_fail_closed());
+    assert_eq!(
+        milestone_nine_seven_closure.extension_rule(),
+        "must-derive-milestone-closure-from-phase-local-postures"
     );
 
     let temporal = matrix
@@ -316,22 +357,16 @@ fn runtime_public_support_gate_denies_deferred_and_unsupported_families_before_u
         ForgeQueryRuntimeFamilySupportStatus::Supported
     );
 
-    for family in [
-        ForgeQueryRuntimeFacadeFamily::Temporal,
-        ForgeQueryRuntimeFacadeFamily::AsyncResource,
-        ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
-    ] {
-        let admitted = workspace
-            .admit_public_api_family(family)
-            .expect("runtime-backed family should now admit");
-        assert_eq!(admitted.family(), family);
-        assert_eq!(
-            admitted.status(),
-            ForgeQueryRuntimeFamilySupportStatus::Supported
-        );
-    }
-
     for (family, expected_reason) in [
+        (ForgeQueryRuntimeFacadeFamily::Temporal, "support-gated"),
+        (
+            ForgeQueryRuntimeFacadeFamily::AsyncResource,
+            "support-gated",
+        ),
+        (
+            ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
+            "support-gated",
+        ),
         (
             ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
             "Milestone 10",

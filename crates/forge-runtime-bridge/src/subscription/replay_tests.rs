@@ -9,12 +9,16 @@ use crate::input::envelope::{
 };
 use crate::mapping::SubscriptionSliceKind;
 use crate::snapshot::{SnapshotReadPacket, TruthSnapshotIdentity, TruthSnapshotReader};
+use crate::truth_identity_fixtures::{truth_branch, truth_snapshot};
 
 use super::{
     super::BridgeSubscriptionLifecycleRecord, super::BridgeSubscriptionLifecycleStateKind,
     BridgeRetainedSubscriptionBundle, BridgeSubscriptionReplayMismatchKind,
     BridgeSubscriptionReplaySummary,
 };
+
+const REPLAY_SNAPSHOT: fn() -> TruthSnapshotIdentity = || truth_snapshot(1, 1);
+const REPLAY_BRANCH: fn() -> TruthBranchIdentity = || truth_branch("analysis");
 
 #[derive(Clone)]
 struct StaticSource;
@@ -23,7 +27,7 @@ struct StaticSnapshotReader;
 
 impl TruthSnapshotReader for StaticSnapshotReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        TruthSnapshotIdentity::new("snapshot-a")
+        REPLAY_SNAPSHOT()
     }
 
     fn read_packet(
@@ -32,7 +36,7 @@ impl TruthSnapshotReader for StaticSnapshotReader {
     ) -> Result<crate::snapshot::SnapshotReadPacketResult, crate::snapshot::BridgeSnapshotReadError>
     {
         Ok(crate::snapshot::SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            REPLAY_SNAPSHOT(),
             request
                 .reads()
                 .iter()
@@ -55,9 +59,9 @@ impl crate::adapter::CommittedPatchSource for StaticSource {
         BridgeCommittedPatchEnvelope::new(
             BridgeCommittedPatchEnvelopeIdentity::new(
                 request.commit_identity().clone(),
-                TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
-                TruthSnapshotIdentity::new("snapshot-a"),
-                TruthBranchIdentity::new("analysis"),
+                TruthPatchIdentity::from_relational_patch_position(1),
+                REPLAY_SNAPSHOT(),
+                REPLAY_BRANCH(),
             ),
             vec![profile_name_patch_item("entity-1")],
         )
@@ -70,7 +74,7 @@ impl crate::adapter::SnapshotReadSource for StaticSource {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, crate::adapter::RelationalBridgeSourceError> {
-        if identity.as_str() == "snapshot-a" {
+        if snapshot_matches_replay_fixture(identity) {
             Ok(Box::new(StaticSnapshotReader))
         } else {
             Err(crate::adapter::RelationalBridgeSourceError::new(format!(
@@ -88,12 +92,9 @@ impl crate::adapter::TruthBranchHeadSource for StaticSource {
     ) -> Result<BridgeCommittedPatchEnvelope, crate::adapter::RelationalBridgeSourceError> {
         BridgeCommittedPatchEnvelope::new(
             BridgeCommittedPatchEnvelopeIdentity::new(
-                crate::facade::TruthCommitIdentity::new(format!(
-                    "head-{}",
-                    branch_identity.as_str()
-                )),
-                TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::facade::TruthCommitIdentity::from_relational_commit_id(100),
+                TruthPatchIdentity::from_relational_patch_position(100),
+                REPLAY_SNAPSHOT(),
                 branch_identity.clone(),
             ),
             vec![profile_name_patch_item("entity-1")],
@@ -114,6 +115,12 @@ impl crate::adapter::InvalidationSink for StaticSink {
             delivery.source_snapshot().clone(),
         ))
     }
+}
+
+fn snapshot_matches_replay_fixture(identity: &TruthSnapshotIdentity) -> bool {
+    identity
+        .relational_snapshot_parts()
+        .is_some_and(|parts| parts.snapshot_id() == 1 && parts.version_id() == 1)
 }
 
 fn profile_name_patch_item(entity_identity: &str) -> BridgeCommittedPatchItem {
@@ -140,7 +147,7 @@ fn runtime(policy: BridgeRuntimePolicy) -> crate::facade::RuntimeBridge {
         .with_truth_branch_head_source(StaticSource)
         .with_signal_sink(StaticSink)
         .register_mapping(crate::mapping::BridgeMappingRegistration::new(
-            crate::mapping::BridgeMappingId::new("mapping"),
+            crate::mapping::BridgeMappingId::admit_bridge_owned("mapping"),
             crate::mapping::TruthPatchScope::for_entity_field(
                 crate::mapping::MappingSelector::exact("entity-1"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -153,7 +160,7 @@ fn runtime(policy: BridgeRuntimePolicy) -> crate::facade::RuntimeBridge {
                     .expect("valid native aspect key"),
                 forge_foundational::facade::ScalarAspectType::String,
             ),
-            crate::mapping::SignalInvalidationScope::new("signal:profile"),
+            crate::mapping::SignalInvalidationScope::admit_bridge_owned("signal:profile"),
             crate::mapping::CoarseRoutingMode::Direct,
         ))
         .build()
@@ -205,14 +212,14 @@ fn replay_rejects_lifecycle_admitted_mismatch() {
     let detail_admitted = runtime
         .admit_subscription(
             &detail,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(REPLAY_SNAPSHOT()),
         )
         .expect("detail admission should succeed");
     let collection = declare_collection(&runtime);
     let collection_admitted = runtime
         .admit_subscription(
             &collection,
-            BridgeSubscriptionBasisRequest::branch_head(TruthBranchIdentity::new("analysis")),
+            BridgeSubscriptionBasisRequest::branch_head(REPLAY_BRANCH()),
         )
         .expect("collection admission should succeed");
 

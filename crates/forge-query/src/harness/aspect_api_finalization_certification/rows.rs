@@ -2,18 +2,20 @@ use crate::harness::certification::{
     CanonicalCertificationRow, HostileExpectation, ParityAnchor, RejectionCertificationRow,
 };
 use crate::runtime::{
-    ForgeQueryAuthorityLane, ForgeQueryIntentDeclaration, ForgeQueryLiveView,
-    ForgeQueryPreviewOptions, ForgeQueryRuntimeError,
+    ForgeQueryAuthorityLane, ForgeQueryLiveView, ForgeQueryPreviewOptions, ForgeQueryWriteReceipt,
 };
+use crate::ForgeQuerySessionLabel;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 use serde_json::Value;
 
 use super::digests::{inspection_digest, touched_aspect_digest};
 use super::fixture::{
     stateful_bridge_task_runtime, task_live_view, CertificationTitleListMaintainer,
 };
+use super::rejections::{duplicate_aspect_authoring_rejection, unsupported_intent_rejection};
 use super::{
-    AspectApiFinalizationCertificationBundle, AspectApiFinalizationFailureClass,
-    AspectApiFinalizationPerturbationClass, AspectApiFinalizationRejectionBundle,
+    AspectApiFinalizationCertificationBundle, AspectApiFinalizationPerturbationClass,
+    AspectApiFinalizationRejectionBundle,
 };
 
 pub(super) fn canonical_rows() -> Vec<
@@ -127,6 +129,7 @@ fn authoritative_crud_lane(
         support_matrix_digest: workspace
             .public_support_matrix()
             .matrix_digest()
+            .terminal_projection_for_reporting()
             .to_string(),
         mutation_surface_report_digest: workspace
             .public_mutation_surface_report()
@@ -136,8 +139,11 @@ fn authoritative_crud_lane(
             .public_aspect_api_finalization_closeout()
             .closeout_digest()
             .to_string(),
-        receipt_digest: delete.commit_identity().to_string(),
-        state_digest: state.state_digest().to_string(),
+        receipt_digest: write_receipt_digest(&delete),
+        state_digest: state
+            .state_digest()
+            .terminal_projection_for_reporting()
+            .to_string(),
         inspection_digest: inspection_digest(&inspection),
         touched_aspect_digest: touched_aspect_digest(&update.deltas()[0].aspect_paths),
         affected_live_view_count: delete.affected_live_view_ids().len(),
@@ -180,6 +186,7 @@ fn clear_lane(aspect_path: &str) -> AspectApiFinalizationCertificationBundle {
         support_matrix_digest: workspace
             .public_support_matrix()
             .matrix_digest()
+            .terminal_projection_for_reporting()
             .to_string(),
         mutation_surface_report_digest: workspace
             .public_mutation_surface_report()
@@ -189,8 +196,11 @@ fn clear_lane(aspect_path: &str) -> AspectApiFinalizationCertificationBundle {
             .public_aspect_api_finalization_closeout()
             .closeout_digest()
             .to_string(),
-        receipt_digest: receipt.commit_identity().to_string(),
-        state_digest: state.state_digest().to_string(),
+        receipt_digest: write_receipt_digest(&receipt),
+        state_digest: state
+            .state_digest()
+            .terminal_projection_for_reporting()
+            .to_string(),
         inspection_digest: inspection_digest(&inspection),
         touched_aspect_digest: touched_aspect_digest(&receipt.deltas()[0].aspect_paths),
         affected_live_view_count: receipt.affected_live_view_ids().len(),
@@ -244,6 +254,7 @@ fn authoritative_batch_lane() -> AspectApiFinalizationCertificationBundle {
         support_matrix_digest: workspace
             .public_support_matrix()
             .matrix_digest()
+            .terminal_projection_for_reporting()
             .to_string(),
         mutation_surface_report_digest: workspace
             .public_mutation_surface_report()
@@ -254,7 +265,10 @@ fn authoritative_batch_lane() -> AspectApiFinalizationCertificationBundle {
             .closeout_digest()
             .to_string(),
         receipt_digest: receipt.batch_digest().to_string(),
-        state_digest: state.state_digest().to_string(),
+        state_digest: state
+            .state_digest()
+            .terminal_projection_for_reporting()
+            .to_string(),
         inspection_digest: inspection_digest(&inspection),
         touched_aspect_digest: touched_aspect_digest(receipt.touched_aspect_paths()),
         affected_live_view_count: receipt.affected_live_view_ids().len(),
@@ -271,7 +285,11 @@ fn preview_batch_lane() -> AspectApiFinalizationCertificationBundle {
         .expect("workspace should open");
     let mut preview = workspace
         .preview_with_options(
-            "preview-batch",
+            ForgeQuerySessionLabel::scoped_strs(
+                "aspect-api-finalization-certification",
+                ["preview-batch"],
+            )
+            .expect("preview label should build"),
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("preview should open");
@@ -301,6 +319,7 @@ fn preview_batch_lane() -> AspectApiFinalizationCertificationBundle {
         support_matrix_digest: workspace
             .public_support_matrix()
             .matrix_digest()
+            .terminal_projection_for_reporting()
             .to_string(),
         mutation_surface_report_digest: workspace
             .public_mutation_surface_report()
@@ -311,7 +330,10 @@ fn preview_batch_lane() -> AspectApiFinalizationCertificationBundle {
             .closeout_digest()
             .to_string(),
         receipt_digest: receipt.batch_digest().to_string(),
-        state_digest: state.state_digest().to_string(),
+        state_digest: state
+            .state_digest()
+            .terminal_projection_for_reporting()
+            .to_string(),
         inspection_digest: inspection_digest(&inspection),
         touched_aspect_digest: touched_aspect_digest(receipt.touched_aspect_paths()),
         affected_live_view_count: receipt.affected_live_view_ids().len(),
@@ -338,6 +360,7 @@ fn mutation_surface_contract_lane() -> AspectApiFinalizationCertificationBundle 
         support_matrix_digest: workspace
             .public_support_matrix()
             .matrix_digest()
+            .terminal_projection_for_reporting()
             .to_string(),
         mutation_surface_report_digest: report.report_digest().to_string(),
         closeout_digest: closeout.closeout_digest().to_string(),
@@ -362,67 +385,25 @@ fn mutation_surface_contract_lane() -> AspectApiFinalizationCertificationBundle 
     }
 }
 
-fn unsupported_intent_rejection() -> AspectApiFinalizationRejectionBundle {
-    let mut workspace = stateful_bridge_task_runtime()
-        .workspace("aspect-api.intent-denial")
-        .expect("workspace should open");
-    let report = workspace.public_mutation_surface_report();
-    let closeout = workspace.public_aspect_api_finalization_closeout();
-    let error = workspace
-        .intent(ForgeQueryIntentDeclaration::strategy_commit(
-            "unsupported-intent",
-            "strategy.intent.reconcile",
-            "1.0",
-            "intent.reconcile.input.v1",
-            serde_json::json!({ "entity": "task-1" }),
-        ))
-        .expect_err("unsupported runtime should deny intent typed and early");
-
-    match error {
-        ForgeQueryRuntimeError::UnsupportedFacadeFamily(denial) => {
-            AspectApiFinalizationRejectionBundle {
-                failure_class: AspectApiFinalizationFailureClass::SupportDenied,
-                failure_kind: denial.family().to_string(),
-                failure_digest: crate::harness::certification::digest_parts(&[
-                    denial.family().to_string(),
-                    denial.reason().to_string(),
-                ]),
-                support_matrix_digest: workspace
-                    .public_support_matrix()
-                    .matrix_digest()
-                    .to_string(),
-                mutation_surface_report_digest: report.report_digest().to_string(),
-                closeout_digest: closeout.closeout_digest().to_string(),
-            }
-        }
-        other => panic!("expected typed support denial, got {other:?}"),
-    }
-}
-
-fn duplicate_aspect_authoring_rejection() -> AspectApiFinalizationRejectionBundle {
-    let mut workspace = stateful_bridge_task_runtime()
-        .workspace("aspect-api.duplicate-denial")
-        .expect("workspace should open");
-    let report = workspace.public_mutation_surface_report();
-    let closeout = workspace.public_aspect_api_finalization_closeout();
-    let error = workspace
-        .update("entity:1:1:1", |task| {
-            task.clear("title.value").aspect("title.value", "Buy milk")
-        })
-        .expect_err("duplicate aspect authoring should fail closed");
-
-    match error {
-        ForgeQueryRuntimeError::Workspace(error) => AspectApiFinalizationRejectionBundle {
-            failure_class: AspectApiFinalizationFailureClass::AuthoringDenied,
-            failure_kind: "workspace-authoring".to_string(),
-            failure_digest: crate::harness::certification::digest_parts(&[error.to_string()]),
-            support_matrix_digest: workspace
-                .public_support_matrix()
-                .matrix_digest()
-                .to_string(),
-            mutation_surface_report_digest: report.report_digest().to_string(),
-            closeout_digest: closeout.closeout_digest().to_string(),
-        },
-        other => panic!("expected workspace authoring denial, got {other:?}"),
-    }
+fn write_receipt_digest(receipt: &ForgeQueryWriteReceipt) -> String {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WriteReceiptInspectionArtifact)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("commit_evidence_identity"),
+            receipt.commit_evidence_identity(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("snapshot_evidence_identity"),
+            receipt.snapshot_evidence_identity(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("mutation_family"),
+            receipt.mutation_family().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authority_lane"),
+            receipt.authority_lane().as_str(),
+        )
+        .seal()
+        .terminal_projection_for_reporting()
+        .to_string()
 }

@@ -18,6 +18,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let retained_handoff = orchestrate_topology_declaration_entry(
             TopologyMutationFamily::RewireLoopSuccessor,
             declaration.clone(),
+            mode.clone(),
         )?;
 
         let sequence = declaration.into_mutation_sequence();

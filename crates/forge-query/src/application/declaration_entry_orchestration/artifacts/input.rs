@@ -51,7 +51,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub fn handle_identity_digest(&self) -> &str {
-        self.world_basis.handle_identity_digest()
+        self.world_basis.handle_identity_for_reporting()
     }
 
     pub fn operating_context_identity_digest(&self) -> &str {

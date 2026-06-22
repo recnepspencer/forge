@@ -1,7 +1,10 @@
-use crate::identity::hash_parts;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::support_matrix::{EffectSupportCause, EffectSupportPosture};
 use super::taxonomy::{DeniedEffectEligibilityKind, EffectFamily};
+
+const EFFECT_LIFECYCLE_IDENTITY_SCOPE: ForgeQueryEvidenceScope =
+    ForgeQueryEvidenceScope::WorkflowMutationLowering;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectDeferredNeighborFamily {
@@ -38,7 +41,7 @@ pub struct EffectDeferredSupportContract {
     neighbor_family: EffectDeferredNeighborFamily,
     denial_kind: DeniedEffectEligibilityKind,
     residue_posture: EffectDeferredResiduePosture,
-    contract_digest: String,
+    contract_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl EffectDeferredSupportContract {
@@ -47,17 +50,30 @@ impl EffectDeferredSupportContract {
         denial_kind: DeniedEffectEligibilityKind,
     ) -> Self {
         let residue_posture = EffectDeferredResiduePosture::ZeroOperationalResidue;
-        let contract_digest = hash_parts(&[
-            "effect_deferred_support_contract_v1".to_string(),
-            format!("neighbor:{}", neighbor_family.as_str()),
-            format!("denial_kind:{}", denial_kind.as_str()),
-            format!("residue:{}", residue_posture.as_str()),
-        ]);
+        let contract_identity =
+            ForgeQueryEvidenceIdentity::compose(EFFECT_LIFECYCLE_IDENTITY_SCOPE)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_deferred_support_contract_v1",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("neighbor"),
+                    neighbor_family.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("denial_kind"),
+                    denial_kind.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("residue"),
+                    residue_posture.as_str(),
+                )
+                .seal();
         Self {
             neighbor_family,
             denial_kind,
             residue_posture,
-            contract_digest,
+            contract_identity,
         }
     }
 
@@ -73,8 +89,12 @@ impl EffectDeferredSupportContract {
         self.residue_posture
     }
 
-    pub fn contract_digest(&self) -> &str {
-        &self.contract_digest
+    pub fn contract_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.contract_identity
+    }
+
+    pub fn contract_for_reporting(&self) -> &str {
+        self.contract_identity.as_str()
     }
 
     pub fn leaves_zero_operational_residue(&self) -> bool {

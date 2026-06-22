@@ -11,8 +11,8 @@ fn pricing_shock_conflicting_historical_basis_is_detectable_against_independent_
     let historical_cost = runtime
         .evaluate(
             BridgeTruthViewEvaluationRequest::for_historical_commit(
-                TruthBranchIdentity::new("pricing-shock"),
-                crate::facade::TruthCommitIdentity::new("commit:rubber-shock"),
+                crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
             )
             .with_read_packet(pricing_component_read_packet("rubber")),
         )
@@ -20,8 +20,8 @@ fn pricing_shock_conflicting_historical_basis_is_detectable_against_independent_
     let historical_provenance = runtime
         .evaluate(
             BridgeTruthViewEvaluationRequest::for_historical_commit(
-                TruthBranchIdentity::new("pricing-shock"),
-                crate::facade::TruthCommitIdentity::new("commit:rubber-shock"),
+                crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
             )
             .with_read_packet(pricing_provenance_read_packet("rubber")),
         )
@@ -75,8 +75,10 @@ fn pricing_shock_branch_head_and_snapshot_basis_mutation_sweep_is_detectable() {
         let runtime = build_pricing_runtime(source, RecordingSignalBridgeSink::default());
         let error = runtime
             .evaluate(
-                BridgeTruthViewEvaluationRequest::for_branch_head(TruthBranchIdentity::new(branch))
-                    .with_read_packet(pricing_component_read_packet("rubber")),
+                BridgeTruthViewEvaluationRequest::for_branch_head(
+                    crate::truth_identity_fixtures::truth_branch_fixture(branch),
+                )
+                .with_read_packet(pricing_component_read_packet("rubber")),
             )
             .err()
             .unwrap_or_else(|| panic!("{label} should fail closed under branch-head mutation"));
@@ -94,9 +96,9 @@ fn pricing_shock_branch_head_and_snapshot_basis_mutation_sweep_is_detectable() {
     );
     let error = missing_snapshot_runtime
         .evaluate(
-            BridgeTruthViewEvaluationRequest::for_branch_head(TruthBranchIdentity::new(
-                "pricing-shock",
-            ))
+            BridgeTruthViewEvaluationRequest::for_branch_head(
+                crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
+            )
             .with_read_packet(pricing_component_read_packet("rubber")),
         )
         .err()
@@ -114,7 +116,7 @@ fn pricing_shock_snapshot_identity_conflict_sweep_is_detectable_against_independ
             "main-snapshot-overwritten-with-speculative-meaning",
             pricing_reference_source_with_conflicting_snapshot_identity(snapshot_with_identity(
                 &scenario.speculative_snapshot,
-                TruthSnapshotIdentity::new("snapshot:pricing-main"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main"),
             )),
             "main",
             "snapshot:pricing-main",
@@ -124,7 +126,7 @@ fn pricing_shock_snapshot_identity_conflict_sweep_is_detectable_against_independ
             "speculative-snapshot-overwritten-with-main-meaning",
             pricing_reference_source_with_conflicting_snapshot_identity(snapshot_with_identity(
                 &scenario.main_snapshot,
-                TruthSnapshotIdentity::new("snapshot:pricing-shock"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-shock"),
             )),
             "pricing-shock",
             "snapshot:pricing-shock",
@@ -134,9 +136,9 @@ fn pricing_shock_snapshot_identity_conflict_sweep_is_detectable_against_independ
         let runtime = build_pricing_runtime(source, RecordingSignalBridgeSink::default());
         let evaluation = runtime
             .evaluate(
-                BridgeTruthViewEvaluationRequest::for_branch_head(TruthBranchIdentity::new(
-                    selector_branch,
-                ))
+                BridgeTruthViewEvaluationRequest::for_branch_head(
+                    crate::truth_identity_fixtures::truth_branch_fixture(selector_branch),
+                )
                 .with_read_packet(pricing_component_read_packet("rubber")),
             )
             .unwrap_or_else(|_| {
@@ -178,8 +180,10 @@ fn pricing_shock_branch_head_missing_commit_sweep_fails_closed() {
         let runtime = build_pricing_runtime(source, RecordingSignalBridgeSink::default());
         let error = runtime
             .evaluate(
-                BridgeTruthViewEvaluationRequest::for_branch_head(TruthBranchIdentity::new(branch))
-                    .with_read_packet(pricing_component_read_packet("rubber")),
+                BridgeTruthViewEvaluationRequest::for_branch_head(
+                    crate::truth_identity_fixtures::truth_branch_fixture(branch),
+                )
+                .with_read_packet(pricing_component_read_packet("rubber")),
             )
             .err()
             .unwrap_or_else(|| {

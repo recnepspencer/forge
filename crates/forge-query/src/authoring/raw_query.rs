@@ -2,7 +2,8 @@ use std::collections::BTreeSet;
 
 use super::{
     AspectFieldKey, AspectFieldSelector, CollectionQueryBuilder, DetailQueryBuilder,
-    OrderingSelector, PredicateSelector, TraversalSelector,
+    ForgeQueryGraphReadDomainOperationDeclaration, OrderingSelector, PredicateSelector,
+    TraversalSelector,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -44,6 +45,7 @@ pub struct RawAuthoredQuery {
     predicates: Vec<PredicateSelector>,
     ordering: Vec<OrderingSelector>,
     traversal: Vec<TraversalSelector>,
+    domain_graph_operations: Vec<ForgeQueryGraphReadDomainOperationDeclaration>,
 }
 
 impl RawAuthoredQuery {
@@ -63,6 +65,7 @@ impl RawAuthoredQuery {
             predicates: Vec::new(),
             ordering: Vec::new(),
             traversal: Vec::new(),
+            domain_graph_operations: Vec::new(),
         }
     }
 
@@ -74,6 +77,7 @@ impl RawAuthoredQuery {
             predicates: Vec::new(),
             ordering: Vec::new(),
             traversal: Vec::new(),
+            domain_graph_operations: Vec::new(),
         }
     }
 
@@ -86,6 +90,7 @@ impl RawAuthoredQuery {
             predicates: Vec::new(),
             ordering: Vec::new(),
             traversal: Vec::new(),
+            domain_graph_operations: Vec::new(),
         }
     }
 
@@ -106,6 +111,17 @@ impl RawAuthoredQuery {
 
     pub(crate) fn with_traversal(mut self, entry: TraversalSelector) -> Self {
         self.traversal.push(entry);
+        self
+    }
+
+    pub(crate) fn with_domain_graph_operation(
+        mut self,
+        operation: ForgeQueryGraphReadDomainOperationDeclaration,
+    ) -> Self {
+        self.domain_graph_operations.push(operation);
+        self.domain_graph_operations
+            .sort_by_key(ForgeQueryGraphReadDomainOperationDeclaration::digest_part);
+        self.domain_graph_operations.dedup();
         self
     }
 
@@ -134,6 +150,10 @@ impl RawAuthoredQuery {
 
     pub fn traversal(&self) -> &[TraversalSelector] {
         &self.traversal
+    }
+
+    pub fn domain_graph_operations(&self) -> &[ForgeQueryGraphReadDomainOperationDeclaration] {
+        &self.domain_graph_operations
     }
 
     pub fn predicates(&self) -> &[PredicateSelector] {

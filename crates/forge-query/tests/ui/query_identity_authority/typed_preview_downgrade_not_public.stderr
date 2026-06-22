@@ -1,0 +1,43 @@
+error[E0624]: method `as_preview_binding` is private
+  --> tests/ui/typed_preview_downgrade_not_public.rs:10:23
+   |
+10 |     let _ = read_only.as_preview_binding();
+   |                       ^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/preview/mod.rs
+   |
+   |     pub(crate) fn as_preview_binding(&self) -> &PreviewSessionPlanBinding {
+   |     --------------------------------------------------------------------- private method defined here
+
+error[E0624]: method `as_preview_binding` is private
+  --> tests/ui/typed_preview_downgrade_not_public.rs:11:23
+   |
+11 |     let _ = promotion.as_preview_binding();
+   |                       ^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/preview/mod.rs
+   |
+   |     pub(crate) fn as_preview_binding(&self) -> &PreviewSessionPlanBinding {
+   |     --------------------------------------------------------------------- private method defined here
+
+error[E0624]: method `as_preview_execution` is private
+  --> tests/ui/typed_preview_downgrade_not_public.rs:18:23
+   |
+18 |     let _ = read_only.as_preview_execution();
+   |                       ^^^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/preview/mod.rs
+   |
+   |     pub(crate) fn as_preview_execution(&self) -> &PreviewExecutionEnvelope {
+   |     ---------------------------------------------------------------------- private method defined here
+
+error[E0624]: method `as_preview_execution` is private
+  --> tests/ui/typed_preview_downgrade_not_public.rs:19:23
+   |
+19 |     let _ = promotion.as_preview_execution();
+   |                       ^^^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/preview/mod.rs
+   |
+   |     pub(crate) fn as_preview_execution(&self) -> &PreviewExecutionEnvelope {
+   |     ---------------------------------------------------------------------- private method defined here

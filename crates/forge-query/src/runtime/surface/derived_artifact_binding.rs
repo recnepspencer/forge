@@ -4,7 +4,11 @@ use super::{
     ForgeQueryDerivedMaterializationBundle, ForgeQueryDerivedMaterializationResult,
     ForgeQueryDerivedMaterializationTarget,
 };
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::computed::ForgeQueryDerivedViewHandle;
 use crate::runtime::ForgeQueryRuntimeError;
 #[cfg(test)]
@@ -13,7 +17,7 @@ use crate::runtime::{record_forbidden_fallback_seam_invocation, ForgeQueryForbid
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryDerivedArtifactBinding {
     artifact_name: String,
-    binding_digest: String,
+    binding_identity: ForgeQueryEvidenceIdentity,
     bundle: ForgeQueryDerivedMaterializationBundle,
     target_view_names: Vec<String>,
 }
@@ -25,6 +29,26 @@ impl ForgeQueryDerivedArtifactBinding {
         required_targets: impl IntoIterator<Item = ForgeQueryDerivedMaterializationTarget>,
     ) -> Result<Self, ForgeQueryRuntimeError> {
         let artifact_name = artifact_name.into();
+        Self::bind_inner(bundle, artifact_name, required_targets)
+    }
+
+    pub(in crate::runtime) fn bind_with_identity(
+        bundle: ForgeQueryDerivedMaterializationBundle,
+        artifact_identity: ForgeQueryEvidenceIdentity,
+        required_targets: impl IntoIterator<Item = ForgeQueryDerivedMaterializationTarget>,
+    ) -> Result<Self, ForgeQueryRuntimeError> {
+        Self::bind_inner(
+            bundle,
+            artifact_identity.as_str().to_string(),
+            required_targets,
+        )
+    }
+
+    fn bind_inner(
+        bundle: ForgeQueryDerivedMaterializationBundle,
+        artifact_name: String,
+        required_targets: impl IntoIterator<Item = ForgeQueryDerivedMaterializationTarget>,
+    ) -> Result<Self, ForgeQueryRuntimeError> {
         let mut target_view_names = required_targets
             .into_iter()
             .map(|target| target.view_name().to_string())
@@ -48,24 +72,23 @@ impl ForgeQueryDerivedArtifactBinding {
             });
         }
 
-        let binding_digest = hash_parts(
-            &std::iter::once("forge_query_derived_artifact_binding_v1".to_string())
-                .chain(std::iter::once(format!("artifact:{artifact_name}")))
-                .chain(std::iter::once(format!(
-                    "bundle:{}",
-                    bundle.bundle_digest()
-                )))
-                .chain(
-                    target_view_names
-                        .iter()
-                        .map(|view_name| format!("target:{view_name}")),
+        let binding_identity =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::SharedReadGeneration)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "forge_query_derived_artifact_binding_v1",
                 )
-                .collect::<Vec<_>>(),
-        );
+                .field_shape(ForgeQueryEvidenceTag::new("artifact"), &artifact_name)
+                .field_shape(ForgeQueryEvidenceTag::new("bundle"), bundle.bundle_digest())
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("target"),
+                    target_view_names.iter().map(String::as_str),
+                )
+                .seal();
 
         Ok(Self {
             artifact_name,
-            binding_digest,
+            binding_identity,
             bundle,
             target_view_names,
         })
@@ -75,12 +98,16 @@ impl ForgeQueryDerivedArtifactBinding {
         &self.artifact_name
     }
 
-    pub fn binding_digest(&self) -> &str {
-        &self.binding_digest
+    pub fn binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.binding_identity
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        self.bundle.snapshot_token()
+    pub fn binding_for_reporting(&self) -> &str {
+        self.binding_identity.as_str()
+    }
+
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        self.bundle.snapshot_identity()
     }
 
     pub fn target_count(&self) -> usize {
@@ -164,6 +191,7 @@ mod tests {
     use serde_json::json;
 
     use super::ForgeQueryDerivedArtifactBinding;
+
     use crate::runtime::computed::ForgeQueryDerivedViewHandle;
     use crate::runtime::surface::{
         ForgeQueryDerivedMaterializationBundle, ForgeQueryDerivedMaterializationReceipt,
@@ -178,7 +206,7 @@ mod tests {
             vec![value],
             ForgeQueryDerivedMaterializationReceipt::test_only(
                 view_name,
-                "snapshot-test",
+                crate::memory_workspace::admit_external_snapshot_label("snapshot-test"),
                 &format!("{view_name}-digest"),
             ),
         )
@@ -194,7 +222,7 @@ mod tests {
         let second = ForgeQueryDerivedViewHandle::new("derived.second");
         let third = ForgeQueryDerivedViewHandle::new("derived.third");
         let bundle = ForgeQueryDerivedMaterializationBundle::new(
-            "snapshot-test",
+            crate::memory_workspace::admit_external_snapshot_label("snapshot-test"),
             BTreeMap::from([
                 (
                     first.name().to_string(),

@@ -1,7 +1,12 @@
+use super::identities::{
+    conflict_scope_identity, delivery_or_failure_identity, post_merge_scope_identity,
+    workflow_authoritative_outcome_identity, workflow_authority_request_identity,
+    workflow_replay_bundle_identity,
+};
 use super::*;
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::workflow::inspection_projection::{
-    relational_merge_class_admission, relational_merge_class_label,
+    relational_merge_class_admission, relational_merge_class_label, relational_merge_class_shape,
 };
 use forge_relational::facade::merge::{
     NormalizedRelationalMergeRequest, RelationalMergeInspectionArtifact,
@@ -25,13 +30,10 @@ pub fn inspect_merge_conflicts(
         ));
     }
 
-    if declaration.binding().query_identity_digest()
-        != merge_declaration
-            .declaration()
-            .binding()
-            .query_identity_digest()
-        || declaration.binding().basis_digest()
-            != merge_declaration.declaration().binding().basis_digest()
+    if declaration.binding().query_identity()
+        != merge_declaration.declaration().binding().query_identity()
+        || declaration.binding().basis_identity()
+            != merge_declaration.declaration().binding().basis_identity()
     {
         return Err(WorkflowInspectionError::new(
             WorkflowInspectionFailureClass::UnsupportedInspectionFamily,
@@ -71,35 +73,31 @@ pub fn inspect_merge_conflicts(
     let rows = relational_inspection
         .rows()
         .iter()
-        .map(|row| ConflictInspectionRow {
-            workflow_basis_digest: declaration.binding().basis_digest().to_string(),
-            merge_class: relational_merge_class_label(row),
-            merge_class_admission: relational_merge_class_admission(row),
-            target_basis_digest: merge_declaration.merge_request().target_branch().0.clone(),
-            source_basis_digest: merge_declaration.merge_request().source_branch().0.clone(),
-            conflict_scope_digest: hash_parts(&[
-                format!(
-                    "target:{}",
-                    merge_declaration.merge_request().target_branch().0
-                ),
-                format!(
-                    "source:{}",
-                    merge_declaration.merge_request().source_branch().0
-                ),
-                format!("merge_intent:{}", merge_declaration.merge_intent().as_str()),
-                format!("record:{:?}", row.record()),
-                format!("row_digest:{}", row.row_digest()),
-                format!("merge_class:{}", relational_merge_class_label(row)),
-                format!(
-                    "merge_class_admission:{}",
-                    relational_merge_class_admission(row).as_str()
-                ),
-            ]),
-            authority_target_family: merge_declaration
-                .declaration()
-                .report()
-                .authority_target_family()
-                .clone(),
+        .map(|row| {
+            let merge_class_shape = relational_merge_class_shape(row);
+            let merge_class = relational_merge_class_label(row);
+            let merge_class_admission = relational_merge_class_admission(row);
+            let conflict_scope_identity = conflict_scope_identity(
+                declaration,
+                merge_declaration,
+                merge_class_shape.family,
+                merge_class_shape.class,
+                merge_class_admission.as_str(),
+                row.row_digest(),
+            );
+            ConflictInspectionRow {
+                workflow_basis_digest: declaration.binding().basis_for_reporting().to_string(),
+                merge_class,
+                merge_class_admission,
+                target_basis_digest: merge_declaration.merge_request().target_branch().0.clone(),
+                source_basis_digest: merge_declaration.merge_request().source_branch().0.clone(),
+                conflict_scope_digest: conflict_scope_identity.as_str().to_string(),
+                authority_target_family: merge_declaration
+                    .declaration()
+                    .report()
+                    .authority_target_family()
+                    .clone(),
+            }
         })
         .collect::<Vec<_>>();
     let row_width = rows.len();
@@ -135,12 +133,7 @@ pub fn shape_mutation_authority_outcome(
     shape_authority_outcome(
         declaration.declaration(),
         WorkflowAuthorityOutcomeFamily::MutationLoweringAdmitted,
-        declaration
-            .strategy_request()
-            .caller_provenance()
-            .correlation_id
-            .as_deref(),
-        declaration.lowering_digest(),
+        declaration.lowering_identity(),
         declaration.counters().clone(),
         1,
     )
@@ -152,8 +145,7 @@ pub fn shape_merge_authority_outcome(
     shape_authority_outcome(
         declaration.declaration(),
         WorkflowAuthorityOutcomeFamily::MergeLoweringAdmitted,
-        None,
-        declaration.lowering_digest(),
+        declaration.lowering_identity(),
         declaration.counters().clone(),
         1,
     )
@@ -165,8 +157,7 @@ pub fn shape_writeback_authority_outcome(
     shape_authority_outcome(
         declaration.declaration(),
         WorkflowAuthorityOutcomeFamily::WritebackLoweringAdmitted,
-        None,
-        declaration.lowering_digest(),
+        declaration.lowering_identity(),
         declaration.counters().clone(),
         1,
     )
@@ -204,8 +195,8 @@ pub fn inspect_post_merge_outcome(
         ));
     }
 
-    if declaration.binding().query_identity_digest() != outcome.source_query_digest()
-        || declaration.binding().basis_digest() != outcome.source_basis_digest()
+    if declaration.binding().query_identity() != outcome.source_query_identity()
+        || declaration.binding().basis_identity() != outcome.source_basis_identity()
     {
         return Err(WorkflowInspectionError::new(
             WorkflowInspectionFailureClass::UnsupportedInspectionFamily,
@@ -221,10 +212,9 @@ pub fn inspect_post_merge_outcome(
         authoritative_outcome_basis_digest: outcome.source_basis_digest().to_string(),
         authority_target_family: outcome.authority_target_family().clone(),
         authoritative_commit_or_outcome_digest: outcome.authoritative_outcome_digest().to_string(),
-        post_merge_scope_digest: hash_parts(&[
-            format!("outcome:{}", outcome.authoritative_outcome_digest()),
-            format!("family:{}", outcome.family().as_str()),
-        ]),
+        post_merge_scope_digest: post_merge_scope_identity(declaration, outcome)
+            .as_str()
+            .to_string(),
         merge_or_writeback_origin_digest: outcome.source_declaration_digest().to_string(),
         inspection_result_family: PostMergeInspectionFamily::AuthoritativeOutcomeNarrow
             .as_str()
@@ -259,37 +249,21 @@ pub fn inspect_post_merge_outcome(
 pub fn build_workflow_replay_bundle(
     outcome: &WorkflowAuthorityOutcomeArtifact,
 ) -> WorkflowReplayBundle {
-    let delivery_or_failure_digest = hash_parts(&[
-        format!("outcome:{}", outcome.authoritative_outcome_digest()),
-        format!("freshness:{}", outcome.freshness_outcome().as_str()),
-        format!("budget:{}", outcome.budget_outcome().as_str()),
-    ]);
-    let bundle_digest = hash_parts(&[
-        format!("query:{}", outcome.source_query_digest()),
-        format!("plan:{}", outcome.source_plan_digest()),
-        format!("basis:{}", outcome.source_basis_digest()),
-        format!("declaration:{}", outcome.source_declaration_digest()),
-        format!(
-            "authority_target:{}",
-            outcome.authority_target_family().as_str()
-        ),
-        format!("request:{}", outcome.authority_request_digest()),
-        format!("outcome:{}", outcome.authoritative_outcome_digest()),
-        format!("delivery:{delivery_or_failure_digest}"),
-    ]);
+    let delivery_or_failure_identity = delivery_or_failure_identity(outcome);
+    let bundle_identity = workflow_replay_bundle_identity(outcome, &delivery_or_failure_identity);
 
     let counters = outcome.counters().with_replay_bundle_issued();
 
     WorkflowReplayBundle {
-        bundle_digest,
-        query_digest: outcome.source_query_digest().to_string(),
-        plan_digest: outcome.source_plan_digest().to_string(),
-        basis_digest: outcome.source_basis_digest().to_string(),
-        declaration_digest: outcome.source_declaration_digest().to_string(),
+        bundle_identity: bundle_identity,
+        query_identity: outcome.source_query_identity().clone(),
+        plan_identity: outcome.source_plan_identity().clone(),
+        basis_identity: outcome.source_basis_identity().clone(),
+        declaration_identity: outcome.source_declaration_identity().clone(),
         authority_target_family: outcome.authority_target_family().clone(),
-        authority_request_digest: outcome.authority_request_digest().to_string(),
-        authoritative_outcome_digest: outcome.authoritative_outcome_digest().to_string(),
-        delivery_or_failure_digest,
+        authority_request_identity: outcome.authority_request_identity().clone(),
+        authoritative_outcome_identity: outcome.authoritative_outcome_identity().clone(),
+        delivery_or_failure_identity,
         counters,
     }
 }
@@ -297,30 +271,24 @@ pub fn build_workflow_replay_bundle(
 fn shape_authority_outcome(
     declaration: &QueryWorkflowDeclaration,
     family: WorkflowAuthorityOutcomeFamily,
-    authority_request_digest_hint: Option<&str>,
-    lowering_digest: &str,
+    request_identity: &ForgeQueryEvidenceIdentity,
     counters: WorkflowLoweringCounters,
     realized_width: usize,
 ) -> WorkflowAuthorityOutcomeArtifact {
-    let authority_request_digest = authority_request_digest_hint
-        .unwrap_or(lowering_digest)
-        .to_string();
-    let authoritative_outcome_digest = hash_parts(&[
-        format!("declaration:{}", declaration.report().declaration_digest()),
-        format!("family:{}", family.as_str()),
-        format!("authority_request:{authority_request_digest}"),
-        format!("basis:{}", declaration.binding().basis_digest()),
-    ]);
+    let authority_request_identity =
+        workflow_authority_request_identity(family.clone(), request_identity);
+    let authoritative_outcome_identity =
+        workflow_authoritative_outcome_identity(declaration, &family, &authority_request_identity);
 
     WorkflowAuthorityOutcomeArtifact {
         family,
         authority_target_family: declaration.report().authority_target_family().clone(),
-        source_query_digest: declaration.binding().query_identity_digest().to_string(),
-        source_plan_digest: declaration.binding().source_digest().to_string(),
-        source_basis_digest: declaration.binding().basis_digest().to_string(),
-        source_declaration_digest: declaration.report().declaration_digest().to_string(),
-        authority_request_digest,
-        authoritative_outcome_digest,
+        source_query_identity: declaration.binding().query_identity().clone(),
+        source_plan_identity: declaration.binding().source_identity().clone(),
+        source_basis_identity: declaration.binding().basis_identity().clone(),
+        source_declaration_identity: declaration.report().declaration_identity().clone(),
+        authority_request_identity,
+        authoritative_outcome_identity,
         cost_class: declaration.report().cost_class().clone(),
         budget_class: declaration.report().budget_class().clone(),
         budget_outcome: WorkflowBudgetOutcome::WithinBudget,

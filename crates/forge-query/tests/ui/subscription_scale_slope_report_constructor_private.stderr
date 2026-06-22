@@ -1,25 +1,55 @@
-error[E0451]: fields `digest`, `activation_digest`, `admission_digest`, `small_snapshot_digest`, `medium_snapshot_digest`, `large_snapshot_digest`, `small_row_count`, `medium_row_count`, `large_row_count` and `structural_counter_digest` of struct `QuerySubscriptionScaleSlopeReport` are private
-  --> tests/ui/subscription_scale_slope_report_constructor_private.rs:5:9
+error[E0560]: struct `QuerySubscriptionScaleSlopeReport` has no field named `digest`
+ --> tests/ui/subscription_scale_slope_report_constructor_private.rs:5:9
+  |
+5 |         digest: String::new(),
+  |         ^^^^^^ `QuerySubscriptionScaleSlopeReport` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionScaleSlopeReport` has no field named `activation_digest`
+ --> tests/ui/subscription_scale_slope_report_constructor_private.rs:6:9
+  |
+6 |         activation_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^ `QuerySubscriptionScaleSlopeReport` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionScaleSlopeReport` has no field named `admission_digest`
+ --> tests/ui/subscription_scale_slope_report_constructor_private.rs:7:9
+  |
+7 |         admission_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^ `QuerySubscriptionScaleSlopeReport` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionScaleSlopeReport` has no field named `small_snapshot_digest`
+ --> tests/ui/subscription_scale_slope_report_constructor_private.rs:8:9
+  |
+8 |         small_snapshot_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionScaleSlopeReport` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionScaleSlopeReport` has no field named `medium_snapshot_digest`
+ --> tests/ui/subscription_scale_slope_report_constructor_private.rs:9:9
+  |
+9 |         medium_snapshot_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionScaleSlopeReport` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionScaleSlopeReport` has no field named `large_snapshot_digest`
+  --> tests/ui/subscription_scale_slope_report_constructor_private.rs:10:9
    |
- 4 |     let _ = QuerySubscriptionScaleSlopeReport {
-   |             --------------------------------- in this type
- 5 |         digest: String::new(),
-   |         ^^^^^^ private field
- 6 |         activation_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^ private field
- 7 |         admission_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^ private field
- 8 |         small_snapshot_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         medium_snapshot_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
 10 |         large_snapshot_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         small_row_count: 1,
-   |         ^^^^^^^^^^^^^^^ private field
-12 |         medium_row_count: 2,
-   |         ^^^^^^^^^^^^^^^^ private field
-13 |         large_row_count: 3,
-   |         ^^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionScaleSlopeReport` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionScaleSlopeReport` has no field named `structural_counter_digest`
+  --> tests/ui/subscription_scale_slope_report_constructor_private.rs:14:9
+   |
 14 |         structural_counter_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionScaleSlopeReport` does not have this field
+   |
+   = note: all struct fields are already assigned

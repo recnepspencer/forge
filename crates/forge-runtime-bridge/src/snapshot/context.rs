@@ -98,7 +98,7 @@ mod tests {
 
     impl TruthSnapshotReader for StaticReader {
         fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-            TruthSnapshotIdentity::new("snapshot-a")
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a")
         }
 
         fn read_packet(
@@ -106,7 +106,7 @@ mod tests {
             _request: &SnapshotReadPacket,
         ) -> Result<SnapshotReadPacketResult, BridgeSnapshotReadError> {
             Ok(SnapshotReadPacketResult::new(
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 vec![],
             ))
         }
@@ -116,6 +116,9 @@ mod tests {
     fn context_binds_snapshot_identity_from_reader() {
         let context = BridgeSnapshotContext::bind(StaticReader);
 
-        assert_eq!(context.snapshot_identity().as_str(), "snapshot-a");
+        assert_eq!(
+            context.snapshot_identity().as_str(),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a").as_str()
+        );
     }
 }

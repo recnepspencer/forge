@@ -97,7 +97,7 @@ pub fn runtime_backed_policy_narrowing_support_profile() -> PolicyNarrowingSuppo
         ),
         (
             PolicyNarrowingSurface::PolicyAwareExecution,
-            PolicyNarrowingSupportStatus::Deferred,
+            PolicyNarrowingSupportStatus::Verified,
         ),
         (
             PolicyNarrowingSurface::PolicyAwareLive,

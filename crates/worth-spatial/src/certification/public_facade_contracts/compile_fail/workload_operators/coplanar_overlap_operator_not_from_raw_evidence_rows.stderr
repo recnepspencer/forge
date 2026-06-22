@@ -1,0 +1,11 @@
+error[E0599]: no function or associated item named `from_consumed_evidence` found for struct `CoplanarOverlapWorkloadOperator` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/workload_operators/coplanar_overlap_operator_not_from_raw_evidence_rows.rs:6:46
+  |
+6 |     let _ = CoplanarOverlapWorkloadOperator::from_consumed_evidence(&rows);
+  |                                              ^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `CoplanarOverlapWorkloadOperator`
+  |
+note: if you're trying to build a new `CoplanarOverlapWorkloadOperator`, consider using `CoplanarOverlapWorkloadOperator::from_stage_links` which returns `CoplanarOverlapWorkloadOperator`
+ --> src/workload_platform/workload_operators/coplanar_overlap.rs
+  |
+  |     pub fn from_stage_links(consumed_stage_links: &WorkloadEvidenceStageLinkSet) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

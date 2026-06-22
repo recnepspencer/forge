@@ -16,9 +16,9 @@ fn runtime_mixed_cause_delivery_replays_canonically_across_shuffled_bridge_input
         &bridge,
         forge_signal::facade::NodeId::new(241, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::from_bridge_harness_label("truth-main"),
+            TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
         ),
         64,
     );
@@ -80,12 +80,12 @@ fn runtime_mixed_cause_delivery_replays_canonically_across_shuffled_bridge_input
         .remove(0);
 
     assert_eq!(
-        batch_a.mixed_cause_delivery().ordering_digest(),
-        batch_b.mixed_cause_delivery().ordering_digest()
+        batch_a.mixed_cause_delivery().ordering_for_reporting(),
+        batch_b.mixed_cause_delivery().ordering_for_reporting()
     );
     assert_eq!(
-        batch_a.mixed_cause_delivery().mixed_cause_digest(),
-        batch_b.mixed_cause_delivery().mixed_cause_digest()
+        batch_a.mixed_cause_delivery().mixed_cause_for_reporting(),
+        batch_b.mixed_cause_delivery().mixed_cause_for_reporting()
     );
     assert_eq!(
         batch_a.mixed_cause_delivery().ordered_member_kinds(),
@@ -153,13 +153,13 @@ fn runtime_mixed_cause_delivery_retains_duplicate_suppression_explicitly() {
     assert_eq!(
         batch
             .mixed_cause_delivery()
-            .suppressed_cause_digests()
+            .suppressed_cause_identities()
             .len(),
         1
     );
     assert!(batch
         .mixed_cause_delivery()
-        .denied_cause_digests()
+        .denied_cause_identities()
         .is_empty());
 }
 
@@ -208,9 +208,12 @@ fn runtime_mixed_cause_delivery_preserves_denied_preview_boundary_without_coales
     );
     assert!(batch
         .mixed_cause_delivery()
-        .suppressed_cause_digests()
+        .suppressed_cause_identities()
         .is_empty());
-    assert_eq!(batch.mixed_cause_delivery().denied_cause_digests().len(), 1);
+    assert_eq!(
+        batch.mixed_cause_delivery().denied_cause_identities().len(),
+        1
+    );
     assert!(batch.has_relational_patch());
 }
 
@@ -223,9 +226,9 @@ fn runtime_state_and_inspection_retain_mixed_cause_delivery_projection_after_dra
         &bridge,
         forge_signal::facade::NodeId::new(242, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::from_bridge_harness_label("truth-main"),
+            TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
         ),
         64,
     );

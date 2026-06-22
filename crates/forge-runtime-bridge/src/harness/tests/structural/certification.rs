@@ -3,7 +3,7 @@ use forge_harness::facade::{
 };
 use forge_harness::runtime::HarnessAdapter;
 
-use crate::facade::{SnapshotReadRecord, SnapshotReadRequest, TruthSnapshotIdentity};
+use crate::facade::{SnapshotReadRecord, SnapshotReadRequest};
 use crate::harness::adapter::BridgeHarnessAdapter;
 use crate::harness::adapter::BridgeHarnessMutation;
 use crate::harness::fixtures::SnapshotFixture;
@@ -109,7 +109,7 @@ fn bridge_harness_structural_suite_9_preserves_branch_diff_and_replay_determinis
     let unrelated_mutation = MutationBatch::new("publish-unrelated-branch")
         .push(BridgeHarnessMutation::PublishSnapshot(
             SnapshotFixture::new(
-                TruthSnapshotIdentity::new("snapshot-unrelated"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-unrelated"),
                 vec![
                     certification_structural_snapshot_record(
                         "entity-1",
@@ -130,10 +130,10 @@ fn bridge_harness_structural_suite_9_preserves_branch_diff_and_replay_determinis
         ))
         .push(BridgeHarnessMutation::PublishCommittedPatch(
             committed_patch_on_branch(
-                crate::facade::TruthBranchIdentity::new("unrelated"),
-                crate::facade::TruthCommitIdentity::new("commit-unrelated"),
-                crate::facade::TruthPatchIdentity::new("patch-unrelated"),
-                TruthSnapshotIdentity::new("snapshot-unrelated"),
+                crate::truth_identity_fixtures::truth_branch_fixture("unrelated"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-unrelated"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-unrelated"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-unrelated"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ),
@@ -187,7 +187,7 @@ fn branch_head_structural_comparison_oscillates_predictably_under_branch_drift()
     let converge_mutation = MutationBatch::new("publish-right-branch-convergence")
         .push(BridgeHarnessMutation::PublishSnapshot(
             SnapshotFixture::new(
-                TruthSnapshotIdentity::new("snapshot-c"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-c"),
                 vec![
                     certification_structural_snapshot_record(
                         "entity-1",
@@ -208,10 +208,10 @@ fn branch_head_structural_comparison_oscillates_predictably_under_branch_drift()
         ))
         .push(BridgeHarnessMutation::PublishCommittedPatch(
             committed_patch_on_branch(
-                crate::facade::TruthBranchIdentity::new("right"),
-                crate::facade::TruthCommitIdentity::new("commit-right-c"),
-                crate::facade::TruthPatchIdentity::new("patch-right-c"),
-                TruthSnapshotIdentity::new("snapshot-c"),
+                crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-right-c"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-right-c"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-c"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ),
@@ -228,7 +228,7 @@ fn branch_head_structural_comparison_oscillates_predictably_under_branch_drift()
     let diverge_mutation = MutationBatch::new("publish-right-branch-divergence")
         .push(BridgeHarnessMutation::PublishSnapshot(
             SnapshotFixture::new(
-                TruthSnapshotIdentity::new("snapshot-d"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-d"),
                 vec![
                     certification_structural_snapshot_record(
                         "entity-1",
@@ -249,10 +249,10 @@ fn branch_head_structural_comparison_oscillates_predictably_under_branch_drift()
         ))
         .push(BridgeHarnessMutation::PublishCommittedPatch(
             committed_patch_on_branch(
-                crate::facade::TruthBranchIdentity::new("right"),
-                crate::facade::TruthCommitIdentity::new("commit-right-d"),
-                crate::facade::TruthPatchIdentity::new("patch-right-d"),
-                TruthSnapshotIdentity::new("snapshot-d"),
+                crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-right-d"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-right-d"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-d"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ),

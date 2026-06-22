@@ -26,7 +26,7 @@ pub(in crate::harness::adapter::adapter_impl) fn summary_json(
             "window_digest": result.summary().window_digest(),
             "consumer_contract_digest": result.summary().consumer_contract_digest(),
             "diagnostics_digest": result.summary().diagnostics_digest(),
-            "checkpoint_digest": checkpoint.checkpoint_token_identity(),
+            "checkpoint_digest": checkpoint.checkpoint_token_identity_for_reporting(),
             "replay_digest": replay_record.digest(),
             "first_stream_member_identity": window
                 .members()
@@ -36,7 +36,7 @@ pub(in crate::harness::adapter::adapter_impl) fn summary_json(
                 .members()
                 .last()
                 .map(|member| member.stream_member_identity()),
-            "checkpoint_token_identity": checkpoint.checkpoint_token_identity(),
+            "checkpoint_token_identity": checkpoint.checkpoint_token_identity_for_reporting(),
             "replay_record_identity": replay_record.replay_record_identity().as_str(),
             "delivered_route_count": result.summary().delivered_route_count(),
             "delivered_target_count": result.summary().delivered_target_count(),
@@ -51,7 +51,7 @@ pub(in crate::harness::adapter::adapter_impl) fn summary_json(
             "window_digest": result.summary().window_digest(),
             "consumer_contract_digest": result.summary().consumer_contract_digest(),
             "diagnostics_digest": result.summary().diagnostics_digest(),
-            "checkpoint_digest": result.checkpoint().checkpoint_token_identity(),
+            "checkpoint_digest": result.checkpoint().checkpoint_token_identity_for_reporting(),
             "replay_digest": result.replay_record().digest(),
             "first_stream_member_identity": window
                 .members()
@@ -61,7 +61,7 @@ pub(in crate::harness::adapter::adapter_impl) fn summary_json(
                 .members()
                 .last()
                 .map(|member| member.stream_member_identity()),
-            "checkpoint_token_identity": result.checkpoint().checkpoint_token_identity(),
+            "checkpoint_token_identity": result.checkpoint().checkpoint_token_identity_for_reporting(),
             "replay_record_identity": result.replay_record().replay_record_identity().as_str(),
             "audited_member_count": result.summary().audited_member_count(),
             "pressure_report": pressure_report_json(&BackpressureDecisionRecord::classify(window)),
@@ -190,8 +190,8 @@ pub(in crate::harness::adapter::adapter_impl) fn stream_checkpoint_extension(
     (
         "bridge_stream_checkpoint".to_string(),
         json!({
-            "checkpoint_token_identity": checkpoint.checkpoint_token_identity(),
-            "checkpoint_digest": checkpoint.checkpoint_token_identity(),
+            "checkpoint_token_identity": checkpoint.checkpoint_token_identity_for_reporting(),
+            "checkpoint_digest": checkpoint.checkpoint_token_identity_for_reporting(),
             "consumer_contract_identity": checkpoint.consumer_contract_identity().as_str(),
             "stream_protocol_identity": checkpoint.stream_protocol_identity().as_str(),
             "checkpoint_member_count": checkpoint.checkpoint_member_count(),
@@ -220,7 +220,7 @@ pub(in crate::harness::adapter::adapter_impl) fn stream_replay_extension(
             "replay_digest": replay_record.digest(),
             "consumer_contract_identity": replay_record.consumer_contract_identity().as_str(),
             "stream_window_identity": replay_record.stream_window_identity().as_str(),
-            "checkpoint_token_identity": replay_record.checkpoint_token_identity(),
+            "checkpoint_token_identity": replay_record.checkpoint_token_identity_for_reporting(),
             "replay_basis_digest": replay_record.replay_basis_digest(),
             "counter_snapshot": counter_snapshot_json(replay_record.counters()),
             "explanation": json!({

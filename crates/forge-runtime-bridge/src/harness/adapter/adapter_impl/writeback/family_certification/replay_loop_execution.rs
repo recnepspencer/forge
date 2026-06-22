@@ -16,7 +16,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_cross_family
     let projected_contract = runtime_bridge
         .admit_writeback_declaration(
             crate::facade::BridgeWritebackDeclaration::writeback_capable(
-                crate::facade::BridgeWritebackDeclarationIdentity::new(
+                crate::facade::BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                     "harness:writeback-family-replay-loop-isolation:projected",
                 ),
                 crate::facade::BridgeRequestKind::Authoritative,
@@ -35,7 +35,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_cross_family
     let aspect_contract = runtime_bridge
         .admit_writeback_declaration(
             crate::facade::BridgeWritebackDeclaration::writeback_capable(
-                crate::facade::BridgeWritebackDeclarationIdentity::new(
+                crate::facade::BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                     "harness:writeback-family-replay-loop-isolation:aspect",
                 ),
                 crate::facade::BridgeRequestKind::Authoritative,
@@ -54,7 +54,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_cross_family
     let projected_effect = runtime_bridge.lower_writeback_effect(
         &projected_contract,
         &causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-family-replay-loop-isolation:effect:projected",
         ),
         writeback_effect_intent(
@@ -65,7 +65,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_cross_family
     let aspect_effect = runtime_bridge.lower_writeback_effect(
         &aspect_contract,
         &causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-family-replay-loop-isolation:effect:aspect",
         ),
         writeback_effect_intent(
@@ -77,7 +77,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_cross_family
         &projected_effect,
         &lowered_policy_bundle,
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(&projected_effect),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-family-replay-loop-isolation:idempotence:projected",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
@@ -86,7 +86,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_cross_family
         &aspect_effect,
         &lowered_policy_bundle,
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(&aspect_effect),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-family-replay-loop-isolation:idempotence:aspect",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
@@ -139,7 +139,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_cross_family
     let rebuilt_projected_contract = rebuilt_runtime
         .admit_writeback_declaration(
             crate::facade::BridgeWritebackDeclaration::writeback_capable(
-                crate::facade::BridgeWritebackDeclarationIdentity::new(
+                crate::facade::BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                     "harness:writeback-family-replay-loop-isolation:projected",
                 ),
                 crate::facade::BridgeRequestKind::Authoritative,
@@ -158,7 +158,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_cross_family
     let rebuilt_projected_effect = rebuilt_runtime.lower_writeback_effect(
         &rebuilt_projected_contract,
         &causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-family-replay-loop-isolation:effect:projected",
         ),
         writeback_effect_intent(
@@ -172,7 +172,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_cross_family
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(
             &rebuilt_projected_effect,
         ),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-family-replay-loop-isolation:idempotence:projected",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
@@ -219,7 +219,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_cross_family
     let changed_projected_effect = rebuilt_runtime.lower_writeback_effect(
         &rebuilt_projected_contract,
         &changed_causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-family-replay-loop-isolation:effect:projected:changed",
         ),
         writeback_effect_intent(
@@ -233,7 +233,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_cross_family
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(
             &changed_projected_effect,
         ),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-family-replay-loop-isolation:idempotence:projected:changed",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,

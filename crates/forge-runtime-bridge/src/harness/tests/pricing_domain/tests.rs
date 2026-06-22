@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
 use super::{PricingDomainWorld, PricingMaterial, PricingProduct};
-use crate::facade::TruthSnapshotIdentity;
 use forge_harness::facade::FeedStreamEventKind;
 
 #[test]
@@ -31,13 +30,18 @@ fn pricing_domain_hidden_streams_advance_material_prices_and_export_snapshot_fix
     let mut world = PricingDomainWorld::new(202);
     let first_wave = world.advance_material_streams();
     let second_wave = world.advance_material_streams();
-    let snapshot = world.snapshot_fixture(TruthSnapshotIdentity::new("snapshot:pricing-domain"));
+    let snapshot = world.snapshot_fixture(crate::truth_identity_fixtures::truth_snapshot_fixture(
+        "snapshot:pricing-domain",
+    ));
 
     assert_eq!(first_wave.sequence, 1);
     assert_eq!(second_wave.sequence, 2);
     assert_eq!(first_wave.changed_materials.len(), 9);
     assert_eq!(second_wave.changed_materials.len(), 9);
-    assert_eq!(snapshot.identity().as_str(), "snapshot:pricing-domain");
+    assert_eq!(
+        snapshot.identity().as_str(),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-domain").as_str()
+    );
     assert_eq!(snapshot.records().len(), 9);
     assert!(snapshot
         .records()

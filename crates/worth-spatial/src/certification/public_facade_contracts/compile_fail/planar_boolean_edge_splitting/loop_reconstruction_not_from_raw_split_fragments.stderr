@@ -1,0 +1,13 @@
+error[E0599]: no function or associated item named `from_raw_fragments` found for struct `PlanarBooleanLoopReconstructionSplitConsumptionInput<'a>` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/loop_reconstruction_not_from_raw_split_fragments.rs:6:67
+  |
+6 |     let _ = PlanarBooleanLoopReconstructionSplitConsumptionInput::from_raw_fragments(fragments);
+  |                                                                   ^^^^^^^^^^^^^^^^^^ function or associated item not found in `PlanarBooleanLoopReconstructionSplitConsumptionInput<'_>`
+  |
+note: if you're trying to build a new `PlanarBooleanLoopReconstructionSplitConsumptionInput<'_>`, consider using `PlanarBooleanLoopReconstructionSplitConsumptionInput::<'a>::from_downstream_split_consumption` which returns `PlanarBooleanLoopReconstructionSplitConsumptionInput<'_>`
+ --> src/workload_platform/planar_boolean_edge_splitting/loop_reconstruction_consumption/input.rs
+  |
+  | /     pub fn from_downstream_split_consumption(
+  | |         downstream_consumption: &'a PlanarBooleanDownstreamSplitConsumption,
+  | |     ) -> Self {
+  | |_____________^

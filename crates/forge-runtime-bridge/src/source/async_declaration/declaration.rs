@@ -21,6 +21,12 @@ use super::BridgeAsyncSourceDeclarationCounters;
 pub type BridgeAsyncSourceDeclarationIdentity = BridgeIdentity<AsyncSourceDeclarationIdentityTag>;
 pub type BridgeAsyncSourceLegacyDeclarationIdentity = BridgeIdentity<SourceDeclarationIdentityTag>;
 
+impl BridgeAsyncSourceDeclarationIdentity {
+    pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
+        Self::admit_bridge_owned(value)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeAsyncSourceDeclarationDraft {
     declaration_identity: BridgeAsyncSourceDeclarationIdentity,

@@ -16,3 +16,6 @@ pub use planning::ForgeServerResponsePlan;
 pub use receipt::ForgeServerResponseReceipt;
 pub use success::{ForgeServerSuccessEnvelope, ForgeServerSuccessKind, ForgeServerSuccessPayload};
 pub use transform::ForgeServerResponseTransform;
+
+pub(crate) use provenance::build_provenance;
+pub(crate) use receipt::{build_denial_receipt, build_success_receipt};

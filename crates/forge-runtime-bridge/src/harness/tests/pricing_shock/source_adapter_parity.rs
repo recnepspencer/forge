@@ -44,9 +44,9 @@ fn execute_pricing_harness_source_probe(
             &fixture,
             &ExecutionRequest::target(
                 request_name,
-                BridgeHarnessTargetId::source_materialize(SourceDeclarationIdentity::new(
-                    "source:pricing-main-history",
-                )),
+                BridgeHarnessTargetId::source_materialize(
+                    SourceDeclarationIdentity::admit_bridge_owned("source:pricing-main-history"),
+                ),
             ),
             &profile,
         )
@@ -84,13 +84,13 @@ fn pricing_shock_suite_25_through_27_parity_holds_across_direct_and_wrapped_sour
 {
     let (direct_bundle, direct_probe) = capture_pricing_bundle_with_harness_profile(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:adapter-direct"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:adapter-direct"),
         ExecutionProfile::development("pricing-direct"),
         "pricing-source-direct",
     );
     let (wrapped_bundle, wrapped_probe) = capture_pricing_bundle_with_harness_profile(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:adapter-direct"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:adapter-direct"),
         ExecutionProfile::development("pricing-wrapped")
             .with_metadata("source_adapter_shape", "wrapped"),
         "pricing-source-wrapped",
@@ -134,7 +134,7 @@ fn pricing_shock_suite_25_through_27_parity_holds_across_source_and_policy_build
     let baseline_profile = ExecutionProfile::development("pricing-load-order-baseline");
     let (baseline_bundle, baseline_probe) = capture_pricing_bundle_with_harness_profile(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:load-order"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:load-order"),
         baseline_profile,
         "pricing-load-order-baseline",
     );
@@ -154,7 +154,7 @@ fn pricing_shock_suite_25_through_27_parity_holds_across_source_and_policy_build
     for (index, profile) in variant_profiles.into_iter().enumerate() {
         let (candidate_bundle, candidate_probe) = capture_pricing_bundle_with_harness_profile(
             BridgeRuntimePolicy::development(),
-            BridgePreviewSessionIdentity::new("pricing:load-order"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("pricing:load-order"),
             profile,
             &format!("pricing-load-order-{index}"),
         );

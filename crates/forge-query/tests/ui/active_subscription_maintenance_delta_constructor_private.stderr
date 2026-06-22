@@ -9,18 +9,18 @@ warning: unreachable expression
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0451]: fields `kind`, `active_lane_digest`, `affected_scope_digest`, `width` and `maintenance_delta_digest` of struct `QuerySubscriptionMaintenanceDelta` are private
- --> tests/ui/active_subscription_maintenance_delta_constructor_private.rs:5:9
+error[E0560]: struct `QuerySubscriptionMaintenanceDelta` has no field named `affected_scope_digest`
+ --> tests/ui/active_subscription_maintenance_delta_constructor_private.rs:7:9
   |
-4 |     let _ = QuerySubscriptionMaintenanceDelta {
-  |             --------------------------------- in this type
-5 |         kind: todo!(),
-  |         ^^^^ private field
-6 |         active_lane_digest: todo!(),
-  |         ^^^^^^^^^^^^^^^^^^ private field
 7 |         affected_scope_digest: "scope".to_string(),
-  |         ^^^^^^^^^^^^^^^^^^^^^ private field
-8 |         width: todo!(),
-  |         ^^^^^ private field
+  |         ^^^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionMaintenanceDelta` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionMaintenanceDelta` has no field named `maintenance_delta_digest`
+ --> tests/ui/active_subscription_maintenance_delta_constructor_private.rs:9:9
+  |
 9 |         maintenance_delta_digest: "delta".to_string(),
-  |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionMaintenanceDelta` does not have this field
+  |
+  = note: all struct fields are already assigned

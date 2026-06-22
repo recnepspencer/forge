@@ -55,7 +55,7 @@ fn branch_local_binding_inspection_distinguishes_branch_state_from_authoritative
             ),
         ),
     );
-    let handle = admitted_rebinding_handle("phase-fourteen-branch-divergence");
+    let handle = admitted_rebinding_handle("branch-local-divergence");
     let branch_basis = scoped_branch_head_inspection_basis("branch:diverged");
     let branch_progression = progress_rebinding_entry(&branch_entry, &handle);
     let branch_subject = handle.orchestrate_envelope_from_progressed_checked(branch_progression);
@@ -135,7 +135,7 @@ fn branch_local_correspondence_never_upgrades_to_authoritative_continuity_under_
             ),
         ),
     );
-    let handle = admitted_rebinding_handle("phase-fourteen-branch-correspondence");
+    let handle = admitted_rebinding_handle("branch-local-correspondence");
     let branch_basis = scoped_branch_head_inspection_basis("branch:correspondence");
     let branch_local = branch_entry
         .branch_local_inspection_with_query(
@@ -191,7 +191,7 @@ fn wrong_branch_binding_inspection_is_denied_before_cross_branch_reconstruction(
             ),
         ),
     );
-    let handle = admitted_rebinding_handle("phase-fourteen-wrong-branch");
+    let handle = admitted_rebinding_handle("branch-local-wrong-branch");
     let branch_basis = scoped_branch_head_inspection_basis("branch:expected");
     let result = entry.branch_local_inspection_with_query(
         &handle,

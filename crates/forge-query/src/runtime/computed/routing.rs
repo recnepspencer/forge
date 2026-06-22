@@ -92,7 +92,7 @@ pub(in crate::runtime) fn route_derived_view_patches(
     let mut emitted_by_view: BTreeMap<String, Vec<ForgeQueryDerivedPatch>> = BTreeMap::new();
     let refresh = ForgeQueryRetainedRefreshContext::from_mutation(
         receipt.commit_identity.clone(),
-        receipt.snapshot_token.clone(),
+        receipt.snapshot_identity.clone(),
         receipt
             .deltas
             .iter()

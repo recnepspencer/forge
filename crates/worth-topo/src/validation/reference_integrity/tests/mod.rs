@@ -9,7 +9,7 @@ use forge_relational::facade::symbols::ClientKey;
 pub(super) use forge_relational::facade::transactions::TransactionCommitError;
 use forge_relational::facade::transactions::{
     AspectFieldPatch, CreateIntent, CreatedEntityRef, EntityReference as RelationalEntityReference,
-    EntitySpec, MutationIntent, RelationSpec,
+    EntitySpec, MergedCommitPlan, MutationIntent, RelationSpec, TransactionId,
 };
 pub(super) use schema::facade::platform::authority::{
     CreateKey, EntityReference, MutationOrigin, RawTopologyIntent, TopologyMutation,
@@ -28,6 +28,7 @@ use crate::test_support::schema_topology_authoring_boundary::{
 
 mod bootstrap_boundary;
 mod disconnected_wire_creation;
+mod graph_composition_execution;
 mod missing_name_creation;
 mod non_distinct_wire_branch;
 
@@ -75,6 +76,23 @@ fn commit_raw_intent(
     runtime: &mut RelationalRuntime,
     intent: RawTopologyIntent,
 ) -> Result<(), TransactionCommitError> {
+    let lowered_mutations = lower_raw_topology_intent(intent);
+
+    commit_create_only_mutation_set(
+        runtime,
+        "reference-integrity-create-only-mutation-set",
+        lowered_mutations,
+    )
+}
+
+fn merged_plan_from_raw_intent(transaction_id: u64, intent: RawTopologyIntent) -> MergedCommitPlan {
+    MergedCommitPlan {
+        transaction_id: TransactionId(transaction_id),
+        merged_intents: lower_raw_topology_intent(intent),
+    }
+}
+
+fn lower_raw_topology_intent(intent: RawTopologyIntent) -> Vec<MutationIntent> {
     let mut seen_create_keys = BTreeSet::new();
     let mut created_entities = BTreeMap::new();
 
@@ -102,7 +120,7 @@ fn commit_raw_intent(
         }
     }
 
-    let lowered_mutations = intent
+    intent
         .mutations
         .into_iter()
         .map(|mutation| match mutation {
@@ -131,13 +149,7 @@ fn commit_raw_intent(
                 "reference-integrity tests only support create-only raw intents, got {other:?}"
             ),
         })
-        .collect::<Vec<_>>();
-
-    commit_create_only_mutation_set(
-        runtime,
-        "reference-integrity-create-only-mutation-set",
-        lowered_mutations,
-    )
+        .collect::<Vec<_>>()
 }
 
 fn commit_create_only_mutation_set(

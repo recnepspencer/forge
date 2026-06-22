@@ -1,6 +1,6 @@
 # Milestone 9.8 Engineering Spec: Downstream Consumer Product Kit For Evidence Reports, Boundary Audits, And Support Pinning
 
-> **Status:** Draft
+> **Status:** Closed
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
@@ -28,10 +28,10 @@ deleted its hand-rolled equivalents.
 The first serious consumer pays a linear ceremony tax that masks how steep
 the adoption curve is for every consumer after it:
 
-- each `worth-kernel` evidence report repeats the same ~250-line pattern —
-  report struct, getter wall, three-variant error enum with identical
-  `Display` impls, digest plumbing — across `runtime_basis`,
-  `graph_composition_parity`, `projection_consumption_receipt`, and siblings
+- current `worth-kernel` construction support still repeats report struct,
+  getter, local error/display, and digest plumbing across moved support
+  surfaces such as branch-preview basis, projection-consumption parity,
+  family coverage, compound parity support, and corpus replay support
 - the Query hard prohibitions are enforced downstream by a consumer-owned
   audit that `include_str!`s 27 source files and greps for forbidden
   patterns like `.write(` — charming, unshippable, and reinvented (or
@@ -44,6 +44,51 @@ Milestones `9.6` and `9.7` harden what Query *says*; this milestone hardens
 what Query *gives consumers to build with*. Per `MENTALITY.md`, foundations
 are slow and features are fast — this kit is what makes downstream features
 fast.
+
+## Current Reference-Consumer Debt Refresh
+
+The original reference-consumer examples named earlier `worth-kernel`
+`runtime_proof/` paths. Those files have since moved or been deleted, but the
+same Query-consumption debt still exists in the current construction tree.
+Milestone `9.8` must target the current surfaces, not the stale illustrative
+paths.
+
+The current debt census for
+[crates/worth-kernel/src/construction](../../crates/worth-kernel/src/construction)
+found:
+
+- 81 local digest helper matches across 24 files
+- 19 local report or row structs across 14 files
+- 20 local error/display plumbing matches across 9 files
+- 287 source-string audit matches across 15 files
+- 4 hand-built Query support admission/gap-posture matches across 3 files
+- zero current construction-tree matches for hand-implemented
+  `ForgeQueryRuntime*Adapter` traits or hand-fabricated bridge receipts
+
+The live high-value reference surfaces are:
+
+- [tests/support/branch_preview_basis.rs](../../crates/worth-kernel/src/construction/tests/support/branch_preview_basis.rs):
+  local Query-shaped report, local error/display, getter wall, and
+  `digest_owned_parts` report digest assembly
+- [digest_protocol.rs](../../crates/worth-kernel/src/construction/digest_protocol.rs):
+  local construction digest sidecar; legitimate for worth-owned artifact
+  identity only, not for Query evidence/support/report identities
+- [authoring.rs](../../crates/worth-kernel/src/construction/authoring.rs):
+  `REQUIRED_QUERY_FAMILIES` plus a local loop over
+  `workspace.admit_public_api_family(...)`
+- [tests/phase_eight_minimization.rs](../../crates/worth-kernel/src/construction/tests/phase_eight_minimization.rs),
+  [tests/boundary.rs](../../crates/worth-kernel/src/construction/tests/boundary.rs),
+  and [tests/boundary_phase_five/patterns.rs](../../crates/worth-kernel/src/construction/tests/boundary_phase_five/patterns.rs):
+  current source-string audit clusters; some rules are worth-domain hygiene,
+  but the Query-prohibition subset is Query-owned and belongs in this kit
+
+The in-memory backend remains a valid Query consumer-kit surface, especially
+for external consumers and future downstream test harnesses. It should not be
+overclaimed as the primary current `worth-kernel` construction debt unless a
+fresh audit finds hand-implemented Query adapters or hand-fabricated receipts
+there. The reference-consumer adoption proof for `worth-kernel` must focus on
+the live debt it actually has now: report/digest folklore, Query-prohibition
+source scans, and support-pinning ceremony.
 
 ## Governing Summaries
 
@@ -128,8 +173,11 @@ over the `9.6` primitive.
   house example of the report shape the kit must be able to express
 
 **Relevant downstream evidence (reference consumer)**
-- [worth-kernel runtime_basis.rs](../../crates/worth-kernel/src/construction/runtime_proof/runtime_basis.rs)
-- [worth-kernel graph_composition_parity.rs](../../crates/worth-kernel/src/construction/runtime_proof/query/graph_composition_parity.rs)
+- [worth-kernel tests/support/branch_preview_basis.rs](../../crates/worth-kernel/src/construction/tests/support/branch_preview_basis.rs)
+- [worth-kernel tests/support/projection_consumption.rs](../../crates/worth-kernel/src/construction/tests/support/projection_consumption.rs)
+- [worth-kernel tests/support/family_coverage.rs](../../crates/worth-kernel/src/construction/tests/support/family_coverage.rs)
+- [worth-kernel tests/support/compound_parity_support.rs](../../crates/worth-kernel/src/construction/tests/support/compound_parity_support.rs)
+- [worth-kernel tests/support/corpus_replay_digest.rs](../../crates/worth-kernel/src/construction/tests/support/corpus_replay_digest.rs)
 
 **Target shape (illustrative, not frozen API)**
 
@@ -165,12 +213,24 @@ pub struct PrimitiveConstructionRuntimeBasisLaneReport {
   report families first.
 
 **Test requirements**
-- Add an `Evidence Report Kit Parity Test` to
+- Add a `Consumer Evidence Report Kit Parity Test` to
   [test-requirements.md](./test-requirements.md) and close it in this phase.
 - Adversarial equivalence: re-express a representative existing report
   (one Query-owned, one `worth-kernel`-shaped) through the kit and prove the
   kit-built report carries identical semantic content and canonical-scheme
   digests for identical inputs.
+- Adversarial current-reference proof: re-express
+  `BranchPreviewBasisReport` through the kit and prove the kit-built report
+  carries identical semantic fields and a canonical-scheme digest for
+  identical inputs.
+- Adversarial Query-owned digest closure: a covered report whose identity is
+  Query evidence must lower through `ForgeQueryEvidenceIdentity`; it must not
+  call `worth-kernel`'s `digest_owned_parts`,
+  `digest_owned_parts_with_scope`, or `ConstructionDigestScope`.
+- Adversarial field inventory: the report declaration emits a
+  `report_field_inventory_digest` and `digest_participation_digest`; omitting
+  a field from digest participation fails to compile or constructs a typed
+  rejection rather than silently changing equivalence.
 - Adversarial rejection: prove a field that is declared but excluded from
   digest participation, or mutated after construction, cannot silently alter
   the report digest — the misuse fails at compile time or constructs a typed
@@ -201,7 +261,10 @@ set as structure allows.
   Milestone `9.5` Phase 4 seam-retirement list)
 
 **Relevant downstream evidence (reference consumer)**
-- [worth-kernel no_local_runtime_workaround_audit.rs](../../crates/worth-kernel/src/construction/runtime_proof/query/no_local_runtime_workaround_audit.rs)
+- [worth-kernel tests/boundary.rs](../../crates/worth-kernel/src/construction/tests/boundary.rs)
+- [worth-kernel tests/phase_eight_minimization.rs](../../crates/worth-kernel/src/construction/tests/phase_eight_minimization.rs)
+- [worth-kernel tests/boundary_phase_five/patterns.rs](../../crates/worth-kernel/src/construction/tests/boundary_phase_five/patterns.rs)
+- [worth-kernel certification/phase_five_boundary_closeout_tests.rs](../../crates/worth-kernel/src/construction/certification/phase_five_boundary_closeout_tests.rs)
 
 **Warnings**
 - Do not solve this entirely with the Phase 3 audit; every seam that can be
@@ -243,7 +306,9 @@ and consumable from any downstream crate's test suite as one call.
 - the Phase 2 prohibition registry surface
 
 **Relevant downstream evidence (reference consumer)**
-- [worth-kernel no_local_runtime_workaround_audit.rs](../../crates/worth-kernel/src/construction/runtime_proof/query/no_local_runtime_workaround_audit.rs)
+- [worth-kernel tests/boundary.rs](../../crates/worth-kernel/src/construction/tests/boundary.rs)
+- [worth-kernel tests/phase_eight_minimization.rs](../../crates/worth-kernel/src/construction/tests/phase_eight_minimization.rs)
+- [worth-kernel tests/boundary_phase_five/patterns.rs](../../crates/worth-kernel/src/construction/tests/boundary_phase_five/patterns.rs)
 
 **Target shape (illustrative, not frozen API)**
 
@@ -285,9 +350,19 @@ fn worth_kernel_stays_on_the_sanctioned_query_path() {
   textual.
 - Do not let the audit grow its own pattern set beside the registry; coverage
   completeness is derived, never hand-curated.
+- The Phase 3 shipped slice is a `syn` AST audit, not a compiler-backed type
+  resolver. Method-call detection is honest as `ast-method-name-resolved`:
+  it catches executable calls whose method names match registry public symbols
+  and avoids comments, doc attributes, and string literals. Associated-path
+  detection is stronger: it matches the registry public-symbol path suffix
+  such as `ForgeQueryWorkspace::write`, including fully qualified paths that
+  end in that suffix, while rejecting unrelated types with the same final
+  method name. Type aliases, trait dispatch, and macro expansion remain outside
+  this Phase 3 mechanism and must not be described as closed until a
+  compiler-backed resolver is added.
 
 **Test requirements**
-- Add a `Shipped Bypass Audit Honesty Test` to
+- Add a `Shipped Query Bypass Audit Honesty Test` to
   [test-requirements.md](./test-requirements.md) and close it in this phase.
 - Adversarial detection: seed a covered bypass (a prohibited seam usage in a
   fixture consumer crate) and prove the shipped audit fails the build with a
@@ -297,6 +372,12 @@ fn worth_kernel_stays_on_the_sanctioned_query_path() {
 - Adversarial drift localization: prove that adding a seam to the Phase 2
   prohibition registry without audit coverage fails a Query-side
   completeness test.
+- Adversarial mechanism honesty: the audit must resolve real Rust usage where
+  possible. If an implementation slice uses a `syn`/source inventory before a
+  fuller compiler-backed resolver exists, the spec must name which classes are
+  structurally resolved and which are temporary source-inventory checks; source
+  matching alone cannot close a prohibition class that visibility or typed
+  path resolution can cover.
 
 **Engineering decisions**
 - The audit artifact is versioned with the runtime so consumers cannot pin a
@@ -359,14 +440,19 @@ build fails with a localized typed finding when posture regresses.
 
 **Relevant downstream evidence (reference consumer)**
 - [worth-kernel authoring.rs](../../crates/worth-kernel/src/construction/authoring.rs)
-  (hand-built required-family admission and gap-row assembly)
+  (hand-built required-family admission)
+- [worth-kernel tests/phase_eight_minimization.rs](../../crates/worth-kernel/src/construction/tests/phase_eight_minimization.rs)
+  (current residue guard for `PrimitiveConstructionQueryGapRow`)
 
 **Target shape (illustrative, not frozen API)**
 
 The hand-rolled posture bookkeeping this phase replaces, as it exists today
-in `worth-kernel` (`REQUIRED_QUERY_FAMILIES` / `REPORTED_QUERY_FAMILIES`
-constants plus ~40 lines of per-session admission-and-filter logic building
-`PrimitiveConstructionQueryGapRow`s by hand):
+in `worth-kernel`, is the `REQUIRED_QUERY_FAMILIES` constant plus local
+runtime-admission loop in
+[authoring.rs](../../crates/worth-kernel/src/construction/authoring.rs).
+Older gap-row machinery has already been mostly deleted; current tests still
+guard against `PrimitiveConstructionQueryGapRow` resurrection. The pinning
+surface should make both patterns unnecessary:
 
 ```rust
 // BEFORE
@@ -397,7 +483,7 @@ forge_query::kit::support_pins! {
   to typed row identity from the snapshot schema.
 
 **Test requirements**
-- Add a `Support Snapshot Pinning Drift Test` to
+- Add a `Worth-Kernel Support Pinning Drift Test` to
   [test-requirements.md](./test-requirements.md) and close it in this phase.
 - Adversarial drift localization: regress one covered row's posture in a
   fixture runtime and prove exactly the consumers pinned to that row fail,
@@ -406,6 +492,10 @@ forge_query::kit::support_pins! {
 - Adversarial rejection: prove a pin against a nonexistent row, or a pin
   whose declared posture vocabulary does not match the snapshot schema
   version, fails typed at pin evaluation rather than passing vacuously.
+- Adversarial replacement: the covered `worth-kernel` construction authoring
+  path no longer carries `REQUIRED_QUERY_FAMILIES`,
+  `REPORTED_QUERY_FAMILIES`, or `PrimitiveConstructionQueryGapRow` for the
+  Query rows the support pinning contract now owns.
 
 **Engineering decisions**
 - Pin declarations are typed artifacts in the consumer crate, not strings in
@@ -482,7 +572,10 @@ let mut workspace = forge_query::kit::in_memory_test_runtime()
   exhaustively walking the support matrix rather than spot-checking.
 - Adversarial residue: an exact assertion that the covered consumer test
   suites contain zero hand-implemented runtime adapter traits and zero
-  hand-fabricated receipt values after adoption.
+  hand-fabricated receipt values after adoption. Current `worth-kernel`
+  construction is not the proof target for this residue class unless a fresh
+  audit finds such assembly there; external consumers or fixture crates must
+  carry this proof.
 
 **Engineering decisions**
 - The private `memory_workspace` machinery is promoted through the kit rather
@@ -504,9 +597,12 @@ hand-rolled report and digest plumbing in the same change program.
 - evidence report composition kit (from Phase 1)
 
 **Relevant downstream surfaces**
-- [worth-kernel runtime_basis.rs](../../crates/worth-kernel/src/construction/runtime_proof/runtime_basis.rs)
-- [worth-kernel graph_composition_parity.rs](../../crates/worth-kernel/src/construction/runtime_proof/query/graph_composition_parity.rs)
-- [worth-kernel projection_consumption_receipt.rs](../../crates/worth-kernel/src/construction/runtime_proof/query/projection_consumption_receipt.rs)
+- [worth-kernel tests/support/branch_preview_basis.rs](../../crates/worth-kernel/src/construction/tests/support/branch_preview_basis.rs)
+- [worth-kernel tests/support/projection_consumption.rs](../../crates/worth-kernel/src/construction/tests/support/projection_consumption.rs)
+- [worth-kernel tests/support/family_coverage.rs](../../crates/worth-kernel/src/construction/tests/support/family_coverage.rs)
+- [worth-kernel tests/support/compound_parity_support.rs](../../crates/worth-kernel/src/construction/tests/support/compound_parity_support.rs)
+- [worth-kernel tests/support/corpus_replay_digest.rs](../../crates/worth-kernel/src/construction/tests/support/corpus_replay_digest.rs)
+- [worth-kernel digest_protocol.rs](../../crates/worth-kernel/src/construction/digest_protocol.rs)
 
 **Warnings**
 - Do not preserve the old report scaffolding beside the kit "for safety";
@@ -525,6 +621,10 @@ hand-rolled report and digest plumbing in the same change program.
   `worth-kernel` report surfaces contain zero remaining hand-rolled digest
   construction and zero hand-written report/getter/error plumbing the kit
   now derives.
+- Adversarial defended-residue classification: any remaining
+  `worth-kernel` digest helper usage in the construction tree is classified as
+  worth-domain artifact identity, not Query evidence identity, with an
+  inventory digest naming the defended files.
 
 **Engineering decisions**
 - `worth-kernel` is the named reference consumer; its deletion diff is part
@@ -549,8 +649,11 @@ honest fit.
   (Phase 6)
 
 **Relevant downstream surfaces**
-- [worth-kernel no_local_runtime_workaround_audit.rs](../../crates/worth-kernel/src/construction/runtime_proof/query/no_local_runtime_workaround_audit.rs)
 - [worth-kernel authoring.rs](../../crates/worth-kernel/src/construction/authoring.rs)
+- [worth-kernel tests/boundary.rs](../../crates/worth-kernel/src/construction/tests/boundary.rs)
+- [worth-kernel tests/phase_eight_minimization.rs](../../crates/worth-kernel/src/construction/tests/phase_eight_minimization.rs)
+- [worth-kernel tests/boundary_phase_five/patterns.rs](../../crates/worth-kernel/src/construction/tests/boundary_phase_five/patterns.rs)
+- [worth-kernel certification/phase_five_boundary_closeout_tests.rs](../../crates/worth-kernel/src/construction/certification/phase_five_boundary_closeout_tests.rs)
 
 **Warnings**
 - Do not treat this phase as optional polish; per `MENTALITY.md`, cross-crate
@@ -571,6 +674,10 @@ honest fit.
   `worth-kernel` surfaces contain zero `include_str!` audit machinery and
   zero hand-built required-family or gap-row assembly where pinning now
   answers.
+- Adversarial classification: source-string audits that remain in
+  `worth-kernel` are classified as worth-domain topology or legacy-deletion
+  hygiene, not Query-prohibition rows; the classification itself has an
+  inventory digest.
 
 **Engineering decisions**
 - Adoption order follows kit dependency order: audit, then pins, then
@@ -581,28 +688,207 @@ honest fit.
 **Open questions**
 - None.
 
-### Phase 9: Support, Docs, And Hostile Certification Closure Boundary
+### Phase 9: Typed Consumer Residue Audit For Query Proof Folklore
 
-Close the milestone with support/profile honesty for the kit families,
-documentation follow-through, and one hostile certification program across
-every kit surface plus the adoption evidence.
+Harden the Consumer Kit residue audit so Query owns the classification of
+downstream Query-consumption residue, not only the narrow test-backend adapter
+residue caught by the first 9.8 closeout. This phase does not reopen the kit
+architecture; it closes a gap in the existing Consumer Kit authority boundary.
+
+The current `query_test_backend_residue_audit(...)` surface catches consumers
+that rebuild fake runtime/test-backend infrastructure. The addendum must broaden
+the owned meaning to fake Query proof as well: local Query reports, local Query
+proof structs, raw support snapshot row spelunking, support-matrix row searches,
+debug-derived proof strings, delimiter-joined proof strings, and
+delimiter-formatted proof strings.
+
+**Adversarial constraint**
+- A downstream consumer must not be able to replace Query-owned proof with a
+  local report, local proof struct, raw support-row lookup, debug string, or
+  delimiter string while still producing a clean Consumer Kit adoption signal.
+- A tired downstream maintainer must be able to run one Query-owned audit over
+  source roots and receive precise typed findings without inventing local grep
+  patterns, local class names, or local replacement guidance.
+- The audit must survive ordinary source noise: comments, documentation,
+  unrelated debug formatting, unrelated delimiter joins, and Query-owned
+  implementation files must not create false residue.
 
 **Relevant subsystems**
-- `application` support/profile reporting
-- public documentation coverage
-- milestone certification
+- Consumer Kit test-backend residue audit
+- Consumer Kit source inventory and boundary-audit source sets
+- evidence identity for residue findings and reports
+- `worth-kernel` reference-consumer adoption checks
 
 **Relevant Query source surfaces**
-- [application/support/report.rs](../../crates/forge-query/src/application/support/report.rs)
-- [application/tests.rs](../../crates/forge-query/src/application/tests.rs)
-- [public_doc_coverage/tests/support.rs](../../crates/forge-query/src/public_doc_coverage/tests/support.rs)
+- [consumer_kit/test_backend/residue_audit](../../crates/forge-query/src/consumer_kit/test_backend/residue_audit)
+- [consumer_kit/boundary_audit/source_inventory](../../crates/forge-query/src/consumer_kit/boundary_audit/source_inventory)
+- [consumer_kit/graph_obligation_adoption/local_ceremony_audit](../../crates/forge-query/src/consumer_kit/graph_obligation_adoption/local_ceremony_audit)
+- [consumer_kit/evidence_report_adoption](../../crates/forge-query/src/consumer_kit/evidence_report_adoption)
 
-**Documentation follow-through**
-- The kit surfaces enter the public docs as the ordinary consumer path, and
-  every doc passage that still teaches hand-rolled reports, consumer greps,
-  or hand-built gap rows is removed in this phase.
+**Required directory skeleton**
+- `crates/forge-query/src/consumer_kit/consumer_residue/`
+  - `mod.rs`
+  - `audit.rs`
+  - `registry.rs`
+  - `detection.rs`
+  - `syntax.rs`
+  - `syntax_context.rs`
+  - `finding.rs`
+  - `report.rs`
+  - `evidence.rs`
+  - `source_text_mask.rs`
+  - `tests.rs`
+- `crates/forge-query/src/consumer_kit/test_backend/residue_audit/`
+  remains as the compatibility entry point for test-backend-specific callers.
+- `crates/forge-query/tests/consumer_residue_audit.rs`
+  owns hostile public-facade coverage and false-positive coverage.
+
+**Public API target**
+- Add a typed `ForgeQueryConsumerResidueClass` enum. It must include the
+  existing runtime/test-backend classes and the new proof-folklore classes:
+  `local-query-report`, `local-query-proof`, `raw-support-snapshot-row`,
+  `support-matrix-row-search`, `debug-derived-query-proof`,
+  `delimiter-joined-query-proof`, and `delimiter-formatted-query-proof`.
+- Add registry-backed rows that carry class, detection strategy, explanation,
+  and replacement lane. The replacement lane must point consumers back to the
+  public Consumer Kit surface rather than to private module constructors.
+- Add `query_consumer_residue_audit(consumer_name)` as the general audit entry
+  point.
+- Keep `query_test_backend_residue_audit(consumer_name)` as a compatibility
+  lane or wrapper so existing callers do not lose the test-backend-focused name.
+- Findings must expose typed class identity, source path, matched pattern or
+  detection key, line, column, finding identity, and report identity.
+
+**Detection requirements**
+- Detection must parse Rust source for the classes where syntax determines
+  meaning: local struct declarations, type paths, method calls, `format!`
+  invocations, and `.join(...)` calls. Text masking may still be used as a
+  pre-filter, but the residue decision cannot be a naive whole-file substring
+  match for broad proof-folklore classes.
+- Existing exact test-backend adapter and fabricated receipt patterns may stay
+  text-backed only when they are narrow symbols with low false-positive risk and
+  still report line/column.
+- Comment and documentation text must not count as residue.
+- Ordinary debug formatting and ordinary delimiter joins must not count unless
+  the syntax context is Query/proof/support/receipt/evidence-shaped.
+- Raw support snapshot row use and support matrix row search must report in
+  downstream consumer roots, while Query-owned implementation roots remain
+  allowed owners.
+- The registry must isolate detection strategy per residue class so text-backed
+  exact-symbol detectors and AST-backed folklore detectors compose behind one
+  public report API.
 
 **Warnings**
+- Do not turn this into a naive whole-file substring scanner for broad
+  `format!("{:?}")` or `.join("||")` patterns.
+- Do not make Worth own the class list. Downstream consumers choose roots and
+  assert reports; Forge Query owns residue meaning, identity, and replacement
+  guidance.
+- Do not collapse this into the Milestone `9.9` graph-obligation local ceremony
+  audit. Graph obligation ceremony is a specialized 9.9 lane; this addendum is
+  the generic 9.8 Consumer Kit residue authority.
+
+**DX target**
+
+```rust
+use forge_query::facade::consumer_kit::query_consumer_residue_audit;
+
+let report = query_consumer_residue_audit("worth-kernel")
+    .required_root("crates/worth-kernel/src/construction")
+    .evaluate()?;
+
+report.assert_clean();
+
+for finding in report.findings() {
+    eprintln!(
+        "{}:{}:{} {} -> {}",
+        finding.source_path(),
+        finding.line(),
+        finding.column(),
+        finding.residue_class().as_str(),
+        finding.replacement_lane(),
+    );
+}
+```
+
+**Test requirements**
+- One hostile test per residue class proving a typed finding is emitted.
+- False-positive tests for ordinary debug formatting, ordinary delimiter joins,
+  comments, docs, and Query-owned implementation roots.
+- AST/syntax tests proving local struct declarations, proof-like assignments,
+  proof-like returns, method calls, and type paths are detected by syntax role,
+  not by incidental source substrings.
+- Public-facade tests only: no private module constructors and no local proof
+  assembly in the test harness.
+- Reference-consumer audit coverage proving downstream roots can assert the
+  report without supplying local residue classes.
+
+**Engineering decisions**
+- This addendum strengthens the existing Milestone `9.8` Consumer Kit contract;
+  it does not change the Milestone `9.9` graph-obligation authority model.
+- AST-backed proof-folklore detection is required in this addendum because the
+  adversarial constraint is false-positive-resistant consumer proof authority,
+  not merely broader substring coverage.
+- The Consumer Kit owns all Query-consumption residue classes. Worth-owned
+  artifact identity residue can be defended only when explicitly classified as
+  domain artifact identity, never by silently bypassing Query proof surfaces.
+
+**Open questions**
+- None.
+
+### Phase 10: Consumer Residue Certification, Support, Docs, And Reference Adoption
+
+Close the typed residue audit as shipped infrastructure, not as an API stub. If
+Phase 9 builds the audit authority, Phase 10 proves it against real consumer
+roots, support/profile output, docs, and the hostile certification matrix so the
+milestone does not rely on any follow-on cleanup pass.
+
+**Relevant subsystems**
+- Consumer Kit public facade exports
+- `worth-kernel` reference-consumer roots
+- Consumer Kit docs and AI readme guidance
+- `application` support/profile reporting
+- public documentation coverage
+- Milestone `9.8` hostile certification matrix
+
+**Required directory skeleton**
+- `crates/forge-query/tests/consumer_residue_audit.rs`
+- `crates/forge-query/tests/consumer_residue_reference_adoption.rs`
+- `_docs/forge-query/test-requirements.md`
+- `crates/forge-query/docs/AI_README.md`
+- `crates/forge-query/docs/foundations/consumer-kit.md`
+- `crates/forge-query/src/application/support/report.rs`
+- `crates/forge-query/src/application/support/tests/consumer_kit_closure.rs`
+- `crates/forge-query/src/public_doc_coverage/tests/support.rs`
+
+**Required proof**
+- The public facade exports `query_consumer_residue_audit(...)`,
+  `ForgeQueryConsumerResidueClass`, the typed finding type, and the typed report
+  type.
+- The old `query_test_backend_residue_audit(...)` remains usable and is proved
+  to report the same runtime/test-backend residue classes through the new typed
+  registry.
+- A reference-consumer test runs the general audit over current downstream roots
+  and proves covered Query-proof folklore is either gone or reported with typed
+  findings.
+- The certification matrix names every consumer-residue class and includes both
+  hostile detection and false-positive certification rows.
+- AI_README teaches the generic Consumer Kit residue audit as the ordinary path
+  for downstream Query-proof cleanup and explicitly distinguishes it from the
+  specialized Milestone `9.9` graph-obligation local ceremony audit.
+- The kit surfaces enter the public docs as the ordinary consumer path, and
+  every doc passage that still teaches hand-rolled reports, consumer greps,
+  hand-built gap rows, or local Query-proof folklore is removed in this phase.
+- Support/profile output, docs, and certification output agree exactly on the
+  kit families' posture and the generic consumer-residue authority.
+
+**Warnings**
+- Do not close Phase 10 on synthetic fixture coverage alone. Fixtures prove
+  class semantics; reference-consumer roots prove adoption pressure.
+- Do not document this as an optional lint. It is Query's proof-consumption
+  boundary audit.
+- Do not let downstream consumers provide their own class registry, scanner, or
+  replacement matrix.
 - Do not close on kit API presence; closure is the certification matrix plus
   the adoption residue assertions passing together.
 - Do not let docs teach the kit as optional ergonomics; it is the ordinary
@@ -611,17 +897,33 @@ every kit surface plus the adoption evidence.
 **Test requirements**
 - Add a `Milestone 9.8 Consumer Kit Hostile Certification Matrix` to
   [test-requirements.md](./test-requirements.md) and close it in this phase.
+- `cargo test -p forge-query --test consumer_residue_audit`
+- `cargo test -p forge-query --test consumer_residue_reference_adoption`
+- `cargo test -p forge-query milestone_9_8_consumer_kit`
+- targeted docs/status audit proving Milestone `9.8`, AI_README, and Consumer
+  Kit docs agree on generic residue authority and the 9.9 specialized boundary
 - Combined adversarial matrix: drive report misuse, seeded bypasses, posture
   regressions, and folklore-resurrection probes in one program and require
   narrow canonical artifacts for the kit-report digest scheme, the audit
   finding set, the snapshot/pin agreement, and the adoption residue counts.
 - Adversarial agreement: prove docs, support/profile rows, and certification
   output agree exactly on the kit families' posture.
+- Adversarial reference-consumer evidence: the matrix publishes current
+  `worth-kernel` adoption counts for covered report/digest residue,
+  Query-prohibition audit residue, support-pinning residue, generic consumer
+  proof-folklore residue, and defended worth-domain residues.
 
 **Engineering decisions**
+- This phase is part of Milestone `9.8` closeout, not deferred work.
 - Support/profile output is authoritative for kit family closure.
 - The certification matrix runs against the Milestone `9.5` raw runtime
   bootstrap so kit certification never grows private harness assembly.
+- If AST-backed detection requires additional internal parser support, that
+  support is in scope for 9.8 unless implementation proves it crosses the
+  explicit `MENTALITY.md` major-work threshold for true blocker debt.
+- Durable persisted audit archives remain out of scope because persistence is a
+  store-backed concern, but source-root audit execution, typed classification,
+  and reference-consumer certification are not out of scope.
 
 **Open questions**
 - None.
@@ -636,9 +938,13 @@ every kit surface plus the adoption evidence.
   contract with build-failing drift detection
 - the shipped in-memory consumer test backend with honest fail-closed support
   posture, replacing hand-implemented adapter assemblies and hand-fabricated
-  receipts in consumer test suites
+  receipts in consumer test suites where that residue exists
 - reference-consumer adoption with deletion of `worth-kernel`'s hand-rolled
-  report plumbing, grep audit, and gap-row assembly in covered surfaces
+  Query-evidence report plumbing, Query-prohibition grep audit, and
+  required-family/gap-row assembly in covered surfaces
+- typed Consumer Kit residue audit coverage for local Query proof folklore,
+  raw support-row spelunking, and fake proof strings, with public-facade
+  findings that carry class identity and replacement guidance
 - support/profile, docs, and hostile certification closure for the kit
   families
 
@@ -671,10 +977,15 @@ This milestone is complete only when `forge-query` can prove:
 - a downstream-shaped test suite obtains a valid workspace from the shipped
   in-memory backend and exercises reads, writes, previews, and invariant
   registration with zero hand-implemented adapter traits and zero
-  hand-fabricated receipts, and every unbacked family fails closed
+  hand-fabricated receipts in covered backend-adoption surfaces, and every
+  unbacked family fails closed
 - covered `worth-kernel` surfaces carry zero remaining hand-rolled digest,
-  audit, or gap-row folklore, with the deletion diff recorded as part of the
-  milestone evidence
+  audit, or gap-row folklore for Query-owned evidence/support/prohibition
+  surfaces, with defended worth-domain residues inventoried and the deletion
+  diff recorded as part of the milestone evidence
+- downstream consumer roots can run a Forge Query-owned consumer-residue audit
+  and receive typed findings for fake Query-proof folklore without defining a
+  local scanner, local residue class list, or local replacement matrix
 
 ## Sequencing Notes
 

@@ -1,0 +1,31 @@
+warning: unreachable expression
+ --> tests/ui/runtime_authority/fail/ordinary_lane_plan_fields_not_public.rs:6:25
+  |
+5 |         handle_receipt: todo!(),
+  |                         ------- any code following this expression is unreachable
+6 |         support_digest: 0,
+  |                         ^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `handle_receipt`, `support_digest`, `ordinary_plan_digest`, `rows`, `component_plan_indexes`, `command_plan_indexes`, `token_plan_indexes` and `counters` of struct `WorthUiOrdinaryLanePlan` are private
+  --> tests/ui/runtime_authority/fail/ordinary_lane_plan_fields_not_public.rs:5:9
+   |
+ 4 |     let _plan = WorthUiOrdinaryLanePlan {
+   |                 ----------------------- in this type
+ 5 |         handle_receipt: todo!(),
+   |         ^^^^^^^^^^^^^^ private field
+ 6 |         support_digest: 0,
+   |         ^^^^^^^^^^^^^^ private field
+ 7 |         ordinary_plan_digest: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         rows: Vec::new(),
+   |         ^^^^ private field
+ 9 |         component_plan_indexes: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         command_plan_indexes: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+11 |         token_plan_indexes: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+12 |         counters: Default::default(),
+   |         ^^^^^^^^ private field

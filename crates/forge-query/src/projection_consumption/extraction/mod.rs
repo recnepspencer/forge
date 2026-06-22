@@ -96,7 +96,7 @@ impl MaterializedProjectionContract {
         ensure_optional_metadata(
             "basis_digest",
             self.basis_digest(),
-            Some(result.receipt().snapshot_token()),
+            Some(result.receipt().snapshot_evidence_identity().as_str()),
         )?;
         ensure_optional_metadata(
             "result_digest",

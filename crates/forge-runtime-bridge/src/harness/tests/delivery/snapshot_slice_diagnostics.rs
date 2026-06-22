@@ -1,4 +1,4 @@
-use crate::facade::{BridgeDeliveryErrorKind, BridgeRouteRequest, TruthSnapshotIdentity};
+use crate::facade::{BridgeDeliveryErrorKind, BridgeRouteRequest};
 use crate::harness::fixtures::InMemoryRelationalBridgeSource;
 
 use super::super::support::{
@@ -10,14 +10,14 @@ use super::super::support::{
 fn bridge_sink_rejection_records_failure_diagnostics_with_slice_identity() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let runtime = build_runtime_with_aspects(
@@ -29,7 +29,7 @@ fn bridge_sink_rejection_records_failure_diagnostics_with_slice_identity() {
 
     let route = runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("route should plan before sink rejection");
     let expected_slice_identity = route

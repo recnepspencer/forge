@@ -1,0 +1,15 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/prohibition_registry/registry_row_constructor_private.rs:7:47
+  |
+7 |       let _ = ForgeQueryProhibitionRegistryRow::new(
+  |                                                 ^^^ private associated function
+  |
+ ::: src/consumer_kit/prohibition_registry/row.rs
+  |
+  | /     pub(crate) const fn new(
+  | |         seam: ForgeQueryProhibitedSeam,
+  | |         enforcement_tier: ForgeQueryProhibitionEnforcementTier,
+  | |         replacement_lane: &'static str,
+  | |         rationale: &'static str,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

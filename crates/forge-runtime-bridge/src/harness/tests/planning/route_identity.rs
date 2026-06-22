@@ -1,17 +1,19 @@
 use super::*;
-use crate::facade::TruthSnapshotIdentity;
 
 #[test]
 fn bridge_prepared_delivery_is_equivalent_to_one_shot_delivery() {
     let left_source = InMemoryRelationalBridgeSource::default();
     left_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    left_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let left_runtime = build_runtime(
         left_source,
         RecordingSignalBridgeSink::default(),
@@ -20,13 +22,16 @@ fn bridge_prepared_delivery_is_equivalent_to_one_shot_delivery() {
 
     let right_source = InMemoryRelationalBridgeSource::default();
     right_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    right_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let right_runtime = build_runtime(
         right_source,
         RecordingSignalBridgeSink::default(),
@@ -37,7 +42,7 @@ fn bridge_prepared_delivery_is_equivalent_to_one_shot_delivery() {
         .deliver_invalidation(
             left_runtime
                 .plan_committed_patch(BridgeRouteRequest::for_commit(
-                    crate::facade::TruthCommitIdentity::new("commit-a"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
                 ))
                 .expect("one-shot route should plan"),
         )
@@ -45,7 +50,7 @@ fn bridge_prepared_delivery_is_equivalent_to_one_shot_delivery() {
     let prepared = right_runtime.prepare_delivery(
         right_runtime
             .plan_committed_patch(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ))
             .expect("prepared route should plan"),
     );
@@ -72,13 +77,16 @@ fn bridge_prepared_delivery_is_equivalent_to_one_shot_delivery() {
 fn bridge_empty_mapping_context_is_equivalent_to_default_planning_path() {
     let left_source = InMemoryRelationalBridgeSource::default();
     left_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    left_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let left_runtime = build_runtime(
         left_source,
         RecordingSignalBridgeSink::default(),
@@ -87,13 +95,16 @@ fn bridge_empty_mapping_context_is_equivalent_to_default_planning_path() {
 
     let right_source = InMemoryRelationalBridgeSource::default();
     right_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    right_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let right_runtime = build_runtime(
         right_source,
         RecordingSignalBridgeSink::default(),
@@ -102,12 +113,14 @@ fn bridge_empty_mapping_context_is_equivalent_to_default_planning_path() {
 
     let default_route = left_runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("default planning should succeed");
     let explicit_route = right_runtime
         .plan_committed_patch_with_mapping_context(
-            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
+            BridgeRouteRequest::for_commit(crate::truth_identity_fixtures::truth_commit_fixture(
+                "commit-a",
+            )),
             BridgeMappingContext::empty(),
         )
         .expect("explicit empty mapping context planning should succeed");
@@ -136,9 +149,9 @@ fn bridge_empty_mapping_context_is_equivalent_to_default_planning_path() {
 fn bridge_route_identity_is_stable_across_equivalent_native_field_constructors() {
     let left_source = InMemoryRelationalBridgeSource::default();
     left_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
@@ -150,9 +163,9 @@ fn bridge_route_identity_is_stable_across_equivalent_native_field_constructors()
 
     let right_source = InMemoryRelationalBridgeSource::default();
     right_source.insert_committed_patch(committed_patch_items(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         vec![crate::facade::BridgeCommittedPatchItem::with_target(
             "user",
             crate::facade::BridgeCommittedPatchTarget::entity_field_path(
@@ -176,12 +189,12 @@ fn bridge_route_identity_is_stable_across_equivalent_native_field_constructors()
 
     let left_route = left_runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("unprefixed field route should plan");
     let right_route = right_runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("explicit native field route should plan");
 
@@ -200,9 +213,9 @@ fn bridge_route_identity_is_stable_when_patch_items_arrive_out_of_order_with_dup
         "bridge-canonical-patch-order",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch_items(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 vec![
                     crate::facade::BridgeCommittedPatchItem::with_target(
                         "user",
@@ -248,14 +261,19 @@ fn bridge_route_identity_is_stable_when_patch_items_arrive_out_of_order_with_dup
                     ),
                 ],
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("commit-a")
     .declare_observation("route")
     .compile();
     let request = ExecutionRequest::target(
         "deliver-commit-a",
-        BridgeHarnessTargetId::committed_route(crate::facade::TruthCommitIdentity::new("commit-a")),
+        BridgeHarnessTargetId::committed_route(
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        ),
     );
     let profile = ExecutionProfile::development("development");
 
@@ -283,9 +301,9 @@ fn bridge_route_identity_is_stable_when_patch_items_arrive_out_of_order_with_dup
         "bridge-canonical-patch-order-reordered",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch_items(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 vec![
                     crate::facade::BridgeCommittedPatchItem::with_target(
                         "user",
@@ -317,7 +335,10 @@ fn bridge_route_identity_is_stable_when_patch_items_arrive_out_of_order_with_dup
                     ),
                 ],
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("commit-a")
     .declare_observation("route")

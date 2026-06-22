@@ -1,0 +1,57 @@
+use std::collections::BTreeMap;
+
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
+
+use super::{ForgeQueryDerivedMaterializationResult, ForgeQueryRuntimeError};
+
+pub(super) fn bundle_snapshot_identity(
+    materializations: &BTreeMap<String, ForgeQueryDerivedMaterializationResult>,
+) -> Result<ForgeQuerySnapshotIdentity, ForgeQueryRuntimeError> {
+    let snapshot_identities = materializations
+        .iter()
+        .map(|(view_name, result)| {
+            (
+                view_name.as_str(),
+                result.receipt().snapshot_identity().clone(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let shared_snapshot_identity = snapshot_identities
+        .first()
+        .map(|(_, snapshot_identity)| snapshot_identity);
+    let has_single_snapshot_identity = shared_snapshot_identity
+        .map(|expected| {
+            snapshot_identities
+                .iter()
+                .all(|(_, snapshot_identity)| snapshot_identity == expected)
+        })
+        .unwrap_or(true);
+    match snapshot_identities.as_slice() {
+        [] => Ok(ForgeQuerySnapshotIdentity::empty_relational_state()),
+        [(_, snapshot_identity)] if has_single_snapshot_identity => Ok(snapshot_identity.clone()),
+        _ if has_single_snapshot_identity => Ok(snapshot_identities[0].1.clone()),
+        _ => Err(ForgeQueryRuntimeError::RetainedRowDecode {
+            view_name: materializations
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("|"),
+            stage: "derived-materialization-bundle",
+            message: format!(
+                "bundle materialized multiple snapshot identities: {}",
+                snapshot_identities
+                    .iter()
+                    .map(|(view_name, snapshot_identity)| {
+                        format!(
+                            "{view_name}:{}",
+                            snapshot_identity
+                                .evidence_identity()
+                                .terminal_projection_for_reporting()
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+        }),
+    }
+}

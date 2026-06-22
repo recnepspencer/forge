@@ -7,7 +7,9 @@ use forge_runtime_bridge::facade::{
 use super::snapshot_authority::resolve_snapshot_version;
 use super::RuntimeBridgeRelationalSource;
 use crate::lineage::data::{HistoricalResolutionBoundednessBasis, RecordHistoryRequest};
-use crate::presentation::bridge::identities::{parse_bridge_record_identity, record_ref_identity};
+use crate::presentation::bridge::identities::{
+    record_ref_from_identity_parts, record_ref_identity,
+};
 use crate::transactions::data::RecordRef;
 
 impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
@@ -19,15 +21,31 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
             request
                 .authority_basis()
                 .branch_identity()
-                .as_str()
+                .relational_branch_id()
+                .ok_or_else(|| {
+                    BridgeLineageSourceError::new(
+                        BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
+                        "unsupported relational bridge branch identity",
+                    )
+                })?
                 .to_string(),
         );
-        let record = parse_bridge_record_identity(request.prior_slice().entity_identity())
-            .map_err(|error| {
+        let record = request
+            .prior_slice()
+            .relational_record_identity_parts()
+            .ok_or_else(|| {
                 BridgeLineageSourceError::new(
                     BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
-                    error.to_string(),
+                    "relational bridge continuity requires typed record identity parts",
                 )
+            })
+            .and_then(|parts| {
+                record_ref_from_identity_parts(parts).map_err(|error| {
+                    BridgeLineageSourceError::new(
+                        BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
+                        error.to_string(),
+                    )
+                })
             })?;
         let RecordRef::Entity(entity_id) = record else {
             return Err(BridgeLineageSourceError::new(
@@ -35,6 +53,10 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
                 "bridge continuity lineage adapter currently supports entity record identities only",
             ));
         };
+        let entity_label = format!(
+            "entity:{}:{}:{}",
+            entity_id.partition_id.0, entity_id.local_slot.0, entity_id.generation.0
+        );
         let resolution = self
             .runtime
             .lineage_access()
@@ -48,7 +70,7 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
                     BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
                     format!(
                         "bridge continuity lineage adapter could not resolve record history for `{}`",
-                        request.prior_slice().entity_identity()
+                        entity_label
                     ),
                 )
             })?;
@@ -56,7 +78,7 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
             .resolved
             .iter()
             .map(|lineage| {
-                BridgeHistoricalResolvedLineageIdentity::new(format!("lineage:{}", lineage.0))
+                BridgeHistoricalResolvedLineageIdentity::from_relational_lineage_id(lineage.0)
             })
             .collect::<Vec<_>>();
         canonical_resolved_lineage_identities.sort_unstable();
@@ -76,7 +98,7 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
             .visible_entity_ids_for_lineages_at_version(&resolution.resolved, snapshot_version_id)
             .into_iter()
             .map(|entity_id| {
-                BridgeHistoricalResolvedRecordIdentity::new(record_ref_identity(
+                BridgeHistoricalResolvedRecordIdentity::from_relational_record(record_ref_identity(
                     &RecordRef::Entity(entity_id),
                 ))
             })

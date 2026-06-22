@@ -1,5 +1,9 @@
+use std::sync::Arc;
+
 use forge_query::facade::{
-    ForgeQueryAspectMutationBuilder, ForgeQueryDeleteMutationBuilder, ForgeQueryWriteCommand,
+    admit_authored_entity_token, ForgeQueryAspectMutationBuilder, ForgeQueryDeleteMutationBuilder,
+    ForgeQueryEntityIdentity, ForgeQueryWriteCommand, QueryExternalIdentityToken,
+    RelationalBridgeRecordIdentityParts,
 };
 
 use crate::{
@@ -69,13 +73,15 @@ fn lower_command(
             for (name, value) in metadata {
                 builder = builder.metadata(name, value.clone());
             }
-            builder.build_update(entity_identity).map_err(|error| {
-                ForgeServerQueryHandoffDenial::new(
-                    ForgeServerQueryHandoffDenialCode::CompatibilityMutationRequestInvalid,
-                    diagnostics_profile,
-                    error.to_string(),
-                )
-            })
+            builder
+                .build_update(admit_compat_entity_identity(entity_identity))
+                .map_err(|error| {
+                    ForgeServerQueryHandoffDenial::new(
+                        ForgeServerQueryHandoffDenialCode::CompatibilityMutationRequestInvalid,
+                        diagnostics_profile,
+                        error.to_string(),
+                    )
+                })
         }
         ForgeServerCompatibilityMutationCommand::Delete {
             entity_identity,
@@ -91,13 +97,15 @@ fn lower_command(
             for (name, value) in metadata {
                 builder = builder.metadata(name, value.clone());
             }
-            builder.build_delete(entity_identity).map_err(|error| {
-                ForgeServerQueryHandoffDenial::new(
-                    ForgeServerQueryHandoffDenialCode::CompatibilityMutationRequestInvalid,
-                    diagnostics_profile,
-                    error.to_string(),
-                )
-            })
+            builder
+                .build_delete(admit_compat_entity_identity(entity_identity))
+                .map_err(|error| {
+                    ForgeServerQueryHandoffDenial::new(
+                        ForgeServerQueryHandoffDenialCode::CompatibilityMutationRequestInvalid,
+                        diagnostics_profile,
+                        error.to_string(),
+                    )
+                })
         }
         ForgeServerCompatibilityMutationCommand::VerifyExisting { .. } => {
             Err(ForgeServerQueryHandoffDenial::new(
@@ -107,4 +115,12 @@ fn lower_command(
             ))
         }
     }
+}
+
+fn admit_compat_entity_identity(entity_identity: &str) -> ForgeQueryEntityIdentity {
+    RelationalBridgeRecordIdentityParts::from_bridge_entity_identity(entity_identity)
+        .map(ForgeQueryEntityIdentity::from_relational_record)
+        .unwrap_or_else(|| {
+            admit_authored_entity_token(QueryExternalIdentityToken::new(Arc::from(entity_identity)))
+        })
 }

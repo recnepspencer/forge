@@ -35,9 +35,10 @@ impl BridgeSubscriptionReplayReadiness {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            replay_readiness_identity: BridgeSubscriptionReplayReadinessIdentity::new(format!(
-                "bridge-subscription-replay-readiness-id:sha256:{digest:x}"
-            )),
+            replay_readiness_identity:
+                BridgeSubscriptionReplayReadinessIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-replay-readiness-id:sha256:{digest:x}"
+                )),
             admitted_resume_basis_identity: Arc::from(
                 admitted_resume_basis
                     .admitted_resume_basis_identity()

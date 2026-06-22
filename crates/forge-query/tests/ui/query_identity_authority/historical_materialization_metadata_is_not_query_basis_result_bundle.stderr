@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/historical_materialization_metadata_is_not_query_basis_result_bundle.rs:7:18
+  |
+7 |     takes_bundle(metadata);
+  |     ------------ ^^^^^^^^ expected `QueryBasisResultBundle`, found `HistoricalMaterializationPathMetadata`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> tests/ui/historical_materialization_metadata_is_not_query_basis_result_bundle.rs:3:4
+  |
+3 | fn takes_bundle(_: QueryBasisResultBundle) {}
+  |    ^^^^^^^^^^^^ -------------------------

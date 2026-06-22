@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> src/certification/public_facade_contracts/compile_fail/projection_workload/unsupported_surface_not_projection_workload.rs:6:63
+  |
+6 |     let _ = ProjectionWorkload::for_certified_surface_support(unsupported);
+  |             ------------------------------------------------- ^^^^^^^^^^^ expected `CertifiedSurfaceSupport`, found `UnsupportedSurfaceSupport`
+  |             |
+  |             arguments to this function are incorrect
+  |
+note: associated function defined here
+ --> src/workload_platform/projection_workload/projection_workload.rs
+  |
+  |     pub fn for_certified_surface_support(surface_support: CertifiedSurfaceSupport) -> Self {
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

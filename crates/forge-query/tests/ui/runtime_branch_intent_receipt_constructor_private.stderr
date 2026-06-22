@@ -1,27 +1,23 @@
-error[E0451]: fields `intent_name`, `strategy_identity`, `strategy_version`, `canonical_input_digest`, `source_lane`, `target_lane`, `effect_policy`, `basis_evidence`, `basis_snapshot_token`, `admission_digest` and `receipt_digest` of struct `ForgeQueryBranchIntentReceipt` are private
-  --> tests/ui/runtime_branch_intent_receipt_constructor_private.rs:8:9
+error[E0560]: struct `ForgeQueryBranchIntentReceipt` has no field named `basis_snapshot_token`
+  --> tests/ui/runtime_branch_intent_receipt_constructor_private.rs:16:9
    |
- 7 |     let _forged = ForgeQueryBranchIntentReceipt {
-   |                   ----------------------------- in this type
- 8 |         intent_name: "intent".to_string(),
-   |         ^^^^^^^^^^^ private field
- 9 |         strategy_identity: "strategy".to_string(),
-   |         ^^^^^^^^^^^^^^^^^ private field
-10 |         strategy_version: "1.0".to_string(),
-   |         ^^^^^^^^^^^^^^^^ private field
-11 |         canonical_input_digest: "input".to_string(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-12 |         source_lane: ForgeQueryIntentSourceLane::BranchLocal,
-   |         ^^^^^^^^^^^ private field
-13 |         target_lane: ForgeQueryAuthorityLane::BranchLocalTruth,
-   |         ^^^^^^^^^^^ private field
-14 |         effect_policy: ForgeQueryEffectPolicy::SandboxedWriteIntent,
-   |         ^^^^^^^^^^^^^ private field
-15 |         basis_evidence: vec!["basis".to_string()],
-   |         ^^^^^^^^^^^^^^ private field
 16 |         basis_snapshot_token: "snapshot".to_string(),
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^^^^^^ `ForgeQueryBranchIntentReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryBranchIntentReceipt` has no field named `admission_digest`
+  --> tests/ui/runtime_branch_intent_receipt_constructor_private.rs:17:9
+   |
 17 |         admission_digest: "admission".to_string(),
-   |         ^^^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^^ `ForgeQueryBranchIntentReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryBranchIntentReceipt` has no field named `receipt_digest`
+  --> tests/ui/runtime_branch_intent_receipt_constructor_private.rs:18:9
+   |
 18 |         receipt_digest: "receipt".to_string(),
-   |         ^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^ `ForgeQueryBranchIntentReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned

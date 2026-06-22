@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
-use forge_query::facade::{ForgeQuerySymbolicAspectReference, ForgeQueryWorkspaceError};
+use forge_query::facade::{
+    ForgeQueryEntityIdentity, ForgeQuerySymbolicAspectReference, ForgeQueryWorkspaceError,
+};
 use forge_relational::facade::identity::PartitionId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::symbols::ClientKey;
@@ -15,7 +17,7 @@ use serde_json::Value;
 
 use super::super::write_support::{
     ensure_live_entity_exists, live_entity_label_exists, optional_text, parse_entity_identity,
-    parse_relation_identity, required_text,
+    relation_id_from_query_identity, required_text,
 };
 use crate::relational_aspect_boundary::{
     persistent_name_create_fields, topology_entity_create_fields,
@@ -135,7 +137,7 @@ pub(super) fn lower_topology_relation_update(
     aspects: &BTreeMap<String, Value>,
     symbolic_aspect_references: &[ForgeQuerySymbolicAspectReference],
     created_entities: &BTreeMap<String, EntityReference>,
-    resolved_target_identity: &str,
+    resolved_target_identity: &ForgeQueryEntityIdentity,
 ) -> Result<UpdateRelationEndpointsIntent, ForgeQueryWorkspaceError> {
     let kind_name = required_text(aspects, "topology.kind")?;
     let kind = RelationKind::ALL
@@ -163,7 +165,7 @@ pub(super) fn lower_topology_relation_update(
         "target",
     )?;
     Ok(UpdateRelationEndpointsIntent {
-        relation_id: parse_relation_identity(resolved_target_identity)?,
+        relation_id: relation_id_from_query_identity(resolved_target_identity)?,
         kind_id: kind.kind_id(),
         source,
         target,

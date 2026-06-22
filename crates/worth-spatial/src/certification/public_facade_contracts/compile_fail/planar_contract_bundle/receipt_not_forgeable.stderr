@@ -1,0 +1,27 @@
+warning: unreachable expression
+ --> src/certification/public_facade_contracts/compile_fail/planar_contract_bundle/receipt_not_forgeable.rs:8:29
+  |
+7 |         basis: todo!(),
+  |                ------- any code following this expression is unreachable
+8 |         declaration_digest: String::new(),
+  |                             ^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `basis`, `declaration_digest`, `envelope_digest`, `fact_digest`, `status` and `counters` of struct `PlanarContractBundleValidationReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_contract_bundle/receipt_not_forgeable.rs:7:9
+   |
+ 6 |     let _receipt = PlanarContractBundleValidationReceipt {
+   |                    ------------------------------------- in this type
+ 7 |         basis: todo!(),
+   |         ^^^^^ private field
+ 8 |         declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+ 9 |         envelope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+10 |         fact_digest: String::new(),
+   |         ^^^^^^^^^^^ private field
+11 |         status: PlanarBooleanReadinessStatus::ReadyForM7,
+   |         ^^^^^^ private field
+12 |         counters: todo!(),
+   |         ^^^^^^^^ private field

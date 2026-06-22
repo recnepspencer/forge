@@ -119,7 +119,9 @@ fn preview_subscription_promotion_rejects_promoted_subscription_drift() {
     let drift_admitted = runtime
         .admit_subscription(
             &drift_declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            ),
         )
         .expect("drift admission should succeed");
     let drift_ready = runtime.prepare_subscription_activation(&drift_admitted);

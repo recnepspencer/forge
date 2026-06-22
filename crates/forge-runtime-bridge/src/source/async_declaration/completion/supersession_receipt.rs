@@ -28,9 +28,9 @@ impl BridgeAsyncCompletionSupersessionReceipt {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            receipt_identity: BridgeAsyncCompletionSupersessionReceiptIdentity::new(format!(
-                "bridge-async-completion-supersession-receipt-id:sha256:{digest:x}"
-            )),
+            receipt_identity: BridgeAsyncCompletionSupersessionReceiptIdentity::admit_bridge_owned(
+                format!("bridge-async-completion-supersession-receipt-id:sha256:{digest:x}"),
+            ),
             supersession_identity: Arc::from(supersession_identity.to_owned()),
             canonical_basis,
             digest: Arc::from(format!(

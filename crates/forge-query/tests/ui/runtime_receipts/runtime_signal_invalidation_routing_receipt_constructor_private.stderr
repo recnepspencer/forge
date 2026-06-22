@@ -1,10 +1,32 @@
+error[E0308]: mismatched types
+ --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:8:26
+  |
+8 |         commit_identity: "commit-1".to_string(),
+  |                          ^^^^^^^^^^^^^^^^^^^^^^ expected `ForgeQueryCommitIdentity`, found `String`
+
+error[E0560]: struct `ForgeQueryMutationReceipt` has no field named `snapshot_token`
+ --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:9:9
+  |
+9 |         snapshot_token: "snapshot-1".to_string(),
+  |         ^^^^^^^^^^^^^^ `ForgeQueryMutationReceipt` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:12:30
+   |
+12 |             entity_identity: "task-1".to_string(),
+   |                              ^^^^^^^^^^^^^^^^^^^^ expected `ForgeQueryEntityIdentity`, found `String`
+
 error[E0624]: associated function `from_mutation_receipt` is private
   --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:18:47
    |
-18 |     let _ = SignalInvalidationRoutingReceipt::from_mutation_receipt(&receipt);
-   |                                               ^^^^^^^^^^^^^^^^^^^^^ private associated function
+18 |       let _ = SignalInvalidationRoutingReceipt::from_mutation_receipt(&receipt);
+   |                                                 ^^^^^^^^^^^^^^^^^^^^^ private associated function
    |
-  ::: src/runtime/backend/receipts.rs
+  ::: src/runtime/backend/signal_routing_receipt.rs
    |
-   |     pub(crate) fn from_mutation_receipt(receipt: &ForgeQueryMutationReceipt) -> Self {
-   |     -------------------------------------------------------------------------------- private associated function defined here
+   | /     pub(crate) fn from_mutation_receipt(
+   | |         receipt: &ForgeQueryMutationReceipt,
+   | |     ) -> Result<Self, ForgeQueryWorkspaceError> {
+   | |_______________________________________________- private associated function defined here

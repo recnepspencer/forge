@@ -1,25 +1,30 @@
-use crate::ForgeServerAdmission;
+use crate::ForgeServerOperationAdmissionPosture;
 
 use super::ForgeServerQueryHandoffOperation;
 
 #[derive(Clone, Debug)]
 pub struct ForgeServerQueryHandoffInput {
-    admission: ForgeServerAdmission,
+    operation_admission: ForgeServerOperationAdmissionPosture,
     operation: ForgeServerQueryHandoffOperation,
 }
 
 impl ForgeServerQueryHandoffInput {
     pub fn new(
-        admission: ForgeServerAdmission,
+        operation_admission: ForgeServerOperationAdmissionPosture,
         operation: ForgeServerQueryHandoffOperation,
     ) -> Self {
         Self {
-            admission,
+            operation_admission,
             operation,
         }
     }
 
-    pub(crate) fn into_parts(self) -> (ForgeServerAdmission, ForgeServerQueryHandoffOperation) {
-        (self.admission, self.operation)
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        ForgeServerOperationAdmissionPosture,
+        ForgeServerQueryHandoffOperation,
+    ) {
+        (self.operation_admission, self.operation)
     }
 }

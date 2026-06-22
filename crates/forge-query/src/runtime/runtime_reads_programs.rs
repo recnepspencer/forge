@@ -1,11 +1,19 @@
 use super::*;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 
 impl ForgeQueryRuntime {
     pub fn read_live<T>(&mut self, view: &ForgeQueryLiveView<T>) -> Vec<ForgeQueryEntity> {
-        self.execute_live_read_by_name(view.name())
+        self.read_live_result(view)
             .expect("live view declaration admitted before runtime.read_live execution")
             .rows()
             .to_vec()
+    }
+
+    pub fn read_live_result<T>(
+        &mut self,
+        view: &ForgeQueryLiveView<T>,
+    ) -> Result<ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
+        self.execute_live_read_by_name(view.name())
     }
 
     pub fn drain_patches<T>(&mut self, view: &ForgeQueryLiveView<T>) -> ForgeQueryPatchBatch {
@@ -118,8 +126,8 @@ impl ForgeQueryRuntime {
             .collect()
     }
 
-    pub fn snapshot_token(&self) -> String {
-        self.backend.snapshot_token()
+    pub fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        self.backend.current_snapshot_identity()
     }
 
     pub fn install_program(
@@ -170,13 +178,13 @@ impl ForgeQueryRuntime {
                 }
                 ForgeQueryProgramEffect::Write(command) => {
                     let receipt = self.write(command)?;
-                    trace.record_write_receipt(receipt.commit_identity().to_string());
+                    trace.record_write_receipt(receipt.commit_identity().clone());
                     write_receipts.push(receipt);
                 }
                 ForgeQueryProgramEffect::WriteTemplate(template) => {
                     let command = template.bind(&bound_inputs)?;
                     let receipt = self.write(command)?;
-                    trace.record_write_receipt(receipt.commit_identity().to_string());
+                    trace.record_write_receipt(receipt.commit_identity().clone());
                     write_receipts.push(receipt);
                 }
                 ForgeQueryProgramEffect::ReadLive { view_name } => {
@@ -204,7 +212,7 @@ impl ForgeQueryRuntime {
                         trace.record_patch_artifact(format!(
                             "query-delivery:{}:{}",
                             batch.view_name(),
-                            batch.delivery_batch_digest()
+                            batch.delivery_batch_for_reporting()
                         ));
                     }
                     patch_batches.push(ForgeQueryPatchBatch {
@@ -275,7 +283,7 @@ impl ForgeQueryRuntime {
             .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveView(view_name.to_string()))?;
         let review = self.review_runtime_live_read_execution(installation)?;
         let handoff = self.resolve_reviewed_admitted_live_read_execution_handoff(review)?;
-        let binding = self.prepare_live_read_execution_binding(handoff);
+        let binding = self.prepare_live_read_execution_binding(handoff)?;
         self.execute_live_read_execution_binding(binding)
     }
 }

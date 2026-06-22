@@ -4,35 +4,41 @@ use super::{
     ForgeQueryIntentDenialEvidence, ForgeQueryIntentSourceLane, ForgeQueryRuntime,
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily,
 };
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
+use crate::session_label::ForgeQuerySessionLabel;
 
 pub struct ForgeQueryBranchSession<'a> {
-    label: String,
+    label: ForgeQuerySessionLabel,
     runtime: &'a mut ForgeQueryRuntime,
     effect_policy: ForgeQueryEffectPolicy,
     basis_admission: ForgeQueryBranchBasisAdmission,
-    basis_snapshot_token: String,
+    basis_snapshot_identity: ForgeQuerySnapshotIdentity,
     intent_receipts: Vec<ForgeQueryBranchIntentReceipt>,
 }
 
 impl<'a> ForgeQueryBranchSession<'a> {
     pub(super) fn new(
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
         runtime: &'a mut ForgeQueryRuntime,
         options: ForgeQueryBranchOptions,
         basis_admission: ForgeQueryBranchBasisAdmission,
     ) -> Self {
-        let basis_snapshot_token = runtime.snapshot_token();
+        let basis_snapshot_identity = runtime.current_snapshot_identity();
         Self {
-            label: label.into(),
+            label,
             runtime,
             effect_policy: options.effect_policy(),
             basis_admission,
-            basis_snapshot_token,
+            basis_snapshot_identity,
             intent_receipts: Vec::new(),
         }
     }
 
     pub fn label(&self) -> &str {
+        self.label.display()
+    }
+
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
         &self.label
     }
 
@@ -69,12 +75,16 @@ impl<'a> ForgeQueryBranchSession<'a> {
             message: denial.message().to_string(),
             evidence: ForgeQueryIntentDenialEvidence::new(&declaration, &denial, None),
         })?;
+        let obligation_dispatch = self
+            .runtime
+            .branch_intent_obligation_dispatch(&declaration)?;
         let receipt = ForgeQueryBranchIntentReceipt::new(
             &declaration,
             self.effect_policy,
             &self.basis_admission,
-            &self.basis_snapshot_token,
+            &self.basis_snapshot_identity,
             admission,
+            obligation_dispatch,
         );
         self.intent_receipts.push(receipt.clone());
         Ok(receipt)

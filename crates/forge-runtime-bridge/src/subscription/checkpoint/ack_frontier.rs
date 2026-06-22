@@ -149,7 +149,7 @@ impl BridgeSubscriptionAcknowledgementFrontier {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
             acknowledgement_frontier_identity:
-                BridgeSubscriptionAcknowledgementFrontierIdentity::new(format!(
+                BridgeSubscriptionAcknowledgementFrontierIdentity::admit_bridge_owned(format!(
                     "bridge-subscription-acknowledgement-frontier-id:sha256:{digest:x}"
                 )),
             active_subscription_identity: sealed_window.active_subscription_identity().clone(),

@@ -6,7 +6,7 @@ pub(crate) use read_views::domain::parity::{
     build_topology_read_view_parity_artifact, TopologyReadViewParityArtifact, TopologyReadViewRef,
 };
 pub(crate) use runtime_boundary::query_support::{
-    parse_entity_identity, query_entity_identity, required_text,
+    entity_id_from_query_identity, query_entity_identity, required_text,
 };
 #[cfg(test)]
 pub(crate) use runtime_boundary::query_support::{

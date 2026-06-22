@@ -1,17 +1,31 @@
-error[E0451]: fields `support_class`, `family`, `declaration_digest`, `admission_digest`, `source_digest` and `digest` of struct `QuerySubscriptionSupportSubject` are private
-  --> tests/ui/subscription_support_subject_constructor_private.rs:7:9
+error[E0560]: struct `QuerySubscriptionSupportSubject` has no field named `declaration_digest`
+ --> tests/ui/subscription_support_subject_constructor_private.rs:9:9
+  |
+9 |         declaration_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^ `QuerySubscriptionSupportSubject` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionSupportSubject` has no field named `admission_digest`
+  --> tests/ui/subscription_support_subject_constructor_private.rs:10:9
    |
- 6 |     let _ = QuerySubscriptionSupportSubject {
-   |             ------------------------------- in this type
- 7 |         support_class: QuerySubscriptionSupportClass::Declaration,
-   |         ^^^^^^^^^^^^^ private field
- 8 |         family: QuerySubscriptionFamily::DetailExact,
-   |         ^^^^^^ private field
- 9 |         declaration_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^ private field
 10 |         admission_digest: None,
-   |         ^^^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^^ `QuerySubscriptionSupportSubject` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionSupportSubject` has no field named `source_digest`
+  --> tests/ui/subscription_support_subject_constructor_private.rs:11:9
+   |
 11 |         source_digest: String::new(),
-   |         ^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^ `QuerySubscriptionSupportSubject` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionSupportSubject` has no field named `digest`
+  --> tests/ui/subscription_support_subject_constructor_private.rs:12:9
+   |
 12 |         digest: String::new(),
-   |         ^^^^^^ private field
+   |         ^^^^^^ `QuerySubscriptionSupportSubject` does not have this field
+   |
+   = note: all struct fields are already assigned

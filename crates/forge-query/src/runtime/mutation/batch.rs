@@ -1,5 +1,5 @@
 use super::{ForgeQueryAspectMutationBuilder, ForgeQueryDeleteMutationBuilder};
-use crate::memory_workspace::ForgeQueryWorkspaceError;
+use crate::memory_workspace::{ForgeQueryEntityIdentity, ForgeQueryWorkspaceError};
 use crate::runtime::{
     ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationMetadata, ForgeQueryRuntimeError,
     ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
@@ -51,7 +51,7 @@ impl ForgeQueryMutationBatchBuilder {
 
     pub fn update(
         mut self,
-        entity_identity: impl Into<String>,
+        entity_identity: ForgeQueryEntityIdentity,
         declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
     ) -> Self {
         if self.error.is_some() {
@@ -151,13 +151,8 @@ impl ForgeQueryMutationBatchBuilder {
         self
     }
 
-    pub fn delete(mut self, entity_identity: impl Into<String>) -> Self {
+    pub fn delete(mut self, entity_identity: ForgeQueryEntityIdentity) -> Self {
         if self.error.is_some() {
-            return self;
-        }
-        let entity_identity = entity_identity.into();
-        if entity_identity.trim().is_empty() {
-            self.error = Some("entity identity may not be empty".to_string());
             return self;
         }
         self.commands
@@ -167,7 +162,7 @@ impl ForgeQueryMutationBatchBuilder {
 
     pub fn delete_with(
         mut self,
-        entity_identity: impl Into<String>,
+        entity_identity: ForgeQueryEntityIdentity,
         declaration: impl FnOnce(ForgeQueryDeleteMutationBuilder) -> ForgeQueryDeleteMutationBuilder,
     ) -> Self {
         if self.error.is_some() {

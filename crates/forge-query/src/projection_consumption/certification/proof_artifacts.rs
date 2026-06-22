@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::projection_consumption::identity::{
+    compose_proof_artifact_bundle_digest, compose_proof_artifact_entry_digest,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProjectionConsumptionGoldenTranscript {
@@ -206,31 +208,30 @@ pub fn projection_consumption_compile_fail_proofs(
 }
 
 pub fn golden_transcript_bundle_digest() -> String {
-    hash_parts(
-        &projection_consumption_golden_transcripts()
+    compose_proof_artifact_bundle_digest(
+        "projection_consumption_golden_transcript_bundle_v1",
+        projection_consumption_golden_transcripts()
             .iter()
             .map(|transcript| {
-                hash_parts(&[
-                    transcript.as_str().to_string(),
-                    transcript.source().to_string(),
-                ])
-            })
-            .collect::<Vec<_>>(),
+                compose_proof_artifact_entry_digest(
+                    "projection_consumption_golden_transcript_entry_v1",
+                    [transcript.as_str(), transcript.source()],
+                )
+            }),
     )
 }
 
 pub fn compile_fail_boundary_bundle_digest() -> String {
-    hash_parts(
-        &projection_consumption_compile_fail_proofs()
+    compose_proof_artifact_bundle_digest(
+        "projection_consumption_compile_fail_boundary_bundle_v1",
+        projection_consumption_compile_fail_proofs()
             .iter()
             .map(|proof| {
-                hash_parts(&[
-                    proof.as_str().to_string(),
-                    proof.source().to_string(),
-                    proof.stderr().to_string(),
-                ])
-            })
-            .collect::<Vec<_>>(),
+                compose_proof_artifact_entry_digest(
+                    "projection_consumption_compile_fail_proof_entry_v1",
+                    [proof.as_str(), proof.source(), proof.stderr()],
+                )
+            }),
     )
 }
 

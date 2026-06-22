@@ -4,7 +4,10 @@ use crate::projection_consumption::{
     ProjectionContractSourcePosture, ProjectionFactKind, ProjectionSourceFamily,
 };
 
-use super::support::{authorized_projection, live_binding, retained_binding};
+use super::support::{
+    authorized_projection, live_binding, retained_binding, shared_test_result_shape,
+    test_result_shape_artifact, test_result_shape_canonical_digest,
+};
 
 #[test]
 fn retained_binding_support_is_first_class_and_family_specific() {
@@ -45,8 +48,12 @@ fn retained_binding_declaration_preserves_binding_identity_and_target_refs() {
     let binding = retained_binding();
     let declaration = binding
         .declare_projection_fact_consumption(
-            "result-shape:test",
-            &authorized_projection("query:test", "result-shape:test", &["profile.display_name"]),
+            &test_result_shape_artifact("result-shape:test"),
+            &authorized_projection(
+                "query:test",
+                &test_result_shape_canonical_digest("result-shape:test"),
+                &["profile.display_name"],
+            ),
             ProjectMaterializedFacts::declare().display_field("profile.display_name"),
         )
         .expect("retained binding declaration should succeed");
@@ -58,11 +65,11 @@ fn retained_binding_declaration_preserves_binding_identity_and_target_refs() {
     assert_eq!(declaration.source().query_digest(), None);
     assert_eq!(
         declaration.source().basis_digest(),
-        Some(binding.snapshot_token())
+        Some(binding.snapshot_identity().evidence_identity().as_str())
     );
     assert_eq!(
         declaration.source().source_identity(),
-        binding.binding_digest()
+        binding.binding_for_reporting()
     );
     assert_eq!(
         declaration
@@ -81,10 +88,15 @@ fn retained_binding_declaration_preserves_binding_identity_and_target_refs() {
 #[test]
 fn live_binding_eligibility_admits_honest_fact_families() {
     let binding = live_binding();
+    let result_shape = shared_test_result_shape();
     let declaration = binding
         .declare_projection_fact_consumption(
-            "result-shape:test",
-            &authorized_projection("query:test", "result-shape:test", &["profile.display_name"]),
+            &result_shape.identity,
+            &authorized_projection(
+                "query:test",
+                &result_shape.digest,
+                &["profile.display_name"],
+            ),
             ProjectMaterializedFacts::declare()
                 .entity_identities()
                 .display_field("profile.display_name")

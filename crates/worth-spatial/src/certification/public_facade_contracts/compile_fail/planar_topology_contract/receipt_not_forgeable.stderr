@@ -1,0 +1,15 @@
+error[E0451]: fields `basis`, `declaration_digest`, `envelope_digest`, `fact_digest` and `counters` of struct `PlanarTopologyContractCompletenessReceipt` are private
+ --> src/certification/public_facade_contracts/compile_fail/planar_topology_contract/receipt_not_forgeable.rs:5:9
+  |
+4 |     let _receipt = PlanarTopologyContractCompletenessReceipt {
+  |                    ----------------------------------------- in this type
+5 |         basis: fake(),
+  |         ^^^^^ private field
+6 |         declaration_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^ private field
+7 |         envelope_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^ private field
+8 |         fact_digest: String::new(),
+  |         ^^^^^^^^^^^ private field
+9 |         counters: fake(),
+  |         ^^^^^^^^ private field

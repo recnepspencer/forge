@@ -1,10 +1,11 @@
 use crate::historical::HistoricalMaterializationDescriptor;
 use crate::query_context::QueryBasisContextRequest;
 use crate::runtime::{
-    ForgeQueryAuthorityLane, ForgeQueryBranchBasisAdmission, ForgeQueryEffectPolicy,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryAuthorityLane, ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryBranchBasisAdmission,
+    ForgeQueryEffectPolicy, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeInspectionEvidence,
 };
+use crate::session_label::ForgeQuerySessionLabel;
 use crate::subscription::QuerySubscriptionBasisPosture;
 
 use super::{
@@ -20,15 +21,17 @@ fn branch_and_preview_admissions_lower_into_scoped_lifecycle_proofs() {
     let authority = ForgeQueryRuntimeEvidenceAuthority::new();
     let branch = ForgeQueryBranchBasisAdmission::new(
         &authority,
-        "branch:adapter",
+        ForgeQuerySessionLabel::scoped_strs("basis-lifecycle-tests", ["branch:adapter"])
+            .expect("branch label should build"),
         ForgeQueryEffectPolicy::AuthoritativeAllowed,
-        ["relational-head"],
+        ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(["relational-head"]),
     );
     let preview = ForgeQueryPreviewBasisAdmission::new(
         &authority,
-        "preview:adapter",
+        ForgeQuerySessionLabel::scoped_strs("basis-lifecycle-tests", ["preview:adapter"])
+            .expect("preview label should build"),
         ForgeQueryEffectPolicy::DeriveOnly,
-        ["bridge-preview"],
+        ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(["bridge-preview"]),
     );
 
     let branch_proof = adapt_branch_admission_to_lifecycle(&branch).expect("branch adapts");
@@ -51,6 +54,45 @@ fn branch_and_preview_admissions_lower_into_scoped_lifecycle_proofs() {
     assert_ne!(
         branch_proof.adapter_proof_digest(),
         preview_proof.adapter_proof_digest()
+    );
+}
+
+#[test]
+fn render_colliding_session_labels_remain_distinct_in_basis_lifecycle_adaptation() {
+    let authority = ForgeQueryRuntimeEvidenceAuthority::new();
+    let left = ForgeQueryPreviewBasisAdmission::new(
+        &authority,
+        ForgeQuerySessionLabel::scoped_strs("worth.kernel", ["preview"])
+            .expect("left label should build"),
+        ForgeQueryEffectPolicy::DeriveOnly,
+        ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(["bridge-preview"]),
+    );
+    let right = ForgeQueryPreviewBasisAdmission::new(
+        &authority,
+        ForgeQuerySessionLabel::scoped_strs("worth", ["kernel", "preview"])
+            .expect("right label should build"),
+        ForgeQueryEffectPolicy::DeriveOnly,
+        ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(["bridge-preview"]),
+    );
+
+    assert_eq!(
+        left.label(),
+        right.label(),
+        "rendered labels should collide"
+    );
+    assert_ne!(
+        left.label_identity(),
+        right.label_identity(),
+        "typed label identities must remain distinct"
+    );
+
+    let left_proof = adapt_preview_admission_to_lifecycle(&left).expect("left preview adapts");
+    let right_proof = adapt_preview_admission_to_lifecycle(&right).expect("right preview adapts");
+
+    assert_ne!(
+        left_proof.adapter_proof_digest(),
+        right_proof.adapter_proof_digest(),
+        "lifecycle adaptation must preserve canonical label identity"
     );
 }
 

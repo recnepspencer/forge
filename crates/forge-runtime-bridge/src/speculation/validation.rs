@@ -128,8 +128,8 @@ impl ValidatedBridgePreviewSessionDeclaration {
 #[cfg(test)]
 mod tests {
     use super::ValidatedBridgePreviewSessionDeclaration;
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::source::{BridgeSourceCapability, BridgeSourceCapabilitySet};
     use crate::speculation::{
         BridgePreviewRetainedArtifactSchema, BridgePreviewSessionBasis,
@@ -141,8 +141,8 @@ mod tests {
     fn preview_session_basis() -> BridgePreviewSessionBasis {
         BridgePreviewSessionBasis::new(
             BridgeTruthViewSelector::committed_snapshot(
-                TruthBranchIdentity::new("truth-branch"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth-branch"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
             BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,
@@ -152,12 +152,12 @@ mod tests {
     #[test]
     fn validation_rejects_authoritative_request_kind_for_preview_session() {
         let declaration = BridgePreviewSessionDeclaration::new(
-            BridgePreviewSessionDeclarationIdentity::new("preview-declaration"),
+            BridgePreviewSessionDeclarationIdentity::admit_bridge_owned("preview-declaration"),
             BridgeRequestKind::Authoritative,
             BridgeSpeculativeBranchBinding::new(
-                BridgeSpeculativeBranchBindingIdentity::new("binding"),
-                TruthBranchIdentity::new("truth-branch"),
-                BridgeSignalBranchIdentity::new("signal-branch"),
+                BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned("binding"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth-branch"),
+                BridgeSignalBranchIdentity::admit_bridge_owned("signal-branch"),
             ),
             preview_session_basis(),
         );

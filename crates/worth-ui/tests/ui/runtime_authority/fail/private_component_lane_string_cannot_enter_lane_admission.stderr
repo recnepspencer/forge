@@ -1,0 +1,5 @@
+error[E0599]: no variant or associated item named `from_private_component_lane` found for enum `WorthUiExecutionLane` in the current scope
+ --> tests/ui/runtime_authority/fail/private_component_lane_string_cannot_enter_lane_admission.rs:4:39
+  |
+4 |     let _lane = WorthUiExecutionLane::from_private_component_lane("component.local.secret");
+  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ variant or associated item not found in `WorthUiExecutionLane`

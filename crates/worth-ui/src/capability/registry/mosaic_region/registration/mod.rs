@@ -1,0 +1,4 @@
+mod mosaic_region_accepted_registration_proof;
+mod mosaic_region_registration;
+
+pub(crate) use mosaic_region_accepted_registration_proof::MosaicRegionAcceptedRegistrationProof;

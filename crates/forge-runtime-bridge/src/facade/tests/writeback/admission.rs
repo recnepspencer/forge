@@ -4,7 +4,7 @@ use super::support::*;
 fn runtime_rejects_preview_writeback_declarations() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:preview"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:preview"),
         BridgeRequestKind::Preview,
         BridgeWritebackRequestMode::WritebackCapable,
         "preview",
@@ -24,7 +24,7 @@ fn runtime_rejects_preview_writeback_declarations() {
 fn runtime_rejects_read_only_writeback_declarations_with_strategy_binding() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = BridgeWritebackDeclaration::new(
-        BridgeWritebackDeclarationIdentity::new("writeback:readonly"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:readonly"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::ReadOnly,
         None,
@@ -48,7 +48,7 @@ fn runtime_rejects_read_only_writeback_declarations_with_strategy_binding() {
 fn runtime_rejects_read_only_writeback_declarations_with_strategy_class_binding() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = BridgeWritebackDeclaration::new(
-        BridgeWritebackDeclarationIdentity::new("writeback:readonly-class"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:readonly-class"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::ReadOnly,
         None,
@@ -72,7 +72,7 @@ fn runtime_rejects_read_only_writeback_declarations_with_strategy_class_binding(
 fn runtime_rejects_read_only_writeback_declarations_with_family_binding() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = BridgeWritebackDeclaration::new(
-        BridgeWritebackDeclarationIdentity::new("writeback:readonly-family"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:readonly-family"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::ReadOnly,
         Some(BridgeWritebackFamilyKind::ProjectedStateDiff),
@@ -96,7 +96,7 @@ fn runtime_rejects_read_only_writeback_declarations_with_family_binding() {
 fn runtime_rejects_writeback_capable_declaration_without_strategy_descriptor() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = BridgeWritebackDeclaration::new(
-        BridgeWritebackDeclarationIdentity::new("writeback:missing-strategy"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:missing-strategy"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         Some(BridgeWritebackFamilyKind::ProjectedStateDiff),
@@ -120,7 +120,7 @@ fn runtime_rejects_writeback_capable_declaration_without_strategy_descriptor() {
 fn runtime_rejects_writeback_capable_declaration_without_family_kind() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = BridgeWritebackDeclaration::new(
-        BridgeWritebackDeclarationIdentity::new("writeback:missing-family"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:missing-family"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         None,
@@ -144,7 +144,7 @@ fn runtime_rejects_writeback_capable_declaration_without_family_kind() {
 fn runtime_rejects_writeback_capable_declaration_without_strategy_class() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = BridgeWritebackDeclaration::new(
-        BridgeWritebackDeclarationIdentity::new("writeback:missing-class"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:missing-class"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         Some(BridgeWritebackFamilyKind::ProjectedStateDiff),
@@ -168,7 +168,9 @@ fn runtime_rejects_writeback_capable_declaration_without_strategy_class() {
 fn runtime_rejects_writeback_capable_declaration_with_contradictory_strategy_descriptor_basis() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = BridgeWritebackDeclaration::new(
-        BridgeWritebackDeclarationIdentity::new("writeback:contradictory-strategy-basis"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+            "writeback:contradictory-strategy-basis",
+        ),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         Some(BridgeWritebackFamilyKind::ProjectedStateDiff),
@@ -201,7 +203,7 @@ fn runtime_rejects_writeback_admission_when_runtime_disables_replay_artifacts() 
     let runtime = runtime(BridgeRuntimePolicy::operational().with_replay_artifacts(false));
     let lowered_policy = lowered_policy(&permissive_runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:replay-disabled"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:replay-disabled"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "authoritative",
@@ -219,7 +221,7 @@ fn runtime_admits_family_distinct_aspect_reconciliation_writeback() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration_with_shape(
-        BridgeWritebackDeclarationIdentity::new("writeback:aspect-reconciliation"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:aspect-reconciliation"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         BridgeWritebackEffectClass::AspectReconciliation,
@@ -235,13 +237,15 @@ fn runtime_admits_family_distinct_aspect_reconciliation_writeback() {
         .family_basis()
         .expect("admitted writeback contract should preserve family basis");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("writeback:aspect-reconciliation:causality"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
+            "writeback:aspect-reconciliation:causality",
+        ),
         "truth-trigger:aspect",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("writeback:aspect-reconciliation:effect"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("writeback:aspect-reconciliation:effect"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::AspectReconciliation,
             "aspect-reconciliation",
@@ -286,7 +290,9 @@ fn runtime_rejects_phase_1_unadmitted_repeated_authority_attempts() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration_with_shape(
-        BridgeWritebackDeclarationIdentity::new("writeback:repeated-authority-attempt"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+            "writeback:repeated-authority-attempt",
+        ),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         BridgeWritebackEffectClass::ProjectedStateDiff,

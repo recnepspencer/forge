@@ -39,7 +39,11 @@ fn workspace_insert_uses_aspect_native_authoring_and_routes_live_delivery() {
         ForgeQueryMutationTargetClass::Collection
     );
     assert_eq!(
-        receipt.target_evidence().declared().collection(),
+        receipt
+            .target_evidence()
+            .declared()
+            .collection()
+            .map(|collection| collection.as_str()),
         Some("Task")
     );
     assert_eq!(
@@ -47,7 +51,11 @@ fn workspace_insert_uses_aspect_native_authoring_and_routes_live_delivery() {
         ForgeQueryMutationTargetClass::Entity
     );
     assert_eq!(
-        receipt.target_evidence().resolved().collection(),
+        receipt
+            .target_evidence()
+            .resolved()
+            .collection()
+            .map(|collection| collection.as_str()),
         Some("Task")
     );
     assert!(receipt
@@ -135,7 +143,7 @@ fn workspace_update_supports_multi_aspect_authoring_and_narrows_by_touched_meani
     assert_eq!(rename.mutation_family(), ForgeQueryMutationFamily::Update);
     assert_eq!(
         rename.declared_entity_identity(),
-        Some(seed.deltas()[0].entity_identity.as_str())
+        Some(&seed.deltas()[0].entity_identity)
     );
     assert_eq!(
         rename.affected_live_view_ids(),
@@ -302,7 +310,7 @@ fn preview_insert_uses_aspect_native_authoring_and_stays_preview_local() {
         .expect("task runtime should open a named workspace");
     let mut preview = workspace
         .preview_with_options(
-            "task-preview",
+            test_session_label("task-preview"),
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("preview should open");

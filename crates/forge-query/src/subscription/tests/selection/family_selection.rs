@@ -18,6 +18,10 @@ fn detail_live_family_selects_exact_subscription_with_budgeted_counters() {
         &QuerySubscriptionCostPosture::BoundedExact
     );
     assert_eq!(
+        selection.live_graph_access_posture(),
+        &QuerySubscriptionLiveGraphAccessPosture::IncrementalMaintenancePlanned
+    );
+    assert_eq!(
         selection.bridge_posture(),
         &QuerySubscriptionBridgePosture::BridgeDeclarationAdmitted
     );
@@ -72,10 +76,20 @@ fn grouped_and_plain_collection_are_distinct_query_subscription_meanings() {
         grouped_selection.family(),
         &QuerySubscriptionFamily::GroupedCollectionMembership
     );
+    assert_eq!(
+        grouped_selection.live_graph_access_posture(),
+        &QuerySubscriptionLiveGraphAccessPosture::SnapshotRefreshSupportRequired
+    );
     assert_eq!(grouped_selection.required_slice_count(), 6);
     assert_ne!(
-        collection_selection.equivalence_basis().digest().as_str(),
-        grouped_selection.equivalence_basis().digest().as_str()
+        collection_selection
+            .equivalence_basis()
+            .equivalence_projection()
+            .label(),
+        grouped_selection
+            .equivalence_basis()
+            .equivalence_projection()
+            .label()
     );
 }
 
@@ -104,8 +118,14 @@ fn inspector_detail_is_distinct_from_plain_detail() {
         &QuerySubscriptionFamily::InspectorDetailExact
     );
     assert_ne!(
-        detail_selection.equivalence_basis().digest().as_str(),
-        inspector_selection.equivalence_basis().digest().as_str()
+        detail_selection
+            .equivalence_basis()
+            .equivalence_projection()
+            .label(),
+        inspector_selection
+            .equivalence_basis()
+            .equivalence_projection()
+            .label()
     );
 }
 

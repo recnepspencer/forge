@@ -1,6 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::bridge_family::BridgeSubscriptionDeclarationFamilyKind;
+use super::evidence_identities::signal_strategy_request_identity;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum QuerySubscriptionSignalStrategyRequestKind {
@@ -20,7 +21,7 @@ impl QuerySubscriptionSignalStrategyRequestKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionSignalStrategyRequest {
     request_kind: QuerySubscriptionSignalStrategyRequestKind,
-    digest: String,
+    evidence_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionSignalStrategyRequest {
@@ -33,13 +34,10 @@ impl QuerySubscriptionSignalStrategyRequest {
                 QuerySubscriptionSignalStrategyRequestKind::CollectionMembershipSignals
             }
         };
-        let digest = hash_parts(&[
-            "query_subscription_signal_strategy_request_v1".to_string(),
-            request_kind.as_str().to_string(),
-        ]);
+        let evidence_identity = signal_strategy_request_identity(&request_kind);
         Self {
             request_kind,
-            digest,
+            evidence_identity,
         }
     }
 
@@ -47,7 +45,7 @@ impl QuerySubscriptionSignalStrategyRequest {
         &self.request_kind
     }
 
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.evidence_identity
     }
 }

@@ -25,13 +25,16 @@ fn preview_discard_zero_authoritative_residue_produces_closeout() {
     )
     .unwrap();
     let residue = zero_authoritative_residue();
-    let residue_digest = residue.report_digest().to_string();
+    let residue_digest = residue.report_projection().label().to_string();
 
     let closeout = discard_preview_subscription(isolation, residue).unwrap();
 
     assert_eq!(closeout.active_lane_digest(), attachment.lane_digest());
     assert_eq!(closeout.attachment_digest(), attachment.attachment_digest());
-    assert_eq!(closeout.residue_report_digest(), residue_digest);
+    assert_eq!(
+        closeout.residue_report_projection().label(),
+        residue_digest.as_str()
+    );
     assert_eq!(closeout.counters().preview_discard_residue_check_count(), 1);
     assert_eq!(closeout.counters().preview_residue_width(), 2);
     assert_eq!(closeout.counters().preview_authoritative_residue_count(), 0);
@@ -176,7 +179,7 @@ fn preview_promotion_emits_handoff_to_authoritative_lane_without_in_place_mutati
         PreviewResidueWidth::measured(1),
     )
     .unwrap();
-    let isolation_digest = isolation.isolation_digest().to_string();
+    let isolation_digest = isolation.isolation_projection().label().to_string();
     let residue_report = measure_preview_subscription_residue(
         PreviewResidueWidth::measured(0),
         PreviewResidueWidth::measured(0),
@@ -204,15 +207,18 @@ fn preview_promotion_emits_handoff_to_authoritative_lane_without_in_place_mutati
         handoff.authoritative_active_lane_digest()
     );
     assert_ne!(
-        handoff.preview_basis_binding_digest(),
-        handoff.authoritative_basis_binding_digest()
+        handoff.preview_basis_binding_projection().label(),
+        handoff.authoritative_basis_binding_projection().label()
     );
-    assert_ne!(handoff.handoff_digest(), isolation_digest);
+    assert_ne!(
+        handoff.handoff_projection().label(),
+        isolation_digest.as_str()
+    );
     assert_eq!(
-        handoff.residue_report_digest(),
-        residue_report.report_digest()
+        handoff.residue_report_projection().label(),
+        residue_report.report_projection().label()
     );
-    assert!(!handoff.rebinding_digest().is_empty());
+    assert!(!handoff.rebinding_projection().label().is_empty());
     assert_eq!(handoff.counters().preview_promotion_handoff_count(), 1);
     assert_eq!(handoff.performance_receipt().consumed_width(), 1);
     assert_eq!(handoff.performance_receipt().remaining_width(), 0);
@@ -291,20 +297,26 @@ fn future_preview_isolation_retains_basis_and_checkpoint_identity() {
     let error = deny_preview_authoritative_sharing(&isolation, &authoritative_handle).unwrap_err();
 
     assert_eq!(
-        isolation.future_selection().projection_digest(),
-        preview_attachment.future_selection().projection_digest()
+        isolation
+            .future_selection()
+            .future_selection_projection()
+            .label(),
+        preview_attachment
+            .future_selection()
+            .future_selection_projection()
+            .label()
     );
     assert_eq!(
-        isolation.checkpoint_identity_digest(),
-        preview_attachment.checkpoint_identity_digest()
+        isolation.checkpoint_projection().label(),
+        preview_attachment.checkpoint_projection().label()
     );
     assert_ne!(
-        isolation.basis_binding_digest(),
-        authoritative_handle.basis_binding_digest()
+        isolation.basis_binding_projection().label(),
+        authoritative_handle.basis_binding_projection().label()
     );
     assert_ne!(
-        isolation.checkpoint_identity_digest(),
-        authoritative_handle.checkpoint_identity_digest()
+        isolation.checkpoint_projection().label(),
+        authoritative_handle.checkpoint_projection().label()
     );
     assert_eq!(
         error.denial_kind(),

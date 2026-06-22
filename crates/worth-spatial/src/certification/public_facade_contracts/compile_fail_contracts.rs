@@ -1,83 +1,37 @@
+use std::path::Path;
+
 #[test]
 fn spatial_public_boundary_rejects_internal_constructor_bypass() {
-    let t = trybuild::TestCases::new();
-    let compile_fail = "src/certification/public_facade_contracts/compile_fail";
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_admitted_witness_request_artifacts_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_top_level_witness_helpers_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_top_level_refs_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_top_level_lowering_runtime_products_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_top_level_arbitration_runtime_products_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_policy_namespace_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_arbitration_namespace_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_birth_namespace_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_binding_birth_comparison_helpers_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_binding_birth_assessment_helpers_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_binding_birth_materialization_helper_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_binding_birth_materialization_runtime_products_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_binding_birth_scaffold_input_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_preview_and_continuity_helpers_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_top_level_bindings_report_products_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_lowering_namespace_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_flat_semantic_facade_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_frame_admission_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_witness_resolution_namespace_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_support_namespace_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_placement_no_catalog_helpers_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_anchor_selection_no_catalog_helpers_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_anchor_selection_lowering_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_test_support_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_raw_binding_authority_carriers_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_geometry_intent_family_not_exported.rs"
-    ));
+    let compile_fail_root = Path::new("src/certification/public_facade_contracts/compile_fail");
+    let fixtures = compile_fail_fixture_paths(compile_fail_root);
+
+    assert!(
+        !fixtures.is_empty(),
+        "public-boundary compile-fail suite must discover fixtures"
+    );
+
+    let test_cases = trybuild::TestCases::new();
+    for fixture in fixtures {
+        test_cases.compile_fail(fixture);
+    }
+}
+
+fn compile_fail_fixture_paths(compile_fail_root: &Path) -> Vec<String> {
+    let mut fixtures = Vec::new();
+    collect_compile_fail_fixtures(compile_fail_root, &mut fixtures);
+    fixtures.sort();
+    fixtures
+}
+
+fn collect_compile_fail_fixtures(directory: &Path, fixtures: &mut Vec<String>) {
+    for entry in std::fs::read_dir(directory).expect("compile-fail fixture directory must exist") {
+        let path = entry
+            .expect("compile-fail fixture entry must be readable")
+            .path();
+        if path.is_dir() {
+            collect_compile_fail_fixtures(&path, fixtures);
+        } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs") {
+            fixtures.push(path.to_string_lossy().replace('\\', "/"));
+        }
+    }
 }

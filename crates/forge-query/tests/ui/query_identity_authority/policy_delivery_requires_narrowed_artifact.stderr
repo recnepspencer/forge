@@ -1,0 +1,20 @@
+error[E0308]: mismatched types
+  --> tests/ui/policy_delivery_requires_narrowed_artifact.rs:15:31
+   |
+15 |     expects_raw_query_lowerer(lower_policy_aware_delivery_shape);
+   |     ------------------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected fn pointer, found fn item
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected fn pointer `for<'a> fn(&'a CanonicalQueryArtifact, DeliveryWidthClass) -> std::result::Result<PolicyAwareDeliveryShape, PolicyAwareExecutionSeamError>`
+                 found fn item `for<'a> fn(&'a forge_query::facade::NarrowedPolicyQueryArtifact, DeliveryWidthClass) -> std::result::Result<PolicyAwareDeliveryShape, PolicyAwareExecutionSeamError> {lower_policy_aware_delivery_shape}`
+note: function defined here
+  --> tests/ui/policy_delivery_requires_narrowed_artifact.rs:6:4
+   |
+ 6 |   fn expects_raw_query_lowerer(
+   |      ^^^^^^^^^^^^^^^^^^^^^^^^^
+ 7 | /     _: fn(
+ 8 | |         &CanonicalQueryArtifact,
+ 9 | |         DeliveryWidthClass,
+10 | |     ) -> Result<PolicyAwareDeliveryShape, PolicyAwareExecutionSeamError>,
+   | |________________________________________________________________________-

@@ -72,16 +72,15 @@ Advanced path:
 - `.execution_binding()`
 - `.execute()?`
 
-Thin delegate convenience wrappers now covered by the same lattice:
+Existing-truth work covered by the same lattice:
 
-- `workspace.verify_existing(...)`
-- `workspace.update_existing_verified(...)`
-- `workspace.delete_existing_verified(...)`
+- graph-composition existing-target update, retarget, supersession, and retirement lanes
+- graph-composition verified-existing lanes
 - `workspace.read(&view)`
 - `workspace.materialize(&view)`
 - `workspace.inspect(&view)`
 - `runtime.probe_existing(...)`
-- `workspace.probe_existing(...)`
+- `workspace.probe_existing_intent(request).execute()`
 
 Good to know:
 
@@ -110,6 +109,12 @@ Some covered families end in a runtime handoff:
 - generic and derived inspection
 - existing-truth probe routing
 - effect-triggered pending write intent execution
+
+Graph touch obligation authority is covered by the same admission posture when
+graph-shaped mutation or access needs obligation selection. Intent admission
+must preserve the touch descriptor, operating world descriptor, selected
+obligations, dispatch plan, executor verdict, and budget outcome instead of
+flattening the work into a local validator callback.
 
 For that effect-triggered family, the admitted review, binding, and final
 effect-intent receipt can preserve one typed write-adjacent trigger class such
@@ -382,6 +387,8 @@ types.
 ## Related Docs
 
 - [Writes And Intent Boundaries](writes-and-intents.md)
+- [Graph Touch Obligation Authority](../authoring/graph-touch-obligation-authority.md)
+- [Graph Obligation Consumer Kit](../authoring/graph-obligation-consumer-kit.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
 - [Existing Truth](../capabilities/existing-truth.md)
 - [Inspection](../capabilities/inspection.md)

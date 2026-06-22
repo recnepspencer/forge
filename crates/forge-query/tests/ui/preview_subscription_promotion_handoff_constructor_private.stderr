@@ -9,37 +9,26 @@ warning: unreachable expression
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error: cannot construct `PreviewSubscriptionPromotionHandoff` with struct literal syntax due to private fields
-  --> tests/ui/preview_subscription_promotion_handoff_constructor_private.rs:4:13
+error[E0560]: struct `PreviewSubscriptionPromotionHandoff` has no field named `preview_epoch_digest`
+ --> tests/ui/preview_subscription_promotion_handoff_constructor_private.rs:8:9
+  |
+8 |         preview_epoch_digest: "epoch".to_string(),
+  |         ^^^^^^^^^^^^^^^^^^^^ `PreviewSubscriptionPromotionHandoff` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `PreviewSubscriptionPromotionHandoff` has no field named `authority_digest`
+ --> tests/ui/preview_subscription_promotion_handoff_constructor_private.rs:9:9
+  |
+9 |         authority_digest: "authority".to_string(),
+  |         ^^^^^^^^^^^^^^^^ `PreviewSubscriptionPromotionHandoff` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `PreviewSubscriptionPromotionHandoff` has no field named `handoff_digest`
+  --> tests/ui/preview_subscription_promotion_handoff_constructor_private.rs:11:9
    |
- 4 |     let _ = PreviewSubscriptionPromotionHandoff {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 5 |         preview_lane_digest: todo!(),
-   |         ---------------------------- private field
- 6 |         authoritative_active_lane_digest: todo!(),
-   |         ----------------------------------------- private field
- 7 |         attachment_digest: todo!(),
-   |         -------------------------- private field
- 8 |         preview_epoch_digest: "epoch".to_string(),
-   |         ----------------------------------------- private field
- 9 |         authority_digest: "authority".to_string(),
-   |         ----------------------------------------- private field
-10 |         counters: todo!(),
-   |         ----------------- private field
 11 |         handoff_digest: "handoff".to_string(),
-   |         ------------------------------------- private field
+   |         ^^^^^^^^^^^^^^ `PreviewSubscriptionPromotionHandoff` does not have this field
    |
-   = note: ...and other private fields `residue_report_digest` and `performance_receipt` that were not provided
-help: you might have meant to use the `new` associated function
-   |
- 4 -     let _ = PreviewSubscriptionPromotionHandoff {
- 5 -         preview_lane_digest: todo!(),
- 6 -         authoritative_active_lane_digest: todo!(),
- 7 -         attachment_digest: todo!(),
- 8 -         preview_epoch_digest: "epoch".to_string(),
- 9 -         authority_digest: "authority".to_string(),
-10 -         counters: todo!(),
-11 -         handoff_digest: "handoff".to_string(),
-12 -     };
- 4 +     let _ = PreviewSubscriptionPromotionHandoff::new(_, _, _, _);
-   |
+   = note: all struct fields are already assigned

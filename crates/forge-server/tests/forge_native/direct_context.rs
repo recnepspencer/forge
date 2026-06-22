@@ -19,7 +19,7 @@ use crate::{
     forge_native_runtime::{
         build_server, build_server_with_workspace_provider, forge_native_session_input_builder,
     },
-    query_handoff_fixture::{admit_read, request_input, resolve_request_context, success},
+    query_handoff_fixture::{admit_read_posture, request_input, resolve_request_context, success},
 };
 
 #[test]
@@ -164,7 +164,7 @@ fn direct_context_preserves_typed_remask_parity_across_state_and_inspection() {
     );
     assert_eq!(
         state.direct_context().basis_digest(),
-        Some(state.runtime_state().basis_digest())
+        Some(state.runtime_state().basis_for_reporting())
     );
     assert_eq!(
         state.direct_context().remask_posture().remask_digest(),
@@ -183,7 +183,10 @@ fn direct_context_preserves_typed_remask_parity_across_state_and_inspection() {
         ForgeQueryInspection::LiveView(live) => {
             assert_eq!(
                 inspection.direct_context().basis_digest(),
-                Some(live.basis_binding_digest())
+                Some(
+                    live.basis_binding_identity()
+                        .terminal_projection_for_reporting()
+                )
             );
         }
         other => panic!("expected live inspection, got {other:?}"),
@@ -297,7 +300,7 @@ fn compat_read_handoff(
         server
             .query_handoff()
             .prepare(forge_server::ForgeServerQueryHandoffInput::new(
-                admit_read(
+                admit_read_posture(
                     server,
                     resolve_request_context(
                         server,

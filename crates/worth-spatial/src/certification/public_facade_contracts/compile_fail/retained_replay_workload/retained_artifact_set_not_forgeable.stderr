@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_spatial::facade::retained_replay_workload::RetainedArtifactSet`
+ --> src/certification/public_facade_contracts/compile_fail/retained_replay_workload/retained_artifact_set_not_forgeable.rs:1:5
+  |
+1 | use worth_spatial::facade::retained_replay_workload::RetainedArtifactSet;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `RetainedArtifactSet` in `facade::retained_replay_workload`

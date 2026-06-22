@@ -50,10 +50,13 @@ impl RelationalInvariantRuntime {
     ) -> Self {
         let mut run_at = [0u32; InvariantExecutionPoint::COUNT];
         let mut max_cost = [InvariantCostClass::Global; InvariantExecutionPoint::COUNT];
+        let graph_composition_execution_point =
+            super::profile::InvariantRequestProfile::GraphComposition.execution_point();
 
         run_at[InvariantExecutionPoint::CommitBoundary as usize] = profile.consumed_groups().mask();
         run_at[InvariantExecutionPoint::MutationSensitive as usize] =
             profile.consumed_groups().mask();
+        run_at[graph_composition_execution_point as usize] = profile.consumed_groups().mask();
         run_at[InvariantExecutionPoint::SnapshotPublication as usize] =
             profile.consumed_groups().mask();
         run_at[InvariantExecutionPoint::CertificationBoundary as usize] =
@@ -65,6 +68,7 @@ impl RelationalInvariantRuntime {
             InvariantScale::Small | InvariantScale::Medium => InvariantCostClass::Global,
         };
         max_cost[InvariantExecutionPoint::MutationSensitive as usize] = InvariantCostClass::Touched;
+        max_cost[graph_composition_execution_point as usize] = InvariantCostClass::Touched;
         max_cost[InvariantExecutionPoint::SnapshotPublication as usize] =
             if context.snapshot_pressure || matches!(context.scale, InvariantScale::Large) {
                 InvariantCostClass::Partition
@@ -136,6 +140,23 @@ mod tests {
         assert_eq!(
             runtime.max_cost_at(InvariantExecutionPoint::CommitBoundary),
             InvariantCostClass::Partition
+        );
+    }
+
+    #[test]
+    fn graph_composition_profile_is_touched_cost_and_topology_scoped() {
+        let runtime = RelationalInvariantRuntime::resolve(
+            InvariantRequestProfile::GraphComposition,
+            InvariantContext {
+                scale: InvariantScale::Large,
+                version_depth: 2_000,
+                snapshot_pressure: true,
+            },
+        );
+
+        assert_eq!(
+            runtime.max_cost_at(InvariantExecutionPoint::GraphComposition),
+            InvariantCostClass::Touched
         );
     }
 

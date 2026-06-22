@@ -1,5 +1,12 @@
 use super::super::support::*;
-use crate::identity::hash_parts;
+use crate::memory_workspace::ForgeQueryEntityIdentity;
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
+
+fn relational_test_entity_identity(table_id: u32, record_id: u64) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::entity(
+        table_id, record_id, 0,
+    ))
+}
 
 fn admitted_primary_profile(target_binding_family: &str) -> ForgeQueryRuntimeSupportProfile {
     ["update_existing_verified", "delete_existing_verified"]
@@ -22,20 +29,19 @@ fn admitted_primary_profile(target_binding_family: &str) -> ForgeQueryRuntimeSup
         )
 }
 
-fn expected_snapshot_digest(binding_digest: &str, snapshot_token: &str) -> String {
-    hash_parts(&[
-        "forge_query_existing_truth_assumption_snapshot_v1".to_string(),
-        format!("binding:{binding_digest}"),
-        format!("snapshot:{snapshot_token}"),
-    ])
-}
-
 #[test]
 fn compose_graph_supports_verified_existing_target_lifecycle() {
-    let binding = ForgeQueryExistingRelationTarget::new("authority:rel-1", "TaskRelation:1")
-        .expect("existing relation target should build")
-        .in_target_collection("TaskRelation")
-        .expect("existing relation target collection should build");
+    let binding = ForgeQueryExistingRelationTarget::new(
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity"),
+        relational_test_entity_identity(2, 1),
+    )
+    .expect("existing relation target should build")
+    .in_target_collection("TaskRelation")
+    .expect("existing relation target collection should build");
     let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(binding)
         .expect("relation binding should build");
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
@@ -150,10 +156,9 @@ fn compose_graph_supports_verified_existing_target_lifecycle() {
                 .expect("verified update should retain assumption set");
             assert_eq!(
                 update_assumptions.assumption_snapshot_digest(),
-                expected_snapshot_digest(
-                    update_assumptions.binding_digest(),
-                    update_assumptions.assumption_snapshot_token()
-                )
+                update_assumptions
+                    .assumption_snapshot_evidence_digest()
+                    .as_str()
             );
             assert_eq!(
                 update_assertion
@@ -195,10 +200,16 @@ fn compose_graph_denies_verified_existing_target_when_backend_verification_is_un
         .expect("workspace should open");
     let binding = workspace
         .bind_existing_relation(
-            ForgeQueryExistingRelationTarget::new("authority:rel-1", "TaskRelation:1")
-                .expect("existing relation target should build")
-                .in_target_collection("TaskRelation")
-                .expect("existing relation target collection should build"),
+            ForgeQueryExistingRelationTarget::new(
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new(
+                    "authority:rel-1",
+                )
+                .expect("existing-truth authority label")).expect("existing-truth authority identity"),
+                test_entity_identity("TaskRelation:1"),
+            )
+            .expect("existing relation target should build")
+            .in_target_collection("TaskRelation")
+            .expect("existing relation target collection should build"),
         )
         .expect("relation binding should build");
 

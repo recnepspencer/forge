@@ -14,7 +14,7 @@ pub(crate) fn sealed_window(
             "slice:entity-1/profile/name",
             "routing:fixture",
             BridgeSubscriptionDeliveryMemberClass::Update,
-            BridgeSubscriptionDeliveryContentDigest::new("content:fixture"),
+            BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned("content:fixture"),
         ),
     )
 }
@@ -54,7 +54,9 @@ pub(crate) fn fixture_members(count: usize) -> Vec<BridgeSubscriptionDeliveryMem
                 "slice:entity-1/profile/name",
                 format!("routing:fixture:{index}"),
                 BridgeSubscriptionDeliveryMemberClass::Update,
-                BridgeSubscriptionDeliveryContentDigest::new(format!("content:fixture:{index}")),
+                BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned(format!(
+                    "content:fixture:{index}"
+                )),
             )
         })
         .collect()

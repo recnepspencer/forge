@@ -12,6 +12,18 @@ use super::{
     MILESTONE_NINE_THREE_REQUIRED_COMPILE_FAIL_TARGETS,
 };
 
+fn continuation_harness_identity(label: &str) -> crate::ForgeQueryEvidenceIdentity {
+    crate::ForgeQueryEvidenceIdentity::compose(
+        crate::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+    )
+    .field_shape(
+        crate::ForgeQueryEvidenceTag::new("identity_family"),
+        "subscription_continuation_harness_identity_v1",
+    )
+    .field_shape(crate::ForgeQueryEvidenceTag::new("label"), label)
+    .seal()
+}
+
 #[derive(Clone, Copy)]
 enum LaneScenario {
     ActiveLifecycle,
@@ -347,8 +359,14 @@ fn admitted_row(
         row_name,
         perturbation_class,
         hostile_expectation,
-        parity_anchor: if hostile.runtime_bundle.runtime_certification_bundle_digest()
-            == parity.runtime_bundle.runtime_certification_bundle_digest()
+        parity_anchor: if hostile
+            .runtime_bundle
+            .runtime_certification_bundle_projection()
+            .label()
+            == parity
+                .runtime_bundle
+                .runtime_certification_bundle_projection()
+                .label()
         {
             ParityAnchor::Hostile
         } else {
@@ -412,58 +430,107 @@ fn certification_bundle(
             .coverage_resolution_posture()
             .as_str()
             .to_string(),
-        query_digest: artifacts.lifecycle_bundle.query_digest().to_string(),
+        query_digest: artifacts
+            .lifecycle_bundle
+            .query_scope_projection()
+            .label()
+            .to_string(),
         subscription_family_digest: artifacts
             .lifecycle_bundle
-            .subscription_family_digest()
+            .subscription_family_projection()
+            .label()
             .to_string(),
         subscription_declaration_digest: artifacts
             .lifecycle_bundle
-            .subscription_declaration_digest()
+            .subscription_declaration_projection()
+            .label()
             .to_string(),
         subscription_equivalence_digest: artifacts
             .lifecycle_bundle
-            .subscription_equivalence_digest()
+            .subscription_equivalence_projection()
+            .label()
             .to_string(),
         bridge_declaration_digest: artifacts
             .lifecycle_bundle
-            .bridge_declaration_digest()
+            .bridge_declaration_projection()
+            .label()
             .to_string(),
-        bridge_basis_digest: artifacts.lifecycle_bundle.basis_digest().to_string(),
+        bridge_basis_digest: artifacts
+            .lifecycle_bundle
+            .basis_posture_projection()
+            .label()
+            .to_string(),
         signal_strategy_digest: artifacts
             .lifecycle_bundle
-            .signal_strategy_digest()
+            .signal_strategy_projection()
+            .label()
             .to_string(),
-        support_report_digest: artifacts.support_report.report_digest().to_string(),
+        support_report_digest: artifacts
+            .support_report
+            .report_projection()
+            .label()
+            .to_string(),
         support_matrix_digest: artifacts
             .support_report
             .support_matrix()
-            .digest()
+            .matrix_projection()
+            .label()
             .to_string(),
-        support_lookup_receipt_digest: artifacts.support_lookup_receipt.digest().to_string(),
-        manual_bridge_witness_digest: artifacts.witness.witness_digest().to_string(),
+        support_lookup_receipt_digest: artifacts
+            .support_lookup_receipt
+            .lookup_receipt_projection()
+            .label()
+            .to_string(),
+        manual_bridge_witness_digest: artifacts.witness.witness_projection().label().to_string(),
         bridge_parity_digest: artifacts
             .parity_explanation
-            .explanation_digest()
+            .explanation_projection()
+            .label()
             .to_string(),
-        bridge_parity_receipt_digest: artifacts.parity_receipt.digest().to_string(),
-        diagnostic_trace_digest: artifacts.admitted_trace.trace_digest().to_string(),
-        admitted_diagnostic_bundle_digest: artifacts.admitted_bundle.bundle_digest().to_string(),
+        bridge_parity_receipt_digest: artifacts
+            .parity_receipt
+            .receipt_projection()
+            .label()
+            .to_string(),
+        diagnostic_trace_digest: artifacts
+            .admitted_trace
+            .trace_projection()
+            .label()
+            .to_string(),
+        admitted_diagnostic_bundle_digest: artifacts
+            .admitted_bundle
+            .bundle_projection()
+            .label()
+            .to_string(),
         denied_diagnostic_bundle_digest: "none".to_string(),
-        diagnostic_assembly_receipt_digest: artifacts.diagnostic_receipt.digest().to_string(),
+        diagnostic_assembly_receipt_digest: artifacts
+            .diagnostic_receipt
+            .assembly_receipt_projection()
+            .label()
+            .to_string(),
         lifecycle_certification_digest: artifacts
             .lifecycle_bundle
-            .certification_bundle_digest()
+            .certification_bundle_projection()
+            .label()
             .to_string(),
         runtime_certification_bundle_digest: artifacts
             .runtime_bundle
-            .runtime_certification_bundle_digest()
+            .runtime_certification_bundle_projection()
+            .label()
             .to_string(),
-        certification_coverage_receipt_digest: artifacts.coverage_receipt.digest().to_string(),
+        certification_coverage_receipt_digest: artifacts
+            .coverage_receipt
+            .receipt_projection()
+            .label()
+            .to_string(),
         continuation_digest: artifacts.continuation_digest.clone(),
         preview_isolation_digest: artifacts.preview_isolation_digest.clone(),
         failure_digest: "none".to_string(),
-        counter_snapshot: artifacts.runtime_bundle.counter_snapshot().to_string(),
+        counter_snapshot: artifacts
+            .runtime_bundle
+            .counter_snapshot_projection()
+            .label()
+            .to_string(),
         compile_fail_boundary_digest: compile_fail_boundary_digest(
             MILESTONE_NINE_THREE_REQUIRED_COMPILE_FAIL_TARGETS,
         ),
@@ -487,9 +554,14 @@ fn denied_support_failure(artifacts: &CertifiedLaneArtifacts) -> MilestoneNineTh
     MilestoneNineThreeRejectionBundle {
         failure_class: MilestoneNineThreeFailureClass::SupportDenied,
         failure_kind: denied.failure.stage().as_str().to_string(),
-        failure_digest: denied.failure.failure_digest().to_string(),
-        denied_bundle_digest: denied.denied_bundle.bundle_digest().to_string(),
-        counter_snapshot: denied.denied_bundle.counter_snapshot().to_string(),
+        failure_digest: denied.failure.failure_projection().label().to_string(),
+        denied_bundle_digest: denied.denied_bundle.bundle_projection().label().to_string(),
+        counter_snapshot: denied
+            .denied_bundle
+            .counters()
+            .counter_projection()
+            .label()
+            .to_string(),
         compile_fail_boundary_digest: compile_fail_boundary_digest(&[
             "subscription_support_report_durable_overclaim_forbidden.rs",
         ]),
@@ -512,9 +584,9 @@ fn denied_bridge_parity_failure(
     MilestoneNineThreeRejectionBundle {
         failure_class: MilestoneNineThreeFailureClass::BridgeParityDenied,
         failure_kind: error.failure().failure_kind().as_str().to_string(),
-        failure_digest: error.failure().failure_digest().to_string(),
+        failure_digest: error.failure().failure_projection().label().to_string(),
         denied_bundle_digest: "none".to_string(),
-        counter_snapshot: error.counters().digest(),
+        counter_snapshot: error.counters().counter_projection().label().to_string(),
         compile_fail_boundary_digest: compile_fail_boundary_digest(&[
             "subscription_bridge_parity_mismatched_declaration_forbidden.rs",
         ]),
@@ -553,9 +625,9 @@ fn denied_runtime_certification_failure(
     MilestoneNineThreeRejectionBundle {
         failure_class: MilestoneNineThreeFailureClass::RuntimeCertificationDenied,
         failure_kind: error.error_kind().as_str().to_string(),
-        failure_digest: error.failure_digest().to_string(),
+        failure_digest: error.failure_projection().label().to_string(),
         denied_bundle_digest: "none".to_string(),
-        counter_snapshot: error.counters().digest(),
+        counter_snapshot: error.counters().counter_projection().label().to_string(),
         compile_fail_boundary_digest: compile_fail_boundary_digest(&[
             "subscription_diagnostic_bundle_missing_hostile_coverage_forbidden.rs",
         ]),
@@ -606,9 +678,9 @@ fn denied_cross_family_scope_failure(
     MilestoneNineThreeRejectionBundle {
         failure_class: MilestoneNineThreeFailureClass::RuntimeCertificationDenied,
         failure_kind: error.error_kind().as_str().to_string(),
-        failure_digest: error.failure_digest().to_string(),
+        failure_digest: error.failure_projection().label().to_string(),
         denied_bundle_digest: "none".to_string(),
-        counter_snapshot: error.counters().digest(),
+        counter_snapshot: error.counters().counter_projection().label().to_string(),
         compile_fail_boundary_digest: compile_fail_boundary_digest(&[
             "subscription_runtime_certification_uncertified_family_forbidden.rs",
         ]),
@@ -728,10 +800,10 @@ fn lane_for(
             let evidence = admit_subscription_continuation_evidence(
                 attachment.lane_digest().clone(),
                 SubscriptionContinuationClass::IdentityRemap,
-                "employee:old",
-                "employee:new",
-                "basis:current",
-                "identity-evolution-authority",
+                continuation_harness_identity("employee:old"),
+                continuation_harness_identity("employee:new"),
+                continuation_harness_identity("basis:current"),
+                continuation_harness_identity("identity-evolution-authority"),
                 ContinuationRemapWidth::measured(1),
             )
             .unwrap();
@@ -746,7 +818,7 @@ fn lane_for(
         LaneScenario::ActiveLifecycle | LaneScenario::PreviewDiscard => {
             let window =
                 open_query_delivery_window(&mut runtime, &attachment, delivery_budget()).unwrap();
-            let delta = QuerySubscriptionMaintenanceDelta::admitted(
+            let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
                 QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
                 attachment.lane_digest().clone(),
                 "affected-scope",
@@ -780,7 +852,7 @@ fn lane_for(
         preview_discard = Some(discard);
     }
 
-    let delivery_window_digest = window.delivery_window_digest().to_string();
+    let _delivery_window_digest = window.delivery_window_projection().label().to_string();
     let work_packet = build_active_delivery_work_packet(
         &mut runtime,
         &attachment,
@@ -829,7 +901,7 @@ fn lane_for(
         &active_admission,
         &handle,
         &attachment,
-        delivery_window_digest,
+        delivery_batch.delivery_window_identity(),
         &delta,
         &lowering_report,
         &work_packet,
@@ -841,9 +913,11 @@ fn lane_for(
     )
     .unwrap();
     let support_subject = match scenario {
-        LaneScenario::ActiveLifecycle => {
-            QuerySubscriptionSupportSubject::active_lifecycle(&declaration, &active_admission)
-        }
+        LaneScenario::ActiveLifecycle => QuerySubscriptionSupportSubject::active_lifecycle(
+            &declaration,
+            &admission,
+            &active_admission,
+        ),
         LaneScenario::Continuation => QuerySubscriptionSupportSubject::continuation(
             &declaration,
             &admission,
@@ -939,11 +1013,11 @@ fn lane_for(
         coverage_receipt,
         continuation_digest: continuation_report
             .as_ref()
-            .map(|value| value.report_digest().to_string())
+            .map(|value| value.report_projection().label().to_string())
             .unwrap_or_else(|| "none".to_string()),
         preview_isolation_digest: preview_isolation
             .as_ref()
-            .map(|value| value.isolation_digest().to_string())
+            .map(|value| value.isolation_projection().label().to_string())
             .unwrap_or_else(|| "none".to_string()),
     }
 }

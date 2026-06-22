@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::runtime::{
     ForgeQueryGraphCompositionAdmissionTrace, ForgeQueryGraphCompositionAdmissionTraceStage,
     ForgeQueryGraphCompositionDomainInvariantSummary,
@@ -30,7 +33,7 @@ impl ForgeQueryGraphCompositionDomainInvariantDenial {
             violation.invariant_family().to_string(),
             violation.message().to_string(),
             context.graph_composition_domain_invariant_summary(),
-            violation.violation_digest().to_string(),
+            violation.violation_evidence_digest().clone(),
         )
     }
 
@@ -49,7 +52,7 @@ impl ForgeQueryGraphCompositionDomainInvariantDenial {
             invariant_family,
             message,
             domain_invariant_summary,
-            violation.violation_digest().to_string(),
+            violation.violation_evidence_digest().clone(),
         )
     }
 
@@ -87,7 +90,7 @@ impl ForgeQueryGraphCompositionDomainInvariantDenial {
         invariant_family: String,
         message: String,
         domain_invariant_summary: ForgeQueryGraphCompositionDomainInvariantSummary,
-        violation_digest: String,
+        violation_digest: ForgeQueryEvidenceIdentity,
     ) -> Self {
         use ForgeQueryGraphCompositionAdmissionTraceStage as Stage;
 
@@ -101,15 +104,32 @@ impl ForgeQueryGraphCompositionDomainInvariantDenial {
             ],
             Stage::DomainInvariantEvaluated,
         );
-        let denial_digest = hash_parts(&[
-            "forge_query_graph_composition_domain_invariant_denial_v1".to_string(),
-            format!("hook:{DOMAIN_INVARIANT_PACK_HOOK_FAMILY}"),
-            format!("invariant:{invariant_family}"),
-            format!("message:{message}"),
-            format!("summary:{}", domain_invariant_summary.summary_digest()),
-            format!("trace:{}", admission_trace.admission_trace_digest()),
-            format!("violation:{violation_digest}"),
-        ]);
+        let denial_digest = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::GraphCompositionDomainInvariantDenial,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("hook_family"),
+            DOMAIN_INVARIANT_PACK_HOOK_FAMILY,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("invariant_family"),
+            invariant_family.as_str(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("summary_digest"),
+            domain_invariant_summary.summary_evidence_digest(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("admission_trace_digest"),
+            admission_trace.admission_trace_evidence_digest(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("violation_digest"),
+            &violation_digest,
+        )
+        .seal()
+        .as_str()
+        .to_string();
         Self {
             hook_family: DOMAIN_INVARIANT_PACK_HOOK_FAMILY.to_string(),
             invariant_family,

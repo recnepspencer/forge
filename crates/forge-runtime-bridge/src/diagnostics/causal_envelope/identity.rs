@@ -1,62 +1,80 @@
-use std::sync::Arc;
-
-use super::{causal_envelope_digest, digest_basis::BridgeCausalEnvelopeDigestArtifact};
+use super::{
+    compose_bridge_causal_envelope_evidence_identity,
+    digest_basis::BridgeCausalEnvelopeDigestArtifact, evidence_part,
+};
+use crate::identity::BridgeIdentityEvidence;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeCausalEnvelopeIdentity {
-    request_digest: Arc<str>,
-    causal_observation_anchor_digest: Arc<str>,
-    evidence_binding_digest: Arc<str>,
-    counter_digest: Arc<str>,
-    identity_digest: Arc<str>,
+    request_identity: BridgeIdentityEvidence,
+    causal_observation_anchor_identity: BridgeIdentityEvidence,
+    evidence_binding_identity: BridgeIdentityEvidence,
+    counter_identity: BridgeIdentityEvidence,
+    envelope_identity: BridgeIdentityEvidence,
 }
 
 impl BridgeCausalEnvelopeIdentity {
     pub(super) fn new(
-        request_digest: impl Into<Arc<str>>,
-        causal_observation_anchor_digest: impl Into<Arc<str>>,
-        evidence_binding_digest: impl Into<Arc<str>>,
-        counter_digest: impl Into<Arc<str>>,
+        request_identity: BridgeIdentityEvidence,
+        causal_observation_anchor_identity: BridgeIdentityEvidence,
+        evidence_binding_identity: BridgeIdentityEvidence,
+        counter_identity: BridgeIdentityEvidence,
     ) -> Self {
-        let request_digest = request_digest.into();
-        let causal_observation_anchor_digest = causal_observation_anchor_digest.into();
-        let evidence_binding_digest = evidence_binding_digest.into();
-        let counter_digest = counter_digest.into();
-        let identity_digest = causal_envelope_digest(
+        let envelope_identity = compose_bridge_causal_envelope_evidence_identity(
             BridgeCausalEnvelopeDigestArtifact::Identity,
             &[
-                request_digest.as_ref(),
-                causal_observation_anchor_digest.as_ref(),
-                evidence_binding_digest.as_ref(),
-                counter_digest.as_ref(),
+                evidence_part(&request_identity),
+                evidence_part(&causal_observation_anchor_identity),
+                evidence_part(&evidence_binding_identity),
+                evidence_part(&counter_identity),
             ],
         );
         Self {
-            request_digest,
-            causal_observation_anchor_digest,
-            evidence_binding_digest,
-            counter_digest,
-            identity_digest: Arc::from(identity_digest),
+            request_identity,
+            causal_observation_anchor_identity,
+            evidence_binding_identity,
+            counter_identity,
+            envelope_identity,
         }
     }
 
-    pub fn request_digest(&self) -> &str {
-        self.request_digest.as_ref()
+    pub fn request_for_reporting(&self) -> &str {
+        self.request_identity.as_str()
     }
 
-    pub fn causal_observation_anchor_digest(&self) -> &str {
-        self.causal_observation_anchor_digest.as_ref()
+    pub fn request_evidence_identity(&self) -> &BridgeIdentityEvidence {
+        &self.request_identity
     }
 
-    pub fn evidence_binding_digest(&self) -> &str {
-        self.evidence_binding_digest.as_ref()
+    pub fn causal_observation_anchor_for_reporting(&self) -> &str {
+        self.causal_observation_anchor_identity.as_str()
     }
 
-    pub fn counter_digest(&self) -> &str {
-        self.counter_digest.as_ref()
+    pub fn causal_observation_anchor_evidence_identity(&self) -> &BridgeIdentityEvidence {
+        &self.causal_observation_anchor_identity
     }
 
-    pub fn identity_digest(&self) -> &str {
-        self.identity_digest.as_ref()
+    pub fn evidence_binding_digest_for_reporting(&self) -> &str {
+        self.evidence_binding_identity.as_str()
+    }
+
+    pub fn evidence_binding_evidence_identity(&self) -> &BridgeIdentityEvidence {
+        &self.evidence_binding_identity
+    }
+
+    pub fn counter_for_reporting(&self) -> &str {
+        self.counter_identity.as_str()
+    }
+
+    pub fn counter_evidence_identity(&self) -> &BridgeIdentityEvidence {
+        &self.counter_identity
+    }
+
+    pub fn envelope_identity_for_reporting(&self) -> &str {
+        self.envelope_identity.as_str()
+    }
+
+    pub fn envelope_evidence_identity(&self) -> &BridgeIdentityEvidence {
+        &self.envelope_identity
     }
 }

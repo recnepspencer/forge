@@ -31,7 +31,7 @@ fn derive_only_preview_binds_handles_and_mutes_effects_without_residue() {
 
     let (live_binding, computed_binding, delivery_binding, intent_binding, outcome) = {
         let mut preview = runtime
-            .preview("derive-only bindings")
+            .preview(test_session_label("derive-only bindings"))
             .expect("preview session should be admitted");
         let live_binding = preview.use_view(&live);
         let computed_binding = preview.use_computed(&computed);
@@ -193,7 +193,7 @@ fn preview_write_routes_bound_live_computed_and_redirected_effect_without_author
     let (execution_evidence, outcome) = {
         let mut preview = runtime
             .preview_with_options(
-                "preview execution",
+                test_session_label("preview execution"),
                 ForgeQueryPreviewOptions::redirected_delivery(),
             )
             .expect("preview session should be admitted");
@@ -221,6 +221,7 @@ fn preview_write_routes_bound_live_computed_and_redirected_effect_without_author
         evidence.kind() == ForgeQueryPreviewExecutionKind::LivePatch
             && evidence.handle_name() == "tasks.preview-execution"
             && evidence.preview_lane() == ForgeQueryAuthorityLane::PreviewTruth
+            && evidence.execution_identity().as_str() == evidence.execution_digest()
             && !evidence.execution_digest().is_empty()
     }));
     assert!(execution_evidence.iter().any(|evidence| {
@@ -277,7 +278,7 @@ fn preview_sandboxed_write_intent_execution_stays_separate_from_delivery_residue
     let (execution_evidence, outcome) = {
         let mut preview = runtime
             .preview_with_options(
-                "preview intent execution",
+                test_session_label("preview intent execution"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should be admitted");

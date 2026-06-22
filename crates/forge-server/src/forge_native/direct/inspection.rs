@@ -6,6 +6,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ForgeServerDirectInspection {
+    plan_proof: crate::ForgeServerOperationPlanProof,
     support_posture: ForgeServerQuerySupportPosture,
     workspace_name: String,
     handoff_digest: String,
@@ -17,6 +18,7 @@ pub struct ForgeServerDirectInspection {
 
 impl ForgeServerDirectInspection {
     pub(crate) fn new(
+        plan_proof: crate::ForgeServerOperationPlanProof,
         support_posture: ForgeServerQuerySupportPosture,
         workspace_name: String,
         handoff_digest: String,
@@ -30,6 +32,7 @@ impl ForgeServerDirectInspection {
             inspection_result.receipt().result_digest()
         );
         Self {
+            plan_proof,
             support_posture,
             workspace_name,
             handoff_digest,
@@ -38,6 +41,10 @@ impl ForgeServerDirectInspection {
             response_envelope,
             canonical_digest,
         }
+    }
+
+    pub fn plan_proof(&self) -> &crate::ForgeServerOperationPlanProof {
+        &self.plan_proof
     }
 
     pub fn support_posture(&self) -> &ForgeServerQuerySupportPosture {

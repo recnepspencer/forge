@@ -1,0 +1,10 @@
+error[E0624]: method `as_str` is private
+  --> tests/ui/query_identity_authority/reporting_accessor_cannot_feed_query_authority.rs:19:41
+   |
+19 |     let projected = evidence_identity().as_str();
+   |                                         ^^^^^^ private method
+   |
+  ::: src/evidence_identity/artifact.rs
+   |
+   |     pub(crate) fn as_str(&self) -> &str {
+   |     ----------------------------------- private method defined here

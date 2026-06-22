@@ -11,7 +11,7 @@ use super::support::runtime_truth::{
 };
 use forge_query::facade::{
     ForgeQueryAuthorityLane, ForgeQueryBranchOptions, ForgeQueryPreviewOptions,
-    ForgeQueryRuntimeFacadeFamily,
+    ForgeQueryRuntimeFacadeFamily, ForgeQuerySessionLabel,
 };
 use topology::certification::milestone_one_runtime_builder;
 use topology::facade::{
@@ -42,7 +42,8 @@ fn branch_preview_query_sessions_open_preview_and_branch_lanes() {
     let (preview_lane, preview_evidence_count) = {
         let preview = workspace
             .preview_with_options(
-                format!("worth-kernel.{}.preview", family.as_str()),
+                ForgeQuerySessionLabel::scoped_strs("worth-kernel", [family.as_str(), "preview"])
+                    .expect("preview label"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session");
@@ -53,7 +54,8 @@ fn branch_preview_query_sessions_open_preview_and_branch_lanes() {
     };
     let branch = workspace
         .branch_with_options(
-            format!("worth-kernel.{}.branch", family.as_str()),
+            ForgeQuerySessionLabel::scoped_strs("worth-kernel", [family.as_str(), "branch"])
+                .expect("branch label"),
             ForgeQueryBranchOptions::sandboxed_write_intent(),
         )
         .expect("branch session");

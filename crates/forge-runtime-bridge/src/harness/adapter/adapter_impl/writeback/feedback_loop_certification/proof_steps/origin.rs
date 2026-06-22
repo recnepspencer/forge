@@ -20,7 +20,9 @@ pub(in crate::harness::adapter::adapter_impl::writeback::feedback_loop_certifica
 ) -> Result<FeedbackOriginProof, BridgeHarnessError> {
     let lowered_policy_bundle = lowered_policy(runtime_bridge)?;
     let declaration = crate::facade::BridgeWritebackDeclaration::writeback_capable(
-        crate::facade::BridgeWritebackDeclarationIdentity::new("harness:writeback-feedback"),
+        crate::facade::BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+            "harness:writeback-feedback",
+        ),
         crate::facade::BridgeRequestKind::Authoritative,
         crate::facade::BridgeWritebackFamilyKind::ProjectedStateDiff,
         crate::facade::BridgeWritebackEffectClass::ProjectedStateDiff,
@@ -53,7 +55,9 @@ pub(in crate::harness::adapter::adapter_impl::writeback::feedback_loop_certifica
     let effect = runtime_bridge.lower_writeback_effect(
         &contract,
         &original_causality,
-        crate::facade::BridgeWritebackEffectIdentity::new("harness:writeback-feedback-effect"),
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
+            "harness:writeback-feedback-effect",
+        ),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             contract.digest().to_owned(),
@@ -66,7 +70,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback::feedback_loop_certifica
         &effect,
         &lowered_policy_bundle,
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(&effect),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-feedback-idempotence:first",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,

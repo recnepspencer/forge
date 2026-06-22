@@ -1,0 +1,25 @@
+error[E0451]: fields `receipt_identity`, `split_chain_validation_receipt_identity`, `split_edge_fragment_set_identity`, `split_vertex_identity_set_identity`, `overlap_edge_chain_set_identity`, `identity_evolution_rows`, `persistent_name_rows`, `selector_resolution_rows`, `subshape_signature_rows` and `counters` of struct `PlanarBooleanSplitPersistentNamingReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_persistent_naming_receipt_not_forgeable.rs:7:9
+   |
+ 6 |     let _ = PlanarBooleanSplitPersistentNamingReceipt {
+   |             ----------------------------------------- in this type
+ 7 |         receipt_identity: "forged".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+ 8 |         split_chain_validation_receipt_identity: "validation".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         split_edge_fragment_set_identity: "fragments".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         split_vertex_identity_set_identity: "vertices".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         overlap_edge_chain_set_identity: "chains".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         identity_evolution_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         persistent_name_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+14 |         selector_resolution_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         subshape_signature_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         counters: PlanarBooleanSplitPersistentNamingCounters::default(),
+   |         ^^^^^^^^ private field

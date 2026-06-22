@@ -1,6 +1,10 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::query_context::{QueryBasisContextRequest, QueryContextFamily};
 
+use super::identity::basis_lifecycle_digest;
 use super::intent::{BasisOperationLaneRequest, RawBasisIntent, RawBasisSourcePath};
 use super::normalization::{
     normalize_raw_basis, unsupported_compatibility_family_denial, BasisIntentDenial,
@@ -14,21 +18,34 @@ pub fn try_raw_basis_intent_from_query_context_request(
     let intent = match request.family() {
         QueryContextFamily::CurrentBranchHead => RawBasisIntent::current_head(operation_lane),
         QueryContextFamily::BranchHead => {
-            RawBasisIntent::branch_head(request.declared_basis_label(), operation_lane)
+            RawBasisIntent::branch_head(compatibility_identity(request), operation_lane)
         }
         QueryContextFamily::HistoricalSnapshot => {
-            RawBasisIntent::historical_snapshot(request.declared_basis_label(), operation_lane)
+            RawBasisIntent::historical_snapshot(compatibility_identity(request), operation_lane)
         }
         QueryContextFamily::HistoricalCommit => {
-            RawBasisIntent::historical_commit(request.declared_basis_label(), operation_lane)
+            RawBasisIntent::historical_commit(compatibility_identity(request), operation_lane)
         }
         QueryContextFamily::PreviewDerivedHistorical => RawBasisIntent::preview_derived_historical(
-            request.declared_basis_label(),
+            compatibility_identity(request),
             operation_lane,
         ),
         QueryContextFamily::DiffComparison => return Err(diff_comparison_denial(operation_lane)),
     };
     Ok(intent.with_source_path(RawBasisSourcePath::QueryContextCompatibility))
+}
+
+fn compatibility_identity(request: &QueryBasisContextRequest) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::QueryContextCompatibilityBasisLabel)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            request.family().as_str(),
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("declared_basis_label"),
+            request.declared_basis_label(),
+        )
+        .seal()
 }
 
 pub fn normalize_query_context_request(
@@ -43,14 +60,19 @@ pub fn normalize_query_context_request(
 
 fn diff_comparison_denial(operation_lane: BasisOperationLaneRequest) -> BasisIntentDenial {
     unsupported_compatibility_family_denial(
-        hash_parts(&[
-            "compatibility_family:diff_comparison".to_string(),
-            format!("operation_lane:{}", operation_lane.as_str()),
-            format!(
-                "source_path:{}",
-                RawBasisSourcePath::QueryContextCompatibility.as_str()
-            ),
-        ]),
+        basis_lifecycle_digest(
+            "basis_compatibility_diff_comparison_denial_v1",
+            [
+                ("compatibility_family", "diff_comparison".to_string()),
+                ("operation_lane", operation_lane.as_str().to_string()),
+                (
+                    "source_path",
+                    RawBasisSourcePath::QueryContextCompatibility
+                        .as_str()
+                        .to_string(),
+                ),
+            ],
+        ),
         RawBasisSourcePath::QueryContextCompatibility,
         operation_lane,
         "diff_comparison",

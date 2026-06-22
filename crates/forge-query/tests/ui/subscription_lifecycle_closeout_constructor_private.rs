@@ -13,6 +13,7 @@ fn main() {
         support_profile: todo!() as QuerySubscriptionSupportProfile,
         performance_receipt: todo!() as SubscriptionPerformanceReceipt,
         counters: ActiveSubscriptionCounters::default(),
-        closeout_digest: String::new(),
+        source_identity: todo!(),
+        closeout_identity: todo!(),
     };
 }

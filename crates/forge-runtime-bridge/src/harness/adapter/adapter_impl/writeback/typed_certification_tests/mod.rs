@@ -10,8 +10,7 @@ use forge_harness::facade::{ExecutionProfile, HarnessAdapter, ScenarioPlan};
 use crate::facade::{
     BridgeCommittedPatchEnvelope, BridgeMappingId, BridgeMappingRegistration,
     BridgeProducerMetadata, BridgeRuntimePolicy, MappingSelector, SignalInvalidationScope,
-    SnapshotReadRecord, SnapshotReadRequest, TruthBranchIdentity, TruthPatchIdentity,
-    TruthPatchScope, TruthSnapshotIdentity,
+    SnapshotReadRecord, SnapshotReadRequest, TruthPatchScope,
 };
 use crate::harness::adapter::BridgeHarnessAdapter;
 use crate::harness::fixtures::{BridgeHarnessFixture, SnapshotFixture};
@@ -53,7 +52,7 @@ fn writeback_fixture(name: &str) -> forge_harness::facade::ScenarioFixture<Bridg
 
 fn registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("typed-profile-name"),
+        BridgeMappingId::admit_bridge_owned("typed-profile-name"),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
@@ -64,7 +63,7 @@ fn registration() -> BridgeMappingRegistration {
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
             forge_foundational::facade::ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal.profile.typed"),
+        SignalInvalidationScope::admit_bridge_owned("signal.profile.typed"),
         crate::facade::CoarseRoutingMode::Direct,
     )
 }
@@ -73,10 +72,10 @@ fn committed_patch() -> BridgeCommittedPatchEnvelope {
     BridgeCommittedPatchEnvelope::new(
         crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
             BridgeProducerMetadata::bridge_harness_fixture(),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
-            TruthPatchIdentity::new("patch-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
         ),
         vec![crate::facade::BridgeCommittedPatchItem::with_target(
             "user",
@@ -98,7 +97,7 @@ fn committed_patch() -> BridgeCommittedPatchEnvelope {
 
 fn snapshot() -> SnapshotFixture {
     SnapshotFixture::new(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         vec![SnapshotReadRecord::for_request(
             &SnapshotReadRequest::for_coarse(
                 "user",

@@ -26,8 +26,8 @@ fn view_family_mismatch_carries_family_selection_diagnostic_evidence() {
         &QuerySubscriptionDiagnosticOutcome::Denied
     );
     assert_eq!(
-        error.diagnostic().counter_digest(),
-        error.counters().digest()
+        error.diagnostic().counter_projection().label().as_str(),
+        error.counters().counter_projection().label()
     );
     assert_eq!(error.counters().family_registry_lookup_count(), 1);
     assert_eq!(error.counters().view_family_registry_lookup_count(), 1);
@@ -35,8 +35,8 @@ fn view_family_mismatch_carries_family_selection_diagnostic_evidence() {
     assert_eq!(error.counters().family_denial_count(), 1);
     assert_eq!(error.counters().declaration_count(), 0);
     assert_eq!(error.counters().bridge_lowering_count(), 0);
-    assert!(!error.diagnostic().source_digest().is_empty());
-    assert!(!error.diagnostic().digest().is_empty());
+    assert!(!error.diagnostic().source_projection().label().is_empty());
+    assert!(!error.diagnostic().evidence_projection().label().is_empty());
 }
 
 #[test]
@@ -100,8 +100,8 @@ fn masked_detail_table_and_grouped_requests_deny_before_bridge_lowering() {
         assert_eq!(error.counters().bridge_lowering_count(), 0);
         assert_eq!(error.counters().masked_slice_denial_count(), 1);
         assert_eq!(
-            error.diagnostic().counter_digest(),
-            error.counters().digest()
+            error.diagnostic().counter_projection().label().as_str(),
+            error.counters().counter_projection().label()
         );
     }
 }
@@ -134,8 +134,8 @@ fn delivery_intent_denial_has_specific_diagnostic_stage() {
     assert_eq!(error.counters().declaration_count(), 0);
     assert_eq!(error.counters().bridge_lowering_count(), 0);
     assert_eq!(
-        error.diagnostic().counter_digest(),
-        error.counters().digest()
+        error.diagnostic().counter_projection().label().as_str(),
+        error.counters().counter_projection().label()
     );
 }
 
@@ -158,8 +158,12 @@ fn bridge_family_slice_and_basis_denials_have_distinct_diagnostic_stages() {
     assert_eq!(family_error.counters().bridge_lowering_count(), 0);
     assert_eq!(family_error.counters().bridge_family_denial_count(), 1);
     assert_eq!(
-        family_error.diagnostic().counter_digest(),
-        family_error.counters().digest()
+        family_error
+            .diagnostic()
+            .counter_projection()
+            .label()
+            .as_str(),
+        family_error.counters().counter_projection().label()
     );
 
     let slice_error = lower_query_subscription_to_bridge(
@@ -178,8 +182,12 @@ fn bridge_family_slice_and_basis_denials_have_distinct_diagnostic_stages() {
     assert_eq!(slice_error.counters().bridge_lowering_count(), 0);
     assert_eq!(slice_error.counters().bridge_slice_denial_count(), 1);
     assert_eq!(
-        slice_error.diagnostic().counter_digest(),
-        slice_error.counters().digest()
+        slice_error
+            .diagnostic()
+            .counter_projection()
+            .label()
+            .as_str(),
+        slice_error.counters().counter_projection().label()
     );
 
     let live = LiveQueryAdmissionArtifact::for_test_with_basis(
@@ -206,8 +214,12 @@ fn bridge_family_slice_and_basis_denials_have_distinct_diagnostic_stages() {
     assert_eq!(basis_error.counters().bridge_lowering_count(), 0);
     assert_eq!(basis_error.counters().basis_binding_denial_count(), 1);
     assert_eq!(
-        basis_error.diagnostic().counter_digest(),
-        basis_error.counters().digest()
+        basis_error
+            .diagnostic()
+            .counter_projection()
+            .label()
+            .as_str(),
+        basis_error.counters().counter_projection().label()
     );
 }
 
@@ -230,8 +242,12 @@ fn durable_reload_overclaim_carries_support_and_pipeline_diagnostics() {
         &QuerySubscriptionDiagnosticStage::DurableReloadOverclaim
     );
     assert_eq!(
-        error.pipeline_diagnostic().counter_digest(),
-        error.counters().digest()
+        error
+            .pipeline_diagnostic()
+            .counter_projection()
+            .label()
+            .as_str(),
+        error.counters().counter_projection().label()
     );
     assert_eq!(
         error.diagnostics().stage(),
@@ -260,10 +276,14 @@ fn durable_reload_overclaim_carries_support_and_pipeline_diagnostics() {
         &QuerySubscriptionDurableSupport::ExplicitDebt
     );
     assert_eq!(
-        error.support_profile().source_digest(),
-        error.pipeline_diagnostic().source_digest()
+        error.support_profile().source_projection().label(),
+        error.pipeline_diagnostic().source_projection().label()
     );
-    assert!(!error.support_profile().digest().is_empty());
+    assert!(!error
+        .support_profile()
+        .profile_projection()
+        .label()
+        .is_empty());
 }
 
 #[test]
@@ -326,11 +346,11 @@ fn relationship_proof_drift_denies_before_declaration_or_bridge_lowering() {
     assert_eq!(error.counters().bridge_lowering_count(), 0);
     assert_eq!(error.counters().relationship_proof_drift_denial_count(), 1);
     assert_eq!(
-        error.diagnostic().counter_digest(),
-        error.counters().digest()
+        error.diagnostic().counter_projection().label().as_str(),
+        error.counters().counter_projection().label()
     );
     assert!(error.message().contains("relationship proof posture"));
-    assert!(!error.diagnostic().source_digest().is_empty());
+    assert!(!error.diagnostic().source_projection().label().is_empty());
 }
 
 fn table_declaration() -> QuerySubscriptionDeclarationArtifact {
@@ -371,11 +391,15 @@ fn certified_subscription_identity(
     );
     let selection = select_query_subscription_family(live, roomy_budget()).unwrap();
     let declaration = declare_query_subscription(selection, roomy_slice_budget()).unwrap();
-    let declaration_digest = declaration.declaration_digest().as_str().to_string();
+    let declaration_digest = declaration.declaration_projection().label().to_string();
     let lowering =
         lower_query_subscription_to_bridge(declaration, roomy_lowering_budget()).unwrap();
     CertifiedSubscriptionIdentity {
         declaration_digest,
-        basis_request_digest: lowering.basis_request().digest().to_string(),
+        basis_request_digest: lowering
+            .basis_request()
+            .basis_binding_projection()
+            .label()
+            .to_string(),
     }
 }

@@ -30,7 +30,10 @@ pub fn adapt_branch_admission_to_lifecycle(
     admission: &ForgeQueryBranchBasisAdmission,
 ) -> Result<BasisLifecycleAdapterProof, BasisLifecycleAdapterError> {
     let raw = RawBasisIntent::BranchHead {
-        branch_identity: admission.label().to_string(),
+        branch_identity: admission
+            .label_identity()
+            .terminal_projection_for_reporting()
+            .to_string(),
         accessible: true,
     };
     let normalized = normalize_raw_basis_intent(raw, "mutation_preparation")?;
@@ -41,7 +44,11 @@ pub fn adapt_branch_admission_to_lifecycle(
         "ForgeQueryBranchBasisAdmission",
         "mutation_preparation_scoped_basis",
         "mutation_preparation",
-        source_digest("branch_admission", admission.label(), admission.evidence()),
+        source_digest(
+            "branch_admission",
+            admission.label_identity().as_str(),
+            admission.evidence(),
+        ),
         &scoped,
     ))
 }
@@ -50,7 +57,10 @@ pub fn adapt_preview_admission_to_lifecycle(
     admission: &ForgeQueryPreviewBasisAdmission,
 ) -> Result<BasisLifecycleAdapterProof, BasisLifecycleAdapterError> {
     let raw = RawBasisIntent::Preview {
-        preview_identity: admission.label().to_string(),
+        preview_identity: admission
+            .label_identity()
+            .terminal_projection_for_reporting()
+            .to_string(),
         stale: false,
     };
     let normalized = normalize_raw_basis_intent(raw, "preview_closeout")?;
@@ -61,7 +71,11 @@ pub fn adapt_preview_admission_to_lifecycle(
         "ForgeQueryPreviewBasisAdmission",
         "preview_closeout_scoped_basis",
         "preview_closeout",
-        source_digest("preview_admission", admission.label(), admission.evidence()),
+        source_digest(
+            "preview_admission",
+            admission.label_identity().as_str(),
+            admission.evidence(),
+        ),
         &scoped,
     ))
 }

@@ -180,9 +180,9 @@ impl AdmittedBridgeSubscription {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Ok(Self {
-            admitted_subscription_identity: BridgeAdmittedSubscriptionIdentity::new(format!(
-                "bridge-admitted-subscription-id:sha256:{digest:x}"
-            )),
+            admitted_subscription_identity: BridgeAdmittedSubscriptionIdentity::admit_bridge_owned(
+                format!("bridge-admitted-subscription-id:sha256:{digest:x}"),
+            ),
             declaration: declaration.clone(),
             basis_binding,
             signal_strategy,

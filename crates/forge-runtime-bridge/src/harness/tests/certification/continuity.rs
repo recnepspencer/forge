@@ -10,7 +10,6 @@ use super::continuity_authority::{
 };
 use crate::facade::{
     BridgeContinuityAuthorityBasis, BridgeHistoricalResolvedRecordIdentity, BridgeLineageContext,
-    TruthBranchIdentity, TruthSnapshotIdentity,
 };
 use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessTargetId};
 use crate::harness::fixtures::BridgeHarnessFixture;
@@ -23,26 +22,26 @@ fn bridge_continuity_certification_matrix_reports_candidate_profile_parity() {
             .with_aspect_mapping(field_aspect_registration())
             .with_lineage_context(BridgeLineageContext::new(
                 BridgeContinuityAuthorityBasis::new(
-                    TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             ))
             .with_continuity_authority(
                 "user",
                 continuity_authority(
-                    TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             )
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
             .with_snapshot(field_slice_snapshot(
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 "alice",
             )),
     )
@@ -51,7 +50,9 @@ fn bridge_continuity_certification_matrix_reports_candidate_profile_parity() {
     .compile();
     let request = ExecutionRequest::target(
         "deliver-commit-a",
-        BridgeHarnessTargetId::committed_route(crate::facade::TruthCommitIdentity::new("commit-a")),
+        BridgeHarnessTargetId::committed_route(
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        ),
     );
 
     let report = certification_matrix(
@@ -75,7 +76,9 @@ fn bridge_harness_branch_divergence_changes_terminal_continuity_export() {
     let profile = ExecutionProfile::development("baseline");
     let request = ExecutionRequest::target(
         "deliver-commit-a",
-        BridgeHarnessTargetId::committed_route(crate::facade::TruthCommitIdentity::new("commit-a")),
+        BridgeHarnessTargetId::committed_route(
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        ),
     );
 
     let main_fixture = ScenarioPlan::new(
@@ -84,27 +87,27 @@ fn bridge_harness_branch_divergence_changes_terminal_continuity_export() {
             .with_aspect_mapping(field_aspect_registration())
             .with_lineage_context(BridgeLineageContext::new(
                 BridgeContinuityAuthorityBasis::new(
-                    TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             ))
             .with_continuity_authority(
                 "user",
                 continuity_authority_with_successor(
-                    TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                    BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                    BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
                 ),
             )
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
             .with_snapshot(field_slice_snapshot(
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 "alice",
             )),
     )
@@ -118,27 +121,27 @@ fn bridge_harness_branch_divergence_changes_terminal_continuity_export() {
             .with_aspect_mapping(field_aspect_registration())
             .with_lineage_context(BridgeLineageContext::new(
                 BridgeContinuityAuthorityBasis::new(
-                    TruthBranchIdentity::new("feature"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("feature"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             ))
             .with_continuity_authority(
                 "user",
                 continuity_authority_with_successor(
-                    TruthBranchIdentity::new("feature"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                    BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("feature"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                    BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:5:2"),
                 ),
             )
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
             .with_snapshot(field_slice_snapshot(
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 "alice",
             )),
     )
@@ -182,7 +185,9 @@ fn bridge_harness_continuity_exports_ambiguous_rejection_record() {
     let profile = ExecutionProfile::development("baseline");
     let request = ExecutionRequest::target(
         "deliver-commit-a",
-        BridgeHarnessTargetId::committed_route(crate::facade::TruthCommitIdentity::new("commit-a")),
+        BridgeHarnessTargetId::committed_route(
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        ),
     );
     let fixture = ScenarioPlan::new(
         "bridge-continuity-ambiguous",
@@ -190,26 +195,26 @@ fn bridge_harness_continuity_exports_ambiguous_rejection_record() {
             .with_aspect_mapping(field_aspect_registration())
             .with_lineage_context(BridgeLineageContext::new(
                 BridgeContinuityAuthorityBasis::new(
-                    TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             ))
             .with_continuity_authority(
                 "user",
                 ambiguous_continuity_authority(
-                    TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             )
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
             .with_snapshot(field_slice_snapshot(
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 "alice",
             )),
     )

@@ -132,7 +132,12 @@ impl RuntimeApiStabilizationCloseout {
             format!("certification_rows:{golden_transcript_count}"),
             format!("rejection_rows:{hostile_rejection_count}"),
             format!("lower_runtime_plumbing:{lower_runtime_plumbing_count}"),
-            format!("support:{}", support_matrix.matrix_digest()),
+            format!(
+                "support:{}",
+                support_matrix
+                    .matrix_digest()
+                    .terminal_projection_for_reporting()
+            ),
             format!("handles:{}", handle_contract.contract_digest()),
             format!("naming:{}", naming_contract.contract_digest()),
         ];

@@ -1,16 +1,19 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::runtime::{ForgeQueryVerificationReadSetBreadth, ForgeQueryWriteReceipt};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGraphCompositionAssumptionSummary {
-    assumption_snapshot_digests: Vec<String>,
-    verified_precondition_digests: Vec<String>,
+    assumption_snapshot_digests: Vec<ForgeQueryEvidenceIdentity>,
+    verified_precondition_digests: Vec<ForgeQueryEvidenceIdentity>,
     verified_step_count: usize,
     verification_read_set_breadth: ForgeQueryVerificationReadSetBreadth,
     counter_snapshot: String,
-    aggregate_assumption_snapshot_digest: String,
-    aggregate_verified_precondition_digest: String,
-    assumption_summary_digest: String,
+    aggregate_assumption_snapshot_digest: ForgeQueryEvidenceIdentity,
+    aggregate_verified_precondition_digest: ForgeQueryEvidenceIdentity,
+    assumption_summary_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryGraphCompositionAssumptionSummary {
@@ -29,11 +32,11 @@ impl ForgeQueryGraphCompositionAssumptionSummary {
 
         let assumption_snapshot_digests = assumption_sets
             .iter()
-            .map(|set| set.assumption_snapshot_digest().to_string())
+            .map(|set| set.assumption_snapshot_evidence_digest().clone())
             .collect::<Vec<_>>();
         let verified_precondition_digests = assumption_sets
             .iter()
-            .map(|set| set.verified_precondition_digest().to_string())
+            .map(|set| set.verified_precondition_evidence_digest().clone())
             .collect::<Vec<_>>();
 
         let target_binding_count = assumption_sets
@@ -62,9 +65,9 @@ impl ForgeQueryGraphCompositionAssumptionSummary {
             cleared_assertion_count,
         );
         let verified_step_count = assumption_sets.len();
-        let counter_snapshot = format!(
-            "verified_steps={verified_step_count};{}",
-            verification_read_set_breadth.counter_snapshot()
+        let counter_snapshot = diagnostic_counter_snapshot_with_tail(
+            &[("verified_steps", verified_step_count)],
+            verification_read_set_breadth.counter_snapshot(),
         );
         let aggregate_assumption_snapshot_digest = aggregate_digest(
             "forge_query_graph_composition_assumption_snapshot_digest_v1",
@@ -74,12 +77,41 @@ impl ForgeQueryGraphCompositionAssumptionSummary {
             "forge_query_graph_composition_verified_precondition_digest_v1",
             &verified_precondition_digests,
         );
-        let assumption_summary_digest = hash_parts(&[
-            "forge_query_graph_composition_assumption_summary_v1".to_string(),
-            format!("assumption-snapshots:{aggregate_assumption_snapshot_digest}"),
-            format!("verified-preconditions:{aggregate_verified_precondition_digest}"),
-            format!("counters:{counter_snapshot}"),
-        ]);
+        let assumption_summary_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "graph-composition-assumption-summary",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("assumption_snapshots"),
+                    &aggregate_assumption_snapshot_digest,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("verified_preconditions"),
+                    &aggregate_verified_precondition_digest,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("verified_step_count"),
+                    verified_step_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("target_binding_count"),
+                    verification_read_set_breadth.target_binding_count(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("asserted_aspect_count"),
+                    verification_read_set_breadth.asserted_aspect_count(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("cleared_assertion_count"),
+                    verification_read_set_breadth.cleared_assertion_count(),
+                )
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("asserted_aspect_path"),
+                    asserted_aspect_paths.iter().map(String::as_str),
+                )
+                .seal();
 
         Some(Self {
             assumption_snapshot_digests,
@@ -93,11 +125,25 @@ impl ForgeQueryGraphCompositionAssumptionSummary {
         })
     }
 
-    pub fn assumption_snapshot_digests(&self) -> &[String] {
+    pub fn assumption_snapshot_digests(&self) -> Vec<&str> {
+        self.assumption_snapshot_digests
+            .iter()
+            .map(ForgeQueryEvidenceIdentity::as_str)
+            .collect()
+    }
+
+    pub fn assumption_snapshot_evidence_digests(&self) -> &[ForgeQueryEvidenceIdentity] {
         &self.assumption_snapshot_digests
     }
 
-    pub fn verified_precondition_digests(&self) -> &[String] {
+    pub fn verified_precondition_digests(&self) -> Vec<&str> {
+        self.verified_precondition_digests
+            .iter()
+            .map(ForgeQueryEvidenceIdentity::as_str)
+            .collect()
+    }
+
+    pub fn verified_precondition_evidence_digests(&self) -> &[ForgeQueryEvidenceIdentity] {
         &self.verified_precondition_digests
     }
 
@@ -114,22 +160,50 @@ impl ForgeQueryGraphCompositionAssumptionSummary {
     }
 
     pub fn aggregate_assumption_snapshot_digest(&self) -> &str {
-        &self.aggregate_assumption_snapshot_digest
+        self.aggregate_assumption_snapshot_digest.as_str()
     }
 
     pub fn aggregate_verified_precondition_digest(&self) -> &str {
-        &self.aggregate_verified_precondition_digest
+        self.aggregate_verified_precondition_digest.as_str()
     }
 
     pub fn assumption_summary_digest(&self) -> &str {
+        self.assumption_summary_digest.as_str()
+    }
+
+    pub fn assumption_summary_evidence_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.assumption_summary_digest
     }
 }
 
-fn aggregate_digest(label: &str, digests: &[String]) -> String {
-    hash_parts(
-        &std::iter::once(label.to_string())
-            .chain(digests.iter().map(|digest| format!("digest:{digest}")))
-            .collect::<Vec<_>>(),
-    )
+fn diagnostic_counter_snapshot_with_tail(fields: &[(&str, usize)], tail: &str) -> String {
+    let mut snapshot = diagnostic_counter_snapshot(fields);
+    if !snapshot.is_empty() && !tail.is_empty() {
+        snapshot.push(';');
+    }
+    snapshot.push_str(tail);
+    snapshot
+}
+
+fn diagnostic_counter_snapshot(fields: &[(&str, usize)]) -> String {
+    let mut snapshot = String::new();
+    for (index, (label, value)) in fields.iter().enumerate() {
+        if index > 0 {
+            snapshot.push(';');
+        }
+        snapshot.push_str(label);
+        snapshot.push('=');
+        snapshot.push_str(&value.to_string());
+    }
+    snapshot
+}
+
+fn aggregate_digest(
+    label: &str,
+    digests: &[ForgeQueryEvidenceIdentity],
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), label)
+        .field_evidence_identity_sequence(ForgeQueryEvidenceTag::new("digest"), digests.iter())
+        .seal()
 }

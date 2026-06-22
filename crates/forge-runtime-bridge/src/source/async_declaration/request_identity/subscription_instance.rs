@@ -81,9 +81,10 @@ impl BridgeAsyncRequestSubscriptionInstance {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            subscription_instance_identity: BridgeAsyncRequestSubscriptionInstanceIdentity::new(
-                format!("bridge-async-request-subscription-instance-id:sha256:{digest:x}"),
-            ),
+            subscription_instance_identity:
+                BridgeAsyncRequestSubscriptionInstanceIdentity::admit_bridge_owned(format!(
+                    "bridge-async-request-subscription-instance-id:sha256:{digest:x}"
+                )),
             kind,
             admitted_subscription_identity,
             activation_lifecycle_identity,

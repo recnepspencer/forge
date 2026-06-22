@@ -116,7 +116,7 @@ fn route_packet_region_identity(packet: &TruthDeltaRoutingPacket) -> BulkPacketR
         packet.source_snapshot(),
         packet.subscription_slice_identity().as_str(),
     );
-    BulkPacketRegionIdentity::new(digest_string("bulk-packet-region", &basis))
+    BulkPacketRegionIdentity::admit_bridge_owned(digest_string("bulk-packet-region", &basis))
 }
 
 fn truth_view_packet_region_identity(
@@ -128,7 +128,7 @@ fn truth_view_packet_region_identity(
         packet.source_snapshot(),
         packet.source_commit(),
     );
-    BulkPacketRegionIdentity::new(digest_string("bulk-packet-region", &basis))
+    BulkPacketRegionIdentity::admit_bridge_owned(digest_string("bulk-packet-region", &basis))
 }
 
 fn continuity_packet_region_identity(packet: &ContinuityRemapPacket) -> BulkPacketRegionIdentity {
@@ -138,7 +138,7 @@ fn continuity_packet_region_identity(packet: &ContinuityRemapPacket) -> BulkPack
         packet.branch_identity(),
         packet.snapshot_identity(),
     );
-    BulkPacketRegionIdentity::new(digest_string("bulk-packet-region", &basis))
+    BulkPacketRegionIdentity::admit_bridge_owned(digest_string("bulk-packet-region", &basis))
 }
 
 fn normalized_workload_width(summary: &NormalizedBridgeWorkloadSummary) -> usize {

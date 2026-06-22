@@ -62,9 +62,9 @@ impl BridgeRetainedInflightAsyncResumeBasis {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             retained_inflight_async_resume_basis_identity:
-                BridgeSubscriptionRetainedInflightAsyncResumeBasisIdentity::new(format!(
-                    "bridge-retained-inflight-async-resume-basis-id:sha256:{digest:x}"
-                )),
+                BridgeSubscriptionRetainedInflightAsyncResumeBasisIdentity::admit_bridge_owned(
+                    format!("bridge-retained-inflight-async-resume-basis-id:sha256:{digest:x}"),
+                ),
             request_identity: Arc::from(request_identity.request_identity().as_str().to_owned()),
             truth_view_basis_digest: Arc::from(truth_view_basis.digest().to_owned()),
             truth_branch_identity: truth_view_basis.truth_branch_identity().cloned(),

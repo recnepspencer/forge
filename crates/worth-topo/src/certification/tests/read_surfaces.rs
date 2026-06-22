@@ -1,5 +1,6 @@
 use super::*;
 use crate::certification::support::parity::build_derived_equivalence_contract;
+use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
 use crate::projection::diagnostic_surfaces::derived_read_diagnostics::build_derived_read_diagnostics;
 use crate::projection::runtime_boundary::read_stage::stage_topology_read_from_view;
 
@@ -171,9 +172,55 @@ fn certification_read_view_matches_traced_reader_diagnostics_on_same_basis() {
         traced_diagnostics.fallback_report
     );
     assert_eq!(
+        report.derived_read_diagnostics.validation_report,
+        traced_diagnostics.validation_report
+    );
+    assert_eq!(
+        report
+            .derived_read_diagnostics
+            .validation_execution_report
+            .execution_count,
+        1
+    );
+    assert_eq!(
+        report.derived_read_diagnostics.validation_execution_report,
+        traced_diagnostics.validation_execution_report
+    );
+    assert_eq!(
+        report
+            .derived_equivalence_contract_report
+            .derived_validation_digest,
+        traced_diagnostics
+            .equivalence_contract_report
+            .derived_validation_digest
+    );
+    assert_eq!(
         report
             .derived_equivalence_contract_report
             .truth_basis_digest_hex,
         traced_equivalence.truth_basis_digest_hex
+    );
+
+    let mut query_runtime = HistoricalReadBasisQueryRuntime::open(
+        &runtime,
+        seeded.read_basis().clone(),
+        "cert-reader-query-surface-parity",
+    )
+    .expect("historical query runtime should open");
+    let query_snapshot = query_runtime
+        .historical_derived_surface_snapshot()
+        .expect("declared query surfaces should materialize");
+
+    assert_eq!(
+        report.derived_read_diagnostics.validation_report,
+        *query_snapshot.validation()
+    );
+    assert_eq!(
+        report.derived_read_diagnostics,
+        *query_snapshot.diagnostics()
+    );
+    assert_eq!(
+        report.derived_equivalence_contract_report,
+        *query_snapshot.equivalence_contract()
     );
 }

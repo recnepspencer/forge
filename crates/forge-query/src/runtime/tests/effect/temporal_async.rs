@@ -3,6 +3,10 @@ use super::super::support::*;
 #[test]
 fn time_only_pending_write_intent_retains_write_adjacent_trigger_through_delivery_and_inspection() {
     let mut runtime = stateful_bridge_task_runtime();
+    let origin_identity = test_write_adjacent_origin_identity(
+        ForgeQueryEffectWriteAdjacentTriggerClass::TimeOnlyWake,
+        "time-only:cause:task-title",
+    );
     let live = runtime
         .declare_live_view::<Value>("tasks.time-follow-on", task_live_request(), task_schema())
         .expect("live should declare");
@@ -15,7 +19,7 @@ fn time_only_pending_write_intent_retains_write_adjacent_trigger_through_deliver
             )
             .with_write_adjacent_trigger(
                 ForgeQueryEffectWriteAdjacentTriggerClass::TimeOnlyWake,
-                "time-only:cause:task-title",
+                origin_identity.clone(),
             ),
         )
         .expect("time-only write-intent effect should declare");
@@ -53,8 +57,10 @@ fn time_only_pending_write_intent_retains_write_adjacent_trigger_through_deliver
         ForgeQueryFeedbackTermination::PendingIntentDeferred
     );
     assert_eq!(
-        inspection.write_adjacent_trigger().origin_identity(),
-        "time-only:cause:task-title"
+        inspection
+            .write_adjacent_trigger()
+            .origin_evidence_identity(),
+        &origin_identity
     );
     assert_eq!(deliveries.len(), 1);
     assert_eq!(
@@ -62,7 +68,9 @@ fn time_only_pending_write_intent_retains_write_adjacent_trigger_through_deliver
         ForgeQueryEffectWriteAdjacentTriggerClass::TimeOnlyWake
     );
     assert_eq!(
-        deliveries[0].write_adjacent_trigger().origin_identity(),
-        "time-only:cause:task-title"
+        deliveries[0]
+            .write_adjacent_trigger()
+            .origin_evidence_identity(),
+        &origin_identity
     );
 }

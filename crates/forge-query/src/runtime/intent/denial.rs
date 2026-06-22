@@ -1,6 +1,11 @@
 use super::admission::ForgeQueryIntentAdmissionDenial;
 use super::*;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::ForgeQueryIntentConsumerInspection;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -19,10 +24,10 @@ pub struct ForgeQueryIntentDenialEvidence {
     execution_kind: Option<ForgeQueryIntentExecutionKind>,
     attempt_digest: Option<String>,
     invariant_evidence: Vec<String>,
-    snapshot_token: Option<String>,
+    snapshot_identity: Option<ForgeQuerySnapshotIdentity>,
     execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
     decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
-    denial_digest: String,
+    denial_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryIntentDenialEvidence {
@@ -52,63 +57,80 @@ impl ForgeQueryIntentDenialEvidence {
         let invariant_evidence = execution
             .map(|execution| execution.invariant_evidence.clone())
             .unwrap_or_default();
-        let snapshot_token = execution.and_then(|execution| {
-            let token = execution.mutation_receipt().snapshot_token.clone();
-            (!token.is_empty()).then_some(token)
-        });
-        let invariant_evidence_digest_part = invariant_evidence.join("|");
-        let denial_digest = hash_parts(&[
-            "forge_query_intent_denial_evidence_v1".to_string(),
-            format!("intent:{}", declaration.name()),
-            format!("stage:{}", denial.stage()),
-            format!("message:{}", denial.message()),
-            format!("strategy:{}", declaration.strategy_name()),
-            format!("version:{}", declaration.strategy_version()),
-            format!(
-                "returned-strategy:{}",
-                returned_strategy_identity
-                    .as_deref()
-                    .unwrap_or("not-executed")
-            ),
-            format!(
-                "returned-version:{}",
-                returned_strategy_version
-                    .as_deref()
-                    .unwrap_or("not-executed")
-            ),
-            format!(
-                "returned-descriptor:{}",
-                returned_strategy_descriptor_digest
-                    .as_deref()
-                    .unwrap_or("not-executed")
-            ),
-            format!("input:{}", declaration.input_digest()),
-            format!("source:{}", declaration.source_lane().as_str()),
-            format!("target:{}", declaration.target_lane()),
-            format!(
-                "execution-kind:{}",
-                execution_kind
-                    .map(ForgeQueryIntentExecutionKind::as_str)
-                    .unwrap_or("not-executed")
-            ),
-            format!("attempt:{}", attempt_digest.as_deref().unwrap_or("none")),
-            format!("invariants:{invariant_evidence_digest_part}"),
-            format!("snapshot:{}", snapshot_token.as_deref().unwrap_or("none")),
-            format!(
-                "execution-provenance:{}",
-                execution_provenance
-                    .as_ref()
-                    .map(ForgeQueryIntentExecutionProvenance::execution_provenance_chain_digest)
-                    .unwrap_or("none")
-            ),
-            format!(
-                "decision-trace:{}",
-                decision_trace_envelope
-                    .as_ref()
-                    .map(ForgeQueryIntentDecisionTraceEnvelope::trace_digest)
-                    .unwrap_or("none")
-            ),
-        ]);
+        let snapshot_identity =
+            execution.map(|execution| execution.mutation_receipt().snapshot_identity.clone());
+        let snapshot_evidence_identity = snapshot_identity
+            .as_ref()
+            .map(ForgeQuerySnapshotIdentity::evidence_identity);
+        let denial_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::IntentDenialEvidence)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("intent_name"),
+                    declaration.name(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("stage"), denial.stage())
+                .field_value(ForgeQueryEvidenceTag::new("message"), denial.message())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("strategy_identity"),
+                    declaration.strategy_name(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("strategy_version"),
+                    declaration.strategy_version(),
+                )
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("returned_strategy_identity"),
+                    returned_strategy_identity.as_deref(),
+                )
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("returned_strategy_version"),
+                    returned_strategy_version.as_deref(),
+                )
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("returned_strategy_descriptor_digest"),
+                    returned_strategy_descriptor_digest.as_deref(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("canonical_input_digest"),
+                    declaration.input_digest(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("source_lane"),
+                    declaration.source_lane().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("target_lane"),
+                    declaration.target_lane().as_str(),
+                )
+                .optional_shape(
+                    ForgeQueryEvidenceTag::new("execution_kind"),
+                    execution_kind.map(ForgeQueryIntentExecutionKind::as_str),
+                )
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("attempt_digest"),
+                    attempt_digest.as_deref(),
+                )
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("invariant_evidence"),
+                    invariant_evidence.iter().map(String::as_str),
+                )
+                .optional_evidence_identity(
+                    ForgeQueryEvidenceTag::new("snapshot_identity"),
+                    snapshot_evidence_identity.as_ref(),
+                )
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("execution_provenance"),
+                    execution_provenance.as_ref().map(
+                        ForgeQueryIntentExecutionProvenance::execution_provenance_chain_digest,
+                    ),
+                )
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("decision_trace_digest"),
+                    decision_trace_envelope
+                        .as_ref()
+                        .map(ForgeQueryIntentDecisionTraceEnvelope::trace_digest),
+                )
+                .seal();
         Self {
             intent_name: declaration.name().to_string(),
             stage: denial.stage(),
@@ -124,7 +146,7 @@ impl ForgeQueryIntentDenialEvidence {
             execution_kind,
             attempt_digest,
             invariant_evidence,
-            snapshot_token,
+            snapshot_identity,
             execution_provenance,
             decision_trace_envelope,
             denial_digest,
@@ -187,8 +209,14 @@ impl ForgeQueryIntentDenialEvidence {
         &self.invariant_evidence
     }
 
-    pub fn snapshot_token(&self) -> Option<&str> {
-        self.snapshot_token.as_deref()
+    pub fn snapshot_identity(&self) -> Option<&ForgeQuerySnapshotIdentity> {
+        self.snapshot_identity.as_ref()
+    }
+
+    pub fn snapshot_evidence_identity(&self) -> Option<ForgeQueryEvidenceIdentity> {
+        self.snapshot_identity
+            .as_ref()
+            .map(ForgeQuerySnapshotIdentity::evidence_identity)
     }
 
     pub fn execution_provenance(&self) -> Option<&ForgeQueryIntentExecutionProvenance> {
@@ -203,7 +231,7 @@ impl ForgeQueryIntentDenialEvidence {
         ForgeQueryIntentConsumerInspection::from_denial(self)
     }
 
-    pub fn denial_digest(&self) -> &str {
+    pub fn denial_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.denial_digest
     }
 }

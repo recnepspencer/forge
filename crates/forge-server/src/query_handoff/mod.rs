@@ -10,7 +10,8 @@ mod workspace_binding;
 
 pub use denial::{
     ForgeServerQueryHandoffDeferred, ForgeServerQueryHandoffDenial,
-    ForgeServerQueryHandoffDenialCode, ForgeServerQueryHandoffFailure,
+    ForgeServerQueryHandoffDenialCode, ForgeServerQueryHandoffDenialFacts,
+    ForgeServerQueryHandoffDenialFamily, ForgeServerQueryHandoffFailure,
     ForgeServerQueryHandoffRebindRequired, ForgeServerQueryHandoffStale,
 };
 pub use facade::ForgeServerQueryHandoffFacade;

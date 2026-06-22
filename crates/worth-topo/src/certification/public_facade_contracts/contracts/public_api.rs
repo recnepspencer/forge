@@ -28,7 +28,13 @@ use topology::facade::{
     prepare_primitive_construction_query_envelope, prepare_primitive_construction_query_handoff,
     prepare_primitive_construction_query_receipt, topology_grouped_operator_neighborhood,
     topology_operator_continuation_target, topology_operator_contribution_workflow,
-    topology_operator_signal_workflow, topology_runtime,
+    topology_operator_graph_obligation_catalog, topology_operator_signal_workflow,
+    topology_runtime, EdgeSplitBlueprintCloseout, EdgeSplitBlueprintCloseoutDenial,
+    EdgeSplitOperatorBlueprint, EdgeSplitOperatorClassification, EdgeSplitOperatorRow,
+    EdgeSplitOperatorTruthAuthority, EdgeSplitRequiredQuerySurface, EdgeSplitValidatorRow,
+    EdgeSplitValidatorRuntimeLane, NmtTopologyConstruction, NmtTopologyConstructionDenialClass,
+    NmtTopologyConstructionReceipt, NmtTopologyPosture, OpenLayerPattern, OpenLayerStackSpec,
+    OpenRadialFanSpec, OpenSheetPatchSpec, OpenWireChainSpec,
     TopologyAttachBoundaryMembershipDeclaration, TopologyAttachShellOrWireMembershipDeclaration,
     TopologyConstructionQueryAdmittedHandoffError, TopologyConstructionQueryEnvelopeError,
     TopologyConstructionQueryFactKind, TopologyConstructionQueryFactProvenance,
@@ -50,7 +56,7 @@ use topology::facade::{
     TopologyOperatorDeclarationReceiptChecked, TopologyOperatorDeclarationReceiptProof,
     TopologyOperatorDeclarationReceiptTerminalError, TopologyOperatorEnvelope,
     TopologyOperatorEnvelopeChecked, TopologyOperatorEnvelopeFromProgressedChecked,
-    TopologyOperatorEnvelopeFromProgressedProof,
+    TopologyOperatorEnvelopeFromProgressedProof, TopologyOperatorGraphObligationCatalog,
     TopologyOperatorEnvelopeFromProgressedTerminalError, TopologyOperatorEnvelopeProof,
     TopologyOperatorEnvelopeTerminalError, TopologyOperatorGroupedContributionComposition,
     TopologyOperatorGroupedContributionInput, TopologyOperatorGroupedContributionMemberContext,
@@ -70,11 +76,17 @@ use topology::facade::{
     TopologyRadialSpliceMember, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyRetireTopologyEntityDeclaration,
     TopologyRewireLoopEndpointDeclaration, TopologyRewireLoopSuccessorProgramDeclaration,
-    TopologyRuntimeAdapters, TopologyRuntimeFailure, TopologyShellRehomeFaceMember,
-    TopologySpliceRadialAdjacencyDeclaration, TopologySpliceRadialAdjacencyProgramDeclaration,
+    TopologyRuntimeAdapters, TopologyRuntimeFailure, TopologySeed, TopologySeedCleanFailClass,
+    TopologySeedCleanFailReasonCode, TopologySeedCleanFailReceipt, TopologySeedCleanFailStage,
+    TopologySeedCounters, TopologySeedEntityIdentities, TopologySeedKind,
+    TopologySeedNeighborhoodReceipt, TopologySeedQueryReceipts, TopologySeedReceipt,
+    TopologySeedRecipe, TopologySeedTopologyPosture, TopologySeedValidationReceipt,
+    TopologyShellRehomeFaceMember, TopologySpliceRadialAdjacencyDeclaration,
+    TopologySpliceRadialAdjacencyProgramDeclaration,
     TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
     TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration, TopologyWireRehomeHalfEdgeMember,
-    TopologyWireSplitHalfEdgeMember,
+    TopologyWireSplitHalfEdgeMember, TopologyWorkload, TopologyWorkloadFamily,
+    TopologyWorkloadSupport, TopologyWorkloadSupportPosture,
 };
 use topology::query_domain::{
     topology_current_head_authoritative_context, topology_query_domain,
@@ -206,6 +218,72 @@ fn _vocab_computed_query_declaration_contract() {
         .unwrap();
 }
 
+fn _topology_workload_vocabulary_contract() {
+    let receipt = TopologyWorkload::declared("topology seed")
+        .from_query_declaration(".topology.seed")
+        .unwrap();
+
+    assert_eq!(receipt.identity().name(), "topology seed");
+    assert_eq!(receipt.envelope().counters().support_rows(), 1);
+    assert!(receipt
+        .envelope()
+        .support_posture()
+        .reason()
+        .contains("admitted"));
+
+    let unsupported = TopologyWorkloadSupportPosture::unsupported(
+        TopologyWorkloadFamily::PrimitiveCorpus,
+        "primitive corpus workload is not supported by this runtime",
+    );
+    let blocked = TopologyWorkloadSupportPosture::blocked(
+        TopologyWorkloadFamily::OperatorTopology,
+        "operator topology workload is blocked until declaration evidence exists",
+    );
+
+    assert_eq!(unsupported.support(), TopologyWorkloadSupport::Unsupported);
+    assert_eq!(blocked.support(), TopologyWorkloadSupport::Blocked);
+    assert!(unsupported.reason().contains("not supported"));
+    assert!(blocked.reason().contains("blocked"));
+
+    let missing_reason =
+        TopologyWorkloadSupportPosture::blocked(TopologyWorkloadFamily::OperatorTopology, "");
+    assert!(missing_reason.reason().contains("human-readable reason"));
+}
+
+fn _topology_seed_public_facade_contract(
+    recipe: TopologySeedRecipe,
+) -> Result<TopologySeedReceipt, TopologySeedCleanFailReceipt> {
+    let _: fn() -> TopologySeedRecipe = TopologySeed::cube;
+    let _: fn() -> TopologySeedRecipe = TopologySeed::tetrahedron;
+    let _: fn(usize) -> TopologySeedRecipe = TopologySeed::single_face_loop;
+    let _: fn(usize) -> TopologySeedRecipe = TopologySeed::multi_face_shell;
+    let _: fn() -> TopologySeedRecipe = TopologySeed::open_sheet;
+    let _: fn() -> TopologySeedRecipe = TopologySeed::open_wire;
+    let _: fn(usize) -> TopologySeedRecipe = TopologySeed::open_shell_nmt_edge_fan;
+    let _: fn() -> TopologySeedRecipe = TopologySeed::high_valence_vertex;
+    let _: fn() -> TopologySeedRecipe = TopologySeed::self_intersecting_loop;
+    let _: fn() -> TopologySeedRecipe = TopologySeed::non_manifold_wire;
+    let _: fn() -> TopologySeedRecipe = TopologySeed::thin_wall_local_basis;
+    let _: fn() -> TopologySeedRecipe = TopologySeed::orientation_inconsistency;
+
+    let _: TopologySeedKind = TopologySeedKind::Cube;
+    let _: TopologySeedKind = TopologySeedKind::ThinWallLocalBasis;
+    let _: TopologySeedKind = TopologySeedKind::OrientationInconsistency;
+    let _: TopologySeedTopologyPosture = TopologySeedTopologyPosture::ClosedValid;
+    let _: TopologySeedCleanFailStage = TopologySeedCleanFailStage::ParameterAdmission;
+    let _: TopologySeedCleanFailClass = TopologySeedCleanFailClass::DirtyTopology;
+    let _: TopologySeedCleanFailReasonCode =
+        TopologySeedCleanFailReasonCode::TopologyValidationRejectedSeed;
+    let _: Option<TopologySeedCounters> = None;
+    let _: Option<TopologySeedEntityIdentities> = None;
+    let _: Option<TopologySeedNeighborhoodReceipt> = None;
+    let _: Option<TopologySeedQueryReceipts> = None;
+    let _: Option<TopologySeedValidationReceipt> = None;
+
+    recipe.build()
+}
+
+include!("nmt_topology_construction.rs");
 include!("query_domain/entry.rs");
 include!("public_api_topology_operator_surface.rs");
 include!("public_api_topology_operator_scalar_surface.rs");
@@ -213,6 +291,9 @@ include!("public_api_topology_operator_grouped_rehome_surface.rs");
 include!("public_api_topology_operator_radial_program_surface.rs");
 include!("public_api_topology_operator_successor_surface.rs");
 include!("public_api_topology_operator_split_surface.rs");
+include!("public_api_edge_split_blueprint.rs");
+include!("public_api_edge_split_persistent_naming_blueprint.rs");
+
 
 fn _topology_projection_cleanup_closeout_contracts() {
     let _: fn() -> Result<TopologyQueryBoundaryCleanupCloseoutReport, TopologyCertificationError> =
@@ -288,6 +369,9 @@ fn topo_public_traced_boundaries_compile_with_envelope_contracts() {
     let _ = _m2_read_cert_contract;
     let _ = _vocab_live_query_declaration_contract;
     let _ = _vocab_computed_query_declaration_contract;
+    _topology_workload_vocabulary_contract();
+    _nmt_topology_construction_public_facade_contract()
+        .expect("NMT topology construction public facade contract");
     let _ = _topology_query_domain_entry_contracts;
     let _ = _topology_operator_surface_contracts;
     let _ = _topology_operator_scalar_surface_contracts;

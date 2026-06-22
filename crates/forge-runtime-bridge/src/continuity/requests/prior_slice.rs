@@ -5,6 +5,7 @@ use forge_foundational::facade::{
 };
 
 use crate::mapping::SubscriptionSliceKind;
+use crate::relational_identity::RelationalBridgeRecordIdentityParts;
 use crate::routing::{
     BridgeSubscriptionSlice, BridgeSubscriptionSliceIdentity, FineGrainedMatchStatus,
 };
@@ -14,6 +15,7 @@ use crate::snapshot::SnapshotReadContract;
 pub struct PriorSubscriptionSlice {
     prior_subscription_slice_identity: BridgeSubscriptionSliceIdentity,
     entity_identity: Arc<str>,
+    relational_record_identity: Option<RelationalBridgeRecordIdentityParts>,
     aspect_locator: AspectLocator,
     field_locator: Option<AspectFieldLocator>,
     projection_mask: AspectMask<ProjectionMask>,
@@ -33,6 +35,7 @@ impl PriorSubscriptionSlice {
         Self {
             prior_subscription_slice_identity,
             entity_identity: Arc::from(slice.entity_identity()),
+            relational_record_identity: slice.relational_record_identity_parts(),
             aspect_locator: slice.aspect_locator().clone(),
             field_locator: slice.field_locator().cloned(),
             projection_mask: slice.projection_mask().clone(),
@@ -51,6 +54,10 @@ impl PriorSubscriptionSlice {
 
     pub fn entity_identity(&self) -> &str {
         self.entity_identity.as_ref()
+    }
+
+    pub fn relational_record_identity_parts(&self) -> Option<RelationalBridgeRecordIdentityParts> {
+        self.relational_record_identity
     }
 
     pub fn aspect_key(&self) -> &AspectKey {
@@ -145,7 +152,7 @@ mod tests {
             FineGrainedMatchStatus::Matched,
         );
         let prior_slice = PriorSubscriptionSlice::new(
-            BridgeSubscriptionSliceIdentity::new("slice-set:a"),
+            BridgeSubscriptionSliceIdentity::admit_bridge_owned("slice-set:a"),
             &slice,
         );
 

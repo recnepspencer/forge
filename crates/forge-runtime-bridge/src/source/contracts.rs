@@ -24,8 +24,9 @@ impl AdmittedSourceContract {
             declaration.digest()
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let contract_identity =
-            SourceContractIdentity::new(format!("source-contract:sha256:{digest:x}"));
+        let contract_identity = SourceContractIdentity::admit_bridge_owned(format!(
+            "source-contract:sha256:{digest:x}"
+        ));
 
         Self {
             declaration,

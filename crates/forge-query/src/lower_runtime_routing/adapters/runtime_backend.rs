@@ -1,5 +1,4 @@
 use crate::declarative_live::DeclarativeLiveQueryRequest;
-use crate::identity::hash_parts;
 use crate::memory_workspace::ForgeQueryMutationReceipt;
 use crate::runtime::ForgeQueryWriteCommand;
 use crate::subscription::SubscriptionActivationInput;
@@ -8,13 +7,21 @@ use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryEnvelope,
     ForgeQueryLowerRuntimeBoundaryExecutionReceipt, ForgeQueryLowerRuntimeCapabilityEligibility,
     ForgeQueryLowerRuntimeCapabilityRequest, ForgeQueryLowerRuntimeReadmissionReceipt,
-    ForgeQueryLowerRuntimeRouteKind, ForgeQueryLowerRuntimeRoutePlan,
+    ForgeQueryLowerRuntimeRetainedEvidenceIdentity, ForgeQueryLowerRuntimeRouteKind,
+    ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeRouteSubjectIdentity,
     ForgeQueryLowerRuntimeSeamKey,
 };
 use crate::runtime::{
     LiveViewDeclarationAdmissionReceipt, SignalInvalidationRoutingReceipt,
     SubscriptionActivationReceipt,
 };
+
+use self::subject_digest::{
+    activation_subject_identity, live_view_subject_identity, signal_invalidation_subject_identity,
+    write_command_subject_identity,
+};
+
+mod subject_digest;
 
 const LIVE_VIEW_CAPABILITY_LABEL: &str = "live-view-schema-admission";
 const WRITE_AUTHORITY_CAPABILITY_LABEL: &str = "write-authority-backend-execution";
@@ -40,15 +47,19 @@ impl LiveViewDeclarationAdmissionBoundaryReceipt {
             ForgeQueryLowerRuntimeRouteKind::ReadmissionHandoff,
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             LIVE_VIEW_CAPABILITY_LABEL,
-            live_view_subject_digest(view_name, request),
+            live_view_subject_identity(view_name, request),
         );
-        let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(
-            capability_request,
-            admission_receipt.receipt_digest(),
-        );
+        let eligibility =
+            ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+                capability_request,
+                admission_receipt.receipt_identity(),
+            );
         let readmission_receipt = ForgeQueryLowerRuntimeReadmissionReceipt::new(
             eligibility,
-            admission_receipt.receipt_digest(),
+            &ForgeQueryLowerRuntimeRetainedEvidenceIdentity::from_evidence_identity(
+                "live-view-declaration-admission",
+                admission_receipt.receipt_identity(),
+            ),
         );
         let boundary_execution_receipt =
             ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_readmission_receipt(
@@ -94,7 +105,7 @@ impl LiveViewDeclarationAdmissionBoundaryReceipt {
         {
             return Some(message);
         }
-        let expected_subject = live_view_subject_digest(view_name, request);
+        let expected_subject = live_view_subject_identity(view_name, request);
         if let Some(message) = self
             .readmission_receipt
             .eligibility()
@@ -132,24 +143,38 @@ impl WriteAuthorityExecutionReceipt {
             ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             WRITE_AUTHORITY_CAPABILITY_LABEL,
-            write_command_subject_digest(command),
+            write_command_subject_identity(command),
         );
-        let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(
-            capability_request,
-            mutation_receipt.commit_identity.clone(),
-        );
-        let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(eligibility, "mutation-write");
-        let boundary_execution_receipt =
-            ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
-                &route_plan,
-                mutation_receipt.commit_identity.clone(),
+        let commit_evidence_identity = mutation_receipt.commit_identity.evidence_identity();
+        let retained_evidence_identity =
+            ForgeQueryLowerRuntimeRetainedEvidenceIdentity::from_evidence_identity(
+                "write-authority-commit",
+                &commit_evidence_identity,
             );
-        let boundary_envelope = ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
-            ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-            &route_plan,
-            &boundary_execution_receipt,
-            &mutation_receipt.commit_identity,
+        let eligibility =
+            ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+                capability_request,
+                &commit_evidence_identity,
+            );
+        let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(
+            eligibility,
+            ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+                "write-authority-route",
+                &commit_evidence_identity,
+            ),
         );
+        let boundary_execution_receipt =
+            ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan_with_retained_evidence_identity(
+                &route_plan,
+                &retained_evidence_identity,
+            );
+        let boundary_envelope =
+            ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan_with_retained_evidence_identity(
+                ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+                &route_plan,
+                &boundary_execution_receipt,
+                &retained_evidence_identity,
+            );
         Self {
             mutation_receipt,
             route_plan,
@@ -175,7 +200,7 @@ impl WriteAuthorityExecutionReceipt {
     }
 
     pub(crate) fn drift_from_command(&self, command: &ForgeQueryWriteCommand) -> Option<String> {
-        let expected_subject = write_command_subject_digest(command);
+        let expected_subject = write_command_subject_identity(command);
         if let Some(message) = self.route_plan.eligibility().request().drift_from_contract(
             ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
             ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
@@ -185,8 +210,17 @@ impl WriteAuthorityExecutionReceipt {
         ) {
             return Some(message);
         }
+        let commit_evidence_identity = self.mutation_receipt.commit_identity.evidence_identity();
+        let retained_evidence_identity =
+            ForgeQueryLowerRuntimeRetainedEvidenceIdentity::from_evidence_identity(
+                "write-authority-commit",
+                &commit_evidence_identity,
+            );
         self.boundary_execution_receipt
-            .drift_from_route_plan(&self.route_plan, &self.mutation_receipt.commit_identity)
+            .drift_from_route_plan_with_retained_evidence_identity(
+                &self.route_plan,
+                &retained_evidence_identity,
+            )
     }
 }
 
@@ -200,7 +234,7 @@ pub struct SignalInvalidationBoundaryReceipt {
 
 impl SignalInvalidationBoundaryReceipt {
     pub(crate) fn from_mutation_receipt(
-        mutation_receipt: &ForgeQueryMutationReceipt,
+        _mutation_receipt: &ForgeQueryMutationReceipt,
         routing_receipt: SignalInvalidationRoutingReceipt,
     ) -> Self {
         let capability_request = ForgeQueryLowerRuntimeCapabilityRequest::new(
@@ -208,24 +242,37 @@ impl SignalInvalidationBoundaryReceipt {
             ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             SIGNAL_INVALIDATION_CAPABILITY_LABEL,
-            mutation_receipt.commit_identity.clone(),
+            signal_invalidation_subject_identity(&routing_receipt),
         );
-        let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(
-            capability_request,
-            routing_receipt.receipt_digest(),
-        );
-        let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(eligibility, "signal-routing");
-        let boundary_execution_receipt =
-            ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
-                &route_plan,
-                routing_receipt.receipt_digest(),
+        let eligibility =
+            ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+                capability_request,
+                routing_receipt.receipt_identity(),
             );
-        let boundary_envelope = ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
-            ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
-            &route_plan,
-            &boundary_execution_receipt,
-            routing_receipt.receipt_digest(),
+        let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(
+            eligibility,
+            ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+                "signal-invalidation-route",
+                routing_receipt.receipt_identity(),
+            ),
         );
+        let retained_evidence_identity =
+            ForgeQueryLowerRuntimeRetainedEvidenceIdentity::from_evidence_identity(
+                "signal-invalidation-routing",
+                routing_receipt.receipt_identity(),
+            );
+        let boundary_execution_receipt =
+            ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan_with_retained_evidence_identity(
+                &route_plan,
+                &retained_evidence_identity,
+            );
+        let boundary_envelope =
+            ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan_with_retained_evidence_identity(
+                ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
+                &route_plan,
+                &boundary_execution_receipt,
+                &retained_evidence_identity,
+            );
         Self {
             routing_receipt,
             route_plan,
@@ -265,12 +312,18 @@ impl SignalInvalidationBoundaryReceipt {
             ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             SIGNAL_INVALIDATION_CAPABILITY_LABEL,
-            &mutation_receipt.commit_identity,
+            &signal_invalidation_subject_identity(&self.routing_receipt),
         ) {
             return Some(message);
         }
         self.boundary_execution_receipt
-            .drift_from_route_plan(&self.route_plan, self.routing_receipt.receipt_digest())
+            .drift_from_route_plan_with_retained_evidence_identity(
+                &self.route_plan,
+                &ForgeQueryLowerRuntimeRetainedEvidenceIdentity::from_evidence_identity(
+                    "signal-invalidation-routing",
+                    self.routing_receipt.receipt_identity(),
+                ),
+            )
     }
 }
 
@@ -293,25 +346,37 @@ impl SubscriptionActivationBoundaryReceipt {
             ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             SUBSCRIPTION_ACTIVATION_CAPABILITY_LABEL,
-            activation_subject_digest(view_name, activation),
+            activation_subject_identity(view_name, activation, &activation_receipt),
         );
-        let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(
-            capability_request,
-            activation_receipt.receipt_digest(),
-        );
-        let route_plan =
-            ForgeQueryLowerRuntimeRoutePlan::new(eligibility, "subscription-activation");
-        let boundary_execution_receipt =
-            ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
-                &route_plan,
-                activation_receipt.receipt_digest(),
+        let eligibility =
+            ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+                capability_request,
+                activation_receipt.receipt_identity(),
             );
-        let boundary_envelope = ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
-            ForgeQueryLowerRuntimeSeamKey::SubscriptionActivation,
-            &route_plan,
-            &boundary_execution_receipt,
-            activation_receipt.receipt_digest(),
+        let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(
+            eligibility,
+            ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+                "subscription-activation-route",
+                activation_receipt.receipt_identity(),
+            ),
         );
+        let retained_evidence_identity =
+            ForgeQueryLowerRuntimeRetainedEvidenceIdentity::from_evidence_identity(
+                "subscription-activation",
+                activation_receipt.receipt_identity(),
+            );
+        let boundary_execution_receipt =
+            ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan_with_retained_evidence_identity(
+                &route_plan,
+                &retained_evidence_identity,
+            );
+        let boundary_envelope =
+            ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan_with_retained_evidence_identity(
+                ForgeQueryLowerRuntimeSeamKey::SubscriptionActivation,
+                &route_plan,
+                &boundary_execution_receipt,
+                &retained_evidence_identity,
+            );
         Self {
             activation_receipt,
             route_plan,
@@ -347,7 +412,8 @@ impl SubscriptionActivationBoundaryReceipt {
         {
             return Some(message);
         }
-        let expected_subject = activation_subject_digest(view_name, activation);
+        let expected_subject =
+            activation_subject_identity(view_name, activation, &self.activation_receipt);
         if let Some(message) = self.route_plan.eligibility().request().drift_from_contract(
             ForgeQueryLowerRuntimeSeamKey::SubscriptionActivation,
             ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
@@ -358,118 +424,15 @@ impl SubscriptionActivationBoundaryReceipt {
             return Some(message);
         }
         self.boundary_execution_receipt
-            .drift_from_route_plan(&self.route_plan, self.activation_receipt.receipt_digest())
+            .drift_from_route_plan_with_retained_evidence_identity(
+                &self.route_plan,
+                &ForgeQueryLowerRuntimeRetainedEvidenceIdentity::from_evidence_identity(
+                    "subscription-activation",
+                    self.activation_receipt.receipt_identity(),
+                ),
+            )
     }
-}
-
-fn live_view_subject_digest(view_name: &str, request: &DeclarativeLiveQueryRequest) -> String {
-    hash_parts(&[
-        "live_view_route_subject_v1".to_string(),
-        format!("view:{view_name}"),
-        format!("target:{}", request.target()),
-        format!("shape:{}", request.view_shape().as_str()),
-        format!("projection_count:{}", request.query_projection().len()),
-        format!("result_count:{}", request.result_fields().len()),
-    ])
-}
-
-fn write_command_subject_digest(command: &ForgeQueryWriteCommand) -> String {
-    hash_parts(&[
-        "write_command_route_subject_v1".to_string(),
-        format!("family:{}", command.mutation_family().as_str()),
-        format!(
-            "collection:{}",
-            command.declared_collection_ref().unwrap_or("")
-        ),
-        format!(
-            "entity:{}",
-            command.declared_entity_identity_ref().unwrap_or("")
-        ),
-        format!(
-            "aspect_operations:{}",
-            command.declared_aspect_operations().len()
-        ),
-        format!("touched_aspects:{}", command.declared_aspect_paths().len()),
-    ])
-}
-
-fn activation_subject_digest(view_name: &str, activation: &SubscriptionActivationInput) -> String {
-    hash_parts(&[
-        "subscription_activation_route_subject_v1".to_string(),
-        format!("view:{view_name}"),
-        format!("activation:{}", activation.activation_digest()),
-        format!(
-            "query_declaration:{}",
-            activation.query_declaration_digest()
-        ),
-        format!(
-            "bridge_declaration:{}",
-            activation.bridge_declaration_digest()
-        ),
-    ])
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn route_plan_drift_rejects_foreign_boundary_receipt() {
-        let request = ForgeQueryLowerRuntimeCapabilityRequest::new(
-            ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-            ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
-            ForgeQueryLowerRuntimeAuthorityOwner::Query,
-            WRITE_AUTHORITY_CAPABILITY_LABEL,
-            "subject-a",
-        );
-        let eligibility =
-            ForgeQueryLowerRuntimeCapabilityEligibility::admitted(request, "detail-a");
-        let plan = ForgeQueryLowerRuntimeRoutePlan::new(eligibility, "route-a");
-
-        let foreign_request = ForgeQueryLowerRuntimeCapabilityRequest::new(
-            ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
-            ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
-            ForgeQueryLowerRuntimeAuthorityOwner::Query,
-            SIGNAL_INVALIDATION_CAPABILITY_LABEL,
-            "subject-b",
-        );
-        let foreign_eligibility =
-            ForgeQueryLowerRuntimeCapabilityEligibility::admitted(foreign_request, "detail-b");
-        let foreign_plan = ForgeQueryLowerRuntimeRoutePlan::new(foreign_eligibility, "route-b");
-        let foreign_receipt = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
-            &foreign_plan,
-            "detail-b",
-        );
-
-        let drift = foreign_receipt
-            .drift_from_route_plan(&plan, "detail-a")
-            .expect("foreign route receipt must drift");
-
-        assert!(drift.contains("boundary execution request digest"));
-    }
-
-    #[test]
-    fn write_authority_boundary_receipt_carries_boundary_envelope() {
-        let command = ForgeQueryWriteCommand::Delete {
-            entity_identity: "task-1".to_string(),
-        };
-        let mutation_receipt = ForgeQueryMutationReceipt {
-            commit_identity: "commit-1".to_string(),
-            snapshot_token: "snapshot-1".to_string(),
-            deltas: Vec::new(),
-            bridge_authority: None,
-        };
-        let receipt = WriteAuthorityExecutionReceipt::from_command(&command, mutation_receipt);
-
-        assert_eq!(
-            receipt.boundary_envelope().seam_key(),
-            ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution
-        );
-        assert_eq!(
-            receipt.boundary_envelope().boundary_execution_digest(),
-            receipt
-                .boundary_execution_receipt()
-                .boundary_execution_digest()
-        );
-    }
-}
+mod tests;

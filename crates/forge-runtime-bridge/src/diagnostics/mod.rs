@@ -1,5 +1,5 @@
 mod bulk;
-mod causal_envelope;
+pub(crate) mod causal_envelope;
 mod continuity;
 mod explanation;
 mod facade;
@@ -65,8 +65,9 @@ pub use policy::{
 };
 pub use records::{
     BridgeContractDiagnosticsRecord, BridgeFailureClass, BridgeFailureRecord,
-    BridgeLoweringDiagnosticsRecord, BridgeRouteRecord, BridgeRouteRecordEntry,
-    BridgeRouteRecordMatch, BridgeRouteSourceRecord, BridgeRoutingDiagnosticsRecord,
+    BridgeLoweringDiagnosticsRecord, BridgeRouteRecord, BridgeRouteRecordEntityIdentity,
+    BridgeRouteRecordEntry, BridgeRouteRecordMatch, BridgeRouteSourceRecord,
+    BridgeRoutingDiagnosticsRecord,
 };
 pub use replay::{
     BridgeCanonicalRouteRecord, BridgeReplayRecord, BridgeReplaySummary,

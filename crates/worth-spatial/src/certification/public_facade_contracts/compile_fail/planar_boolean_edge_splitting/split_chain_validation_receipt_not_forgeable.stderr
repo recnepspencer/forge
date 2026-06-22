@@ -1,0 +1,19 @@
+error[E0451]: fields `receipt_identity`, `split_edge_fragment_set_identity`, `overlap_edge_chain_set_identity`, `interval_subdivision_schedule_set_identity`, `fragment_coverage_rows`, `overlap_coverage_rows` and `counters` of struct `PlanarBooleanSplitChainValidationReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_chain_validation_receipt_not_forgeable.rs:7:9
+   |
+ 6 |     let _ = PlanarBooleanSplitChainValidationReceipt {
+   |             ---------------------------------------- in this type
+ 7 |         receipt_identity: "forged".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+ 8 |         split_edge_fragment_set_identity: "fragments".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         overlap_edge_chain_set_identity: "chains".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         interval_subdivision_schedule_set_identity: "intervals".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         fragment_coverage_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         overlap_coverage_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         counters: PlanarBooleanSplitChainValidationCounters::default(),
+   |         ^^^^^^^^ private field

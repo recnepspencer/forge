@@ -1,0 +1,29 @@
+error[E0599]: no method named `without_operator_named` found for struct `PlanarBooleanLoopOperatorClassificationMatrix` in the current scope
+  --> src/certification/public_facade_contracts/compile_fail/public_loop_blueprint_matrix_plan_mutators_not_exported.rs:10:29
+   |
+10 |     let _ = operator_matrix.without_operator_named("RegisterLoopReconstructionOperatorDeclarationFamily");
+   |                             ^^^^^^^^^^^^^^^^^^^^^^ method not found in `PlanarBooleanLoopOperatorClassificationMatrix`
+
+error[E0599]: no method named `with_operator_classification` found for struct `PlanarBooleanLoopOperatorClassificationMatrix` in the current scope
+  --> src/certification/public_facade_contracts/compile_fail/public_loop_blueprint_matrix_plan_mutators_not_exported.rs:11:29
+   |
+11 |     let _ = operator_matrix.with_operator_classification(
+   |             ----------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `PlanarBooleanLoopOperatorClassificationMatrix`
+
+error[E0599]: no method named `without_validator_named` found for struct `PlanarBooleanLoopValidatorRegistrationPlan` in the current scope
+  --> src/certification/public_facade_contracts/compile_fail/public_loop_blueprint_matrix_plan_mutators_not_exported.rs:17:28
+   |
+17 |     let _ = validator_plan.without_validator_named("ValidateLoopValidatorRuntimeRegistration");
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^ method not found in `PlanarBooleanLoopValidatorRegistrationPlan`
+
+error[E0599]: no method named `with_validator_runtime_lane` found for struct `PlanarBooleanLoopValidatorRegistrationPlan` in the current scope
+  --> src/certification/public_facade_contracts/compile_fail/public_loop_blueprint_matrix_plan_mutators_not_exported.rs:18:28
+   |
+18 |     let _ = validator_plan.with_validator_runtime_lane(
+   |             ---------------^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `PlanarBooleanLoopValidatorRegistrationPlan`
+
+error[E0599]: no method named `with_validator_topology_legality` found for struct `PlanarBooleanLoopValidatorRegistrationPlan` in the current scope
+  --> src/certification/public_facade_contracts/compile_fail/public_loop_blueprint_matrix_plan_mutators_not_exported.rs:23:24
+   |
+23 |         validator_plan.with_validator_topology_legality("ValidateLoopValidatorRuntimeRegistration", false);
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `PlanarBooleanLoopValidatorRegistrationPlan`

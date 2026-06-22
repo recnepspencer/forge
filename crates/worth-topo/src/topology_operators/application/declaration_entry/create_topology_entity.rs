@@ -17,6 +17,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let retained_handoff = orchestrate_topology_declaration_entry(
             crate::topology_operators::TopologyMutationFamily::CreateTopologyEntity,
             declaration.clone(),
+            mode.clone(),
         )?;
 
         let sequence = declaration.clone().into_mutation_sequence();

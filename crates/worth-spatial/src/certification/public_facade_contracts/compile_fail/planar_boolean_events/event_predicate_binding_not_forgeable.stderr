@@ -1,0 +1,8 @@
+error[E0599]: no function or associated item named `new` found for struct `PlanarBooleanEventPredicateBinding` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_events/event_predicate_binding_not_forgeable.rs:4:49
+  |
+4 |     let _ = PlanarBooleanEventPredicateBinding::new;
+  |                                                 ^^^ function or associated item not found in `PlanarBooleanEventPredicateBinding`
+  |
+help: there is a method `ne` with a similar name
+ --> $RUST/core/src/cmp.rs

@@ -5352,7 +5352,7 @@ mod tests {
                 LiveChangeOrdinal::from_value(1),
                 crate::harness::fixtures::resolved_bases::runtime_basis(
                     &crate::harness::fixtures::validated_bundles::runtime_detail_bundle(),
-                    "snapshot-2",
+                    &crate::harness::fixtures::resolved_bases::alternate_snapshot_identity(),
                 ),
             ),
             LiveReplayStepInput::new(
@@ -5365,7 +5365,7 @@ mod tests {
                 LiveChangeOrdinal::from_value(2),
                 crate::harness::fixtures::resolved_bases::runtime_basis(
                     &crate::harness::fixtures::validated_bundles::runtime_detail_bundle(),
-                    "snapshot-3",
+                    &crate::harness::fixtures::resolved_bases::relational_snapshot_identity(3, 1),
                 ),
             ),
         ];

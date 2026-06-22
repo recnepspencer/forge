@@ -14,6 +14,7 @@ mod active_runtime;
 mod admission;
 mod admission_budget;
 mod admission_diagnostics;
+mod admission_diagnostics_accessors;
 mod admission_error;
 mod attachment;
 mod attachment_budget;
@@ -22,20 +23,25 @@ mod attachment_dimensions;
 mod attachment_error;
 mod attachment_request;
 mod basis_request;
+mod basis_request_accessors;
 mod bridge_family;
 mod bridge_lowering;
 mod bridge_lowering_budget;
 mod bridge_lowering_error;
 mod bridge_parity;
+mod bridge_parity_accessors;
 mod bridge_slice;
 mod budget;
 mod certification;
+mod certification_accessors;
 mod closeout;
 mod construction_source;
 mod continuation;
 mod continuation_error;
 mod counters;
+mod counters_accessors;
 mod declaration;
+mod declaration_accessors;
 mod declaration_digest;
 mod declaration_error;
 mod delivery;
@@ -45,18 +51,26 @@ mod delivery_denials;
 mod delivery_density;
 mod delivery_dimensions;
 mod delivery_error;
+mod delivery_spine_accessors;
 mod delivery_window;
 mod delivery_work_packet;
 mod diagnostic;
 mod dimensions;
 mod equivalence;
+mod equivalence_accessors;
 mod error;
+mod evidence_identities;
+mod evidence_projection;
 mod family;
 mod fanout;
 mod future_selection;
+mod future_selection_accessors;
+mod identity_authority;
 mod input;
+mod input_accessors;
 #[cfg(test)]
 mod input_test_support;
+mod lane_attachment_accessors;
 mod maintenance_delta;
 mod patch_group;
 mod performance_receipt;
@@ -70,10 +84,23 @@ mod runtime_certification;
 mod scale;
 mod selection;
 mod selection_future;
+mod selection_live_graph_access;
 mod signal_strategy;
+mod signal_strategy_accessors;
 mod slice;
 mod slice_budget;
+mod subscription_error_accessors;
 mod support;
+mod terminal_projection_label;
+mod validation_evidence;
+
+pub use identity_authority::{
+    forge_query_subscription_phase_seven_compile_fail_targets,
+    forge_query_subscription_phase_seven_golden_paths,
+    ForgeQuerySubscriptionPhaseSevenCompileFailTarget,
+    FORGE_QUERY_SUBSCRIPTION_PHASE_SEVEN_COMPILE_FAIL_TARGET_COUNT,
+    FORGE_QUERY_SUBSCRIPTION_PHASE_SEVEN_GOLDEN_PATH_COUNT,
+};
 
 pub use acknowledgement::{
     QueryDeliveryBatchReceipt, QueryDeliverySequence, SubscriptionAcknowledgementFrontier,
@@ -162,7 +189,6 @@ pub use continuation::{
 pub use continuation_error::{SubscriptionContinuationDenialKind, SubscriptionContinuationError};
 pub use counters::QuerySubscriptionDeclarationCounters;
 pub use declaration::{declare_query_subscription, QuerySubscriptionDeclarationArtifact};
-pub use declaration_digest::QuerySubscriptionDeclarationDigest;
 pub use declaration_error::{
     QuerySubscriptionDeclarationDenial, QuerySubscriptionDeclarationDenialKind,
 };
@@ -195,7 +221,7 @@ pub use diagnostic::{
     QuerySubscriptionDiagnosticTrace,
 };
 pub use dimensions::QuerySubscriptionAdmissionDimensions;
-pub use equivalence::{QuerySubscriptionEquivalenceBasis, QuerySubscriptionMeaningDigest};
+pub use equivalence::QuerySubscriptionEquivalenceBasis;
 pub use error::{
     QuerySubscriptionFamilySelectionError, QuerySubscriptionFamilySelectionFailureClass,
 };
@@ -247,7 +273,10 @@ pub use scale::{
     certify_query_subscription_scale_slope, QuerySubscriptionScaleCounterSnapshot,
     QuerySubscriptionScaleFixtureSize, QuerySubscriptionScaleSlopeReport,
 };
+#[allow(unused_imports)]
 pub use selection::{select_query_subscription_family, QuerySubscriptionFamilySelection};
+#[allow(unused_imports)]
+pub use selection_live_graph_access::QuerySubscriptionLiveGraphAccessPosture;
 pub use signal_strategy::{
     QuerySubscriptionSignalStrategyRequest, QuerySubscriptionSignalStrategyRequestKind,
 };
@@ -267,6 +296,7 @@ pub use support::{
     QuerySubscriptionSupportSubject, SubscriptionFamilyCapabilityDigest, SupportLookupReceipt,
     SupportResolutionPosture,
 };
+pub use terminal_projection_label::TerminalProjectionLabel;
 
 #[cfg(test)]
 mod tests;

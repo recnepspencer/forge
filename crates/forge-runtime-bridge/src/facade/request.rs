@@ -5,7 +5,7 @@
 /// ```rust
 /// use forge_runtime_bridge::facade::{BridgeRouteRequest, TruthCommitIdentity};
 ///
-/// let request = BridgeRouteRequest::for_commit(TruthCommitIdentity::new("commit:steel-main"));
+/// let request = BridgeRouteRequest::for_commit(crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main"));
 /// assert_eq!(request.commit_identity().as_str(), "commit:steel-main");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]

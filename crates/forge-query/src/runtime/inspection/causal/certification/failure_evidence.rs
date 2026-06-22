@@ -1,5 +1,8 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
+use super::super::identity::CausalInspectionCertificationFailureEvidenceIdentity;
 use super::error::{CausalInspectionCertificationError, CausalInspectionCertificationErrorKind};
 use super::matrix_kind::CausalInspectionRepresentativeKind;
 
@@ -94,7 +97,7 @@ pub struct CausalInspectionCertificationFailureEvidence {
     source: CausalInspectionCertificationFailureSource,
     ordinary_path_forbidden: bool,
     later_milestone_debt: bool,
-    failure_digest: String,
+    failure_identity: CausalInspectionCertificationFailureEvidenceIdentity,
 }
 
 impl CausalInspectionCertificationFailureEvidence {
@@ -113,19 +116,27 @@ impl CausalInspectionCertificationFailureEvidence {
 
     pub fn from_kind(kind: CausalInspectionCertificationFailureKind) -> Self {
         let (source, ordinary_path_forbidden, later_milestone_debt) = failure_posture(kind);
-        let failure_digest = hash_parts(&[
-            "causal_inspection_certification_failure_evidence_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("source:{}", source.as_str()),
-            format!("ordinary-path-forbidden:{ordinary_path_forbidden}"),
-            format!("later-milestone-debt:{later_milestone_debt}"),
-        ]);
+        let failure_identity = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::CausalInspectionCertificationFailureEvidence,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("source"), source.as_str())
+        .field_bool(
+            ForgeQueryEvidenceTag::new("ordinary_path_forbidden"),
+            ordinary_path_forbidden,
+        )
+        .field_bool(
+            ForgeQueryEvidenceTag::new("later_milestone_debt"),
+            later_milestone_debt,
+        )
+        .seal()
+        .into();
         Self {
             kind,
             source,
             ordinary_path_forbidden,
             later_milestone_debt,
-            failure_digest,
+            failure_identity,
         }
     }
 
@@ -150,7 +161,7 @@ impl CausalInspectionCertificationFailureEvidence {
     }
 
     pub fn failure_digest(&self) -> &str {
-        &self.failure_digest
+        self.failure_identity.as_str()
     }
 }
 

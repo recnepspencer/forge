@@ -130,17 +130,17 @@ pub(crate) fn temporal_async_bundle_draft_with_shared_bundle(
     temporal_snapshot: &str,
 ) -> crate::facade::BridgeTemporalAsyncCertificationBundleDraft {
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("truth-main"),
-        TruthCommitIdentity::new(temporal_commit),
-        TruthSnapshotIdentity::new(temporal_snapshot),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_commit_fixture(temporal_commit),
+        crate::truth_identity_fixtures::truth_snapshot_fixture(temporal_snapshot),
     ));
     let completion_report = admit_request_response_completion(
         runtime,
         NodeId::new(701, 0),
         crate::facade::BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("async-commit-a"),
-            TruthSnapshotIdentity::new("async-snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("async-commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("async-snapshot-a"),
         ),
         64,
     );
@@ -153,14 +153,14 @@ pub(crate) fn temporal_async_bundle_draft_with_shared_bundle(
             runtime,
             NodeId::new(703, 0),
             crate::facade::BridgeAsyncRequestTruthViewBasis::authoritative(
-                TruthBranchIdentity::new("truth-main"),
-                TruthCommitIdentity::new("async-commit-c1"),
-                TruthSnapshotIdentity::new("async-snapshot-c1"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("async-commit-c1"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("async-snapshot-c1"),
             ),
             crate::facade::BridgeAsyncRequestTruthViewBasis::authoritative(
-                TruthBranchIdentity::new("truth-main"),
-                TruthCommitIdentity::new("async-commit-c1"),
-                TruthSnapshotIdentity::new("async-snapshot-c1"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("async-commit-c1"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("async-snapshot-c1"),
             ),
         );
     let supersession = runtime
@@ -168,9 +168,9 @@ pub(crate) fn temporal_async_bundle_draft_with_shared_bundle(
             BridgeAsyncCompletionSupersessionClassificationRequest::request_response(
                 &superseded_denial,
                 crate::facade::BridgeAsyncRequestTruthViewBasis::authoritative(
-                    TruthBranchIdentity::new("truth-main"),
-                    TruthCommitIdentity::new("async-commit-c1"),
-                    TruthSnapshotIdentity::new("async-snapshot-c1"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("async-commit-c1"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("async-snapshot-c1"),
                 ),
             )
             .with_displacing_request_identity(&displacing_request),
@@ -180,9 +180,9 @@ pub(crate) fn temporal_async_bundle_draft_with_shared_bundle(
         runtime,
         NodeId::new(704, 0),
         crate::facade::BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("async-commit-d"),
-            TruthSnapshotIdentity::new("async-snapshot-d"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("async-commit-d"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("async-snapshot-d"),
         ),
     );
     let writeback_completion =
@@ -216,10 +216,10 @@ pub(crate) fn temporal_async_bundle_draft_with_shared_bundle(
     let ordering = runtime.order_mixed_causes(&BridgeMixedCauseOrderingRequest::new(
         BridgeMixedCauseOrderingLaneKind::Authoritative,
         vec![BridgeMixedCauseOrderingInput::TruthPatch(committed_patch(
-            TruthBranchIdentity::new("truth-main"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthPatchIdentity::new("patch-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
         ))],
     ));
     let mixed_window = runtime
@@ -230,15 +230,15 @@ pub(crate) fn temporal_async_bundle_draft_with_shared_bundle(
         .expect("mixed-cause delivery window should plan");
     let retained_temporal = retained_temporal_resume_basis(
         runtime,
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         crate::facade::BridgeRetainedTemporalWakePosture::Pending,
         true,
     );
     let resume_request_identity = admitted_async_request_identity(
         runtime,
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         710,
     );
     let retained_async =
@@ -288,10 +288,10 @@ pub(crate) fn duplicate_suppression_failure_bundle(
     runtime: &RuntimeBridge,
 ) -> BridgeTemporalAsyncOfflineDiagnosisBundleSealed {
     let duplicate_patch = committed_patch(
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
-        TruthCommitIdentity::new("duplicate-commit"),
-        TruthPatchIdentity::new("duplicate-patch"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("duplicate-commit"),
+        crate::truth_identity_fixtures::truth_patch_fixture("duplicate-patch"),
     );
     let ordering = runtime.order_mixed_causes(&BridgeMixedCauseOrderingRequest::new(
         BridgeMixedCauseOrderingLaneKind::Authoritative,

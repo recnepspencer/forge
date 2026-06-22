@@ -1,4 +1,5 @@
 use super::support::*;
+use crate::ForgeQueryEvidenceScope;
 
 #[test]
 fn strategy_intent_commit_routes_query_delivery_and_returns_canonical_receipt() {
@@ -6,6 +7,7 @@ fn strategy_intent_commit_routes_query_delivery_and_returns_canonical_receipt() 
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -105,6 +107,7 @@ fn intent_receipt_inspection_explains_strategy_lanes_and_delivery_counters() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -197,6 +200,7 @@ fn idempotent_intent_noop_emits_receipt_without_mutation_or_signal_routing() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(CountingSignalSink {
             routed: routed.clone(),
@@ -259,7 +263,7 @@ fn idempotent_intent_noop_emits_receipt_without_mutation_or_signal_routing() {
         ["test-invariant-authority", "idempotent-noop"]
     );
     assert!(!receipt.commit_identity().is_empty());
-    assert!(!receipt.snapshot_token().is_empty());
+    assert!(!receipt.snapshot_evidence_identity().as_str().is_empty());
     assert!(!receipt.receipt_digest().is_empty());
     assert_eq!(
         routed.get(),
@@ -283,6 +287,7 @@ fn idempotent_intent_inspection_preserves_outcome_without_mutation_claim() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -325,6 +330,7 @@ fn mutating_intent_with_empty_delta_denies_before_signal_routing() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(CountingSignalSink {
             routed: routed.clone(),
@@ -365,7 +371,7 @@ fn mutating_intent_with_empty_delta_denies_before_signal_routing() {
                 Some(ForgeQueryIntentExecutionKind::Mutating)
             );
             assert!(evidence.attempt_digest().is_some());
-            assert!(!evidence.denial_digest().is_empty());
+            assert!(!evidence.denial_digest().as_str().is_empty());
         }
         other => panic!("expected mutation receipt admission denial, got {other:?}"),
     }
@@ -382,6 +388,7 @@ fn invariant_denial_inspection_explains_failed_invariants_without_commit_identit
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -429,8 +436,11 @@ fn invariant_denial_inspection_explains_failed_invariants_without_commit_identit
         ]
     );
     assert!(inspection.attempt_digest().is_some());
-    assert!(inspection.snapshot_token().is_some());
-    assert_eq!(inspection.denial_digest(), evidence.denial_digest());
+    assert!(inspection.snapshot_identity().is_some());
+    assert_eq!(
+        inspection.denial_digest(),
+        evidence.denial_digest().as_str()
+    );
     assert!(!inspection.inspection_digest().is_empty());
 }
 
@@ -441,6 +451,7 @@ fn invariant_violation_intent_denies_with_evidence_without_partial_publication()
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(CountingSignalSink {
             routed: routed.clone(),
@@ -506,8 +517,8 @@ fn invariant_violation_intent_denies_with_evidence_without_partial_publication()
                 ]
             );
             assert!(evidence.attempt_digest().is_some());
-            assert!(evidence.snapshot_token().is_some());
-            assert!(!evidence.denial_digest().is_empty());
+            assert!(evidence.snapshot_identity().is_some());
+            assert!(!evidence.denial_digest().as_str().is_empty());
         }
         other => panic!("expected invariant admission denial, got {other:?}"),
     }
@@ -533,6 +544,7 @@ fn intent_support_profile_claim_requires_executable_authority_adapter() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -561,6 +573,7 @@ fn intent_source_lanes_that_need_policy_deny_before_authority_execution() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -624,6 +637,7 @@ fn intent_execution_strategy_drift_denies_before_signal_routing() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(CountingSignalSink {
             routed: routed.clone(),
@@ -686,6 +700,7 @@ fn strategy_drift_denial_inspection_keeps_declared_and_returned_strategy_separat
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -728,7 +743,10 @@ fn strategy_drift_denial_inspection_keeps_declared_and_returned_strategy_separat
         inspection.execution_kind(),
         Some(ForgeQueryIntentExecutionKind::Mutating)
     );
-    assert_eq!(inspection.denial_digest(), evidence.denial_digest());
+    assert_eq!(
+        inspection.denial_digest(),
+        evidence.denial_digest().as_str()
+    );
     assert!(!inspection.inspection_digest().is_empty());
 }
 
@@ -738,6 +756,7 @@ fn effect_triggered_pending_write_intent_executes_through_intent_authority_once(
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -761,7 +780,7 @@ fn effect_triggered_pending_write_intent_executes_through_intent_authority_once(
 
     let write = runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from write"),
         })
@@ -781,8 +800,13 @@ fn effect_triggered_pending_write_intent_executes_through_intent_authority_once(
 
     assert_eq!(effect_intent.effect_name(), "effects.reconcile-title");
     assert_eq!(
-        effect_intent.trigger_commit_identity(),
-        write.commit_identity()
+        effect_intent.trigger_commit_evidence_identity().scope(),
+        ForgeQueryEvidenceScope::EffectTriggerCommitIdentity
+    );
+    assert_ne!(
+        effect_intent.trigger_commit_evidence_identity(),
+        write.commit_evidence_identity(),
+        "effect trigger identity must wrap, not collapse to, the write receipt commit identity"
     );
     assert_eq!(
         effect_intent.pending_intent_target(),
@@ -827,8 +851,15 @@ fn effect_triggered_pending_write_intent_executes_through_intent_authority_once(
         "effects.reconcile-title"
     );
     assert_eq!(
-        effect_intent_inspection.trigger_commit_identity(),
-        write.commit_identity()
+        effect_intent_inspection
+            .trigger_commit_evidence_identity()
+            .scope(),
+        ForgeQueryEvidenceScope::EffectTriggerCommitIdentity
+    );
+    assert_ne!(
+        effect_intent_inspection.trigger_commit_evidence_identity(),
+        write.commit_evidence_identity(),
+        "effect intent inspection must preserve the typed trigger wrapper identity"
     );
     assert_eq!(
         effect_intent_inspection.effect_policy(),
@@ -889,6 +920,7 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -936,7 +968,7 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
     let (preview_evidence, preview_outcome) = {
         let mut preview = runtime
             .preview_with_options(
-                "deep runtime preview",
+                test_session_label("deep runtime preview"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should be admitted");
@@ -1125,7 +1157,7 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
     let branch_receipt = {
         let mut branch = runtime
             .branch_with_options(
-                "deep runtime branch",
+                test_session_label("deep runtime branch"),
                 ForgeQueryBranchOptions::sandboxed_write_intent(),
             )
             .expect("branch session should be admitted");
@@ -1160,6 +1192,7 @@ fn effect_triggered_idempotent_intent_noop_consumes_pending_work_without_feedbac
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(CountingSignalSink {
             routed: routed.clone(),
@@ -1189,7 +1222,7 @@ fn effect_triggered_idempotent_intent_noop_consumes_pending_work_without_feedbac
 
     let write = runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("already reconciled title"),
         })

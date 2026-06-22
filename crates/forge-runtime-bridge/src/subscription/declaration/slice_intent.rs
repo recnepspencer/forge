@@ -295,7 +295,7 @@ pub(crate) fn subscription_slice_target_identity(
         slice_kind,
     );
     let digest = Sha256::digest(basis.as_bytes());
-    BridgeSubscriptionSliceTargetIdentity::new(format!(
+    BridgeSubscriptionSliceTargetIdentity::admit_bridge_owned(format!(
         "subscription-slice-target:sha256:{digest:x}"
     ))
 }
@@ -308,7 +308,9 @@ fn subscription_target_mask_identity(
         committed_patch_target.canonical_basis()
     );
     let digest = Sha256::digest(basis.as_bytes());
-    BridgeSubscriptionTargetMaskIdentity::new(format!("subscription-target-mask:sha256:{digest:x}"))
+    BridgeSubscriptionTargetMaskIdentity::admit_bridge_owned(format!(
+        "subscription-target-mask:sha256:{digest:x}"
+    ))
 }
 
 fn subscription_slice_target_identity_basis(

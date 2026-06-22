@@ -66,13 +66,13 @@ fn relation_update_query_support_reports_topology_read_proof_report_with_replay_
         &mut current_head_workspace,
         &verified.read_basis(),
         &moved_identity,
-        6,
+        4,
     );
     let right = replay_support.local_rewire_parity_artifact(
         &mut snapshot_workspace,
         &replay_basis,
         &moved_identity,
-        6,
+        4,
     );
     current_head_support.record_view_parity(TopologyReadParityKind::Replay, &left, &right);
 

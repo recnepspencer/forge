@@ -6,7 +6,7 @@ mod routing;
 
 pub use generic_inspection::{
     ForgeQueryGenericInspectionIntentSeed, ForgeQueryGenericInspectionIntentTarget,
-    ForgeQueryGenericInspectionIntentTargetSeed,
+    ForgeQueryGenericInspectionIntentTargetSeed, ForgeQueryGenericInspectionRequestLabel,
 };
 pub use inspection::ForgeQueryDerivedViewIntentSeed;
 pub use mutation::{

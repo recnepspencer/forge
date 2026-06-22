@@ -1,5 +1,4 @@
 use super::super::support::*;
-
 #[test]
 fn runtime_builder_rejects_missing_backend_inputs() {
     let error = match ForgeQueryRuntime::builder().build() {
@@ -64,6 +63,23 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         .build_backend_from_parts()
         .build();
     let error = match error {
+        Ok(_) => panic!("missing snapshot identity adapter should reject"),
+        Err(error) => error,
+    };
+    assert!(matches!(
+        error,
+        ForgeQueryRuntimeError::MissingSnapshotIdentityAdapter
+    ));
+    assert!(error.to_string().contains("snapshot_identity(...)"));
+
+    let error = ForgeQueryRuntime::builder()
+        .runtime_bridge(test_bridge())
+        .schema_adapter(TestSchemaAdapter)
+        .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
+        .build_backend_from_parts()
+        .build();
+    let error = match error {
         Ok(_) => panic!("missing write authority should reject"),
         Err(error) => error,
     };
@@ -77,6 +93,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .build_backend_from_parts()
         .build();
@@ -91,6 +108,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .build_backend_from_parts()
@@ -109,6 +127,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -126,6 +145,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
         .write_authority(TestWriteAuthority)
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
@@ -149,6 +169,7 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
         .write_authority(TestWriteAuthority)
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
@@ -184,22 +205,30 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
             .activation_input_count(),
         1
     );
-    assert!(view.subscription_installation().support_evidence() == "test-subscription-activation");
+    assert!(view
+        .subscription_installation()
+        .support_projection()
+        .label()
+        .starts_with("forge.query.evidence-identity.v1:"));
     assert!(!view
         .subscription_installation()
-        .active_lane_digest()
+        .active_lane_projection()
+        .label()
         .is_empty());
     assert!(!view
         .subscription_installation()
-        .consumer_attachment_digest()
+        .consumer_attachment_projection()
+        .label()
         .is_empty());
     assert!(!view
         .subscription_installation()
-        .consumer_digest()
+        .consumer_projection()
+        .label()
         .is_empty());
     assert!(!view
         .subscription_installation()
-        .delivery_cursor_digest()
+        .delivery_cursor_projection()
+        .label()
         .is_empty());
     assert_eq!(
         view.subscription_installation()
@@ -216,7 +245,7 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
     assert_eq!(
         view.subscription_installation()
             .subscription_budget_policy(),
-        runtime_subscription_budget_policy()
+        runtime_subscription_budget_policy().policy_label()
     );
     assert_eq!(
         view.subscription_installation()
@@ -229,17 +258,25 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
         RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY
     );
     assert_eq!(
-        view.subscription_installation().runtime_budget_digest(),
-        runtime_subscription_budget_digest()
+        view.subscription_installation().runtime_budget_identity(),
+        &runtime_subscription_budget_digest()
     );
     let live_inspection = runtime
         .inspect_live_view(&view)
         .expect("inspector should retain live subscription installation");
     assert_eq!(
-        live_inspection.installation_digest(),
-        view.subscription_installation().installation_digest()
+        live_inspection.installation_projection().label(),
+        view.subscription_installation()
+            .installation_projection()
+            .label()
     );
-    assert_eq!(receipt.commit_identity(), "external-commit-1");
+    assert_eq!(
+        receipt
+            .commit_identity()
+            .bridge_identity()
+            .and_then(|identity| identity.relational_commit_id()),
+        Some(1)
+    );
     assert_eq!(
         receipt.affected_live_view_ids(),
         &["external.tasks".to_string()]
@@ -259,12 +296,15 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
     }
     {
         let preview = runtime
-            .try_preview("external preview")
+            .try_preview(test_session_label("external preview"))
             .expect("preview basis adapter should admit preview basis");
-        assert_eq!(preview.basis_admission().label(), "external preview");
+        assert_eq!(
+            preview.basis_admission().label(),
+            test_session_label("external preview").display()
+        );
         assert_eq!(
             preview.basis_admission().evidence(),
-            &["test-preview-basis".to_string()]
+            vec!["test-preview-basis".to_string()]
         );
     }
 }
@@ -277,6 +317,7 @@ fn runtime_builder_rejects_replacing_explicit_backend_with_backend_parts() {
             .schema_adapter(TestSchemaAdapter)
             .source_adapter(TestSourceAdapter::default())
             .write_authority(TestWriteAuthority)
+            .snapshot_identity(TestSnapshotIdentityAdapter)
             .signal_sink(TestSignalSink)
             .subscription_activation(TestSubscriptionActivation)
             .preview_basis(TestPreviewBasis)
@@ -289,6 +330,7 @@ fn runtime_builder_rejects_replacing_explicit_backend_with_backend_parts() {
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
         .write_authority(TestWriteAuthority)
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
@@ -319,6 +361,7 @@ fn runtime_builder_rejects_explicit_backend_with_stray_backend_parts() {
             .schema_adapter(TestSchemaAdapter)
             .source_adapter(TestSourceAdapter::default())
             .write_authority(TestWriteAuthority)
+            .snapshot_identity(TestSnapshotIdentityAdapter)
             .signal_sink(TestSignalSink)
             .subscription_activation(TestSubscriptionActivation)
             .preview_basis(TestPreviewBasis)

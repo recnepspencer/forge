@@ -1,3 +1,6 @@
+use crate::application::{
+    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+};
 use crate::domain_capabilities::{
     admit_eligible_domain_capability_contribution,
     evaluate_requested_domain_capability_contribution, ForgeQueryAdmissionContributionAuthoring,
@@ -12,54 +15,52 @@ use crate::domain_capabilities::{
 use forge_proof::TransitionOutcome;
 
 pub fn admitted_declaration_support(
-    declaration_digest: &str,
+    declaration_label: &str,
     semantic_code: &str,
     detail: &str,
 ) -> ForgeQueryAdmittedSupportContribution<ForgeQueryDeclarationBoundContributionTarget> {
     admitted(
         ForgeQuerySupportContributionAuthoring::declaration_support(semantic_code, detail)
-            .bind_to_declaration_target(ForgeQueryDeclarationBoundContributionTarget::from_digest(
-                declaration_digest,
-            )),
+            .bind_to_declaration_target(declaration_target(declaration_label)),
     )
 }
 
-pub fn admitted_declaration_explanation(
-    declaration_digest: &str,
+pub fn admitted_declaration_explanation<
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+>(
+    declaration: &ForgeQueryCanonicalDeclarationArtifact<D, I>,
     semantic_code: &str,
     detail: &str,
 ) -> ForgeQueryAdmittedExplanationContribution<ForgeQueryDeclarationBoundContributionTarget> {
     admitted(
         ForgeQueryExplanationContributionAuthoring::requires_context(semantic_code, detail)
-            .bind_to_declaration_target(ForgeQueryDeclarationBoundContributionTarget::from_digest(
-                declaration_digest,
-            )),
+            .bind_to_declaration_target(canonical_declaration_target(declaration)),
     )
 }
 
-pub fn admitted_declaration_advisory(
-    declaration_digest: &str,
+pub fn admitted_declaration_advisory<
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+>(
+    declaration: &ForgeQueryCanonicalDeclarationArtifact<D, I>,
     semantic_code: &str,
     detail: &str,
 ) -> ForgeQueryAdmittedAdmissionContribution<ForgeQueryDeclarationBoundContributionTarget> {
     admitted(
         ForgeQueryAdmissionContributionAuthoring::advisory(semantic_code, detail)
-            .bind_to_declaration_target(ForgeQueryDeclarationBoundContributionTarget::from_digest(
-                declaration_digest,
-            )),
+            .bind_to_declaration_target(canonical_declaration_target(declaration)),
     )
 }
 
 pub fn admitted_declaration_workflow(
-    declaration_digest: &str,
+    declaration_label: &str,
     semantic_code: &str,
     detail: &str,
 ) -> ForgeQueryAdmittedWorkflowContribution<ForgeQueryDeclarationBoundContributionTarget> {
     admitted_generic(
         ForgeQueryWorkflowContributionAuthoring::preview_only(semantic_code, detail)
-            .bind_to_declaration_target(ForgeQueryDeclarationBoundContributionTarget::from_digest(
-                declaration_digest,
-            )),
+            .bind_to_declaration_target(declaration_target(declaration_label)),
     )
 }
 
@@ -178,4 +179,24 @@ fn success<T>(
         }
         TransitionOutcome::Deferred(never) => match never {},
     }
+}
+
+fn declaration_target(label: &str) -> ForgeQueryDeclarationBoundContributionTarget {
+    let declaration = crate::runtime::ForgeQueryIntentDeclaration::strategy_commit(
+        format!("declaration-entry-seam.{label}"),
+        format!("forge.declaration_entry_seam.{label}"),
+        "1",
+        "forge.declaration-entry-seam.fixture",
+        serde_json::json!({ "fixture": label }),
+    );
+    ForgeQueryDeclarationBoundContributionTarget::for_intent_declaration(&declaration)
+}
+
+fn canonical_declaration_target<
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+>(
+    declaration: &ForgeQueryCanonicalDeclarationArtifact<D, I>,
+) -> ForgeQueryDeclarationBoundContributionTarget {
+    ForgeQueryDeclarationBoundContributionTarget::for_canonical_declaration(declaration)
 }

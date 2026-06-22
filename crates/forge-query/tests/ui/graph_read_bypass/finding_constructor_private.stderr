@@ -1,0 +1,30 @@
+warning: unreachable expression
+ --> tests/ui/graph_read_bypass/finding_constructor_private.rs:6:30
+  |
+5 |         class: todo!(),
+  |                ------- any code following this expression is unreachable
+6 |         authority_violation: todo!(),
+  |                              ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `class`, `authority_violation`, `detection`, `detection_key`, `replacement_lane`, `source_site` and `finding_identity` of struct `ForgeQueryGraphReadBypassFinding` are private
+  --> tests/ui/graph_read_bypass/finding_constructor_private.rs:5:9
+   |
+ 4 |     let _ = ForgeQueryGraphReadBypassFinding {
+   |             -------------------------------- in this type
+ 5 |         class: todo!(),
+   |         ^^^^^ private field
+ 6 |         authority_violation: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         detection: todo!(),
+   |         ^^^^^^^^^ private field
+ 8 |         detection_key: "",
+   |         ^^^^^^^^^^^^^ private field
+ 9 |         replacement_lane: "",
+   |         ^^^^^^^^^^^^^^^^ private field
+10 |         source_site: todo!(),
+   |         ^^^^^^^^^^^ private field
+11 |         finding_identity: todo!(),
+   |         ^^^^^^^^^^^^^^^^ private field

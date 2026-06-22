@@ -1,0 +1,7 @@
+error[E0432]: unresolved imports `schema::facade::platform::authority::WorthGeometryOnlyEvidenceAdmission`, `schema::facade::platform::authority::WorthGeometryOnlyEvidenceReceiptProjection`
+ --> tests/compile_fail/touched_graph_basis/geometry_admission_from_copied_receipt_text.rs:2:5
+  |
+2 |     WorthGeometryOnlyEvidenceAdmission, WorthGeometryOnlyEvidenceReceiptProjection,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthGeometryOnlyEvidenceReceiptProjection` in `facade::platform::authority`
+  |     |
+  |     no `WorthGeometryOnlyEvidenceAdmission` in `facade::platform::authority`

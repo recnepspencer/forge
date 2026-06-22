@@ -5,16 +5,14 @@ use crate::facade::{
     BridgePolicyRejectionKind, BridgePolicyRejectionStage, BridgePolicyResolution,
     BridgePolicySourceClass, BridgeRequestKind, BridgeRuntimePolicy,
     BridgeTruthViewPolicyResolution, BridgeTruthViewSelector, HistoricalEvaluationDeclaration,
-    TruthSnapshotIdentity,
 };
-use crate::input::envelope::TruthBranchIdentity;
 use crate::snapshot::BridgeReplayMode;
 
 #[test]
 fn runtime_admits_canonical_policy_declaration_and_lowers_it() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:authoritative-standard"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:authoritative-standard"),
         BridgeRequestKind::Authoritative,
         BridgeExecutionPolicyClass::DeterministicCanonical,
         BridgeDiagnosticsTier::Standard,
@@ -51,7 +49,7 @@ fn runtime_admits_canonical_policy_declaration_and_lowers_it() {
 fn runtime_rejects_optimized_authoritative_policy_requests() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:authoritative-optimized"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:authoritative-optimized"),
         BridgeRequestKind::Authoritative,
         BridgeExecutionPolicyClass::Optimized,
         BridgeDiagnosticsTier::Standard,
@@ -79,7 +77,7 @@ fn runtime_rejects_optimized_authoritative_policy_requests() {
 fn runtime_rejects_replay_when_baseline_forbids_replay_artifacts() {
     let runtime = runtime(BridgeRuntimePolicy::operational().with_replay_artifacts(false));
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:preview-replay-required"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:preview-replay-required"),
         BridgeRequestKind::Preview,
         BridgeExecutionPolicyClass::Optimized,
         BridgeDiagnosticsTier::Minimal,
@@ -105,7 +103,9 @@ fn runtime_rejects_replay_when_baseline_forbids_replay_artifacts() {
 fn runtime_rejects_replay_without_route_artifacts() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:preview-replay-without-route-record"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned(
+            "policy:preview-replay-without-route-record",
+        ),
         BridgeRequestKind::Preview,
         BridgeExecutionPolicyClass::Optimized,
         BridgeDiagnosticsTier::Standard,
@@ -135,7 +135,9 @@ fn runtime_rejects_replay_without_route_artifacts() {
 fn runtime_rejects_replay_with_minimal_diagnostics() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:preview-replay-minimal-diagnostics"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned(
+            "policy:preview-replay-minimal-diagnostics",
+        ),
         BridgeRequestKind::Preview,
         BridgeExecutionPolicyClass::Optimized,
         BridgeDiagnosticsTier::Minimal,
@@ -161,7 +163,7 @@ fn runtime_rejects_replay_with_minimal_diagnostics() {
 fn runtime_narrows_diagnostics_tier_to_baseline() {
     let runtime = runtime(BridgeRuntimePolicy::operational());
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:preview-exhaustive"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:preview-exhaustive"),
         BridgeRequestKind::Preview,
         BridgeExecutionPolicyClass::Optimized,
         BridgeDiagnosticsTier::Exhaustive,
@@ -197,15 +199,15 @@ fn policy_admission_remains_structurally_distinct_from_truth_view_policy_resolut
     let runtime = runtime(BridgeRuntimePolicy::default());
     let truth_view = HistoricalEvaluationDeclaration::new(
         BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeReplayMode::Enabled,
         BridgeDiagnosticsTier::Standard,
         BridgeDeliveryIntent::PrepareSignalEvaluation,
     );
     let policy = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:preview-standard"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:preview-standard"),
         BridgeRequestKind::Preview,
         BridgeExecutionPolicyClass::Optimized,
         BridgeDiagnosticsTier::Standard,

@@ -44,7 +44,7 @@ fn relation_update_query_support_reports_topology_read_breadth_aggregate() {
     assert_eq!(aggregate.query_execution_count, 3);
     assert_eq!(aggregate.row_scan_fallback_count, 0);
     assert_eq!(aggregate.lowered_traversal_count, 5);
-    assert_eq!(aggregate.relationship_proof_admission_count, 5);
+    assert_eq!(aggregate.relationship_proof_admission_count, 8);
     assert_eq!(aggregate.whole_view_fallback_count, 0);
     assert_eq!(aggregate.repeated_rediscovery_denied_count, 0);
     assert_eq!(aggregate.debt_rows.len(), 0);
@@ -54,7 +54,7 @@ fn relation_update_query_support_reports_topology_read_breadth_aggregate() {
             && row.request_count == 1
             && row.query_execution_count == 1
             && row.lowered_traversal_count == 1
-            && row.relationship_proof_admission_count == 1
+            && row.relationship_proof_admission_count == 2
             && row.row_scan_fallback_count == 0
             && row.whole_view_fallback_count == 0
     }));
@@ -63,7 +63,7 @@ fn relation_update_query_support_reports_topology_read_breadth_aggregate() {
             && row.request_count == 2
             && row.query_execution_count == 2
             && row.lowered_traversal_count == 4
-            && row.relationship_proof_admission_count == 4
+            && row.relationship_proof_admission_count == 6
             && row.row_scan_fallback_count == 0
             && row.whole_view_fallback_count == 0
     }));
@@ -113,7 +113,7 @@ fn relation_update_query_support_reports_topology_operator_radial_breadth_aggreg
     assert_eq!(aggregate.row_scan_fallback_count, 0);
     assert_eq!(aggregate.whole_view_fallback_count, 0);
     assert_eq!(aggregate.lowered_traversal_count, 4);
-    assert_eq!(aggregate.relationship_proof_admission_count, 4);
+    assert_eq!(aggregate.relationship_proof_admission_count, 6);
     assert_eq!(aggregate.debt_rows.len(), 0);
     assert_eq!(aggregate.family_rows.len(), 1);
     assert!(aggregate.family_rows.iter().any(|row| {

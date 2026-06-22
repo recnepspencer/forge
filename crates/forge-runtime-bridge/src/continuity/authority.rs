@@ -107,18 +107,16 @@ mod tests {
         BridgeContinuityAuthorityBasis, BridgeContinuityAuthorityKind,
         BridgeContinuityDigestBasisKind, BridgeLineageContext,
     };
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::TruthSnapshotIdentity;
 
     #[test]
     fn continuity_authority_basis_is_canonical_for_same_branch_and_snapshot() {
         let left = BridgeContinuityAuthorityBasis::new(
-            TruthBranchIdentity::new("main"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         );
         let right = BridgeContinuityAuthorityBasis::new(
-            TruthBranchIdentity::new("main"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         );
 
         assert_eq!(left, right);
@@ -135,18 +133,22 @@ mod tests {
     #[test]
     fn lineage_context_preserves_authority_basis() {
         let context = BridgeLineageContext::for_snapshot_branch(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-b"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
         );
 
         assert_eq!(
-            context.authority_basis().branch_identity().as_str(),
-            "analysis"
+            context
+                .authority_basis()
+                .branch_identity()
+                .relational_branch_id(),
+            Some("analysis")
         );
-        assert_eq!(
-            context.authority_basis().snapshot_identity().as_str(),
-            "snapshot-b"
-        );
+        assert!(context
+            .authority_basis()
+            .snapshot_identity()
+            .relational_snapshot_parts()
+            .is_some());
         assert_eq!(
             context.authority_basis().authority_kind(),
             BridgeContinuityAuthorityKind::TruthLineageAuthority

@@ -1,5 +1,3 @@
-use forge_runtime_bridge::facade::TruthCommitIdentity;
-
 use super::super::super::super::*;
 use super::artifact_support::{
     admitted_artifact, advisory_artifacts, denied_artifact_and_missing_evidence,
@@ -9,10 +7,10 @@ use super::slot_support::artifact_with_lower_runtime_slot_evidence;
 
 #[test]
 fn causal_inspection_representative_rows_expose_digest_inventory() {
-    let changed = admitted_artifact(TruthCommitIdentity::new(
+    let changed = admitted_artifact(super::super::causal_truth_commit_identity(
         "commit-query-cert-row-digest-changed",
     ));
-    let (_, redacted) = advisory_artifacts(TruthCommitIdentity::new(
+    let (_, redacted) = advisory_artifacts(super::super::causal_truth_commit_identity(
         "commit-query-cert-row-digest-redacted",
     ));
     let (denied, _) = denied_artifact_and_missing_evidence();
@@ -25,11 +23,11 @@ fn causal_inspection_representative_rows_expose_digest_inventory() {
 
     assert_eq!(
         digest_set.artifact_digest(),
-        Some(changed.artifact_digest())
+        Some(changed.artifact_for_reporting())
     );
     assert_eq!(
         digest_set.causal_envelope_digest(),
-        changed.bridge_envelope_digest()
+        changed.bridge_envelope_for_reporting()
     );
     assert!(digest_set.inspection_digest().is_some());
     assert!(digest_set.evidence_reference_collection_digest().is_some());
@@ -46,9 +44,9 @@ fn causal_inspection_representative_rows_expose_digest_inventory() {
     assert!(digest_set.signal_forensic_availability_digest().is_none());
     assert!(digest_set.failure_digest().is_none());
 
-    let slot_artifact = artifact_with_lower_runtime_slot_evidence(TruthCommitIdentity::new(
-        "commit-query-cert-row-digest-slots",
-    ));
+    let slot_artifact = artifact_with_lower_runtime_slot_evidence(
+        super::super::causal_truth_commit_identity("commit-query-cert-row-digest-slots"),
+    );
     let slot_row = CausalInspectionRepresentativeEvidence::from_query_artifact(
         CausalInspectionRepresentativeKind::ChangedResult,
         &slot_artifact,

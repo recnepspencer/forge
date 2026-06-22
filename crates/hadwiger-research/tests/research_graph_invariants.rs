@@ -1,8 +1,12 @@
 use forge_query::facade::{
-    ForgeQueryApplicationFacade, ForgeQueryAspectMutationBuilder,
-    ForgeQueryContributionComposedOrchestrationInput, ForgeQueryMutationDelta,
-    ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQueryRuntimeWriteAuthorityAdapter,
+    ForgeQueryApplicationFacade, ForgeQueryAspectMutationBuilder, ForgeQueryCommitIdentity,
+    ForgeQueryContributionComposedOrchestrationInput, ForgeQueryEntityIdentity,
+    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
+    ForgeQueryRuntimeWriteAuthorityAdapter, ForgeQuerySnapshotIdentity,
     WriteAuthorityExecutionReceipt,
+};
+use forge_runtime_bridge::facade::{
+    RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
 };
 use hadwiger_research::facade::*;
 
@@ -10,7 +14,6 @@ use hadwiger_research::facade::*;
 mod legality;
 #[path = "research_graph_invariants/registration.rs"]
 mod registration;
-
 fn handle() -> HadwigerResearchHandle {
     admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
         .expect("Hadwiger handle should admit")
@@ -35,7 +38,6 @@ fn graph_version(graph_id: &str) -> GraphVersion {
         .finish()
         .unwrap()
 }
-
 fn rejection_explanation(
     handle: &HadwigerResearchHandle,
     version: &GraphVersion,
@@ -193,17 +195,30 @@ fn phase8_boundary_source(commit_identity: &str) -> WriteAuthorityExecutionRecei
 }
 
 fn phase8_mutation_receipt(commit_identity: &str) -> ForgeQueryMutationReceipt {
-    ForgeQueryMutationReceipt {
-        commit_identity: commit_identity.to_string(),
-        snapshot_token: format!("{commit_identity}:snapshot"),
-        deltas: vec![ForgeQueryMutationDelta {
-            collection: "hadwiger_research_graph".to_string(),
-            entity_identity: "phase8-boundary-entity".to_string(),
-            kind: ForgeQueryMutationKind::Updated,
-            aspect_paths: vec!["hadwiger.research_graph.invariant".to_string()],
-        }],
-        bridge_authority: None,
-    }
+    let commit_position = phase8_commit_position(commit_identity);
+    ForgeQueryMutationReceipt::from_authoritative_parts(
+        ForgeQueryCommitIdentity::from_relational_commit_id(commit_position),
+        ForgeQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(commit_position, commit_position),
+        ),
+        vec![ForgeQueryMutationDelta::new(
+            "hadwiger_research_graph",
+            ForgeQueryEntityIdentity::from_relational_record(
+                RelationalBridgeRecordIdentityParts::entity(8, commit_position, 0),
+            ),
+            ForgeQueryMutationKind::Updated,
+            vec!["hadwiger.research_graph.invariant".to_string()],
+        )],
+    )
+}
+
+fn phase8_commit_position(label: &str) -> u64 {
+    label
+        .bytes()
+        .fold(8_000_u64, |acc, byte| {
+            acc.wrapping_mul(131).wrapping_add(u64::from(byte))
+        })
+        .max(1)
 }
 
 #[test]
@@ -318,11 +333,17 @@ fn denial_materializes_from_query_boundary_source_and_retains_source_basis() {
     );
     assert_eq!(
         denial.lower_runtime_source_digest(),
-        source.boundary_envelope().envelope_digest()
+        source
+            .boundary_envelope()
+            .envelope_identity()
+            .terminal_projection_for_reporting()
     );
     assert_eq!(
         denial.lower_runtime_envelope_digest(),
-        source.boundary_envelope().envelope_digest()
+        source
+            .boundary_envelope()
+            .envelope_identity()
+            .terminal_projection_for_reporting()
     );
     assert!(!denial.query_denial().unwrap().denial_digest().is_empty());
     assert!(!denial.admits_theorem_authority());

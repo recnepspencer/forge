@@ -1,5 +1,11 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
+use super::super::evidence_identities::{
+    support_counters_identity, support_lookup_receipt_identity, support_report_identity,
+    typed_identity_drift,
+};
+use super::super::evidence_projection::subscription_evidence_projection;
 use super::super::family::QuerySubscriptionFamily;
 use super::matrix::QuerySubscriptionSupportMatrix;
 use super::subject::{
@@ -20,32 +26,24 @@ pub struct QuerySubscriptionSupportCounters {
 }
 
 impl QuerySubscriptionSupportCounters {
-    pub fn digest(&self) -> String {
-        hash_parts(&[
-            format!(
-                "support_report_request:{}",
-                self.support_report_request_count
-            ),
-            format!("supported_family:{}", self.supported_family_count),
-            format!("denied_family:{}", self.denied_family_count),
-            format!("deferred_family:{}", self.deferred_family_count),
-            format!(
-                "uncertified_family_denial:{}",
-                self.uncertified_family_denial_count
-            ),
-            format!(
-                "support_matrix_emission:{}",
-                self.support_matrix_emission_count
-            ),
-            format!(
-                "support_family_index_lookup:{}",
-                self.support_family_index_lookup_count
-            ),
-            format!(
-                "support_matrix_scan_debt:{}",
-                self.support_matrix_scan_debt_count
-            ),
-        ])
+    pub fn evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        support_counters_identity(
+            self.support_report_request_count,
+            self.supported_family_count,
+            self.denied_family_count,
+            self.deferred_family_count,
+            self.uncertified_family_denial_count,
+            self.support_matrix_emission_count,
+            self.support_family_index_lookup_count,
+            self.support_matrix_scan_debt_count,
+        )
+    }
+
+    pub fn counter_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        let identity = self.evidence_identity();
+        subscription_evidence_projection(&identity)
     }
 
     pub fn support_report_request_count(&self) -> u64 {
@@ -107,7 +105,7 @@ pub struct SupportLookupReceipt {
     resolution_posture: SupportResolutionPosture,
     consumed_lookup_width: usize,
     remaining_lookup_width: usize,
-    digest: String,
+    lookup_receipt_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl SupportLookupReceipt {
@@ -118,21 +116,20 @@ impl SupportLookupReceipt {
         consumed_lookup_width: usize,
         remaining_lookup_width: usize,
     ) -> Self {
-        let digest = hash_parts(&[
-            "query_subscription_support_lookup_receipt_v1".to_string(),
-            family.as_str().to_string(),
-            support_class.as_str().to_string(),
-            resolution_posture.as_str().to_string(),
-            format!("consumed_lookup_width:{consumed_lookup_width}"),
-            format!("remaining_lookup_width:{remaining_lookup_width}"),
-        ]);
+        let lookup_receipt_identity = support_lookup_receipt_identity(
+            family,
+            support_class.as_str(),
+            resolution_posture.as_str(),
+            consumed_lookup_width,
+            remaining_lookup_width,
+        );
         Self {
             family: family.clone(),
             support_class,
             resolution_posture,
             consumed_lookup_width,
             remaining_lookup_width,
-            digest,
+            lookup_receipt_identity,
         }
     }
 
@@ -156,8 +153,14 @@ impl SupportLookupReceipt {
         self.remaining_lookup_width
     }
 
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn lookup_receipt_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.lookup_receipt_identity)
+    }
+
+    pub fn lookup_receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.lookup_receipt_identity
     }
 }
 
@@ -184,7 +187,7 @@ impl QuerySubscriptionSupportReportDenialKind {
 pub struct QuerySubscriptionSupportReportError {
     denial_kind: QuerySubscriptionSupportReportDenialKind,
     message: &'static str,
-    failure_digest: String,
+    failure_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionSupportReportError {
@@ -193,16 +196,30 @@ impl QuerySubscriptionSupportReportError {
         message: &'static str,
         evidence_parts: &[String],
     ) -> Self {
-        let mut parts = vec![
-            "query_subscription_support_report_error_v1".to_string(),
-            denial_kind.as_str().to_string(),
-            message.to_string(),
-        ];
-        parts.extend(evidence_parts.iter().cloned());
+        let failure_identity = ForgeQueryEvidenceIdentity::compose(
+            crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+            "query_subscription_support_report_error_v1",
+        )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("denial_kind"),
+            denial_kind.as_str(),
+        )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("message"),
+            message,
+        )
+        .field_value_sequence(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("evidence"),
+            evidence_parts.iter().map(String::as_str),
+        )
+        .seal();
         Self {
             denial_kind,
             message,
-            failure_digest: hash_parts(&parts),
+            failure_identity,
         }
     }
 
@@ -211,11 +228,17 @@ impl QuerySubscriptionSupportReportError {
     }
 
     pub fn message(&self) -> &str {
-        self.message
+        &self.message
     }
 
-    pub fn failure_digest(&self) -> &str {
-        &self.failure_digest
+    pub fn failure_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.failure_identity)
+    }
+
+    pub fn failure_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.failure_identity
     }
 }
 
@@ -224,10 +247,10 @@ pub struct QuerySubscriptionSupportReport {
     support_subject: QuerySubscriptionSupportSubject,
     support_posture: QuerySubscriptionSupportPosture,
     support_matrix: QuerySubscriptionSupportMatrix,
-    source_digest: String,
-    counter_snapshot: String,
-    lookup_receipt_digest: String,
-    report_digest: String,
+    source_identity: ForgeQueryEvidenceIdentity,
+    counter_snapshot_identity: ForgeQueryEvidenceIdentity,
+    lookup_receipt_identity: ForgeQueryEvidenceIdentity,
+    report_identity: ForgeQueryEvidenceIdentity,
     counters: QuerySubscriptionSupportCounters,
 }
 
@@ -244,20 +267,44 @@ impl QuerySubscriptionSupportReport {
         &self.support_matrix
     }
 
-    pub fn source_digest(&self) -> &str {
-        &self.source_digest
+    pub fn source_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.source_identity)
     }
 
-    pub fn counter_snapshot(&self) -> &str {
-        &self.counter_snapshot
+    pub fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_identity
     }
 
-    pub fn lookup_receipt_digest(&self) -> &str {
-        &self.lookup_receipt_digest
+    pub fn counter_snapshot_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.counter_snapshot_identity)
     }
 
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
+    pub fn counter_snapshot_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.counter_snapshot_identity
+    }
+
+    pub fn lookup_receipt_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.lookup_receipt_identity)
+    }
+
+    pub fn lookup_receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.lookup_receipt_identity
+    }
+
+    pub fn report_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.report_identity)
+    }
+
+    pub fn report_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.report_identity
     }
 
     pub fn counters(&self) -> &QuerySubscriptionSupportCounters {
@@ -291,27 +338,24 @@ pub fn report_query_subscription_support(
         1,
         support_matrix.rows().len().saturating_sub(1),
     );
-    let counter_snapshot = counters.digest();
-    let report_digest = hash_parts(&[
-        "query_subscription_support_report_v1".to_string(),
-        format!("subject:{}", subject.digest()),
-        format!("family:{}", evidence.family().as_str()),
-        format!("posture:{}", support_row.posture().as_str()),
-        format!("source:{}", subject.source_digest()),
-        format!("support_matrix:{}", support_matrix.digest()),
-        format!("lookup_receipt:{}", lookup_receipt.digest()),
-        format!("counters:{counter_snapshot}"),
-    ]);
+    let counter_snapshot_identity = counters.evidence_identity();
+    let report_identity = support_report_identity(
+        subject.subject_identity(),
+        support_row.posture().as_str(),
+        support_matrix.matrix_identity(),
+        lookup_receipt.lookup_receipt_identity(),
+        &counter_snapshot_identity,
+    );
 
     Ok((
         QuerySubscriptionSupportReport {
             support_subject: subject.clone(),
             support_posture: *support_row.posture(),
             support_matrix,
-            source_digest: subject.source_digest().to_string(),
-            counter_snapshot,
-            lookup_receipt_digest: lookup_receipt.digest().to_string(),
-            report_digest,
+            source_identity: subject.source_identity().clone(),
+            counter_snapshot_identity,
+            lookup_receipt_identity: lookup_receipt.lookup_receipt_identity().clone(),
+            report_identity,
             counters,
         },
         lookup_receipt,
@@ -322,13 +366,22 @@ fn validate_subject_matches_evidence(
     subject: &QuerySubscriptionSupportSubject,
     evidence: &QuerySubscriptionSupportEvidence,
 ) -> Result<(), QuerySubscriptionSupportReportError> {
-    if subject.declaration_digest() != evidence.declaration_digest() {
+    if typed_identity_drift(
+        subject.declaration_identity(),
+        evidence.declaration_identity(),
+    ) {
         return Err(QuerySubscriptionSupportReportError::new(
             QuerySubscriptionSupportReportDenialKind::DeclarationSourceMismatch,
             "subscription support reporting requires a subject built from the same declaration artifact",
             &[
-                format!("subject_declaration:{}", subject.declaration_digest()),
-                format!("evidence_declaration:{}", evidence.declaration_digest()),
+                format!(
+                    "subject_declaration:{}",
+                    subject.declaration_projection().label()
+                ),
+                format!(
+                    "evidence_declaration:{}",
+                    subscription_evidence_projection(evidence.declaration_identity()).label()
+                ),
             ],
         ));
     }
@@ -344,27 +397,33 @@ fn validate_subject_matches_evidence(
         ));
     }
 
-    match (subject.admission_digest(), evidence.admission_digest()) {
-        (Some(subject_admission_digest), Some(evidence_admission_digest)) => {
-            if subject_admission_digest != evidence_admission_digest {
+    match (subject.admission_identity(), evidence.admission_identity()) {
+        (Some(subject_admission_identity), Some(evidence_admission_identity)) => {
+            if typed_identity_drift(subject_admission_identity, evidence_admission_identity) {
                 return Err(QuerySubscriptionSupportReportError::new(
                     QuerySubscriptionSupportReportDenialKind::AdmissionSourceMismatch,
                     "subscription support reporting requires a subject bound to the same admission artifact",
                     &[
-                        format!("subject_admission:{subject_admission_digest}"),
-                        format!("evidence_admission:{evidence_admission_digest}"),
+                        format!(
+                            "subject_admission:{}",
+                            subject_admission_identity.as_str()
+                        ),
+                        format!(
+                            "evidence_admission:{}",
+                            evidence_admission_identity.as_str()
+                        ),
                     ],
                 ));
             }
         }
-        (Some(subject_admission_digest), None) => {
+        (Some(subject_admission_identity), None) => {
             return Err(QuerySubscriptionSupportReportError::new(
                 QuerySubscriptionSupportReportDenialKind::AdmissionEvidenceRequired,
                 "subscription support reporting requires admission evidence for activation, lifecycle, continuation, and preview subjects",
                 &[
                     format!("subject_support_class:{}", subject.support_class().as_str()),
-                    format!("subject_admission:{subject_admission_digest}"),
-                    format!("evidence_source:{}", evidence.source_digest()),
+                    format!("subject_admission:{}", subject_admission_identity.as_str()),
+                    format!("evidence_source:{}", evidence.source_projection().label()),
                 ],
             ));
         }
@@ -374,7 +433,7 @@ fn validate_subject_matches_evidence(
                 "subscription support reporting requires admission-bound subjects for activation, lifecycle, continuation, and preview support",
                 &[
                     format!("subject_support_class:{}", subject.support_class().as_str()),
-                    format!("evidence_source:{}", evidence.source_digest()),
+                    format!("evidence_source:{}", evidence.source_projection().label()),
                 ],
             ));
         }

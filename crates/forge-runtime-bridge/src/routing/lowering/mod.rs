@@ -1,6 +1,7 @@
 mod artifacts;
 mod identities;
 mod plan;
+mod slice_support;
 mod slices;
 mod summaries;
 mod targets;

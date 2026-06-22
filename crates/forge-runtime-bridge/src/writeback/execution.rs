@@ -96,7 +96,7 @@ impl BridgeWritebackExecutionRecord {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            record_identity: BridgeWritebackExecutionRecordIdentity::new(format!(
+            record_identity: BridgeWritebackExecutionRecordIdentity::admit_bridge_owned(format!(
                 "bridge-writeback-execution-record:sha256:{digest:x}"
             )),
             contract_digest: Arc::from(contract.digest().to_owned()),
@@ -273,7 +273,7 @@ impl BridgeWritebackExecutionRecord {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            record_identity: BridgeWritebackExecutionRecordIdentity::new(format!(
+            record_identity: BridgeWritebackExecutionRecordIdentity::admit_bridge_owned(format!(
                 "bridge-writeback-execution-record:sha256:{digest:x}"
             )),
             contract_digest: Arc::clone(&self.contract_digest),

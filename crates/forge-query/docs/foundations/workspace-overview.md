@@ -28,23 +28,18 @@ Stable runtime-backed entry points:
 - `workspace.live_view(...)`
 - `workspace.computed(...)`
 - `workspace.effect(...)`
-- `workspace.preview(...)` / `workspace.branch(...)`
+- `workspace.preview(ForgeQuerySessionLabel, ...)` / `workspace.branch(ForgeQuerySessionLabel, ...)`
 - `workspace.insert(...)`
 - `workspace.update(...)`
 - `workspace.delete(...)`
-- `workspace.batch(...)`
-- `workspace.write(...)` as the lower-level mutation path
+- `workspace.submissions()?.submit(...)`
+- `workspace.submissions()?.submit_batch(...)`
+- `workspace.write_intent(...)`
+- `workspace.write_batch_intent(...)`
 - `workspace.compose_graph(...)`
 - `workspace.compose_graph_with_invariant_pack(...)`
-- `workspace.bind_existing_entity(...)`
-- `workspace.bind_existing_relation(...)`
-- `workspace.update_existing(...)`
-- `workspace.delete_existing(...)`
-- `workspace.assert_existing(...)`
-- `workspace.verify_existing(...)`
-- `workspace.update_existing_verified(...)`
-- `workspace.delete_existing_verified(...)`
-- `workspace.probe_existing(...)`
+- typed existing-truth binding artifacts consumed by graph composition
+- `workspace.probe_existing_intent(...)`
 - `workspace.compose_read(...)`
 - `workspace.read(...)`
 - `workspace.observe(...)`
@@ -66,13 +61,22 @@ Good to know:
 
 - covered intent families are real now, but they are concrete named families,
   not blanket facade-family support.
+- canonical machine identity comes from
+  `ForgeQueryEvidenceIdentity::compose(...)`, not caller-owned string hashing
+- preview and branch entry use `ForgeQuerySessionLabel` as the ordinary typed
+  identity lane; callers should not mint free-form string labels
+- `error.stop_class()` is the machine lane for runtime denials; messages are
+  presentation and may change wording without changing the contract
+- workflow capability authoring that targets preview inspection or preview
+  mutation uses `BridgePreviewSessionIdentity`; session labels name the opened
+  preview or branch context, while preview-session identities name the retained
+  preview artifact that workflow evidence binds against
 - Method presence is not a support claim. Use the support matrix and admission
   gate when you are near deferred or unsupported families.
 - Use the mutation surface report when you need explicit preferred versus
   lower-level posture for mutation surfaces.
-- `workspace.write(...)` stays available as an expert lower-level seam during
-  the lower-crate rewrite, but ordinary downstream runtime APIs should not
-  need it.
+- direct workspace write, batch, and existing-truth helper seams are sealed;
+  command-shaped work enters through explicit intent or submission lanes
 - the ordinary public bridge-backed read-runtime bootstrap now lives on the
   real runtime builder path, so hostile/runtime-backed read tests do not need a
   separate custom scaffolding story just to obtain a valid raw read lane
@@ -111,10 +115,10 @@ Think of it this way:
 - `compose_read` lets you execute one bounded graph-shaped read without
   installing a retained live view first
 - graph composition lets you execute one symbolic same-batch authoring program
-  without flattening graph lifecycle meaning into plain `batch(...)` rows
-- existing-truth surfaces let you bind, verify, update, delete, or probe
-  already authoritative targets without reconstructing target identity or
-  verification folklore in caller code
+  without flattening graph lifecycle meaning into caller-owned command batches
+- existing-truth work uses typed binding artifacts, graph-composition lanes,
+  and probe intents so target identity and verification evidence remain
+  explicit without caller-owned workspace helper seams
 - projection consumption lets you turn read results, write receipts, or
   query-context execution artifacts into typed facts when rows or payload bags
   are not a strong enough contract
@@ -142,16 +146,17 @@ The typical workspace lifecycle looks like this:
 1. Open a named workspace from a configured runtime.
 2. Declare live views, computed surfaces, and effects.
 3. Write authoritative changes through `workspace.insert(...)`,
-   `workspace.update(...)`, `workspace.delete(...)`, or `workspace.batch(...)`.
+   `workspace.update(...)`, `workspace.delete(...)`, or explicit
+   `workspace.submissions()` / write-intent lanes.
    Aspect-level reset stays on the same path through builder calls such as
    `task.clear("description.value")`.
 4. Use `workspace.compose_graph(...)` when one logical authoring step needs
    symbolic same-batch handles, graph lifecycle evidence, or invariant-pack
    denial instead of plain ordered writes.
-5. Use existing-truth surfaces such as `workspace.bind_existing_entity(...)`,
-   `workspace.verify_existing(...)`, `workspace.update_existing_verified(...)`,
-   or `workspace.probe_existing(...)` when the target is already authoritative
-   and target binding or backend verification is part of the contract.
+5. Use typed existing-truth binding artifacts inside graph composition, or
+   `workspace.probe_existing_intent(...)`, when the target is already
+   authoritative and target binding or backend verification is part of the
+   contract.
 6. Read current rows, drain patches, or materialize derived rows from retained
    handles.
 7. Use `workspace.compose_read(...)` when you need one bounded graph read with
@@ -279,8 +284,9 @@ match badge_explanation {
 What is authoritative:
 
 - `workspace.insert(...)`, `workspace.update(...)`, `workspace.delete(...)`,
-  and `workspace.batch(...)` are the preferred authoritative mutation paths
-- `workspace.write(...)` remains the lower-level expert mutation path
+  and explicit submission/intent lanes are the preferred authoritative
+  mutation paths
+- direct workspace write and batch helpers are sealed from consumers
 
 What is derived:
 

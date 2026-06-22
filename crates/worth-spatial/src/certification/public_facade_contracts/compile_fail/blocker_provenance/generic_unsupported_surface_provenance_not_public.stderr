@@ -1,0 +1,33 @@
+error[E0599]: no function or associated item named `unsupported_surface_open_topology_mismatch` found for struct `WorkloadBlockerProvenance` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/blocker_provenance/generic_unsupported_surface_provenance_not_public.rs:6:50
+  |
+6 |     let _provenance = WorkloadBlockerProvenance::unsupported_surface_open_topology_mismatch(&error);
+  |                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorkloadBlockerProvenance`
+  |
+note: if you're trying to build a new `WorkloadBlockerProvenance` consider using one of the following associated functions:
+      WorkloadBlockerProvenance::from_planar_boolean_outcome
+      WorkloadBlockerProvenance::dirty_kind_mismatch
+      WorkloadBlockerProvenance::unsupported_surface_open_topology_mismatch_with_identities
+ --> src/workload_platform/blocker_provenance/receipt.rs
+  |
+  |       pub fn from_planar_boolean_outcome(input: &PlanarBooleanBlockerProvenanceInput) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |       pub fn dirty_kind_mismatch(error: &DirtyPlanarCleanFailError) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  | /     pub fn unsupported_surface_open_topology_mismatch_with_identities(
+  | |         error: &OpenPlanarPostureError,
+  | |         open_topology_identity: impl Into<String>,
+  | |         unsupported_surface_identity: impl Into<String>,
+  | |     ) -> Self {
+  | |_____________^
+help: there is an associated function `unsupported_surface_open_topology_mismatch_with_identities` with a similar name
+ --> src/workload_platform/blocker_provenance/receipt.rs
+  |
+  | /     pub fn unsupported_surface_open_topology_mismatch_with_identities(
+  | |         error: &OpenPlanarPostureError,
+  | |         open_topology_identity: impl Into<String>,
+  | |         unsupported_surface_identity: impl Into<String>,
+  | |     ) -> Self {
+  | |_____________^

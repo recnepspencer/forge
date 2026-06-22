@@ -148,20 +148,19 @@ impl PlannedTruthViewPacket {
 #[cfg(test)]
 mod tests {
     use super::{BridgeTruthViewAuthorityBasis, PlannedTruthViewPacket};
-    use crate::input::envelope::TruthBranchIdentity;
+
     use crate::policy::BridgeDiagnosticsTier;
     use crate::snapshot::{
         BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewSelector,
         HistoricalEvaluationDeclaration, ResolvedTruthViewPolicy, SnapshotReadPacket,
-        TruthSnapshotIdentity, TruthViewReplayContinuity, TruthViewRetentionAdmission,
-        TruthViewSourceCapability,
+        TruthViewReplayContinuity, TruthViewRetentionAdmission, TruthViewSourceCapability,
     };
 
     #[test]
     fn authority_basis_is_canonical_for_same_selector() {
         let selector = BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         );
 
         let left = BridgeTruthViewAuthorityBasis::from_selector(&selector);
@@ -182,8 +181,8 @@ mod tests {
     fn planned_truth_view_packet_is_canonical_for_same_inputs() {
         let declaration = HistoricalEvaluationDeclaration::new(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeReplayMode::Enabled,
             BridgeDiagnosticsTier::Standard,

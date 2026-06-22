@@ -1,0 +1,31 @@
+error: cannot construct `ForgeQueryGraphReadResolvedOperation` with struct literal syntax due to private fields
+  --> tests/ui/graph_read_access/resolved_operation_constructor_private.rs:7:13
+   |
+ 7 |     let _ = ForgeQueryGraphReadResolvedOperation {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 8 |         family: ForgeQueryGraphReadResolvedOperationFamily::DeclaredTraversal,
+   |         --------------------------------------------------------------------- private field
+ 9 |         kind: ForgeQueryGraphReadResolvedOperationKind::DeclarationTraversal,
+   |         -------------------------------------------------------------------- private field
+   |
+   = note: ...and other private field `built_in` that was not provided
+help: you might have meant to use an associated function to build this type
+   |
+ 7 -     let _ = ForgeQueryGraphReadResolvedOperation {
+ 8 -         family: ForgeQueryGraphReadResolvedOperationFamily::DeclaredTraversal,
+ 9 -         kind: ForgeQueryGraphReadResolvedOperationKind::DeclarationTraversal,
+10 -     };
+ 7 +     let _ = ForgeQueryGraphReadResolvedOperation::built_in(_);
+   |
+ 7 -     let _ = ForgeQueryGraphReadResolvedOperation {
+ 8 -         family: ForgeQueryGraphReadResolvedOperationFamily::DeclaredTraversal,
+ 9 -         kind: ForgeQueryGraphReadResolvedOperationKind::DeclarationTraversal,
+10 -     };
+ 7 +     let _ = ForgeQueryGraphReadResolvedOperation::domain_registered(_);
+   |
+ 7 -     let _ = ForgeQueryGraphReadResolvedOperation {
+ 8 -         family: ForgeQueryGraphReadResolvedOperationFamily::DeclaredTraversal,
+ 9 -         kind: ForgeQueryGraphReadResolvedOperationKind::DeclarationTraversal,
+10 -     };
+ 7 +     let _ = ForgeQueryGraphReadResolvedOperation::declaration_traversal();
+   |

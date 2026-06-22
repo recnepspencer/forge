@@ -67,9 +67,9 @@ fn binding_layer_certification_bundle_matches_independently_derived_admitted_pro
             ),
         ),
     );
-    let bundle_handle = admitted_rebinding_handle("phase-sixteen-closeout-details");
-    let handle = admitted_rebinding_handle("phase-sixteen-closeout-details");
-    let branch_basis = scoped_branch_head_inspection_basis("branch:phase-sixteen-closeout-details");
+    let bundle_handle = admitted_rebinding_handle("binding-closeout-details");
+    let handle = admitted_rebinding_handle("binding-closeout-details");
+    let branch_basis = scoped_branch_head_inspection_basis("branch:binding-closeout-details");
     let bundle = certification_bundle_for_pair(
         bundle_handle,
         branch_basis.clone(),
@@ -192,10 +192,10 @@ fn binding_layer_certification_bundle_matches_independently_derived_denied_repla
             ),
         ),
     );
-    let bundle_handle = admitted_rebinding_handle("phase-sixteen-closeout-denied-details");
-    let handle = admitted_rebinding_handle("phase-sixteen-closeout-denied-details");
+    let bundle_handle = admitted_rebinding_handle("binding-closeout-denied-details");
+    let handle = admitted_rebinding_handle("binding-closeout-denied-details");
     let branch_basis =
-        scoped_branch_head_inspection_basis("branch:phase-sixteen-closeout-denied-details");
+        scoped_branch_head_inspection_basis("branch:binding-closeout-denied-details");
     let bundle = certification_bundle_for_pair(
         bundle_handle,
         branch_basis.clone(),

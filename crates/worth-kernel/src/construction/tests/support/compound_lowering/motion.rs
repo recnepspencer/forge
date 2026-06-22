@@ -3,6 +3,7 @@ use worth_spatial::facade::anchor_selection::{
     AuthorSpatialAnchorSelectionIntent, SpatialAnchorSelectionDeclarationEntry,
     SpatialAnchorSelectionFailureKind, SpatialAnchorSelectionStatus, SpatialMotionError,
     SpatialMoveSpec, SpatialOffsetSpec, SpatialReorientSpec, SpatialRotateSpec,
+    SpatialWitnessFailureClass,
 };
 use worth_spatial::facade::refs::{EmptySpatialWitnessCatalog, SpatialWitnessCatalog};
 use worth_spatial::facade::refs::{SpatialAnchorRef, SpatialDirectionWitnessRef};
@@ -62,7 +63,9 @@ impl<S> ConstructionMovePlan<S> {
                 Some(SpatialAnchorSelectionFailureKind::Witness(class)) => {
                     Err(SpatialMotionError::DestinationWitnessFailure(class))
                 }
-                _ => unreachable!("move declaration should reject only with witness failure"),
+                _ => Err(SpatialMotionError::DestinationWitnessFailure(
+                    SpatialWitnessFailureClass::Unsupported,
+                )),
             },
         }
     }
@@ -129,7 +132,9 @@ impl<S> ConstructionRotatePlan<S> {
                 Some(SpatialAnchorSelectionFailureKind::NonFiniteRotationAngle) => {
                     Err(SpatialMotionError::NonFiniteRotationAngle)
                 }
-                _ => unreachable!("rotate declaration should reject with known motion failure"),
+                _ => Err(SpatialMotionError::RotationWitnessFailure(
+                    SpatialWitnessFailureClass::Unsupported,
+                )),
             },
         }
     }
@@ -197,9 +202,9 @@ impl<S> ConstructionReorientPlan<S> {
                 Some(SpatialAnchorSelectionFailureKind::Witness(class)) => {
                     Err(SpatialMotionError::DirectionWitnessFailure(class))
                 }
-                _ => {
-                    unreachable!("reorient declaration should reject only with witness failure")
-                }
+                _ => Err(SpatialMotionError::DirectionWitnessFailure(
+                    SpatialWitnessFailureClass::Unsupported,
+                )),
             },
         }
     }
@@ -256,7 +261,7 @@ impl<S> ConstructionOffsetPlan<S> {
                 Some(SpatialAnchorSelectionFailureKind::NonFiniteOffset) => {
                     Err(SpatialMotionError::NonFiniteOffset)
                 }
-                _ => unreachable!("offset declaration should reject only with non-finite offset"),
+                _ => Err(SpatialMotionError::NonFiniteOffset),
             },
         }
     }

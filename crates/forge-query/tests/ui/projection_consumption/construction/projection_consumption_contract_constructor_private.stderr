@@ -27,8 +27,8 @@ error: cannot construct `forge_query::facade::MaterializedProjectionContract` wi
    |         ------------------------------------------------------- private field
 23 |         source_posture: ProjectionContractSourcePosture::QueryOwnedReceiptSource,
    |         ------------------------------------------------------------------------ private field
-24 |         source_identity: String::new(),
-   |         ------------------------------ private field
+24 |         source_identity: String::new().into(),
+   |         ------------------------------------- private field
 25 |         source_reference_identities: vec![impossible::<ProjectionSourceReferenceIdentity>()],
    |         ------------------------------------------------------------------------------------ private field
 26 |         fact_families: vec![impossible::<BoundProjectionFactFamily>()],

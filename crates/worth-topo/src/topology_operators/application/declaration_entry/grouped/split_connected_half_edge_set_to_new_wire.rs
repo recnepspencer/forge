@@ -19,18 +19,19 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let retained_handoff = orchestrate_topology_declaration_entry(
             TopologyMutationFamily::AttachShellOrWireMembership,
             declaration.clone(),
+            mode.clone(),
         )?;
 
         let sequence = declaration.clone().into_mutation_sequence();
         let program = resolve_wire_split_program(bindings, &sequence)
             .expect("canonical wire split declaration should lower to an admitted split program");
-        let receipt = self.compose_wire_split_program(program, bindings)?;
-        self.finish_composed_membership_execution(
-            mode,
+        self.compose_wire_split_program(
             retained_handoff,
+            mode,
             TopologySplitConnectedHalfEdgeSetToNewWireDeclaration::SEMANTIC_FAMILY_KEY,
+            program,
             &sequence,
-            receipt,
+            bindings,
         )
     }
 }

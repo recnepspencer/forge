@@ -33,7 +33,7 @@
 //!         .with_truth_branch_head_source(branch_heads)
 //!         .with_compute_sink(compute_sink)
 //!         .register_mapping(BridgeMappingRegistration::new(
-//!             BridgeMappingId::new("pricing:steel"),
+//!             BridgeMappingId::admit_bridge_owned("pricing:steel"),
 //!             TruthPatchScope::for_entity_field(
 //!                 MappingSelector::exact("component:steel"),
 //!                 AspectKey::new("cost").expect("valid aspect key"),
@@ -43,12 +43,12 @@
 //!                 AspectKey::new("cost").expect("valid aspect key"),
 //!                 ScalarAspectType::String,
 //!             ),
-//!             SignalInvalidationScope::new("price:bicycle"),
+//!             SignalInvalidationScope::admit_bridge_owned("price:bicycle"),
 //!             CoarseRoutingMode::Direct,
 //!         ))
 //!         .build()?;
 //!
-//!     let route = bridge.route(TruthCommitIdentity::new("commit:steel-main"))?;
+//!     let route = bridge.route(crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main"))?;
 //!     let evaluation = bridge.evaluate_current(route.target())?;
 //!     let diagnostics = bridge.diagnostics().explain_last();
 //!
@@ -70,6 +70,7 @@ mod request;
 mod runtime;
 mod standard_path;
 
+pub use crate::identity_authority::*;
 pub use exports_core::*;
 pub use exports_subscription::*;
 pub use request::BridgeRouteRequest;

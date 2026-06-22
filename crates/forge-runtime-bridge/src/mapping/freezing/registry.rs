@@ -50,7 +50,7 @@ impl FrozenBridgeMappingRegistration {
 fn frozen_registration_identity(
     registration: &BridgeMappingRegistration,
 ) -> BridgeFrozenMappingRegistrationIdentity {
-    BridgeFrozenMappingRegistrationIdentity::new(digest_string(
+    BridgeFrozenMappingRegistrationIdentity::admit_bridge_owned(digest_string(
         "frozen-mapping-registration",
         &frozen_registration_identity_basis(registration),
     ))

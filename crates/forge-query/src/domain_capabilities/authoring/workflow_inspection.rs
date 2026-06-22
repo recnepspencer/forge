@@ -27,7 +27,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
             .expect(
                 "promotion-eligible merge conflict inspection requires preview foundation binding",
             )
-            .to_string();
+            .clone();
         Self::with_runtime_and_inspection_semantics(
             ForgeQueryWorkflowContributionPosture::PromotionEligible,
             semantic_code,
@@ -56,21 +56,21 @@ impl ForgeQueryWorkflowContributionAuthoring {
         lowered_merge: LoweredMergeWorkflowDeclaration,
         relational_inspection: RelationalMergeInspectionArtifact,
     ) -> Self {
-        let runtime_snapshot_token = lowered_merge
+        let runtime_snapshot_identity = lowered_merge
             .declaration()
             .binding()
-            .runtime_snapshot_token()
+            .runtime_snapshot_identity()
             .expect(
                 "confirmation-required merge conflict inspection requires runtime basis binding",
             )
-            .to_string();
+            .clone();
         Self::with_runtime_and_inspection_semantics(
             ForgeQueryWorkflowContributionPosture::ConfirmationRequired,
             semantic_code,
             detail,
             ForgeQueryWorkflowRuntimeSemantics::new(
-                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight(
-                    runtime_snapshot_token,
+                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight_snapshot_identity(
+                    runtime_snapshot_identity,
                 ),
                 WorkflowDeclarationFamily::ConflictInspectionNarrow,
                 WorkflowAuthorityTargetFamily::QueryInspection,
@@ -90,19 +90,19 @@ impl ForgeQueryWorkflowContributionAuthoring {
         detail: impl Into<String>,
         lowered_merge: LoweredMergeWorkflowDeclaration,
     ) -> Self {
-        let runtime_snapshot_token = lowered_merge
+        let runtime_snapshot_identity = lowered_merge
             .declaration()
             .binding()
-            .runtime_snapshot_token()
+            .runtime_snapshot_identity()
             .expect("post-merge merge outcome inspection requires runtime basis binding")
-            .to_string();
+            .clone();
         Self::with_runtime_and_inspection_semantics(
             ForgeQueryWorkflowContributionPosture::ConfirmationRequired,
             semantic_code,
             detail,
             ForgeQueryWorkflowRuntimeSemantics::new(
-                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight(
-                    runtime_snapshot_token,
+                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight_snapshot_identity(
+                    runtime_snapshot_identity,
                 ),
                 WorkflowDeclarationFamily::PostMergeInspectionNarrow,
                 WorkflowAuthorityTargetFamily::QueryInspection,
@@ -119,19 +119,19 @@ impl ForgeQueryWorkflowContributionAuthoring {
         detail: impl Into<String>,
         lowered_writeback: QueryWritebackDeclaration,
     ) -> Self {
-        let runtime_snapshot_token = lowered_writeback
+        let runtime_snapshot_identity = lowered_writeback
             .declaration()
             .binding()
-            .runtime_snapshot_token()
+            .runtime_snapshot_identity()
             .expect("post-merge writeback inspection requires runtime basis binding")
-            .to_string();
+            .clone();
         Self::with_runtime_and_inspection_semantics(
             ForgeQueryWorkflowContributionPosture::ConfirmationRequired,
             semantic_code,
             detail,
             ForgeQueryWorkflowRuntimeSemantics::new(
-                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight(
-                    runtime_snapshot_token,
+                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight_snapshot_identity(
+                    runtime_snapshot_identity,
                 ),
                 WorkflowDeclarationFamily::PostMergeInspectionNarrow,
                 WorkflowAuthorityTargetFamily::QueryInspection,

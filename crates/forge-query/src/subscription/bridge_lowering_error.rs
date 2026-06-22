@@ -1,3 +1,5 @@
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+
 use super::counters::QuerySubscriptionDeclarationCounters;
 use super::diagnostic::{QuerySubscriptionDiagnosticEvidence, QuerySubscriptionDiagnosticStage};
 
@@ -35,15 +37,15 @@ impl QuerySubscriptionBridgeLoweringError {
         denial_kind: QuerySubscriptionBridgeLoweringDenialKind,
         message: impl Into<String>,
         diagnostic_stage: QuerySubscriptionDiagnosticStage,
-        source_digest: impl Into<String>,
+        source_identity: &ForgeQueryEvidenceIdentity,
         counters: QuerySubscriptionDeclarationCounters,
     ) -> Self {
         let message = message.into();
         let diagnostic = QuerySubscriptionDiagnosticEvidence::denied(
             diagnostic_stage,
             message.clone(),
-            source_digest,
-            counters.digest(),
+            &source_identity,
+            &counters.evidence_identity(),
         );
         Self {
             denial_kind,

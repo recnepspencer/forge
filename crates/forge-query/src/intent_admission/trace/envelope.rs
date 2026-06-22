@@ -55,6 +55,37 @@ impl ForgeQueryIntentDecisionTraceEnvelope {
         outcome_digest: &str,
         execution_kind: &str,
     ) -> Self {
+        Self::for_admitted_execution_parts_with_obligation_dispatch(
+            family,
+            entrypoint,
+            request_detail,
+            request_digest,
+            eligibility_trace,
+            decision_digest,
+            handoff_digest,
+            execution_seam,
+            None,
+            execution_detail,
+            outcome_digest,
+            execution_kind,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn for_admitted_execution_parts_with_obligation_dispatch(
+        family: ForgeQueryIntentAdmissionFamily,
+        entrypoint: ForgeQueryIntentAdmissionCoveredEntrypoint,
+        request_detail: &str,
+        request_digest: &str,
+        eligibility_trace: ForgeQueryIntentEligibilityTraceEvidence,
+        decision_digest: &str,
+        handoff_digest: &str,
+        execution_seam: super::super::ForgeQueryIntentAdmissionExecutionSeam,
+        obligation_dispatch_envelope_digest: Option<&str>,
+        execution_detail: &str,
+        outcome_digest: &str,
+        execution_kind: &str,
+    ) -> Self {
         let rows = vec![
             request_row(request_detail, request_digest.to_string()),
             eligibility_row(entrypoint.as_str(), eligibility_trace),
@@ -68,12 +99,16 @@ impl ForgeQueryIntentDecisionTraceEnvelope {
                 handoff_digest.to_string(),
                 execution_seam,
             ),
-            execution_outcome_row(
+        ];
+        let rows = rows
+            .into_iter()
+            .chain(obligation_dispatch_envelope_digest.map(obligation_dispatch_row))
+            .chain(std::iter::once(execution_outcome_row(
                 execution_detail,
                 outcome_digest.to_string(),
                 execution_kind.to_string(),
-            ),
-        ];
+            )))
+            .collect::<Vec<_>>();
         Self::new(
             ForgeQueryIntentDecisionTraceEnvelopeKind::AdmittedExecution,
             family,
@@ -257,6 +292,15 @@ impl ForgeQueryIntentDecisionTraceEnvelope {
     pub fn trace_digest(&self) -> &str {
         &self.trace_digest
     }
+
+    pub fn graph_obligation_envelope_digest(&self) -> Option<&str> {
+        self.rows.iter().find_map(|row| match row.evidence() {
+            ForgeQueryIntentDecisionTraceEvidence::ObligationDispatch { envelope_digest } => {
+                Some(envelope_digest.as_str())
+            }
+            _ => None,
+        })
+    }
 }
 
 fn request_row(
@@ -311,6 +355,17 @@ fn execution_handoff_row(
         ForgeQueryIntentDecisionTraceEvidence::ExecutionHandoff {
             handoff_digest,
             execution_seam,
+        },
+    )
+}
+
+fn obligation_dispatch_row(envelope_digest: &str) -> ForgeQueryIntentDecisionTraceRow {
+    ForgeQueryIntentDecisionTraceRow::new(
+        ForgeQueryIntentDecisionTraceStage::AdmittedDecision,
+        "obligation_dispatch_materialized",
+        "graph-obligation-dispatch",
+        ForgeQueryIntentDecisionTraceEvidence::ObligationDispatch {
+            envelope_digest: envelope_digest.to_string(),
         },
     )
 }

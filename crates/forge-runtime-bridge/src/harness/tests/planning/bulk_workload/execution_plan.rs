@@ -1,23 +1,28 @@
-use crate::facade::TruthSnapshotIdentity;
 #[test]
 fn bridge_bulk_execution_plan_carries_canonical_legality_proof() {
     let left_source = InMemoryRelationalBridgeSource::default();
     left_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     left_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
-    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
+    left_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
+    left_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
+        "bob",
+    ));
     let left_runtime = build_runtime(
         left_source,
         RecordingSignalBridgeSink::default(),
@@ -26,21 +31,27 @@ fn bridge_bulk_execution_plan_carries_canonical_legality_proof() {
 
     let right_source = InMemoryRelationalBridgeSource::default();
     right_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     right_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
-    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
+    right_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
+    right_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
+        "bob",
+    ));
     let right_runtime = build_runtime(
         right_source,
         RecordingSignalBridgeSink::default(),
@@ -50,20 +61,20 @@ fn bridge_bulk_execution_plan_carries_canonical_legality_proof() {
     let left = left_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             )),
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
             )),
         ]))
         .expect("left bulk workload should plan");
     let right = right_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
             )),
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             )),
         ]))
         .expect("right bulk workload should plan");

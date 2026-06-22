@@ -79,14 +79,24 @@ fn public_common_and_checked_lanes_converge_for_named_categories() {
 
     let workflow_common = forge_query_domain("worth.spatial")
         .for_intent(&declaration)
-        .plans_preview_mutation("workflow.preview_mutation", "preview-session:public-lane")
+        .plans_preview_mutation(
+            "workflow.preview_mutation",
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                "preview-session:public-lane",
+            ),
+        )
         .because("public common and checked workflow lanes must agree")
         .materialize()
         .expect("common workflow lane should materialize");
     let workflow_checked = success(
         forge_query_domain("worth.spatial")
             .for_intent(&declaration)
-            .plans_preview_mutation("workflow.preview_mutation", "preview-session:public-lane")
+            .plans_preview_mutation(
+                "workflow.preview_mutation",
+                crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                    "preview-session:public-lane",
+                ),
+            )
             .because("public common and checked workflow lanes must agree")
             .try_materialize()
             .into_transition_outcome(),

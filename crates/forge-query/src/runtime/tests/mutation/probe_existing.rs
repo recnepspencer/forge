@@ -22,7 +22,7 @@ fn probe_existing_returns_backend_verified_values_for_entity_targets() {
     let binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -81,7 +81,7 @@ fn probe_existing_returns_backend_verified_values_for_relation_targets() {
     let binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing relation target should build")
@@ -129,7 +129,7 @@ fn probe_existing_denies_missing_aspect_typed_and_early() {
     let binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -176,7 +176,7 @@ fn probe_existing_reports_the_actual_missing_aspect_in_multi_aspect_requests() {
     let binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -213,7 +213,7 @@ fn probe_existing_denies_unsupported_backend_typed_and_early() {
         .expect("workspace should open");
     let binding = workspace
         .bind_existing_entity(
-            ForgeQueryExistingEntityTarget::new("authority:task-1", "Task:1")
+            ForgeQueryExistingEntityTarget::new(crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"), test_entity_identity("Task:1"))
                 .expect("existing entity target should build")
                 .in_target_collection("Task")
                 .expect("existing entity target collection should build"),

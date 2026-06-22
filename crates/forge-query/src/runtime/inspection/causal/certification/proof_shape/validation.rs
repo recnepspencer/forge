@@ -18,7 +18,7 @@ pub(in crate::runtime::inspection::causal::certification) fn validate_proof_shap
         && proof_shape.stale_proof_reuse_rejected()
         && proof_shape.forged_authority_witness_rejected();
     let binds_artifact =
-        proof_shape.inspected_artifact_digest() == changed_artifact.artifact_digest();
+        proof_shape.inspected_artifact_digest() == changed_artifact.artifact_identity().as_str();
     let binds_matrix =
         proof_shape.representative_matrix_digest() == representative_matrix.matrix_digest();
     let binds_boundary = proof_shape.boundary_audit_digest() == boundary_audit.audit_digest();

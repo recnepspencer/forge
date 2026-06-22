@@ -1,0 +1,21 @@
+error[E0451]: fields `stage_receipt`, `transformed_workload_identity`, `retained_artifact_identity`, `retained_artifact_capture_identity`, `retained_basis_identity`, `replay_checkpoint_identity`, `replay_evidence_identity` and `counters` of struct `ReplayReceiptSet` are private
+  --> src/certification/public_facade_contracts/compile_fail/retained_replay_workload/replay_receipt_not_forgeable.rs:5:9
+   |
+ 4 |     let _ = ReplayReceiptSet {
+   |             ---------------- in this type
+ 5 |         stage_receipt: unconstructible(),
+   |         ^^^^^^^^^^^^^ private field
+ 6 |         transformed_workload_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         retained_artifact_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         retained_artifact_capture_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         retained_basis_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         replay_checkpoint_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         replay_evidence_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         counters: unconstructible(),
+   |         ^^^^^^^^ private field

@@ -1,0 +1,16 @@
+error[E0599]: no function or associated item named `from_product_identities` found for struct `PlanarBooleanSplitEdgeChainLedgerDeclaration` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_edge_chain_ledger_query_declaration_not_from_raw_strings.rs:4:70
+  |
+4 |     let _declaration = PlanarBooleanSplitEdgeChainLedgerDeclaration::from_product_identities(
+  |                                                                      ^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `PlanarBooleanSplitEdgeChainLedgerDeclaration`
+  |
+note: if you're trying to build a new `PlanarBooleanSplitEdgeChainLedgerDeclaration`, consider using `PlanarBooleanSplitEdgeChainLedgerDeclaration::from_query_products` which returns `Result<PlanarBooleanSplitEdgeChainLedgerDeclaration, PlanarBooleanSplitEdgeChainLedgerDenial>`
+ --> src/workload_platform/planar_boolean_edge_splitting/split_edge_chain_ledger/declaration.rs
+  |
+  | /     pub fn from_query_products(
+  | |         split_request: &PlanarBooleanEdgeSplitRequest,
+  | |         split_chain_validation: &PlanarBooleanSplitChainValidationReceipt,
+  | |         split_persistent_naming: &PlanarBooleanSplitPersistentNamingReceipt,
+  | |         split_decision_log: &PlanarBooleanSplitDecisionLogQueryResult,
+  | |     ) -> Result<Self, PlanarBooleanSplitEdgeChainLedgerDenial> {
+  | |______________________________________________________________^

@@ -7,10 +7,24 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 
 mod external_projection;
+mod identities;
 mod runtime_identity;
 #[cfg(test)]
 mod tests;
+mod truth_identity_admission;
 mod workspace;
+
+pub use identities::{
+    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
+};
+#[cfg(test)]
+pub(crate) use truth_identity_admission::admit_external_commit_label;
+pub(crate) use truth_identity_admission::{
+    admit_authored_entity_label, admit_external_snapshot_label,
+};
+pub use truth_identity_admission::{
+    admit_authored_entity_token, admit_external_commit_token, admit_external_snapshot_token,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForgeQueryAspect {
@@ -37,7 +51,7 @@ impl ForgeQueryAspect {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ForgeQueryEntity {
-    identity: String,
+    identity: ForgeQueryEntityIdentity,
     row: ForgeQueryEntityRow,
 }
 
@@ -52,12 +66,12 @@ enum ForgeQueryEntityRow {
 
 impl ForgeQueryEntity {
     pub fn from_aspect_projection(
-        identity: impl Into<String>,
+        identity: ForgeQueryEntityIdentity,
         aspect_values: BTreeMap<String, AspectValue>,
         external_projection: Value,
     ) -> Self {
         Self {
-            identity: identity.into(),
+            identity,
             row: ForgeQueryEntityRow::AspectProjection {
                 aspect_values,
                 external_projection,
@@ -66,16 +80,16 @@ impl ForgeQueryEntity {
     }
 
     pub fn from_external_projection(
-        identity: impl Into<String>,
+        identity: ForgeQueryEntityIdentity,
         external_projection: Value,
     ) -> Self {
         Self {
-            identity: identity.into(),
+            identity,
             row: ForgeQueryEntityRow::ExternalProjection(external_projection),
         }
     }
 
-    pub fn identity(&self) -> &str {
+    pub fn identity(&self) -> &ForgeQueryEntityIdentity {
         &self.identity
     }
 
@@ -137,18 +151,91 @@ pub enum ForgeQueryMutationKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForgeQueryMutationDelta {
-    pub collection: String,
-    pub entity_identity: String,
-    pub kind: ForgeQueryMutationKind,
-    pub aspect_paths: Vec<String>,
+    pub(crate) collection: String,
+    pub(crate) entity_identity: ForgeQueryEntityIdentity,
+    pub(crate) kind: ForgeQueryMutationKind,
+    pub(crate) aspect_paths: Vec<String>,
+}
+
+impl ForgeQueryMutationDelta {
+    pub fn new(
+        collection: impl Into<String>,
+        entity_identity: ForgeQueryEntityIdentity,
+        kind: ForgeQueryMutationKind,
+        aspect_paths: Vec<String>,
+    ) -> Self {
+        Self {
+            collection: collection.into(),
+            entity_identity,
+            kind,
+            aspect_paths,
+        }
+    }
+
+    pub fn collection(&self) -> &str {
+        &self.collection
+    }
+
+    pub fn entity_identity(&self) -> &ForgeQueryEntityIdentity {
+        &self.entity_identity
+    }
+
+    pub fn kind(&self) -> &ForgeQueryMutationKind {
+        &self.kind
+    }
+
+    pub fn aspect_paths(&self) -> &[String] {
+        &self.aspect_paths
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForgeQueryMutationReceipt {
-    pub commit_identity: String,
-    pub snapshot_token: String,
-    pub deltas: Vec<ForgeQueryMutationDelta>,
-    pub bridge_authority: Option<BridgeMutationAuthorityBundle>,
+    pub(crate) commit_identity: ForgeQueryCommitIdentity,
+    pub(crate) snapshot_identity: ForgeQuerySnapshotIdentity,
+    pub(crate) deltas: Vec<ForgeQueryMutationDelta>,
+    pub(crate) bridge_authority: Option<BridgeMutationAuthorityBundle>,
+}
+
+impl ForgeQueryMutationReceipt {
+    pub fn from_authoritative_parts(
+        commit_identity: ForgeQueryCommitIdentity,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
+        deltas: Vec<ForgeQueryMutationDelta>,
+    ) -> Self {
+        Self {
+            commit_identity,
+            snapshot_identity,
+            deltas,
+            bridge_authority: None,
+        }
+    }
+
+    pub fn from_bridge_authoritative_parts(
+        commit_identity: ForgeQueryCommitIdentity,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
+        deltas: Vec<ForgeQueryMutationDelta>,
+        bridge_authority: BridgeMutationAuthorityBundle,
+    ) -> Self {
+        Self {
+            commit_identity,
+            snapshot_identity,
+            deltas,
+            bridge_authority: Some(bridge_authority),
+        }
+    }
+
+    pub fn commit_identity(&self) -> &ForgeQueryCommitIdentity {
+        &self.commit_identity
+    }
+
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.snapshot_identity
+    }
+
+    pub fn deltas(&self) -> &[ForgeQueryMutationDelta] {
+        &self.deltas
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -168,24 +255,41 @@ impl ForgeQueryLiveViewHandle {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForgeQueryLivePatch {
-    pub view_name: String,
-    pub commit_identity: String,
-    pub entity_identity: String,
-    pub mutation_kind: ForgeQueryMutationKind,
-    pub aspect_paths: Vec<String>,
-    pub envelope: ViewShapePatchEnvelope,
+    pub(crate) view_name: String,
+    pub(crate) commit_identity: ForgeQueryCommitIdentity,
+    pub(crate) entity_identity: ForgeQueryEntityIdentity,
+    pub(crate) mutation_kind: ForgeQueryMutationKind,
+    pub(crate) aspect_paths: Vec<String>,
+    pub(crate) envelope: ViewShapePatchEnvelope,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForgeQueryWorkspaceError {
+    kind: ForgeQueryWorkspaceErrorKind,
     message: String,
 }
 
 impl ForgeQueryWorkspaceError {
     pub fn new(message: impl Into<String>) -> Self {
         Self {
+            kind: ForgeQueryWorkspaceErrorKind::Unclassified,
             message: message.into(),
         }
+    }
+
+    pub fn with_kind(kind: ForgeQueryWorkspaceErrorKind, message: impl Into<String>) -> Self {
+        Self {
+            kind,
+            message: message.into(),
+        }
+    }
+
+    pub fn kind(&self) -> ForgeQueryWorkspaceErrorKind {
+        self.kind
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
     }
 }
 
@@ -196,6 +300,15 @@ impl std::fmt::Display for ForgeQueryWorkspaceError {
 }
 
 impl std::error::Error for ForgeQueryWorkspaceError {}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ForgeQueryWorkspaceErrorKind {
+    Unclassified,
+    UnsupportedCollection,
+    UnsupportedWriteFamily,
+    EmptySchema,
+    BatchAtomicityUnsupported,
+}
 
 pub struct ForgeQueryMemoryWorkspace {
     runtime: RelationalRuntime,

@@ -1,8 +1,11 @@
-use crate::identity::hash_parts;
-
 use super::fixtures::{
     control_row_set_lifecycle, denied_masked_field_failure_digest, grouped_worth_lifecycle,
     source_mismatch_failure_digest,
+};
+use crate::projection_consumption::identity::{
+    compose_digest_sequence, compose_executed_lifecycle_artifact_digest,
+    compose_seeded_replay_digest, compose_seeded_row_digest,
+    compose_seeded_sequence_replay_check_digest,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -104,29 +107,25 @@ pub fn projection_consumption_seeded_certification_report(
         .into_iter()
         .map(seed_row)
         .collect::<Vec<_>>();
-    let seeded_sequence_digest = hash_parts(
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>(),
+    let seeded_sequence_digest = compose_digest_sequence(
+        "projection_consumption_seeded_sequence_v1",
+        "row",
+        rows.iter().map(|row| row.row_digest().to_string()),
     );
     let stable_replay = seed_row(17);
     let changed_seed = seed_row(20);
-    let seed_replay_digest = hash_parts(&[
-        "projection_consumption_seed_replay_v2".to_string(),
-        rows[0].replay_digest.clone(),
-        stable_replay.replay_digest.clone(),
-        format!("stable:{}", rows[0] == stable_replay),
-        format!(
-            "changed:{}",
-            rows[0].row_digest() != changed_seed.row_digest()
-        ),
-    ]);
-    let seed_generator_class_digest = hash_parts(
-        &ProjectionConsumptionSeedGeneratorClass::all()
+    let seed_replay_digest = compose_seeded_sequence_replay_check_digest(
+        &rows[0].replay_digest,
+        &stable_replay.replay_digest,
+        rows[0] == stable_replay,
+        rows[0].row_digest() != changed_seed.row_digest(),
+    );
+    let seed_generator_class_digest = compose_digest_sequence(
+        "projection_consumption_seed_generator_class_v1",
+        "class",
+        ProjectionConsumptionSeedGeneratorClass::all()
             .iter()
-            .map(|class| class.as_str().to_string())
-            .collect::<Vec<_>>(),
+            .map(|class| class.as_str()),
     );
     ProjectionConsumptionSeededCertificationReport {
         rows,
@@ -140,22 +139,13 @@ fn seed_row(seed: u64) -> ProjectionConsumptionSeedReplayRow {
     let scenario = scenario_for(seed);
     let generator_choices = generator_choices_for(seed, scenario);
     let executed_artifact_digest = executed_artifact_digest(seed, scenario);
-    let replay_digest = hash_parts(&[
-        format!("seed:{seed}"),
-        format!("scenario:{}", scenario.as_str()),
-        format!("artifact:{executed_artifact_digest}"),
-    ]);
-    let row_digest = hash_parts(
-        &std::iter::once("projection_consumption_seeded_row_v2".to_string())
-            .chain(std::iter::once(format!("seed:{seed}")))
-            .chain(std::iter::once(format!("replay:{replay_digest}")))
-            .chain(
-                generator_choices
-                    .iter()
-                    .map(|(class, choice)| format!("{}:{choice}", class.as_str())),
-            )
-            .collect::<Vec<_>>(),
-    );
+    let replay_digest =
+        compose_seeded_replay_digest(seed, scenario.as_str(), &executed_artifact_digest);
+    let generator_choice_refs = generator_choices
+        .iter()
+        .map(|(class, choice)| (class.as_str(), *choice))
+        .collect::<Vec<_>>();
+    let row_digest = compose_seeded_row_digest(seed, &replay_digest, &generator_choice_refs);
     ProjectionConsumptionSeedReplayRow {
         seed,
         generator_choices,
@@ -238,23 +228,23 @@ fn executed_artifact_digest(seed: u64, scenario: ExecutedSeedScenario) -> String
     match scenario {
         ExecutedSeedScenario::ControlRowSet => {
             let lifecycle = control_row_set_lifecycle(row_count(seed));
-            hash_parts(&[
-                lifecycle.declaration().declaration_digest().to_string(),
-                lifecycle.contract().contract_digest().to_string(),
-                lifecycle.facts().fact_set_digest().to_string(),
-                lifecycle.receipt().receipt_digest().to_string(),
-                lifecycle.envelope().envelope_digest().to_string(),
-            ])
+            compose_executed_lifecycle_artifact_digest(
+                lifecycle.declaration().declaration_digest(),
+                lifecycle.contract().contract_digest(),
+                lifecycle.facts().fact_set_digest(),
+                lifecycle.receipt().receipt_digest(),
+                lifecycle.envelope().envelope_digest(),
+            )
         }
         ExecutedSeedScenario::GroupedWorth => {
             let lifecycle = grouped_worth_lifecycle(row_count(seed));
-            hash_parts(&[
-                lifecycle.declaration().declaration_digest().to_string(),
-                lifecycle.contract().contract_digest().to_string(),
-                lifecycle.facts().fact_set_digest().to_string(),
-                lifecycle.receipt().receipt_digest().to_string(),
-                lifecycle.envelope().envelope_digest().to_string(),
-            ])
+            compose_executed_lifecycle_artifact_digest(
+                lifecycle.declaration().declaration_digest(),
+                lifecycle.contract().contract_digest(),
+                lifecycle.facts().fact_set_digest(),
+                lifecycle.receipt().receipt_digest(),
+                lifecycle.envelope().envelope_digest(),
+            )
         }
         ExecutedSeedScenario::MaskedFieldDenial => denied_masked_field_failure_digest(),
         ExecutedSeedScenario::SourceReferenceMismatch => source_mismatch_failure_digest(),

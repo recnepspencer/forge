@@ -2,7 +2,8 @@ use forge_proof::TransitionOutcome;
 
 use crate::{
     ForgeServerCompatibilityExecutionInput, ForgeServerCompatibilityExecutionOutcome,
-    ForgeServerCompatibilityFacade, ForgeServerCompatibilityRead, ForgeServerQueryHandoffDenial,
+    ForgeServerCompatibilityFacade, ForgeServerCompatibilityRead,
+    ForgeServerOperatorEvidenceFacade, ForgeServerQueryHandoffDenial,
     ForgeServerQueryHandoffDenialCode,
 };
 
@@ -25,6 +26,7 @@ pub enum ForgeServerStreamingResponse {
 #[derive(Debug)]
 pub struct ForgeServerCompatibilityStream {
     read: ForgeServerCompatibilityRead,
+    operator_evidence: ForgeServerOperatorEvidenceFacade,
     selection: ForgeServerStreamSelection,
     estimated_payload_bytes: Option<usize>,
     cursor: ForgeServerStreamCursor,
@@ -50,7 +52,12 @@ impl ForgeServerCompatibilityFacade {
         let head_only = input.prepared_request().request_contract().method() == "HEAD";
         match self.read(input) {
             TransitionOutcome::Success(read) => {
-                TransitionOutcome::Success(lower_streaming_response(read, selection, head_only))
+                TransitionOutcome::Success(lower_streaming_response(
+                    read,
+                    self.operator_evidence.clone(),
+                    selection,
+                    head_only,
+                ))
             }
             TransitionOutcome::Denied(denial) => TransitionOutcome::Denied(denial),
             TransitionOutcome::Deferred(value) => TransitionOutcome::Deferred(value),
@@ -139,12 +146,28 @@ impl ForgeServerCompatibilityStream {
                 background_export_fallbacks: 0,
             })
             .expect("stream completion counters should materialize");
+        let file_envelope = crate::surfaces::compat_http::project_binary_egress_envelope(
+            &self.read,
+            Some("application/json".to_string()),
+            payload_len as u64,
+            false,
+            crate::ForgeServerFileTransferDisposition::SelectedEgress,
+        );
+        let certification_bundle =
+            crate::surfaces::compat_http::build_streaming_export_certification_bundle(
+                &self.operator_evidence,
+                self.read.support_posture(),
+                &file_envelope,
+                self.read.response_envelope(),
+                &performance_receipt,
+            );
         Ok(ForgeServerCompatibilityExport::new(
             self.read,
             payload_bytes,
             self.estimated_payload_bytes.unwrap_or(payload_len),
             self.selection,
             performance_receipt,
+            certification_bundle,
         ))
     }
 
@@ -180,6 +203,10 @@ impl ForgeServerCompatibilityStream {
             self.emitted_bytes,
             true,
             detail,
+            self.read.direct_context().workspace_target().tenant_id(),
+            self.read.direct_context().workspace_digest(),
+            self.read.direct_context().branch_digest(),
+            self.read.file_envelope().transfer_provenance().clone(),
             performance_receipt,
         )
     }
@@ -205,6 +232,7 @@ fn validate_streaming_request(
 
 fn lower_streaming_response(
     read: ForgeServerCompatibilityRead,
+    operator_evidence: ForgeServerOperatorEvidenceFacade,
     selection: ForgeServerStreamSelection,
     head_only: bool,
 ) -> ForgeServerStreamingResponse {
@@ -218,6 +246,21 @@ fn lower_streaming_response(
                     ..ForgeServerStreamingMetricSnapshot::default()
                 })
                 .expect("background export counters should materialize");
+            let file_envelope = crate::surfaces::compat_http::project_binary_egress_envelope(
+                &read,
+                Some("application/json".to_string()),
+                0,
+                false,
+                crate::ForgeServerFileTransferDisposition::MetadataOnlyObservation,
+            );
+            let certification_bundle =
+                crate::surfaces::compat_http::build_background_export_certification_bundle(
+                    &operator_evidence,
+                    read.support_posture(),
+                    &file_envelope,
+                    read.response_envelope(),
+                    &performance_receipt,
+                );
             return ForgeServerStreamingResponse::BackgroundExport(
                 ForgeServerBackgroundExportRequest::new(
                     read,
@@ -227,6 +270,7 @@ fn lower_streaming_response(
                         "estimated payload `{estimated_payload_bytes}` exceeded synchronous threshold `{threshold}`"
                     ),
                     performance_receipt,
+                    certification_bundle,
                 ),
             );
         }
@@ -248,17 +292,34 @@ fn lower_streaming_response(
                 ..ForgeServerStreamingMetricSnapshot::default()
             })
             .expect("buffered export counters should materialize");
+        let file_envelope = crate::surfaces::compat_http::project_binary_egress_envelope(
+            &read,
+            Some("application/json".to_string()),
+            payload_bytes.len() as u64,
+            false,
+            crate::ForgeServerFileTransferDisposition::SelectedEgress,
+        );
+        let certification_bundle =
+            crate::surfaces::compat_http::build_buffered_export_certification_bundle(
+                &operator_evidence,
+                read.support_posture(),
+                &file_envelope,
+                read.response_envelope(),
+                &performance_receipt,
+            );
         return ForgeServerStreamingResponse::Buffered(ForgeServerCompatibilityExport::new(
             read,
             payload_bytes,
             estimated_payload_bytes,
             selection,
             performance_receipt,
+            certification_bundle,
         ));
     }
     let cursor = ForgeServerStreamCursor::from_read(&read);
     ForgeServerStreamingResponse::Stream(ForgeServerCompatibilityStream {
         read,
+        operator_evidence,
         selection,
         estimated_payload_bytes: None,
         cursor,

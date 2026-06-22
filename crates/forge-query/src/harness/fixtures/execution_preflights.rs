@@ -3,6 +3,7 @@ use crate::facade::{
     planning_request_context_for_direct, preflight_execution_basis, seed_execution_plan,
     CollectionResultFamily, ExecutionPreflightBundle, FallbackDisposition, PlannedExecutionRoute,
 };
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::planning::{
     plan_validated_bundle_for_requested_aggregate_family,
     plan_validated_bundle_for_requested_derived_field_family, RequestedAggregateFamily,
@@ -10,10 +11,12 @@ use crate::planning::{
 };
 
 pub fn direct_runtime_preflight() -> ExecutionPreflightBundle {
-    runtime_preflight_with_snapshot_token("snapshot-1")
+    runtime_preflight_with_snapshot_identity(super::resolved_bases::primary_snapshot_identity())
 }
 
-pub fn runtime_preflight_with_snapshot_token(snapshot_token: &str) -> ExecutionPreflightBundle {
+pub fn runtime_preflight_with_snapshot_identity(
+    snapshot_identity: ForgeQuerySnapshotIdentity,
+) -> ExecutionPreflightBundle {
     let bundle = super::validated_bundles::runtime_detail_bundle();
     let plan = plan_validated_bundle(
         &bundle,
@@ -22,7 +25,7 @@ pub fn runtime_preflight_with_snapshot_token(snapshot_token: &str) -> ExecutionP
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, snapshot_token),
+        super::resolved_bases::runtime_basis(&bundle, &snapshot_identity),
     )
     .unwrap()
 }
@@ -41,7 +44,10 @@ pub fn store_detail_preflight() -> ExecutionPreflightBundle {
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::store_basis(&bundle, "snapshot-1"),
+        super::resolved_bases::store_basis(
+            &bundle,
+            &super::resolved_bases::primary_snapshot_identity(),
+        ),
     )
     .unwrap()
 }
@@ -59,7 +65,10 @@ pub fn alternate_basis_runtime_preflight() -> ExecutionPreflightBundle {
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, "snapshot-2"),
+        super::resolved_bases::runtime_basis(
+            &bundle,
+            &super::resolved_bases::alternate_snapshot_identity(),
+        ),
     )
     .unwrap()
 }
@@ -73,7 +82,10 @@ pub fn alternate_basis_ordered_collection_preflight() -> ExecutionPreflightBundl
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, "snapshot-2"),
+        super::resolved_bases::runtime_basis(
+            &bundle,
+            &super::resolved_bases::alternate_snapshot_identity(),
+        ),
     )
     .unwrap()
 }
@@ -87,7 +99,10 @@ pub fn alternate_basis_bounded_materialization_preflight() -> ExecutionPreflight
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, "snapshot-2"),
+        super::resolved_bases::runtime_basis(
+            &bundle,
+            &super::resolved_bases::alternate_snapshot_identity(),
+        ),
     )
     .unwrap()
 }
@@ -101,7 +116,10 @@ pub fn expanded_runtime_preflight() -> ExecutionPreflightBundle {
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+        super::resolved_bases::runtime_basis(
+            &bundle,
+            &super::resolved_bases::primary_snapshot_identity(),
+        ),
     )
     .unwrap()
 }
@@ -115,7 +133,10 @@ pub fn bound_runtime_preflight(value: &str) -> ExecutionPreflightBundle {
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+        super::resolved_bases::runtime_basis(
+            &bundle,
+            &super::resolved_bases::primary_snapshot_identity(),
+        ),
     )
     .unwrap()
 }
@@ -129,7 +150,10 @@ pub fn pre_resolved_bound_runtime_preflight(value: &str) -> ExecutionPreflightBu
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+        super::resolved_bases::runtime_basis(
+            &bundle,
+            &super::resolved_bases::primary_snapshot_identity(),
+        ),
     )
     .unwrap()
 }
@@ -143,7 +167,10 @@ pub fn ordered_collection_preflight() -> ExecutionPreflightBundle {
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+        super::resolved_bases::runtime_basis(
+            &bundle,
+            &super::resolved_bases::primary_snapshot_identity(),
+        ),
     )
     .unwrap()
 }
@@ -157,7 +184,10 @@ pub fn ordered_collection_without_traversal_preflight() -> ExecutionPreflightBun
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+        super::resolved_bases::runtime_basis(
+            &bundle,
+            &super::resolved_bases::primary_snapshot_identity(),
+        ),
     )
     .unwrap()
 }
@@ -175,7 +205,10 @@ pub fn descending_collection_preflight() -> ExecutionPreflightBundle {
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+        super::resolved_bases::runtime_basis(
+            &bundle,
+            &super::resolved_bases::primary_snapshot_identity(),
+        ),
     )
     .unwrap()
 }
@@ -190,7 +223,10 @@ pub fn cdc_collection_preflight() -> ExecutionPreflightBundle {
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+        super::resolved_bases::runtime_basis(
+            &bundle,
+            &super::resolved_bases::primary_snapshot_identity(),
+        ),
     )
     .unwrap()
 }
@@ -205,7 +241,10 @@ pub fn aggregate_rollup_collection_preflight() -> ExecutionPreflightBundle {
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+        super::resolved_bases::runtime_basis(
+            &bundle,
+            &super::resolved_bases::primary_snapshot_identity(),
+        ),
     )
     .unwrap()
 }
@@ -224,7 +263,10 @@ pub fn derived_field_collection_preflight() -> ExecutionPreflightBundle {
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+        super::resolved_bases::runtime_basis(
+            &bundle,
+            &super::resolved_bases::primary_snapshot_identity(),
+        ),
     )
     .unwrap()
 }

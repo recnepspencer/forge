@@ -55,6 +55,24 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_topology_construction_boundary_preparation_not_exported.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/public_topology_construction_birth_compose_execute_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/topology_query_raw_handoff_not_admitted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/topology_query_admitted_handoff_not_executed_authority.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/topology_query_receipt_not_executed_authority.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/topology_operator_adoption_not_executed_authority.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_birth_graph_authority_proof_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/public_runtime_read_family_support_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
@@ -121,6 +139,12 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_topology_committed_artifact_not_exported.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/public_nmt_topology_construction_receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_nmt_topology_scope_receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/public_verified_topology_commit_cert_not_exported.rs"
     ));
     t.compile_fail(format!(
@@ -128,5 +152,26 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_topology_declaration_entry_refusal_class_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_edge_split_operator_row_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_edge_split_validator_row_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_loop_operator_row_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_loop_validator_row_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_loop_blueprint_registry_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_loop_blueprint_matrix_plan_mutators_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_local_ceremony_guard_surfaces_not_exported.rs"
     ));
 }

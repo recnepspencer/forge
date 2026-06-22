@@ -1,13 +1,14 @@
 use forge_proof::TransitionOutcome;
 use forge_relational::facade::runtime::InvariantCatalog;
 
-use crate::identity::hash_parts;
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 
 use crate::domain_capabilities::denials::{
     ForgeQueryDomainCapabilityProgressionDenial, ForgeQueryDomainCapabilityProgressionDenialKind,
 };
 use crate::domain_capabilities::payloads::{
-    ForgeQueryGraphInvariantDenialRuntimeSemantics,
+    compose_invariant_registration_identity, ForgeQueryGraphInvariantDenialRuntimeSemantics,
     ForgeQueryInvariantCapabilityContributionPayload,
     ForgeQueryInvariantCapabilityContributionPosture,
 };
@@ -46,9 +47,9 @@ pub struct ForgeQueryInvariantCatalogRegistrationArtifact {
     input_contract: String,
     source_lane: crate::runtime::ForgeQueryIntentSourceLane,
     target_lane: crate::runtime::ForgeQueryAuthorityLane,
-    target_binding_digest: String,
-    request_digest: String,
-    materialization_digest: String,
+    target_binding_identity: ForgeQueryEvidenceIdentity,
+    request_identity: ForgeQueryEvidenceIdentity,
+    materialization_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryInvariantCatalogRegistrationArtifact {
@@ -92,16 +93,28 @@ impl ForgeQueryInvariantCatalogRegistrationArtifact {
         self.target_lane
     }
 
-    pub fn target_binding_digest(&self) -> &str {
-        &self.target_binding_digest
+    pub fn target_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.target_binding_identity
     }
 
-    pub fn request_digest(&self) -> &str {
-        &self.request_digest
+    pub fn target_binding_for_reporting(&self) -> &str {
+        self.target_binding_identity.as_str()
+    }
+
+    pub fn request_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.request_identity
+    }
+
+    pub fn request_for_reporting(&self) -> &str {
+        self.request_identity.as_str()
+    }
+
+    pub fn materialization_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.materialization_identity
     }
 
     pub fn materialization_digest(&self) -> &str {
-        &self.materialization_digest
+        self.materialization_identity.as_str()
     }
 }
 
@@ -115,7 +128,7 @@ pub fn materialize_query_invariant_catalog_registration_artifact(
     let Some(invariant_registration) = payload.invariant_registration() else {
         return TransitionOutcome::Denied(missing_runtime_semantics_denial(
             payload,
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
             domain_contribution.target().kind(),
             "invariant registration",
         ));
@@ -125,7 +138,7 @@ pub fn materialize_query_invariant_catalog_registration_artifact(
     {
         return TransitionOutcome::Denied(unsupported_posture_denial(
             payload,
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
             domain_contribution.target().kind(),
             "invariant registration",
             "invariant-registration",
@@ -153,23 +166,48 @@ pub fn materialize_query_invariant_catalog_registration_artifact(
         input_contract: input_contract.to_string(),
         source_lane,
         target_lane,
-        target_binding_digest: domain_contribution.target().binding_digest().to_string(),
-        request_digest: domain_contribution.request_digest().to_string(),
-        materialization_digest: hash_parts(&[
-            "forge_query_invariant_catalog_registration_artifact_v1".to_string(),
-            format!("lane:{}", "query_invariant_catalog_registration"),
-            format!("semantic_code:{}", payload.semantic_code()),
-            format!("detail:{}", payload.detail()),
-            format!("catalog:{}", invariant_registration.registration_digest()),
-            format!("intent:{name}"),
-            format!("strategy:{strategy_name}"),
-            format!("strategy-version:{strategy_version}"),
-            format!("input-contract:{input_contract}"),
-            format!("source-lane:{:?}", source_lane),
-            format!("target-lane:{:?}", target_lane),
-            format!("binding:{}", domain_contribution.target().binding_digest()),
-            format!("request:{}", domain_contribution.request_digest()),
-        ]),
+        target_binding_identity: domain_contribution.target().binding_identity(),
+        request_identity: domain_contribution.request_identity().clone(),
+        materialization_identity: domain_capability_scope_encoder(
+            "forge_query_invariant_catalog_registration_artifact_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("lane"),
+            "query_invariant_catalog_registration",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("semantic_code"),
+            payload.semantic_code(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("detail"), payload.detail())
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("catalog"),
+            &compose_invariant_registration_identity(invariant_registration),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("intent"), name)
+        .field_shape(ForgeQueryEvidenceTag::new("strategy"), strategy_name)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("strategy_version"),
+            strategy_version,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("input_contract"), input_contract)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("source_lane"),
+            source_lane.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("target_lane"),
+            target_lane.as_str(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("binding"),
+            &domain_contribution.target().binding_identity(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("request"),
+            domain_contribution.request_identity(),
+        )
+        .seal(),
     })
 }
 
@@ -183,7 +221,7 @@ pub fn materialize_graph_composition_capability_support_row(
     let Some(graph_capability) = payload.graph_capability() else {
         return TransitionOutcome::Denied(missing_runtime_semantics_denial(
             payload,
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
             domain_contribution.target().kind(),
             "graph capability",
         ));
@@ -201,7 +239,7 @@ pub fn materialize_graph_composition_capability_support_row(
         | ForgeQueryInvariantCapabilityContributionPosture::InvariantRegistration => {
             TransitionOutcome::Denied(unsupported_posture_denial(
                 payload,
-                domain_contribution.request_digest(),
+                domain_contribution.request_identity().clone(),
                 domain_contribution.target().kind(),
                 "graph capability",
                 "capability-gap and support-summary",
@@ -220,7 +258,7 @@ pub fn materialize_graph_composition_domain_invariant_denial(
     let Some(graph_invariant_denial) = payload.graph_invariant_denial() else {
         return TransitionOutcome::Denied(missing_runtime_semantics_denial(
             payload,
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
             domain_contribution.target().kind(),
             "graph invariant denial",
         ));
@@ -241,7 +279,7 @@ pub fn materialize_graph_composition_domain_invariant_denial(
         | ForgeQueryInvariantCapabilityContributionPosture::InvariantRegistration => {
             TransitionOutcome::Denied(unsupported_posture_denial(
                 payload,
-                domain_contribution.request_digest(),
+                domain_contribution.request_identity().clone(),
                 domain_contribution.target().kind(),
                 "graph invariant denial",
                 "invariant-denial",
@@ -258,15 +296,15 @@ fn graph_invariant_summary(
         semantics.declared_symbols().to_vec(),
         semantics.target_combination_families().to_vec(),
         semantics.lifecycle_families().to_vec(),
-        semantics.program_digest().to_string(),
-        semantics.breadth_digest().to_string(),
+        semantics.program_identity().clone(),
+        semantics.breadth_identity().clone(),
         semantics.counter_snapshot().to_string(),
     )
 }
 
 fn missing_runtime_semantics_denial(
     payload: &ForgeQueryInvariantCapabilityContributionPayload,
-    request_digest: &str,
+    request_identity: ForgeQueryEvidenceIdentity,
     target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
     runtime_family: &str,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
@@ -274,7 +312,7 @@ fn missing_runtime_semantics_denial(
         ForgeQueryDomainCapabilityProgressionDenialKind::MissingCanonicalMaterializationSemantics,
         "invariant-capability",
         target_kind,
-        request_digest,
+        request_identity,
         format!(
             "{runtime_family} runtime materialization requires matching runtime semantics for `{}`",
             payload.semantic_code()
@@ -284,7 +322,7 @@ fn missing_runtime_semantics_denial(
 
 fn unsupported_posture_denial(
     payload: &ForgeQueryInvariantCapabilityContributionPayload,
-    request_digest: &str,
+    request_identity: ForgeQueryEvidenceIdentity,
     target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
     runtime_family: &str,
     supported_postures: &str,
@@ -293,7 +331,7 @@ fn unsupported_posture_denial(
         ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
         "invariant-capability",
         target_kind,
-        request_digest,
+        request_identity,
         format!(
             "{runtime_family} runtime materialization only supports {supported_postures} postures; got `{}`",
             payload.posture().as_str()

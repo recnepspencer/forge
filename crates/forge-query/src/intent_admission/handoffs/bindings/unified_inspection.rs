@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use super::handoff_execution_binding_identity;
 use crate::intent_admission::{
     ForgeQueryIntentAdmissionCoveredEntrypoint, ForgeQueryIntentAdmissionExecutionSeam,
     ForgeQueryIntentAdmissionFamily, ForgeQueryUnifiedInspectionExecutionHandoff,
@@ -12,10 +12,10 @@ pub struct ForgeQueryUnifiedInspectionExecutionBinding {
 
 impl ForgeQueryUnifiedInspectionExecutionBinding {
     pub(crate) fn from_handoff(handoff: ForgeQueryUnifiedInspectionExecutionHandoff) -> Self {
-        let binding_digest = hash_parts(&[
-            "forge_query_unified_inspection_execution_binding_v1".to_string(),
-            format!("handoff:{}", handoff.handoff_digest()),
-        ]);
+        let binding_digest = handoff_execution_binding_identity(
+            "unified-inspection-execution",
+            handoff.handoff_digest(),
+        );
         Self {
             handoff,
             binding_digest,

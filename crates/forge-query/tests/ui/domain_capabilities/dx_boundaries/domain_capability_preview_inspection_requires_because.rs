@@ -1,4 +1,6 @@
-use forge_query::facade::runtime::{forge_query_domain, ForgeQueryIntentDeclaration};
+use forge_query::facade::runtime::{
+    forge_query_domain, BridgePreviewSessionIdentity, ForgeQueryIntentDeclaration,
+};
 use serde_json::json;
 
 fn main() {
@@ -12,6 +14,9 @@ fn main() {
 
     let _ = forge_query_domain("worth.spatial")
         .for_intent(&declaration)
-        .inspects_query_preview("topology.preview_conflict", "preview-session:42")
+        .inspects_query_preview(
+            "topology.preview_conflict",
+            BridgePreviewSessionIdentity::from_stable_name("preview-session:42"),
+        )
         .materialize();
 }

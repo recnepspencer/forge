@@ -56,7 +56,7 @@ fn compose_graph_supports_existing_target_supersession_lifecycle() {
     let binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-edge",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-edge").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing relation target should build")
@@ -74,8 +74,20 @@ fn compose_graph_supports_existing_target_supersession_lifecycle() {
             graph.supersede_existing(binding, |relation| {
                 relation
                     .continuity_split_successors(
-                        "authority:rel-edge",
-                        ["authority:rel-edge-left", "authority:rel-edge-right"],
+                        crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new(
+                            "authority:rel-edge",
+                        )
+                        .expect("continuity prior authority label")).expect("continuity prior authority identity"),
+                        [
+                            crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                                "authority:rel-edge-left",
+                            )
+                            .expect("continuity successor authority label")).expect("continuity successor authority identity"),
+                            crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                                "authority:rel-edge-right",
+                            )
+                            .expect("continuity successor authority label")).expect("continuity successor authority identity"),
+                        ],
                     )
                     .aspect("target.id", "vertex-split")
             })?;
@@ -143,10 +155,17 @@ fn compose_graph_supports_existing_target_supersession_lifecycle() {
 
 #[test]
 fn compose_graph_supports_verified_existing_target_supersession_lifecycle() {
-    let binding = ForgeQueryExistingRelationTarget::new("authority:rel-edge", "TaskRelation:1")
-        .expect("existing relation target should build")
-        .in_target_collection("TaskRelation")
-        .expect("existing relation target collection should build");
+    let binding = ForgeQueryExistingRelationTarget::new(
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-edge")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity"),
+        test_entity_identity("TaskRelation:1"),
+    )
+    .expect("existing relation target should build")
+    .in_target_collection("TaskRelation")
+    .expect("existing relation target collection should build");
     let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(binding)
         .expect("relation binding should build");
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
@@ -170,9 +189,7 @@ fn compose_graph_supports_verified_existing_target_supersession_lifecycle() {
                 },
                 |update| {
                     update
-                        .continuity_rebind_merge_successor(
-                            "authority:rel-edge",
-                            "authority:rel-edge-merged",
+                        .continuity_rebind_merge_successor(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:rel-edge").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:rel-edge-merged").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         )
                         .aspect("target.id", "vertex-merged")
                 },
@@ -255,7 +272,7 @@ fn compose_graph_denies_existing_target_supersession_without_lineage_intent() {
     let binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-edge",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-edge").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing relation target should build")
@@ -268,9 +285,7 @@ fn compose_graph_denies_existing_target_supersession_without_lineage_intent() {
         .compose_graph(|graph| {
             graph.supersede_existing(binding, |relation| {
                 relation
-                    .continuity_rebind_existing_target(
-                        "authority:rel-edge",
-                        "authority:rel-edge-successor",
+                    .continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:rel-edge").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:rel-edge-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                     )
                     .aspect("target.id", "vertex-c")
             })?;

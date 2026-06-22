@@ -115,7 +115,7 @@ where
     T: ForgeQueryDomainCapabilityTargetBinding,
 {
     let locator = forge_foundational::BoundaryArtifactLocator::new(
-        super::rows::boundary_artifact_id(contribution.payload().target().binding_digest()),
+        super::identity::boundary_artifact_id(&contribution.payload().target().binding_identity()),
         forge_foundational::BoundaryArtifactField::Basis,
     );
     FoundationalBoundaryEvidenceSourceBasis::boundary_artifact(locator)
@@ -163,7 +163,7 @@ where
     T: ForgeQueryDomainCapabilityTargetBinding,
 {
     let handle = BoundaryHandle::new(
-        super::rows::boundary_artifact_id(contribution.payload().request_digest()).get(),
+        super::identity::boundary_artifact_id(contribution.payload().request_identity()).get(),
     );
     let family =
         FoundationalTransitionStrategyFamily::new(contribution.payload().category().as_str())

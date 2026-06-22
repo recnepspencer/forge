@@ -8,6 +8,7 @@ error[E0624]: associated function `new` is private
   |
   | /     pub(crate) fn new(
   | |         admission: ForgeServerAdmission,
+  | |         operation_registry: ForgeServerOperationRegistry,
   | |         declaration_intake: ForgeServerDirectDeclarationIntakeFacade,
   | |         query_handoff: ForgeServerQueryHandoffFacade,
   | |         responses: ForgeServerResponseFacade,

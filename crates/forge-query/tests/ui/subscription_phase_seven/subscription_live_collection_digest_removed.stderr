@@ -1,0 +1,15 @@
+warning: unreachable statement
+ --> tests/ui/subscription_phase_seven/subscription_live_collection_digest_removed.rs:5:5
+  |
+4 |     let live: LiveQueryAdmissionArtifact = todo!();
+  |                                            ------- any code following this expression is unreachable
+5 |     let _ = live.collection_digest();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `collection_digest` found for struct `LiveQueryAdmissionArtifact` in the current scope
+ --> tests/ui/subscription_phase_seven/subscription_live_collection_digest_removed.rs:5:18
+  |
+5 |     let _ = live.collection_digest();
+  |                  ^^^^^^^^^^^^^^^^^ method not found in `LiveQueryAdmissionArtifact`

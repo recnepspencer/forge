@@ -128,7 +128,7 @@ impl BridgeAsyncRequestTruthViewBasis {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            basis_identity: BridgeAsyncRequestTruthViewBasisIdentity::new(format!(
+            basis_identity: BridgeAsyncRequestTruthViewBasisIdentity::admit_bridge_owned(format!(
                 "bridge-async-request-truth-view-basis-id:sha256:{digest:x}"
             )),
             kind,

@@ -11,7 +11,6 @@ pub(super) use crate::facade::{
     BridgeWritebackLoopDisposition, BridgeWritebackNativeCausalityInputs,
     BridgeWritebackRequestMode, BridgeWritebackStrategyClass,
     BridgeWritebackStrategyCoherenceDisposition, BridgeWritebackStrategyDescriptorBasis,
-    TruthCommitIdentity, TruthSnapshotIdentity,
 };
 use forge_foundational::facade::{AspectKey, AspectValue};
 use std::sync::{Arc, RwLock};
@@ -200,7 +199,7 @@ pub(super) fn lowered_policy(
 ) -> crate::facade::LoweredBridgeExecutionPolicy {
     let contract = runtime
         .admit_policy_declaration(BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:writeback"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:writeback"),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,
@@ -285,10 +284,10 @@ pub(super) fn causality_basis(
 ) -> BridgeWritebackNativeCausalityInputs {
     BridgeWritebackNativeCausalityInputs::new(
         identity.clone(),
-        TruthCommitIdentity::new(truth_trigger_evidence_text),
-        BridgeRouteIdentity::new(identity.as_str()),
-        TruthSnapshotIdentity::new(identity.as_str()),
-        TruthSnapshotIdentity::new(identity.as_str()),
+        crate::truth_identity_fixtures::truth_commit_fixture(truth_trigger_evidence_text),
+        BridgeRouteIdentity::admit_bridge_owned(identity.as_str()),
+        crate::truth_identity_fixtures::truth_snapshot_fixture(identity.as_str()),
+        crate::truth_identity_fixtures::truth_snapshot_fixture(identity.as_str()),
     )
 }
 

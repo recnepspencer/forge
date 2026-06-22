@@ -7,6 +7,20 @@ truth. It defines what collection or entity surface you care about, which
 projected aspects belong in the surface, what view shape it uses, and how
 incremental updates should be delivered back to the consumer.
 
+When a live view declares graph-shaped access, Graph Touch Obligation Authority
+is the covered path for graph obligation meaning. The live view defines the
+retained read surface; obligation authority keeps graph checks, diagnostic
+posture, budgets, and evidence aligned with the declared touch instead of
+asking consumers to maintain separate local graph validators.
+
+Graph Read Access Planning is the accountability lane for the access structures
+behind that same graph-shaped live read. If a live view needs adjacency,
+predicate support, ordering support, frontier state, live maintenance, or a
+typed required-capability posture, those requirements must be visible in the
+admitted access plan and in the live read or mutation-maintenance receipt. Do
+not treat live maintenance as permission to hide caller-owned graph walking
+behind a retained view.
+
 ## Why You Use It
 
 - you need current truth as rows or view-shaped records
@@ -14,6 +28,8 @@ incremental updates should be delivered back to the consumer.
   mutation noise
 - you need a retained surface that computed state, effects, preview sessions,
   and inspection can all reuse
+- you need live-read graph obligations to use the same support, budget, and
+  evidence vocabulary as other graph-bearing Query lanes
 
 ## Stable Entry Points
 
@@ -201,6 +217,9 @@ What gets observed:
 - Use [Intent Admission](../execution/intent-admission.md) when the caller
   needs the covered live-read intent path rather than `workspace.read(...)`
   convenience alone.
+- Use [Graph Read Access Planning](../authoring/graph-read-access-planning.md)
+  when a graph-shaped live view needs proof of runtime-owned access structures,
+  exact maintenance counters, or no caller-owned N+1 traversal.
 - Use the workspace overview when you need the whole runtime story around live
   views.
 

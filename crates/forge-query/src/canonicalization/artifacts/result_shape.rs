@@ -15,6 +15,10 @@ impl CanonicalResultShapeArtifact {
         &self.digest
     }
 
+    pub fn result_shape_identity(&self) -> crate::evidence_identity::ForgeQueryEvidenceIdentity {
+        self.digest.evidence_identity()
+    }
+
     pub fn family(&self) -> &ResultShapeFamily {
         &self.family
     }

@@ -30,6 +30,7 @@ pub(crate) const INTENT_ADMISSION_ELIGIBILITY_EXPORTED_SURFACE: &[&str] = &[
     "ForgeQueryGenericInspectionIntentSeed",
     "ForgeQueryGenericInspectionIntentTarget",
     "ForgeQueryGenericInspectionIntentTargetSeed",
+    "ForgeQueryGenericInspectionRequestLabel",
     "ForgeQueryLiveReadIntentSeed",
     "ForgeQueryReadExecutionIntentSeed",
 ];
@@ -51,6 +52,6 @@ pub use seeds::{
     ForgeQueryAuthoritativeMutationPreflight, ForgeQueryDerivedViewIntentSeed,
     ForgeQueryExistingTruthProbeIntentSeed, ForgeQueryExistingTruthProbeRoutingPreflight,
     ForgeQueryGenericInspectionIntentSeed, ForgeQueryGenericInspectionIntentTarget,
-    ForgeQueryGenericInspectionIntentTargetSeed, ForgeQueryLiveReadIntentSeed,
-    ForgeQueryReadExecutionIntentSeed,
+    ForgeQueryGenericInspectionIntentTargetSeed, ForgeQueryGenericInspectionRequestLabel,
+    ForgeQueryLiveReadIntentSeed, ForgeQueryReadExecutionIntentSeed,
 };

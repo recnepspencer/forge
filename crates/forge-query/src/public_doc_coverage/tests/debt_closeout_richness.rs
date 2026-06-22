@@ -122,7 +122,7 @@ fn support_docs_match_runtime_backed_support_gated_and_deferred_truth() {
         .expect("downstream delivery contract row must stay explicit");
     assert_eq!(
         downstream_matrix_row.support_contract_digest(),
-        Some(downstream_contract.contract_digest())
+        Some(downstream_contract.contract_identity().as_str())
     );
 
     let authority_matrix_row = support_matrix

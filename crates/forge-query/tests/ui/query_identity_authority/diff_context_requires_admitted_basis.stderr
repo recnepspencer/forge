@@ -1,0 +1,35 @@
+error: cannot construct `QueryBasisContextBinding` with struct literal syntax due to private fields
+  --> tests/ui/diff_context_requires_admitted_basis.rs:7:19
+   |
+ 7 |     let binding = QueryBasisContextBinding {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^
+ 8 |         request: QueryBasisContextRequest::current_branch_head(),
+   |         -------------------------------------------------------- private field
+ 9 |         query_digest: String::from("query"),
+   |         ----------------------------------- private field
+10 |         basis_digest: String::from("basis"),
+   |         ----------------------------------- private field
+11 |         drift_outcome: QueryContextDriftOutcome::BasisExact,
+   |         --------------------------------------------------- private field
+12 |         counters: QueryContextCounters::default(),
+   |         ----------------------------------------- private field
+   |
+   = note: ...and other private field `evidence` that was not provided
+
+error[E0308]: arguments to this function are incorrect
+  --> tests/ui/diff_context_requires_admitted_basis.rs:15:13
+   |
+15 |     let _ = bind_diff_query_context(&binding, &binding);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^ --------  -------- expected `&AdmittedQueryBasisContext`, found `&QueryBasisContextBinding`
+   |                                     |
+   |                                     expected `&AdmittedQueryBasisContext`, found `&QueryBasisContextBinding`
+   |
+   = note: expected reference `&AdmittedQueryBasisContext`
+              found reference `&QueryBasisContextBinding`
+   = note: expected reference `&AdmittedQueryBasisContext`
+              found reference `&QueryBasisContextBinding`
+note: function defined here
+  --> src/query_context/comparison.rs
+   |
+   | pub fn bind_diff_query_context(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^

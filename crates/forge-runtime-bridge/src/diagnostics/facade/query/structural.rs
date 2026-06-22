@@ -1,3 +1,7 @@
+use crate::diagnostics::structural::{
+    BridgeStructuralBranchComparisonRecordIdentity, BridgeStructuralRemapRecordIdentity,
+};
+
 use super::*;
 
 impl BridgeDiagnosticsFacade {
@@ -35,7 +39,7 @@ impl BridgeDiagnosticsFacade {
 
     pub fn structural_remap_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &BridgeStructuralRemapRecordIdentity,
     ) -> Option<BridgeCanonicalStructuralRemapRecord> {
         self.state
             .read()
@@ -45,7 +49,7 @@ impl BridgeDiagnosticsFacade {
 
     pub fn structural_branch_comparison_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &BridgeStructuralBranchComparisonRecordIdentity,
     ) -> Option<BridgeCanonicalStructuralBranchComparisonRecord> {
         self.state
             .read()

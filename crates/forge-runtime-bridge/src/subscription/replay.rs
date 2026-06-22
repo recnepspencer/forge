@@ -169,7 +169,7 @@ impl BridgeSubscriptionReplaySummary {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            replay_identity: BridgeSubscriptionReplayIdentity::new(format!(
+            replay_identity: BridgeSubscriptionReplayIdentity::admit_bridge_owned(format!(
                 "bridge-subscription-replay-id:sha256:{digest:x}"
             )),
             retained_bundle: bundle.clone(),

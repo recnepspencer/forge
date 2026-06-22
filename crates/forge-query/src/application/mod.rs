@@ -19,6 +19,7 @@ mod declaration_route_plan;
 mod declaration_signal_compatibility;
 mod domain_entry;
 mod domain_handle;
+mod graph_obligation_orchestration;
 mod support;
 
 pub use capability::{
@@ -56,6 +57,9 @@ pub use declaration_authority_summary::{
     ForgeQueryDeclarationBridgeAuthorityAspectSummary,
     ForgeQueryDeclarationRelationalAuthorityAspectSummary,
     ForgeQueryDeclarationSignalAuthorityAspectSummary,
+};
+pub(crate) use declaration_bridge_routing::{
+    query_truth_commit_identity, query_truth_snapshot_identity,
 };
 pub use declaration_bridge_routing::{
     ForgeQueryDeclarationBridgeBinding, ForgeQueryDeclarationBridgeContinuationContract,
@@ -243,13 +247,78 @@ pub use domain_handle::{
     ForgeQueryDeclarationEntryProgressionError, ForgeQueryDomainOperatingContext,
     ForgeQueryDomainOperatingRequirement, ForgeQueryValidatedConfiguredDomainHandle,
 };
+#[allow(unused_imports)]
+pub use graph_obligation_orchestration::{
+    ForgeQueryGraphObligationOrchestrationBoundary, ForgeQueryGraphObligationOrchestrationDispatch,
+    ForgeQueryGraphObligationOrchestrationDispatchError,
+};
+#[allow(unused_imports)]
+pub(crate) use support::identity_boundary_inventory::{
+    format_digest_folklore_pattern_in, normalize_source_text,
+    ordinary_session_entrypoint_audit_violations, source_for_format_digest_path,
+    source_for_session_admission_path, source_for_string_carried_session_identity_path,
+    source_for_string_matching_path,
+};
+#[cfg(test)]
+pub use support::scan_format_digest_residue_path_patterns;
+#[cfg(test)]
+pub(crate) use support::scan_shared_read_mint_forbidden_patterns;
+#[cfg(test)]
+pub(crate) use support::{
+    forge_query_journal_identity_inventory, scan_journal_identity_forbidden_patterns,
+    scan_journal_identity_required_pattern_failures,
+    scan_shared_read_pin_hot_path_forbidden_patterns,
+    scan_shared_read_pin_required_pattern_failures, scan_shared_read_pin_retire_forbidden_patterns,
+    shared_read_pinning_operation_inventory, ForgeQueryJournalIdentityOperationKind,
+    ForgeQuerySharedReadPinningOperationKind,
+};
+#[allow(unused_imports)]
 pub use support::{
+    identity_boundary_hostile_matrix_artifact, identity_boundary_hostile_matrix_digest,
+    milestone_nine_eight_consumer_kit_closure, milestone_nine_six_certification_gate_certified,
+    scan_format_digest_residue_paths, scan_lower_runtime_identity_shim_paths,
+    scan_raw_session_admission_residue_paths, scan_string_carried_session_identity_residue_paths,
+    scan_string_matching_residue_paths, worth_ui_query_binding_evidence_identity,
     ForgeQueryCapabilityDescriptor, ForgeQueryCapabilityFamily, ForgeQueryCapabilityRegistry,
     ForgeQueryCapabilityStatus, ForgeQueryCapabilitySupportStatus,
-    ForgeQueryIdentityEvolutionSupportProfile, ForgeQueryQueryCompositionSupportProfile,
-    ForgeQueryQueryContextSupportProfile, ForgeQuerySupportMatrix, ForgeQuerySupportReport,
-    ForgeQuerySupportReportCounters, ForgeQuerySupportSectionPosture,
-    QueryContextDeferredScopeMarker,
+    ForgeQueryConsumerKitCertificationCase, ForgeQueryConsumerKitCertificationCaseRow,
+    ForgeQueryConsumerKitCertificationTier, ForgeQueryConsumerKitClosure,
+    ForgeQueryConsumerKitDocsAgreement, ForgeQueryConsumerKitDocsFamilyRow,
+    ForgeQueryConsumerKitFamilyClosureRow, ForgeQueryConsumerKitFamilyName,
+    ForgeQueryConsumerKitHostileCertification, ForgeQueryConsumerKitReferenceResidue,
+    ForgeQueryConsumerKitResidueBreakdown, ForgeQueryEvidenceIdentityBoundaryClosure,
+    ForgeQueryFolkloreResidueStatus, ForgeQueryIdentityBoundaryClosure,
+    ForgeQueryIdentityBoundaryHostileMatrixArtifact, ForgeQueryIdentityBoundaryHostileMatrixRow,
+    ForgeQueryIdentityEvolutionSupportProfile, ForgeQueryMilestoneClosureStatus,
+    ForgeQueryMilestoneNineSevenDerivedClosure, ForgeQueryMilestoneNineSevenPhaseClosure,
+    ForgeQueryQueryCompositionSupportProfile, ForgeQueryQueryContextSupportProfile,
+    ForgeQuerySessionLabelBoundaryClosure, ForgeQueryStopClassBoundaryClosure,
+    ForgeQuerySupportMatrix, ForgeQuerySupportReport, ForgeQuerySupportReportCounters,
+    ForgeQuerySupportSectionPosture, QueryContextDeferredScopeMarker,
+    EVIDENCE_IDENTITY_COVERED_SURFACES, EXACT_ZERO_FORMAT_DIGEST_PATHS,
+    EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS, EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS,
+    EXACT_ZERO_STRING_MATCHING_PATHS, EXCLUDED_FOLKLORE_DEFERRALS, EXCLUDED_FOLKLORE_PATHS,
+    MILESTONE_9_6_CERTIFICATION_GATE_PATHS, MILESTONE_NINE_SIX_REQUIRED_CANONICAL_ROW_NAMES,
+    MILESTONE_NINE_SIX_REQUIRED_REJECTION_ROW_NAMES, MILESTONE_NINE_SIX_SUITE_NAME,
+    SESSION_LABEL_ORDINARY_ENTRYPOINTS, STOP_CLASS_COVERED_CONTRACTS,
+};
+#[allow(unused_imports)]
+pub use support::{
+    ForgeQueryConcurrentHostileMatrixArtifact, ForgeQueryConcurrentHostileMatrixPosture,
+    ForgeQueryConcurrentHostileMatrixSabotage, ForgeQueryConcurrentHostileMatrixSabotageKind,
+    ForgeQueryJournalIdentityBoundaryPosture, ForgeQueryJournalIdentityCertification,
+    ForgeQueryJournalIdentityInventoryEvidence, ForgeQueryJournalIdentityScheduleEvidence,
+    ForgeQueryJournalReplayBoundaryCertification, ForgeQueryJournalReplaySurfaceEvidence,
+    ForgeQueryPublicBridgeForbiddenAccessFinding, ForgeQueryPublicBridgeForbiddenAccessPattern,
+    ForgeQueryPublicBridgeProjectionConsumptionEvidence,
+    ForgeQueryPublicBridgePublishedProjectionReader, ForgeQueryPublicBridgeReaderLaneCertification,
+    ForgeQueryPublicBridgeReaderLaneInventory, ForgeQueryPublicBridgeReaderLanePosture,
+    ForgeQueryPublicBridgeReaderLaneSabotage, ForgeQueryPublicBridgeReaderLaneSabotageKind,
+    ForgeQueryPublicBridgeReaderLaneSabotageOutcome, ForgeQuerySharedReadPinningBoundaryClosure,
+    ForgeQuerySharedReadPinningBoundaryPosture, ForgeQuerySharedReadPinningCertification,
+    ForgeQuerySharedReadPinningCounterEvidence, ForgeQuerySharedReadPinningHostileMatrixEvidence,
+    ForgeQuerySharedReadPinningInventoryEvidence, ForgeQuerySharedReadPortabilityEvidence,
+    ForgeQuerySharedReadStaleBasisDenialEvidence,
 };
 
 pub(crate) use declaration::forge_query_canonical_declaration;
@@ -316,6 +385,7 @@ pub(crate) use declaration_signal_compatibility::{
     forge_query_checked_declaration_signal_compatibility_on_handle,
 };
 pub(crate) use domain_handle::checked_route_plan_from_progressed_with_profile;
+pub(crate) use graph_obligation_orchestration::dispatch_graph_obligations_for_orchestration;
 
 #[cfg(test)]
 mod tests;

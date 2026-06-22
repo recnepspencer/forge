@@ -2,8 +2,12 @@ mod adapters;
 mod bridge;
 mod builder_bootstrap;
 mod common_bootstrap;
+mod existing_truth_adapter;
 mod external_row;
+#[allow(dead_code)]
+mod hostile_certification;
 mod profiles;
+mod reader_lane_honesty;
 mod state;
 
 use std::cell::RefCell;
@@ -15,18 +19,30 @@ use forge_query::facade::{
 use serde_json::Value;
 
 use self::adapters::{
-    PublicExistingTruthVerificationAdapter, PublicInspectorEvidenceAdapter,
-    PublicPreviewBasisAdapter, PublicSchemaAdapter, PublicSignalSinkAdapter, PublicSourceAdapter,
+    PublicInspectorEvidenceAdapter, PublicPreviewBasisAdapter, PublicSchemaAdapter,
+    PublicSignalSinkAdapter, PublicSnapshotIdentityAdapter, PublicSourceAdapter,
     PublicSubscriptionActivationAdapter, PublicWriteAuthorityAdapter,
 };
+use self::existing_truth_adapter::PublicExistingTruthVerificationAdapter;
 use self::state::PublicBridgeRuntimeState;
 
 type SharedRuntimeState = Rc<RefCell<PublicBridgeRuntimeState>>;
 
 pub use self::profiles::public_graph_support_profile;
+#[allow(unused_imports)]
 pub use common_bootstrap::{
     public_bridge_runtime_bootstrap_invocation_count,
     reset_public_bridge_runtime_bootstrap_invocations,
+};
+#[allow(unused_imports)]
+pub use hostile_certification::{
+    certify_public_bridge_hostile_schedule, PublicBridgeHostileCertificationArtifact,
+};
+#[allow(unused_imports)]
+pub use reader_lane_honesty::{
+    direct_materialization_read_count, public_bridge_certification_inventory,
+    public_bridge_certification_inventory_paths, public_bridge_direct_materialization_sabotage,
+    sabotaged_public_bridge_certification_inventory,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

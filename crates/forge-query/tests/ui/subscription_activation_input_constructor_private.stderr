@@ -1,9 +1,7 @@
-error: cannot construct `SubscriptionActivationInput` with struct literal syntax due to private fields
- --> tests/ui/subscription_activation_input_constructor_private.rs:4:23
+error[E0560]: struct `SubscriptionActivationInput` has no field named `activation_digest`
+ --> tests/ui/subscription_activation_input_constructor_private.rs:5:9
   |
-4 |     let _fabricated = SubscriptionActivationInput {
-  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 5 |         activation_digest: String::new(),
-  |         -------------------------------- private field
+  |         ^^^^^^^^^^^^^^^^^ `SubscriptionActivationInput` does not have this field
   |
-  = note: ...and other private fields `admission_digest`, `query_declaration_digest`, `bridge_declaration_digest`, `basis_binding_digest`, `signal_strategy_digest` and `counters` that were not provided
+  = note: all struct fields are already assigned

@@ -1,5 +1,7 @@
+mod bridge_fixture;
 mod core;
 mod phase_six;
+mod source_adapter;
 
 use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeBoundaryEnvelope, ForgeQueryLowerRuntimeBoundaryExecutionReceipt,
@@ -19,6 +21,7 @@ pub(super) struct RepresentativeArtifacts {
 }
 
 pub(super) use super::evidence::ForgeQueryLowerRuntimeRepresentativeEvidenceSource;
+pub(super) use bridge_fixture::representative_bridge_authority_runtime;
 pub(super) use core::{
     hostile_parity_divergence_digest, normalized_parity_digest,
     representative_live_view_schema_row, representative_live_view_source_row,
@@ -42,3 +45,4 @@ pub(super) use phase_six::{
     representative_runtime_live_installation_orchestration_row,
     representative_subscription_activation_row, representative_subscription_continuity_row,
 };
+pub(super) use source_adapter::RepresentativeSourceAdapter;

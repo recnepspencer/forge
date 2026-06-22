@@ -6,6 +6,7 @@ use super::super::consumed::{
 };
 use super::super::contracts::MaterializedProjectionContract;
 use super::super::facts::ProjectionFactKind;
+use super::super::identity::compose_query_context_row_identity;
 use super::super::source::ProjectionSourceFamily;
 use crate::projection_consumption::ProjectionFactExtractionError;
 use crate::query_context::QueryContextExecutionArtifact;
@@ -52,7 +53,7 @@ pub(super) fn extract_query_context_facts(
                 ProjectionFactKind::EntityIdentity => {
                     entity_identities.push(ConsumedEntityIdentityFact::new(
                         row_identity.clone(),
-                        row_identity.clone(),
+                        crate::memory_workspace::admit_authored_entity_label(row_identity.clone()),
                     ));
                 }
                 ProjectionFactKind::ViewLocalIdentity => {
@@ -115,7 +116,7 @@ pub(super) fn extract_query_context_facts(
         contract.declaration_digest(),
         contract.contract_digest(),
         contract.source_family(),
-        contract.source_identity(),
+        contract.source_identity_handle().clone(),
         contract.support_posture().clone(),
         contract.materialized_fact_posture().cloned(),
         ProjectionFactExtractionCounters::new(
@@ -138,7 +139,7 @@ pub(super) fn extract_query_context_facts(
 }
 
 fn query_context_row_identity(execution: &QueryContextExecutionArtifact, index: usize) -> String {
-    format!("query-context:{}:{index}", execution.family().as_str())
+    compose_query_context_row_identity(execution.family().as_str(), index)
 }
 
 fn query_context_source_identity(execution: &QueryContextExecutionArtifact) -> String {

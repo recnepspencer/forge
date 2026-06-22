@@ -1,4 +1,5 @@
 use super::super::support::*;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 #[test]
 fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
@@ -17,7 +18,7 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
     let preview_run = {
         let mut preview = runtime
             .preview_with_options(
-                "draft create",
+                test_session_label("draft create"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should be admitted");
@@ -32,9 +33,22 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
             .expect("preview operation should run");
 
         assert_eq!(run.write_receipts().len(), 1);
-        assert!(run.write_receipts()[0]
-            .commit_identity()
-            .starts_with("preview:draft create"));
+        let draft_label = test_session_label("draft create");
+        let expected_commit_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::PreviewWriteReceiptIdentity,
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("session_label_identity"),
+            draft_label.identity_digest().as_str(),
+        )
+        .field_usize(ForgeQueryEvidenceTag::new("sequence"), 1)
+        .seal();
+        assert_eq!(
+            run.write_receipts()[0]
+                .commit_identity()
+                .evidence_identity(),
+            expected_commit_identity
+        );
         assert_eq!(
             run.write_receipts()[0].authority_lane(),
             ForgeQueryAuthorityLane::PreviewTruth
@@ -50,7 +64,7 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
     {
         let mut preview = runtime
             .preview_with_options(
-                "promote create",
+                test_session_label("promote create"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should be admitted");
@@ -105,7 +119,7 @@ fn preview_run_operation_discard_keeps_authoritative_state_unchanged() {
     {
         let mut preview = runtime
             .preview_with_options(
-                "discard create",
+                test_session_label("discard create"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should be admitted");
@@ -142,7 +156,7 @@ fn preview_run_operation_rejects_declaration_effects_before_runtime_mutation() {
 
     let mut preview = runtime
         .preview_with_options(
-            "deny declaration effects",
+            test_session_label("deny declaration effects"),
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("preview session should be admitted");
@@ -162,7 +176,7 @@ fn preview_run_operation_rejects_declaration_effects_before_runtime_mutation() {
             stage,
             message,
         } => {
-            assert_eq!(label, "deny declaration effects");
+            assert_eq!(label, test_session_label("deny declaration effects"));
             assert_eq!(stage, "effect-admission");
             assert!(message.contains("cannot install live view `tasks.table`"));
         }

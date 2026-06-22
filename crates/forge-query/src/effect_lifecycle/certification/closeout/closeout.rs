@@ -42,7 +42,7 @@ pub fn certify_effect_execution_pipeline() -> EffectExecutionCertificationBundle
     let posture_failure_digest = postures.failure_digest();
     let slopes = build_closeout_slopes(
         &mutation,
-        support_matrix.matrix_digest(),
+        support_matrix.matrix_for_reporting(),
         dx.row.counter_snapshot_digest(),
     );
     let meta = build_closeout_meta_rows(&audits, &slopes, &mutation, &writeback, &batch, &dx);
@@ -121,7 +121,7 @@ pub fn certify_effect_execution_pipeline() -> EffectExecutionCertificationBundle
         ),
         output(
             "effect_support_matrix_digest",
-            support_matrix.matrix_digest().to_string(),
+            support_matrix.matrix_for_reporting().to_string(),
         ),
         output(
             "effect_proof_shape_digest",

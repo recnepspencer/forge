@@ -7,6 +7,7 @@ use crate::domain_capabilities::payloads::{
     ForgeQueryWorkflowRuntimeBindingSemantics, ForgeQueryWorkflowRuntimeSemantics,
 };
 use crate::domain_capabilities::targets::ForgeQueryDomainCapabilityTargetBinding;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::workflow::WorkflowPreviewEvaluationClass;
 
 pub(super) fn workflow_source_label<T>(
@@ -68,13 +69,13 @@ pub(super) fn missing_workflow_runtime_semantics_denial(
     operation_label: &'static str,
     payload: &ForgeQueryWorkflowContributionPayload,
     target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
-    request_digest: &str,
+    request_identity: ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
         ForgeQueryDomainCapabilityProgressionDenialKind::MissingCanonicalMaterializationSemantics,
         "workflow-preview",
         target_kind,
-        request_digest,
+        request_identity,
         format!(
             "{operation_label} requires runtime workflow semantics for `{}`",
             payload.semantic_code()
@@ -86,13 +87,13 @@ pub(super) fn missing_workflow_lowering_semantics_denial(
     operation_label: &'static str,
     payload: &ForgeQueryWorkflowContributionPayload,
     target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
-    request_digest: &str,
+    request_identity: ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
         ForgeQueryDomainCapabilityProgressionDenialKind::MissingCanonicalMaterializationSemantics,
         "workflow-preview",
         target_kind,
-        request_digest,
+        request_identity,
         format!(
             "{operation_label} requires workflow lowering semantics for `{}`",
             payload.semantic_code()
@@ -105,13 +106,13 @@ pub(super) fn inconsistent_workflow_runtime_semantics_denial(
     payload: &ForgeQueryWorkflowContributionPayload,
     runtime_semantics: &ForgeQueryWorkflowRuntimeSemantics,
     target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
-    request_digest: &str,
+    request_identity: ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
         ForgeQueryDomainCapabilityProgressionDenialKind::InconsistentCanonicalMaterializationSemantics,
         "workflow-preview",
         target_kind,
-        request_digest,
+        request_identity,
         format!(
             "{operation_label} got workflow runtime semantics `{}:{}` that do not match `{}` posture",
             runtime_semantics.declaration_family().as_str(),
@@ -125,13 +126,13 @@ pub(super) fn inconsistent_workflow_lowering_semantics_denial(
     operation_label: &'static str,
     payload: &ForgeQueryWorkflowContributionPayload,
     target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
-    request_digest: &str,
+    request_identity: ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
         ForgeQueryDomainCapabilityProgressionDenialKind::InconsistentCanonicalMaterializationSemantics,
         "workflow-preview",
         target_kind,
-        request_digest,
+        request_identity,
         format!(
             "{operation_label} got workflow lowering semantics that do not match `{}` workflow runtime semantics",
             payload.posture().as_str()

@@ -257,12 +257,12 @@ fn grouped_contribution_helper_matches_generic_grouped_lowering() {
         generic.members()[0].0.aspect_record()
     );
     assert_eq!(
-        helper.members()[0].1.composition_digest(),
-        generic.members()[0].1.composition_digest()
+        helper.members()[0].1.composition_for_reporting(),
+        generic.members()[0].1.composition_for_reporting()
     );
     assert_eq!(
-        helper.members()[1].1.composition_digest(),
-        generic.members()[1].1.composition_digest()
+        helper.members()[1].1.composition_for_reporting(),
+        generic.members()[1].1.composition_for_reporting()
     );
 }
 

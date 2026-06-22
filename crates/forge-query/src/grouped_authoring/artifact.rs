@@ -2,7 +2,8 @@ use crate::application::{
     ForgeQueryAdmittedDeclarationProgression, ForgeQueryCanonicalDeclarationArtifact,
     ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
     ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationInput,
-    ForgeQueryDomainEntryMarker, ForgeQueryGroupedDeclarationPosture,
+    ForgeQueryDomainEntryMarker, ForgeQueryGraphObligationOrchestrationDispatch,
+    ForgeQueryGroupedDeclarationPosture,
 };
 use crate::identity::hash_parts;
 
@@ -160,6 +161,7 @@ pub struct ForgeQueryGroupedDeclarationArtifact<
     aspect_record: ForgeQueryGroupedDeclarationAspectRecord,
     aspect_participation: ForgeQueryGroupedAspectParticipationSummary,
     members: Vec<ForgeQueryGroupedDeclarationMember<D, I>>,
+    graph_obligation_dispatch: Option<ForgeQueryGraphObligationOrchestrationDispatch>,
     group_digest: String,
 }
 
@@ -247,8 +249,17 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             aspect_record,
             aspect_participation,
             members,
+            graph_obligation_dispatch: None,
             group_digest,
         }
+    }
+
+    pub(crate) fn with_graph_obligation_dispatch(
+        mut self,
+        dispatch: Option<ForgeQueryGraphObligationOrchestrationDispatch>,
+    ) -> Self {
+        self.graph_obligation_dispatch = dispatch;
+        self
     }
 
     pub fn handle_identity_digest(&self) -> &str {
@@ -305,6 +316,12 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn members(&self) -> &[ForgeQueryGroupedDeclarationMember<D, I>] {
         &self.members
+    }
+
+    pub fn graph_obligation_dispatch(
+        &self,
+    ) -> Option<&ForgeQueryGraphObligationOrchestrationDispatch> {
+        self.graph_obligation_dispatch.as_ref()
     }
 
     pub fn group_digest(&self) -> &str {

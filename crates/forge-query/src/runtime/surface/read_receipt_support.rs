@@ -14,7 +14,10 @@ pub(super) fn materialized_result_digest(
                 let external_row = serde_json::to_string(row.external_row())
                     .expect("read external row should serialize");
                 [
-                    format!("row_identity:{}", row.identity()),
+                    format!(
+                        "row_identity:{}",
+                        row.identity().terminal_projection_for_reporting()
+                    ),
                     format!("external_row:{external_row}"),
                 ]
             })

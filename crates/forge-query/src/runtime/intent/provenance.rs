@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use super::provenance_identity::{
+    intent_execution_provenance_chain_identity, IntentExecutionProvenanceIdentityParts,
+};
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::intent_admission::{
     ForgeQueryAuthoritativeIntentExecutionBinding, ForgeQueryEffectTriggeredIntentExecutionBinding,
     ForgeQueryIntentAdmissionCoveredEntrypoint, ForgeQueryIntentAdmissionExecutionSeam,
@@ -13,14 +16,14 @@ pub struct ForgeQueryIntentExecutionProvenance {
     admission_decision_digest: String,
     execution_handoff_digest: String,
     execution_binding_digest: String,
-    execution_provenance_chain_digest: String,
+    execution_provenance_chain_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryIntentExecutionProvenance {
     pub(in crate::runtime) fn for_authoritative_binding(
         binding: &ForgeQueryAuthoritativeIntentExecutionBinding,
         execution_outcome_digest: &str,
-        snapshot_token: &str,
+        snapshot_evidence_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
         Self::new(
             binding.family(),
@@ -30,14 +33,14 @@ impl ForgeQueryIntentExecutionProvenance {
             binding.handoff().handoff_digest(),
             binding.binding_digest(),
             execution_outcome_digest,
-            snapshot_token,
+            snapshot_evidence_identity,
         )
     }
 
     pub(in crate::runtime) fn for_effect_binding(
         binding: &ForgeQueryEffectTriggeredIntentExecutionBinding,
         execution_outcome_digest: &str,
-        snapshot_token: &str,
+        snapshot_evidence_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
         Self::new(
             binding.family(),
@@ -47,7 +50,7 @@ impl ForgeQueryIntentExecutionProvenance {
             binding.handoff().handoff_digest(),
             binding.binding_digest(),
             execution_outcome_digest,
-            snapshot_token,
+            snapshot_evidence_identity,
         )
     }
 
@@ -59,7 +62,7 @@ impl ForgeQueryIntentExecutionProvenance {
         execution_handoff_digest: &str,
         execution_binding_digest: &str,
         execution_outcome_digest: &str,
-        snapshot_token: &str,
+        snapshot_evidence_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
         Self::new(
             family,
@@ -69,7 +72,29 @@ impl ForgeQueryIntentExecutionProvenance {
             execution_handoff_digest,
             execution_binding_digest,
             execution_outcome_digest,
-            snapshot_token,
+            snapshot_evidence_identity,
+        )
+    }
+
+    pub(in crate::runtime) fn for_shared_execution_typed_parts(
+        family: ForgeQueryIntentAdmissionFamily,
+        entrypoint: ForgeQueryIntentAdmissionCoveredEntrypoint,
+        execution_seam: ForgeQueryIntentAdmissionExecutionSeam,
+        admission_decision_digest: &str,
+        execution_handoff_digest: &str,
+        execution_binding_digest: &str,
+        execution_outcome_digest: &str,
+        snapshot_evidence_identity: &ForgeQueryEvidenceIdentity,
+    ) -> Self {
+        Self::for_shared_execution_parts(
+            family,
+            entrypoint,
+            execution_seam,
+            admission_decision_digest,
+            execution_handoff_digest,
+            execution_binding_digest,
+            execution_outcome_digest,
+            snapshot_evidence_identity,
         )
     }
 
@@ -81,19 +106,19 @@ impl ForgeQueryIntentExecutionProvenance {
         execution_handoff_digest: &str,
         execution_binding_digest: &str,
         execution_outcome_digest: &str,
-        snapshot_token: &str,
+        snapshot_evidence_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
-        let execution_provenance_chain_digest = hash_parts(&[
-            "forge_query_intent_execution_provenance_chain_v2".to_string(),
-            format!("family:{}", family.as_str()),
-            format!("entrypoint:{}", entrypoint.as_str()),
-            format!("seam:{}", execution_seam.as_str()),
-            format!("decision:{admission_decision_digest}"),
-            format!("handoff:{execution_handoff_digest}"),
-            format!("binding:{execution_binding_digest}"),
-            format!("outcome:{execution_outcome_digest}"),
-            format!("snapshot:{snapshot_token}"),
-        ]);
+        let execution_provenance_chain_digest =
+            intent_execution_provenance_chain_identity(IntentExecutionProvenanceIdentityParts {
+                family: family.as_str(),
+                entrypoint: entrypoint.as_str(),
+                execution_seam: execution_seam.as_str(),
+                admission_decision_digest,
+                execution_handoff_digest,
+                execution_binding_digest,
+                execution_outcome_digest,
+                snapshot_evidence_identity,
+            });
         Self {
             family,
             entrypoint,
@@ -130,6 +155,10 @@ impl ForgeQueryIntentExecutionProvenance {
     }
 
     pub fn execution_provenance_chain_digest(&self) -> &str {
+        self.execution_provenance_chain_digest.as_str()
+    }
+
+    pub fn execution_provenance_chain_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.execution_provenance_chain_digest
     }
 }

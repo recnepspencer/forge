@@ -5,12 +5,13 @@ use crate::mapping::{
     BridgeAspectRegistrationId, BridgeMappingId, BridgeMappingWideningClass, CoarseRoutingMode,
     SliceWideningPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind,
 };
+use crate::relational_identity::RelationalBridgeRecordIdentityParts;
 use crate::routing::surfaces::TruthDeltaSurfaceIdentity;
 use crate::routing::{FineGrainedMatchOutcome, FineGrainedMatchStatus};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeRouteRecordEntry {
-    entity_identity: String,
+    entity_identity: BridgeRouteRecordEntityIdentity,
     aspect_key: AspectKey,
     target: BridgeCommittedPatchTarget,
     source_target: BridgeCommittedPatchTarget,
@@ -24,9 +25,35 @@ pub struct BridgeRouteRecordEntry {
 
 pub type BridgeRouteRecordMatch = FineGrainedMatchOutcome;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BridgeRouteRecordEntityIdentity {
+    RelationalRecord(RelationalBridgeRecordIdentityParts),
+    TruthSurface(TruthDeltaSurfaceIdentity),
+}
+
+impl BridgeRouteRecordEntityIdentity {
+    pub fn diagnostic_label(&self) -> String {
+        match self {
+            Self::RelationalRecord(record) => format!(
+                "relational-record:{}:{}:{}:{}",
+                match record.kind() {
+                    crate::relational_identity::RelationalBridgeRecordIdentityKind::Entity =>
+                        "entity",
+                    crate::relational_identity::RelationalBridgeRecordIdentityKind::Relation =>
+                        "relation",
+                },
+                record.partition_id(),
+                record.local_slot(),
+                record.generation()
+            ),
+            Self::TruthSurface(surface) => surface.as_str().to_string(),
+        }
+    }
+}
+
 impl BridgeRouteRecordEntry {
     pub(crate) fn new(
-        entity_identity: impl Into<String>,
+        entity_identity: BridgeRouteRecordEntityIdentity,
         aspect_key: AspectKey,
         target: BridgeCommittedPatchTarget,
         source_target: BridgeCommittedPatchTarget,
@@ -38,7 +65,7 @@ impl BridgeRouteRecordEntry {
         match_detail: BridgeRouteRecordMatch,
     ) -> Self {
         Self {
-            entity_identity: entity_identity.into(),
+            entity_identity,
             aspect_key,
             target,
             source_target,
@@ -51,7 +78,7 @@ impl BridgeRouteRecordEntry {
         }
     }
 
-    pub fn entity_identity(&self) -> &str {
+    pub fn entity_identity(&self) -> &BridgeRouteRecordEntityIdentity {
         &self.entity_identity
     }
 

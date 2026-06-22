@@ -8,6 +8,7 @@ use super::BridgeAsyncWritebackCounters;
 pub enum BridgeAsyncWritebackRejectionKind {
     CompletionMustBeAuthoritative,
     PreviewCompletionForbidden,
+    AuthoritativeTruthBasisMissing,
     CurrentAuthorityDrifted,
     MapperEffectClassUnsupported,
     MapperFailed,

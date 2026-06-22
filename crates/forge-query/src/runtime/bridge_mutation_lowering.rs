@@ -1,8 +1,13 @@
 use forge_runtime_bridge::facade::{
     BridgeContinuityAuthoritativeIdentity, BridgeContinuityMutationBundle,
     BridgeContinuityOutcomeClass, BridgeContinuityResolvedTargetIdentity,
-    BridgeContinuityTargetCollection, BridgeNamingMutationBundle,
+    BridgeContinuityTargetCollection, BridgeNamingAttachmentIdentity,
+    BridgeNamingAuthoritativeIdentity, BridgeNamingMutationBundle,
+    BridgeNamingResolvedTargetIdentity, BridgeNamingTargetCollection,
+    RelationalBridgeRecordIdentityParts,
 };
+
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 
 use super::{
     ForgeQueryContinuityMutationFamily, ForgeQueryContinuityMutationIntent,
@@ -12,16 +17,20 @@ use super::{
 
 pub(super) fn bridge_naming_mutation_bundle(
     intent: &ForgeQueryNamingMutationIntent,
-    resolved_target_entity_identity: Option<&str>,
+    resolved_target_entity_identity: Option<&ForgeQueryEntityIdentity>,
     target_collection: Option<&str>,
 ) -> Option<BridgeNamingMutationBundle> {
+    let resolved_target_entity_identity =
+        resolved_target_entity_identity.and_then(bridge_naming_resolved_target_identity);
+    let target_collection = target_collection.map(BridgeNamingTargetCollection::new);
+    let attachment_identity = bridge_naming_attachment_identity(intent.attachment_identity());
     match intent.family() {
         ForgeQueryNamingMutationFamily::AttachNewTarget => {
             resolved_target_entity_identity.map(|resolved_target_entity_identity| {
                 BridgeNamingMutationBundle::attach_new_target(
-                    intent.attachment_identity(),
+                    attachment_identity.clone(),
                     resolved_target_entity_identity,
-                    target_collection,
+                    target_collection.clone(),
                 )
             })
         }
@@ -31,10 +40,10 @@ pub(super) fn bridge_naming_mutation_bundle(
                     .target_authoritative_identity()
                     .map(|target_authoritative_identity| {
                         BridgeNamingMutationBundle::attach_existing_target(
-                            intent.attachment_identity(),
-                            target_authoritative_identity,
+                            attachment_identity.clone(),
+                            bridge_naming_authoritative_identity(target_authoritative_identity),
                             resolved_target_entity_identity,
-                            target_collection,
+                            target_collection.clone(),
                         )
                     })
             }),
@@ -46,11 +55,15 @@ pub(super) fn bridge_naming_mutation_bundle(
                         intent.target_authoritative_identity().map(
                             |target_authoritative_identity| {
                                 BridgeNamingMutationBundle::rebind_target(
-                                    intent.attachment_identity(),
-                                    prior_authoritative_identity,
-                                    target_authoritative_identity,
+                                    attachment_identity.clone(),
+                                    bridge_naming_authoritative_identity(
+                                        prior_authoritative_identity,
+                                    ),
+                                    bridge_naming_authoritative_identity(
+                                        target_authoritative_identity,
+                                    ),
                                     resolved_target_entity_identity,
-                                    target_collection,
+                                    target_collection.clone(),
                                 )
                             },
                         )
@@ -62,10 +75,10 @@ pub(super) fn bridge_naming_mutation_bundle(
                 .prior_authoritative_identity()
                 .map(|prior_authoritative_identity| {
                     BridgeNamingMutationBundle::remove(
-                        intent.attachment_identity(),
-                        prior_authoritative_identity,
+                        attachment_identity.clone(),
+                        bridge_naming_authoritative_identity(prior_authoritative_identity),
                         resolved_target_entity_identity,
-                        target_collection,
+                        target_collection.clone(),
                     )
                 })
         }
@@ -75,7 +88,7 @@ pub(super) fn bridge_naming_mutation_bundle(
 pub(super) fn bridge_continuity_mutation_bundle(
     intent: &ForgeQueryContinuityMutationIntent,
     _basis_binding_digest: Option<&str>,
-    resolved_target_entity_identity: Option<&str>,
+    resolved_target_entity_identity: Option<&ForgeQueryEntityIdentity>,
     target_collection: Option<&str>,
 ) -> Option<BridgeContinuityMutationBundle> {
     let outcome_class = match intent.outcome_class() {
@@ -90,7 +103,9 @@ pub(super) fn bridge_continuity_mutation_bundle(
         }
     };
     let prior_authoritative_identity =
-        continuity_authoritative_identity(intent.prior_authoritative_identity())?;
+        bridge_continuity_authoritative_identity(intent.prior_authoritative_identity());
+    let resolved_target_entity_identity =
+        resolved_target_entity_identity.and_then(bridge_resolved_target_identity);
     let resolved_target_entity_identity = match resolved_target_entity_identity {
         Some(identity) => Some(continuity_resolved_target_identity(identity)?),
         None => None,
@@ -105,9 +120,9 @@ pub(super) fn bridge_continuity_mutation_bundle(
             BridgeContinuityMutationBundle::rebind_existing_target(
                 outcome_class,
                 prior_authoritative_identity,
-                Some(continuity_authoritative_identity(
+                Some(bridge_continuity_authoritative_identity(
                     intent.successor_authoritative_identity(),
-                )?),
+                )),
                 resolved_target_entity_identity,
                 target_collection,
             )
@@ -120,8 +135,8 @@ pub(super) fn bridge_continuity_mutation_bundle(
                 intent
                     .successor_authoritative_identities()
                     .iter()
-                    .map(|identity| continuity_authoritative_identity(identity))
-                    .collect::<Option<Vec<_>>>()?,
+                    .map(bridge_continuity_authoritative_identity)
+                    .collect::<Vec<_>>(),
                 resolved_target_entity_identity,
                 target_collection,
             )
@@ -130,14 +145,48 @@ pub(super) fn bridge_continuity_mutation_bundle(
     }
 }
 
-fn continuity_authoritative_identity(value: &str) -> Option<BridgeContinuityAuthoritativeIdentity> {
-    BridgeContinuityAuthoritativeIdentity::new(value).ok()
+fn bridge_continuity_authoritative_identity(
+    identity: &crate::runtime::ForgeQueryMutationAuthorityIdentity,
+) -> BridgeContinuityAuthoritativeIdentity {
+    BridgeContinuityAuthoritativeIdentity::from_bridge_evidence(
+        &identity.evidence_identity().bridge_evidence_identity(),
+    )
+}
+
+fn bridge_naming_attachment_identity(
+    identity: &crate::runtime::ForgeQueryMutationAuthorityIdentity,
+) -> BridgeNamingAttachmentIdentity {
+    BridgeNamingAttachmentIdentity::from_bridge_evidence(
+        &identity.evidence_identity().bridge_evidence_identity(),
+    )
+}
+
+fn bridge_naming_authoritative_identity(
+    identity: &crate::runtime::ForgeQueryMutationAuthorityIdentity,
+) -> BridgeNamingAuthoritativeIdentity {
+    BridgeNamingAuthoritativeIdentity::from_bridge_evidence(
+        &identity.evidence_identity().bridge_evidence_identity(),
+    )
+}
+
+fn bridge_naming_resolved_target_identity(
+    identity: &ForgeQueryEntityIdentity,
+) -> Option<BridgeNamingResolvedTargetIdentity> {
+    identity
+        .relational_record_parts()
+        .map(BridgeNamingResolvedTargetIdentity::from_relational_record)
+}
+
+fn bridge_resolved_target_identity(
+    identity: &ForgeQueryEntityIdentity,
+) -> Option<RelationalBridgeRecordIdentityParts> {
+    identity.relational_record_parts()
 }
 
 fn continuity_resolved_target_identity(
-    value: &str,
+    parts: RelationalBridgeRecordIdentityParts,
 ) -> Option<BridgeContinuityResolvedTargetIdentity> {
-    BridgeContinuityResolvedTargetIdentity::new(value).ok()
+    BridgeContinuityResolvedTargetIdentity::new(parts.bridge_entity_identity()).ok()
 }
 
 fn continuity_target_collection(value: &str) -> Option<BridgeContinuityTargetCollection> {
@@ -146,44 +195,101 @@ fn continuity_target_collection(value: &str) -> Option<BridgeContinuityTargetCol
 
 #[cfg(test)]
 mod tests {
-    use super::bridge_continuity_mutation_bundle;
+    use super::{bridge_continuity_mutation_bundle, bridge_naming_mutation_bundle};
+    use crate::memory_workspace::ForgeQueryEntityIdentity;
     use crate::runtime::{
         ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationIntent,
+        ForgeQueryNamingMutationIntent,
     };
+    use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 
     #[test]
     fn bridge_lowered_continuity_uses_bridge_native_digest_basis() {
         let intent = ForgeQueryContinuityMutationIntent::rebind_merge_successor(
-            "authority:task-1",
-            "authority:task-1-successor",
+            crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(
+                crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-1")
+                    .expect("continuity prior authority label"),
+            )
+            .expect("continuity prior authority identity"),
+            crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(
+                crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                    "authority:task-1-successor",
+                )
+                .expect("continuity successor authority label"),
+            )
+            .expect("continuity successor authority identity"),
         )
         .expect("continuity intent should build");
 
+        let entity_identity = ForgeQueryEntityIdentity::from_relational_record(
+            RelationalBridgeRecordIdentityParts::entity(1, 42, 1),
+        );
         let lowered =
-            bridge_continuity_mutation_bundle(&intent, None, Some("entity:task-1"), Some("Task"))
+            bridge_continuity_mutation_bundle(&intent, None, Some(&entity_identity), Some("Task"))
                 .expect("bridge continuity bundle should lower");
 
         let bridge_evidence = ForgeQueryContinuityMutationEvidence::from_bridge(&lowered);
 
         assert_eq!(bridge_evidence.family(), intent.family());
         assert_eq!(
-            bridge_evidence.prior_authoritative_identity(),
-            intent.prior_authoritative_identity()
+            intent.prior_authoritative_identity().as_str(),
+            "authority:task-1",
         );
+        assert!(bridge_evidence
+            .prior_authoritative_identity()
+            .as_str()
+            .starts_with("bridge-continuity-authoritative:"),);
         assert_eq!(
-            bridge_evidence.successor_authoritative_identity(),
-            Some(intent.successor_authoritative_identity())
+            intent.successor_authoritative_identity().as_str(),
+            "authority:task-1-successor",
         );
+        assert!(bridge_evidence
+            .successor_authoritative_identity()
+            .expect("successor authoritative identity")
+            .as_str()
+            .starts_with("bridge-continuity-authoritative:"),);
         assert_eq!(
             bridge_evidence.resolved_target_entity_identity(),
-            Some("entity:task-1")
+            Some(&entity_identity)
         );
-        assert_eq!(bridge_evidence.target_collection(), Some("Task"));
+        assert_eq!(
+            bridge_evidence
+                .target_collection()
+                .map(|collection| collection.as_str()),
+            Some("Task")
+        );
+        assert!(!bridge_evidence
+            .lineage_digest()
+            .starts_with("bridge-continuity-mutation-lineage:"));
         assert!(bridge_evidence
             .lineage_digest()
-            .starts_with("bridge-continuity-mutation-lineage:sha256:"));
+            .as_str()
+            .starts_with("forge.query.evidence-identity.v1:"));
+        assert!(!bridge_evidence
+            .continuity_resolution_digest()
+            .starts_with("bridge-continuity-mutation-resolution:"));
         assert!(bridge_evidence
             .continuity_resolution_digest()
-            .starts_with("bridge-continuity-mutation-resolution:sha256:"));
+            .as_str()
+            .starts_with("forge.query.evidence-identity.v1:"));
+    }
+
+    #[test]
+    fn bridge_lowering_rejects_authored_query_identity_for_native_target() {
+        let intent = ForgeQueryNamingMutationIntent::attach_new_target(
+            crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(
+                crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("attachment:task-1")
+                    .expect("naming attachment authority label"),
+            )
+            .expect("naming attachment identity"),
+        );
+        let authored_identity =
+            crate::memory_workspace::admit_authored_entity_label("entity:task-1");
+
+        assert!(
+            bridge_naming_mutation_bundle(&intent, Some(&authored_identity), Some("Task"))
+                .is_none(),
+            "bridge mutation lowering must not smuggle authored Query evidence into native bridge target identity"
+        );
     }
 }

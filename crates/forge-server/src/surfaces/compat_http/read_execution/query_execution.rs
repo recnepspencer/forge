@@ -1,22 +1,20 @@
 use forge_proof::TransitionOutcome;
-use forge_query::facade::ForgeQueryInspection;
 
 use crate::{
-    ForgeServerAdmittedDirectDeclaration, ForgeServerCompatibilityFacade,
-    ForgeServerCompatibilityInspection, ForgeServerCompatibilityPreparedRequest,
-    ForgeServerCompatibilityRead, ForgeServerCompatibilityState, ForgeServerDirectContextArtifact,
-    ForgeServerDirectRemaskPosture, ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffFailure,
-    ForgeServerQueryHandoffInput, ForgeServerQueryHandoffOperation, ForgeServerReadValidator,
+    ForgeServerCompatibilityFacade, ForgeServerCompatibilityRead, ForgeServerDirectContextArtifact,
+    ForgeServerDirectRemaskPosture, ForgeServerOperationFamily, ForgeServerOperationRequestDenial,
+    ForgeServerOperationRequestDenialCode, ForgeServerOperationRequestFacade,
+    ForgeServerQueryHandoffDenialFacts, ForgeServerQueryHandoffOperation, ForgeServerReadValidator,
     ForgeServerResponseInput,
 };
 
 use super::{
-    basis::ForgeServerExternalBasisRequest,
     cache_policy::ForgeServerCompatibilityCachePolicy,
     conditional::ForgeServerConditionalRead,
-    execution::{
-        admit_declaration, named_read_declaration, ForgeServerCompatibilityExecutionInput,
-        ForgeServerCompatibilityExecutionOutcome,
+    execution::{ForgeServerCompatibilityExecutionInput, ForgeServerCompatibilityExecutionOutcome},
+    query_support::{
+        admitted_named_read_declaration, compatibility_basis_request, compatibility_plan,
+        runtime_error_outcome, validate_conditional_read,
     },
 };
 
@@ -26,6 +24,36 @@ impl ForgeServerCompatibilityFacade {
         input: ForgeServerCompatibilityExecutionInput,
     ) -> ForgeServerCompatibilityExecutionOutcome<ForgeServerCompatibilityRead> {
         let (prepared_request, operation_name) = input.into_parts();
+        if let Err(denial) = self.admit_operation_family_for_query(
+            prepared_request
+                .admission()
+                .request_context()
+                .diagnostics_profile(),
+            ForgeServerOperationFamily::QueryDirectRead,
+        ) {
+            return TransitionOutcome::Denied(denial);
+        }
+        if let Err(denial) = crate::surfaces::compat_http::validate_canonical_filename(
+            &operation_name,
+            prepared_request
+                .admission()
+                .request_context()
+                .diagnostics_profile(),
+            crate::ForgeServerQueryHandoffDenialCode::DirectDeclarationBindingInvalid,
+        ) {
+            return TransitionOutcome::Denied(denial);
+        }
+        if let Err(denial) = crate::surfaces::compat_http::validate_operation_name_binding(
+            prepared_request.request_contract(),
+            &operation_name,
+            crate::ForgeServerQueryHandoffDenialCode::DirectDeclarationBindingInvalid,
+            prepared_request
+                .admission()
+                .request_context()
+                .diagnostics_profile(),
+        ) {
+            return TransitionOutcome::Denied(denial);
+        }
         let basis_request = match compatibility_basis_request(&prepared_request) {
             Ok(value) => value,
             Err(denial) => return TransitionOutcome::Denied(denial),
@@ -53,21 +81,44 @@ impl ForgeServerCompatibilityFacade {
         ) {
             return TransitionOutcome::Denied(denial);
         }
+        let operation_request =
+            match ForgeServerOperationRequestFacade::new(self.operation_registry.clone())
+                .admit_from_compat_http_with_basis_digest(
+                    &prepared_request,
+                    ForgeServerOperationFamily::QueryDirectRead,
+                    &operation_name,
+                    Some(&observed_basis_digest),
+                    None,
+                ) {
+                Ok(value) => value,
+                Err(denial) => {
+                    return TransitionOutcome::Denied(map_operation_request_denial(denial));
+                }
+            };
 
-        let handoff = match compatibility_handoff(
+        let operation_admission =
+            match crate::ForgeServerOperationAdmissionFacade::with_operation_registry(
+                self.operation_registry.clone(),
+            )
+            .admit_declared(prepared_request.admission(), &operation_request)
+            {
+                Ok(value) => value,
+                Err(denial) => {
+                    return TransitionOutcome::Denied(
+                        crate::surfaces::compat_http::map_operation_admission_denial(denial),
+                    );
+                }
+            };
+        let plan = match compatibility_plan(
             self,
-            &prepared_request,
+            operation_admission,
             ForgeServerQueryHandoffOperation::direct_read(&operation_name),
         ) {
-            TransitionOutcome::Success(value) => value,
-            TransitionOutcome::Denied(denial) => return TransitionOutcome::Denied(denial),
-            TransitionOutcome::Deferred(value) => return TransitionOutcome::Deferred(value),
-            TransitionOutcome::Stale(value) => return TransitionOutcome::Stale(value),
-            TransitionOutcome::RebindRequired(value) => {
-                return TransitionOutcome::RebindRequired(value);
-            }
-            TransitionOutcome::Failed(value) => return TransitionOutcome::Failed(value),
+            Ok(value) => value,
+            Err(denial) => return TransitionOutcome::Denied(denial),
         };
+        let plan_proof = plan.proof();
+        let handoff = plan.into_query_handoff();
         let read_result = match declaration.execute_named_live_read() {
             Ok(value) => value,
             Err(error) => return runtime_error_outcome(&prepared_request, error),
@@ -88,6 +139,7 @@ impl ForgeServerCompatibilityFacade {
         let validator = ForgeServerReadValidator::new(
             read_result.receipt().result_digest(),
             direct_context.basis_digest(),
+            direct_context.branch_digest(),
         );
         if let Err(denial) =
             validate_conditional_read(&prepared_request, &conditional_read, &validator)
@@ -98,7 +150,24 @@ impl ForgeServerCompatibilityFacade {
             &prepared_request,
             direct_context.remask_posture(),
         );
+        let file_envelope = crate::surfaces::compat_http::project_metadata_read_envelope(
+            &direct_context,
+            &operation_name,
+            read_result.receipt().result_digest(),
+            &response_envelope,
+            &support_posture,
+            &cache_policy,
+        );
+        let certification_bundle = crate::surfaces::compat_http::build_read_certification_bundle(
+            &self.operator_evidence,
+            &support_posture,
+            &file_envelope,
+            &response_envelope,
+        );
         TransitionOutcome::Success(ForgeServerCompatibilityRead::new(
+            operation_request,
+            plan_proof,
+            operation_name,
             support_posture,
             workspace_name,
             declaration.declaration_digest().to_string(),
@@ -110,258 +179,44 @@ impl ForgeServerCompatibilityFacade {
             response_envelope,
             validator,
             cache_policy,
-        ))
-    }
-
-    pub fn state(
-        &self,
-        input: ForgeServerCompatibilityExecutionInput,
-    ) -> ForgeServerCompatibilityExecutionOutcome<ForgeServerCompatibilityState> {
-        let (prepared_request, operation_name) = input.into_parts();
-        let basis_request = match compatibility_basis_request(&prepared_request) {
-            Ok(value) => value,
-            Err(denial) => return TransitionOutcome::Denied(denial),
-        };
-        let declaration =
-            match admitted_named_read_declaration(self, &prepared_request, &operation_name) {
-                Ok(value) => value,
-                Err(denial) => return TransitionOutcome::Denied(denial),
-            };
-        let observed_basis_digest = match declaration.subscription_basis_digest() {
-            Ok(value) => value,
-            Err(error) => return runtime_error_outcome(&prepared_request, error),
-        };
-        if let Err(denial) = basis_request.validate_observed_basis(
-            prepared_request
-                .admission()
-                .request_context()
-                .diagnostics_profile(),
-            Some(&observed_basis_digest),
-        ) {
-            return TransitionOutcome::Denied(denial);
-        }
-
-        let handoff = match compatibility_handoff(
-            self,
-            &prepared_request,
-            ForgeServerQueryHandoffOperation::direct_state(
-                declaration.declaration_canonical_label(),
-            ),
-        ) {
-            TransitionOutcome::Success(value) => value,
-            TransitionOutcome::Denied(denial) => return TransitionOutcome::Denied(denial),
-            TransitionOutcome::Deferred(value) => return TransitionOutcome::Deferred(value),
-            TransitionOutcome::Stale(value) => return TransitionOutcome::Stale(value),
-            TransitionOutcome::RebindRequired(value) => {
-                return TransitionOutcome::RebindRequired(value);
-            }
-            TransitionOutcome::Failed(value) => return TransitionOutcome::Failed(value),
-        };
-        let runtime_state = match declaration.snapshot_named_live_state() {
-            Ok(value) => value,
-            Err(error) => return runtime_error_outcome(&prepared_request, error),
-        };
-        let support_posture = handoff.support_posture().clone();
-        let workspace_name = handoff.workspace().name().to_string();
-        let handoff_digest = handoff.canonical_digest().to_string();
-        let response_envelope = self
-            .responses
-            .shape_with_defaults(ForgeServerResponseInput::query_handoff_success(handoff));
-        let direct_context = ForgeServerDirectContextArtifact::new(
-            prepared_request.admission().request_context(),
-            &support_posture,
-            &response_envelope,
-            Some(runtime_state.basis_digest()),
-            ForgeServerDirectRemaskPosture::from_state_snapshot(&runtime_state),
-        );
-        let validator = ForgeServerReadValidator::new(
-            runtime_state.state_digest(),
-            direct_context.basis_digest(),
-        );
-        let cache_policy = ForgeServerCompatibilityCachePolicy::for_scoped_read(
-            &prepared_request,
-            direct_context.remask_posture(),
-        );
-        TransitionOutcome::Success(ForgeServerCompatibilityState::new(
-            support_posture,
-            workspace_name,
-            declaration.declaration_digest().to_string(),
-            handoff_digest,
-            direct_context,
-            basis_request,
-            runtime_state,
-            response_envelope,
-            validator,
-            cache_policy,
-        ))
-    }
-
-    pub fn inspect(
-        &self,
-        input: ForgeServerCompatibilityExecutionInput,
-    ) -> ForgeServerCompatibilityExecutionOutcome<ForgeServerCompatibilityInspection> {
-        let (prepared_request, operation_name) = input.into_parts();
-        let basis_request = match compatibility_basis_request(&prepared_request) {
-            Ok(value) => value,
-            Err(denial) => return TransitionOutcome::Denied(denial),
-        };
-        let declaration =
-            match admitted_named_read_declaration(self, &prepared_request, &operation_name) {
-                Ok(value) => value,
-                Err(denial) => return TransitionOutcome::Denied(denial),
-            };
-        let observed_basis_digest = match declaration.subscription_basis_digest() {
-            Ok(value) => value,
-            Err(error) => return runtime_error_outcome(&prepared_request, error),
-        };
-        if let Err(denial) = basis_request.validate_observed_basis(
-            prepared_request
-                .admission()
-                .request_context()
-                .diagnostics_profile(),
-            Some(&observed_basis_digest),
-        ) {
-            return TransitionOutcome::Denied(denial);
-        }
-
-        let handoff = match compatibility_handoff(
-            self,
-            &prepared_request,
-            ForgeServerQueryHandoffOperation::direct_inspection(
-                declaration.declaration_canonical_label(),
-            ),
-        ) {
-            TransitionOutcome::Success(value) => value,
-            TransitionOutcome::Denied(denial) => return TransitionOutcome::Denied(denial),
-            TransitionOutcome::Deferred(value) => return TransitionOutcome::Deferred(value),
-            TransitionOutcome::Stale(value) => return TransitionOutcome::Stale(value),
-            TransitionOutcome::RebindRequired(value) => {
-                return TransitionOutcome::RebindRequired(value);
-            }
-            TransitionOutcome::Failed(value) => return TransitionOutcome::Failed(value),
-        };
-        let inspection_result = match declaration.inspect_named_live_view() {
-            Ok(value) => value,
-            Err(error) => return runtime_error_outcome(&prepared_request, error),
-        };
-        let support_posture = handoff.support_posture().clone();
-        let workspace_name = handoff.workspace().name().to_string();
-        let handoff_digest = handoff.canonical_digest().to_string();
-        let response_envelope = self
-            .responses
-            .shape_with_defaults(ForgeServerResponseInput::query_handoff_success(handoff));
-        let (basis_digest, remask_posture) = match inspection_result.inspection() {
-            ForgeQueryInspection::LiveView(live) => (
-                Some(live.basis_binding_digest()),
-                ForgeServerDirectRemaskPosture::from_live_inspection(live),
-            ),
-            _ => (None, ForgeServerDirectRemaskPosture::visible()),
-        };
-        let direct_context = ForgeServerDirectContextArtifact::new(
-            prepared_request.admission().request_context(),
-            &support_posture,
-            &response_envelope,
-            basis_digest,
-            remask_posture,
-        );
-        let validator = ForgeServerReadValidator::new(
-            inspection_result.receipt().result_digest(),
-            direct_context.basis_digest(),
-        );
-        let cache_policy = ForgeServerCompatibilityCachePolicy::for_scoped_read(
-            &prepared_request,
-            direct_context.remask_posture(),
-        );
-        TransitionOutcome::Success(ForgeServerCompatibilityInspection::new(
-            support_posture,
-            workspace_name,
-            declaration.declaration_digest().to_string(),
-            handoff_digest,
-            direct_context,
-            basis_request,
-            inspection_result,
-            response_envelope,
-            validator,
-            cache_policy,
+            certification_bundle,
         ))
     }
 }
 
-fn compatibility_basis_request(
-    prepared_request: &ForgeServerCompatibilityPreparedRequest,
-) -> Result<ForgeServerExternalBasisRequest, ForgeServerQueryHandoffDenial> {
-    ForgeServerExternalBasisRequest::from_prepared_request(prepared_request)
-}
-
-fn admitted_named_read_declaration(
-    facade: &ForgeServerCompatibilityFacade,
-    prepared_request: &ForgeServerCompatibilityPreparedRequest,
-    operation_name: &str,
-) -> Result<ForgeServerAdmittedDirectDeclaration, ForgeServerQueryHandoffDenial> {
-    admit_declaration(
-        &facade.declaration_intake,
-        prepared_request.admission().clone(),
-        named_read_declaration(operation_name),
-    )
-}
-
-fn compatibility_handoff(
-    facade: &ForgeServerCompatibilityFacade,
-    prepared_request: &ForgeServerCompatibilityPreparedRequest,
-    operation: ForgeServerQueryHandoffOperation,
-) -> crate::ForgeServerQueryHandoffOutcome {
-    facade
-        .query_handoff
-        .prepare(ForgeServerQueryHandoffInput::new(
-            prepared_request.admission().clone(),
-            operation,
-        ))
-}
-
-fn validate_conditional_read(
-    prepared_request: &ForgeServerCompatibilityPreparedRequest,
-    conditional_read: &ForgeServerConditionalRead,
-    validator: &ForgeServerReadValidator,
-) -> Result<(), ForgeServerQueryHandoffDenial> {
-    if let Some(expected) = conditional_read.if_match() {
-        if expected != validator.entity_tag() {
-            return Err(crate::ForgeServerQueryHandoffDenial::new(
-                crate::ForgeServerQueryHandoffDenialCode::CompatibilityConditionalReadPreconditionFailed,
-                prepared_request.admission().request_context().diagnostics_profile(),
-                "compatibility if-match validator does not match the canonical read validator",
-            ));
+pub(crate) fn map_operation_request_denial(
+    denial: ForgeServerOperationRequestDenial,
+) -> crate::ForgeServerQueryHandoffDenial {
+    let code = match denial.code() {
+        ForgeServerOperationRequestDenialCode::CompatibilityBindingInvalid
+        | ForgeServerOperationRequestDenialCode::InvalidOperationName
+        | ForgeServerOperationRequestDenialCode::MissingOperationName => {
+            crate::ForgeServerQueryHandoffDenialCode::DirectDeclarationBindingInvalid
         }
-    }
-    if let Some(expected) = conditional_read.if_none_match() {
-        if expected == validator.entity_tag() {
-            return Err(crate::ForgeServerQueryHandoffDenial::new(
-                crate::ForgeServerQueryHandoffDenialCode::CompatibilityConditionalReadNotModified,
-                prepared_request.admission().request_context().diagnostics_profile(),
-                "compatibility if-none-match validator already matches the canonical read validator",
-            ));
+        ForgeServerOperationRequestDenialCode::InvalidBasisDigest => {
+            crate::ForgeServerQueryHandoffDenialCode::CompatibilityBasisRequestInvalid
         }
-    }
-    Ok(())
-}
-
-fn runtime_error_outcome<T>(
-    prepared_request: &ForgeServerCompatibilityPreparedRequest,
-    error: forge_query::facade::ForgeQueryRuntimeError,
-) -> ForgeServerCompatibilityExecutionOutcome<T> {
-    match error {
-        forge_query::facade::ForgeQueryRuntimeError::MissingLiveView(_)
-        | forge_query::facade::ForgeQueryRuntimeError::MissingLiveSubscription(_) => {
-            TransitionOutcome::Denied(crate::ForgeServerQueryHandoffDenial::new(
-                crate::ForgeServerQueryHandoffDenialCode::RetainedQueryArtifactUnavailable,
-                prepared_request
-                    .admission()
-                    .request_context()
-                    .diagnostics_profile(),
-                error.to_string(),
-            ))
+        ForgeServerOperationRequestDenialCode::UnknownOperationName => {
+            crate::ForgeServerQueryHandoffDenialCode::UnknownOperationName
         }
-        _ => TransitionOutcome::Failed(ForgeServerQueryHandoffFailure::new(
-            "compatibility_query_execution_failed",
-        )),
+        _ => crate::ForgeServerQueryHandoffDenialCode::CompatibilityConditionalRequestInvalid,
+    };
+    let rejected_operation_name = match denial.code() {
+        ForgeServerOperationRequestDenialCode::UnknownOperationName => {
+            denial.detail().split('`').nth(1).map(str::to_string)
+        }
+        _ => None,
+    };
+    let denial = crate::ForgeServerQueryHandoffDenial::new(
+        code,
+        denial.diagnostics_profile(),
+        denial.detail(),
+    );
+    match rejected_operation_name {
+        Some(operation_name) => denial.with_facts(
+            ForgeServerQueryHandoffDenialFacts::default()
+                .with_rejected_operation_name(operation_name),
+        ),
+        None => denial,
     }
 }

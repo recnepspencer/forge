@@ -22,9 +22,10 @@ impl BridgeSubscriptionCheckpointReady {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            checkpoint_ready_identity: BridgeSubscriptionCheckpointReadyIdentity::new(format!(
-                "bridge-subscription-checkpoint-ready-id:sha256:{digest:x}"
-            )),
+            checkpoint_ready_identity:
+                BridgeSubscriptionCheckpointReadyIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-checkpoint-ready-id:sha256:{digest:x}"
+                )),
             frontier,
             counters: BridgeSubscriptionCounters::from_checkpoint_ready(),
             canonical_basis,

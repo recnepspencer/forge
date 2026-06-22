@@ -4,6 +4,8 @@ mod delivery_contract;
 mod delivery_facade;
 mod delivery_request;
 mod facade;
+mod facade_errors;
+mod facade_projection;
 mod inspection;
 mod lease_declaration;
 mod mutation;

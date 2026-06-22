@@ -1,0 +1,5 @@
+error[E0599]: no method named `delete_existing_verified` found for struct `ForgeQueryWorkspace` in the current scope
+ --> tests/ui/prohibition_registry/existing_truth_delete_verified_forbidden.rs:7:23
+  |
+7 |     let _ = workspace.delete_existing_verified(
+  |             ----------^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryWorkspace`

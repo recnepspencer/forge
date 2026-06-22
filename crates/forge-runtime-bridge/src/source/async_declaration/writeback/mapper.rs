@@ -41,9 +41,9 @@ impl BridgeAsyncWritebackMapperOutput {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            mapper_output_identity: BridgeAsyncWritebackMapperOutputIdentity::new(format!(
-                "bridge-async-writeback-mapper-output-id:sha256:{digest:x}"
-            )),
+            mapper_output_identity: BridgeAsyncWritebackMapperOutputIdentity::admit_bridge_owned(
+                format!("bridge-async-writeback-mapper-output-id:sha256:{digest:x}"),
+            ),
             admission_digest: Arc::from(admitted.digest().to_owned()),
             writeback_family: admitted.family(),
             completion_identity: Arc::from(admitted.completion().completion_identity().to_owned()),

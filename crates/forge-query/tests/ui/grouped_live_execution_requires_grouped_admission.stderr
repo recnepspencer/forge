@@ -11,5 +11,5 @@ error[E0308]: mismatched types
    | |__________|
    |            expected due to this
    |
-   = note: expected fn pointer `for<'a, 'b, 'c> fn(&'a LiveViewShapeArtifact, &'b BridgeChangeSummary, &'c GroupedExecutionSurfaceArtifact) -> _`
-                 found fn item `for<'a, 'b, 'c> fn(GroupedLiveViewShapeArtifact<'a>, &'b BridgeChangeSummary, &'c GroupedExecutionSurfaceArtifact) -> std::result::Result<LiveViewShapeExecutionEnvelope, ViewShapeLiveError> {execute_grouped_live_view_shape_change}`
+   = note: expected fn pointer `for<'a, 'b, 'c> fn(&'a LiveViewShapeArtifact, &'b BridgeChangeSummary, &'c forge_query::facade::GroupedExecutionSurfaceArtifact) -> _`
+                 found fn item `for<'a, 'b, 'c> fn(GroupedLiveViewShapeArtifact<'a>, &'b BridgeChangeSummary, &'c forge_query::facade::GroupedExecutionSurfaceArtifact) -> std::result::Result<LiveViewShapeExecutionEnvelope, ViewShapeLiveError> {execute_grouped_live_view_shape_change}`

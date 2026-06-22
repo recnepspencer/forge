@@ -1,0 +1,21 @@
+warning: unreachable statement
+ --> tests/ui/subscription_phase_seven/subscription_equivalence_for_reporting_removed.rs:5:5
+  |
+4 |     let declaration: QuerySubscriptionDeclarationArtifact = todo!();
+  |                                                             ------- any code following this expression is unreachable
+5 |     let _ = declaration.equivalence_for_reporting();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `equivalence_for_reporting` found for struct `QuerySubscriptionDeclarationArtifact` in the current scope
+ --> tests/ui/subscription_phase_seven/subscription_equivalence_for_reporting_removed.rs:5:25
+  |
+5 |     let _ = declaration.equivalence_for_reporting();
+  |                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `equivalence_projection` with a similar name
+  |
+5 -     let _ = declaration.equivalence_for_reporting();
+5 +     let _ = declaration.equivalence_projection();
+  |

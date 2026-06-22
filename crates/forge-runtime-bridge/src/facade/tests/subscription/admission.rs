@@ -58,13 +58,17 @@ fn signal_strategy_identity_is_derived_from_validated_basis_evidence() {
     let snapshot_admission = runtime
         .admit_subscription(
             &declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            ),
         )
         .expect("snapshot basis should admit");
     let branch_head_admission = runtime
         .admit_subscription(
             &declaration,
-            BridgeSubscriptionBasisRequest::branch_head(TruthBranchIdentity::new("main")),
+            BridgeSubscriptionBasisRequest::branch_head(
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            ),
         )
         .expect("branch-head basis should admit");
 
@@ -114,7 +118,9 @@ fn runtime_rejects_subscription_admission_when_snapshot_basis_cannot_bind() {
     let rejection = runtime
         .admit_subscription(
             &declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("missing")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("missing"),
+            ),
         )
         .expect_err("unknown snapshot should reject admission");
 

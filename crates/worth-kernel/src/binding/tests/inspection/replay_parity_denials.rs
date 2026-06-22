@@ -62,7 +62,7 @@ fn replay_parity_preserves_equivalent_unsupported_histories_without_upgrading_de
             ),
         ),
     );
-    let handle = admitted_rebinding_handle("phase-fifteen-denied-parity");
+    let handle = admitted_rebinding_handle("replay-parity-denied");
     let left_historical = left
         .historical_inspection_with_query(
             &handle,

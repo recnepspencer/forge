@@ -11,7 +11,7 @@ The finalized public mutation surface is safe to build against now:
 - `workspace.insert(...)`
 - `workspace.update(...)`
 - `workspace.delete(...)`
-- `workspace.batch(...)`
+- `workspace.submissions()?.submit_batch(commands)`
 - `preview.insert(...)`
 - `preview.update(...)`
 - `preview.delete(...)`
@@ -26,15 +26,14 @@ them.
 
 These surfaces still exist, but they are not co-equal with the preferred API:
 
-- `workspace.write(...)`
 - `ForgeQueryWriteCommand::InsertAspects`
 - `ForgeQueryWriteCommand::UpdateAspect`
 - `ForgeQueryWriteCommand::UpdateAspects`
 - `ForgeQueryWriteCommand::Delete`
 
-`workspace.write(...)` is intentionally kept as a stable expert lower-level
-seam through the substrate rewrite. That is a maintenance boundary, not a
-signal that ordinary downstream runtime code should keep building on it.
+Direct workspace write and batch helpers are sealed. Command-shaped mutation
+flows through `workspace.write_intent(...)`, `workspace.write_batch_intent(...)`,
+or the explicit `workspace.submissions()` lane.
 
 ## Support-Gated Scope
 
@@ -49,7 +48,7 @@ family.
 
 ## Safe To Build Now
 
-- aspect-native authoritative CRUD through workspace.insert/update/delete/batch
+- aspect-native authoritative CRUD through workspace.insert/update/delete plus explicit submission batches
 - preview-local aspect-native CRUD through preview.insert/update/delete/batch
 - runtime receipts, state snapshots, and inspection for aspect-authored mutation
 - domain runtimes that keep async execution, store durability, and substrate ownership behind their own adapter boundary
@@ -69,10 +68,10 @@ semantic model and it is not what downstream code should learn from.
 
 ## Migration Guidance
 
-- author new runtime code against workspace.insert/update/delete/batch and preview.insert/update/delete/batch
-- treat workspace.write(...) and ForgeQueryWriteCommand::* as lower-level seams, not the daily-driver API
+- author new runtime code against workspace.insert/update/delete, workspace.submissions()?.submit_batch(commands), and preview.insert/update/delete/batch
+- treat ForgeQueryWriteCommand::* as lower-level command artifacts owned by explicit intent or submission lanes, not the daily-driver API
 - use `workspace.public_mutation_surface_report()` when a runtime or doc needs the exact preferred-versus-lower-level-versus-support-gated mutation posture
-- keep workspace.write(...) available as an expert lower-level seam during the substrate rewrite, but do not require it in ordinary downstream runtime APIs
+- keep direct workspace write and batch helpers sealed; publish command-shaped mutation through workspace.write_intent(...) or workspace.submissions()
 - keep mutation receipts, state snapshots, and inspect output as the downstream explanation contract
 - gate intent-shaped authority crossings through support admission until that family is explicitly stabilized
 - move JSON removal work underneath this facade instead of teaching new code to depend on payload lowering

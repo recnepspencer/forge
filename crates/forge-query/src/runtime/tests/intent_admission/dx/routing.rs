@@ -119,7 +119,7 @@ fn seeded_probe_binding(
     workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")

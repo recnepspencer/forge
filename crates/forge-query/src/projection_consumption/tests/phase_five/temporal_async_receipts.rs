@@ -36,7 +36,7 @@ fn read_result_with_posture(
     ForgeQueryReadResult::test_only(
         vec![
             crate::memory_workspace::ForgeQueryEntity::from_external_projection(
-                "task-1",
+                crate::memory_workspace::admit_authored_entity_label("task-1"),
                 serde_json::json!({
                     "profile": { "display_name": "Task One" },
                     "metrics": { "priority": 1 }

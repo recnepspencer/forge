@@ -10,7 +10,7 @@ fn runtime_activates_and_discards_preview_session_with_zero_authoritative_residu
     let runtime = runtime(BridgeRuntimePolicy::default());
     let admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:analysis"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:analysis"),
             preview_declaration(),
         )
         .expect("preview declaration should admit");
@@ -58,7 +58,7 @@ fn runtime_rejects_preview_discard_when_authoritative_residue_remains() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:authority"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:authority"),
             preview_declaration(),
         )
         .expect("preview declaration should admit");

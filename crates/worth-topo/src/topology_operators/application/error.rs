@@ -18,6 +18,7 @@ pub enum TopologyMutationApplicationError {
         stop_stage: Option<ForgeQueryDeclarationEntryOrchestrationStage>,
         refusal_class: Option<TopologyDeclarationEntryRefusalClass>,
         recovery: Option<ForgeQueryRecoveryBrief>,
+        graph_obligation_envelope_digest: Option<String>,
         reason: String,
     },
     MissingCreatedEntityReference(String),
@@ -86,37 +87,47 @@ pub(crate) enum TopologyDeclarationEntryStopClass {
     Deferred,
     Denied,
     Stale,
+    StaleCompletion,
     RebindRequired,
     Failed,
     Refused,
     Unsupported,
     Ambiguous,
+    AsyncRequestDrift,
     AspectConflict,
     AuthorityMismatch,
     BasisMismatch,
     ExplicitNarrowingRequired,
     MissingRequiredAspect,
+    PreviewCrossedResidue,
+    RemaskDrift,
+    ReplayDrift,
     Unavailable,
     WrongHandle,
     WrongWorld,
 }
 
 impl TopologyDeclarationEntryStopClass {
-    const fn as_str(self) -> &'static str {
+    pub(super) const fn as_str(self) -> &'static str {
         match self {
             Self::Deferred => "deferred",
             Self::Denied => "denied",
             Self::Stale => "stale",
+            Self::StaleCompletion => "stale_completion",
             Self::RebindRequired => "rebind_required",
             Self::Failed => "failed",
             Self::Refused => "refused",
             Self::Unsupported => "unsupported",
             Self::Ambiguous => "ambiguous",
+            Self::AsyncRequestDrift => "async_request_drift",
             Self::AspectConflict => "aspect_conflict",
             Self::AuthorityMismatch => "authority_mismatch",
             Self::BasisMismatch => "basis_mismatch",
             Self::ExplicitNarrowingRequired => "explicit_narrowing_required",
             Self::MissingRequiredAspect => "missing_required_aspect",
+            Self::PreviewCrossedResidue => "preview_crossed_residue",
+            Self::RemaskDrift => "remask_drift",
+            Self::ReplayDrift => "replay_drift",
             Self::Unavailable => "unavailable",
             Self::WrongHandle => "wrong_handle",
             Self::WrongWorld => "wrong_world",
@@ -153,6 +164,7 @@ impl From<ForgeQueryRecoveryStopKind> for TopologyDeclarationEntryStopClass {
     fn from(value: ForgeQueryRecoveryStopKind) -> Self {
         match value {
             ForgeQueryRecoveryStopKind::Ambiguous => Self::Ambiguous,
+            ForgeQueryRecoveryStopKind::AsyncRequestDrift => Self::AsyncRequestDrift,
             ForgeQueryRecoveryStopKind::AspectConflict => Self::AspectConflict,
             ForgeQueryRecoveryStopKind::AuthorityMismatch => Self::AuthorityMismatch,
             ForgeQueryRecoveryStopKind::BasisMismatch => Self::BasisMismatch,
@@ -161,9 +173,13 @@ impl From<ForgeQueryRecoveryStopKind> for TopologyDeclarationEntryStopClass {
             ForgeQueryRecoveryStopKind::Deferred => Self::Deferred,
             ForgeQueryRecoveryStopKind::Failed => Self::Failed,
             ForgeQueryRecoveryStopKind::MissingRequiredAspect => Self::MissingRequiredAspect,
+            ForgeQueryRecoveryStopKind::PreviewCrossedResidue => Self::PreviewCrossedResidue,
             ForgeQueryRecoveryStopKind::RebindRequired => Self::RebindRequired,
+            ForgeQueryRecoveryStopKind::RemaskDrift => Self::RemaskDrift,
+            ForgeQueryRecoveryStopKind::ReplayDrift => Self::ReplayDrift,
             ForgeQueryRecoveryStopKind::Refused => Self::Refused,
             ForgeQueryRecoveryStopKind::Stale => Self::Stale,
+            ForgeQueryRecoveryStopKind::StaleCompletion => Self::StaleCompletion,
             ForgeQueryRecoveryStopKind::Unavailable => Self::Unavailable,
             ForgeQueryRecoveryStopKind::Unsupported => Self::Unsupported,
             ForgeQueryRecoveryStopKind::WrongHandle => Self::WrongHandle,
@@ -183,7 +199,7 @@ pub(crate) enum TopologyDeclarationEntryRefusalClass {
 }
 
 impl TopologyDeclarationEntryRefusalClass {
-    const fn as_str(self) -> &'static str {
+    pub(super) const fn as_str(self) -> &'static str {
         match self {
             Self::UnsupportedAutomation => "unsupported_automation",
             Self::ExplicitIntentRequired => "explicit_intent_required",
@@ -222,152 +238,6 @@ impl From<ForgeQueryDeclarationEntryOrchestrationRefusalClass>
     }
 }
 
-impl std::fmt::Display for TopologyMutationApplicationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::UnsupportedFamilies(families) => write!(
-                f,
-                "topology query mutation application does not admit families `{families:?}` yet"
-            ),
-            Self::DeclarationEntry {
-                family,
-                stop_class,
-                stop_stage,
-                refusal_class,
-                recovery,
-                reason,
-            } => {
-                write!(
-                    f,
-                    "topology query declaration entry orchestration for family `{family:?}` stopped as `{}`",
-                    stop_class.as_str(),
-                )?;
-                if let Some(stop_stage) = stop_stage {
-                    write!(f, " at stage `{stop_stage:?}`")?;
-                }
-                if let Some(refusal_class) = refusal_class {
-                    write!(f, " with refusal class `{}`", refusal_class.as_str())?;
-                }
-                if let Some(recovery) = recovery {
-                    write!(
-                        f,
-                        " owned by `{:?}` recommending `{:?}`",
-                        recovery.authority_surface(),
-                        recovery.recommended_action()
-                    )?;
-                }
-                write!(f, ": {reason}")
-            }
-            Self::MissingCreatedEntityReference(create_key) => write!(
-                f,
-                "topology query mutation application is missing same-mutation-set created entity `{create_key}`"
-            ),
-            Self::MissingExistingEntityBinding(entity_id) => write!(
-                f,
-                "topology query mutation application is missing live query binding for authoritative entity `{entity_id:?}`"
-            ),
-            Self::MissingExistingRelationBinding(relation_id) => write!(
-                f,
-                "topology query mutation application is missing live query binding for authoritative relation `{relation_id:?}`"
-            ),
-            Self::CreatedEntityKindMismatch {
-                create_key,
-                expected,
-                actual,
-            } => write!(
-                f,
-                "topology query mutation application expected created entity `{create_key}` to be `{}`, found `{}`",
-                expected.kind_name(),
-                actual.kind_name()
-            ),
-            Self::ExistingEntityKindMismatch {
-                entity_id,
-                expected,
-                actual,
-            } => write!(
-                f,
-                "topology query mutation application expected authoritative entity `{entity_id:?}` to be `{}`, found `{}`",
-                expected.kind_name(),
-                actual.kind_name()
-            ),
-            Self::ExistingRelationKindMismatch {
-                relation_id,
-                expected,
-                actual,
-            } => write!(
-                f,
-                "topology query mutation application expected authoritative relation `{relation_id:?}` to be `{}`, found `{}`",
-                expected.kind_name(),
-                actual.kind_name()
-            ),
-            Self::ExistingRelationSourceMismatch {
-                relation_id,
-                expected_source_entity_id,
-                actual_source_identity,
-            } => write!(
-                f,
-                "topology query mutation application expected authoritative relation `{relation_id:?}` to originate from halfedge `{expected_source_entity_id:?}`, found query source identity `{actual_source_identity}`"
-            ),
-            Self::ExistingEntityOutgoingRelationCountMismatch {
-                entity_id,
-                relation_kind,
-                expected,
-                actual,
-            } => write!(
-                f,
-                "topology query mutation application expected authoritative entity `{entity_id:?}` to have exactly {expected} outgoing `{}` relation(s), found {actual}",
-                relation_kind.kind_name()
-            ),
-            Self::ExistingEntityIncomingRelationCountMismatch {
-                entity_id,
-                relation_kind,
-                expected,
-                actual,
-            } => write!(
-                f,
-                "topology query mutation application expected authoritative entity `{entity_id:?}` to have exactly {expected} incoming `{}` relation(s), found {actual}",
-                relation_kind.kind_name()
-            ),
-            Self::ExistingHalfEdgesNotOnSameEdge {
-                relation_id,
-                source_half_edge_id,
-                target_half_edge_id,
-                source_edge_identity,
-                target_edge_identity,
-            } => write!(
-                f,
-                "topology query mutation application expected radial splice relation `{relation_id:?}` to keep halfedges `{source_half_edge_id:?}` and `{target_half_edge_id:?}` on the same edge, found source edge `{source_edge_identity}` and target edge `{target_edge_identity}`"
-            ),
-            Self::ExistingHalfEdgesNotOnSameLoop {
-                relation_id,
-                source_half_edge_id,
-                target_half_edge_id,
-                source_loop_identity,
-                target_loop_identity,
-            } => write!(
-                f,
-                "topology query mutation application expected loop-successor relation `{relation_id:?}` to keep halfedges `{source_half_edge_id:?}` and `{target_half_edge_id:?}` on the same loop, found source loop `{source_loop_identity}` and target loop `{target_loop_identity}`"
-            ),
-            Self::Query(error) => write!(f, "{error}"),
-            Self::MaterializedDecode(message) => write!(f, "{message}"),
-            Self::QueryAnchorFamilyMismatch {
-                semantic_family_key,
-                query_declaration_family_key,
-            } => write!(
-                f,
-                "topology query mutation application refused to project local aftermath for semantic family `{semantic_family_key}` from Query declaration family `{query_declaration_family_key}`"
-            ),
-            Self::RetainedSemanticAftermathMismatch {
-                semantic_family_key,
-                reason,
-            } => write!(
-                f,
-                "topology query mutation application retained Query semantic aftermath that did not match the declared topology mutation sequence for `{semantic_family_key}`: {reason}"
-            ),
-        }
-    }
-}
-
 impl std::error::Error for TopologyMutationApplicationError {}
 
 #[cfg_attr(not(test), allow(dead_code))]
@@ -386,6 +256,16 @@ impl TopologyMutationApplicationError {
     pub(crate) fn declaration_entry_recovery_brief(&self) -> Option<&ForgeQueryRecoveryBrief> {
         match self {
             Self::DeclarationEntry { recovery, .. } => recovery.as_ref(),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn declaration_entry_graph_obligation_envelope_digest(&self) -> Option<&str> {
+        match self {
+            Self::DeclarationEntry {
+                graph_obligation_envelope_digest,
+                ..
+            } => graph_obligation_envelope_digest.as_deref(),
             _ => None,
         }
     }

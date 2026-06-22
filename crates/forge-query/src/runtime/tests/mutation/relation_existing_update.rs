@@ -29,7 +29,7 @@ fn update_existing_relation_preserves_identity_binding_and_receipt_target() {
     let binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing relation target should build")
@@ -46,7 +46,7 @@ fn update_existing_relation_preserves_identity_binding_and_receipt_target() {
     assert_eq!(receipt.target_collection(), Some("TaskRelation"));
     assert_eq!(
         receipt.target_entity_identity(),
-        Some(seed.deltas()[0].entity_identity.as_str())
+        Some(&seed.deltas()[0].entity_identity)
     );
     let evidence = receipt
         .existing_truth_binding_evidence()
@@ -55,10 +55,13 @@ fn update_existing_relation_preserves_identity_binding_and_receipt_target() {
         evidence.family(),
         ForgeQueryExistingTruthBindingFamily::DirectRelationIdentity
     );
-    assert_eq!(evidence.authoritative_identity(), "authority:rel-1");
+    assert_eq!(
+        evidence.authoritative_identity().as_str(),
+        "authority:rel-1"
+    );
     assert_eq!(
         evidence.resolved_relation_identity(),
-        seed.deltas()[0].entity_identity
+        &seed.deltas()[0].entity_identity
     );
 
     match workspace.inspect(&receipt).expect("receipt should inspect") {
@@ -70,10 +73,13 @@ fn update_existing_relation_preserves_identity_binding_and_receipt_target() {
                 inspected.family(),
                 ForgeQueryExistingTruthBindingFamily::DirectRelationIdentity
             );
-            assert_eq!(inspected.authoritative_identity(), "authority:rel-1");
+            assert_eq!(
+                inspected.authoritative_identity().as_str(),
+                "authority:rel-1"
+            );
             assert_eq!(
                 inspected.resolved_relation_identity(),
-                seed.deltas()[0].entity_identity
+                &seed.deltas()[0].entity_identity
             );
         }
         other => panic!("expected write receipt inspection, got {other:?}"),
@@ -105,7 +111,7 @@ fn update_existing_verified_relation_preserves_relation_identity_and_assertion_m
     let binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing relation target should build")
@@ -126,7 +132,7 @@ fn update_existing_verified_relation_preserves_relation_identity_and_assertion_m
     assert_eq!(receipt.target_collection(), Some("TaskRelation"));
     assert_eq!(
         receipt.target_entity_identity(),
-        Some(seed.deltas()[0].entity_identity.as_str())
+        Some(&seed.deltas()[0].entity_identity)
     );
     assert_eq!(
         receipt
@@ -198,7 +204,7 @@ fn batch_relation_updates_preserve_identity_binding_aggregate_digest() {
     let first_binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 first.deltas()[0].entity_identity.clone(),
             )
             .expect("first relation target should build")
@@ -209,7 +215,7 @@ fn batch_relation_updates_preserve_identity_binding_aggregate_digest() {
     let second_binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-2",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 second.deltas()[0].entity_identity.clone(),
             )
             .expect("second relation target should build")
@@ -280,10 +286,13 @@ fn update_existing_verified_relation_denies_unsupported_backend_typed_and_early(
         .expect("workspace should open");
     let binding = workspace
         .bind_existing_relation(
-            ForgeQueryExistingRelationTarget::new("authority:rel-1", "TaskRelation:1")
-                .expect("existing relation target should build")
-                .in_target_collection("TaskRelation")
-                .expect("existing relation collection should build"),
+            ForgeQueryExistingRelationTarget::new(
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
+                test_entity_identity("TaskRelation:1"),
+            )
+            .expect("existing relation target should build")
+            .in_target_collection("TaskRelation")
+            .expect("existing relation collection should build"),
         )
         .expect("relation binding should build");
 

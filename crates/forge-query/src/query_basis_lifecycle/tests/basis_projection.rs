@@ -7,9 +7,10 @@ use super::{
 };
 use crate::runtime::tests::support::stateful_bridge_task_runtime;
 use crate::runtime::{
-    ForgeQueryAuthorityLane, ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateTarget,
+    runtime_state_snapshot_basis_label_identity, ForgeQueryAuthorityLane,
+    ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateTarget,
 };
-use forge_runtime_bridge::facade::{BridgeTruthViewEvaluationRequest, TruthBranchIdentity};
+use forge_runtime_bridge::facade::BridgeTruthViewEvaluationRequest;
 
 #[test]
 fn family_specific_basis_capabilities_project_into_their_public_authority_lanes() {
@@ -27,7 +28,7 @@ fn family_specific_basis_capabilities_project_into_their_public_authority_lanes(
     let branch = admit_observation_basis(
         evaluate_basis_eligibility(
             normalize_raw_basis(RawBasisIntent::branch_head(
-                MAIN_BRANCH,
+                super::test_branch_identity(MAIN_BRANCH),
                 BasisOperationLaneRequest::Observation,
             ))
             .expect("branch-head observation should normalize"),
@@ -38,8 +39,8 @@ fn family_specific_basis_capabilities_project_into_their_public_authority_lanes(
     let branch_snapshot = admit_observation_basis(
         evaluate_basis_eligibility(
             normalize_raw_basis(RawBasisIntent::branch_snapshot(
-                MAIN_BRANCH,
-                "snapshot:1",
+                super::test_branch_identity(MAIN_BRANCH),
+                super::test_snapshot_identity("snapshot:1"),
                 BasisOperationLaneRequest::Observation,
             ))
             .expect("branch-snapshot observation should normalize"),
@@ -50,7 +51,7 @@ fn family_specific_basis_capabilities_project_into_their_public_authority_lanes(
     let historical = admit_observation_basis(
         evaluate_basis_eligibility(
             normalize_raw_basis(RawBasisIntent::historical_snapshot(
-                "history:snapshot-1",
+                super::test_snapshot_identity("history:snapshot-1"),
                 BasisOperationLaneRequest::Observation,
             ))
             .expect("historical observation should normalize"),
@@ -99,8 +100,9 @@ fn family_specific_basis_capabilities_project_into_their_public_authority_lanes(
     match current.admission() {
         BasisCapabilityAdmission::Admitted(admitted) => {
             assert_eq!(
-                current_state.basis_digest(),
-                admitted.normalized_basis_intent_digest()
+                current_state.basis_for_reporting(),
+                runtime_state_snapshot_basis_label_identity(&admitted.snapshot_basis_identity())
+                    .as_str()
             );
         }
         other => panic!("unexpected current admission: {other:?}"),
@@ -108,8 +110,9 @@ fn family_specific_basis_capabilities_project_into_their_public_authority_lanes(
     match branch.admission() {
         BasisCapabilityAdmission::Admitted(admitted) => {
             assert_eq!(
-                branch_state.basis_digest(),
-                admitted.normalized_basis_intent_digest()
+                branch_state.basis_for_reporting(),
+                runtime_state_snapshot_basis_label_identity(&admitted.snapshot_basis_identity())
+                    .as_str()
             );
         }
         other => panic!("unexpected branch admission: {other:?}"),
@@ -122,7 +125,7 @@ fn preview_replay_and_restart_postures_project_without_raw_id_side_channels() {
     let preview = admit_observation_basis(
         evaluate_basis_eligibility(
             normalize_raw_basis(RawBasisIntent::preview(
-                "preview:session-1",
+                super::test_preview_identity("preview:session-1"),
                 BasisOperationLaneRequest::Observation,
             ))
             .expect("preview observation should normalize"),
@@ -133,7 +136,7 @@ fn preview_replay_and_restart_postures_project_without_raw_id_side_channels() {
     let replay = admit_replay_basis(
         evaluate_basis_eligibility(
             normalize_raw_basis(RawBasisIntent::historical_snapshot(
-                "history:snapshot-1",
+                super::test_snapshot_identity("history:snapshot-1"),
                 BasisOperationLaneRequest::Replay,
             ))
             .expect("historical replay should normalize"),
@@ -211,7 +214,7 @@ fn lower_runtime_bound_and_cross_branch_denied_basis_states_preserve_typed_postu
     let bridge_runtime = observation_runtime();
     let evaluation = bridge_runtime
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::new(MAIN_BRANCH),
+            super::test_branch_truth_identity(MAIN_BRANCH),
         ))
         .expect("branch-head truth view should evaluate");
     let matching = branch_head_observation(MAIN_BRANCH);
@@ -234,7 +237,10 @@ fn lower_runtime_bound_and_cross_branch_denied_basis_states_preserve_typed_postu
         bound_state.authority_lane(),
         ForgeQueryAuthorityLane::BranchLocalTruth
     );
-    assert_eq!(bound_state.result_shape_digest(), bound.binding_digest());
+    assert_ne!(
+        bound_state.result_shape_for_reporting(),
+        bound.binding_identity().as_str()
+    );
     assert_eq!(denial_state.kind(), ForgeQueryRuntimeStateKind::Denied);
     assert_eq!(
         denial_state.authority_lane(),
@@ -248,8 +254,20 @@ fn lower_runtime_bound_and_cross_branch_denied_basis_states_preserve_typed_postu
             observed,
         } => {
             assert_eq!(authority, &"forge_runtime_bridge");
-            assert_eq!(expected, &format!("branch_head:{OTHER_BRANCH}"));
-            assert_eq!(observed, &format!("branch_head:{MAIN_BRANCH}"));
+            assert_eq!(
+                expected,
+                &format!(
+                    "branch_head:{}",
+                    super::test_branch_identity(OTHER_BRANCH).terminal_projection_for_reporting()
+                )
+            );
+            assert_eq!(
+                observed,
+                &format!(
+                    "branch_head:{}",
+                    super::test_branch_identity(MAIN_BRANCH).terminal_projection_for_reporting()
+                )
+            );
         }
         other => panic!("unexpected denial kind: {other:?}"),
     }
@@ -261,13 +279,13 @@ fn historical_basis_denials_preserve_historical_authority_lane() {
     let bridge_runtime = observation_runtime();
     let evaluation = bridge_runtime
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::new(MAIN_BRANCH),
+            super::test_branch_truth_identity(MAIN_BRANCH),
         ))
         .expect("branch-head truth view should evaluate");
     let historical = admit_observation_basis(
         evaluate_basis_eligibility(
             normalize_raw_basis(RawBasisIntent::historical_snapshot(
-                "history:snapshot-1",
+                super::test_snapshot_identity("history:snapshot-1"),
                 BasisOperationLaneRequest::Observation,
             ))
             .expect("historical observation should normalize"),
@@ -293,7 +311,7 @@ fn branch_head_observation(branch_identity: &str) -> super::ObservationBasisCapa
     admit_observation_basis(
         evaluate_basis_eligibility(
             normalize_raw_basis(RawBasisIntent::branch_head(
-                branch_identity,
+                super::test_branch_identity(branch_identity),
                 BasisOperationLaneRequest::Observation,
             ))
             .expect("branch-head observation should normalize"),

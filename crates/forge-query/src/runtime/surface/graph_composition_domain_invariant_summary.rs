@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 
 use super::{
     ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram,
@@ -12,10 +15,10 @@ pub struct ForgeQueryGraphCompositionDomainInvariantSummary {
     declared_symbols: Vec<String>,
     target_combination_families: Vec<String>,
     lifecycle_families: Vec<String>,
-    program_digest: String,
-    breadth_digest: String,
+    program_digest: ForgeQueryEvidenceIdentity,
+    breadth_digest: ForgeQueryEvidenceIdentity,
     counter_snapshot: String,
-    summary_digest: String,
+    summary_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryGraphCompositionDomainInvariantSummary {
@@ -128,23 +131,28 @@ impl ForgeQueryGraphCompositionDomainInvariantSummary {
             }
         }
 
-        let counter_snapshot = format!(
-            "components={};symbolic_entities={};symbolic_relations={};declared_collections={};declared_symbols={};target_combinations={};lifecycle_families={}",
-            breadth.component_count(),
-            breadth.symbolic_entity_declaration_count(),
-            breadth.symbolic_relation_declaration_count(),
-            declared_collections.len(),
-            declared_symbols.len(),
-            target_combination_families.len(),
-            lifecycle_families.len(),
-        );
+        let counter_snapshot = diagnostic_counter_snapshot(&[
+            ("components", breadth.component_count()),
+            (
+                "symbolic_entities",
+                breadth.symbolic_entity_declaration_count(),
+            ),
+            (
+                "symbolic_relations",
+                breadth.symbolic_relation_declaration_count(),
+            ),
+            ("declared_collections", declared_collections.len()),
+            ("declared_symbols", declared_symbols.len()),
+            ("target_combinations", target_combination_families.len()),
+            ("lifecycle_families", lifecycle_families.len()),
+        ]);
         Self::from_parts(
             declared_collections,
             declared_symbols,
             target_combination_families,
             lifecycle_families,
-            program.program_digest().to_string(),
-            breadth.breadth_digest().to_string(),
+            program.program_evidence_digest().clone(),
+            breadth.breadth_evidence_digest().clone(),
             counter_snapshot,
         )
     }
@@ -154,20 +162,51 @@ impl ForgeQueryGraphCompositionDomainInvariantSummary {
         declared_symbols: Vec<String>,
         target_combination_families: Vec<String>,
         lifecycle_families: Vec<String>,
-        program_digest: String,
-        breadth_digest: String,
+        program_digest: ForgeQueryEvidenceIdentity,
+        breadth_digest: ForgeQueryEvidenceIdentity,
         counter_snapshot: String,
     ) -> Self {
-        let summary_digest = hash_parts(&[
-            "forge_query_graph_composition_domain_invariant_summary_v1".to_string(),
-            format!("program:{program_digest}"),
-            format!("breadth:{breadth_digest}"),
-            format!("counters:{counter_snapshot}"),
-            format!("collections:{}", declared_collections.join(",")),
-            format!("symbols:{}", declared_symbols.join(",")),
-            format!("targets:{}", target_combination_families.join(",")),
-            format!("lifecycles:{}", lifecycle_families.join(",")),
-        ]);
+        let summary_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "graph-composition-domain-invariant-summary",
+                )
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("program"), &program_digest)
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("breadth"), &breadth_digest)
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("declared_collection_count"),
+                    declared_collections.len(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("declared_symbol_count"),
+                    declared_symbols.len(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("target_combination_count"),
+                    target_combination_families.len(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("lifecycle_family_count"),
+                    lifecycle_families.len(),
+                )
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("declared_collection"),
+                    declared_collections.iter().map(String::as_str),
+                )
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("declared_symbol"),
+                    declared_symbols.iter().map(String::as_str),
+                )
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("target_combination"),
+                    target_combination_families.iter().map(String::as_str),
+                )
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("lifecycle_family"),
+                    lifecycle_families.iter().map(String::as_str),
+                )
+                .seal();
         Self {
             declared_collections,
             declared_symbols,
@@ -197,11 +236,11 @@ impl ForgeQueryGraphCompositionDomainInvariantSummary {
     }
 
     pub fn program_digest(&self) -> &str {
-        &self.program_digest
+        self.program_digest.as_str()
     }
 
     pub fn breadth_digest(&self) -> &str {
-        &self.breadth_digest
+        self.breadth_digest.as_str()
     }
 
     pub fn counter_snapshot(&self) -> &str {
@@ -209,8 +248,25 @@ impl ForgeQueryGraphCompositionDomainInvariantSummary {
     }
 
     pub fn summary_digest(&self) -> &str {
+        self.summary_digest.as_str()
+    }
+
+    pub fn summary_evidence_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.summary_digest
     }
+}
+
+fn diagnostic_counter_snapshot(fields: &[(&str, usize)]) -> String {
+    let mut snapshot = String::new();
+    for (index, (label, value)) in fields.iter().enumerate() {
+        if index > 0 {
+            snapshot.push(';');
+        }
+        snapshot.push_str(label);
+        snapshot.push('=');
+        snapshot.push_str(&value.to_string());
+    }
+    snapshot
 }
 
 fn command_carries_symbolic_relation_identity_edge(command: &ForgeQueryWriteCommand) -> bool {

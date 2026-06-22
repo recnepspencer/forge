@@ -1,0 +1,22 @@
+error: cannot construct `PlanarBooleanAdmittedPointSplitCandidateSet` with struct literal syntax due to private fields
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/admitted_point_split_candidate_set_not_forgeable.rs:7:13
+   |
+ 7 |     let _ = PlanarBooleanAdmittedPointSplitCandidateSet {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 8 |         point_candidate_set_identity: "raw point candidate set".to_string(),
+   |         ------------------------------------------------------------------- private field
+ 9 |         admitted_candidates: unavailable_admitted_candidates(),
+   |         ------------------------------------------------------ private field
+10 |         counters: PlanarBooleanSplitPointAdmissionCounters::default(),
+   |         ------------------------------------------------------------- private field
+   |
+   = note: ...and other private field `participation_index_identity` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+ 7 -     let _ = PlanarBooleanAdmittedPointSplitCandidateSet {
+ 8 -         point_candidate_set_identity: "raw point candidate set".to_string(),
+ 9 -         admitted_candidates: unavailable_admitted_candidates(),
+10 -         counters: PlanarBooleanSplitPointAdmissionCounters::default(),
+11 -     };
+ 7 +     let _ = PlanarBooleanAdmittedPointSplitCandidateSet::new(_, _, _, _);
+   |

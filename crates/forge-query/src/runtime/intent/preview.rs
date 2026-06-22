@@ -1,4 +1,11 @@
+use super::preview_receipt_identity::{
+    preview_intent_admission_identity, preview_intent_receipt_identity,
+};
 use super::*;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryPreviewIntentReceipt {
@@ -10,8 +17,10 @@ pub struct ForgeQueryPreviewIntentReceipt {
     target_lane: ForgeQueryAuthorityLane,
     effect_policy: ForgeQueryEffectPolicy,
     basis_evidence: Vec<String>,
-    admission_digest: String,
-    receipt_digest: String,
+    basis_evidence_identity: ForgeQueryEvidenceIdentity,
+    admission_identity: ForgeQueryEvidenceIdentity,
+    obligation_dispatch: Option<crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch>,
+    receipt_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryPreviewIntentReceipt {
@@ -20,29 +29,23 @@ impl ForgeQueryPreviewIntentReceipt {
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
         admission: ForgeQueryEffectAdmission,
+        obligation_dispatch: Option<
+            crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch,
+        >,
     ) -> Self {
         let basis_evidence = basis_admission.evidence().to_vec();
         let canonical_input_digest = declaration.input_digest();
-        let admission_digest = hash_parts(&[
-            "forge_query_preview_intent_admission_v1".to_string(),
-            format!("intent:{}", declaration.name()),
-            format!("strategy:{}", declaration.strategy_name()),
-            format!("version:{}", declaration.strategy_version()),
-            format!("input:{canonical_input_digest}"),
-            format!("source:{}", declaration.source_lane().as_str()),
-            format!("target:{}", declaration.target_lane()),
-            format!("policy:{}", effect_policy.as_str()),
-            format!("admitted_action:{}", admission.action()),
-            format!("admitted_lane:{}", admission.target_lane()),
-            format!("basis_label:{}", basis_admission.label()),
-            format!("basis_lane:{}", basis_admission.authority_lane()),
-            format!("basis_evidence:{}", basis_evidence.join("|")),
-        ]);
-        let receipt_digest = hash_parts(&[
-            "forge_query_preview_intent_receipt_v1".to_string(),
-            admission_digest.clone(),
-            "posture:preview-local-staged-no-authoritative-execution".to_string(),
-        ]);
+        let basis_evidence_identity =
+            preview_intent_basis_evidence_identity(declaration.name(), basis_admission);
+        let admission_identity = preview_intent_admission_identity(
+            declaration,
+            effect_policy,
+            basis_admission,
+            admission,
+            &canonical_input_digest,
+        );
+        let receipt_identity =
+            preview_intent_receipt_identity(&admission_identity, obligation_dispatch.as_ref());
         Self {
             intent_name: declaration.name().to_string(),
             strategy_identity: declaration.strategy_name().to_string(),
@@ -52,8 +55,10 @@ impl ForgeQueryPreviewIntentReceipt {
             target_lane: declaration.target_lane(),
             effect_policy,
             basis_evidence,
-            admission_digest,
-            receipt_digest,
+            basis_evidence_identity,
+            admission_identity,
+            obligation_dispatch,
+            receipt_identity,
         }
     }
 
@@ -89,11 +94,46 @@ impl ForgeQueryPreviewIntentReceipt {
         &self.basis_evidence
     }
 
+    pub fn basis_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_evidence_identity
+    }
+
+    pub fn admission_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.admission_identity
+    }
+
     pub fn admission_digest(&self) -> &str {
-        &self.admission_digest
+        self.admission_identity.as_str()
+    }
+
+    pub fn obligation_dispatch(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch> {
+        self.obligation_dispatch.as_ref()
     }
 
     pub fn receipt_digest(&self) -> &str {
-        &self.receipt_digest
+        self.receipt_identity.as_str()
     }
+
+    pub fn receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.receipt_identity
+    }
+}
+
+fn preview_intent_basis_evidence_identity(
+    intent_name: &str,
+    basis_admission: &ForgeQueryPreviewBasisAdmission,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewIntentBasisEvidence)
+        .field_shape(ForgeQueryEvidenceTag::new("intent_name"), intent_name)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("basis_evidence_count"),
+            basis_admission.evidence_rows().len(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("basis_admission_identity"),
+            basis_admission.admission_identity(),
+        )
+        .seal()
 }

@@ -5,7 +5,7 @@ fn runtime_replay_writeback_bundle_changes_when_outcome_changes() {
     let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:replay"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:replay"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "replay",
@@ -16,10 +16,10 @@ fn runtime_replay_writeback_bundle_changes_when_outcome_changes() {
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:replay"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:replay"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:replay"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:replay"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "authoritative-upsert",
@@ -29,7 +29,7 @@ fn runtime_replay_writeback_bundle_changes_when_outcome_changes() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:replay"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:replay"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let noop_outcome = crate::facade::BridgeWritebackAuthorityOutcome::canonical_noop(&idempotence);
@@ -86,7 +86,7 @@ fn runtime_replay_writeback_bundle_changes_when_family_changes() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let projected_declaration = writeback_declaration_with_shape(
-        BridgeWritebackDeclarationIdentity::new("writeback:replay-family:projected"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:replay-family:projected"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         BridgeWritebackEffectClass::ProjectedStateDiff,
@@ -94,7 +94,7 @@ fn runtime_replay_writeback_bundle_changes_when_family_changes() {
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let aspect_declaration = writeback_declaration_with_shape(
-        BridgeWritebackDeclarationIdentity::new("writeback:replay-family:aspect"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:replay-family:aspect"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         BridgeWritebackEffectClass::AspectReconciliation,
@@ -108,37 +108,39 @@ fn runtime_replay_writeback_bundle_changes_when_family_changes() {
         .admit_writeback_declaration(aspect_declaration, &lowered_policy)
         .expect("aspect family declaration should admit");
     let projected_causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:replay-family:projected"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:replay-family:projected"),
         "shared",
     );
     let aspect_causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:replay-family:aspect"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:replay-family:aspect"),
         "shared",
     );
     let projected_effect = runtime.lower_writeback_effect(
         &projected_contract,
         &projected_causality,
-        BridgeWritebackEffectIdentity::new("effect:replay-family:projected"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:replay-family:projected"),
         writeback_effect_intent(BridgeWritebackEffectClass::ProjectedStateDiff, "shared"),
     );
     let aspect_effect = runtime.lower_writeback_effect(
         &aspect_contract,
         &aspect_causality,
-        BridgeWritebackEffectIdentity::new("effect:replay-family:aspect"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:replay-family:aspect"),
         writeback_effect_intent(BridgeWritebackEffectClass::AspectReconciliation, "shared"),
     );
     let projected_idempotence = runtime.classify_writeback_idempotence(
         &projected_effect,
         &lowered_policy,
         &truth_state_basis(&projected_effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:replay-family:projected"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:replay-family:projected",
+        ),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let aspect_idempotence = runtime.classify_writeback_idempotence(
         &aspect_effect,
         &lowered_policy,
         &truth_state_basis(&aspect_effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:replay-family:aspect"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:replay-family:aspect"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let projected_outcome =

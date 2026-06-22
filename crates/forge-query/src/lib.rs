@@ -21,6 +21,7 @@ mod binding_pipeline;
 mod canonicalization;
 mod collection;
 mod composition;
+mod consumer_kit;
 mod continuation_pipeline;
 mod contribution_composed_orchestration;
 mod correspondence;
@@ -30,6 +31,7 @@ mod declarative_live;
 mod diagnostics;
 mod domain_capabilities;
 mod effect_lifecycle;
+mod evidence_identity;
 mod execution;
 pub mod facade;
 mod family_helpers;
@@ -38,7 +40,9 @@ mod frontier_signal_adapter;
 mod grouped_authoring;
 mod historical;
 mod identity;
+mod identity_authority;
 mod identity_evolution;
+mod integration_harness;
 mod intent_admission;
 mod live;
 mod live_performance;
@@ -69,6 +73,7 @@ mod saved_query;
 mod schema_macro;
 mod relationship_proof;
 mod schema_view;
+mod session_label;
 mod signal_compatibility_orchestration;
 mod subscription;
 mod target_binding;
@@ -82,6 +87,94 @@ mod workflow;
 #[cfg(test)]
 mod future_signal_test_support;
 
+pub use application::{
+    ForgeQueryConcurrentHostileMatrixArtifact, ForgeQueryConcurrentHostileMatrixPosture,
+    ForgeQueryConcurrentHostileMatrixSabotage, ForgeQueryConcurrentHostileMatrixSabotageKind,
+    ForgeQueryMilestoneClosureStatus, ForgeQueryMilestoneNineSevenDerivedClosure,
+    ForgeQueryMilestoneNineSevenPhaseClosure, ForgeQueryPublicBridgeForbiddenAccessFinding,
+    ForgeQueryPublicBridgeForbiddenAccessPattern,
+    ForgeQueryPublicBridgeProjectionConsumptionEvidence,
+    ForgeQueryPublicBridgePublishedProjectionReader, ForgeQueryPublicBridgeReaderLaneCertification,
+    ForgeQueryPublicBridgeReaderLaneInventory, ForgeQueryPublicBridgeReaderLanePosture,
+    ForgeQueryPublicBridgeReaderLaneSabotage, ForgeQueryPublicBridgeReaderLaneSabotageKind,
+    ForgeQueryPublicBridgeReaderLaneSabotageOutcome,
+};
+pub use consumer_kit::{
+    compare_test_backend_write_receipts, evidence_report_adoption_audit,
+    forge_query_consumer_residue_certification_evidence, forge_query_consumer_residue_registry,
+    forge_query_graph_read_bypass_registry, forge_query_test_backend_residue_classes,
+    graph_obligation_consumer_kit, graph_read_bypass_adoption, graph_read_bypass_audit,
+    hard_prohibition_boundary_audit, hard_prohibition_boundary_audit_coverage,
+    hard_prohibition_compile_fail_fixtures, hard_prohibition_documentation_rows,
+    hard_prohibition_documented_seam_keys, hard_prohibition_registry,
+    hard_prohibition_seeded_consumer_sources, in_memory_test_runtime,
+    load_support_pin_contract_document, load_support_snapshot_document, project_support_snapshot,
+    project_workspace_support_snapshot, query_boundary_source_inventory,
+    query_consumer_residue_audit, query_test_backend_residue_audit,
+    render_hard_prohibition_reference, support_pinning_contract, EvidenceReport,
+    EvidenceReportDeclaration, EvidenceReportError, EvidenceReportErrorKind, EvidenceReportField,
+    EvidenceReportFieldKind, EvidenceReportFieldParticipation, EvidenceReportFieldValue,
+    EvidenceReportScope, ForgeQueryBoundaryAuditCoverage, ForgeQueryBoundaryAuditCoverageMechanism,
+    ForgeQueryBoundaryAuditCoverageRow, ForgeQueryBoundaryAuditError,
+    ForgeQueryBoundaryAuditErrorKind, ForgeQueryBoundaryAuditEvaluation,
+    ForgeQueryBoundaryAuditFailure, ForgeQueryBoundaryAuditFinding,
+    ForgeQueryBoundaryAuditFindingKind, ForgeQueryBoundaryAuditReport,
+    ForgeQueryBoundaryAuditSeededSource, ForgeQueryBoundaryAuditSource,
+    ForgeQueryBoundaryAuditSourceInventory, ForgeQueryBoundaryAuditSourceInventoryBuilder,
+    ForgeQueryBoundaryAuditSourceInventoryFile, ForgeQueryBoundaryAuditSourceSet,
+    ForgeQueryBoundaryAuditSourceSite, ForgeQueryBoundaryAuditSyntaxClass,
+    ForgeQueryConsumerResidueAudit, ForgeQueryConsumerResidueCertificationCaseEvidence,
+    ForgeQueryConsumerResidueClass, ForgeQueryConsumerResidueDetection,
+    ForgeQueryConsumerResidueFinding, ForgeQueryConsumerResidueQueryOwnedRootAuthority,
+    ForgeQueryConsumerResidueRegistryRow, ForgeQueryConsumerResidueReport,
+    ForgeQueryConsumerResidueSourceInventory, ForgeQueryConsumerResidueSourceSite,
+    ForgeQueryEvidenceReportAdoptionAudit, ForgeQueryEvidenceReportAdoptionError,
+    ForgeQueryEvidenceReportAdoptionErrorKind, ForgeQueryEvidenceReportAdoptionEvaluation,
+    ForgeQueryEvidenceReportAdoptionFinding, ForgeQueryEvidenceReportAdoptionFindingKind,
+    ForgeQueryEvidenceReportAdoptionReport, ForgeQueryEvidenceReportAdoptionResidueClassification,
+    ForgeQueryEvidenceReportAdoptionResidueRow, ForgeQueryEvidenceReportAdoptionSource,
+    ForgeQueryEvidenceReportAdoptionSourceSet, ForgeQueryEvidenceReportAdoptionSyntaxClass,
+    ForgeQueryGraphObligationAdoptionManifest, ForgeQueryGraphObligationAdoptionProof,
+    ForgeQueryGraphObligationConsumerKit, ForgeQueryGraphObligationConsumerKitError,
+    ForgeQueryGraphObligationConsumerKitErrorKind,
+    ForgeQueryGraphObligationConsumerRegistrationDeclaration,
+    ForgeQueryGraphObligationExecutionBackedAdoptionProof, ForgeQueryGraphObligationExecutionProof,
+    ForgeQueryGraphObligationExecutionProofRow, ForgeQueryGraphObligationInMemoryProof,
+    ForgeQueryGraphObligationInMemorySelectedObligation,
+    ForgeQueryGraphObligationInMemoryTestWorkspace, ForgeQueryGraphObligationLocalCeremonyAudit,
+    ForgeQueryGraphObligationLocalCeremonyFinding, ForgeQueryGraphObligationResidueCertification,
+    ForgeQueryGraphObligationResidueManifest, ForgeQueryGraphObligationResidueRow,
+    ForgeQueryGraphObligationSelectorCoverageDeclaration,
+    ForgeQueryGraphObligationSelectorCoverageRow, ForgeQueryGraphObligationSupportPin,
+    ForgeQueryGraphObligationSupportPinFinding, ForgeQueryGraphReadBypassAdoption,
+    ForgeQueryGraphReadBypassAdoptionError, ForgeQueryGraphReadBypassAdoptionErrorKind,
+    ForgeQueryGraphReadBypassAdoptionManifest, ForgeQueryGraphReadBypassAdoptionProof,
+    ForgeQueryGraphReadBypassAudit, ForgeQueryGraphReadBypassAuthorityViolation,
+    ForgeQueryGraphReadBypassClass, ForgeQueryGraphReadBypassCounters,
+    ForgeQueryGraphReadBypassDetection, ForgeQueryGraphReadBypassFinding,
+    ForgeQueryGraphReadBypassRegistryRow, ForgeQueryGraphReadBypassReport,
+    ForgeQueryGraphReadBypassReportResidueCertification,
+    ForgeQueryGraphReadBypassResidueCertification, ForgeQueryGraphReadBypassResidueError,
+    ForgeQueryGraphReadBypassResidueErrorKind, ForgeQueryGraphReadBypassResidueManifest,
+    ForgeQueryGraphReadBypassResidueRow, ForgeQueryHardProhibitionBoundaryAudit,
+    ForgeQueryHardProhibitionDocumentationRow, ForgeQueryInMemoryTestRuntimeBuilder,
+    ForgeQueryObservedSupportPin, ForgeQueryPinnedSupportStatus, ForgeQueryPinnedTeachingPosture,
+    ForgeQueryProhibitedSeam, ForgeQueryProhibitionCompileFailFixture,
+    ForgeQueryProhibitionEnforcementTier, ForgeQueryProhibitionRegistry,
+    ForgeQueryProhibitionRegistryRow, ForgeQuerySupportPinContract,
+    ForgeQuerySupportPinContractBuilder, ForgeQuerySupportPinContractDocument,
+    ForgeQuerySupportPinContractSchemaVersion, ForgeQuerySupportPinDeclaration,
+    ForgeQuerySupportPinFinding, ForgeQuerySupportPinFindingKind, ForgeQuerySupportPinReport,
+    ForgeQuerySupportPinRequirement, ForgeQuerySupportPinRequirementDraft,
+    ForgeQuerySupportPinningError, ForgeQuerySupportPinningErrorKind, ForgeQuerySupportSnapshot,
+    ForgeQuerySupportSnapshotDocument, ForgeQuerySupportSnapshotError,
+    ForgeQuerySupportSnapshotErrorKind, ForgeQuerySupportSnapshotRow,
+    ForgeQuerySupportSnapshotSchemaVersion, ForgeQueryTestBackendEquivalenceReport,
+    ForgeQueryTestBackendEquivalenceRow, ForgeQueryTestBackendError,
+    ForgeQueryTestBackendErrorKind, ForgeQueryTestBackendResidueAudit,
+    ForgeQueryTestBackendResidueFinding, ForgeQueryTestBackendResidueReport,
+    ForgeQueryTestBackendSchema,
+};
 pub use continuation_pipeline::{
     ForgeQueryContinuationBasisPosture, ForgeQueryContinuationExecution,
     ForgeQueryContinuationExecutionChecked, ForgeQueryContinuationExecutionOutcome,
@@ -111,6 +204,10 @@ pub use contribution_composed_orchestration::{
     ForgeQueryContributionComposedOrchestrationPosture,
     ForgeQueryContributionComposedOrchestrationTranscript, ForgeQueryContributionComposedStop,
     ForgeQueryContributionComposedSummary, ForgeQueryContributionIntent,
+};
+pub use evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceIdentityComparisonError,
+    ForgeQueryEvidenceIdentityScheme, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 pub use family_helpers::{
     ForgeQueryFamilyHelpers, ForgeQueryGeometryActiveFaceSelectionHelperFamily,
@@ -202,6 +299,15 @@ pub use recovery_boundary::{
     ForgeQueryRecoveryGroupedMemberContext, ForgeQueryRecoveryMaterialization,
     ForgeQueryRecoveryRequest, ForgeQueryRecoveryRequestKind, ForgeQueryRecoverySourceFamily,
     ForgeQueryRecoveryStopFamily, ForgeQueryRecoveryStopKind,
+};
+pub use runtime::{
+    ForgeQueryConcurrentHostileMatrixCounterSnapshot, ForgeQueryConcurrentHostileMatrixTopology,
+    ForgeQueryConcurrentSubmissionIntake, ForgeQueryConcurrentSubmissionLane,
+    ForgeQueryConcurrentSubmissionRecord,
+};
+pub use session_label::{
+    ForgeQuerySessionLabel, ForgeQuerySessionLabelError, ForgeQuerySessionLabelSegment,
+    ForgeQuerySessionNamespace,
 };
 pub use signal_compatibility_orchestration::{
     ForgeQuerySignalCompatibilityOrchestration, ForgeQuerySignalCompatibilityOrchestrationChecked,

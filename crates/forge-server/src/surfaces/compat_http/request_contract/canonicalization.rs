@@ -8,6 +8,7 @@ use crate::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct ForgeServerCanonicalCompatibilityRequest {
+    route_family: super::ForgeServerCompatHttpRouteFamily,
     method: String,
     normalized_path: String,
     canonical_headers: ForgeServerCanonicalHeaderSet,
@@ -15,6 +16,10 @@ pub(crate) struct ForgeServerCanonicalCompatibilityRequest {
 }
 
 impl ForgeServerCanonicalCompatibilityRequest {
+    pub(crate) fn route_family(&self) -> super::ForgeServerCompatHttpRouteFamily {
+        self.route_family
+    }
+
     pub(crate) fn method(&self) -> &str {
         &self.method
     }
@@ -43,6 +48,7 @@ pub(crate) fn canonicalize_request(
     let query_pairs = normalize_query_pairs(input.query_pairs(), diagnostics_profile)?;
 
     Ok(ForgeServerCanonicalCompatibilityRequest {
+        route_family: input.route_family(),
         method,
         normalized_path: path,
         canonical_headers: headers,
@@ -78,7 +84,9 @@ fn validate_body_contract(
         return Err(ForgeServerCompatibilityDenial::new(
             ForgeServerCompatibilityDenialCode::UnexpectedRequestBody,
             diagnostics_profile,
-            format!("HTTP method `{method}` does not admit a request body at the compatibility boundary"),
+            format!(
+                "HTTP method `{method}` does not admit a request body at the compatibility boundary"
+            ),
         ));
     }
 

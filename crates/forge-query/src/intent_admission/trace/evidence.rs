@@ -37,6 +37,9 @@ pub enum ForgeQueryIntentDecisionTraceEvidence {
         handoff_digest: String,
         execution_seam: ForgeQueryIntentAdmissionExecutionSeam,
     },
+    ObligationDispatch {
+        envelope_digest: String,
+    },
     ExecutionOutcome {
         outcome_digest: String,
         execution_kind: String,
@@ -52,7 +55,9 @@ impl ForgeQueryIntentDecisionTraceEvidence {
             Self::Eligibility(_) => {
                 ForgeQueryIntentDecisionTraceEvidenceOwner::QueryIntentEligibility
             }
-            Self::AdmittedDecision { .. } | Self::NonAdmittedDecision { .. } => {
+            Self::AdmittedDecision { .. }
+            | Self::NonAdmittedDecision { .. }
+            | Self::ObligationDispatch { .. } => {
                 ForgeQueryIntentDecisionTraceEvidenceOwner::QueryIntentDecision
             }
             Self::ExecutionHandoff { .. } | Self::ExecutionOutcome { .. } => {
@@ -70,6 +75,7 @@ impl ForgeQueryIntentDecisionTraceEvidence {
             }
             | Self::NonAdmittedDecision { decision_digest } => decision_digest,
             Self::ExecutionHandoff { handoff_digest, .. } => handoff_digest,
+            Self::ObligationDispatch { envelope_digest } => envelope_digest,
             Self::ExecutionOutcome { outcome_digest, .. } => outcome_digest,
         }
     }

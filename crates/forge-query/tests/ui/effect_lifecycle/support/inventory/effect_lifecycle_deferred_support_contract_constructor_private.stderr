@@ -1,13 +1,7 @@
-error[E0451]: fields `neighbor_family`, `denial_kind`, `residue_posture` and `contract_digest` of struct `EffectDeferredSupportContract` are private
-  --> tests/ui/effect_lifecycle/support/inventory/effect_lifecycle_deferred_support_contract_constructor_private.rs:8:9
+error[E0560]: struct `EffectDeferredSupportContract` has no field named `contract_digest`
+  --> tests/ui/effect_lifecycle/support/inventory/effect_lifecycle_deferred_support_contract_constructor_private.rs:11:9
    |
- 7 |     let _ = EffectDeferredSupportContract {
-   |             ----------------------------- in this type
- 8 |         neighbor_family: EffectDeferredNeighborFamily::StoreBackedExecutionParity,
-   |         ^^^^^^^^^^^^^^^ private field
- 9 |         denial_kind: DeniedEffectEligibilityKind::StoreBackedExecutionDeferred,
-   |         ^^^^^^^^^^^ private field
-10 |         residue_posture: EffectDeferredResiduePosture::ZeroOperationalResidue,
-   |         ^^^^^^^^^^^^^^^ private field
 11 |         contract_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^ `EffectDeferredSupportContract` does not have this field
+   |
+   = note: all struct fields are already assigned

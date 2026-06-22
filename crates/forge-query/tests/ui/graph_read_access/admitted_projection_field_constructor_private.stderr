@@ -1,0 +1,13 @@
+error[E0451]: fields `aspect`, `field`, `delivered_name` and `kind` of struct `ForgeQueryAdmittedGraphReadProjectionField` are private
+  --> tests/ui/graph_read_access/admitted_projection_field_constructor_private.rs:7:9
+   |
+ 6 |     let _ = ForgeQueryAdmittedGraphReadProjectionField {
+   |             ------------------------------------------ in this type
+ 7 |         aspect: "identity".to_string(),
+   |         ^^^^^^ private field
+ 8 |         field: "id".to_string(),
+   |         ^^^^^ private field
+ 9 |         delivered_name: "id".to_string(),
+   |         ^^^^^^^^^^^^^^ private field
+10 |         kind: ForgeQueryGraphReadAdmittedSchemaFieldKind::String,
+   |         ^^^^ private field

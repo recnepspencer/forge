@@ -2,14 +2,17 @@
 mod parity_tests {
     use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
+    use crate::certification::MilestoneOneCertificationHarness;
+    use crate::derived_topology::materialized_graph::TopologyMaterializer;
+    use crate::derived_topology::traversal_views::interpret_topology_view;
     use crate::facade::{
         build_derived_equivalence_contract, compare_derived_equivalence_contracts,
         digest_derived_validation_report, digest_interpreted_topology_view,
-        digest_materialized_topology_view, interpret_topology_view, validate_interpreted_topology,
-        MilestoneOneCertificationHarness, TopologyMaterializer,
+        digest_materialized_topology_view,
     };
     use crate::test_support::primitive_corpus::validated_topology::committed_primitive_input;
     use crate::validation::reference_integrity::milestone_one_runtime_builder;
+    use crate::validation::validate_interpreted_topology;
 
     #[test]
     fn derived_equivalence_contract_is_deterministic_for_same_snapshot() {

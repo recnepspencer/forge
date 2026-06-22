@@ -3,10 +3,12 @@ use forge_query::facade::{
     evaluate_requested_domain_capability_contribution,
     materialize_query_invariant_catalog_registration_artifact,
     prepare_admitted_domain_capability_contribution_for_materialization,
+    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity,
     ForgeQueryInvariantCapabilityContributionAuthoring, ForgeQueryMutationReceipt,
-    ForgeQueryRuntimeWriteAuthorityAdapter, ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
-    WriteAuthorityExecutionReceipt,
+    ForgeQueryRuntimeWriteAuthorityAdapter, ForgeQuerySnapshotIdentity, ForgeQueryWorkspaceError,
+    ForgeQueryWriteCommand, RelationalBridgeRecordIdentityParts, WriteAuthorityExecutionReceipt,
 };
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 use forge_relational::facade::runtime::{InvariantRegistration, InvariantRule, RelationalRuntime};
 use forge_runtime_bridge::facade::RuntimeBridge;
 
@@ -25,14 +27,17 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthorityAdapter {
 
 fn main() {
     let command = ForgeQueryWriteCommand::Delete {
-        entity_identity: "task-1".to_string(),
+        entity_identity: ForgeQueryEntityIdentity::from_relational_record(
+            RelationalBridgeRecordIdentityParts::entity(1, 1, 0),
+        ),
     };
-    let mutation_receipt = ForgeQueryMutationReceipt {
-        commit_identity: "commit-1".to_string(),
-        snapshot_token: "snapshot-1".to_string(),
-        deltas: Vec::new(),
-        bridge_authority: None,
-    };
+    let mutation_receipt = ForgeQueryMutationReceipt::from_authoritative_parts(
+        ForgeQueryCommitIdentity::from_relational_commit_id(1),
+        ForgeQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(1, 1),
+        ),
+        Vec::new(),
+    );
     let envelope = TestWriteAuthorityAdapter
         .build_write_authority_execution_receipt(&command, mutation_receipt)
         .boundary_envelope()

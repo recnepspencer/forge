@@ -19,7 +19,10 @@ fn runtime_public_aspect_api_finalization_closeout_answers_substrate_handoff_que
         closeout.backend_posture(),
         ForgeQueryRuntimeBackendPosture::Primary
     );
-    assert_eq!(closeout.support_matrix_digest(), matrix.matrix_digest());
+    assert_eq!(
+        closeout.support_matrix_digest(),
+        matrix.matrix_digest().as_str()
+    );
     assert_eq!(closeout.mutation_surface_digest(), report.report_digest());
     assert_eq!(closeout.naming_contract_digest(), naming.contract_digest());
     assert!(closeout
@@ -29,7 +32,7 @@ fn runtime_public_aspect_api_finalization_closeout_answers_substrate_handoff_que
     assert!(closeout
         .lower_level_stable_surfaces()
         .iter()
-        .any(|row| row == "workspace.write(...)=>workspace.insert/update/delete/batch"));
+        .any(|row| row == "ForgeQueryWriteCommand::InsertAspects=>workspace.insert(...)"));
     assert!(closeout
         .support_gated_surfaces()
         .iter()
@@ -47,8 +50,7 @@ fn runtime_public_aspect_api_finalization_closeout_document_matches_certified_co
         "`workspace.insert(...)`",
         "`workspace.update(...)`",
         "`workspace.delete(...)`",
-        "`workspace.batch(...)`",
-        "`workspace.write(...)`",
+        "`workspace.submissions()?.submit_batch(commands)`",
         "`workspace.intent(...)`",
         "`workspace.public_mutation_surface_report()`",
     ] {

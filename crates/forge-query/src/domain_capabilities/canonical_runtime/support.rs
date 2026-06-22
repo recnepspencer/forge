@@ -1,6 +1,7 @@
 use forge_proof::TransitionOutcome;
 
-use crate::identity::hash_parts;
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 
 use crate::domain_capabilities::payloads::ForgeQuerySupportContributionPosture;
 use crate::domain_capabilities::targets::{
@@ -35,9 +36,9 @@ pub struct ForgeQueryIntentDeclarationSupportTraceabilityArtifact {
     input_contract: String,
     source_lane: crate::runtime::ForgeQueryIntentSourceLane,
     target_lane: crate::runtime::ForgeQueryAuthorityLane,
-    target_binding_digest: String,
-    request_digest: String,
-    materialization_digest: String,
+    target_binding_identity: ForgeQueryEvidenceIdentity,
+    request_identity: ForgeQueryEvidenceIdentity,
+    materialization_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryIntentDeclarationSupportTraceabilityArtifact {
@@ -73,16 +74,28 @@ impl ForgeQueryIntentDeclarationSupportTraceabilityArtifact {
         self.target_lane
     }
 
-    pub fn target_binding_digest(&self) -> &str {
-        &self.target_binding_digest
+    pub fn target_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.target_binding_identity
     }
 
-    pub fn request_digest(&self) -> &str {
-        &self.request_digest
+    pub fn target_binding_for_reporting(&self) -> &str {
+        self.target_binding_identity.as_str()
+    }
+
+    pub fn request_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.request_identity
+    }
+
+    pub fn request_for_reporting(&self) -> &str {
+        self.request_identity.as_str()
+    }
+
+    pub fn materialization_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.materialization_identity
     }
 
     pub fn materialization_digest(&self) -> &str {
-        &self.materialization_digest
+        self.materialization_identity.as_str()
     }
 }
 
@@ -96,10 +109,10 @@ pub struct ForgeQueryLowerRuntimeBoundarySupportTraceabilityArtifact {
         crate::lower_runtime_routing::ForgeQueryLowerRuntimeCrossingClassification,
     route_kind: crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteKind,
     support_posture: crate::lower_runtime_routing::ForgeQueryLowerRuntimeSupportPosture,
-    envelope_digest: String,
-    target_binding_digest: String,
-    request_digest: String,
-    materialization_digest: String,
+    envelope_identity: ForgeQueryEvidenceIdentity,
+    target_binding_identity: ForgeQueryEvidenceIdentity,
+    request_identity: ForgeQueryEvidenceIdentity,
+    materialization_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryLowerRuntimeBoundarySupportTraceabilityArtifact {
@@ -135,20 +148,32 @@ impl ForgeQueryLowerRuntimeBoundarySupportTraceabilityArtifact {
         self.support_posture
     }
 
-    pub fn envelope_digest(&self) -> &str {
-        &self.envelope_digest
+    pub fn envelope_for_reporting(&self) -> &str {
+        self.envelope_identity.as_str()
     }
 
-    pub fn target_binding_digest(&self) -> &str {
-        &self.target_binding_digest
+    pub fn target_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.target_binding_identity
     }
 
-    pub fn request_digest(&self) -> &str {
-        &self.request_digest
+    pub fn target_binding_for_reporting(&self) -> &str {
+        self.target_binding_identity.as_str()
+    }
+
+    pub fn request_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.request_identity
+    }
+
+    pub fn request_for_reporting(&self) -> &str {
+        self.request_identity.as_str()
+    }
+
+    pub fn materialization_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.materialization_identity
     }
 
     pub fn materialization_digest(&self) -> &str {
-        &self.materialization_digest
+        self.materialization_identity.as_str()
     }
 }
 
@@ -178,24 +203,44 @@ pub fn materialize_intent_declaration_support_traceability_artifact(
         input_contract: input_contract.to_string(),
         source_lane,
         target_lane,
-        target_binding_digest: domain_contribution.target().binding_digest().to_string(),
-        request_digest: domain_contribution.request_digest().to_string(),
-        materialization_digest: hash_parts(&[
-            "forge_query_intent_declaration_support_traceability_artifact_v1".to_string(),
-            format!("lane:{}", support_lane(payload.posture())),
-            format!(
-                "detail:{}",
-                support_detail(payload.semantic_code(), payload.detail())
-            ),
-            format!("intent:{name}"),
-            format!("strategy:{strategy_name}"),
-            format!("strategy-version:{strategy_version}"),
-            format!("input-contract:{input_contract}"),
-            format!("source-lane:{:?}", source_lane),
-            format!("target-lane:{:?}", target_lane),
-            format!("binding:{}", domain_contribution.target().binding_digest()),
-            format!("request:{}", domain_contribution.request_digest()),
-        ]),
+        target_binding_identity: domain_contribution.target().binding_identity(),
+        request_identity: domain_contribution.request_identity().clone(),
+        materialization_identity: domain_capability_scope_encoder(
+            "forge_query_intent_declaration_support_traceability_artifact_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("lane"),
+            support_lane(payload.posture()),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("semantic_code"),
+            payload.semantic_code(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("detail"), payload.detail())
+        .field_shape(ForgeQueryEvidenceTag::new("intent"), name)
+        .field_shape(ForgeQueryEvidenceTag::new("strategy"), strategy_name)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("strategy_version"),
+            strategy_version,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("input_contract"), input_contract)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("source_lane"),
+            source_lane.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("target_lane"),
+            target_lane.as_str(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("binding"),
+            &domain_contribution.target().binding_identity(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("request"),
+            domain_contribution.request_identity(),
+        )
+        .seal(),
     })
 }
 
@@ -214,7 +259,7 @@ pub fn materialize_lower_runtime_support_traceability_artifact(
         crossing_classification,
         route_kind,
         support_posture,
-        envelope_digest,
+        _envelope_digest,
     )) = domain_contribution
         .target()
         .semantics()
@@ -222,6 +267,40 @@ pub fn materialize_lower_runtime_support_traceability_artifact(
     else {
         unreachable!("lower-runtime target should preserve lower-runtime semantics");
     };
+    let envelope_identity = domain_contribution.target().binding_identity();
+    let materialization_identity = domain_capability_scope_encoder(
+        "forge_query_lower_runtime_support_traceability_artifact_v1",
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("lane"),
+        support_lane(payload.posture()),
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("semantic_code"),
+        payload.semantic_code(),
+    )
+    .field_shape(ForgeQueryEvidenceTag::new("detail"), payload.detail())
+    .field_shape(ForgeQueryEvidenceTag::new("seam_key"), seam_key.as_str())
+    .field_shape(ForgeQueryEvidenceTag::new("capability"), capability_label)
+    .field_shape(
+        ForgeQueryEvidenceTag::new("crossing"),
+        crossing_classification.as_str(),
+    )
+    .field_shape(ForgeQueryEvidenceTag::new("route"), route_kind.as_str())
+    .field_shape(
+        ForgeQueryEvidenceTag::new("support_posture"),
+        support_posture.as_str(),
+    )
+    .field_evidence_identity(ForgeQueryEvidenceTag::new("envelope"), &envelope_identity)
+    .field_evidence_identity(
+        ForgeQueryEvidenceTag::new("binding"),
+        &domain_contribution.target().binding_identity(),
+    )
+    .field_evidence_identity(
+        ForgeQueryEvidenceTag::new("request"),
+        domain_contribution.request_identity(),
+    )
+    .seal();
     TransitionOutcome::Success(ForgeQueryLowerRuntimeBoundarySupportTraceabilityArtifact {
         lane: support_lane(payload.posture()),
         support_detail: support_detail(payload.semantic_code(), payload.detail()),
@@ -230,25 +309,10 @@ pub fn materialize_lower_runtime_support_traceability_artifact(
         crossing_classification,
         route_kind,
         support_posture,
-        envelope_digest: envelope_digest.to_string(),
-        target_binding_digest: domain_contribution.target().binding_digest().to_string(),
-        request_digest: domain_contribution.request_digest().to_string(),
-        materialization_digest: hash_parts(&[
-            "forge_query_lower_runtime_support_traceability_artifact_v1".to_string(),
-            format!("lane:{}", support_lane(payload.posture())),
-            format!(
-                "detail:{}",
-                support_detail(payload.semantic_code(), payload.detail())
-            ),
-            format!("seam-key:{:?}", seam_key),
-            format!("capability:{capability_label}"),
-            format!("crossing:{:?}", crossing_classification),
-            format!("route:{:?}", route_kind),
-            format!("support-posture:{:?}", support_posture),
-            format!("envelope:{envelope_digest}"),
-            format!("binding:{}", domain_contribution.target().binding_digest()),
-            format!("request:{}", domain_contribution.request_digest()),
-        ]),
+        envelope_identity,
+        target_binding_identity: domain_contribution.target().binding_identity(),
+        request_identity: domain_contribution.request_identity().clone(),
+        materialization_identity,
     })
 }
 
@@ -304,8 +368,14 @@ fn support_traceability_row(
             support_lane(payload.posture()),
             family.as_str(),
             entrypoint.as_str(),
-            format!("{}:{}", payload.semantic_code(), payload.detail()),
-            Some(domain_contribution.target().binding_digest().to_string()),
+            support_detail_label(payload.semantic_code(), payload.detail()),
+            Some(
+                domain_contribution
+                    .target()
+                    .binding_identity()
+                    .as_str()
+                    .to_string(),
+            ),
             Some(request_digest.to_string()),
             Some(eligibility_digest.to_string()),
             Some(decision_digest.to_string()),
@@ -321,6 +391,19 @@ fn support_lane(posture: ForgeQuerySupportContributionPosture) -> &'static str {
     }
 }
 
+fn support_detail_label(semantic_code: &str, detail: &str) -> String {
+    let mut label = String::with_capacity(
+        semantic_code
+            .len()
+            .saturating_add(1)
+            .saturating_add(detail.len()),
+    );
+    label.push_str(semantic_code);
+    label.push(':');
+    label.push_str(detail);
+    label
+}
+
 fn support_detail(semantic_code: &str, detail: &str) -> String {
-    format!("{semantic_code}:{detail}")
+    support_detail_label(semantic_code, detail)
 }

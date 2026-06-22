@@ -2,10 +2,12 @@ use forge_query::facade::QueryDeliveryBatch;
 
 fn main() {
     let _ = QueryDeliveryBatch {
-        delivery_batch_digest: "batch".to_string(),
-        delivery_window_digest: "window".to_string(),
+        delivery_batch_identity: todo!(),
+        delivery_window_identity: todo!(),
         attachment_digest: todo!(),
         sequence: todo!(),
+        delivery_cause: todo!(),
+        has_relational_patch: false,
         patch_group: todo!(),
         receipt: todo!(),
         counters: todo!(),

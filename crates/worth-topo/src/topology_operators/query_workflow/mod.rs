@@ -1,22 +1,27 @@
+#[cfg(test)]
 #[macro_use]
 mod grouped_and_contribution_trait_methods;
 mod grouped_and_contribution_builders;
+#[cfg(test)]
 mod handle_impl;
 mod retained_contribution_semantics;
 mod semantic_contribution_codec;
 mod signal_and_continuation_builders;
 mod workflow_artifacts;
+#[cfg(test)]
 mod workflow_handle_ext;
 
+#[cfg(test)]
+pub(crate) use grouped_and_contribution_builders::topology_grouped_operator_neighborhood;
+#[cfg(test)]
+pub(crate) use grouped_and_contribution_builders::topology_operator_contribution_workflow;
 pub(crate) use grouped_and_contribution_builders::topology_semantic_contributions as build_topology_semantic_contributions;
-pub use grouped_and_contribution_builders::{
-    topology_grouped_operator_neighborhood, topology_operator_contribution_workflow,
-};
 pub(crate) use retained_contribution_semantics::{
     validated_topology_retained_contribution_semantic_projection,
     TopologyRetainedContributionSemanticProjection,
 };
-pub use signal_and_continuation_builders::{
+#[cfg(test)]
+pub(crate) use signal_and_continuation_builders::{
     topology_operator_continuation_target, topology_operator_signal_workflow,
 };
 pub(crate) use workflow_artifacts::contribution_declaration_private;
@@ -48,4 +53,5 @@ pub use workflow_artifacts::{
     TopologyOperatorSignalCompatibilityInput, TopologyOperatorSignalCompatibilityOutcome,
     TopologyOperatorSignalCompatibilityProof, TopologyOperatorSignalCompatibilitySubject,
 };
-pub use workflow_handle_ext::TopologyOperatorWorkflowHandleExt;
+#[cfg(test)]
+pub(crate) use workflow_handle_ext::TopologyOperatorWorkflowHandleExt;

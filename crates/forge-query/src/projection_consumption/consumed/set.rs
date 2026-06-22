@@ -1,17 +1,16 @@
-use crate::identity::hash_parts;
-
 use super::facts::{
     ConsumedEffectContinuityFact, ConsumedEntityIdentityFact, ConsumedFieldValueFact,
     ConsumedMembershipFact, ConsumedRelationEndpointFact, ConsumedSourceReferenceFact,
     ConsumedTargetIdentityFact, ConsumedViewLocalIdentityFact,
 };
+use crate::projection_consumption::identity::{
+    compose_consumed_projection_fact_set_digest, compose_extraction_counters_digest,
+};
 use crate::projection_consumption::receipt::ProjectionConsumptionReceipt;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
-use crate::runtime::ForgeQueryMutationTargetClass;
-use serde_json::Value;
 
 use super::super::contracts::ProjectionContractSupportPosture;
-use super::super::source::ProjectionSourceFamily;
+use super::super::source::{ProjectionSourceFamily, ProjectionSourceIdentity};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ProjectionFactExtractionCounters {
@@ -49,15 +48,7 @@ impl ProjectionFactExtractionCounters {
     }
 
     pub(crate) fn digest(&self) -> String {
-        hash_parts(&[
-            "projection_fact_extraction_counters_v1".to_string(),
-            format!("declared:{}", self.declared_fact_family_count),
-            format!("admitted:{}", self.admitted_fact_family_count),
-            format!("extracted:{}", self.extracted_fact_count),
-            format!("row_width:{}", self.source_row_width_consumed),
-            format!("evidence_width:{}", self.source_evidence_lookup_width),
-            format!("authority_reopen:{}", self.authority_reopen_count),
-        ])
+        compose_extraction_counters_digest(self)
     }
 
     pub(crate) fn new(
@@ -83,7 +74,7 @@ pub struct ConsumedProjectionFactSet {
     declaration_digest: String,
     contract_digest: String,
     source_family: ProjectionSourceFamily,
-    source_identity: String,
+    source_identity: ProjectionSourceIdentity,
     support_posture: ProjectionContractSupportPosture,
     materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     counters: ProjectionFactExtractionCounters,
@@ -113,6 +104,10 @@ impl ConsumedProjectionFactSet {
     }
 
     pub fn source_identity(&self) -> &str {
+        self.source_identity.as_str()
+    }
+
+    pub fn source_identity_handle(&self) -> &ProjectionSourceIdentity {
         &self.source_identity
     }
 
@@ -176,7 +171,7 @@ impl ConsumedProjectionFactSet {
         declaration_digest: impl Into<String>,
         contract_digest: impl Into<String>,
         source_family: ProjectionSourceFamily,
-        source_identity: impl Into<String>,
+        source_identity: ProjectionSourceIdentity,
         support_posture: ProjectionContractSupportPosture,
         materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
         counters: ProjectionFactExtractionCounters,
@@ -192,12 +187,11 @@ impl ConsumedProjectionFactSet {
     ) -> Self {
         let declaration_digest = declaration_digest.into();
         let contract_digest = contract_digest.into();
-        let source_identity = source_identity.into();
-        let fact_set_digest = fact_set_digest(
+        let fact_set_digest = compose_consumed_projection_fact_set_digest(
             &declaration_digest,
             &contract_digest,
             source_family,
-            &source_identity,
+            source_identity.as_str(),
             &support_posture,
             materialized_fact_posture.as_ref(),
             &counters,
@@ -231,148 +225,4 @@ impl ConsumedProjectionFactSet {
             relation_endpoints,
         }
     }
-}
-
-fn fact_set_digest(
-    declaration_digest: &str,
-    contract_digest: &str,
-    source_family: ProjectionSourceFamily,
-    source_identity: &str,
-    support_posture: &ProjectionContractSupportPosture,
-    materialized_fact_posture: Option<&ProjectionMaterializedFactPosture>,
-    counters: &ProjectionFactExtractionCounters,
-    entity_identities: &[ConsumedEntityIdentityFact],
-    view_local_identities: &[ConsumedViewLocalIdentityFact],
-    memberships: &[ConsumedMembershipFact],
-    display_fields: &[ConsumedFieldValueFact],
-    derived_scalar_fields: &[ConsumedFieldValueFact],
-    target_identities: &[ConsumedTargetIdentityFact],
-    source_references: &[ConsumedSourceReferenceFact],
-    effect_continuity_facts: &[ConsumedEffectContinuityFact],
-    relation_endpoints: &[ConsumedRelationEndpointFact],
-) -> String {
-    hash_parts(
-        &std::iter::once("consumed_projection_fact_set_v1".to_string())
-            .chain(std::iter::once(format!("declaration:{declaration_digest}")))
-            .chain(std::iter::once(format!("contract:{contract_digest}")))
-            .chain(std::iter::once(format!(
-                "source_family:{}",
-                source_family.as_str()
-            )))
-            .chain(std::iter::once(format!(
-                "source_identity:{source_identity}"
-            )))
-            .chain(std::iter::once(format!(
-                "support_posture:{}",
-                support_posture.as_str()
-            )))
-            .chain(std::iter::once(format!(
-                "materialized_fact_posture:{}",
-                materialized_fact_posture
-                    .map(ProjectionMaterializedFactPosture::posture_digest)
-                    .unwrap_or("none")
-            )))
-            .chain(
-                support_posture
-                    .warning_kinds()
-                    .iter()
-                    .map(|warning| format!("warning:{}", warning.as_str())),
-            )
-            .chain(std::iter::once(format!("counters:{}", counters.digest())))
-            .chain(entity_identities.iter().map(|fact| {
-                format!(
-                    "entity_identity:{}:{}",
-                    fact.source_row_identity(),
-                    fact.entity_identity()
-                )
-            }))
-            .chain(view_local_identities.iter().map(|fact| {
-                format!(
-                    "view_local_identity:{}:{}",
-                    fact.source_row_identity(),
-                    fact.view_local_identity()
-                )
-            }))
-            .chain(memberships.iter().map(|fact| {
-                format!(
-                    "membership:{}:{}:{}",
-                    fact.source_row_identity(),
-                    fact.native_grouping_aspect_key().as_str(),
-                    json_value_digest(fact.grouping_value())
-                )
-            }))
-            .chain(display_fields.iter().map(field_digest("display_field")))
-            .chain(
-                derived_scalar_fields
-                    .iter()
-                    .map(field_digest("derived_scalar")),
-            )
-            .chain(
-                target_identities
-                    .iter()
-                    .map(|fact| format!("target_identity:{}", fact.target_identity())),
-            )
-            .chain(
-                source_references
-                    .iter()
-                    .map(|fact| format!("source_reference:{}:{}", fact.label(), fact.identity())),
-            )
-            .chain(effect_continuity_facts.iter().map(|fact| {
-                format!(
-                    "effect_continuity:{}:{}:{}",
-                    fact.family() as u8,
-                    fact.outcome_class() as u8,
-                    fact.prior_authoritative_identity()
-                )
-            }))
-            .chain(relation_endpoints.iter().map(relation_endpoint_digest))
-            .collect::<Vec<_>>(),
-    )
-}
-
-fn field_digest<'a>(family: &'static str) -> impl Fn(&'a ConsumedFieldValueFact) -> String + 'a {
-    move |fact| {
-        format!(
-            "{family}:{}:{}:{}",
-            fact.source_row_identity(),
-            fact.field_key(),
-            json_value_digest(fact.value())
-        )
-    }
-}
-
-fn relation_endpoint_digest(fact: &ConsumedRelationEndpointFact) -> String {
-    match fact {
-        ConsumedRelationEndpointFact::MutationTarget {
-            target_class,
-            collection,
-            entity_identity,
-        } => format!(
-            "relation_endpoint:mutation:{:?}:{}:{}",
-            target_class,
-            collection.as_deref().unwrap_or("none"),
-            entity_identity.as_deref().unwrap_or("none")
-        ),
-        ConsumedRelationEndpointFact::GroupedProjection {
-            source_row_identity,
-            grouping_aspect,
-            grouping_value,
-            ..
-        } => format!(
-            "relation_endpoint:grouped:{}:{}:{}",
-            source_row_identity,
-            grouping_aspect.as_str(),
-            json_value_digest(grouping_value)
-        ),
-    }
-}
-
-fn json_value_digest(value: &Value) -> String {
-    value.to_string()
-}
-
-fn _keep_target_class_used(
-    target_class: ForgeQueryMutationTargetClass,
-) -> ForgeQueryMutationTargetClass {
-    target_class
 }

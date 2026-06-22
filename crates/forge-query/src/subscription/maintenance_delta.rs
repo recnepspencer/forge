@@ -1,8 +1,12 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::active_digest::ActiveSubscriptionLaneDigest;
 use super::active_posture::ActiveSubscriptionDeliveryPosture;
 use super::delivery_dimensions::MaintenanceDeltaWidth;
+use super::evidence_identities::{
+    lifecycle_maintenance_delta_identity, lifecycle_maintenance_delta_identity_typed,
+    lifecycle_maintenance_delta_scope_identity,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QuerySubscriptionMaintenanceDeltaKind {
@@ -35,35 +39,69 @@ impl QuerySubscriptionMaintenanceDeltaKind {
 pub struct QuerySubscriptionMaintenanceDelta {
     kind: QuerySubscriptionMaintenanceDeltaKind,
     active_lane_digest: ActiveSubscriptionLaneDigest,
-    affected_scope_digest: String,
+    scope_identity: ForgeQueryEvidenceIdentity,
     width: MaintenanceDeltaWidth,
-    maintenance_delta_digest: String,
+    maintenance_delta_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionMaintenanceDelta {
     pub fn admitted(
         kind: QuerySubscriptionMaintenanceDeltaKind,
         active_lane_digest: ActiveSubscriptionLaneDigest,
-        affected_scope: impl Into<String>,
+        scope_identity: &ForgeQueryEvidenceIdentity,
         width: MaintenanceDeltaWidth,
     ) -> Self {
-        let affected_scope_digest = hash_parts(&[
-            "query_subscription_affected_scope_v1".to_string(),
-            format!("scope:{}", affected_scope.into()),
-        ]);
-        let maintenance_delta_digest = hash_parts(&[
-            "query_subscription_maintenance_delta_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("lane:{}", active_lane_digest.as_str()),
-            format!("scope:{}", affected_scope_digest),
-            format!("width:{}", width.get()),
-        ]);
+        let maintenance_delta_identity = lifecycle_maintenance_delta_identity(
+            kind,
+            active_lane_digest.evidence_identity(),
+            scope_identity,
+            width.get(),
+        );
         Self {
             kind,
             active_lane_digest,
-            affected_scope_digest,
+            scope_identity: scope_identity.clone(),
             width,
-            maintenance_delta_digest,
+            maintenance_delta_identity,
+        }
+    }
+
+    pub fn admitted_with_scope_label(
+        kind: QuerySubscriptionMaintenanceDeltaKind,
+        active_lane_digest: ActiveSubscriptionLaneDigest,
+        scope_label: &str,
+        width: MaintenanceDeltaWidth,
+    ) -> Self {
+        Self::admitted(
+            kind,
+            active_lane_digest,
+            &lifecycle_maintenance_delta_scope_identity(scope_label),
+            width,
+        )
+    }
+
+    pub fn admitted_with_typed_scope(
+        kind: QuerySubscriptionMaintenanceDeltaKind,
+        active_lane_digest: ActiveSubscriptionLaneDigest,
+        commit_identity: &ForgeQueryEvidenceIdentity,
+        collection_identity: &ForgeQueryEvidenceIdentity,
+        entity_identity: &ForgeQueryEvidenceIdentity,
+        width: MaintenanceDeltaWidth,
+    ) -> Self {
+        let maintenance_delta_identity = lifecycle_maintenance_delta_identity_typed(
+            kind,
+            active_lane_digest.evidence_identity(),
+            commit_identity,
+            collection_identity,
+            entity_identity,
+            width.get(),
+        );
+        Self {
+            kind,
+            active_lane_digest,
+            scope_identity: collection_identity.clone(),
+            width,
+            maintenance_delta_identity,
         }
     }
 
@@ -71,20 +109,20 @@ impl QuerySubscriptionMaintenanceDelta {
         self.kind
     }
 
-    pub fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.active_lane_digest
     }
 
-    pub fn affected_scope_digest(&self) -> &str {
-        &self.affected_scope_digest
+    pub(super) fn scope_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.scope_identity
+    }
+
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.maintenance_delta_identity
     }
 
     pub fn width(&self) -> u64 {
         self.width.get()
-    }
-
-    pub fn maintenance_delta_digest(&self) -> &str {
-        &self.maintenance_delta_digest
     }
 
     pub(super) fn delivery_posture(&self) -> ActiveSubscriptionDeliveryPosture {
@@ -105,29 +143,43 @@ impl QuerySubscriptionMaintenanceDelta {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryMaintenanceDeltaLoweringReport {
-    maintenance_delta_digest: String,
-    lowering_report_digest: String,
+    maintenance_delta_identity: ForgeQueryEvidenceIdentity,
+    lowering_report_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QueryMaintenanceDeltaLoweringReport {
     pub(super) fn new(delta: &QuerySubscriptionMaintenanceDelta) -> Self {
-        let lowering_report_digest = hash_parts(&[
-            "query_maintenance_delta_lowering_report_v1".to_string(),
-            format!("delta:{}", delta.maintenance_delta_digest()),
-            format!("kind:{}", delta.kind().as_str()),
-            format!("width:{}", delta.width()),
-        ]);
+        let lowering_report_identity = ForgeQueryEvidenceIdentity::compose(
+            crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+            "query_maintenance_delta_lowering_report_v1",
+        )
+        .field_evidence_identity(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("maintenance_delta"),
+            delta.evidence_identity(),
+        )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("kind"),
+            delta.kind().as_str(),
+        )
+        .field_usize(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("width"),
+            delta.width() as usize,
+        )
+        .seal();
         Self {
-            maintenance_delta_digest: delta.maintenance_delta_digest().to_string(),
-            lowering_report_digest,
+            maintenance_delta_identity: delta.evidence_identity().clone(),
+            lowering_report_identity,
         }
     }
 
-    pub fn maintenance_delta_digest(&self) -> &str {
-        &self.maintenance_delta_digest
+    pub fn maintenance_delta_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.maintenance_delta_identity
     }
 
-    pub fn lowering_report_digest(&self) -> &str {
-        &self.lowering_report_digest
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.lowering_report_identity
     }
 }

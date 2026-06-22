@@ -155,7 +155,7 @@ where
             )))
             .chain(std::iter::once(format!(
                 "binding:{}",
-                binding.binding_digest()
+                binding.binding_for_reporting()
             )))
             .chain(std::iter::once(format!("view:{view_name}")))
             .chain(std::iter::once(format!(
@@ -174,7 +174,7 @@ where
 
     Ok(ForgeQueryRetainedScalarFactSet {
         artifact_name: binding.artifact_name().to_string(),
-        binding_digest: binding.binding_digest().to_string(),
+        binding_digest: binding.binding_for_reporting().to_string(),
         view_name: view_name.to_string(),
         source_result_digest: materialization.receipt().result_digest().to_string(),
         fact_set_digest,
@@ -203,6 +203,8 @@ mod tests {
     };
 
     fn binding() -> ForgeQueryDerivedArtifactBinding {
+        let snapshot_identity =
+            crate::memory_workspace::admit_external_snapshot_label("snapshot:test");
         let materialization = ForgeQueryDerivedMaterializationResult::new(
             vec![json!({
                 "authority_snapshot_id": 7,
@@ -210,12 +212,12 @@ mod tests {
             })],
             ForgeQueryDerivedMaterializationReceipt::test_only(
                 "surface:test",
-                "snapshot:test",
+                snapshot_identity.clone(),
                 "result:test",
             ),
         );
         let bundle = ForgeQueryDerivedMaterializationBundle::new(
-            "snapshot:test",
+            snapshot_identity,
             BTreeMap::from([("surface:test".to_string(), materialization)]),
         );
         ForgeQueryDerivedArtifactBinding::bind(

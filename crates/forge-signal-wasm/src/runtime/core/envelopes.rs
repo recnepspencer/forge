@@ -291,6 +291,9 @@ impl RuntimeCore {
                 merge_plan_digest: None,
                 merge_result_digest: None,
                 lineage_digest: None,
+                strategy_witness: None,
+                compatibility_witness: None,
+                scoped_merge_proof: None,
                 branch_state_digest: replayed_state.state_digest,
             },
         ))

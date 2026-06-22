@@ -52,4 +52,10 @@ fn schema_public_boundary_is_curated() {
     t.compile_fail(
         "tests/compile_fail/topology_authoring/public_topology_authoring_root_module_missing.rs",
     );
+    t.compile_fail(
+        "tests/compile_fail/touched_graph_basis/geometry_admission_from_copied_receipt_text.rs",
+    );
+    t.compile_fail(
+        "tests/compile_fail/touched_graph_basis/geometry_admission_contract_not_public.rs",
+    );
 }

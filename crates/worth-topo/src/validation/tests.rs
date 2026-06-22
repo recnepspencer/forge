@@ -19,10 +19,10 @@ mod validator_tests {
         commit_topology_mutation_set_through_schema_execution,
         seed_minimal_topology_through_schema_execution,
     };
+    use crate::validation::facade::validate_topology_view;
     use crate::validation::{
         validate_interpreted_topology, validate_named_topology_truth, TopologyValidationPhase,
     };
-    use crate::validation::facade::validate_topology_view;
     #[test]
     fn seeded_topology_view_passes_milestone_one_validators() {
         let mut runtime = RelationalRuntimeApi::builder()
@@ -42,14 +42,33 @@ mod validator_tests {
         let interpreted = interpret_topology_view(&topology);
         let report = validate_interpreted_topology(&topology, &interpreted)
             .expect("seeded topology should validate");
-        assert!(report.rows.iter().any(|row| {
-            row.validator == "ownership"
-                && matches!(row.phase, TopologyValidationPhase::DerivedMaterialization)
-        }));
-        assert!(report.rows.iter().any(|row| {
-            row.validator == "shell_closure"
-                && matches!(row.phase, TopologyValidationPhase::DerivedInterpretation)
-        }));
+        let expected_rules = [
+            ("ownership", TopologyValidationPhase::DerivedMaterialization),
+            (
+                "loop_wiring",
+                TopologyValidationPhase::DerivedMaterialization,
+            ),
+            (
+                "radial_rings",
+                TopologyValidationPhase::DerivedInterpretation,
+            ),
+            (
+                "shell_closure",
+                TopologyValidationPhase::DerivedInterpretation,
+            ),
+            (
+                "vertex_disks",
+                TopologyValidationPhase::DerivedInterpretation,
+            ),
+        ];
+        assert_eq!(report.rows.len(), expected_rules.len());
+        for (row, (name, phase)) in report.rows.iter().zip(expected_rules) {
+            assert_eq!(row.validator, name);
+            assert_eq!(row.rule_identity.namespace(), "worth.topo.validation");
+            assert_eq!(row.rule_identity.name(), name);
+            assert_eq!(row.rule_identity.version(), 1);
+            assert_eq!(row.phase, phase);
+        }
         validate_named_topology_truth(&read_view).expect("seeded topology should be fully named");
     }
 
@@ -118,6 +137,13 @@ mod validator_tests {
         let error = validate_topology_view(topology.topology())
             .expect_err("validator should reject missing prev");
         assert_eq!(error.validator(), "loop_wiring.prev_next_symmetry");
+        assert_eq!(
+            error
+                .rule_identity()
+                .expect("loop wiring failure should carry registered identity")
+                .name(),
+            "loop_wiring"
+        );
     }
 
     #[test]

@@ -2,10 +2,11 @@ use std::collections::BTreeMap;
 
 use forge_query::facade::{
     ForgeQueryReadBuiltInOperator, ForgeQueryReadExecutionEngine, ForgeQueryReadReceipt,
-    ForgeQueryReadScopeClass,
+    ForgeQueryReadScopeClass, ForgeQuerySnapshotIdentity,
 };
 
 use super::fallback::TopologyReadFallbackPosture;
+use super::graph_access::TopologyReadGraphAccessProof;
 use crate::projection::runtime_boundary::read_lowering::{
     TopologyReadLoweringArtifact, TopologyReadRelationshipProofPosture,
 };
@@ -52,7 +53,7 @@ pub struct TopologyReadRequestReport {
     pub(crate) executed_scope_class: Option<ForgeQueryReadScopeClass>,
     pub(crate) executed_query_digest: Option<String>,
     pub(crate) executed_basis_digest: Option<String>,
-    pub(crate) executed_snapshot_token: Option<String>,
+    pub(crate) executed_snapshot_identity: Option<ForgeQuerySnapshotIdentity>,
     pub(crate) executed_built_in_operator_coverage: Vec<ForgeQueryReadBuiltInOperator>,
     pub(crate) fallback_posture: TopologyReadFallbackPosture,
     pub(crate) query_execution_count: usize,
@@ -61,6 +62,7 @@ pub struct TopologyReadRequestReport {
     pub(crate) row_scan_fallback_count: usize,
     pub(crate) whole_view_fallback_count: usize,
     pub(crate) repeated_rediscovery_denied_count: usize,
+    pub(crate) graph_access_proof: Option<TopologyReadGraphAccessProof>,
 }
 
 impl TopologyReadRequestReport {
@@ -74,7 +76,7 @@ impl TopologyReadRequestReport {
             executed_scope_class: Some(receipt.scope_class().clone()),
             executed_query_digest: Some(receipt.query_digest().to_string()),
             executed_basis_digest: Some(receipt.basis_digest().to_string()),
-            executed_snapshot_token: Some(receipt.snapshot_token().to_string()),
+            executed_snapshot_identity: Some(receipt.snapshot_identity().clone()),
             executed_built_in_operator_coverage: receipt.built_in_operator_coverage().to_vec(),
             lowered_traversal_count: lowering_artifact.traversal_steps().len(),
             relationship_proof_admission_count: lowering_artifact
@@ -85,6 +87,7 @@ impl TopologyReadRequestReport {
             row_scan_fallback_count: 0,
             whole_view_fallback_count: 0,
             repeated_rediscovery_denied_count: 0,
+            graph_access_proof: TopologyReadGraphAccessProof::from_receipt(receipt),
         }
     }
 }

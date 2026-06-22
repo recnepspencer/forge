@@ -8,7 +8,6 @@ use worth_primitives::PrimitiveConstructionFamilyKey;
 
 use super::PrimitiveConstructionAdmittedBirthTopologyTruth;
 
-#[cfg(test)]
 pub(super) fn prepare_primitive_construction_topology_ready_birth(
     birth_topology_truth: &PrimitiveConstructionAdmittedBirthTopologyTruth,
 ) -> Result<
@@ -18,7 +17,6 @@ pub(super) fn prepare_primitive_construction_topology_ready_birth(
     build_topology_query_admitted_handoff(birth_topology_truth)
 }
 
-#[cfg(test)]
 pub(crate) fn prepare_primitive_construction_topology_query_admitted_handoff(
     birth_topology_truth: &PrimitiveConstructionAdmittedBirthTopologyTruth,
 ) -> Result<

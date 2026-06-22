@@ -3,8 +3,11 @@ use forge_query::facade::{
     ForgeQueryDeclarationCanonicalEntryKind, ForgeQueryDeclarationCanonicalValue,
     ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationProgressionContract,
-    ForgeQueryDeclarationRouteContract, ForgeQueryNeighborhoodCapableGrouping,
-    ForgeQueryRelationalTruthAuthority, ForgeQuerySignalNotCompatiblePosture,
+    ForgeQueryDeclarationRouteContract, ForgeQueryGraphObligationOperatingWorldSelector,
+    ForgeQueryGraphObligationRegistration, ForgeQueryGraphObligationSupportLane,
+    ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchDescriptorDenial,
+    ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
+    ForgeQuerySignalNotCompatiblePosture,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
 
@@ -14,6 +17,9 @@ use crate::topology_operators::{
 };
 
 use super::super::shared::{canonical_entity_id, canonical_relation_id};
+
+pub(crate) const TOPOLOGY_REWIRE_LOOP_SUCCESSOR_GRAPH_OBLIGATION_COLLECTION: &str =
+    "TopologyRelation";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TopologyLoopSuccessorRewireMember {
@@ -126,6 +132,25 @@ impl ForgeQueryDeclarationFamilyMarker<TopologyQueryDomain>
     fn route_contract() -> ForgeQueryDeclarationRouteContract {
         ForgeQueryDeclarationRouteContract::relational_only()
     }
+
+    fn orchestration_graph_touch_collection() -> Option<&'static str> {
+        Some(TOPOLOGY_REWIRE_LOOP_SUCCESSOR_GRAPH_OBLIGATION_COLLECTION)
+    }
+
+    fn orchestration_graph_touch_descriptor(
+    ) -> Option<Result<ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchDescriptorDenial>> {
+        Some(crate::topology_operators::adoption::topology_operator_relation_touch_descriptor())
+    }
+
+    fn orchestration_graph_obligation_registrations() -> Vec<ForgeQueryGraphObligationRegistration>
+    {
+        vec![
+            topology_rewire_loop_successor_graph_obligation_registration(
+                ForgeQueryGraphObligationSupportLane::ContributionOrchestration,
+                ForgeQueryGraphObligationOperatingWorldSelector::configured_domain_handle(),
+            ),
+        ]
+    }
 }
 
 impl ForgeQueryDeclarationInput<TopologyQueryDomain>
@@ -177,6 +202,16 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain>
         }
         entries
     }
+}
+
+pub(crate) fn topology_rewire_loop_successor_graph_obligation_registration(
+    support_lane: ForgeQueryGraphObligationSupportLane,
+    operating_world_selector: ForgeQueryGraphObligationOperatingWorldSelector,
+) -> ForgeQueryGraphObligationRegistration {
+    crate::topology_operators::adoption::topology_rewire_loop_successor_registration(
+        support_lane,
+        operating_world_selector,
+    )
 }
 
 #[cfg(test)]

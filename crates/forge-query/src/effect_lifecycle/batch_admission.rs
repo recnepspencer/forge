@@ -1,5 +1,5 @@
 use crate::basis_lifecycle::BasisFamily;
-use crate::identity::hash_parts;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::admission::admit_effect_intent;
 use super::authoring_basis::EffectAuthoringBasis;
@@ -222,7 +222,7 @@ pub struct AdmittedEffectBatch {
     admitted: Vec<AdmittedEffectIntent>,
     authority_lane: EffectAuthorityLane,
     basis_family: BasisFamily,
-    batch_digest: String,
+    batch_identity: ForgeQueryEvidenceIdentity,
     counters: EffectLifecycleCounters,
 }
 
@@ -230,21 +230,23 @@ impl AdmittedEffectBatch {
     fn new(admitted: Vec<AdmittedEffectIntent>) -> Self {
         let authority_lane = admitted[0].normalized().authority_lane();
         let basis_family = admitted[0].normalized().basis_family();
-        let batch_digest = hash_parts(
-            &std::iter::once("admitted_effect_batch_v1".to_string())
-                .chain(
-                    admitted
-                        .iter()
-                        .map(|item| format!("admitted:{}", item.admitted_digest())),
+        let batch_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "admitted_effect_batch_v1",
                 )
-                .collect::<Vec<_>>(),
-        );
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("admitted"),
+                    admitted.iter().map(AdmittedEffectIntent::admitted_identity),
+                )
+                .seal();
         let counters = EffectLifecycleCounters::admitted_batch(admitted.len());
         Self {
             admitted,
             authority_lane,
             basis_family,
-            batch_digest,
+            batch_identity,
             counters,
         }
     }
@@ -258,8 +260,12 @@ impl AdmittedEffectBatch {
     pub fn basis_family(&self) -> BasisFamily {
         self.basis_family
     }
-    pub fn batch_digest(&self) -> &str {
-        &self.batch_digest
+    pub fn batch_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.batch_identity
+    }
+
+    pub fn batch_for_reporting(&self) -> &str {
+        self.batch_identity.as_str()
     }
     pub fn counters(&self) -> &EffectLifecycleCounters {
         &self.counters
@@ -297,9 +303,9 @@ fn validate_batch_component_lane_coherence<T>(
         ));
     }
     if components.iter().any(|item| {
-        normalized(item).scoped_basis_digest() != first.scoped_basis_digest()
-            || normalized(item).expected_lower_runtime_binding_digest()
-                != first.expected_lower_runtime_binding_digest()
+        normalized(item).scoped_basis_identity() != first.scoped_basis_identity()
+            || normalized(item).expected_lower_runtime_binding_identity()
+                != first.expected_lower_runtime_binding_identity()
     }) {
         return Err(EffectBatchAdmissionDenial::new(
             EffectBatchAdmissionDenialKind::MixedBasisIdentity,

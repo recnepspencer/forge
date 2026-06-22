@@ -1,8 +1,8 @@
 use forge_query::facade::{
-    CertifiedFamilyCoverageHandle, QuerySubscriptionAdmittedDiagnosticBundle,
-    QuerySubscriptionBridgeParityExplanation, QuerySubscriptionRuntimeCertificationCounters,
-    QuerySubscriptionRuntimeCertificationScope, QuerySubscriptionSupportReport,
-    SubscriptionLifecycleCertificationBundle,
+    CertifiedFamilyCoverageHandle, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    QuerySubscriptionAdmittedDiagnosticBundle, QuerySubscriptionBridgeParityExplanation,
+    QuerySubscriptionRuntimeCertificationCounters, QuerySubscriptionRuntimeCertificationScope,
+    QuerySubscriptionSupportReport, SubscriptionLifecycleCertificationBundle,
 };
 
 fn main() {
@@ -19,7 +19,10 @@ fn main() {
         admitted_diagnostic_bundle,
         lifecycle_certification,
         coverage_handle,
-        scope_digest: String::new(),
+        scope_identity: ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .seal(),
         counters: QuerySubscriptionRuntimeCertificationCounters::default(),
     };
 }

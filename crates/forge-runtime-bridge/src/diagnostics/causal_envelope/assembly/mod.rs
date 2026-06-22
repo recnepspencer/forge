@@ -6,6 +6,7 @@ use super::evidence_reference::BridgeCausalEvidenceReference;
 use super::explanation_envelope::BridgeCausalExplanationEnvelope;
 use super::retained_mapping;
 use crate::diagnostics::BridgeDiagnosticsFacade;
+use crate::identity::BridgeIdentityEvidence;
 
 mod request;
 
@@ -38,11 +39,11 @@ impl BridgeDiagnosticsFacade {
         ))
     }
 
-    fn retained_record_digest(
+    fn retained_record_evidence_identity(
         &self,
         reference: &BridgeCausalEvidenceReference,
-    ) -> Result<Option<String>, BridgeCausalEnvelopeDenial> {
-        retained_mapping::retained_record_digest(self, reference)
+    ) -> Result<Option<BridgeIdentityEvidence>, BridgeCausalEnvelopeDenial> {
+        retained_mapping::retained_record_evidence_identity(self, reference)
     }
 
     fn missing_retained_record(
@@ -55,7 +56,7 @@ impl BridgeDiagnosticsFacade {
             reference.family(),
             reference.owner(),
             reference.family().expected_owner(),
-            reference.reference_identity().into(),
+            reference.reference_evidence_identity().clone(),
             counters,
         )
     }
@@ -70,7 +71,7 @@ impl BridgeDiagnosticsFacade {
             BridgeCausalEvidenceFamily::BridgeRoute,
             BridgeCausalEvidenceOwner::RuntimeBridge,
             BridgeCausalEvidenceOwner::RuntimeBridge,
-            request.request_digest().into(),
+            request.request_evidence_identity().clone(),
             counters,
         )
     }
@@ -121,8 +122,8 @@ impl BridgeCausalEnvelopeAssemblyProgress {
         reference: &BridgeCausalEvidenceReference,
     ) -> Result<(), BridgeCausalEnvelopeDenial> {
         self.bridge_retained_lookup_count += 1;
-        let retained_digest = match facade.retained_record_digest(reference)? {
-            Some(retained_digest) => retained_digest,
+        let retained_identity = match facade.retained_record_evidence_identity(reference)? {
+            Some(retained_identity) => retained_identity,
             None => return Err(facade.missing_retained_record(reference, self.failure_counters())),
         };
         self.retained_bridge_binding_count += 1;
@@ -131,7 +132,7 @@ impl BridgeCausalEnvelopeAssemblyProgress {
         }
         self.bindings.push(BridgeCausalEvidenceBinding::retained(
             reference,
-            retained_digest,
+            retained_identity,
         ));
         Ok(())
     }

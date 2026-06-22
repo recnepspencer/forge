@@ -76,7 +76,7 @@ fn kernel_binding_workflow_consumes_spatial_authority_without_local_rebinding_lo
             neighborhood.clone(),
         ),
     );
-    let handle = admitted_rebinding_handle("phase-five-rebinding");
+    let handle = admitted_rebinding_handle("workflow-boundary-rebinding");
     let ergonomic = rebinding_workflow_artifacts(&entry, &handle);
     let kernel_receipt = primitive_rebinding_retained_fact_source(&entry, &handle)
         .expect("retained fact source")
@@ -137,7 +137,7 @@ fn kernel_authoring_lane_and_generic_query_lane_share_canonical_declaration_and_
             .expect("anchor spec"),
         ),
     );
-    let handle = admitted_anchor_binding_handle("phase-five-binding");
+    let handle = admitted_anchor_binding_handle("workflow-boundary-binding");
     let ergonomic = anchor_binding_workflow_artifacts(&entry, &handle);
     let generic_progression = handle
         .declare_review_and_progress(entry.clone())
@@ -202,7 +202,7 @@ fn kernel_rebinding_dx_lane_and_generic_query_lane_converge_to_same_artifacts() 
             .expect("neighborhood"),
         ),
     );
-    let handle = admitted_rebinding_handle("phase-twelve-rebinding-parity");
+    let handle = admitted_rebinding_handle("workflow-boundary-rebinding-parity");
     let ergonomic = rebinding_workflow_artifacts(&entry, &handle);
     let generic_progression = handle
         .declare_review_and_progress(entry.clone())
@@ -266,7 +266,7 @@ fn kernel_cannot_reinterpret_spatial_denials_or_continuity_classes_for_convenien
             .expect("neighborhood"),
         ),
     );
-    let ambiguous_handle = admitted_rebinding_handle("phase-twelve-ambiguous");
+    let ambiguous_handle = admitted_rebinding_handle("workflow-boundary-ambiguous");
     let ambiguous_receipt =
         rebinding_receipt_for_entry(&ambiguous_entry, "workflow-boundary-ambiguous")
             .expect("ambiguous receipt");
@@ -311,7 +311,7 @@ fn kernel_cannot_reinterpret_spatial_denials_or_continuity_classes_for_convenien
             .expect("neighborhood"),
         ),
     );
-    let unsupported_handle = admitted_rebinding_handle("phase-twelve-unsupported");
+    let unsupported_handle = admitted_rebinding_handle("workflow-boundary-unsupported");
     let unsupported_receipt =
         rebinding_receipt_for_entry(&unsupported_entry, "workflow-boundary-unsupported")
             .expect("unsupported receipt");

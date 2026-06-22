@@ -1,3 +1,5 @@
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+
 use super::active_counters::ActiveSubscriptionCounters;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -7,6 +9,8 @@ pub enum ActiveSubscriptionLifecycleDenialKind {
     DurableCheckpointOverclaim,
     StoreBackedRestartOverclaim,
     RegistryEquivalenceMismatch,
+    AttachmentNotActive,
+    AttachmentLaneMismatch,
     LinearScanLookupForbidden,
 }
 
@@ -18,6 +22,8 @@ impl ActiveSubscriptionLifecycleDenialKind {
             Self::DurableCheckpointOverclaim => "durable_checkpoint_overclaim",
             Self::StoreBackedRestartOverclaim => "store_backed_restart_overclaim",
             Self::RegistryEquivalenceMismatch => "registry_equivalence_mismatch",
+            Self::AttachmentNotActive => "attachment_not_active",
+            Self::AttachmentLaneMismatch => "attachment_lane_mismatch",
             Self::LinearScanLookupForbidden => "linear_scan_lookup_forbidden",
         }
     }
@@ -27,7 +33,7 @@ impl ActiveSubscriptionLifecycleDenialKind {
 pub struct ActiveSubscriptionLifecycleError {
     denial_kind: ActiveSubscriptionLifecycleDenialKind,
     message: String,
-    source_digest: String,
+    pub(in crate::subscription) source_identity: ForgeQueryEvidenceIdentity,
     counters: ActiveSubscriptionCounters,
 }
 
@@ -35,13 +41,13 @@ impl ActiveSubscriptionLifecycleError {
     pub(super) fn new(
         denial_kind: ActiveSubscriptionLifecycleDenialKind,
         message: impl Into<String>,
-        source_digest: impl Into<String>,
+        source_identity: ForgeQueryEvidenceIdentity,
         counters: ActiveSubscriptionCounters,
     ) -> Self {
         Self {
             denial_kind,
             message: message.into(),
-            source_digest: source_digest.into(),
+            source_identity,
             counters,
         }
     }
@@ -52,10 +58,6 @@ impl ActiveSubscriptionLifecycleError {
 
     pub fn message(&self) -> &str {
         &self.message
-    }
-
-    pub fn source_digest(&self) -> &str {
-        &self.source_digest
     }
 
     pub fn counters(&self) -> &ActiveSubscriptionCounters {

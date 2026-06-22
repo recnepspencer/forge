@@ -88,7 +88,7 @@ impl CausalInspectionPlanError {
         match self {
             Self::Anchor(error) => error.failure_digest(),
             Self::MissingEvidence(denial) => denial.failure_digest(),
-            Self::Request(error) => error.failure_digest(),
+            Self::Request(error) => error.failure_for_reporting(),
         }
     }
 }
@@ -221,8 +221,8 @@ impl CausalInspection {
         let anchor = anchor_causal_observation(self.receipt, reason)
             .map_err(CausalInspectionPlanError::Anchor)?;
         let target = causal_inspection_target(
-            anchor.observation_receipt().observation_target_digest(),
-            anchor.observation_receipt().result_shape_context_digest(),
+            anchor.observation_receipt().observation_target().clone(),
+            anchor.observation_receipt().result_shape_context().clone(),
         )
         .map_err(CausalInspectionPlanError::Request)?;
         let resolution =
@@ -337,7 +337,7 @@ impl CausalInspectionPlan {
         }
     }
 
-    pub fn anchor_digest(&self) -> &str {
+    pub fn anchor_for_reporting(&self) -> &str {
         self.reference_set.anchor().anchor_digest().as_str()
     }
 
@@ -345,19 +345,21 @@ impl CausalInspectionPlan {
         self.reference_set.reference_set_digest().as_str()
     }
 
-    pub fn request_digest(&self) -> &str {
-        self.request.request_digest()
+    pub fn request_for_reporting(&self) -> &str {
+        self.request.request_for_reporting()
     }
 
     pub fn admission_digest(&self) -> &str {
         match &self.admission {
             CausalInspectionProofFlow::Admitted(inspection) => {
-                inspection.admitted_inspection_digest()
+                inspection.admitted_inspection_for_reporting()
             }
             CausalInspectionProofFlow::Advisory(inspection) => {
-                inspection.advisory_inspection_digest()
+                inspection.advisory_inspection_for_reporting()
             }
-            CausalInspectionProofFlow::Denied(inspection) => inspection.denied_inspection_digest(),
+            CausalInspectionProofFlow::Denied(inspection) => {
+                inspection.denied_inspection_for_reporting()
+            }
         }
     }
 

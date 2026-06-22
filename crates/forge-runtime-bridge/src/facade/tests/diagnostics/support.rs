@@ -21,8 +21,7 @@ pub(crate) use crate::facade::{
     BridgeMixedCauseOrderingInput, BridgeMixedCauseOrderingLaneKind,
     BridgeMixedCauseOrderingRequest, BridgeRuntimePolicy, BridgeSubscriptionDeliveryDensityPosture,
     BridgeSubscriptionDeliveryFamilyKind, BridgeSubscriptionDuplicateReplayPolicyKind,
-    BridgeSubscriptionPreviewLifecycleResidueKind, TruthBranchIdentity, TruthCommitIdentity,
-    TruthPatchIdentity, TruthSnapshotIdentity,
+    BridgeSubscriptionPreviewLifecycleResidueKind,
 };
 pub(crate) use forge_signal::facade::NodeId;
 

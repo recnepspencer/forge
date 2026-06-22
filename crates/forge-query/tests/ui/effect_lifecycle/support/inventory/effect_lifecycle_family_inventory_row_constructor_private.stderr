@@ -1,21 +1,7 @@
-error[E0451]: fields `family_key`, `authority_owner`, `admitted_basis_families`, `lowered_artifact_kind`, `receipt_artifact_kind`, `denial_posture`, `deferred_posture` and `row_digest` of struct `EffectLifecycleFamilyInventoryRow` are private
-  --> tests/ui/effect_lifecycle/support/inventory/effect_lifecycle_family_inventory_row_constructor_private.rs:9:9
+error[E0560]: struct `EffectLifecycleFamilyInventoryRow` has no field named `row_digest`
+  --> tests/ui/effect_lifecycle/support/inventory/effect_lifecycle_family_inventory_row_constructor_private.rs:16:9
    |
- 8 |     let _ = EffectLifecycleFamilyInventoryRow {
-   |             --------------------------------- in this type
- 9 |         family_key: EffectLifecycleFamilyKey::Mutation,
-   |         ^^^^^^^^^^ private field
-10 |         authority_owner: EffectAuthorityOwner::ForgeRelational,
-   |         ^^^^^^^^^^^^^^^ private field
-11 |         admitted_basis_families: vec![BasisFamily::CurrentHead],
-   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
-12 |         lowered_artifact_kind: EffectLoweredArtifactKind::LoweredMutationIntentDeclaration,
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
-13 |         receipt_artifact_kind: EffectReceiptArtifactKind::ForgeQueryIntentExecution,
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
-14 |         denial_posture: EffectSupportPosture::Denied,
-   |         ^^^^^^^^^^^^^^ private field
-15 |         deferred_posture: EffectSupportPosture::Unsupported,
-   |         ^^^^^^^^^^^^^^^^ private field
 16 |         row_digest: String::new(),
-   |         ^^^^^^^^^^ private field
+   |         ^^^^^^^^^^ `EffectLifecycleFamilyInventoryRow` does not have this field
+   |
+   = note: all struct fields are already assigned

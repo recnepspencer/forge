@@ -1,9 +1,11 @@
 use crate::domain_capabilities::aftermath::DOMAIN_CAPABILITY_AFTERMATH_CATEGORY_MODULE;
 use crate::domain_capabilities::continuity::DOMAIN_CAPABILITY_CONTINUITY_CATEGORY_MODULE;
 use crate::domain_capabilities::explanation::DOMAIN_CAPABILITY_EXPLANATION_CATEGORY_MODULE;
+use crate::domain_capabilities::identity::{
+    compose_certified_surface_row_digest, compose_public_surface_digest,
+};
 use crate::domain_capabilities::workflow::DOMAIN_CAPABILITY_WORKFLOW_CATEGORY_MODULE;
 use crate::domain_capabilities::ForgeQueryDomainCapabilityCategory;
-use crate::identity::hash_parts;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDomainCapabilityCertifiedSurfaceRow {
@@ -59,14 +61,14 @@ impl ForgeQueryDomainCapabilityCertifiedSurfaceRow {
     }
 
     pub fn row_digest(&self) -> String {
-        hash_parts(&[
-            self.category.as_str().to_string(),
-            self.ordinary_lane.to_string(),
-            self.inspectable_lane.to_string(),
-            self.proof_lane.to_string(),
-            self.raw_lane.to_string(),
-            self.implementation_path.to_string(),
-        ])
+        compose_certified_surface_row_digest(
+            self.category.as_str(),
+            self.ordinary_lane,
+            self.inspectable_lane,
+            self.proof_lane,
+            self.raw_lane,
+            self.implementation_path,
+        )
     }
 }
 
@@ -87,12 +89,10 @@ impl ForgeQueryDomainCapabilityCertifiedSurfaceInventory {
     }
 
     pub fn public_surface_digest(&self) -> String {
-        hash_parts(
-            &self
-                .rows
+        compose_public_surface_digest(
+            self.rows
                 .iter()
-                .map(ForgeQueryDomainCapabilityCertifiedSurfaceRow::row_digest)
-                .collect::<Vec<_>>(),
+                .map(ForgeQueryDomainCapabilityCertifiedSurfaceRow::row_digest),
         )
     }
 }
@@ -210,12 +210,11 @@ mod tests {
     #[test]
     fn certified_surface_inventory_digest_is_row_order_stable() {
         let inventory = forge_query_domain_capability_public_surface_inventory();
-        let expected = hash_parts(
-            &inventory
+        let expected = compose_public_surface_digest(
+            inventory
                 .rows()
                 .iter()
-                .map(ForgeQueryDomainCapabilityCertifiedSurfaceRow::row_digest)
-                .collect::<Vec<_>>(),
+                .map(ForgeQueryDomainCapabilityCertifiedSurfaceRow::row_digest),
         );
 
         assert_eq!(inventory.public_surface_digest(), expected);

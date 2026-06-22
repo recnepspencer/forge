@@ -1,19 +1,19 @@
 use super::read_composition_runtime::{
     execute_runtime_basis_context_read_graph, execute_runtime_current_read_graph,
 };
+use super::runtime_read_execution_receipts::{
+    attach_graph_obligation_dispatch, attach_graph_read_access_receipt,
+    attach_read_intent_execution_evidence, provision_graph_indexes_for_read_binding,
+};
 use super::*;
 use crate::intent_admission::dx::{
     non_admitted_runtime_violation, ForgeQueryRuntimeIntentAdmissionReviewData,
 };
 use crate::intent_admission::{
-    ForgeQueryIntentAdmissionDecision, ForgeQueryLiveReadExecutionBinding,
-    ForgeQueryLiveReadExecutionHandoff, ForgeQueryLiveReadIntentSeed,
-    ForgeQueryReadExecutionBinding, ForgeQueryReadExecutionHandoff,
-    ForgeQueryReadExecutionIntentSeed,
+    ForgeQueryIntentAdmissionDecision, ForgeQueryReadExecutionBinding,
+    ForgeQueryReadExecutionHandoff, ForgeQueryReadExecutionIntentSeed,
 };
 use crate::query_context::AdmittedQueryBasisContext;
-
-use super::materialized_fact_posture::materialized_fact_posture_from_live_subscription_state;
 
 impl ForgeQueryWorkspace {
     pub fn read_family_intent(
@@ -23,6 +23,7 @@ impl ForgeQueryWorkspace {
         crate::intent_admission::ForgeQueryWorkspaceReadIntentAuthoring::new(
             self,
             family.clone(),
+            None,
             None,
         )
     }
@@ -36,16 +37,20 @@ impl ForgeQueryWorkspace {
             self,
             family.clone(),
             Some(context.clone()),
+            None,
         )
     }
 
-    pub fn read_live_intent<T>(
+    pub fn read_family_intent_in_graph_read_authority(
         &mut self,
-        live_view: &ForgeQueryLiveView<T>,
-    ) -> crate::intent_admission::ForgeQueryWorkspaceLiveReadIntentAuthoring<'_, T> {
-        crate::intent_admission::ForgeQueryWorkspaceLiveReadIntentAuthoring::new(
+        family: &ForgeQueryReadFamily,
+        authority: &ForgeQueryGraphReadAccessAuthorityContext,
+    ) -> crate::intent_admission::ForgeQueryWorkspaceReadIntentAuthoring<'_> {
+        crate::intent_admission::ForgeQueryWorkspaceReadIntentAuthoring::new(
             self,
-            live_view.clone(),
+            family.clone(),
+            None,
+            Some(authority.clone()),
         )
     }
 
@@ -76,8 +81,26 @@ impl ForgeQueryWorkspace {
     pub(crate) fn into_runtime_read_execution_binding(
         &self,
         handoff: ForgeQueryReadExecutionHandoff,
-    ) -> ForgeQueryReadExecutionBinding {
-        self.runtime.prepare_read_execution_binding(handoff)
+    ) -> Result<ForgeQueryReadExecutionBinding, ForgeQueryRuntimeError> {
+        self.runtime.prepare_read_execution_binding(handoff, None)
+    }
+
+    pub(crate) fn into_runtime_read_execution_binding_in_authority(
+        &self,
+        handoff: ForgeQueryReadExecutionHandoff,
+        authority: Option<&ForgeQueryGraphReadAccessAuthorityContext>,
+    ) -> Result<ForgeQueryReadExecutionBinding, ForgeQueryRuntimeError> {
+        self.runtime
+            .prepare_read_execution_binding(handoff, authority)
+    }
+
+    pub(crate) fn into_runtime_read_execution_binding_with_access_plan(
+        &self,
+        handoff: ForgeQueryReadExecutionHandoff,
+        graph_read_access_plan: ForgeQueryAdmittedGraphReadAccessPlan,
+    ) -> Result<ForgeQueryReadExecutionBinding, ForgeQueryRuntimeError> {
+        self.runtime
+            .prepare_read_execution_binding_with_access_plan(handoff, graph_read_access_plan)
     }
 
     pub(crate) fn execute_bound_read_execution(
@@ -85,43 +108,6 @@ impl ForgeQueryWorkspace {
         binding: ForgeQueryReadExecutionBinding,
     ) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError> {
         self.runtime.execute_read_execution_binding(binding)
-    }
-
-    pub(crate) fn review_live_read_execution<T>(
-        &self,
-        live_view: ForgeQueryLiveView<T>,
-    ) -> Result<ForgeQueryRuntimeIntentAdmissionReviewData, ForgeQueryRuntimeError> {
-        self.runtime
-            .review_runtime_live_read_execution(live_view.subscription_installation().clone())
-    }
-
-    pub(crate) fn resolve_reviewed_admitted_live_read_execution_handoff(
-        &self,
-        review: ForgeQueryRuntimeIntentAdmissionReviewData,
-    ) -> Result<ForgeQueryLiveReadExecutionHandoff, ForgeQueryRuntimeError> {
-        self.runtime
-            .resolve_reviewed_admitted_live_read_execution_handoff(review)
-    }
-
-    pub(crate) fn live_read_execution_non_admitted_error(
-        &self,
-        review: &ForgeQueryRuntimeIntentAdmissionReviewData,
-    ) -> ForgeQueryRuntimeError {
-        self.runtime.live_read_execution_non_admitted_error(review)
-    }
-
-    pub(crate) fn into_runtime_live_read_execution_binding(
-        &self,
-        handoff: ForgeQueryLiveReadExecutionHandoff,
-    ) -> ForgeQueryLiveReadExecutionBinding {
-        self.runtime.prepare_live_read_execution_binding(handoff)
-    }
-
-    pub(crate) fn execute_bound_live_read_execution(
-        &mut self,
-        binding: ForgeQueryLiveReadExecutionBinding,
-    ) -> Result<ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
-        self.runtime.execute_live_read_execution_binding(binding)
     }
 }
 
@@ -180,8 +166,30 @@ impl ForgeQueryRuntime {
     pub(crate) fn prepare_read_execution_binding(
         &self,
         handoff: ForgeQueryReadExecutionHandoff,
-    ) -> ForgeQueryReadExecutionBinding {
-        ForgeQueryReadExecutionBinding::from_handoff(handoff)
+        graph_read_authority: Option<&ForgeQueryGraphReadAccessAuthorityContext>,
+    ) -> Result<ForgeQueryReadExecutionBinding, ForgeQueryRuntimeError> {
+        let graph_obligation_dispatch = self.read_family_obligation_dispatch(&handoff)?;
+        let graph_read_access_plan =
+            self.admit_graph_read_access_plan_for_handoff(&handoff, graph_read_authority)?;
+        Ok(ForgeQueryReadExecutionBinding::from_handoff(
+            handoff,
+            graph_obligation_dispatch,
+            graph_read_access_plan,
+        ))
+    }
+
+    pub(crate) fn prepare_read_execution_binding_with_access_plan(
+        &self,
+        handoff: ForgeQueryReadExecutionHandoff,
+        graph_read_access_plan: ForgeQueryAdmittedGraphReadAccessPlan,
+    ) -> Result<ForgeQueryReadExecutionBinding, ForgeQueryRuntimeError> {
+        validate_graph_read_access_plan_matches_handoff(&handoff, &graph_read_access_plan)?;
+        let graph_obligation_dispatch = self.read_family_obligation_dispatch(&handoff)?;
+        Ok(ForgeQueryReadExecutionBinding::from_handoff(
+            handoff,
+            graph_obligation_dispatch,
+            graph_read_access_plan,
+        ))
     }
 
     pub(crate) fn execute_read_execution_binding(
@@ -189,7 +197,30 @@ impl ForgeQueryRuntime {
         binding: ForgeQueryReadExecutionBinding,
     ) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError> {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Read)?;
-        let mut result = match binding.basis_context() {
+        let snapshot_identity = self.current_snapshot_identity().evidence_identity();
+        let ephemeral_graph_index_receipt =
+            provision_graph_indexes_for_read_binding(&binding, snapshot_identity.as_str())?;
+        let mut executed_read = self.execute_graph_read_binding(&binding)?;
+        executed_read.record_ephemeral_index_receipt(ephemeral_graph_index_receipt.as_ref());
+
+        attach_graph_read_access_receipt(
+            &mut executed_read,
+            &binding,
+            snapshot_identity.as_str(),
+            ephemeral_graph_index_receipt,
+        );
+        attach_graph_obligation_dispatch(&mut executed_read, &binding);
+        attach_read_intent_execution_evidence(&mut executed_read, &binding, &snapshot_identity);
+
+        Ok(executed_read.into_result())
+    }
+
+    fn execute_graph_read_binding(
+        &mut self,
+        binding: &ForgeQueryReadExecutionBinding,
+    ) -> Result<super::read_composition_runtime::ForgeQueryExecutedReadGraph, ForgeQueryRuntimeError>
+    {
+        match binding.basis_context() {
             Some(context) => execute_runtime_basis_context_read_graph(
                 self,
                 binding.read_family().read_graph(),
@@ -197,147 +228,34 @@ impl ForgeQueryRuntime {
             ),
             None => execute_runtime_current_read_graph(self, binding.read_family().read_graph()),
         }
-        .map_err(ForgeQueryRuntimeError::ReadCompositionDenied)?;
-        let decision_trace_envelope =
-            ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
-                binding.family(),
-                binding.entrypoint(),
-                binding.read_family().family_name(),
-                binding.handoff().request_digest(),
-                binding.handoff().eligibility_trace().clone(),
-                binding.handoff().decision_digest(),
-                binding.handoff().handoff_digest(),
-                binding.execution_seam(),
-                binding.read_family().family_name(),
-                result.receipt().result_digest(),
-                binding.execution_seam().as_str(),
-            );
-        let execution_provenance = ForgeQueryIntentExecutionProvenance::for_shared_execution_parts(
-            binding.family(),
-            binding.entrypoint(),
-            binding.execution_seam(),
-            binding.handoff().decision_digest(),
-            binding.handoff().handoff_digest(),
-            binding.binding_digest(),
-            result.receipt().result_digest(),
-            result.receipt().snapshot_token(),
-        );
-        result.attach_intent_admission_evidence(decision_trace_envelope, execution_provenance);
-        Ok(result)
+        .map_err(ForgeQueryRuntimeError::ReadCompositionDenied)
     }
+}
 
-    pub(crate) fn review_runtime_live_read_execution(
-        &self,
-        installation: ForgeQueryRuntimeLiveSubscriptionInstallation,
-    ) -> Result<ForgeQueryRuntimeIntentAdmissionReviewData, ForgeQueryRuntimeError> {
-        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Read)?;
-        let seed = ForgeQueryLiveReadIntentSeed::from_installation(&installation);
-        let request =
-            crate::intent_admission::ForgeQueryRawIntentAdmissionRequest::live_read_entrypoint(
-                seed,
-            )
-            .map_err(|violation| {
-                ForgeQueryRuntimeError::ReadCompositionDenied(ForgeQueryReadDenial::new(
-                    ForgeQueryReadDenialKind::AuthoringDenied,
-                    violation.message(),
-                ))
-            })?;
-        Ok(ForgeQueryRuntimeIntentAdmissionReviewData::from_request(
-            request,
-        ))
+fn validate_graph_read_access_plan_matches_handoff(
+    handoff: &ForgeQueryReadExecutionHandoff,
+    graph_read_access_plan: &ForgeQueryAdmittedGraphReadAccessPlan,
+) -> Result<(), ForgeQueryRuntimeError> {
+    let planned_read_graph_digest = graph_read_access_plan
+        .admission()
+        .requirement_set()
+        .read_graph_digest();
+    let handoff_read_graph_digest = handoff.read_family().read_graph().digest();
+    if planned_read_graph_digest == handoff_read_graph_digest {
+        return Ok(());
     }
-
-    pub(crate) fn resolve_reviewed_admitted_live_read_execution_handoff(
-        &self,
-        review: ForgeQueryRuntimeIntentAdmissionReviewData,
-    ) -> Result<ForgeQueryLiveReadExecutionHandoff, ForgeQueryRuntimeError> {
-        match review.decision().clone() {
-            ForgeQueryIntentAdmissionDecision::Admitted(
-                crate::intent_admission::ForgeQueryAdmittedIntentPlan::LiveReadExecution(plan),
-            ) => Ok(ForgeQueryLiveReadExecutionHandoff::from_plan(plan)),
-            ForgeQueryIntentAdmissionDecision::Admitted(_)
-            | ForgeQueryIntentAdmissionDecision::Advisory(_)
-            | ForgeQueryIntentAdmissionDecision::Violation(_) => {
-                Err(self.live_read_execution_non_admitted_error(&review))
-            }
-        }
-    }
-
-    pub(crate) fn live_read_execution_non_admitted_error(
-        &self,
-        review: &ForgeQueryRuntimeIntentAdmissionReviewData,
-    ) -> ForgeQueryRuntimeError {
-        let violation = non_admitted_runtime_violation(review);
-        ForgeQueryRuntimeError::ReadCompositionDenied(ForgeQueryReadDenial::new(
+    Err(ForgeQueryRuntimeError::ReadCompositionDenied(
+        ForgeQueryReadDenial::new(
             ForgeQueryReadDenialKind::BasisPreflightDenied,
-            violation.message(),
-        ))
-    }
-
-    pub(crate) fn prepare_live_read_execution_binding(
-        &self,
-        handoff: ForgeQueryLiveReadExecutionHandoff,
-    ) -> ForgeQueryLiveReadExecutionBinding {
-        ForgeQueryLiveReadExecutionBinding::from_handoff(handoff)
-    }
-
-    pub(crate) fn execute_live_read_execution_binding(
-        &mut self,
-        binding: ForgeQueryLiveReadExecutionBinding,
-    ) -> Result<ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
-        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Read)?;
-        let rows = self
-            .backend
-            .live_entities(binding.installation().view_name());
-        let snapshot_token = self.backend.snapshot_token();
-        let materialized_fact_posture = self.materialized_fact_posture_for_live_read(
-            binding.installation().view_name(),
-            &snapshot_token,
-        );
-        let receipt = ForgeQueryLiveReadReceipt::from_rows(
-            binding.installation(),
-            snapshot_token,
-            materialized_fact_posture,
-            &rows,
-        );
-        let mut result = ForgeQueryLiveReadResult::new(rows, receipt);
-        let decision_trace_envelope =
-            ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
-                binding.family(),
-                binding.entrypoint(),
-                binding.installation().view_name(),
-                binding.handoff().request_digest(),
-                binding.handoff().eligibility_trace().clone(),
-                binding.handoff().decision_digest(),
-                binding.handoff().handoff_digest(),
-                binding.execution_seam(),
-                binding.installation().view_name(),
-                result.receipt().result_digest(),
-                "live-view-read",
-            );
-        let execution_provenance = ForgeQueryIntentExecutionProvenance::for_shared_execution_parts(
-            binding.family(),
-            binding.entrypoint(),
-            binding.execution_seam(),
-            binding.handoff().decision_digest(),
-            binding.handoff().handoff_digest(),
-            binding.binding_digest(),
-            result.receipt().result_digest(),
-            result.receipt().snapshot_token(),
-        );
-        result.attach_intent_admission_evidence(decision_trace_envelope, execution_provenance);
-        Ok(result)
-    }
-
-    fn materialized_fact_posture_for_live_read(
-        &self,
-        view_name: &str,
-        basis_digest: &str,
-    ) -> Option<crate::projection_consumption::ProjectionMaterializedFactPosture> {
-        let state = self.live_subscriptions.get(view_name)?;
-        Some(materialized_fact_posture_from_live_subscription_state(
-            state,
-            basis_digest,
-        ))
-    }
+            format!(
+                "graph read access plan was admitted for read graph `{planned_read_graph_digest}` but execution handoff carries `{handoff_read_graph_digest}`"
+            ),
+        )
+        .with_access_plan_binding_mismatch(ForgeQueryReadAccessPlanBindingMismatch::new(
+            planned_read_graph_digest,
+            handoff_read_graph_digest,
+            graph_read_access_plan.digest(),
+            graph_read_access_plan.admission().digest(),
+        )),
+    ))
 }

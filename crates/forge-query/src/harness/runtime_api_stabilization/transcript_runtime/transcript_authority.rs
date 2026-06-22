@@ -6,6 +6,9 @@ use crate::facade::{
     ForgeQueryRuntimeWriteAuthorityAdapter, ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
     WriteAuthorityExecutionReceipt,
 };
+use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQuerySnapshotIdentity};
+use crate::runtime::build_bridge_authority_bundle;
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 pub(super) struct TranscriptWriteAuthority;
 
@@ -110,17 +113,31 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
             ),
             ForgeQueryWriteCommand::Delete { .. } => ("TranscriptEntity".to_string(), Vec::new()),
         };
-        let receipt = ForgeQueryMutationReceipt {
-            commit_identity: format!("transcript-commit:{collection}"),
-            snapshot_token: format!("transcript-snapshot:{collection}"),
-            deltas: vec![ForgeQueryMutationDelta {
+        let entity_identity_text = "transcript-entity-1";
+        let entity_identity =
+            crate::memory_workspace::admit_authored_entity_label(entity_identity_text);
+        let snapshot_identity = ForgeQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(1, 1),
+        );
+        let bridge_authority = build_bridge_authority_bundle(
+            _bridge,
+            &snapshot_identity,
+            &command,
+            &collection,
+            &entity_identity,
+            ForgeQueryMutationKind::Updated,
+        )?;
+        let receipt = ForgeQueryMutationReceipt::from_bridge_authoritative_parts(
+            ForgeQueryCommitIdentity::from_relational_commit_id(1),
+            snapshot_identity,
+            vec![ForgeQueryMutationDelta::new(
                 collection,
-                entity_identity: "transcript-entity-1".to_string(),
-                kind: ForgeQueryMutationKind::Updated,
+                entity_identity,
+                ForgeQueryMutationKind::Updated,
                 aspect_paths,
-            }],
-            bridge_authority: None,
-        };
+            )],
+            bridge_authority,
+        );
         Ok(self.build_write_authority_execution_receipt(&command, receipt))
     }
 }

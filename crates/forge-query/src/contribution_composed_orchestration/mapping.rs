@@ -138,8 +138,6 @@ pub(super) fn envelope_error_outcome<
     I: ForgeQueryDeclarationInput<D>,
 >(
     error: ForgeQueryDeclarationEnvelopeTerminalError<D, I>,
-    declaration_digest: &str,
-    progression_digest: &str,
 ) -> ForgeQueryContributionComposedOrchestrationOutcome<D, I> {
     match error {
         ForgeQueryDeclarationEnvelopeTerminalError::Deferred(value) => declaration_outcome(
@@ -147,9 +145,7 @@ pub(super) fn envelope_error_outcome<
             ForgeQueryContributionComposedStop::DeclarationDenied,
             ForgeQueryDeclarationEntryOrchestrationStage::EnvelopeConstructed,
             value.reason(),
-            linked_artifacts_for_envelope(value.envelope())
-                .with_declaration_digest(declaration_digest.to_string())
-                .with_progression_digest(progression_digest.to_string()),
+            linked_artifacts_for_envelope(value.envelope()),
             None,
             None,
             None,
@@ -159,9 +155,7 @@ pub(super) fn envelope_error_outcome<
             ForgeQueryContributionComposedStop::DeclarationDenied,
             ForgeQueryDeclarationEntryOrchestrationStage::EnvelopeConstructed,
             value.reason(),
-            linked_artifacts_for_envelope(value.envelope())
-                .with_declaration_digest(declaration_digest.to_string())
-                .with_progression_digest(progression_digest.to_string()),
+            linked_artifacts_for_envelope(value.envelope()),
             None,
             None,
             None,
@@ -171,9 +165,7 @@ pub(super) fn envelope_error_outcome<
             ForgeQueryContributionComposedStop::Failed,
             ForgeQueryDeclarationEntryOrchestrationStage::EnvelopeConstructed,
             value.reason(),
-            linked_artifacts_for_envelope(value.envelope())
-                .with_declaration_digest(declaration_digest.to_string())
-                .with_progression_digest(progression_digest.to_string()),
+            linked_artifacts_for_envelope(value.envelope()),
             None,
             None,
             None,
@@ -230,7 +222,7 @@ pub(super) fn contribution_digest_from_outcome<
 ) -> Option<String> {
     match outcome {
         ForgeQueryContributionComposedOrchestrationOutcome::Bound(value) => {
-            Some(value.composition_digest().to_string())
+            Some(value.composition_for_reporting().to_string())
         }
         ForgeQueryContributionComposedOrchestrationOutcome::Deferred(value)
         | ForgeQueryContributionComposedOrchestrationOutcome::DeclarationDenied(value)

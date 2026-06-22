@@ -35,9 +35,10 @@ impl BridgeTemporalDeliveryWindowPlan {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            delivery_plan_identity: BridgeSubscriptionTemporalDeliveryPlanIdentity::new(format!(
-                "bridge-temporal-delivery-window-plan-id:sha256:{digest:x}"
-            )),
+            delivery_plan_identity:
+                BridgeSubscriptionTemporalDeliveryPlanIdentity::admit_bridge_owned(format!(
+                    "bridge-temporal-delivery-window-plan-id:sha256:{digest:x}"
+                )),
             cause_record_identity: cause_record.cause_record_identity().clone(),
             delivery_family,
             counters: BridgeSubscriptionCounters::from_temporal_delivery_plan(),

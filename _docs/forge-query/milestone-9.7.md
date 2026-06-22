@@ -118,6 +118,19 @@ This milestone fails if any covered path:
 
 ## Phase Plan
 
+Phases **1 through 10** establish the concurrency topology, facade families,
+and an **interim** hostile schedule. They may ship prototype scaffolding, but
+they do **not** close the milestone.
+
+Phases **11 through 18** are the mandatory end-cap honesty program. They exist
+because an earlier pass claimed closure while still using snapshot-copy shared
+reads, `Mutex` on the read substrate, `commit_identity` string folklore for
+journal order, and serial-only hostile certification. Each end-cap phase owns
+its substrate **and** its proof obligations — inventory slices, forbidden-pattern
+scans, hostile schedules, and sabotage tests close **inside** the phase that
+ships the substrate, not in a later audit bucket. **Milestone `9.7` may not
+report `Closed` until Phase 18 passes with derived proof, not API presence.**
+
 ### Phase 1: Backend Adapter Authority-Lane Decomposition Boundary
 
 Split the backend adapter contracts by authority lane — committed read,
@@ -239,18 +252,21 @@ counting and without unbounded retention.
   retirement is the required shape.
 - Do not let retention become unbounded; retirement is part of this boundary,
   not a later cleanup task.
+- Phase 3 may land internal scaffolding only. Honest closure of pinning
+  substrate, hot-path lock posture, and residue counters is deferred to Phases
+  **12 and 13**. A registry that copies derived rows or takes a global
+  `Mutex` on mint does not satisfy this milestone.
 
 **Test requirements**
-- Add a `Snapshot Generation Pinning Test` to
+- Add a `Snapshot Generation Pinning Scaffold Test` to
   [test-requirements.md](./test-requirements.md) and close it in this phase.
 - Adversarial equivalence: prove a pinned generation observes identical
-  snapshot content for its full pin lifetime under sustained commit pressure.
+  snapshot content for its full pin lifetime under sustained commit pressure
+  on the covered scaffold harness.
 - Adversarial residue: prove that after a hostile pin/retire schedule, zero
   orphaned generations and zero unretired pins remain, as exact counter
-  assertions.
-- Adversarial contention proof: exact counters proving zero lock acquisitions
-  and bounded (structurally constant) refcount operations on the pinned-read
-  hot path.
+  assertions sourced from runtime-owned counters — not inferred values.
+- This phase does **not** close hot-path lock posture; that is Phase 12.
 
 **Engineering decisions**
 - Pin identity is generation-indexed (index + generation) per perf-law
@@ -311,7 +327,7 @@ let reports: Vec<_> = std::thread::scope(|s| {
         .map(|handle| handle.join().unwrap())
         .collect()
 });
-// byte-identical receipts to serialized execution — certified in Phase 10
+// byte-identical receipts to serialized execution — certified in Phase 16
 ```
 
 **Warnings**
@@ -319,16 +335,22 @@ let reports: Vec<_> = std::thread::scope(|s| {
   id, or label; it exists only as the product of basis capability admission.
 - Do not give the read context any method whose execution writes — including
   "convenience" cache warming or lazy index repair.
+- Phase 4 may ship a serial-only read context over copied snapshot state.
+  `Send + Sync`, real N-thread equivalence, and structural pinning honesty are
+  deferred to Phases **13 and 16**. Minting a context by cloning derived rows
+  into a side registry is prototype debt, not closure.
 
 **Test requirements**
-- Add a `Shared Read Context Concurrency Equivalence Test` to
+- Add a `Shared Read Context Serial Scaffold Test` to
   [test-requirements.md](./test-requirements.md) and close it in this phase.
-- Adversarial equivalence: N threads reading through shared contexts under
-  commit pressure produce byte-identical results and receipts to the same
-  schedule executed serially.
+- Adversarial equivalence: a single-threaded schedule reading through shared
+  contexts under commit pressure produces byte-identical results and receipts
+  to the same schedule executed through the workspace convenience path.
 - Adversarial denial: a context whose snapshot generation has been retired
   fails closed with a typed stale-basis stop; it must never silently rebind
   to a newer snapshot.
+- N-thread concurrency equivalence is **not** closure for this phase; it is
+  Phase 16.
 
 **Engineering decisions**
 - Read contexts are immutable values; refreshing to a newer basis is an
@@ -622,10 +644,11 @@ is compile-enforced.
 **Open questions**
 - None.
 
-### Phase 10: Hostile Concurrency And Determinism Certification Boundary
+### Phase 10: Interim Hostile Schedule Baseline Boundary
 
-Close the milestone with one hostile certification program that drives all
-lanes simultaneously and proves the adversarial constraint end to end.
+Land an interim hostile schedule that exercises Phases 1–9 in one program and
+records the gaps the end-cap phases must close. This phase proves the harness
+exists; it does **not** close the milestone.
 
 **Relevant subsystems**
 - runtime-backed certification harness (the Milestone `9.5` raw runtime read
@@ -637,47 +660,581 @@ lanes simultaneously and proves the adversarial constraint end to end.
 - [runtime/tests/support/bridge/runtime_support.rs](../../crates/forge-query/src/runtime/tests/support/bridge/runtime_support.rs)
 
 **Warnings**
-- Do not certify axes in isolation; the matrix must combine concurrent
-  readers, submission pressure, preview/branch churn, derived republication,
-  and replay in one program.
+- Do not treat a serial schedule as concurrent certification. Real N-thread
+  readers and M submitters are Phase 16.
 - Do not accept threshold-shaped assertions where exact counters are
   achievable; lock count and reader-evaluation count are exact zeros, not
   "low".
+- Do not close this phase if journal gap counting parses `commit_identity`
+  text, if pin residue is hard-coded zero, or if shared read mint copies
+  derived rows into a side registry. Those are explicit debt markers for
+  Phases 11–18.
 
 **Test requirements**
-- Add a `Milestone 9.7 Concurrency Determinism Hostile Certification Matrix`
-  to [test-requirements.md](./test-requirements.md) and close it in this
-  phase.
-- Adversarial equivalence: the full hostile schedule — N readers, M
-  submitters, derived republication, preview/branch churn — produces
-  byte-identical receipts, results, and published-artifact digests to its
-  serialized replay, across repeated runs.
-- Adversarial residue: after the hostile schedule, prove zero orphaned
-  snapshot generations, zero unretired read pins, zero journal gaps, and
-  zero delivery residue, each as an exact counter assertion.
+- Add a `Milestone 9.7 Interim Hostile Schedule Baseline Test` to
+  [test-requirements.md](./test-requirements.md) and close it in this phase.
+- Adversarial equivalence: the interim schedule produces byte-identical
+  receipts, results, and published-artifact digests to its serialized replay
+  on the covered harness.
+- Adversarial debt publication: the schedule artifact must record which
+  guarantees are still modeled (snapshot copy, `Mutex` on read substrate,
+  string-derived journal order, serial-only readers) so Phases 11–18 cannot
+  be skipped silently.
 
 **Engineering decisions**
-- This milestone closes on the certification matrix, not on the lanes
-  individually passing their phase tests.
 - Certification artifacts lower through the `9.6` evidence primitive so the
-  matrix itself is replay-comparable.
+  interim matrix is replay-comparable.
+- This phase is a harness checkpoint, not milestone closure.
 
 **Open questions**
 - None.
 
+### Phase 11: Published Artifact Registry Authority Boundary
+
+Establish a single runtime-owned published-artifact registry as the only legal
+source of derived facts for shared read and projection consumption. Shared read
+must hold generation handles into this registry, not cloned materialization
+rows. **This phase seeds the pinning inventory** and must close on registry-
+slice proof before Phase 12 begins.
+
+**Relevant subsystems**
+- published derived-artifact registry
+- projection consumption lowering
+- shared-read mint path
+- pinning inventory (registry and mint slice)
+
+**Relevant Query source surfaces**
+- [runtime/shared_read.rs](../../crates/forge-query/src/runtime/shared_read.rs)
+- [runtime/state.rs](../../crates/forge-query/src/runtime/state.rs)
+- [runtime/workspace_shared_read.rs](../../crates/forge-query/src/runtime/workspace_shared_read.rs)
+- [application/support/shared_read_pinning_inventory.rs](../../crates/forge-query/src/application/support/shared_read_pinning_inventory.rs) (new)
+
+**Relevant APIs and product surfaces**
+- runtime-owned published-artifact registry with generation-indexed entries
+- shared-read mint that acquires a registry lease, not a row snapshot copy
+- versioned pinning inventory listing every ordinary registry and mint path
+
+**Warnings**
+- Do not satisfy this phase by copying `materialization` rows, projection
+  facts, or digest tables into `ForgeQuerySharedReadContext` fields.
+- Do not let shared read bypass the registry through direct workspace state
+  reads when the consumer need is published derived truth.
+- Do not treat a `HashMap` side cache populated at mint time as a registry.
+- Do not close this phase without seeding the pinning inventory and running
+  forbidden-pattern scans on the registry/mint slice. Inventory is substrate,
+  not a later audit chore.
+
+**Test requirements**
+- Add a `Published Artifact Registry Authority Test` to
+  [test-requirements.md](./test-requirements.md) and close it in this phase.
+- **Inventory seed:** create the embedded, versioned pinning inventory and
+  register every ordinary `runtime/` and `application/` path that owns registry
+  authority or shared-read mint. Later phases extend this inventory; they may
+  not replace it with ad-hoc greps.
+- **Forbidden-pattern scans (registry/mint slice):** scans fail closed on:
+  - materialization or projection-fact row clones at shared-read mint
+  - `HashMap` or side-cache population at mint time standing in for registry
+    authority
+  - display-string or `commit_identity` parsing used as generation identity
+- Adversarial equivalence: two shared-read contexts minted against the same
+  committed generation observe identical published facts through the registry
+  without duplicating row storage per context.
+- Adversarial boundary localization: compile-fail or source-scan contracts
+  proving shared-read mint cannot call row-clone helpers on inventoried paths.
+- Adversarial republication: derived republication updates registry entries
+  for new generations while pinned contexts continue to observe their leased
+  generation.
+- Adversarial sabotage: reintroducing a row-clone mint helper on an
+  inventoried path fails the phase test.
+
+**Engineering decisions**
+- The registry is structural runtime state, not a convenience cache.
+- Shared-read contexts are cheap leases over registry generations.
+- Pinning inventory begins here; each subsequent pinning phase extends and
+  re-scans its slice rather than deferring proof.
+
+**Open questions**
+- None.
+
+### Phase 12: Generation Pinning Substrate And Hot-Path Lock Posture Boundary
+
+Replace prototype pin bookkeeping with runtime-owned generation-indexed pinning,
+explicit retirement, and mechanically provable hot-path lock freedom on
+committed reads. **This phase extends the pinning inventory** to every pin and
+retire path and must close on pin-substrate proof before Phase 13 begins.
+
+**Relevant subsystems**
+- snapshot generation pinning and retirement
+- shared-read pin registry substrate
+- runtime measurement counters
+- pinning inventory (pin and retire slice)
+
+**Relevant Query source surfaces**
+- [runtime/shared_read_pins/registry.rs](../../crates/forge-query/src/runtime/shared_read_pins/registry.rs)
+- [runtime/state_snapshot.rs](../../crates/forge-query/src/runtime/state_snapshot.rs)
+- [runtime/workspace.rs](../../crates/forge-query/src/runtime/workspace.rs)
+- [application/support/shared_read_pinning_inventory.rs](../../crates/forge-query/src/application/support/shared_read_pinning_inventory.rs)
+
+**Relevant APIs and product surfaces**
+- typed pin and retire surfaces with runtime-owned residue counters
+- always-on measurement hooks for lock acquisitions on the shared-read hot path
+- inventory extension covering every ordinary pin, retire, and generation-drain
+  path
+
+**Warnings**
+- Do not use `Mutex`, `RwLock`, or equivalent exclusive locks on the
+  committed-read hot path. Pin book-keeping may use lock-free or single-writer
+  structures only.
+- Do not model pin retirement through `Drop` heuristics alone; retirement must
+  be explicit, observable, and certifiable.
+- Do not satisfy residue counters with constants, `assert_eq!(0, 0)`, or
+  certification-only helpers that are not wired to runtime measurement state.
+- Do not close this phase without extending the inventory and running
+  forbidden-pattern scans on the pin/retire slice.
+
+**Test requirements**
+- Add a `Generation Pinning Hot-Path Lock Posture Test` to
+  [test-requirements.md](./test-requirements.md) and close it in this phase.
+- **Inventory extension:** register every ordinary path that pins, retires, or
+  drains snapshot generations. Any path omitted here keeps pinning posture
+  `Open` regardless of later phase claims.
+- **Forbidden-pattern scans (pin/retire slice):** scans fail closed on:
+  - `Mutex` / `RwLock` on shared-read hot paths
+  - `Drop`-only pin retirement without explicit retire surfaces
+  - hard-coded zero residue helpers not sourced from runtime counters
+  - formatted `snapshot_token` conventions standing in for typed pin identity
+- Adversarial equivalence: a pinned generation observes identical registry
+  content for its full pin lifetime under sustained commit pressure.
+- Adversarial residue: hostile pin/retire schedules prove exact-zero orphaned
+  generations and exact-zero unretired pins through runtime-owned counters.
+- Adversarial contention proof: exact-zero lock acquisitions on the shared-read
+  hot path under a hostile read schedule, with measurement hooks compiled in
+  for release builds used by certification — not `#cfg(test)` fiction.
+- Adversarial sabotage: perturb pin-residue counters or inject a deliberate
+  unretired pin and prove this phase's test fails.
+
+**Engineering decisions**
+- Pin identity is a real runtime artifact with explicit generation semantics,
+  not a formatted `snapshot_token` convention.
+- Measurement counters are ordinary runtime fields read by certification; they
+  are never test-only stubs.
+
+**Open questions**
+- None.
+
+### Phase 13: Shared Read Context And Pinning Boundary Closure
+
+Make `ForgeQuerySharedReadContext` the real product surface — sealed,
+basis-bound, `Send + Sync`, holding a registry lease and pinned generation —
+and **close the entire pinning boundary end-to-end inside this phase**. No
+later phase re-audits pinning; journal and certification phases may assume
+pinning is honestly `Closed` when Phase 13 passes.
+
+**Relevant subsystems**
+- read authority
+- basis capability lifecycle
+- shared-read execution path
+- pinning inventory (completeness and closure posture)
+- hostile pinning certification
+
+**Relevant Query source surfaces**
+- [runtime/shared_read.rs](../../crates/forge-query/src/runtime/shared_read.rs)
+- [runtime/workspace_shared_read.rs](../../crates/forge-query/src/runtime/workspace_shared_read.rs)
+- [runtime/workspace_queries.rs](../../crates/forge-query/src/runtime/workspace_queries.rs)
+- [runtime/shared_read_pins/](../../crates/forge-query/src/runtime/shared_read_pins/)
+- [application/support/shared_read_pinning_inventory.rs](../../crates/forge-query/src/application/support/shared_read_pinning_inventory.rs)
+- [runtime/tests/shared_read_pinning/](../../crates/forge-query/src/runtime/tests/shared_read_pinning/) (new hostile matrix home)
+
+**Relevant APIs and product surfaces**
+- `ForgeQuerySharedReadContext: Send + Sync` with compile-time proof tests
+- stale-basis typed denial when the pinned generation retires
+- derived pinning-boundary posture (`Open`, `Partial`, `Closed`)
+
+**Warnings**
+- Do not silently rebind an old shared-read context to a newer committed
+  snapshot when its pinned generation is retired; stale basis must fail typed.
+- Do not add interior mutability to "refresh" basis in place.
+- Do not claim `Send + Sync` without `std::thread::scope` proof on the real
+  context type, not a test-only wrapper.
+- Do not close on an inventory that omits sibling or feeder paths because they
+  were "not in the original list." Same-class residue anywhere in ordinary
+  runtime/product paths keeps posture `Open`.
+- Do not exclude paths without naming a different milestone-class owner.
+
+**Test requirements**
+- Add a `Shared Read Context And Pinning Boundary Closure Test` to
+  [test-requirements.md](./test-requirements.md) and close it in this phase.
+- **Inventory completeness:** extend the Phase 11–12 inventory to every ordinary
+  path that executes reads through shared-read authority or consumes published
+  artifacts on the shared lane. The merged inventory is the contract surface.
+- **Forbidden-pattern scans (full pinning boundary):** re-scan every
+  inventoried path for all pinning defect classes (row clone at mint, hot-path
+  locks, hard-coded zeros, string-derived generation identity, `Drop`-only
+  retirement). This phase may not close while any scan is red.
+- Adversarial equivalence: contexts minted at the same generation produce
+  byte-identical receipts and facts for their full legal lifetime; concurrent
+  pin mint under sustained commit pressure matches the serial baseline until
+  explicit retirement.
+- Adversarial denial: retired-generation contexts fail closed with typed
+  stale-basis stops and never observe newer registry content.
+- Adversarial portability: `Send + Sync` compile assertions plus scoped-thread
+  smoke proof on the real shared-read type.
+- Adversarial residue: exact-zero orphaned generations, exact-zero unretired
+  pins, and exact-zero hot-path lock acquisitions after the hostile pinning
+  matrix — each from runtime-owned counters.
+- Adversarial sabotage: perturb each pinning residue counter and prove this
+  phase's closure test fails. A proof that stays green under sabotage is
+  invalid evidence.
+- **Derived pinning posture:** support/profile reports `Closed` for the pinning
+  boundary only when inventory scans and the hostile pinning matrix are
+  simultaneously green; otherwise `Open` or `Partial` with enumerated residue.
+
+**Engineering decisions**
+- Refreshing to a newer basis is an explicit re-mint through the workspace,
+  never an in-place mutation.
+- Receipts emitted through the shared lane record the basis proof and lower
+  identity through the `9.6` evidence primitive.
+- Pinning honesty closes here in the same spirit as Milestone `9.6`'s
+  identity-boundary inventory: derived, adversarial, and end-to-end — but owned
+  by the pinning phases, not deferred.
+- Phase 13 must pass before journal or certification phases may claim closure.
+
+**Open questions**
+- None.
+
+### Phase 14: Typed Journal Position Identity Boundary
+
+Introduce typed journal position identity on committed submission receipts.
+Journal order is a product artifact, not a naming convention emergent from
+mutation receipt strings. **This phase seeds the journal inventory** and must
+close on journal-identity proof before Phase 15 begins.
+
+**Relevant subsystems**
+- submission intake and receipt identity
+- journal position artifact
+- journal inventory (submission and receipt slice)
+
+**Relevant Query source surfaces**
+- [runtime/workspace_submission.rs](../../crates/forge-query/src/runtime/workspace_submission.rs)
+- [runtime/backend/receipts.rs](../../crates/forge-query/src/runtime/backend/receipts.rs)
+- [application/support/journal_identity_inventory.rs](../../crates/forge-query/src/application/support/journal_identity_inventory.rs) (new)
+
+**Relevant APIs and product surfaces**
+- `ForgeQueryJournalPosition` (or equivalent sealed typed artifact) on receipts
+- typed accessors for journal order — never `commit_identity` suffix parsing
+- versioned journal inventory listing every ordinary submission and receipt path
+
+**Warnings**
+- Do not keep treating `commit_identity` string suffixes, digit runs, or display
+  formatting as journal order anywhere in runtime, support, or certification.
+- Do not store journal order only in test helpers while production paths still
+  parse strings.
+- Do not conflate journal position with evidence identity; they lower through
+  distinct typed artifacts.
+- Do not close this phase without seeding the journal inventory and running
+  forbidden-pattern scans on the submission/receipt slice.
+
+**Test requirements**
+- Add a `Typed Journal Position Identity Test` to
+  [test-requirements.md](./test-requirements.md) and close it in this phase.
+- **Inventory seed:** create the embedded, versioned journal inventory and
+  register every ordinary path that records, reads, or compares journal order.
+- **Forbidden-pattern scans (submission/receipt slice):** scans fail closed on
+  `commit_identity` parsing, digit-suffix extraction, or display-string ordering
+  helpers in runtime, support, and certification crates.
+- Adversarial equivalence: a multi-producer submission schedule records
+  monotonic typed journal positions whose ordering is stable across replay.
+- Adversarial collision: distinct commits never compare equal on journal
+  position unless they are the same commit.
+- Adversarial sabotage: reintroducing a `commit_identity` parsing helper on an
+  inventoried path fails the phase test.
+
+**Engineering decisions**
+- Journal position lowers through the `9.6` evidence scheme as its own typed
+  artifact, not as a derived string view.
+- Journal inventory begins here; Phase 15 extends and closes it.
+
+**Open questions**
+- None.
+
+### Phase 15: Consumer Journal Segment Replay Surface Boundary
+
+Expose a first-class consumer replay lane: typed journal-segment identity in,
+replay outcome out — and **close the journal boundary end-to-end inside this
+phase**. No later phase re-audits journal identity.
+
+**Relevant subsystems**
+- consumer-facing replay surface
+- journal segment identity
+- replay lowering through runtime
+- journal inventory (completeness and closure posture)
+
+**Relevant Query source surfaces**
+- [runtime/public_api.rs](../../crates/forge-query/src/runtime/public_api.rs)
+- [runtime/workspace_submission.rs](../../crates/forge-query/src/runtime/workspace_submission.rs)
+- [application/support/journal_identity_inventory.rs](../../crates/forge-query/src/application/support/journal_identity_inventory.rs)
+
+**Relevant APIs and product surfaces**
+- typed journal-segment / replay-request surfaces on the workspace facade
+- replay results returned through ordinary receipt / envelope vocabulary
+- derived journal-boundary posture (`Open`, `Partial`, `Closed`)
+
+**Warnings**
+- Do not expose raw journal internals when the consumer need is replay outcome.
+- Do not build a second replay semantics path beside ordinary submission.
+- Do not implement replay by re-running certification helpers; consumers use
+  the public lane.
+- Do not close without extending the journal inventory to every replay and
+  certification path that derives journal order or gap counts.
+
+**Test requirements**
+- Add a `Consumer Journal Segment Replay Surface Test` to
+  [test-requirements.md](./test-requirements.md) and close it in this phase.
+- **Inventory completeness:** extend the Phase 14 inventory to every ordinary
+  replay, certification, and support path that reads or compares journal order.
+- **Forbidden-pattern scans (full journal boundary):** re-scan every
+  inventoried path for `commit_identity` parsing and string-derived journal gap
+  counting. This phase may not close while any scan is red.
+- Adversarial equivalence: replaying a typed journal segment reconstructs
+  identical truth, receipts, published artifacts, and digests.
+- Adversarial rejection: stale-basis replay, unknown segment identity, and
+  cross-scheme replay requests fail typed and leave zero journal residue.
+- Adversarial consumer shape: at least one downstream-shaped test calls the
+  public replay surface without bridge-only shortcuts.
+- Adversarial sabotage: reintroducing string-derived journal ordering on an
+  inventoried path fails this phase's closure test.
+- **Derived journal posture:** support/profile reports `Closed` for the journal
+  boundary only when inventory scans and replay proof are simultaneously green.
+
+**Engineering decisions**
+- Consumer replay is ordinary product surface because downstream refolds are
+  the folklore this milestone eliminates.
+- Journal honesty closes here — owned by Phases 14–15, not deferred.
+
+**Open questions**
+- None.
+
+### Phase 16: Real Concurrent Hostile Certification Matrix Boundary
+
+Replace the interim serial schedule with a true concurrent hostile matrix: N
+reader threads, M submitter threads, derived republication, preview/branch
+churn, and replay — combined in one program. **Counter integrity and sabotage
+proof close inside this phase**; there is no separate certification-audit phase.
+
+**Relevant subsystems**
+- hostile certification harness
+- shared read, submission, and replay lanes together
+- runtime measurement counters
+
+**Relevant Query source surfaces**
+- [runtime/tests/support/bridge/hostile_certification_schedule.rs](../../crates/forge-query/src/runtime/tests/support/bridge/hostile_certification_schedule.rs)
+- [runtime/tests/support/bridge/hostile_certification.rs](../../crates/forge-query/src/runtime/tests/support/bridge/hostile_certification.rs)
+
+**Warnings**
+- Do not certify axes in isolation.
+- Do not substitute scoped-thread smoke tests for the full matrix.
+- Do not claim concurrency if readers are still serialized behind a global
+  lock or workspace `&mut` exclusivity.
+- Do not leave hard-coded zero helpers in the certification path.
+- Do not compute journal gaps by parsing `commit_identity` text.
+- Do not gate measurement hooks behind `#[cfg(test)]` if certification reads
+  them in integration runs.
+
+**Test requirements**
+- Add a `Real Concurrent Hostile Certification Matrix Test` to
+  [test-requirements.md](./test-requirements.md) and close it in this phase.
+- Adversarial equivalence: the full hostile schedule produces byte-identical
+  receipts, results, and published-artifact digests to its serialized replay,
+  across repeated runs with distinct thread interleavings.
+- Adversarial topology: at least three concurrent reader threads and two
+  concurrent submitter threads on the real shared-read and submission types.
+- Adversarial proof integrity: lock count, reader-evaluation count, pin
+  residue, and journal-gap counters are read from runtime-owned measurement
+  state in the certification artifact — not constants or parsed strings.
+- Adversarial residue: after the schedule, exact-zero orphaned snapshot
+  generations, exact-zero unretired read pins, exact-zero journal gaps, and
+  exact-zero delivery residue.
+- Adversarial sabotage: for each counter class, a targeted regression test
+  proves this phase's matrix fails when that counter is intentionally perturbed
+  or when a forbidden shortcut is reintroduced.
+- Adversarial replay integrity: certification artifacts lower through the
+  `9.6` evidence primitive and compare equal across replay.
+
+**Engineering decisions**
+- This phase supersedes Phase 10 as the concurrency certification authority.
+- A certification artifact that stays green under sabotage is not acceptance
+  evidence.
+
+**Open questions**
+- None.
+
+### Phase 17: Public-Bridge Reader-Lane And Projection-Consumption Honesty Boundary
+
+Close the public-bridge certification path so it consumes published derived
+artifacts only through typed projection consumption — never through direct
+materialization row reads. **Inventory, compile-fail localization, and sabotage
+close inside this phase.**
+
+**Relevant subsystems**
+- public-bridge runtime certification harness
+- projection-consumption product lane
+
+**Relevant Query source surfaces**
+- [tests/support/public_bridge_runtime/hostile_certification.rs](../../crates/forge-query/tests/support/public_bridge_runtime/hostile_certification.rs)
+- [tests/support/public_bridge_runtime/mod.rs](../../crates/forge-query/tests/support/public_bridge_runtime/mod.rs)
+
+**Relevant APIs and product surfaces**
+- public-bridge hostile certification artifact
+- projection-consumption receipts as the only reader truth path
+
+**Warnings**
+- Do not let public-bridge certification read materialization rows directly from
+  bindings when the milestone claims projection-consumption isolation.
+- Do not pass this phase with bridge-only helpers that ordinary consumers cannot
+  reach.
+
+**Test requirements**
+- Add a `Public-Bridge Reader-Lane Honesty Closure Test` to
+  [test-requirements.md](./test-requirements.md) and close it in this phase.
+- Adversarial equivalence: the public-bridge hostile matrix produces
+  replay-stable artifacts while consuming published derived facts only through
+  the typed reader lane.
+- Adversarial boundary localization: public-bridge hostile certification loses
+  compile access to direct internal materialization-reading shortcuts.
+- Adversarial sabotage: reintroducing a row-spelunking shortcut fails
+  certification.
+
+**Engineering decisions**
+- Public-bridge honesty is part of milestone closure, not a test-only nicety.
+
+**Open questions**
+- None.
+
+### Phase 18: Derived Milestone Closure Posture And Closeout Boundary
+
+Close Milestone `9.7` only when support/profile, docs, test-requirements, and
+hostile certification agree — with posture **aggregated from phase-local
+closure proofs**, not re-audited here.
+
+**Relevant subsystems**
+- support/profile closure publication
+- milestone closeout docs
+- test-requirements certification matrix
+
+**Relevant Query source surfaces**
+- [application/support/closure.rs](../../crates/forge-query/src/application/support/closure.rs)
+- [_docs/forge-query/test-requirements.md](./test-requirements.md)
+- [_docs/forge-query/milestone-9.7-closeout.md](./milestone-9.7-closeout.md) (new)
+
+**Relevant APIs and product surfaces**
+- derived `9.7` milestone posture (`Open`, `Partial`, `Closed`)
+- closeout note citing phase-local inventory digests and certification artifacts
+
+**Warnings**
+- Do not mark the milestone `Closed` in roadmap or spec status while any
+  Phase 11–17 gate is incomplete or red.
+- Do not hard-code `Closed` in support/profile while any phase-local boundary
+  (pinning, journal, certification, public-bridge) reports `Open` or `Partial`.
+- Do not re-run pinning or journal audits in this phase; those closed in Phases
+  13 and 15. This phase only aggregates their derived posture.
+
+**Test requirements**
+- Add a `Milestone 9.7 Derived Closure Posture Test` to
+  [test-requirements.md](./test-requirements.md) and close it in this phase.
+- Adversarial derived posture: `Closed` appears only when Phase 13 pinning
+  posture, Phase 15 journal posture, Phase 16 hostile matrix (with sabotage),
+  and Phase 17 public-bridge honesty are simultaneously green.
+- Adversarial documentation parity: `milestone-9.7-closeout.md`,
+  `test-requirements.md` matrix rows, and support/profile output agree on
+  posture and enumerate any defended exclusions.
+- Adversarial regression guard: returning any forbidden pattern re-opens the
+  owning phase's boundary posture in CI.
+
+**Engineering decisions**
+- This is the only phase that may set milestone status to `Closed`.
+- Closeout cites the Phase 13 pinning inventory digest, Phase 15 journal
+  inventory digest, and Phase 16 certification artifact digests as primary
+  evidence.
+
+**Open questions**
+- None.
+
+## Closure Gate: Honest Completion Criteria
+
+Milestone `9.7` is an all-or-nothing concurrency-and-authority milestone. It
+is not enough for facade methods to exist, for a serial hostile schedule to
+pass, or for shared-read types to compile. The real closure question is whether
+Query can now be believed as the single ordinary-path owner of:
+
+- runtime-owned shared read authority backed by generation pinning — not copied
+  snapshots
+- lock-free committed reads with exact-zero hot-path lock acquisitions
+- typed journal position and consumer replay identity — not `commit_identity`
+  string folklore
+- true concurrent reader/submitter certification with sabotage-sensitive counters
+- public-bridge consumption of published artifacts only through projection
+  consumption
+
+The milestone is still **Open** if any ordinary runtime/product path of the
+same defect class survives, even when:
+
+- the surviving path sits outside the originally curated scan inventory
+- the surviving path is wrapped in a nominal type that still clones rows at mint
+- certification reports success through hard-coded zeros or parsed receipt strings
+- Phases 1–10 scaffolding is mistaken for end-cap closure
+- support/profile declares `Closed` while residue scans or sabotage tests are red
+
+The milestone is only **Closed** when all of the following hold together:
+
+1. **Pinning (Phases 11–13):** registry authority, pin substrate, and shared-read
+   context each closed with inventory slices, forbidden-pattern scans, hostile
+   proof, and sabotage inside their owning phase; Phase 13 aggregates full
+   pinning-boundary posture as `Closed`.
+2. **Structural shared read honesty:** `ForgeQuerySharedReadContext` is `Send +
+   Sync`, holds registry leases, denies stale basis typed, and never refreshes
+   in place (Phase 13).
+3. **Hot-path lock freedom:** committed reads take exact-zero locks on the
+   measured hot path in certification builds (Phase 12).
+4. **Journal identity (Phases 14–15):** typed journal position and consumer
+   replay each closed with inventory slices and scans inside their owning
+   phase; Phase 15 aggregates journal-boundary posture as `Closed`.
+5. **Real concurrency (Phase 16):** N readers and M submitters with byte-
+   identical equivalence to serialized replay; counters runtime-sourced;
+   sabotage tests fail on regression — all inside Phase 16.
+6. **Public-bridge honesty (Phase 17):** certification cannot compile with direct
+   materialization-reading bypasses; sabotage fails on row-spelunking restore.
+7. **Derived posture (Phase 18):** support/profile, docs, and test-requirements
+   aggregate phase-local `Closed` postures; any defended exclusion names a
+   different milestone-class owner.
+
+In other words: this milestone does not merely add concurrent-looking APIs. It
+removes the need, excuse, and surviving opportunity to treat copied snapshots as
+pinning, strings as journal order, or serial schedules as concurrent proof.
+
 ## Must Ship
 
 - authority-lane-decomposed backend contracts with `Send + Sync` read lanes
-- sealed basis-bound shared read contexts with generation-pinned snapshots
-  and lock-free committed reads
-- the deterministic submission seam with journal-ordered receipts over the
-  existing admission lattice, including the consumer-facing journal-segment
-  replay surface
+  (Phases 1–2)
+- runtime-owned published-artifact registry authority with registry/mint
+  inventory and scans (Phase 11)
+- generation-indexed pinning with explicit retirement, lock-free committed-read
+  hot path, pin/retire inventory extension, and runtime-owned residue counters
+  (Phase 12)
+- sealed basis-bound `Send + Sync` shared read contexts with full pinning-boundary
+  closure — inventory completeness, hostile matrix, sabotage, derived posture
+  (Phase 13)
+- typed journal position identity with journal inventory seed and scans
+  (Phase 14)
+- consumer-facing journal-segment replay with journal-boundary closure
+  (Phase 15)
 - the published derived-artifact rule with reader evaluation structurally
-  impossible
+  impossible (Phases 7–8, re-certified in Phases 13 and 17)
 - the re-expressed workspace facade with unchanged existing consumer surface
-  and fail-closed admission for the new families
-- the hostile concurrency/determinism certification matrix
+  and fail-closed admission for the new families (Phase 9)
+- real concurrent hostile certification matrix with runtime-owned counters and
+  in-phase sabotage proof (Phase 16)
+- public-bridge projection-consumption honesty (Phase 17)
+- derived milestone closure posture and closeout doc (Phase 18)
 
 ## Must Preserve
 
@@ -694,18 +1251,31 @@ lanes simultaneously and proves the adversarial constraint end to end.
 
 This milestone is complete only when `forge-query` can prove:
 
-- the Milestone `9.7` certification suites added to
-  [test-requirements.md](./test-requirements.md) pass with narrow
+- every Phase 10–18 certification suite added to
+  [test-requirements.md](./test-requirements.md) passes with narrow
   machine-checkable artifacts
-- N concurrent readers under write pressure produce byte-identical receipts
-  and results to serialized execution, with exact-zero lock and
-  reader-evaluation counters
-- journal replay reconstructs identical truth, receipts, and published
-  artifacts
+- Phase 13 pinning-boundary posture is `Closed`: inventory complete across
+  Phases 11–13, forbidden-pattern scans green, hostile pinning matrix passed,
+  sabotage tests fail when pin residue or lock counters are perturbed
+- N concurrent reader threads and M concurrent submitter threads under write
+  pressure produce byte-identical receipts and results to serialized execution,
+  with exact-zero lock and reader-evaluation counters sourced from runtime
+  measurement state (Phase 16, including in-phase sabotage)
+- shared-read authority is backed by runtime-owned registry leases and
+  generation pinning — not copied materialization snapshots — with typed
+  stale-basis denial and exact-zero residue counters (Phases 11–13)
+- Phase 15 journal-boundary posture is `Closed`: journal inventory complete,
+  zero `commit_identity` parsing in runtime or certification crates, replay
+  reconstructs identical truth, receipts, and published artifacts
 - existing downstream consumers compile unchanged against the re-expressed
   facade
 - the new facade families carry honest support/admission rows that fail
   closed where unbacked
+- public-bridge hostile certification consumes published derived artifacts
+  only through the typed projection-consumption lane (Phase 17)
+- Phase 18 aggregates phase-local `Closed` postures; `milestone-9.7-closeout.md`
+  cites Phase 13 pinning inventory digest, Phase 15 journal inventory digest,
+  and Phase 16 certification artifact digests as primary evidence
 
 ## Sequencing Notes
 
@@ -717,3 +1287,17 @@ This milestone is complete only when `forge-query` can prove:
   not retrofit `Send` boundaries through frozen store-backed shapes.
 - Durable journal persistence, store-backed replay reconstruction, and
   restart-stable published-artifact reload remain Milestone `10`/`11` scope.
+- Phases 1–10 may land incrementally and may keep prototype debt explicit.
+  Phases 11–18 are strictly sequential at the honesty layer:
+  **11 → 12 → 13** (pinning substrate and proof close together; Phase 13 is
+  the pinning hard gate), then **14 → 15** (journal identity and proof close
+  together; Phase 15 is the journal hard gate), then **16 → 17** (concurrent
+  certification with in-phase sabotage, then public-bridge honesty), then **18**
+  (aggregated closeout only — no re-audit).
+- Phase 13 is a hard gate: journal and certification phases may not claim
+  closure while pinning-boundary posture is `Open` or `Partial`.
+- Phase 15 is a hard gate: certification may not claim closure while journal-
+  boundary posture is `Open` or `Partial`.
+- If Milestone `9.6` journal-position typed artifacts are still incomplete,
+  Phase 14 may require a small `9.6` follow-on slice before honest journal
+  closure — but Phase 14 must not fall back to `commit_identity` parsing.

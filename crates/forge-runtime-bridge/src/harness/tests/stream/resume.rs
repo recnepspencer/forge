@@ -1,4 +1,3 @@
-use crate::facade::TruthSnapshotIdentity;
 use crate::facade::{
     BridgeRouteRequest, ChangeStreamDeclaration, StreamCheckpointFrontierKind,
     StreamCheckpointPublicationMode, StreamCoalescingFamily, StreamCoalescingIntent,
@@ -13,20 +12,23 @@ use super::super::support::{build_runtime, committed_patch, registration, snapsh
 fn resume_from_checkpoint_preserves_routing_semantics_against_control_run() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let sink = RecordingSignalBridgeSink::default();
     let runtime = build_runtime(source, sink, vec![registration()]);
     let declaration = ChangeStreamDeclaration::new(
@@ -49,7 +51,7 @@ fn resume_from_checkpoint_preserves_routing_semantics_against_control_run() {
             &contract,
             vec![runtime
                 .ingest_committed_patch(BridgeRouteRequest::for_commit(
-                    crate::facade::TruthCommitIdentity::new("commit-a"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
                 ))
                 .expect("first envelope should ingest")],
         )
@@ -59,7 +61,7 @@ fn resume_from_checkpoint_preserves_routing_semantics_against_control_run() {
             &contract,
             vec![runtime
                 .ingest_committed_patch(BridgeRouteRequest::for_commit(
-                    crate::facade::TruthCommitIdentity::new("commit-b"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
                 ))
                 .expect("second envelope should ingest")],
         )
@@ -78,7 +80,7 @@ fn resume_from_checkpoint_preserves_routing_semantics_against_control_run() {
             &contract,
             vec![runtime
                 .ingest_committed_patch(BridgeRouteRequest::for_commit(
-                    crate::facade::TruthCommitIdentity::new("commit-b"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
                 ))
                 .expect("second envelope should ingest")],
             checkpoint.checkpoint_token_identity(),

@@ -109,7 +109,7 @@ impl EffectLifecyclePhase4CertificationRow {
             format!("family:{}", effect_family.as_str()),
             format!("evidence:{evidence_digest}"),
             format!("detail:{evidence_detail}"),
-            format!("counters:{}", counters.digest()),
+            format!("counters:{}", counters.counter_for_reporting()),
         ]);
         Self {
             lane_kind,

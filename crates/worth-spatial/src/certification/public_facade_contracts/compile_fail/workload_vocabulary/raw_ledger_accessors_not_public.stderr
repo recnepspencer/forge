@@ -1,0 +1,35 @@
+error[E0624]: method `rows` is private
+  --> src/certification/public_facade_contracts/compile_fail/workload_vocabulary/raw_ledger_accessors_not_public.rs:12:20
+   |
+12 |     let _ = ledger.rows();
+   |                    ^^^^ private method
+   |
+  ::: src/workload_platform/evidence_ledger/ledger.rs
+   |
+   |     pub(crate) fn rows(&self) -> &[WorkloadEvidenceRow] {
+   |     --------------------------------------------------- private method defined here
+
+error[E0624]: method `row_for_stage` is private
+  --> src/certification/public_facade_contracts/compile_fail/workload_vocabulary/raw_ledger_accessors_not_public.rs:13:20
+   |
+13 |       let _ = ledger.row_for_stage(WorkloadEvidenceStage::Topology);
+   |                      ^^^^^^^^^^^^^ private method
+   |
+  ::: src/workload_platform/evidence_ledger/ledger.rs
+   |
+   | /     pub(crate) fn row_for_stage(
+   | |         &self,
+   | |         stage: WorkloadEvidenceStage,
+   | |     ) -> Option<&WorkloadEvidenceRow> {
+   | |_____________________________________- private method defined here
+
+error[E0624]: method `evidence_for_stage` is private
+  --> src/certification/public_facade_contracts/compile_fail/workload_vocabulary/raw_ledger_accessors_not_public.rs:14:20
+   |
+14 |     let _ = ledger.evidence_for_stage(WorkloadEvidenceStage::Topology);
+   |                    ^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/workload_platform/evidence_ledger/ledger.rs
+   |
+   |     pub(crate) fn evidence_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&str> {
+   |     ------------------------------------------------------------------------------------- private method defined here

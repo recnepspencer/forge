@@ -16,7 +16,7 @@ macro_rules! impl_from_admitted {
                     target_family: target_family_for::<$target>(),
                     target_digest: value.payload().target().target_digest().to_string(),
                     target_binding_digest: value.payload().target().binding_digest().to_string(),
-                    evidence_digest: value.admitted_digest(),
+                    evidence_digest: value.admitted_for_reporting(),
                     posture_label: payload.posture_label().to_string(),
                     semantic_code: payload.semantic_code().to_string(),
                     detail: payload.detail().to_string(),

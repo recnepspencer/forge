@@ -18,9 +18,12 @@ use super::{
     ForgeQuerySymbolicTargetReferenceDenial, ForgeQuerySymbolicTargetReferenceDenialKind,
     ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };
+
 use crate::declarative_live::DeclarativeLiveQueryRequest;
-use crate::identity::hash_parts;
-use crate::memory_workspace::{ForgeQueryMutationDelta, ForgeQueryMutationKind};
+use crate::memory_workspace::{
+    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQuerySnapshotIdentity,
+};
+use crate::session_label::ForgeQuerySessionLabel;
 mod aspects;
 mod basics;
 mod binding;
@@ -45,11 +48,11 @@ pub use evidence::{
 pub use outcome::{ForgeQueryPreviewDiff, ForgeQueryPreviewOutcome};
 
 pub struct ForgeQueryPreviewSession<'a> {
-    label: String,
+    label: ForgeQuerySessionLabel,
     runtime: &'a mut ForgeQueryRuntime,
     effect_policy: ForgeQueryEffectPolicy,
     basis_admission: ForgeQueryPreviewBasisAdmission,
-    basis_snapshot_token: String,
+    basis_snapshot_identity: ForgeQuerySnapshotIdentity,
     pending_commands: Vec<ForgeQueryWriteCommand>,
     writes: Vec<ForgeQueryWriteReceipt>,
     handle_bindings: Vec<ForgeQueryPreviewHandleBindingEvidence>,
@@ -61,18 +64,18 @@ pub struct ForgeQueryPreviewSession<'a> {
 
 impl<'a> ForgeQueryPreviewSession<'a> {
     pub(super) fn new(
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
         runtime: &'a mut ForgeQueryRuntime,
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: ForgeQueryPreviewBasisAdmission,
     ) -> Self {
-        let basis_snapshot_token = runtime.snapshot_token();
+        let basis_snapshot_identity = runtime.current_snapshot_identity();
         Self {
-            label: label.into(),
+            label,
             runtime,
             effect_policy,
             basis_admission,
-            basis_snapshot_token,
+            basis_snapshot_identity,
             pending_commands: Vec::new(),
             writes: Vec::new(),
             handle_bindings: Vec::new(),

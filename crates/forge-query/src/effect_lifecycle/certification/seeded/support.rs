@@ -19,18 +19,20 @@ use forge_runtime_bridge::facade::{
     AspectKeySelector, BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity,
     BridgeCommittedPatchItem, BridgeCommittedPatchTarget, BridgeDeliveryReceipt, BridgeMappingId,
     BridgeMappingRegistration, CoarseRoutingMode, CommittedPatchSource, InvalidationSink,
-    MappingSelector, RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
-    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
-    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
-    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
-    TruthPatchTargetSelector, TruthSnapshotIdentity, TruthSnapshotReader, TruthWritebackAuthority,
-    TruthWritebackAuthorityError, TruthWritebackReceipt, TruthWritebackRequest,
+    MappingSelector, RelationalBridgeSnapshotIdentityParts, RelationalBridgeSourceError,
+    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult,
+    SnapshotReadRecord, SnapshotReadSource, TruthBranchIdentity, TruthCommitIdentity,
+    TruthPatchIdentity, TruthPatchScope, TruthPatchTargetSelector, TruthSnapshotIdentity,
+    TruthSnapshotReader, TruthWritebackAuthority, TruthWritebackAuthorityError,
+    TruthWritebackReceipt, TruthWritebackRequest,
 };
 
 use crate::aspect_field_authoring::{
     entity_string_field_aspect, lifecycle_string_aspect,
     single_aspect_field_patch_from_external_json,
 };
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 
 pub(super) fn relational_runtime_with_intent_strategy() -> RelationalRuntime {
     let descriptor = IntentReconciliationStrategy::descriptor(CommitStrategyId(211));
@@ -86,27 +88,35 @@ pub(super) fn test_bridge_with_writeback_authority() -> RuntimeBridge {
         .with_signal_sink(TestBridgeSink)
         .with_writeback_authority(StaticWritebackAuthority)
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("external-test"),
+            BridgeMappingId::from_stable_name("external-test"),
             TruthPatchScope::new(
                 MappingSelector::any(),
                 AspectKeySelector::exact(aspect_key("aspect")),
                 TruthPatchTargetSelector::any(),
             ),
             SnapshotReadContract::scalar(aspect_key("aspect"), ScalarAspectType::String),
-            SignalInvalidationScope::new("external-test"),
+            SignalInvalidationScope::from_stable_name("external-test"),
             CoarseRoutingMode::Direct,
         ))
         .build()
         .expect("test bridge with writeback authority should build")
 }
 
-pub(super) fn branch_snapshot_token(runtime: &RelationalRuntime, branch: &str) -> String {
+pub(super) fn branch_snapshot_identity(
+    runtime: &RelationalRuntime,
+    branch: &str,
+) -> ForgeQuerySnapshotIdentity {
     let version_id = runtime
         .history()
         .branch_head(&BranchId(branch.to_string()))
         .map(|commit| commit.version_id.0)
         .unwrap_or(0);
-    format!("snapshot-{version_id}")
+    ForgeQuerySnapshotIdentity::from_relational_snapshot(
+        RelationalBridgeSnapshotIdentityParts::new(
+            crate::effect_lifecycle::stable_branch_snapshot_id(&BranchId(branch.to_string())),
+            version_id,
+        ),
+    )
 }
 
 fn test_schema_registry() -> RelationalSchemaRegistry {
@@ -134,8 +144,10 @@ impl CommittedPatchSource for TestBridgeSource {
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(native_patch_envelope(
             request.commit_identity().clone(),
-            "external-snapshot",
-            "main",
+            TruthSnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(2_000, 1),
+            ),
+            TruthBranchIdentity::from_relational_branch_id("main"),
             "entity",
             "aspect",
             "field",
@@ -212,19 +224,28 @@ impl TruthWritebackAuthority for StaticWritebackAuthority {
 
 fn native_patch_envelope(
     commit_identity: TruthCommitIdentity,
-    snapshot_identity: &str,
-    branch_identity: &str,
+    snapshot_identity: TruthSnapshotIdentity,
+    branch_identity: TruthBranchIdentity,
     entity_identity: &str,
     aspect: &str,
     field: &str,
 ) -> BridgeCommittedPatchEnvelope {
-    let patch_identity = TruthPatchIdentity::new(format!("patch:{}", commit_identity.as_str()));
+    let patch_identity = TruthPatchIdentity::from_relational_patch_position(
+        commit_identity.relational_commit_id().unwrap_or_else(|| {
+            stable_fixture_position(
+                "seeded-effect-patch",
+                commit_identity
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
+            )
+        }),
+    );
     BridgeCommittedPatchEnvelope::new(
         BridgeCommittedPatchEnvelopeIdentity::new(
             commit_identity,
             patch_identity,
-            TruthSnapshotIdentity::new(snapshot_identity),
-            TruthBranchIdentity::new(branch_identity),
+            snapshot_identity,
+            branch_identity,
         ),
         vec![BridgeCommittedPatchItem::with_target(
             entity_identity,
@@ -243,4 +264,13 @@ fn aspect_key(value: &str) -> AspectKey {
 
 fn field_key(value: &str) -> FieldKey {
     FieldKey::new(value.to_owned()).expect("valid seeded effect bridge field key")
+}
+
+fn stable_fixture_position(namespace: &str, evidence: &str) -> u64 {
+    let mut acc = 14_695_981_039_346_656_037_u64;
+    for byte in namespace.bytes().chain([0]).chain(evidence.bytes()) {
+        acc ^= u64::from(byte);
+        acc = acc.wrapping_mul(1_099_511_628_211);
+    }
+    acc
 }

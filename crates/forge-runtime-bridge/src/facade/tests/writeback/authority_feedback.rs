@@ -5,7 +5,7 @@ fn runtime_rejects_authority_execution_when_no_writeback_authority_is_bound() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:missing-authority"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:missing-authority"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "missing-authority",
@@ -16,10 +16,10 @@ fn runtime_rejects_authority_execution_when_no_writeback_authority_is_bound() {
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:missing-authority"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:missing-authority"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:missing-authority"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:missing-authority"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "missing-authority",
@@ -29,7 +29,7 @@ fn runtime_rejects_authority_execution_when_no_writeback_authority_is_bound() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:missing-authority"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:missing-authority"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -64,7 +64,7 @@ fn runtime_classifies_matching_feedback_as_canonical_noop() {
     let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:loop-classification"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:loop-classification"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "loop-classification",
@@ -73,13 +73,13 @@ fn runtime_classifies_matching_feedback_as_canonical_noop() {
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:loop-classification"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:loop-classification"),
         "commit-a",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:loop-classification"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:loop-classification"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "loop-classification",
@@ -89,7 +89,7 @@ fn runtime_classifies_matching_feedback_as_canonical_noop() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:loop-classification"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:loop-classification"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let feedback_provenance = runtime.derive_writeback_feedback_provenance(&effect);
@@ -122,7 +122,7 @@ fn runtime_suppresses_matching_feedback_before_authority_execution() {
     let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:feedback-suppression"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:feedback-suppression"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "feedback-suppression",
@@ -131,13 +131,13 @@ fn runtime_suppresses_matching_feedback_before_authority_execution() {
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:feedback-suppression"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:feedback-suppression"),
         "commit-a",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:feedback-suppression"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:feedback-suppression"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "feedback-suppression",
@@ -147,7 +147,7 @@ fn runtime_suppresses_matching_feedback_before_authority_execution() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:feedback-suppression"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:feedback-suppression"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let feedback_provenance = runtime.derive_writeback_feedback_provenance(&effect);
@@ -186,7 +186,7 @@ fn runtime_rejects_different_effect_same_causality_feedback_as_unsafe() {
     let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:unsafe-feedback"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:unsafe-feedback"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "unsafe-feedback",
@@ -195,13 +195,13 @@ fn runtime_rejects_different_effect_same_causality_feedback_as_unsafe() {
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:unsafe-feedback"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:unsafe-feedback"),
         "commit-a",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:unsafe-feedback"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:unsafe-feedback"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "unsafe-feedback",
@@ -211,13 +211,13 @@ fn runtime_rejects_different_effect_same_causality_feedback_as_unsafe() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:unsafe-feedback"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:unsafe-feedback"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let changed_effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:unsafe-feedback:changed"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:unsafe-feedback:changed"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "unsafe-feedback:changed",
@@ -245,7 +245,7 @@ fn runtime_rejects_matching_feedback_when_repeated_authority_attempts_are_requir
     let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:contradictory-feedback"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:contradictory-feedback"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "contradictory-feedback",
@@ -254,13 +254,13 @@ fn runtime_rejects_matching_feedback_when_repeated_authority_attempts_are_requir
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:contradictory-feedback"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:contradictory-feedback"),
         "commit-a",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:contradictory-feedback"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:contradictory-feedback"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "contradictory-feedback",
@@ -270,7 +270,9 @@ fn runtime_rejects_matching_feedback_when_repeated_authority_attempts_are_requir
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:contradictory-feedback"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:contradictory-feedback",
+        ),
         BridgeWritebackIdempotenceClass::AllowRepeatedAuthorityAttempt,
     );
     let feedback_provenance = runtime.derive_writeback_feedback_provenance(&effect);

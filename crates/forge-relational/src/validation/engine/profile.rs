@@ -6,6 +6,7 @@ use super::observation::InvariantObservationKind;
 pub(crate) enum InvariantRequestProfile {
     CommitBoundary,
     MutationSensitive,
+    GraphComposition,
     SnapshotPublication,
     CertificationBoundary,
     #[cfg(test)]
@@ -34,6 +35,7 @@ impl InvariantRequestProfile {
         match self {
             Self::CommitBoundary => InvariantExecutionPoint::CommitBoundary,
             Self::MutationSensitive => InvariantExecutionPoint::MutationSensitive,
+            Self::GraphComposition => InvariantExecutionPoint::GraphComposition,
             Self::SnapshotPublication => InvariantExecutionPoint::SnapshotPublication,
             Self::CertificationBoundary => InvariantExecutionPoint::CertificationBoundary,
             #[cfg(test)]
@@ -55,6 +57,10 @@ impl InvariantRequestProfile {
                 .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity))
                 .union(InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity))
                 .union(InvariantGroupSet::of(InvariantGroup::LineageIntegrity)),
+            Self::GraphComposition => InvariantGroupSet::of(InvariantGroup::SchemaCompliance)
+                .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity))
+                .union(InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity))
+                .union(InvariantGroupSet::of(InvariantGroup::LineageIntegrity)),
             Self::SnapshotPublication => InvariantGroupSet::of(InvariantGroup::VersionVisibility)
                 .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence)),
             Self::CertificationBoundary => InvariantGroupSet::of(InvariantGroup::VersionVisibility)
@@ -70,9 +76,10 @@ impl InvariantRequestProfile {
             Self::CommitBoundary => {
                 matches!(observation, InvariantObservationKind::Committed)
             }
-            Self::MutationSensitive | Self::SnapshotPublication | Self::CertificationBoundary => {
-                true
-            }
+            Self::MutationSensitive
+            | Self::GraphComposition
+            | Self::SnapshotPublication
+            | Self::CertificationBoundary => true,
             #[cfg(test)]
             Self::HarnessAudit => matches!(observation, InvariantObservationKind::Committed),
         }
