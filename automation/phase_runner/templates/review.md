@@ -43,6 +43,19 @@ Operating rules for this review:
 - Check this phase against the spec and against the arch, perf, composition,
   domain-structure laws, and mentality above. Look for the missed edge case the
   implementer's mental model says cannot happen.
+- Verify the plan checkpoints were actually honored: relevant context read,
+  public APIs respected, DX target made possible or explicitly blocked,
+  directory skeleton kept decomposed, implicit requirements implemented, and
+  phase-local sequence followed without hidden scope drift.
+- Perform a test-quality checkpoint before passing QA. Find weak, synthetic,
+  fixture-only, happy-path-only, implementation-mirroring, or helper-only tests.
+  For each weak test, record why it is weak, which production surface is missing
+  to make it honest, and what stronger test should replace it. A phase cannot
+  pass if its tests prove only the helper it just introduced instead of the
+  public authority boundary.
+- Check directories and file lengths for touched code and tests. Broad bucket
+  files, vague helper modules, and touched Rust files over 400 lines are
+  findings unless an explicit exemption exists.
 - Every finding cites `file:line` and names what reality contradicts the claim.
   A vague unease is not a finding; locate it or drop it.
 

@@ -14,6 +14,12 @@ Phase scope:
 Acceptance evidence (the checklist this plan must drive toward):
 {phase.acceptance}
 
+Before planning, read the milestone spec, this phase's scope paths, the relevant
+public APIs the phase will touch, arch_laws.md, perf_laws.md, and
+_docs/more_guidelines/dx_laws.md if it exists. Record the files and APIs you
+actually inspected in this phase's `notes.plan`; do not claim context you did
+not read.
+
 Before anything else, state the adversarial constraint: the single condition
 that would break a naive implementation of this phase at production scale. State
 it precisely, and quantitatively where you can. The plan exists to survive that
@@ -26,6 +32,32 @@ spec already owns the high-level phase order. Do not reorder phases, split this
 phase into new runner phases, or redesign the milestone sequence here. Inside
 this single phase, build a detailed category plan so the next implement turn can
 work linearly without guessing.
+
+The plan must have these checkpoints, in this order:
+
+1. Adversarial constraint.
+   State the production-scale failure mode this phase must survive.
+2. Relevant context read.
+   Name the spec sections, source files, public APIs, and laws inspected, and
+   say what each one constrains.
+3. DX target.
+   Write the intended caller experience as a Rust code block. This code block is
+   a contract target, not decoration. It should show the ordinary route a caller
+   should use after this phase and the forbidden route the phase blocks when
+   that is clarifying.
+4. Directory skeleton.
+   Name the exact modules/files that should exist or change after this phase,
+   and give each one a single responsibility. Avoid broad bucket modules.
+5. Implicit requirements made explicit.
+   Spell out authority boundaries, denial cases, deletion/collapse obligations,
+   performance locality, public facade behavior, replay/determinism needs, and
+   test honesty requirements that the spec implies.
+6. Phase-local implementation sequence.
+   Give a linear plan with concrete source surfaces, proof boundary, first hard
+   break or deletion attempt, tests, structural evidence, and exact blockers.
+
+Do not write a loose bullet cloud. Every plan item must say what it requires,
+what it changes, and what proves it.
 
 Use these planning categories as the default vocabulary, omitting only those
 that are genuinely out of scope for this phase:
