@@ -1,0 +1,19 @@
+[package]
+name = "forge-store-certification"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 1 generic and domain Store certification suites."
+
+[dependencies]
+forge-store-analysis.workspace = true
+forge-store-authority.workspace = true
+forge-store-budgets.workspace = true
+forge-store-compatibility.workspace = true
+forge-store-contracts.workspace = true
+forge-store-physical-certification.workspace = true
+forge-store-replication.workspace = true
+forge-store-subscription-support.workspace = true
+
+[lints]
+workspace = true

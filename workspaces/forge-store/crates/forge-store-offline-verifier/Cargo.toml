@@ -1,0 +1,13 @@
+[package]
+name = "forge-store-offline-verifier"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Read-only verifier for persisted Forge Store physical bytes."
+
+[dependencies]
+forge-store-contracts.workspace = true
+forge-store-physical-format.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,15 @@
+[package]
+name = "forge-store-wal"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 1 WAL-coordinated durable mode and semantic write-path contracts."
+
+[dependencies]
+forge-store-authority.workspace = true
+forge-store-contracts.workspace = true
+forge-store-modes.workspace = true
+forge-store-recovery-physics.workspace = true
+
+[lints]
+workspace = true

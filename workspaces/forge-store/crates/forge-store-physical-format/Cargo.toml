@@ -1,0 +1,12 @@
+[package]
+name = "forge-store-physical-format"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.1 physical page, segment, extent, frame, and reference format."
+
+[dependencies]
+forge-store-contracts.workspace = true
+
+[lints]
+workspace = true

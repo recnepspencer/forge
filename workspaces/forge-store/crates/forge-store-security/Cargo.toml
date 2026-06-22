@@ -1,0 +1,13 @@
+[package]
+name = "forge-store-security"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.11 security, compliance, tenant boundaries, and auditability."
+
+[dependencies]
+forge-store-contracts.workspace = true
+forge-store-physical-format.workspace = true
+
+[lints]
+workspace = true

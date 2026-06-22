@@ -1,0 +1,13 @@
+[package]
+name = "forge-store-schema-lineage"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 1 durable schema, lineage, cursor, and checkpoint artifacts."
+
+[dependencies]
+forge-store-authority.workspace = true
+forge-store-contracts.workspace = true
+
+[lints]
+workspace = true

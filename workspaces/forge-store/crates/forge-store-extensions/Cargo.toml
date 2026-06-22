@@ -1,0 +1,14 @@
+[package]
+name = "forge-store-extensions"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 1 extensible durable artifact families and storage strategies."
+
+[dependencies]
+forge-store-claim-boundaries.workspace = true
+forge-store-contracts.workspace = true
+forge-store-layout-indexes.workspace = true
+
+[lints]
+workspace = true
