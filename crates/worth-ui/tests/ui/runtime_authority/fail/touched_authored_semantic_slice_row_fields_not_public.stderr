@@ -1,0 +1,12 @@
+error: cannot construct `WorthUiTouchedAuthoredSemanticSliceRow` with struct literal syntax due to private fields
+ --> tests/ui/runtime_authority/fail/touched_authored_semantic_slice_row_fields_not_public.rs:4:19
+  |
+4 |     let _forged = WorthUiTouchedAuthoredSemanticSliceRow {};
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields `slice_id`, `subject` and `change_posture` that were not provided
+help: you might have meant to use the `new` associated function
+  |
+4 -     let _forged = WorthUiTouchedAuthoredSemanticSliceRow {};
+4 +     let _forged = WorthUiTouchedAuthoredSemanticSliceRow::new(_, _, _);
+  |

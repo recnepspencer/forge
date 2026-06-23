@@ -1,9 +1,12 @@
 use worth_ui::facade::{
-    CapabilityDiagnosticCode, CommandId, CommandProjectionCommandReference,
-    CommandProjectionDescriptor, CommandProjectionId, CommandProjectionSurface, ThemeTokenAlias,
-    ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, WorthUi,
+    AppearanceTokenId, CapabilityDiagnosticCode, CommandId, CommandProjectionCommandReference,
+    CommandProjectionDescriptor, CommandProjectionId, CommandProjectionSurface, DensityTokenId,
+    ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource,
+    WorthUi, WorthUiDropdownAppearanceRequest, WorthUiDropdownProjectionPlanDenial,
+    WorthUiHeaderAppearancePlan, WorthUiHeaderAppearancePlanDenial, WorthUiHeaderAppearanceRequest,
     WorthUiHeaderMenuPlan, WorthUiHeaderMenuPlanDenial, WorthUiHeaderMenuProjectionRequest,
     WorthUiHeaderThemePlan, WorthUiHeaderThemePlanDenial, WorthUiHeaderThemeTokenRequest,
+    WorthUiRuntimeFactId,
 };
 use worth_ui_validation_app::{validation_worth_ui_app, ValidationWorkbenchLaunch};
 
@@ -50,7 +53,7 @@ fn header_theme_is_built_from_worth_ui_theme_tokens() {
         .expect("header validation app should launch through Worth UI");
     let theme = launch.header_theme_plan().execute_frame();
 
-    assert_eq!(theme.panel_fill(), "#1E1E1E");
+    assert_eq!(theme.panel_fill(), "#1F2933");
     assert_eq!(theme.menu_fill(), "#252526");
     assert_eq!(theme.menu_hover_fill(), "#3E3E42");
     assert_eq!(theme.menu_active_fill(), "#007ACC");
@@ -62,25 +65,114 @@ fn header_theme_is_built_from_worth_ui_theme_tokens() {
 }
 
 #[test]
-fn header_theme_projection_rebuild_from_frozen_snapshot_is_deterministic() {
-    let app = validation_worth_ui_app();
-    let left = WorthUiHeaderThemePlan::from_snapshot(app.capabilities(), header_theme_request())
-        .expect("theme should build from frozen theme tokens");
-    let right = WorthUiHeaderThemePlan::from_snapshot(app.capabilities(), header_theme_request())
-        .expect("theme should rebuild from the same frozen theme tokens");
+fn header_appearance_rejects_missing_appearance_and_density_tokens() {
+    let missing_appearance = WorthUiHeaderAppearancePlan::from_snapshot(
+        validation_worth_ui_app().capabilities(),
+        header_appearance_request(),
+    )
+    .expect("baseline appearance plan builds");
 
-    assert_eq!(left, right);
+    assert!(missing_appearance.dependencies().contains_exact(
+        &WorthUiRuntimeFactId::appearance_token(
+            &AppearanceTokenId::new("validation.appearance.header.font_size").expect("valid id"),
+        )
+    ));
+
+    let missing_appearance_token = WorthUiHeaderAppearancePlan::from_snapshot(
+        validation_worth_ui_app().capabilities(),
+        WorthUiHeaderAppearanceRequest::new(
+            AppearanceTokenId::new("validation.appearance.header.missing").expect("valid id"),
+            AppearanceTokenId::new("validation.appearance.header.menu_min_width")
+                .expect("valid id"),
+            AppearanceTokenId::new("validation.appearance.header.border_width").expect("valid id"),
+            AppearanceTokenId::new("validation.appearance.header.panel_shadow").expect("valid id"),
+            DensityTokenId::new("validation.density.header.row_padding").expect("valid id"),
+            DensityTokenId::new("validation.density.header.container_padding").expect("valid id"),
+            DensityTokenId::new("validation.density.header.control_spacing").expect("valid id"),
+        ),
+    )
+    .expect_err("missing appearance token must fail before renderer execution");
+
+    assert_eq!(
+        missing_appearance_token,
+        WorthUiHeaderAppearancePlanDenial::MissingAppearanceToken(
+            "validation.appearance.header.missing".to_owned(),
+        )
+    );
+
+    let missing_density_token = WorthUiHeaderAppearancePlan::from_snapshot(
+        validation_worth_ui_app().capabilities(),
+        WorthUiHeaderAppearanceRequest::new(
+            AppearanceTokenId::new("validation.appearance.header.font_size").expect("valid id"),
+            AppearanceTokenId::new("validation.appearance.header.menu_min_width")
+                .expect("valid id"),
+            AppearanceTokenId::new("validation.appearance.header.border_width").expect("valid id"),
+            AppearanceTokenId::new("validation.appearance.header.panel_shadow").expect("valid id"),
+            DensityTokenId::new("validation.density.header.missing").expect("valid id"),
+            DensityTokenId::new("validation.density.header.container_padding").expect("valid id"),
+            DensityTokenId::new("validation.density.header.control_spacing").expect("valid id"),
+        ),
+    )
+    .expect_err("missing density token must fail before renderer execution");
+
+    assert_eq!(
+        missing_density_token,
+        WorthUiHeaderAppearancePlanDenial::MissingDensityToken(
+            "validation.density.header.missing".to_owned(),
+        )
+    );
 }
 
 #[test]
-fn header_rebuild_from_frozen_snapshot_is_deterministic() {
+fn header_appearance_rejects_wrong_appearance_and_density_value_kinds() {
     let app = validation_worth_ui_app();
-    let left = WorthUiHeaderMenuPlan::from_snapshot(app.capabilities(), header_requests())
-        .expect("header should build from frozen command projections");
-    let right = WorthUiHeaderMenuPlan::from_snapshot(app.capabilities(), header_requests())
-        .expect("header should rebuild from the same frozen command projections");
 
-    assert_eq!(left, right);
+    let wrong_appearance = WorthUiHeaderAppearancePlan::from_snapshot(
+        app.capabilities(),
+        WorthUiHeaderAppearanceRequest::new(
+            AppearanceTokenId::new("validation.appearance.header.menu_min_width")
+                .expect("valid id"),
+            AppearanceTokenId::new("validation.appearance.header.menu_min_width")
+                .expect("valid id"),
+            AppearanceTokenId::new("validation.appearance.header.border_width").expect("valid id"),
+            AppearanceTokenId::new("validation.appearance.header.panel_shadow").expect("valid id"),
+            DensityTokenId::new("validation.density.header.row_padding").expect("valid id"),
+            DensityTokenId::new("validation.density.header.container_padding").expect("valid id"),
+            DensityTokenId::new("validation.density.header.control_spacing").expect("valid id"),
+        ),
+    )
+    .expect_err("length token must not masquerade as the header font-size token");
+
+    assert_eq!(
+        wrong_appearance,
+        WorthUiHeaderAppearancePlanDenial::WrongAppearanceValue {
+            id: "validation.appearance.header.menu_min_width".to_owned(),
+            expected: "FontSize",
+        }
+    );
+
+    let wrong_density = WorthUiHeaderAppearancePlan::from_snapshot(
+        app.capabilities(),
+        WorthUiHeaderAppearanceRequest::new(
+            AppearanceTokenId::new("validation.appearance.header.font_size").expect("valid id"),
+            AppearanceTokenId::new("validation.appearance.header.menu_min_width")
+                .expect("valid id"),
+            AppearanceTokenId::new("validation.appearance.header.border_width").expect("valid id"),
+            AppearanceTokenId::new("validation.appearance.header.panel_shadow").expect("valid id"),
+            DensityTokenId::new("validation.density.header.control_spacing").expect("valid id"),
+            DensityTokenId::new("validation.density.header.container_padding").expect("valid id"),
+            DensityTokenId::new("validation.density.header.control_spacing").expect("valid id"),
+        ),
+    )
+    .expect_err("spacing token must not masquerade as padding authority");
+
+    assert_eq!(
+        wrong_density,
+        WorthUiHeaderAppearancePlanDenial::WrongDensityValue {
+            id: "validation.density.header.control_spacing".to_owned(),
+            expected: "Padding",
+        }
+    );
 }
 
 #[test]
@@ -91,13 +183,22 @@ fn header_projection_rejects_missing_projection_before_frame_execution() {
         [WorthUiHeaderMenuProjectionRequest::new(
             "Ghost",
             CommandProjectionId::new("validation.header.menu.ghost").expect("valid projection id"),
+            worth_ui::facade::ComponentId::new("validation.component.header.dropdown")
+                .expect("valid component id"),
+            worth_ui::facade::ComponentId::new("validation.component.header.multi_select_dropdown")
+                .expect("valid component id"),
         )],
+        header_dropdown_appearance_request(),
     )
     .expect_err("missing projection must be rejected while preparing the header plan");
 
     assert_eq!(
         denial,
-        WorthUiHeaderMenuPlanDenial::MissingProjection("validation.header.menu.ghost".to_owned())
+        WorthUiHeaderMenuPlanDenial::Dropdown(
+            WorthUiDropdownProjectionPlanDenial::MissingProjection(
+                "validation.header.menu.ghost".to_owned(),
+            )
+        )
     );
 }
 
@@ -135,13 +236,22 @@ fn header_projection_rejects_projection_that_references_missing_command() {
         [WorthUiHeaderMenuProjectionRequest::new(
             "Hostile",
             projection_id.clone(),
+            worth_ui::facade::ComponentId::new("validation.component.header.dropdown")
+                .expect("valid component id"),
+            worth_ui::facade::ComponentId::new("validation.component.header.multi_select_dropdown")
+                .expect("valid component id"),
         )],
+        header_dropdown_appearance_request(),
     )
     .expect_err("projection cannot smuggle a missing command into a frame receipt");
 
     assert_eq!(
         denial,
-        WorthUiHeaderMenuPlanDenial::MissingProjection(projection_id.as_str().to_owned())
+        WorthUiHeaderMenuPlanDenial::Dropdown(
+            WorthUiDropdownProjectionPlanDenial::MissingProjection(
+                projection_id.as_str().to_owned(),
+            )
+        )
     );
 }
 
@@ -172,13 +282,22 @@ fn header_projection_rejects_empty_projection_before_renderer_boundary() {
         [WorthUiHeaderMenuProjectionRequest::new(
             "Empty",
             projection_id.clone(),
+            worth_ui::facade::ComponentId::new("validation.component.header.dropdown")
+                .expect("valid component id"),
+            worth_ui::facade::ComponentId::new("validation.component.header.multi_select_dropdown")
+                .expect("valid component id"),
         )],
+        header_dropdown_appearance_request(),
     )
     .expect_err("empty projections cannot become visual-only header menus");
 
     assert_eq!(
         denial,
-        WorthUiHeaderMenuPlanDenial::MissingProjection(projection_id.as_str().to_owned())
+        WorthUiHeaderMenuPlanDenial::Dropdown(
+            WorthUiDropdownProjectionPlanDenial::MissingProjection(
+                projection_id.as_str().to_owned(),
+            )
+        )
     );
 }
 
@@ -242,31 +361,23 @@ fn header_theme_rejects_missing_and_non_color_theme_tokens() {
     );
 }
 
-fn header_requests() -> Vec<WorthUiHeaderMenuProjectionRequest> {
-    [
-        ("File", "validation.header.menu.file"),
-        ("Edit", "validation.header.menu.edit"),
-        ("Terminal", "validation.header.menu.terminal"),
-        ("Help", "validation.header.menu.help"),
-    ]
-    .into_iter()
-    .map(|(title, projection_id)| {
-        WorthUiHeaderMenuProjectionRequest::new(
-            title,
-            CommandProjectionId::new(projection_id).expect("valid projection id"),
-        )
-    })
-    .collect()
+fn header_appearance_request() -> WorthUiHeaderAppearanceRequest {
+    WorthUiHeaderAppearanceRequest::new(
+        AppearanceTokenId::new("validation.appearance.header.font_size").expect("valid id"),
+        AppearanceTokenId::new("validation.appearance.header.menu_min_width").expect("valid id"),
+        AppearanceTokenId::new("validation.appearance.header.border_width").expect("valid id"),
+        AppearanceTokenId::new("validation.appearance.header.panel_shadow").expect("valid id"),
+        DensityTokenId::new("validation.density.header.row_padding").expect("valid id"),
+        DensityTokenId::new("validation.density.header.container_padding").expect("valid id"),
+        DensityTokenId::new("validation.density.header.control_spacing").expect("valid id"),
+    )
 }
 
-fn header_theme_request() -> WorthUiHeaderThemeTokenRequest {
-    WorthUiHeaderThemeTokenRequest::new(
-        ThemeTokenId::new("validation.theme.header.panel").expect("valid theme token id"),
-        ThemeTokenId::new("validation.theme.header.menu").expect("valid theme token id"),
-        ThemeTokenId::new("validation.theme.header.menu.hover").expect("valid theme token id"),
-        ThemeTokenId::new("validation.theme.header.menu.active").expect("valid theme token id"),
-        ThemeTokenId::new("validation.theme.header.text").expect("valid theme token id"),
-        ThemeTokenId::new("validation.theme.header.border").expect("valid theme token id"),
+fn header_dropdown_appearance_request() -> WorthUiDropdownAppearanceRequest {
+    WorthUiDropdownAppearanceRequest::new(
+        AppearanceTokenId::new("validation.appearance.header.menu_min_width").expect("valid id"),
+        DensityTokenId::new("validation.density.header.row_padding").expect("valid id"),
+        DensityTokenId::new("validation.density.header.control_spacing").expect("valid id"),
     )
 }
 

@@ -1,0 +1,13 @@
+error[E0451]: fields `dispatch`, `capture_state`, `phase` and `host_support` of struct `WorthUiPrimitivePointerFrameReceipt` are private
+  --> tests/ui/runtime_authority/fail/pointer_frame_receipt_fields_not_public.rs:9:9
+   |
+ 8 |     let _forged = WorthUiPrimitivePointerFrameReceipt {
+   |                   ----------------------------------- in this type
+ 9 |         dispatch: dispatch(),
+   |         ^^^^^^^^ private field
+10 |         capture_state: WorthUiPrimitivePointerCaptureState::Uncaptured,
+   |         ^^^^^^^^^^^^^ private field
+11 |         phase: WorthUiPrimitivePointerPhase::Hover,
+   |         ^^^^^ private field
+12 |         host_support: WorthUiPrimitivePointerCaptureHostSupport::Certified,
+   |         ^^^^^^^^^^^^ private field

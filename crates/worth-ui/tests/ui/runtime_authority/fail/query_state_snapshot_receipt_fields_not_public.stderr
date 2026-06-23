@@ -1,0 +1,9 @@
+error[E0451]: fields `receipt_identity` and `receipt_digest` of struct `WorthUiQueryStateSnapshotReceipt` are private
+ --> tests/ui/runtime_authority/fail/query_state_snapshot_receipt_fields_not_public.rs:5:9
+  |
+4 |     let _ = WorthUiQueryStateSnapshotReceipt {
+  |             -------------------------------- in this type
+5 |         receipt_identity: "validation.query.state.product_filters".to_owned(),
+  |         ^^^^^^^^^^^^^^^^ private field
+6 |         receipt_digest: 42,
+  |         ^^^^^^^^^^^^^^ private field

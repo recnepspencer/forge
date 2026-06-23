@@ -1,13 +1,31 @@
+use std::path::{Path, PathBuf};
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ValidationCommandSource {
+    source_path: PathBuf,
     source_text: String,
 }
 
 impl ValidationCommandSource {
     pub fn new(source_text: impl Into<String>) -> Self {
+        Self::from_observed_file(
+            "apps/worth-ui-validation-app/theme/header.commands",
+            source_text,
+        )
+    }
+
+    pub fn from_observed_file(
+        source_path: impl Into<PathBuf>,
+        source_text: impl Into<String>,
+    ) -> Self {
         Self {
+            source_path: source_path.into(),
             source_text: source_text.into(),
         }
+    }
+
+    pub fn source_path(&self) -> &Path {
+        &self.source_path
     }
 
     pub fn source_text(&self) -> &str {

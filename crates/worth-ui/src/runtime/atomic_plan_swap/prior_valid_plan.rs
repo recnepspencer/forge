@@ -1,6 +1,7 @@
 use crate::capability::{CapabilitySnapshot, CapabilitySnapshotDigest};
 use crate::runtime::active::{
     WorthUiActiveArtifact, WorthUiActiveExecutionPlan, WorthUiActiveRuntimeState,
+    WorthUiDropdownSelectionAuthority,
 };
 use crate::runtime::{
     WorthUiRuntimeActivationStatus, WorthUiRuntimeAuthoringSnapshot,
@@ -13,6 +14,7 @@ pub(crate) struct WorthUiPriorValidPlan {
     active_plan: WorthUiActiveExecutionPlan,
     snapshot: CapabilitySnapshot,
     snapshot_digest: CapabilitySnapshotDigest,
+    dropdown_selection_authority: WorthUiDropdownSelectionAuthority,
     authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
     lifecycle: WorthUiRuntimeLifecycle,
     status: WorthUiRuntimeActivationStatus,
@@ -37,6 +39,7 @@ impl WorthUiPriorValidPlan {
             active_plan: active.active_plan(),
             snapshot: active.capability_snapshot().clone(),
             snapshot_digest: active.snapshot_digest(),
+            dropdown_selection_authority: active.dropdown_selection_authority(),
             authoring_snapshot: active.authoring_snapshot().cloned(),
             lifecycle: active.lifecycle(),
             status: active.status(),
@@ -52,6 +55,7 @@ impl WorthUiPriorValidPlan {
             self.active_plan,
             self.snapshot.clone(),
             self.snapshot_digest,
+            self.dropdown_selection_authority.clone(),
             self.authoring_snapshot.clone(),
             self.lifecycle,
             self.status,

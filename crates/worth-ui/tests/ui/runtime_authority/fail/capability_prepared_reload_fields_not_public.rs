@@ -4,7 +4,7 @@ fn main() {
     let _forged = WorthUiCapabilityPreparedReload {
         runtime_instance_witness: 1,
         evidence: forged_evidence(),
-        candidate_snapshot: None,
+        admitted_batch: None,
     };
 }
 

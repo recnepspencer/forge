@@ -1,12 +1,12 @@
 use crate::capability::{
     CapabilitySnapshot, CapabilitySnapshotDigest, CapabilitySnapshotFreezeInput,
-    FrozenCapabilityFamily, SnapshotFreezeReport, SnapshotMetrics, COMMAND_FAMILY_NAME,
-    COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME,
-    MOSAIC_PLACEMENT_POLICY_FAMILY_NAME, MOSAIC_REGION_KIND_FAMILY_NAME,
-    MOSAIC_SIZING_CONTRACT_FAMILY_NAME, MOSAIC_STATE_SLOT_FAMILY_NAME,
-    NATIVE_CAPABILITY_FAMILY_NAME, PLUGIN_SLOT_FAMILY_NAME, RUNTIME_OUTCOME_PROJECTION_FAMILY_NAME,
-    SETTING_FAMILY_NAME, SURFACE_FAMILY_NAME, TASK_PRESENTATION_FAMILY_NAME,
-    THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
+    FrozenCapabilityFamily, SnapshotFreezeReport, SnapshotMetrics, APPEARANCE_TOKEN_FAMILY_NAME,
+    COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME,
+    DENSITY_TOKEN_FAMILY_NAME, ICON_FAMILY_NAME, MOSAIC_PLACEMENT_POLICY_FAMILY_NAME,
+    MOSAIC_REGION_KIND_FAMILY_NAME, MOSAIC_SIZING_CONTRACT_FAMILY_NAME,
+    MOSAIC_STATE_SLOT_FAMILY_NAME, NATIVE_CAPABILITY_FAMILY_NAME, PLUGIN_SLOT_FAMILY_NAME,
+    RUNTIME_OUTCOME_PROJECTION_FAMILY_NAME, SETTING_FAMILY_NAME, SURFACE_FAMILY_NAME,
+    TASK_PRESENTATION_FAMILY_NAME, THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
 };
 
 use super::super::validate_snapshot_references;
@@ -44,6 +44,8 @@ fn digest_for_input(
         input.commands.digest_basis(),
         input.command_projections.digest_basis(),
         input.components.digest_basis(),
+        input.appearance_tokens.digest_basis(),
+        input.density_tokens.digest_basis(),
         input.icons.digest_basis(),
         input.surfaces.digest_basis(),
         input.mosaic_regions.digest_basis(),
@@ -76,6 +78,16 @@ fn freeze_report_for_input(input: &CapabilitySnapshotFreezeInput) -> SnapshotFre
             COMPONENT_FAMILY_NAME,
             input.components.len(),
             input.components.digest_basis(),
+        ),
+        family(
+            APPEARANCE_TOKEN_FAMILY_NAME,
+            input.appearance_tokens.len(),
+            input.appearance_tokens.digest_basis(),
+        ),
+        family(
+            DENSITY_TOKEN_FAMILY_NAME,
+            input.density_tokens.len(),
+            input.density_tokens.digest_basis(),
         ),
         family(
             ICON_FAMILY_NAME,

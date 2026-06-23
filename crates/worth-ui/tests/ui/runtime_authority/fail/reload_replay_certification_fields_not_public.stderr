@@ -1,0 +1,17 @@
+error: cannot construct `WorthUiReloadReplayCertification` with struct literal syntax due to private fields
+ --> tests/ui/runtime_authority/fail/reload_replay_certification_fields_not_public.rs:4:19
+  |
+4 |     let _forged = WorthUiReloadReplayCertification {
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         scenario_digest: 1,
+  |         ------------------ private field
+6 |         final_active_plan_digest: 2,
+  |         --------------------------- private field
+7 |         final_last_valid_plan_digest: 3,
+  |         ------------------------------- private field
+8 |         iteration_count: 4,
+  |         ------------------ private field
+9 |         foundational_meaning_digest: 5,
+  |         ------------------------------ private field
+  |
+  = note: ...and other private fields `final_active_artifact_digest`, `final_capability_snapshot_digest`, `final_authoring_snapshot_digest` and `final_last_valid_artifact_digest` that were not provided

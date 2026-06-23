@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/runtime_authority/fail/raw_projection_dependencies_cannot_replace_validated_contract.rs:8:24
+  |
+8 |     requires_validated(WorthUiProjectionDependencySet::empty());
+  |     ------------------ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `WorthUiValidatedProjectionDependencyContract`, found `WorthUiProjectionDependencySet`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> tests/ui/runtime_authority/fail/raw_projection_dependencies_cannot_replace_validated_contract.rs:5:4
+  |
+5 | fn requires_validated(_: WorthUiValidatedProjectionDependencyContract) {}
+  |    ^^^^^^^^^^^^^^^^^^ -----------------------------------------------

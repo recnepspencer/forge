@@ -1,16 +1,21 @@
 use worth_ui::facade::{
-    CommandDescriptor, CommandId, CommandProjectionCommandReference, CommandProjectionDescriptor,
-    CommandProjectionId, CommandProjectionSurface, ThemeColorValue, ThemeTokenDescriptor,
+    AppearanceTokenId, CommandDescriptor, CommandId, CommandProjectionCommandReference,
+    CommandProjectionDescriptor, CommandProjectionId, CommandProjectionSurface,
+    ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
+    ComponentStateOwnership, DensityTokenId, ThemeColorValue, ThemeTokenDescriptor,
     ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue, WorthUi, WorthUiApp,
-    WorthUiHeaderFrameRebindDenial, WorthUiHeaderFrameRebindRequest,
-    WorthUiHeaderFrameRebindStatus, WorthUiHeaderMenuProjectionRequest,
-    WorthUiHeaderThemeTokenRequest,
+    WorthUiAppearanceFamily, WorthUiAppearanceTokenDescriptor, WorthUiAppearanceTokenSource,
+    WorthUiAppearanceValue, WorthUiBorderWidthValue, WorthUiDensityFamily,
+    WorthUiDensityTokenDescriptor, WorthUiDensityValue, WorthUiFontSizeValue,
+    WorthUiHeaderFrameRebindDenial, WorthUiHeaderFrameRebindStatus, WorthUiLengthValue,
+    WorthUiPaddingValue, WorthUiShadowValue, WorthUiSpacingValue,
 };
+use worth_ui_validation_app::reload::ValidationSourcePackage;
 use worth_ui_validation_app::reload::{ValidationReloadRequest, ValidationReloadStatus};
 use worth_ui_validation_app::sample_source::{
     VALIDATION_SAMPLE_MODULE_PATH, VALIDATION_SAMPLE_SOURCE,
 };
-use worth_ui_validation_app::ValidationWorkbenchLaunch;
+use worth_ui_validation_app::{ValidationWorkbenchAuthoredInputs, ValidationWorkbenchLaunch};
 
 #[test]
 fn equivalent_reload_preserves_header_frame_without_projection_rebuild() {
@@ -118,13 +123,15 @@ fn activated_reload_cannot_rebind_against_an_unowned_header_theme_snapshot() {
         .activate_reload(reload)
         .expect("source reload activates before header frame rebind");
     let alternate_app = alternate_header_theme_app("#102030");
+    let current_plan = workbench.header_frame_plan().clone();
+    let request = workbench.validation_header_frame_rebind_request();
 
     let denial = workbench
-        .runtime()
+        .runtime_mut()
         .rebind_header_frame_after_reload(
             alternate_app.capabilities(),
-            workbench.header_frame_plan(),
-            header_frame_rebind_request(),
+            &current_plan,
+            request,
             &evidence,
         )
         .expect_err("activated evidence must not authorize an unrelated theme snapshot");
@@ -159,40 +166,15 @@ fn foreign_activated_reload_evidence_cannot_rebind_header_frame() {
 
 fn runtime_workbench() -> worth_ui_validation_app::ValidationRuntimeWorkbench {
     ValidationWorkbenchLaunch::new()
-        .prepare()
+        .prepare_from_authored_inputs(ValidationWorkbenchAuthoredInputs::new(
+            ValidationSourcePackage::sample(),
+        ))
         .expect("validation app launches through Worth UI")
         .into_runtime_workbench()
 }
 
 fn reload_request(source: &str) -> ValidationReloadRequest {
     ValidationReloadRequest::from_source_module(VALIDATION_SAMPLE_MODULE_PATH, source)
-}
-
-fn header_frame_rebind_request() -> WorthUiHeaderFrameRebindRequest {
-    WorthUiHeaderFrameRebindRequest::new(header_requests(), header_theme_request())
-}
-
-fn header_requests() -> Vec<WorthUiHeaderMenuProjectionRequest> {
-    HEADER_MENUS
-        .iter()
-        .map(|(title, projection_id, _)| {
-            WorthUiHeaderMenuProjectionRequest::new(
-                *title,
-                CommandProjectionId::new(*projection_id).expect("valid projection id"),
-            )
-        })
-        .collect()
-}
-
-fn header_theme_request() -> WorthUiHeaderThemeTokenRequest {
-    WorthUiHeaderThemeTokenRequest::new(
-        ThemeTokenId::new("validation.theme.header.panel").expect("valid theme token id"),
-        ThemeTokenId::new("validation.theme.header.menu").expect("valid theme token id"),
-        ThemeTokenId::new("validation.theme.header.menu.hover").expect("valid theme token id"),
-        ThemeTokenId::new("validation.theme.header.menu.active").expect("valid theme token id"),
-        ThemeTokenId::new("validation.theme.header.text").expect("valid theme token id"),
-        ThemeTokenId::new("validation.theme.header.border").expect("valid theme token id"),
-    )
 }
 
 fn alternate_header_theme_app(panel_fill: &str) -> WorthUiApp {
@@ -223,6 +205,14 @@ fn alternate_header_theme_app(panel_fill: &str) -> WorthUiApp {
             ThemeTokenValue::color(ThemeColorValue::hex(color).expect("valid theme color")),
         ));
     }
+    for descriptor in header_appearance_tokens() {
+        builder = builder.register_appearance_token(descriptor);
+    }
+    for descriptor in header_density_tokens() {
+        builder = builder.register_density_token(descriptor);
+    }
+    builder = builder.register_component(header_dropdown_component());
+    builder = builder.register_component(header_multi_select_dropdown_component());
     builder.freeze()
 }
 
@@ -239,8 +229,90 @@ fn header_theme_tokens(panel_fill: &str) -> Vec<(&'static str, &str)> {
 
 fn meaningfully_changed_source() -> String {
     VALIDATION_SAMPLE_SOURCE.replace(
-        "proof -> validation.surface.header.proof",
-        "proof -> validation.surface.header.proof.alt",
+        "interaction_payload \"submit.secondary\"",
+        "interaction_payload \"submit.header_rebind\"",
+    )
+}
+
+fn header_appearance_tokens() -> Vec<WorthUiAppearanceTokenDescriptor> {
+    vec![
+        WorthUiAppearanceTokenDescriptor::define(
+            AppearanceTokenId::new("validation.appearance.header.font_size").expect("valid id"),
+            WorthUiAppearanceFamily::Typography,
+            WorthUiAppearanceTokenSource::Application,
+            WorthUiAppearanceValue::FontSize(WorthUiFontSizeValue::from_px("13px").unwrap()),
+        ),
+        WorthUiAppearanceTokenDescriptor::define(
+            AppearanceTokenId::new("validation.appearance.header.menu_min_width")
+                .expect("valid id"),
+            WorthUiAppearanceFamily::Layout,
+            WorthUiAppearanceTokenSource::Application,
+            WorthUiAppearanceValue::Length(WorthUiLengthValue::from_px("220px").unwrap()),
+        ),
+        WorthUiAppearanceTokenDescriptor::define(
+            AppearanceTokenId::new("validation.appearance.header.border_width").expect("valid id"),
+            WorthUiAppearanceFamily::Border,
+            WorthUiAppearanceTokenSource::Application,
+            WorthUiAppearanceValue::BorderWidth(WorthUiBorderWidthValue::from_px("1px").unwrap()),
+        ),
+        WorthUiAppearanceTokenDescriptor::define(
+            AppearanceTokenId::new("validation.appearance.header.panel_shadow").expect("valid id"),
+            WorthUiAppearanceFamily::Elevation,
+            WorthUiAppearanceTokenSource::Application,
+            WorthUiAppearanceValue::Shadow(
+                WorthUiShadowValue::from_authored_parts(
+                    ThemeColorValue::hex("#00000066").unwrap(),
+                    "0px",
+                    "1px",
+                    "3px",
+                    "0px",
+                )
+                .unwrap(),
+            ),
+        ),
+    ]
+}
+
+fn header_density_tokens() -> Vec<WorthUiDensityTokenDescriptor> {
+    vec![
+        WorthUiDensityTokenDescriptor::define(
+            DensityTokenId::new("validation.density.header.row_padding").expect("valid id"),
+            WorthUiDensityFamily::RowPadding,
+            WorthUiDensityValue::Padding(
+                WorthUiPaddingValue::from_shorthand_px("1px 6px").unwrap(),
+            ),
+        ),
+        WorthUiDensityTokenDescriptor::define(
+            DensityTokenId::new("validation.density.header.container_padding").expect("valid id"),
+            WorthUiDensityFamily::ContainerPadding,
+            WorthUiDensityValue::Padding(
+                WorthUiPaddingValue::from_shorthand_px("4px 8px").unwrap(),
+            ),
+        ),
+        WorthUiDensityTokenDescriptor::define(
+            DensityTokenId::new("validation.density.header.control_spacing").expect("valid id"),
+            WorthUiDensityFamily::ControlSpacing,
+            WorthUiDensityValue::Spacing(WorthUiSpacingValue::from_px("8px").unwrap()),
+        ),
+    ]
+}
+
+fn header_dropdown_component() -> ComponentDescriptor {
+    ComponentDescriptor::new(
+        ComponentId::new("validation.component.header.dropdown").expect("valid component id"),
+        ComponentPropSchema::named("validation.header.dropdown.props"),
+        ComponentChildPolicy::no_children(),
+        ComponentStateOwnership::runtime_owned(),
+    )
+}
+
+fn header_multi_select_dropdown_component() -> ComponentDescriptor {
+    ComponentDescriptor::new(
+        ComponentId::new("validation.component.header.multi_select_dropdown")
+            .expect("valid component id"),
+        ComponentPropSchema::named("validation.header.multi_select_dropdown.props"),
+        ComponentChildPolicy::no_children(),
+        ComponentStateOwnership::runtime_owned(),
     )
 }
 

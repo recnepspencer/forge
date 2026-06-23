@@ -1,0 +1,4 @@
+mod worth_ui_density_accepted_registration_proof;
+mod worth_ui_density_registration;
+
+pub(crate) use worth_ui_density_accepted_registration_proof::WorthUiDensityAcceptedRegistrationProof;

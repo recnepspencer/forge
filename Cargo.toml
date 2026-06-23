@@ -31,7 +31,6 @@ members = [
     # UI library stack
     "crates/forge-ui-types",
     "crates/forge-ui-theme",
-    "crates/forge-ui-components",
     "crates/forge-ui-adapters",
     "crates/forge-ui-state",
     "crates/worth-ui",
@@ -78,7 +77,6 @@ forge-relational = { path = "crates/forge-relational" }
 # Internal crates — UI library stack
 forge-ui-types      = { path = "crates/forge-ui-types" }
 forge-ui-theme      = { path = "crates/forge-ui-theme" }
-forge-ui-components = { path = "crates/forge-ui-components" }
 forge-ui-adapters   = { path = "crates/forge-ui-adapters" }
 forge-ui-state      = { path = "crates/forge-ui-state" }
 worth-ui            = { path = "crates/worth-ui" }

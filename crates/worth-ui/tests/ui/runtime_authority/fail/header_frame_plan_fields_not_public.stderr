@@ -1,11 +1,13 @@
-error[E0451]: fields `menu_plan`, `theme_plan` and `frame_digest` of struct `WorthUiHeaderFramePlan` are private
- --> tests/ui/runtime_authority/fail/header_frame_plan_fields_not_public.rs:5:9
+error: cannot construct `WorthUiHeaderFramePlan` with struct literal syntax due to private fields
+ --> tests/ui/runtime_authority/fail/header_frame_plan_fields_not_public.rs:4:19
   |
 4 |     let _forged = WorthUiHeaderFramePlan {
-  |                   ---------------------- in this type
+  |                   ^^^^^^^^^^^^^^^^^^^^^^
 5 |         menu_plan: forged_menu_plan(),
-  |         ^^^^^^^^^ private field
+  |         ----------------------------- private field
 6 |         theme_plan: forged_theme_plan(),
-  |         ^^^^^^^^^^ private field
+  |         ------------------------------- private field
 7 |         frame_digest: 42,
-  |         ^^^^^^^^^^^^ private field
+  |         ---------------- private field
+  |
+  = note: ...and other private fields `appearance_plan` and `dependencies` that were not provided

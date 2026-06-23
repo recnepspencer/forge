@@ -1,8 +1,11 @@
 use crate::source::{
-    WorthUiArtifactInputBodyAtom, WorthUiArtifactInputNode, WorthUiArtifactInputNormalizer,
-    WorthUiArtifactInputProvenance, WorthUiParsedSourceToArtifactInputLowerer,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiSourcePackageLoader, WorthUiSourceParser,
+    classify_surface_component_selection_body_atoms, classify_surface_component_selection_tokens,
+    parse_surface_authoring_body_atoms, WorthUiArtifactInputBodyAtom, WorthUiArtifactInputNode,
+    WorthUiArtifactInputNormalizer, WorthUiArtifactInputProvenance,
+    WorthUiParsedSourceToArtifactInputLowerer, WorthUiRustAuthoredArtifactInput,
+    WorthUiRustAuthoredArtifactInputModule, WorthUiRustAuthoredToArtifactInputLowerer,
+    WorthUiSourcePackageLoader, WorthUiSourceParser, WorthUiSourceToken, WorthUiSourceTokenKind,
+    WorthUiSurfaceAuthoringValue, WorthUiSurfaceComponentSelection,
 };
 
 #[test]
@@ -279,6 +282,59 @@ fn different_body_atoms_do_not_compare_as_equivalent_shape() {
     );
 
     assert!(!first.equivalent_shape(&second));
+}
+
+#[test]
+fn surface_component_selection_classification_stays_consistent_across_source_layers() {
+    let module_id = crate::source::WorthUiSourceModuleId::from_relative_path(std::path::Path::new(
+        "app/main.wui",
+    ))
+    .expect("module id should canonicalize");
+    let parsed_tokens = [
+        WorthUiSourceToken::new(
+            WorthUiSourceTokenKind::KeywordComponent,
+            crate::source::WorthUiSourceSpan::new(module_id.clone(), 0, 9),
+        ),
+        WorthUiSourceToken::new(
+            WorthUiSourceTokenKind::Identifier("workspace.component.alt".to_owned()),
+            crate::source::WorthUiSourceSpan::new(module_id, 10, 33),
+        ),
+    ];
+    let body_atoms = [
+        WorthUiArtifactInputBodyAtom::KeywordComponent,
+        WorthUiArtifactInputBodyAtom::Identifier("workspace.component.alt".to_owned()),
+    ];
+
+    assert_eq!(
+        classify_surface_component_selection_tokens(&parsed_tokens),
+        WorthUiSurfaceComponentSelection::Selected("workspace.component.alt")
+    );
+    assert_eq!(
+        classify_surface_component_selection_body_atoms(&body_atoms),
+        WorthUiSurfaceComponentSelection::Selected("workspace.component.alt")
+    );
+}
+
+#[test]
+fn surface_authoring_parser_accepts_component_plus_runtime_owned_props() {
+    let body_atoms = [
+        WorthUiArtifactInputBodyAtom::KeywordComponent,
+        WorthUiArtifactInputBodyAtom::Identifier("workspace.component.card".to_owned()),
+        WorthUiArtifactInputBodyAtom::Identifier("title".to_owned()),
+        WorthUiArtifactInputBodyAtom::StringLiteral("Treasury Overview".to_owned()),
+        WorthUiArtifactInputBodyAtom::Identifier("priority".to_owned()),
+        WorthUiArtifactInputBodyAtom::NumberLiteral(3),
+    ];
+    let parsed = parse_surface_authoring_body_atoms(&body_atoms)
+        .expect("component plus props should parse as authored surface meaning");
+
+    assert_eq!(parsed.component_id(), Some("workspace.component.card"));
+    assert_eq!(parsed.properties().len(), 2);
+    assert_eq!(parsed.properties()[0].key(), "title");
+    assert_eq!(
+        parsed.properties()[0].value(),
+        WorthUiSurfaceAuthoringValue::StringLiteral("Treasury Overview")
+    );
 }
 
 fn lower_file_authored(

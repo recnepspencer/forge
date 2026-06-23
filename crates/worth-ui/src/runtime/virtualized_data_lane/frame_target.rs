@@ -29,6 +29,46 @@ impl WorthUiVirtualizedDataFrameTarget {
         self.kind
     }
 
+    pub fn digest_basis(self) -> String {
+        match self.kind {
+            WorthUiVirtualizedDataFrameTargetKind::ViewBinding(handle, range) => {
+                format!(
+                    "view_binding:{}:{}:{}:{}:{}:{}",
+                    handle.plan_index(),
+                    handle.plan_generation().as_u64(),
+                    range.start_row(),
+                    range.row_count(),
+                    range.start_column(),
+                    range.column_count()
+                )
+            }
+            #[cfg(test)]
+            WorthUiVirtualizedDataFrameTargetKind::FullCollectionScan(handle) => {
+                format!(
+                    "full_collection_scan:{}:{}",
+                    handle.plan_index(),
+                    handle.plan_generation().as_u64()
+                )
+            }
+            #[cfg(test)]
+            WorthUiVirtualizedDataFrameTargetKind::OffsetPagination(handle) => {
+                format!(
+                    "offset_pagination:{}:{}",
+                    handle.plan_index(),
+                    handle.plan_generation().as_u64()
+                )
+            }
+            #[cfg(test)]
+            WorthUiVirtualizedDataFrameTargetKind::Component(handle) => {
+                format!(
+                    "component:{}:{}",
+                    handle.plan_index(),
+                    handle.plan_generation().as_u64()
+                )
+            }
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn full_collection_scan_for_test(handle: WorthUiViewBindingHandle) -> Self {
         Self {

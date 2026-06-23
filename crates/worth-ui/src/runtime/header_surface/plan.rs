@@ -1,9 +1,13 @@
-use crate::capability::{CapabilitySnapshot, CommandId};
-use crate::runtime::{WorthUiProjectionDependencySet, WorthUiRuntimeFactId};
+use crate::capability::CapabilitySnapshot;
+use crate::runtime::{
+    WorthUiDropdownAppearanceRequest, WorthUiDropdownProjectionPlan,
+    WorthUiDropdownProjectionPlanDenial, WorthUiProjectionDependencyDeclaration,
+    WorthUiProjectionDependencySet, WorthUiProjectionEquivalenceBasisKind, WorthUiProjectionFamily,
+    WorthUiProjectionIdentity, WorthUiProjectionPlanContract,
+};
 
 use super::{
-    WorthUiHeaderFrameReceipt, WorthUiHeaderMenuCommand, WorthUiHeaderMenuGroup,
-    WorthUiHeaderMenuProjectionRequest,
+    WorthUiHeaderFrameReceipt, WorthUiHeaderMenuGroup, WorthUiHeaderMenuProjectionRequest,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -11,23 +15,29 @@ pub struct WorthUiHeaderMenuPlan {
     receipt: WorthUiHeaderFrameReceipt,
     projection_digest: u64,
     dependencies: WorthUiProjectionDependencySet,
+    dropdown_plans: Vec<WorthUiDropdownProjectionPlan>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiHeaderMenuPlanDenial {
     EmptyProjectionSet,
-    MissingProjection(String),
-    EmptyProjection(String),
-    ProjectionReferencesMissingCommand {
-        projection_id: String,
-        command_id: String,
-    },
+    Dropdown(WorthUiDropdownProjectionPlanDenial),
 }
 
 impl WorthUiHeaderMenuPlan {
     pub fn from_snapshot(
         snapshot: &CapabilitySnapshot,
         requests: impl IntoIterator<Item = WorthUiHeaderMenuProjectionRequest>,
+        appearance_request: WorthUiDropdownAppearanceRequest,
+    ) -> Result<Self, WorthUiHeaderMenuPlanDenial> {
+        Self::build(snapshot, requests, appearance_request, None)
+    }
+
+    fn build(
+        snapshot: &CapabilitySnapshot,
+        requests: impl IntoIterator<Item = WorthUiHeaderMenuProjectionRequest>,
+        appearance_request: WorthUiDropdownAppearanceRequest,
+        previous: Option<&WorthUiHeaderMenuPlan>,
     ) -> Result<Self, WorthUiHeaderMenuPlanDenial> {
         let requests: Vec<_> = requests.into_iter().collect();
         if requests.is_empty() {
@@ -35,11 +45,29 @@ impl WorthUiHeaderMenuPlan {
         }
 
         let mut groups = Vec::with_capacity(requests.len());
+        let mut dropdown_plans = Vec::with_capacity(requests.len());
         let mut dependencies = WorthUiProjectionDependencySet::empty();
         for request in requests {
-            let (group, group_dependencies) = group_from_projection(snapshot, &request)?;
-            dependencies = dependencies.merge(&group_dependencies);
-            groups.push(group);
+            let dropdown_request = request.to_dropdown_request(appearance_request.clone());
+            let dropdown_plan = match previous.and_then(|plan| {
+                plan.dropdown_plans.iter().find(|candidate| {
+                    candidate.execute_frame().projection_id() == request.projection_id().as_str()
+                })
+            }) {
+                Some(previous_dropdown) => WorthUiDropdownProjectionPlan::rebuild_from_snapshot(
+                    snapshot,
+                    dropdown_request,
+                    Some(previous_dropdown.execute_frame().selection_state()),
+                ),
+                None => WorthUiDropdownProjectionPlan::from_snapshot(snapshot, dropdown_request),
+            }
+            .map_err(WorthUiHeaderMenuPlanDenial::Dropdown)?;
+            dependencies = dependencies.merge(dropdown_plan.dependencies());
+            groups.push(WorthUiHeaderMenuGroup::new(
+                request.title(),
+                dropdown_plan.execute_frame().clone(),
+            ));
+            dropdown_plans.push(dropdown_plan);
         }
 
         let projection_digest = digest_groups(&groups);
@@ -48,11 +76,30 @@ impl WorthUiHeaderMenuPlan {
             receipt: WorthUiHeaderFrameReceipt::new(groups, projected_command_count),
             projection_digest,
             dependencies,
+            dropdown_plans,
         })
     }
 
     pub fn execute_frame(&self) -> &WorthUiHeaderFrameReceipt {
         &self.receipt
+    }
+
+    pub(crate) fn from_dropdown_plans(
+        groups: Vec<WorthUiHeaderMenuGroup>,
+        dropdown_plans: Vec<WorthUiDropdownProjectionPlan>,
+    ) -> Self {
+        let dependencies = dropdown_plans.iter().fold(
+            WorthUiProjectionDependencySet::empty(),
+            |dependencies, plan| dependencies.merge(plan.dependencies()),
+        );
+        let projection_digest = digest_groups(&groups);
+        let projected_command_count = groups.iter().map(|group| group.commands().len()).sum();
+        Self {
+            receipt: WorthUiHeaderFrameReceipt::new(groups, projected_command_count),
+            projection_digest,
+            dependencies,
+            dropdown_plans,
+        }
     }
 
     pub fn groups(&self) -> &[WorthUiHeaderMenuGroup] {
@@ -70,73 +117,35 @@ impl WorthUiHeaderMenuPlan {
     pub fn dependencies(&self) -> &WorthUiProjectionDependencySet {
         &self.dependencies
     }
+
+    pub(crate) fn dropdown_plans(&self) -> &[WorthUiDropdownProjectionPlan] {
+        &self.dropdown_plans
+    }
 }
 
-fn group_from_projection(
-    snapshot: &CapabilitySnapshot,
-    request: &WorthUiHeaderMenuProjectionRequest,
-) -> Result<(WorthUiHeaderMenuGroup, WorthUiProjectionDependencySet), WorthUiHeaderMenuPlanDenial> {
-    let projection = snapshot
-        .command_projections()
-        .get(request.projection_id())
-        .ok_or_else(|| {
-            WorthUiHeaderMenuPlanDenial::MissingProjection(
-                request.projection_id().as_str().to_owned(),
-            )
-        })?;
-    let projection_id = request.projection_id().as_str().to_owned();
-    let mut dependencies = WorthUiProjectionDependencySet::empty()
-        .depends_on(WorthUiRuntimeFactId::command_projection(
-            request.projection_id(),
-        ))
-        .depends_on(WorthUiRuntimeFactId::command_projection_interaction_policy(
-            request.projection_id(),
-        ));
-    let commands = projection
-        .command_references()
-        .iter()
-        .map(|reference| {
-            dependencies = dependencies
-                .clone()
-                .depends_on(WorthUiRuntimeFactId::command(reference.command_id()));
-            command_from_snapshot(snapshot, &projection_id, reference.command_id())
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-
-    if commands.is_empty() {
-        return Err(WorthUiHeaderMenuPlanDenial::EmptyProjection(projection_id));
+impl WorthUiProjectionPlanContract for WorthUiHeaderMenuPlan {
+    fn projection_identity(&self) -> WorthUiProjectionIdentity {
+        WorthUiProjectionIdentity::runtime("worth-ui.header.menu")
     }
 
-    Ok((
-        WorthUiHeaderMenuGroup::new(
-            request.title(),
-            request.projection_id().as_str(),
-            projection.selection_mode(),
-            commands,
-        ),
-        dependencies,
-    ))
+    fn projection_family(&self) -> WorthUiProjectionFamily {
+        WorthUiProjectionFamily::HeaderMenu
+    }
+
+    fn projection_dependency_declaration(&self) -> WorthUiProjectionDependencyDeclaration {
+        WorthUiProjectionDependencyDeclaration::from_set(self.dependencies.clone())
+    }
+
+    fn projection_equivalence_digest(&self) -> u64 {
+        self.projection_digest
+    }
+
+    fn projection_equivalence_basis_kind(&self) -> WorthUiProjectionEquivalenceBasisKind {
+        WorthUiProjectionEquivalenceBasisKind::ProjectionDigest
+    }
 }
 
-fn command_from_snapshot(
-    snapshot: &CapabilitySnapshot,
-    projection_id: &str,
-    command_id: &CommandId,
-) -> Result<WorthUiHeaderMenuCommand, WorthUiHeaderMenuPlanDenial> {
-    let command = snapshot.commands().get(command_id).ok_or_else(|| {
-        WorthUiHeaderMenuPlanDenial::ProjectionReferencesMissingCommand {
-            projection_id: projection_id.to_owned(),
-            command_id: command_id.as_str().to_owned(),
-        }
-    })?;
-    Ok(WorthUiHeaderMenuCommand::new(
-        command.id().as_str(),
-        command.label(),
-        command
-            .default_shortcut_reference()
-            .map(std::borrow::ToOwned::to_owned),
-    ))
-}
+impl crate::runtime::projection_contract::plan_contract::private::Sealed for WorthUiHeaderMenuPlan {}
 
 fn digest_groups(groups: &[WorthUiHeaderMenuGroup]) -> u64 {
     groups.iter().fold(0xcbf2_9ce4_8422_2325, |digest, group| {

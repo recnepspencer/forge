@@ -1,6 +1,10 @@
 use crate::capability::{CapabilitySnapshot, CapabilitySnapshotDigest};
+use crate::runtime::authored_delta::lower_authored_delta_summary;
 use crate::runtime::candidate::{
     file_authored_replacement_candidate, rust_authored_replacement_candidate,
+};
+use crate::runtime::source_ingress::authored_submission::{
+    WorthUiSourceAuthoredCandidateSubmission, WorthUiSourceAuthoredCandidateSubmissionDenial,
 };
 use crate::runtime::source_ingress::counters::WorthUiSourceIngressCounters;
 use crate::runtime::source_ingress::debounce::WorthUiDebouncedWatcherBatch;
@@ -12,12 +16,15 @@ use crate::runtime::source_ingress::provider::WorthUiSourceProvider;
 use crate::runtime::source_ingress::revision::WorthUiSourcePackageRevision;
 use crate::runtime::WorthUiReplacementCause;
 use crate::runtime::{
-    WorthUiReplacementCandidate, WorthUiReplacementCandidateDenial, WorthUiRuntimeAuthoringSnapshot,
+    WorthUiAuthoredDeltaSummary, WorthUiCandidateRuntimeAuthoringSnapshot,
+    WorthUiReplacementCandidate, WorthUiReplacementCandidateDenial,
+    WorthUiRuntimeAuthoringSnapshot, WorthUiRuntimeAuthoringSnapshotBuilder,
+    WorthUiSemanticSliceInventory,
 };
 use crate::source::{
     build_content_slot_catalog, build_layout_topology_catalog, WorthUiArtifact,
     WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
-    WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer, WorthUiParsedSourcePackage,
+    WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer,
     WorthUiParsedSourceToArtifactInputLowerer, WorthUiSourcePackageLoader, WorthUiSourceParser,
     WorthUiStructuralLegalityLowerer,
 };
@@ -25,7 +32,8 @@ use crate::source::{
 #[derive(Debug, Eq, PartialEq)]
 pub struct WorthUiWatchedCandidateSubmission {
     candidate: WorthUiReplacementCandidate,
-    authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
+    authoring_snapshot: Option<WorthUiCandidateRuntimeAuthoringSnapshot>,
+    authored_delta_summary: Option<WorthUiAuthoredDeltaSummary>,
     revision: WorthUiSourcePackageRevision,
     ordering_receipt: WorthUiCandidateOrderingReceipt,
     counters: WorthUiSourceIngressCounters,
@@ -41,14 +49,22 @@ impl WorthUiDebouncedWatcherBatch {
     pub fn lower_to_candidate_submission(
         self,
         snapshot: &CapabilitySnapshot,
+        active_authoring_snapshot: Option<&WorthUiRuntimeAuthoringSnapshot>,
     ) -> Result<WorthUiWatchedCandidateSubmission, WorthUiWatchedCandidateSubmissionDenial> {
         let (provider, revision, ordering_receipt, mut counters) = self.into_parts();
-        let (candidate, authoring_snapshot) =
-            lower_provider_to_candidate(&provider, snapshot, &revision, &ordering_receipt)?;
+        let (candidate, authoring_snapshot, authored_delta_summary) = lower_provider_to_candidate(
+            &provider,
+            snapshot,
+            active_authoring_snapshot,
+            &revision,
+            &ordering_receipt,
+            &mut counters,
+        )?;
         counters.emit_candidate_submission();
         Ok(WorthUiWatchedCandidateSubmission {
             candidate,
             authoring_snapshot,
+            authored_delta_summary,
             revision,
             ordering_receipt,
             counters,
@@ -73,11 +89,28 @@ impl WorthUiWatchedCandidateSubmission {
         self.candidate
     }
 
+    pub fn authored_delta_summary(&self) -> Option<&WorthUiAuthoredDeltaSummary> {
+        self.authored_delta_summary.as_ref()
+    }
+
+    pub fn into_source_authored_submission(
+        self,
+    ) -> Result<
+        WorthUiSourceAuthoredCandidateSubmission,
+        WorthUiSourceAuthoredCandidateSubmissionDenial,
+    > {
+        if self.authoring_snapshot.is_none() || self.authored_delta_summary.is_none() {
+            return Err(WorthUiSourceAuthoredCandidateSubmissionDenial::MissingAuthoredDeltaProof);
+        }
+        Ok(WorthUiSourceAuthoredCandidateSubmission::new(self))
+    }
+
     pub fn into_parts(
         self,
     ) -> (
         WorthUiReplacementCandidate,
-        Option<WorthUiRuntimeAuthoringSnapshot>,
+        Option<WorthUiCandidateRuntimeAuthoringSnapshot>,
+        Option<WorthUiAuthoredDeltaSummary>,
         WorthUiSourcePackageRevision,
         WorthUiCandidateOrderingReceipt,
         WorthUiSourceIngressCounters,
@@ -85,6 +118,7 @@ impl WorthUiWatchedCandidateSubmission {
         (
             self.candidate,
             self.authoring_snapshot,
+            self.authored_delta_summary,
             self.revision,
             self.ordering_receipt,
             self.counters,
@@ -95,12 +129,15 @@ impl WorthUiWatchedCandidateSubmission {
 fn lower_provider_to_candidate(
     provider: &WorthUiSourceProvider,
     snapshot: &CapabilitySnapshot,
+    active_authoring_snapshot: Option<&WorthUiRuntimeAuthoringSnapshot>,
     revision: &WorthUiSourcePackageRevision,
     ordering_receipt: &WorthUiCandidateOrderingReceipt,
+    counters: &mut WorthUiSourceIngressCounters,
 ) -> Result<
     (
         WorthUiReplacementCandidate,
-        Option<WorthUiRuntimeAuthoringSnapshot>,
+        Option<WorthUiCandidateRuntimeAuthoringSnapshot>,
+        Option<WorthUiAuthoredDeltaSummary>,
     ),
     WorthUiWatchedCandidateSubmissionDenial,
 > {
@@ -110,6 +147,7 @@ fn lower_provider_to_candidate(
         ));
     }
     reject_ambiguous_candidate_material(provider)?;
+    counters.record_observed_modules(provider.source_modules().len());
     if let Some(input) = provider.artifact_inputs().first() {
         let artifact = input.artifact().cloned().ok_or_else(|| {
             WorthUiWatchedCandidateSubmissionDenial::SourceIngress(WorthUiSourceIngressDenial::new(
@@ -117,12 +155,20 @@ fn lower_provider_to_candidate(
             ))
         })?;
         return rust_authored_candidate(artifact, snapshot.digest(), revision)
-            .map(|candidate| (candidate, None));
+            .map(|candidate| (candidate, None, None));
     }
     if !provider.source_modules().is_empty() {
-        let (artifact, authoring_snapshot) = file_authored_material(provider, snapshot)?;
-        return file_authored_candidate(artifact, snapshot.digest(), provider, revision)
-            .map(|candidate| (candidate, Some(authoring_snapshot)));
+        let (artifact, authoring_snapshot, authored_delta_summary) =
+            file_authored_material(provider, snapshot, active_authoring_snapshot, counters)?;
+        return file_authored_candidate(artifact, snapshot.digest(), provider, revision).map(
+            |candidate| {
+                (
+                    candidate,
+                    Some(authoring_snapshot),
+                    Some(authored_delta_summary),
+                )
+            },
+        );
     }
     Err(source_denial(
         WorthUiSourceIngressDenialReason::NoCandidateMaterial,
@@ -148,8 +194,14 @@ fn reject_ambiguous_candidate_material(
 fn file_authored_material(
     provider: &WorthUiSourceProvider,
     snapshot: &CapabilitySnapshot,
+    active_authoring_snapshot: Option<&WorthUiRuntimeAuthoringSnapshot>,
+    counters: &mut WorthUiSourceIngressCounters,
 ) -> Result<
-    (WorthUiArtifact, WorthUiRuntimeAuthoringSnapshot),
+    (
+        WorthUiArtifact,
+        WorthUiCandidateRuntimeAuthoringSnapshot,
+        WorthUiAuthoredDeltaSummary,
+    ),
     WorthUiWatchedCandidateSubmissionDenial,
 > {
     let mut loader = WorthUiSourcePackageLoader::from_workspace_root(provider.workspace_root());
@@ -161,24 +213,45 @@ fn file_authored_material(
         .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::SourcePackageRejected))?;
     let parsed = WorthUiSourceParser::parse_package(&source_package)
         .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::SourceParseRejected))?;
-    let authoring_snapshot = file_authored_authoring_snapshot(&parsed)?;
+    counters.record_parsed_modules(parsed.module_ids().len());
+    let layout_topology = build_layout_topology_catalog(&parsed)
+        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::AuthoringEntryRejected))?;
+    let content_slots = build_content_slot_catalog(&parsed, &layout_topology)
+        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::AuthoringEntryRejected))?;
     let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed)
         .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::AuthoringEntryRejected))?;
-    canonical_artifact_from_input(artifact_input, snapshot)
-        .map(|artifact| (artifact, authoring_snapshot))
-}
-
-fn file_authored_authoring_snapshot(
-    parsed: &WorthUiParsedSourcePackage,
-) -> Result<WorthUiRuntimeAuthoringSnapshot, WorthUiWatchedCandidateSubmissionDenial> {
-    let layout_topology = build_layout_topology_catalog(parsed)
+    let artifact = canonical_artifact_from_input(artifact_input, snapshot)?;
+    let content_slots = content_slots
+        .verify_canonical_mount_order(&artifact)
         .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::AuthoringEntryRejected))?;
-    let content_slots = build_content_slot_catalog(parsed, &layout_topology)
-        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::AuthoringEntryRejected))?;
-    Ok(WorthUiRuntimeAuthoringSnapshot::new(
+    let authoring_snapshot = WorthUiRuntimeAuthoringSnapshotBuilder::from_source_package(
+        &parsed,
+        snapshot,
         layout_topology,
         content_slots,
-    ))
+    )
+    .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::AuthoringEntryRejected))?;
+    let authored_delta_summary = lower_authored_delta_summary(
+        provider.source_modules().len(),
+        &parsed,
+        active_authoring_snapshot,
+        &authoring_snapshot,
+        &WorthUiSemanticSliceInventory::current(),
+    );
+    counters.record_authored_declarations_inspected(
+        authored_delta_summary
+            .counters()
+            .authored_declarations_inspected(),
+    );
+    counters.record_authored_declarations_touched(
+        authored_delta_summary
+            .counters()
+            .authored_declarations_touched(),
+    );
+    counters.record_semantic_slices_emitted(
+        authored_delta_summary.counters().semantic_slices_emitted(),
+    );
+    Ok((artifact, authoring_snapshot, authored_delta_summary))
 }
 
 fn canonical_artifact_from_input(

@@ -1,0 +1,114 @@
+error: cannot construct `WorthUiPrimitiveColor` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/primitive_nested_authority_types_not_mintable.rs:24:17
+   |
+24 |     let color = WorthUiPrimitiveColor {
+   |                 ^^^^^^^^^^^^^^^^^^^^^
+25 |         red: 0,
+   |         ------ private field
+26 |         green: 0,
+   |         -------- private field
+27 |         blue: 0,
+   |         ------- private field
+   |
+   = note: ...and other private field `transparent` that was not provided
+help: you might have meant to use an associated function to build this type
+   |
+24 -     let color = WorthUiPrimitiveColor {
+25 -         red: 0,
+26 -         green: 0,
+27 -         blue: 0,
+28 -     };
+24 +     let color = WorthUiPrimitiveColor::new(_, _, _);
+   |
+24 -     let color = WorthUiPrimitiveColor {
+25 -         red: 0,
+26 -         green: 0,
+27 -         blue: 0,
+28 -     };
+24 +     let color = WorthUiPrimitiveColor::transparent();
+   |
+
+error: cannot construct `WorthUiPrimitiveContentReceipt` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/primitive_nested_authority_types_not_mintable.rs:35:19
+   |
+35 |     let content = WorthUiPrimitiveContentReceipt {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+36 |         items: Vec::new(),
+   |         ----------------- private field
+37 |         accessibility_name: None,
+   |         ------------------------ private field
+38 |         dependency_fact: primitive_content_fact(),
+   |         ----------------------------------------- private field
+39 |         receipt_digest: 1,
+   |         ----------------- private field
+   |
+   = note: ...and other private field `kind` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+35 -     let content = WorthUiPrimitiveContentReceipt {
+36 -         items: Vec::new(),
+37 -         accessibility_name: None,
+38 -         dependency_fact: primitive_content_fact(),
+39 -         receipt_digest: 1,
+40 -     };
+35 +     let content = WorthUiPrimitiveContentReceipt::new(_, _, _, _, _);
+   |
+
+error: cannot construct `WorthUiValidatedPrimitivePropSet` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/primitive_nested_authority_types_not_mintable.rs:80:20
+   |
+80 |     let prop_set = WorthUiValidatedPrimitivePropSet {
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+81 |         text: "Submit".to_owned(),
+   |         ------------------------- private field
+82 |         align: WorthUiPrimitiveAlign::Center,
+   |         ------------------------------------ private field
+83 |         padding_token: "validation.density.primitive.padding".to_owned(),
+   |         ---------------------------------------------------------------- private field
+84 |         radius_token: "validation.density.primitive.radius".to_owned(),
+   |         -------------------------------------------------------------- private field
+85 |         background_color: color,
+   |         ----------------------- private field
+86 |         foreground_color: color,
+   |         ----------------------- private field
+87 |         interaction_kind: WorthUiPrimitiveInteractionKind::Submit,
+   |         --------------------------------------------------------- private field
+88 |         cursor: WorthUiPrimitiveCursorPosture::Pointer,
+   |         ---------------------------------------------- private field
+89 |         focus: WorthUiPrimitiveFocusPosture::Focusable,
+   |         ---------------------------------------------- private field
+90 |         interaction_id: "worth.interaction.primitive.submit".to_owned(),
+   |         --------------------------------------------------------------- private field
+91 |         submit_payload: "submit.primary".to_owned(),
+   |         ------------------------------------------- private field
+92 |         motion_kind: WorthUiPrimitiveMotionKind::Transition,
+   |         --------------------------------------------------- private field
+93 |         motion_target: WorthUiPrimitiveMotionTarget::Background,
+   |         ------------------------------------------------------- private field
+94 |         motion_duration_token: "validation.density.primitive.motion.fast".to_owned(),
+   |         ---------------------------------------------------------------------------- private field
+95 |         motion_easing: WorthUiPrimitiveMotionEasing::Standard,
+   |         ----------------------------------------------------- private field
+   |
+   = note: ...and other private fields `disabled` and `selected` that were not provided
+help: you might have meant to use the `new` associated function
+   |
+80 -     let prop_set = WorthUiValidatedPrimitivePropSet {
+81 -         text: "Submit".to_owned(),
+82 -         align: WorthUiPrimitiveAlign::Center,
+83 -         padding_token: "validation.density.primitive.padding".to_owned(),
+84 -         radius_token: "validation.density.primitive.radius".to_owned(),
+85 -         background_color: color,
+86 -         foreground_color: color,
+87 -         interaction_kind: WorthUiPrimitiveInteractionKind::Submit,
+88 -         cursor: WorthUiPrimitiveCursorPosture::Pointer,
+89 -         focus: WorthUiPrimitiveFocusPosture::Focusable,
+90 -         interaction_id: "worth.interaction.primitive.submit".to_owned(),
+91 -         submit_payload: "submit.primary".to_owned(),
+92 -         motion_kind: WorthUiPrimitiveMotionKind::Transition,
+93 -         motion_target: WorthUiPrimitiveMotionTarget::Background,
+94 -         motion_duration_token: "validation.density.primitive.motion.fast".to_owned(),
+95 -         motion_easing: WorthUiPrimitiveMotionEasing::Standard,
+96 -     };
+80 +     let prop_set = WorthUiValidatedPrimitivePropSet::new(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _);
+   |

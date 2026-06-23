@@ -1,0 +1,5 @@
+error[E0451]: field `_private` of struct `WorthUiActiveAuthoringSnapshotWitness` is private
+ --> tests/ui/runtime_authority/fail/active_authoring_snapshot_witness_fields_not_public.rs:4:59
+  |
+4 |     let _forged = WorthUiActiveAuthoringSnapshotWitness { _private: () };
+  |                                                           ^^^^^^^^ private field

@@ -1,0 +1,16 @@
+error[E0308]: mismatched types
+ --> tests/ui/reload_boundary/fail/raw_appearance_package_cannot_enter_validation_reload_input.rs:6:9
+  |
+5 |       let _ = ValidationReloadInput::HeaderAppearance(
+  |               --------------------------------------- arguments to this enum variant are incorrect
+6 | /         WorthUiAppearanceReloadPackage::from_source(
+7 | |             "apps/worth-ui-validation-app/theme/header.appearance",
+8 | |             "validation.appearance.header.menu_min_width = 260px",
+9 | |         ),
+  | |_________^ expected `ValidationAppearanceSource`, found `WorthUiAppearanceReloadPackage`
+  |
+note: tuple variant defined here
+ --> src/reload/validation_reload_input.rs
+  |
+  |     HeaderAppearance(ValidationAppearanceSource),
+  |     ^^^^^^^^^^^^^^^^

@@ -1,26 +1,44 @@
+mod capability_reload;
+mod rebind_execution;
+
 use worth_ui::facade::{
-    WorthUiApp, WorthUiCapabilityPreparedReload, WorthUiCapabilityReloadEvidence,
-    WorthUiCapabilityReloadRequest, WorthUiCapabilityReloadStage,
-    WorthUiCommandProjectionReloadPackage, WorthUiCommandReloadPackage, WorthUiHeaderFramePlan,
-    WorthUiHeaderFrameRebindDenial, WorthUiHeaderFrameRebindReceipt, WorthUiPageHostPlan,
-    WorthUiPageHostRebindDenial, WorthUiPageHostRebindReceipt, WorthUiRuntimeHost,
-    WorthUiThemeTokenReloadPackage,
+    CommandId, CommandProjectionId, SurfaceId, WorthUiApp, WorthUiComponentInteractionDenial,
+    WorthUiComponentInteractionKind, WorthUiComponentInteractionReceipt,
+    WorthUiDropdownSelectionInteractionDenial, WorthUiDropdownSelectionInteractionReceipt,
+    WorthUiHeaderFramePlan, WorthUiHeaderFrameRebindDenial, WorthUiHeaderFrameRebindReceipt,
+    WorthUiHeaderFrameRebindRequest, WorthUiInteractionActivationRequest, WorthUiPageHostPlan,
+    WorthUiPageHostRequest, WorthUiRebindPhaseExecutionReceipt,
+    WorthUiRuntimeChangeAdmissionDenial, WorthUiRuntimeHost, WorthUiSemanticChangedSliceSet,
+    WorthUiSemanticCompileBoundary, WorthUiSemanticSliceInventory,
 };
 
 use crate::app_capabilities::validation_header_frame_rebind_request;
-use crate::launch::validation_page_host_request;
 use crate::reload::{
-    ValidationCommandProjectionSource, ValidationCommandSource, ValidationPreparedReload,
-    ValidationReloadEvidence, ValidationReloadInput, ValidationReloadRequest,
-    ValidationReloadStage, ValidationReloadTick, ValidationRuntimeReloadTickOutcome,
-    ValidationSourcePackage, ValidationThemeSource,
+    ValidationAuthoredStructuralReloadEvidence, ValidationAuthoredStructuralSlotEvidence,
+    ValidationObservedAuthoredBatch, ValidationPreparedReload, ValidationReloadEvidence,
+    ValidationReloadInput, ValidationReloadRequest, ValidationReloadStage, ValidationReloadTick,
+    ValidationRuntimeChangeEvidence, ValidationRuntimeReloadTickOutcome, ValidationSourcePackage,
 };
+use capability_reload::merge_source_reload_with_theme_reload;
 
 pub struct ValidationRuntimeWorkbench {
     app: WorthUiApp,
     runtime: WorthUiRuntimeHost,
     header_frame_plan: WorthUiHeaderFramePlan,
     page_host_plan: WorthUiPageHostPlan,
+}
+
+#[derive(Debug)]
+pub enum ValidationDropdownSelectionApplicationDenial {
+    Interaction(WorthUiDropdownSelectionInteractionDenial),
+    RuntimeChange(WorthUiRuntimeChangeAdmissionDenial),
+    HeaderRebind(WorthUiHeaderFrameRebindDenial),
+}
+
+#[derive(Debug)]
+pub enum ValidationComponentInteractionApplicationDenial {
+    Interaction(WorthUiComponentInteractionDenial),
+    RuntimeChange(WorthUiRuntimeChangeAdmissionDenial),
 }
 
 impl ValidationRuntimeWorkbench {
@@ -46,6 +64,10 @@ impl ValidationRuntimeWorkbench {
         &self.runtime
     }
 
+    pub fn runtime_mut(&mut self) -> &mut WorthUiRuntimeHost {
+        &mut self.runtime
+    }
+
     pub fn header_frame_plan(&self) -> &WorthUiHeaderFramePlan {
         &self.header_frame_plan
     }
@@ -54,9 +76,44 @@ impl ValidationRuntimeWorkbench {
         &self.page_host_plan
     }
 
+    pub fn validation_header_frame_rebind_request(&self) -> WorthUiHeaderFrameRebindRequest {
+        validation_header_frame_rebind_request()
+    }
+
+    pub fn validation_page_host_request(&self) -> WorthUiPageHostRequest {
+        WorthUiPageHostRequest::new(self.page_host_plan.page_name())
+    }
+
+    pub fn select_page_host_page(
+        &mut self,
+        page_name: &str,
+    ) -> Result<(), worth_ui::facade::WorthUiPageHostPlanDenial> {
+        self.page_host_plan = WorthUiPageHostPlan::from_runtime(
+            &self.runtime,
+            WorthUiPageHostRequest::new(page_name),
+        )?;
+        Ok(())
+    }
+
+    pub(crate) fn into_launch_parts(
+        self,
+    ) -> (
+        WorthUiApp,
+        WorthUiRuntimeHost,
+        WorthUiHeaderFramePlan,
+        WorthUiPageHostPlan,
+    ) {
+        (
+            self.app,
+            self.runtime,
+            self.header_frame_plan,
+            self.page_host_plan,
+        )
+    }
+
     pub fn prepare_reload(&self, request: ValidationReloadRequest) -> ValidationPreparedReload {
         self.runtime
-            .prepare_validation_reload(self.app.capabilities(), request)
+            .prepare_validation_reload(self.runtime.active_capability_snapshot(), request)
     }
 
     pub fn activate_reload(
@@ -64,51 +121,6 @@ impl ValidationRuntimeWorkbench {
         prepared: ValidationPreparedReload,
     ) -> Result<ValidationReloadEvidence, ValidationReloadStage> {
         prepared.activate(&mut self.runtime)
-    }
-
-    pub fn prepare_theme_capability_reload(
-        &self,
-        theme: &ValidationThemeSource,
-    ) -> WorthUiCapabilityPreparedReload {
-        self.runtime
-            .prepare_capability_reload(WorthUiCapabilityReloadRequest::from_theme_tokens(
-                theme_token_reload_package(theme),
-            ))
-    }
-
-    pub fn prepare_command_capability_reload(
-        &self,
-        commands: &ValidationCommandSource,
-    ) -> WorthUiCapabilityPreparedReload {
-        self.runtime
-            .prepare_capability_reload(WorthUiCapabilityReloadRequest::from_commands(
-                command_reload_package(commands),
-            ))
-    }
-
-    pub fn prepare_command_projection_capability_reload(
-        &self,
-        command_projections: &ValidationCommandProjectionSource,
-    ) -> WorthUiCapabilityPreparedReload {
-        self.runtime.prepare_capability_reload(
-            WorthUiCapabilityReloadRequest::from_command_projections(
-                command_projection_reload_package(command_projections),
-            ),
-        )
-    }
-
-    pub fn activate_capability_reload(
-        &mut self,
-        prepared: WorthUiCapabilityPreparedReload,
-    ) -> Result<WorthUiCapabilityReloadEvidence, WorthUiCapabilityReloadStage> {
-        prepared.activate(&mut self.runtime)
-    }
-
-    pub fn activate_theme_capability_reload(
-        &mut self,
-        prepared: WorthUiCapabilityPreparedReload,
-    ) -> Result<WorthUiCapabilityReloadEvidence, WorthUiCapabilityReloadStage> {
-        self.activate_capability_reload(prepared)
     }
 
     pub fn rebind_header_after_reload(
@@ -122,6 +134,62 @@ impl ValidationRuntimeWorkbench {
             evidence,
         )?;
         self.header_frame_plan = next_plan;
+        Ok(receipt)
+    }
+
+    pub fn select_dropdown_command(
+        &mut self,
+        projection_id: &CommandProjectionId,
+        command_id: &CommandId,
+    ) -> Result<
+        WorthUiDropdownSelectionInteractionReceipt,
+        ValidationDropdownSelectionApplicationDenial,
+    > {
+        let receipt = self
+            .runtime
+            .select_dropdown_command(projection_id, command_id)
+            .map_err(ValidationDropdownSelectionApplicationDenial::Interaction)?;
+        let admitted_change = self
+            .runtime
+            .admit_dropdown_selection_runtime_change(&receipt)
+            .map_err(ValidationDropdownSelectionApplicationDenial::RuntimeChange)?;
+        let header_receipt = self
+            .runtime_change_rebind_receipts(&admitted_change)
+            .map(|receipt: WorthUiRebindPhaseExecutionReceipt| receipt.header_rebind().clone())
+            .ok_or(WorthUiHeaderFrameRebindDenial::RuntimeEvidenceMismatch)
+            .map_err(ValidationDropdownSelectionApplicationDenial::HeaderRebind)?;
+        let _ = header_receipt;
+        Ok(receipt)
+    }
+
+    pub fn submit_component_interaction(
+        &mut self,
+        surface_id: &SurfaceId,
+        kind: WorthUiComponentInteractionKind,
+    ) -> Result<WorthUiComponentInteractionReceipt, ValidationComponentInteractionApplicationDenial>
+    {
+        let receipt = self
+            .runtime
+            .submit_component_interaction(surface_id, kind)
+            .map_err(ValidationComponentInteractionApplicationDenial::Interaction)?;
+        self.runtime
+            .admit_component_interaction_runtime_change(&receipt)
+            .map_err(ValidationComponentInteractionApplicationDenial::RuntimeChange)?;
+        Ok(receipt)
+    }
+
+    pub fn submit_surface_interaction(
+        &mut self,
+        request: WorthUiInteractionActivationRequest,
+    ) -> Result<WorthUiComponentInteractionReceipt, ValidationComponentInteractionApplicationDenial>
+    {
+        let receipt = self
+            .runtime
+            .submit_surface_interaction(request)
+            .map_err(ValidationComponentInteractionApplicationDenial::Interaction)?;
+        self.runtime
+            .admit_component_interaction_runtime_change(&receipt)
+            .map_err(ValidationComponentInteractionApplicationDenial::RuntimeChange)?;
         Ok(receipt)
     }
 
@@ -145,17 +213,113 @@ impl ValidationRuntimeWorkbench {
         input: ValidationReloadInput,
     ) -> ValidationRuntimeReloadTickOutcome {
         match input {
+            ValidationReloadInput::ObservedAuthoredBatch(batch) => {
+                self.apply_observed_authored_batch(batch)
+            }
             ValidationReloadInput::SourcePackage(source) => self.apply_source_reload(source),
             ValidationReloadInput::HeaderTheme(theme) => self.apply_theme_reload(theme),
             ValidationReloadInput::HeaderCommands(commands) => self.apply_command_reload(commands),
             ValidationReloadInput::HeaderCommandProjections(command_projections) => {
                 self.apply_command_projection_reload(command_projections)
             }
+            ValidationReloadInput::HeaderComponents(component) => {
+                self.apply_component_reload(component)
+            }
+            ValidationReloadInput::HeaderAppearance(appearance) => {
+                self.apply_appearance_reload(appearance)
+            }
+            ValidationReloadInput::HeaderDensity(density) => self.apply_density_reload(density),
+            ValidationReloadInput::HeaderAppearanceAndDensity {
+                appearance,
+                density,
+            } => self.apply_appearance_and_density_reload_input(appearance, density),
             ValidationReloadInput::SourcePackageAndHeaderTheme { source, theme } => {
                 let source_outcome = self.apply_source_reload(source);
                 let theme_outcome = self.apply_theme_reload(theme);
                 merge_source_reload_with_theme_reload(source_outcome, theme_outcome)
             }
+        }
+    }
+
+    fn apply_observed_authored_batch(
+        &mut self,
+        batch: ValidationObservedAuthoredBatch,
+    ) -> ValidationRuntimeReloadTickOutcome {
+        let (source, theme, command, command_projection, component, appearance, density) =
+            batch.into_parts();
+        let previous_slots = self.current_page_slot_structure();
+        let prepared = self.prepare_reload(ValidationReloadRequest::from_source_module(
+            source.module_path(),
+            source.source_text(),
+        ));
+        let authored_structural_receipt = prepared.changed_fact_mapping_receipt().cloned();
+        let source_evidence = if prepared.is_ready() {
+            self.activate_reload(prepared)
+                .expect("observed authored batch should activate source immediately")
+        } else {
+            prepared.evidence().clone()
+        };
+        let authored_structural = authored_structural_receipt.map(|receipt| {
+            ValidationAuthoredStructuralReloadEvidence::from_mapping_receipt(
+                &receipt,
+                previous_slots,
+                self.current_page_slot_structure(),
+            )
+        });
+        let capability_evidence = self.apply_authored_batch_capability_reload(
+            theme,
+            command,
+            command_projection,
+            component,
+            appearance,
+            density,
+        );
+        let admitted_change = self
+            .runtime
+            .admit_authored_runtime_change(&source_evidence, Some(&capability_evidence))
+            .expect("source and capability evidence should admit a common authored batch change");
+        let runtime_change =
+            ValidationRuntimeChangeEvidence::from_admitted_change(&admitted_change);
+        let compile_boundary = worth_ui::facade::WorthUiCompileBoundaryCertification::certify(
+            &WorthUiSemanticCompileBoundary::current(),
+            &WorthUiSemanticChangedSliceSet::lower_runtime_change(
+                &WorthUiSemanticSliceInventory::current(),
+                &admitted_change,
+            ),
+        );
+        let phase_execution = self.runtime_change_rebind_receipts(&admitted_change);
+        ValidationRuntimeReloadTickOutcome::AuthoredBatchReloaded {
+            source_evidence,
+            capability_evidence,
+            runtime_change,
+            compile_boundary,
+            phase_execution,
+            authored_structural,
+        }
+    }
+
+    fn apply_authored_batch_capability_reload(
+        &mut self,
+        theme: Option<crate::reload::ValidationThemeSource>,
+        command: Option<crate::reload::ValidationCommandSource>,
+        command_projection: Option<crate::reload::ValidationCommandProjectionSource>,
+        component: Option<crate::reload::ValidationComponentSource>,
+        appearance: Option<crate::reload::ValidationAppearanceSource>,
+        density: Option<crate::reload::ValidationDensitySource>,
+    ) -> worth_ui::facade::WorthUiCapabilityReloadEvidence {
+        let prepared = self.prepare_authored_batch_capability_reload(
+            theme.as_ref(),
+            command.as_ref(),
+            command_projection.as_ref(),
+            component.as_ref(),
+            appearance.as_ref(),
+            density.as_ref(),
+        );
+        if prepared.is_ready() {
+            self.activate_capability_reload(prepared)
+                .expect("observed authored batch should activate capability batch immediately")
+        } else {
+            prepared.evidence().clone()
         }
     }
 
@@ -167,14 +331,28 @@ impl ValidationRuntimeWorkbench {
             source.module_path(),
             source.source_text(),
         ));
+        let previous_slots = self.current_page_slot_structure();
+        let authored_structural = prepared
+            .changed_fact_mapping_receipt()
+            .map(|receipt| receipt.clone());
         if prepared.is_ready() {
             return match self.activate_reload(prepared) {
                 Ok(evidence) => {
-                    let header_receipt = self.rebind_header_after_reload(&evidence).ok();
-                    let _ = self.rebind_page_host_after_reload(&evidence);
+                    let admitted_change = self
+                        .runtime
+                        .admit_validation_runtime_change(&evidence)
+                        .expect("activated validation evidence should admit runtime change");
+                    let phase_execution = self.runtime_change_rebind_receipts(&admitted_change);
                     ValidationRuntimeReloadTickOutcome::SourceReloaded {
                         evidence,
-                        header_receipt,
+                        phase_execution,
+                        authored_structural: authored_structural.map(|receipt| {
+                            ValidationAuthoredStructuralReloadEvidence::from_mapping_receipt(
+                                &receipt,
+                                previous_slots,
+                                self.current_page_slot_structure(),
+                            )
+                        }),
                     }
                 }
                 Err(stage) => ValidationRuntimeReloadTickOutcome::SourceActivationDenied(stage),
@@ -182,164 +360,58 @@ impl ValidationRuntimeWorkbench {
         }
 
         let evidence = prepared.evidence().clone();
-        let header_receipt = self.rebind_header_after_reload(&evidence).ok();
-        let _ = self.rebind_page_host_after_reload(&evidence);
+        let admitted_change = self
+            .runtime
+            .admit_validation_runtime_change(&evidence)
+            .expect("non-activated validation evidence should still admit common runtime change");
+        let phase_execution = self.runtime_change_rebind_receipts(&admitted_change);
         ValidationRuntimeReloadTickOutcome::SourceReloaded {
             evidence,
-            header_receipt,
+            phase_execution,
+            authored_structural: authored_structural.map(|receipt| {
+                ValidationAuthoredStructuralReloadEvidence::from_mapping_receipt(
+                    &receipt,
+                    previous_slots,
+                    self.current_page_slot_structure(),
+                )
+            }),
         }
     }
 
-    fn apply_theme_reload(
+    fn apply_appearance_and_density_reload_input(
         &mut self,
-        theme: ValidationThemeSource,
+        appearance: crate::reload::ValidationAppearanceSource,
+        density: crate::reload::ValidationDensitySource,
     ) -> ValidationRuntimeReloadTickOutcome {
-        let prepared = self.prepare_theme_capability_reload(&theme);
-        if prepared.is_ready() {
-            return match self.activate_theme_capability_reload(prepared) {
-                Ok(evidence) => {
-                    let header_receipt = self.rebind_header_after_capability_reload(&evidence).ok();
-                    ValidationRuntimeReloadTickOutcome::ThemeReloaded {
-                        evidence,
-                        header_receipt,
-                    }
+        match self.apply_appearance_and_density_capability_reload(&appearance, &density) {
+            Ok((evidence, phase_execution)) => {
+                ValidationRuntimeReloadTickOutcome::AppearanceAndDensityReloaded {
+                    evidence,
+                    phase_execution,
                 }
-                Err(stage) => ValidationRuntimeReloadTickOutcome::ThemeActivationDenied(stage),
-            };
-        }
-
-        let evidence = prepared.evidence().clone();
-        let header_receipt = self.rebind_header_after_capability_reload(&evidence).ok();
-        ValidationRuntimeReloadTickOutcome::ThemeReloaded {
-            evidence,
-            header_receipt,
+            }
+            Err(stage) => ValidationRuntimeReloadTickOutcome::AppearanceActivationDenied(stage),
         }
     }
 
-    fn apply_command_reload(
-        &mut self,
-        commands: ValidationCommandSource,
-    ) -> ValidationRuntimeReloadTickOutcome {
-        let prepared = self.prepare_command_capability_reload(&commands);
-        if prepared.is_ready() {
-            return match self.activate_capability_reload(prepared) {
-                Ok(evidence) => {
-                    let header_receipt = self.rebind_header_after_capability_reload(&evidence).ok();
-                    ValidationRuntimeReloadTickOutcome::CommandReloaded {
-                        evidence,
-                        header_receipt,
-                    }
-                }
-                Err(stage) => ValidationRuntimeReloadTickOutcome::CommandActivationDenied(stage),
-            };
-        }
-
-        let evidence = prepared.evidence().clone();
-        let header_receipt = self.rebind_header_after_capability_reload(&evidence).ok();
-        ValidationRuntimeReloadTickOutcome::CommandReloaded {
-            evidence,
-            header_receipt,
-        }
-    }
-
-    fn apply_command_projection_reload(
-        &mut self,
-        command_projections: ValidationCommandProjectionSource,
-    ) -> ValidationRuntimeReloadTickOutcome {
-        let prepared = self.prepare_command_projection_capability_reload(&command_projections);
-        if prepared.is_ready() {
-            return match self.activate_capability_reload(prepared) {
-                Ok(evidence) => {
-                    let header_receipt = self.rebind_header_after_capability_reload(&evidence).ok();
-                    ValidationRuntimeReloadTickOutcome::CommandProjectionReloaded {
-                        evidence,
-                        header_receipt,
-                    }
-                }
-                Err(stage) => {
-                    ValidationRuntimeReloadTickOutcome::CommandProjectionActivationDenied(stage)
-                }
-            };
-        }
-
-        let evidence = prepared.evidence().clone();
-        let header_receipt = self.rebind_header_after_capability_reload(&evidence).ok();
-        ValidationRuntimeReloadTickOutcome::CommandProjectionReloaded {
-            evidence,
-            header_receipt,
-        }
-    }
-
-    fn rebind_header_after_capability_reload(
-        &mut self,
-        evidence: &WorthUiCapabilityReloadEvidence,
-    ) -> Result<WorthUiHeaderFrameRebindReceipt, WorthUiHeaderFrameRebindDenial> {
-        let (next_plan, receipt) = self.runtime.rebind_header_frame_after_capability_reload(
-            &self.header_frame_plan,
-            validation_header_frame_rebind_request(),
-            evidence,
-        )?;
-        self.header_frame_plan = next_plan;
-        Ok(receipt)
-    }
-
-    fn rebind_page_host_after_reload(
-        &mut self,
-        evidence: &ValidationReloadEvidence,
-    ) -> Result<WorthUiPageHostRebindReceipt, WorthUiPageHostRebindDenial> {
-        let (next_plan, receipt) = self.runtime.rebind_page_host_after_reload(
-            &self.page_host_plan,
-            validation_page_host_request(),
-            evidence,
-        )?;
-        self.page_host_plan = next_plan;
-        Ok(receipt)
-    }
-}
-
-fn theme_token_reload_package(theme: &ValidationThemeSource) -> WorthUiThemeTokenReloadPackage {
-    WorthUiThemeTokenReloadPackage::from_source(
-        "apps/worth-ui-validation-app/theme/header.theme",
-        theme.source_text(),
-    )
-}
-
-fn command_reload_package(commands: &ValidationCommandSource) -> WorthUiCommandReloadPackage {
-    WorthUiCommandReloadPackage::from_source(
-        "apps/worth-ui-validation-app/theme/header.commands",
-        commands.source_text(),
-    )
-}
-
-fn command_projection_reload_package(
-    command_projections: &ValidationCommandProjectionSource,
-) -> WorthUiCommandProjectionReloadPackage {
-    WorthUiCommandProjectionReloadPackage::from_source(
-        "apps/worth-ui-validation-app/theme/header.projections",
-        command_projections.source_text(),
-    )
-}
-
-fn merge_source_reload_with_theme_reload(
-    source_outcome: ValidationRuntimeReloadTickOutcome,
-    theme_outcome: ValidationRuntimeReloadTickOutcome,
-) -> ValidationRuntimeReloadTickOutcome {
-    match (source_outcome, theme_outcome) {
-        (
-            ValidationRuntimeReloadTickOutcome::SourceReloaded {
-                evidence,
-                header_receipt,
-            },
-            ValidationRuntimeReloadTickOutcome::ThemeReloaded {
-                evidence: theme_evidence,
-                header_receipt: theme_header_receipt,
-            },
-        ) => ValidationRuntimeReloadTickOutcome::SourceReloadedAndThemeReloaded {
-            evidence,
-            header_receipt,
-            theme_evidence,
-            theme_header_receipt,
-        },
-        (other, _) => other,
+    fn current_page_slot_structure(&self) -> Vec<ValidationAuthoredStructuralSlotEvidence> {
+        let runtime = self.runtime();
+        self.page_host_plan()
+            .execute_frame()
+            .slots()
+            .iter()
+            .filter_map(|slot| {
+                let surface_id = worth_ui::facade::SurfaceId::new(slot.surface_id()).ok()?;
+                let surface = runtime.inspect_active_surface_descriptor(&surface_id)?;
+                let component_id = runtime
+                    .inspect_active_authored_surface_component_id(&surface_id)
+                    .unwrap_or_else(|| surface.component_id().as_str());
+                Some(ValidationAuthoredStructuralSlotEvidence::new(
+                    slot.slot_name().to_owned(),
+                    slot.surface_id().to_owned(),
+                    component_id.to_owned(),
+                ))
+            })
+            .collect()
     }
 }

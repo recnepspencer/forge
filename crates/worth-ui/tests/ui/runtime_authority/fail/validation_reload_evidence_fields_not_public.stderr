@@ -1,51 +1,53 @@
-error[E0451]: fields `runtime_instance_witness`, `status`, `denial_detail`, `active_artifact_digest_before`, `active_artifact_digest_after`, `active_plan_digest_before`, `active_plan_digest_after`, `source_revision_digest`, `ordering_receipt_digest`, `candidate_artifact_digest`, `candidate_plan_digest`, `raw_events_observed`, `events_coalesced`, `provider_reads`, `source_revisions_emitted`, `candidate_submissions_emitted`, `frame_path_work`, `active_runtime_mutations_before_activation`, `query_bindings_compared`, `query_rebind_entries`, `durable_state_reconciliation_receipts`, `query_binding_planning_ran` and `durable_state_planning_ran` of struct `WorthUiValidationReloadEvidence` are private
-  --> tests/ui/runtime_authority/fail/validation_reload_evidence_fields_not_public.rs:5:9
+error: cannot construct `WorthUiValidationReloadEvidence` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/validation_reload_evidence_fields_not_public.rs:4:21
    |
  4 |     let _evidence = WorthUiValidationReloadEvidence {
-   |                     ------------------------------- in this type
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  5 |         runtime_instance_witness: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------- private field
  6 |         status: WorthUiValidationReloadStatus::ReadyForFrameBoundary,
-   |         ^^^^^^ private field
+   |         ------------------------------------------------------------ private field
  7 |         denial_detail: None,
-   |         ^^^^^^^^^^^^^ private field
+   |         ------------------- private field
  8 |         active_artifact_digest_before: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------- private field
  9 |         active_artifact_digest_after: 2,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------- private field
 10 |         active_plan_digest_before: 3,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ---------------------------- private field
 11 |         active_plan_digest_after: 4,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------- private field
 12 |         source_revision_digest: Some(5),
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------- private field
 13 |         ordering_receipt_digest: Some(6),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------- private field
 14 |         candidate_artifact_digest: Some(7),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ---------------------------------- private field
 15 |         candidate_plan_digest: Some(8),
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------ private field
 16 |         raw_events_observed: 1,
-   |         ^^^^^^^^^^^^^^^^^^^ private field
+   |         ---------------------- private field
 17 |         events_coalesced: 1,
-   |         ^^^^^^^^^^^^^^^^ private field
+   |         ------------------- private field
 18 |         provider_reads: 1,
-   |         ^^^^^^^^^^^^^^ private field
+   |         ----------------- private field
 19 |         source_revisions_emitted: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------- private field
 20 |         candidate_submissions_emitted: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------- private field
 21 |         frame_path_work: 0,
-   |         ^^^^^^^^^^^^^^^ private field
+   |         ------------------ private field
 22 |         active_runtime_mutations_before_activation: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------------------------- private field
 23 |         query_bindings_compared: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------- private field
 24 |         query_rebind_entries: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------- private field
 25 |         durable_state_reconciliation_receipts: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ---------------------------------------- private field
 26 |         query_binding_planning_ran: true,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------- private field
 27 |         durable_state_planning_ran: true,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------- private field
+   |
+   = note: ...and other private fields that were not provided

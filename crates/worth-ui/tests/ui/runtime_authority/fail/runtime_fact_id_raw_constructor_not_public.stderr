@@ -1,0 +1,10 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/runtime_authority/fail/runtime_fact_id_raw_constructor_not_public.rs:5:31
+  |
+5 |         WorthUiRuntimeFactId::new(WorthUiRuntimeFactFamily::ThemeToken, "theme.colors.panel");
+  |                               ^^^ private associated function
+  |
+ ::: src/runtime/runtime_fact/fact_id.rs
+  |
+  |     fn new(family: WorthUiRuntimeFactFamily, identity: impl Into<String>) -> Self {
+  |     ----------------------------------------------------------------------------- private associated function defined here

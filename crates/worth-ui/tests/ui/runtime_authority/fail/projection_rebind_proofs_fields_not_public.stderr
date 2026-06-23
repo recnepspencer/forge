@@ -1,0 +1,54 @@
+error: cannot construct `WorthUiPreservedProjectionRebindPlan<_>` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/projection_rebind_proofs_fields_not_public.rs:10:9
+   |
+10 |         WorthUiPreservedProjectionRebindPlan {
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11 |             evidence: impossible(),
+   |             ---------------------- private field
+12 |             admitted_projection: impossible(),
+   |             --------------------------------- private field
+13 |             status: WorthUiProjectionRebindStatus::EquivalentAfterActivation,
+   |             ---------------------------------------------------------------- private field
+   |
+   = note: ...and other private field `component_compatibility` that was not provided
+
+error: cannot construct `WorthUiActivatedProjectionRebindPlan<_>` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/projection_rebind_proofs_fields_not_public.rs:17:9
+   |
+17 |         WorthUiActivatedProjectionRebindPlan {
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+18 |             evidence: impossible(),
+   |             ---------------------- private field
+19 |             admitted_projection: impossible(),
+   |             --------------------------------- private field
+   |
+   = note: ...and other private field `component_compatibility` that was not provided
+
+error: cannot construct `WorthUiProjectionRebindRowReceipt` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/projection_rebind_proofs_fields_not_public.rs:22:16
+   |
+22 |     let _row = WorthUiProjectionRebindRowReceipt {
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+23 |         projection_identity: impossible(),
+   |         --------------------------------- private field
+24 |         projection_family: impossible(),
+   |         ------------------------------- private field
+25 |         status: WorthUiProjectionRebindStatus::EquivalentAfterActivation,
+   |         ---------------------------------------------------------------- private field
+26 |         previous_frame_digest: 1,
+   |         ------------------------ private field
+27 |         rebound_frame_digest: 1,
+   |         ----------------------- private field
+   |
+   = note: ...and other private fields `rebuild_attempted` and `component_reload_receipt` that were not provided
+help: you might have meant to use the `new_with_component_compatibility` associated function
+   |
+22 -     let _row = WorthUiProjectionRebindRowReceipt {
+23 -         projection_identity: impossible(),
+24 -         projection_family: impossible(),
+25 -         status: WorthUiProjectionRebindStatus::EquivalentAfterActivation,
+26 -         previous_frame_digest: 1,
+27 -         rebound_frame_digest: 1,
+28 -     };
+22 +     let _row = WorthUiProjectionRebindRowReceipt::new_with_component_compatibility(_, _, _, _, _, _, _);
+   |

@@ -1,0 +1,21 @@
+error[E0451]: fields `primary_surface_id`, `emitted_surface_ids`, `cursor`, `containment`, `outcome`, `candidates`, `counters` and `dispatch_digest` of struct `WorthUiPrimitiveEventDispatchReceipt` are private
+  --> tests/ui/runtime_authority/fail/event_dispatch_receipt_fields_not_public.rs:9:9
+   |
+ 8 |     let _forged = WorthUiPrimitiveEventDispatchReceipt {
+   |                   ------------------------------------ in this type
+ 9 |         primary_surface_id: Some("worth.surface.preview.primitive.inner".to_owned()),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+10 |         emitted_surface_ids: vec!["worth.surface.preview.primitive.inner".to_owned()],
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+11 |         cursor: WorthUiPrimitiveResolvedCursorPosture::Pointer,
+   |         ^^^^^^ private field
+12 |         containment: Some(WorthUiPrimitiveEventContainment::Contain),
+   |         ^^^^^^^^^^^ private field
+13 |         outcome: WorthUiPrimitiveEventDispatchOutcome::Emitted,
+   |         ^^^^^^^ private field
+14 |         candidates: Vec::new(),
+   |         ^^^^^^^^^^ private field
+15 |         counters: counters(),
+   |         ^^^^^^^^ private field
+16 |         dispatch_digest: 1,
+   |         ^^^^^^^^^^^^^^^ private field

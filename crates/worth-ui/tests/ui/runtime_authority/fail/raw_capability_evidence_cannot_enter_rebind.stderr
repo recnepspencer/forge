@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/runtime_authority/fail/raw_capability_evidence_cannot_enter_rebind.rs:12:38
+   |
+12 |     requires_admitted_runtime_change(&capability_evidence);
+   |     -------------------------------- ^^^^^^^^^^^^^^^^^^^^ expected `&WorthUiAdmittedRuntimeChangeEvidence`, found `&WorthUiCapabilityReloadEvidence`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected reference `&WorthUiAdmittedRuntimeChangeEvidence`
+              found reference `&WorthUiCapabilityReloadEvidence`
+note: function defined here
+  --> tests/ui/runtime_authority/fail/raw_capability_evidence_cannot_enter_rebind.rs:3:4
+   |
+ 3 | fn requires_admitted_runtime_change(_evidence: &WorthUiAdmittedRuntimeChangeEvidence) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ------------------------------------------------

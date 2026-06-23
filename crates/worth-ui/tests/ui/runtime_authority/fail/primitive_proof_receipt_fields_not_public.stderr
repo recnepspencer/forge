@@ -1,0 +1,34 @@
+error: cannot construct `WorthUiPrimitiveProofReceipt` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/primitive_proof_receipt_fields_not_public.rs:8:19
+   |
+ 8 |     let _forged = WorthUiPrimitiveProofReceipt {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 9 |         surface_id: "worth.surface.preview.primitive.proof".to_owned(),
+   |         -------------------------------------------------------------- private field
+10 |         component_id: "worth.component.primitive_proof".to_owned(),
+   |         ---------------------------------------------------------- private field
+11 |         container: container(),
+   |         ---------------------- private field
+12 |         content: content(),
+   |         ------------------ private field
+13 |         appearance: appearance(),
+   |         ------------------------ private field
+14 |         dependency_contract: dependency_contract(),
+   |         ------------------------------------------ private field
+15 |         receipt_digest: 1,
+   |         ----------------- private field
+   |
+   = note: ...and other private fields `measurement`, `appearance_state`, `interaction`, `event_geometry`, `motion` and `flow_layout` that were not provided
+help: you might have meant to use the `new` associated function
+   |
+ 8 -     let _forged = WorthUiPrimitiveProofReceipt {
+ 9 -         surface_id: "worth.surface.preview.primitive.proof".to_owned(),
+10 -         component_id: "worth.component.primitive_proof".to_owned(),
+11 -         container: container(),
+12 -         content: content(),
+13 -         appearance: appearance(),
+14 -         dependency_contract: dependency_contract(),
+15 -         receipt_digest: 1,
+16 -     };
+ 8 +     let _forged = WorthUiPrimitiveProofReceipt::new(_, _, _, _, _, _, _, _, _, _, _, _, _);
+   |

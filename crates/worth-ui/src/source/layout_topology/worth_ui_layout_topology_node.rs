@@ -38,6 +38,8 @@ pub struct WorthUiLayoutTopologyNode {
     axis: WorthUiLayoutAxis,
     dimension: Option<WorthUiLayoutDimension>,
     sizing: Option<WorthUiLayoutSizingSpec>,
+    gap: Option<WorthUiLayoutSizingValue>,
+    padding: Option<WorthUiLayoutSizingValue>,
     scroll_owner: bool,
     resizable: bool,
     restorable: bool,
@@ -60,6 +62,8 @@ impl WorthUiLayoutTopologyNode {
         axis: WorthUiLayoutAxis,
         dimension: Option<WorthUiLayoutDimension>,
         sizing: Option<WorthUiLayoutSizingSpec>,
+        gap: Option<WorthUiLayoutSizingValue>,
+        padding: Option<WorthUiLayoutSizingValue>,
         scroll_owner: bool,
         resizable: bool,
         restorable: bool,
@@ -69,6 +73,8 @@ impl WorthUiLayoutTopologyNode {
             axis,
             dimension,
             sizing,
+            gap,
+            padding,
             scroll_owner,
             resizable,
             restorable,
@@ -86,6 +92,14 @@ impl WorthUiLayoutTopologyNode {
 
     pub fn sizing(&self) -> Option<&WorthUiLayoutSizingSpec> {
         self.sizing.as_ref()
+    }
+
+    pub fn gap(&self) -> Option<&WorthUiLayoutSizingValue> {
+        self.gap.as_ref()
+    }
+
+    pub fn padding(&self) -> Option<&WorthUiLayoutSizingValue> {
+        self.padding.as_ref()
     }
 
     pub fn scroll_owner(&self) -> bool {

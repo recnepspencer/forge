@@ -39,10 +39,10 @@ fn products_layout_topology_preserves_nested_sizing_and_scroll_structure() {
         appearance ShopifyAdminTheme {}
 
         layout ProductsLayout {
-            column {
+            column gap(18) padding(20) {
                 row height fit { slot toolbar }
 
-                row height fill {
+                row height fill gap(16) {
                     column width clamp(min: rail.md, preferred: share(2), max: rail.xl) scroll_owner {
                         slot filters
                     }
@@ -77,12 +77,18 @@ fn products_layout_topology_preserves_nested_sizing_and_scroll_structure() {
 
     assert_eq!(root.axis(), &WorthUiLayoutAxis::Column);
     assert_eq!(root.children().len(), 3);
+    assert_eq!(root.gap(), Some(&WorthUiLayoutSizingValue::Number(18)));
+    assert_eq!(root.padding(), Some(&WorthUiLayoutSizingValue::Number(20)));
 
     let center_row = root.children()[1]
         .as_region()
         .expect("middle child should be a layout region");
     assert_eq!(center_row.sizing(), Some(&WorthUiLayoutSizingSpec::Fill));
     assert_eq!(center_row.children().len(), 3);
+    assert_eq!(
+        center_row.gap(),
+        Some(&WorthUiLayoutSizingValue::Number(16))
+    );
 
     let filters = center_row.children()[0]
         .as_region()

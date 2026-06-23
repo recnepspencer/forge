@@ -1,0 +1,15 @@
+error[E0451]: fields `identity`, `candidate_posture`, `reason`, `drift_families` and `required_query_surfaces` of struct `WorthUiQueryBindingRebind` are private
+  --> tests/ui/runtime_authority/fail/query_binding_rebind_fields_not_public.rs:25:9
+   |
+24 |     let _forged_rebind = WorthUiQueryBindingRebind {
+   |                          ------------------------- in this type
+25 |         identity: forged_query_binding_identity(),
+   |         ^^^^^^^^ private field
+26 |         candidate_posture: forged_query_binding_posture(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+27 |         reason: WorthUiQueryBindingRebindReason::FreshCandidateBinding,
+   |         ^^^^^^ private field
+28 |         drift_families: forged_query_binding_drift_families(),
+   |         ^^^^^^^^^^^^^^ private field
+29 |         required_query_surfaces: forged_required_query_surfaces(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field

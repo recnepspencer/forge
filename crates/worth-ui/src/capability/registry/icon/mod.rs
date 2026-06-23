@@ -6,8 +6,9 @@ mod icon_registry;
 mod registration;
 
 pub use descriptor::{
-    IconAccessibilityPosture, IconColorSupport, IconDescriptor, IconFamily, IconSizeSupport,
-    IconSourceDescriptor, IconSourceKind, IconThemePosture, RawIconAssetReference,
+    IconAccessibilityPosture, IconColorSupport, IconDescriptor, IconFamily,
+    IconNativeVectorSupport, IconSizeSupport, IconSourceDescriptor, IconSourceKind,
+    IconThemePosture, RawIconAssetReference,
 };
 pub use frozen_icon_capabilities::FrozenIconCapabilities;
 pub use frozen_icon_entry::FrozenIconEntry;

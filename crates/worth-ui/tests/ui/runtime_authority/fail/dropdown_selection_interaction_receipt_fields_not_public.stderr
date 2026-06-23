@@ -1,0 +1,16 @@
+error[E0451]: fields `projection_id`, `command_id`, `previous_selection_state`, `next_selection_state` and `status` of struct `WorthUiDropdownSelectionInteractionReceipt` are private
+  --> tests/ui/runtime_authority/fail/dropdown_selection_interaction_receipt_fields_not_public.rs:8:9
+   |
+ 7 |     let _forged = WorthUiDropdownSelectionInteractionReceipt {
+   |                   ------------------------------------------ in this type
+ 8 |         projection_id: "validation.command_projection.header".to_owned(),
+   |         ^^^^^^^^^^^^^ private field
+ 9 |         command_id: "validation.command.header.refresh".to_owned(),
+   |         ^^^^^^^^^^ private field
+10 |         previous_selection_state: WorthUiDropdownSelectionState::None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         next_selection_state: WorthUiDropdownSelectionState::Single(
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+...
+14 |         status: WorthUiDropdownSelectionInteractionStatus::SelectedSingle,
+   |         ^^^^^^ private field

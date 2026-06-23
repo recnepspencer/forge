@@ -1,8 +1,10 @@
 use crate::capability::RegistryFamily;
 
+pub(crate) const APPEARANCE_TOKEN_FAMILY_NAME: &str = RegistryFamily::AppearanceToken.name();
 pub(crate) const COMMAND_FAMILY_NAME: &str = RegistryFamily::Command.name();
 pub(crate) const COMMAND_PROJECTION_FAMILY_NAME: &str = RegistryFamily::CommandProjection.name();
 pub(crate) const COMPONENT_FAMILY_NAME: &str = RegistryFamily::Component.name();
+pub(crate) const DENSITY_TOKEN_FAMILY_NAME: &str = RegistryFamily::DensityToken.name();
 pub(crate) const ICON_FAMILY_NAME: &str = RegistryFamily::Icon.name();
 pub(crate) const MOSAIC_PLACEMENT_POLICY_FAMILY_NAME: &str =
     RegistryFamily::MosaicPlacementPolicy.name();

@@ -1,6 +1,8 @@
+mod appearance;
 mod command;
 mod command_projection;
 mod component;
+mod density;
 mod family_names;
 mod icon;
 mod mosaic_placement;
@@ -11,11 +13,19 @@ mod native_capability;
 mod plugin_slot;
 mod runtime_outcome_projection;
 mod settings;
+mod style_value;
 mod surface;
 mod task_presentation;
 mod theme_token;
 mod view_binding;
 
+pub use appearance::{
+    FrozenAppearanceCapabilities, WorthUiAppearanceFamily, WorthUiAppearanceTokenDescriptor,
+    WorthUiAppearanceTokenSource, WorthUiAppearanceValue,
+};
+pub(crate) use appearance::{
+    WorthUiAppearanceAcceptedRegistrationProof, WorthUiAppearanceRegistry,
+};
 pub(crate) use command::CommandAcceptedRegistrationProof;
 pub(crate) use command::CommandRegistry;
 pub use command::{
@@ -39,8 +49,14 @@ pub use component::{
     ComponentExecutionLane, ComponentFocusSupport, ComponentPropSchema, ComponentStateOwnership,
     FrozenComponentCapabilities,
 };
+pub use density::{
+    FrozenDensityCapabilities, WorthUiDensityFamily, WorthUiDensityPostureValue,
+    WorthUiDensityTokenDescriptor, WorthUiDensityValue,
+};
+pub(crate) use density::{WorthUiDensityAcceptedRegistrationProof, WorthUiDensityRegistry};
 pub(crate) use family_names::{
-    COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME,
+    APPEARANCE_TOKEN_FAMILY_NAME, COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME,
+    COMPONENT_FAMILY_NAME, DENSITY_TOKEN_FAMILY_NAME, ICON_FAMILY_NAME,
     MOSAIC_PLACEMENT_POLICY_FAMILY_NAME, MOSAIC_REGION_KIND_FAMILY_NAME,
     MOSAIC_SIZING_CONTRACT_FAMILY_NAME, MOSAIC_STATE_SLOT_FAMILY_NAME,
     NATIVE_CAPABILITY_FAMILY_NAME, PLUGIN_SLOT_FAMILY_NAME, RUNTIME_OUTCOME_PROJECTION_FAMILY_NAME,
@@ -49,8 +65,8 @@ pub(crate) use family_names::{
 };
 pub use icon::{
     FrozenIconCapabilities, FrozenIconEntry, IconAccessibilityPosture, IconColorSupport,
-    IconDescriptor, IconFamily, IconKey, IconSizeSupport, IconSourceDescriptor, IconSourceKind,
-    IconThemePosture, RawIconAssetReference,
+    IconDescriptor, IconFamily, IconKey, IconNativeVectorSupport, IconSizeSupport,
+    IconSourceDescriptor, IconSourceKind, IconThemePosture, RawIconAssetReference,
 };
 pub(crate) use icon::{IconAcceptedRegistrationProof, IconRegistry};
 pub use mosaic_placement::{
@@ -113,6 +129,11 @@ pub use settings::{
     SettingValueSchema,
 };
 pub(crate) use settings::{SettingAcceptedRegistrationProof, SettingsRegistry};
+pub use style_value::{
+    WorthUiBorderWidthValue, WorthUiCornerRadiusValue, WorthUiFontSizeValue, WorthUiLengthValue,
+    WorthUiPaddingValue, WorthUiShadowValue, WorthUiSpacingValue, WorthUiStyleValueError,
+    WorthUiStyleValueErrorReason,
+};
 pub use surface::{
     FrozenSurfaceCapabilities, SurfaceDescriptor, SurfaceKind, SurfacePlacementClass,
     SurfaceStateClass,

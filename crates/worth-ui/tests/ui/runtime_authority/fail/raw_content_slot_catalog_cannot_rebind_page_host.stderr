@@ -1,0 +1,23 @@
+warning: unreachable statement
+ --> tests/ui/runtime_authority/fail/raw_content_slot_catalog_cannot_rebind_page_host.rs:7:5
+  |
+6 |     let runtime: WorthUiRuntimeHost = todo!();
+  |                                       ------- any code following this expression is unreachable
+7 |     let current_plan: WorthUiPageHostPlan = todo!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_authority/fail/raw_content_slot_catalog_cannot_rebind_page_host.rs:11:66
+   |
+11 |     let _ = runtime.rebind_page_host_after_reload(&current_plan, raw_slots, &evidence);
+   |                     -----------------------------                ^^^^^^^^^ expected `WorthUiPageHostRequest`, found `WorthUiContentSlotCatalog`
+   |                     |
+   |                     arguments to this method are incorrect
+   |
+note: method defined here
+  --> src/runtime/page_surface/page_host_rebind.rs
+   |
+   |     pub fn rebind_page_host_after_reload(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,5 +1,9 @@
 use crate::capability::{CapabilitySnapshot, ThemeTokenId, ThemeTokenValue};
-use crate::runtime::{WorthUiProjectionDependencySet, WorthUiRuntimeFactId};
+use crate::runtime::{
+    WorthUiProjectionDependencyDeclaration, WorthUiProjectionDependencySet,
+    WorthUiProjectionEquivalenceBasisKind, WorthUiProjectionFamily, WorthUiProjectionIdentity,
+    WorthUiProjectionPlanContract, WorthUiRuntimeFactId,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiHeaderThemeTokenRequest {
@@ -90,6 +94,33 @@ impl WorthUiHeaderThemePlan {
     pub fn dependencies(&self) -> &WorthUiProjectionDependencySet {
         &self.dependencies
     }
+}
+
+impl WorthUiProjectionPlanContract for WorthUiHeaderThemePlan {
+    fn projection_identity(&self) -> WorthUiProjectionIdentity {
+        WorthUiProjectionIdentity::runtime("worth-ui.header.theme")
+    }
+
+    fn projection_family(&self) -> WorthUiProjectionFamily {
+        WorthUiProjectionFamily::HeaderTheme
+    }
+
+    fn projection_dependency_declaration(&self) -> WorthUiProjectionDependencyDeclaration {
+        WorthUiProjectionDependencyDeclaration::from_set(self.dependencies.clone())
+    }
+
+    fn projection_equivalence_digest(&self) -> u64 {
+        self.theme_digest
+    }
+
+    fn projection_equivalence_basis_kind(&self) -> WorthUiProjectionEquivalenceBasisKind {
+        WorthUiProjectionEquivalenceBasisKind::ThemeDigest
+    }
+}
+
+impl crate::runtime::projection_contract::plan_contract::private::Sealed
+    for WorthUiHeaderThemePlan
+{
 }
 
 impl WorthUiHeaderThemeTokenRequest {

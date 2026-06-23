@@ -1,10 +1,11 @@
 use worth_ui::facade::{
-    WorthUiCapabilityReloadEvidence, WorthUiCapabilityReloadStage, WorthUiHeaderFrameRebindReceipt,
+    WorthUiCapabilityReloadEvidence, WorthUiCapabilityReloadStage,
+    WorthUiCompileBoundaryCertification, WorthUiRebindPhaseExecutionReceipt,
 };
 
 use super::{
-    ValidationReloadEvidence, ValidationReloadInput, ValidationReloadInputDenial,
-    ValidationReloadStage,
+    ValidationAuthoredStructuralReloadEvidence, ValidationReloadEvidence, ValidationReloadInput,
+    ValidationReloadInputDenial, ValidationReloadStage, ValidationRuntimeChangeEvidence,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -25,34 +26,64 @@ pub enum ValidationRuntimeReloadTickOutcome {
     Unchanged(ValidationReloadObservation),
     SourceReloaded {
         evidence: ValidationReloadEvidence,
-        header_receipt: Option<WorthUiHeaderFrameRebindReceipt>,
+        phase_execution: Option<WorthUiRebindPhaseExecutionReceipt>,
+        authored_structural: Option<ValidationAuthoredStructuralReloadEvidence>,
     },
     SourceActivationDenied(ValidationReloadStage),
     ThemeReloaded {
         evidence: WorthUiCapabilityReloadEvidence,
-        header_receipt: Option<WorthUiHeaderFrameRebindReceipt>,
+        phase_execution: Option<WorthUiRebindPhaseExecutionReceipt>,
+    },
+    ComponentReloaded {
+        evidence: WorthUiCapabilityReloadEvidence,
+        phase_execution: Option<WorthUiRebindPhaseExecutionReceipt>,
     },
     CommandReloaded {
         evidence: WorthUiCapabilityReloadEvidence,
-        header_receipt: Option<WorthUiHeaderFrameRebindReceipt>,
+        phase_execution: Option<WorthUiRebindPhaseExecutionReceipt>,
     },
     CommandProjectionReloaded {
         evidence: WorthUiCapabilityReloadEvidence,
-        header_receipt: Option<WorthUiHeaderFrameRebindReceipt>,
+        phase_execution: Option<WorthUiRebindPhaseExecutionReceipt>,
+    },
+    AppearanceReloaded {
+        evidence: WorthUiCapabilityReloadEvidence,
+        phase_execution: Option<WorthUiRebindPhaseExecutionReceipt>,
+    },
+    DensityReloaded {
+        evidence: WorthUiCapabilityReloadEvidence,
+        phase_execution: Option<WorthUiRebindPhaseExecutionReceipt>,
+    },
+    AppearanceAndDensityReloaded {
+        evidence: WorthUiCapabilityReloadEvidence,
+        phase_execution: Option<WorthUiRebindPhaseExecutionReceipt>,
     },
     ThemeActivationDenied(WorthUiCapabilityReloadStage),
+    ComponentActivationDenied(WorthUiCapabilityReloadStage),
     CommandActivationDenied(WorthUiCapabilityReloadStage),
     CommandProjectionActivationDenied(WorthUiCapabilityReloadStage),
+    AppearanceActivationDenied(WorthUiCapabilityReloadStage),
+    DensityActivationDenied(WorthUiCapabilityReloadStage),
     SourceReloadedAndThemeDenied {
         evidence: ValidationReloadEvidence,
-        header_receipt: Option<WorthUiHeaderFrameRebindReceipt>,
+        phase_execution: Option<WorthUiRebindPhaseExecutionReceipt>,
+        authored_structural: Option<ValidationAuthoredStructuralReloadEvidence>,
         theme_denial: ValidationThemeReloadDenial,
     },
     SourceReloadedAndThemeReloaded {
         evidence: ValidationReloadEvidence,
-        header_receipt: Option<WorthUiHeaderFrameRebindReceipt>,
+        phase_execution: Option<WorthUiRebindPhaseExecutionReceipt>,
+        authored_structural: Option<ValidationAuthoredStructuralReloadEvidence>,
         theme_evidence: WorthUiCapabilityReloadEvidence,
-        theme_header_receipt: Option<WorthUiHeaderFrameRebindReceipt>,
+        theme_phase_execution: Option<WorthUiRebindPhaseExecutionReceipt>,
+    },
+    AuthoredBatchReloaded {
+        source_evidence: ValidationReloadEvidence,
+        capability_evidence: WorthUiCapabilityReloadEvidence,
+        runtime_change: ValidationRuntimeChangeEvidence,
+        compile_boundary: WorthUiCompileBoundaryCertification,
+        phase_execution: Option<WorthUiRebindPhaseExecutionReceipt>,
+        authored_structural: Option<ValidationAuthoredStructuralReloadEvidence>,
     },
     InputUnreadable(ValidationReloadInputDenial),
 }

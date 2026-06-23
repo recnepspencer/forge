@@ -1,0 +1,26 @@
+warning: unreachable statement
+ --> tests/ui/runtime_authority/fail/raw_component_mount_map_cannot_rebind_page_host.rs:9:5
+  |
+8 |     let runtime: WorthUiRuntimeHost = todo!();
+  |                                       ------- any code following this expression is unreachable
+9 |     let current_plan: WorthUiPageHostPlan = todo!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_authority/fail/raw_component_mount_map_cannot_rebind_page_host.rs:15:9
+   |
+13 |     let _ = runtime.rebind_page_host_after_capability_reload(
+   |                     ---------------------------------------- arguments to this method are incorrect
+14 |         &current_plan,
+15 |         raw_component_mounts,
+   |         ^^^^^^^^^^^^^^^^^^^^ expected `WorthUiPageHostRequest`, found `BTreeMap<String, ComponentId>`
+   |
+   = note: expected struct `WorthUiPageHostRequest`
+              found struct `BTreeMap<String, ComponentId>`
+note: method defined here
+  --> src/runtime/page_surface/page_host_rebind.rs
+   |
+   |     pub fn rebind_page_host_after_capability_reload(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

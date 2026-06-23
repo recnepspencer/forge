@@ -1,6 +1,6 @@
 use crate::capability::ThemeTokenId;
 
-use super::{IconColorSupport, IconSizeSupport, IconSourceKind};
+use super::{IconColorSupport, IconNativeVectorSupport, IconSizeSupport, IconSourceKind};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IconSourceDescriptor {
@@ -9,6 +9,7 @@ pub struct IconSourceDescriptor {
     source_key: String,
     size_support: IconSizeSupport,
     color_support: IconColorSupport,
+    native_vector_support: IconNativeVectorSupport,
     theme_token: Option<ThemeTokenId>,
 }
 
@@ -48,6 +49,7 @@ impl IconSourceDescriptor {
             source_key: source_key.into(),
             size_support: IconSizeSupport::scalable(),
             color_support: IconColorSupport::inherits_text_color(),
+            native_vector_support: default_native_vector_support(kind),
             theme_token: None,
         }
     }
@@ -59,6 +61,11 @@ impl IconSourceDescriptor {
 
     pub fn with_color_support(mut self, color_support: IconColorSupport) -> Self {
         self.color_support = color_support;
+        self
+    }
+
+    pub fn with_native_vector_support(mut self, support: IconNativeVectorSupport) -> Self {
+        self.native_vector_support = support;
         self
     }
 
@@ -85,6 +92,10 @@ impl IconSourceDescriptor {
 
     pub fn color_support(&self) -> IconColorSupport {
         self.color_support
+    }
+
+    pub fn native_vector_support(&self) -> IconNativeVectorSupport {
+        self.native_vector_support
     }
 
     pub(crate) fn has_missing_source_metadata(&self) -> bool {
@@ -114,17 +125,29 @@ impl IconSourceDescriptor {
 
     pub(crate) fn digest_basis(&self) -> String {
         format!(
-            "{}|{}|{}|{}|{}|{}",
+            "{}|{}|{}|{}|{}|{}|{}",
             self.kind.digest_basis(),
             length_prefixed(&self.provider),
             length_prefixed(&self.source_key),
             self.size_support.digest_basis(),
             self.color_support.digest_basis(),
+            self.native_vector_support.digest_basis(),
             self.theme_token
                 .as_ref()
                 .map(|token| length_prefixed(token.as_str()))
                 .unwrap_or_else(|| "none".to_string())
         )
+    }
+}
+
+fn default_native_vector_support(kind: IconSourceKind) -> IconNativeVectorSupport {
+    match kind {
+        IconSourceKind::Symbol | IconSourceKind::VectorAsset | IconSourceKind::IconPack => {
+            IconNativeVectorSupport::supported()
+        }
+        IconSourceKind::RasterAsset | IconSourceKind::Unsupported => {
+            IconNativeVectorSupport::unsupported_by_host()
+        }
     }
 }
 

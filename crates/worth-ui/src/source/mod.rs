@@ -17,6 +17,7 @@ mod package;
 mod parse;
 mod resolved;
 mod structured;
+mod surface_component_authoring;
 
 #[allow(unused_imports)]
 pub(crate) use artifact::{
@@ -145,6 +146,15 @@ pub(crate) use structured::{
     WorthUiLegallyStructuredArtifactInputSurfaceNode,
     WorthUiLegallyStructuredArtifactInputThemeTokenNode, WorthUiMosaicMountFacts,
     WorthUiMosaicRegionFacts, WorthUiMosaicStructureFacts,
+};
+#[allow(unused_imports)]
+pub(crate) use surface_component_authoring::{
+    classify_surface_component_selection_body_atoms, classify_surface_component_selection_tokens,
+    parse_surface_authoring_body_atoms, parse_surface_authoring_tokens,
+    parse_surface_authoring_tokens_with_spans, WorthUiSpannedSurfaceAuthoring,
+    WorthUiSpannedSurfaceAuthoringProperty, WorthUiSurfaceAuthoring,
+    WorthUiSurfaceAuthoringParseFailure, WorthUiSurfaceAuthoringProperty,
+    WorthUiSurfaceAuthoringValue, WorthUiSurfaceComponentSelection,
 };
 
 #[cfg(test)]

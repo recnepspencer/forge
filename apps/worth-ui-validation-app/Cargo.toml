@@ -18,4 +18,8 @@ workspace = true
 [dependencies]
 eframe = { workspace = true }
 egui = { workspace = true }
+forge-ui-theme = { workspace = true }
 worth-ui = { workspace = true }
+
+[dev-dependencies]
+trybuild = { workspace = true }

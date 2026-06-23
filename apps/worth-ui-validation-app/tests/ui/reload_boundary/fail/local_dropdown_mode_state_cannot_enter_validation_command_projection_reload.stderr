@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+  --> tests/ui/reload_boundary/fail/local_dropdown_mode_state_cannot_enter_validation_command_projection_reload.rs:14:55
+   |
+14 |     let _ = workbench.apply_command_projection_source(local_mode_state);
+   |                       ------------------------------- ^^^^^^^^^^^^^^^^ expected `ValidationCommandProjectionSource`, found `LocalDropdownModeState`
+   |                       |
+   |                       arguments to this method are incorrect
+   |
+note: method defined here
+  --> src/runtime_workbench/capability_reload/mod.rs
+   |
+   |     pub fn apply_command_projection_source(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,13 +1,14 @@
 use crate::capability::{
     CapabilitySnapshotBuilder, CapabilitySnapshotFreezeInput, CapabilitySnapshotIndex,
-    CapabilitySnapshotIndexParts, CapabilitySupportCatalog, FrozenCommandCapabilities,
-    FrozenCommandProjectionCapabilities, FrozenComponentCapabilities, FrozenIconCapabilities,
-    FrozenMosaicPlacementCapabilities, FrozenMosaicRegionCapabilities,
-    FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities, FrozenNativeCapabilities,
-    FrozenPluginSlotCapabilities, FrozenRuntimeOutcomeProjectionCapabilities,
-    FrozenSettingCapabilities, FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities,
-    FrozenThemeTokenCapabilities, FrozenViewBindingCapabilities, RegisteredCapabilitySet,
-    SnapshotFreezeReport, SnapshotReferenceValidationReport,
+    CapabilitySnapshotIndexParts, CapabilitySupportCatalog, FrozenAppearanceCapabilities,
+    FrozenCommandCapabilities, FrozenCommandProjectionCapabilities, FrozenComponentCapabilities,
+    FrozenDensityCapabilities, FrozenIconCapabilities, FrozenMosaicPlacementCapabilities,
+    FrozenMosaicRegionCapabilities, FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities,
+    FrozenNativeCapabilities, FrozenPluginSlotCapabilities,
+    FrozenRuntimeOutcomeProjectionCapabilities, FrozenSettingCapabilities,
+    FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities, FrozenThemeTokenCapabilities,
+    FrozenViewBindingCapabilities, RegisteredCapabilitySet, SnapshotFreezeReport,
+    SnapshotReferenceValidationReport,
 };
 
 use super::{CapabilitySnapshotDigest, SnapshotMetrics};
@@ -19,6 +20,8 @@ pub struct CapabilitySnapshot {
     commands: FrozenCommandCapabilities,
     command_projections: FrozenCommandProjectionCapabilities,
     components: FrozenComponentCapabilities,
+    appearance_tokens: FrozenAppearanceCapabilities,
+    density_tokens: FrozenDensityCapabilities,
     icons: FrozenIconCapabilities,
     surfaces: FrozenSurfaceCapabilities,
     mosaic_regions: FrozenMosaicRegionCapabilities,
@@ -52,6 +55,8 @@ impl CapabilitySnapshot {
             commands: input.commands,
             command_projections: input.command_projections,
             components: input.components,
+            appearance_tokens: input.appearance_tokens,
+            density_tokens: input.density_tokens,
             icons: input.icons,
             surfaces: input.surfaces,
             mosaic_regions: input.mosaic_regions,
@@ -87,6 +92,16 @@ impl CapabilitySnapshot {
 
     pub fn components(&self) -> &FrozenComponentCapabilities {
         &self.components
+    }
+
+    /// Frozen typed appearance token capabilities admitted at registration freeze.
+    pub fn appearance_tokens(&self) -> &FrozenAppearanceCapabilities {
+        &self.appearance_tokens
+    }
+
+    /// Frozen typed density token capabilities admitted at registration freeze.
+    pub fn density_tokens(&self) -> &FrozenDensityCapabilities {
+        &self.density_tokens
     }
 
     pub fn icons(&self) -> &FrozenIconCapabilities {
@@ -172,6 +187,8 @@ impl CapabilitySnapshot {
             commands: &self.commands,
             command_projections: &self.command_projections,
             components: &self.components,
+            appearance_tokens: &self.appearance_tokens,
+            density_tokens: &self.density_tokens,
             icons: &self.icons,
             surfaces: &self.surfaces,
             mosaic_regions: &self.mosaic_regions,
@@ -205,6 +222,9 @@ impl CapabilitySnapshot {
         self.with_replaced_families(
             self.commands.clone(),
             self.command_projections.clone(),
+            self.components.clone(),
+            self.appearance_tokens.clone(),
+            self.density_tokens.clone(),
             theme_tokens,
         )
     }
@@ -213,6 +233,9 @@ impl CapabilitySnapshot {
         self.with_replaced_families(
             commands,
             self.command_projections.clone(),
+            self.components.clone(),
+            self.appearance_tokens.clone(),
+            self.density_tokens.clone(),
             self.theme_tokens.clone(),
         )
     }
@@ -224,6 +247,48 @@ impl CapabilitySnapshot {
         self.with_replaced_families(
             self.commands.clone(),
             command_projections,
+            self.components.clone(),
+            self.appearance_tokens.clone(),
+            self.density_tokens.clone(),
+            self.theme_tokens.clone(),
+        )
+    }
+
+    pub(crate) fn with_components_replaced(&self, components: FrozenComponentCapabilities) -> Self {
+        self.with_replaced_families(
+            self.commands.clone(),
+            self.command_projections.clone(),
+            components,
+            self.appearance_tokens.clone(),
+            self.density_tokens.clone(),
+            self.theme_tokens.clone(),
+        )
+    }
+
+    pub(crate) fn with_appearance_tokens_replaced(
+        &self,
+        appearance_tokens: FrozenAppearanceCapabilities,
+    ) -> Self {
+        self.with_replaced_families(
+            self.commands.clone(),
+            self.command_projections.clone(),
+            self.components.clone(),
+            appearance_tokens,
+            self.density_tokens.clone(),
+            self.theme_tokens.clone(),
+        )
+    }
+
+    pub(crate) fn with_density_tokens_replaced(
+        &self,
+        density_tokens: FrozenDensityCapabilities,
+    ) -> Self {
+        self.with_replaced_families(
+            self.commands.clone(),
+            self.command_projections.clone(),
+            self.components.clone(),
+            self.appearance_tokens.clone(),
+            density_tokens,
             self.theme_tokens.clone(),
         )
     }
@@ -232,13 +297,18 @@ impl CapabilitySnapshot {
         &self,
         commands: FrozenCommandCapabilities,
         command_projections: FrozenCommandProjectionCapabilities,
+        components: FrozenComponentCapabilities,
+        appearance_tokens: FrozenAppearanceCapabilities,
+        density_tokens: FrozenDensityCapabilities,
         theme_tokens: FrozenThemeTokenCapabilities,
     ) -> Self {
         CapabilitySnapshotBuilder::new(CapabilitySnapshotFreezeInput {
             registered_capabilities: self.registered_capabilities.clone(),
             commands,
             command_projections,
-            components: self.components.clone(),
+            components,
+            appearance_tokens,
+            density_tokens,
             icons: self.icons.clone(),
             surfaces: self.surfaces.clone(),
             mosaic_regions: self.mosaic_regions.clone(),

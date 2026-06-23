@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/runtime_authority/fail/raw_fact_set_cannot_replace_changed_fact_proof.rs:6:33
+  |
+6 |     requires_changed_fact_proof(WorthUiRuntimeFactSet::empty());
+  |     --------------------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `WorthUiChangedRuntimeFacts`, found `WorthUiRuntimeFactSet`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> tests/ui/runtime_authority/fail/raw_fact_set_cannot_replace_changed_fact_proof.rs:3:4
+  |
+3 | fn requires_changed_fact_proof(_proof: WorthUiChangedRuntimeFacts) {}
+  |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^ ----------------------------------

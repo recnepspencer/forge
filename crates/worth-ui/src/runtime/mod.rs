@@ -2,12 +2,19 @@ mod activation_staging;
 mod active;
 mod admission;
 mod atomic_plan_swap;
+mod authored_delta;
 mod authoring_snapshot;
+mod button_surface;
 mod candidate;
 mod canvas_spatial_lane;
 mod capability_reload;
+mod compact_reexports;
+mod component_content;
+mod component_interaction;
+mod component_visual;
 mod diagnostics;
 mod diagnostics_projection;
+mod dropdown_projection;
 mod equivalence;
 mod execution_plan_input;
 mod file_rust_replacement_parity;
@@ -18,20 +25,29 @@ mod host;
 mod host_atomic_plan_swap;
 mod host_canvas_spatial_lane;
 mod host_diagnostics;
+mod host_dropdown_selection;
 mod host_file_rust_replacement_parity;
 mod host_frame_activation_gate;
 mod host_identity_state_query_certification;
+mod host_inspection;
+mod host_interaction_lane;
 mod host_lane_admission;
 mod host_lane_frame_cost_certification;
 mod host_lane_meaning_parity;
 mod host_launch;
 mod host_ordinary_lane;
+mod host_projection_contract;
+mod host_projection_rebind;
+mod host_query_reload;
 mod host_realtime_overlay_lane;
 mod host_reload_failure;
 mod host_reload_storm_certification;
+mod host_source_ingress;
 mod host_virtualized_data_lane;
+mod hot_reload_exports;
 mod identity_state_query_certification;
 mod impact;
+mod interaction_lane;
 mod lane_admission;
 mod lane_frame_cost_certification;
 mod lane_meaning_parity;
@@ -45,28 +61,33 @@ mod plan_equivalence;
 mod plan_inspection;
 mod plan_topology;
 mod preservation;
+mod primitive;
+mod projection_contract;
+mod projection_rebind;
 mod query_binding;
 mod query_live_rebind;
+mod query_reload;
 mod realtime_overlay_lane;
+mod rebind_phase_selection;
 mod reconciliation;
 mod reload_counter_boundary;
 mod reload_failure;
 mod reload_storm_certification;
 mod replacement;
+mod runtime_change;
 mod runtime_fact;
 mod runtime_instance_id;
+mod semantic_slice;
 mod source_ingress;
 mod state_inventory;
 mod steady_frame_counter_boundary;
 mod validation_reload;
 mod virtualized_data_lane;
-
 pub use activation_staging::{
     WorthUiActivationReadiness, WorthUiActivationStagingCounters, WorthUiActivationStagingDenial,
     WorthUiActivationStagingDenialReason, WorthUiActivationStagingReport,
     WorthUiPendingExecutionPlanLoweringInput, WorthUiStagedReplacement,
 };
-pub use active::WorthUiActiveRuntimeObservation;
 pub use admission::{
     WorthUiActiveReplacementBasis, WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission,
     WorthUiCandidateAdmissionCounters, WorthUiCandidateAdmissionDenial,
@@ -77,7 +98,18 @@ pub use atomic_plan_swap::{
     WorthUiAtomicPlanSwapCounters, WorthUiPlanSwapDenialReason, WorthUiPlanSwapReceipt,
     WorthUiPlanSwapRollback, WorthUiPriorValidPlanObservation,
 };
-pub use authoring_snapshot::WorthUiRuntimeAuthoringSnapshot;
+pub use authored_delta::{
+    WorthUiAuthoredDeclarationKind, WorthUiAuthoredDeltaChangePosture,
+    WorthUiAuthoredDeltaCounters, WorthUiAuthoredDeltaDigest, WorthUiAuthoredDeltaSummary,
+    WorthUiAuthoredSemanticSubject, WorthUiTouchedAuthoredDeclarationRow,
+    WorthUiTouchedAuthoredSemanticSliceRow,
+};
+pub(crate) use authoring_snapshot::WorthUiRuntimeAuthoringSnapshotBuilder;
+pub use authoring_snapshot::*;
+pub use button_surface::{
+    WorthUiButtonContainerAlign, WorthUiButtonFrameDenial, WorthUiButtonFrameReceipt,
+    WorthUiButtonSize, WorthUiButtonVariant,
+};
 pub use candidate::{
     WorthUiCandidateArtifactBundle, WorthUiCandidateAuthoringLane,
     WorthUiCandidateDependencyMetadata, WorthUiCandidateLoweringBasis,
@@ -94,28 +126,53 @@ pub use canvas_spatial_lane::{
     WorthUiCanvasViewportPlanDenialReason, WorthUiSpatialHitTestHook, WorthUiSpatialHitTestPlan,
     WorthUiSpatialToolStateHook, WorthUiSpatialViewportPoint,
 };
-pub use capability_reload::{
-    WorthUiCapabilityPreparedReload, WorthUiCapabilityReloadEvidence,
-    WorthUiCapabilityReloadRequest, WorthUiCapabilityReloadStage, WorthUiCapabilityReloadStatus,
-    WorthUiCommandProjectionReloadPackage, WorthUiCommandReloadPackage,
-    WorthUiThemeTokenReloadPackage,
+pub use compact_reexports::*;
+pub use component_content::{
+    WorthUiInlineContentItem, WorthUiInlineContentReceipt, WorthUiInlineIconItem,
+    WorthUiInlineIconStyle, WorthUiInlineTextItem,
 };
+pub use component_interaction::{
+    WorthUiComponentInteractionDenial, WorthUiComponentInteractionField,
+    WorthUiComponentInteractionFieldValue, WorthUiComponentInteractionKind,
+    WorthUiComponentInteractionPayload, WorthUiComponentInteractionReceipt,
+    WorthUiComponentInteractionStatus,
+};
+pub use component_visual::{WorthUiResolvedBoxStyle, WorthUiResolvedIcon};
+#[rustfmt::skip]
+pub use capability_reload::{
+    WorthUiAdmittedCapabilityReloadBatch, WorthUiAppearanceReloadPackage, WorthUiAppearanceShadowParseDenialCode,
+    WorthUiCapabilityPreparedReload, WorthUiCapabilityReloadDenialCode, WorthUiCapabilityReloadEvidence,
+    WorthUiCapabilityReloadFamilyCounters, WorthUiCapabilityReloadFamilyKind, WorthUiCapabilityReloadFamilyRow,
+    WorthUiCapabilityReloadFamilyStatus, WorthUiCapabilityReloadRequest, WorthUiCapabilityReloadStage,
+    WorthUiCapabilityReloadStatus, WorthUiCommandProjectionReloadPackage, WorthUiCommandReloadPackage,
+    WorthUiComponentCompatibility, WorthUiComponentReloadPackage, WorthUiComponentReloadReceipt, WorthUiComponentShapeDenial,
+    WorthUiComponentStateDropReason, WorthUiComponentStatePreservation, WorthUiDensityReloadPackage, WorthUiThemeTokenReloadPackage,
+};
+#[rustfmt::skip]
 pub use diagnostics::{
-    WorthUiDiagnosticMaterialization, WorthUiDiagnosticProjectionHook,
-    WorthUiDiagnosticRichnessPolicy, WorthUiDiagnosticRichnessTier, WorthUiDiagnosticSource,
-    WorthUiDiagnosticSupportReport, WorthUiPlanDiagnostic, WorthUiReloadDiagnostic,
-    WorthUiRuntimeActivationStatus, WorthUiRuntimeDiagnostic, WorthUiRuntimeDiagnosticCode,
-    WorthUiRuntimeDiagnosticCounters, WorthUiRuntimeDiagnosticFamily,
+    WorthUiDiagnosticMaterialization, WorthUiDiagnosticProjectionHook, WorthUiDiagnosticRichnessPolicy,
+    WorthUiDiagnosticRichnessTier, WorthUiDiagnosticSource, WorthUiDiagnosticSupportReport,
+    WorthUiPlanDiagnostic, WorthUiReloadDiagnostic, WorthUiRuntimeActivationStatus, WorthUiRuntimeDiagnostic,
+    WorthUiRuntimeDiagnosticCode, WorthUiRuntimeDiagnosticCounters, WorthUiRuntimeDiagnosticFamily,
     WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport, WorthUiSupportReportPolicy,
 };
+#[rustfmt::skip]
 pub use diagnostics_projection::{
-    WorthUiDiagnosticsProjection, WorthUiDiagnosticsProjectionCounters,
-    WorthUiDiagnosticsProjectionDenial, WorthUiDiagnosticsProjectionDenialReason,
-    WorthUiDiagnosticsProjectionHook, WorthUiDiagnosticsProjectionHookEffect,
-    WorthUiDiagnosticsProjectionRequest, WorthUiDiagnosticsSurfaceBinding, WorthUiFrameCostRow,
-    WorthUiFrameCostSurface, WorthUiFrameCostSurfaceKind, WorthUiPlanInspectionSurface,
-    WorthUiQueryStatusRow, WorthUiQueryStatusSurface, WorthUiReloadStatusSurface,
-    WorthUiRuntimeDiagnosticsProjection,
+    WorthUiDiagnosticsProjection, WorthUiDiagnosticsProjectionCounters, WorthUiDiagnosticsProjectionDenial,
+    WorthUiDiagnosticsProjectionDenialReason, WorthUiDiagnosticsProjectionHook, WorthUiDiagnosticsProjectionHookEffect,
+    WorthUiDiagnosticsProjectionRequest, WorthUiDiagnosticsSurfaceBinding, WorthUiFrameCostRow, WorthUiFrameCostSurface,
+    WorthUiFrameCostSurfaceKind, WorthUiPlanInspectionSurface, WorthUiQueryStatusRow, WorthUiQueryStatusSurface,
+    WorthUiReloadStatusSurface, WorthUiRuntimeDiagnosticsProjection,
+};
+pub use dropdown_projection::{
+    WorthUiDropdownAppearanceFrameReceipt, WorthUiDropdownAppearancePlanDenial,
+    WorthUiDropdownAppearanceRequest, WorthUiDropdownCommand, WorthUiDropdownFrameReceipt,
+    WorthUiDropdownModeTransitionDenial, WorthUiDropdownProjectionPlan,
+    WorthUiDropdownProjectionPlanDenial, WorthUiDropdownProjectionRebindDenial,
+    WorthUiDropdownProjectionRequest, WorthUiDropdownSelectionInteractionDenial,
+    WorthUiDropdownSelectionInteractionReceipt, WorthUiDropdownSelectionInteractionStatus,
+    WorthUiDropdownSelectionState, WorthUiDropdownSelectionStateReconciliationReceipt,
+    WorthUiDropdownSelectionStateStatus, WorthUiDropdownStateDropReason,
 };
 pub use equivalence::{
     WorthUiRuntimeArtifactComparator, WorthUiRuntimeArtifactComparison,
@@ -148,18 +205,20 @@ pub use handle_allocation::{
     WorthUiRuntimeHandleFamilyWidths, WorthUiStateSlotHandle, WorthUiTokenHandle,
     WorthUiViewBindingHandle,
 };
+#[rustfmt::skip]
 pub use header_surface::{
-    WorthUiHeaderFrame, WorthUiHeaderFramePlan, WorthUiHeaderFramePlanDenial,
-    WorthUiHeaderFrameRebindDenial, WorthUiHeaderFrameRebindReceipt,
-    WorthUiHeaderFrameRebindRequest, WorthUiHeaderFrameRebindStatus, WorthUiHeaderFrameReceipt,
-    WorthUiHeaderMenuCommand, WorthUiHeaderMenuGroup, WorthUiHeaderMenuPlan,
-    WorthUiHeaderMenuPlanDenial, WorthUiHeaderMenuProjectionRequest,
-    WorthUiHeaderThemeFrameReceipt, WorthUiHeaderThemePlan, WorthUiHeaderThemePlanDenial,
-    WorthUiHeaderThemeTokenRequest,
+    WorthUiHeaderAppearanceFrameReceipt, WorthUiHeaderAppearancePlan, WorthUiHeaderAppearancePlanDenial,
+    WorthUiHeaderAppearanceRequest, WorthUiHeaderFrame, WorthUiHeaderFramePlan, WorthUiHeaderFramePlanDenial,
+    WorthUiHeaderFrameRebindDenial, WorthUiHeaderFrameRebindReceipt, WorthUiHeaderFrameRebindRequest,
+    WorthUiHeaderFrameRebindStatus, WorthUiHeaderFrameReceipt, WorthUiHeaderMenuCommand, WorthUiHeaderMenuGroup,
+    WorthUiHeaderMenuPlan, WorthUiHeaderMenuPlanDenial, WorthUiHeaderMenuProjectionRequest,
+    WorthUiHeaderThemeFrameReceipt, WorthUiHeaderThemePlan, WorthUiHeaderThemePlanDenial, WorthUiHeaderThemeTokenRequest,
 };
 pub use host::WorthUiRuntimeHost;
 pub use host_diagnostics::{WorthUiRuntimeDiagnosticRequest, WorthUiRuntimeDiagnostics};
+pub use host_interaction_lane::WorthUiInteractionSubmissionDenial;
 pub use host_launch::{WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial};
+pub use hot_reload_exports::*;
 pub use identity_state_query_certification::{
     WorthUiIdentityStateCertification, WorthUiIdentityStateQueryCertificationCounters,
     WorthUiIdentityStateQueryCertificationDenial,
@@ -175,6 +234,17 @@ pub use impact::{
     WorthUiReplacementImpactClassification, WorthUiReplacementImpactClassifier,
     WorthUiReplacementImpactCounters, WorthUiReplacementImpactDenial, WorthUiReplacementScope,
     WorthUiTokenThemeImpact, WorthUiUnsupportedReplacementImpact,
+};
+pub use interaction_lane::{
+    interaction_prop_schema, WorthUiInteractionActivationRequest,
+    WorthUiInteractionAdmissionCounters, WorthUiInteractionAdmissionReceipt,
+    WorthUiInteractionAdmissionReport, WorthUiInteractionAdmissionStatus, WorthUiInteractionField,
+    WorthUiInteractionFieldValue, WorthUiInteractionKind, WorthUiInteractionPayload,
+    WorthUiInteractionReadiness, WorthUiInteractionReceipt, WorthUiInteractionStatus,
+    WorthUiInteractionTarget, WorthUiInteractionValueDenialCode,
+    WorthUiInteractionValueDenialReceipt, WorthUiInteractionValueDenialSet,
+    WorthUiInteractionValueKind, WorthUiMountedInteractionGesture,
+    WorthUiValidatedInteractionPropSet,
 };
 pub use lane_admission::{
     WorthUiExecutionLane, WorthUiExecutionLaneDescriptor, WorthUiExecutionLaneSupport,
@@ -193,11 +263,11 @@ pub use lane_frame_cost_certification::{
     WorthUiLaneFrameCostFoundationalReadiness, WorthUiLaneScaleVariationProof,
     WorthUiNoSourceFrameProof,
 };
+#[rustfmt::skip]
 pub use lane_meaning_parity::{
-    WorthUiCrossLaneSemanticAuthority, WorthUiCrossLaneSemanticFamily,
-    WorthUiCrossLaneSemanticReference, WorthUiLaneMeaningParity, WorthUiLaneParityCertification,
-    WorthUiLaneParityCounters, WorthUiLaneParityDenial, WorthUiLaneParityDenialReason,
-    WorthUiLaneParityReport, WorthUiLaneTransitionParity,
+    WorthUiCrossLaneSemanticAuthority, WorthUiCrossLaneSemanticFamily, WorthUiCrossLaneSemanticReference,
+    WorthUiLaneMeaningParity, WorthUiLaneParityCertification, WorthUiLaneParityCounters, WorthUiLaneParityDenial,
+    WorthUiLaneParityDenialReason, WorthUiLaneParityReport, WorthUiLaneTransitionParity,
 };
 pub use lifecycle::{
     WorthUiPendingActivation, WorthUiRuntimeFrameEpoch, WorthUiRuntimeLifecycle,
@@ -230,50 +300,47 @@ pub use ordinary_lane::{
     WorthUiOrdinaryLanePlan, WorthUiOrdinaryLanePlanDenial, WorthUiOrdinaryLanePlanDenialReason,
 };
 pub use page_surface::{
-    WorthUiPageHostFrameReceipt, WorthUiPageHostPlan, WorthUiPageHostPlanDenial,
+    WorthUiPageHostBoundaryPosture, WorthUiPageHostFrameReceipt, WorthUiPageHostPlan,
+    WorthUiPageHostPlanDenial, WorthUiPageHostPresentation, WorthUiPageHostPresentationChild,
+    WorthUiPageHostPresentationRegion, WorthUiPageHostPresentationSlot,
     WorthUiPageHostRebindDenial, WorthUiPageHostRebindReceipt, WorthUiPageHostRebindStatus,
-    WorthUiPageHostRequest, WorthUiPageHostSlotReceipt,
+    WorthUiPageHostRequest, WorthUiPageHostResolvedSizing, WorthUiPageHostSlotReceipt,
 };
 pub use plan_equivalence::{
     WorthUiExecutionPlanDigest, WorthUiExecutionPlanEquivalence,
     WorthUiExecutionPlanEquivalenceBasis, WorthUiExecutionPlanEquivalenceCounters,
     WorthUiPlanReuseClassification,
 };
-pub use plan_inspection::{
-    WorthUiArtifactToPlanProvenance, WorthUiExecutionPlanInspection, WorthUiLaneInspection,
-    WorthUiPlanInspectionCounters, WorthUiPlanInspectionDenial, WorthUiPlanInspectionDenialReason,
-    WorthUiPlanNodeInspection, WorthUiPlanProvenanceSource, WorthUiQueryInspectionLinks,
+pub(crate) use primitive::{
+    appearance_state_prop_schema, event_geometry_prop_schema, flow_layout_prop_schema,
+    primitive_authored_prop_schema, primitive_content_prop_schema,
 };
-pub use plan_topology::{
-    WorthUiEguiBoundaryContact, WorthUiEguiPlanBoundary, WorthUiExecutionPlan,
-    WorthUiPlanChildRange, WorthUiPlanExecutionLane, WorthUiPlanLanePartition,
-    WorthUiPlanLookupIndex, WorthUiPlanNode, WorthUiPlanNodeFamily, WorthUiPlanRegionStructure,
-    WorthUiPlanTopology, WorthUiPlanTopologyCounters, WorthUiPlanTopologyDenial,
-    WorthUiPlanTopologyDenialReason, WorthUiRenderResourceRef,
-};
-pub use preservation::WorthUiLastValidObservation;
 pub use query_binding::{
     WorthUiQueryBindingComparison, WorthUiQueryBindingComparisonCounters,
     WorthUiQueryBindingComparisonDenial, WorthUiQueryBindingComparisonEntry,
     WorthUiQueryBindingComparisonOutcome, WorthUiQueryBindingIdentity, WorthUiQueryBindingPosture,
     WorthUiQueryBindingPostureDriftFamily,
 };
+#[rustfmt::skip]
 pub use query_live_rebind::{
-    WorthUiQueryBindingDriftDenial, WorthUiQueryBindingDriftDenialKind,
-    WorthUiQueryBindingPreservation, WorthUiQueryBindingRebind, WorthUiQueryBindingRebindReason,
-    WorthUiQueryBindingRetirement, WorthUiQueryBindingRetirementReason,
-    WorthUiQueryLiveRebindCounters, WorthUiQueryLiveRebindEntry, WorthUiQueryLiveRebindOutcome,
-    WorthUiQueryLiveRebindPlan, WorthUiQueryLiveRebindPlanDenial,
+    WorthUiQueryBindingDriftDenial, WorthUiQueryBindingDriftDenialKind, WorthUiQueryBindingPreservation,
+    WorthUiQueryBindingRebind, WorthUiQueryBindingRebindReason, WorthUiQueryBindingRetirement,
+    WorthUiQueryBindingRetirementReason, WorthUiQueryLiveRebindCounters, WorthUiQueryLiveRebindEntry,
+    WorthUiQueryLiveRebindOutcome, WorthUiQueryLiveRebindPlan, WorthUiQueryLiveRebindPlanDenial,
     WorthUiQueryRebindRequiredSurface,
 };
-pub use realtime_overlay_lane::{
-    WorthUiHighFrequencyFramePolicy, WorthUiHighFrequencyFramePolicyDenial,
-    WorthUiHighFrequencyFramePolicyDenialReason, WorthUiHudNode, WorthUiHudPlan,
-    WorthUiHudPlanDenial, WorthUiHudPlanDenialReason, WorthUiRealtimeCertification,
-    WorthUiRealtimeFrameDenial, WorthUiRealtimeFrameDenialReason, WorthUiRealtimeFramePriority,
-    WorthUiRealtimeFrameReceipt, WorthUiRealtimeFrameTarget, WorthUiRealtimeLaneCounters,
-    WorthUiRealtimeOverlayHook, WorthUiRealtimeOverlayLane, WorthUiRendererSurfaceAdmission,
-    WorthUiRendererSurfaceHandle,
+pub use host_source_ingress::WorthUiObservedAuthoredEditResultDenial;
+pub use query_reload::{
+    WorthUiQueryEffectPostureReceipt, WorthUiQueryProjectionFactReceipt,
+    WorthUiQueryRuntimeFactLoweringCounters, WorthUiQueryRuntimeFactLoweringInput,
+    WorthUiQueryRuntimeFactLoweringReceipt, WorthUiQueryRuntimeFactLoweringStatus,
+    WorthUiQueryStateSnapshotReceipt, WorthUiQuerySupportDenialKind,
+    WorthUiQuerySupportDenialReceipt,
+};
+pub use rebind_phase_selection::{
+    WorthUiRebindPhaseExecutionDenial, WorthUiRebindPhaseExecutionReceipt, WorthUiRebindPhaseLane,
+    WorthUiRebindPhaseSelectionBatch, WorthUiRebindPhaseSelectionCounters,
+    WorthUiRebindPhaseSelectionRow, WorthUiRebindPhaseSelectionStatus,
 };
 pub use reconciliation::{
     WorthUiDurableStateCarryForward, WorthUiDurableStateReconciliationCounters,
@@ -296,41 +363,29 @@ pub use reload_failure::{
     WorthUiReloadFailure, WorthUiReloadFailureCounters, WorthUiReloadFailureStage,
     WorthUiReloadPreservationReceipt,
 };
-pub use reload_storm_certification::{
-    WorthUiReloadCertificationBundle, WorthUiReloadLatencyCounters,
-    WorthUiReloadStormCandidateDenialReason, WorthUiReloadStormCandidateStep,
-    WorthUiReloadStormCandidateStepKind, WorthUiReloadStormCertification,
-    WorthUiReloadStormCertificationDenial, WorthUiReloadStormCertificationDenialReason,
-    WorthUiReloadStormDeniedIteration, WorthUiReloadStormIterationOutcome,
-    WorthUiReloadStormNoOpIteration, WorthUiReloadStormOrderedTruth,
-    WorthUiReloadStormReceiptBinding, WorthUiReloadStormScenario,
-    WorthUiReloadStormSuccessfulIteration,
-};
 pub use replacement::{
     WorthUiAmbiguousReplacementDenial, WorthUiNodeLifecycleTransition,
     WorthUiNodeReplacementClassification, WorthUiNodeReplacementCounters,
     WorthUiNodeReplacementPlan,
 };
-pub use runtime_fact::{
-    WorthUiProjectionDependencySet, WorthUiRuntimeFactFamily, WorthUiRuntimeFactId,
-    WorthUiRuntimeFactSet,
-};
 pub(crate) use runtime_instance_id::WorthUiRuntimeInstanceId;
 pub use source_ingress::{
-    WorthUiCandidateOrderingReceipt, WorthUiDebouncedWatcherBatch, WorthUiReloadDebounce,
+    WorthUiCandidateOrderingReceipt, WorthUiDebouncedWatcherBatch, WorthUiObservedAuthoredEdit,
+    WorthUiObservedAuthoredEditDenial, WorthUiReloadDebounce,
+    WorthUiSourceAuthoredCandidateSubmission, WorthUiSourceAuthoredCandidateSubmissionDenial,
     WorthUiSourceIngressCounters, WorthUiSourceIngressDenial, WorthUiSourceIngressDenialReason,
     WorthUiSourceIngressHook, WorthUiSourceIngressSession, WorthUiSourcePackageRevision,
     WorthUiSourceProvider, WorthUiSourceProviderKind, WorthUiSourceWatcher,
     WorthUiWatchedArtifactInput, WorthUiWatchedCandidateSubmission,
     WorthUiWatchedCandidateSubmissionDenial, WorthUiWatcherEvent,
 };
+pub use validation_reload::WorthUiValidationChangedFactMappingReceipt;
+#[rustfmt::skip]
 pub use state_inventory::{
-    WorthUiDurableStateEligibility, WorthUiDurableStateFamily, WorthUiDurableStateFamilyHook,
-    WorthUiDurableStateFamilyId, WorthUiDurableStateInventory, WorthUiDurableStateInventoryBuilder,
-    WorthUiDurableStateInventoryCounters, WorthUiDurableStateInventoryDenial,
-    WorthUiDurableStateReplacementPolicy, WorthUiStateOwnerIdentity, WorthUiStateOwnershipClass,
-    WorthUiStatePersistencePosture, WorthUiTransientInteractionPolicy,
-    WorthUiTransientInteractionState,
+    WorthUiDurableStateEligibility, WorthUiDurableStateFamily, WorthUiDurableStateFamilyHook, WorthUiDurableStateFamilyId,
+    WorthUiDurableStateInventory, WorthUiDurableStateInventoryBuilder, WorthUiDurableStateInventoryCounters,
+    WorthUiDurableStateInventoryDenial, WorthUiDurableStateReplacementPolicy, WorthUiStateOwnerIdentity,
+    WorthUiStateOwnershipClass, WorthUiStatePersistencePosture, WorthUiTransientInteractionPolicy, WorthUiTransientInteractionState,
 };
 pub use steady_frame_counter_boundary::{
     WorthUiCertifiedFrameExecutionReceipt, WorthUiFrameExecutionReceipt,
@@ -342,10 +397,6 @@ pub use steady_frame_counter_boundary::{
     WorthUiSteadyFrameFoundationalEvidence, WorthUiSteadyFrameReportPlan,
     WorthUiSteadyFrameReportPlanner,
 };
-pub use validation_reload::{
-    WorthUiValidationPreparedReload, WorthUiValidationReloadEvidence,
-    WorthUiValidationReloadRequest, WorthUiValidationReloadStage, WorthUiValidationReloadStatus,
-};
 pub use virtualized_data_lane::{
     WorthUiQueryPatchPosture, WorthUiVirtualizedDataCertification, WorthUiVirtualizedDataCounters,
     WorthUiVirtualizedDataFrameDenial, WorthUiVirtualizedDataFrameDenialReason,
@@ -354,7 +405,6 @@ pub use virtualized_data_lane::{
     WorthUiVirtualizedDataPlanDenial, WorthUiVirtualizedDataPlanDenialReason, WorthUiVisibleRange,
     WorthUiVisibleRangeDenial, WorthUiVisibleRangeDenialReason,
 };
-
 #[cfg(test)]
 mod runtime_test_modules;
 #[cfg(test)]

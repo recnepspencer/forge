@@ -1,9 +1,11 @@
+use crate::capability::CommandProjectionId;
 use crate::capability::{CapabilitySnapshot, CapabilitySnapshotDigest};
 use crate::runtime::active::{
     WorthUiActiveArtifact, WorthUiActiveExecutionPlan, WorthUiActiveRuntimeObservation,
+    WorthUiDropdownSelectionAuthority,
 };
 use crate::runtime::{
-    WorthUiRuntimeActivationStatus, WorthUiRuntimeAuthoringSnapshot,
+    WorthUiDropdownSelectionState, WorthUiRuntimeActivationStatus, WorthUiRuntimeAuthoringSnapshot,
     WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch, WorthUiRuntimeLifecycle,
 };
 
@@ -13,6 +15,7 @@ pub(crate) struct WorthUiActiveRuntimeState {
     active_plan: WorthUiActiveExecutionPlan,
     snapshot: CapabilitySnapshot,
     snapshot_digest: CapabilitySnapshotDigest,
+    dropdown_selection_authority: WorthUiDropdownSelectionAuthority,
     authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
     lifecycle: WorthUiRuntimeLifecycle,
     status: WorthUiRuntimeActivationStatus,
@@ -35,6 +38,7 @@ impl WorthUiActiveRuntimeState {
             active_plan,
             snapshot,
             snapshot_digest,
+            dropdown_selection_authority: WorthUiDropdownSelectionAuthority::default(),
             authoring_snapshot,
             lifecycle: WorthUiRuntimeLifecycle::Active,
             status: WorthUiRuntimeActivationStatus::Active,
@@ -48,6 +52,9 @@ impl WorthUiActiveRuntimeState {
             self.active_artifact.digest().raw(),
             self.active_plan.digest().as_u64(),
             self.snapshot_digest.as_u64(),
+            self.authoring_snapshot
+                .as_ref()
+                .map(|snapshot| snapshot.digest().as_u64()),
             self.lifecycle,
             self.status,
             self.frame_epoch,
@@ -72,6 +79,27 @@ impl WorthUiActiveRuntimeState {
 
     pub(crate) fn authoring_snapshot(&self) -> Option<&WorthUiRuntimeAuthoringSnapshot> {
         self.authoring_snapshot.as_ref()
+    }
+
+    pub(crate) fn dropdown_selection_state(
+        &self,
+        projection_id: &CommandProjectionId,
+    ) -> Option<&WorthUiDropdownSelectionState> {
+        self.dropdown_selection_authority
+            .selection_state(projection_id.as_str())
+    }
+
+    pub(crate) fn record_dropdown_selection_state(
+        &mut self,
+        projection_id: &CommandProjectionId,
+        selection_state: &WorthUiDropdownSelectionState,
+    ) {
+        self.dropdown_selection_authority
+            .record_selection_state(projection_id.as_str(), selection_state);
+    }
+
+    pub(crate) fn dropdown_selection_authority(&self) -> WorthUiDropdownSelectionAuthority {
+        self.dropdown_selection_authority.clone()
     }
 
     pub(crate) fn replace_capability_snapshot(
@@ -112,6 +140,7 @@ impl WorthUiActiveRuntimeState {
         active_plan: WorthUiActiveExecutionPlan,
         snapshot: CapabilitySnapshot,
         snapshot_digest: CapabilitySnapshotDigest,
+        dropdown_selection_authority: WorthUiDropdownSelectionAuthority,
         authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
         lifecycle: WorthUiRuntimeLifecycle,
         status: WorthUiRuntimeActivationStatus,
@@ -123,6 +152,7 @@ impl WorthUiActiveRuntimeState {
             active_plan,
             snapshot,
             snapshot_digest,
+            dropdown_selection_authority,
             authoring_snapshot,
             lifecycle,
             status,

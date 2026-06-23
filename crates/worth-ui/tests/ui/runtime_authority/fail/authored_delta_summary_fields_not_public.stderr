@@ -1,0 +1,12 @@
+error: cannot construct `WorthUiAuthoredDeltaSummary` with struct literal syntax due to private fields
+ --> tests/ui/runtime_authority/fail/authored_delta_summary_fields_not_public.rs:4:19
+  |
+4 |     let _forged = WorthUiAuthoredDeltaSummary {};
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields `digest`, `counters`, `touched_declaration_rows` and `semantic_slice_rows` that were not provided
+help: you might have meant to use the `new` associated function
+  |
+4 -     let _forged = WorthUiAuthoredDeltaSummary {};
+4 +     let _forged = WorthUiAuthoredDeltaSummary::new(_, _, _, _);
+  |

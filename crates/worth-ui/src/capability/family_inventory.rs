@@ -145,6 +145,11 @@ macro_rules! define_registry_families {
 }
 
 define_registry_families! {
+    AppearanceToken => {
+        name: "appearance_token",
+        facade_exposure: PublicFacade,
+        lifecycle: FullRegistryLifecycle,
+    },
     Command => {
         name: "command",
         facade_exposure: PublicFacade,
@@ -157,6 +162,11 @@ define_registry_families! {
     },
     Component => {
         name: "component",
+        facade_exposure: PublicFacade,
+        lifecycle: FullRegistryLifecycle,
+    },
+    DensityToken => {
+        name: "density_token",
         facade_exposure: PublicFacade,
         lifecycle: FullRegistryLifecycle,
     },

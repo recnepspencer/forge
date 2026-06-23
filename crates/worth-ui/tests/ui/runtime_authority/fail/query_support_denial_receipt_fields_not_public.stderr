@@ -1,0 +1,15 @@
+error[E0451]: fields `kind`, `support_status`, `support_receipt_digest`, `runtime_hook_count` and `denied_binding_count` of struct `WorthUiQuerySupportDenialReceipt` are private
+  --> tests/ui/runtime_authority/fail/query_support_denial_receipt_fields_not_public.rs:7:9
+   |
+ 6 |     let _ = WorthUiQuerySupportDenialReceipt {
+   |             -------------------------------- in this type
+ 7 |         kind: WorthUiQuerySupportDenialKind::Unsupported,
+   |         ^^^^ private field
+ 8 |         support_status: WorthUiQuerySupportStatus::Unsupported,
+   |         ^^^^^^^^^^^^^^ private field
+ 9 |         support_receipt_digest: 7,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         runtime_hook_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+11 |         denied_binding_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^ private field

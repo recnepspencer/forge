@@ -6,7 +6,11 @@ use crate::capability::{
 };
 use crate::runtime::{WorthUiRuntimeFactId, WorthUiRuntimeFactSet};
 
-use super::{WorthUiCapabilityReloadStage, WorthUiThemeTokenReloadPackage};
+use super::{
+    WorthUiCapabilityFamilyDelta, WorthUiCapabilityReloadFamilyCounters,
+    WorthUiCapabilityReloadFamilyKind, WorthUiCapabilityReloadStage,
+    WorthUiThemeTokenReloadPackage,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorthUiThemeTokenDelta {
@@ -48,20 +52,18 @@ impl WorthUiThemeTokenDelta {
         })
     }
 
-    pub(crate) fn into_parts(
-        self,
-    ) -> (
-        CapabilitySnapshot,
-        usize,
-        usize,
-        usize,
-        WorthUiRuntimeFactSet,
-    ) {
-        (
+    pub(crate) fn into_family_delta(self) -> WorthUiCapabilityFamilyDelta {
+        WorthUiCapabilityFamilyDelta::new(
+            WorthUiCapabilityReloadFamilyKind::ThemeTokens,
             self.snapshot,
-            self.touched_theme_token_count,
-            self.theme_token_family_entry_count,
-            self.registry_lookup_count,
+            WorthUiCapabilityReloadFamilyCounters::new(
+                1,
+                self.touched_theme_token_count,
+                self.touched_theme_token_count,
+                self.changed_facts.len(),
+                self.theme_token_family_entry_count,
+                self.registry_lookup_count,
+            ),
             self.changed_facts,
         )
     }

@@ -1,0 +1,22 @@
+warning: unreachable expression
+ --> tests/ui/runtime_authority/fail/changed_runtime_facts_fields_not_public.rs:4:19
+  |
+4 |       let _forged = WorthUiChangedRuntimeFacts {
+  |  ___________________^
+5 | |         facts: WorthUiRuntimeFactSet::empty(),
+6 | |         proof: unreachable!(),
+  | |                -------------- any code following this expression is unreachable
+7 | |     };
+  | |_____^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `facts` and `proof` of struct `WorthUiChangedRuntimeFacts` are private
+ --> tests/ui/runtime_authority/fail/changed_runtime_facts_fields_not_public.rs:5:9
+  |
+4 |     let _forged = WorthUiChangedRuntimeFacts {
+  |                   -------------------------- in this type
+5 |         facts: WorthUiRuntimeFactSet::empty(),
+  |         ^^^^^ private field
+6 |         proof: unreachable!(),
+  |         ^^^^^ private field

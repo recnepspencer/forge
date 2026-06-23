@@ -1,6 +1,6 @@
 use crate::capability::MosaicChildRule;
 use crate::source::{
-    WorthUiLegallyStructuredArtifactInputBindingNode,
+    parse_surface_authoring_body_atoms, WorthUiLegallyStructuredArtifactInputBindingNode,
     WorthUiLegallyStructuredArtifactInputComponentNode,
     WorthUiLegallyStructuredArtifactInputPageNode,
     WorthUiLegallyStructuredArtifactInputSurfaceNode, WorthUiMosaicMountFacts,
@@ -73,7 +73,7 @@ pub(super) fn lower_surface_node(
 > {
     let structure = lower_structure(
         module_id,
-        surface_node.body_atoms(),
+        surface_body_atoms_for_structural_lowering(surface_node.body_atoms()),
         surface_node.provenance(),
         context,
     )?;
@@ -84,6 +84,16 @@ pub(super) fn lower_surface_node(
         structure,
         surface_node.provenance().clone(),
     ))
+}
+
+fn surface_body_atoms_for_structural_lowering(
+    body_atoms: &[crate::source::WorthUiArtifactInputBodyAtom],
+) -> &[crate::source::WorthUiArtifactInputBodyAtom] {
+    if parse_surface_authoring_body_atoms(body_atoms).is_ok() {
+        &[]
+    } else {
+        body_atoms
+    }
 }
 
 pub(super) fn lower_binding_node(

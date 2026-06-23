@@ -386,9 +386,19 @@ planning, and counter-backed certification.
 - broadened runtime authoring snapshot derived from the existing source and
   artifact pipeline
 - generalized capability reload family pipeline
+- canonical appearance and density descriptors with typed values, stable digest
+  bases, and appearance/density capability reload families
+- component capability reload with compatibility and state-reconciliation
+  receipts
+- dropdown projection contracts for single-select and multi-select behavior,
+  including deterministic selection-state reconciliation
 - Query-bound reload integration that consumes Query-owned posture rather than
   rebuilding local state
-- native validation app proof slice using runtime receipts only
+- native validation app proof slices using runtime receipts only, including the
+  header/dropdown/style/page-slot manual acceptance path
+- runtime-owned Codex-style validation workspace proof, including authored left
+  rail, top title bar, central thread surface, right environment panel, and
+  built-in gap/containment/scroll semantics proven without preview-local glue
 - compiler enforcement and compile-fail guards against local reload authority
 - reload storm, replay, and counter certification
 
@@ -402,7 +412,11 @@ planning, and counter-backed certification.
 - prior-valid runtime truth on denied, stale, unreadable, or invalid reloads
 - renderer boundary as paint-only consumption of runtime receipts
 - no app-local dependency graph, hydration graph, reload state machine, shell
-  map, page map, command map, or theme state
+  map, page map, command map, component registry, dropdown mode authority,
+  style map, or theme state
+- built-in structural semantics such as region gap, inset, scroll ownership,
+  surface containment posture, and built-in component contracts remain
+  platform-owned; app authoring chooses from them but does not redefine them
 - no per-frame source interpretation, registry string lookup, broad artifact
   scan, or broad projection rebuild hidden behind convenient APIs
 
@@ -413,6 +427,18 @@ planning, and counter-backed certification.
   projection coordinator path
 - a running native validation app visibly hot reloads text, color, dropdown
   mode, page slot assignment, and one broader projection without restart
+- the running native validation app visibly hot reloads font size, row padding,
+  container padding, shadow or elevation, and component-backed dropdown behavior
+  through runtime receipts rather than app-local style or component state
+- the running native validation app visibly proves the same authored-truth
+  reload path on a Codex-style workspace shell rather than only on a
+  dashboard-shaped proof
+- the running native validation app exposes a manual verification matrix whose
+  rows name authored input, changed facts, rebuilt projections, preserved
+  projections, visible result, denial/equivalence/replay posture, and counters
+- the manual verification steps are written in human terms so a tester knows
+  what visible change to expect on screen and what evidence summary should stay
+  bounded
 - denied, stale, equivalent, valid, and mixed reloads preserve runtime truth and
   produce typed evidence
 - projection rebuild breadth is bounded by changed-fact and dependency
@@ -420,9 +446,11 @@ planning, and counter-backed certification.
 - Query-bound reload evidence preserves Query-owned posture and does not create
   validation-app local status models
 - compile-fail guards prevent app code from minting reload evidence, projection
-  receipts, direct Query dependency, or local shell/page/menu/theme authority
-- reload storm certification proves deterministic replay and no steady-frame
-  broad scans after activation
+  receipts, direct Query dependency, or local shell, page, menu, theme,
+  component, dropdown, or style authority
+- mixed product storm certification proves deterministic replay, bounded
+  projection rebuilds, typed denied/equivalent/valid family evidence, and no
+  steady-frame broad scans after activation
 
 ## Milestone 5: Command Spine, Focus, Selection, and Keyboard Routing
 

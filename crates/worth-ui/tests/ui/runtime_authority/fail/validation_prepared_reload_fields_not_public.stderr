@@ -10,4 +10,4 @@ error: cannot construct `WorthUiValidationPreparedReload` with struct literal sy
 9 |         candidate_plan: None,
   |         -------------------- private field
   |
-  = note: ...and other private field `runtime_instance_id` that was not provided
+  = note: ...and other private fields `runtime_instance_id` and `candidate_authoring_snapshot` that were not provided

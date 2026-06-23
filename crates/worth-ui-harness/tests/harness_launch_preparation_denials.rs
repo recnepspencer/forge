@@ -104,23 +104,7 @@ fn assert_diagnostic_denial(
 ) {
     assert!(expected_kind(&denial), "unexpected denial kind: {denial:?}");
     assert!(
-        diagnostic_count(&denial) > 0,
+        denial.diagnostic_lines().len() > 0,
         "diagnostic denial should report at least one diagnostic: {denial:?}"
     );
-}
-
-fn diagnostic_count(denial: &WorthUiRuntimeLaunchPreparationDenial) -> usize {
-    match denial {
-        WorthUiRuntimeLaunchPreparationDenial::SourcePackageRejected { diagnostic_count }
-        | WorthUiRuntimeLaunchPreparationDenial::ParseRejected { diagnostic_count }
-        | WorthUiRuntimeLaunchPreparationDenial::AuthoringEntryRejected { diagnostic_count }
-        | WorthUiRuntimeLaunchPreparationDenial::SnapshotResolutionRejected { diagnostic_count }
-        | WorthUiRuntimeLaunchPreparationDenial::StructuralLegalityRejected { diagnostic_count }
-        | WorthUiRuntimeLaunchPreparationDenial::BindingSemanticsRejected { diagnostic_count }
-        | WorthUiRuntimeLaunchPreparationDenial::IdentitySeedingRejected { diagnostic_count }
-        | WorthUiRuntimeLaunchPreparationDenial::ArtifactAssemblyRejected { diagnostic_count } => {
-            *diagnostic_count
-        }
-        WorthUiRuntimeLaunchPreparationDenial::EmptySourcePackage => 0,
-    }
 }

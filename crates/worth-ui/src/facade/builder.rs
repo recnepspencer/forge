@@ -18,7 +18,9 @@ use crate::capability::{
     TaskPresentationAcceptedRegistrationProof, TaskPresentationDescriptor,
     TaskPresentationRegistry, ThemeTokenAcceptedRegistrationProof, ThemeTokenDescriptor,
     ThemeTokenRegistry, ViewBindingAcceptedRegistrationProof, ViewBindingDescriptor,
-    ViewBindingRegistry,
+    ViewBindingRegistry, WorthUiAppearanceAcceptedRegistrationProof, WorthUiAppearanceRegistry,
+    WorthUiAppearanceTokenDescriptor, WorthUiDensityAcceptedRegistrationProof,
+    WorthUiDensityRegistry, WorthUiDensityTokenDescriptor,
 };
 
 use super::WorthUiApp;
@@ -29,6 +31,8 @@ pub struct WorthUiAppBuilder {
     command_registry: CommandRegistry,
     command_projection_registry: CommandProjectionRegistry,
     component_registry: ComponentRegistry,
+    appearance_registry: WorthUiAppearanceRegistry,
+    density_registry: WorthUiDensityRegistry,
     icon_registry: IconRegistry,
     surface_registry: SurfaceRegistry,
     mosaic_region_registry: MosaicRegionRegistry,
@@ -52,6 +56,8 @@ impl WorthUiAppBuilder {
             command_registry: CommandRegistry::empty(),
             command_projection_registry: CommandProjectionRegistry::empty(),
             component_registry: ComponentRegistry::empty(),
+            appearance_registry: WorthUiAppearanceRegistry::empty(),
+            density_registry: WorthUiDensityRegistry::empty(),
             icon_registry: IconRegistry::empty(),
             surface_registry: SurfaceRegistry::empty(),
             mosaic_region_registry: MosaicRegionRegistry::empty(),
@@ -90,6 +96,25 @@ impl WorthUiAppBuilder {
         self.registration_candidates
             .push(descriptor.registration_candidate());
         self.component_registry.push(descriptor);
+        self
+    }
+
+    /// Register a typed appearance token capability.
+    pub fn register_appearance_token(
+        mut self,
+        descriptor: WorthUiAppearanceTokenDescriptor,
+    ) -> Self {
+        self.registration_candidates
+            .push(descriptor.registration_candidate());
+        self.appearance_registry.push(descriptor);
+        self
+    }
+
+    /// Register a typed density token capability.
+    pub fn register_density_token(mut self, descriptor: WorthUiDensityTokenDescriptor) -> Self {
+        self.registration_candidates
+            .push(descriptor.registration_candidate());
+        self.density_registry.push(descriptor);
         self
     }
 
@@ -229,6 +254,15 @@ impl WorthUiAppBuilder {
             validation_report
                 .accepted_identity_texts_for_registry_family(RegistryFamily::Component),
         );
+        let accepted_appearance_tokens =
+            WorthUiAppearanceAcceptedRegistrationProof::from_identity_texts(
+                validation_report
+                    .accepted_identity_texts_for_registry_family(RegistryFamily::AppearanceToken),
+            );
+        let accepted_density_tokens = WorthUiDensityAcceptedRegistrationProof::from_identity_texts(
+            validation_report
+                .accepted_identity_texts_for_registry_family(RegistryFamily::DensityToken),
+        );
         let accepted_icons = IconAcceptedRegistrationProof::from_identity_texts(
             validation_report.accepted_identity_texts_for_registry_family(RegistryFamily::Icon),
         );
@@ -293,6 +327,8 @@ impl WorthUiAppBuilder {
             .command_projection_registry
             .freeze(&accepted_command_projections);
         let component_capabilities = self.component_registry.freeze(&accepted_components);
+        let appearance_capabilities = self.appearance_registry.freeze(&accepted_appearance_tokens);
+        let density_capabilities = self.density_registry.freeze(&accepted_density_tokens);
         let icon_capabilities = self.icon_registry.freeze(&accepted_icons);
         let surface_capabilities = self.surface_registry.freeze(&accepted_surfaces);
         let mosaic_region_capabilities =
@@ -324,6 +360,8 @@ impl WorthUiAppBuilder {
                 commands: command_capabilities,
                 command_projections: command_projection_capabilities,
                 components: component_capabilities,
+                appearance_tokens: appearance_capabilities,
+                density_tokens: density_capabilities,
                 icons: icon_capabilities,
                 surfaces: surface_capabilities,
                 mosaic_regions: mosaic_region_capabilities,

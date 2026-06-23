@@ -1,3 +1,7 @@
+use crate::runtime::{
+    WorthUiObservedAuthoredEdit, WorthUiObservedAuthoredEditDenial, WorthUiSourceProvider,
+};
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiValidationReloadRequest {
     modules: Vec<WorthUiValidationReloadSourceModule>,
@@ -42,17 +46,13 @@ impl WorthUiValidationReloadRequest {
         self.modules.is_empty()
     }
 
-    pub(super) fn modules(&self) -> &[WorthUiValidationReloadSourceModule] {
-        &self.modules
-    }
-}
-
-impl WorthUiValidationReloadSourceModule {
-    pub(crate) fn relative_path(&self) -> &str {
-        &self.relative_path
-    }
-
-    pub(crate) fn source_text(&self) -> &str {
-        &self.source_text
+    pub(super) fn into_observed_authored_edit(
+        self,
+    ) -> Result<WorthUiObservedAuthoredEdit, WorthUiObservedAuthoredEditDenial> {
+        let provider = self.modules.into_iter().fold(
+            WorthUiSourceProvider::in_memory("validation-app-reload"),
+            |provider, module| provider.with_file(module.relative_path, module.source_text),
+        );
+        WorthUiObservedAuthoredEdit::from_source_provider(provider)
     }
 }

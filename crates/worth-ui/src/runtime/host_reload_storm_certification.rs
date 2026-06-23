@@ -228,7 +228,7 @@ impl WorthUiRuntimeHost {
                 });
             }
         };
-        match batch.lower_to_candidate_submission(snapshot) {
+        match batch.lower_to_candidate_submission(snapshot, self.active_authoring_snapshot()) {
             Ok(submission) => Ok(submission.into_candidate()),
             Err(submission_denial) => {
                 counters.record_denied_preservation();

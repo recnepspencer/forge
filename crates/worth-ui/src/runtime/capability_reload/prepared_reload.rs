@@ -1,27 +1,26 @@
-use crate::capability::CapabilitySnapshot;
 use crate::runtime::active::WorthUiActiveExecutionPlan;
 use crate::runtime::{
-    WorthUiCapabilityReloadEvidence, WorthUiCapabilityReloadStage, WorthUiCapabilityReloadStatus,
-    WorthUiRuntimeHost,
+    WorthUiAdmittedCapabilityReloadBatch, WorthUiCapabilityReloadEvidence,
+    WorthUiCapabilityReloadStage, WorthUiCapabilityReloadStatus, WorthUiRuntimeHost,
 };
 
 #[derive(Debug)]
 pub struct WorthUiCapabilityPreparedReload {
     runtime_instance_witness: u64,
     evidence: WorthUiCapabilityReloadEvidence,
-    candidate_snapshot: Option<CapabilitySnapshot>,
+    admitted_batch: Option<WorthUiAdmittedCapabilityReloadBatch>,
 }
 
 impl WorthUiCapabilityPreparedReload {
     pub(crate) fn new(
         runtime_instance_witness: u64,
         evidence: WorthUiCapabilityReloadEvidence,
-        candidate_snapshot: Option<CapabilitySnapshot>,
+        admitted_batch: Option<WorthUiAdmittedCapabilityReloadBatch>,
     ) -> Self {
         Self {
             runtime_instance_witness,
             evidence,
-            candidate_snapshot,
+            admitted_batch,
         }
     }
 
@@ -51,9 +50,10 @@ impl WorthUiCapabilityPreparedReload {
         {
             return Err(WorthUiCapabilityReloadStage::ActiveSnapshotDrift);
         }
-        let candidate_snapshot = self
-            .candidate_snapshot
+        let admitted_batch = self
+            .admitted_batch
             .ok_or(WorthUiCapabilityReloadStage::MissingReadyActivation)?;
+        let candidate_snapshot = admitted_batch.into_candidate_snapshot();
 
         let active_state = runtime.active_state_for_swap_mut();
         let artifact_digest = active_state.active_artifact().digest();

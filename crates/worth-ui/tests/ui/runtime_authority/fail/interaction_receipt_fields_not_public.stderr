@@ -1,0 +1,24 @@
+error[E0451]: fields `surface_id`, `component_id`, `interaction_id`, `kind`, `status`, `readiness`, `target`, `payload` and `receipt_digest` of struct `WorthUiInteractionReceipt` are private
+  --> tests/ui/runtime_authority/fail/interaction_receipt_fields_not_public.rs:8:9
+   |
+ 7 |     let _forged = WorthUiInteractionReceipt {
+   |                   ------------------------- in this type
+ 8 |         surface_id: "worth.surface.preview.primitive.proof".to_owned(),
+   |         ^^^^^^^^^^ private field
+ 9 |         component_id: "worth.component.primitive.proof".to_owned(),
+   |         ^^^^^^^^^^^^ private field
+10 |         interaction_id: "worth.interaction.primitive.submit".to_owned(),
+   |         ^^^^^^^^^^^^^^ private field
+11 |         kind: WorthUiInteractionKind::Submit,
+   |         ^^^^ private field
+12 |         status: WorthUiInteractionStatus::Emitted,
+   |         ^^^^^^ private field
+13 |         readiness: WorthUiInteractionReadiness::Enabled,
+   |         ^^^^^^^^^ private field
+14 |         target: WorthUiInteractionTarget::Surface(
+   |         ^^^^^^ private field
+...
+17 |         payload: payload(),
+   |         ^^^^^^^ private field
+18 |         receipt_digest: 1,
+   |         ^^^^^^^^^^^^^^ private field

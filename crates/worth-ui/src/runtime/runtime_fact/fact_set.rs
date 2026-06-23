@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use super::{WorthUiRuntimeFactFamily, WorthUiRuntimeFactId};
+use super::{WorthUiRuntimeFactFamily, WorthUiRuntimeFactId, WorthUiRuntimeFactSetDigest};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct WorthUiRuntimeFactSet {
@@ -22,12 +22,21 @@ impl WorthUiRuntimeFactSet {
         self.facts.insert(fact);
     }
 
+    pub fn with(mut self, fact: WorthUiRuntimeFactId) -> Self {
+        self.insert(fact);
+        self
+    }
+
     pub fn extend(&mut self, facts: impl IntoIterator<Item = WorthUiRuntimeFactId>) {
         self.facts.extend(facts);
     }
 
     pub fn contains(&self, fact: &WorthUiRuntimeFactId) -> bool {
         self.facts.contains(fact)
+    }
+
+    pub fn contains_exact(&self, fact: &WorthUiRuntimeFactId) -> bool {
+        self.contains(fact)
     }
 
     pub fn intersects(&self, other: &Self) -> bool {
@@ -48,5 +57,9 @@ impl WorthUiRuntimeFactSet {
 
     pub fn facts(&self) -> impl Iterator<Item = &WorthUiRuntimeFactId> {
         self.facts.iter()
+    }
+
+    pub fn digest(&self) -> WorthUiRuntimeFactSetDigest {
+        WorthUiRuntimeFactSetDigest::from_facts(self.facts())
     }
 }

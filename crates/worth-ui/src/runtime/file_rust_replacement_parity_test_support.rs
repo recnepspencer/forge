@@ -94,7 +94,7 @@ fn candidate_from_provider_for_app(
         .ingest([WorthUiWatcherEvent::provider_revision(provider_id)])
         .expect("source ingress debounces");
     batch
-        .lower_to_candidate_submission(app.capabilities())
+        .lower_to_candidate_submission(app.capabilities(), None)
         .expect("candidate submission lowers")
         .into_candidate()
 }

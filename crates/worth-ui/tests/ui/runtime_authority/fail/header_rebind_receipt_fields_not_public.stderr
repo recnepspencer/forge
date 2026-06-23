@@ -1,19 +1,34 @@
-error[E0451]: fields `status`, `previous_frame_digest`, `rebound_frame_digest`, `source_parse_count`, `registry_lookup_count`, `artifact_tree_scan_count` and `projection_rebuild_count` of struct `WorthUiHeaderFrameRebindReceipt` are private
-  --> tests/ui/runtime_authority/fail/header_rebind_receipt_fields_not_public.rs:5:9
+error: cannot construct `WorthUiHeaderFrameRebindReceipt` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/header_rebind_receipt_fields_not_public.rs:4:19
    |
  4 |     let _forged = WorthUiHeaderFrameRebindReceipt {
-   |                   ------------------------------- in this type
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  5 |         status: WorthUiHeaderFrameRebindStatus::ReboundAfterActivation,
-   |         ^^^^^^ private field
+   |         -------------------------------------------------------------- private field
  6 |         previous_frame_digest: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------ private field
  7 |         rebound_frame_digest: 2,
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------- private field
  8 |         source_parse_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------- private field
  9 |         registry_lookup_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------ private field
 10 |         artifact_tree_scan_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------- private field
 11 |         projection_rebuild_count: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------- private field
+   |
+   = note: ...and other private field `projection_batch` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+ 4 -     let _forged = WorthUiHeaderFrameRebindReceipt {
+ 5 -         status: WorthUiHeaderFrameRebindStatus::ReboundAfterActivation,
+ 6 -         previous_frame_digest: 1,
+ 7 -         rebound_frame_digest: 2,
+ 8 -         source_parse_count: 0,
+ 9 -         registry_lookup_count: 0,
+10 -         artifact_tree_scan_count: 0,
+11 -         projection_rebuild_count: 1,
+12 -     };
+ 4 +     let _forged = WorthUiHeaderFrameRebindReceipt::new(_, _, _, _, _);
+   |

@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/reload_boundary/fail/raw_component_package_cannot_enter_validation_reload_workbench.rs:14:59
+   |
+14 |     let _ = workbench.prepare_component_capability_reload(&package);
+   |                       ----------------------------------- ^^^^^^^^ expected `&ValidationComponentSource`, found `&WorthUiComponentReloadPackage`
+   |                       |
+   |                       arguments to this method are incorrect
+   |
+   = note: expected reference `&ValidationComponentSource`
+              found reference `&WorthUiComponentReloadPackage`
+note: method defined here
+  --> src/runtime_workbench/capability_reload/mod.rs
+   |
+   |     pub fn prepare_component_capability_reload(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

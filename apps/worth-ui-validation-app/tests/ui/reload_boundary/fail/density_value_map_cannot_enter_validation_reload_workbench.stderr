@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/reload_boundary/fail/density_value_map_cannot_enter_validation_reload_workbench.rs:15:57
+   |
+15 |     let _ = workbench.prepare_density_capability_reload(&values);
+   |                       --------------------------------- ^^^^^^^ expected `&ValidationDensitySource`, found `&BTreeMap<DensityTokenId, ...>`
+   |                       |
+   |                       arguments to this method are incorrect
+   |
+   = note: expected reference `&ValidationDensitySource`
+              found reference `&BTreeMap<DensityTokenId, WorthUiDensityValue>`
+note: method defined here
+  --> src/runtime_workbench/capability_reload/mod.rs
+   |
+   |     pub fn prepare_density_capability_reload(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

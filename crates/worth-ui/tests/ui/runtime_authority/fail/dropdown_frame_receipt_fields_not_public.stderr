@@ -1,0 +1,19 @@
+error[E0451]: fields `projection_id`, `component_id`, `selection_mode`, `commands`, `appearance`, `selection_state` and `reconciliation` of struct `WorthUiDropdownFrameReceipt` are private
+  --> tests/ui/runtime_authority/fail/dropdown_frame_receipt_fields_not_public.rs:5:9
+   |
+ 4 |     let _forged = WorthUiDropdownFrameReceipt {
+   |                   --------------------------- in this type
+ 5 |         projection_id: "validation.command_projection.header".to_owned(),
+   |         ^^^^^^^^^^^^^ private field
+ 6 |         component_id: "validation.component.header.dropdown".to_owned(),
+   |         ^^^^^^^^^^^^ private field
+ 7 |         selection_mode: forged_selection_mode(),
+   |         ^^^^^^^^^^^^^^ private field
+ 8 |         commands: forged_commands(),
+   |         ^^^^^^^^ private field
+ 9 |         appearance: forged_appearance(),
+   |         ^^^^^^^^^^ private field
+10 |         selection_state: forged_selection_state(),
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         reconciliation: forged_reconciliation(),
+   |         ^^^^^^^^^^^^^^ private field

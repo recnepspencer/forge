@@ -1,0 +1,21 @@
+error[E0599]: no method named `witness` found for reference `&WorthUiCandidateRuntimeAuthoringSnapshot` in the current scope
+  --> tests/ui/runtime_authority/fail/candidate_snapshot_cannot_plan_page_host.rs:10:19
+   |
+10 |         candidate.witness(),
+   |                   ^^^^^^^ method not found in `&WorthUiCandidateRuntimeAuthoringSnapshot`
+
+error[E0308]: mismatched types
+ --> tests/ui/runtime_authority/fail/candidate_snapshot_cannot_plan_page_host.rs:9:9
+  |
+8 |     let _plan = WorthUiPageHostPlan::from_active_authoring(
+  |                 ------------------------------------------ arguments to this function are incorrect
+9 |         candidate,
+  |         ^^^^^^^^^ expected `&WorthUiRuntimeAuthoringSnapshot`, found `&...`
+  |
+  = note: expected reference `&WorthUiRuntimeAuthoringSnapshot`
+             found reference `&WorthUiCandidateRuntimeAuthoringSnapshot`
+note: associated function defined here
+ --> src/runtime/page_surface/page_host_plan.rs
+  |
+  |     pub fn from_active_authoring(
+  |            ^^^^^^^^^^^^^^^^^^^^^

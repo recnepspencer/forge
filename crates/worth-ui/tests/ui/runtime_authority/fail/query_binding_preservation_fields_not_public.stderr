@@ -1,0 +1,11 @@
+error[E0451]: fields `identity`, `preserved_posture` and `preservation_receipt` of struct `WorthUiQueryBindingPreservation` are private
+  --> tests/ui/runtime_authority/fail/query_binding_preservation_fields_not_public.rs:15:9
+   |
+14 |     let _forged_preservation = WorthUiQueryBindingPreservation {
+   |                                ------------------------------- in this type
+15 |         identity: forged_query_binding_identity(),
+   |         ^^^^^^^^ private field
+16 |         preserved_posture: forged_query_binding_posture(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+17 |         preservation_receipt: "query-live-preserve:forged".to_owned(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field

@@ -1,8 +1,13 @@
 use std::path::PathBuf;
 
+use crate::facade::runtime_launch_diagnostics::{
+    authoring_entry_diagnostics, content_slot_diagnostics, debug_diagnostics, parse_diagnostics,
+    snapshot_resolution_diagnostics, source_package_diagnostics,
+};
 use crate::facade::WorthUiApp;
 use crate::runtime::{
-    WorthUiRuntimeAuthoringSnapshot, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeLaunch,
+    WorthUiCandidateRuntimeAuthoringSnapshot, WorthUiRuntimeAuthoringSnapshotBuilder,
+    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeLaunch,
 };
 use crate::source::{
     build_content_slot_catalog, build_layout_topology_catalog, WorthUiArtifact,
@@ -33,6 +38,7 @@ pub struct WorthUiRuntimeLaunchBuilder {
 pub struct WorthUiPreparedRuntimeAuthoring {
     layout_topology: WorthUiLayoutTopologyCatalog,
     content_slots: WorthUiContentSlotCatalog,
+    authoring_snapshot: WorthUiCandidateRuntimeAuthoringSnapshot,
     runtime_launch: WorthUiRuntimeLaunch,
 }
 
@@ -40,15 +46,15 @@ pub struct WorthUiPreparedRuntimeAuthoring {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiRuntimeLaunchPreparationDenial {
     EmptySourcePackage,
-    SourcePackageRejected { diagnostic_count: usize },
-    ParseRejected { diagnostic_count: usize },
-    AuthoringEntryRejected { diagnostic_count: usize },
-    SnapshotResolutionRejected { diagnostic_count: usize },
-    StructuralLegalityRejected { diagnostic_count: usize },
-    BindingSemanticsRejected { diagnostic_count: usize },
-    IdentitySeedingRejected { diagnostic_count: usize },
-    ArtifactAssemblyRejected { diagnostic_count: usize },
-    ContentSlotCatalogRejected { diagnostic_count: usize },
+    SourcePackageRejected { diagnostics: Vec<String> },
+    ParseRejected { diagnostics: Vec<String> },
+    AuthoringEntryRejected { diagnostics: Vec<String> },
+    SnapshotResolutionRejected { diagnostics: Vec<String> },
+    StructuralLegalityRejected { diagnostics: Vec<String> },
+    BindingSemanticsRejected { diagnostics: Vec<String> },
+    IdentitySeedingRejected { diagnostics: Vec<String> },
+    ArtifactAssemblyRejected { diagnostics: Vec<String> },
+    ContentSlotCatalogRejected { diagnostics: Vec<String> },
 }
 
 impl WorthUiRuntimeSourceModule {
@@ -112,11 +118,21 @@ impl WorthUiRuntimeLaunchBuilder {
         let artifact = assemble_canonical_artifact(&identity_seeded)?;
         let content_slots = verify_content_slots_against_artifact(content_slots, &artifact)?;
 
-        let authoring_snapshot =
-            WorthUiRuntimeAuthoringSnapshot::new(layout_topology.clone(), content_slots.clone());
+        let authoring_snapshot = WorthUiRuntimeAuthoringSnapshotBuilder::from_source_package(
+            &parsed_package,
+            app.capabilities(),
+            layout_topology.clone(),
+            content_slots.clone(),
+        )
+        .map_err(|denial| {
+            WorthUiRuntimeLaunchPreparationDenial::AuthoringEntryRejected {
+                diagnostics: vec![format!("{denial:?}")],
+            }
+        })?;
         Ok(WorthUiPreparedRuntimeAuthoring::new(
             layout_topology,
             content_slots,
+            authoring_snapshot.clone(),
             WorthUiRuntimeLaunch::from_facade_authoring(
                 artifact,
                 authoring_snapshot,
@@ -130,11 +146,13 @@ impl WorthUiPreparedRuntimeAuthoring {
     fn new(
         layout_topology: WorthUiLayoutTopologyCatalog,
         content_slots: WorthUiContentSlotCatalog,
+        authoring_snapshot: WorthUiCandidateRuntimeAuthoringSnapshot,
         runtime_launch: WorthUiRuntimeLaunch,
     ) -> Self {
         Self {
             layout_topology,
             content_slots,
+            authoring_snapshot,
             runtime_launch,
         }
     }
@@ -147,6 +165,10 @@ impl WorthUiPreparedRuntimeAuthoring {
         &self.content_slots
     }
 
+    pub fn authoring_snapshot(&self) -> &WorthUiCandidateRuntimeAuthoringSnapshot {
+        &self.authoring_snapshot
+    }
+
     pub fn into_runtime_launch(self) -> WorthUiRuntimeLaunch {
         self.runtime_launch
     }
@@ -157,11 +179,13 @@ impl WorthUiPreparedRuntimeAuthoring {
         WorthUiRuntimeLaunch,
         WorthUiLayoutTopologyCatalog,
         WorthUiContentSlotCatalog,
+        WorthUiCandidateRuntimeAuthoringSnapshot,
     ) {
         (
             self.runtime_launch,
             self.layout_topology,
             self.content_slots,
+            self.authoring_snapshot,
         )
     }
 }
@@ -185,7 +209,7 @@ fn compile_source_package(
     }
     loader.compile().map_err(|report| {
         WorthUiRuntimeLaunchPreparationDenial::SourcePackageRejected {
-            diagnostic_count: report.diagnostics().len(),
+            diagnostics: source_package_diagnostics(&report),
         }
     })
 }
@@ -195,7 +219,7 @@ fn parse_source_package(
 ) -> Result<WorthUiParsedSourcePackage, WorthUiRuntimeLaunchPreparationDenial> {
     WorthUiSourceParser::parse_package(source_package).map_err(|report| {
         WorthUiRuntimeLaunchPreparationDenial::ParseRejected {
-            diagnostic_count: report.diagnostics().len(),
+            diagnostics: parse_diagnostics(&report),
         }
     })
 }
@@ -205,7 +229,7 @@ fn lower_parsed_source_package(
 ) -> Result<WorthUiArtifactInput, WorthUiRuntimeLaunchPreparationDenial> {
     WorthUiParsedSourceToArtifactInputLowerer::lower(parsed_package).map_err(|report| {
         WorthUiRuntimeLaunchPreparationDenial::AuthoringEntryRejected {
-            diagnostic_count: report.diagnostics().len(),
+            diagnostics: authoring_entry_diagnostics(&report),
         }
     })
 }
@@ -224,7 +248,7 @@ fn resolve_artifact_input(
 ) -> Result<WorthUiResolvedArtifactInput, WorthUiRuntimeLaunchPreparationDenial> {
     WorthUiArtifactInputResolver::resolve(artifact_input, app.capabilities()).map_err(|report| {
         WorthUiRuntimeLaunchPreparationDenial::SnapshotResolutionRejected {
-            diagnostic_count: report.diagnostics().len(),
+            diagnostics: snapshot_resolution_diagnostics(&report),
         }
     })
 }
@@ -235,7 +259,7 @@ fn enforce_structural_legality(
 ) -> Result<WorthUiLegallyStructuredArtifactInput, WorthUiRuntimeLaunchPreparationDenial> {
     WorthUiStructuralLegalityLowerer::lower(resolved, app.capabilities()).map_err(|report| {
         WorthUiRuntimeLaunchPreparationDenial::StructuralLegalityRejected {
-            diagnostic_count: report.diagnostics().len(),
+            diagnostics: debug_diagnostics(report.diagnostics()),
         }
     })
 }
@@ -246,7 +270,7 @@ fn enforce_binding_semantics(
 ) -> Result<WorthUiBoundArtifactInput, WorthUiRuntimeLaunchPreparationDenial> {
     WorthUiBindingSemanticsLowerer::lower(structured, app.capabilities()).map_err(|report| {
         WorthUiRuntimeLaunchPreparationDenial::BindingSemanticsRejected {
-            diagnostic_count: report.diagnostics().len(),
+            diagnostics: debug_diagnostics(report.diagnostics()),
         }
     })
 }
@@ -258,7 +282,7 @@ fn seed_artifact_identity(
         .map(|seeded| seeded.0)
         .map_err(
             |report| WorthUiRuntimeLaunchPreparationDenial::IdentitySeedingRejected {
-                diagnostic_count: report.diagnostics().len(),
+                diagnostics: debug_diagnostics(report.diagnostics()),
             },
         )
 }
@@ -268,7 +292,7 @@ fn assemble_canonical_artifact(
 ) -> Result<WorthUiArtifact, WorthUiRuntimeLaunchPreparationDenial> {
     WorthUiCanonicalArtifactAssembler::assemble(identity_seeded).map_err(|report| {
         WorthUiRuntimeLaunchPreparationDenial::ArtifactAssemblyRejected {
-            diagnostic_count: report.diagnostics().len(),
+            diagnostics: debug_diagnostics(report.diagnostics()),
         }
     })
 }
@@ -279,7 +303,7 @@ fn prepare_content_slots(
 ) -> Result<WorthUiContentSlotCatalog, WorthUiRuntimeLaunchPreparationDenial> {
     build_content_slot_catalog(parsed_package, layout_topology).map_err(|report| {
         WorthUiRuntimeLaunchPreparationDenial::ContentSlotCatalogRejected {
-            diagnostic_count: report.diagnostics().len(),
+            diagnostics: authoring_entry_diagnostics(&report),
         }
     })
 }
@@ -292,7 +316,7 @@ fn verify_content_slots_against_artifact(
         .verify_canonical_mount_order(artifact)
         .map_err(
             |report| WorthUiRuntimeLaunchPreparationDenial::ContentSlotCatalogRejected {
-                diagnostic_count: report.diagnostics().len(),
+                diagnostics: content_slot_diagnostics(report.diagnostics()),
             },
         )
 }

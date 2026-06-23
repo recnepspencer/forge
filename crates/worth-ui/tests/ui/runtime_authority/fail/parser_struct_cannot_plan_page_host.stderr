@@ -1,0 +1,21 @@
+error[E0603]: module `source` is private
+ --> tests/ui/runtime_authority/fail/parser_struct_cannot_plan_page_host.rs:2:15
+  |
+2 | use worth_ui::source::WorthUiParsedSourcePackage;
+  |               ^^^^^^ private module
+  |
+note: the module `source` is defined here
+ --> src/lib.rs
+  |
+  | mod source;
+  | ^^^^^^^^^^
+
+warning: unreachable expression
+  --> tests/ui/runtime_authority/fail/parser_struct_cannot_plan_page_host.rs:10:9
+   |
+ 9 |         unreachable!(),
+   |         -------------- any code following this expression is unreachable
+10 |         WorthUiPageHostRequest::new("ProductsPage"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

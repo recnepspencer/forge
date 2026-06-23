@@ -1,0 +1,13 @@
+error[E0451]: fields `surface_id`, `interaction_id`, `kind` and `gesture` of struct `WorthUiInteractionActivationRequest` are private
+  --> tests/ui/runtime_authority/fail/interaction_activation_request_fields_not_public.rs:8:9
+   |
+ 7 |     let _forged = WorthUiInteractionActivationRequest {
+   |                   ----------------------------------- in this type
+ 8 |         surface_id: SurfaceId::new("worth.surface.preview.primitive.proof").unwrap(),
+   |         ^^^^^^^^^^ private field
+ 9 |         interaction_id: "worth.interaction.primitive.submit".to_owned(),
+   |         ^^^^^^^^^^^^^^ private field
+10 |         kind: WorthUiInteractionKind::Submit,
+   |         ^^^^ private field
+11 |         gesture: WorthUiMountedInteractionGesture::primary_click(),
+   |         ^^^^^^^ private field

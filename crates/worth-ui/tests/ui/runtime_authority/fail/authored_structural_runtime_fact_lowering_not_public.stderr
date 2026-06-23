@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_ui::facade::WorthUiAuthoredStructuralRuntimeFactLowering`
+ --> tests/ui/runtime_authority/fail/authored_structural_runtime_fact_lowering_not_public.rs:1:5
+  |
+1 | use worth_ui::facade::WorthUiAuthoredStructuralRuntimeFactLowering;
+  |     ^^^^^^^^^^^^^^^^^^--------------------------------------------
+  |     |                 |
+  |     |                 help: a similar name exists in the module: `WorthUiAuthoredStructuralChangedFactRow`
+  |     no `WorthUiAuthoredStructuralRuntimeFactLowering` in `facade`

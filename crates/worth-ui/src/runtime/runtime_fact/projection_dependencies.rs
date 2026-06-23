@@ -1,4 +1,4 @@
-use super::{WorthUiRuntimeFactId, WorthUiRuntimeFactSet};
+use super::{WorthUiRuntimeFactId, WorthUiRuntimeFactSet, WorthUiRuntimeFactSetDigest};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct WorthUiProjectionDependencySet {
@@ -24,11 +24,23 @@ impl WorthUiProjectionDependencySet {
         self.facts.intersects(changed_facts)
     }
 
+    pub fn contains_exact(&self, fact: &WorthUiRuntimeFactId) -> bool {
+        self.facts.contains_exact(fact)
+    }
+
     pub fn facts(&self) -> impl Iterator<Item = &WorthUiRuntimeFactId> {
         self.facts.facts()
     }
 
     pub fn len(&self) -> usize {
         self.facts.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.facts.is_empty()
+    }
+
+    pub fn digest(&self) -> WorthUiRuntimeFactSetDigest {
+        self.facts.digest()
     }
 }

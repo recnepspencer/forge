@@ -6,7 +6,11 @@ use crate::capability::{
 };
 use crate::runtime::{WorthUiRuntimeFactId, WorthUiRuntimeFactSet};
 
-use super::{WorthUiCapabilityReloadStage, WorthUiCommandProjectionReloadPackage};
+use super::{
+    WorthUiCapabilityFamilyDelta, WorthUiCapabilityReloadFamilyCounters,
+    WorthUiCapabilityReloadFamilyKind, WorthUiCapabilityReloadStage,
+    WorthUiCommandProjectionReloadPackage,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorthUiCommandProjectionDelta {
@@ -55,20 +59,18 @@ impl WorthUiCommandProjectionDelta {
         })
     }
 
-    pub(crate) fn into_parts(
-        self,
-    ) -> (
-        CapabilitySnapshot,
-        usize,
-        usize,
-        usize,
-        WorthUiRuntimeFactSet,
-    ) {
-        (
+    pub(crate) fn into_family_delta(self) -> WorthUiCapabilityFamilyDelta {
+        WorthUiCapabilityFamilyDelta::new(
+            WorthUiCapabilityReloadFamilyKind::CommandProjections,
             self.snapshot,
-            self.touched_projection_count,
-            self.projection_family_entry_count,
-            self.registry_lookup_count,
+            WorthUiCapabilityReloadFamilyCounters::new(
+                1,
+                self.touched_projection_count,
+                self.touched_projection_count,
+                self.touched_projection_count,
+                self.projection_family_entry_count,
+                self.registry_lookup_count,
+            ),
             self.changed_facts,
         )
     }

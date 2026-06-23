@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/runtime_authority/fail/appearance_value_map_cannot_replace_reload_evidence.rs:13:45
+   |
+13 |     runtime.admit_capability_runtime_change(&values);
+   |             ------------------------------- ^^^^^^^ expected `&WorthUiCapabilityReloadEvidence`, found `&BTreeMap<AppearanceTokenId, ...>`
+   |             |
+   |             arguments to this method are incorrect
+   |
+   = note: expected reference `&WorthUiCapabilityReloadEvidence`
+              found reference `&BTreeMap<AppearanceTokenId, WorthUiAppearanceValue>`
+note: method defined here
+  --> src/runtime/host.rs
+   |
+   |     pub fn admit_capability_runtime_change(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

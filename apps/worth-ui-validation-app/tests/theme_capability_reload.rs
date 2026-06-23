@@ -1,12 +1,16 @@
 use worth_ui::facade::{
-    CommandProjectionSelectionMode, WorthUiCapabilityReloadStage, WorthUiCapabilityReloadStatus,
-    WorthUiHeaderFrameRebindStatus,
+    CommandId, CommandProjectionId, CommandProjectionSelectionMode, WorthUiCapabilityReloadStage,
+    WorthUiCapabilityReloadStatus, WorthUiDropdownSelectionStateStatus,
+    WorthUiHeaderFrameRebindStatus, WorthUiRebindPhaseLane, WorthUiRebindPhaseSelectionStatus,
 };
 use worth_ui_validation_app::reload::{
     ValidationCommandProjectionSource, ValidationCommandSource, ValidationReloadInput,
-    ValidationReloadTick, ValidationRuntimeReloadTickOutcome, ValidationThemeSource,
+    ValidationReloadTick, ValidationRuntimeReloadTickOutcome, ValidationSourcePackage,
+    ValidationThemeSource,
 };
-use worth_ui_validation_app::{ValidationRuntimeWorkbench, ValidationWorkbenchLaunch};
+use worth_ui_validation_app::{
+    ValidationRuntimeWorkbench, ValidationWorkbenchAuthoredInputs, ValidationWorkbenchLaunch,
+};
 
 #[test]
 fn theme_change_activates_runtime_capability_snapshot_and_rebinds_header() {
@@ -18,11 +22,13 @@ fn theme_change_activates_runtime_capability_snapshot_and_rebinds_header() {
 
     let ValidationRuntimeReloadTickOutcome::ThemeReloaded {
         evidence,
-        header_receipt,
+        phase_execution,
+        ..
     } = outcome
     else {
         panic!("theme-only reload should activate through runtime capability reload");
     };
+    let phase_execution = phase_execution.expect("theme reload should emit phase execution");
     assert_eq!(evidence.status(), WorthUiCapabilityReloadStatus::Activated);
     assert_eq!(evidence.touched_theme_token_count(), 1);
     assert_eq!(evidence.registry_lookup_count(), 1);
@@ -36,11 +42,14 @@ fn theme_change_activates_runtime_capability_snapshot_and_rebinds_header() {
     );
     assert_ne!(workbench.header_frame_plan().frame_digest(), before_digest);
     assert_eq!(
-        header_receipt
-            .expect("activated theme reload should rebind header")
-            .status(),
+        phase_execution.header_rebind().status(),
         WorthUiHeaderFrameRebindStatus::ReboundAfterActivation
     );
+    assert!(phase_execution
+        .rows()
+        .iter()
+        .any(|row| row.lane() == WorthUiRebindPhaseLane::HeaderFrame
+            && row.status() == WorthUiRebindPhaseSelectionStatus::RebuildScheduled));
 }
 
 #[test]
@@ -67,8 +76,13 @@ validation.theme.header.text = #A0B0C0",
     );
     assert_eq!(
         evidence.theme_token_family_entry_count(),
-        6,
-        "validation app registers six header theme tokens and rebuild breadth should be explicit"
+        workbench
+            .app()
+            .capabilities()
+            .theme_tokens()
+            .entries()
+            .len(),
+        "theme rebuild breadth should reflect the active registered family, not fixture residue"
     );
     assert_eq!(evidence.artifact_tree_scan_count(), 0);
 }
@@ -197,22 +211,23 @@ validation.command.help.about = About Worth UI",
 
     let ValidationRuntimeReloadTickOutcome::CommandReloaded {
         evidence,
-        header_receipt,
+        phase_execution,
+        ..
     } = outcome
     else {
         panic!("command source reload should activate through runtime capability reload");
     };
+    let phase_execution = phase_execution.expect("command reload should emit phase execution");
     assert_eq!(evidence.status(), WorthUiCapabilityReloadStatus::Activated);
-    assert_eq!(evidence.touched_theme_token_count(), 15);
+    assert_eq!(evidence.touched_theme_token_count(), 0);
+    assert_eq!(evidence.touched_command_count(), 15);
     assert_ne!(
         workbench.runtime().inspect_active().snapshot_digest(),
         before_snapshot
     );
     assert_ne!(workbench.header_frame_plan().frame_digest(), before_header);
     assert_eq!(
-        header_receipt
-            .expect("command reload should rebind dependent header")
-            .status(),
+        phase_execution.header_rebind().status(),
         WorthUiHeaderFrameRebindStatus::ReboundAfterActivation
     );
     let file_menu = workbench
@@ -231,32 +246,46 @@ validation.command.help.about = About Worth UI",
 fn command_projection_policy_change_rebinds_header_without_local_style_state() {
     let mut workbench = runtime_workbench();
     let before_header = workbench.header_frame_plan().frame_digest();
+    workbench
+        .select_dropdown_command(
+            &CommandProjectionId::new("validation.header.menu.file").unwrap(),
+            &CommandId::new("validation.command.file.new").unwrap(),
+        )
+        .expect("runtime-owned dropdown interaction should seed selection before mode reload");
 
-    let outcome = apply_command_projection_source(
-        &mut workbench,
-        "\
-validation.header.menu.file = multi
-validation.header.menu.edit = single
-validation.header.menu.terminal = single
-validation.header.menu.help = single",
-    );
+    let outcome =
+        apply_command_projection_source(&mut workbench, "validation.header.menu.file = multi");
 
     let ValidationRuntimeReloadTickOutcome::CommandProjectionReloaded {
         evidence,
-        header_receipt,
+        phase_execution,
+        ..
     } = outcome
     else {
         panic!("projection source reload should activate through runtime capability reload");
     };
+    let phase_execution =
+        phase_execution.expect("command projection reload should emit phase execution");
     assert_eq!(evidence.status(), WorthUiCapabilityReloadStatus::Activated);
-    assert_eq!(evidence.touched_theme_token_count(), 4);
+    assert_eq!(evidence.touched_theme_token_count(), 0);
+    assert_eq!(evidence.touched_command_projection_count(), 1);
     assert_ne!(workbench.header_frame_plan().frame_digest(), before_header);
     assert_eq!(
-        header_receipt
-            .expect("projection reload should rebind dependent header")
-            .status(),
+        phase_execution.header_rebind().status(),
         WorthUiHeaderFrameRebindStatus::ReboundAfterActivation
     );
+    assert_eq!(
+        phase_execution.header_rebind().projection_rebuild_count(),
+        1
+    );
+    assert!(phase_execution
+        .header_rebind()
+        .projection_rebind_batch()
+        .rows()
+        .iter()
+        .any(|row| {
+            row.projection_identity().as_str() == "worth-ui.dropdown:validation.header.menu.file"
+        }));
     let file_menu = workbench
         .header_frame_plan()
         .menu_plan()
@@ -269,6 +298,14 @@ validation.header.menu.help = single",
     assert_eq!(
         file_menu.selection_mode(),
         CommandProjectionSelectionMode::MultiSelect
+    );
+    assert_eq!(
+        file_menu.selection_state().selected_command_ids(),
+        vec!["validation.command.file.new".to_owned()]
+    );
+    assert_eq!(
+        file_menu.selection_reconciliation().status(),
+        &WorthUiDropdownSelectionStateStatus::PromotedSingleToMulti
     );
 }
 
@@ -310,11 +347,14 @@ fn assert_denied_theme_reload_preserves_runtime_and_header(
 ) {
     let ValidationRuntimeReloadTickOutcome::ThemeReloaded {
         evidence,
-        header_receipt,
+        phase_execution,
+        ..
     } = outcome
     else {
         panic!("denied theme-only reload should return typed capability evidence");
     };
+    let phase_execution =
+        phase_execution.expect("denied theme reload should still emit phase execution");
     assert_eq!(
         evidence.status(),
         WorthUiCapabilityReloadStatus::Denied(expected_stage)
@@ -327,16 +367,16 @@ fn assert_denied_theme_reload_preserves_runtime_and_header(
     );
     assert_eq!(workbench.header_frame_plan().frame_digest(), before_header);
     assert_eq!(
-        header_receipt
-            .expect("denied theme reload should preserve header")
-            .status(),
+        phase_execution.header_rebind().status(),
         WorthUiHeaderFrameRebindStatus::PreservedDeniedReload
     );
 }
 
 fn runtime_workbench() -> ValidationRuntimeWorkbench {
     ValidationWorkbenchLaunch::new()
-        .prepare()
+        .prepare_from_authored_inputs(ValidationWorkbenchAuthoredInputs::new(
+            ValidationSourcePackage::sample(),
+        ))
         .expect("validation app launches through Worth UI")
         .into_runtime_workbench()
 }

@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/runtime_authority/fail/raw_view_binding_id_cannot_replace_query_runtime_fact_lowering.rs:7:37
+  |
+7 |     requires_runtime_lowering_input(id);
+  |     ------------------------------- ^^ expected `WorthUiQueryRuntimeFactLoweringInput`, found `ViewBindingId`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> tests/ui/runtime_authority/fail/raw_view_binding_id_cannot_replace_query_runtime_fact_lowering.rs:3:4
+  |
+3 | fn requires_runtime_lowering_input(_input: WorthUiQueryRuntimeFactLoweringInput) {}
+  |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ --------------------------------------------

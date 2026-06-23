@@ -38,10 +38,15 @@ pub struct WorthUiValidationReloadEvidence {
     runtime_instance_witness: u64,
     status: WorthUiValidationReloadStatus,
     denial_detail: Option<String>,
+    used_validation_request_adapter: bool,
     active_artifact_digest_before: u64,
     active_artifact_digest_after: u64,
     active_plan_digest_before: u64,
     active_plan_digest_after: u64,
+    active_authoring_snapshot_digest_before: Option<u64>,
+    authored_delta_digest: Option<u64>,
+    candidate_authoring_snapshot_digest: Option<u64>,
+    active_authoring_snapshot_digest_after: Option<u64>,
     source_revision_digest: Option<u64>,
     ordering_receipt_digest: Option<u64>,
     candidate_artifact_digest: Option<u64>,
@@ -51,6 +56,11 @@ pub struct WorthUiValidationReloadEvidence {
     provider_reads: usize,
     source_revisions_emitted: usize,
     candidate_submissions_emitted: usize,
+    observed_modules: usize,
+    parsed_modules: usize,
+    authored_declarations_inspected: usize,
+    authored_declarations_touched: usize,
+    semantic_slices_emitted: usize,
     frame_path_work: usize,
     active_runtime_mutations_before_activation: usize,
     query_bindings_compared: usize,
@@ -79,10 +89,15 @@ impl WorthUiValidationReloadEvidence {
                     WorthUiValidationReloadStage::SourceIngress,
                 ),
                 denial_detail: None,
+                used_validation_request_adapter: false,
                 active_artifact_digest_before,
                 active_artifact_digest_after: active_artifact_digest_before,
                 active_plan_digest_before,
                 active_plan_digest_after: active_plan_digest_before,
+                active_authoring_snapshot_digest_before: None,
+                authored_delta_digest: None,
+                candidate_authoring_snapshot_digest: None,
+                active_authoring_snapshot_digest_after: None,
                 source_revision_digest: None,
                 ordering_receipt_digest: None,
                 candidate_artifact_digest: None,
@@ -92,6 +107,11 @@ impl WorthUiValidationReloadEvidence {
                 provider_reads: 0,
                 source_revisions_emitted: 0,
                 candidate_submissions_emitted: 0,
+                observed_modules: 0,
+                parsed_modules: 0,
+                authored_declarations_inspected: 0,
+                authored_declarations_touched: 0,
+                semantic_slices_emitted: 0,
                 frame_path_work: 0,
                 active_runtime_mutations_before_activation: 0,
                 query_bindings_compared: 0,
@@ -116,6 +136,10 @@ impl WorthUiValidationReloadEvidence {
         self.denial_detail.as_deref()
     }
 
+    pub fn used_validation_request_adapter(&self) -> bool {
+        self.used_validation_request_adapter
+    }
+
     pub fn active_artifact_digest_before(&self) -> u64 {
         self.active_artifact_digest_before
     }
@@ -130,6 +154,22 @@ impl WorthUiValidationReloadEvidence {
 
     pub fn active_plan_digest_after(&self) -> u64 {
         self.active_plan_digest_after
+    }
+
+    pub fn active_authoring_snapshot_digest_before(&self) -> Option<u64> {
+        self.active_authoring_snapshot_digest_before
+    }
+
+    pub fn candidate_authoring_snapshot_digest(&self) -> Option<u64> {
+        self.candidate_authoring_snapshot_digest
+    }
+
+    pub fn authored_delta_digest(&self) -> Option<u64> {
+        self.authored_delta_digest
+    }
+
+    pub fn active_authoring_snapshot_digest_after(&self) -> Option<u64> {
+        self.active_authoring_snapshot_digest_after
     }
 
     pub fn source_revision_digest(&self) -> Option<u64> {
@@ -166,6 +206,26 @@ impl WorthUiValidationReloadEvidence {
 
     pub fn candidate_submissions_emitted(&self) -> usize {
         self.candidate_submissions_emitted
+    }
+
+    pub fn observed_modules(&self) -> usize {
+        self.observed_modules
+    }
+
+    pub fn parsed_modules(&self) -> usize {
+        self.parsed_modules
+    }
+
+    pub fn authored_declarations_inspected(&self) -> usize {
+        self.authored_declarations_inspected
+    }
+
+    pub fn authored_declarations_touched(&self) -> usize {
+        self.authored_declarations_touched
+    }
+
+    pub fn semantic_slices_emitted(&self) -> usize {
+        self.semantic_slices_emitted
     }
 
     pub fn frame_path_work(&self) -> usize {
@@ -208,15 +268,57 @@ impl WorthUiValidationReloadEvidence {
         self.status = WorthUiValidationReloadStatus::Activated;
         self.active_artifact_digest_after = active_artifact_digest_after;
         self.active_plan_digest_after = active_plan_digest_after;
-        self.changed_facts
-            .insert(WorthUiRuntimeFactId::active_artifact());
-        self.changed_facts
-            .insert(WorthUiRuntimeFactId::execution_plan());
+        self.active_authoring_snapshot_digest_after = self.candidate_authoring_snapshot_digest;
+        if self.changed_facts.is_empty() {
+            self.changed_facts
+                .insert(WorthUiRuntimeFactId::active_artifact());
+            self.changed_facts
+                .insert(WorthUiRuntimeFactId::execution_plan());
+        }
         self
     }
 }
 
 impl WorthUiValidationReloadEvidenceBuilder {
+    pub(crate) fn record_validation_request_adapter(mut self) -> Self {
+        self.evidence.used_validation_request_adapter = true;
+        self
+    }
+
+    pub(crate) fn record_changed_facts(mut self, changed_facts: WorthUiRuntimeFactSet) -> Self {
+        self.evidence.changed_facts = changed_facts;
+        self
+    }
+
+    pub(crate) fn record_active_authoring_snapshot_before(mut self, digest: Option<u64>) -> Self {
+        self.evidence.active_authoring_snapshot_digest_before = digest;
+        self.evidence.active_authoring_snapshot_digest_after = digest;
+        self
+    }
+
+    pub(crate) fn record_candidate_authoring_snapshot(mut self, digest: Option<u64>) -> Self {
+        self.evidence.candidate_authoring_snapshot_digest = digest;
+        self
+    }
+
+    pub(crate) fn record_authored_delta_summary(
+        mut self,
+        summary: Option<&crate::runtime::WorthUiAuthoredDeltaSummary>,
+    ) -> Self {
+        let Some(summary) = summary else {
+            return self;
+        };
+        self.evidence.authored_delta_digest = Some(summary.digest().as_u64());
+        self.evidence.observed_modules = summary.counters().observed_modules();
+        self.evidence.parsed_modules = summary.counters().parsed_modules();
+        self.evidence.authored_declarations_inspected =
+            summary.counters().authored_declarations_inspected();
+        self.evidence.authored_declarations_touched =
+            summary.counters().authored_declarations_touched();
+        self.evidence.semantic_slices_emitted = summary.counters().semantic_slices_emitted();
+        self
+    }
+
     pub(crate) fn record_source_ingress(
         mut self,
         source_revision_digest: u64,

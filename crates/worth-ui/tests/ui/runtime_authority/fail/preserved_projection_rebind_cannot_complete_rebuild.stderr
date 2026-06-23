@@ -1,0 +1,5 @@
+error[E0599]: no method named `complete_rebuild` found for struct `WorthUiPreservedProjectionRebindPlan<P>` in the current scope
+  --> tests/ui/runtime_authority/fail/preserved_projection_rebind_cannot_complete_rebuild.rs:11:23
+   |
+11 |     let _ = preserved.complete_rebuild(rebound);
+   |                       ^^^^^^^^^^^^^^^^ method not found in `WorthUiPreservedProjectionRebindPlan<WorthUiHeaderMenuPlan>`

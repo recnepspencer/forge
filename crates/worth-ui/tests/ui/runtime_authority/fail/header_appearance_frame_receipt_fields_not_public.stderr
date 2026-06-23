@@ -1,0 +1,19 @@
+error[E0451]: fields `font_size`, `menu_min_width`, `border_width`, `panel_shadow`, `row_padding`, `container_padding` and `control_spacing` of struct `WorthUiHeaderAppearanceFrameReceipt` are private
+  --> tests/ui/runtime_authority/fail/header_appearance_frame_receipt_fields_not_public.rs:5:9
+   |
+ 4 |     let _forged = WorthUiHeaderAppearanceFrameReceipt {
+   |                   ----------------------------------- in this type
+ 5 |         font_size: forged_font_size(),
+   |         ^^^^^^^^^ private field
+ 6 |         menu_min_width: forged_length(),
+   |         ^^^^^^^^^^^^^^ private field
+ 7 |         border_width: forged_border_width(),
+   |         ^^^^^^^^^^^^ private field
+ 8 |         panel_shadow: forged_shadow(),
+   |         ^^^^^^^^^^^^ private field
+ 9 |         row_padding: forged_padding(),
+   |         ^^^^^^^^^^^ private field
+10 |         container_padding: forged_padding(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+11 |         control_spacing: forged_spacing(),
+   |         ^^^^^^^^^^^^^^^ private field
