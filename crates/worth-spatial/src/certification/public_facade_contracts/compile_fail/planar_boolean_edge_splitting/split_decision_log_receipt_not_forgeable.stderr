@@ -1,0 +1,37 @@
+warning: unreachable expression
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_decision_log_receipt_not_forgeable.rs:12:19
+   |
+11 |         lookup_index: panic!("not public"),
+   |                       -------------------- any code following this expression is unreachable
+12 |         counters: Default::default(),
+   |                   ^^^^^^^^^^^^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `receipt_identity`, `query_declaration_identity`, `lowered_plan_identity`, `split_chain_validation_receipt_identity`, `split_persistent_naming_receipt_identity`, `decision_rows`, `lookup_index` and `counters` of struct `PlanarBooleanSplitDecisionLogReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_decision_log_receipt_not_forgeable.rs:5:9
+   |
+ 4 |     let _receipt = PlanarBooleanSplitDecisionLogReceipt {
+   |                    ------------------------------------ in this type
+ 5 |         receipt_identity: "receipt".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+ 6 |         query_declaration_identity: "query".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         lowered_plan_identity: "plan".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         split_chain_validation_receipt_identity: "validation".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         split_persistent_naming_receipt_identity: "naming".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         decision_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^ private field
+11 |         lookup_index: panic!("not public"),
+   |         ^^^^^^^^^^^^ private field
+12 |         counters: Default::default(),
+   |         ^^^^^^^^ private field
+
+error: type `worth_spatial::workload_platform::planar_boolean_edge_splitting::split_decision_log::lookup_index::PlanarBooleanSplitDecisionLookupIndex` is private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_decision_log_receipt_not_forgeable.rs:11:23
+   |
+11 |         lookup_index: panic!("not public"),
+   |                       ^^^^^^^^^^^^^^^^^^^^ private type

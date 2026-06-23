@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::domain_capabilities::identity::compose_certification_bundle_digest;
 
 use super::super::reports::{
     ForgeQueryDomainCapabilityRepresentativeReport, ForgeQueryDomainCapabilitySlopeReport,
@@ -105,10 +105,9 @@ pub(crate) fn assemble_certification_outputs(
 pub(crate) fn certification_bundle_digest(
     outputs: &[ForgeQueryDomainCapabilityCertificationOutputSpec],
 ) -> String {
-    hash_parts(
-        &outputs
+    compose_certification_bundle_digest(
+        outputs
             .iter()
-            .map(|output| format!("{}:{}", output.name(), output.digest()))
-            .collect::<Vec<_>>(),
+            .map(|output| (output.name(), output.digest())),
     )
 }

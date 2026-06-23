@@ -1,7 +1,10 @@
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::memory_workspace::ForgeQueryEntityIdentity;
+use crate::memory_workspace::{ForgeQueryWorkspaceError, ForgeQueryWorkspaceErrorKind};
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryContinuityMutationIntent,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationFamily, ForgeQueryMutationMetadata,
-    ForgeQueryNamingMutationIntent, ForgeQueryRuntimeBackendPosture,
+    ForgeQueryNamingMutationIntent, ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeError,
     ForgeQueryRuntimeSupportProfile, ForgeQuerySymbolicAspectReference,
     ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReference,
     ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand,
@@ -10,14 +13,14 @@ use crate::runtime::{
 pub(crate) struct BatchCommandSummary {
     mutation_family: ForgeQueryMutationFamily,
     declared_collection: Option<String>,
-    declared_entity_identity: Option<String>,
+    declared_entity_identity: Option<ForgeQueryEntityIdentity>,
     existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
     verified_existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
     symbolic_target_reference: Option<ForgeQuerySymbolicTargetReference>,
     naming_intent: Option<ForgeQueryNamingMutationIntent>,
     continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
     declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
-    declared_aspect_value_digest: Option<String>,
+    declared_aspect_value_digest: Option<ForgeQueryEvidenceIdentity>,
     symbolic_aspect_references: Vec<ForgeQuerySymbolicAspectReference>,
     symbolic_aspect_resolution_evidence: Vec<ForgeQuerySymbolicAspectResolutionEvidence>,
     mutation_metadata: ForgeQueryMutationMetadata,
@@ -27,14 +30,14 @@ impl BatchCommandSummary {
     pub(crate) fn new(
         mutation_family: ForgeQueryMutationFamily,
         declared_collection: Option<String>,
-        declared_entity_identity: Option<String>,
+        declared_entity_identity: Option<ForgeQueryEntityIdentity>,
         existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
         verified_existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
         symbolic_target_reference: Option<ForgeQuerySymbolicTargetReference>,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
         declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
-        declared_aspect_value_digest: Option<String>,
+        declared_aspect_value_digest: Option<ForgeQueryEvidenceIdentity>,
         symbolic_aspect_references: Vec<ForgeQuerySymbolicAspectReference>,
         symbolic_aspect_resolution_evidence: Vec<ForgeQuerySymbolicAspectResolutionEvidence>,
         mutation_metadata: ForgeQueryMutationMetadata,
@@ -72,7 +75,7 @@ impl BatchCommandSummary {
         self.declared_collection.clone()
     }
 
-    pub(crate) fn declared_entity_identity(&self) -> Option<String> {
+    pub(crate) fn declared_entity_identity(&self) -> Option<ForgeQueryEntityIdentity> {
         self.declared_entity_identity.clone()
     }
 
@@ -102,7 +105,7 @@ impl BatchCommandSummary {
         self.declared_aspect_operations.clone()
     }
 
-    pub(crate) fn declared_aspect_value_digest(&self) -> Option<String> {
+    pub(crate) fn declared_aspect_value_digest(&self) -> Option<ForgeQueryEvidenceIdentity> {
         self.declared_aspect_value_digest.clone()
     }
 
@@ -126,4 +129,20 @@ pub(crate) fn should_use_backend_atomic_batch(
     commands: &[ForgeQueryWriteCommand],
 ) -> bool {
     support_profile.posture() == ForgeQueryRuntimeBackendPosture::Primary && commands.len() > 1
+}
+
+pub(crate) fn deny_scaffold_multi_command_batch_without_atomic_authority(
+    support_profile: &ForgeQueryRuntimeSupportProfile,
+    commands: &[ForgeQueryWriteCommand],
+) -> Result<(), ForgeQueryRuntimeError> {
+    if support_profile.posture() == ForgeQueryRuntimeBackendPosture::Scaffold && commands.len() > 1
+    {
+        return Err(ForgeQueryRuntimeError::Workspace(
+            ForgeQueryWorkspaceError::with_kind(
+                ForgeQueryWorkspaceErrorKind::BatchAtomicityUnsupported,
+                "scaffold runtime backends deny multi-command batches before execution unless they advertise an atomic batch authority",
+            ),
+        ));
+    }
+    Ok(())
 }

@@ -64,3 +64,31 @@ fn query_boundary_cleanup_closeout_proves_phase_six_public_surface_completion_ru
         "public-surface closeout reason should state the surviving query-domain entry boundary",
     );
 }
+
+#[test]
+fn query_boundary_cleanup_closeout_names_phase_three_graph_authority_ledger_resolution() {
+    let registry =
+        include_str!("../../../../worth-kernel/src/query_graph_authority_gate/registry.rs");
+
+    assert!(registry.contains("delete.ceremony-audit"));
+    assert!(registry.contains(
+        "operator catalog lowers to Query descriptor, registration, support pin, selection proof, and residue manifest"
+    ));
+    assert!(registry.contains("delete.handoff-only-helper"));
+    assert!(registry.contains("topology.edge-split-blueprint"));
+    assert!(registry.contains("residue.edge-split-blueprint-proof-obligation"));
+    assert!(registry.contains("topology.loop-reconstruction-blueprint"));
+    assert!(registry.contains("residue.loop-reconstruction-blueprint-proof-obligation"));
+    assert!(registry.contains(
+        "TopologyPrimitiveConstructionBirthGraphAuthorityProof is derived only from Query-backed compose execution"
+    ));
+    assert!(registry.contains(
+        "raw proof-obligation vocabulary is crate-private; public facade exposes classification and Query surface posture only"
+    ));
+    assert!(registry.contains(
+        "Phase 3 keeps catalog lowering as Query adoption/status and denies promotion to execution proof"
+    ));
+    assert!(registry.contains(
+        "Phase 3 replaces handoff-only helpers with execution-derived graph authority proof"
+    ));
+}

@@ -57,7 +57,12 @@ impl ForgeQueryReadCompositionPhaseOneCloseout {
         let mut parts = vec![
             "forge_query_read_composition_phase_one_closeout_v1".to_string(),
             format!("posture:{}", backend_posture.as_str()),
-            format!("matrix:{}", support_matrix.matrix_digest()),
+            format!(
+                "matrix:{}",
+                support_matrix
+                    .matrix_digest()
+                    .terminal_projection_for_reporting()
+            ),
             format!("read-support:{}", read_support.support_digest()),
         ];
         parts.extend(safe_to_build_now.iter().map(|line| format!("safe:{line}")));
@@ -79,7 +84,10 @@ impl ForgeQueryReadCompositionPhaseOneCloseout {
         let closeout_digest = hash_parts(&parts);
         Self {
             backend_posture,
-            support_matrix_digest: support_matrix.matrix_digest().to_string(),
+            support_matrix_digest: support_matrix
+                .matrix_digest()
+                .terminal_projection_for_reporting()
+                .to_string(),
             read_support_digest: read_support.support_digest().to_string(),
             safe_to_build_now,
             must_not_assume_yet,

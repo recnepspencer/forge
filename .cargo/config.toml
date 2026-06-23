@@ -18,3 +18,4 @@ rustflags = [
 #   RUST_LOG=off    cargo test   → silent (CI-friendly)
 [env]
 RUST_LOG = { value = "info", force = false }
+RUST_MIN_STACK = { value = "16777216", force = false }

@@ -6,10 +6,10 @@ use crate::application::{
 
 use super::support::{
     admitted_declaration_advisory, admitted_declaration_explanation, admitted_declaration_support,
-    admitted_declaration_workflow, admitted_lower_runtime_aftermath,
-    admitted_lower_runtime_explanation, admitted_plan, admitted_plan_aftermath,
-    admitted_plan_continuity, admitted_plan_support, admitted_plan_workflow,
-    bridge_signal_envelope, handle, lower_runtime_envelope, BridgeSignalFamily, Input,
+    admitted_lower_runtime_aftermath, admitted_lower_runtime_explanation, admitted_plan,
+    admitted_plan_aftermath, admitted_plan_continuity, admitted_plan_support,
+    admitted_plan_workflow, bridge_signal_envelope, handle, lower_runtime_envelope,
+    BridgeSignalFamily, Input,
 };
 
 #[test]
@@ -40,7 +40,11 @@ fn declaration_support_evidence_composes_into_readiness() {
 fn declaration_explanation_evidence_composes_into_unified_inspection() {
     let handle = handle("preview");
     let envelope = bridge_signal_envelope(&handle, "edge:42");
-    let declaration_digest = envelope.declaration_digest().to_string();
+    let canonical_declaration = envelope
+        .foundational_evidence()
+        .subject()
+        .canonical_declaration()
+        .clone();
     let row_digests = handle
         .inspect_declaration_entry(ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
             crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(
@@ -52,7 +56,7 @@ fn declaration_explanation_evidence_composes_into_unified_inspection() {
         .to_vec();
     let evidence = ForgeQueryDeclarationEntryContributionEvidenceSet::new(vec![
         ForgeQueryDeclarationEntryContributionEvidence::from(admitted_declaration_explanation(
-            &declaration_digest,
+            &canonical_declaration,
             "explain",
             "needs context",
         )),
@@ -77,9 +81,12 @@ fn declaration_explanation_evidence_composes_into_unified_inspection() {
 #[test]
 fn contribution_digest_changes_without_changing_matching_rows() {
     let handle = handle("preview");
-    let declaration_digest = bridge_signal_envelope(&handle, "edge:42")
-        .declaration_digest()
-        .to_string();
+    let envelope = bridge_signal_envelope(&handle, "edge:42");
+    let canonical_declaration = envelope
+        .foundational_evidence()
+        .subject()
+        .canonical_declaration()
+        .clone();
     let first = handle
         .inspect_declaration_entry(
             ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
@@ -90,7 +97,7 @@ fn contribution_digest_changes_without_changing_matching_rows() {
             .with_contribution_evidence(
                 ForgeQueryDeclarationEntryContributionEvidenceSet::new(vec![
                     ForgeQueryDeclarationEntryContributionEvidence::from(
-                        admitted_declaration_advisory(&declaration_digest, "advisory", "first"),
+                        admitted_declaration_advisory(&canonical_declaration, "advisory", "first"),
                     ),
                 ]),
             ),
@@ -99,14 +106,12 @@ fn contribution_digest_changes_without_changing_matching_rows() {
     let second = handle
         .inspect_declaration_entry(
             ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
-                crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(
-                    bridge_signal_envelope(&handle, "edge:42"),
-                ),
+                crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope),
             )
             .with_contribution_evidence(
                 ForgeQueryDeclarationEntryContributionEvidenceSet::new(vec![
                     ForgeQueryDeclarationEntryContributionEvidence::from(
-                        admitted_declaration_advisory(&declaration_digest, "advisory", "second"),
+                        admitted_declaration_advisory(&canonical_declaration, "advisory", "second"),
                     ),
                 ]),
             ),
@@ -144,9 +149,6 @@ fn readiness_digest_changes_while_baseline_rows_stay_intact() {
 #[test]
 fn declaration_workflow_evidence_composes_when_admitted_plan_scope_is_present() {
     let handle = handle("preview");
-    let declaration_digest = bridge_signal_envelope(&handle, "edge:42")
-        .declaration_digest()
-        .to_string();
     let plan = admitted_plan();
     let inspection = handle
         .inspect_declaration_entry(
@@ -155,16 +157,14 @@ fn declaration_workflow_evidence_composes_when_admitted_plan_scope_is_present() 
                     bridge_signal_envelope(&handle, "edge:42"),
                 ),
             )
-            .with_admitted_plan_scope(plan)
+            .with_admitted_plan_scope(plan.clone())
             .with_contribution_evidence(
                 ForgeQueryDeclarationEntryContributionEvidenceSet::new(vec![
-                    ForgeQueryDeclarationEntryContributionEvidence::from(
-                        admitted_declaration_workflow(
-                            &declaration_digest,
-                            "workflow",
-                            "preview-only",
-                        ),
-                    ),
+                    ForgeQueryDeclarationEntryContributionEvidence::from(admitted_plan_workflow(
+                        &plan,
+                        "workflow",
+                        "preview-only",
+                    )),
                 ]),
             ),
         )

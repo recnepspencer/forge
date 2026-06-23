@@ -5,9 +5,12 @@ use crate::certification::topology_operator_closeout::report::{
 use crate::certification::{DeterministicDigest, ReplayParityStatus};
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::interpret_topology_view;
-use crate::validation::{validate_interpreted_topology, DerivedTopologyValidationReport};
-use forge_query::facade::ForgeQueryEntity;
+use crate::projection::diagnostic_surfaces::derived_read_diagnostics::derive_topology_validation_report;
+use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
+use crate::validation::DerivedTopologyValidationReport;
+use forge_query::facade::{ForgeQueryEntity, ForgeQueryEntityIdentity};
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
 pub(super) fn first_source_identity_for_relation_kind(
@@ -51,6 +54,28 @@ pub(super) fn entity_id_from_query_identity(
 }
 
 pub(super) fn relation_id_from_query_identity(
+    identity: &ForgeQueryEntityIdentity,
+) -> Result<RelationId, TopologyCertificationError> {
+    let parts = identity.relational_record_parts().ok_or_else(|| {
+        TopologyCertificationError::Query(format!(
+            "expected relational relation query identity, got `{}`",
+            query_entity_identity_reporting_label(identity)
+        ))
+    })?;
+    if parts.kind() != RelationalBridgeRecordIdentityKind::Relation {
+        return Err(TopologyCertificationError::Query(format!(
+            "expected relation query identity, got `{}`",
+            query_entity_identity_reporting_label(identity)
+        )));
+    }
+    Ok(RelationId::new(
+        PartitionId(parts.partition_id()),
+        parts.local_slot(),
+        parts.generation(),
+    ))
+}
+
+pub(super) fn relation_id_from_query_identity_label(
     identity: &str,
 ) -> Result<RelationId, TopologyCertificationError> {
     let [partition_id, local_slot, generation] = query_identity_parts(identity, "relation")?;
@@ -120,7 +145,7 @@ pub(super) fn derived_validation_report_from_materialized(
     materialized: &MaterializedTopologyView,
 ) -> Result<DerivedTopologyValidationReport, TopologyCertificationError> {
     let interpreted = interpret_topology_view(materialized);
-    validate_interpreted_topology(materialized, &interpreted)
+    derive_topology_validation_report(materialized, &interpreted)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))
 }
 

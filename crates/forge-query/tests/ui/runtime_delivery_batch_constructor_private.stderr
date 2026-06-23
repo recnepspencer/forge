@@ -1,40 +1,31 @@
-error: cannot construct `ForgeQueryRuntimeDeliveryBatch` with struct literal syntax due to private fields
-  --> tests/ui/runtime_delivery_batch_constructor_private.rs:4:13
+error[E0560]: struct `ForgeQueryRuntimeDeliveryBatch` has no field named `delivery_batch_digest`
+ --> tests/ui/runtime_delivery_batch_constructor_private.rs:7:9
+  |
+7 |         delivery_batch_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryRuntimeDeliveryBatch` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryRuntimeDeliveryBatch` has no field named `delivery_window_digest`
+ --> tests/ui/runtime_delivery_batch_constructor_private.rs:8:9
+  |
+8 |         delivery_window_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryRuntimeDeliveryBatch` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryRuntimeDeliveryBatch` has no field named `consumer_attachment_digest`
+ --> tests/ui/runtime_delivery_batch_constructor_private.rs:9:9
+  |
+9 |         consumer_attachment_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryRuntimeDeliveryBatch` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryRuntimeDeliveryBatch` has no field named `patch_group_digest`
+  --> tests/ui/runtime_delivery_batch_constructor_private.rs:12:9
    |
- 4 |     let _ = ForgeQueryRuntimeDeliveryBatch {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 5 |         view_name: String::new(),
-   |         ------------------------ private field
- 6 |         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-   |         ----------------------------------------------------------- private field
- 7 |         delivery_batch_digest: String::new(),
-   |         ------------------------------------ private field
- 8 |         delivery_window_digest: String::new(),
-   |         ------------------------------------- private field
- 9 |         consumer_attachment_digest: String::new(),
-   |         ----------------------------------------- private field
-10 |         sequence: 0,
-   |         ----------- private field
-11 |         patch_group_kind: QueryPatchGroupKind::DetailFieldPatchGroup,
-   |         ------------------------------------------------------------ private field
 12 |         patch_group_digest: String::new(),
-   |         --------------------------------- private field
-13 |         patch_group_width: 0,
-   |         -------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^ `ForgeQueryRuntimeDeliveryBatch` does not have this field
    |
-   = note: ...and other private fields `delivery_cause_kind`, `delivery_cause_digest`, `has_relational_patch` and `mixed_cause_delivery` that were not provided
-help: you might have meant to use the `from_query_delivery` associated function
-   |
- 4 -     let _ = ForgeQueryRuntimeDeliveryBatch {
- 5 -         view_name: String::new(),
- 6 -         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
- 7 -         delivery_batch_digest: String::new(),
- 8 -         delivery_window_digest: String::new(),
- 9 -         consumer_attachment_digest: String::new(),
-10 -         sequence: 0,
-11 -         patch_group_kind: QueryPatchGroupKind::DetailFieldPatchGroup,
-12 -         patch_group_digest: String::new(),
-13 -         patch_group_width: 0,
-14 -     };
- 4 +     let _ = ForgeQueryRuntimeDeliveryBatch::from_query_delivery(_, _);
-   |
+   = note: all struct fields are already assigned

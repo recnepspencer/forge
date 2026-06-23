@@ -20,10 +20,16 @@ fn update_existing_preserves_authoritative_binding_evidence() {
                 .aspect("title.value", "Before existing update")
         })
         .expect("seed insert should execute");
+    let binding_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity");
     let binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                binding_authority.clone(),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -52,12 +58,20 @@ fn update_existing_preserves_authoritative_binding_evidence() {
         evidence.outcome(),
         ForgeQueryExistingTruthBindingOutcome::ExistingAuthoritativeTarget
     );
-    assert_eq!(evidence.authoritative_identity(), "authority:task-1");
+    assert_eq!(
+        evidence.authoritative_identity().as_str(),
+        "authority:task-1"
+    );
     assert_eq!(
         evidence.resolved_entity_identity(),
-        seed.deltas()[0].entity_identity
+        &seed.deltas()[0].entity_identity
     );
-    assert_eq!(evidence.target_collection(), Some("Task"));
+    assert_eq!(
+        evidence
+            .target_collection()
+            .map(|collection| collection.as_str()),
+        Some("Task")
+    );
     assert!(!evidence.binding_digest().is_empty());
 
     match inspection {
@@ -65,12 +79,20 @@ fn update_existing_preserves_authoritative_binding_evidence() {
             let evidence = inspection
                 .existing_truth_binding_evidence()
                 .expect("inspection should retain existing-truth evidence");
-            assert_eq!(evidence.authoritative_identity(), "authority:task-1");
+            assert_eq!(
+                evidence.authoritative_identity().as_str(),
+                "authority:task-1"
+            );
             assert_eq!(
                 evidence.resolved_entity_identity(),
-                seed.deltas()[0].entity_identity
+                &seed.deltas()[0].entity_identity
             );
-            assert_eq!(evidence.target_collection(), Some("Task"));
+            assert_eq!(
+                evidence
+                    .target_collection()
+                    .map(|collection| collection.as_str()),
+                Some("Task")
+            );
             assert_eq!(
                 evidence.binding_digest(),
                 receipt
@@ -90,10 +112,13 @@ fn update_existing_denies_missing_target_typed_and_early() {
         .expect("task runtime should open a named workspace");
     let binding = workspace
         .bind_existing_entity(
-            ForgeQueryExistingEntityTarget::new("authority:missing", "task:missing")
-                .expect("existing entity target should build")
-                .in_target_collection("Task")
-                .expect("existing entity target collection should build"),
+            ForgeQueryExistingEntityTarget::new(
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
+                test_entity_identity("task:missing"),
+            )
+            .expect("existing entity target should build")
+            .in_target_collection("Task")
+            .expect("existing entity target collection should build"),
         )
         .expect("binding should build");
 
@@ -140,10 +165,22 @@ fn batch_existing_targets_preserve_component_and_aggregate_binding_evidence() {
         })
         .expect("second seed should execute");
 
+    let binding_one_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity");
+    let binding_two_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-2")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity");
     let binding_one = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                binding_one_authority.clone(),
                 seed_one.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -154,7 +191,7 @@ fn batch_existing_targets_preserve_component_and_aggregate_binding_evidence() {
     let binding_two = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-2",
+                binding_two_authority.clone(),
                 seed_two.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -199,14 +236,16 @@ fn batch_existing_targets_preserve_component_and_aggregate_binding_evidence() {
                 inspection.component_operations()[0]
                     .existing_truth_binding_evidence()
                     .expect("first component should retain existing binding")
-                    .authoritative_identity(),
+                    .authoritative_identity()
+                    .as_str(),
                 "authority:task-1"
             );
             assert_eq!(
                 inspection.component_operations()[1]
                     .existing_truth_binding_evidence()
                     .expect("second component should retain existing binding")
-                    .authoritative_identity(),
+                    .authoritative_identity()
+                    .as_str(),
                 "authority:task-2"
             );
             assert_eq!(
@@ -245,7 +284,7 @@ fn mixed_existing_and_symbolic_batch_preserves_aggregate_session_digests() {
     let binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-existing",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -307,10 +346,16 @@ fn delete_existing_relation_preserves_relation_binding_family() {
                 .aspect("kind.value", "depends_on")
         })
         .expect("seed insert should execute");
+    let binding_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity");
     let binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-1",
+                binding_authority.clone(),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing relation target should build")
@@ -330,14 +375,22 @@ fn delete_existing_relation_preserves_relation_binding_family() {
         evidence.family(),
         ForgeQueryExistingTruthBindingFamily::DirectRelationIdentity
     );
-    assert_eq!(evidence.authoritative_identity(), "authority:rel-1");
+    assert_eq!(
+        evidence.authoritative_identity().as_str(),
+        "authority:task-1"
+    );
     assert_eq!(
         evidence.resolved_relation_identity(),
-        seed.deltas()[0].entity_identity
+        &seed.deltas()[0].entity_identity
     );
     assert_eq!(
         evidence.resolved_target_identity(),
-        seed.deltas()[0].entity_identity
+        &seed.deltas()[0].entity_identity
     );
-    assert_eq!(evidence.target_collection(), Some("TaskRelation"));
+    assert_eq!(
+        evidence
+            .target_collection()
+            .map(|collection| collection.as_str()),
+        Some("TaskRelation")
+    );
 }

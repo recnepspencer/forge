@@ -145,19 +145,19 @@ impl BridgeSubscriptionPreviewBasisBinding {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            preview_basis_identity: BridgeSubscriptionPreviewBasisIdentity::new(format!(
+            preview_basis_identity: BridgeSubscriptionPreviewBasisIdentity::admit_bridge_owned(format!(
                 "bridge-subscription-preview-basis-id:sha256:{digest:x}"
             )),
-            preview_scope_identity: BridgeSubscriptionPreviewScopeIdentity::new(format!(
+            preview_scope_identity: BridgeSubscriptionPreviewScopeIdentity::admit_bridge_owned(format!(
                 "bridge-subscription-preview-scope-id:sha256:{preview_scope_digest:x}"
             )),
-            preview_parent_basis_identity: BridgeSubscriptionPreviewParentBasisIdentity::new(
+            preview_parent_basis_identity: BridgeSubscriptionPreviewParentBasisIdentity::admit_bridge_owned(
                 format!("bridge-subscription-preview-parent-basis-id:sha256:{preview_parent_digest:x}"),
             ),
-            preview_lifecycle_identity: BridgeSubscriptionPreviewLifecycleIdentity::new(format!(
+            preview_lifecycle_identity: BridgeSubscriptionPreviewLifecycleIdentity::admit_bridge_owned(format!(
                 "bridge-subscription-preview-lifecycle-id:sha256:{preview_lifecycle_digest:x}"
             )),
-            preview_residue_scope_identity: BridgeSubscriptionPreviewResidueScopeIdentity::new(
+            preview_residue_scope_identity: BridgeSubscriptionPreviewResidueScopeIdentity::admit_bridge_owned(
                 format!(
                     "bridge-subscription-preview-residue-scope-id:sha256:{preview_residue_scope_digest:x}"
                 ),
@@ -299,9 +299,10 @@ impl BridgePreviewActiveSubscription {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            preview_active_subscription_identity: BridgePreviewActiveSubscriptionIdentity::new(
-                format!("bridge-preview-active-subscription-id:sha256:{digest:x}"),
-            ),
+            preview_active_subscription_identity:
+                BridgePreviewActiveSubscriptionIdentity::admit_bridge_owned(format!(
+                    "bridge-preview-active-subscription-id:sha256:{digest:x}"
+                )),
             preview_basis_identity: preview_basis.preview_basis_identity,
             preview_scope_identity: preview_basis.preview_scope_identity,
             preview_parent_basis_identity: preview_basis.preview_parent_basis_identity,

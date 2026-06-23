@@ -16,8 +16,6 @@ use super::{
     admit_timeout_request_response_identity, lowered_request_response, lowered_subscription_backed,
     preview_active_subscription,
 };
-use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity};
-use crate::snapshot::TruthSnapshotIdentity;
 
 pub(crate) fn request_response_raw_completion(
     request_identity: &AdmittedBridgeAsyncRequestIdentity,
@@ -83,9 +81,11 @@ pub(crate) fn admit_subscription_backed_completion(
     truth_basis: BridgeAsyncRequestTruthViewBasis,
     payload_byte_len: u64,
 ) -> Result<BridgeAsyncCompletionAdmissionReport, BridgeAsyncCompletionRejection> {
-    let subscription_instance = BridgeAsyncRequestSubscriptionInstance::authoritative(
-        &activation_ready_for_snapshot(runtime, TruthSnapshotIdentity::new("snapshot-a")),
-    );
+    let subscription_instance =
+        BridgeAsyncRequestSubscriptionInstance::authoritative(&activation_ready_for_snapshot(
+            runtime,
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        ));
     let request_identity = super::admit_subscription_backed_identity(
         runtime,
         node,
@@ -112,9 +112,9 @@ pub(crate) fn mismatched_payload_completion(
     let binding = runtime.bind_async_request_basis(
         &lowered,
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     );
     let request =

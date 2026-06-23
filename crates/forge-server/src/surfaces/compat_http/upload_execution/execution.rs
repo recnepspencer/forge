@@ -1,8 +1,9 @@
 use forge_proof::TransitionOutcome;
 
 use crate::{
-    ForgeServerBinaryCertificationBundle, ForgeServerCompatibilityFacade,
-    ForgeServerCompatibilityFileEnvelope, ForgeServerCompatibilityPreparedRequest,
+    ForgeServerCompatibilityFacade, ForgeServerCompatibilityPreparedRequest,
+    ForgeServerOperationAdmissionPosture, ForgeServerOperationFamily,
+    ForgeServerOperationInputEnvelope, ForgeServerOperationRequestFacade,
     ForgeServerQueryHandoffDeferred, ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffFailure,
     ForgeServerQueryHandoffRebindRequired, ForgeServerQueryHandoffStale,
 };
@@ -26,6 +27,7 @@ use super::{
     },
     performance::ForgeServerIngressPerformanceReceipt,
     request::ForgeServerMultipartUpload,
+    response::ForgeServerCompatibilityUpload,
     session::{ForgeServerBinaryIngressSession, ForgeServerVerifiedBinaryIngress},
 };
 
@@ -65,6 +67,7 @@ pub struct ForgeServerPreparedMultipartUpload {
     operation_name: String,
     upload: ForgeServerMultipartUpload,
     mutation_request: crate::ForgeServerCompatibilityMutationRequest,
+    operation_admission: ForgeServerOperationAdmissionPosture,
 }
 
 impl ForgeServerPreparedMultipartUpload {
@@ -84,6 +87,10 @@ impl ForgeServerPreparedMultipartUpload {
         &self.mutation_request
     }
 
+    pub fn operation_admission(&self) -> &ForgeServerOperationAdmissionPosture {
+        &self.operation_admission
+    }
+
     pub fn requires_early_admission(&self) -> bool {
         self.upload.expectation().requires_early_admission()
     }
@@ -95,12 +102,14 @@ impl ForgeServerPreparedMultipartUpload {
         String,
         ForgeServerMultipartUpload,
         crate::ForgeServerCompatibilityMutationRequest,
+        ForgeServerOperationAdmissionPosture,
     ) {
         (
             self.prepared_request,
             self.operation_name,
             self.upload,
             self.mutation_request,
+            self.operation_admission,
         )
     }
 }
@@ -110,6 +119,26 @@ impl ForgeServerCompatibilityFacade {
         &self,
         input: ForgeServerCompatibilityUploadExecutionInput,
     ) -> ForgeServerCompatibilityUploadOutcome<ForgeServerPreparedMultipartUpload> {
+        if let Err(denial) = self.admit_operation_family_for_query(
+            input
+                .prepared_request
+                .admission()
+                .request_context()
+                .diagnostics_profile(),
+            ForgeServerOperationFamily::BinaryTransfer,
+        ) {
+            return TransitionOutcome::Denied(denial);
+        }
+        if let Err(denial) = self.admit_operation_family_for_query(
+            input
+                .prepared_request
+                .admission()
+                .request_context()
+                .diagnostics_profile(),
+            ForgeServerOperationFamily::QueryDirectSubmission,
+        ) {
+            return TransitionOutcome::Denied(denial);
+        }
         if let Err(denial) = validate_upload_admission(
             &input.prepared_request,
             &input.upload,
@@ -127,11 +156,42 @@ impl ForgeServerCompatibilityFacade {
                 Ok(value) => value,
                 Err(denial) => return TransitionOutcome::Denied(denial),
             };
+        let operation_request =
+            match ForgeServerOperationRequestFacade::new(self.operation_registry.clone())
+                .admit_from_compat_http(
+                    &input.prepared_request,
+                    ForgeServerOperationFamily::BinaryTransfer,
+                    &input.operation_name,
+                    None,
+                ) {
+                Ok(value) => value,
+                Err(denial) => {
+                    return TransitionOutcome::Denied(ForgeServerQueryHandoffDenial::new(
+                        crate::ForgeServerQueryHandoffDenialCode::CompatibilityUploadRequestInvalid,
+                        denial.diagnostics_profile(),
+                        denial.detail(),
+                    ));
+                }
+            };
+        let operation_admission =
+            match crate::ForgeServerOperationAdmissionFacade::with_operation_registry(
+                self.operation_registry.clone(),
+            )
+            .admit_declared(input.prepared_request.admission(), &operation_request)
+            {
+                Ok(value) => value,
+                Err(denial) => {
+                    return TransitionOutcome::Denied(
+                        crate::surfaces::compat_http::map_operation_admission_denial(denial),
+                    );
+                }
+            };
         TransitionOutcome::Success(ForgeServerPreparedMultipartUpload {
             prepared_request: input.prepared_request,
             operation_name: input.operation_name,
             upload: input.upload,
             mutation_request,
+            operation_admission,
         })
     }
 
@@ -139,7 +199,8 @@ impl ForgeServerCompatibilityFacade {
         &self,
         prepared: ForgeServerPreparedMultipartUpload,
     ) -> ForgeServerCompatibilityUploadOutcome<ForgeServerBinaryIngressSession> {
-        let (prepared_request, operation_name, upload, mutation_request) = prepared.into_parts();
+        let (prepared_request, operation_name, upload, mutation_request, operation_admission) =
+            prepared.into_parts();
         let diagnostics_profile = prepared_request
             .admission()
             .request_context()
@@ -166,7 +227,7 @@ impl ForgeServerCompatibilityFacade {
             Err(_) => {
                 return TransitionOutcome::Failed(ForgeServerQueryHandoffFailure::new(
                     "compatibility_upload_ingress_performance_receipt_failed",
-                ))
+                ));
             }
         };
         let session = ForgeServerBinaryIngressSession::new(
@@ -174,6 +235,7 @@ impl ForgeServerCompatibilityFacade {
             operation_name,
             upload,
             mutation_request,
+            operation_admission,
             performance_receipt,
         );
         if let Err(denial) = stage_binary_ingress(self, &session) {
@@ -220,17 +282,38 @@ impl ForgeServerCompatibilityFacade {
             operation_name,
             upload,
             mutation_request,
+            _binary_operation_admission,
             _tenant_id,
             _workspace_digest,
             _branch_digest,
             _session_digest,
             performance_receipt,
         ) = session.clone().into_parts();
+        let operation_request =
+            match ForgeServerOperationRequestFacade::new(self.operation_registry.clone())
+                .admit_from_compat_http(
+                    &prepared_request,
+                    ForgeServerOperationFamily::QueryDirectSubmission,
+                    &operation_name,
+                    Some(ForgeServerOperationInputEnvelope::json(
+                        "compat-http.query-mutation.v1",
+                        upload.manifest().metadata_body(),
+                    )),
+                ) {
+                Ok(value) => value,
+                Err(denial) => {
+                    return TransitionOutcome::Denied(ForgeServerQueryHandoffDenial::new(
+                    crate::ForgeServerQueryHandoffDenialCode::CompatibilityMutationRequestInvalid,
+                    denial.diagnostics_profile(),
+                    denial.detail(),
+                ));
+                }
+            };
         let outcome =
             crate::surfaces::compat_http::mutation_execution::execute_compatibility_mutation_request(
                 self,
                 prepared_request,
-                operation_name,
+                operation_request,
                 mutation_request,
             )
             .map_success(|mutation| {
@@ -345,83 +428,4 @@ fn parse_upload_mutation_request(
         upload.manifest().metadata_body().clone(),
         diagnostics_profile,
     )
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeServerCompatibilityUpload {
-    upload: ForgeServerMultipartUpload,
-    ingress_integrity: ForgeServerIngressIntegrityDigest,
-    ingress_performance: ForgeServerIngressPerformanceReceipt,
-    mutation: crate::ForgeServerCompatibilityMutation,
-    file_envelope: ForgeServerCompatibilityFileEnvelope,
-    certification_bundle: ForgeServerBinaryCertificationBundle,
-    canonical_digest: String,
-}
-
-impl ForgeServerCompatibilityUpload {
-    pub(crate) fn new(
-        upload: ForgeServerMultipartUpload,
-        ingress_integrity: ForgeServerIngressIntegrityDigest,
-        ingress_performance: ForgeServerIngressPerformanceReceipt,
-        mutation: crate::ForgeServerCompatibilityMutation,
-        file_envelope: ForgeServerCompatibilityFileEnvelope,
-        certification_bundle: ForgeServerBinaryCertificationBundle,
-    ) -> Self {
-        let canonical_digest = format!(
-            "forge-server-compat-upload-v4|upload={}|integrity={}|ingress_performance={}|mutation={}|file_envelope={}|certification={}",
-            upload.canonical_digest(),
-            ingress_integrity.canonical_digest(),
-            ingress_performance_digest(&ingress_performance),
-            mutation.canonical_digest(),
-            file_envelope.canonical_digest(),
-            certification_bundle.canonical_digest(),
-        );
-        Self {
-            upload,
-            ingress_integrity,
-            ingress_performance,
-            mutation,
-            file_envelope,
-            certification_bundle,
-            canonical_digest,
-        }
-    }
-
-    pub fn upload(&self) -> &ForgeServerMultipartUpload {
-        &self.upload
-    }
-
-    pub fn ingress_integrity(&self) -> &ForgeServerIngressIntegrityDigest {
-        &self.ingress_integrity
-    }
-
-    pub fn ingress_performance(&self) -> &ForgeServerIngressPerformanceReceipt {
-        &self.ingress_performance
-    }
-
-    pub fn mutation(&self) -> &crate::ForgeServerCompatibilityMutation {
-        &self.mutation
-    }
-
-    pub fn file_envelope(&self) -> &ForgeServerCompatibilityFileEnvelope {
-        &self.file_envelope
-    }
-
-    pub fn certification_bundle(&self) -> &ForgeServerBinaryCertificationBundle {
-        &self.certification_bundle
-    }
-
-    pub fn canonical_digest(&self) -> &str {
-        &self.canonical_digest
-    }
-}
-
-fn ingress_performance_digest(receipt: &ForgeServerIngressPerformanceReceipt) -> String {
-    receipt
-        .receipt()
-        .counter_rows()
-        .iter()
-        .map(|row| format!("{}={}", row.name().as_str(), row.observed_count()))
-        .collect::<Vec<_>>()
-        .join("|")
 }

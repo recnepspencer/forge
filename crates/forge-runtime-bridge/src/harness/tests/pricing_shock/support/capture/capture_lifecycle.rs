@@ -6,7 +6,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_discard_bundle(
     let source = pricing_reference_source();
     let runtime = build_pricing_runtime(source.clone(), RecordingSignalBridgeSink::default());
     let discard_session_identity =
-        BridgePreviewSessionIdentity::new("pricing:preview-discard-churn");
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-discard-churn");
     let session = runtime
         .speculate(BridgeSpeculativeSessionRequest::new(
             discard_session_identity.clone(),
@@ -20,17 +20,17 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_discard_bundle(
 
     source.insert_committed_patch(pricing_patch(
         pricing_patch_envelope_identity(
-            TruthBranchIdentity::new("main"),
-            TruthCommitIdentity::new("commit:steel-main-live"),
-            TruthPatchIdentity::new("patch:steel-main-live"),
-            TruthSnapshotIdentity::new("snapshot:pricing-main-live"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main-live"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch:steel-main-live"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main-live"),
         ),
         "steel",
     ));
     source.insert_snapshot(scenario.live_main_snapshot);
 
     let live_main_route = runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit:steel-main-live",
         ))
         .expect("main branch should keep routing during speculative churn");
@@ -52,8 +52,10 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_discard_bundle(
 
     let post_discard_main_eval = runtime
         .evaluate(
-            BridgeTruthViewEvaluationRequest::for_branch_head(TruthBranchIdentity::new("main"))
-                .with_read_packet(pricing_component_read_packet("steel")),
+            BridgeTruthViewEvaluationRequest::for_branch_head(
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            )
+            .with_read_packet(pricing_component_read_packet("steel")),
         )
         .expect("main branch should still evaluate after discard");
     let replay_bundle = runtime
@@ -84,7 +86,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_promotion_bundle
     let source = pricing_reference_source();
     let runtime = build_pricing_runtime(source.clone(), RecordingSignalBridgeSink::default());
     let promotion_session_identity =
-        BridgePreviewSessionIdentity::new("pricing:preview-promote-churn");
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-promote-churn");
     let session = runtime
         .speculate(BridgeSpeculativeSessionRequest::new(
             promotion_session_identity.clone(),
@@ -98,10 +100,12 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_promotion_bundle
 
     source.insert_committed_patch(pricing_patch(
         pricing_patch_envelope_identity(
-            TruthBranchIdentity::new("main"),
-            TruthCommitIdentity::new("commit:rubber-main-interleaved"),
-            TruthPatchIdentity::new("patch:rubber-main-interleaved"),
-            TruthSnapshotIdentity::new("snapshot:pricing-main-interleaved"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-main-interleaved"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch:rubber-main-interleaved"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture(
+                "snapshot:pricing-main-interleaved",
+            ),
         ),
         "rubber",
     ));
@@ -110,7 +114,9 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_promotion_bundle
     let main_eval = runtime
         .evaluate(
             comparison
-                .main_evaluation_request(TruthBranchIdentity::new("main"))
+                .main_evaluation_request(crate::truth_identity_fixtures::truth_branch_fixture(
+                    "main",
+                ))
                 .with_read_packet(pricing_component_read_packet("rubber")),
         )
         .expect("interleaved main branch should remain independently readable");
@@ -138,7 +144,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_promotion_bundle
         main_rubber_cost_cents: read_single_money_cents(&main_eval),
         speculative_rubber_cost_cents: read_single_money_cents(&speculative_eval),
         lifecycle_state: promoted.session().lifecycle_state_kind(),
-        promotion_session_identity: BridgePreviewSessionIdentity::new(
+        promotion_session_identity: BridgePreviewSessionIdentity::admit_bridge_owned(
             promotion_record.preview_session_identity(),
         ),
         authoritative_commit_boundary_digest: promotion_record
@@ -147,11 +153,9 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_promotion_bundle
         authoritative_artifact_digest: promotion_record.authoritative_artifact_digest().to_owned(),
         replay_outcome: replay_bundle.lifecycle_outcome(),
         has_promotion_explanation: matches!(
-            runtime
-                .diagnostics()
-                .explain_session(&BridgePreviewSessionIdentity::new(
-                    "pricing:preview-promote-churn",
-                )),
+            runtime.diagnostics().explain_session(
+                &BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-promote-churn",)
+            ),
             Some(crate::facade::BridgeStandardSessionExplanation::PreviewPromotion(_))
         ),
     }
@@ -163,10 +167,10 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_fanout_bundle(
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(pricing_patch(
         pricing_patch_envelope_identity(
-            TruthBranchIdentity::new("main"),
-            TruthCommitIdentity::new("commit:steel-fanout-a"),
-            TruthPatchIdentity::new("patch:steel-fanout-a"),
-            TruthSnapshotIdentity::new("snapshot:pricing-fanout-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-fanout-a"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch:steel-fanout-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-fanout-a"),
         ),
         "steel",
     ));
@@ -176,24 +180,24 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_fanout_bundle(
     let runtime = build_high_fanout_pricing_runtime(source.clone(), sink.clone(), 100);
 
     let first_route = runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit:steel-fanout-a",
         ))
         .expect("first steel fanout route should succeed");
 
     source.insert_committed_patch(pricing_patch(
         pricing_patch_envelope_identity(
-            TruthBranchIdentity::new("main"),
-            TruthCommitIdentity::new("commit:steel-fanout-b"),
-            TruthPatchIdentity::new("patch:steel-fanout-b"),
-            TruthSnapshotIdentity::new("snapshot:pricing-fanout-b"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-fanout-b"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch:steel-fanout-b"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-fanout-b"),
         ),
         "steel",
     ));
     source.insert_snapshot(scenario.fanout_second_snapshot);
 
     let second_route = runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit:steel-fanout-b",
         ))
         .expect("second steel fanout route should succeed");
@@ -202,8 +206,10 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_fanout_bundle(
         .expect("second steel fanout route should prepare evaluation");
     let branch_eval = runtime
         .evaluate(
-            BridgeTruthViewEvaluationRequest::for_branch_head(TruthBranchIdentity::new("main"))
-                .with_read_packet(pricing_component_read_packet("steel")),
+            BridgeTruthViewEvaluationRequest::for_branch_head(
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            )
+            .with_read_packet(pricing_component_read_packet("steel")),
         )
         .expect("main branch should evaluate after repeated steel churn");
 
@@ -222,7 +228,9 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_fanout_bundle(
         total_deliveries: sink.deliveries().len(),
         first_delivery_target_count: first_route.result().receipt().delivered_target_count(),
         second_delivery_target_count: second_route.result().receipt().delivered_target_count(),
-        second_source_commit: TruthCommitIdentity::new("commit:steel-fanout-b"),
+        second_source_commit: crate::truth_identity_fixtures::truth_commit_fixture(
+            "commit:steel-fanout-b",
+        ),
         second_snapshot: second_eval.snapshot().snapshot_identity().clone(),
         branch_snapshot: branch_eval.snapshot_identity().clone(),
         branch_steel_cost_cents: read_single_money_cents(&branch_eval),

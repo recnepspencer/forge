@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::acknowledgement::{QueryDeliveryBatchReceipt, QueryDeliverySequence};
 use super::active_budget::ActiveSubscriptionAllocationPosture;
@@ -11,6 +11,10 @@ use super::delivery_budget::QueryDeliveryWindowBudget;
 use super::delivery_cause::{QuerySubscriptionDeliveryCause, QuerySubscriptionDeliveryCauseKind};
 use super::delivery_error::{QueryDeliveryDenialKind, QueryDeliveryError};
 use super::delivery_work_packet::ActiveDeliveryWorkPacket;
+use super::evidence_identities::{
+    lifecycle_absent_performance_receipt_identity, lifecycle_absent_work_packet_identity,
+    lifecycle_delivery_batch_identity, lifecycle_delivery_window_identity, typed_identity_drift,
+};
 use super::maintenance_delta::{
     QueryMaintenanceDeltaLoweringReport, QuerySubscriptionMaintenanceDelta,
 };
@@ -18,7 +22,7 @@ use super::patch_group::{QueryPatchGroup, QueryPatchGroupKind};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct QueryDeliveryWindow {
-    delivery_window_digest: String,
+    delivery_window_identity: ForgeQueryEvidenceIdentity,
     active_lane_digest: ActiveSubscriptionLaneDigest,
     attachment_digest: SubscriptionConsumerAttachmentDigest,
     next_sequence: QueryDeliverySequence,
@@ -40,7 +44,7 @@ impl QueryDeliveryWindow {
             return Err(QueryDeliveryError::new(
                 QueryDeliveryDenialKind::DeliveryWindowBudgetExceeded,
                 "delivery window exceeds its explicit Phase 3 budget",
-                attachment.attachment_digest().as_str(),
+                attachment.attachment_digest().evidence_identity().clone(),
                 counters,
             ));
         }
@@ -49,25 +53,21 @@ impl QueryDeliveryWindow {
             return Err(QueryDeliveryError::new(
                 QueryDeliveryDenialKind::AllocationPostureForbidden,
                 "delivery windows require delivery-window allocation posture",
-                attachment.attachment_digest().as_str(),
+                attachment.attachment_digest().evidence_identity().clone(),
                 counters,
             ));
         }
 
-        let delivery_window_digest = hash_parts(&[
-            "query_delivery_window_v1".to_string(),
-            format!("lane:{}", attachment.lane_digest().as_str()),
-            format!("attachment:{}", attachment.attachment_digest().as_str()),
-            format!("sequence:{}", attachment.next_delivery_sequence().get()),
-            format!("window_width:{}", budget.delivery_window_width()),
-            format!("patch_width:{}", budget.patch_group_width()),
-            format!("allocation_width:{}", budget.allocation_scope_width()),
-            format!(
-                "allocation_posture:{}",
-                budget.allocation_posture().as_str()
-            ),
-            format!("backpressure:{}", budget.backpressure_policy().as_str()),
-        ]);
+        let delivery_window_identity = lifecycle_delivery_window_identity(
+            attachment.lane_digest().evidence_identity(),
+            attachment.attachment_digest().evidence_identity(),
+            attachment.next_delivery_sequence().get(),
+            budget.delivery_window_width(),
+            budget.patch_group_width(),
+            budget.allocation_scope_width(),
+            budget.allocation_posture(),
+            *budget.backpressure_policy(),
+        );
         counters.delivery_window_open_count = 1;
         counters.delivery_window_width = budget.delivery_window_width();
         counters.patch_group_width = budget.patch_group_width();
@@ -77,7 +77,7 @@ impl QueryDeliveryWindow {
 
         Ok((
             Self {
-                delivery_window_digest,
+                delivery_window_identity,
                 active_lane_digest: attachment.lane_digest().clone(),
                 attachment_digest: attachment.attachment_digest().clone(),
                 next_sequence: attachment.next_delivery_sequence(),
@@ -91,15 +91,15 @@ impl QueryDeliveryWindow {
         ))
     }
 
-    pub fn delivery_window_digest(&self) -> &str {
-        &self.delivery_window_digest
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_window_identity
     }
 
-    pub fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.active_lane_digest
     }
 
-    pub fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
+    pub(crate) fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
         &self.attachment_digest
     }
 
@@ -128,15 +128,28 @@ impl QueryDeliveryWindow {
     }
 
     pub(super) fn apply_continuation(self, report: &SubscriptionContinuationReport) -> Self {
-        let delivery_window_digest = hash_parts(&[
-            "query_delivery_window_continuation_v1".to_string(),
-            format!("window:{}", self.delivery_window_digest),
-            format!("continuation:{}", report.continuation_digest()),
-            format!("report:{}", report.report_digest()),
-            format!("remap_width:{}", report.remap_width()),
-        ]);
+        let delivery_window_identity = ForgeQueryEvidenceIdentity::compose(
+            crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+            "query_delivery_window_continuation_v1",
+        )
+        .field_evidence_identity(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("prior"),
+            &self.delivery_window_identity,
+        )
+        .field_evidence_identity(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("continuation"),
+            report.evidence_identity(),
+        )
+        .field_usize(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("remap_width"),
+            report.remap_width() as usize,
+        )
+        .seal();
         Self {
-            delivery_window_digest,
+            delivery_window_identity,
             ..self
         }
     }
@@ -144,8 +157,8 @@ impl QueryDeliveryWindow {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct QueryDeliveryBatch {
-    delivery_batch_digest: String,
-    delivery_window_digest: String,
+    delivery_batch_identity: ForgeQueryEvidenceIdentity,
+    delivery_window_identity: ForgeQueryEvidenceIdentity,
     attachment_digest: SubscriptionConsumerAttachmentDigest,
     sequence: QueryDeliverySequence,
     delivery_cause: QuerySubscriptionDeliveryCause,
@@ -161,14 +174,18 @@ impl QueryDeliveryBatch {
         work_packet: ActiveDeliveryWorkPacket,
     ) -> Result<Self, QueryDeliveryError> {
         let mut counters = ActiveSubscriptionCounters::default();
-        if window.active_lane_digest() != work_packet.active_lane_digest()
-            || window.attachment_digest() != work_packet.attachment_digest()
-        {
+        if typed_identity_drift(
+            window.active_lane_digest().evidence_identity(),
+            work_packet.active_lane_digest().evidence_identity(),
+        ) || typed_identity_drift(
+            window.attachment_digest().evidence_identity(),
+            work_packet.attachment_digest().evidence_identity(),
+        ) {
             counters.delivery_window_overflow_count = 1;
             return Err(QueryDeliveryError::new(
                 QueryDeliveryDenialKind::WorkPacketWindowMismatch,
                 "delivery work packet must target the delivery window lane and attachment",
-                work_packet.work_packet_digest(),
+                work_packet.evidence_identity().clone(),
                 counters,
             ));
         }
@@ -179,42 +196,35 @@ impl QueryDeliveryBatch {
             return Err(QueryDeliveryError::new(
                 QueryDeliveryDenialKind::DeliveryWindowBudgetExceeded,
                 "delivery work packet exceeds the opened delivery window budget",
-                work_packet.work_packet_digest(),
+                work_packet.evidence_identity().clone(),
                 counters,
             ));
         }
 
         let delivery_cause = QuerySubscriptionDeliveryCause::relational_patch(
-            work_packet.maintenance_delta().maintenance_delta_digest(),
+            work_packet.maintenance_delta().evidence_identity(),
         );
         let patch_group = QueryPatchGroup::new(
             QueryPatchGroupKind::from_delta_kind(work_packet.maintenance_delta().kind()),
-            work_packet.maintenance_delta().maintenance_delta_digest(),
+            work_packet.maintenance_delta().evidence_identity(),
             work_packet.patch_group_width(),
         );
         let receipt = QueryDeliveryBatchReceipt::new(
             window.attachment_digest().clone(),
             window.next_sequence(),
         );
-        let delivery_batch_digest = hash_parts(&[
-            "query_delivery_batch_v1".to_string(),
-            format!("window:{}", window.delivery_window_digest()),
-            format!("work_packet:{}", work_packet.work_packet_digest()),
-            format!("cause:{}", delivery_cause.delivery_cause_digest()),
-            format!("relational_patch:{}", delivery_cause.has_relational_patch()),
-            format!("patch_group:{}", patch_group.patch_group_digest()),
-            format!("receipt:{}", receipt.receipt_digest()),
-            format!(
-                "performance:{}",
-                work_packet
-                    .performance_receipt()
-                    .performance_receipt_digest()
-            ),
-            format!(
-                "posture:{}",
-                work_packet.maintenance_delta().delivery_posture().as_str()
-            ),
-        ]);
+        let delivery_batch_identity = lifecycle_delivery_batch_identity(
+            window.evidence_identity(),
+            work_packet.evidence_identity(),
+            delivery_cause.delivery_cause_identity(),
+            delivery_cause.has_relational_patch(),
+            patch_group.patch_group_identity(),
+            receipt.evidence_identity(),
+            work_packet
+                .performance_receipt()
+                .performance_receipt_identity(),
+            work_packet.maintenance_delta().delivery_posture().as_str(),
+        );
 
         counters.delivery_batch_count = 1;
         counters.fanout_delivery_count = 1;
@@ -250,10 +260,10 @@ impl QueryDeliveryBatch {
         }
 
         Ok(Self {
-            delivery_batch_digest,
-            delivery_window_digest: window.delivery_window_digest,
-            attachment_digest: window.attachment_digest,
-            sequence: window.next_sequence,
+            delivery_batch_identity,
+            delivery_window_identity: window.evidence_identity().clone(),
+            attachment_digest: window.attachment_digest().clone(),
+            sequence: window.next_sequence(),
             delivery_cause,
             has_relational_patch: true,
             patch_group,
@@ -273,31 +283,35 @@ impl QueryDeliveryBatch {
         );
         let patch_group = QueryPatchGroup::new(
             QueryPatchGroupKind::TimeOnlyDeliveryGroup,
-            delivery_cause.delivery_cause_digest(),
+            delivery_cause.delivery_cause_identity(),
             0,
         );
         let receipt = QueryDeliveryBatchReceipt::new(
             window.attachment_digest().clone(),
             window.next_sequence(),
         );
-        let delivery_batch_digest = hash_parts(&[
-            "query_delivery_batch_v1".to_string(),
-            format!("window:{}", window.delivery_window_digest()),
-            format!("cause:{}", delivery_cause.delivery_cause_digest()),
-            format!("relational_patch:false"),
-            format!("patch_group:{}", patch_group.patch_group_digest()),
-            format!("receipt:{}", receipt.receipt_digest()),
-        ]);
+        let absent_work_packet = lifecycle_absent_work_packet_identity();
+        let absent_performance = lifecycle_absent_performance_receipt_identity();
+        let delivery_batch_identity = lifecycle_delivery_batch_identity(
+            window.evidence_identity(),
+            &absent_work_packet,
+            delivery_cause.delivery_cause_identity(),
+            false,
+            patch_group.patch_group_identity(),
+            receipt.evidence_identity(),
+            &absent_performance,
+            "time_only",
+        );
         let mut counters = ActiveSubscriptionCounters::default();
         counters.delivery_batch_count = 1;
         counters.fanout_delivery_count = 1;
         counters.patch_group_count = 1;
 
         Ok(Self {
-            delivery_batch_digest,
-            delivery_window_digest: window.delivery_window_digest,
-            attachment_digest: window.attachment_digest,
-            sequence: window.next_sequence,
+            delivery_batch_identity,
+            delivery_window_identity: window.evidence_identity().clone(),
+            attachment_digest: window.attachment_digest().clone(),
+            sequence: window.next_sequence(),
             delivery_cause,
             has_relational_patch: false,
             patch_group,
@@ -317,14 +331,18 @@ impl QueryDeliveryBatch {
             window.attachment_digest().clone(),
             window.next_sequence(),
         );
-        let delivery_batch_digest = hash_parts(&[
-            "query_delivery_batch_v1".to_string(),
-            format!("window:{}", window.delivery_window_digest()),
-            format!("cause:{}", delivery_cause.delivery_cause_digest()),
-            format!("relational_patch:{has_relational_patch}"),
-            format!("patch_group:{}", patch_group.patch_group_digest()),
-            format!("receipt:{}", receipt.receipt_digest()),
-        ]);
+        let absent_work_packet = lifecycle_absent_work_packet_identity();
+        let absent_performance = lifecycle_absent_performance_receipt_identity();
+        let delivery_batch_identity = lifecycle_delivery_batch_identity(
+            window.evidence_identity(),
+            &absent_work_packet,
+            delivery_cause.delivery_cause_identity(),
+            has_relational_patch,
+            patch_group.patch_group_identity(),
+            receipt.evidence_identity(),
+            &absent_performance,
+            "mixed_cause",
+        );
         let mut counters = ActiveSubscriptionCounters::default();
         counters.delivery_batch_count = 1;
         counters.fanout_delivery_count = 1;
@@ -332,10 +350,10 @@ impl QueryDeliveryBatch {
         counters.patch_group_width = patch_group.width();
 
         Ok(Self {
-            delivery_batch_digest,
-            delivery_window_digest: window.delivery_window_digest,
-            attachment_digest: window.attachment_digest,
-            sequence: window.next_sequence,
+            delivery_batch_identity,
+            delivery_window_identity: window.evidence_identity().clone(),
+            attachment_digest: window.attachment_digest().clone(),
+            sequence: window.next_sequence(),
             delivery_cause,
             has_relational_patch,
             patch_group,
@@ -344,15 +362,15 @@ impl QueryDeliveryBatch {
         })
     }
 
-    pub fn delivery_batch_digest(&self) -> &str {
-        &self.delivery_batch_digest
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_batch_identity
     }
 
-    pub fn delivery_window_digest(&self) -> &str {
-        &self.delivery_window_digest
+    pub fn delivery_window_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_window_identity
     }
 
-    pub fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
+    pub(crate) fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
         &self.attachment_digest
     }
 

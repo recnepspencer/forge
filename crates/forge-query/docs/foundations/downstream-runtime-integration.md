@@ -32,6 +32,14 @@ The public contract is:
 - use the support matrix and admission surfaces when a family may be deferred
   or unsupported
 
+Identity and denial contracts on the ordinary path are also explicit:
+
+- canonical machine identity comes from
+  `ForgeQueryEvidenceIdentity::compose(...)`, not caller-owned string digests
+- `error.stop_class()` is the machine lane for denial handling; messages are
+  presentation and may change wording without changing the contract
+- preview and branch entry use `ForgeQuerySessionLabel`, not raw strings
+
 ## Use These Surfaces
 
 ### Runtime front door
@@ -78,10 +86,11 @@ The projected delivery tells downstream code:
 - `workspace.insert(...)`
 - `workspace.update(...)`
 - `workspace.delete(...)`
-- `workspace.batch(...)`
+- `workspace.submissions()?.submit_batch(commands)`
 
 Use these when the mutation is already fully known and does not need symbolic
-same-batch graph authoring.
+same-batch graph authoring. Command-shaped submissions must go through the
+explicit submission lane rather than direct workspace write or batch helpers.
 
 ### Graph-shaped authoring
 
@@ -96,19 +105,15 @@ Use these when one logical authoring step needs:
 - graph-specific lifecycle evidence
 - graph-specific denied-path diagnostics
 
-Do not simulate this with caller-owned `workspace.batch(...)` choreography.
+Do not simulate this with caller-owned command-batch choreography.
 
 ### Existing authoritative truth
 
-- `workspace.bind_existing_entity(...)`
-- `workspace.bind_existing_relation(...)`
-- `workspace.update_existing(...)`
-- `workspace.delete_existing(...)`
-- `workspace.assert_existing(...)`
-- `workspace.verify_existing(...)`
-- `workspace.update_existing_verified(...)`
-- `workspace.delete_existing_verified(...)`
-- `workspace.probe_existing(...)`
+- `ForgeQueryExistingTruthTargetBinding::from_entity_target(...)`
+- `ForgeQueryExistingTruthTargetBinding::from_relation_target(...)`
+- `workspace.compose_graph(...)`
+- `workspace.compose_graph_with_invariant_pack(...)`
+- `workspace.probe_existing_intent(...)`
 
 Use these when the runtime must preserve or verify an authoritative target
 binding instead of flattening everything into caller-owned identity strings.
@@ -164,6 +169,23 @@ Downstream runtimes should not recreate:
   obtain them from Query boundary receipts and use
   `ForgeQueryLowerRuntimeBoundaryEnvelopeSource` when a flow accepts any real
   boundary source
+
+## Consumer Proof
+
+If the downstream crate needs to prove it is consuming Query correctly, use the
+[Consumer Kit](consumer-kit.md). The kit is the Query-owned proof path for:
+
+- digest-bearing evidence reports
+- hard-prohibition registry and boundary audits
+- support snapshots and support pins
+- in-memory Query test workspaces
+- adoption and residue audits that prove Query folklore was deleted
+
+This matters because consumer proof is still Query semantics. A local digest
+helper, local source grep, local required-family row list, or fabricated test
+receipt can look like certification while silently drifting from the runtime
+contract. Consumer Kit surfaces derive from Query's evidence identity,
+prohibition registry, support matrix, and ordinary workspace facade instead.
 
 ## Support And Admission Rules
 

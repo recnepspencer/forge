@@ -21,8 +21,12 @@ use forge_runtime_bridge::facade::{
     BridgeGroupedTruthViewArtifact, BridgeMaterializedRowSetArtifact,
 };
 use forge_runtime_bridge::facade::{
+    RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
+    TruthSnapshotIdentity,
+};
+use forge_runtime_bridge::facade::{
     SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
-    SnapshotReadRequest, TruthSnapshotIdentity,
+    SnapshotReadRequest,
 };
 
 fn projection_artifacts() -> (CanonicalResultShapeArtifact, AuthorizedProjectionArtifact) {
@@ -53,10 +57,12 @@ fn projection_artifacts() -> (CanonicalResultShapeArtifact, AuthorizedProjection
 }
 
 fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
-    let entity_one_identity = string_snapshot_read("entity-1", "identity.id");
-    let entity_one_lane = string_snapshot_read("entity-1", "status.lane");
-    let entity_two_identity = string_snapshot_read("entity-2", "identity.id");
-    let entity_two_lane = string_snapshot_read("entity-2", "status.lane");
+    let entity_one = relational_record_parts(1);
+    let entity_two = relational_record_parts(2);
+    let entity_one_identity = relational_snapshot_read(entity_one, "identity.id");
+    let entity_one_lane = relational_snapshot_read(entity_one, "status.lane");
+    let entity_two_identity = relational_snapshot_read(entity_two, "identity.id");
+    let entity_two_lane = relational_snapshot_read(entity_two, "status.lane");
     let packet = SnapshotReadPacket::new(vec![
         entity_one_identity.clone(),
         entity_one_lane.clone(),
@@ -66,7 +72,7 @@ fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
     materialize_relational_authoritative_row_set(
         &packet,
         &SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            test_snapshot_identity(),
             vec![
                 SnapshotReadRecord::for_request(
                     &entity_one_identity,
@@ -205,11 +211,24 @@ fn aspect_value(value: AspectValue) -> AspectValue {
     encode_snapshot_aspect_read_value(&value)
 }
 
-fn string_snapshot_read(entity: &str, aspect: &str) -> SnapshotReadRequest {
-    SnapshotReadRequest::for_coarse(
-        entity,
+fn relational_snapshot_read(
+    record_parts: RelationalBridgeRecordIdentityParts,
+    aspect: &str,
+) -> SnapshotReadRequest {
+    SnapshotReadRequest::for_relational_record(
+        record_parts,
         SnapshotReadContract::scalar(aspect_key(aspect), ScalarAspectType::String),
     )
+}
+
+fn relational_record_parts(slot: u64) -> RelationalBridgeRecordIdentityParts {
+    RelationalBridgeRecordIdentityParts::entity(1, slot, 1)
+}
+
+fn test_snapshot_identity() -> TruthSnapshotIdentity {
+    TruthSnapshotIdentity::from_relational_snapshot(RelationalBridgeSnapshotIdentityParts::new(
+        1, 1,
+    ))
 }
 
 fn grouped_projection_contract(

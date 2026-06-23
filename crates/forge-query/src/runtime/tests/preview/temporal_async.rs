@@ -1,4 +1,5 @@
 use super::super::support::*;
+use crate::runtime::async_result_state::runtime_async_checkpoint_label_identity;
 use crate::subscription::QuerySubscriptionDeliveryCauseKind;
 use forge_runtime_bridge::facade::{
     BridgeAsyncCompletionClass, BridgeAsyncCompletionState, BridgeAsyncRequestTruthViewBasis,
@@ -43,9 +44,9 @@ fn install_temporal_async_and_mixed_residue(
         &bridge,
         forge_signal::facade::NodeId::new(310, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::from_bridge_harness_label("truth-main"),
+            TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
         ),
         64,
     );
@@ -105,8 +106,8 @@ fn preview_discard_closeout_tracks_temporal_async_and_mixed_residue_parity() {
     assert_eq!(closeout.authoritative_residue_count(), 0);
     assert_eq!(closeout.rebinding_digest(), None);
     assert_eq!(
-        closeout.preview_basis_snapshot_token(),
-        closeout.target_basis_snapshot_token()
+        closeout.preview_basis_snapshot_identity(),
+        closeout.target_basis_snapshot_identity()
     );
 
     let inspection = runtime
@@ -119,8 +120,8 @@ fn preview_discard_closeout_tracks_temporal_async_and_mixed_residue_parity() {
     assert_eq!(inspection.authoritative_residue_count(), 0);
     assert_eq!(inspection.rebinding_digest(), None);
     assert_eq!(
-        inspection.preview_basis_snapshot_token(),
-        inspection.target_basis_snapshot_token()
+        inspection.preview_basis_snapshot_identity(),
+        inspection.target_basis_snapshot_identity()
     );
 }
 
@@ -175,20 +176,28 @@ fn preview_promotion_closeout_records_rebinding_for_temporal_async_and_mixed_han
     assert_eq!(closeout.mixed_cause_residue_count(), 1);
     assert_eq!(closeout.crossed_authoritative_residue_count(), 0);
     assert!(closeout.rebinding_digest().is_some());
-    assert!(!closeout.preview_basis_snapshot_token().is_empty());
-    assert!(!closeout.target_basis_snapshot_token().is_empty());
+    assert!(!closeout
+        .preview_basis_snapshot_identity()
+        .evidence_identity()
+        .as_str()
+        .is_empty());
+    assert!(!closeout
+        .target_basis_snapshot_identity()
+        .evidence_identity()
+        .as_str()
+        .is_empty());
 
     let inspection = runtime
         .inspect_preview_outcome(&outcome)
         .expect("preview outcome inspection should succeed");
     assert!(inspection.rebinding_digest().is_some());
     assert_eq!(
-        inspection.preview_basis_snapshot_token(),
-        closeout.preview_basis_snapshot_token()
+        inspection.preview_basis_snapshot_identity(),
+        closeout.preview_basis_snapshot_identity()
     );
     assert_eq!(
-        inspection.target_basis_snapshot_token(),
-        closeout.target_basis_snapshot_token()
+        inspection.target_basis_snapshot_identity(),
+        closeout.target_basis_snapshot_identity()
     );
     assert_eq!(inspection.temporal_wake_residue_count(), 1);
     assert_eq!(inspection.async_result_residue_count(), 1);
@@ -268,7 +277,7 @@ fn preview_promotion_denies_with_typed_rebinding_recovery_posture() {
                 ),
                 "async:preview-mismatch",
             ),
-            "basis:drifted",
+            &runtime_async_checkpoint_label_identity("basis:drifted"),
             &generation_digest,
         )
         .expect("preview mismatch should remain typed");
@@ -305,6 +314,16 @@ fn preview_promotion_denies_with_typed_rebinding_recovery_posture() {
             assert_eq!(
                 evidence.recovery_posture(),
                 "discard_preview_and_readmit_authoritative"
+            );
+            assert_eq!(
+                evidence.denial_identity().as_str(),
+                evidence.denial_digest()
+            );
+            assert_eq!(
+                evidence
+                    .rebinding_identity()
+                    .map(|identity| identity.as_str()),
+                evidence.rebinding_digest()
             );
             assert!(evidence.rebinding_digest().is_some());
         }

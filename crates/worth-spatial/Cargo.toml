@@ -23,7 +23,8 @@ forge-query.workspace = true
 worth-geom.workspace = true
 worth-math.workspace = true
 worth-primitives.workspace = true
-worth-topo.workspace = true
+worth-topo = { workspace = true }
+schema = { package = "worth-schema", path = "../worth-schema" }
 serde_json.workspace = true
 
 [dev-dependencies]

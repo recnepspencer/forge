@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QuerySubscriptionAdmissionDiagnosticStage {
@@ -41,7 +43,7 @@ pub struct QuerySubscriptionAdmissionDiagnostics {
     stage: QuerySubscriptionAdmissionDiagnosticStage,
     outcome: QuerySubscriptionAdmissionDiagnosticOutcome,
     reason: String,
-    digest: String,
+    diagnostics_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionAdmissionDiagnostics {
@@ -49,21 +51,26 @@ impl QuerySubscriptionAdmissionDiagnostics {
         stage: QuerySubscriptionAdmissionDiagnosticStage,
         outcome: QuerySubscriptionAdmissionDiagnosticOutcome,
         reason: impl Into<String>,
-        source_digest: &str,
+        source_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
         let reason = reason.into();
-        let digest = hash_parts(&[
-            "query_subscription_admission_diagnostics_v1".to_string(),
-            stage.as_str().to_string(),
-            outcome.as_str().to_string(),
-            reason.clone(),
-            source_digest.to_string(),
-        ]);
+        let diagnostics_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "query_subscription_admission_diagnostics_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("stage"), stage.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("outcome"), outcome.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("reason"), &reason)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
+        .seal();
         Self {
             stage,
             outcome,
             reason,
-            digest,
+            diagnostics_identity,
         }
     }
 
@@ -79,7 +86,7 @@ impl QuerySubscriptionAdmissionDiagnostics {
         &self.reason
     }
 
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn diagnostics_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.diagnostics_identity
     }
 }

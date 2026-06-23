@@ -24,6 +24,11 @@ pub(super) fn classify_stop_class(error: &ForgeQueryRuntimeError) -> ForgeQueryS
                 component: ForgeQueryRuntimeMissingComponent::SourceAdapter,
             }
         }
+        ForgeQueryRuntimeError::MissingSnapshotIdentityAdapter => {
+            ForgeQueryStopClass::MissingRuntimeComponent {
+                component: ForgeQueryRuntimeMissingComponent::SnapshotIdentityAdapter,
+            }
+        }
         ForgeQueryRuntimeError::MissingWriteAuthority => {
             ForgeQueryStopClass::MissingRuntimeComponent {
                 component: ForgeQueryRuntimeMissingComponent::WriteAuthority,
@@ -63,6 +68,30 @@ pub(super) fn classify_stop_class(error: &ForgeQueryRuntimeError) -> ForgeQueryS
         }
         ForgeQueryRuntimeError::MutationContinuityDenied(denial) => {
             ForgeQueryStopClass::MutationContinuityDenied { denial }
+        }
+        ForgeQueryRuntimeError::GraphObligationTouchDescriptorDenied(denial) => {
+            ForgeQueryStopClass::GraphObligationTouchDescriptorDenied { denial }
+        }
+        ForgeQueryRuntimeError::GraphObligationEffectTouchDescriptorMissing { effect_name } => {
+            ForgeQueryStopClass::GraphObligationEffectTouchDescriptorMissing { effect_name }
+        }
+        ForgeQueryRuntimeError::GraphObligationIntentTouchDescriptorMissing { intent_name } => {
+            ForgeQueryStopClass::GraphObligationIntentTouchDescriptorMissing { intent_name }
+        }
+        ForgeQueryRuntimeError::GraphMutationPolicyContextDenied {
+            expected,
+            actual,
+            policy_tenant_admission_digest,
+        } => ForgeQueryStopClass::GraphMutationPolicyContextDenied {
+            expected: *expected,
+            actual: *actual,
+            policy_tenant_admission_digest,
+        },
+        ForgeQueryRuntimeError::GraphMutationPolicyGateDenied(evidence) => {
+            ForgeQueryStopClass::GraphMutationPolicyGateDenied { evidence }
+        }
+        ForgeQueryRuntimeError::GraphObligationDenied(denial) => {
+            ForgeQueryStopClass::GraphObligationDenied { denial }
         }
         ForgeQueryRuntimeError::GraphCompositionDenied(denial) => {
             ForgeQueryStopClass::GraphCompositionDenied { denial }
@@ -116,6 +145,12 @@ pub(super) fn classify_stop_class(error: &ForgeQueryRuntimeError) -> ForgeQueryS
                 kind: ForgeQueryRuntimeMissingArtifactKind::DerivedView,
                 name: view_name,
             }
+        }
+        ForgeQueryRuntimeError::SharedReadStaleBasis { snapshot_identity } => {
+            ForgeQueryStopClass::SharedReadStaleBasis { snapshot_identity }
+        }
+        ForgeQueryRuntimeError::JournalReplayDenied(denial) => {
+            ForgeQueryStopClass::JournalReplayDenied { denial }
         }
         ForgeQueryRuntimeError::MissingEffect(effect_name) => {
             ForgeQueryStopClass::MissingRuntimeArtifact {
@@ -176,8 +211,13 @@ pub(super) fn classify_stop_class(error: &ForgeQueryRuntimeError) -> ForgeQueryS
             authority_lane: *authority_lane,
             label,
         },
-        ForgeQueryRuntimeError::UnsupportedAuthority(authority) => {
-            ForgeQueryStopClass::UnsupportedAuthority { authority }
+        ForgeQueryRuntimeError::UnsupportedAuthorityRequirement(requirement) => {
+            ForgeQueryStopClass::UnsupportedAuthorityRequirement { requirement }
+        }
+        ForgeQueryRuntimeError::ExistingTruthAssertionRequiresAuthorityLane { required_lane } => {
+            ForgeQueryStopClass::ExistingTruthAssertionRequiresAuthorityLane {
+                required_lane: *required_lane,
+            }
         }
         ForgeQueryRuntimeError::IntentCommitDenied {
             intent_name,
@@ -242,9 +282,8 @@ pub(super) fn classify_stop_class(error: &ForgeQueryRuntimeError) -> ForgeQueryS
             label,
             stage,
             message,
-        } => ForgeQueryStopClass::RuntimeDeclarationFailed {
-            kind: ForgeQueryRuntimeDeclarationFailureKind::PreviewOperationEffectDenied,
-            name: label,
+        } => ForgeQueryStopClass::PreviewOperationEffectDenied {
+            label,
             stage,
             message,
         },

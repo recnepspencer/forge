@@ -90,14 +90,18 @@ pub(in crate::runtime::tests) fn bridge_verified_direct_relation_profile(
 fn bridge_backed_runtime_builder(
     profile: ForgeQueryRuntimeSupportProfile,
 ) -> ForgeQueryRuntimeBuilder {
+    complete_backend_from_parts_builder().support_profile(profile)
+}
+
+pub(in crate::runtime::tests) fn complete_backend_from_parts_builder() -> ForgeQueryRuntimeBuilder {
     ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
-        .support_profile(profile)
 }

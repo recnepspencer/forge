@@ -53,9 +53,9 @@ impl BridgeWritebackLoopPreventionReport {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            loop_prevention_identity: BridgeWritebackLoopPreventionIdentity::new(format!(
-                "bridge-writeback-loop-prevention:sha256:{digest:x}"
-            )),
+            loop_prevention_identity: BridgeWritebackLoopPreventionIdentity::admit_bridge_owned(
+                format!("bridge-writeback-loop-prevention:sha256:{digest:x}"),
+            ),
             current_feedback_provenance,
             incoming_feedback_context,
             idempotence: idempotence.clone(),

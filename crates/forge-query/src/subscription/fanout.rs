@@ -1,12 +1,15 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::active_digest::ActiveSubscriptionLaneDigest;
+use super::evidence_identities::{
+    subscription_fanout_plan_identity, subscription_fanout_report_identity,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubscriptionFanoutPlan {
     lane_digest: ActiveSubscriptionLaneDigest,
     affected_consumer_attachment_width: u64,
-    fanout_plan_digest: String,
+    fanout_plan_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl SubscriptionFanoutPlan {
@@ -14,22 +17,18 @@ impl SubscriptionFanoutPlan {
         lane_digest: ActiveSubscriptionLaneDigest,
         affected_consumer_attachment_width: u64,
     ) -> Self {
-        let fanout_plan_digest = hash_parts(&[
-            "subscription_fanout_plan_v1".to_string(),
-            format!("lane:{}", lane_digest.as_str()),
-            format!(
-                "affected_consumer_attachment_width:{}",
-                affected_consumer_attachment_width
-            ),
-        ]);
+        let fanout_plan_identity = subscription_fanout_plan_identity(
+            lane_digest.evidence_identity(),
+            affected_consumer_attachment_width,
+        );
         Self {
             lane_digest,
             affected_consumer_attachment_width,
-            fanout_plan_digest,
+            fanout_plan_identity,
         }
     }
 
-    pub fn lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.lane_digest
     }
 
@@ -37,8 +36,8 @@ impl SubscriptionFanoutPlan {
         self.affected_consumer_attachment_width
     }
 
-    pub fn fanout_plan_digest(&self) -> &str {
-        &self.fanout_plan_digest
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.fanout_plan_identity
     }
 }
 
@@ -47,23 +46,22 @@ pub struct SubscriptionFanoutReport {
     plan: SubscriptionFanoutPlan,
     shared_lane_count: u64,
     fanout_width: u64,
-    report_digest: String,
+    report_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl SubscriptionFanoutReport {
     pub(super) fn new(plan: SubscriptionFanoutPlan, shared_lane_count: u64) -> Self {
         let fanout_width = plan.affected_consumer_attachment_width();
-        let report_digest = hash_parts(&[
-            "subscription_fanout_report_v1".to_string(),
-            format!("plan:{}", plan.fanout_plan_digest()),
-            format!("shared_lane_count:{}", shared_lane_count),
-            format!("fanout_width:{}", fanout_width),
-        ]);
+        let report_identity = subscription_fanout_report_identity(
+            plan.evidence_identity(),
+            shared_lane_count,
+            fanout_width,
+        );
         Self {
             plan,
             shared_lane_count,
             fanout_width,
-            report_digest,
+            report_identity,
         }
     }
 
@@ -79,7 +77,7 @@ impl SubscriptionFanoutReport {
         self.fanout_width
     }
 
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.report_identity
     }
 }

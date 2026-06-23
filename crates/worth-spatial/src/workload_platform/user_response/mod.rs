@@ -18,3 +18,4 @@ pub use human_response::{HumanReadableResponse, HumanReadableResponseError};
 pub use outcome::{WorthUserOutcome, WorthUserOutcomeKind};
 pub use response_workload::{WorthUserResponseReceipt, WorthUserResponseWorkload};
 pub use source::WorthUserResponseSource;
+pub use source_adapters::{PlanarBooleanUserResponseClass, PlanarBooleanUserResponseSource};

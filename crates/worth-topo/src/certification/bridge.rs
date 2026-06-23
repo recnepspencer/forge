@@ -14,6 +14,7 @@ use crate::certification::support::reporting::{
 };
 use crate::certification::BridgeTraceAnchor;
 use crate::projection::runtime_boundary::bridge::build_milestone_one_bridge;
+use crate::projection::runtime_boundary::query_support::bridge_identity_projection;
 use crate::test_support::primitive_corpus::bridge_cases::milestone_one_bridge_proof_cases;
 use crate::test_support::primitive_corpus::validated_topology::committed_primitive_input;
 
@@ -96,7 +97,7 @@ pub(crate) fn certify_milestone_one_bridge_proof(
         })?;
         let family = primitive_family_name(primitive).to_string();
         let branch_id = commit_input.branch_id().0.clone();
-        let commit_id = commit.outcome.commit.commit_id.0.to_string();
+        let commit_id = commit.outcome.commit.commit_id.0;
         let bridge_runtime = Arc::new(runtime);
         let bridge =
             build_milestone_one_bridge(Arc::clone(&bridge_runtime), BridgeCertificationSink)
@@ -106,7 +107,7 @@ pub(crate) fn certify_milestone_one_bridge_proof(
                     ))
                 })?;
         let _route = bridge
-            .route(TruthCommitIdentity::new(format!("commit-{commit_id}")))
+            .route(TruthCommitIdentity::from_relational_commit_id(commit_id))
             .map_err(|error| {
                 MilestoneOneCertificationError::ReadView(format!(
                     " milestone one bridge proof could not route committed truth: {error:?}"
@@ -114,7 +115,7 @@ pub(crate) fn certify_milestone_one_bridge_proof(
             })?;
         let evaluation = bridge
             .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-                TruthBranchIdentity::new(branch_id.as_str()),
+                TruthBranchIdentity::from_relational_branch_id(branch_id.clone()),
             ))
             .map_err(|error| {
                 MilestoneOneCertificationError::ReadView(format!(
@@ -131,41 +132,62 @@ pub(crate) fn certify_milestone_one_bridge_proof(
         ));
         proved_families.push(family);
         source_branch = Some(branch_id);
-        source_commit = Some(commit_id);
-        source_snapshot = Some(evaluation.snapshot_identity().to_string());
+        source_commit = Some(commit_id.to_string());
+        source_snapshot = Some(bridge_identity_projection(
+            evaluation.snapshot_identity().bridge_admission_evidence(),
+        ));
 
         route_rows.extend(route_records.iter().map(|record| {
-            route_identities.push(record.route_identity().to_string());
-            invalidation_identities.push(record.invalidation_identity().to_string());
-            snapshot_identities.push(record.source_snapshot().as_str().to_string());
+            let route_identity =
+                bridge_identity_projection(record.route_identity().bridge_admission_evidence());
+            let invalidation_identity = bridge_identity_projection(
+                record.invalidation_identity().bridge_admission_evidence(),
+            );
+            let source_snapshot_identity =
+                bridge_identity_projection(record.source_snapshot().bridge_admission_evidence());
+            let source_branch_identity =
+                bridge_identity_projection(record.source_branch().bridge_admission_evidence());
+            let source_commit_identity =
+                bridge_identity_projection(record.source_commit().bridge_admission_evidence());
+            route_identities.push(route_identity.clone());
+            invalidation_identities.push(invalidation_identity.clone());
+            snapshot_identities.push(source_snapshot_identity.clone());
             format!(
                 "route:{}:{}:{}:{}:{}",
-                record.route_identity(),
-                record.source_branch().as_str(),
-                record.source_commit().as_str(),
-                record.source_snapshot().as_str(),
+                route_identity,
+                source_branch_identity,
+                source_commit_identity,
+                source_snapshot_identity,
                 record.invalidation_targets().len()
             )
         }));
         historical_rows.extend(historical_records.iter().map(|record| {
-            historical_record_identities.push(record.record_identity().to_string());
-            snapshot_identities.push(
+            let record_identity =
+                bridge_identity_projection(record.record_identity().bridge_admission_evidence());
+            let branch_identity = bridge_identity_projection(
+                record
+                    .decision_log()
+                    .branch_identity()
+                    .bridge_admission_evidence(),
+            );
+            let commit_identity = record
+                .decision_log()
+                .commit_identity()
+                .map(|identity| bridge_identity_projection(identity.bridge_admission_evidence()));
+            let snapshot_identity = bridge_identity_projection(
                 record
                     .decision_log()
                     .snapshot_identity()
-                    .as_str()
-                    .to_string(),
+                    .bridge_admission_evidence(),
             );
+            historical_record_identities.push(record_identity.clone());
+            snapshot_identities.push(snapshot_identity.clone());
             format!(
                 "historical:{}:{}:{}:{}:{:?}",
-                record.record_identity(),
-                record.decision_log().branch_identity(),
-                record
-                    .decision_log()
-                    .commit_identity()
-                    .map(|identity| identity.as_str())
-                    .unwrap_or("none"),
-                record.decision_log().snapshot_identity(),
+                record_identity,
+                branch_identity,
+                commit_identity.as_deref().unwrap_or("none"),
+                snapshot_identity,
                 record.decision_log().materialization_path()
             )
         }));

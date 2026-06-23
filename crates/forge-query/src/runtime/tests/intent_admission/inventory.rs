@@ -49,7 +49,7 @@ fn family_inventory_freezes_current_read_common_path() {
     assert_eq!(
         read_row.common_path_front_door(),
         ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
-            "workspace.compose_read(declaration); workspace.execute_read_family(&family); workspace.execute_read_family_in_basis_context(&family, &context); workspace.read_family_intent(&family).execute(); workspace.read_family_in_basis_context_intent(&family, &context).execute(); workspace.read(&view); workspace.read_live_intent(&view).execute()"
+            "workspace.compose_read(declaration); workspace.execute_read_family(&family); workspace.execute_read_family_with_access_plan(&family, plan); workspace.execute_read_family_in_basis_context(&family, &context); workspace.execute_read_family_in_basis_context_with_access_plan(&family, &context, plan); workspace.read_family_intent(&family).execute(); workspace.read_family_in_basis_context_intent(&family, &context).execute(); workspace.read(&view); workspace.read_live_intent(&view).execute()"
         )
     );
     assert_eq!(
@@ -120,7 +120,7 @@ fn family_inventory_freezes_authoritative_mutation_common_path() {
     assert_eq!(
         row.common_path_front_door(),
         ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
-            "runtime.write(command); runtime.write_intent(command).execute(); runtime.write_batch(commands); runtime.write_batch_intent(commands).execute(); workspace.write(command); workspace.write_intent(command).execute(); workspace.write_batch_intent(commands).execute(); workspace.insert(collection, declaration); workspace.update(entity_identity, declaration); workspace.update_existing(binding, declaration); workspace.assert_existing(binding, declaration); workspace.verify_existing(binding, declaration); workspace.update_existing_verified(binding, verify, update); workspace.delete(entity_identity); workspace.delete_with(entity_identity, declaration); workspace.delete_existing(binding); workspace.delete_existing_with(binding, declaration); workspace.delete_existing_verified(binding, verify, delete); workspace.batch(declaration)"
+            "runtime.write(command); runtime.write_intent(command).execute(); runtime.write_batch(commands); runtime.write_batch_intent(commands).execute(); workspace.write_intent(command).execute(); workspace.write_batch_intent(commands).execute(); workspace.insert(collection, declaration); workspace.update(entity_identity, declaration); workspace.delete(entity_identity); workspace.delete_with(entity_identity, declaration); workspace.submissions()?.submit(command); workspace.submissions()?.submit_batch(commands)"
         )
     );
     assert_eq!(
@@ -151,7 +151,7 @@ fn family_inventory_freezes_lower_runtime_routing_common_path() {
     assert_eq!(
         row.common_path_front_door(),
         ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
-            "runtime.probe_existing(request); runtime.probe_existing_intent(request).execute(); workspace.probe_existing(binding, paths); workspace.probe_existing_intent(request).execute()"
+            "runtime.probe_existing(request); runtime.probe_existing_intent(request).execute(); workspace.probe_existing_intent(request).execute()"
         )
     );
     assert_eq!(

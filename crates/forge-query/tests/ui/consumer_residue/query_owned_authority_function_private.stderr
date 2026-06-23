@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `forge_query::facade::consumer_kit::query_owned_consumer_residue_root_authority`
+ --> tests/ui/consumer_residue/query_owned_authority_function_private.rs:2:35
+  |
+2 |     query_consumer_residue_audit, query_owned_consumer_residue_root_authority,
+  |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `query_owned_consumer_residue_root_authority` in `facade::consumer_kit`

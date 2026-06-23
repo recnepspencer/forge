@@ -1,4 +1,3 @@
-use crate::facade::TruthSnapshotIdentity;
 use crate::facade::{
     BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeMappingId,
     BridgeMappingRegistration, BridgeRouteRequest, CoarseRoutingMode, MappingSelector,
@@ -18,13 +17,13 @@ fn field_surface_invalidates_only_registered_field_slice() {
     let name_field = forge_foundational::facade::FieldKey::new("name".to_owned())
         .expect("valid harness field key");
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         name_field.clone(),
     ));
     source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let runtime = build_runtime_with_aspects(
@@ -36,7 +35,7 @@ fn field_surface_invalidates_only_registered_field_slice() {
 
     let route = runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("field-scoped route should plan");
 
@@ -64,7 +63,7 @@ fn field_surface_invalidates_only_registered_field_slice() {
 }
 
 fn region_mapping_registration() -> BridgeMappingRegistration {
-    region_mapping_registration_with_signal_scope(SignalInvalidationScope::new(
+    region_mapping_registration_with_signal_scope(SignalInvalidationScope::admit_bridge_owned(
         "signal.profile.region",
     ))
 }
@@ -73,7 +72,7 @@ fn region_mapping_registration_with_signal_scope(
     signal_scope: SignalInvalidationScope,
 ) -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("profile-region"),
+        BridgeMappingId::admit_bridge_owned("profile-region"),
         TruthPatchScope::for_target(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
@@ -92,16 +91,16 @@ fn region_mapping_registration_with_signal_scope(
 fn region_surface_invalidates_only_registered_region_slice() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_region_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let runtime = build_runtime_with_aspects(
         source,
         RecordingSignalBridgeSink::default(),
         vec![region_mapping_registration()],
         vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("profile-name-region"),
+            BridgeAspectRegistrationId::admit_bridge_owned("profile-name-region"),
             TruthPatchScope::for_target(
                 MappingSelector::exact("user"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -121,7 +120,7 @@ fn region_surface_invalidates_only_registered_region_slice() {
 
     let route = runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("region-scoped route should plan");
 
@@ -151,13 +150,13 @@ fn invalidation_target_identity_changes_with_surface_proof_even_for_shared_signa
     let name_field = forge_foundational::facade::FieldKey::new("name".to_owned())
         .expect("valid harness field key");
     field_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-field"),
-        crate::facade::TruthPatchIdentity::new("patch-field"),
-        TruthSnapshotIdentity::new("snapshot-field"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-field"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-field"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-field"),
         name_field,
     ));
     field_source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-field"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-field"),
         "alice",
     ));
     let field_runtime = build_runtime_with_aspects(
@@ -169,18 +168,18 @@ fn invalidation_target_identity_changes_with_surface_proof_even_for_shared_signa
 
     let region_source = InMemoryRelationalBridgeSource::default();
     region_source.insert_committed_patch(committed_region_patch(
-        crate::facade::TruthCommitIdentity::new("commit-region"),
-        crate::facade::TruthPatchIdentity::new("patch-region"),
-        TruthSnapshotIdentity::new("snapshot-region"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-region"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-region"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-region"),
     ));
     let region_runtime = build_runtime_with_aspects(
         region_source,
         RecordingSignalBridgeSink::default(),
         vec![region_mapping_registration_with_signal_scope(
-            SignalInvalidationScope::new("signal.profile"),
+            SignalInvalidationScope::admit_bridge_owned("signal.profile"),
         )],
         vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("profile-name-region-shared-signal"),
+            BridgeAspectRegistrationId::admit_bridge_owned("profile-name-region-shared-signal"),
             TruthPatchScope::for_target(
                 MappingSelector::exact("user"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -200,12 +199,12 @@ fn invalidation_target_identity_changes_with_surface_proof_even_for_shared_signa
 
     let field_route = field_runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-field"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-field"),
         ))
         .expect("field route should plan");
     let region_route = region_runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-region"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-region"),
         ))
         .expect("region route should plan");
 

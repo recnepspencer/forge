@@ -502,81 +502,96 @@ Run binding workloads containing:
 Milestone `6` closes only when rebinding and identity separation work
 generically over the admitted binding workflow surface.
 
-## Milestone 7: Curved Geometry Foundation
+## Milestone 7: Planar B-Rep Boolean Foundation
 
 ### Purpose
 
-Prove that admitted curved geometry classes are bounded, visible, and
-auditable, without letting approximation silently become truth.
+Prove that the first admitted planar boolean workflow class is real on the
+B-rep lane, while preserving the Query-owned declaration, admission, readiness,
+route, receipt, and envelope contract that future EMBER execution must
+inherit.
 
 ### Required workload surface
 
-Run admitted curved workloads containing:
+Run admitted planar boolean workloads containing:
 
-- primitive-corpus carrier coverage for admitted analytic curved carriers,
-  including:
-  - `PeriodicAnalyticCarrier`
-  - `SingularAnalyticCarrier`
-  - curved `TrimmedCarrier(o, h...)`
-- arbitrary admitted curved edge and trim counts
-- tangent and near-tangent events within the admitted curved class
-- local chained curved rebuilds of bounded admitted depth
-- anti-drift workflows over the admitted anchored geometry surface
+- arbitrary admitted planar body pairs
+- arbitrary admitted coplanar and near-coplanar planar interactions within the
+  milestone's class
+- replayed, checkpointed, and non-checkpointed planar boolean histories
+- the real planar metaboss families through the B-rep lane
+- Query-owned declaration artifacts that classify workloads into:
+  - admitted to B-rep now
+  - reserved for future EMBER execution
+  - denied or policy-gated before execution
 
 ### Must verify
 
-- approximation and escalation remain visible and bounded
-- policy-required unresolved cases fail cleanly
-- anti-drift and anchoring outcomes are deterministic
-- admitted curved histories replay to the same bounded outcomes
+- the B-rep boolean lane lowers through one canonical Query declaration family
+- split / classify / assemble / postprocess behavior is deterministic on the
+  admitted planar surface
+- topology failure, spatial/predicate failure, Query-lane denial, and B-rep
+  execution failure remain distinct
+- admitted B-rep histories replay identically and checkpoint parity holds
+- the same admitted planar workload remains legible to a future EMBER lane
+  without changing the public boolean entry contract
 
 ### Required verification output
 
-- approximation_decision_digest
-- escalation_trace_report
-- anti_drift_report
-- curved_replay_parity_report
+- boolean_route_plan_digest
+- brep_boolean_phase_trace
+- boolean_failure_localization_report
+- brep_boolean_replay_parity_report
 
 ### Closeout condition
 
-Milestone `7` closes only when admitted curved workflows are generic across the
-admitted class rather than passing on a handful of analytic examples.
+Milestone `7` closes only when admitted planar boolean workflows are generic
+across the admitted B-rep workflow class, including the planar metaboss suite,
+rather than passing on a handful of sample unions or box pairs.
 
-## Milestone 8: Curved Hostile Proof Program
+## Milestone 8: EMBER Lane And Dual-Pipeline Hostile Boolean Proof
 
 ### Purpose
 
-Prove that hostile curved workloads either stay within declared bounds or fail
-with exact, replay-safe localization.
+Prove that hostile planar boolean workloads either converge honestly across the
+EMBER and B-rep lanes or fail with exact, replay-safe localization and explicit
+typed divergence.
 
 ### Required workload surface
 
-Run hostile curved workloads containing:
+Run hostile planar boolean workloads containing:
 
-- hostile primitive-corpus coverage for admitted analytic curved carrier
-  families and admitted `ReboundCarrier` histories under tangent pressure
-- tangent-heavy curved histories of arbitrary admitted length
-- scale-separated curved cases within the admitted class
-- anchored or symbolic drift-sensitive histories
+- coplanar apocalypse and overlap storms
+- thin labyrinth and micro-feature avalanche cases
+- cancellation chains and deep boolean histories
+- scale-separated and halfspace-storm cases
+- singularity-star and ultimate-degeneracy cases
+- accepted and rejected hostile workloads across both EMBER and B-rep lanes
+- the same admitted workload lowered through the same Query declaration family
+  before lane-specific execution
 
 ### Must verify
 
-- degradation is detected where it begins
-- drift-localization remains exact and replay-safe
-- accepted and rejected hostile curved cases replay identically
-- no hostile curved workload crashes, hangs, or drifts silently
+- parity or explicit typed divergence between EMBER and B-rep is deterministic
+- corruption-localization remains exact and replay-safe
+- checkpointed and non-checkpointed hostile histories converge to the same
+  outcome class
+- accepted and rejected hostile boolean cases replay identically
+- no hostile boolean workload crashes, hangs, or corrupts silently across
+  either lane
 
 ### Required verification output
 
-- curved_truth_digest_series
-- drift_localization_report
-- curved_failure_localization_report
-- curved_hostile_replay_report
+- ember_brep_parity_digest_series
+- boolean_corruption_localization_report
+- hostile_boolean_failure_localization_report
+- hostile_boolean_replay_report
 
 ### Closeout condition
 
-Milestone `8` closes only when hostile curved proof covers the admitted curved
-workflow class rather than isolated hard cases.
+Milestone `8` closes only when hostile boolean proof covers the admitted planar
+workflow class across both EMBER and B-rep lanes rather than isolated hard
+cases or one-lane demonstrations.
 
 ## Milestone 9: Feature Intent Core And Spec Truth
 

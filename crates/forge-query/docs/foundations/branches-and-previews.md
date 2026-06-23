@@ -81,6 +81,11 @@ Branch:
 The key idea is isolation by authority lane, not by reimplementing the whole
 runtime.
 
+Graph touch obligations follow that same isolation rule. Branch and preview
+graph touches must carry an operating world descriptor, and Query must select
+registered obligations from that descriptor rather than pretending branch-local,
+preview-local, and authoritative graph work share one validator table.
+
 ## How It Executes
 
 Preview path:
@@ -193,6 +198,10 @@ is a separate typed identity lane. Opening the preview uses
 planning uses `forge_query::facade::runtime::BridgePreviewSessionIdentity`.
 Do not collapse those two roles into one raw string.
 
+Preview binding and preview outcome inspection stay on the
+`ForgeQuerySessionLabel` lane too. Use rendered labels for DX only; if replay
+identity or collision posture matters, keep the typed session-label artifact.
+
 What is authoritative:
 
 - the workspace's current truth lane
@@ -279,6 +288,7 @@ Look for:
 
 ## Related Docs
 
+- [Graph Touch Obligation Authority](../authoring/graph-touch-obligation-authority.md)
 - [Workspace Overview](workspace-overview.md)
 - [Writes and Intent Boundaries](../execution/writes-and-intents.md)
 - [State and Readiness Surfaces](state.md)

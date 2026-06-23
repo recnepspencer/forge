@@ -25,7 +25,13 @@ fn mixed_batch_symbolic_and_existing_targets_preserve_distinct_evidence() {
         })
         .expect("seed insert should execute");
     let existing_binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
-        "authority:task-existing",
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new(
+                "authority:task-existing",
+            )
+            .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity"),
         seed.deltas()[0].entity_identity.clone(),
     )
     .expect("existing binding should build")
@@ -78,14 +84,16 @@ fn mixed_batch_symbolic_and_existing_targets_preserve_distinct_evidence() {
                 inspection.component_operations()[1]
                     .symbolic_target_reference_evidence()
                     .expect("symbolic component should retain symbolic evidence")
-                    .symbol(),
+                    .symbol()
+                    .as_str(),
                 "draft-task"
             );
             assert_eq!(
                 inspection.component_operations()[2]
                     .existing_truth_binding_evidence()
                     .expect("existing component should retain existing-target evidence")
-                    .authoritative_identity(),
+                    .authoritative_identity()
+                    .as_str(),
                 "authority:task-existing"
             );
         }
@@ -166,7 +174,8 @@ fn preview_batch_symbolic_target_preserves_symbolic_evidence() {
         receipt.write_receipts()[1]
             .symbolic_target_reference_evidence()
             .expect("preview component should retain symbolic evidence")
-            .symbol(),
+            .symbol()
+            .as_str(),
         "draft-task"
     );
 }
@@ -250,7 +259,11 @@ fn symbolic_aspect_reference_resolves_same_batch_created_entity_identity() {
     assert_eq!(edge_rows.len(), 1);
     assert_eq!(
         edge_rows[0].external_row()["edge"]["source_identity"].as_str(),
-        Some(draft_identity.as_str())
+        Some(
+            draft_identity
+                .evidence_identity()
+                .terminal_projection_for_reporting()
+        )
     );
     assert_eq!(
         edge_rows[0].external_row()["edge"]["target_identity"].as_str(),

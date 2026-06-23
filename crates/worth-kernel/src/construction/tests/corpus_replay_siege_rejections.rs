@@ -1,14 +1,14 @@
+use crate::construction::certification::corpus::replay_siege_report::{
+    row_attempted_realization_strategies, row_blocking_boundary, row_construction_breadth,
+    row_exhaustion_reason, row_realization_strategy, row_rejection_class, row_rejection_locality,
+    row_stability_class, siege_report,
+};
 use crate::construction::outcome::{
     PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
 };
 use crate::construction::request::PrimitiveConstructionFamily;
 use crate::construction::tests::support::blocking_boundary::PrimitiveConstructionBlockingBoundary;
 use crate::construction::tests::support::corpus_replay_row::PrimitiveConstructionCorpusParameterRole;
-use crate::construction::tests::support::corpus_replay_view::{
-    row_attempted_realization_strategies, row_blocking_boundary, row_construction_breadth,
-    row_exhaustion_reason, row_realization_strategy, row_rejection_class, row_rejection_locality,
-    row_stability_class, siege_report,
-};
 use worth_geom::facade::{PrimitiveRealizationStrategy, PrimitiveStabilityClass};
 
 #[test]

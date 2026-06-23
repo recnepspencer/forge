@@ -92,14 +92,14 @@ fn execute_ambiguous_remap(
             &contract,
             vec![
                 StructuralMatchCandidate::with_fingerprint(
-                    crate::facade::StructuralCandidateIdentity::new(
+                    crate::facade::StructuralCandidateIdentity::admit_bridge_owned(
                         "structural-candidate:ambiguous-a",
                     ),
                     StructuralMatchCandidateKind::ExactAdvisoryMatch,
                     Some(fingerprint.clone()),
                 ),
                 StructuralMatchCandidate::with_fingerprint(
-                    crate::facade::StructuralCandidateIdentity::new(
+                    crate::facade::StructuralCandidateIdentity::admit_bridge_owned(
                         "structural-candidate:ambiguous-b",
                     ),
                     StructuralMatchCandidateKind::AdvisoryReuseCandidate,
@@ -174,7 +174,7 @@ fn execute_lineage_divergence_remap(
         .plan_structural_match_packet_set(
             &contract,
             vec![StructuralMatchCandidate::with_fingerprint(
-                crate::facade::StructuralCandidateIdentity::new(
+                crate::facade::StructuralCandidateIdentity::admit_bridge_owned(
                     "structural-candidate:lineage-divergence",
                 ),
                 StructuralMatchCandidateKind::LineageStructuralDivergence,

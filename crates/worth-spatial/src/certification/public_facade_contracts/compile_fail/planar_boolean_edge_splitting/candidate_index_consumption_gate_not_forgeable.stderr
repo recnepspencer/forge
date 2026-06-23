@@ -1,0 +1,31 @@
+error[E0451]: fields `gate_identity`, `event_ledger_identity`, `downstream_consumption_identity`, `reduced_pair_identity`, `segment_pair_enumeration_identity`, `candidate_index_product_identity`, `query_index_declaration_digest`, `query_index_plan_digest`, `query_index_envelope_digest`, `candidate_index_strategy`, `fallback_posture`, `lifecycle_outcome` and `counters` of struct `PlanarBooleanCandidateIndexConsumptionGate` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/candidate_index_consumption_gate_not_forgeable.rs:7:9
+   |
+ 6 |     let _ = PlanarBooleanCandidateIndexConsumptionGate {
+   |             ------------------------------------------ in this type
+ 7 |         gate_identity: String::new(),
+   |         ^^^^^^^^^^^^^ private field
+ 8 |         event_ledger_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         downstream_consumption_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         reduced_pair_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         segment_pair_enumeration_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         candidate_index_product_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         query_index_declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         query_index_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         query_index_envelope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         candidate_index_strategy: worth_spatial::facade::planar_boolean_events::PlanarBooleanCandidateIndexStrategy::AabbSweep,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         fallback_posture: worth_spatial::facade::planar_boolean_events::PlanarBooleanCandidateIndexFallbackPosture::NotUsed,
+   |         ^^^^^^^^^^^^^^^^ private field
+18 |         lifecycle_outcome: worth_spatial::facade::planar_boolean_events::PlanarBooleanCandidateIndexLifecycleOutcome::Bound,
+   |         ^^^^^^^^^^^^^^^^^ private field
+19 |         counters: PlanarBooleanCandidateIndexConsumptionCounters::default(),
+   |         ^^^^^^^^ private field

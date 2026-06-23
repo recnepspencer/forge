@@ -11,10 +11,10 @@ pub(in crate::facade::tests) fn registered_structural(
     truth_view_basis: StructuralTruthViewBasis,
 ) -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::advisory_remap(
-        StructuralIdentityDeclarationIdentity::new(id),
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned(id),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             family,
             "geometry-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,

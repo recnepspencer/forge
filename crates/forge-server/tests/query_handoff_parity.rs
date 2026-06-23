@@ -9,8 +9,8 @@ mod query_handoff_fixture;
 mod query_handoff_runtime;
 
 use query_handoff_fixture::{
-    admit_mutation, admit_read, request_input, resolve_request_context, success, test_server,
-    test_server_with_middleware,
+    admit_mutation_posture, admit_read_posture, request_input, resolve_request_context, success,
+    test_server, test_server_with_middleware,
 };
 use query_handoff_runtime::TestWorkspaceProvider;
 
@@ -21,7 +21,7 @@ fn prepare_lowers_equivalent_cross_surface_reads_to_the_same_canonical_handoff_a
         server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admit_read(
+                admit_read_posture(
                     &server,
                     resolve_request_context(
                         &server,
@@ -38,7 +38,7 @@ fn prepare_lowers_equivalent_cross_surface_reads_to_the_same_canonical_handoff_a
         server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admit_read(
+                admit_read_posture(
                     &server,
                     resolve_request_context(
                         &server,
@@ -81,7 +81,7 @@ fn prepare_lowers_equivalent_cross_surface_mutations_to_the_same_canonical_hando
         server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admit_mutation(
+                admit_mutation_posture(
                     &server,
                     resolve_request_context(
                         &server,
@@ -98,7 +98,7 @@ fn prepare_lowers_equivalent_cross_surface_mutations_to_the_same_canonical_hando
         server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admit_mutation(
+                admit_mutation_posture(
                     &server,
                     resolve_request_context(
                         &server,
@@ -132,7 +132,7 @@ fn prepare_keeps_future_surface_registration_out_of_query_handoff_truth() {
         plain_server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admit_read(
+                admit_read_posture(
                     &plain_server,
                     resolve_request_context(
                         &plain_server,
@@ -147,7 +147,7 @@ fn prepare_keeps_future_surface_registration_out_of_query_handoff_truth() {
     );
     let widened = success(widened_server.query_handoff().prepare(
         ForgeServerQueryHandoffInput::new(
-            admit_read(
+            admit_read_posture(
                 &widened_server,
                 resolve_request_context(
                     &widened_server,

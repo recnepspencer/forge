@@ -1,8 +1,12 @@
-const DOMAIN_READS_DOC: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/domain-reads.md"));
+use super::super::topology_query_runtime_doc_contract;
+
+const DOMAIN_READS_DOC: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/docs/features/domain-reads.md"
+));
 const RUNTIME_SUPPORT_DOC: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/docs/runtime-support.md"
+    "/docs/features/runtime-support.md"
 ));
 const SUBSTRATE_DOC: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -33,51 +37,54 @@ const DECLARED_MUTATION_ARTIFACT_RS: &str = include_str!(concat!(
 
 #[test]
 fn topology_query_docs_do_not_regress_snapshot_reads_to_deferred_fallback() {
+    let contract = topology_query_runtime_doc_contract();
     for doc in [DOMAIN_READS_DOC, RUNTIME_SUPPORT_DOC, SUBSTRATE_DOC] {
         let lower = doc.to_ascii_lowercase();
-        assert!(!lower.contains("historical topology read families are deferred"));
-        assert!(!lower.contains("historical topology reads are deferred"));
-        assert!(!lower.contains("snapshot read-only runtime blocks"));
-        assert!(!lower.contains("historical runtime families for now"));
-        assert!(!lower.contains("not migrated yet and remains explicit"));
-        assert!(!lower.contains("snapshot-index fallback"));
-        assert!(!lower.contains("snapshot_index fallback"));
+        for forbidden in contract.forbidden_legacy_doc_phrases() {
+            assert!(!lower.contains(forbidden));
+        }
         assert!(!doc.contains("WorthTopologyRead"));
         assert!(!doc.contains("worth_topology_read_"));
         assert!(!doc.contains("crates/-topo"));
     }
 
-    assert!(RUNTIME_SUPPORT_DOC
-        .contains("The snapshot read-only runtime admits those same public topology-domain"));
-    assert!(DOMAIN_READS_DOC.contains("execution engine: `query_runtime_historical`"));
+    assert!(RUNTIME_SUPPORT_DOC.contains(contract.runtime_support_type_name()));
+    assert!(RUNTIME_SUPPORT_DOC.contains(contract.runtime_support_read_family_surface_name()));
+    assert!(RUNTIME_SUPPORT_DOC.contains(contract.snapshot_support_phrase()));
+    assert!(RUNTIME_SUPPORT_DOC.contains("public topology-domain read"));
+    assert!(DOMAIN_READS_DOC.contains(&format!(
+        "execution engine: `{}`",
+        contract.historical_read_execution_engine()
+    )));
     assert!(SUBSTRATE_DOC.contains("including snapshot"));
-    assert!(SUBSTRATE_DOC.contains("read-only execution through the historical basis-aware path"));
+    assert!(SUBSTRATE_DOC.contains(contract.historical_basis_phrase()));
 }
 
 #[test]
 fn topology_query_source_comments_do_not_keep_naming_purge_artifacts() {
+    let contract = topology_query_runtime_doc_contract();
     for source in [
         LIB_RS,
         FACADE_RS,
         PROJECTION_MOD_RS,
         DECLARED_QUERY_SURFACES_MOD_RS,
     ] {
-        assert!(!source.contains("-topo"));
-        assert!(!source.contains("for  without"));
-        assert!(!source.contains("the -owned"));
+        for forbidden in contract.forbidden_comment_artifacts() {
+            assert!(!source.contains(forbidden));
+        }
     }
 }
 
 #[test]
 fn runtime_mutation_lowering_sources_do_not_regress_to_batch_first_vocabulary() {
+    let contract = topology_query_runtime_doc_contract();
     for source in [
         WRITE_AUTHORITY_RS,
         WRITE_AUTHORITY_COMMAND_LOWERING_RS,
         DECLARED_MUTATION_ARTIFACT_RS,
     ] {
-        assert!(!source.contains("query-runtime-batch"));
-        assert!(!source.contains("same-batch"));
-        assert!(!source.contains("batch_label"));
-        assert!(!source.contains("batch_mutation_evidence()"));
+        for forbidden in contract.forbidden_batch_first_tokens() {
+            assert!(!source.contains(forbidden));
+        }
     }
 }

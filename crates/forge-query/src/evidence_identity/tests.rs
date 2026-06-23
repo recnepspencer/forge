@@ -7,13 +7,13 @@ use super::tag::ForgeQueryEvidenceTag;
 #[test]
 fn evidence_identity_sequences_do_not_collapse_delimiter_injection() {
     let left = forge_query_evidence_identity(ForgeQueryEvidenceScope::IntentDenialEvidence)
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("invariant_evidence"),
             ["alpha|beta", "gamma"],
         )
         .seal();
     let right = forge_query_evidence_identity(ForgeQueryEvidenceScope::IntentDenialEvidence)
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("invariant_evidence"),
             ["alpha", "beta|gamma"],
         )
@@ -23,12 +23,55 @@ fn evidence_identity_sequences_do_not_collapse_delimiter_injection() {
 }
 
 #[test]
+fn evidence_identity_sequences_do_not_collide_with_tag_shaped_scalar_fields() {
+    let sequence = forge_query_evidence_identity(ForgeQueryEvidenceScope::IntentDenialEvidence)
+        .field_value_sequence(ForgeQueryEvidenceTag::new("invariant_evidence"), ["alpha"])
+        .seal();
+    let scalar = forge_query_evidence_identity(ForgeQueryEvidenceScope::IntentDenialEvidence)
+        .field_value(ForgeQueryEvidenceTag::new("invariant_evidence.0"), "alpha")
+        .seal();
+
+    assert_ne!(sequence.as_str(), scalar.as_str());
+}
+
+#[test]
+fn evidence_identity_empty_sequences_do_not_collapse_with_omitted_fields() {
+    let explicit_empty =
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::IntentDenialEvidence)
+            .field_value_sequence(
+                ForgeQueryEvidenceTag::new("invariant_evidence"),
+                std::iter::empty::<&str>(),
+            )
+            .seal();
+    let omitted =
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::IntentDenialEvidence).seal();
+    let omitted_with_same_neighbor =
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::IntentDenialEvidence)
+            .field_shape(ForgeQueryEvidenceTag::new("stage"), "admission")
+            .seal();
+    let explicit_empty_with_same_neighbor =
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::IntentDenialEvidence)
+            .field_shape(ForgeQueryEvidenceTag::new("stage"), "admission")
+            .field_value_sequence(
+                ForgeQueryEvidenceTag::new("invariant_evidence"),
+                std::iter::empty::<&str>(),
+            )
+            .seal();
+
+    assert_ne!(explicit_empty.as_str(), omitted.as_str());
+    assert_ne!(
+        explicit_empty_with_same_neighbor.as_str(),
+        omitted_with_same_neighbor.as_str()
+    );
+}
+
+#[test]
 fn evidence_identity_scope_stays_part_of_the_public_identity_contract() {
     let left = forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewIntentAdmission)
-        .field_identity(ForgeQueryEvidenceTag::new("input_digest"), "input:v1")
+        .field_value(ForgeQueryEvidenceTag::new("input_digest"), "input:v1")
         .seal();
     let right = forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewIntentReceipt)
-        .field_identity(ForgeQueryEvidenceTag::new("input_digest"), "input:v1")
+        .field_value(ForgeQueryEvidenceTag::new("input_digest"), "input:v1")
         .seal();
 
     assert_ne!(left.as_str(), right.as_str());
@@ -99,4 +142,24 @@ fn evidence_identity_typed_scalar_helpers_preserve_canonical_distinctions() {
     assert_eq!(left.eq_same_scheme(&same), Ok(true));
     assert_eq!(left.eq_same_scheme(&changed_bool), Ok(false));
     assert_eq!(left.eq_same_scheme(&changed_count), Ok(false));
+}
+
+#[test]
+fn evidence_identity_exports_explicit_bridge_boundary_categories() {
+    let identity = forge_query_evidence_identity(ForgeQueryEvidenceScope::EffectIntentReceipt)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), "signal-routing")
+        .field_value(ForgeQueryEvidenceTag::new("receipt"), "receipt:v1")
+        .seal();
+
+    let external = identity.bridge_external_identity_evidence();
+    let query_evidence = identity.bridge_evidence_identity();
+
+    assert_eq!(
+        external.terminal_projection_for_reporting(),
+        identity.terminal_projection_for_reporting()
+    );
+    assert_eq!(
+        query_evidence.terminal_projection_for_reporting(),
+        identity.scope().as_str()
+    );
 }

@@ -66,9 +66,9 @@ impl BridgeHistoricalEvaluationFailureRecord {
         );
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            failure_identity: BridgeHistoricalEvaluationFailureIdentity::new(format!(
-                "historical-evaluation-failure:sha256:{digest:x}"
-            )),
+            failure_identity: BridgeHistoricalEvaluationFailureIdentity::admit_bridge_owned(
+                format!("historical-evaluation-failure:sha256:{digest:x}"),
+            ),
             declaration_identity,
             selector_identity,
             branch_identity,

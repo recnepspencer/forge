@@ -83,6 +83,20 @@ impl<'runtime> InvariantAccess<'runtime> {
         self.execute_for_runtime_plan(InvariantRequestProfile::CommitBoundary, merged_plan)
     }
 
+    pub fn commit_boundary_plan(
+        &self,
+        merged_plan: &'runtime MergedCommitPlan,
+    ) -> InvariantExecutionResult {
+        self.commit_boundary(merged_plan)
+    }
+
+    pub fn graph_composition_plan(
+        &self,
+        merged_plan: &'runtime MergedCommitPlan,
+    ) -> InvariantExecutionResult {
+        self.execute_for_runtime_plan(InvariantRequestProfile::GraphComposition, merged_plan)
+    }
+
     pub(crate) fn snapshot_publication_for_state(
         &self,
         state: crate::storage::overlay::OverlayStateView<

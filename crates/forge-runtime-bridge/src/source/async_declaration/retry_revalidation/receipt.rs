@@ -29,9 +29,9 @@ impl BridgeAsyncForwardCausalityReceipt {
     ) -> Self {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            receipt_identity: BridgeAsyncForwardCausalityReceiptIdentity::new(format!(
-                "bridge-async-forward-causality-receipt-id:sha256:{digest:x}"
-            )),
+            receipt_identity: BridgeAsyncForwardCausalityReceiptIdentity::admit_bridge_owned(
+                format!("bridge-async-forward-causality-receipt-id:sha256:{digest:x}"),
+            ),
             causality_identity: causality_identity.clone(),
             class,
             canonical_basis,

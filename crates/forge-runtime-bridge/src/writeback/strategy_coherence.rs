@@ -93,9 +93,9 @@ impl BridgeWritebackStrategyCoherenceReport {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            coherence_identity: BridgeWritebackStrategyCoherenceIdentity::new(format!(
-                "bridge-writeback-strategy-coherence:sha256:{digest:x}"
-            )),
+            coherence_identity: BridgeWritebackStrategyCoherenceIdentity::admit_bridge_owned(
+                format!("bridge-writeback-strategy-coherence:sha256:{digest:x}"),
+            ),
             contract_digest,
             family_kind: strategy_basis.family_kind(),
             strategy_basis_digest,

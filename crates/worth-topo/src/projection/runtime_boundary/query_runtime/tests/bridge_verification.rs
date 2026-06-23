@@ -2,8 +2,17 @@ use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
+use crate::topology_operators::authority_identity::{
+    existing_entity_authority, existing_relation_authority,
+};
 use crate::validation::reference_integrity::build_milestone_one_runtime;
-use forge_query::facade::ForgeQueryBridgeBackedVerificationSupportStatus;
+use forge_query::facade::{
+    ForgeQueryBridgeBackedVerificationSupportStatus, ForgeQueryEntityIdentity,
+    ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
+    ForgeQueryExistingTruthProbeMode, ForgeQueryExistingTruthProbeRequest,
+    ForgeQueryExistingTruthTargetBinding,
+};
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 
 #[test]
 fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
@@ -15,16 +24,50 @@ fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
     let mut workspace =
         topology_runtime(adapters, ".current-head.verify-existing").expect("workspace");
     let support = workspace.public_authoritative_mutation_evidence_support();
-    let binding = workspace
-        .bind_existing_entity(
-            forge_query::facade::ForgeQueryExistingEntityTarget::new(
-                format!("{:?}", seeded.vertex),
-                entity_identity(seeded.vertex),
-            )
-            .expect("existing entity target should build")
-            .in_target_collection("TopologyEntity")
-            .expect("existing entity target collection should build"),
+    let binding = ForgeQueryExistingTruthTargetBinding::from_entity_target(
+        ForgeQueryExistingEntityTarget::new(
+            existing_entity_authority(seeded.vertex).expect("entity authority"),
+            entity_identity(seeded.vertex),
         )
+        .expect("existing entity target should build")
+        .in_target_collection("TopologyEntity")
+        .expect("existing entity target collection should build"),
+    )
+    .expect("binding should build");
+
+    let probe = workspace
+        .probe_existing_intent(
+            ForgeQueryExistingTruthProbeRequest::new(
+                binding.clone(),
+                ["topology.kind", "naming.persistent_name"],
+            )
+            .expect("entity probe request should build"),
+        )
+        .execute()
+        .expect("entity probe should execute")
+        .probe()
+        .clone();
+    assert_eq!(
+        probe.mode(),
+        ForgeQueryExistingTruthProbeMode::BackendVerifiedProbe
+    );
+    assert_eq!(
+        probe
+            .field("topology.kind")
+            .expect("topology.kind should be present")
+            .external_value_json(),
+        "\".vertex\""
+    );
+
+    workspace
+        .compose_graph(|graph| {
+            graph.delete_existing_verified(
+                binding,
+                |entity| entity.aspect("topology.kind", ".vertex"),
+                |delete| delete.touch("topology.kind"),
+            )?;
+            Ok(())
+        })
         .expect("binding should build");
 
     for operation_family in [
@@ -58,29 +101,6 @@ fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
         update_row.current_posture_status(),
         ForgeQueryBridgeBackedVerificationSupportStatus::Denied
     );
-
-    workspace
-        .verify_existing(binding.clone(), |entity| {
-            entity.aspect("topology.kind", ".vertex")
-        })
-        .expect("entity verify should execute");
-    let probe = workspace
-        .probe_existing(binding.clone(), ["topology.kind", "naming.persistent_name"])
-        .expect("entity probe should execute");
-    assert_eq!(
-        probe
-            .field("topology.kind")
-            .expect("topology.kind should be present")
-            .external_value_json(),
-        "\".vertex\""
-    );
-    workspace
-        .delete_existing_verified(
-            binding,
-            |entity| entity.aspect("topology.kind", ".vertex"),
-            |delete| delete.touch("topology.kind"),
-        )
-        .expect("entity verified delete should execute");
 }
 
 #[test]
@@ -108,17 +128,16 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
     let mut workspace =
         topology_runtime(adapters, ".current-head.probe-existing").expect("workspace");
     let support = workspace.public_authoritative_mutation_evidence_support();
-    let binding = workspace
-        .bind_existing_relation(
-            forge_query::facade::ForgeQueryExistingRelationTarget::new(
-                format!("{relation_id:?}"),
-                relation_identity(relation_id),
-            )
-            .expect("existing relation target should build")
-            .in_target_collection("TopologyRelation")
-            .expect("existing relation target collection should build"),
+    let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(
+        ForgeQueryExistingRelationTarget::new(
+            existing_relation_authority(relation_id).expect("relation authority"),
+            relation_identity(relation_id),
         )
-        .expect("binding should build");
+        .expect("existing relation target should build")
+        .in_target_collection("TopologyRelation")
+        .expect("existing relation target collection should build"),
+    )
+    .expect("binding should build");
 
     let row = support
         .bridge_backed_verification_support_rows()
@@ -146,15 +165,25 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
     );
 
     let probe = workspace
-        .probe_existing(
-            binding.clone(),
-            [
-                "topology.kind",
-                "topology.source_identity",
-                "topology.target_identity",
-            ],
+        .probe_existing_intent(
+            ForgeQueryExistingTruthProbeRequest::new(
+                binding.clone(),
+                [
+                    "topology.kind",
+                    "topology.source_identity",
+                    "topology.target_identity",
+                ],
+            )
+            .expect("relation probe request should build"),
         )
-        .expect("relation probe should execute");
+        .execute()
+        .expect("relation probe should execute")
+        .probe()
+        .clone();
+    assert_eq!(
+        probe.mode(),
+        ForgeQueryExistingTruthProbeMode::BackendVerifiedProbe
+    );
     assert_eq!(
         probe
             .field("topology.kind")
@@ -162,41 +191,63 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
             .external_value_json(),
         "\".loop_owns_half_edge\""
     );
+    let source_identity: String = serde_json::from_str(
+        probe
+            .field("topology.source_identity")
+            .expect("source identity should be present")
+            .external_value_json(),
+    )
+    .expect("source identity probe value should decode");
+    let target_identity: String = serde_json::from_str(
+        probe
+            .field("topology.target_identity")
+            .expect("target identity should be present")
+            .external_value_json(),
+    )
+    .expect("target identity probe value should decode");
     workspace
-        .verify_existing(binding, |relation| {
-            relation.aspect("topology.kind", ".loop_owns_half_edge")
+        .compose_graph(|graph| {
+            graph.update_existing_verified(
+                binding.clone(),
+                |relation| relation.aspect("topology.kind", ".loop_owns_half_edge"),
+                |update| {
+                    update
+                        .aspect("topology.kind", ".loop_owns_half_edge")
+                        .aspect("topology.source_identity", &source_identity)
+                        .aspect("topology.target_identity", &target_identity)
+                },
+            )?;
+            Ok(())
         })
-        .expect("relation verify should execute");
-    let binding = workspace
-        .bind_existing_relation(
-            forge_query::facade::ForgeQueryExistingRelationTarget::new(
-                format!("{relation_id:?}"),
-                relation_identity(relation_id),
-            )
-            .expect("existing relation target should build")
-            .in_target_collection("TopologyRelation")
-            .expect("existing relation target collection should build"),
-        )
-        .expect("binding should build");
+        .expect("relation verified graph update should execute");
     workspace
-        .delete_existing_verified(
-            binding,
-            |relation| relation.aspect("topology.kind", ".loop_owns_half_edge"),
-            |delete| delete.touch("topology.kind"),
-        )
-        .expect("relation verified delete should execute");
+        .compose_graph(|graph| {
+            graph.delete_existing_verified(
+                binding,
+                |relation| relation.aspect("topology.kind", ".loop_owns_half_edge"),
+                |delete| delete.touch("topology.kind"),
+            )?;
+            Ok(())
+        })
+        .expect("relation verified graph delete should execute");
 }
 
-fn entity_identity(entity: forge_relational::facade::identity::EntityId) -> String {
-    format!(
-        "entity:{}:{}:{}",
-        entity.partition_id.0, entity.local_slot.0, entity.generation.0
-    )
+fn entity_identity(
+    entity: forge_relational::facade::identity::EntityId,
+) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::entity(
+        entity.partition_id.0,
+        entity.local_slot.0,
+        entity.generation.0,
+    ))
 }
 
-fn relation_identity(relation: forge_relational::facade::identity::RelationId) -> String {
-    format!(
-        "relation:{}:{}:{}",
-        relation.partition_id.0, relation.local_slot.0, relation.generation.0
-    )
+fn relation_identity(
+    relation: forge_relational::facade::identity::RelationId,
+) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::relation(
+        relation.partition_id.0,
+        relation.local_slot.0,
+        relation.generation.0,
+    ))
 }

@@ -1,5 +1,7 @@
 use crate::basis_lifecycle::BasisFamily;
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::workflow::{
     QueryWorkflowDeclaration, WorkflowAuthorityTargetFamily, WorkflowBasisFamily,
     WorkflowBudgetClass, WorkflowCostClass, WorkflowFreshnessPolicy,
@@ -77,7 +79,7 @@ pub struct AuthorityScopedEffectPlan {
     permitted_lowering_family: EffectPermittedLoweringFamily,
     artifact_policy: EffectArtifactPolicy,
     conflict_footprint: EffectConflictFootprint,
-    plan_digest: String,
+    plan_identity: ForgeQueryEvidenceIdentity,
     counters: EffectLifecycleCounters,
 }
 
@@ -93,17 +95,45 @@ impl AuthorityScopedEffectPlan {
         let counters = EffectLifecycleCounters::authority_scoped_plan(
             admitted.normalized().counters().effect_support_row_count(),
         );
-        let plan_digest = hash_parts(&[
-            "authority_scoped_effect_plan_v1".to_string(),
-            format!("admitted:{}", admitted.admitted_digest()),
-            format!("scope:{}", invariant_scope.as_str()),
-            format!("preview:{}", preview_posture.as_str()),
-            format!("policy:{}", policy_posture.as_str()),
-            format!("lowering:{}", permitted_lowering_family.as_str()),
-            format!("artifact:{}", artifact_policy.as_str()),
-            format!("footprint:{}", conflict_footprint.as_str()),
-            format!("counters:{}", counters.digest()),
-        ]);
+        let plan_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "authority_scoped_effect_plan_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("admitted"),
+                    admitted.admitted_identity(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("scope"),
+                    invariant_scope.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("preview"),
+                    preview_posture.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("policy"),
+                    policy_posture.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("lowering"),
+                    permitted_lowering_family.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("artifact"),
+                    artifact_policy.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("footprint"),
+                    conflict_footprint.as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("counters"),
+                    &counters.evidence_identity(),
+                )
+                .seal();
         Self {
             admitted,
             invariant_scope,
@@ -112,7 +142,7 @@ impl AuthorityScopedEffectPlan {
             permitted_lowering_family,
             artifact_policy,
             conflict_footprint,
-            plan_digest,
+            plan_identity,
             counters,
         }
     }
@@ -210,8 +240,12 @@ impl AuthorityScopedEffectPlan {
         }
     }
 
-    pub fn plan_digest(&self) -> &str {
-        &self.plan_digest
+    pub fn plan_for_reporting(&self) -> &str {
+        self.plan_identity.as_str()
+    }
+
+    pub fn plan_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.plan_identity
     }
 
     pub fn counters(&self) -> &EffectLifecycleCounters {

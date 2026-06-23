@@ -35,7 +35,7 @@ impl ValidatedStreamProtocol {
         );
         let digest = digest_string("validated-stream-protocol", &basis);
         Ok(Self {
-            stream_protocol_identity: StreamProtocolIdentity::new(digest.clone()),
+            stream_protocol_identity: StreamProtocolIdentity::admit_bridge_owned(digest.clone()),
             declaration,
             digest,
         })
@@ -144,7 +144,9 @@ impl AdmittedConsumerContract {
         let digest = digest_string("admitted-consumer-contract", &basis);
 
         Ok(Self {
-            consumer_contract_identity: ConsumerContractIdentity::new(digest.clone()),
+            consumer_contract_identity: ConsumerContractIdentity::admit_bridge_owned(
+                digest.clone(),
+            ),
             stream_protocol_identity: protocol.stream_protocol_identity().clone(),
             consumer_shape: declaration.consumer_shape(),
             admitted_resume_mode,

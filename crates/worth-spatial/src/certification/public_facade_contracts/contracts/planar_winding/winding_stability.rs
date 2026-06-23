@@ -48,6 +48,17 @@ fn certified_polygon_winding_is_stable_under_loop_rotation_and_reversal() {
     assert_eq!(canonical.fact_digest(), rotated.fact_digest());
     assert_ne!(canonical.fact_digest(), reversed.fact_digest());
     assert_eq!(canonical.counters().loop_edges_walked(), 4);
+    assert_eq!(canonical.counters().segment_contact_possible_pairs(), 2);
+    assert_eq!(canonical.counters().segment_contact_candidate_pairs(), 0);
+    assert_eq!(canonical.counters().segment_contact_culled_pairs(), 2);
+    assert_eq!(
+        canonical
+            .counters()
+            .segment_contact_adjacent_self_pairs_skipped(),
+        4
+    );
+    assert_eq!(canonical.counters().segment_contacts_classified(), 0);
+    assert!(!canonical.counters().segment_contact_fallback_used());
     assert_eq!(canonical.counters().winding_predicates_consumed(), 2);
 }
 

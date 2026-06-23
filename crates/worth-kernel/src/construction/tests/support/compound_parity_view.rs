@@ -1,4 +1,3 @@
-use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 use crate::construction::tests::support::compound_lane_support::compound_report_digest;
 use crate::construction::tests::support::compound_parity_support::{
     build_exhaustion_witness_parity_rows_from_siege, build_grazing_boundary_rows_from_siege,
@@ -14,6 +13,7 @@ use crate::construction::tests::support::compound_runtime::{
     PrimitiveConstructionCompoundExhaustionWitnessParityRow,
     PrimitiveConstructionCompoundGrazingBoundaryRow, PrimitiveConstructionCompoundMotionParityRow,
 };
+use crate::construction::tests::support::evidence_reports::sealed_report_identity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum PrimitiveConstructionCompoundParityVerificationMismatch {
@@ -198,14 +198,16 @@ impl PrimitiveConstructionCompoundParityView {
     }
 
     pub(crate) fn report_digest(&self) -> String {
-        digest_owned_parts_with_scope(
-            ConstructionDigestScope::ParityIdentity,
-            &[
-                compound_report_digest(self.siege()),
-                self.motion_report_digest(),
-                self.grazing_report_digest(),
-                self.exhaustion_report_digest(),
-            ],
+        sealed_report_identity(
+            "worth-kernel.construction.compound-parity",
+            "compound-parity-view",
+            |report| {
+                report
+                    .value_participating("compound-report", compound_report_digest(self.siege()))?
+                    .value_participating("motion-report", self.motion_report_digest())?
+                    .value_participating("grazing-report", self.grazing_report_digest())?
+                    .value_participating("exhaustion-report", self.exhaustion_report_digest())
+            },
         )
     }
 }

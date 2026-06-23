@@ -1,54 +1,18 @@
-error: cannot construct `ForgeQueryRuntimeStateSnapshot` with struct literal syntax due to private fields
-  --> tests/ui/runtime_state_snapshot_constructor_private.rs:6:19
-   |
- 6 |     let _forged = ForgeQueryRuntimeStateSnapshot {
-   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 7 |         kind: ForgeQueryRuntimeStateKind::Ready,
-   |         --------------------------------------- private field
- 8 |         basis_digest: String::new(),
-   |         --------------------------- private field
- 9 |         result_shape_digest: String::new(),
-   |         ---------------------------------- private field
-10 |         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-   |         ----------------------------------------------------------- private field
-11 |         explanation: String::new(),
-   |         -------------------------- private field
-12 |         state_digest: String::new(),
-   |         --------------------------- private field
-   |
-   = note: ...and other private fields `ordinary_runtime_posture`, `async_result_state` and `remask_posture` that were not provided
-help: you might have meant to use an associated function to build this type
-   |
- 6 -     let _forged = ForgeQueryRuntimeStateSnapshot {
- 7 -         kind: ForgeQueryRuntimeStateKind::Ready,
- 8 -         basis_digest: String::new(),
- 9 -         result_shape_digest: String::new(),
-10 -         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-11 -         explanation: String::new(),
-12 -         state_digest: String::new(),
-13 -     };
- 6 +     let _forged = ForgeQueryRuntimeStateSnapshot::new(_, _, _, _, _);
-   |
- 6 -     let _forged = ForgeQueryRuntimeStateSnapshot {
- 7 -         kind: ForgeQueryRuntimeStateKind::Ready,
- 8 -         basis_digest: String::new(),
- 9 -         result_shape_digest: String::new(),
-10 -         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-11 -         explanation: String::new(),
-12 -         state_digest: String::new(),
-13 -     };
- 6 +     let _forged = ForgeQueryRuntimeStateSnapshot::ready(_, _, _, _);
-   |
- 6 -     let _forged = ForgeQueryRuntimeStateSnapshot {
- 7 -         kind: ForgeQueryRuntimeStateKind::Ready,
- 8 -         basis_digest: String::new(),
- 9 -         result_shape_digest: String::new(),
-10 -         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-11 -         explanation: String::new(),
-12 -         state_digest: String::new(),
-13 -     };
- 6 +     let _forged = ForgeQueryRuntimeStateSnapshot::deferred(_, _, _, _, _);
-   |
+error[E0560]: struct `ForgeQueryRuntimeStateSnapshot` has no field named `basis_digest`
+ --> tests/ui/runtime_state_snapshot_constructor_private.rs:8:9
+  |
+8 |         basis_digest: String::new(),
+  |         ^^^^^^^^^^^^ `ForgeQueryRuntimeStateSnapshot` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryRuntimeStateSnapshot` has no field named `result_shape_digest`
+ --> tests/ui/runtime_state_snapshot_constructor_private.rs:9:9
+  |
+9 |         result_shape_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^ `ForgeQueryRuntimeStateSnapshot` does not have this field
+  |
+  = note: all struct fields are already assigned
 
 error[E0308]: mismatched types
   --> tests/ui/runtime_state_snapshot_constructor_private.rs:12:23

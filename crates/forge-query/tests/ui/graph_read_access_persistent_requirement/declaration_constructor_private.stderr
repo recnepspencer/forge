@@ -1,0 +1,41 @@
+error[E0451]: fields `digest`, `read_graph_digest`, `access_shape_digest`, `selectivity_shape_digest`, `requirement_set_digest`, `inventory_match_report_digest`, `estimated_index_bytes`, `estimated_result_bytes`, `required_owner`, `requirement_rows` and `counters` of struct `ForgeQueryPersistentGraphIndexRequirementDeclaration` are private
+  --> tests/ui/graph_read_access_persistent_requirement/declaration_constructor_private.rs:9:9
+   |
+ 8 |     let _ = ForgeQueryPersistentGraphIndexRequirementDeclaration {
+   |             ---------------------------------------------------- in this type
+ 9 |         digest: String::new(),
+   |         ^^^^^^ private field
+10 |         read_graph_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+11 |         access_shape_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+12 |         selectivity_shape_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         requirement_set_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         inventory_match_report_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         estimated_index_bytes: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         estimated_result_bytes: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         required_owner: ForgeQueryGraphReadRequiredCapabilityOwner::PersistentStore,
+   |         ^^^^^^^^^^^^^^ private field
+18 |         requirement_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+19 |         counters: ForgeQueryPersistentGraphIndexRequirementCounters {
+   |         ^^^^^^^^ private field
+
+error[E0451]: fields `requirement_row_count`, `persistent_store_owner_row_count`, `blocked_allocation_count` and `durable_artifact_count` of struct `ForgeQueryPersistentGraphIndexRequirementCounters` are private
+  --> tests/ui/graph_read_access_persistent_requirement/declaration_constructor_private.rs:20:13
+   |
+19 |         counters: ForgeQueryPersistentGraphIndexRequirementCounters {
+   |                   ------------------------------------------------- in this type
+20 |             requirement_row_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^ private field
+21 |             persistent_store_owner_row_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+22 |             blocked_allocation_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+23 |             durable_artifact_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^ private field

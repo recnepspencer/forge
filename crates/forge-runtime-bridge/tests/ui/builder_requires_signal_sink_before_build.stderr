@@ -1,3 +1,61 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/builder_requires_signal_sink_before_build.rs:11:26
+   |
+11 |           BridgeMappingId::new("profile-name"),
+   |                            ^^^ private associated function
+   |
+  ::: src/identity.rs
+   |
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/builder_requires_signal_sink_before_build.rs:11:30
+   |
+11 |         BridgeMappingId::new("profile-name"),
+   |         -------------------- ^^^^^^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |         |
+   |         arguments to this function are incorrect
+   |
+   = note: expected struct `FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/builder_requires_signal_sink_before_build.rs:17:34
+   |
+17 |           SignalInvalidationScope::new("signal.profile"),
+   |                                    ^^^ private associated function
+   |
+  ::: src/identity.rs
+   |
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/builder_requires_signal_sink_before_build.rs:17:38
+   |
+17 |         SignalInvalidationScope::new("signal.profile"),
+   |         ---------------------------- ^^^^^^^^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |         |
+   |         arguments to this function are incorrect
+   |
+   = note: expected struct `FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
+
 error[E0599]: no method named `build` found for struct `RuntimeBridgeBuilder<forge_runtime_bridge::builder::states::PresentCommittedPatchSource, forge_runtime_bridge::builder::states::PresentSnapshotReadSource, forge_runtime_bridge::builder::states::MissingSignalSink, forge_runtime_bridge::builder::states::MissingTruthBranchHeadSource, forge_runtime_bridge::builder::states::PresentMappingRegistrations>` in the current scope
   --> tests/ui/builder_requires_signal_sink_before_build.rs:47:21
    |

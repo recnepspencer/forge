@@ -5,6 +5,7 @@ use crate::evidence_identity::{
     ForgeQueryEvidenceTag,
 };
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::ForgeQueryIntentConsumerInspection;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -23,7 +24,7 @@ pub struct ForgeQueryIntentDenialEvidence {
     execution_kind: Option<ForgeQueryIntentExecutionKind>,
     attempt_digest: Option<String>,
     invariant_evidence: Vec<String>,
-    snapshot_token: Option<String>,
+    snapshot_identity: Option<ForgeQuerySnapshotIdentity>,
     execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
     decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     denial_digest: ForgeQueryEvidenceIdentity,
@@ -56,10 +57,11 @@ impl ForgeQueryIntentDenialEvidence {
         let invariant_evidence = execution
             .map(|execution| execution.invariant_evidence.clone())
             .unwrap_or_default();
-        let snapshot_token = execution.and_then(|execution| {
-            let token = execution.mutation_receipt().snapshot_token.clone();
-            (!token.is_empty()).then_some(token)
-        });
+        let snapshot_identity =
+            execution.map(|execution| execution.mutation_receipt().snapshot_identity.clone());
+        let snapshot_evidence_identity = snapshot_identity
+            .as_ref()
+            .map(ForgeQuerySnapshotIdentity::evidence_identity);
         let denial_digest =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::IntentDenialEvidence)
                 .field_shape(
@@ -84,11 +86,11 @@ impl ForgeQueryIntentDenialEvidence {
                     ForgeQueryEvidenceTag::new("returned_strategy_version"),
                     returned_strategy_version.as_deref(),
                 )
-                .optional_identity(
+                .optional_value(
                     ForgeQueryEvidenceTag::new("returned_strategy_descriptor_digest"),
                     returned_strategy_descriptor_digest.as_deref(),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("canonical_input_digest"),
                     declaration.input_digest(),
                 )
@@ -104,25 +106,25 @@ impl ForgeQueryIntentDenialEvidence {
                     ForgeQueryEvidenceTag::new("execution_kind"),
                     execution_kind.map(ForgeQueryIntentExecutionKind::as_str),
                 )
-                .optional_identity(
+                .optional_value(
                     ForgeQueryEvidenceTag::new("attempt_digest"),
                     attempt_digest.as_deref(),
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("invariant_evidence"),
                     invariant_evidence.iter().map(String::as_str),
                 )
-                .optional_identity(
-                    ForgeQueryEvidenceTag::new("snapshot_token"),
-                    snapshot_token.as_deref(),
+                .optional_evidence_identity(
+                    ForgeQueryEvidenceTag::new("snapshot_identity"),
+                    snapshot_evidence_identity.as_ref(),
                 )
-                .optional_identity(
+                .optional_value(
                     ForgeQueryEvidenceTag::new("execution_provenance"),
                     execution_provenance.as_ref().map(
                         ForgeQueryIntentExecutionProvenance::execution_provenance_chain_digest,
                     ),
                 )
-                .optional_identity(
+                .optional_value(
                     ForgeQueryEvidenceTag::new("decision_trace_digest"),
                     decision_trace_envelope
                         .as_ref()
@@ -144,7 +146,7 @@ impl ForgeQueryIntentDenialEvidence {
             execution_kind,
             attempt_digest,
             invariant_evidence,
-            snapshot_token,
+            snapshot_identity,
             execution_provenance,
             decision_trace_envelope,
             denial_digest,
@@ -207,8 +209,14 @@ impl ForgeQueryIntentDenialEvidence {
         &self.invariant_evidence
     }
 
-    pub fn snapshot_token(&self) -> Option<&str> {
-        self.snapshot_token.as_deref()
+    pub fn snapshot_identity(&self) -> Option<&ForgeQuerySnapshotIdentity> {
+        self.snapshot_identity.as_ref()
+    }
+
+    pub fn snapshot_evidence_identity(&self) -> Option<ForgeQueryEvidenceIdentity> {
+        self.snapshot_identity
+            .as_ref()
+            .map(ForgeQuerySnapshotIdentity::evidence_identity)
     }
 
     pub fn execution_provenance(&self) -> Option<&ForgeQueryIntentExecutionProvenance> {

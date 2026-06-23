@@ -1,6 +1,7 @@
 use forge_runtime_bridge::facade::BridgeCausalExplanationEnvelope;
 
-use crate::identity::hash_parts;
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 use crate::runtime::{
     CausalEvidenceFamily, CausalEvidenceReferenceSet, CausalInspectionExplanationFamily,
     CausalInspectionMaterializationPolicy, CausalInspectionRedactionPolicy,
@@ -43,6 +44,83 @@ impl ForgeQueryExplanationContributionPosture {
     }
 }
 
+fn compose_explanation_runtime_semantics_identity(
+    reference_set: &CausalEvidenceReferenceSet,
+    target: &CausalInspectionTarget,
+    explanation_family: CausalInspectionExplanationFamily,
+    requested_richness: CausalInspectionRichness,
+    requested_evidence_families: &[CausalEvidenceFamily],
+    bridge_envelope: Option<&BridgeCausalExplanationEnvelope>,
+    redaction_policy: CausalInspectionRedactionPolicy,
+    materialization_policy: CausalInspectionMaterializationPolicy,
+) -> ForgeQueryEvidenceIdentity {
+    let mut identity = domain_capability_scope_encoder(
+        "forge_query_domain_capability_explanation_runtime_semantics_v1",
+    )
+    .field_evidence_identity(
+        ForgeQueryEvidenceTag::new("reference_set"),
+        reference_set.reference_set_digest().evidence_identity(),
+    )
+    .field_evidence_identity(
+        ForgeQueryEvidenceTag::new("target"),
+        target.target_identity().evidence_identity(),
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("family"),
+        explanation_family.as_str(),
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("richness"),
+        requested_richness.as_str(),
+    )
+    .field_value_sequence(
+        ForgeQueryEvidenceTag::new("evidence_families"),
+        requested_evidence_families
+            .iter()
+            .map(CausalEvidenceFamily::as_str),
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("redaction"),
+        redaction_policy.as_str(),
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("materialization"),
+        materialization_policy.as_str(),
+    );
+    identity = match bridge_envelope {
+        Some(envelope) => identity.field_bridge_retained_evidence_identity(
+            ForgeQueryEvidenceTag::new("bridge_envelope"),
+            envelope.envelope_evidence_identity(),
+        ),
+        None => identity.field_shape(ForgeQueryEvidenceTag::new("bridge_envelope"), "none"),
+    };
+    identity.seal()
+}
+
+fn compose_explanation_payload_identity(
+    posture: ForgeQueryExplanationContributionPosture,
+    semantic_code: &str,
+    detail: &str,
+    runtime_semantics: Option<&ForgeQueryExplanationRuntimeSemantics>,
+) -> ForgeQueryEvidenceIdentity {
+    let mut identity = domain_capability_scope_encoder("forge_query_domain_capability_payload_v2")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("category"),
+            ForgeQueryDomainCapabilityCategory::ExplanationInspection.as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
+        .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
+    identity = match runtime_semantics {
+        Some(semantics) => identity.field_evidence_identity(
+            ForgeQueryEvidenceTag::new("runtime_semantics"),
+            semantics.semantics_identity(),
+        ),
+        None => identity.field_shape(ForgeQueryEvidenceTag::new("runtime_semantics"), "none"),
+    };
+    identity.seal()
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryExplanationRuntimeSemantics {
     reference_set: CausalEvidenceReferenceSet,
@@ -53,6 +131,7 @@ pub struct ForgeQueryExplanationRuntimeSemantics {
     bridge_envelope: Option<BridgeCausalExplanationEnvelope>,
     redaction_policy: CausalInspectionRedactionPolicy,
     materialization_policy: CausalInspectionMaterializationPolicy,
+    semantics_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryExplanationRuntimeSemantics {
@@ -66,6 +145,16 @@ impl ForgeQueryExplanationRuntimeSemantics {
         redaction_policy: CausalInspectionRedactionPolicy,
         materialization_policy: CausalInspectionMaterializationPolicy,
     ) -> Self {
+        let semantics_identity = compose_explanation_runtime_semantics_identity(
+            &reference_set,
+            &target,
+            explanation_family,
+            requested_richness,
+            &requested_evidence_families,
+            bridge_envelope.as_ref(),
+            redaction_policy,
+            materialization_policy,
+        );
         Self {
             reference_set,
             target,
@@ -75,6 +164,7 @@ impl ForgeQueryExplanationRuntimeSemantics {
             bridge_envelope,
             redaction_policy,
             materialization_policy,
+            semantics_identity,
         }
     }
 
@@ -110,33 +200,8 @@ impl ForgeQueryExplanationRuntimeSemantics {
         self.materialization_policy
     }
 
-    fn digest_fragment(&self) -> String {
-        let families = self
-            .requested_evidence_families
-            .iter()
-            .map(CausalEvidenceFamily::as_str)
-            .collect::<Vec<_>>()
-            .join("|");
-        hash_parts(&[
-            "forge_query_domain_capability_explanation_runtime_semantics_v1".to_string(),
-            format!(
-                "reference-set:{}",
-                self.reference_set.reference_set_digest().as_str()
-            ),
-            format!("target:{}", self.target.target_digest()),
-            format!("family:{}", self.explanation_family.as_str()),
-            format!("richness:{}", self.requested_richness.as_str()),
-            format!("evidence-families:{families}"),
-            format!(
-                "bridge-envelope:{}",
-                self.bridge_envelope
-                    .as_ref()
-                    .map(|envelope| envelope.envelope_digest())
-                    .unwrap_or("none")
-            ),
-            format!("redaction:{}", self.redaction_policy.as_str()),
-            format!("materialization:{}", self.materialization_policy.as_str()),
-        ])
+    pub(in crate::domain_capabilities) fn semantics_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.semantics_identity
     }
 }
 
@@ -146,7 +211,7 @@ pub struct ForgeQueryExplanationContributionPayload {
     semantic_code: String,
     detail: String,
     runtime_semantics: Option<ForgeQueryExplanationRuntimeSemantics>,
-    payload_digest: String,
+    payload_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryExplanationContributionPayload {
@@ -166,27 +231,18 @@ impl ForgeQueryExplanationContributionPayload {
     ) -> Self {
         let semantic_code = semantic_code.into();
         let detail = detail.into();
-        let runtime_digest = runtime_semantics.as_ref().map_or_else(
-            || "none".to_string(),
-            ForgeQueryExplanationRuntimeSemantics::digest_fragment,
+        let payload_identity = compose_explanation_payload_identity(
+            posture,
+            &semantic_code,
+            &detail,
+            runtime_semantics.as_ref(),
         );
-        let payload_digest = hash_parts(&[
-            "forge_query_domain_capability_payload_v2".to_string(),
-            format!(
-                "category:{}",
-                ForgeQueryDomainCapabilityCategory::ExplanationInspection.as_str()
-            ),
-            format!("posture:{}", posture.as_str()),
-            format!("semantic_code:{semantic_code}"),
-            format!("detail:{detail}"),
-            format!("runtime:{runtime_digest}"),
-        ]);
         Self {
             posture,
             semantic_code,
             detail,
             runtime_semantics,
-            payload_digest,
+            payload_identity,
         }
     }
 
@@ -211,7 +267,7 @@ impl ForgeQueryExplanationContributionPayload {
     }
 
     pub fn payload_digest(&self) -> &str {
-        &self.payload_digest
+        self.payload_identity.as_str()
     }
 }
 
@@ -240,5 +296,9 @@ impl ForgeQueryDomainCapabilityPayload for ForgeQueryExplanationContributionPayl
 
     fn payload_digest(&self) -> &str {
         self.payload_digest()
+    }
+
+    fn payload_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.payload_identity
     }
 }

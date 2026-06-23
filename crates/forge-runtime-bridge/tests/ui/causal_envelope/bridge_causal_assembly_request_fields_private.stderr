@@ -1,11 +1,21 @@
-error[E0451]: fields `admission_summary`, `references` and `request_digest` of struct `BridgeCausalEnvelopeAssemblyRequest` are private
-  --> tests/ui/causal_envelope/bridge_causal_assembly_request_fields_private.rs:12:9
+error[E0308]: arguments to this function are incorrect
+ --> tests/ui/causal_envelope/bridge_causal_assembly_request_fields_private.rs:9:9
+  |
+9 |         BridgeCausalInspectionAdmissionSummary::admitted("admission", "anchor").unwrap();
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ -----------  -------- expected `BridgeIdentityEvidence`, found `&str`
+  |                                                          |
+  |                                                          expected `BridgeIdentityEvidence`, found `&str`
+  |
+note: associated function defined here
+ --> src/diagnostics/causal_envelope/assembly/request.rs
+  |
+  |     pub fn admitted(
+  |            ^^^^^^^^
+
+error[E0560]: struct `BridgeCausalEnvelopeAssemblyRequest` has no field named `request_digest`
+  --> tests/ui/causal_envelope/bridge_causal_assembly_request_fields_private.rs:14:9
    |
-11 |     let _ = BridgeCausalEnvelopeAssemblyRequest {
-   |             ----------------------------------- in this type
-12 |         admission_summary,
-   |         ^^^^^^^^^^^^^^^^^ private field
-13 |         references: references.into(),
-   |         ^^^^^^^^^^ private field
 14 |         request_digest: sealed_authority_placeholder(),
-   |         ^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^ `BridgeCausalEnvelopeAssemblyRequest` does not have this field
+   |
+   = note: all struct fields are already assigned

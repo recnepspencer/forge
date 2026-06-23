@@ -8,6 +8,7 @@ mod dx;
 mod eligibility;
 mod explanation;
 mod foundational_integration;
+mod identity;
 mod materialization;
 mod payloads;
 mod proof_integration;

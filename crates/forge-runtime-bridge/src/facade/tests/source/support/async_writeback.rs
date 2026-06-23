@@ -9,7 +9,7 @@ use crate::facade::{
     BridgeAsyncRequestSubscriptionInstance, BridgeAsyncRequestTruthViewBasis,
     BridgeAsyncWritebackAdmissionRequest, BridgeRuntimePolicy, BridgeWritebackEffectClass,
     BridgeWritebackEffectIntent, BridgeWritebackFailureClass, BridgeWritebackOutcomeClass,
-    RuntimeBridge, TruthBranchIdentity, TruthCommitIdentity, TruthSnapshotIdentity,
+    RuntimeBridge,
 };
 use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_signal::facade::NodeId;
@@ -58,9 +58,9 @@ pub(crate) fn admitted_authoritative_request_response_completion(
         runtime,
         node,
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new(format!("truth-main:{suffix}")),
-            TruthCommitIdentity::new(format!("commit:{suffix}")),
-            TruthSnapshotIdentity::new(format!("snapshot:{suffix}")),
+            crate::truth_identity_fixtures::truth_branch_fixture(format!("truth-main:{suffix}")),
+            crate::truth_identity_fixtures::truth_commit_fixture(format!("commit:{suffix}")),
+            crate::truth_identity_fixtures::truth_snapshot_fixture(format!("snapshot:{suffix}")),
         ),
         64,
     );
@@ -78,8 +78,10 @@ pub(crate) fn admitted_preview_subscription_backed_completion(
     let preview_active = preview_active_subscription_with_basis(
         runtime,
         suffix,
-        TruthBranchIdentity::new(format!("truth-preview:{suffix}")),
-        TruthSnapshotIdentity::new(format!("snapshot-preview:{suffix}")),
+        crate::truth_identity_fixtures::truth_branch_fixture(format!("truth-preview:{suffix}")),
+        crate::truth_identity_fixtures::truth_snapshot_fixture(format!(
+            "snapshot-preview:{suffix}"
+        )),
     );
     let truth_basis = BridgeAsyncRequestTruthViewBasis::preview(&preview_active);
     let subscription_instance = BridgeAsyncRequestSubscriptionInstance::preview(&preview_active);
@@ -109,9 +111,9 @@ pub(crate) fn newer_authoritative_request_identity(
         runtime,
         node,
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new(format!("truth-main:{suffix}")),
-            TruthCommitIdentity::new(format!("commit:{suffix}")),
-            TruthSnapshotIdentity::new(format!("snapshot:{suffix}")),
+            crate::truth_identity_fixtures::truth_branch_fixture(format!("truth-main:{suffix}")),
+            crate::truth_identity_fixtures::truth_commit_fixture(format!("commit:{suffix}")),
+            crate::truth_identity_fixtures::truth_snapshot_fixture(format!("snapshot:{suffix}")),
         ),
     )
 }

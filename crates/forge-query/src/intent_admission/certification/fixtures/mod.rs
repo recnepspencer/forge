@@ -6,6 +6,7 @@ mod neighbors;
 mod read;
 mod routing;
 mod runtime;
+mod write_authority;
 
 use serde_json::json;
 
@@ -38,6 +39,50 @@ use crate::facade::runtime::{
     ForgeQueryIntentDeclaration, ForgeQueryRawIntentAdmissionRequest, ForgeQueryWriteCommand,
 };
 use crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData;
+use crate::memory_workspace::{
+    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
+};
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
+
+pub(super) fn certification_commit_identity_for(
+    namespace: impl AsRef<str>,
+    evidence: impl AsRef<str>,
+) -> ForgeQueryCommitIdentity {
+    ForgeQueryCommitIdentity::from_relational_commit_id(stable_certification_position(
+        namespace, evidence,
+    ))
+}
+
+pub(super) fn certification_snapshot_identity(
+    label: impl AsRef<str>,
+) -> ForgeQuerySnapshotIdentity {
+    certification_snapshot_identity_for("certification-snapshot", label)
+}
+
+pub(super) fn certification_snapshot_identity_for(
+    namespace: impl AsRef<str>,
+    evidence: impl AsRef<str>,
+) -> ForgeQuerySnapshotIdentity {
+    let snapshot_id = stable_certification_position(namespace.as_ref(), evidence.as_ref());
+    let version_id =
+        stable_certification_position(format!("{}:version", namespace.as_ref()), evidence.as_ref());
+    ForgeQuerySnapshotIdentity::from_relational_snapshot(
+        RelationalBridgeSnapshotIdentityParts::new(snapshot_id, version_id),
+    )
+}
+
+pub(super) fn certification_entity_identity(label: impl AsRef<str>) -> ForgeQueryEntityIdentity {
+    crate::memory_workspace::admit_authored_entity_label(label)
+}
+
+fn stable_certification_position(namespace: impl AsRef<str>, evidence: impl AsRef<str>) -> u64 {
+    let mut acc = 14_695_981_039_346_656_037_u64;
+    for byte in namespace.as_ref().bytes().chain(evidence.as_ref().bytes()) {
+        acc ^= u64::from(byte);
+        acc = acc.wrapping_mul(1_099_511_628_211_u64);
+    }
+    acc
+}
 
 #[derive(Clone)]
 pub(super) struct CertifiedAdmittedIntentFixture {
@@ -195,7 +240,10 @@ pub(super) fn certified_failure_intent_fixture() -> CertifiedFailureIntentFixtur
                 .clone();
             CertifiedFailureIntentFixture {
                 request,
-                failure_digest: evidence.denial_digest().to_string(),
+                failure_digest: evidence
+                    .denial_digest()
+                    .terminal_projection_for_reporting()
+                    .to_string(),
                 execution_provenance_chain_digest: evidence
                     .execution_provenance()
                     .expect("execution-time denial should retain provenance")
@@ -243,7 +291,7 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
         .expect("effect should declare");
     delegated_effect_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: certification_entity_identity("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from delegated effect"),
         })
@@ -269,7 +317,7 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
         .expect("canonical effect should declare");
     canonical_effect_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: certification_entity_identity("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from delegated effect"),
         })

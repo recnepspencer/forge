@@ -1,0 +1,19 @@
+error: cannot construct `ForgeQueryGraphReadAccessShape` with struct literal syntax due to private fields
+ --> tests/ui/graph_read_access/access_shape_constructor_private.rs:6:13
+  |
+6 |     let _ = ForgeQueryGraphReadAccessShape {
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+7 |         root_posture: ForgeQueryGraphReadRootPosture::Local,
+  |         --------------------------------------------------- private field
+8 |         scope_class: ForgeQueryReadScopeClass::LocalNeighborhood,
+  |         -------------------------------------------------------- private field
+  |
+  = note: ...and other private fields that were not provided
+help: you might have meant to use the `new` associated function
+  |
+6 -     let _ = ForgeQueryGraphReadAccessShape {
+7 -         root_posture: ForgeQueryGraphReadRootPosture::Local,
+8 -         scope_class: ForgeQueryReadScopeClass::LocalNeighborhood,
+9 -     };
+6 +     let _ = ForgeQueryGraphReadAccessShape::new(_, _, _, _, _, _, _, _, _, _, _);
+  |

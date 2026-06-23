@@ -7,6 +7,7 @@ fn main() {
         panic!("cannot construct M7 readiness receipt"),
         "digest".to_string(),
         "declaration".to_string(),
+        panic!("cannot construct stage coverage"),
         PlanarBooleanReadinessWorkloadCounters::certified(0, 0, 0, 0, 0),
     );
 }

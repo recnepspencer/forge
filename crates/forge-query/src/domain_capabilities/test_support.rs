@@ -14,6 +14,18 @@ use super::{
     ForgeQueryMaterializationReadyDomainCapabilityContribution,
     ForgeQueryRequestedDomainCapabilityContribution,
 };
+use crate::domain_capabilities::identity::{domain_capability_scope_encoder, seal};
+use crate::evidence_identity::ForgeQueryEvidenceTag;
+use crate::lower_runtime_routing::{
+    ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryEnvelope,
+    ForgeQueryLowerRuntimeBoundaryExecutionReceipt, ForgeQueryLowerRuntimeCapabilityEligibility,
+    ForgeQueryLowerRuntimeCapabilityRequest, ForgeQueryLowerRuntimeRouteKind,
+    ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeSeamKey,
+};
+use crate::runtime::{
+    admit_runtime_intent_request, ForgeQueryAdmittedIntentPlan, ForgeQueryIntentAdmissionDecision,
+    ForgeQueryIntentDeclaration,
+};
 
 pub(super) fn ready<P, T>(
     requested: ForgeQueryRequestedDomainCapabilityContribution<P, T>,
@@ -64,34 +76,119 @@ pub(super) fn success<T>(outcome: ForgeQueryDomainCapabilityTransitionOutcome<T>
     }
 }
 
-pub(super) fn declaration_target(
-    target_digest: &str,
-) -> ForgeQueryDeclarationBoundContributionTarget {
-    ForgeQueryDeclarationBoundContributionTarget::from_digest(target_digest)
+pub(super) fn intent_declaration(label: &str) -> ForgeQueryIntentDeclaration {
+    ForgeQueryIntentDeclaration::strategy_commit(
+        format!("domain-capability.{label}"),
+        format!("forge.domain_capability.{label}"),
+        "1",
+        "forge.domain-capability.fixture",
+        serde_json::json!({ "fixture": label }),
+    )
 }
 
-pub(super) fn admitted_plan_target(
-    target_digest: &str,
-) -> ForgeQueryAdmittedPlanBoundContributionTarget {
-    ForgeQueryAdmittedPlanBoundContributionTarget::from_digest(target_digest)
+pub(super) fn admitted_plan(label: &str) -> ForgeQueryAdmittedIntentPlan {
+    let request = crate::intent_admission::ForgeQueryRawIntentAdmissionRequest::authoritative_runtime_entrypoint(
+        intent_declaration(label),
+    )
+    .expect("domain-capability fixture intent request should build");
+    match admit_runtime_intent_request(request) {
+        ForgeQueryIntentAdmissionDecision::Admitted(plan) => plan,
+        other => panic!("expected admitted domain-capability fixture plan, got {other:?}"),
+    }
 }
 
 pub(super) fn admitted_plan_target_parts(
-    target_digest: &str,
+    plan_label: &str,
     request_digest: &str,
     eligibility_digest: &str,
     decision_digest: &str,
 ) -> ForgeQueryAdmittedPlanBoundContributionTarget {
-    ForgeQueryAdmittedPlanBoundContributionTarget::from_digest_parts(
-        target_digest,
-        request_digest,
-        eligibility_digest,
-        decision_digest,
+    let fixture_label = seal(
+        domain_capability_scope_encoder("forge_query_domain_capability_admitted_plan_fixture_v1")
+            .field_shape(ForgeQueryEvidenceTag::new("plan_label"), plan_label)
+            .field_shape(ForgeQueryEvidenceTag::new("request"), request_digest)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("eligibility"),
+                eligibility_digest,
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("decision"), decision_digest),
+    );
+    ForgeQueryAdmittedPlanBoundContributionTarget::for_admitted_intent_plan(&admitted_plan(
+        &fixture_label,
+    ))
+}
+
+pub(super) fn declaration_target(label: &str) -> ForgeQueryDeclarationBoundContributionTarget {
+    ForgeQueryDeclarationBoundContributionTarget::for_intent_declaration(&intent_declaration(label))
+}
+
+pub(super) fn admitted_plan_target(label: &str) -> ForgeQueryAdmittedPlanBoundContributionTarget {
+    ForgeQueryAdmittedPlanBoundContributionTarget::for_admitted_intent_plan(&admitted_plan(label))
+}
+
+pub(super) fn lower_runtime_envelope(label: &str) -> ForgeQueryLowerRuntimeBoundaryEnvelope {
+    let subject_identity =
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
+            "domain-capability-fixture-subject",
+        )
+        .field_value(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture"),
+            label,
+        )
+        .seal();
+    let request = ForgeQueryLowerRuntimeCapabilityRequest::new(
+        ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
+        ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
+        ForgeQueryLowerRuntimeAuthorityOwner::Query,
+        "signal-invalidation-routing",
+        subject_identity,
+    );
+    let detail_identity = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+        crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+    )
+    .field_value(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture_detail"),
+        label,
+    )
+    .seal();
+    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+        request,
+        &detail_identity,
+    );
+    let route = ForgeQueryLowerRuntimeRoutePlan::new(
+        eligibility,
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+            "domain-capability-fixture-route",
+            &detail_identity,
+        ),
+    );
+    let retained_evidence =
+        crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+            "domain-capability-fixture",
+            &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+                crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+            )
+            .field_value(
+                crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture_retained"),
+                label,
+            )
+            .seal(),
+        );
+    let boundary =
+        ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(&route, &retained_evidence);
+
+    ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
+        ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
+        &route,
+        &boundary,
+        &retained_evidence,
     )
 }
 
 pub(super) fn lower_runtime_target(
-    target_digest: &str,
+    label: &str,
 ) -> ForgeQueryLowerRuntimeBoundaryBoundContributionTarget {
-    ForgeQueryLowerRuntimeBoundaryBoundContributionTarget::from_digest(target_digest)
+    ForgeQueryLowerRuntimeBoundaryBoundContributionTarget::for_lower_runtime_boundary_envelope(
+        &lower_runtime_envelope(label),
+    )
 }

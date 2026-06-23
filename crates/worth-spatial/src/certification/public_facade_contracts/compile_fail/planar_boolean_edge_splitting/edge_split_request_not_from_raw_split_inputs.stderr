@@ -1,0 +1,32 @@
+error[E0308]: arguments to this function are incorrect
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/edge_split_request_not_from_raw_split_inputs.rs:13:50
+   |
+13 |     let _ = PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
+   |                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: expected `&PlanarBooleanEventLedgerReceipt`, found `&Vec<PlanarBooleanPointEvent>`
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/edge_split_request_not_from_raw_split_inputs.rs:14:9
+   |
+14 |         &raw_point_events,
+   |         ^^^^^^^^^^^^^^^^^
+   = note: expected reference `&PlanarBooleanEventLedgerReceipt`
+              found reference `&Vec<PlanarBooleanPointEvent>`
+note: expected `&...`, found `&Vec<PlanarBooleanIntervalEvent>`
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/edge_split_request_not_from_raw_split_inputs.rs:15:9
+   |
+15 |         &raw_interval_events,
+   |         ^^^^^^^^^^^^^^^^^^^^
+   = note: expected reference `&PlanarBooleanCandidateIndexConsumptionGate`
+              found reference `&Vec<PlanarBooleanIntervalEvent>`
+note: expected `&...`, found `&Vec<PlanarBooleanSegmentCarrier>`
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/edge_split_request_not_from_raw_split_inputs.rs:16:9
+   |
+16 |         &raw_segment_carriers,
+   |         ^^^^^^^^^^^^^^^^^^^^^
+   = note: expected reference `&WorkloadEvidenceBooleanReceiptLookupProduct`
+              found reference `&Vec<PlanarBooleanSegmentCarrier>`
+note: associated function defined here
+  --> src/workload_platform/planar_boolean_edge_splitting/edge_split_request/input.rs
+   |
+   |     pub fn new(
+   |            ^^^

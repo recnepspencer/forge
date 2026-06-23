@@ -99,7 +99,10 @@ fn lower_admitted_policy(
     };
 
     HistoricalCapabilityDescriptor::new(
-        declaration.declaration_identity().as_str(),
+        declaration
+            .declaration_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting(),
         admitted_path_class,
         replay_permitted,
         replay_required,
@@ -113,7 +116,10 @@ pub(crate) fn lower_materialization_from_decision_log(
     decision_log: &BridgeHistoricalEvaluationDecisionLog,
 ) -> Result<HistoricalMaterializationDescriptor, HistoricalEvaluationError> {
     lower_materialization_descriptor(
-        decision_log.declaration_identity().as_str(),
+        decision_log
+            .declaration_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting(),
         decision_log.materialization_path(),
     )
 }
@@ -125,7 +131,10 @@ pub(crate) fn lower_materialization_from_artifact(
 ) -> Result<HistoricalMaterializationDescriptor, HistoricalEvaluationError> {
     let _ = requested_path_class;
     lower_materialization_descriptor(
-        artifact.declaration_identity().as_str(),
+        artifact
+            .declaration_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting(),
         artifact.materialization_path(),
     )
 }

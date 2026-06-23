@@ -1,4 +1,45 @@
 mod public_api_construction_branch_preview;
+mod public_api_planar_boolean_7_0_closeout;
+mod public_api_planar_boolean_canonical_segments;
+mod public_api_planar_boolean_collinear_relations;
+mod public_api_planar_boolean_common_plane_local_frame_selection;
+mod public_api_planar_boolean_common_plane_operand_a_projection_consumption;
+mod public_api_planar_boolean_common_plane_operand_b_projection_consumption;
+mod public_api_planar_boolean_common_plane_precision_agreement;
+mod public_api_planar_boolean_common_plane_reduced_operand_pair;
+mod public_api_planar_boolean_common_plane_reduction;
+mod public_api_planar_boolean_common_plane_shared_plane_identity;
+mod public_api_planar_boolean_edge_split_request;
+mod public_api_planar_boolean_edge_split_scope_admission;
+mod public_api_planar_boolean_edge_splitting;
+mod public_api_planar_boolean_edge_splitting_metaboss_closeout;
+mod public_api_planar_boolean_edge_splitting_public_contract;
+mod public_api_planar_boolean_entry;
+mod public_api_planar_boolean_entry_basis;
+mod public_api_planar_boolean_event_extraction_denials;
+mod public_api_planar_boolean_event_extraction_metaboss;
+mod public_api_planar_boolean_event_extraction_request;
+mod public_api_planar_boolean_event_ledger;
+mod public_api_planar_boolean_event_predicate_binding;
+mod public_api_planar_boolean_interval_events;
+mod public_api_planar_boolean_local_frame_evidence;
+mod public_api_planar_boolean_loop_reconstruction_candidate_contract;
+mod public_api_planar_boolean_loop_reconstruction_continuation_contract;
+mod public_api_planar_boolean_loop_reconstruction_metaboss_closeout;
+mod public_api_planar_boolean_loop_reconstruction_public_contract;
+mod public_api_planar_boolean_loop_reconstruction_workload_evidence;
+mod public_api_planar_boolean_operand_a_projection_evidence;
+mod public_api_planar_boolean_operand_b_projection_evidence;
+mod public_api_planar_boolean_point_events;
+mod public_api_planar_boolean_precision_evidence;
+mod public_api_planar_boolean_segment_carriers;
+mod public_api_planar_boolean_segment_pair_enumeration;
+mod public_api_planar_boolean_shared_plane_evidence;
+mod public_api_query_adoption;
+mod public_api_query_composition_honesty;
+mod public_api_query_native_hardening_closeout;
+mod public_api_query_performance_counters;
+mod public_api_query_synthetic_proof;
 mod public_api_workload_catalog;
 
 #[cfg(test)]
@@ -6,7 +47,7 @@ mod workload_vocabulary {
     use topology::facade::TopologyWorkload;
     use worth_kernel::workload_composition::{
         OperatorReadyWorkload, OperatorSupportPosture, OperatorWorkloadError,
-        UnsupportedOperatorFamily, WorkloadCompositionError, WorkloadOperator,
+        UnsupportedOperatorFamily, WorkloadCatalog, WorkloadCompositionError, WorkloadOperator,
         WorkloadOperatorFamily, WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
     };
     use worth_spatial::facade::workload_vocabulary::{
@@ -57,6 +98,28 @@ mod workload_vocabulary {
     }
 
     #[test]
+    fn operator_harness_rejects_boolean_evidence_requirements_as_non_operator_stages() {
+        run_with_large_stack(|| {
+            let workload = operator_ready_catalog_workload();
+            let error = WorkloadOperator::for_family(WorkloadOperatorFamily::CoplanarOverlap)
+                .requiring(WorkloadStageRequirement::BooleanDeclarationEntry)
+                .declared_by_query("kernel boolean stage misuse probe")
+                .admit_for(&workload)
+                .expect_err("operator harness must reject boolean-only workload requirements");
+
+            assert_eq!(
+                error,
+                OperatorWorkloadError::UnsupportedRequirement(
+                    WorkloadStageRequirement::BooleanDeclarationEntry
+                )
+            );
+            assert!(error
+                .human_reason()
+                .contains("not a valid operator workload requirement"));
+        });
+    }
+
+    #[test]
     fn workload_vocabulary_rejects_mismatched_evidence_ledger() {
         let parts = certified_workload_parts_with_mismatched_projection_evidence();
         let error = WorthWorkload::compose(parts)
@@ -87,6 +150,24 @@ mod workload_vocabulary {
 
     fn certified_workload() -> WorthWorkload {
         WorthWorkload::compose(certified_workload_parts()).expect("worth workload should certify")
+    }
+
+    fn operator_ready_catalog_workload() -> WorthWorkload {
+        WorkloadCatalog::cube()
+            .with_retained_replay_artifacts()
+            .build()
+            .expect("catalog cube workload should build")
+            .into_workload()
+    }
+
+    fn run_with_large_stack(body: impl FnOnce() + Send + 'static) {
+        std::thread::Builder::new()
+            .name("workload-vocabulary-contract".to_string())
+            .stack_size(16 * 1024 * 1024)
+            .spawn(body)
+            .expect("workload vocabulary contract thread should spawn")
+            .join()
+            .expect("workload vocabulary contract thread should finish");
     }
 
     fn certified_workload_parts_with_mismatched_projection_evidence() -> WorthWorkloadParts {

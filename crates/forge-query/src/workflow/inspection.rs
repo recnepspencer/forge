@@ -1,5 +1,7 @@
 use super::*;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
+mod identities;
 mod operations;
 pub use operations::{
     build_workflow_replay_bundle, inspect_merge_conflicts, inspect_post_merge_outcome,
@@ -321,12 +323,12 @@ impl WorkflowAuthorityOutcomeFamily {
 pub struct WorkflowAuthorityOutcomeArtifact {
     family: WorkflowAuthorityOutcomeFamily,
     authority_target_family: WorkflowAuthorityTargetFamily,
-    source_query_digest: String,
-    source_plan_digest: String,
-    source_basis_digest: String,
-    source_declaration_digest: String,
-    authority_request_digest: String,
-    authoritative_outcome_digest: String,
+    source_query_identity: ForgeQueryEvidenceIdentity,
+    source_plan_identity: ForgeQueryEvidenceIdentity,
+    source_basis_identity: ForgeQueryEvidenceIdentity,
+    source_declaration_identity: ForgeQueryEvidenceIdentity,
+    authority_request_identity: ForgeQueryEvidenceIdentity,
+    authoritative_outcome_identity: ForgeQueryEvidenceIdentity,
     cost_class: WorkflowCostClass,
     budget_class: WorkflowBudgetClass,
     budget_outcome: WorkflowBudgetOutcome,
@@ -348,27 +350,51 @@ impl WorkflowAuthorityOutcomeArtifact {
     }
 
     pub fn source_query_digest(&self) -> &str {
-        &self.source_query_digest
+        self.source_query_identity.as_str()
+    }
+
+    pub fn source_query_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_query_identity
     }
 
     pub fn source_plan_digest(&self) -> &str {
-        &self.source_plan_digest
+        self.source_plan_identity.as_str()
+    }
+
+    pub fn source_plan_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_plan_identity
     }
 
     pub fn source_basis_digest(&self) -> &str {
-        &self.source_basis_digest
+        self.source_basis_identity.as_str()
+    }
+
+    pub fn source_basis_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_basis_identity
     }
 
     pub fn source_declaration_digest(&self) -> &str {
-        &self.source_declaration_digest
+        self.source_declaration_identity.as_str()
+    }
+
+    pub fn source_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_declaration_identity
     }
 
     pub fn authority_request_digest(&self) -> &str {
-        &self.authority_request_digest
+        self.authority_request_identity.as_str()
+    }
+
+    pub fn authority_request_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.authority_request_identity
     }
 
     pub fn authoritative_outcome_digest(&self) -> &str {
-        &self.authoritative_outcome_digest
+        self.authoritative_outcome_identity.as_str()
+    }
+
+    pub fn authoritative_outcome_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.authoritative_outcome_identity
     }
 
     pub fn cost_class(&self) -> &WorkflowCostClass {
@@ -410,37 +436,57 @@ impl WorkflowAuthorityOutcomeArtifact {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkflowReplayBundle {
-    bundle_digest: String,
-    query_digest: String,
-    plan_digest: String,
-    basis_digest: String,
-    declaration_digest: String,
+    bundle_identity: ForgeQueryEvidenceIdentity,
+    query_identity: ForgeQueryEvidenceIdentity,
+    plan_identity: ForgeQueryEvidenceIdentity,
+    basis_identity: ForgeQueryEvidenceIdentity,
+    declaration_identity: ForgeQueryEvidenceIdentity,
     authority_target_family: WorkflowAuthorityTargetFamily,
-    authority_request_digest: String,
-    authoritative_outcome_digest: String,
-    delivery_or_failure_digest: String,
+    authority_request_identity: ForgeQueryEvidenceIdentity,
+    authoritative_outcome_identity: ForgeQueryEvidenceIdentity,
+    delivery_or_failure_identity: ForgeQueryEvidenceIdentity,
     counters: WorkflowLoweringCounters,
 }
 
 impl WorkflowReplayBundle {
     pub fn bundle_digest(&self) -> &str {
-        &self.bundle_digest
+        self.bundle_identity.as_str()
+    }
+
+    pub fn bundle_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bundle_identity
     }
 
     pub fn query_digest(&self) -> &str {
-        &self.query_digest
+        self.query_identity.as_str()
+    }
+
+    pub fn query_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.query_identity
     }
 
     pub fn plan_digest(&self) -> &str {
-        &self.plan_digest
+        self.plan_identity.as_str()
+    }
+
+    pub fn plan_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.plan_identity
     }
 
     pub fn basis_digest(&self) -> &str {
-        &self.basis_digest
+        self.basis_identity.as_str()
+    }
+
+    pub fn basis_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_identity
     }
 
     pub fn declaration_digest(&self) -> &str {
-        &self.declaration_digest
+        self.declaration_identity.as_str()
+    }
+
+    pub fn declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.declaration_identity
     }
 
     pub fn authority_target_family(&self) -> &WorkflowAuthorityTargetFamily {
@@ -448,15 +494,27 @@ impl WorkflowReplayBundle {
     }
 
     pub fn authority_request_digest(&self) -> &str {
-        &self.authority_request_digest
+        self.authority_request_identity.as_str()
+    }
+
+    pub fn authority_request_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.authority_request_identity
     }
 
     pub fn authoritative_outcome_digest(&self) -> &str {
-        &self.authoritative_outcome_digest
+        self.authoritative_outcome_identity.as_str()
+    }
+
+    pub fn authoritative_outcome_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.authoritative_outcome_identity
     }
 
     pub fn delivery_or_failure_digest(&self) -> &str {
-        &self.delivery_or_failure_digest
+        self.delivery_or_failure_identity.as_str()
+    }
+
+    pub fn delivery_or_failure_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_or_failure_identity
     }
 
     pub fn counters(&self) -> &WorkflowLoweringCounters {

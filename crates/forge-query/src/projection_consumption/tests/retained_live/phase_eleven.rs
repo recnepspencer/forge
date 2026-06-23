@@ -7,6 +7,7 @@ use crate::projection_consumption::{
 
 use super::support::{
     authorized_projection, live_binding, request_for_kind, retained_binding,
+    shared_test_result_shape, test_result_shape_artifact, test_result_shape_canonical_digest,
     visible_fields_for_kind,
 };
 
@@ -21,10 +22,10 @@ fn assert_support_and_eligibility_sync_for_retained_binding() {
             .expect("support row should exist");
         let declaration = retained_binding()
             .declare_projection_fact_consumption(
-                "result-shape:test",
+                &test_result_shape_artifact("result-shape:test"),
                 &authorized_projection(
                     "query:test",
-                    "result-shape:test",
+                    &test_result_shape_canonical_digest("result-shape:test"),
                     &visible_fields_for_kind(fact_kind),
                 ),
                 request_for_kind(fact_kind),
@@ -67,10 +68,10 @@ fn assert_support_and_eligibility_sync_for_live_binding() {
             .expect("support row should exist");
         let declaration = live_binding()
             .declare_projection_fact_consumption(
-                "result-shape:test",
+                &shared_test_result_shape().identity,
                 &authorized_projection(
                     "query:test",
-                    "result-shape:test",
+                    &shared_test_result_shape().digest,
                     &visible_fields_for_kind(fact_kind),
                 ),
                 request_for_kind(fact_kind),
@@ -108,8 +109,12 @@ fn retained_binding_common_path_consumes_admitted_field_and_source_reference_fac
 
     let attempt = binding
         .consume_projection_facts(
-            "result-shape:test",
-            &authorized_projection("query:test", "result-shape:test", &["profile.display_name"]),
+            &test_result_shape_artifact("result-shape:test"),
+            &authorized_projection(
+                "query:test",
+                &test_result_shape_canonical_digest("result-shape:test"),
+                &["profile.display_name"],
+            ),
             ProjectMaterializedFacts::declare()
                 .view_local_identities()
                 .display_field("profile.display_name")
@@ -141,8 +146,12 @@ fn live_binding_common_path_consumes_entity_identity_field_and_source_reference_
 
     let attempt = binding
         .consume_projection_facts(
-            "result-shape:test",
-            &authorized_projection("query:test", "result-shape:test", &["profile.display_name"]),
+            &shared_test_result_shape().identity,
+            &authorized_projection(
+                "query:test",
+                &shared_test_result_shape().digest,
+                &["profile.display_name"],
+            ),
             ProjectMaterializedFacts::declare()
                 .entity_identities()
                 .view_local_identities()
@@ -173,8 +182,12 @@ fn retained_binding_missing_declared_field_evidence_fails_extraction_honestly() 
 
     let error = binding
         .consume_projection_facts(
-            "result-shape:test",
-            &authorized_projection("query:test", "result-shape:test", &["metrics.priority"]),
+            &test_result_shape_artifact("result-shape:test"),
+            &authorized_projection(
+                "query:test",
+                &test_result_shape_canonical_digest("result-shape:test"),
+                &["metrics.priority"],
+            ),
             ProjectMaterializedFacts::declare().display_field("metrics.priority"),
         )
         .expect_err("retained binding should reject missing field evidence");
@@ -190,8 +203,12 @@ fn live_binding_missing_declared_field_evidence_fails_extraction_honestly() {
 
     let error = binding
         .consume_projection_facts(
-            "result-shape:test",
-            &authorized_projection("query:test", "result-shape:test", &["metrics.priority"]),
+            &shared_test_result_shape().identity,
+            &authorized_projection(
+                "query:test",
+                &shared_test_result_shape().digest,
+                &["metrics.priority"],
+            ),
             ProjectMaterializedFacts::declare().display_field("metrics.priority"),
         )
         .expect_err("live binding should reject missing field evidence");
@@ -244,8 +261,12 @@ fn retained_and_live_support_and_eligibility_stay_in_sync_for_all_fact_kinds() {
 fn retained_and_live_common_path_preserve_receipt_and_envelope_identity() {
     let retained_attempt = retained_binding()
         .consume_projection_facts(
-            "result-shape:test",
-            &authorized_projection("query:test", "result-shape:test", &["profile.display_name"]),
+            &test_result_shape_artifact("result-shape:test"),
+            &authorized_projection(
+                "query:test",
+                &test_result_shape_canonical_digest("result-shape:test"),
+                &["profile.display_name"],
+            ),
             ProjectMaterializedFacts::declare()
                 .view_local_identities()
                 .display_field("profile.display_name")
@@ -254,8 +275,12 @@ fn retained_and_live_common_path_preserve_receipt_and_envelope_identity() {
         .expect("retained binding consumption should succeed");
     let live_attempt = live_binding()
         .consume_projection_facts(
-            "result-shape:test",
-            &authorized_projection("query:test", "result-shape:test", &["profile.display_name"]),
+            &shared_test_result_shape().identity,
+            &authorized_projection(
+                "query:test",
+                &shared_test_result_shape().digest,
+                &["profile.display_name"],
+            ),
             ProjectMaterializedFacts::declare()
                 .entity_identities()
                 .display_field("profile.display_name")
@@ -301,15 +326,19 @@ fn retained_and_live_common_path_preserve_receipt_and_envelope_identity() {
 fn retained_and_live_common_path_keep_visibility_denial_on_hidden_fields() {
     let retained_attempt = retained_binding()
         .consume_projection_facts(
-            "result-shape:test",
-            &authorized_projection("query:test", "result-shape:test", &[]),
+            &test_result_shape_artifact("result-shape:test"),
+            &authorized_projection(
+                "query:test",
+                &test_result_shape_canonical_digest("result-shape:test"),
+                &[],
+            ),
             ProjectMaterializedFacts::declare().display_field("profile.display_name"),
         )
         .expect("retained declaration path should succeed");
     let live_attempt = live_binding()
         .consume_projection_facts(
-            "result-shape:test",
-            &authorized_projection("query:test", "result-shape:test", &[]),
+            &shared_test_result_shape().identity,
+            &authorized_projection("query:test", &shared_test_result_shape().digest, &[]),
             ProjectMaterializedFacts::declare().display_field("profile.display_name"),
         )
         .expect("live declaration path should succeed");

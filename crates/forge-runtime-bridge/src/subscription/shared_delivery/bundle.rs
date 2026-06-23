@@ -55,7 +55,7 @@ impl BridgeSharedConsumerDeliveryBundleDraft {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             shared_delivery_bundle_draft_identity:
-                BridgeSubscriptionSharedDeliveryBundleDraftIdentity::new(format!(
+                BridgeSubscriptionSharedDeliveryBundleDraftIdentity::admit_bridge_owned(format!(
                     "bridge-shared-consumer-delivery-bundle-draft-id:sha256:{digest:x}"
                 )),
             layout: layout.clone(),
@@ -101,7 +101,7 @@ impl BridgeSharedConsumerDeliveryBundleSealed {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             shared_delivery_bundle_sealed_identity:
-                BridgeSubscriptionSharedDeliveryBundleSealedIdentity::new(format!(
+                BridgeSubscriptionSharedDeliveryBundleSealedIdentity::admit_bridge_owned(format!(
                     "bridge-shared-consumer-delivery-bundle-sealed-id:sha256:{digest:x}"
                 )),
             layout_identity: Arc::from(

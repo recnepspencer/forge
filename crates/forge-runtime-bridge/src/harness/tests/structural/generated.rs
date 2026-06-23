@@ -1,10 +1,7 @@
 use forge_harness::facade::{ExecutionProfile, ExecutionRequest, MutationBatch};
 use forge_harness::runtime::HarnessAdapter;
 
-use crate::facade::{
-    SnapshotReadRecord, SnapshotReadRequest, TruthBranchIdentity, TruthCommitIdentity,
-    TruthPatchIdentity, TruthSnapshotIdentity,
-};
+use crate::facade::{SnapshotReadRecord, SnapshotReadRequest};
 use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessMutation};
 use crate::harness::fixtures::SnapshotFixture;
 
@@ -151,7 +148,7 @@ fn generated_branch_head_oscillation_sequence_remains_local_and_replay_safe() {
                 let mutation = MutationBatch::new(batch_name)
                     .push(BridgeHarnessMutation::PublishSnapshot(
                         SnapshotFixture::new(
-                            TruthSnapshotIdentity::new(snapshot),
+                            crate::truth_identity_fixtures::truth_snapshot_fixture(snapshot),
                             vec![
                                 generated_structural_snapshot_record(
                                     "entity-1",
@@ -176,10 +173,10 @@ fn generated_branch_head_oscillation_sequence_remains_local_and_replay_safe() {
                     ))
                     .push(BridgeHarnessMutation::PublishCommittedPatch(
                         committed_patch_on_branch(
-                            TruthBranchIdentity::new(branch),
-                            TruthCommitIdentity::new(commit),
-                            TruthPatchIdentity::new(patch),
-                            TruthSnapshotIdentity::new(snapshot),
+                            crate::truth_identity_fixtures::truth_branch_fixture(branch),
+                            crate::truth_identity_fixtures::truth_commit_fixture(commit),
+                            crate::truth_identity_fixtures::truth_patch_fixture(patch),
+                            crate::truth_identity_fixtures::truth_snapshot_fixture(snapshot),
                             forge_foundational::facade::FieldKey::new("name".to_owned())
                                 .expect("valid generated structural field key"),
                         ),

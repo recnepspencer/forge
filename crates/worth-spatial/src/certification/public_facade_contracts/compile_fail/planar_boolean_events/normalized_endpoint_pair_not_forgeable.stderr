@@ -1,0 +1,11 @@
+error[E0451]: fields `low`, `high` and `orientation_was_reversed` of struct `PlanarBooleanNormalizedEndpointPair` are private
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_events/normalized_endpoint_pair_not_forgeable.rs:7:9
+  |
+6 |     let _ = PlanarBooleanNormalizedEndpointPair {
+  |             ----------------------------------- in this type
+7 |         low: unavailable_endpoint(),
+  |         ^^^ private field
+8 |         high: unavailable_endpoint(),
+  |         ^^^^ private field
+9 |         orientation_was_reversed: false,
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field

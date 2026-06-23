@@ -1,0 +1,37 @@
+error[E0451]: fields `source_edge_identity`, `parameter_bits`, `entry_kind_rank`, `event_identity`, `event_group_identities`, `carrier_identity` and `candidate_identity` of struct `PlanarBooleanSplitScheduleOrderKey` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/ordered_edge_split_schedule_not_forgeable.rs:7:9
+   |
+ 6 |     let _ = PlanarBooleanSplitScheduleOrderKey {
+   |             ---------------------------------- in this type
+ 7 |         source_edge_identity: "source".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         parameter_bits: 0,
+   |         ^^^^^^^^^^^^^^ private field
+ 9 |         entry_kind_rank: 0,
+   |         ^^^^^^^^^^^^^^^ private field
+10 |         event_identity: "event".to_string(),
+   |         ^^^^^^^^^^^^^^ private field
+11 |         event_group_identities: vec!["event-group".to_string()],
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         carrier_identity: "carrier".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+13 |         candidate_identity: "candidate".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `schedule_identity`, `raw_schedule_identity`, `source_edge_identity`, `carrier_identity`, `order_digest` and `ordered_entries` of struct `PlanarBooleanOrderedEdgeSplitSchedule` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/ordered_edge_split_schedule_not_forgeable.rs:16:9
+   |
+15 |     let _ = PlanarBooleanOrderedEdgeSplitSchedule {
+   |             ------------------------------------- in this type
+16 |         schedule_identity: "forged".to_string(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+17 |         raw_schedule_identity: "raw".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         source_edge_identity: "source".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+19 |         carrier_identity: "carrier".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+20 |         order_digest: "digest".to_string(),
+   |         ^^^^^^^^^^^^ private field
+21 |         ordered_entries: Vec::new(),
+   |         ^^^^^^^^^^^^^^^ private field

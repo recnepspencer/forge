@@ -13,14 +13,27 @@ use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 
 use super::shared::RuntimeTopologyGraph;
 
-pub fn registration() -> Result<
+pub(super) fn graph_composition_registration() -> Result<
     CustomInvariantRegistration,
     forge_relational::facade::runtime::CustomInvariantRegistrationError,
 > {
-    CustomInvariantRegistration::new(RadialSurfaceRule)
+    CustomInvariantRegistration::new(RadialSurfaceRule {
+        execution_point: InvariantExecutionPoint::GraphComposition,
+    })
 }
 
-struct RadialSurfaceRule;
+pub(super) fn commit_backstop_registration() -> Result<
+    CustomInvariantRegistration,
+    forge_relational::facade::runtime::CustomInvariantRegistrationError,
+> {
+    CustomInvariantRegistration::new(RadialSurfaceRule {
+        execution_point: InvariantExecutionPoint::CommitBoundary,
+    })
+}
+
+struct RadialSurfaceRule {
+    execution_point: InvariantExecutionPoint,
+}
 
 impl CustomInvariantRule for RadialSurfaceRule {
     type Scope = RuntimeTopologyGraph;
@@ -35,7 +48,7 @@ impl CustomInvariantRule for RadialSurfaceRule {
             },
             display_name: Arc::from(" Milestone 1 Radial Surface"),
             operational: CustomInvariantOperationalMetadata {
-                execution_point: InvariantExecutionPoint::CommitBoundary,
+                execution_point: self.execution_point,
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
                 cost_class: InvariantCostClass::Touched,
                 failure_effect: InvariantFailureEffect::BlockCommit,

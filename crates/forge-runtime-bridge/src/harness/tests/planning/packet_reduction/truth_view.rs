@@ -1,22 +1,24 @@
-use crate::facade::TruthSnapshotIdentity;
 #[test]
 fn bridge_bulk_packet_set_tracks_truth_view_materialization_packets() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -26,10 +28,10 @@ fn bridge_bulk_packet_set_tracks_truth_view_materialization_packets() {
     let planned = runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             )),
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
             )),
         ]))
         .expect("bulk workload should plan");
@@ -44,6 +46,7 @@ fn bridge_bulk_packet_set_tracks_truth_view_materialization_packets() {
             .collect::<Vec<_>>(),
         planned.canonical_request().truth_view_members()
     );
+    let snapshot_a = crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a");
     assert_eq!(
         planned
             .packet_set()
@@ -51,7 +54,7 @@ fn bridge_bulk_packet_set_tracks_truth_view_materialization_packets() {
             .iter()
             .map(|packet| packet.source_snapshot())
             .collect::<Vec<_>>(),
-        vec!["snapshot-a", "snapshot-a"]
+        vec![snapshot_a.as_str(), snapshot_a.as_str()]
     );
     assert_eq!(
         planned
@@ -69,13 +72,16 @@ fn bridge_bulk_packet_set_tracks_truth_view_materialization_packets() {
 fn bridge_bulk_reduction_artifact_carries_truth_view_materializations() {
     let left_source = InMemoryRelationalBridgeSource::default();
     left_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    left_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let left_runtime = build_runtime(
         left_source,
         RecordingSignalBridgeSink::default(),
@@ -84,13 +90,16 @@ fn bridge_bulk_reduction_artifact_carries_truth_view_materializations() {
 
     let right_source = InMemoryRelationalBridgeSource::default();
     right_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    right_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let right_runtime = build_runtime(
         right_source,
         RecordingSignalBridgeSink::default(),
@@ -100,14 +109,14 @@ fn bridge_bulk_reduction_artifact_carries_truth_view_materializations() {
     let left = left_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             )),
         ]))
         .expect("left bulk workload should plan");
     let right = right_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             )),
         ]))
         .expect("right bulk workload should plan");
@@ -140,7 +149,7 @@ fn bridge_bulk_reduction_artifact_carries_truth_view_materializations() {
             .reduced_artifact()
             .reduced_truth_views()[0]
             .source_snapshot(),
-        "snapshot-a"
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a").as_str()
     );
     assert_eq!(
         left.execution_plan()

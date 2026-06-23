@@ -4,9 +4,11 @@ use super::super::support::*;
 use crate::continuation_pipeline::runtime_backed_continuation_closure_summary;
 use crate::harness::MilestoneFivePointTwoPreviewCertificationAdapter;
 use crate::recovery_boundary::{ForgeQueryRecoveryAction, ForgeQueryRecoveryStopKind};
+use crate::runtime::runtime_subscription_support_evidence_identity;
 use crate::subscription::runtime_backed_subscription_certification_summary;
 use crate::subscription::CoverageResolutionPosture;
 use crate::subscription::QuerySubscriptionDeliveryCauseKind;
+use crate::ForgeQueryEvidenceIdentity;
 use forge_runtime_bridge::facade::{
     BridgeAsyncCompletionClass, BridgeAsyncCompletionState, BridgeAsyncRequestTruthViewBasis,
     BridgeMixedCauseOrderingInput, BridgeMixedCauseOrderingLaneKind,
@@ -18,8 +20,8 @@ struct RemaskingSubscriptionActivation {
 }
 
 impl ForgeQueryRuntimeSubscriptionActivationAdapter for RemaskingSubscriptionActivation {
-    fn support_evidence(&self) -> String {
-        "test-subscription-activation".to_string()
+    fn support_evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        runtime_subscription_support_evidence_identity("test-subscription-activation")
     }
 
     fn remask_projection(
@@ -45,6 +47,7 @@ fn remasked_runtime(projection: ForgeQueryRuntimeRemaskProjection) -> ForgeQuery
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(RemaskingSubscriptionActivation { projection })
@@ -87,9 +90,9 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         &bridge,
         forge_signal::facade::NodeId::new(301, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::from_bridge_harness_label("truth-main"),
+            TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
         ),
         64,
     );
@@ -168,6 +171,10 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         .expect("remask retained delivery should exist");
 
     let mut follow_on_runtime = intent_runtime_with_authority(TestIntentAuthority);
+    let follow_on_origin_identity = test_write_adjacent_origin_identity(
+        ForgeQueryEffectWriteAdjacentTriggerClass::AsyncCompletion,
+        "async-completion:cause:phase26-title",
+    );
     let follow_on_view = follow_on_runtime
         .declare_live_view::<Value>(
             "tasks.phase26-follow-on",
@@ -184,13 +191,13 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
             )
             .with_write_adjacent_trigger(
                 ForgeQueryEffectWriteAdjacentTriggerClass::AsyncCompletion,
-                "async-completion:cause:phase26-title",
+                follow_on_origin_identity.clone(),
             ),
         )
         .expect("follow-on effect should declare");
     follow_on_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from phase26 async completion"),
         })
@@ -212,7 +219,7 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
     );
     assert_eq!(
         time_delivery
-            .negotiate_runtime_resume(Some(time_delivery.basis_digest()))
+            .negotiate_runtime_resume(Some(time_delivery.basis_identity()))
             .kind(),
         ForgeQueryRuntimeDownstreamResumePostureKind::RuntimeBackedAdmitted
     );
@@ -220,13 +227,13 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         mixed_delivery.delivery_class(),
         ForgeQueryRuntimeDownstreamDeliveryClass::MixedCause
     );
-    assert!(mixed_delivery.mixed_cause_digest().is_some());
-    assert!(mixed_delivery.async_result_state_digest().is_some());
+    assert!(mixed_delivery.mixed_cause_for_reporting().is_some());
+    assert!(mixed_delivery.async_result_state_for_reporting().is_some());
     assert_eq!(
         remask_delivery.support_posture(),
         ForgeQueryRuntimeDownstreamSupportPosture::Denied
     );
-    assert!(remask_delivery.remask_digest().is_some());
+    assert!(remask_delivery.remask_for_reporting().is_some());
     assert_eq!(
         remask_delivery.durable_resume_posture().kind(),
         ForgeQueryRuntimeDownstreamResumePostureKind::DurableDeferredDebt
@@ -236,8 +243,10 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         ForgeQueryEffectWriteAdjacentTriggerClass::AsyncCompletion
     );
     assert_eq!(
-        follow_on_receipt.write_adjacent_trigger().origin_identity(),
-        "async-completion:cause:phase26-title"
+        follow_on_receipt
+            .write_adjacent_trigger()
+            .origin_evidence_identity(),
+        &follow_on_origin_identity
     );
     assert!(
         preview_artifact
@@ -300,12 +309,12 @@ fn runtime_backed_closure_matrix_preserves_equivalent_and_distinct_public_meanin
         preview_session_basis_and_promotion_parity_artifact();
 
     assert_eq!(
-        runtime_contract.contract_digest(),
-        workspace_contract.contract_digest()
+        runtime_contract.contract_for_reporting(),
+        workspace_contract.contract_for_reporting()
     );
     assert_eq!(
         support_row.support_contract_digest(),
-        Some(workspace_contract.contract_digest())
+        Some(workspace_contract.contract_for_reporting())
     );
     assert_eq!(
         runtime_contract.runtime_resume_support_posture(),

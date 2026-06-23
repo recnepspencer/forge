@@ -55,16 +55,15 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         staged_preview_write_count: usize,
         promoted_write_count: usize,
         residue_snapshot: PreviewLifecycleResidueSnapshot,
-        target_basis_snapshot_token: &str,
-        rebinding_digest: Option<String>,
+        target_basis_snapshot_identity: &ForgeQuerySnapshotIdentity,
+        rebinding_identity: Option<crate::ForgeQueryEvidenceIdentity>,
     ) -> ForgeQueryPreviewCloseoutEvidence {
         ForgeQueryPreviewCloseoutEvidence::new(
-            self.label.display(),
             kind,
             self.effect_policy,
             &self.basis_admission,
-            &self.basis_snapshot_token,
-            target_basis_snapshot_token,
+            &self.basis_snapshot_identity,
+            target_basis_snapshot_identity,
             self.handle_bindings.len(),
             self.handle_binding_count(ForgeQueryPreviewHandleBindingFamily::LiveView),
             self.handle_binding_count(ForgeQueryPreviewHandleBindingFamily::ComputedView),
@@ -80,7 +79,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             self.effect_delivery_residue_count(),
             self.pending_write_intent_residue_count(),
             residue_snapshot.crossed_authoritative_residue_count,
-            rebinding_digest,
+            rebinding_identity,
         )
     }
 
@@ -166,7 +165,7 @@ fn crossed_authoritative_residue(state: &ForgeQueryRuntimeLiveSubscriptionState)
         .map(|delivery: &ForgeQueryRuntimeRetainedDelivery| {
             !delivery
                 .mixed_cause_delivery()
-                .denied_cause_digests()
+                .denied_cause_identities()
                 .is_empty()
         })
         .unwrap_or(false);
@@ -174,9 +173,9 @@ fn crossed_authoritative_residue(state: &ForgeQueryRuntimeLiveSubscriptionState)
         .async_result_state
         .as_ref()
         .map(|async_state: &ForgeQueryRuntimeAsyncResultState| {
-            async_state.basis_digest() != state.installation.basis_binding_digest()
-                || async_state.generation_digest()
-                    != state.active_lane_handle.checkpoint_identity_digest()
+            async_state.basis_identity() != state.installation.basis_binding_identity()
+                || async_state.checkpoint_identity()
+                    != state.active_lane_handle.checkpoint_identity()
         })
         .unwrap_or(false);
     delivery_crossed || async_crossed

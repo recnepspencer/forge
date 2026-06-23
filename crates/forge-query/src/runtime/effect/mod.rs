@@ -2,6 +2,7 @@ mod declaration;
 mod delivery;
 mod follow_on;
 mod inspection;
+mod inspection_identity;
 mod phase;
 mod registry;
 mod routing;

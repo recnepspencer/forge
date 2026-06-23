@@ -1,8 +1,11 @@
 use worth_kernel::workload_composition::{
     GrazingBasketStackSpec, WorkloadCatalog, WorkloadCatalogRecipe,
 };
+use worth_spatial::certification::workload_evidence::{
+    complete_ledger_stage_snapshot, CertifiedWorkloadEvidenceStageSnapshot,
+};
 use worth_spatial::facade::workload_vocabulary::{
-    CompleteWorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
+    CompleteWorkloadEvidenceLedger, WorkloadEvidenceStage,
 };
 
 pub(crate) fn admitted_catalog_recipes() -> Vec<WorkloadCatalogRecipe> {
@@ -29,8 +32,7 @@ pub(crate) fn assert_authority_stage(
     ledger: &CompleteWorkloadEvidenceLedger,
     stage: WorkloadEvidenceStage,
 ) {
-    let row = ledger
-        .row_for_stage(stage)
+    let row = complete_ledger_stage_snapshot(ledger, stage)
         .expect("catalog ledger must include authority stage");
 
     assert!(row.is_receipt_backed());
@@ -93,6 +95,6 @@ pub(crate) fn catalog_breadth(recipe: WorkloadCatalogRecipe) -> CatalogBreadth {
 pub(crate) fn stage_row(
     ledger: &CompleteWorkloadEvidenceLedger,
     stage: WorkloadEvidenceStage,
-) -> &WorkloadEvidenceRow {
-    ledger.row_for_stage(stage).expect("catalog stage row")
+) -> CertifiedWorkloadEvidenceStageSnapshot {
+    complete_ledger_stage_snapshot(ledger, stage).expect("catalog stage row")
 }

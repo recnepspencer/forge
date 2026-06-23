@@ -1,6 +1,15 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+use crate::runtime::{ForgeQueryAuthorityLane, ForgeQueryReadExecutionEngine};
 
 use super::inventory::CausalEvidenceFamily;
+use super::observation_identity::{
+    CausalEvidenceReferenceDigest, CausalEvidenceReferenceInput, CausalObservationBasisIdentity,
+    CausalObservationQueryIdentity, CausalObservationReceiptIdentity,
+    CausalObservationTargetHandle, CausalQueryObservationReceiptIdentity,
+    CausalResultShapeContextHandle,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QueryObservationReceiptFamily {
@@ -70,19 +79,49 @@ impl CausalInspectionReason {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CausalObservationBasisPosture {
+    AuthorityLane(ForgeQueryAuthorityLane),
+    ReadExecution(ForgeQueryReadExecutionEngine),
+    HistoricalReplayCertification,
+    Fixture,
+}
+
+impl CausalObservationBasisPosture {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::AuthorityLane(lane) => lane.as_str(),
+            Self::ReadExecution(engine) => engine.as_str(),
+            Self::HistoricalReplayCertification => "historical_replay_certification",
+            Self::Fixture => "fixture-basis-posture",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalObservationEvidenceIdentity {
     family: CausalEvidenceFamily,
-    reference_digest: String,
+    reference_digest: CausalEvidenceReferenceDigest,
+    evidence_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl CausalObservationEvidenceIdentity {
     pub(in crate::runtime) fn new(
         family: CausalEvidenceFamily,
-        reference_digest: impl Into<String>,
+        reference_digest: impl Into<CausalEvidenceReferenceInput>,
     ) -> Self {
+        let reference_digest = into_reference_digest(reference_digest.into());
+        let evidence_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReference)
+                .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("reference"),
+                    reference_digest.evidence_identity(),
+                )
+                .seal();
         Self {
             family,
-            reference_digest: reference_digest.into(),
+            reference_digest,
+            evidence_identity,
         }
     }
 
@@ -90,62 +129,91 @@ impl CausalObservationEvidenceIdentity {
         self.family
     }
 
-    pub fn reference_digest(&self) -> &str {
+    pub fn reference_digest(&self) -> &CausalEvidenceReferenceDigest {
         &self.reference_digest
+    }
+
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.evidence_identity
+    }
+}
+
+fn into_reference_digest(
+    reference_input: CausalEvidenceReferenceInput,
+) -> CausalEvidenceReferenceDigest {
+    match reference_input {
+        CausalEvidenceReferenceInput::Typed(identity) => identity,
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryObservationReceipt {
     family: QueryObservationReceiptFamily,
-    observation_receipt_digest: String,
-    query_digest: String,
-    basis_posture: String,
-    basis_digest: String,
-    result_shape_context_digest: String,
-    observation_target_digest: String,
+    observation_receipt_identity: CausalObservationReceiptIdentity,
+    query_identity: CausalObservationQueryIdentity,
+    basis_posture: CausalObservationBasisPosture,
+    basis_identity: CausalObservationBasisIdentity,
+    result_shape_context: CausalResultShapeContextHandle,
+    observation_target: CausalObservationTargetHandle,
     outcome: CausalObservationOutcome,
     evidence_identities: Vec<CausalObservationEvidenceIdentity>,
-    receipt_digest: String,
+    receipt_identity: CausalQueryObservationReceiptIdentity,
 }
 
 impl QueryObservationReceipt {
     pub(super) fn from_parts(parts: ObservationReceiptParts) -> Self {
-        let evidence_part = parts
-            .evidence_identities
-            .iter()
-            .map(|identity| {
-                format!(
-                    "{}:{}",
-                    identity.family().as_str(),
-                    identity.reference_digest()
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("|");
-        let receipt_digest = hash_parts(&[
-            "query_observation_receipt_v1".to_string(),
-            parts.family.as_str().to_string(),
-            format!("observation:{}", parts.observation_receipt_digest),
-            format!("query:{}", parts.query_digest),
-            format!("basis-posture:{}", parts.basis_posture),
-            format!("basis:{}", parts.basis_digest),
-            format!("result-shape:{}", parts.result_shape_context_digest),
-            format!("target:{}", parts.observation_target_digest),
-            format!("outcome:{}", parts.outcome.as_str()),
-            format!("evidence:{evidence_part}"),
-        ]);
+        let receipt_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalQueryObservationReceipt,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("family"), parts.family.as_str())
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("observation"),
+            parts.observation_receipt_identity.evidence_identity(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("query"),
+            parts.query_identity.evidence_identity(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("basis_posture"),
+            parts.basis_posture.as_str(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("basis"),
+            parts.basis_identity.evidence_identity(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("result_shape_context"),
+            parts.result_shape_context.identity().evidence_identity(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("observation_target"),
+            parts.observation_target.identity().evidence_identity(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("outcome"),
+            parts.outcome.as_str(),
+        )
+        .field_evidence_identity_sequence(
+            ForgeQueryEvidenceTag::new("evidence"),
+            parts
+                .evidence_identities
+                .iter()
+                .map(CausalObservationEvidenceIdentity::evidence_identity),
+        )
+        .seal()
+        .into();
         Self {
             family: parts.family,
-            observation_receipt_digest: parts.observation_receipt_digest,
-            query_digest: parts.query_digest,
+            observation_receipt_identity: parts.observation_receipt_identity,
+            query_identity: parts.query_identity,
             basis_posture: parts.basis_posture,
-            basis_digest: parts.basis_digest,
-            result_shape_context_digest: parts.result_shape_context_digest,
-            observation_target_digest: parts.observation_target_digest,
+            basis_identity: parts.basis_identity,
+            result_shape_context: parts.result_shape_context,
+            observation_target: parts.observation_target,
             outcome: parts.outcome,
             evidence_identities: parts.evidence_identities,
-            receipt_digest,
+            receipt_identity,
         }
     }
 
@@ -153,28 +221,32 @@ impl QueryObservationReceipt {
         self.family
     }
 
-    pub fn observation_receipt_digest(&self) -> &str {
-        &self.observation_receipt_digest
+    pub fn observation_receipt_identity(&self) -> &CausalObservationReceiptIdentity {
+        &self.observation_receipt_identity
     }
 
-    pub fn query_digest(&self) -> &str {
-        &self.query_digest
+    pub fn query_identity(&self) -> &CausalObservationQueryIdentity {
+        &self.query_identity
     }
 
     pub fn basis_posture(&self) -> &str {
+        self.basis_posture.as_str()
+    }
+
+    pub fn basis_posture_kind(&self) -> &CausalObservationBasisPosture {
         &self.basis_posture
     }
 
-    pub fn basis_digest(&self) -> &str {
-        &self.basis_digest
+    pub fn basis_identity(&self) -> &CausalObservationBasisIdentity {
+        &self.basis_identity
     }
 
-    pub fn result_shape_context_digest(&self) -> &str {
-        &self.result_shape_context_digest
+    pub fn result_shape_context(&self) -> &CausalResultShapeContextHandle {
+        &self.result_shape_context
     }
 
-    pub fn observation_target_digest(&self) -> &str {
-        &self.observation_target_digest
+    pub fn observation_target(&self) -> &CausalObservationTargetHandle {
+        &self.observation_target
     }
 
     pub fn outcome(&self) -> CausalObservationOutcome {
@@ -185,19 +257,19 @@ impl QueryObservationReceipt {
         &self.evidence_identities
     }
 
-    pub fn receipt_digest(&self) -> &str {
-        &self.receipt_digest
+    pub fn receipt_identity(&self) -> &CausalQueryObservationReceiptIdentity {
+        &self.receipt_identity
     }
 }
 
 pub(super) struct ObservationReceiptParts {
     pub family: QueryObservationReceiptFamily,
-    pub observation_receipt_digest: String,
-    pub query_digest: String,
-    pub basis_posture: String,
-    pub basis_digest: String,
-    pub result_shape_context_digest: String,
-    pub observation_target_digest: String,
+    pub observation_receipt_identity: CausalObservationReceiptIdentity,
+    pub query_identity: CausalObservationQueryIdentity,
+    pub basis_posture: CausalObservationBasisPosture,
+    pub basis_identity: CausalObservationBasisIdentity,
+    pub result_shape_context: CausalResultShapeContextHandle,
+    pub observation_target: CausalObservationTargetHandle,
     pub outcome: CausalObservationOutcome,
     pub evidence_identities: Vec<CausalObservationEvidenceIdentity>,
 }

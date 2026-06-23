@@ -7,15 +7,16 @@ use crate::construction::specs::{
     OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
     WireBodySpec,
 };
-#[cfg(test)]
 mod request_invalidity;
 mod request_placement;
-#[cfg(test)]
 pub(crate) use request_invalidity::primitive_construction_invalid_request_reason;
 pub(crate) use request_placement::placement_of;
 pub(crate) use request_placement::PrimitiveConstructionPlacement;
 use request_placement::{map_geometry_placement, request_digest_parts};
-use topology::facade::TopologyConstructionQueryAdmittedHandoffError;
+use topology::facade::{
+    TopologyConstructionQueryAdmittedHandoffError,
+    TopologyPrimitiveConstructionBirthComposeExecutionError,
+};
 use worth_geom::facade::{
     PrimitiveConditioningWitness, PrimitiveRealizationError, PrimitiveRealizationExhaustionReason,
     PrimitiveRealizationExhaustionReport, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
@@ -149,7 +150,6 @@ impl PrimitiveConstructionRequest {
         Self::new(geometry, parts)
     }
 
-    #[cfg(test)]
     pub(crate) fn geometry(&self) -> &PrimitiveConstructionGeometry {
         &self.geometry
     }
@@ -260,6 +260,7 @@ pub enum PrimitiveConstructionPhaseError {
     },
     Geometry(PrimitiveConstructionGeometryError),
     TopologyQueryAdmittedHandoff(TopologyConstructionQueryAdmittedHandoffError),
+    TopologyBirthCompose(TopologyPrimitiveConstructionBirthComposeExecutionError),
 }
 
 impl std::fmt::Display for PrimitiveConstructionPhaseError {
@@ -270,6 +271,7 @@ impl std::fmt::Display for PrimitiveConstructionPhaseError {
             }
             Self::Geometry(error) => write!(f, "geometry scaffold failed: {error}"),
             Self::TopologyQueryAdmittedHandoff(error) => write!(f, "{error}"),
+            Self::TopologyBirthCompose(error) => write!(f, "{error}"),
         }
     }
 }

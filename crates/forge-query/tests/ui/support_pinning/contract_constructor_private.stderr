@@ -1,0 +1,23 @@
+error[E0451]: fields `consumer_name`, `contract_schema_version`, `contract_schema_identity`, `pinned_vocabulary_identity`, `support_snapshot_schema_identity`, `source_matrix_digest`, `requirements`, `observed_rows` and `contract_digest` of struct `ForgeQuerySupportPinContract` are private
+  --> tests/ui/support_pinning/contract_constructor_private.rs:7:9
+   |
+ 6 |     let _ = ForgeQuerySupportPinContract {
+   |             ---------------------------- in this type
+ 7 |         consumer_name: String::new(),
+   |         ^^^^^^^^^^^^^ private field
+ 8 |         contract_schema_version: ForgeQuerySupportPinContractSchemaVersion::current(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         contract_schema_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         pinned_vocabulary_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         support_snapshot_schema_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         source_matrix_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+13 |         requirements: Vec::new(),
+   |         ^^^^^^^^^^^^ private field
+14 |         observed_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^ private field
+15 |         contract_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field

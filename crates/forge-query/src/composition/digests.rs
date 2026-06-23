@@ -4,7 +4,7 @@ use crate::identity::hash_parts;
 pub struct CompositionDigest(String);
 
 impl CompositionDigest {
-    pub fn from_parts(parts: &[String]) -> Self {
+    pub(crate) fn from_parts(parts: &[String]) -> Self {
         Self(hash_parts(parts))
     }
 
@@ -17,7 +17,7 @@ impl CompositionDigest {
 pub struct ScopeLineageDigest(String);
 
 impl ScopeLineageDigest {
-    pub fn from_parts(parts: &[String]) -> Self {
+    pub(crate) fn from_parts(parts: &[String]) -> Self {
         Self(hash_parts(parts))
     }
 
@@ -30,7 +30,7 @@ impl ScopeLineageDigest {
 pub struct TemplateBindingDigest(String);
 
 impl TemplateBindingDigest {
-    pub fn from_parts(parts: &[String]) -> Self {
+    pub(crate) fn from_parts(parts: &[String]) -> Self {
         Self(hash_parts(parts))
     }
 

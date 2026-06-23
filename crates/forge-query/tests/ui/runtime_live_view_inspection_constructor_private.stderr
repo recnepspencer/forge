@@ -1,85 +1,167 @@
-error: cannot construct `ForgeQueryLiveViewInspection` with struct literal syntax due to private fields
-  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:25:23
+error[E0560]: struct `ForgeQueryLiveSubscriptionInspectionCounters` has no field named `declaration_counter_digest`
+ --> tests/ui/runtime_live_view_inspection_constructor_private.rs:8:9
+  |
+8 |         declaration_counter_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryLiveSubscriptionInspectionCounters` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveSubscriptionInspectionCounters` has no field named `active_lane_counter_digest`
+ --> tests/ui/runtime_live_view_inspection_constructor_private.rs:9:9
+  |
+9 |         active_lane_counter_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryLiveSubscriptionInspectionCounters` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveSubscriptionInspectionCounters` has no field named `consumer_attachment_counter_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:10:9
    |
-25 |     let _inspection = ForgeQueryLiveViewInspection {
-   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-26 |         view_name: String::new(),
-   |         ------------------------ private field
-27 |         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-   |         ----------------------------------------------------------- private field
+10 |         consumer_attachment_counter_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryLiveSubscriptionInspectionCounters` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveSubscriptionInspectionCounters` has no field named `counter_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:22:9
+   |
+22 |         counter_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ `ForgeQueryLiveSubscriptionInspectionCounters` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `query_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:28:9
+   |
 28 |         query_digest: String::new(),
-   |         --------------------------- private field
+   |         ^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `view_shape_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:29:9
+   |
 29 |         view_shape_digest: String::new(),
-   |         -------------------------------- private field
-30 |         subscription_family: String::new(),
-   |         ---------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `subscription_family_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:31:9
+   |
 31 |         subscription_family_digest: String::new(),
-   |         ----------------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `subscription_declaration_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:32:9
+   |
 32 |         subscription_declaration_digest: String::new(),
-   |         ---------------------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `bridge_declaration_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:33:9
+   |
 33 |         bridge_declaration_digest: String::new(),
-   |         ---------------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `admission_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:34:9
+   |
 34 |         admission_digest: String::new(),
-   |         ------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `activation_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:35:9
+   |
 35 |         activation_digest: String::new(),
-   |         -------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `basis_binding_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:36:9
+   |
 36 |         basis_binding_digest: String::new(),
-   |         ----------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `signal_strategy_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:37:9
+   |
 37 |         signal_strategy_digest: String::new(),
-   |         ------------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `active_lane_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:38:9
+   |
 38 |         active_lane_digest: String::new(),
-   |         --------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `consumer_attachment_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:39:9
+   |
 39 |         consumer_attachment_digest: String::new(),
-   |         ----------------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `consumer_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:40:9
+   |
 40 |         consumer_digest: String::new(),
-   |         ------------------------------ private field
+   |         ^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `delivery_cursor_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:41:9
+   |
 41 |         delivery_cursor_digest: String::new(),
-   |         ------------------------------------- private field
-42 |         subscription_budget_policy: String::new(),
-   |         ----------------------------------------- private field
-43 |         active_lifecycle_budget_policy: String::new(),
-   |         --------------------------------------------- private field
-44 |         consumer_attachment_budget_policy: String::new(),
-   |         ------------------------------------------------ private field
+   |         ^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `runtime_budget_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:45:9
+   |
 45 |         runtime_budget_digest: String::new(),
-   |         ------------------------------------ private field
+   |         ^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `support_evidence`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:46:9
+   |
 46 |         support_evidence: String::new(),
-   |         ------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `installation_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:47:9
+   |
 47 |         installation_digest: String::new(),
-   |         ---------------------------------- private field
-48 |         counters,
-   |         -------- private field
+   |         ^^^^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryLiveViewInspection` has no field named `inspection_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:49:9
+   |
 49 |         inspection_digest: String::new(),
-   |         -------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^ `ForgeQueryLiveViewInspection` does not have this field
    |
-   = note: ...and other private fields that were not provided
-help: you might have meant to use the `from_state` associated function
-   |
-25 -     let _inspection = ForgeQueryLiveViewInspection {
-26 -         view_name: String::new(),
-27 -         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-28 -         query_digest: String::new(),
-29 -         view_shape_digest: String::new(),
-30 -         subscription_family: String::new(),
-31 -         subscription_family_digest: String::new(),
-32 -         subscription_declaration_digest: String::new(),
-33 -         bridge_declaration_digest: String::new(),
-34 -         admission_digest: String::new(),
-35 -         activation_digest: String::new(),
-36 -         basis_binding_digest: String::new(),
-37 -         signal_strategy_digest: String::new(),
-38 -         active_lane_digest: String::new(),
-39 -         consumer_attachment_digest: String::new(),
-40 -         consumer_digest: String::new(),
-41 -         delivery_cursor_digest: String::new(),
-42 -         subscription_budget_policy: String::new(),
-43 -         active_lifecycle_budget_policy: String::new(),
-44 -         consumer_attachment_budget_policy: String::new(),
-45 -         runtime_budget_digest: String::new(),
-46 -         support_evidence: String::new(),
-47 -         installation_digest: String::new(),
-48 -         counters,
-49 -         inspection_digest: String::new(),
-50 -     };
-25 +     let _inspection = ForgeQueryLiveViewInspection::from_state(_);
-   |
+   = note: all struct fields are already assigned

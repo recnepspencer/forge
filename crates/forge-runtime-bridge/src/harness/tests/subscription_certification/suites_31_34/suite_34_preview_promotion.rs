@@ -4,7 +4,7 @@ use crate::facade::{
     BridgeSignalBranchIdentity, BridgeSpeculativeBranchBindingIdentity,
     BridgeSubscriptionDeliveryDensityPosture, BridgeSubscriptionPreviewPromotionOutcomeClass,
     BridgeSubscriptionPreviewWorkInput, BridgeSubscriptionPreviewWorkKind,
-    BridgeSubscriptionPreviewWorkTraceRejectionKind, TruthBranchIdentity, TruthSnapshotIdentity,
+    BridgeSubscriptionPreviewWorkTraceRejectionKind,
 };
 
 #[test]
@@ -19,19 +19,23 @@ fn bridge_harness_subscription_suite_34_preview_zero_residue_and_promotion_are_e
     ] {
         let preview_active = preview_active_subscription_for(
             &runtime,
-            BridgePreviewSessionIdentity::new(format!("preview-session:subscription:{suffix}")),
+            BridgePreviewSessionIdentity::admit_bridge_owned(format!(
+                "preview-session:subscription:{suffix}"
+            )),
             SubscriptionPreviewSessionIdentities {
-                declaration_identity: BridgePreviewSessionDeclarationIdentity::new(format!(
-                    "preview:subscription:{suffix}"
-                )),
-                binding_identity: BridgeSpeculativeBranchBindingIdentity::new(format!(
-                    "preview-binding:subscription:{suffix}"
-                )),
-                truth_branch_identity: TruthBranchIdentity::new("analysis"),
-                signal_branch_identity: BridgeSignalBranchIdentity::new(format!(
+                declaration_identity: BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(
+                    format!("preview:subscription:{suffix}"),
+                ),
+                binding_identity: BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(
+                    format!("preview-binding:subscription:{suffix}"),
+                ),
+                truth_branch_identity: crate::truth_identity_fixtures::truth_branch_fixture(
+                    "analysis",
+                ),
+                signal_branch_identity: BridgeSignalBranchIdentity::admit_bridge_owned(format!(
                     "signal:subscription:{suffix}"
                 )),
-                snapshot_identity: TruthSnapshotIdentity::new(format!(
+                snapshot_identity: crate::truth_identity_fixtures::truth_snapshot_fixture(format!(
                     "snapshot:subscription:{suffix}"
                 )),
             },
@@ -121,19 +125,23 @@ fn bridge_harness_subscription_suite_34_preview_zero_residue_and_promotion_are_e
 
     let malformed_preview = preview_active_subscription_for(
         &runtime,
-        BridgePreviewSessionIdentity::new("preview-session:subscription:malformed-work"),
+        BridgePreviewSessionIdentity::admit_bridge_owned(
+            "preview-session:subscription:malformed-work",
+        ),
         SubscriptionPreviewSessionIdentities {
-            declaration_identity: BridgePreviewSessionDeclarationIdentity::new(
+            declaration_identity: BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(
                 "preview:subscription:malformed-work",
             ),
-            binding_identity: BridgeSpeculativeBranchBindingIdentity::new(
+            binding_identity: BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(
                 "preview-binding:subscription:malformed-work",
             ),
-            truth_branch_identity: TruthBranchIdentity::new("analysis"),
-            signal_branch_identity: BridgeSignalBranchIdentity::new(
+            truth_branch_identity: crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            signal_branch_identity: BridgeSignalBranchIdentity::admit_bridge_owned(
                 "signal:subscription:malformed-work",
             ),
-            snapshot_identity: TruthSnapshotIdentity::new("snapshot:subscription:malformed-work"),
+            snapshot_identity: crate::truth_identity_fixtures::truth_snapshot_fixture(
+                "snapshot:subscription:malformed-work",
+            ),
         },
         &detail,
     );
@@ -169,19 +177,21 @@ fn bridge_harness_subscription_suite_34_preview_zero_residue_and_promotion_are_e
     );
     let other_preview = preview_active_subscription_for(
         &runtime,
-        BridgePreviewSessionIdentity::new("preview-session:subscription:other-work"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:subscription:other-work"),
         SubscriptionPreviewSessionIdentities {
-            declaration_identity: BridgePreviewSessionDeclarationIdentity::new(
+            declaration_identity: BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(
                 "preview:subscription:other-work",
             ),
-            binding_identity: BridgeSpeculativeBranchBindingIdentity::new(
+            binding_identity: BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(
                 "preview-binding:subscription:other-work",
             ),
-            truth_branch_identity: TruthBranchIdentity::new("analysis"),
-            signal_branch_identity: BridgeSignalBranchIdentity::new(
+            truth_branch_identity: crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            signal_branch_identity: BridgeSignalBranchIdentity::admit_bridge_owned(
                 "signal:subscription:other-work",
             ),
-            snapshot_identity: TruthSnapshotIdentity::new("snapshot:subscription:other-work"),
+            snapshot_identity: crate::truth_identity_fixtures::truth_snapshot_fixture(
+                "snapshot:subscription:other-work",
+            ),
         },
         &detail,
     );
@@ -204,19 +214,25 @@ fn bridge_harness_subscription_suite_34_preview_zero_residue_and_promotion_are_e
     let promotion_ready = activation_ready_for(&runtime, &detail);
     let admitted_preview = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:subscription:promotion"),
+            BridgePreviewSessionIdentity::admit_bridge_owned(
+                "preview-session:subscription:promotion",
+            ),
             preview_declaration(&SubscriptionPreviewSessionIdentities {
-                declaration_identity: BridgePreviewSessionDeclarationIdentity::new(
+                declaration_identity: BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(
                     "preview:subscription:promotion",
                 ),
-                binding_identity: BridgeSpeculativeBranchBindingIdentity::new(
+                binding_identity: BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(
                     "preview-binding:subscription:promotion",
                 ),
-                truth_branch_identity: TruthBranchIdentity::new("analysis"),
-                signal_branch_identity: BridgeSignalBranchIdentity::new(
+                truth_branch_identity: crate::truth_identity_fixtures::truth_branch_fixture(
+                    "analysis",
+                ),
+                signal_branch_identity: BridgeSignalBranchIdentity::admit_bridge_owned(
                     "signal:subscription:promotion",
                 ),
-                snapshot_identity: TruthSnapshotIdentity::new("snapshot:subscription:promotion"),
+                snapshot_identity: crate::truth_identity_fixtures::truth_snapshot_fixture(
+                    "snapshot:subscription:promotion",
+                ),
             }),
         )
         .expect("preview session should admit for promotion");

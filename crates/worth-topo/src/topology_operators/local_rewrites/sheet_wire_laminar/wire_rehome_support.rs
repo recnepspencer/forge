@@ -122,7 +122,7 @@ pub(crate) fn resolve_wire_split_program(
         .flatten()?;
     let outgoing_half_edge_targets = query_outgoing_relation_target_identities(
         bindings,
-        &retained_wire_binding.query_identity,
+        &retained_wire_binding.query_identity_label,
         schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
     )
     .ok()?;
@@ -160,7 +160,7 @@ fn shared_existing_wire_owner_id(
             .flatten()?;
         let incoming_relation_ids = query_incoming_relation_ids(
             bindings,
-            &half_edge_binding.query_identity,
+            &half_edge_binding.query_identity_label,
             schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
         )
         .ok()?;
@@ -201,7 +201,7 @@ fn connected_by_incident_vertices(
         ] {
             let Ok(target_identities) = query_outgoing_relation_target_identities(
                 bindings,
-                &half_edge_binding.query_identity,
+                &half_edge_binding.query_identity_label,
                 kind,
             ) else {
                 return false;

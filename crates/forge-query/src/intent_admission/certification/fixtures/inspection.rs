@@ -93,9 +93,9 @@ pub(in crate::intent_admission::certification) fn certified_inspection_advisory_
         eligibility_digest,
         decision_trace_digest,
         execution_provenance_chain_digest,
-        full_artifact_digest: full.artifact_digest().to_string(),
-        redacted_artifact_digest: redacted.artifact_digest().to_string(),
-        causal_identity_digest: redacted.causal_identity_digest().to_string(),
+        full_artifact_digest: full.artifact_for_reporting().to_string(),
+        redacted_artifact_digest: redacted.artifact_for_reporting().to_string(),
+        causal_identity_digest: redacted.causal_identity_for_reporting().to_string(),
         boundary_audit_digest: boundary_audit.audit_digest().to_string(),
     }
 }

@@ -171,6 +171,10 @@ impl BridgeContinuityMutationBundle {
         self.prior_authoritative_identity.as_str()
     }
 
+    pub fn prior_authoritative_identity_handle(&self) -> &BridgeContinuityAuthoritativeIdentity {
+        &self.prior_authoritative_identity
+    }
+
     pub fn successor_authoritative_identity(&self) -> Option<&str> {
         match self.successor_authoritative_identities.as_slice() {
             [only] => Some(only.as_str()),

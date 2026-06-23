@@ -62,6 +62,7 @@ pub enum PolicyExecutionModeRequest {
     HistoricalDiff,
     LiveSubscription,
     DeliveryOnly,
+    GraphMutation,
 }
 
 impl PolicyExecutionModeRequest {
@@ -73,13 +74,14 @@ impl PolicyExecutionModeRequest {
             Self::HistoricalDiff => "historical_diff",
             Self::LiveSubscription => "live_subscription",
             Self::DeliveryOnly => "delivery_only",
+            Self::GraphMutation => "graph_mutation",
         }
     }
 
     pub(crate) fn phase_one_admitted(&self) -> bool {
         matches!(
             self,
-            Self::CurrentRead | Self::BranchRead | Self::HistoricalRead
+            Self::CurrentRead | Self::BranchRead | Self::HistoricalRead | Self::GraphMutation
         )
     }
 }

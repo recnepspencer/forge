@@ -47,8 +47,8 @@ fn equivalent_admission_meaning_canonicalizes_to_same_digest() {
         right.materialization_digest()
     );
     assert_eq!(
-        left.semantic_identity_digest(),
-        right.semantic_identity_digest()
+        left.semantic_identity_for_reporting(),
+        right.semantic_identity_for_reporting()
     );
     assert_eq!(left.canonical_family(), "intent-admission");
     let semantics = left
@@ -58,8 +58,8 @@ fn equivalent_admission_meaning_canonicalizes_to_same_digest() {
         .semantics()
         .intent_declaration()
         .expect("declaration semantics should be preserved");
-    assert_eq!(semantics.0, "test.intent");
-    assert_eq!(semantics.1, "test.strategy");
+    assert_eq!(semantics.0, "domain-capability.intent-a");
+    assert_eq!(semantics.1, "forge.domain_capability.intent-a");
 }
 
 #[test]
@@ -190,7 +190,7 @@ fn all_categories_materialize_profile_independent_canonical_artifacts() {
         .expect("lower-runtime semantics should be preserved");
     assert_eq!(
         support_boundary.0,
-        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSeamKey::RuntimeIntentModule
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting
     );
 }
 

@@ -1,8 +1,8 @@
 use crate::authorized_projection::AuthorizedProjectionArtifact;
 use crate::canonicalization::CanonicalResultShapeArtifact;
-use crate::identity::hash_parts;
 
 use super::facts::ProjectMaterializedFacts;
+use super::identity::compose_declaration_digest;
 use super::source::ProjectionConsumptionSource;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -45,6 +45,13 @@ impl ProjectionConsumptionBindingContext {
                 .to_string(),
             authorized_visible_fields: authorized_projection.visible_fields().to_vec(),
         }
+    }
+
+    pub fn from_result_shape_identity(
+        result_shape_identity: &crate::evidence_identity::ForgeQueryEvidenceIdentity,
+        authorized_projection: &AuthorizedProjectionArtifact,
+    ) -> Self {
+        Self::from_result_shape_digest(result_shape_identity.as_str(), authorized_projection)
     }
 
     pub fn from_projection_metadata(
@@ -253,34 +260,11 @@ pub fn declare_projection_consumption(
             );
         }
     }
-    let mut parts = vec![
-        format!("source_family:{}", source.family().as_str()),
-        format!("source_identity:{}", source.source_identity()),
-        format!("result_shape:{}", binding.result_shape_digest()),
-        format!(
-            "authorized_projection:{}",
-            binding.authorized_projection_identity()
-        ),
-    ];
-    if let Some(query_digest) = source.query_digest() {
-        parts.push(format!("query:{query_digest}"));
-    }
-    if let Some(basis_digest) = source.basis_digest() {
-        parts.push(format!("basis:{basis_digest}"));
-    }
-    if let Some(result_digest) = source.result_digest() {
-        parts.push(format!("result:{result_digest}"));
-    }
-    for request in requested.requested() {
-        match request.field_key() {
-            Some(field) => parts.push(format!("fact:{}:{field}", request.kind().as_str())),
-            None => parts.push(format!("fact:{}", request.kind().as_str())),
-        }
-    }
+    let declaration_digest = compose_declaration_digest(&source, &binding, requested.requested());
     Ok(ProjectionConsumptionDeclaration {
         source,
         binding,
         requested,
-        declaration_digest: hash_parts(&parts),
+        declaration_digest,
     })
 }

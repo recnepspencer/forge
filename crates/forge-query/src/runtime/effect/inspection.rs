@@ -1,5 +1,3 @@
-use crate::identity::hash_parts;
-
 use super::super::ForgeQueryFeedbackPhaseGraphInspection;
 use super::super::{ForgeQueryAuthorityLane, ForgeQueryEffectAction, ForgeQueryEffectPolicy};
 use super::declaration::{
@@ -10,6 +8,7 @@ use super::delivery::{ForgeQueryEffectCounters, ForgeQueryEffectDeliveryFamily};
 use super::follow_on::{
     ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryEffectWriteAdjacentTriggerClass,
 };
+use super::inspection_identity::effect_inspection_digests;
 use super::phase::ForgeQueryEffectPhaseEvidence;
 use super::registry::ForgeQueryEffectRuntime;
 
@@ -94,137 +93,21 @@ impl ForgeQueryEffectInspectionEvidence {
             .latest_delivery()
             .map(|delivery| delivery.phase_evidence().clone());
         let feedback_graph = ForgeQueryFeedbackPhaseGraphInspection::from_effect_runtime(effect);
-        let trigger_digest = hash_parts(&[
-            "forge_query_effect_trigger_inspection_v1".to_string(),
-            format!("name:{}", effect.declaration.name()),
-            format!(
-                "source-kind:{}",
-                effect.declaration.trigger().source_kind().as_str()
-            ),
-            format!("source:{}", effect.declaration.trigger().source_name()),
-            format!(
-                "write-adjacent-trigger:{}",
-                effect.declaration.write_adjacent_trigger().digest()
-            ),
-            format!(
-                "aspects:{}",
-                effect.declaration.trigger().aspects().join("|")
-            ),
-        ]);
-        let condition_digest = hash_parts(&[
-            "forge_query_effect_condition_inspection_v1".to_string(),
-            format!("name:{}", effect.declaration.name()),
-            format!("descriptor:{condition_descriptor}"),
-            format!("inputs:{}", condition_inputs.join("|")),
-            format!("outputs:{}", condition_outputs.join("|")),
-            format!(
-                "failure-posture:{}",
-                condition_failure_posture
-                    .map(|posture| match posture {
-                        ForgeQueryEffectExpressionFailurePosture::Admitted => "admitted",
-                        ForgeQueryEffectExpressionFailurePosture::DeterministicFailure =>
-                            "deterministic-failure",
-                    })
-                    .unwrap_or("none")
-            ),
-        ]);
-        let declaration_digest = hash_parts(&[
-            "forge_query_effect_declaration_inspection_v1".to_string(),
-            format!("name:{}", effect.declaration.name()),
-            format!("trigger:{trigger_digest}"),
-            format!("condition:{condition_digest}"),
-            format!("action:{:?}", effect.declaration.action()),
-            format!("target-lane:{}", effect.declaration.target_lane()),
-            format!("target:{}", effect.declaration.target()),
-            format!("policy:{:?}", effect.declaration.effect_policy()),
-            format!(
-                "suppression:{}",
-                effect.declaration.suppression_policy().as_str()
-            ),
-        ]);
-        let pending_delivery_digest = hash_parts(
-            &std::iter::once("forge_query_effect_pending_delivery_inspection_v1".to_string())
-                .chain(std::iter::once(format!(
-                    "name:{}",
-                    effect.declaration.name()
-                )))
-                .chain(std::iter::once(format!(
-                    "pending-delivery:{pending_delivery_count}"
-                )))
-                .chain(std::iter::once(format!(
-                    "pending-delivered:{pending_delivered_count}"
-                )))
-                .chain(std::iter::once(format!(
-                    "pending-suppressed:{pending_suppressed_count}"
-                )))
-                .chain(std::iter::once(format!(
-                    "pending-expression-failure:{pending_expression_failure_count}"
-                )))
-                .chain(std::iter::once(format!(
-                    "pending-write-intent:{pending_write_intent_count}"
-                )))
-                .chain(effect.deliveries.iter().map(|delivery| {
-                    format!(
-                        "{}:{}:{}:{}:{}",
-                        delivery.effect_name(),
-                        delivery.commit_identity(),
-                        delivery.trigger_source_kind().as_str(),
-                        match delivery.family() {
-                            ForgeQueryEffectDeliveryFamily::Delivered => "delivered",
-                            ForgeQueryEffectDeliveryFamily::PendingWriteIntent =>
-                                "pending-write-intent",
-                            ForgeQueryEffectDeliveryFamily::Suppressed => "suppressed",
-                            ForgeQueryEffectDeliveryFamily::ExpressionFailed => "expression-failed",
-                        },
-                        delivery.aspect_paths().join("|")
-                    )
-                }))
-                .collect::<Vec<_>>(),
+        let digest_set = effect_inspection_digests(
+            effect,
+            &condition_descriptor,
+            &condition_inputs,
+            &condition_outputs,
+            condition_failure_posture,
+            pending_delivery_count,
+            pending_delivered_count,
+            pending_suppressed_count,
+            pending_expression_failure_count,
+            pending_write_intent_count,
+            latest_delivery_family.as_ref(),
+            latest_phase_evidence.as_ref(),
+            feedback_graph.as_ref(),
         );
-        let latest_phase_digest = latest_phase_evidence.as_ref().map(|phase| {
-            hash_parts(&[
-                "forge_query_effect_phase_inspection_v1".to_string(),
-                format!(
-                    "phases:{}",
-                    phase
-                        .phases()
-                        .iter()
-                        .map(|entry| entry.as_str())
-                        .collect::<Vec<_>>()
-                        .join("|")
-                ),
-                format!("loop-prevention:{}", phase.loop_prevention().as_str()),
-                format!("idempotence:{}", phase.idempotence().as_str()),
-            ])
-        });
-        let inspection_digest = hash_parts(&[
-            "forge_query_effect_inspection_v1".to_string(),
-            declaration_digest.clone(),
-            pending_delivery_digest.clone(),
-            format!(
-                "latest-family:{}",
-                latest_delivery_family
-                    .as_ref()
-                    .map(|family| match family {
-                        ForgeQueryEffectDeliveryFamily::Delivered => "delivered",
-                        ForgeQueryEffectDeliveryFamily::PendingWriteIntent =>
-                            "pending-write-intent",
-                        ForgeQueryEffectDeliveryFamily::Suppressed => "suppressed",
-                        ForgeQueryEffectDeliveryFamily::ExpressionFailed => "expression-failed",
-                    })
-                    .unwrap_or("none")
-            ),
-            latest_phase_digest
-                .clone()
-                .unwrap_or_else(|| "no-phase-evidence".to_string()),
-            format!(
-                "feedback-graph:{}",
-                feedback_graph
-                    .as_ref()
-                    .map(|graph| graph.graph_digest().to_string())
-                    .unwrap_or_else(|| "none".to_string())
-            ),
-        ]);
 
         Self {
             name: effect.declaration.name().to_string(),
@@ -250,12 +133,12 @@ impl ForgeQueryEffectInspectionEvidence {
             latest_delivery_family,
             latest_phase_evidence,
             feedback_graph,
-            trigger_digest,
-            condition_digest,
-            declaration_digest,
-            pending_delivery_digest,
-            latest_phase_digest,
-            inspection_digest,
+            trigger_digest: digest_set.trigger_digest,
+            condition_digest: digest_set.condition_digest,
+            declaration_digest: digest_set.declaration_digest,
+            pending_delivery_digest: digest_set.pending_delivery_digest,
+            latest_phase_digest: digest_set.latest_phase_digest,
+            inspection_digest: digest_set.inspection_digest,
         }
     }
 

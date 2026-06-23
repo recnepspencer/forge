@@ -38,6 +38,25 @@ The operating rule is:
 - `Milestone 5`: Binding/rebinding authority and Query-native geometry
   hard-break work are the current predecessor for Milestone 6; do not treat
   Milestone 6 as starting from the older pre-Query-native geometry shape
+- `Worth Query-Native Hardening Gate`: Closed after Forge Query 9.7 and 9.8;
+  blocks the next workload and boolean lanes until `worth-kernel`,
+  `worth-spatial`, and `worth-topo` consume real Query support pinning,
+  evidence reports, hard-prohibition boundaries, and authority-preserving
+  runtime receipts instead of pre-Query synthetic proof paths
+- `Worth Query Graph Authority Hardening Gate`: Planned after Forge Query 9.9
+  and Worth 7.4; blocks broad 7.5+ boolean continuation until `worth-topo`,
+  `worth-spatial`, and `worth-kernel` consume Query Graph Touch Obligation
+  Authority without local graph legality, handoff-only execution claims, raw
+  evidence scans, or support-pinning ceremony competing with Query's Consumer
+  Kit
+- `Worth Touched Graph Authority Gate`: Planned after the Query Graph Authority
+  Hardening Gate and before broad 7.5; blocks overlap extraction until
+  graph-affecting Worth operators produce a typed touched graph basis and
+  Query obligation selection, Query 9.10 graph read access planning, validators,
+  invariants, invalidation, replay, evidence lookup, conflict, cache/equivalence,
+  undo, public proof, and diagnostics derive from that same basis instead of
+  static/global packs, caller-owned graph-read folklore, or slow compatibility
+  adapters
 - `Milestone 6.5`: Planned as the operational workload platform between exact
   planar contracts and booleans; hostile tests must consume real topology,
   binding, projection, retained replay, transform, response, and evidence rails
@@ -56,6 +75,14 @@ Worth read composition side quest:
 - [worth-query-domain-substrate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-query-domain-substrate.md)
 Worth topology domain structure gate:
 - [worth-topo-domain-structure-gate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-topo-domain-structure-gate.md)
+Worth Query-native hardening gate:
+- [query-native-hardening-gate.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/query-native-hardening-gate.md)
+- [query-native-hardening-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/query-native-hardening-closeout.md)
+Worth Query graph authority hardening gate:
+- [worth-query-graph-authority-hardening-gate.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/worth-query-graph-authority-hardening-gate.md)
+Worth touched graph authority gate:
+- [touched-graph-roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/touched-graph-roadmap.md)
+- [worth-touched-graph-authority-gate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-touched-graph-authority-gate.md)
 
 ## Global Adversarial Constraint
 
@@ -463,7 +490,8 @@ Critical path:
 - `Milestone 1` -> `Milestone 2` -> `Forge Query Runtime Rewrite Gate` ->
   `Worth Read Composition Side Quest` ->
   `Worth Topology Domain Structure Gate` -> `Milestone 3` ->
-  `Milestone 4` -> `Milestone 5` -> `Milestone 6` -> `Milestone 6.5` ->
+  `Milestone 4` -> `Milestone 5` -> `Milestone 6` ->
+  `Worth Query-Native Hardening Gate` -> `Milestone 6.5` ->
   `Milestone 7` ->
   `Milestone 8` -> `Milestone 9` -> `Milestone 10` -> `Milestone 11` ->
   `Milestone 12` -> `Milestone 13` -> `Milestone 14` -> `Milestone 15` ->
@@ -2673,6 +2701,8 @@ Worth is roadmap-complete only when:
 - [worth_bootstrap_plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/worth_bootstrap_plan.md)
 - [milestone-1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1.md)
 - [worth-topo-domain-structure-gate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-topo-domain-structure-gate.md)
+- [query-native-hardening-gate.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/query-native-hardening-gate.md)
+- [worth-query-graph-authority-hardening-gate.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/worth-query-graph-authority-hardening-gate.md)
 - [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/test-requirements.md)
 - [test-requirements_pt2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/test-requirements_pt2.md)
 - [metaboss_tier4.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/metaboss_tier4.md)

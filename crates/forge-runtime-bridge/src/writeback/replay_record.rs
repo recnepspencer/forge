@@ -55,7 +55,7 @@ impl BridgeWritebackReplayRecord {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            record_identity: BridgeWritebackReplayRecordIdentity::new(format!(
+            record_identity: BridgeWritebackReplayRecordIdentity::admit_bridge_owned(format!(
                 "bridge-writeback-replay-record:sha256:{digest:x}"
             )),
             family_kind: expected.family_kind(),

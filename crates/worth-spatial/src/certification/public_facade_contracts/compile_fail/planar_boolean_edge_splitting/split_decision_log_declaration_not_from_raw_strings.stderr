@@ -1,0 +1,23 @@
+error[E0308]: arguments to this function are incorrect
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_decision_log_declaration_not_from_raw_strings.rs:4:13
+  |
+4 |     let _ = PlanarBooleanSplitDecisionLogDeclaration::for_split_products(
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         "split request",
+  |         --------------- expected `&PlanarBooleanEdgeSplitRequest`, found `&str`
+6 |         "split chain validation receipt",
+  |         -------------------------------- expected `&...`, found `&str`
+7 |         "split persistent naming receipt",
+  |         --------------------------------- expected `&...`, found `&str`
+  |
+  = note: expected reference `&PlanarBooleanEdgeSplitRequest`
+             found reference `&'static str`
+  = note: expected reference `&PlanarBooleanSplitChainValidationReceipt`
+             found reference `&'static str`
+  = note: expected reference `&PlanarBooleanSplitPersistentNamingReceipt`
+             found reference `&'static str`
+note: associated function defined here
+ --> src/workload_platform/planar_boolean_edge_splitting/split_decision_log/query_proof/query_declaration.rs
+  |
+  |     pub fn for_split_products(
+  |            ^^^^^^^^^^^^^^^^^^

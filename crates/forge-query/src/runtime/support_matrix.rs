@@ -1,3 +1,6 @@
+use crate::application::{
+    ForgeQueryMilestoneNineSevenDerivedClosure, ForgeQuerySharedReadPinningCertification,
+};
 use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
@@ -70,7 +73,7 @@ impl ForgeQueryRuntimePublicSupportMatrixRow {
                     ForgeQueryEvidenceTag::new("admission_fail_closed"),
                     admission_fail_closed,
                 )
-                .optional_identity(
+                .optional_value(
                     ForgeQueryEvidenceTag::new("support_contract_digest"),
                     support_contract_digest.as_deref(),
                 )
@@ -223,9 +226,33 @@ impl ForgeQueryRuntimePublicSupportMatrix {
                 ForgeQueryRuntimeDownstreamDeliveryContract::from_backend_posture(
                     contract.backend_posture(),
                 )
-                .contract_digest()
+                .contract_for_reporting()
                 .to_string(),
             ),
+        ));
+
+        rows.push(ForgeQueryRuntimePublicSupportMatrixRow::new(
+            "shared-read-pinning-boundary-closure",
+            None,
+            ForgeQueryRuntimeFamilySupportStatus::Supported,
+            ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
+            "Milestone 9.7 Phase 13",
+            "must-close-shared-read-context-pinning-boundary-before-journal-and-certification-phases",
+            true,
+            true,
+            Some(shared_read_pinning_boundary_closure_contract_digest()),
+        ));
+
+        rows.push(ForgeQueryRuntimePublicSupportMatrixRow::new(
+            "milestone-9.7-derived-closure-posture",
+            None,
+            ForgeQueryRuntimeFamilySupportStatus::Supported,
+            ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
+            "Milestone 9.7 Phase 18",
+            "must-derive-milestone-closure-from-phase-local-postures",
+            true,
+            true,
+            Some(milestone_nine_seven_derived_closure_contract_digest()),
         ));
 
         let stable_row_count = rows
@@ -274,7 +301,7 @@ impl ForgeQueryRuntimePublicSupportMatrix {
                     ForgeQueryEvidenceTag::new("parallel_api_forbidden_row_count"),
                     parallel_api_forbidden_row_count,
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("row_digest"),
                     rows.iter().map(|row| row.row_digest().as_str()),
                 )
@@ -335,4 +362,16 @@ impl ForgeQueryRuntimePublicSupportMatrix {
             .iter()
             .find(|row| row.facade_family() == Some(family))
     }
+}
+
+fn shared_read_pinning_boundary_closure_contract_digest() -> String {
+    let certification = ForgeQuerySharedReadPinningCertification::support_gate_required();
+    debug_assert_ne!(certification.closure().posture().as_str(), "closed");
+    certification.closure().closure_digest().to_string()
+}
+
+fn milestone_nine_seven_derived_closure_contract_digest() -> String {
+    ForgeQueryMilestoneNineSevenDerivedClosure::support_profile_publication_contract()
+        .closure_digest()
+        .to_string()
 }

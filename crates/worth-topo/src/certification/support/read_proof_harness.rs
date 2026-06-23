@@ -7,8 +7,9 @@ use crate::projection::read_views::domain::read_proof::parity::TopologyReadViewP
 use crate::projection::read_views::domain::{
     TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
     TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView, TopologyReadAggregateReport,
-    TopologyReadCloseoutReport, TopologyReadError, TopologyReadFallbackPosture, TopologyReadLedger,
-    TopologyReadProofReport, TopologyReadRequestFamily,
+    TopologyReadAnchorIdentity, TopologyReadCloseoutReport, TopologyReadError,
+    TopologyReadFallbackPosture, TopologyReadLedger, TopologyReadProofReport,
+    TopologyReadRequestFamily,
 };
 use crate::projection::runtime_boundary::read_execution::TopologyReadExecutionTarget;
 
@@ -74,11 +75,9 @@ impl TopologyReadProofHarness {
         source_identity: &str,
     ) -> Result<TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyReadError> {
         let execution_target = self.execution_target_for_workspace(workspace);
-        self.state.shared_vertex_half_edge_neighborhood(
-            workspace,
-            &execution_target,
-            source_identity,
-        )
+        let anchor = TopologyReadAnchorIdentity::from_runtime_row_label(source_identity);
+        self.state
+            .shared_vertex_half_edge_neighborhood(workspace, &execution_target, &anchor)
     }
 
     pub(crate) fn radial_half_edge_neighborhood(
@@ -87,8 +86,9 @@ impl TopologyReadProofHarness {
         source_identity: &str,
     ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyReadError> {
         let execution_target = self.execution_target_for_workspace(workspace);
+        let anchor = TopologyReadAnchorIdentity::from_runtime_row_label(source_identity);
         self.state
-            .radial_half_edge_neighborhood(workspace, &execution_target, source_identity)
+            .radial_half_edge_neighborhood(workspace, &execution_target, &anchor)
     }
 
     pub(crate) fn loop_cycle(
@@ -98,8 +98,9 @@ impl TopologyReadProofHarness {
         count: usize,
     ) -> Result<TopologyLoopCycleView, TopologyReadError> {
         let execution_target = self.execution_target_for_workspace(workspace);
+        let anchor = TopologyReadAnchorIdentity::from_runtime_row_label(start_identity);
         self.state
-            .loop_cycle(workspace, &execution_target, start_identity, count)
+            .loop_cycle(workspace, &execution_target, &anchor, count)
     }
 
     pub(crate) fn local_rewire_neighborhood(
@@ -109,12 +110,9 @@ impl TopologyReadProofHarness {
         cycle_count: usize,
     ) -> Result<TopologyLocalRewireNeighborhoodView, TopologyReadError> {
         let execution_target = self.execution_target_for_workspace(workspace);
-        self.state.local_rewire_neighborhood(
-            workspace,
-            &execution_target,
-            moved_identity,
-            cycle_count,
-        )
+        let anchor = TopologyReadAnchorIdentity::from_runtime_row_label(moved_identity);
+        self.state
+            .local_rewire_neighborhood(workspace, &execution_target, &anchor, cycle_count)
     }
 
     fn execution_target_for_workspace(
@@ -126,9 +124,7 @@ impl TopologyReadProofHarness {
                 TopologyReadExecutionTarget::current_head()
             }
             TopologyReadProofHarnessExecutionMode::HistoricalFromWorkspaceToken => {
-                TopologyReadExecutionTarget::historical_snapshot(
-                    workspace.snapshot_token().to_string(),
-                )
+                TopologyReadExecutionTarget::historical_snapshot(workspace.snapshot_identity())
             }
         }
     }

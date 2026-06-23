@@ -7,8 +7,8 @@ fn runtime_admits_registered_structural_declaration() {
         "structural:analysis-snapshot",
         StructuralFingerprintFamily::TopologyFingerprint,
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     );
 
@@ -31,8 +31,8 @@ fn runtime_plans_and_reduces_structural_candidates_for_advisory_remap() {
         "structural:analysis-snapshot",
         StructuralFingerprintFamily::TopologyFingerprint,
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     );
     let contract = runtime
@@ -43,7 +43,7 @@ fn runtime_plans_and_reduces_structural_candidates_for_advisory_remap() {
         .plan_structural_match_packet_set(
             &contract,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:geometry-a"),
+                StructuralCandidateIdentity::admit_bridge_owned("candidate:geometry-a"),
                 StructuralMatchCandidateKind::ExactAdvisoryMatch,
             )],
         )
@@ -73,8 +73,8 @@ fn runtime_rejects_branch_diff_candidate_for_advisory_remap_contract() {
         "structural:analysis-snapshot",
         StructuralFingerprintFamily::TopologyFingerprint,
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     );
     let contract = runtime
@@ -85,7 +85,7 @@ fn runtime_rejects_branch_diff_candidate_for_advisory_remap_contract() {
         .plan_structural_match_packet_set(
             &contract,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:branch-diff"),
+                StructuralCandidateIdentity::admit_bridge_owned("candidate:branch-diff"),
                 StructuralMatchCandidateKind::BranchDiff,
             )],
         )
@@ -100,10 +100,10 @@ fn runtime_rejects_branch_diff_candidate_for_advisory_remap_contract() {
 #[test]
 fn runtime_reduces_branch_comparison_candidates_to_branch_artifact() {
     let declaration = StructuralIdentityDeclaration::branch_comparison(
-        StructuralIdentityDeclarationIdentity::new("structural:branch-compare"),
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:branch-compare"),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintFamily::BranchComparisonFingerprint,
             "geometry-branch-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -112,12 +112,12 @@ fn runtime_reduces_branch_comparison_candidates_to_branch_artifact() {
         ),
         StructuralTruthViewBasis::explicit_branch_pair(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("left"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("right"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
         ),
     );
@@ -131,8 +131,8 @@ fn runtime_reduces_branch_comparison_candidates_to_branch_artifact() {
         .register_source(registered_source(
             "source:analysis-snapshot",
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -141,7 +141,7 @@ fn runtime_reduces_branch_comparison_candidates_to_branch_artifact() {
         ))
         .register_structural(declaration.clone())
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("mapping"),
+            BridgeMappingId::admit_bridge_owned("mapping"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::exact("entity-1"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -154,7 +154,7 @@ fn runtime_reduces_branch_comparison_candidates_to_branch_artifact() {
                     .expect("valid native aspect key"),
                 forge_foundational::facade::ScalarAspectType::String,
             ),
-            SignalInvalidationScope::new("signal:profile"),
+            SignalInvalidationScope::admit_bridge_owned("signal:profile"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -167,7 +167,7 @@ fn runtime_reduces_branch_comparison_candidates_to_branch_artifact() {
         .plan_structural_match_packet_set(
             &contract,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("diff:one"),
+                StructuralCandidateIdentity::admit_bridge_owned("diff:one"),
                 StructuralMatchCandidateKind::BranchDiff,
             )],
         )
@@ -194,8 +194,8 @@ fn runtime_rejects_remap_publication_for_ambiguous_reduced_match_set() {
         "structural:analysis-snapshot",
         StructuralFingerprintFamily::TopologyFingerprint,
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     );
     let contract = runtime
@@ -206,11 +206,11 @@ fn runtime_rejects_remap_publication_for_ambiguous_reduced_match_set() {
             &contract,
             vec![
                 StructuralMatchCandidate::new(
-                    StructuralCandidateIdentity::new("candidate:a"),
+                    StructuralCandidateIdentity::admit_bridge_owned("candidate:a"),
                     StructuralMatchCandidateKind::ExactAdvisoryMatch,
                 ),
                 StructuralMatchCandidate::new(
-                    StructuralCandidateIdentity::new("candidate:b"),
+                    StructuralCandidateIdentity::admit_bridge_owned("candidate:b"),
                     StructuralMatchCandidateKind::AdvisoryReuseCandidate,
                 ),
             ],
@@ -236,8 +236,8 @@ fn runtime_reduces_lineage_structural_divergence_to_typed_rejection() {
         "structural:analysis-snapshot",
         StructuralFingerprintFamily::TopologyFingerprint,
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     );
     let contract = runtime
@@ -247,7 +247,7 @@ fn runtime_reduces_lineage_structural_divergence_to_typed_rejection() {
         .plan_structural_match_packet_set(
             &contract,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:lineage-divergence"),
+                StructuralCandidateIdentity::admit_bridge_owned("candidate:lineage-divergence"),
                 StructuralMatchCandidateKind::LineageStructuralDivergence,
             )],
         )
@@ -274,8 +274,8 @@ fn runtime_canonicalizes_and_replays_structural_remap_record() {
         "structural:analysis-snapshot",
         StructuralFingerprintFamily::TopologyFingerprint,
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     );
     let contract = runtime

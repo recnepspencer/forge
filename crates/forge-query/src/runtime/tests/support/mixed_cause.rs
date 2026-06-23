@@ -30,10 +30,10 @@ pub(in crate::runtime::tests) fn canonical_truth_patch(
 ) -> BridgeCommittedPatchEnvelope {
     BridgeCommittedPatchEnvelope::new(
         BridgeCommittedPatchEnvelopeIdentity::new(
-            TruthCommitIdentity::new(commit_identity),
-            TruthPatchIdentity::new(patch_identity),
-            TruthSnapshotIdentity::new(snapshot_identity),
-            TruthBranchIdentity::new(branch_identity),
+            TruthCommitIdentity::from_bridge_harness_label(commit_identity),
+            TruthPatchIdentity::from_bridge_harness_label(patch_identity),
+            TruthSnapshotIdentity::from_bridge_harness_label(snapshot_identity),
+            TruthBranchIdentity::from_bridge_harness_label(branch_identity),
         ),
         vec![BridgeCommittedPatchItem::with_target(
             "entity-1",
@@ -59,9 +59,9 @@ pub(in crate::runtime::tests) fn authoritative_time_only_cause(
         .admit_temporal_subscription(
             &admitted,
             admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-                TruthBranchIdentity::new("truth-main"),
-                TruthCommitIdentity::new("commit-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthBranchIdentity::from_bridge_harness_label("truth-main"),
+                TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
             )),
             BridgeTemporalSubscriptionFamilyKind::WakeDriven,
         )
@@ -82,9 +82,9 @@ pub(in crate::runtime::tests) fn authoritative_truth_plus_time_cause(
         .admit_temporal_subscription(
             &admitted,
             admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-                TruthBranchIdentity::new("truth-main"),
-                TruthCommitIdentity::new("commit-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthBranchIdentity::from_bridge_harness_label("truth-main"),
+                TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
             )),
             BridgeTemporalSubscriptionFamilyKind::WakeDriven,
         )
@@ -104,17 +104,17 @@ pub(in crate::runtime::tests) fn preview_time_only_cause(
     let preview_basis = admitted_preview_basis_for_truth(
         runtime,
         suffix,
-        TruthBranchIdentity::new("truth-preview"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        TruthBranchIdentity::from_bridge_harness_label("truth-preview"),
+        TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
     );
     let preview_temporal = runtime
         .admit_preview_temporal_subscription(
             &admitted,
             &preview_basis,
             admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-                TruthBranchIdentity::new("truth-preview"),
-                TruthCommitIdentity::new("commit-preview"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthBranchIdentity::from_bridge_harness_label("truth-preview"),
+                TruthCommitIdentity::from_bridge_harness_label("commit-preview"),
+                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
             )),
             BridgeTemporalSubscriptionFamilyKind::WakeDriven,
         )
@@ -155,7 +155,9 @@ fn admitted_detail_subscription(runtime: &RuntimeBridge) -> AdmittedBridgeSubscr
     runtime
         .admit_subscription(
             &declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
+            ),
         )
         .expect("bridge subscription should admit")
 }
@@ -189,7 +191,7 @@ fn admitted_preview_basis_for_truth(
 ) -> BridgeSubscriptionPreviewBasisBinding {
     let admitted_preview = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new(format!("preview-session:{suffix}")),
+            BridgePreviewSessionIdentity::from_stable_name(format!("preview-session:{suffix}")),
             preview_declaration_for_truth(suffix, truth_branch_identity, snapshot_identity),
         )
         .expect("preview session should admit");
@@ -207,16 +209,16 @@ fn preview_declaration_for_truth(
 ) -> forge_runtime_bridge::facade::BridgePreviewSessionDeclaration {
     let selector_branch_identity = truth_branch_identity.clone();
     forge_runtime_bridge::facade::BridgePreviewSessionDeclaration::new(
-        forge_runtime_bridge::facade::BridgePreviewSessionDeclarationIdentity::new(format!(
+        forge_runtime_bridge::facade::BridgePreviewSessionDeclarationIdentity::from_stable_name(format!(
             "preview-declaration:{suffix}"
         )),
         forge_runtime_bridge::facade::BridgeRequestKind::Preview,
         forge_runtime_bridge::facade::BridgeSpeculativeBranchBinding::new(
-            forge_runtime_bridge::facade::BridgeSpeculativeBranchBindingIdentity::new(format!(
+            forge_runtime_bridge::facade::BridgeSpeculativeBranchBindingIdentity::from_stable_name(format!(
                 "preview-binding:{suffix}"
             )),
             truth_branch_identity,
-            forge_runtime_bridge::facade::BridgeSignalBranchIdentity::new(format!(
+            forge_runtime_bridge::facade::BridgeSignalBranchIdentity::from_stable_name(format!(
                 "signal-branch:{suffix}"
             )),
         ),
@@ -278,8 +280,10 @@ fn admit_request_response_completion(
 
 fn request_response_draft(node: NodeId) -> BridgeAsyncSourceDeclarationDraft {
     BridgeAsyncSourceDeclarationDraft::request_response(
-        BridgeAsyncSourceDeclarationIdentity::new("bridge-async:request-response"),
-        BridgeAsyncSourceLegacyDeclarationIdentity::new("source:legacy-request-response"),
+        BridgeAsyncSourceDeclarationIdentity::from_stable_name("bridge-async:request-response"),
+        BridgeAsyncSourceLegacyDeclarationIdentity::from_stable_name(
+            "source:legacy-request-response",
+        ),
         ResourceNodeDeclaration::new(
             forge_signal::facade::ResourceNodeId::from_node(node),
             ResourcePayloadContract::new(ResourcePayloadContractId::new(142))

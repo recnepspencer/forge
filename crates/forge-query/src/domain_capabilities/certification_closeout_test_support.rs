@@ -72,20 +72,54 @@ pub(super) fn lower_runtime_envelope(
         ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
         ForgeQueryLowerRuntimeAuthorityOwner::Query,
         "signal-invalidation-routing",
-        target_digest,
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
+            "domain-capabilities-closeout-target",
+        )
+        .field_value(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("test_target"),
+            target_digest,
+        )
+        .seal(),
     );
-    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(request, "detail");
-    let route = ForgeQueryLowerRuntimeRoutePlan::new(eligibility, target_digest);
-    let boundary = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
-        &route,
-        format!("retained:{target_digest}"),
+    let detail_identity = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+        crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+    )
+    .field_value(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("test_detail"),
+        "detail",
+    )
+    .seal();
+    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+        request,
+        &detail_identity,
     );
+    let route = ForgeQueryLowerRuntimeRoutePlan::new(
+        eligibility,
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+            "domain-capabilities-closeout-route",
+            &detail_identity,
+        ),
+    );
+    let retained_evidence =
+        crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+            "domain-capabilities-closeout-test",
+            &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+                crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+            )
+            .field_value(
+                crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained_target"),
+                target_digest,
+            )
+            .seal(),
+        );
+    let boundary =
+        ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(&route, &retained_evidence);
 
     ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
         ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
         &route,
         &boundary,
-        &format!("retained:{target_digest}"),
+        &retained_evidence,
     )
 }
 
@@ -106,8 +140,8 @@ pub(super) fn replay_gap_inputs() -> (
         panic!("query-inspection replay evidence should resolve");
     };
     let target = causal_inspection_target(
-        observation.observation_target_digest(),
-        observation.result_shape_context_digest(),
+        observation.observation_target().clone(),
+        observation.result_shape_context().clone(),
     )
     .expect("observation-derived target should be valid");
 

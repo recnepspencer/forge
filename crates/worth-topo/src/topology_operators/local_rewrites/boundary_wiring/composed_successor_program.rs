@@ -3,6 +3,7 @@ use forge_query::facade::ForgeQueryBatchWriteReceipt;
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::query_domain::TopologyQueryDomain;
 use crate::topology_operators::application::{
+    ensure_declared_touched_basis_covers_sequence_before_write,
     finalize_graph_or_batch_receipt_closeout, TopologyDeclaredMutationArtifact,
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
     TopologyRetainedApplicationHandoff,
@@ -18,13 +19,18 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         &mut self,
         semantic_family_key: &'static str,
         retained_handoff: TopologyRetainedApplicationHandoff<I>,
-        _mode: TopologyMutationApplicationMode,
+        mode: TopologyMutationApplicationMode,
         sequence: TopologyDeclaredMutationSequence,
         bindings: &TopologyQueryBindingIndex,
     ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError>
     where
         I: forge_query::facade::ForgeQueryDeclarationInput<TopologyQueryDomain>,
     {
+        ensure_declared_touched_basis_covers_sequence_before_write(
+            &retained_handoff,
+            &sequence,
+            mode.clone(),
+        )?;
         let rewires = sequence
             .members()
             .map(|contract| match contract.action_ref() {
@@ -55,6 +61,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             self,
             retained_handoff,
             semantic_family_key,
+            mode,
             &sequence,
             receipt,
             crate::projection::runtime_boundary::query_runtime::TopologyQueryMutationLaneExecutionShape::GraphComposition,

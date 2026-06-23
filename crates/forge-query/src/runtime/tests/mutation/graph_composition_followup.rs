@@ -36,7 +36,10 @@ fn compose_graph_supports_symbolic_relation_followup_mutation() {
                 relation
                     .aspect("edge.kind", "depends_on")
                     .symbolic_entity_identity("edge.source_identity", &draft)
-                    .existing_entity_identity("edge.target_identity", "task-existing")
+                    .existing_entity_identity(
+                        "edge.target_identity",
+                        test_entity_identity("task-existing"),
+                    )
             })?;
             graph.update_relation(&edge, |relation| relation.aspect("edge.kind", "blocks"))?;
             Ok(())
@@ -208,7 +211,8 @@ fn compose_graph_supports_symbolic_relation_followup_mutation() {
                 inspection.component_operations()[2]
                     .symbolic_target_reference_evidence()
                     .expect("relation followup should retain symbolic relation evidence")
-                    .symbol(),
+                    .symbol()
+                    .as_str(),
                 "draft-edge"
             );
             assert_eq!(

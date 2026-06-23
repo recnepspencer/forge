@@ -1,3 +1,7 @@
+use crate::memory_workspace::ForgeQueryEntityIdentity;
+use crate::runtime::{
+    ForgeQueryMutationAuthorityIdentity, ForgeQueryMutationTargetCollectionIdentity,
+};
 use forge_runtime_bridge::facade::{
     BridgeNamingMutationBundle, BridgeNamingMutationFamily, BridgeNamingMutationOutcome,
 };
@@ -10,19 +14,39 @@ pub enum ForgeQueryNamingMutationOutcome {
     Removed,
 }
 
+impl ForgeQueryNamingMutationOutcome {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::AttachedToNewTarget => "attached_to_new_target",
+            Self::AttachedToExistingTarget => "attached_to_existing_target",
+            Self::ReboundTarget => "rebound_target",
+            Self::Removed => "removed",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryNamingMutationEvidence {
     family: crate::runtime::ForgeQueryNamingMutationFamily,
     outcome: ForgeQueryNamingMutationOutcome,
-    attachment_identity: String,
-    prior_authoritative_identity: Option<String>,
-    target_authoritative_identity: Option<String>,
-    resolved_target_entity_identity: Option<String>,
-    target_collection: Option<String>,
+    attachment_identity: ForgeQueryMutationAuthorityIdentity,
+    prior_authoritative_identity: Option<ForgeQueryMutationAuthorityIdentity>,
+    target_authoritative_identity: Option<ForgeQueryMutationAuthorityIdentity>,
+    resolved_target_entity_identity: Option<ForgeQueryEntityIdentity>,
+    target_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
 }
 
 impl ForgeQueryNamingMutationEvidence {
+    #[cfg(test)]
     pub(in crate::runtime) fn from_bridge(bundle: &BridgeNamingMutationBundle) -> Self {
+        Self::from_bridge_with_query_context(bundle, None, None)
+    }
+
+    pub(in crate::runtime) fn from_bridge_with_query_context(
+        bundle: &BridgeNamingMutationBundle,
+        resolved_target_entity_identity: Option<&ForgeQueryEntityIdentity>,
+        target_collection: Option<&str>,
+    ) -> Self {
         Self {
             family: match bundle.family() {
                 BridgeNamingMutationFamily::AttachNewTarget => {
@@ -50,21 +74,46 @@ impl ForgeQueryNamingMutationEvidence {
                 }
                 BridgeNamingMutationOutcome::Removed => ForgeQueryNamingMutationOutcome::Removed,
             },
-            attachment_identity: bundle.attachment_identity().to_string(),
-            prior_authoritative_identity: bundle.prior_authoritative_identity().map(str::to_string),
-            target_authoritative_identity: bundle
-                .target_authoritative_identity()
-                .map(str::to_string),
+            attachment_identity: ForgeQueryMutationAuthorityIdentity::from_bridge_naming_attachment(
+                "naming-attachment",
+                bundle.attachment_identity_handle(),
+            ),
+            prior_authoritative_identity: bundle.prior_authoritative_identity_handle().map(
+                |identity| {
+                    ForgeQueryMutationAuthorityIdentity::from_bridge_naming_authority(
+                        "naming-prior",
+                        identity,
+                    )
+                },
+            ),
+            target_authoritative_identity: bundle.target_authoritative_identity_handle().map(
+                |identity| {
+                    ForgeQueryMutationAuthorityIdentity::from_bridge_naming_authority(
+                        "naming-target",
+                        identity,
+                    )
+                },
+            ),
             resolved_target_entity_identity: bundle
-                .resolved_target_entity_identity()
-                .map(str::to_string),
-            target_collection: bundle.target_collection().map(str::to_string),
+                .resolved_target_entity_identity_handle()
+                .map(|identity| {
+                    ForgeQueryEntityIdentity::from_relational_record(
+                        identity.relational_record_parts(),
+                    )
+                })
+                .or_else(|| resolved_target_entity_identity.cloned()),
+            target_collection: bundle
+                .target_collection()
+                .or(target_collection)
+                .map(|collection| {
+                    ForgeQueryMutationTargetCollectionIdentity::new("naming-target", collection)
+                }),
         }
     }
 
     pub(in crate::runtime) fn from_intent(
         intent: &crate::runtime::ForgeQueryNamingMutationIntent,
-        resolved_target_entity_identity: Option<&str>,
+        resolved_target_entity_identity: Option<&ForgeQueryEntityIdentity>,
         target_collection: Option<&str>,
     ) -> Self {
         Self {
@@ -83,13 +132,13 @@ impl ForgeQueryNamingMutationEvidence {
                     ForgeQueryNamingMutationOutcome::Removed
                 }
             },
-            attachment_identity: intent.attachment_identity().to_string(),
-            prior_authoritative_identity: intent.prior_authoritative_identity().map(str::to_string),
-            target_authoritative_identity: intent
-                .target_authoritative_identity()
-                .map(str::to_string),
-            resolved_target_entity_identity: resolved_target_entity_identity.map(str::to_string),
-            target_collection: target_collection.map(str::to_string),
+            attachment_identity: intent.attachment_identity().clone(),
+            prior_authoritative_identity: intent.prior_authoritative_identity().cloned(),
+            target_authoritative_identity: intent.target_authoritative_identity().cloned(),
+            resolved_target_entity_identity: resolved_target_entity_identity.cloned(),
+            target_collection: target_collection.map(|collection| {
+                ForgeQueryMutationTargetCollectionIdentity::new("naming-target", collection)
+            }),
         }
     }
 
@@ -101,23 +150,23 @@ impl ForgeQueryNamingMutationEvidence {
         self.outcome
     }
 
-    pub fn attachment_identity(&self) -> &str {
+    pub fn attachment_identity(&self) -> &ForgeQueryMutationAuthorityIdentity {
         &self.attachment_identity
     }
 
-    pub fn prior_authoritative_identity(&self) -> Option<&str> {
-        self.prior_authoritative_identity.as_deref()
+    pub fn prior_authoritative_identity(&self) -> Option<&ForgeQueryMutationAuthorityIdentity> {
+        self.prior_authoritative_identity.as_ref()
     }
 
-    pub fn target_authoritative_identity(&self) -> Option<&str> {
-        self.target_authoritative_identity.as_deref()
+    pub fn target_authoritative_identity(&self) -> Option<&ForgeQueryMutationAuthorityIdentity> {
+        self.target_authoritative_identity.as_ref()
     }
 
-    pub fn resolved_target_entity_identity(&self) -> Option<&str> {
-        self.resolved_target_entity_identity.as_deref()
+    pub fn resolved_target_entity_identity(&self) -> Option<&ForgeQueryEntityIdentity> {
+        self.resolved_target_entity_identity.as_ref()
     }
 
-    pub fn target_collection(&self) -> Option<&str> {
-        self.target_collection.as_deref()
+    pub fn target_collection(&self) -> Option<&ForgeQueryMutationTargetCollectionIdentity> {
+        self.target_collection.as_ref()
     }
 }

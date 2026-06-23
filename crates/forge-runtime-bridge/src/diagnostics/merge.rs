@@ -45,7 +45,7 @@ impl BridgeMergeRecord {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            record_identity: BridgeMergeRecordIdentity::new(format!(
+            record_identity: BridgeMergeRecordIdentity::admit_bridge_owned(format!(
                 "merge-record:sha256:{digest:x}"
             )),
             contract: bundle.contract().clone(),

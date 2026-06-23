@@ -1,7 +1,9 @@
-use crate::identity::hash_parts;
-
 use super::contracts::ProjectionContractSupportPosture;
 use super::eligibility::ProjectionConsumptionWarningKind;
+use super::identity::{
+    compose_envelope_boundary_digest, compose_envelope_digest, compose_envelope_performance_digest,
+    compose_envelope_source_refs_digest,
+};
 use super::receipt::ProjectionConsumptionReceipt;
 use super::receipt_transitions::ProjectionConsumptionDeferredNeighborFamily;
 use super::source::ProjectionSourceFamily;
@@ -19,12 +21,11 @@ impl ProjectionConsumptionEnvelopeSourceRefs {
         let receipt_digest = receipt.receipt_digest().to_string();
         let fact_set_digest = receipt.fact_set_digest().to_string();
         let contract_digest = receipt.contract_digest().to_string();
-        let source_refs_digest = hash_parts(&[
-            "projection_consumption_envelope_source_refs_v1".to_string(),
-            format!("receipt:{receipt_digest}"),
-            format!("fact_set:{fact_set_digest}"),
-            format!("contract:{contract_digest}"),
-        ]);
+        let source_refs_digest = compose_envelope_source_refs_digest(
+            &receipt_digest,
+            &fact_set_digest,
+            &contract_digest,
+        );
         Self {
             receipt_digest,
             fact_set_digest,
@@ -61,7 +62,7 @@ pub struct SelfDescribingProjectionConsumptionEnvelope {
     transition_rules_digest: String,
     deferred_neighbors: Vec<ProjectionConsumptionDeferredNeighborFamily>,
     integrity_digest: String,
-    performance_digest: String,
+    performance_digest: Box<str>,
     boundary_digest: String,
     sources: ProjectionConsumptionEnvelopeSourceRefs,
     envelope_digest: String,
@@ -74,35 +75,25 @@ impl SelfDescribingProjectionConsumptionEnvelope {
         let deferred_neighbors = receipt.deferred_neighbors().to_vec();
         let transition_rules_digest = transition_rules.rules_digest().to_string();
         let integrity_digest = receipt.integrity_digest().to_string();
-        let performance_digest = hash_parts(&[
-            "projection_consumption_envelope_performance_v1".to_string(),
-            format!("receipt:{}", receipt.receipt_digest()),
-            format!("counters:{}", receipt.counter_snapshot_digest()),
-        ]);
-        let boundary_digest = hash_parts(&[
-            "projection_consumption_envelope_boundary_v1".to_string(),
-            format!("source_family:{}", receipt.source_family().as_str()),
-            format!("source_identity:{}", receipt.source_identity()),
-            format!("support_posture:{}", receipt.support_posture().as_str()),
-            format!(
-                "warnings:{}",
-                receipt
-                    .warning_kinds()
-                    .iter()
-                    .map(|warning| warning.as_str())
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-        ]);
-        let envelope_digest = hash_parts(&[
-            "self_describing_projection_consumption_envelope_v1".to_string(),
-            format!("receipt:{}", receipt.receipt_digest()),
-            format!("integrity:{integrity_digest}"),
-            format!("performance:{performance_digest}"),
-            format!("boundary:{boundary_digest}"),
-            format!("transitions:{transition_rules_digest}"),
-            format!("sources:{}", sources.source_refs_digest()),
-        ]);
+        let performance_digest = compose_envelope_performance_digest(
+            receipt.receipt_digest(),
+            receipt.counter_snapshot_digest(),
+        )
+        .into_boxed_str();
+        let boundary_digest = compose_envelope_boundary_digest(
+            receipt.source_family(),
+            receipt.source_identity(),
+            receipt.support_posture(),
+            receipt.warning_kinds(),
+        );
+        let envelope_digest = compose_envelope_digest(
+            receipt.receipt_digest(),
+            &integrity_digest,
+            &performance_digest,
+            &boundary_digest,
+            &transition_rules_digest,
+            sources.source_refs_digest(),
+        );
         Self {
             source_family: receipt.source_family(),
             source_identity: receipt.source_identity().to_string(),

@@ -1,5 +1,3 @@
-use crate::identity::hash_parts;
-
 use super::activation::SubscriptionActivationInput;
 use super::active_budget::ActiveSubscriptionWorkBudget;
 use super::active_counters::ActiveSubscriptionCounters;
@@ -12,13 +10,13 @@ use super::active_posture::{
     ActiveLaneLookupClass, ActiveSubscriptionDeliveryPosture, ActiveSubscriptionLifecyclePosture,
 };
 use super::delivery_density::ActiveDeliveryDensityPosture;
+use super::evidence_identities::active_lane_identity;
 use super::performance_receipt::SubscriptionPerformanceReceipt;
 
 pub fn admit_active_subscription_lane(
     activation: SubscriptionActivationInput,
     budget: ActiveSubscriptionWorkBudget,
 ) -> Result<ActiveSubscriptionLaneAdmission, ActiveSubscriptionLifecycleError> {
-    let source_digest = activation.activation_digest().to_string();
     let mut counters = ActiveSubscriptionCounters::default();
 
     if budget.exceeds_phase_one_budget() {
@@ -26,7 +24,7 @@ pub fn admit_active_subscription_lane(
         return Err(ActiveSubscriptionLifecycleError::new(
             ActiveSubscriptionLifecycleDenialKind::WorkBudgetExceeded,
             "active subscription lane admission exceeds its explicit Phase 1 budget",
-            source_digest,
+            activation.evidence_identity().clone(),
             counters,
         ));
     }
@@ -36,7 +34,7 @@ pub fn admit_active_subscription_lane(
         return Err(ActiveSubscriptionLifecycleError::new(
             ActiveSubscriptionLifecycleDenialKind::DurableCheckpointOverclaim,
             "durable active subscription checkpoints remain later-milestone debt",
-            source_digest,
+            activation.evidence_identity().clone(),
             counters,
         ));
     }
@@ -46,7 +44,7 @@ pub fn admit_active_subscription_lane(
         return Err(ActiveSubscriptionLifecycleError::new(
             ActiveSubscriptionLifecycleDenialKind::StoreBackedRestartOverclaim,
             "store-backed restart-stable active subscription handles remain later-milestone debt",
-            source_digest,
+            activation.evidence_identity().clone(),
             counters,
         ));
     }
@@ -59,7 +57,7 @@ pub fn admit_active_subscription_lane(
         return Err(ActiveSubscriptionLifecycleError::new(
             ActiveSubscriptionLifecycleDenialKind::HeapAllocationForbidden,
             "active lane allocation must use an admitted lifecycle allocation posture",
-            source_digest,
+            activation.evidence_identity().clone(),
             counters,
         ));
     }
@@ -77,7 +75,7 @@ pub fn admit_active_subscription_lane(
         return Err(ActiveSubscriptionLifecycleError::new(
             ActiveSubscriptionLifecycleDenialKind::LinearScanLookupForbidden,
             "active lane admission must use an indexed lookup class",
-            source_digest,
+            activation.evidence_identity().clone(),
             counters,
         ));
     }
@@ -89,56 +87,44 @@ pub fn admit_active_subscription_lane(
         budget.registry_lookup_width() + budget.fanout_width() + budget.allocation_scope_width(),
         ActiveDeliveryDensityPosture::SparseDelta,
         budget.allocation_posture(),
-        &source_digest,
+        activation.evidence_identity(),
     );
     counters.subscription_performance_receipt_count = 1;
     counters.subscription_budget_consumption_width = performance_receipt.consumed_width();
     counters.subscription_budget_remaining_width = performance_receipt.remaining_width();
     let lifecycle_posture = ActiveSubscriptionLifecyclePosture::SingleConsumer;
     let delivery_posture = ActiveSubscriptionDeliveryPosture::QueryShapedPatch;
-    let lane_digest = ActiveSubscriptionLaneDigest::new(hash_parts(&[
-        "active_subscription_lane_v1".to_string(),
-        format!("activation:{}", activation.activation_digest()),
-        format!("admission:{}", activation.admission_digest()),
-        format!(
-            "query_declaration:{}",
-            activation.query_declaration_digest()
-        ),
-        format!(
-            "bridge_declaration:{}",
-            activation.bridge_declaration_digest()
-        ),
-        format!(
-            "future_selection:{}",
-            activation.future_selection().projection_digest()
-        ),
-        format!("basis:{}", activation.basis_binding_digest()),
-        format!("checkpoint:{}", activation.checkpoint_identity_digest()),
-        format!("signal_strategy:{}", activation.signal_strategy_digest()),
-        format!("lifecycle:{}", lifecycle_posture.as_str()),
-        format!("delivery:{}", delivery_posture.as_str()),
-        format!("lookup:{}", budget.lookup_class().as_str()),
-        format!("allocation:{}", budget.allocation_policy().as_str()),
-        format!("budget:registry:{}", budget.registry_lookup_width()),
-        format!("budget:fanout:{}", budget.fanout_width()),
-        format!("budget:allocation:{}", budget.allocation_scope_width()),
-        format!(
-            "performance:{}",
-            performance_receipt.performance_receipt_digest()
-        ),
-        format!("counters:{}", counters.digest()),
-    ]));
+    let lane_identity = active_lane_identity(
+        activation.evidence_identity(),
+        activation.admission_identity(),
+        activation.query_declaration_identity(),
+        activation.bridge_declaration_identity(),
+        activation.future_selection().projection_identity(),
+        activation.basis_binding_identity(),
+        activation.checkpoint_identity(),
+        activation.signal_strategy_identity(),
+        lifecycle_posture.as_str(),
+        delivery_posture.as_str(),
+        budget.lookup_class().as_str(),
+        budget.allocation_policy().as_str(),
+        budget.registry_lookup_width() as usize,
+        budget.fanout_width() as usize,
+        budget.allocation_scope_width() as usize,
+        performance_receipt.performance_receipt_identity(),
+        &counters.evidence_identity(),
+    );
+    let lane_digest = ActiveSubscriptionLaneDigest::new(lane_identity);
 
     Ok(ActiveSubscriptionLaneAdmission {
         lane_digest,
-        activation_digest: activation.activation_digest().to_string(),
-        admission_digest: activation.admission_digest().to_string(),
-        query_declaration_digest: activation.query_declaration_digest().to_string(),
-        bridge_declaration_digest: activation.bridge_declaration_digest().to_string(),
+        activation_identity: activation.evidence_identity().clone(),
+        admission_identity: activation.admission_identity().clone(),
+        query_declaration_identity: activation.query_declaration_identity().clone(),
+        bridge_declaration_identity: activation.bridge_declaration_identity().clone(),
         future_selection: activation.future_selection().clone(),
-        basis_binding_digest: activation.basis_binding_digest().to_string(),
-        checkpoint_identity_digest: activation.checkpoint_identity_digest().to_string(),
-        signal_strategy_digest: activation.signal_strategy_digest().to_string(),
+        basis_binding_identity: activation.basis_binding_identity().clone(),
+        checkpoint_identity: activation.checkpoint_identity().clone(),
+        signal_strategy_identity: activation.signal_strategy_identity().clone(),
         lifecycle_posture,
         delivery_posture,
         lookup_class: *budget.lookup_class(),

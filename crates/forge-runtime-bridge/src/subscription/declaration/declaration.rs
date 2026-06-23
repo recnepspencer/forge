@@ -240,7 +240,7 @@ fn declaration_identity_for_semantics(
         family_registration,
     );
     let digest = Sha256::digest(basis.as_bytes());
-    BridgeSubscriptionDeclarationIdentity::new(format!(
+    BridgeSubscriptionDeclarationIdentity::admit_bridge_owned(format!(
         "bridge-subscription-declaration-id:sha256:{digest:x}"
     ))
 }

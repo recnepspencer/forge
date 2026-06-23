@@ -1,3 +1,20 @@
+error[E0308]: arguments to this function are incorrect
+  --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:7:21
+   |
+ 7 |     let execution = ForgeQueryIntentExecution::idempotent_noop(
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+14 |         "commit-1",
+   |         ---------- expected `ForgeQueryCommitIdentity`, found `&str`
+15 |         "snapshot-1",
+   |         ------------ expected `ForgeQuerySnapshotIdentity`, found `&str`
+   |
+note: associated function defined here
+  --> src/runtime/intent/execution.rs
+   |
+   |     pub fn idempotent_noop(
+   |            ^^^^^^^^^^^^^^^
+
 error[E0277]: the trait bound `ForgeQueryInspectionTarget<'_>: From<&forge_query::facade::ForgeQueryIntentExecution>` is not satisfied
   --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:18:29
    |

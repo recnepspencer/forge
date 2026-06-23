@@ -14,13 +14,19 @@ use crate::basis_lifecycle::{
 use crate::effect_lifecycle::EffectLifecycleCounters;
 use crate::effect_lifecycle::{EffectFamily, RawEffectIntent};
 use crate::workflow::{
-    synthetic_preview_workflow_binding, synthetic_runtime_workflow_binding, MutationLoweringInput,
+    synthetic_preview_workflow_binding, synthetic_runtime_workflow_binding_for_snapshot_identity,
+    synthetic_runtime_workflow_binding_scoped_for_branch_snapshot_identity, MutationLoweringInput,
     WorkflowAuthorityTargetFamily, WorkflowBudgetClass, WorkflowContextBinding, WorkflowCostClass,
     WorkflowDeclarationFamily, WorkflowDeclarationRequest, WorkflowFreshnessPolicy,
     WorkflowPreviewEvaluationClass,
 };
+use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::EntityId;
-use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
+use forge_runtime_bridge::facade::{
+    BridgePreviewSessionIdentity, RelationalBridgeSnapshotIdentityParts,
+};
+
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 
 use super::{
     EffectLifecycleSeededCertificationRow, EffectLifecycleSeededOutcomeClass,
@@ -141,22 +147,36 @@ pub(super) fn preview_derived_inspection_advisory(
 }
 
 pub(super) fn runtime_workflow_binding() -> WorkflowContextBinding {
-    runtime_workflow_binding_with_snapshot("snapshot-1")
+    runtime_workflow_binding_with_snapshot(ForgeQuerySnapshotIdentity::from_relational_snapshot(
+        RelationalBridgeSnapshotIdentityParts::new(1, 1),
+    ))
 }
 
 pub(super) fn runtime_workflow_binding_with_snapshot(
-    snapshot_token: &str,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
 ) -> WorkflowContextBinding {
-    synthetic_runtime_workflow_binding(
+    synthetic_runtime_workflow_binding_for_snapshot_identity(
         "effect-lifecycle-seeded-runtime",
-        snapshot_token.to_string(),
+        snapshot_identity,
+    )
+}
+
+pub(super) fn runtime_workflow_binding_for_branch(
+    snapshot_identity: ForgeQuerySnapshotIdentity,
+    branch: &str,
+) -> WorkflowContextBinding {
+    synthetic_runtime_workflow_binding_scoped_for_branch_snapshot_identity(
+        "effect-lifecycle-seeded-runtime",
+        "effect-lifecycle-seeded-branch",
+        snapshot_identity,
+        BranchId(branch.to_string()),
     )
 }
 
 pub(super) fn preview_workflow_binding(label: &str) -> WorkflowContextBinding {
     synthetic_preview_workflow_binding(
         "effect-lifecycle-seeded-preview",
-        BridgePreviewSessionIdentity::new(label),
+        BridgePreviewSessionIdentity::from_stable_name(label),
         WorkflowPreviewEvaluationClass::PromotionEligible,
     )
 }

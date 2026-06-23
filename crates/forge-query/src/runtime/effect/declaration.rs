@@ -5,6 +5,7 @@ use super::super::{
 use super::follow_on::{
     ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryEffectWriteAdjacentTriggerClass,
 };
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryEffectTrigger {
@@ -233,7 +234,7 @@ impl ForgeQueryEffectDeclaration {
     pub fn with_write_adjacent_trigger(
         mut self,
         class: ForgeQueryEffectWriteAdjacentTriggerClass,
-        origin_identity: impl Into<String>,
+        origin_identity: ForgeQueryEvidenceIdentity,
     ) -> Self {
         self.write_adjacent_trigger =
             ForgeQueryEffectWriteAdjacentTrigger::new(class, origin_identity);

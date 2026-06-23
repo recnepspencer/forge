@@ -57,7 +57,7 @@ impl BridgeSignalStrategyDescriptor {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            strategy_identity: BridgeSignalStrategyIdentity::new(format!(
+            strategy_identity: BridgeSignalStrategyIdentity::admit_bridge_owned(format!(
                 "bridge-subscription-signal-strategy-id:sha256:{digest:x}"
             )),
             strategy_kind,

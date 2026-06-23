@@ -49,6 +49,7 @@ pub(crate) fn build_server_with_disabled_forge_native() -> ForgeServer {
                 .build()
                 .expect("server config should validate"),
         )
+        .register_operations(forge_server::ForgeServerOperationRegistration::phase_two_defaults())
         .register_surface(ForgeNativeSurface::disabled())
         .register_surface(CompatHttpSurface::disabled())
         .build()
@@ -83,6 +84,7 @@ pub(crate) fn build_server_with_preview_denial() -> ForgeServer {
                 .build()
                 .expect("server config should validate"),
         )
+        .register_operations(forge_server::ForgeServerOperationRegistration::phase_two_defaults())
         .register_surface(ForgeNativeSurface::enabled())
         .register_surface(CompatHttpSurface::disabled())
         .build()
@@ -149,6 +151,7 @@ pub(crate) fn server_with_request_context_default(
                 .build()
                 .expect("server config should validate"),
         )
+        .register_operations(forge_server::ForgeServerOperationRegistration::phase_two_defaults())
         .register_surface(ForgeNativeSurface::enabled())
         .register_surface(CompatHttpSurface::disabled())
         .build()
@@ -253,6 +256,8 @@ pub(crate) fn build_server_with_workspace_provider(
             .build()
             .expect("server config should validate"),
     );
+    builder = builder
+        .register_operations(forge_server::ForgeServerOperationRegistration::phase_two_defaults());
 
     if register_forge_native {
         builder = builder.register_surface(ForgeNativeSurface::enabled());

@@ -17,8 +17,8 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_historical_prove
     let main = runtime
         .evaluate(
             BridgeTruthViewEvaluationRequest::for_historical_commit(
-                TruthBranchIdentity::new("main"),
-                crate::facade::TruthCommitIdentity::new("commit:rubber-main"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-main"),
             )
             .with_read_packet(pricing_provenance_read_packet("rubber")),
         )
@@ -26,8 +26,8 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_historical_prove
     let shock_eval = runtime
         .evaluate(
             BridgeTruthViewEvaluationRequest::for_historical_commit(
-                TruthBranchIdentity::new("pricing-shock"),
-                crate::facade::TruthCommitIdentity::new("commit:rubber-shock"),
+                crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
             )
             .with_read_packet(pricing_provenance_read_packet("rubber")),
         )
@@ -36,14 +36,14 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_historical_prove
     let shock_provenance_texts = read_pricing_provenance_aspect_text_packet(&shock_eval);
 
     PricingHistoricalProvenanceBundle {
-        main_commit: TruthCommitIdentity::new("commit:rubber-main"),
+        main_commit: crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-main"),
         main_snapshot: main.snapshot_identity().clone(),
         main_regime: main_provenance_texts.regime_text().to_owned(),
         main_external_factor_microunits: main_provenance_texts
             .external_factor_text()
             .parse()
             .expect("main external factor should parse"),
-        shock_commit: TruthCommitIdentity::new("commit:rubber-shock"),
+        shock_commit: crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
         shock_snapshot: shock_eval.snapshot_identity().clone(),
         shock_regime: shock_provenance_texts.regime_text().to_owned(),
         shock_external_factor_microunits: shock_provenance_texts

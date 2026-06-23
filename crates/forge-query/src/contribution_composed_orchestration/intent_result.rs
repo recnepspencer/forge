@@ -7,11 +7,10 @@ use super::aspect::ForgeQueryContributionComposedIntentAspectRecord;
 pub struct ForgeQueryContributionComposedIntentRequestDescriptor {
     order_index: usize,
     category_family: ForgeQueryDeclarationEntryContributionCategoryFamily,
-    request_digest: String,
+    request_identity: crate::ForgeQueryEvidenceIdentity,
+    binding_identity: crate::ForgeQueryEvidenceIdentity,
     semantic_code: String,
     detail: String,
-    target_digest: String,
-    target_binding_digest: String,
     aspect_record: ForgeQueryContributionComposedIntentAspectRecord,
 }
 
@@ -20,21 +19,19 @@ impl ForgeQueryContributionComposedIntentRequestDescriptor {
     pub fn new(
         order_index: usize,
         category_family: ForgeQueryDeclarationEntryContributionCategoryFamily,
-        request_digest: impl Into<String>,
+        request_identity: crate::ForgeQueryEvidenceIdentity,
+        binding_identity: crate::ForgeQueryEvidenceIdentity,
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        target_digest: impl Into<String>,
-        target_binding_digest: impl Into<String>,
         aspect_record: ForgeQueryContributionComposedIntentAspectRecord,
     ) -> Self {
         Self {
             order_index,
             category_family,
-            request_digest: request_digest.into(),
+            request_identity,
+            binding_identity,
             semantic_code: semantic_code.into(),
             detail: detail.into(),
-            target_digest: target_digest.into(),
-            target_binding_digest: target_binding_digest.into(),
             aspect_record,
         }
     }
@@ -47,8 +44,24 @@ impl ForgeQueryContributionComposedIntentRequestDescriptor {
         self.category_family
     }
 
+    pub fn request_identity(&self) -> &crate::ForgeQueryEvidenceIdentity {
+        &self.request_identity
+    }
+
     pub fn request_digest(&self) -> &str {
-        &self.request_digest
+        self.request_identity.as_str()
+    }
+
+    pub fn binding_identity(&self) -> &crate::ForgeQueryEvidenceIdentity {
+        &self.binding_identity
+    }
+
+    pub fn target_binding_digest(&self) -> &str {
+        self.binding_identity.as_str()
+    }
+
+    pub fn target_digest(&self) -> &str {
+        self.binding_identity.as_str()
     }
 
     pub fn semantic_code(&self) -> &str {
@@ -57,14 +70,6 @@ impl ForgeQueryContributionComposedIntentRequestDescriptor {
 
     pub fn detail(&self) -> &str {
         &self.detail
-    }
-
-    pub fn target_digest(&self) -> &str {
-        &self.target_digest
-    }
-
-    pub fn target_binding_digest(&self) -> &str {
-        &self.target_binding_digest
     }
 
     pub fn aspect_record(&self) -> &ForgeQueryContributionComposedIntentAspectRecord {
@@ -87,7 +92,7 @@ pub enum ForgeQueryContributionComposedIntentStageKind {
 pub struct ForgeQueryContributionComposedIntentStageResult {
     kind: ForgeQueryContributionComposedIntentStageKind,
     detail: String,
-    digest: Option<String>,
+    stage_identity: Option<crate::ForgeQueryEvidenceIdentity>,
 }
 
 impl ForgeQueryContributionComposedIntentStageResult {
@@ -99,11 +104,14 @@ impl ForgeQueryContributionComposedIntentStageResult {
         )
     }
 
-    pub fn succeeded(detail: impl Into<String>, digest: Option<String>) -> Self {
+    pub fn succeeded(
+        detail: impl Into<String>,
+        stage_identity: Option<crate::ForgeQueryEvidenceIdentity>,
+    ) -> Self {
         Self::new(
             ForgeQueryContributionComposedIntentStageKind::Succeeded,
             detail,
-            digest,
+            stage_identity,
         )
     }
 
@@ -155,21 +163,41 @@ impl ForgeQueryContributionComposedIntentStageResult {
         &self.detail
     }
 
+    pub fn stage_identity(&self) -> Option<&crate::ForgeQueryEvidenceIdentity> {
+        self.stage_identity.as_ref()
+    }
+
+    pub fn stage_for_reporting(&self) -> Option<&str> {
+        self.stage_identity
+            .as_ref()
+            .map(|identity| identity.as_str())
+    }
+
     pub fn digest(&self) -> Option<&str> {
-        self.digest.as_deref()
+        self.stage_for_reporting()
     }
 
     fn new(
         kind: ForgeQueryContributionComposedIntentStageKind,
         detail: impl Into<String>,
-        digest: Option<String>,
+        stage_identity: Option<crate::ForgeQueryEvidenceIdentity>,
     ) -> Self {
         Self {
             kind,
             detail: detail.into(),
-            digest,
+            stage_identity,
         }
     }
+}
+
+pub(crate) fn primary_intent_descriptor(
+    intent_results: &[ForgeQueryContributionComposedIntentResult],
+) -> Option<&ForgeQueryContributionComposedIntentRequestDescriptor> {
+    intent_results
+        .iter()
+        .find(|value| !value.is_admitted())
+        .or_else(|| intent_results.first())
+        .map(ForgeQueryContributionComposedIntentResult::request)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -242,6 +270,14 @@ impl ForgeQueryContributionComposedIntentResult {
 
     pub fn target_binding_digest(&self) -> &str {
         self.request.target_binding_digest()
+    }
+
+    pub fn request_identity(&self) -> &crate::ForgeQueryEvidenceIdentity {
+        self.request.request_identity()
+    }
+
+    pub fn binding_identity(&self) -> &crate::ForgeQueryEvidenceIdentity {
+        self.request.binding_identity()
     }
 
     pub fn aspect_record(&self) -> &ForgeQueryContributionComposedIntentAspectRecord {

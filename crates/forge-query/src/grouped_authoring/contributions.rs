@@ -16,8 +16,8 @@ use super::contribution_input::{
 };
 use super::declaration::{
     forge_query_grouped_declaration_checked_on_handle, ForgeQueryGroupedDeclarationChecked,
-    ForgeQueryGroupedDeclarationStop,
 };
+use super::declaration_stop::ForgeQueryGroupedDeclarationStop;
 use super::orchestration::ForgeQueryGroupedOrchestrationAlignmentStop;
 use super::posture::ForgeQueryGroupedMemberRole;
 

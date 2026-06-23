@@ -19,8 +19,8 @@ fn equivalent_retained_resume_basis_prepares_equal_replay_readiness() {
     );
     let left_temporal = retained_temporal_resume_basis(
         &left_runtime,
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         BridgeRetainedTemporalWakePosture::Ready,
         true,
     );
@@ -28,8 +28,8 @@ fn equivalent_retained_resume_basis_prepares_equal_replay_readiness() {
         &left_runtime,
         &admitted_async_request_identity(
             &left_runtime,
-            TruthBranchIdentity::new("truth-main"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             7,
         ),
         true,
@@ -65,8 +65,8 @@ fn equivalent_retained_resume_basis_prepares_equal_replay_readiness() {
     );
     let right_temporal = retained_temporal_resume_basis(
         &right_runtime,
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         BridgeRetainedTemporalWakePosture::Ready,
         true,
     );
@@ -74,8 +74,8 @@ fn equivalent_retained_resume_basis_prepares_equal_replay_readiness() {
         &right_runtime,
         &admitted_async_request_identity(
             &right_runtime,
-            TruthBranchIdentity::new("truth-main"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             7,
         ),
         true,
@@ -104,15 +104,15 @@ fn retained_temporal_resume_basis_distinguishes_pending_from_ready_wakes() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let pending = retained_temporal_resume_basis(
         &runtime,
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         BridgeRetainedTemporalWakePosture::Pending,
         true,
     );
     let ready = retained_temporal_resume_basis(
         &runtime,
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         BridgeRetainedTemporalWakePosture::Ready,
         true,
     );
@@ -143,8 +143,8 @@ fn resume_basis_rejects_missing_inflight_async_generation() {
     );
     let async_request = admitted_async_request_identity(
         &runtime,
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         9,
     );
     let retained = retained_subscription_resume_basis(
@@ -225,8 +225,8 @@ fn resume_basis_rejects_cross_branch_temporal_and_async_basis() {
     );
     let temporal = retained_temporal_resume_basis(
         &runtime,
-        TruthBranchIdentity::new("truth-left"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-left"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         BridgeRetainedTemporalWakePosture::Ready,
         true,
     );
@@ -234,8 +234,8 @@ fn resume_basis_rejects_cross_branch_temporal_and_async_basis() {
         &runtime,
         &admitted_async_request_identity(
             &runtime,
-            TruthBranchIdentity::new("truth-right"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-right"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             13,
         ),
         true,

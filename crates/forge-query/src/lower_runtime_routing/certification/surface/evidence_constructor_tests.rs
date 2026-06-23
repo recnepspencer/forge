@@ -122,8 +122,8 @@ fn representative_surface_runtime_backed_seams_match_real_boundary_artifact_cons
         surface
             .boundary_receipt_for(ForgeQueryLowerRuntimeSeamKey::LiveViewSchemaAdmission)
             .unwrap()
-            .boundary_execution_digest(),
-        live_row.boundary_receipt.boundary_execution_digest()
+            .boundary_execution_identity(),
+        live_row.boundary_receipt.boundary_execution_identity()
     );
     assert_eq!(
         surface
@@ -143,8 +143,10 @@ fn representative_surface_runtime_backed_seams_match_real_boundary_artifact_cons
         surface
             .boundary_receipt_for(ForgeQueryLowerRuntimeSeamKey::PublicLiveViewDeclaration)
             .unwrap()
-            .boundary_execution_digest(),
-        public_live_row.boundary_receipt.boundary_execution_digest()
+            .boundary_execution_identity(),
+        public_live_row
+            .boundary_receipt
+            .boundary_execution_identity()
     );
     assert_eq!(
         surface
@@ -175,8 +177,8 @@ fn representative_surface_runtime_backed_seams_match_real_boundary_artifact_cons
         surface
             .boundary_receipt_for(ForgeQueryLowerRuntimeSeamKey::PreviewBasisAdmission)
             .unwrap()
-            .boundary_execution_digest(),
-        preview_row.boundary_receipt.boundary_execution_digest()
+            .boundary_execution_identity(),
+        preview_row.boundary_receipt.boundary_execution_identity()
     );
     assert_eq!(
         surface
@@ -184,10 +186,10 @@ fn representative_surface_runtime_backed_seams_match_real_boundary_artifact_cons
                 ForgeQueryLowerRuntimeSeamKey::BasisReadmissionFromTruthViewEvidence
             )
             .unwrap()
-            .boundary_execution_digest(),
+            .boundary_execution_identity(),
         truth_view_readmission_row
             .boundary_receipt
-            .boundary_execution_digest()
+            .boundary_execution_identity()
     );
     assert_eq!(
         surface
@@ -195,10 +197,10 @@ fn representative_surface_runtime_backed_seams_match_real_boundary_artifact_cons
                 ForgeQueryLowerRuntimeSeamKey::BasisReadmissionFromSubscriptionEvidence
             )
             .unwrap()
-            .boundary_execution_digest(),
+            .boundary_execution_identity(),
         subscription_readmission_row
             .boundary_receipt
-            .boundary_execution_digest()
+            .boundary_execution_identity()
     );
     assert_eq!(
         surface
@@ -239,8 +241,8 @@ fn representative_surface_runtime_backed_seams_match_real_boundary_artifact_cons
         surface
             .boundary_receipt_for(ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution)
             .unwrap()
-            .boundary_execution_digest(),
-        write_row.boundary_receipt.boundary_execution_digest()
+            .boundary_execution_identity(),
+        write_row.boundary_receipt.boundary_execution_identity()
     );
     assert_eq!(
         surface
@@ -277,10 +279,10 @@ fn representative_surface_runtime_backed_seams_match_real_boundary_artifact_cons
                 ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromQueryReceipts
             )
             .unwrap()
-            .boundary_execution_digest(),
+            .boundary_execution_identity(),
         query_receipt_row
             .boundary_receipt
-            .boundary_execution_digest()
+            .boundary_execution_identity()
     );
     assert_eq!(
         surface
@@ -288,8 +290,10 @@ fn representative_surface_runtime_backed_seams_match_real_boundary_artifact_cons
                 ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromRelationalArtifacts
             )
             .unwrap()
-            .boundary_execution_digest(),
-        relational_row.boundary_receipt.boundary_execution_digest()
+            .boundary_execution_identity(),
+        relational_row
+            .boundary_receipt
+            .boundary_execution_identity()
     );
     assert_eq!(
         surface
@@ -297,8 +301,8 @@ fn representative_surface_runtime_backed_seams_match_real_boundary_artifact_cons
                 ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromBridgeArtifacts
             )
             .unwrap()
-            .boundary_execution_digest(),
-        bridge_row.boundary_receipt.boundary_execution_digest()
+            .boundary_execution_identity(),
+        bridge_row.boundary_receipt.boundary_execution_identity()
     );
     assert_eq!(
         surface
@@ -318,14 +322,14 @@ fn representative_surface_runtime_backed_seams_match_real_boundary_artifact_cons
         surface
             .envelope_for(ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting)
             .unwrap()
-            .envelope_digest(),
-        signal_row.envelope.envelope_digest()
+            .envelope_identity(),
+        signal_row.envelope.envelope_identity()
     );
     assert_eq!(
         surface
             .envelope_for(ForgeQueryLowerRuntimeSeamKey::RuntimeLiveInstallationOrchestration)
             .unwrap()
-            .envelope_digest(),
-        orchestration_row.envelope.envelope_digest()
+            .envelope_identity(),
+        orchestration_row.envelope.envelope_identity()
     );
 }

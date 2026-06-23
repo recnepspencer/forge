@@ -1,11 +1,13 @@
 use super::{
-    WorkloadEvidenceCounters, WorkloadEvidenceGuard, WorkloadEvidenceGuardError,
-    WorkloadEvidenceRow, WorkloadEvidenceStage,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority,
+    WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceCounters, WorkloadEvidenceGuard,
+    WorkloadEvidenceGuardError, WorkloadEvidenceRow, WorkloadEvidenceStage,
+    WorkloadEvidenceStageIndexProduct, WorkloadEvidenceStageLinkSet,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkloadEvidenceLedger {
-    rows: Vec<WorkloadEvidenceRow>,
+    stage_index: WorkloadEvidenceStageIndexProduct,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -15,25 +17,17 @@ pub struct CompleteWorkloadEvidenceLedger {
 
 impl WorkloadEvidenceLedger {
     pub fn from_rows(rows: Vec<WorkloadEvidenceRow>) -> Result<Self, WorkloadEvidenceLedgerError> {
-        if rows.is_empty() {
-            return Err(WorkloadEvidenceLedgerError::EmptyLedger);
-        }
-        if rows
-            .iter()
-            .any(|row| row.evidence_identity().trim().is_empty())
-        {
-            return Err(WorkloadEvidenceLedgerError::MissingEvidenceIdentity);
-        }
-        if let Some(duplicate_stage) = duplicate_stage(&rows) {
-            return Err(WorkloadEvidenceLedgerError::DuplicateEvidenceStage(
-                duplicate_stage,
-            ));
-        }
-        Ok(Self { rows })
+        Ok(Self {
+            stage_index: WorkloadEvidenceStageIndexProduct::new(rows)?,
+        })
     }
 
-    pub fn rows(&self) -> &[WorkloadEvidenceRow] {
-        &self.rows
+    pub(crate) fn rows(&self) -> &[WorkloadEvidenceRow] {
+        self.stage_index.rows()
+    }
+
+    pub fn stage_index(&self) -> &WorkloadEvidenceStageIndexProduct {
+        &self.stage_index
     }
 
     pub fn certify_complete(
@@ -52,58 +46,63 @@ impl WorkloadEvidenceLedger {
     }
 
     pub fn counters(&self) -> WorkloadEvidenceCounters {
-        WorkloadEvidenceCounters::new(self.rows.len())
+        let stage_index_counters = self.stage_index.counters();
+        WorkloadEvidenceCounters::new(
+            stage_index_counters.row_count(),
+            stage_index_counters
+                .boolean_row_count()
+                .saturating_sub(stage_index_counters.counterless_boolean_row_count()),
+        )
     }
 
     pub fn guards(&self) -> WorkloadEvidenceGuard<'_> {
-        WorkloadEvidenceGuard::new(self)
+        WorkloadEvidenceGuard::new(self.stage_index())
     }
 
-    pub fn evidence_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&str> {
-        self.rows
-            .iter()
-            .find(|row| row.stage() == stage)
-            .map(WorkloadEvidenceRow::evidence_identity)
+    pub(crate) fn evidence_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&str> {
+        self.stage_index.evidence_for_stage(stage)
     }
 
     pub fn missing_authority_stage(&self) -> Option<WorkloadEvidenceStage> {
-        WorkloadEvidenceStage::AUTHORITY_STAGES
-            .iter()
-            .copied()
-            .find(|stage| self.evidence_for_stage(*stage).is_none())
+        self.stage_index.missing_authority_stage()
     }
 
     pub fn covers_authority_stages(&self) -> bool {
         self.missing_authority_stage().is_none()
     }
 
-    pub fn row_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&WorkloadEvidenceRow> {
-        self.rows.iter().find(|row| row.stage() == stage)
+    pub(crate) fn row_for_stage(
+        &self,
+        stage: WorkloadEvidenceStage,
+    ) -> Option<&WorkloadEvidenceRow> {
+        self.stage_index.row_for_stage(stage)
+    }
+
+    pub fn require_boolean_receipt_lookup<T: BooleanEvidenceReceipt + 'static>(
+        &self,
+        receipt: &T,
+    ) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceLedgerError> {
+        self.stage_index.require_boolean_receipt_lookup(receipt)
+    }
+
+    pub fn link_required_stages(
+        &self,
+        stages: &[WorkloadEvidenceStage],
+    ) -> Result<WorkloadEvidenceStageLinkSet, WorkloadEvidenceLedgerError> {
+        self.stage_index.link_required_stages(stages)
     }
 
     fn first_manual_authority_stage(&self) -> Option<WorkloadEvidenceStage> {
-        WorkloadEvidenceStage::AUTHORITY_STAGES
-            .iter()
-            .copied()
-            .find(|stage| {
-                self.row_for_stage(*stage)
-                    .is_some_and(|row| !row.is_receipt_backed())
-            })
+        self.stage_index.first_manual_authority_stage()
     }
 
     fn first_unadmitted_authority_stage(&self) -> Option<WorkloadEvidenceStage> {
-        WorkloadEvidenceStage::AUTHORITY_STAGES
-            .iter()
-            .copied()
-            .find(|stage| {
-                self.row_for_stage(*stage)
-                    .is_some_and(|row| row.is_receipt_backed() && !row.is_admitted())
-            })
+        self.stage_index.first_unadmitted_authority_stage()
     }
 }
 
 impl CompleteWorkloadEvidenceLedger {
-    pub fn rows(&self) -> &[WorkloadEvidenceRow] {
+    pub(crate) fn rows(&self) -> &[WorkloadEvidenceRow] {
         self.ledger.rows()
     }
 
@@ -115,12 +114,49 @@ impl CompleteWorkloadEvidenceLedger {
         self.ledger.guards()
     }
 
-    pub fn evidence_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&str> {
+    pub fn stage_index(&self) -> &WorkloadEvidenceStageIndexProduct {
+        self.ledger.stage_index()
+    }
+
+    pub(crate) fn evidence_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&str> {
         self.ledger.evidence_for_stage(stage)
     }
 
-    pub fn row_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&WorkloadEvidenceRow> {
+    pub(crate) fn row_for_stage(
+        &self,
+        stage: WorkloadEvidenceStage,
+    ) -> Option<&WorkloadEvidenceRow> {
         self.ledger.row_for_stage(stage)
+    }
+
+    pub fn require_boolean_receipt<T: BooleanEvidenceReceipt + 'static>(
+        &self,
+        receipt: &T,
+    ) -> Result<(), WorkloadEvidenceLedgerError> {
+        self.stage_index().require_boolean_receipt(receipt)
+    }
+
+    pub fn require_boolean_receipt_lookup<T: BooleanEvidenceReceipt + 'static>(
+        &self,
+        receipt: &T,
+    ) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceLedgerError> {
+        self.stage_index().require_boolean_receipt_lookup(receipt)
+    }
+
+    pub fn link_required_stages(
+        &self,
+        stages: &[WorkloadEvidenceStage],
+    ) -> Result<WorkloadEvidenceStageLinkSet, WorkloadEvidenceLedgerError> {
+        self.stage_index().link_required_stages(stages)
+    }
+
+    pub fn with_boolean_evidence_receipt<T: BooleanEvidenceRowAuthority + 'static>(
+        &self,
+        receipt: &T,
+    ) -> Result<Self, WorkloadEvidenceLedgerError> {
+        let mut rows = self.rows().to_vec();
+        rows.push(WorkloadEvidenceRow::from_boolean_evidence_receipt(receipt));
+        WorkloadEvidenceLedger::from_rows(rows)?.certify_complete()
     }
 
     pub fn into_ledger(self) -> WorkloadEvidenceLedger {
@@ -136,6 +172,12 @@ pub enum WorkloadEvidenceLedgerError {
     MissingAuthorityStage(WorkloadEvidenceStage),
     ManualAuthorityStage(WorkloadEvidenceStage),
     UnadmittedAuthorityStage(WorkloadEvidenceStage),
+    MismatchedAuthorityStageBinding(WorkloadEvidenceStage, WorkloadEvidenceStage),
+    MissingBooleanStage(WorkloadEvidenceStage),
+    ManualBooleanStage(WorkloadEvidenceStage),
+    CounterlessBooleanStage(WorkloadEvidenceStage),
+    MismatchedBooleanStage(WorkloadEvidenceStage),
+    UnsupportedBooleanStage(WorkloadEvidenceStage),
     GuardFailed(WorkloadEvidenceGuardError),
 }
 
@@ -148,36 +190,12 @@ impl WorkloadEvidenceLedgerError {
             Self::MissingEvidenceIdentity => {
                 "workload evidence rows require a readable identity".to_string()
             }
-            Self::DuplicateEvidenceStage(stage) => match stage {
-                WorkloadEvidenceStage::Topology => {
-                    "workload evidence ledger has duplicate topology evidence"
-                }
-                WorkloadEvidenceStage::GeometryBinding => {
-                    "workload evidence ledger has duplicate geometry binding evidence"
-                }
-                WorkloadEvidenceStage::SurfaceSupport => {
-                    "workload evidence ledger has duplicate surface support evidence"
-                }
-                WorkloadEvidenceStage::Projection => {
-                    "workload evidence ledger has duplicate projection evidence"
-                }
-                WorkloadEvidenceStage::Transform => {
-                    "workload evidence ledger has duplicate transform evidence"
-                }
-                WorkloadEvidenceStage::RetainedReplay => {
-                    "workload evidence ledger has duplicate retained replay evidence"
-                }
-                WorkloadEvidenceStage::Diagnostics => {
-                    "workload evidence ledger has duplicate diagnostic evidence"
-                }
-                WorkloadEvidenceStage::Response => {
-                    "workload evidence ledger has duplicate response evidence"
-                }
-                WorkloadEvidenceStage::Operator => {
-                    "workload evidence ledger has duplicate operator evidence"
-                }
+            Self::DuplicateEvidenceStage(stage) => {
+                format!(
+                    "workload evidence ledger has duplicate {}",
+                    stage.human_name()
+                )
             }
-            .to_string(),
             Self::MissingAuthorityStage(stage) => {
                 format!("workload evidence ledger is missing {}", stage.human_name())
             }
@@ -193,6 +211,40 @@ impl WorkloadEvidenceLedgerError {
                     stage.human_name()
                 )
             }
+            Self::MismatchedAuthorityStageBinding(stage, upstream_stage) => {
+                format!(
+                    "workload evidence ledger has {} that does not bind to the indexed {}",
+                    stage.human_name(),
+                    upstream_stage.human_name()
+                )
+            }
+            Self::MissingBooleanStage(stage) => {
+                format!("workload evidence ledger is missing {}", stage.human_name())
+            }
+            Self::ManualBooleanStage(stage) => {
+                format!(
+                    "workload evidence ledger has hand-filled {} instead of a source receipt",
+                    stage.human_name()
+                )
+            }
+            Self::CounterlessBooleanStage(stage) => {
+                format!(
+                    "workload evidence ledger cannot count {} without receipt-backed counters",
+                    stage.human_name()
+                )
+            }
+            Self::MismatchedBooleanStage(stage) => {
+                format!(
+                    "workload evidence ledger does not match the {} receipt",
+                    stage.human_name()
+                )
+            }
+            Self::UnsupportedBooleanStage(stage) => {
+                format!(
+                    "workload evidence ledger records {} with the wrong support posture",
+                    stage.human_name()
+                )
+            }
             Self::GuardFailed(error) => error.human_reason().to_string(),
         }
     }
@@ -202,13 +254,4 @@ impl From<WorkloadEvidenceGuardError> for WorkloadEvidenceLedgerError {
     fn from(error: WorkloadEvidenceGuardError) -> Self {
         Self::GuardFailed(error)
     }
-}
-
-fn duplicate_stage(rows: &[WorkloadEvidenceRow]) -> Option<WorkloadEvidenceStage> {
-    rows.iter().enumerate().find_map(|(row_index, row)| {
-        rows.iter()
-            .skip(row_index + 1)
-            .any(|candidate| candidate.stage() == row.stage())
-            .then_some(row.stage())
-    })
 }

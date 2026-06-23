@@ -1,8 +1,11 @@
-use crate::identity::hash_parts;
-
 use super::contracts::MaterializedProjectionContract;
 use super::declaration::ProjectionConsumptionDeclaration;
 use super::facts::{ProjectionFactKind, ProjectionFactRequest};
+use super::identity::{
+    compose_eligibility_admitted_digest, compose_eligibility_deferred_failure_digest,
+    compose_eligibility_denied_failure_digest, compose_eligibility_source_mismatch_failure_digest,
+    compose_eligibility_warning_kinds_digest,
+};
 use super::source::ProjectionSourceFamily;
 use super::support::{support_for_kind, ProjectionConsumptionSupportPosture};
 
@@ -96,7 +99,7 @@ impl ProjectionConsumptionEligibilityTrace {
     }
 
     pub fn explanation(&self) -> &'static str {
-        self.explanation
+        &self.explanation
     }
 }
 
@@ -237,10 +240,9 @@ pub fn evaluate_projection_consumption_eligibility(
                         explanation:
                             "the requested fact family remains deferred for this source family in the current milestone slice",
                     },
-                    failure_digest: hash_parts(&[
-                        format!("declaration:{}", declaration.declaration_digest()),
-                        "failure:deferred".to_string(),
-                    ]),
+                    failure_digest: compose_eligibility_deferred_failure_digest(
+                        declaration.declaration_digest(),
+                    ),
                 });
             }
             ProjectionConsumptionSupportPosture::SourceMismatch => {
@@ -256,12 +258,11 @@ pub fn evaluate_projection_consumption_eligibility(
                             explanation:
                                 "the named source family does not prove the requested fact family",
                         },
-                        failure_digest: hash_parts(&[
-                            format!("declaration:{}", declaration.declaration_digest()),
-                            format!("source:{}", declaration.source().family().as_str()),
-                            format!("fact:{}", request.kind().as_str()),
-                            "failure:source_mismatch".to_string(),
-                        ]),
+                        failure_digest: compose_eligibility_source_mismatch_failure_digest(
+                            declaration.declaration_digest(),
+                            declaration.source().family(),
+                            request.kind(),
+                        ),
                     },
                 );
             }
@@ -278,10 +279,9 @@ pub fn evaluate_projection_consumption_eligibility(
                     explanation:
                         "the requested field-backed fact is not visible in the bound authorized projection",
                 },
-                failure_digest: hash_parts(&[
-                    format!("declaration:{}", declaration.declaration_digest()),
-                    "failure:visibility_denied".to_string(),
-                ]),
+                failure_digest: compose_eligibility_denied_failure_digest(
+                    declaration.declaration_digest(),
+                ),
             });
         }
     }
@@ -303,24 +303,20 @@ pub fn evaluate_projection_consumption_eligibility(
             explanation:
                 "every requested fact family remained within the supported and visible surface for the declared source family",
         },
-        eligibility_digest: hash_parts(&[
-            format!("declaration:{}", declaration.declaration_digest()),
-            format!("warnings:{}", warnings.len()),
-            "posture:admitted".to_string(),
-        ]),
+        eligibility_digest: compose_eligibility_admitted_digest(
+            declaration.declaration_digest(),
+            warnings.len(),
+        ),
     };
     if warnings.is_empty() {
         ProjectionConsumptionEligibility::Admitted(admitted)
     } else {
-        let parts = warnings
-            .iter()
-            .map(|warning| warning.as_str().to_string())
-            .collect::<Vec<_>>();
+        let warning_digest = compose_eligibility_warning_kinds_digest(&warnings);
         ProjectionConsumptionEligibility::AdmittedWithWarnings(
             admitted,
             ProjectionConsumptionWarnings {
                 warning_kinds: warnings,
-                warning_digest: hash_parts(&parts),
+                warning_digest,
             },
         )
     }

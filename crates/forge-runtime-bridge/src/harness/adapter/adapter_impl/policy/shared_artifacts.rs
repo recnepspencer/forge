@@ -216,5 +216,5 @@ pub(super) fn first_snapshot_identity(
         .snapshots()
         .first()
         .map(|snapshot| snapshot.identity().clone())
-        .unwrap_or_else(|| crate::facade::TruthSnapshotIdentity::new("snapshot-a"))
+        .unwrap_or_else(|| crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"))
 }

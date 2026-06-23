@@ -150,9 +150,9 @@ impl BridgeSubscriptionPreviewResidueArtifactRecord {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            artifact_identity: BridgeSubscriptionPreviewResidueArtifactIdentity::new(format!(
-                "bridge-subscription-preview-residue-artifact-id:sha256:{digest:x}"
-            )),
+            artifact_identity: BridgeSubscriptionPreviewResidueArtifactIdentity::admit_bridge_owned(
+                format!("bridge-subscription-preview-residue-artifact-id:sha256:{digest:x}"),
+            ),
             preview_residue_scope_identity: preview_residue_scope_identity.clone(),
             category: input.category,
             residue_count: input.residue_count,
@@ -233,7 +233,7 @@ impl BridgeSubscriptionPreviewResidueScopeIndex {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             preview_residue_scope_index_identity:
-                BridgeSubscriptionPreviewResidueScopeIndexIdentity::new(format!(
+                BridgeSubscriptionPreviewResidueScopeIndexIdentity::admit_bridge_owned(format!(
                     "bridge-subscription-preview-residue-scope-index-id:sha256:{digest:x}"
                 )),
             preview_active_subscription_identity: preview_active

@@ -15,6 +15,6 @@ fn main() {
         allocation_scope_width: 1,
         allocation_posture: ActiveSubscriptionAllocationPosture::PatchScratch,
         performance_receipt: todo!(),
-        work_packet_digest: String::new(),
+        work_packet_identity: todo!(),
     };
 }

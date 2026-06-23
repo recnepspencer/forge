@@ -20,6 +20,18 @@ pub type StructuralEquivalenceContractIdentity =
     BridgeIdentity<StructuralEquivalenceContractIdentityTag>;
 pub type StructuralTruthViewBasisIdentity = BridgeIdentity<StructuralTruthViewBasisIdentityTag>;
 
+impl StructuralIdentityDeclarationIdentity {
+    pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
+        Self::admit_bridge_owned(value)
+    }
+}
+
+impl StructuralSchemaIdentity {
+    pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
+        Self::admit_bridge_owned(value)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructuralFingerprintEquivalenceContract {
     contract_identity: StructuralEquivalenceContractIdentity,
@@ -49,7 +61,7 @@ impl StructuralFingerprintEquivalenceContract {
             semantics_version.as_ref(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let contract_identity = StructuralEquivalenceContractIdentity::new(format!(
+        let contract_identity = StructuralEquivalenceContractIdentity::admit_bridge_owned(format!(
             "structural-equivalence-contract:sha256:{digest:x}"
         ));
 
@@ -149,7 +161,7 @@ impl StructuralTruthViewBasis {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self::BranchPair {
-            basis_identity: StructuralTruthViewBasisIdentity::new(format!(
+            basis_identity: StructuralTruthViewBasisIdentity::admit_bridge_owned(format!(
                 "structural-truth-view-basis:sha256:{digest:x}"
             )),
             left_selector,
@@ -166,7 +178,7 @@ impl StructuralTruthViewBasis {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self::Single {
-            basis_identity: StructuralTruthViewBasisIdentity::new(format!(
+            basis_identity: StructuralTruthViewBasisIdentity::admit_bridge_owned(format!(
                 "structural-truth-view-basis:sha256:{digest:x}"
             )),
             basis_kind,
@@ -322,8 +334,8 @@ mod tests {
         StructuralFingerprintEquivalenceContract, StructuralIdentityDeclaration,
         StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity, StructuralTruthViewBasis,
     };
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::structural::{
         StructuralFingerprintFamily, StructuralFingerprintNormalizationRule,
         StructuralFingerprintOmissionPolicy, StructuralFingerprintOrderingRule,
@@ -332,7 +344,7 @@ mod tests {
     #[test]
     fn structural_equivalence_contract_is_canonical_for_same_inputs() {
         let left = StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintFamily::TopologyFingerprint,
             "topology-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -340,7 +352,7 @@ mod tests {
             StructuralFingerprintOmissionPolicy::SchemaDeclaredOmissionPolicy,
         );
         let right = StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintFamily::TopologyFingerprint,
             "topology-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -355,10 +367,10 @@ mod tests {
     #[test]
     fn advisory_remap_uses_declared_structural_index_scope_by_default() {
         let declaration = StructuralIdentityDeclaration::advisory_remap(
-            StructuralIdentityDeclarationIdentity::new("structural:geometry-remap"),
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:geometry-remap"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintEquivalenceContract::new(
-                StructuralSchemaIdentity::new("schema:geometry"),
+                StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                 StructuralFingerprintFamily::TopologyFingerprint,
                 "topology-v1",
                 StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -367,8 +379,8 @@ mod tests {
             ),
             StructuralTruthViewBasis::explicit_snapshot(
                 BridgeTruthViewSelector::committed_snapshot(
-                    TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             ),
         );

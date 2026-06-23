@@ -5,7 +5,7 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_mapping(
     signal_scope: SignalInvalidationScope,
 ) -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new(format!(
+        BridgeMappingId::admit_bridge_owned(format!(
             "pricing:{component}:{}",
             signal_scope.as_str().replace(':', "-")
         )),
@@ -89,15 +89,15 @@ pub(in crate::harness::tests::pricing_shock) fn build_pricing_runtime_with_polic
         .with_policy(policy)
         .register_mapping(pricing_mapping(
             "steel",
-            SignalInvalidationScope::new("price:bicycle"),
+            SignalInvalidationScope::admit_bridge_owned("price:bicycle"),
         ))
         .register_mapping(pricing_mapping(
             "steel",
-            SignalInvalidationScope::new("price:wheelbarrow"),
+            SignalInvalidationScope::admit_bridge_owned("price:wheelbarrow"),
         ))
         .register_mapping(pricing_mapping(
             "rubber",
-            SignalInvalidationScope::new("price:scooter"),
+            SignalInvalidationScope::admit_bridge_owned("price:scooter"),
         ))
         .build()
         .expect("pricing runtime should build")
@@ -122,15 +122,15 @@ where
         .with_writeback_authority(authority)
         .register_mapping(pricing_mapping(
             "steel",
-            SignalInvalidationScope::new("price:bicycle"),
+            SignalInvalidationScope::admit_bridge_owned("price:bicycle"),
         ))
         .register_mapping(pricing_mapping(
             "steel",
-            SignalInvalidationScope::new("price:wheelbarrow"),
+            SignalInvalidationScope::admit_bridge_owned("price:wheelbarrow"),
         ))
         .register_mapping(pricing_mapping(
             "rubber",
-            SignalInvalidationScope::new("price:scooter"),
+            SignalInvalidationScope::admit_bridge_owned("price:scooter"),
         ))
         .build()
         .expect("pricing runtime with writeback authority should build")
@@ -148,11 +148,11 @@ pub(in crate::harness::tests::pricing_shock) fn build_pricing_runtime_with_aspec
         .with_policy(policy)
         .register_mapping(pricing_mapping(
             "steel",
-            SignalInvalidationScope::new("price:bicycle"),
+            SignalInvalidationScope::admit_bridge_owned("price:bicycle"),
         ))
         .register_mapping(pricing_mapping(
             "rubber",
-            SignalInvalidationScope::new("price:scooter"),
+            SignalInvalidationScope::admit_bridge_owned("price:scooter"),
         ))
         .register_aspect_mapping(pricing_field_aspect_registration("steel"))
         .register_aspect_mapping(pricing_field_aspect_registration("rubber"))
@@ -172,11 +172,11 @@ pub(in crate::harness::tests::pricing_shock) fn build_pricing_runtime_with_merge
         .with_policy(policy)
         .register_mapping(pricing_mapping(
             "steel",
-            SignalInvalidationScope::new("price:bicycle"),
+            SignalInvalidationScope::admit_bridge_owned("price:bicycle"),
         ))
         .register_mapping(pricing_mapping(
             "rubber",
-            SignalInvalidationScope::new("price:scooter"),
+            SignalInvalidationScope::admit_bridge_owned("price:scooter"),
         ))
         .register_aspect_mapping(pricing_field_aspect_registration("steel"))
         .register_aspect_mapping(pricing_field_aspect_registration("rubber"))
@@ -212,20 +212,20 @@ pub(in crate::harness::tests::pricing_shock) fn build_high_fanout_pricing_runtim
         .with_policy(policy)
         .register_mapping(pricing_mapping(
             "steel",
-            SignalInvalidationScope::new("price:product-000"),
+            SignalInvalidationScope::admit_bridge_owned("price:product-000"),
         ));
 
     for product_idx in 1..steel_product_count {
         builder = builder.register_mapping(pricing_mapping(
             "steel",
-            SignalInvalidationScope::new(format!("price:product-{product_idx:03}")),
+            SignalInvalidationScope::admit_bridge_owned(format!("price:product-{product_idx:03}")),
         ));
     }
 
     builder
         .register_mapping(pricing_mapping(
             "rubber",
-            SignalInvalidationScope::new("price:scooter"),
+            SignalInvalidationScope::admit_bridge_owned("price:scooter"),
         ))
         .build()
         .expect("high-fanout pricing runtime should build")
@@ -234,17 +234,17 @@ pub(in crate::harness::tests::pricing_shock) fn build_high_fanout_pricing_runtim
 pub(in crate::harness::tests::pricing_shock) fn pricing_preview_declaration(
 ) -> BridgePreviewSessionDeclaration {
     BridgePreviewSessionDeclaration::new(
-        BridgePreviewSessionDeclarationIdentity::new("pricing:preview-declaration"),
+        BridgePreviewSessionDeclarationIdentity::admit_bridge_owned("pricing:preview-declaration"),
         BridgeRequestKind::Preview,
         BridgeSpeculativeBranchBinding::new(
-            BridgeSpeculativeBranchBindingIdentity::new("pricing:binding"),
-            TruthBranchIdentity::new("pricing-shock"),
-            BridgeSignalBranchIdentity::new("signal:pricing-shock"),
+            BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned("pricing:binding"),
+            crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
+            BridgeSignalBranchIdentity::admit_bridge_owned("signal:pricing-shock"),
         ),
         crate::facade::BridgePreviewSessionBasis::new(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("pricing-shock"),
-                TruthSnapshotIdentity::new("snapshot:pricing-shock"),
+                crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-shock"),
             ),
             BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -258,7 +258,7 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_preview_declaration(
 pub(in crate::harness::tests::pricing_shock) fn pricing_merge_declaration(
 ) -> MergeHistoryDeclaration {
     MergeHistoryDeclaration::new(
-        MergeHistoryDeclarationIdentity::new("merge:pricing-shock"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:pricing-shock"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
         BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1"),
         BridgeMergeAuthorityBasis::new(
@@ -267,8 +267,8 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_merge_declaration(
             "rel-merge-v1",
             "schema-policy-v1",
             BridgeMergeParentOrderProof::new(vec![
-                crate::facade::TruthCommitIdentity::new("commit:rubber-main"),
-                crate::facade::TruthCommitIdentity::new("commit:rubber-shock"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
             ]),
         ),
     )
@@ -278,7 +278,7 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_merge_declaration(
 pub(in crate::harness::tests::pricing_shock) fn pricing_topology_denial_merge_declaration(
 ) -> MergeHistoryDeclaration {
     MergeHistoryDeclaration::new(
-        MergeHistoryDeclarationIdentity::new("merge:pricing-topology-denial"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:pricing-topology-denial"),
         BridgeMergeConsumptionClass::TopologyRewireMerge,
         BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1"),
         BridgeMergeAuthorityBasis::new(
@@ -287,8 +287,8 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_topology_denial_merge_de
             "rel-merge-v1",
             "schema-policy-v1",
             BridgeMergeParentOrderProof::new(vec![
-                crate::facade::TruthCommitIdentity::new("commit:rubber-main"),
-                crate::facade::TruthCommitIdentity::new("commit:rubber-shock"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
             ]),
         ),
     )

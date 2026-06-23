@@ -3,75 +3,57 @@ use super::{
     ForgeQueryNamingMutationIntent, ForgeQueryRuntimeError, ForgeQuerySymbolicAspectReference,
 };
 use crate::memory_workspace::ForgeQueryWorkspaceError;
+use crate::runtime::ForgeQueryMutationAuthorityIdentity;
 
 impl ForgeQueryAspectMutationBuilder {
-    pub fn naming_attach_new_target(self, attachment_identity: impl Into<String>) -> Self {
-        match ForgeQueryNamingMutationIntent::attach_new_target(attachment_identity) {
-            Ok(intent) => self.naming_intent(intent),
-            Err(error) => Self {
-                error: Some(error.to_string()),
-                ..self
-            },
-        }
+    pub fn naming_attach_new_target(
+        self,
+        attachment_identity: ForgeQueryMutationAuthorityIdentity,
+    ) -> Self {
+        self.naming_intent(ForgeQueryNamingMutationIntent::attach_new_target(
+            attachment_identity,
+        ))
     }
 
     pub fn naming_attach_existing_target(
         self,
-        attachment_identity: impl Into<String>,
-        target_authoritative_identity: impl Into<String>,
+        attachment_identity: ForgeQueryMutationAuthorityIdentity,
+        target_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
     ) -> Self {
-        match ForgeQueryNamingMutationIntent::attach_existing_target(
+        self.naming_intent(ForgeQueryNamingMutationIntent::attach_existing_target(
             attachment_identity,
             target_authoritative_identity,
-        ) {
-            Ok(intent) => self.naming_intent(intent),
-            Err(error) => Self {
-                error: Some(error.to_string()),
-                ..self
-            },
-        }
+        ))
     }
 
     pub fn naming_rebind_target(
         self,
-        attachment_identity: impl Into<String>,
-        prior_authoritative_identity: impl Into<String>,
-        target_authoritative_identity: impl Into<String>,
+        attachment_identity: ForgeQueryMutationAuthorityIdentity,
+        prior_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
+        target_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
     ) -> Self {
-        match ForgeQueryNamingMutationIntent::rebind_target(
+        self.naming_intent(ForgeQueryNamingMutationIntent::rebind_target(
             attachment_identity,
             prior_authoritative_identity,
             target_authoritative_identity,
-        ) {
-            Ok(intent) => self.naming_intent(intent),
-            Err(error) => Self {
-                error: Some(error.to_string()),
-                ..self
-            },
-        }
+        ))
     }
 
     pub fn naming_remove_target(
         self,
-        attachment_identity: impl Into<String>,
-        prior_authoritative_identity: impl Into<String>,
+        attachment_identity: ForgeQueryMutationAuthorityIdentity,
+        prior_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
     ) -> Self {
-        match ForgeQueryNamingMutationIntent::remove(
+        self.naming_intent(ForgeQueryNamingMutationIntent::remove(
             attachment_identity,
             prior_authoritative_identity,
-        ) {
-            Ok(intent) => self.naming_intent(intent),
-            Err(error) => Self {
-                error: Some(error.to_string()),
-                ..self
-            },
-        }
+        ))
     }
 
     pub fn continuity_rebind_existing_target(
         self,
-        prior_authoritative_identity: impl Into<String>,
-        successor_authoritative_identity: impl Into<String>,
+        prior_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
+        successor_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
     ) -> Self {
         match ForgeQueryContinuityMutationIntent::rebind_existing_target(
             prior_authoritative_identity,
@@ -87,8 +69,8 @@ impl ForgeQueryAspectMutationBuilder {
 
     pub fn continuity_rebind_merge_successor(
         self,
-        prior_authoritative_identity: impl Into<String>,
-        successor_authoritative_identity: impl Into<String>,
+        prior_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
+        successor_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
     ) -> Self {
         match ForgeQueryContinuityMutationIntent::rebind_merge_successor(
             prior_authoritative_identity,
@@ -102,14 +84,13 @@ impl ForgeQueryAspectMutationBuilder {
         }
     }
 
-    pub fn continuity_split_successors<I, S>(
+    pub fn continuity_split_successors<I>(
         self,
-        prior_authoritative_identity: impl Into<String>,
+        prior_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
         successor_authoritative_identities: I,
     ) -> Self
     where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
+        I: IntoIterator<Item = ForgeQueryMutationAuthorityIdentity>,
     {
         match ForgeQueryContinuityMutationIntent::split_existing_target(
             prior_authoritative_identity,

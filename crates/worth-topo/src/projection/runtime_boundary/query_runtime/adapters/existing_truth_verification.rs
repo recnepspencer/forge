@@ -3,6 +3,7 @@ use forge_query::facade::{
     ForgeQueryExistingTruthAssertionDenialKind, ForgeQueryExistingTruthProbeDenial,
     ForgeQueryExistingTruthProbeDenialKind, ForgeQueryExistingTruthProbeRequest,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeExistingTruthVerificationAdapter,
+    ForgeQueryVerifiedExistingTruthAssertion,
 };
 use serde_json::Value;
 
@@ -40,7 +41,8 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
         aspects: &[ForgeQueryAspectValue],
-    ) -> Result<(), ForgeQueryExistingTruthAssertionDenial> {
+    ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>
+    {
         let Some(payload) = self.target_row(binding) else {
             return Err(ForgeQueryExistingTruthAssertionDenial::new(
                 binding,
@@ -83,7 +85,21 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter
                 ));
             }
         }
-        Ok(())
+        ForgeQueryVerifiedExistingTruthAssertion::from_snapshot_identity(
+            binding,
+            aspects,
+            &self.binding.current_snapshot_identity(),
+        )
+        .map_err(|error| {
+            ForgeQueryExistingTruthAssertionDenial::new(
+                binding,
+                ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
+                None,
+                None,
+                None,
+                format!("topology authoritative truth verification failed: {error}"),
+            )
+        })
     }
 
     fn probe_existing_truth(

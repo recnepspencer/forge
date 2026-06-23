@@ -27,10 +27,12 @@ error: cannot construct `SubscriptionLifecycleCloseout` with struct literal synt
    |         -------------------------------------------------------------- private field
 15 |         counters: ActiveSubscriptionCounters::default(),
    |         ----------------------------------------------- private field
-16 |         closeout_digest: String::new(),
-   |         ------------------------------ private field
+16 |         source_identity: todo!(),
+   |         ------------------------ private field
+17 |         closeout_identity: todo!(),
+   |         -------------------------- private field
    |
-   = note: ...and other private fields `future_selection`, `basis_binding_digest`, `checkpoint_identity_digest` and `source_digest` that were not provided
+   = note: ...and other private fields `future_selection`, `basis_binding_identity` and `checkpoint_identity` that were not provided
 help: you might have meant to use the `new` associated function
    |
  8 -     let _ = SubscriptionLifecycleCloseout {
@@ -41,7 +43,8 @@ help: you might have meant to use the `new` associated function
 13 -         support_profile: todo!() as QuerySubscriptionSupportProfile,
 14 -         performance_receipt: todo!() as SubscriptionPerformanceReceipt,
 15 -         counters: ActiveSubscriptionCounters::default(),
-16 -         closeout_digest: String::new(),
-17 -     };
+16 -         source_identity: todo!(),
+17 -         closeout_identity: todo!(),
+18 -     };
  8 +     let _ = SubscriptionLifecycleCloseout::new(_, _);
    |

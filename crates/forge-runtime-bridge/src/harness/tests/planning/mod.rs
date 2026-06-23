@@ -13,7 +13,6 @@ use crate::facade::{
     BridgeParallelLegalityReason, BridgeParallelProfitabilityClass,
     BridgeParallelProfitabilityReason, BridgePreparationMode, BridgeRouteRequest,
     BridgeRuntimePolicy, ContinuityLineageSource, FineGrainedMatchStatus, SubscriptionSliceKind,
-    TruthSnapshotIdentity,
 };
 
 use super::support::{
@@ -35,10 +34,12 @@ impl ContinuityLineageSource for TestContinuityLineageSource {
     ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError> {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            vec![BridgeHistoricalResolvedLineageIdentity::new(
+            vec![BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned(
                 "lineage:test-successor",
             )],
-            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
+            vec![BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned(
+                "entity:0:4:2",
+            )],
             vec![7],
         )
     }
@@ -54,13 +55,15 @@ impl ContinuityLineageSource for TestMismatchedAuthorityLineageSource {
     ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError> {
         BridgeHistoricalLineageAuthority::try_new(
             BridgeContinuityAuthorityBasis::new(
-                crate::facade::TruthBranchIdentity::new("wrong-branch"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("wrong-branch"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
-            vec![BridgeHistoricalResolvedLineageIdentity::new(
+            vec![BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned(
                 "lineage:test-successor",
             )],
-            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
+            vec![BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned(
+                "entity:0:4:2",
+            )],
             vec![7],
         )
     }
@@ -92,12 +95,12 @@ impl ContinuityLineageSource for TestSplitContinuityLineageSource {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
             vec![
-                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-split-a"),
-                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-split-b"),
+                BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:test-split-a"),
+                BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:test-split-b"),
             ],
             vec![
-                BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
-                BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+                BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
+                BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:5:2"),
             ],
             vec![7, 8],
         )
@@ -115,10 +118,12 @@ impl ContinuityLineageSource for TestMergeLikeContinuityLineageSource {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
             vec![
-                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-merge-a"),
-                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-merge-b"),
+                BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:test-merge-a"),
+                BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:test-merge-b"),
             ],
-            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:9:3")],
+            vec![BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned(
+                "entity:0:9:3",
+            )],
             vec![7, 8],
         )
     }
@@ -135,13 +140,19 @@ impl ContinuityLineageSource for TestAmbiguousContinuityLineageSource {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
             vec![
-                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-ambiguous-a"),
-                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-ambiguous-b"),
-                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-ambiguous-c"),
+                BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned(
+                    "lineage:test-ambiguous-a",
+                ),
+                BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned(
+                    "lineage:test-ambiguous-b",
+                ),
+                BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned(
+                    "lineage:test-ambiguous-c",
+                ),
             ],
             vec![
-                BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
-                BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+                BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
+                BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:5:2"),
             ],
             vec![7, 8, 9],
         )
@@ -190,10 +201,12 @@ impl ContinuityLineageSource for CountingContinuityLineageSource {
         self.call_count.fetch_add(1, Ordering::SeqCst);
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            vec![BridgeHistoricalResolvedLineageIdentity::new(
+            vec![BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned(
                 "lineage:test-successor",
             )],
-            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
+            vec![BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned(
+                "entity:0:4:2",
+            )],
             vec![7],
         )
     }

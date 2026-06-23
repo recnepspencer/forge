@@ -22,7 +22,7 @@ pub(super) fn local_rewire_parity_artifact(
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
         .expect("sheet disk should expose successor source");
     let local_rewire = topology_read
-        .local_rewire_neighborhood(&mut workspace, &moved_identity, 6)
+        .local_rewire_neighborhood(&mut workspace, &moved_identity, 4)
         .expect("local rewire neighborhood should load");
     build_topology_read_view_parity_artifact(
         read_basis,

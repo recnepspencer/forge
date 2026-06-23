@@ -148,11 +148,11 @@ impl ForgeQueryMutationSurfaceReport {
             ),
             ForgeQueryMutationSurfaceRow::new(
                 "authoritative-batch",
-                "workspace.batch(...)",
+                "workspace.submissions()?.submit_batch(commands)",
                 ForgeQueryMutationSurfacePosture::PreferredStable,
                 true,
                 None::<String>,
-                "preferred ordered multi-mutation path",
+                "preferred explicit submission lane for ordered multi-mutation commands",
             ),
             ForgeQueryMutationSurfaceRow::new(
                 "preview-insert",
@@ -185,14 +185,6 @@ impl ForgeQueryMutationSurfaceReport {
                 true,
                 None::<String>,
                 "preferred preview-local ordered multi-mutation path",
-            ),
-            ForgeQueryMutationSurfaceRow::new(
-                "direct-write-lower-level",
-                "workspace.write(...)",
-                ForgeQueryMutationSurfacePosture::LowerLevelStable,
-                false,
-                Some("workspace.insert/update/delete/batch"),
-                "stable lower-level expert seam for command-shaped runtime mutation; ordinary runtime code should prefer workspace.insert/update/delete/batch",
             ),
             ForgeQueryMutationSurfaceRow::new(
                 "aspect-insert-command",
@@ -265,7 +257,12 @@ impl ForgeQueryMutationSurfaceReport {
         let mut parts = vec![
             "forge_query_mutation_surface_report_v1".to_string(),
             format!("posture:{}", backend_posture.as_str()),
-            format!("support_matrix:{}", support_matrix.matrix_digest()),
+            format!(
+                "support_matrix:{}",
+                support_matrix
+                    .matrix_digest()
+                    .terminal_projection_for_reporting()
+            ),
             format!("naming_contract:{}", naming_contract.contract_digest()),
             format!("preferred:{preferred_stable_count}"),
             format!("lower_level:{lower_level_stable_count}"),
@@ -275,7 +272,10 @@ impl ForgeQueryMutationSurfaceReport {
         let report_digest = hash_parts(&parts);
         Self {
             backend_posture,
-            support_matrix_digest: support_matrix.matrix_digest().to_string(),
+            support_matrix_digest: support_matrix
+                .matrix_digest()
+                .terminal_projection_for_reporting()
+                .to_string(),
             naming_contract_digest: naming_contract.contract_digest().to_string(),
             rows,
             preferred_stable_count,

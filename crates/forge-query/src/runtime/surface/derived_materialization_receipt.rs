@@ -1,4 +1,5 @@
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::{
     ForgeQueryComputedInspectionEvidence, ForgeQueryIntentConsumerInspection,
     ForgeQueryIntentExecutionProvenance,
@@ -10,7 +11,8 @@ pub struct ForgeQueryDerivedMaterializationReceipt {
     dependency_digest: String,
     materialization_digest: String,
     inspection_digest: String,
-    snapshot_token: String,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
+    snapshot_evidence_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
     row_count: usize,
     pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
@@ -19,14 +21,16 @@ pub struct ForgeQueryDerivedMaterializationReceipt {
 impl ForgeQueryDerivedMaterializationReceipt {
     pub(in crate::runtime) fn from_evidence(
         evidence: &ForgeQueryComputedInspectionEvidence,
-        snapshot_token: String,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
     ) -> Self {
+        let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         Self {
             view_name: evidence.name().to_string(),
             dependency_digest: evidence.dependency_digest().to_string(),
             materialization_digest: evidence.materialization_digest().to_string(),
             inspection_digest: evidence.inspection_digest().to_string(),
-            snapshot_token,
+            snapshot_identity,
+            snapshot_evidence_identity,
             row_count: evidence.materialized_row_count(),
             decision_trace_envelope: None,
             execution_provenance: None,
@@ -53,8 +57,14 @@ impl ForgeQueryDerivedMaterializationReceipt {
         &self.inspection_digest
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        &self.snapshot_token
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.snapshot_identity
+    }
+
+    pub fn snapshot_evidence_identity(
+        &self,
+    ) -> &crate::evidence_identity::ForgeQueryEvidenceIdentity {
+        &self.snapshot_evidence_identity
     }
 
     pub fn row_count(&self) -> usize {
@@ -76,15 +86,17 @@ impl ForgeQueryDerivedMaterializationReceipt {
     #[cfg(test)]
     pub(crate) fn test_only(
         view_name: impl Into<String>,
-        snapshot_token: impl Into<String>,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
         result_digest: impl Into<String>,
     ) -> Self {
+        let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         Self {
             view_name: view_name.into(),
             dependency_digest: "dependency:test".to_string(),
             materialization_digest: result_digest.into(),
             inspection_digest: "inspection:test".to_string(),
-            snapshot_token: snapshot_token.into(),
+            snapshot_identity,
+            snapshot_evidence_identity,
             row_count: 1,
             decision_trace_envelope: None,
             execution_provenance: None,

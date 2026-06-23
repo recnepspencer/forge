@@ -6,12 +6,15 @@ use super::basis::{
 };
 use super::comparison::{AdmittedDiffQueryContext, QueryDiffChangeSetArtifact};
 use super::execution::QueryContextExecutionArtifact;
+use super::identity::{
+    compose_query_basis_counter_snapshot_digest, compose_query_basis_replay_digest,
+    compose_query_diff_counter_snapshot_digest, compose_query_diff_replay_digest,
+};
 use super::performance::{
     HistoricalMaterializationCostClass, QueryContextBudgetClass, QueryContextCostClass,
     QueryContextCounters, QueryContextPredictionDriftOutcome, QueryContextPredictionReport,
 };
 use crate::basis::BasisAuthorityFamily;
-use crate::identity::hash_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryBasisMetadata {
@@ -293,47 +296,13 @@ pub fn build_query_basis_result_bundle(
     execution: QueryContextExecutionArtifact,
 ) -> Result<QueryBasisResultBundle, QueryContextAdmissionError> {
     let metadata = attach_query_basis_metadata(context, &execution)?;
-    let replay_digest = hash_parts(&[
-        format!("query:{}", context.query_digest()),
-        format!("basis:{}", context.basis_digest()),
-        format!("family:{}", context.family().as_str()),
-        format!("result:{}", execution.result_digest()),
-        format!("metadata_result:{}", metadata.result_digest()),
-        format!(
-            "prediction:{}",
-            metadata
-                .prediction_drift_outcome()
-                .map(QueryContextPredictionDriftOutcome::as_str)
-                .unwrap_or("none")
-        ),
-    ]);
-    let counter_snapshot_digest = hash_parts(&[
-        format!(
-            "binding_count:{}",
-            context.counters().query_basis_binding_count()
-        ),
-        format!(
-            "historical_lookup:{}",
-            context.counters().historical_basis_lookup_count()
-        ),
-        format!("binding_width:{}", context.counters().basis_binding_width()),
-        format!(
-            "historical_width:{}",
-            context.counters().historical_lookup_width()
-        ),
-        format!(
-            "execution_count:{}",
-            execution.counters().context_execution_count()
-        ),
-        format!(
-            "materialized_rows:{}",
-            execution.counters().materialized_row_count()
-        ),
-        format!(
-            "result_shape_width:{}",
-            execution.counters().result_shape_width()
-        ),
-    ]);
+    let replay_digest = compose_query_basis_replay_digest(
+        context,
+        execution.result_digest(),
+        metadata.result_digest(),
+        metadata.prediction_drift_outcome(),
+    );
+    let counter_snapshot_digest = compose_query_basis_counter_snapshot_digest(context, &execution);
 
     Ok(QueryBasisResultBundle {
         context: context.clone(),
@@ -413,40 +382,12 @@ pub fn build_query_diff_result_bundle(
     right_result: &QueryContextExecutionArtifact,
 ) -> Result<QueryDiffResultBundle, QueryContextAdmissionError> {
     let metadata = attach_diff_query_metadata(context, left_result, right_result, &change_set)?;
-    let replay_digest = hash_parts(&[
-        format!("query:{}", context.left().query_digest()),
-        format!("comparison_family:{}", context.family().as_str()),
-        format!("left_basis:{}", context.left().basis_digest()),
-        format!("right_basis:{}", context.right().basis_digest()),
-        format!("comparison_result:{}", change_set.result_digest()),
-        format!(
-            "prediction:{}",
-            change_set.prediction_drift_outcome().as_str()
-        ),
-    ]);
-    let counter_snapshot_digest = hash_parts(&[
-        format!(
-            "comparison_lookups:{}",
-            context.counters().comparison_basis_lookup_count()
-        ),
-        format!(
-            "comparison_scope_width:{}",
-            context.counters().comparison_scope_width()
-        ),
-        format!(
-            "comparison_row_width:{}",
-            context.counters().comparison_row_width()
-        ),
-        format!(
-            "diff_input_breadth:{}",
-            context.counters().diff_input_breadth()
-        ),
-        format!(
-            "comparison_broadening_denials:{}",
-            context.counters().comparison_broadening_denial_count()
-        ),
-        format!("change_rows:{}", change_set.rows().len()),
-    ]);
+    let replay_digest = compose_query_diff_replay_digest(
+        context,
+        change_set.result_digest(),
+        change_set.prediction_drift_outcome(),
+    );
+    let counter_snapshot_digest = compose_query_diff_counter_snapshot_digest(context, &change_set);
 
     Ok(QueryDiffResultBundle {
         context: context.clone(),

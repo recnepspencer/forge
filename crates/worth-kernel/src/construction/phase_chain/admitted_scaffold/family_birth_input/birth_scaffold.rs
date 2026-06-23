@@ -2,17 +2,13 @@ use super::super::super::request::{
     primitive_construction_topology_birth_class, PrimitiveConstructionFamily,
     PrimitiveConstructionPhaseError,
 };
-#[cfg(test)]
 use super::super::birth_proof_support::{
     materialize_primitive_construction_birth_proof_support,
     PrimitiveConstructionAdmittedBirthProofSupport,
 };
-#[cfg(test)]
 use super::super::PrimitiveConstructionAdmittedBirthTopologyTruth;
 use super::super::PrimitiveConstructionAdmittedRealizationPosture;
-#[cfg(test)]
 use super::error_mapping::map_placement_geometry;
-#[cfg(test)]
 use super::lower_layer_family_translation::to_lower_layer_birth_family;
 use super::topology_counts::PrimitiveConstructionTopologyCounts;
 use super::PrimitiveConstructionAdmittedBirthInput;
@@ -87,15 +83,6 @@ pub(super) fn lower_family_birth_scaffold_plan(
         realization,
         topology_counts,
     } = scaffold_plan;
-    #[cfg(not(test))]
-    let _ = (
-        &intent_digest,
-        &placement_spec,
-        &family,
-        &birth_contract,
-        &topology_counts,
-    );
-    #[cfg(test)]
     let birth_proof_support = match &realization {
         PrimitiveConstructionBirthScaffoldRealizationPlan::SupportReport(report) => {
             materialize_primitive_construction_birth_proof_support(
@@ -140,7 +127,6 @@ pub(super) fn lower_family_birth_scaffold_plan(
     }
     .map_err(map_placement_geometry)?;
     Ok(PrimitiveConstructionAdmittedBirthInput {
-        #[cfg(test)]
         birth_topology_truth: birth_topology_truth_from_proof_support(
             family,
             birth_contract,
@@ -151,14 +137,11 @@ pub(super) fn lower_family_birth_scaffold_plan(
             &realization,
             &local_vertices,
             &support_planes,
-            #[cfg(test)]
             birth_proof_support.realization_fact_digest().to_string(),
-            #[cfg(test)]
             birth_proof_support
                 .realization_geometry_digest()
                 .to_string(),
         ),
-        #[cfg(test)]
         placement_facts: birth_proof_support.placement_facts(),
     })
 }
@@ -167,16 +150,14 @@ fn realization_posture_from_plan(
     realization: &PrimitiveConstructionBirthScaffoldRealizationPlan,
     local_vertices: &[[f64; 3]],
     support_planes: &[Plane],
-    #[cfg(test)] realization_digest: String,
-    #[cfg(test)] realization_geometry_digest: String,
+    realization_digest: String,
+    realization_geometry_digest: String,
 ) -> PrimitiveConstructionAdmittedRealizationPosture {
     match realization {
         PrimitiveConstructionBirthScaffoldRealizationPlan::SupportReport(report) => {
             realization_posture_from_report(
                 report.clone(),
-                #[cfg(test)]
                 realization_digest,
-                #[cfg(test)]
                 realization_geometry_digest,
             )
         }
@@ -187,16 +168,13 @@ fn realization_posture_from_plan(
                     local_vertices,
                     support_planes,
                 ),
-                #[cfg(test)]
                 realization_digest,
-                #[cfg(test)]
                 realization_geometry_digest,
             )
         }
     }
 }
 
-#[cfg(test)]
 fn birth_topology_truth_from_proof_support(
     family: PrimitiveConstructionFamily,
     birth_contract: PrimitiveConstructionBirthSynopsisContract,
@@ -223,17 +201,15 @@ fn birth_topology_truth_from_proof_support(
 
 fn realization_posture_from_report(
     realization_posture: PrimitiveRealizationReport,
-    #[cfg(test)] realization_digest: String,
-    #[cfg(test)] realization_geometry_digest: String,
+    realization_digest: String,
+    realization_geometry_digest: String,
 ) -> PrimitiveConstructionAdmittedRealizationPosture {
     PrimitiveConstructionAdmittedRealizationPosture {
         selected_strategy: realization_posture.strategy(),
         attempted_strategies: realization_posture.attempted_strategies().to_vec(),
         conditioning_witness: realization_posture.conditioning_witness().clone(),
         stability_class: realization_posture.stability_class(),
-        #[cfg(test)]
         realization_digest,
-        #[cfg(test)]
         realization_geometry_digest,
     }
 }

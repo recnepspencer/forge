@@ -1,16 +1,20 @@
 use super::ForgeQueryWriteReceipt;
-use crate::memory_workspace::{ForgeQueryMutationDelta, ForgeQueryMutationReceipt};
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::memory_workspace::{
+    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQueryMutationDelta,
+    ForgeQueryMutationReceipt, ForgeQuerySnapshotIdentity,
+};
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAuthorityLane,
     ForgeQueryContinuityMutationEvidence, ForgeQueryIntentConsumerInspection,
-    ForgeQueryMutationCausalityEvidence, ForgeQueryMutationFamily,
+    ForgeQueryJournalPosition, ForgeQueryMutationCausalityEvidence, ForgeQueryMutationFamily,
     ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetEvidence,
     ForgeQueryNamingMutationEvidence, ForgeQuerySymbolicAspectResolutionEvidence,
     ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceEvidence,
 };
 
 impl ForgeQueryWriteReceipt {
-    pub fn commit_identity(&self) -> &str {
+    pub fn commit_identity(&self) -> &ForgeQueryCommitIdentity {
         &self.inner.commit_identity
     }
 
@@ -18,8 +22,24 @@ impl ForgeQueryWriteReceipt {
         self.mutation_family
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        &self.inner.snapshot_token
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.inner.snapshot_identity
+    }
+
+    pub fn commit_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.commit_evidence_identity
+    }
+
+    pub fn committed_truth_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.committed_truth_identity
+    }
+
+    pub fn journal_position(&self) -> &ForgeQueryJournalPosition {
+        &self.journal_position
+    }
+
+    pub fn snapshot_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.snapshot_evidence_identity
     }
 
     pub fn authority_lane(&self) -> ForgeQueryAuthorityLane {
@@ -94,8 +114,8 @@ impl ForgeQueryWriteReceipt {
         self.declared_collection.as_deref()
     }
 
-    pub fn declared_entity_identity(&self) -> Option<&str> {
-        self.declared_entity_identity.as_deref()
+    pub fn declared_entity_identity(&self) -> Option<&ForgeQueryEntityIdentity> {
+        self.declared_entity_identity.as_ref()
     }
 
     pub fn target_collection(&self) -> Option<&str> {
@@ -104,10 +124,10 @@ impl ForgeQueryWriteReceipt {
             .or(self.declared_collection.as_deref())
     }
 
-    pub fn target_entity_identity(&self) -> Option<&str> {
+    pub fn target_entity_identity(&self) -> Option<&ForgeQueryEntityIdentity> {
         self.target_entity_identity
-            .as_deref()
-            .or(self.declared_entity_identity.as_deref())
+            .as_ref()
+            .or(self.declared_entity_identity.as_ref())
     }
 
     pub fn declared_aspect_operations(&self) -> &[ForgeQueryAspectMutationOperation] {
@@ -115,7 +135,15 @@ impl ForgeQueryWriteReceipt {
     }
 
     pub fn declared_aspect_value_digest(&self) -> Option<&str> {
-        self.declared_aspect_value_digest.as_deref()
+        self.declared_aspect_value_digest
+            .as_ref()
+            .map(crate::evidence_identity::ForgeQueryEvidenceIdentity::as_str)
+    }
+
+    pub(in crate::runtime) fn declared_aspect_value_identity(
+        &self,
+    ) -> Option<&crate::evidence_identity::ForgeQueryEvidenceIdentity> {
+        self.declared_aspect_value_digest.as_ref()
     }
 
     pub fn mutation_metadata(&self) -> &crate::runtime::ForgeQueryMutationMetadata {
@@ -190,6 +218,36 @@ impl ForgeQueryWriteReceipt {
         self.execution_provenance.as_ref()
     }
 
+    pub fn obligation_dispatch(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch> {
+        self.obligation_dispatch.as_ref()
+    }
+
+    pub fn graph_obligation_evidence(
+        &self,
+    ) -> Option<crate::runtime::ForgeQueryGraphObligationAttachmentEvidence> {
+        self.obligation_dispatch
+            .as_ref()
+            .map(|dispatch| dispatch.attachment_evidence())
+    }
+
+    pub fn graph_obligation_envelope_digest(&self) -> Option<&str> {
+        self.obligation_dispatch
+            .as_ref()
+            .and_then(|dispatch| dispatch.envelope_digest())
+    }
+
+    pub(in crate::runtime) fn with_obligation_dispatch(
+        mut self,
+        obligation_dispatch: Option<
+            crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch,
+        >,
+    ) -> Self {
+        self.obligation_dispatch = obligation_dispatch;
+        self
+    }
+
     pub fn execution_provenance_chain_digest(&self) -> Option<&str> {
         self.execution_provenance.as_ref().map(
             crate::runtime::ForgeQueryIntentExecutionProvenance::execution_provenance_chain_digest,
@@ -202,7 +260,7 @@ impl ForgeQueryWriteReceipt {
             .zip(self.execution_provenance.as_ref())
             .map(|(decision_trace_envelope, execution_provenance)| {
                 ForgeQueryIntentConsumerInspection::from_mutation_receipt(
-                    self.commit_identity(),
+                    "mutation-write",
                     execution_provenance,
                     decision_trace_envelope,
                 )
@@ -216,10 +274,9 @@ impl ForgeQueryWriteReceipt {
     pub(in crate::runtime) fn with_symbolic_target_reference(
         mut self,
         reference: &ForgeQuerySymbolicTargetReference,
-        resolved_entity_identity: impl Into<String>,
+        resolved_entity_identity: ForgeQueryEntityIdentity,
         resolved_collection: Option<String>,
     ) -> Self {
-        let resolved_entity_identity = resolved_entity_identity.into();
         self.symbolic_target_reference_evidence =
             Some(ForgeQuerySymbolicTargetReferenceEvidence::from_reference(
                 reference,
@@ -232,29 +289,44 @@ impl ForgeQueryWriteReceipt {
 
     #[cfg(test)]
     pub(crate) fn test_only(
-        commit_identity: &str,
-        snapshot_token: &str,
+        commit_identity: ForgeQueryCommitIdentity,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
         target_class: crate::runtime::ForgeQueryMutationTargetClass,
         target_collection: Option<&str>,
-        target_entity_identity: Option<&str>,
+        target_entity_identity: Option<ForgeQueryEntityIdentity>,
         provenance_execution_record_digest: Option<&str>,
         symbolic_target_symbol: Option<&str>,
         continuity: Option<crate::runtime::ForgeQueryContinuityMutationEvidence>,
     ) -> Self {
+        let commit_evidence_identity =
+            super::write_receipt_commit_evidence_identity(&commit_identity);
+        let committed_truth_identity = super::write_receipt_committed_truth_identity(
+            &ForgeQueryMutationReceipt::from_authoritative_parts(
+                commit_identity.clone(),
+                snapshot_identity.clone(),
+                Vec::new(),
+            ),
+        );
+        let journal_position = ForgeQueryJournalPosition::from_commit_identity(&commit_identity);
+        let snapshot_evidence_identity =
+            super::write_receipt_snapshot_evidence_identity(&snapshot_identity);
         Self {
-            inner: ForgeQueryMutationReceipt {
-                commit_identity: commit_identity.to_string(),
-                snapshot_token: snapshot_token.to_string(),
-                deltas: Vec::new(),
-                bridge_authority: None,
-            },
+            inner: ForgeQueryMutationReceipt::from_authoritative_parts(
+                commit_identity,
+                snapshot_identity,
+                Vec::new(),
+            ),
+            commit_evidence_identity,
+            committed_truth_identity,
+            journal_position,
+            snapshot_evidence_identity,
             mutation_family: ForgeQueryMutationFamily::Update,
             authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
             basis_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
             target_evidence: ForgeQueryMutationTargetEvidence::test_only(
                 target_class,
                 target_collection,
-                target_entity_identity,
+                target_entity_identity.clone(),
             ),
             causality_evidence: None,
             existing_truth_assertion_evidence: None,
@@ -262,7 +334,9 @@ impl ForgeQueryWriteReceipt {
             symbolic_target_reference_evidence: symbolic_target_symbol.map(|symbol| {
                 ForgeQuerySymbolicTargetReferenceEvidence::test_only(
                     symbol,
-                    target_entity_identity.unwrap_or("resolved-target:test"),
+                    target_entity_identity.clone().unwrap_or_else(|| {
+                        crate::memory_workspace::admit_authored_entity_label("resolved-target:test")
+                    }),
                     target_collection,
                 )
             }),
@@ -272,9 +346,9 @@ impl ForgeQueryWriteReceipt {
             provenance_evidence: provenance_execution_record_digest
                 .map(ForgeQueryMutationProvenanceEvidence::test_only),
             declared_collection: target_collection.map(str::to_string),
-            declared_entity_identity: target_entity_identity.map(str::to_string),
+            declared_entity_identity: target_entity_identity.clone(),
             target_collection: target_collection.map(str::to_string),
-            target_entity_identity: target_entity_identity.map(str::to_string),
+            target_entity_identity,
             declared_aspect_operations: Vec::new(),
             declared_aspect_value_digest: None,
             mutation_metadata: crate::runtime::ForgeQueryMutationMetadata::new(),
@@ -290,6 +364,7 @@ impl ForgeQueryWriteReceipt {
             refresh_fallback: false,
             decision_trace_envelope: None,
             execution_provenance: None,
+            obligation_dispatch: None,
         }
     }
 }

@@ -1,3 +1,4 @@
+use super::runtime_inspection_materialization_identity::bundle_snapshot_identity;
 use super::*;
 use crate::intent_admission::dx::{
     non_admitted_runtime_violation, ForgeQueryRuntimeIntentAdmissionReviewData,
@@ -47,9 +48,9 @@ impl ForgeQueryWorkspace {
             let result = self.materialize_derived_view_by_name(target.view_name().to_string())?;
             materializations.insert(target.view_name().to_string(), result);
         }
-        let snapshot_token = bundle_snapshot_token(&materializations)?;
+        let snapshot_identity = bundle_snapshot_identity(&materializations)?;
         Ok(ForgeQueryDerivedMaterializationBundle::new(
-            snapshot_token,
+            snapshot_identity,
             materializations,
         ))
     }
@@ -163,45 +164,6 @@ impl ForgeQueryWorkspace {
     }
 }
 
-fn bundle_snapshot_token(
-    materializations: &BTreeMap<String, ForgeQueryDerivedMaterializationResult>,
-) -> Result<String, ForgeQueryRuntimeError> {
-    let snapshot_tokens = materializations
-        .iter()
-        .map(|(view_name, result)| {
-            (
-                view_name.as_str(),
-                result.receipt().snapshot_token().to_string(),
-            )
-        })
-        .collect::<Vec<_>>();
-    let distinct_snapshot_tokens = snapshot_tokens
-        .iter()
-        .map(|(_, snapshot_token)| snapshot_token.as_str())
-        .collect::<std::collections::BTreeSet<_>>();
-    match snapshot_tokens.as_slice() {
-        [] => Ok(String::new()),
-        [(_, snapshot_token)] if distinct_snapshot_tokens.len() == 1 => Ok(snapshot_token.clone()),
-        _ if distinct_snapshot_tokens.len() == 1 => Ok(snapshot_tokens[0].1.clone()),
-        _ => Err(ForgeQueryRuntimeError::RetainedRowDecode {
-            view_name: materializations
-                .keys()
-                .cloned()
-                .collect::<Vec<_>>()
-                .join("|"),
-            stage: "derived-materialization-bundle",
-            message: format!(
-                "bundle materialized multiple snapshot tokens: {}",
-                snapshot_tokens
-                    .iter()
-                    .map(|(view_name, snapshot_token)| format!("{view_name}:{snapshot_token}"))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
-        }),
-    }
-}
-
 impl ForgeQueryRuntime {
     pub(crate) fn review_runtime_derived_materialization(
         &self,
@@ -305,9 +267,10 @@ impl ForgeQueryRuntime {
             .ok_or_else(|| {
                 ForgeQueryRuntimeError::MissingDerivedView(binding.view_name().to_string())
             })?;
+        let snapshot_identity = self.current_snapshot_identity();
         let receipt = ForgeQueryDerivedMaterializationReceipt::from_evidence(
             &evidence,
-            self.backend.snapshot_token(),
+            snapshot_identity.clone(),
         );
         let mut result = ForgeQueryDerivedMaterializationResult::new(rows, receipt);
         let decision_trace_envelope =
@@ -324,16 +287,18 @@ impl ForgeQueryRuntime {
                 result.receipt().result_digest(),
                 "derived-view-materialization",
             );
-        let execution_provenance = ForgeQueryIntentExecutionProvenance::for_shared_execution_parts(
-            binding.family(),
-            binding.entrypoint(),
-            binding.execution_seam(),
-            binding.handoff().decision_digest(),
-            binding.handoff().handoff_digest(),
-            binding.binding_digest(),
-            result.receipt().result_digest(),
-            result.receipt().snapshot_token(),
-        );
+        let snapshot_evidence_identity = snapshot_identity.evidence_identity();
+        let execution_provenance =
+            ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+                binding.family(),
+                binding.entrypoint(),
+                binding.execution_seam(),
+                binding.handoff().decision_digest(),
+                binding.handoff().handoff_digest(),
+                binding.binding_digest(),
+                result.receipt().result_digest(),
+                &snapshot_evidence_identity,
+            );
         result.attach_intent_admission_evidence(decision_trace_envelope, execution_provenance);
         Ok(result)
     }
@@ -343,10 +308,9 @@ impl ForgeQueryRuntime {
         binding: ForgeQueryDerivedInspectionExecutionBinding,
     ) -> Result<ForgeQueryDerivedInspectionResult, ForgeQueryRuntimeError> {
         let evidence = self.derived_view_evidence(binding.view_name())?;
-        let receipt = ForgeQueryDerivedInspectionReceipt::from_evidence(
-            &evidence,
-            self.backend.snapshot_token(),
-        );
+        let snapshot_identity = self.current_snapshot_identity();
+        let receipt =
+            ForgeQueryDerivedInspectionReceipt::from_evidence(&evidence, snapshot_identity.clone());
         let mut result = ForgeQueryDerivedInspectionResult::new(evidence, receipt);
         let decision_trace_envelope =
             ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
@@ -362,16 +326,18 @@ impl ForgeQueryRuntime {
                 result.receipt().result_digest(),
                 "derived-view-inspection",
             );
-        let execution_provenance = ForgeQueryIntentExecutionProvenance::for_shared_execution_parts(
-            binding.family(),
-            binding.entrypoint(),
-            binding.execution_seam(),
-            binding.handoff().decision_digest(),
-            binding.handoff().handoff_digest(),
-            binding.binding_digest(),
-            result.receipt().result_digest(),
-            result.receipt().snapshot_token(),
-        );
+        let snapshot_evidence_identity = snapshot_identity.evidence_identity();
+        let execution_provenance =
+            ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+                binding.family(),
+                binding.entrypoint(),
+                binding.execution_seam(),
+                binding.handoff().decision_digest(),
+                binding.handoff().handoff_digest(),
+                binding.binding_digest(),
+                result.receipt().result_digest(),
+                &snapshot_evidence_identity,
+            );
         result.attach_intent_admission_evidence(decision_trace_envelope, execution_provenance);
         Ok(result)
     }

@@ -12,14 +12,27 @@ use forge_relational::facade::runtime::{
 use super::shared::RuntimeTopologyGraph;
 use super::shared_queries::{kind_name, naming_relation_kind};
 
-pub fn registration() -> Result<
+pub(super) fn graph_composition_registration() -> Result<
     CustomInvariantRegistration,
     forge_relational::facade::runtime::CustomInvariantRegistrationError,
 > {
-    CustomInvariantRegistration::new(NamingCoverageRule)
+    CustomInvariantRegistration::new(NamingCoverageRule {
+        execution_point: InvariantExecutionPoint::GraphComposition,
+    })
 }
 
-struct NamingCoverageRule;
+pub(super) fn commit_backstop_registration() -> Result<
+    CustomInvariantRegistration,
+    forge_relational::facade::runtime::CustomInvariantRegistrationError,
+> {
+    CustomInvariantRegistration::new(NamingCoverageRule {
+        execution_point: InvariantExecutionPoint::CommitBoundary,
+    })
+}
+
+struct NamingCoverageRule {
+    execution_point: InvariantExecutionPoint,
+}
 
 impl CustomInvariantRule for NamingCoverageRule {
     type Scope = RuntimeTopologyGraph;
@@ -34,7 +47,7 @@ impl CustomInvariantRule for NamingCoverageRule {
             },
             display_name: Arc::from(" Milestone 1 Naming Coverage"),
             operational: CustomInvariantOperationalMetadata {
-                execution_point: InvariantExecutionPoint::CommitBoundary,
+                execution_point: self.execution_point,
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
                 cost_class: InvariantCostClass::Touched,
                 failure_effect: InvariantFailureEffect::BlockCommit,

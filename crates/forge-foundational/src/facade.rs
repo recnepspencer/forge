@@ -368,7 +368,17 @@ pub use crate::diagnostics::{
     FoundationalSupportReportArtifactKind,
 };
 pub use crate::identities::{
+    admit_foundational_authority_identity, admit_foundational_external_identity_token,
+    admitted_foundational_identity_value, derive_foundational_digest_identity_evidence,
+    project_foundational_identity, readmit_foundational_authority_identity,
+    readmit_revalidated_foundational_authority_identity, revalidated_foundational_identity_value,
     BoundaryArtifactId, BoundaryEpoch, BoundaryHandle, CanonicalDigestId, EquivalenceBasisId,
+    FoundationalAdmittedIdentityValue, FoundationalAuthorityIdentity,
+    FoundationalBoundaryBridgedIdentity, FoundationalDigestIdentityEvidence,
+    FoundationalExternalIdentityToken, FoundationalIdentityBasis,
+    FoundationalIdentityDigestDerivationEvidence, FoundationalIdentityKind,
+    FoundationalIdentityProjectionEvidence, FoundationalProjectionIdentity,
+    FoundationalRevalidatedIdentityValue,
 };
 pub use crate::locators::{
     AspectContractLocator, AspectFieldLocator, AspectLocator, AspectMaskLocator,

@@ -288,7 +288,10 @@ fn bundle(
             "lane:async-resource-state".to_string(),
         ]),
         inspection_contract_digest: transcript_evidence.inspection_digest().to_string(),
-        support_matrix_digest: support_matrix.matrix_digest().to_string(),
+        support_matrix_digest: support_matrix
+            .matrix_digest()
+            .terminal_projection_for_reporting()
+            .to_string(),
         deferred_temporal_async_gate_digest: deferred_gate_digest(&contract),
         failure_digest: "none".to_string(),
         counter_snapshot: format!(

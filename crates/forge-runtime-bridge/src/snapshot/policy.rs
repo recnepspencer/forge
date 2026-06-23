@@ -232,19 +232,19 @@ mod tests {
         TruthViewPolicyRejectionKind, TruthViewReplayContinuity, TruthViewRetentionAdmission,
         TruthViewSourceCapability,
     };
-    use crate::input::envelope::TruthBranchIdentity;
+
     use crate::policy::BridgeDiagnosticsTier;
     use crate::snapshot::{
         BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewSelector,
-        HistoricalEvaluationDeclaration, TruthSnapshotIdentity,
+        HistoricalEvaluationDeclaration,
     };
 
     #[test]
     fn admitted_policy_is_canonical_for_same_inputs() {
         let declaration = HistoricalEvaluationDeclaration::new(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeReplayMode::Enabled,
             BridgeDiagnosticsTier::Standard,
@@ -281,7 +281,9 @@ mod tests {
     #[test]
     fn rejection_preserves_declaration_identity() {
         let declaration = HistoricalEvaluationDeclaration::new(
-            BridgeTruthViewSelector::branch_head(TruthBranchIdentity::new("analysis")),
+            BridgeTruthViewSelector::branch_head(
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            ),
             BridgeReplayMode::Required,
             BridgeDiagnosticsTier::Exhaustive,
             BridgeDeliveryIntent::PrepareOnly,

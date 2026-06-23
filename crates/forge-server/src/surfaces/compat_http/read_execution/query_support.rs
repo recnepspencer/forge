@@ -2,9 +2,9 @@ use forge_proof::TransitionOutcome;
 
 use crate::{
     ForgeServerAdmittedDirectDeclaration, ForgeServerCompatibilityFacade,
-    ForgeServerCompatibilityPreparedRequest, ForgeServerQueryHandoffDenial,
-    ForgeServerQueryHandoffFailure, ForgeServerQueryHandoffInput, ForgeServerQueryHandoffOperation,
-    ForgeServerReadValidator,
+    ForgeServerCompatibilityPreparedRequest, ForgeServerLoweredOperationPlan,
+    ForgeServerOperationPlanner, ForgeServerOperationPlannerInput, ForgeServerQueryHandoffDenial,
+    ForgeServerQueryHandoffFailure, ForgeServerQueryHandoffOperation, ForgeServerReadValidator,
 };
 
 use super::{
@@ -33,17 +33,20 @@ pub(super) fn admitted_named_read_declaration(
     )
 }
 
-pub(super) fn compatibility_handoff(
+pub(super) fn compatibility_plan(
     facade: &ForgeServerCompatibilityFacade,
-    prepared_request: &ForgeServerCompatibilityPreparedRequest,
+    operation_admission: crate::ForgeServerOperationAdmissionPosture,
     operation: ForgeServerQueryHandoffOperation,
-) -> crate::ForgeServerQueryHandoffOutcome {
-    facade
-        .query_handoff
-        .prepare(ForgeServerQueryHandoffInput::new(
-            prepared_request.admission().clone(),
-            operation,
-        ))
+) -> Result<ForgeServerLoweredOperationPlan, ForgeServerQueryHandoffDenial> {
+    ForgeServerOperationPlanner::with_operation_registry(
+        facade.query_handoff.config().clone(),
+        facade.operation_registry.clone(),
+    )
+    .lower(ForgeServerOperationPlannerInput::new(
+        operation_admission,
+        operation,
+    ))
+    .map_err(crate::ForgeServerOperationPlanDenial::into_query_handoff_denial)
 }
 
 pub(super) fn validate_conditional_read(
@@ -64,7 +67,10 @@ pub(super) fn validate_conditional_read(
         if expected == validator.entity_tag() {
             return Err(crate::ForgeServerQueryHandoffDenial::new(
                 crate::ForgeServerQueryHandoffDenialCode::CompatibilityConditionalReadNotModified,
-                prepared_request.admission().request_context().diagnostics_profile(),
+                prepared_request
+                    .admission()
+                    .request_context()
+                    .diagnostics_profile(),
                 "compatibility if-none-match validator already matches the canonical read validator",
             ));
         }

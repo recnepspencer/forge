@@ -24,12 +24,12 @@ use crate::domain_capabilities::certification::{
     forge_query_domain_capability_compile_fail_boundary_digest,
     forge_query_domain_capability_public_surface_inventory,
 };
+use crate::domain_capabilities::identity::compose_canonical_runtime_materialization_digest;
 use crate::domain_capabilities::{
     admit_eligible_domain_capability_contribution,
     evaluate_requested_domain_capability_contribution, forge_query_domain,
     ForgeQuerySupportContributionAuthoring,
 };
-use crate::identity::hash_parts;
 use crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData;
 use crate::intent_admission::ForgeQueryIntentAdmissionCoveredEntrypoint;
 use forge_relational::facade::runtime::InvariantCatalog;
@@ -131,11 +131,11 @@ pub fn forge_query_domain_capability_representative_report(
     let support_eligible = success(evaluate_requested_domain_capability_contribution(
         support_requested,
     ));
-    let eligibility_digest = support_eligible.eligibility_digest();
+    let eligibility_digest = support_eligible.eligibility_for_reporting();
     let support_admitted = success(admit_eligible_domain_capability_contribution(
         support_eligible,
     ));
-    let admitted_digest = support_admitted.admitted_digest();
+    let admitted_digest = support_admitted.admitted_for_reporting();
 
     let support_artifact = success(
         materialize_intent_declaration_support_traceability_artifact(admitted_ready(
@@ -179,7 +179,7 @@ pub fn forge_query_domain_capability_representative_report(
         .for_intent(&declaration)
         .plans_preview_mutation(
             "workflow.preview_mutation",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new(
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
                 "preview-session:certification",
             ),
         )
@@ -285,43 +285,45 @@ pub fn forge_query_domain_capability_representative_report(
         domain_capability_contribution_request_digest: request_digest,
         domain_capability_contribution_eligibility_digest: eligibility_digest,
         admitted_domain_capability_contribution_digest: admitted_digest,
-        canonical_runtime_materialization_digest: hash_parts(&[
-            materialize_canonical_admission_artifact(admitted_ready(admission_requested(
-                &admitted_plan,
-            )))
-            .materialization_digest()
-            .to_string(),
-            materialize_canonical_support_traceability_artifact(admitted_ready(
-                support_traceability_requested(&declaration),
-            ))
-            .materialization_digest()
-            .to_string(),
-            materialize_canonical_invariant_capability_artifact(admitted_ready(
-                invariant_requested(&declaration),
-            ))
-            .materialization_digest()
-            .to_string(),
-            materialize_canonical_workflow_artifact(admitted_ready(workflow_requested(
-                &declaration,
-            )))
-            .materialization_digest()
-            .to_string(),
-            materialize_canonical_continuity_artifact(admitted_ready(continuity_requested(
-                &admitted_plan,
-            )))
-            .materialization_digest()
-            .to_string(),
-            materialize_canonical_aftermath_artifact(admitted_ready(aftermath_requested(
-                &projection_plan,
-            )))
-            .materialization_digest()
-            .to_string(),
-            materialize_canonical_explanation_artifact(admitted_ready(explanation_requested(
-                &lower_runtime,
-            )))
-            .materialization_digest()
-            .to_string(),
-        ]),
+        canonical_runtime_materialization_digest: compose_canonical_runtime_materialization_digest(
+            [
+                materialize_canonical_admission_artifact(admitted_ready(admission_requested(
+                    &admitted_plan,
+                )))
+                .materialization_digest()
+                .to_string(),
+                materialize_canonical_support_traceability_artifact(admitted_ready(
+                    support_traceability_requested(&declaration),
+                ))
+                .materialization_digest()
+                .to_string(),
+                materialize_canonical_invariant_capability_artifact(admitted_ready(
+                    invariant_requested(&declaration),
+                ))
+                .materialization_digest()
+                .to_string(),
+                materialize_canonical_workflow_artifact(admitted_ready(workflow_requested(
+                    &declaration,
+                )))
+                .materialization_digest()
+                .to_string(),
+                materialize_canonical_continuity_artifact(admitted_ready(continuity_requested(
+                    &admitted_plan,
+                )))
+                .materialization_digest()
+                .to_string(),
+                materialize_canonical_aftermath_artifact(admitted_ready(aftermath_requested(
+                    &projection_plan,
+                )))
+                .materialization_digest()
+                .to_string(),
+                materialize_canonical_explanation_artifact(admitted_ready(explanation_requested(
+                    &lower_runtime,
+                )))
+                .materialization_digest()
+                .to_string(),
+            ],
+        ),
         admission_artifact_digest: decision_digest(&admission_decision),
         support_artifact_digest: support_artifact.materialization_digest().to_string(),
         workflow_artifact_digest: workflow_declaration
@@ -330,9 +332,10 @@ pub fn forge_query_domain_capability_representative_report(
             .to_string(),
         continuity_artifact_digest: continuity_evidence
             .continuity_resolution_digest()
+            .as_str()
             .to_string(),
         aftermath_artifact_digest: projection_contract.contract_digest().to_string(),
-        explanation_artifact_digest: explanation_artifact.artifact_digest().to_string(),
+        explanation_artifact_digest: explanation_artifact.artifact_for_reporting().to_string(),
         capability_support_row_digest: capability_row.row_digest().to_string(),
         domain_invariant_denial_digest: invariant_denial.denial_digest().to_string(),
         decision_trace_digest: decision_trace.trace_digest().to_string(),
@@ -341,7 +344,7 @@ pub fn forge_query_domain_capability_representative_report(
             .to_string(),
         public_boundary_digest,
         compile_fail_boundary_digest: forge_query_domain_capability_compile_fail_boundary_digest(),
-        failure_digest: denial.failure_digest(),
+        failure_digest: denial.failure_for_reporting().to_string(),
         contribution_width: forge_query_domain_capability_public_surface_inventory()
             .rows()
             .len(),

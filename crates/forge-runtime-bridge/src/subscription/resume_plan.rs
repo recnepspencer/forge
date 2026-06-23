@@ -45,9 +45,9 @@ impl BridgeSubscriptionResumePlan {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            resume_plan_identity: BridgeSubscriptionResumePlanIdentity::new(format!(
-                "bridge-subscription-resume-plan-id:sha256:{digest:x}"
-            )),
+            resume_plan_identity: BridgeSubscriptionResumePlanIdentity::admit_bridge_owned(
+                format!("bridge-subscription-resume-plan-id:sha256:{digest:x}"),
+            ),
             resume_admission_identity: admission.resume_admission_identity().clone(),
             checkpoint_identity: admission.checkpoint_identity().clone(),
             active_subscription_identity: admission.active_subscription_identity().clone(),

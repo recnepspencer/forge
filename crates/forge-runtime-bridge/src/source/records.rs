@@ -91,7 +91,7 @@ impl SourceMaterializationRecord {
             counters,
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let record_identity = SourceMaterializationRecordIdentity::new(format!(
+        let record_identity = SourceMaterializationRecordIdentity::admit_bridge_owned(format!(
             "source-materialization-record:sha256:{digest:x}"
         ));
 
@@ -185,7 +185,7 @@ impl SourceMaterializationRecord {
             counters,
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let record_identity = SourceMaterializationRecordIdentity::new(format!(
+        let record_identity = SourceMaterializationRecordIdentity::admit_bridge_owned(format!(
             "source-materialization-record:sha256:{digest:x}"
         ));
 

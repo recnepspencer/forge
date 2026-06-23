@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+
+use super::super::evidence_identities::diagnostic_evidence_identity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QuerySubscriptionDiagnosticStage {
@@ -67,39 +69,39 @@ pub struct QuerySubscriptionDiagnosticEvidence {
     stage: QuerySubscriptionDiagnosticStage,
     outcome: QuerySubscriptionDiagnosticOutcome,
     reason: String,
-    source_digest: String,
-    counter_digest: String,
-    digest: String,
+    source_identity: ForgeQueryEvidenceIdentity,
+    counter_identity: ForgeQueryEvidenceIdentity,
+    evidence_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionDiagnosticEvidence {
     pub(crate) fn admitted(
         stage: QuerySubscriptionDiagnosticStage,
         reason: impl Into<String>,
-        source_digest: impl Into<String>,
-        counter_digest: impl Into<String>,
+        source_identity: &ForgeQueryEvidenceIdentity,
+        counter_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
         Self::new(
             stage,
             QuerySubscriptionDiagnosticOutcome::Admitted,
             reason,
-            source_digest,
-            counter_digest,
+            source_identity,
+            counter_identity,
         )
     }
 
     pub(crate) fn denied(
         stage: QuerySubscriptionDiagnosticStage,
         reason: impl Into<String>,
-        source_digest: impl Into<String>,
-        counter_digest: impl Into<String>,
+        source_identity: &ForgeQueryEvidenceIdentity,
+        counter_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
         Self::new(
             stage,
             QuerySubscriptionDiagnosticOutcome::Denied,
             reason,
-            source_digest,
-            counter_digest,
+            source_identity,
+            counter_identity,
         )
     }
 
@@ -107,27 +109,24 @@ impl QuerySubscriptionDiagnosticEvidence {
         stage: QuerySubscriptionDiagnosticStage,
         outcome: QuerySubscriptionDiagnosticOutcome,
         reason: impl Into<String>,
-        source_digest: impl Into<String>,
-        counter_digest: impl Into<String>,
+        source_identity: &ForgeQueryEvidenceIdentity,
+        counter_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
         let reason = reason.into();
-        let source_digest = source_digest.into();
-        let counter_digest = counter_digest.into();
-        let digest = hash_parts(&[
-            "query_subscription_diagnostic_evidence_v1".to_string(),
-            format!("stage:{}", stage.as_str()),
-            format!("outcome:{}", outcome.as_str()),
-            format!("reason:{reason}"),
-            format!("source:{source_digest}"),
-            format!("counters:{counter_digest}"),
-        ]);
+        let evidence_identity = diagnostic_evidence_identity(
+            stage.as_str(),
+            outcome.as_str(),
+            &reason,
+            source_identity,
+            counter_identity,
+        );
         Self {
             stage,
             outcome,
             reason,
-            source_digest,
-            counter_digest,
-            digest,
+            source_identity: source_identity.clone(),
+            counter_identity: counter_identity.clone(),
+            evidence_identity,
         }
     }
 
@@ -143,15 +142,15 @@ impl QuerySubscriptionDiagnosticEvidence {
         &self.reason
     }
 
-    pub fn source_digest(&self) -> &str {
-        &self.source_digest
+    pub fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_identity
     }
 
-    pub fn counter_digest(&self) -> &str {
-        &self.counter_digest
+    pub fn counter_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.counter_identity
     }
 
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.evidence_identity
     }
 }

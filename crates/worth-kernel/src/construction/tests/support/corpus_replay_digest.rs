@@ -1,11 +1,12 @@
 use forge_query::facade::ForgeQueryWorkspace;
+use topology::certification::milestone_one_runtime_builder;
+use topology::runtime_support::{topology_runtime, TopologyRuntimeAdapters};
 use worth_geom::facade::{
     PrimitiveFeatureConditioningClass, PrimitiveNormalizationDisposition,
     PrimitiveRealizationExhaustionReason, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
     PrimitiveSupportNormalClass,
 };
 
-use crate::construction::digest::digest_owned_parts;
 use crate::construction::outcome::{
     PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
 };
@@ -22,6 +23,7 @@ use crate::construction::tests::support::corpus_replay_generation::{
     build_corpus_rows, PrimitiveConstructionCorpusReplaySiegeError,
 };
 use crate::construction::tests::support::corpus_replay_row::PrimitiveConstructionCorpusReplaySiegeRow;
+use crate::construction::tests::support::evidence_reports::sealed_report_identity;
 use crate::construction::tests::support::runtime_truth::{
     PrimitiveConstructionAdmittedRuntimeTruth, PrimitiveConstructionCertificationRuntimeTruth,
     PrimitiveConstructionRejectedRuntimeTruth,
@@ -37,68 +39,85 @@ pub(crate) fn row_digest(
     workspace: &mut ForgeQueryWorkspace,
     row: &PrimitiveConstructionCorpusReplaySiegeRow,
 ) -> Result<String, PrimitiveConstructionCorpusReplaySiegeError> {
+    let _ = workspace;
     let scenario = scenario_for(row)?;
     let runtime_truth = row.runtime_truth();
-    let branch_basis_digest = prepare_branch_basis_digest(workspace, &scenario.intent)?;
+    let mut branch_basis_workspace = branch_basis_workspace_for(row.scenario_id());
+    let branch_basis_digest =
+        prepare_branch_basis_digest(&mut branch_basis_workspace, &scenario.intent)?;
     let replay_digest = runtime_truth.outcome_digest().to_string();
 
-    Ok(digest_owned_parts(&[
-        row.scenario_id().to_string(),
-        row.family().as_str().to_string(),
-        row.parameter_role().as_str().to_string(),
-        runtime_truth_kind(runtime_truth).to_string(),
-        replay_digest.clone(),
-        branch_basis_digest,
-        replay_digest,
-        admitted_runtime_truth(runtime_truth)
-            .map(PrimitiveConstructionAdmittedRuntimeTruth::birth_truth_digest)
-            .unwrap_or_default()
-            .to_string(),
-        admitted_runtime_truth(runtime_truth)
-            .map(PrimitiveConstructionAdmittedRuntimeTruth::realization_strategy)
-            .map(PrimitiveRealizationStrategy::as_str)
-            .unwrap_or("none")
-            .to_string(),
-        attempted_realization_strategies(runtime_truth)
-            .iter()
-            .map(|strategy| (*strategy).as_str())
-            .collect::<Vec<_>>()
-            .join("->"),
-        stability_class(runtime_truth)
-            .map(PrimitiveStabilityClass::as_str)
-            .unwrap_or("none")
-            .to_string(),
-        feature_conditioning_class(runtime_truth)
-            .map(PrimitiveFeatureConditioningClass::as_str)
-            .unwrap_or("none")
-            .to_string(),
-        support_normal_class(runtime_truth)
-            .map(PrimitiveSupportNormalClass::as_str)
-            .unwrap_or("none")
-            .to_string(),
-        normalization_disposition(runtime_truth)
-            .map(PrimitiveNormalizationDisposition::as_str)
-            .unwrap_or("none")
-            .to_string(),
-        exhaustion_reason(runtime_truth)
-            .map(PrimitiveRealizationExhaustionReason::as_str)
-            .unwrap_or("none")
-            .to_string(),
-        rejection_class(runtime_truth)
-            .map(PrimitiveConstructionRejectionClass::as_str)
-            .unwrap_or("none")
-            .to_string(),
-        rejection_locality(runtime_truth)
-            .map(PrimitiveConstructionRejectionLocality::as_str)
-            .unwrap_or("none")
-            .to_string(),
-        rejection_locality(runtime_truth)
-            .map(blocking_boundary::blocking_boundary_for)
-            .map(PrimitiveConstructionBlockingBoundary::as_str)
-            .unwrap_or("none")
-            .to_string(),
-        construction_breadth(runtime_truth).to_string(),
-    ]))
+    Ok(sealed_report_identity(
+        "worth-kernel.construction.corpus-replay",
+        "corpus-replay-row",
+        |report| {
+            report
+                .value_participating("scenario", row.scenario_id().to_string())?
+                .shape_participating("family", row.family().as_str())?
+                .shape_participating("parameter-role", row.parameter_role().as_str())?
+                .shape_participating("runtime-truth-kind", runtime_truth_kind(runtime_truth))?
+                .value_participating("outcome", replay_digest.clone())?
+                .value_participating("branch-basis", branch_basis_digest)?
+                .value_participating(
+                    "birth-truth",
+                    admitted_runtime_truth(runtime_truth)
+                        .map(PrimitiveConstructionAdmittedRuntimeTruth::birth_truth_digest)
+                        .unwrap_or_default()
+                        .to_string(),
+                )?
+                .optional_value_participating(
+                    "realization-strategy",
+                    admitted_runtime_truth(runtime_truth)
+                        .map(PrimitiveConstructionAdmittedRuntimeTruth::realization_strategy)
+                        .map(PrimitiveRealizationStrategy::as_str),
+                )?
+                .value_sequence_participating(
+                    "attempted-realization-strategies",
+                    attempted_realization_strategies(runtime_truth)
+                        .iter()
+                        .map(|strategy| (*strategy).as_str()),
+                )?
+                .optional_value_participating(
+                    "stability-class",
+                    stability_class(runtime_truth).map(PrimitiveStabilityClass::as_str),
+                )?
+                .optional_value_participating(
+                    "feature-conditioning-class",
+                    feature_conditioning_class(runtime_truth)
+                        .map(PrimitiveFeatureConditioningClass::as_str),
+                )?
+                .optional_value_participating(
+                    "support-normal-class",
+                    support_normal_class(runtime_truth).map(PrimitiveSupportNormalClass::as_str),
+                )?
+                .optional_value_participating(
+                    "normalization-disposition",
+                    normalization_disposition(runtime_truth)
+                        .map(PrimitiveNormalizationDisposition::as_str),
+                )?
+                .optional_value_participating(
+                    "exhaustion-reason",
+                    exhaustion_reason(runtime_truth)
+                        .map(PrimitiveRealizationExhaustionReason::as_str),
+                )?
+                .optional_value_participating(
+                    "rejection-class",
+                    rejection_class(runtime_truth).map(PrimitiveConstructionRejectionClass::as_str),
+                )?
+                .optional_value_participating(
+                    "rejection-locality",
+                    rejection_locality(runtime_truth)
+                        .map(PrimitiveConstructionRejectionLocality::as_str),
+                )?
+                .optional_value_participating(
+                    "blocking-boundary",
+                    rejection_locality(runtime_truth)
+                        .map(blocking_boundary::blocking_boundary_for)
+                        .map(PrimitiveConstructionBlockingBoundary::as_str),
+                )?
+                .usize_participating("construction-breadth", construction_breadth(runtime_truth))
+        },
+    ))
 }
 
 pub(crate) fn prepare_authoring_order_lane_digest_rows(
@@ -115,7 +134,7 @@ pub(crate) fn prepare_authoring_order_lane_digest_rows(
             canonical_rows.to_vec()
         } else {
             let lane_scenarios = apply_corpus_authoring_order_lane(lane, &scenarios);
-            build_corpus_rows(workspace, &lane_scenarios)?
+            build_corpus_rows(workspace, lane.as_str(), &lane_scenarios)?
         };
         let lane_row_digests = lane_rows
             .iter()
@@ -132,6 +151,17 @@ pub(crate) fn prepare_authoring_order_lane_digest_rows(
         ));
     }
     Ok(rows)
+}
+
+fn branch_basis_workspace_for(scenario_id: &str) -> ForgeQueryWorkspace {
+    let runtime = milestone_one_runtime_builder()
+        .expect("runtime builder")
+        .build();
+    topology_runtime(
+        TopologyRuntimeAdapters::current_head(runtime),
+        format!("worth-kernel.corpus-branch-basis.{scenario_id}"),
+    )
+    .expect("branch basis workspace")
 }
 
 fn scenario_for(
@@ -276,7 +306,11 @@ fn construction_breadth(runtime_truth: &PrimitiveConstructionCertificationRuntim
 }
 
 fn lane_digest(row_digests: impl IntoIterator<Item = String>) -> String {
-    digest_owned_parts(&row_digests.into_iter().collect::<Vec<_>>())
+    sealed_report_identity(
+        "worth-kernel.construction.corpus-replay",
+        "authoring-order-lane",
+        |report| report.value_sequence_participating("row-identities", row_digests),
+    )
 }
 
 fn normalized_matrix_digest(row_pairs: impl IntoIterator<Item = (String, String)>) -> String {
@@ -285,5 +319,9 @@ fn normalized_matrix_digest(row_pairs: impl IntoIterator<Item = (String, String)
         .map(|(scenario_id, row_digest)| format!("{scenario_id}:{row_digest}"))
         .collect::<Vec<_>>();
     parts.sort();
-    digest_owned_parts(&parts)
+    sealed_report_identity(
+        "worth-kernel.construction.corpus-replay",
+        "normalized-authoring-order-matrix",
+        |report| report.value_sequence_participating("scenario-row-identities", parts),
+    )
 }

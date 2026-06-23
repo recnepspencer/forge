@@ -31,4 +31,4 @@ error: cannot construct `forge_query::facade::policy::NormalizedBasisIntent` wit
 23 | |         },
    | |_________- private field
    |
-   = note: ...and other private field `schema_scope` that was not provided
+   = note: ...and other private fields `schema_scope` and `normalized_subject` that were not provided

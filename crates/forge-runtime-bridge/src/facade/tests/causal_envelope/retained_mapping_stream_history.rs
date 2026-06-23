@@ -1,7 +1,3 @@
-use super::retained_mapping_digest_support::{
-    expected_retained_causal_digest, expected_retained_causal_digest_for_basis,
-    ExpectedRetainedCausalDigestArtifact, ExpectedRetainedCausalDigestBasis,
-};
 use super::retained_mapping_support::{
     binding_for, bridge_historical_evaluation_failure_reference, bridge_route_reference,
     bridge_stream_checkpoint_reference, missing_bridge_reference, query_observation_reference,
@@ -9,11 +5,10 @@ use super::retained_mapping_support::{
 use super::{
     canonical_envelope, registered_source, runtime, runtime_with_source_adapter,
     BridgeRuntimePolicy, BridgeSourceCapability, BridgeTruthViewSelector, RejectingSourceAdapter,
-    SnapshotReadPacket, TruthBranchIdentity, TruthSnapshotIdentity,
+    SnapshotReadPacket,
 };
 use crate::facade::{
-    BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEnvelopeDenialKind,
-    BridgeCausalEvidenceFamily, TruthCommitIdentity, TruthPatchIdentity,
+    BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEnvelopeDenialKind, BridgeCausalEvidenceFamily,
 };
 
 #[test]
@@ -21,7 +16,7 @@ fn causal_envelope_maps_historical_failure_and_stream_checkpoint_by_exact_identi
     let runtime =
         runtime_with_source_adapter(BridgeRuntimePolicy::default(), RejectingSourceAdapter);
     let routed = runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit-causal-history-stream",
         ))
         .expect("route should succeed");
@@ -29,8 +24,8 @@ fn causal_envelope_maps_historical_failure_and_stream_checkpoint_by_exact_identi
         .admit_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -53,14 +48,20 @@ fn causal_envelope_maps_historical_failure_and_stream_checkpoint_by_exact_identi
     let stream_checkpoint = retain_stream_checkpoint(&runtime, "target");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            "query-admission:history-stream",
-            "causal-anchor:history-stream",
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                "query-admission:history-stream",
+            ),
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                "causal-anchor:history-stream",
+            ),
         )
         .expect("query admission summary should be valid"),
         vec![
             query_observation_reference(
                 crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    "query-observation:history-stream",
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                        "query-observation:history-stream",
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -85,16 +86,16 @@ fn causal_envelope_maps_historical_failure_and_stream_checkpoint_by_exact_identi
             BridgeCausalEvidenceFamily::BridgeHistoricalEvaluationFailure,
             historical_failure.failure_identity().as_str()
         )
-        .retained_record_digest(),
+        .retained_record_digest_for_reporting(),
         Some(historical_failure_digest(&historical_failure).as_str())
     );
     assert_eq!(
         binding_for(
             envelope.bindings(),
             BridgeCausalEvidenceFamily::BridgeStreamCheckpoint,
-            stream_checkpoint.checkpoint_token_identity()
+            stream_checkpoint.checkpoint_token_identity_for_reporting()
         )
-        .retained_record_digest(),
+        .retained_record_digest_for_reporting(),
         Some(stream_checkpoint_digest(&stream_checkpoint).as_str())
     );
 }
@@ -103,20 +104,26 @@ fn causal_envelope_maps_historical_failure_and_stream_checkpoint_by_exact_identi
 fn causal_envelope_denies_missing_stream_checkpoint_without_unindexed_scan() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let routed = runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit-causal-missing-stream-checkpoint",
         ))
         .expect("route should succeed");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            "query-admission:missing-stream-checkpoint",
-            "causal-anchor:missing-stream-checkpoint",
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                "query-admission:missing-stream-checkpoint",
+            ),
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                "causal-anchor:missing-stream-checkpoint",
+            ),
         )
         .expect("query admission summary should be valid"),
         vec![
             query_observation_reference(
                 crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    "query-observation:missing-stream-checkpoint",
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                        "query-observation:missing-stream-checkpoint",
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -158,21 +165,27 @@ fn causal_envelope_stream_checkpoint_lookup_cost_ignores_unrelated_records() {
             retain_stream_checkpoint(&runtime, &format!("noise-{index}"));
         }
         let routed = runtime
-            .route(crate::facade::TruthCommitIdentity::new(
+            .route(crate::truth_identity_fixtures::truth_commit_fixture(
                 "commit-causal-stream-checkpoint-scale",
             ))
             .expect("route should succeed");
         let target_checkpoint = retain_stream_checkpoint(&runtime, "target");
         let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
             crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-                "query-admission:stream-checkpoint-scale",
-                "causal-anchor:stream-checkpoint-scale",
+                crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                    "query-admission:stream-checkpoint-scale",
+                ),
+                crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                    "causal-anchor:stream-checkpoint-scale",
+                ),
             )
             .expect("query admission summary should be valid"),
             vec![
                 query_observation_reference(
                     crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
-                        "query-observation:stream-checkpoint-scale",
+                        crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                            "query-observation:stream-checkpoint-scale",
+                        ),
                     )
                     .expect("query observation reference identity should be valid"),
                 ),
@@ -194,7 +207,12 @@ fn causal_envelope_stream_checkpoint_lookup_cost_ignores_unrelated_records() {
         assert_eq!(envelope.counters().bridge_retained_lookup_count(), 2);
         assert_eq!(envelope.counters().retained_bridge_binding_count(), 2);
         assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
-        envelope_identities.push(envelope.identity().identity_digest().to_string());
+        envelope_identities.push(
+            envelope
+                .identity()
+                .envelope_identity_for_reporting()
+                .to_string(),
+        );
     }
 
     assert_eq!(envelope_identities[0], envelope_identities[1]);
@@ -226,10 +244,12 @@ fn retain_stream_checkpoint(
         .plan_change_stream_window(
             &stream_contract,
             vec![canonical_envelope(
-                TruthBranchIdentity::new("main"),
-                TruthCommitIdentity::new(format!("commit-{suffix}")),
-                TruthPatchIdentity::new(format!("patch-{suffix}")),
-                TruthSnapshotIdentity::new(format!("snapshot-{suffix}")),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture(format!("commit-{suffix}")),
+                crate::truth_identity_fixtures::truth_patch_fixture(format!("patch-{suffix}")),
+                crate::truth_identity_fixtures::truth_snapshot_fixture(format!(
+                    "snapshot-{suffix}"
+                )),
             )],
         )
         .expect("stream window should plan");
@@ -243,107 +263,13 @@ fn retain_stream_checkpoint(
 fn historical_failure_digest(
     record: &crate::facade::BridgeHistoricalEvaluationFailureRecord,
 ) -> String {
-    let failure_class = format!("{:?}", record.failure_class());
-    let commit_identity = record
-        .commit_identity()
-        .map(|identity| identity.as_str())
-        .unwrap_or("none");
-    let snapshot_identity = record
-        .snapshot_identity()
-        .map(|identity| identity.as_str())
-        .unwrap_or("none");
-    let counters_digest = historical_evaluation_counters_digest(record.counters());
-    expected_retained_causal_digest(
-        ExpectedRetainedCausalDigestArtifact::HistoricalEvaluationFailureRecord,
-        &[
-            record.failure_identity().as_str(),
-            record.declaration_identity().as_str(),
-            record.selector_identity().as_str(),
-            record.branch_identity().as_str(),
-            commit_identity,
-            snapshot_identity,
-            failure_class.as_str(),
-            record.detail(),
-            counters_digest.as_str(),
-        ],
-    )
+    crate::diagnostics::causal_envelope::retained_mapping::retained_artifact_digest::planning_checkpoint::historical_evaluation_failure_digest(record)
+        .as_str()
+        .to_string()
 }
 
 fn stream_checkpoint_digest(record: &crate::stream::ConsumerCheckpointToken) -> String {
-    let checkpoint_member_count = record.checkpoint_member_count().to_string();
-    let counters_digest = stream_protocol_counters_digest(record.counters());
-    expected_retained_causal_digest(
-        ExpectedRetainedCausalDigestArtifact::StreamCheckpointRecord,
-        &[
-            record.checkpoint_token_identity(),
-            record.consumer_contract_identity().as_str(),
-            record.stream_protocol_identity().as_str(),
-            "contiguous-frontier",
-            record.contiguous_acknowledged_through_position(),
-            record.contiguous_acknowledged_through_member_identity(),
-            record.acknowledged_member_set_digest(),
-            checkpoint_member_count.as_str(),
-            record.source_retention_anchor(),
-            record.protocol_semantics_version(),
-            counters_digest.as_str(),
-        ],
-    )
-}
-
-fn historical_evaluation_counters_digest(
-    counters: &crate::facade::BridgeHistoricalEvaluationCounters,
-) -> String {
-    let counter_parts = [
-        counters.truth_view_selector_count().to_string(),
-        counters.historical_truth_view_count().to_string(),
-        counters.branch_truth_view_count().to_string(),
-        counters.planned_truth_view_packet_count().to_string(),
-        counters.resolved_truth_view_policy_count().to_string(),
-        counters.materialized_truth_view_count().to_string(),
-        counters.truth_view_unavailable_count().to_string(),
-        counters.truth_view_branch_mismatch_count().to_string(),
-        counters.truth_view_snapshot_mismatch_count().to_string(),
-        counters.historical_replay_mismatch_count().to_string(),
-        counters.branch_local_evaluation_count().to_string(),
-        counters.truth_view_decision_log_count().to_string(),
-        counters.selector_width().to_string(),
-        counters.branch_width().to_string(),
-        counters.direct_snapshot_materialization_count().to_string(),
-        counters.commit_envelope_materialization_count().to_string(),
-        counters.branch_head_materialization_count().to_string(),
-    ];
-    let counter_basis = ExpectedRetainedCausalDigestBasis::from_counter_values(counter_parts);
-    expected_retained_causal_digest_for_basis(
-        ExpectedRetainedCausalDigestArtifact::HistoricalEvaluationCounters,
-        &counter_basis,
-    )
-}
-
-fn stream_protocol_counters_digest(counters: &crate::stream::StreamProtocolCounters) -> String {
-    let counter_parts = [
-        counters.stream_member_count().to_string(),
-        counters.stream_window_count().to_string(),
-        counters.stream_window_member_count().to_string(),
-        counters.stream_consumer_contract_count().to_string(),
-        counters.stream_checkpoint_count().to_string(),
-        counters.stream_checkpoint_member_count().to_string(),
-        counters.stream_resume_attempt_count().to_string(),
-        counters.stream_resume_rejection_count().to_string(),
-        counters.stream_replay_count().to_string(),
-        counters.stream_replay_mismatch_count().to_string(),
-        counters.stream_coalesced_member_count().to_string(),
-        counters.stream_coalesced_window_count().to_string(),
-        counters
-            .stream_duplicate_member_observation_count()
-            .to_string(),
-        counters.stream_backpressure_signal_count().to_string(),
-        counters.stream_consumer_saturated_count().to_string(),
-        counters.stream_checkpoint_lag_count().to_string(),
-        counters.stream_protocol_mismatch_count().to_string(),
-    ];
-    let counter_basis = ExpectedRetainedCausalDigestBasis::from_counter_values(counter_parts);
-    expected_retained_causal_digest_for_basis(
-        ExpectedRetainedCausalDigestArtifact::StreamProtocolCounters,
-        &counter_basis,
-    )
+    crate::diagnostics::causal_envelope::retained_mapping::retained_artifact_digest::planning_checkpoint::stream_checkpoint_digest(record)
+        .as_str()
+        .to_string()
 }

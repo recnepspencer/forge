@@ -10,7 +10,7 @@ fn runtime_maps_typed_authority_rejection_into_bridge_error_kind() {
     );
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:typed-rejection"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:typed-rejection"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "typed-rejection",
@@ -19,13 +19,13 @@ fn runtime_maps_typed_authority_rejection_into_bridge_error_kind() {
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:typed-rejection"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:typed-rejection"),
         "commit-a",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:typed-rejection"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:typed-rejection"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "typed-rejection",
@@ -35,7 +35,7 @@ fn runtime_maps_typed_authority_rejection_into_bridge_error_kind() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:typed-rejection"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:typed-rejection"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -59,7 +59,7 @@ fn runtime_maps_authority_transport_failure_into_strategy_failed() {
     );
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:transport-failure"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:transport-failure"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "transport-failure",
@@ -68,13 +68,13 @@ fn runtime_maps_authority_transport_failure_into_strategy_failed() {
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:transport-failure"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:transport-failure"),
         "commit-a",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:transport-failure"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:transport-failure"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "transport-failure",
@@ -84,7 +84,7 @@ fn runtime_maps_authority_transport_failure_into_strategy_failed() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:transport-failure"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:transport-failure"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -108,7 +108,7 @@ fn runtime_maps_authority_panic_into_strategy_panicked() {
     );
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:panic-failure"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:panic-failure"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "panic-failure",
@@ -117,13 +117,13 @@ fn runtime_maps_authority_panic_into_strategy_panicked() {
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:panic-failure"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:panic-failure"),
         "commit-a",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:panic-failure"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:panic-failure"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "panic-failure",
@@ -133,7 +133,7 @@ fn runtime_maps_authority_panic_into_strategy_panicked() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:panic-failure"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:panic-failure"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -157,7 +157,7 @@ fn runtime_rejects_receipt_with_mismatched_request_digest() {
     );
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:mismatched-receipt"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:mismatched-receipt"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "mismatched-receipt",
@@ -166,13 +166,13 @@ fn runtime_rejects_receipt_with_mismatched_request_digest() {
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:mismatched-receipt"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:mismatched-receipt"),
         "commit-a",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:mismatched-receipt"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:mismatched-receipt"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "mismatched-receipt",
@@ -182,7 +182,7 @@ fn runtime_rejects_receipt_with_mismatched_request_digest() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:mismatched-receipt"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:mismatched-receipt"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -191,13 +191,13 @@ fn runtime_rejects_receipt_with_mismatched_request_digest() {
         .expect("first request establishes a native prior receipt basis");
 
     let second_causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:mismatched-receipt:second"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:mismatched-receipt:second"),
         "commit-b",
     );
     let second_effect = runtime.lower_writeback_effect(
         &contract,
         &second_causality,
-        BridgeWritebackEffectIdentity::new("effect:mismatched-receipt:second"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:mismatched-receipt:second"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "mismatched-receipt:second",
@@ -207,7 +207,9 @@ fn runtime_rejects_receipt_with_mismatched_request_digest() {
         &second_effect,
         &lowered_policy,
         &truth_state_basis(&second_effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:mismatched-receipt:second"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:mismatched-receipt:second",
+        ),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -231,7 +233,9 @@ fn runtime_rejects_rejected_receipt_without_failure_class() {
     );
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:rejected-without-failure-class"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+            "writeback:rejected-without-failure-class",
+        ),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "rejected-without-failure-class",
@@ -240,13 +244,15 @@ fn runtime_rejects_rejected_receipt_without_failure_class() {
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:rejected-without-failure-class"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
+            "causality:rejected-without-failure-class",
+        ),
         "commit-a",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:rejected-without-failure-class"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:rejected-without-failure-class"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "rejected-without-failure-class",
@@ -256,7 +262,9 @@ fn runtime_rejects_rejected_receipt_without_failure_class() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:rejected-without-failure-class"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:rejected-without-failure-class",
+        ),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -280,7 +288,9 @@ fn runtime_rejects_successful_receipt_with_failure_class() {
     );
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:success-with-failure-class"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+            "writeback:success-with-failure-class",
+        ),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "success-with-failure-class",
@@ -289,13 +299,15 @@ fn runtime_rejects_successful_receipt_with_failure_class() {
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:success-with-failure-class"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
+            "causality:success-with-failure-class",
+        ),
         "commit-a",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:success-with-failure-class"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:success-with-failure-class"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "success-with-failure-class",
@@ -305,7 +317,9 @@ fn runtime_rejects_successful_receipt_with_failure_class() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:success-with-failure-class"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:success-with-failure-class",
+        ),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -328,7 +342,7 @@ fn runtime_rejects_strategy_coherence_mismatch_before_authority_execution() {
     let contract_a = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new("writeback:coherence-a"),
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:coherence-a"),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
                 "coherence-a",
@@ -339,7 +353,7 @@ fn runtime_rejects_strategy_coherence_mismatch_before_authority_execution() {
     let contract_b = runtime
         .admit_writeback_declaration(
             writeback_declaration_with_shape(
-                BridgeWritebackDeclarationIdentity::new("writeback:coherence-b"),
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:coherence-b"),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
                 BridgeWritebackEffectClass::AspectReconciliation,
@@ -352,10 +366,10 @@ fn runtime_rejects_strategy_coherence_mismatch_before_authority_execution() {
     let effect_a = runtime.lower_writeback_effect(
         &contract_a,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:coherence-a"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:coherence-a"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:coherence-a"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:coherence-a"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "coherence-a",
@@ -364,10 +378,10 @@ fn runtime_rejects_strategy_coherence_mismatch_before_authority_execution() {
     let effect_b = runtime.lower_writeback_effect(
         &contract_b,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:coherence-b"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:coherence-b"),
             "commit-b",
         ),
-        BridgeWritebackEffectIdentity::new("effect:coherence-b"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:coherence-b"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::AspectReconciliation,
             "coherence-b",
@@ -377,7 +391,7 @@ fn runtime_rejects_strategy_coherence_mismatch_before_authority_execution() {
         &effect_b,
         &lowered_policy,
         &truth_state_basis(&effect_b),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:coherence-b"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:coherence-b"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 

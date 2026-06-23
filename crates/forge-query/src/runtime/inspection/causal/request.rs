@@ -1,58 +1,83 @@
-use crate::identity::hash_parts;
-
+use super::identity::{
+    compose_causal_inspection_request_failure_identity, compose_causal_inspection_request_identity,
+    compose_causal_inspection_target_identity, CausalInspectionRequestIdentity,
+    CausalInspectionTargetIdentity,
+};
 use super::inventory::CausalEvidenceFamily;
+use super::observation_identity::{CausalObservationTargetHandle, CausalResultShapeContextHandle};
 use super::reference::{CausalEvidenceReference, CausalEvidenceReferenceSet};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalInspectionTarget {
-    observation_target_digest: String,
-    result_shape_context_digest: String,
-    target_digest: String,
+    observation_target: CausalObservationTargetHandle,
+    result_shape_context: CausalResultShapeContextHandle,
+    target_identity: CausalInspectionTargetIdentity,
 }
 
 impl CausalInspectionTarget {
     fn new(
-        observation_target_digest: impl Into<String>,
-        result_shape_context_digest: impl Into<String>,
+        observation_target: CausalObservationTargetHandle,
+        result_shape_context: CausalResultShapeContextHandle,
     ) -> Result<Self, CausalInspectionRequestError> {
-        let observation_target_digest = observation_target_digest.into();
-        let result_shape_context_digest = result_shape_context_digest.into();
-        if observation_target_digest.is_empty() {
+        if observation_target.identity().as_str().is_empty() {
             return Err(CausalInspectionRequestError::new(
                 CausalInspectionRequestErrorKind::EmptyObservationTarget,
                 "causal inspection targets require an observation target digest",
                 &[],
             ));
         }
-        if result_shape_context_digest.is_empty() {
+        if result_shape_context.identity().as_str().is_empty() {
             return Err(CausalInspectionRequestError::new(
                 CausalInspectionRequestErrorKind::EmptyResultShapeContext,
                 "causal inspection targets require a result-shape context digest",
-                &[format!("target:{observation_target_digest}")],
+                &[observation_target.identity().evidence_identity().clone()],
             ));
         }
-        let target_digest = hash_parts(&[
-            "causal_inspection_target_v1".to_string(),
-            format!("observation-target:{observation_target_digest}"),
-            format!("result-shape:{result_shape_context_digest}"),
-        ]);
         Ok(Self {
-            observation_target_digest,
-            result_shape_context_digest,
-            target_digest,
+            target_identity: compose_causal_inspection_target_identity(
+                &observation_target,
+                &result_shape_context,
+            ),
+            observation_target,
+            result_shape_context,
         })
     }
 
-    pub fn observation_target_digest(&self) -> &str {
-        &self.observation_target_digest
+    pub fn observation_target_for_reporting(&self) -> &str {
+        self.observation_target.identity().as_str()
     }
 
-    pub fn result_shape_context_digest(&self) -> &str {
-        &self.result_shape_context_digest
+    pub(in crate::runtime) fn observation_target_identity(
+        &self,
+    ) -> &super::observation_identity::CausalObservationTargetIdentity {
+        self.observation_target.identity()
     }
 
-    pub fn target_digest(&self) -> &str {
-        &self.target_digest
+    pub fn result_shape_context_for_reporting(&self) -> &str {
+        self.result_shape_context.identity().as_str()
+    }
+
+    pub(in crate::runtime) fn result_shape_context_identity(
+        &self,
+    ) -> &super::observation_identity::CausalResultShapeContextIdentity {
+        self.result_shape_context.identity()
+    }
+
+    pub fn target_for_reporting(&self) -> &str {
+        self.target_identity.as_str()
+    }
+
+    pub fn observation_target(&self) -> &CausalObservationTargetHandle {
+        &self.observation_target
+    }
+
+    pub fn result_shape_context(&self) -> &CausalResultShapeContextHandle {
+        &self.result_shape_context
+    }
+
+    pub fn target_identity(&self) -> &CausalInspectionTargetIdentity {
+        &self.target_identity
     }
 }
 
@@ -95,7 +120,7 @@ pub struct CausalInspectionRequest {
     explanation_family: CausalInspectionExplanationFamily,
     requested_richness: CausalInspectionRichness,
     requested_evidence_families: Vec<CausalEvidenceFamily>,
-    request_digest: String,
+    request_identity: CausalInspectionRequestIdentity,
 }
 
 impl CausalInspectionRequest {
@@ -106,7 +131,7 @@ impl CausalInspectionRequest {
         requested_richness: CausalInspectionRichness,
         requested_evidence_families: Vec<CausalEvidenceFamily>,
     ) -> Self {
-        let request_digest = request_digest(
+        let request_identity = request_digest(
             &reference_set,
             &target,
             explanation_family,
@@ -119,7 +144,7 @@ impl CausalInspectionRequest {
             explanation_family,
             requested_richness,
             requested_evidence_families,
-            request_digest,
+            request_identity,
         }
     }
 
@@ -143,8 +168,12 @@ impl CausalInspectionRequest {
         &self.requested_evidence_families
     }
 
-    pub fn request_digest(&self) -> &str {
-        &self.request_digest
+    pub fn request_for_reporting(&self) -> &str {
+        self.request_identity.as_str()
+    }
+
+    pub fn request_identity(&self) -> &CausalInspectionRequestIdentity {
+        &self.request_identity
     }
 }
 
@@ -173,25 +202,23 @@ impl CausalInspectionRequestErrorKind {
 pub struct CausalInspectionRequestError {
     kind: CausalInspectionRequestErrorKind,
     message: &'static str,
-    failure_digest: String,
+    failure_identity: super::identity::CausalInspectionRequestFailureIdentity,
 }
 
 impl CausalInspectionRequestError {
     fn new(
         kind: CausalInspectionRequestErrorKind,
         message: &'static str,
-        evidence: &[String],
+        evidence: &[ForgeQueryEvidenceIdentity],
     ) -> Self {
-        let mut parts = vec![
-            "causal_inspection_request_error_v1".to_string(),
-            kind.as_str().to_string(),
-            message.to_string(),
-        ];
-        parts.extend(evidence.iter().cloned());
         Self {
             kind,
             message,
-            failure_digest: hash_parts(&parts),
+            failure_identity: compose_causal_inspection_request_failure_identity(
+                kind.as_str(),
+                message,
+                evidence,
+            ),
         }
     }
 
@@ -203,16 +230,20 @@ impl CausalInspectionRequestError {
         self.message
     }
 
-    pub fn failure_digest(&self) -> &str {
-        &self.failure_digest
+    pub fn failure_for_reporting(&self) -> &str {
+        self.failure_identity.as_str()
+    }
+
+    pub fn failure_identity(&self) -> &super::identity::CausalInspectionRequestFailureIdentity {
+        &self.failure_identity
     }
 }
 
 pub fn causal_inspection_target(
-    observation_target_digest: impl Into<String>,
-    result_shape_context_digest: impl Into<String>,
+    observation_target: CausalObservationTargetHandle,
+    result_shape_context: CausalResultShapeContextHandle,
 ) -> Result<CausalInspectionTarget, CausalInspectionRequestError> {
-    CausalInspectionTarget::new(observation_target_digest, result_shape_context_digest)
+    CausalInspectionTarget::new(observation_target, result_shape_context)
 }
 
 pub fn request_causal_inspection(
@@ -223,26 +254,37 @@ pub fn request_causal_inspection(
     requested_evidence_families: &[CausalEvidenceFamily],
 ) -> Result<CausalInspectionRequest, CausalInspectionRequestError> {
     let receipt = reference_set.anchor().observation_receipt();
-    if target.observation_target_digest() != receipt.observation_target_digest() {
+    if target.observation_target_identity() != receipt.observation_target().identity() {
         return Err(CausalInspectionRequestError::new(
             CausalInspectionRequestErrorKind::TargetObservationMismatch,
             "causal inspection targets must match the anchored Query observation target",
             &[
-                format!("target:{}", target.observation_target_digest()),
-                format!("anchor-target:{}", receipt.observation_target_digest()),
+                target
+                    .observation_target_identity()
+                    .evidence_identity()
+                    .clone(),
+                receipt
+                    .observation_target()
+                    .identity()
+                    .evidence_identity()
+                    .clone(),
             ],
         ));
     }
-    if target.result_shape_context_digest() != receipt.result_shape_context_digest() {
+    if target.result_shape_context_identity() != receipt.result_shape_context().identity() {
         return Err(CausalInspectionRequestError::new(
             CausalInspectionRequestErrorKind::ResultShapeContextMismatch,
             "causal inspection targets must match the anchored result-shape context",
             &[
-                format!("result-shape:{}", target.result_shape_context_digest()),
-                format!(
-                    "anchor-result-shape:{}",
-                    receipt.result_shape_context_digest()
-                ),
+                target
+                    .result_shape_context_identity()
+                    .evidence_identity()
+                    .clone(),
+                receipt
+                    .result_shape_context()
+                    .identity()
+                    .evidence_identity()
+                    .clone(),
             ],
         ));
     }
@@ -279,15 +321,25 @@ fn requested_families_or_resolved(
             CausalInspectionRequestErrorKind::RequestedEvidenceFamilyMissing,
             "causal inspection requests may only ask for resolved evidence families",
             &[
-                format!("family:{}", family.as_str()),
-                format!(
-                    "reference-set:{}",
-                    reference_set.reference_set_digest().as_str()
-                ),
+                missing_family_failure_evidence(*family),
+                reference_set
+                    .reference_set_digest()
+                    .evidence_identity()
+                    .clone(),
             ],
         ));
     }
     Ok(requested_families.to_vec())
+}
+
+fn missing_family_failure_evidence(family: CausalEvidenceFamily) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalInspectionRequestFailure)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("role"),
+            "missing-requested-evidence-family",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
+        .seal()
 }
 
 fn request_digest(
@@ -296,22 +348,13 @@ fn request_digest(
     explanation_family: CausalInspectionExplanationFamily,
     requested_richness: CausalInspectionRichness,
     requested_evidence_families: &[CausalEvidenceFamily],
-) -> String {
-    let family_part = requested_evidence_families
-        .iter()
-        .map(CausalEvidenceFamily::as_str)
-        .collect::<Vec<_>>()
-        .join("|");
-    hash_parts(&[
-        "causal_inspection_request_v1".to_string(),
-        format!("anchor:{}", reference_set.anchor().anchor_digest().as_str()),
-        format!(
-            "reference-set:{}",
-            reference_set.reference_set_digest().as_str()
-        ),
-        format!("target:{}", target.target_digest()),
-        format!("family:{}", explanation_family.as_str()),
-        format!("richness:{}", requested_richness.as_str()),
-        format!("evidence-families:{family_part}"),
-    ])
+) -> CausalInspectionRequestIdentity {
+    compose_causal_inspection_request_identity(
+        reference_set.anchor().anchor_digest(),
+        reference_set.reference_set_digest(),
+        target.target_identity(),
+        explanation_family,
+        requested_richness,
+        requested_evidence_families,
+    )
 }

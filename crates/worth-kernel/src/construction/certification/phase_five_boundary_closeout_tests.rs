@@ -1,5 +1,12 @@
 use std::path::Path;
 
+use forge_query::facade::consumer_kit::hard_prohibition_boundary_audit;
+use topology::certification::milestone_one_runtime_builder;
+use topology::runtime_support::{topology_runtime, TopologyRuntimeAdapters};
+
+use crate::construction::authoring::require_default_primitive_construction_query_authority;
+use crate::construction::query_enforcement_adoption::worth_kernel_query_boundary_sources;
+
 const TOPOLOGY_CARGO: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../worth-topo/Cargo.toml"
@@ -57,97 +64,21 @@ const KERNEL_AUTHORING: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/src/construction/authoring.rs"
 ));
+const KERNEL_QUERY_SUPPORT_PINS: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/src/construction/query_support_pins.rs"
+));
+const KERNEL_QUERY_SUPPORT_PINS_JSON: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/src/construction/query_support_pins.json"
+));
 const KERNEL_RUNTIME_PROOF_DIR: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/src/construction/runtime_proof"
 );
-const QUERY_RUNTIME_AUDITED_FILES: [(&str, &str); 10] = [
-    (
-        "worth-kernel.authoring",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/construction/authoring.rs"
-        )),
-    ),
-    (
-        "worth-kernel.corpus-execution-proof-ingredients",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/construction/tests/support/branch_basis_digest.rs"
-        )),
-    ),
-    (
-        "worth-kernel.query-projection-consumption-support",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/construction/tests/support/projection_consumption.rs"
-        )),
-    ),
-    (
-        "worth-kernel.outcome",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/construction/result_surface/outcome.rs"
-        )),
-    ),
-    (
-        "worth-spatial.primitive-birth",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../worth-spatial/src/bindings/primitive_birth.rs"
-        )),
-    ),
-    (
-        "worth-geom.realization-conditioning",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../worth-geom/src/primitives/shape_realization/conditioning.rs"
-        )),
-    ),
-    (
-        "worth-geom.realization-support",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../worth-geom/src/primitives/shape_realization/support.rs"
-        )),
-    ),
-    (
-        "worth-topo.construction-boundary-mod",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../worth-topo/src/construction/mod.rs"
-        )),
-    ),
-    (
-        "worth-topo.query-native-boundary",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../worth-topo/src/construction/query_native_boundary.rs"
-        )),
-    ),
-    (
-        "worth-topo.boundary-tests",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../worth-topo/src/construction/boundary_tests.rs"
-        )),
-    ),
-];
-const FORBIDDEN_RUNTIME_PATTERNS: [&str; 9] = [
-    ".batch(",
-    ".write(",
-    "bind_existing_entity(",
-    "bind_existing_relation(",
-    "update_existing(",
-    "verify_existing(",
-    "update_existing_verified(",
-    "delete_existing(",
-    "probe_existing(",
-];
-
 #[test]
 fn phase_five_boundary_closeout_report_proves_query_native_construction_boundary() {
-    assert_eq!(query_runtime_violation_count(), 0);
+    assert!(query_runtime_boundary_audit_clean());
     assert!(topology_rejects_spatial_dependency());
     assert!(spatial_rejects_kernel_dependency());
     assert!(synopsis_owned_admitted_handoff_precedent());
@@ -204,11 +135,49 @@ fn public_queryless_happy_path_quarantined() -> bool {
 }
 
 fn query_runtime_authoring_honesty() -> bool {
-    KERNEL_AUTHORING.contains("REQUIRED_QUERY_FAMILIES")
-        && KERNEL_AUTHORING.contains("require_primitive_construction_query_entry(")
+    query_authority_typed_evidence_is_satisfied()
+        && KERNEL_AUTHORING.contains("require_default_primitive_construction_query_authority(")
+        && KERNEL_QUERY_SUPPORT_PINS.contains("load_support_pin_contract_document(")
+        && KERNEL_QUERY_SUPPORT_PINS
+            .contains("ForgeQuerySupportPinContractSchemaVersion::current()")
+        && KERNEL_QUERY_SUPPORT_PINS_JSON.contains("\"consumer_name\": \"worth-kernel\"")
+        && KERNEL_QUERY_SUPPORT_PINS_JSON.contains("\"pinned_vocabulary_identity\"")
+        && !KERNEL_AUTHORING.contains("REQUIRED_QUERY_FAMILIES")
+        && !KERNEL_AUTHORING.contains("REPORTED_QUERY_FAMILIES")
+        && !KERNEL_AUTHORING.contains("PrimitiveConstructionQueryGapRow")
+        && !KERNEL_AUTHORING.contains("support_pinning_contract(\"worth-kernel\")")
+        && !KERNEL_AUTHORING.contains("project_workspace_support_snapshot(")
+        && !KERNEL_AUTHORING.contains("require_primitive_construction_query_entry(")
         && KERNEL_AUTHORING.contains("ForgeQueryWorkspace")
         && !KERNEL_AUTHORING.contains("author_primitive_construction_declaration(")
         && !KERNEL_AUTHORING.contains("PrimitiveConstructionAuthoringEntry")
+}
+
+fn query_authority_typed_evidence_is_satisfied() -> bool {
+    let runtime = match milestone_one_runtime_builder() {
+        Ok(builder) => builder.build(),
+        Err(_) => return false,
+    };
+    let workspace = match topology_runtime(
+        TopologyRuntimeAdapters::current_head(runtime),
+        "worth-kernel.phase-five-closeout-query-authority".to_string(),
+    ) {
+        Ok(workspace) => workspace,
+        Err(_) => return false,
+    };
+    let receipt = match require_default_primitive_construction_query_authority(&workspace) {
+        Ok(receipt) => receipt,
+        Err(_) => return false,
+    };
+
+    receipt.support_pins_satisfied()
+        && receipt.support_pin_finding_count() == 0
+        && receipt.support_pin_blocking_finding_count() == 0
+        && receipt.evaluated_support_source_matrix_digest()
+            == workspace
+                .public_support_matrix()
+                .matrix_digest()
+                .terminal_projection_for_reporting()
 }
 
 fn family_birth_input_boundary_localized() -> bool {
@@ -234,14 +203,9 @@ fn dead_runtime_proof_subtree_deleted() -> bool {
     !Path::new(KERNEL_RUNTIME_PROOF_DIR).exists()
 }
 
-fn query_runtime_violation_count() -> usize {
-    QUERY_RUNTIME_AUDITED_FILES
-        .iter()
-        .flat_map(|(_, source)| {
-            FORBIDDEN_RUNTIME_PATTERNS
-                .iter()
-                .map(|pattern| source.contains(pattern))
-        })
-        .filter(|found| *found)
-        .count()
+fn query_runtime_boundary_audit_clean() -> bool {
+    hard_prohibition_boundary_audit()
+        .covering_sources(worth_kernel_query_boundary_sources())
+        .try_assert_clean()
+        .is_ok()
 }

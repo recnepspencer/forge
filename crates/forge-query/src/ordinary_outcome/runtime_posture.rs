@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ForgeQueryOrdinaryRuntimePostureKind {
@@ -122,8 +125,8 @@ pub struct ForgeQueryOrdinaryRuntimePosture {
     async_posture: Option<ForgeQueryOrdinaryRuntimeAsyncPostureKind>,
     basis_posture: ForgeQueryOrdinaryRuntimeBasisPostureKind,
     remask_posture: Option<ForgeQueryOrdinaryRuntimeRemaskPostureKind>,
-    support_evidence_digest: String,
-    posture_digest: String,
+    support_evidence_identity: ForgeQueryEvidenceIdentity,
+    posture_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryOrdinaryRuntimePosture {
@@ -136,33 +139,65 @@ impl ForgeQueryOrdinaryRuntimePosture {
         support_evidence_digest: impl Into<String>,
     ) -> Self {
         let support_evidence_digest = support_evidence_digest.into();
-        let posture_digest = hash_parts(&[
-            "forge_query_ordinary_runtime_posture_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("cause:{}", cause_posture.as_str()),
-            format!(
-                "async:{}",
-                async_posture
-                    .map(ForgeQueryOrdinaryRuntimeAsyncPostureKind::as_str)
-                    .unwrap_or("none")
-            ),
-            format!("basis:{}", basis_posture.as_str()),
-            format!(
-                "remask:{}",
-                remask_posture
-                    .map(ForgeQueryOrdinaryRuntimeRemaskPostureKind::as_str)
-                    .unwrap_or("none")
-            ),
-            format!("support:{support_evidence_digest}"),
-        ]);
+        let support_evidence_identity =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "forge_query_ordinary_runtime_posture_support_digest_v1",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("support_digest"),
+                    &support_evidence_digest,
+                )
+                .seal();
+        Self::new_with_support_identity(
+            kind,
+            cause_posture,
+            async_posture,
+            basis_posture,
+            remask_posture,
+            support_evidence_identity,
+        )
+    }
+
+    pub fn new_with_support_identity(
+        kind: ForgeQueryOrdinaryRuntimePostureKind,
+        cause_posture: ForgeQueryOrdinaryRuntimeCausePostureKind,
+        async_posture: Option<ForgeQueryOrdinaryRuntimeAsyncPostureKind>,
+        basis_posture: ForgeQueryOrdinaryRuntimeBasisPostureKind,
+        remask_posture: Option<ForgeQueryOrdinaryRuntimeRemaskPostureKind>,
+        support_evidence_identity: ForgeQueryEvidenceIdentity,
+    ) -> Self {
+        let posture_identity =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "forge_query_ordinary_runtime_posture_v1",
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .field_shape(ForgeQueryEvidenceTag::new("cause"), cause_posture.as_str())
+                .optional_shape(
+                    ForgeQueryEvidenceTag::new("async"),
+                    async_posture.map(ForgeQueryOrdinaryRuntimeAsyncPostureKind::as_str),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("basis"), basis_posture.as_str())
+                .optional_shape(
+                    ForgeQueryEvidenceTag::new("remask"),
+                    remask_posture.map(ForgeQueryOrdinaryRuntimeRemaskPostureKind::as_str),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("support"),
+                    &support_evidence_identity,
+                )
+                .seal();
         Self {
             kind,
             cause_posture,
             async_posture,
             basis_posture,
             remask_posture,
-            support_evidence_digest,
-            posture_digest,
+            support_evidence_identity,
+            posture_identity,
         }
     }
 
@@ -187,10 +222,18 @@ impl ForgeQueryOrdinaryRuntimePosture {
     }
 
     pub fn support_evidence_digest(&self) -> &str {
-        &self.support_evidence_digest
+        self.support_evidence_identity.as_str()
+    }
+
+    pub fn support_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.support_evidence_identity
     }
 
     pub fn posture_digest(&self) -> &str {
-        &self.posture_digest
+        self.posture_identity.as_str()
+    }
+
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.posture_identity
     }
 }

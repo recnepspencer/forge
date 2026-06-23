@@ -1,4 +1,8 @@
-use crate::source::{SourceFailureRecord, SourceMaterializationRecord};
+use crate::source::{
+    SourceFailureRecord, SourceFailureRecordIdentity, SourceMaterializationRecord,
+    SourceMaterializationRecordIdentity,
+};
+use crate::stream::{CheckpointTokenIdentity, StreamReplayRecordIdentity};
 
 use super::*;
 
@@ -61,7 +65,7 @@ impl BridgeDiagnosticsFacade {
 
     pub fn source_materialization_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &SourceMaterializationRecordIdentity,
     ) -> Option<SourceMaterializationRecord> {
         self.state
             .read()
@@ -81,7 +85,7 @@ impl BridgeDiagnosticsFacade {
 
     pub fn source_failure_record_for_identity(
         &self,
-        failure_identity: &str,
+        failure_identity: &SourceFailureRecordIdentity,
     ) -> Option<SourceFailureRecord> {
         self.state
             .read()
@@ -91,7 +95,7 @@ impl BridgeDiagnosticsFacade {
 
     pub fn stream_checkpoint_for_identity(
         &self,
-        checkpoint_identity: &str,
+        checkpoint_identity: &CheckpointTokenIdentity,
     ) -> Option<ConsumerCheckpointToken> {
         self.state
             .read()
@@ -101,7 +105,7 @@ impl BridgeDiagnosticsFacade {
 
     pub fn stream_replay_record_for_identity(
         &self,
-        replay_record_identity: &str,
+        replay_record_identity: &StreamReplayRecordIdentity,
     ) -> Option<CanonicalStreamReplayRecord> {
         self.state
             .read()
@@ -111,7 +115,7 @@ impl BridgeDiagnosticsFacade {
 
     pub fn stream_replay_record_for_checkpoint_identity(
         &self,
-        checkpoint_identity: &str,
+        checkpoint_identity: &CheckpointTokenIdentity,
     ) -> Option<CanonicalStreamReplayRecord> {
         self.state
             .read()

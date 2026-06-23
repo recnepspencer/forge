@@ -1,6 +1,5 @@
-use crate::identity::hash_parts;
-
 use super::basis::{ComparisonBasisFamily, QueryContextFamily};
+use super::identity::compose_query_context_support_profile_digest;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QueryContextDeferredScopeMarker {
@@ -64,32 +63,11 @@ pub fn runtime_backed_narrow_query_context_support_profile() -> QueryContextSupp
         QueryContextDeferredScopeMarker::StoreBackedDiff,
         QueryContextDeferredScopeMarker::BroadCollectionDiff,
     ];
-    let profile_digest = hash_parts(&[
-        format!(
-            "basis:{}",
-            admitted_basis_families
-                .iter()
-                .map(QueryContextFamily::as_str)
-                .collect::<Vec<_>>()
-                .join(",")
-        ),
-        format!(
-            "comparison:{}",
-            admitted_comparison_families
-                .iter()
-                .map(ComparisonBasisFamily::as_str)
-                .collect::<Vec<_>>()
-                .join(",")
-        ),
-        format!(
-            "deferred:{}",
-            deferred_scope_markers
-                .iter()
-                .map(QueryContextDeferredScopeMarker::as_str)
-                .collect::<Vec<_>>()
-                .join(",")
-        ),
-    ]);
+    let profile_digest = compose_query_context_support_profile_digest(
+        &admitted_basis_families,
+        &admitted_comparison_families,
+        &deferred_scope_markers,
+    );
 
     QueryContextSupportProfile {
         admitted_basis_families,

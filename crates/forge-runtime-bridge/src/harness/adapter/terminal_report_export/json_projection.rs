@@ -19,7 +19,7 @@ pub(in crate::harness::adapter) fn route_record_json(
         "subscription_slice_identity": record.subscription_slice_identity().as_str(),
         "entries": record.entries().iter().map(|entry| {
             json!({
-                "entity_identity": entry.entity_identity(),
+                "entity_identity_diagnostic_label": entry.entity_identity().diagnostic_label(),
                 "aspect_key": entry.aspect_key().as_str(),
                 "target_canonical_basis": entry.target_canonical_basis(),
                 "mapping_id": entry.mapping_id().as_str(),

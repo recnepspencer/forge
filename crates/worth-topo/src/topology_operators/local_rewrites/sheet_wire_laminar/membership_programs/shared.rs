@@ -1,5 +1,5 @@
 use forge_query::facade::{
-    ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
+    ForgeQueryEntityIdentity, ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryGraphCompositionBuilder,
     ForgeQueryRuntimeError,
 };
@@ -10,21 +10,27 @@ use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingInde
 use crate::topology_operators::application::{
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
 };
+use crate::topology_operators::authority_identity::{
+    existing_entity_authority, existing_relation_authority,
+};
 use crate::topology_operators::mutation_sequence::TopologyDeclaredMutationMember;
 
 pub(super) fn bind_existing_relation_handle(
-    runner: &TopologyMutationApplicationRunner<'_, '_>,
+    _runner: &TopologyMutationApplicationRunner<'_, '_>,
     relation_id: RelationId,
-    query_identity: &str,
-) -> Result<ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError> {
-    runner.workspace.bind_existing_relation(
-        ForgeQueryExistingRelationTarget::new(format!("{relation_id:?}"), query_identity)?
-            .in_target_collection("TopologyRelation")?,
-    )
+    query_identity: ForgeQueryEntityIdentity,
+) -> Result<ForgeQueryExistingTruthTargetBinding, TopologyMutationApplicationError> {
+    Ok(ForgeQueryExistingTruthTargetBinding::from_relation_target(
+        ForgeQueryExistingRelationTarget::new(
+            existing_relation_authority(relation_id)?,
+            query_identity,
+        )?
+        .in_target_collection("TopologyRelation")?,
+    )?)
 }
 
 pub(super) fn bind_existing_entity_handle(
-    runner: &TopologyMutationApplicationRunner<'_, '_>,
+    _runner: &TopologyMutationApplicationRunner<'_, '_>,
     bindings: &TopologyQueryBindingIndex,
     entity_id: EntityId,
     expected_kind: TopologyEntityKind,
@@ -42,9 +48,12 @@ pub(super) fn bind_existing_entity_handle(
             },
         );
     }
-    Ok(runner.workspace.bind_existing_entity(
-        ForgeQueryExistingEntityTarget::new(format!("{entity_id:?}"), binding.query_identity)?
-            .in_target_collection("TopologyEntity")?,
+    Ok(ForgeQueryExistingTruthTargetBinding::from_entity_target(
+        ForgeQueryExistingEntityTarget::new(
+            existing_entity_authority(entity_id)?,
+            binding.query_identity,
+        )?
+        .in_target_collection("TopologyEntity")?,
     )?)
 }
 

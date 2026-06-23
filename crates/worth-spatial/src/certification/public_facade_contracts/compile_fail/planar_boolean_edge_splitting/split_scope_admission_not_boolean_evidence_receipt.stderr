@@ -1,0 +1,33 @@
+error[E0277]: the trait bound `PlanarBooleanEdgeSplitScopeAdmission: BooleanEvidenceReceipt` is not satisfied
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_scope_admission_not_boolean_evidence_receipt.rs:6:38
+  |
+6 |     require_boolean_evidence_receipt(&admission);
+  |     -------------------------------- ^^^^^^^^^^ the trait `BooleanEvidenceReceipt` is not implemented for `PlanarBooleanEdgeSplitScopeAdmission`
+  |     |
+  |     required by a bound introduced by this call
+  |
+help: the following other types implement trait `BooleanEvidenceReceipt`
+ --> src/workload_platform/planar_boolean_events/event_ledger/receipt.rs
+  |
+  | impl BooleanEvidenceReceipt for PlanarBooleanEventLedgerReceipt {
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanEventLedgerReceipt`
+  |
+ ::: src/workload_platform/planar_boolean_loop_reconstruction/loop_reconstruction_ledger/receipt.rs
+  |
+  | impl BooleanEvidenceReceipt for PlanarBooleanLoopReconstructionLedgerReceipt {
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanLoopReconstructionLedgerReceipt`
+  |
+ ::: src/workload_platform/planar_boolean_events/pair_enumeration/receipt.rs
+  |
+  | impl BooleanEvidenceReceipt for PlanarBooleanSegmentPairEnumerationReceipt {
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanSegmentPairEnumerationReceipt`
+  |
+ ::: src/workload_platform/planar_boolean_edge_splitting/split_edge_chain_ledger/receipt.rs
+  |
+  | impl BooleanEvidenceReceipt for PlanarBooleanSplitEdgeChainLedgerReceipt {
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanSplitEdgeChainLedgerReceipt`
+note: required by a bound in `require_boolean_evidence_receipt`
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_scope_admission_not_boolean_evidence_receipt.rs:9:46
+  |
+9 | fn require_boolean_evidence_receipt(_: &impl BooleanEvidenceReceipt) {}
+  |                                              ^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `require_boolean_evidence_receipt`

@@ -270,7 +270,8 @@ pub(super) fn snapshot_basis_resolution_failure_hostile() -> Result<(), BasisRes
         ResolvedSnapshotIdentity::new(
             BasisAuthorityFamily::Store,
             Some("workspace-main".to_string()),
-            "snapshot-2",
+            crate::memory_workspace::admit_external_snapshot_label("snapshot-2")
+                .evidence_identity(),
             validated.query().schema_basis().clone(),
             SnapshotLineageClass::CurrentHead,
         ),

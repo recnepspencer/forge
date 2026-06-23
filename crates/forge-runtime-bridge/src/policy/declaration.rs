@@ -3,11 +3,20 @@ use std::sync::Arc;
 use sha2::{Digest, Sha256};
 
 use crate::facade::BridgeRequestKind;
-use crate::identity::{BridgeIdentity, PolicyDeclarationIdentityTag};
+use crate::identity::{BridgeIdentity, BridgeIdentityEvidence, PolicyDeclarationIdentityTag};
 
 use super::{BridgeDiagnosticsTier, BridgeExecutionPolicyClass};
 
 pub type BridgePolicyDeclarationIdentity = BridgeIdentity<PolicyDeclarationIdentityTag>;
+
+impl BridgePolicyDeclarationIdentity {
+    pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
+        Self::admit_bridge_owned(format!(
+            "bridge-policy-declaration:external-authority-evidence:{}",
+            evidence_identity.as_str()
+        ))
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgePolicyDeclaration {
@@ -95,7 +104,7 @@ mod tests {
     #[test]
     fn policy_declaration_is_canonical_for_same_inputs() {
         let left = BridgePolicyDeclaration::new(
-            super::BridgePolicyDeclarationIdentity::new("policy:request-a"),
+            super::BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:request-a"),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,
@@ -103,7 +112,7 @@ mod tests {
             true,
         );
         let right = BridgePolicyDeclaration::new(
-            super::BridgePolicyDeclarationIdentity::new("policy:request-a"),
+            super::BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:request-a"),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,

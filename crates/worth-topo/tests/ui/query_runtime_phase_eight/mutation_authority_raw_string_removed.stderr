@@ -1,0 +1,21 @@
+error[E0308]: mismatched types
+ --> tests/ui/query_runtime_phase_eight/mutation_authority_raw_string_removed.rs:5:45
+  |
+5 |         ForgeQueryExistingEntityTarget::new("entity:1:1:1".to_string(), todo!()).expect("target");
+  |         ----------------------------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `ForgeQueryMutationAuthorityIdentity`, found `String`
+  |         |
+  |         arguments to this function are incorrect
+  |
+note: associated function defined here
+ --> $WORKSPACE/crates/forge-query/src/runtime/mutation/binding/existing_truth.rs
+  |
+  |     pub fn new(
+  |            ^^^
+
+warning: unreachable call
+ --> tests/ui/query_runtime_phase_eight/mutation_authority_raw_string_removed.rs:5:9
+  |
+5 |         ForgeQueryExistingEntityTarget::new("entity:1:1:1".to_string(), todo!()).expect("target");
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable call            ------- any code following this expression is unreachable
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

@@ -5,10 +5,12 @@ use forge_server::{
     request_context::DiagnosticRichnessProfile,
     surfaces::{CompatHttpSurface, ForgeNativeSurface, SyncSurface},
     ForgeServer, ForgeServerAdmission, ForgeServerConfig, ForgeServerMiddlewareConfig,
-    ForgeServerQueryHandoff, ForgeServerQueryHandoffConfig, ForgeServerQueryHandoffDenial,
-    ForgeServerQueryHandoffOutcome, ForgeServerQueryWorkspaceProvider,
-    ForgeServerRequestContextConfig, ForgeServerRequestContextInput,
-    ForgeServerResolvedRequestContext, ForgeServerSurfaceFamily, ForgeServerTransportClass,
+    ForgeServerOperationAdmissionPosture, ForgeServerOperationFamily,
+    ForgeServerOperationRequestInput, ForgeServerQueryHandoff, ForgeServerQueryHandoffConfig,
+    ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffOutcome,
+    ForgeServerQueryWorkspaceProvider, ForgeServerRequestContextConfig,
+    ForgeServerRequestContextInput, ForgeServerResolvedRequestContext, ForgeServerSurfaceFamily,
+    ForgeServerTransportClass,
 };
 
 pub(crate) fn test_server(
@@ -49,6 +51,7 @@ pub(crate) fn test_server_with_middleware(
                 .build()
                 .expect("server config should validate"),
         )
+        .register_operations(forge_server::ForgeServerOperationRegistration::phase_two_defaults())
         .register_surface(ForgeNativeSurface::disabled())
         .register_surface(CompatHttpSurface::disabled());
     if include_sync_surface {
@@ -96,6 +99,28 @@ pub(crate) fn admit_read(
     }
 }
 
+pub(crate) fn admit_read_posture(
+    server: &ForgeServer,
+    resolved: ForgeServerResolvedRequestContext,
+) -> ForgeServerOperationAdmissionPosture {
+    let admission = admit_read(server, resolved);
+    let operation_request = server
+        .operation_requests()
+        .admit_from_forge_native_admission(
+            &admission,
+            ForgeServerOperationRequestInput::builder()
+                .with_operation_family(ForgeServerOperationFamily::QueryDirectRead)
+                .with_operation_name("users.profile")
+                .with_basis_digest("basis-users-profile")
+                .build(),
+        )
+        .expect("read operation request should admit");
+    server
+        .operation_admissions()
+        .admit_declared(&admission, &operation_request)
+        .expect("read operation admission should admit")
+}
+
 pub(crate) fn admit_mutation(
     server: &ForgeServer,
     resolved: ForgeServerResolvedRequestContext,
@@ -109,6 +134,51 @@ pub(crate) fn admit_mutation(
         TransitionOutcome::Success(admission) => admission,
         other => panic!("expected admitted mutation pipeline result, got {other:?}"),
     }
+}
+
+pub(crate) fn admit_mutation_posture(
+    server: &ForgeServer,
+    resolved: ForgeServerResolvedRequestContext,
+) -> ForgeServerOperationAdmissionPosture {
+    let admission = admit_mutation(server, resolved);
+    let operation_request = server
+        .operation_requests()
+        .admit_from_forge_native_admission(
+            &admission,
+            ForgeServerOperationRequestInput::builder()
+                .with_operation_family(ForgeServerOperationFamily::QueryDirectSubmission)
+                .with_operation_name("users.rename")
+                .with_idempotency_key("idem-7")
+                .build(),
+        )
+        .expect("mutation operation request should admit");
+    server
+        .operation_admissions()
+        .admit_declared(&admission, &operation_request)
+        .expect("mutation operation admission should admit")
+}
+
+pub(crate) fn admit_delivery_posture(
+    server: &ForgeServer,
+    resolved: ForgeServerResolvedRequestContext,
+    basis_digest: &str,
+) -> ForgeServerOperationAdmissionPosture {
+    let admission = admit_read(server, resolved);
+    let operation_request = server
+        .operation_requests()
+        .admit_from_forge_native_admission(
+            &admission,
+            ForgeServerOperationRequestInput::builder()
+                .with_operation_family(ForgeServerOperationFamily::SyncLease)
+                .with_operation_name("users.profile")
+                .with_basis_digest(basis_digest)
+                .build(),
+        )
+        .expect("delivery operation request should admit");
+    server
+        .operation_admissions()
+        .admit_declared(&admission, &operation_request)
+        .expect("delivery operation admission should admit")
 }
 
 pub(crate) fn success(outcome: ForgeServerQueryHandoffOutcome) -> ForgeServerQueryHandoff {

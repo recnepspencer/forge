@@ -28,6 +28,8 @@
 //! - [`facade::projection`] for receipt-backed geometry projection consumption
 //! - [`facade::recovery`] for typed geometry recovery actions
 //! - [`facade::planar_contracts`] for M6 planar admission vocabulary
+//! - [`facade::planar_boolean_common_plane`] for pair-level common-plane
+//!   eligibility receipts over certified planar support
 //! - [`facade::planar_predicates`] for Query-native exact planar predicate
 //!   authority backed by `worth-math` certified predicates
 //! - [`facade::planar_predicate_consumption`] for Query-native validation that
@@ -62,6 +64,7 @@
 //! parallel support namespace.
 
 #![forbid(unsafe_code)]
+#![cfg_attr(test, allow(dead_code, unused_imports))]
 
 mod anchor_selection;
 mod authored_refs;
@@ -69,6 +72,7 @@ mod bindings;
 pub mod certification;
 mod placement;
 mod planar_contracts;
+mod query_adoption;
 #[cfg(test)]
 mod structure_guard;
 #[cfg(test)]
@@ -77,3 +81,7 @@ mod witness_resolution;
 mod workload_platform;
 
 pub mod facade;
+
+mod trusted_boolean_evidence_authority {
+    pub trait Seal {}
+}

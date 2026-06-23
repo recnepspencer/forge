@@ -138,6 +138,10 @@ where
         ForgeQueryGroupedContributionStop::MemberStopped(_, _) => {
             AgentGroupedContributionStopKind::MemberStopped
         }
+        ForgeQueryGroupedContributionStop::WrongWorld(_)
+        | ForgeQueryGroupedContributionStop::WrongHandle(_) => {
+            AgentGroupedContributionStopKind::MemberStopped
+        }
     }
 }
 
@@ -193,7 +197,9 @@ where
                 context.member_index(),
                 context.shared_contribution_count(),
                 context.member_contribution_count(),
-                member.composition_digest()
+                member
+                    .composition_identity()
+                    .terminal_projection_for_reporting()
             )
         })
         .collect::<Vec<_>>();

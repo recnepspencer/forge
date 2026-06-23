@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::domain_capabilities::identity::{
+    compose_counter_snapshot_digest, compose_slope_digest, compose_slope_scale_entry_digest,
+};
 
 use super::representative::ForgeQueryDomainCapabilityRepresentativeReport;
 use super::scaled::forge_query_domain_capability_scaled_evidence;
@@ -75,12 +77,12 @@ pub fn forge_query_domain_capability_slope_report(
         trace_width: full_scale.trace_width(),
         category_width: full_scale.category_width(),
         support_width: full_scale.support_width(),
-        digest: hash_parts(&[
-            format!("contribution-width:{}", full_scale.contribution_width()),
-            format!("trace-width:{}", full_scale.trace_width()),
-            format!("category-width:{}", full_scale.category_width()),
-            format!("support-width:{}", full_scale.support_width()),
-        ]),
+        digest: compose_counter_snapshot_digest(
+            full_scale.contribution_width(),
+            full_scale.trace_width(),
+            full_scale.category_width(),
+            full_scale.support_width(),
+        ),
     };
 
     ForgeQueryDomainCapabilitySlopeReport {
@@ -111,16 +113,10 @@ fn slope_digest(
     scaled: &[super::scaled::ForgeQueryDomainCapabilityScaledEvidence; 3],
     projector: impl Fn(&super::scaled::ForgeQueryDomainCapabilityScaledEvidence) -> (usize, &str),
 ) -> String {
-    hash_parts(
-        &scaled
-            .iter()
-            .enumerate()
-            .map(|(index, evidence)| {
-                let (width, digest) = projector(evidence);
-                format!("{label}:{}:{width}:{digest}", index + 1)
-            })
-            .collect::<Vec<_>>(),
-    )
+    compose_slope_digest(scaled.iter().enumerate().map(|(index, evidence)| {
+        let (width, digest) = projector(evidence);
+        compose_slope_scale_entry_digest(label, index + 1, width, digest)
+    }))
 }
 
 #[cfg(test)]

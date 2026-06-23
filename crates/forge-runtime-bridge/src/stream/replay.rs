@@ -4,7 +4,9 @@ use crate::error::BridgeStreamError;
 use crate::identity::{BridgeIdentity, StreamReplayRecordIdentityTag};
 use crate::routing::canonicalization::digest_string;
 
-use super::checkpoints::{validate_checkpoint_for_window, ConsumerCheckpointToken};
+use super::checkpoints::{
+    validate_checkpoint_for_window, CheckpointTokenIdentity, ConsumerCheckpointToken,
+};
 use super::counters::StreamProtocolCounters;
 use super::protocol::AdmittedConsumerContract;
 use super::window::PlannedChangeStreamWindow;
@@ -17,7 +19,7 @@ pub struct CanonicalStreamReplayRecord {
     replay_record_identity: StreamReplayRecordIdentity,
     consumer_contract_identity: super::protocol::ConsumerContractIdentity,
     stream_window_identity: super::window::StreamWindowIdentity,
-    checkpoint_token_identity: Arc<str>,
+    checkpoint_token_identity: CheckpointTokenIdentity,
     replay_basis_digest: Arc<str>,
     protocol_semantics_version: Arc<str>,
     counters: StreamProtocolCounters,
@@ -50,16 +52,16 @@ impl CanonicalStreamReplayRecord {
             "canonical-stream-replay-record|contract={}|window={}|checkpoint={}|replay-basis-digest={}|protocol-semantics-version={}",
             contract.consumer_contract_identity().as_str(),
             window.stream_window_identity().as_str(),
-            checkpoint.checkpoint_token_identity(),
+            checkpoint.checkpoint_token_identity_for_reporting(),
             replay_basis_digest.as_ref(),
             checkpoint.protocol_semantics_version(),
         );
         let digest = digest_string("canonical-stream-replay-record", &basis);
         Ok(Self {
-            replay_record_identity: StreamReplayRecordIdentity::new(digest.clone()),
+            replay_record_identity: StreamReplayRecordIdentity::admit_bridge_owned(digest.clone()),
             consumer_contract_identity: contract.consumer_contract_identity().clone(),
             stream_window_identity: window.stream_window_identity().clone(),
-            checkpoint_token_identity: Arc::from(checkpoint.checkpoint_token_identity()),
+            checkpoint_token_identity: checkpoint.checkpoint_token_identity().clone(),
             replay_basis_digest,
             protocol_semantics_version: Arc::from(checkpoint.protocol_semantics_version()),
             counters: checkpoint.counters().clone().with_replay(false),
@@ -79,8 +81,12 @@ impl CanonicalStreamReplayRecord {
         &self.stream_window_identity
     }
 
-    pub fn checkpoint_token_identity(&self) -> &str {
-        self.checkpoint_token_identity.as_ref()
+    pub fn checkpoint_token_identity(&self) -> &CheckpointTokenIdentity {
+        &self.checkpoint_token_identity
+    }
+
+    pub fn checkpoint_token_identity_for_reporting(&self) -> &str {
+        self.checkpoint_token_identity.as_str()
     }
 
     pub fn replay_basis_digest(&self) -> &str {

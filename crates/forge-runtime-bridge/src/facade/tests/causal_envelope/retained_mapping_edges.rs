@@ -1,6 +1,3 @@
-use super::retained_mapping_digest_support::{
-    expected_retained_causal_digest, ExpectedRetainedCausalDigestArtifact,
-};
 use super::retained_mapping_support::{
     binding_for, bridge_route_reference, bridge_source_failure_reference,
     bridge_source_materialization_reference, missing_bridge_reference, query_observation_reference,
@@ -8,7 +5,6 @@ use super::retained_mapping_support::{
 use super::{
     registered_source, runtime, runtime_with_source_adapter, BridgeRuntimePolicy,
     BridgeSourceCapability, BridgeTruthViewSelector, RejectingSourceAdapter, SnapshotReadPacket,
-    TruthBranchIdentity,
 };
 use crate::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEnvelopeDenialKind, BridgeCausalEvidenceFamily,
@@ -19,7 +15,7 @@ fn causal_envelope_maps_source_failure_by_exact_failure_identity() {
     let runtime =
         runtime_with_source_adapter(BridgeRuntimePolicy::default(), RejectingSourceAdapter);
     let routed = runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit-causal-source-failure",
         ))
         .expect("route should succeed");
@@ -27,8 +23,8 @@ fn causal_envelope_maps_source_failure_by_exact_failure_identity() {
         .admit_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -51,14 +47,20 @@ fn causal_envelope_maps_source_failure_by_exact_failure_identity() {
 
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            "query-admission:source-failure",
-            "causal-anchor:source-failure",
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                "query-admission:source-failure",
+            ),
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                "causal-anchor:source-failure",
+            ),
         )
         .expect("query admission summary should be valid"),
         vec![
             query_observation_reference(
                 crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    "query-observation:source-failure",
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                        "query-observation:source-failure",
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -71,8 +73,8 @@ fn causal_envelope_maps_source_failure_by_exact_failure_identity() {
         .diagnostics()
         .assemble_causal_explanation_envelope(request)
         .expect("source failure should bind by exact identity");
-    let failure_class = format!("{:?}", failure.failure_class());
-    let delivery_error_kind = format!("{:?}", failure.delivery_error_kind());
+    let expected_failure_digest =
+        crate::diagnostics::causal_envelope::retained_mapping::retained_artifact_digest::source_structural_stream::source_failure_digest(&failure);
 
     assert_eq!(envelope.counters().bridge_retained_lookup_count(), 2);
     assert_eq!(envelope.counters().retained_bridge_binding_count(), 2);
@@ -83,22 +85,8 @@ fn causal_envelope_maps_source_failure_by_exact_failure_identity() {
             BridgeCausalEvidenceFamily::BridgeSourceFailure,
             failure.failure_identity().as_str()
         )
-        .retained_record_digest(),
-        Some(
-            expected_retained_causal_digest(
-                ExpectedRetainedCausalDigestArtifact::SourceFailureRecord,
-                &[
-                    failure.failure_identity().as_str(),
-                    failure.declaration_identity().as_str(),
-                    failure.selector_identity(),
-                    failure.source_capability_digest(),
-                    failure_class.as_str(),
-                    delivery_error_kind.as_str(),
-                    failure.digest(),
-                ],
-            )
-            .as_str()
-        )
+        .retained_record_digest_for_reporting(),
+        Some(expected_failure_digest.as_str())
     );
 }
 
@@ -106,20 +94,26 @@ fn causal_envelope_maps_source_failure_by_exact_failure_identity() {
 fn causal_envelope_denies_missing_retained_expansion_record_without_unindexed_scan() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let routed = runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit-causal-missing-retained-expansion",
         ))
         .expect("route should succeed");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            "query-admission:missing-retained-expansion",
-            "causal-anchor:missing-retained-expansion",
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                "query-admission:missing-retained-expansion",
+            ),
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                "causal-anchor:missing-retained-expansion",
+            ),
         )
         .expect("query admission summary should be valid"),
         vec![
             query_observation_reference(
                 crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    "query-observation:missing-retained-expansion",
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                        "query-observation:missing-retained-expansion",
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -161,8 +155,8 @@ fn causal_envelope_source_materialization_lookup_cost_ignores_unrelated_records(
             .admit_source(registered_source(
                 "source:analysis-history",
                 BridgeTruthViewSelector::historical_commit(
-                    TruthBranchIdentity::new("analysis"),
-                    crate::facade::TruthCommitIdentity::new("commit-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
                 ),
                 vec![
                     BridgeSourceCapability::SnapshotRead,
@@ -190,7 +184,7 @@ fn causal_envelope_source_materialization_lookup_cost_ignores_unrelated_records(
                 .expect("noise source should canonicalize");
         }
         let routed = runtime
-            .route(crate::facade::TruthCommitIdentity::new(
+            .route(crate::truth_identity_fixtures::truth_commit_fixture(
                 "commit-causal-source-scale",
             ))
             .expect("route should succeed");
@@ -202,14 +196,20 @@ fn causal_envelope_source_materialization_lookup_cost_ignores_unrelated_records(
             .expect("target source should canonicalize");
         let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
             crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-                "query-admission:source-scale",
-                "causal-anchor:source-scale",
+                crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                    "query-admission:source-scale",
+                ),
+                crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                    "causal-anchor:source-scale",
+                ),
             )
             .expect("query admission summary should be valid"),
             vec![
                 query_observation_reference(
                     crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
-                        "query-observation:source-scale",
+                        crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                            "query-observation:source-scale",
+                        ),
                     )
                     .expect("query observation reference identity should be valid"),
                 ),
@@ -231,7 +231,12 @@ fn causal_envelope_source_materialization_lookup_cost_ignores_unrelated_records(
         assert_eq!(envelope.counters().bridge_retained_lookup_count(), 2);
         assert_eq!(envelope.counters().retained_bridge_binding_count(), 2);
         assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
-        envelope_identities.push(envelope.identity().identity_digest().to_string());
+        envelope_identities.push(
+            envelope
+                .identity()
+                .envelope_identity_for_reporting()
+                .to_string(),
+        );
     }
 
     assert_eq!(envelope_identities[0], envelope_identities[1]);

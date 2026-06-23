@@ -1,11 +1,14 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGraphCompositionBreadth {
     component_count: usize,
     symbolic_entity_declaration_count: usize,
     symbolic_relation_declaration_count: usize,
-    breadth_digest: String,
+    breadth_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryGraphCompositionBreadth {
@@ -14,12 +17,22 @@ impl ForgeQueryGraphCompositionBreadth {
         symbolic_entity_declaration_count: usize,
         symbolic_relation_declaration_count: usize,
     ) -> Self {
-        let breadth_digest = hash_parts(&[
-            "forge_query_graph_composition_breadth_v1".to_string(),
-            format!("components:{component_count}"),
-            format!("entities:{symbolic_entity_declaration_count}"),
-            format!("relations:{symbolic_relation_declaration_count}"),
-        ]);
+        let breadth_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "graph-composition-breadth",
+                )
+                .field_usize(ForgeQueryEvidenceTag::new("components"), component_count)
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("symbolic_entities"),
+                    symbolic_entity_declaration_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("symbolic_relations"),
+                    symbolic_relation_declaration_count,
+                )
+                .seal();
         Self {
             component_count,
             symbolic_entity_declaration_count,
@@ -45,6 +58,10 @@ impl ForgeQueryGraphCompositionBreadth {
     }
 
     pub fn breadth_digest(&self) -> &str {
+        self.breadth_digest.as_str()
+    }
+
+    pub fn breadth_evidence_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.breadth_digest
     }
 }

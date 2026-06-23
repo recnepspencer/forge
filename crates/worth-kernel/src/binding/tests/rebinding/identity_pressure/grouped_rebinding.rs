@@ -209,11 +209,11 @@ fn grouped_rebinding_contribution_helper_and_generic_builder_lower_to_same_query
         generic.members()[0].0.aspect_record()
     );
     assert_eq!(
-        helper.members()[0].1.composition_digest(),
-        generic.members()[0].1.composition_digest()
+        helper.members()[0].1.composition_for_reporting(),
+        generic.members()[0].1.composition_for_reporting()
     );
     assert_eq!(
-        helper.members()[1].1.composition_digest(),
-        generic.members()[1].1.composition_digest()
+        helper.members()[1].1.composition_for_reporting(),
+        generic.members()[1].1.composition_for_reporting()
     );
 }

@@ -31,7 +31,7 @@ fn fixture_with_merge(declaration: crate::facade::MergeHistoryDeclaration) -> Br
 
 fn registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("profile-name"),
+        BridgeMappingId::admit_bridge_owned("profile-name"),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
@@ -42,7 +42,7 @@ fn registration() -> BridgeMappingRegistration {
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
             forge_foundational::facade::ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal.profile"),
+        SignalInvalidationScope::admit_bridge_owned("signal.profile"),
         CoarseRoutingMode::Direct,
     )
 }
@@ -62,8 +62,8 @@ fn merge_declaration(
             "rel-merge-v1",
             "schema-policy-v1",
             crate::facade::BridgeMergeParentOrderProof::new(vec![
-                crate::facade::TruthCommitIdentity::new("parent-a"),
-                crate::facade::TruthCommitIdentity::new("parent-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
             ]),
         ),
     )
@@ -72,7 +72,7 @@ fn merge_declaration(
 #[test]
 fn merge_execute_certification_retains_typed_success_evidence_before_terminal_export() {
     let declaration = merge_declaration(
-        MergeHistoryDeclarationIdentity::new("merge:typed-execute-certification"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:typed-execute-certification"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);
@@ -126,7 +126,7 @@ fn merge_execute_certification_retains_typed_success_evidence_before_terminal_ex
 #[test]
 fn merge_replay_certification_retains_typed_replay_counter_evidence() {
     let declaration = merge_declaration(
-        MergeHistoryDeclarationIdentity::new("merge:typed-replay-certification"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:typed-replay-certification"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);
@@ -168,7 +168,7 @@ fn merge_replay_certification_retains_typed_replay_counter_evidence() {
 #[test]
 fn merge_denial_certification_retains_typed_stage_and_counter_evidence() {
     let declaration = merge_declaration(
-        MergeHistoryDeclarationIdentity::new("merge:typed-denial-certification"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:typed-denial-certification"),
         BridgeMergeConsumptionClass::TopologyRewireMerge,
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);

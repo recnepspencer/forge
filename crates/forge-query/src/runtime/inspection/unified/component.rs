@@ -1,3 +1,4 @@
+use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQueryEntityIdentity};
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryContinuityMutationEvidence,
     ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,
@@ -10,7 +11,7 @@ use crate::runtime::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryBatchWriteComponentInspection {
     family: String,
-    commit_identity: String,
+    commit_identity: ForgeQueryCommitIdentity,
     target_evidence: ForgeQueryMutationTargetEvidence,
     existing_truth_assertion_evidence: Option<ForgeQueryExistingTruthAssertionEvidence>,
     existing_truth_binding_evidence: Option<ForgeQueryExistingTruthBindingEvidence>,
@@ -21,11 +22,11 @@ pub struct ForgeQueryBatchWriteComponentInspection {
     causality_evidence: Option<ForgeQueryMutationCausalityEvidence>,
     provenance_evidence: Option<ForgeQueryMutationProvenanceEvidence>,
     declared_collection: Option<String>,
-    declared_entity_identity: Option<String>,
+    declared_entity_identity: Option<ForgeQueryEntityIdentity>,
     target_collection: Option<String>,
-    target_entity_identity: Option<String>,
+    target_entity_identity: Option<ForgeQueryEntityIdentity>,
     collections: Vec<String>,
-    entity_identities: Vec<String>,
+    entity_identities: Vec<ForgeQueryEntityIdentity>,
     touched_aspect_paths: Vec<String>,
     declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
 }
@@ -48,7 +49,7 @@ impl ForgeQueryBatchWriteComponentInspection {
 
         let entity_identities = receipt
             .declared_entity_identity()
-            .map(|entity| vec![entity.to_string()])
+            .map(|entity| vec![entity.clone()])
             .unwrap_or_else(|| {
                 let mut entity_identities = receipt
                     .deltas()
@@ -70,7 +71,7 @@ impl ForgeQueryBatchWriteComponentInspection {
 
         Self {
             family: receipt.mutation_family().as_str().to_string(),
-            commit_identity: receipt.commit_identity().to_string(),
+            commit_identity: receipt.commit_identity().clone(),
             target_evidence: receipt.target_evidence().clone(),
             existing_truth_assertion_evidence: receipt.existing_truth_assertion_evidence().cloned(),
             existing_truth_binding_evidence: receipt.existing_truth_binding_evidence().cloned(),
@@ -85,9 +86,9 @@ impl ForgeQueryBatchWriteComponentInspection {
             causality_evidence: receipt.causality_evidence().cloned(),
             provenance_evidence: receipt.provenance_evidence().cloned(),
             declared_collection: receipt.declared_collection().map(str::to_string),
-            declared_entity_identity: receipt.declared_entity_identity().map(str::to_string),
+            declared_entity_identity: receipt.declared_entity_identity().cloned(),
             target_collection: receipt.target_collection().map(str::to_string),
-            target_entity_identity: receipt.target_entity_identity().map(str::to_string),
+            target_entity_identity: receipt.target_entity_identity().cloned(),
             collections,
             entity_identities,
             touched_aspect_paths,
@@ -99,7 +100,7 @@ impl ForgeQueryBatchWriteComponentInspection {
         &self.family
     }
 
-    pub fn commit_identity(&self) -> &str {
+    pub fn commit_identity(&self) -> &ForgeQueryCommitIdentity {
         &self.commit_identity
     }
 
@@ -155,19 +156,19 @@ impl ForgeQueryBatchWriteComponentInspection {
         self.declared_collection.as_deref()
     }
 
-    pub fn declared_entity_identity(&self) -> Option<&str> {
-        self.declared_entity_identity.as_deref()
+    pub fn declared_entity_identity(&self) -> Option<&ForgeQueryEntityIdentity> {
+        self.declared_entity_identity.as_ref()
     }
 
     pub fn target_collection(&self) -> Option<&str> {
         self.target_collection.as_deref()
     }
 
-    pub fn target_entity_identity(&self) -> Option<&str> {
-        self.target_entity_identity.as_deref()
+    pub fn target_entity_identity(&self) -> Option<&ForgeQueryEntityIdentity> {
+        self.target_entity_identity.as_ref()
     }
 
-    pub fn entity_identities(&self) -> &[String] {
+    pub fn entity_identities(&self) -> &[ForgeQueryEntityIdentity] {
         &self.entity_identities
     }
 

@@ -1,20 +1,22 @@
+use std::borrow::Borrow;
+
 use super::*;
 
 impl BridgeDiagnosticsState {
     pub(crate) fn evict_route_indexes(&mut self, evicted: &Arc<BridgeRouteRecord>) {
         evict_index_entry(
             &mut self.latest_route_by_route_identity,
-            evicted.route_identity().as_str(),
+            evicted.route_identity(),
             evicted,
         );
         evict_index_entry(
             &mut self.latest_route_by_invalidation_identity,
-            evicted.invalidation_identity().as_str(),
+            evicted.invalidation_identity(),
             evicted,
         );
         evict_index_entry(
             &mut self.latest_route_by_source_commit,
-            evicted.source_commit().as_str(),
+            evicted.source_commit(),
             evicted,
         );
     }
@@ -33,7 +35,7 @@ impl BridgeDiagnosticsState {
     ) {
         evict_index_entry(
             &mut self.latest_continuity_by_route_identity,
-            evicted.route_identity().as_str(),
+            evicted.route_identity(),
             evicted,
         );
     }
@@ -122,7 +124,7 @@ impl BridgeDiagnosticsState {
     ) {
         evict_index_entry(
             &mut self.latest_stream_checkpoint_by_identity,
-            evicted.checkpoint_token_identity(),
+            evicted.checkpoint_token_identity_for_reporting(),
             evicted,
         );
     }
@@ -138,13 +140,17 @@ impl BridgeDiagnosticsState {
         );
         evict_index_entry(
             &mut self.latest_stream_replay_by_checkpoint_identity,
-            evicted.checkpoint_token_identity(),
+            evicted.checkpoint_token_identity().as_str(),
             evicted,
         );
     }
 }
 
-fn evict_index_entry<T>(index: &mut BTreeMap<String, Arc<T>>, key: &str, evicted: &Arc<T>) {
+fn evict_index_entry<K, Q, T>(index: &mut BTreeMap<K, Arc<T>>, key: &Q, evicted: &Arc<T>)
+where
+    K: Borrow<Q> + Ord,
+    Q: Ord + ?Sized,
+{
     let Some(latest) = index.get(key) else {
         return;
     };

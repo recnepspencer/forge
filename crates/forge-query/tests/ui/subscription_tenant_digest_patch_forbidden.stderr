@@ -2,10 +2,4 @@ error[E0599]: no method named `with_tenant_digest` found for struct `LiveQueryAd
  --> tests/ui/subscription_tenant_digest_patch_forbidden.rs:6:29
   |
 6 |     let _patched = artifact.with_tenant_digest("tenant-v2");
-  |                             ^^^^^^^^^^^^^^^^^^
-  |
-help: there is a method `tenant_digest` with a similar name, but with different arguments
- --> src/subscription/input.rs
-  |
-  |     pub fn tenant_digest(&self) -> Option<&str> {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                             ^^^^^^^^^^^^^^^^^^ method not found in `LiveQueryAdmissionArtifact`

@@ -51,10 +51,9 @@ impl BridgeLoweringPlan {
         let subscription_slices = CanonicalSubscriptionSlices::new(subscription_slices);
         let subscription_slice_basis =
             subscription_slice_digest_basis(source_snapshot.as_str(), subscription_slices.slices());
-        let subscription_slice_identity = BridgeSubscriptionSliceIdentity::new(digest_string(
-            "subscription-slices",
-            &subscription_slice_basis,
-        ));
+        let subscription_slice_identity = BridgeSubscriptionSliceIdentity::admit_bridge_owned(
+            digest_string("subscription-slices", &subscription_slice_basis),
+        );
         let execution_counts = BridgeExecutionCounts::new(
             invalidation_targets.len(),
             subscription_slices.len(),

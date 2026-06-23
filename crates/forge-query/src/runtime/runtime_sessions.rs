@@ -1,5 +1,9 @@
+use super::evidence_identities::runtime_live_view_consumer_attachment_identity;
+use super::live_subscription::live_subscription_source_identity;
+use super::runtime_session_lowering::{
+    install_live_subscription_activation, lower_runtime_live_subscription_request,
+};
 use super::*;
-use crate::subscription::SubscriptionActivationInput;
 
 impl ForgeQueryRuntime {
     pub fn preview<'a>(
@@ -44,13 +48,21 @@ impl ForgeQueryRuntime {
             .support_for(ForgeQueryRuntimeFacadeFamily::BranchPreview)
             .map(|support| support.evidence().to_vec())
             .unwrap_or_default();
-        let mut evidence = vec!["runtime-branch-basis-admission".to_string()];
-        evidence.extend(branch_support_evidence);
+        let evidence_rows = std::iter::once(ForgeQueryBasisAdmissionEvidenceRow::tagged(
+            "runtime-branch-basis-admission",
+            "runtime-branch-basis-admission",
+        ))
+        .chain(
+            branch_support_evidence
+                .into_iter()
+                .map(ForgeQueryBasisAdmissionEvidenceRow::support_profile_token),
+        )
+        .collect::<Vec<_>>();
         let basis_admission = ForgeQueryBranchBasisAdmission::new(
             &self.evidence_authority,
             label.clone(),
             options.effect_policy(),
-            evidence,
+            evidence_rows,
         );
         Ok(ForgeQueryBranchSession::new(
             label,
@@ -97,6 +109,34 @@ impl ForgeQueryRuntime {
 
     pub fn support_profile(&self) -> ForgeQueryRuntimeSupportProfile {
         self.backend.support_profile()
+    }
+
+    pub fn graph_index_inventory(&self) -> ForgeQueryGraphIndexInventory {
+        self.backend.support_profile().graph_index_inventory()
+    }
+
+    pub(crate) fn admit_graph_read_access_for_family(
+        &self,
+        family: &ForgeQueryReadFamily,
+    ) -> Result<ForgeQueryGraphReadAccessAdmission, ForgeQueryGraphReadAccessShapeExplanationError>
+    {
+        crate::runtime::admit_graph_read_access_for_family_with_inventory(
+            family,
+            self.graph_index_inventory(),
+        )
+    }
+
+    pub(crate) fn admit_graph_read_access_for_family_in_authority(
+        &self,
+        family: &ForgeQueryReadFamily,
+        authority: &ForgeQueryGraphReadAccessAuthorityContext,
+    ) -> Result<ForgeQueryGraphReadAccessAdmission, ForgeQueryGraphReadAccessShapeExplanationError>
+    {
+        crate::runtime::admit_graph_read_access_for_family_in_authority_with_inventory(
+            family,
+            authority,
+            self.graph_index_inventory(),
+        )
     }
 
     pub(super) fn admit_facade_family(
@@ -179,8 +219,6 @@ impl ForgeQueryRuntime {
         let counters = activation.counters().clone();
         let activation_receipt =
             install_live_subscription_activation(&mut *self.backend, view_name, &activation)?;
-        let activation_digest = activation_receipt.activation_digest().to_string();
-        let support_evidence = activation_receipt.support_evidence().to_string();
         let remask_posture = activation_receipt.remask_posture().cloned();
         let active_lane_admission =
             admit_active_subscription_lane(activation.clone(), runtime_active_lifecycle_budget())
@@ -201,13 +239,12 @@ impl ForgeQueryRuntime {
                     },
                 )?;
         let active_lane_counters = self.active_subscriptions.counters().clone();
-        let active_lane_digest = active_lane_handle.lane_digest().as_str().to_string();
         let consumer_attachment = attach_subscription_consumer(
             &mut self.active_subscriptions,
             &active_lane_handle,
-            SubscriptionConsumerAttachmentRequest::admitted(
-                format!("runtime-live-view:{view_name}"),
-                activation_digest.clone(),
+            SubscriptionConsumerAttachmentRequest::from_consumer_identity(
+                runtime_live_view_consumer_attachment_identity(view_name),
+                activation_receipt.activation_identity().clone(),
             ),
             runtime_consumer_attachment_budget(),
         )
@@ -222,23 +259,30 @@ impl ForgeQueryRuntime {
 
         let installation = ForgeQueryRuntimeLiveSubscriptionInstallation::new(
             view_name,
-            lowered_subscription.query_digest.as_str(),
-            lowered_subscription.live_view_digest.as_str(),
+            lowered_subscription.query_identity,
+            lowered_subscription.live_view_identity,
+            lowered_subscription.canonical_result_shape_digest,
             lowered_subscription.subscription_family,
-            lowered_subscription.subscription_declaration_digest,
-            lowered_subscription.bridge_declaration_digest,
-            lowered_subscription.admission_digest,
-            activation_digest,
-            lowered_subscription.basis_binding_digest,
-            lowered_subscription.signal_strategy_digest,
-            active_lane_digest,
+            lowered_subscription.subscription_declaration_identity,
+            lowered_subscription.bridge_declaration_identity,
+            lowered_subscription.admission_identity,
+            live_subscription_source_identity(
+                "activation",
+                activation_receipt.activation_identity(),
+            ),
+            lowered_subscription.basis_binding_identity,
+            lowered_subscription.signal_strategy_identity,
+            live_subscription_source_identity(
+                "active_lane",
+                active_lane_handle.lane_digest().evidence_identity(),
+            ),
             &consumer_attachment,
             runtime_subscription_budget_policy(),
-            RUNTIME_ACTIVE_LIFECYCLE_BUDGET_POLICY,
-            RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY,
+            runtime_active_lifecycle_budget_policy(),
+            runtime_consumer_attachment_budget_policy(),
             active_lane_counters,
             consumer_attachment_counters,
-            support_evidence,
+            live_subscription_source_identity("support", activation_receipt.support_identity()),
             counters,
         );
 
@@ -252,144 +296,17 @@ impl ForgeQueryRuntime {
     }
 }
 
-struct LoweredRuntimeLiveSubscriptionRequest {
-    query_digest: String,
-    live_view_digest: String,
-    subscription_family: String,
-    subscription_declaration_digest: String,
-    admission_digest: String,
-    bridge_declaration_digest: String,
-    basis_binding_digest: String,
-    signal_strategy_digest: String,
-    activation: SubscriptionActivationInput,
-}
-
-fn lower_runtime_live_subscription_request(
-    backend: &dyn ForgeQueryRuntimeBackend,
-    view_name: &str,
-    request: &DeclarativeLiveQueryRequest,
-    schema_view: QuerySchemaView,
-) -> Result<LoweredRuntimeLiveSubscriptionRequest, ForgeQueryRuntimeError> {
-    let session = declare_runtime_live_query_session_with_grouped_baseline(
-        request.clone(),
-        schema_view,
-        backend.snapshot_token(),
-        grouped_baseline_members_or_error(backend, view_name, request)?,
-    )
-    .map_err(|error| live_subscription_error(view_name, "live-lowering", error))?;
-    let view_family = session.live_view().lowering().family();
-    let dimensions = subscription_dimensions_for_request(request, view_family)?;
-    let live_admission =
-        crate::subscription::LiveQueryAdmissionArtifact::from_live_promotion_with_view(
-            session.live_view().core_live_plan().descriptor(),
-            crate::subscription::QuerySubscriptionBasisPosture::CurrentHead,
-            view_family,
-            dimensions,
-        );
-    let selection = select_runtime_subscription_family(view_name, live_admission)?;
-    let subscription_family = selection.family().as_str().to_string();
-    let declaration =
-        declare_query_subscription(selection, runtime_slice_budget()).map_err(|error| {
-            ForgeQueryRuntimeError::LiveSubscriptionInstallation {
-                view_name: view_name.to_string(),
-                stage: "declaration",
-                message: format!("{error:?}"),
-            }
-        })?;
-    let subscription_declaration_digest = declaration.declaration_digest().as_str().to_string();
-    let lowering =
-        lower_query_subscription_to_bridge(declaration, runtime_bridge_lowering_budget()).map_err(
-            |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
-                view_name: view_name.to_string(),
-                stage: "bridge-lowering",
-                message: format!("{error:?}"),
-            },
-        )?;
-    let admission = admit_query_subscription(lowering, runtime_subscription_admission_budget())
-        .map_err(
-            |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
-                view_name: view_name.to_string(),
-                stage: "subscription-admission",
-                message: format!("{error:?}"),
-            },
-        )?;
-
-    Ok(LoweredRuntimeLiveSubscriptionRequest {
-        query_digest: session.canonical().query().digest().as_str().to_string(),
-        live_view_digest: session.live_view().lowering().digest().to_string(),
-        subscription_family,
-        subscription_declaration_digest,
-        admission_digest: admission.admission_digest().to_string(),
-        bridge_declaration_digest: admission.bridge_declaration_digest().to_string(),
-        basis_binding_digest: admission.basis_binding_digest().to_string(),
-        signal_strategy_digest: admission.signal_strategy_digest().to_string(),
-        activation: prepare_subscription_activation(admission),
-    })
-}
-
-fn grouped_baseline_members_or_error(
-    backend: &dyn ForgeQueryRuntimeBackend,
-    view_name: &str,
-    request: &DeclarativeLiveQueryRequest,
-) -> Result<Option<Vec<(String, String)>>, ForgeQueryRuntimeError> {
-    backend.grouped_baseline_members(request).map_err(|error| {
-        ForgeQueryRuntimeError::LiveSubscriptionInstallation {
-            view_name: view_name.to_string(),
-            stage: "grouped-baseline",
-            message: error.to_string(),
-        }
-    })
-}
-
-fn select_runtime_subscription_family(
-    view_name: &str,
-    live_admission: crate::subscription::LiveQueryAdmissionArtifact,
-) -> Result<crate::subscription::QuerySubscriptionFamilySelection, ForgeQueryRuntimeError> {
-    select_query_subscription_family(live_admission, runtime_family_budget()).map_err(|error| {
-        ForgeQueryRuntimeError::LiveSubscriptionInstallation {
-            view_name: view_name.to_string(),
-            stage: "family-selection",
-            message: format!("{error:?}"),
-        }
-    })
-}
-
-fn install_live_subscription_activation(
-    backend: &mut dyn ForgeQueryRuntimeBackend,
-    view_name: &str,
-    activation: &SubscriptionActivationInput,
-) -> Result<SubscriptionActivationReceipt, ForgeQueryRuntimeError> {
-    let activation_receipt = backend
-        .install_live_subscription(view_name, activation)
-        .map_err(
-            |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
-                view_name: view_name.to_string(),
-                stage: "activation-admission",
-                message: error.to_string(),
-            },
-        )?;
-    if let Some(message) = activation_receipt.drift_from_activation(view_name, activation) {
-        return Err(ForgeQueryRuntimeError::LiveSubscriptionInstallation {
-            view_name: view_name.to_string(),
-            stage: "activation-receipt",
-            message,
-        });
-    }
-    Ok(activation_receipt)
-}
-
 fn admit_session_label_for_lane(
-    admitted_labels: &mut std::collections::BTreeMap<String, ForgeQuerySessionLabel>,
+    admitted_labels: &mut std::collections::BTreeSet<ForgeQuerySessionLabel>,
     authority_lane: ForgeQueryAuthorityLane,
     label: &ForgeQuerySessionLabel,
 ) -> Result<(), ForgeQueryRuntimeError> {
-    let identity = label.identity_digest().to_string();
-    if admitted_labels.contains_key(&identity) {
+    if admitted_labels.contains(label) {
         return Err(ForgeQueryRuntimeError::SessionLabelCollision {
             authority_lane,
             label: label.clone(),
         });
     }
-    admitted_labels.insert(identity, label.clone());
+    admitted_labels.insert(label.clone());
     Ok(())
 }

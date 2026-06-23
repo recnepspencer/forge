@@ -1,5 +1,6 @@
 use super::*;
-use crate::runtime::ForgeQueryEffectWriteAdjacentTrigger;
+use crate::identity::hash_parts;
+use crate::runtime::{ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryGraphTouchDescriptor};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryIntentSourceLane {
@@ -32,6 +33,12 @@ pub struct ForgeQueryIntentDeclaration {
     source_lane: ForgeQueryIntentSourceLane,
     target_lane: ForgeQueryAuthorityLane,
     effect_trigger: Option<ForgeQueryEffectWriteAdjacentTrigger>,
+    graph_touch_descriptor: Option<ForgeQueryGraphTouchDescriptor>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryTouchBearingIntentDeclaration {
+    declaration: ForgeQueryIntentDeclaration,
 }
 
 impl ForgeQueryIntentDeclaration {
@@ -51,7 +58,16 @@ impl ForgeQueryIntentDeclaration {
             source_lane: ForgeQueryIntentSourceLane::UserAuthored,
             target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
             effect_trigger: None,
+            graph_touch_descriptor: None,
         }
+    }
+
+    pub fn with_graph_touch_descriptor(
+        mut self,
+        graph_touch_descriptor: ForgeQueryGraphTouchDescriptor,
+    ) -> Self {
+        self.graph_touch_descriptor = Some(graph_touch_descriptor);
+        self
     }
 
     pub(in crate::runtime) fn with_source_lane(
@@ -110,6 +126,10 @@ impl ForgeQueryIntentDeclaration {
         self.effect_trigger.as_ref()
     }
 
+    pub fn graph_touch_descriptor(&self) -> Option<&ForgeQueryGraphTouchDescriptor> {
+        self.graph_touch_descriptor.as_ref()
+    }
+
     pub fn input_digest(&self) -> String {
         let input = serde_json::to_string(&self.input)
             .unwrap_or_else(|error| format!("unserializable-intent-input:{error}"));
@@ -127,6 +147,42 @@ impl ForgeQueryIntentDeclaration {
                     .map(ForgeQueryEffectWriteAdjacentTrigger::digest)
                     .unwrap_or("none")
             ),
+            format!(
+                "graph-touch-descriptor:{}",
+                self.graph_touch_descriptor
+                    .as_ref()
+                    .map(ForgeQueryGraphTouchDescriptor::descriptor_digest)
+                    .unwrap_or("none")
+            ),
         ])
+    }
+}
+
+impl ForgeQueryTouchBearingIntentDeclaration {
+    pub fn new(
+        declaration: ForgeQueryIntentDeclaration,
+        graph_touch_descriptor: ForgeQueryGraphTouchDescriptor,
+    ) -> Self {
+        Self {
+            declaration: declaration.with_graph_touch_descriptor(graph_touch_descriptor),
+        }
+    }
+
+    pub fn declaration(&self) -> &ForgeQueryIntentDeclaration {
+        &self.declaration
+    }
+
+    pub fn graph_touch_descriptor(&self) -> &ForgeQueryGraphTouchDescriptor {
+        self.declaration
+            .graph_touch_descriptor()
+            .expect("touch-bearing intent declaration always carries graph touch descriptor")
+    }
+
+    pub fn input_digest(&self) -> String {
+        self.declaration.input_digest()
+    }
+
+    pub fn into_declaration(self) -> ForgeQueryIntentDeclaration {
+        self.declaration
     }
 }

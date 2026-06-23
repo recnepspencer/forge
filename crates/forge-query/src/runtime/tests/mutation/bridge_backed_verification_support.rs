@@ -106,7 +106,7 @@ fn bridge_backed_entity_verification_rows_match_runtime_behavior() {
     let binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -179,7 +179,7 @@ fn bridge_backed_relation_verification_rows_match_runtime_behavior() {
     let binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing relation target should build")
@@ -238,7 +238,7 @@ fn primary_entity_bridge_backed_verification_rows_match_runtime_denials() {
     let support = workspace.public_authoritative_mutation_evidence_support();
     let binding = workspace
         .bind_existing_entity(
-            ForgeQueryExistingEntityTarget::new("authority:task-1", "Task:1")
+            ForgeQueryExistingEntityTarget::new(crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"), test_entity_identity("Task:1"))
                 .expect("existing entity target should build")
                 .in_target_collection("Task")
                 .expect("existing entity target collection should build"),
@@ -299,10 +299,13 @@ fn primary_relation_bridge_backed_verification_rows_match_runtime_denials() {
     let support = workspace.public_authoritative_mutation_evidence_support();
     let binding = workspace
         .bind_existing_relation(
-            ForgeQueryExistingRelationTarget::new("authority:rel-1", "TaskRelation:1")
-                .expect("existing relation target should build")
-                .in_target_collection("TaskRelation")
-                .expect("existing relation target collection should build"),
+            ForgeQueryExistingRelationTarget::new(
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
+                test_entity_identity("TaskRelation:1"),
+            )
+            .expect("existing relation target should build")
+            .in_target_collection("TaskRelation")
+            .expect("existing relation target collection should build"),
         )
         .expect("relation binding should build");
 

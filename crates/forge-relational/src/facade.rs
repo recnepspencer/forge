@@ -2,6 +2,8 @@
 //! External crates should import through this module rather than reaching into
 //! internal crate structure directly.
 
+mod runtime_validation_exports;
+
 pub mod config {
     pub use crate::config::data::{
         AdjacencyBackend, AdjacencyPolicy, CascadeDeletePolicy, CheckpointPolicy,
@@ -118,6 +120,10 @@ pub mod identity {
     };
 }
 
+pub mod identity_authority {
+    pub use crate::identity_authority::*;
+}
+
 pub mod inspection {
     pub use crate::inspection::data::{
         CommitInspection, ConnectivityComponentSummary, ConnectivityInspectionBudget,
@@ -145,9 +151,10 @@ pub mod inspection {
 
 pub mod indexes {
     pub use crate::indexes::data::{
-        DerivedIndexApplicability, DerivedIndexBuildOutcome, DerivedIndexBuildRequest,
-        DerivedIndexDefinition, DerivedIndexEntries, DerivedIndexGeneration,
-        DerivedIndexGenerationId, DerivedIndexId, DerivedIndexKind, DerivedIndexPublicationStatus,
+        DerivedIndexApplicability, DerivedIndexArtifacts, DerivedIndexBuildOutcome,
+        DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexEntries,
+        DerivedIndexGeneration, DerivedIndexGenerationId, DerivedIndexId, DerivedIndexKind,
+        DerivedIndexPublicationStatus,
     };
 }
 
@@ -224,6 +231,7 @@ pub mod merge {
 }
 
 pub mod runtime {
+    pub use super::runtime_validation_exports::*;
     pub use crate::logic::builder::RelationalRuntimeBuilder;
     pub use crate::logic::commit::CommitAuthorityContract;
     pub use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
@@ -245,17 +253,6 @@ pub mod runtime {
     pub use crate::storage::data::{
         ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord, PartitionStorageStats,
         RelationReadRecord, RelationalReadView, StorageStats,
-    };
-    pub use crate::validation::data::{
-        CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
-        CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
-        CustomInvariantRegistration, CustomInvariantRegistrationError, CustomInvariantRule,
-        CustomInvariantRuleId, CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
-        CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCatalog,
-        InvariantCheckResult, InvariantClass, InvariantCostClass, InvariantDecisionKind,
-        InvariantDecisionRecord, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
-        InvariantGroupSet, InvariantRegistration, InvariantRule, PlannedRelationEndpointUpdate,
-        StructuralRelationRecord, StructuralRelationView,
     };
     pub use crate::visibility::authority::VisibilityAuthority as SnapshotAuthority;
     pub use crate::visibility::materialization::read_records::{
@@ -342,17 +339,18 @@ pub mod schema {
         MinimumCardinalityEnforcement, PairMinimumSemantics, PartitionIsolationContractDeclaration,
         PartitionIsolationMode, ProposedSchemaTransition, RelationIntegrityDeclarations,
         RelationIntegrityPlanCatalog, RelationIntegrityPlanRevision, RelationKindRegistration,
-        RelationalSchemaRegistry, SchemaBoundaryFingerprint, SchemaBridgeDescriptor,
-        SchemaBridgeabilityClassification, SchemaContinuationAdmissionObservation,
-        SchemaContinuationClassification, SchemaContinuationDescriptor, SchemaDiffAtom,
-        SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId, SchemaLineageArtifact,
-        SchemaLineageOrderingSemantics, SchemaPublicationImpact,
-        SchemaReconciliationClassification, SchemaReconciliationDescriptor,
-        SchemaReconciliationOrderingMode, SchemaReconciliationPolicy, SchemaRegistryError,
-        SchemaRegistryErrorClass, SchemaStratum, SchemaSubscriberImpact, SchemaTransitionArtifact,
-        SchemaTransitionBarrier, SchemaTransitionSummary, SchemaVersionId,
-        SubscriberBoundaryVisibility, SymmetryContractDeclaration, SymmetryMode,
-        UniquenessContractDeclaration, UniquenessScope, ValidatedSchemaTransition,
+        RelationalSchemaRegistry, SchemaAuthoritySnapshot, SchemaBoundaryFingerprint,
+        SchemaBridgeDescriptor, SchemaBridgeabilityClassification,
+        SchemaContinuationAdmissionObservation, SchemaContinuationClassification,
+        SchemaContinuationDescriptor, SchemaDiffAtom, SchemaDiffDetail, SchemaElementKind,
+        SchemaElementRef, SchemaId, SchemaLineageArtifact, SchemaLineageOrderingSemantics,
+        SchemaPublicationImpact, SchemaReconciliationClassification,
+        SchemaReconciliationDescriptor, SchemaReconciliationOrderingMode,
+        SchemaReconciliationPolicy, SchemaRegistryError, SchemaRegistryErrorClass, SchemaStratum,
+        SchemaSubscriberImpact, SchemaTransitionArtifact, SchemaTransitionBarrier,
+        SchemaTransitionSummary, SchemaVersionId, SubscriberBoundaryVisibility,
+        SymmetryContractDeclaration, SymmetryMode, UniquenessContractDeclaration, UniquenessScope,
+        ValidatedSchemaTransition,
     };
 }
 
@@ -390,11 +388,11 @@ pub mod transactions {
         EntitySpec, LineageSafeBulkMutationBatch, MergeCommitMutationPlan, MergeExecutionOutcome,
         MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan, MutationIntent,
         NamingStableBulkMutationBatch, PatchVsTruthDeltaReport, PlannedBulkMutationBatch,
-        PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch, RecordRef,
-        RelationMutationIntent, RelationScope, RelationSpec, ReplaceEntityIntent, RollbackEffect,
-        RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError, TransactionId,
-        TransactionOptions, UndoRecord, UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent,
-        WorkerIntentBatch,
+        PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch,
+        PublishedMergeExecutionAuthority, RecordRef, RelationMutationIntent, RelationScope,
+        RelationSpec, ReplaceEntityIntent, RollbackEffect, RollbackOutcome, RollbackSummary,
+        SavepointId, TransactionCommitError, TransactionId, TransactionOptions, UndoRecord,
+        UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent, WorkerIntentBatch,
     };
     pub use crate::transactions::logic::RelationalTransaction;
 }

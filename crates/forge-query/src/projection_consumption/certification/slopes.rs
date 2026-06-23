@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::projection_consumption::identity::{
+    compose_certification_counter_snapshot_digest, compose_slope_digest,
+    compose_support_matrix_support_width_digest,
+};
 use crate::projection_consumption::{
     discover_projection_consumption_support, ProjectionConsumptionSource,
 };
@@ -102,115 +105,160 @@ pub fn projection_consumption_slope_report() -> ProjectionConsumptionSlopeReport
         source_row_width_consumed: counters.source_row_width_consumed(),
         source_evidence_lookup_width: counters.source_evidence_lookup_width(),
         authority_reopen_count: counters.authority_reopen_count(),
-        digest: hash_parts(&[
-            "projection_consumption_counter_snapshot_v1".to_string(),
-            format!("declared:{}", counters.declared_fact_family_count()),
-            format!("admitted:{}", counters.admitted_fact_family_count()),
-            format!("extracted:{}", counters.extracted_fact_count()),
-            format!("row_width:{}", counters.source_row_width_consumed()),
-            format!("evidence_width:{}", counters.source_evidence_lookup_width()),
-            format!("authority_reopen:{}", counters.authority_reopen_count()),
-        ]),
+        digest: compose_certification_counter_snapshot_digest(
+            counters.declared_fact_family_count(),
+            counters.admitted_fact_family_count(),
+            counters.extracted_fact_count(),
+            counters.source_row_width_consumed(),
+            counters.source_evidence_lookup_width(),
+            counters.authority_reopen_count(),
+        ),
     };
     ProjectionConsumptionSlopeReport {
         counter_snapshot,
-        declaration_slope_digest: slope_digest("declaration", |scale| {
-            let lifecycle = control_row_set_lifecycle(scale);
-            vec![
-                format!("rows:{scale}"),
-                format!(
-                    "declared:{}",
-                    lifecycle.facts().counters().declared_fact_family_count()
-                ),
-                format!(
-                    "declaration:{}",
-                    lifecycle.declaration().declaration_digest()
-                ),
-            ]
-        }),
-        eligibility_slope_digest: slope_digest("eligibility", |scale| {
-            let lifecycle = control_row_set_lifecycle(scale);
-            vec![
-                format!("rows:{scale}"),
-                format!(
-                    "admitted:{}",
-                    lifecycle.facts().counters().admitted_fact_family_count()
-                ),
-                format!("eligibility:{}", lifecycle.contract().eligibility_digest()),
-            ]
-        }),
-        contract_binding_slope_digest: slope_digest("contract_binding", |scale| {
-            let lifecycle = control_row_set_lifecycle(scale);
-            vec![
-                format!("rows:{scale}"),
-                format!("contract:{}", lifecycle.contract().contract_digest()),
-                format!(
-                    "query:{}",
-                    lifecycle.contract().query_digest().unwrap_or("none")
-                ),
-            ]
-        }),
-        fact_extraction_slope_digest: slope_digest("fact_extraction", |scale| {
-            let lifecycle = control_row_set_lifecycle(scale);
-            let counters = lifecycle.facts().counters();
-            vec![
-                format!("rows:{scale}"),
-                format!("extracted:{}", counters.extracted_fact_count()),
-                format!("row_width:{}", counters.source_row_width_consumed()),
-            ]
-        }),
-        receipt_materialization_slope_digest: slope_digest("receipt_materialization", |scale| {
-            let lifecycle = control_row_set_lifecycle(scale);
-            vec![
-                format!("rows:{scale}"),
-                format!("receipt:{}", lifecycle.receipt().receipt_digest()),
-                format!("extracted:{}", lifecycle.receipt().extracted_fact_count()),
-            ]
-        }),
-        envelope_materialization_slope_digest: slope_digest("envelope_materialization", |scale| {
-            let lifecycle = control_row_set_lifecycle(scale);
-            vec![
-                format!("rows:{scale}"),
-                format!("envelope:{}", lifecycle.envelope().envelope_digest()),
-                format!(
-                    "authority_reopen:{}",
-                    lifecycle.envelope().authority_reopen_count()
-                ),
-            ]
-        }),
-        support_lookup_slope_digest: slope_digest("support_lookup", |scale| {
-            let row_set = certification_row_set(scale);
-            let support = discover_projection_consumption_support(
-                &ProjectionConsumptionSource::from_relational_row_set(&row_set),
-            );
-            vec![
-                format!("rows:{scale}"),
-                format!("support_width:{}", support.rows().len()),
-                format!(
-                    "support_digest:{}",
-                    hash_parts(
-                        &support
-                            .rows()
-                            .iter()
-                            .map(|row| row.support_digest().to_string())
-                            .collect::<Vec<_>>()
-                    )
-                ),
-            ]
-        }),
+        declaration_slope_digest: compose_slope_digest(
+            "declaration",
+            (1..=3).map(|scale| {
+                let lifecycle = control_row_set_lifecycle(scale);
+                (
+                    scale,
+                    vec![
+                        (
+                            "declared",
+                            lifecycle
+                                .facts()
+                                .counters()
+                                .declared_fact_family_count()
+                                .to_string(),
+                        ),
+                        (
+                            "declaration",
+                            lifecycle.declaration().declaration_digest().to_string(),
+                        ),
+                    ],
+                )
+            }),
+        ),
+        eligibility_slope_digest: compose_slope_digest(
+            "eligibility",
+            (1..=3).map(|scale| {
+                let lifecycle = control_row_set_lifecycle(scale);
+                (
+                    scale,
+                    vec![
+                        (
+                            "admitted",
+                            lifecycle
+                                .facts()
+                                .counters()
+                                .admitted_fact_family_count()
+                                .to_string(),
+                        ),
+                        (
+                            "eligibility",
+                            lifecycle.contract().eligibility_digest().to_string(),
+                        ),
+                    ],
+                )
+            }),
+        ),
+        contract_binding_slope_digest: compose_slope_digest(
+            "contract_binding",
+            (1..=3).map(|scale| {
+                let lifecycle = control_row_set_lifecycle(scale);
+                (
+                    scale,
+                    vec![
+                        (
+                            "contract",
+                            lifecycle.contract().contract_digest().to_string(),
+                        ),
+                        (
+                            "query",
+                            lifecycle
+                                .contract()
+                                .query_digest()
+                                .unwrap_or("none")
+                                .to_string(),
+                        ),
+                    ],
+                )
+            }),
+        ),
+        fact_extraction_slope_digest: compose_slope_digest(
+            "fact_extraction",
+            (1..=3).map(|scale| {
+                let lifecycle = control_row_set_lifecycle(scale);
+                let counters = lifecycle.facts().counters();
+                (
+                    scale,
+                    vec![
+                        ("extracted", counters.extracted_fact_count().to_string()),
+                        (
+                            "row_width",
+                            counters.source_row_width_consumed().to_string(),
+                        ),
+                    ],
+                )
+            }),
+        ),
+        receipt_materialization_slope_digest: compose_slope_digest(
+            "receipt_materialization",
+            (1..=3).map(|scale| {
+                let lifecycle = control_row_set_lifecycle(scale);
+                (
+                    scale,
+                    vec![
+                        ("receipt", lifecycle.receipt().receipt_digest().to_string()),
+                        (
+                            "extracted",
+                            lifecycle.receipt().extracted_fact_count().to_string(),
+                        ),
+                    ],
+                )
+            }),
+        ),
+        envelope_materialization_slope_digest: compose_slope_digest(
+            "envelope_materialization",
+            (1..=3).map(|scale| {
+                let lifecycle = control_row_set_lifecycle(scale);
+                (
+                    scale,
+                    vec![
+                        (
+                            "envelope",
+                            lifecycle.envelope().envelope_digest().to_string(),
+                        ),
+                        (
+                            "authority_reopen",
+                            lifecycle.envelope().authority_reopen_count().to_string(),
+                        ),
+                    ],
+                )
+            }),
+        ),
+        support_lookup_slope_digest: compose_slope_digest(
+            "support_lookup",
+            (1..=3).map(|scale| {
+                let row_set = certification_row_set(scale);
+                let support = discover_projection_consumption_support(
+                    &ProjectionConsumptionSource::from_relational_row_set(&row_set),
+                );
+                (
+                    scale,
+                    vec![
+                        ("support_width", support.rows().len().to_string()),
+                        (
+                            "support_digest",
+                            compose_support_matrix_support_width_digest(
+                                support.rows().iter().map(|row| row.support_digest()),
+                            ),
+                        ),
+                    ],
+                )
+            }),
+        ),
     }
-}
-
-fn slope_digest(label: &'static str, parts_for_scale: impl Fn(usize) -> Vec<String>) -> String {
-    hash_parts(
-        &(1..=3)
-            .flat_map(|scale| {
-                let mut parts = vec![format!("label:{label}")];
-                parts.extend(parts_for_scale(scale));
-                parts
-            })
-            .collect::<Vec<_>>(),
-    )
 }
 
 #[cfg(test)]

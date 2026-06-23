@@ -1,5 +1,8 @@
 use crate::aspect_field_authoring::aspect_field_patch_from_external_json_values;
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::workflow::{
     QueryWorkflowDeclaration, WorkflowBasisFamily, WorkflowFreshnessPolicy,
     WorkflowLoweringCounters,
@@ -8,6 +11,7 @@ use forge_relational::facade::commit_strategies::{
     IntentReconciliationInput, NativeStrategyCommitRequest, StrategyCallerProvenance,
     StrategyRequestOrigin,
 };
+use forge_relational::facade::history::BranchId;
 
 use super::counters::{
     lowering_denial_counters, mutation_lowering_success_counters, LoweringDenialClass,
@@ -29,7 +33,7 @@ pub struct LoweredMutationIntentDeclaration {
     strategy_request: NativeStrategyCommitRequest,
     freshness_binding: WorkflowFreshnessBinding,
     staleness_class: WorkflowStalenessClass,
-    lowering_digest: String,
+    lowering_identity: ForgeQueryEvidenceIdentity,
     counters: WorkflowLoweringCounters,
 }
 
@@ -62,8 +66,12 @@ impl LoweredMutationIntentDeclaration {
         &self.staleness_class
     }
 
-    pub fn lowering_digest(&self) -> &str {
-        &self.lowering_digest
+    pub fn lowering_for_reporting(&self) -> &str {
+        self.lowering_identity.as_str()
+    }
+
+    pub fn lowering_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.lowering_identity
     }
 
     pub fn counters(&self) -> &WorkflowLoweringCounters {
@@ -73,30 +81,44 @@ impl LoweredMutationIntentDeclaration {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MutationAuthorityBinding {
-    binding_digest: String,
-    runtime_snapshot_token: Option<String>,
+    binding_identity: ForgeQueryEvidenceIdentity,
+    runtime_snapshot_identity: Option<ForgeQuerySnapshotIdentity>,
+    runtime_target_branch: Option<BranchId>,
 }
 
 impl MutationAuthorityBinding {
-    fn new(binding_digest: impl Into<String>, runtime_snapshot_token: Option<String>) -> Self {
+    fn new(
+        binding_identity: ForgeQueryEvidenceIdentity,
+        runtime_snapshot_identity: Option<ForgeQuerySnapshotIdentity>,
+        runtime_target_branch: Option<BranchId>,
+    ) -> Self {
         Self {
-            binding_digest: binding_digest.into(),
-            runtime_snapshot_token,
+            binding_identity,
+            runtime_snapshot_identity,
+            runtime_target_branch,
         }
     }
 
     pub fn binding_digest(&self) -> &str {
-        &self.binding_digest
+        self.binding_identity.as_str()
     }
 
-    pub fn runtime_snapshot_token(&self) -> Option<&str> {
-        self.runtime_snapshot_token.as_deref()
+    pub fn binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.binding_identity
+    }
+
+    pub fn runtime_snapshot_identity(&self) -> Option<&ForgeQuerySnapshotIdentity> {
+        self.runtime_snapshot_identity.as_ref()
+    }
+
+    pub fn runtime_target_branch(&self) -> Option<&BranchId> {
+        self.runtime_target_branch.as_ref()
     }
 }
 
 pub fn lower_mutation_intent_declaration(
     declaration: &QueryWorkflowDeclaration,
-    authority_binding_digest: &str,
+    authority_binding_identity: &ForgeQueryEvidenceIdentity,
     input: MutationLoweringInput,
 ) -> Result<LoweredMutationIntentDeclaration, WorkflowLoweringError> {
     ensure_mutation_workflow_family(declaration)?;
@@ -111,30 +133,27 @@ pub fn lower_mutation_intent_declaration(
         }
     };
     let request = intent_reconciliation_strategy_request(declaration, input)?;
-    let lowering_digest = mutation_lowering_digest(
+    let lowering_identity = mutation_lowering_identity(
         declaration,
         &mutation_family,
         &strategy_target,
-        authority_binding_digest,
+        authority_binding_identity,
         &freshness_binding,
         &request,
     );
-
     Ok(LoweredMutationIntentDeclaration {
         declaration: declaration.clone(),
         mutation_family,
         strategy_target,
         authority_binding: MutationAuthorityBinding::new(
-            authority_binding_digest,
-            declaration
-                .binding()
-                .runtime_snapshot_token()
-                .map(str::to_string),
+            authority_binding_identity.clone(),
+            declaration.binding().runtime_snapshot_identity().cloned(),
+            declaration.binding().runtime_target_branch().cloned(),
         ),
         strategy_request: request,
         freshness_binding,
         staleness_class: WorkflowStalenessClass::ExactBasisPreserved,
-        lowering_digest,
+        lowering_identity,
         counters: mutation_lowering_success_counters(1),
     })
 }
@@ -249,30 +268,54 @@ fn mutation_preview_freshness_denial(
     }
 }
 
-fn mutation_lowering_digest(
+fn mutation_lowering_identity(
     declaration: &QueryWorkflowDeclaration,
     mutation_family: &MutationIntentFamily,
     strategy_target: &RelationalStrategyTarget,
-    authority_binding_digest: &str,
+    authority_binding_identity: &ForgeQueryEvidenceIdentity,
     freshness_binding: &WorkflowFreshnessBinding,
     request: &NativeStrategyCommitRequest,
-) -> String {
-    hash_parts(&[
-        format!("declaration:{}", declaration.report().declaration_digest()),
-        format!("mutation_family:{}", mutation_family.as_str()),
-        format!("strategy_target:{}", strategy_target.as_str()),
-        format!("authority_binding:{authority_binding_digest}"),
-        format!(
-            "runtime_snapshot:{}",
-            declaration
-                .binding()
-                .runtime_snapshot_token()
-                .unwrap_or("none")
-        ),
-        format!("freshness:{}", freshness_binding.as_str()),
-        format!(
-            "request_origin:{:?}",
-            request.caller_provenance().request_origin
-        ),
-    ])
+) -> ForgeQueryEvidenceIdentity {
+    let mut identity =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("declaration"),
+                declaration.report().declaration_identity(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("mutation_family"),
+                mutation_family.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("strategy_target"),
+                strategy_target.as_str(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("authority_binding"),
+                authority_binding_identity,
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("freshness"),
+                freshness_binding.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("request_origin"),
+                request_origin_label(&request.caller_provenance().request_origin),
+            );
+    if let Some(runtime_snapshot_identity) = declaration.binding().runtime_snapshot_identity() {
+        identity = identity.field_evidence_identity(
+            ForgeQueryEvidenceTag::new("runtime_snapshot"),
+            &runtime_snapshot_identity.evidence_identity(),
+        );
+    }
+    identity.seal()
+}
+
+fn request_origin_label(origin: &StrategyRequestOrigin) -> &'static str {
+    match origin {
+        StrategyRequestOrigin::Api => "api",
+        StrategyRequestOrigin::Harness => "harness",
+        StrategyRequestOrigin::Replay => "replay",
+        StrategyRequestOrigin::Test => "test",
+    }
 }

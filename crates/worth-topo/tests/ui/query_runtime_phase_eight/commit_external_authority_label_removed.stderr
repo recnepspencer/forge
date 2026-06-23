@@ -1,0 +1,29 @@
+error[E0599]: no variant or associated item named `from_external_authority_label` found for enum `ForgeQueryCommitIdentity` in the current scope
+ --> tests/ui/query_runtime_phase_eight/commit_external_authority_label_removed.rs:4:45
+  |
+4 |     let _commit = ForgeQueryCommitIdentity::from_external_authority_label("commit:test");
+  |                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ variant or associated item not found in `ForgeQueryCommitIdentity`
+  |
+note: if you're trying to build a new `ForgeQueryCommitIdentity` consider using one of the following associated functions:
+      ForgeQueryCommitIdentity::from_relational_commit_id
+      ForgeQueryCommitIdentity::preview
+      ForgeQueryCommitIdentity::admit_external_token
+      ForgeQueryCommitIdentity::absent
+ --> $WORKSPACE/crates/forge-query/src/memory_workspace/identities.rs
+  |
+  |       pub fn from_relational_commit_id(commit_id: u64) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |       pub fn preview(evidence_identity: ForgeQueryEvidenceIdentity) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  | /     pub fn admit_external_token(
+  | |         token: crate::identity_authority::QueryExternalIdentityToken<
+  | |             std::sync::Arc<str>,
+  | |             crate::identity_authority::QueryCommitIdentityKind,
+  | |         >,
+  | |     ) -> Self {
+  | |_____________^
+...
+  |       pub fn absent() -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^

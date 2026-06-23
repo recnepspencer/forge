@@ -4,7 +4,6 @@ use forge_foundational::facade::{
 };
 
 use crate::diagnostics::BridgeHistoricalMaterializationPath;
-use crate::input::envelope::TruthBranchIdentity;
 use crate::policy::BridgeDiagnosticsTier;
 use crate::snapshot::{
     AdmittedSnapshotContext, BridgeDeliveryIntent, BridgeReplayMode, BridgeSnapshotContext,
@@ -22,7 +21,7 @@ struct FixtureReader;
 
 impl TruthSnapshotReader for FixtureReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        TruthSnapshotIdentity::new("snapshot-a")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a")
     }
 
     fn read_packet(
@@ -44,7 +43,7 @@ impl TruthSnapshotReader for FixtureReader {
             })
             .collect();
         Ok(SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             records,
         ))
     }
@@ -55,7 +54,7 @@ struct MissingRecordReader;
 
 impl TruthSnapshotReader for MissingRecordReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        TruthSnapshotIdentity::new("snapshot-a")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a")
     }
 
     fn read_packet(
@@ -74,7 +73,7 @@ impl TruthSnapshotReader for MissingRecordReader {
             })
             .collect();
         Ok(SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             records,
         ))
     }
@@ -85,7 +84,7 @@ struct ChangedStatusReader;
 
 impl TruthSnapshotReader for ChangedStatusReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        TruthSnapshotIdentity::new("snapshot-a")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a")
     }
 
     fn read_packet(
@@ -107,7 +106,7 @@ impl TruthSnapshotReader for ChangedStatusReader {
             })
             .collect();
         Ok(SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             records,
         ))
     }
@@ -150,8 +149,8 @@ fn observation_with_reader_and_packet(
 ) -> crate::snapshot::MaterializedTruthViewObservation {
     let declaration = HistoricalEvaluationDeclaration::new(
         BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("analysis"),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
         BridgeReplayMode::Disabled,
         BridgeDiagnosticsTier::Standard,
@@ -167,18 +166,23 @@ fn observation_with_reader_and_packet(
         ),
         BridgeTruthViewAuthorityBasis::from_resolved_envelope(
             declaration.selector(),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         packet,
     );
     let snapshot = BridgeSnapshotContext::bind(snapshot_reader);
-    let admitted =
-        AdmittedSnapshotContext::admit_for(snapshot, &TruthSnapshotIdentity::new("snapshot-a"))
-            .expect("snapshot should admit");
+    let admitted = AdmittedSnapshotContext::admit_for(
+        snapshot,
+        &crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+    )
+    .expect("snapshot should admit");
     crate::snapshot::MaterializedTruthViewObservation::new(
         packet,
-        BridgeSnapshotToken::issued(TruthSnapshotIdentity::new("snapshot-a"), "row-set-test"),
+        BridgeSnapshotToken::issued(
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            "row-set-test",
+        ),
         BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot,
         admitted,
     )

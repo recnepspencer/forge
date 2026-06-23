@@ -1,27 +1,53 @@
-use forge_query::facade::{ForgeQueryApplicationFacade, ForgeQueryDeclarationInput};
+use forge_query::facade::{
+    ForgeQueryApplicationFacade, ForgeQueryContributionComposedOrchestrationInput,
+    ForgeQueryDeclarationInput,
+};
 
 use crate::query_domain::{
     topology_current_head_authoritative_context, topology_query_domain_entry, TopologyQueryDomain,
 };
+use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
-    topology_operator_contribution_workflow, TopologyOperatorContributionCheckedOutcome,
-    TopologyOperatorContributionDeclaration, TopologyOperatorWorkflowHandleExt,
+    TopologyMutationApplicationMode, TopologyOperatorContributionCheckedOutcome,
+    TopologyOperatorContributionDeclaration, TopologyTouchedOperatingWorld,
+    TopologyTouchedOperatingWorldIdentityDigest,
 };
 
 use super::super::{
-    TopologyDeclarationEntryStopClass, TopologyMutationApplicationError, TopologyMutationFamily,
-    TopologyRetainedApplicationHandoff,
+    error::TopologyDeclarationEntryRefusalClass, TopologyDeclarationEntryStopClass,
+    TopologyMutationApplicationError, TopologyMutationFamily, TopologyRetainedApplicationHandoff,
 };
 
 pub(super) fn orchestrate_topology_declaration_entry<I>(
     family: TopologyMutationFamily,
     declaration: I,
+    mode: TopologyMutationApplicationMode,
 ) -> Result<TopologyRetainedApplicationHandoff<I>, TopologyMutationApplicationError>
 where
     I: ForgeQueryDeclarationInput<TopologyQueryDomain>
         + TopologyOperatorContributionDeclaration
+        + TopologyDeclarationMutationPayload
         + Clone,
 {
+    let sequence = declaration.clone().into_mutation_sequence();
+    let declared_touched_basis =
+        crate::topology_operators::TopologyDeclaredTouchedGraphBasis::from_sequence(
+            I::SEMANTIC_FAMILY_KEY,
+            declaration.clone(),
+            &sequence,
+            operating_world_for_application_mode(mode),
+        )
+        .map_err(|denial| TopologyMutationApplicationError::DeclarationEntry {
+            family,
+            stop_class: TopologyDeclarationEntryStopClass::BasisMismatch,
+            stop_stage: None,
+            refusal_class: Some(TopologyDeclarationEntryRefusalClass::AuthorityTransitionRequired),
+            recovery: None,
+            graph_obligation_envelope_digest: None,
+            reason: format!(
+                "topology operator intent could not lower to touched graph basis descriptor before Query: {denial:?}"
+            ),
+        })?;
     let facade = topology_current_head_declaration_entry_facade();
     let handle = topology_query_domain_entry(&facade)
         .with_operating_context(topology_current_head_authoritative_context())
@@ -29,12 +55,29 @@ where
         .expect("current-head topology declaration context should validate")
         .admit()
         .expect("current-head topology declaration context should admit");
+    let contribution_input =
+        ForgeQueryContributionComposedOrchestrationInput::new(declaration.clone())
+            .with_contributions(declaration.topology_semantic_contributions());
     let artifact = handle
-        .orchestrate_topology_operator_with_contributions(topology_operator_contribution_workflow(
-            declaration,
-        ))
+        .orchestrate_declaration_with_contributions(contribution_input)
         .map_err(|outcome| contribution_error(family, &handle, outcome))?;
-    Ok(TopologyRetainedApplicationHandoff::new(artifact))
+    Ok(TopologyRetainedApplicationHandoff::new(
+        artifact,
+        declared_touched_basis,
+    ))
+}
+
+pub(super) fn operating_world_for_application_mode(
+    mode: TopologyMutationApplicationMode,
+) -> TopologyTouchedOperatingWorld {
+    match mode {
+        TopologyMutationApplicationMode::Mainline => TopologyTouchedOperatingWorld::mainline(),
+        TopologyMutationApplicationMode::BranchLocal(branch_id) => {
+            TopologyTouchedOperatingWorld::branch(
+                TopologyTouchedOperatingWorldIdentityDigest::from_branch_id(&branch_id),
+            )
+        }
+    }
 }
 
 pub(super) fn topology_current_head_declaration_entry_facade() -> ForgeQueryApplicationFacade {
@@ -63,7 +106,11 @@ where
     };
     let fallback_stop_class = contribution_stop_class(&outcome);
     let fallback_reason = contribution_reason(&outcome).to_string();
-    let brief = handle.recover_topology_operator_contribution_checked(outcome);
+    let graph_obligation_envelope_digest = outcome
+        .graph_obligation_dispatch()
+        .and_then(|dispatch| dispatch.envelope_digest())
+        .map(str::to_string);
+    let brief = handle.recover_from_contribution_composed_checked(outcome);
     let stop_class = brief
         .as_ref()
         .map(|value| TopologyDeclarationEntryStopClass::from(value.stop_kind()))
@@ -78,6 +125,7 @@ where
         stop_stage,
         refusal_class: None,
         recovery: brief,
+        graph_obligation_envelope_digest,
         reason,
     }
 }
@@ -135,8 +183,15 @@ where
 #[cfg(test)]
 mod tests {
     use forge_query::facade::{ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily};
+    use forge_relational::facade::history::BranchId;
 
-    use super::topology_current_head_declaration_entry_facade;
+    use super::{
+        operating_world_for_application_mode, topology_current_head_declaration_entry_facade,
+    };
+    use crate::topology_operators::{
+        TopologyMutationApplicationMode, TopologyTouchedOperatingWorld,
+        TopologyTouchedOperatingWorldPosture,
+    };
 
     #[test]
     fn declaration_entry_root_admits_the_capabilities_required_by_query_native_mutation_orchestration(
@@ -152,5 +207,22 @@ mod tests {
         assert!(support.section_postures().iter().any(|posture| {
             posture.section() == ForgeQueryConfigSectionFamily::Relational && posture.enabled()
         }));
+    }
+
+    #[test]
+    fn branch_local_application_mode_contributes_branch_operating_world() {
+        let world = operating_world_for_application_mode(
+            TopologyMutationApplicationMode::BranchLocal(BranchId("phase3.branch".to_string())),
+        );
+
+        assert_eq!(
+            world.posture(),
+            TopologyTouchedOperatingWorldPosture::Branch
+        );
+        assert_ne!(world, TopologyTouchedOperatingWorld::mainline());
+        assert_eq!(
+            world.identity_digest(),
+            Some("forge-relational.branch:phase3.branch")
+        );
     }
 }

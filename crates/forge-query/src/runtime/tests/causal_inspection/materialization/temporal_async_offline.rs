@@ -18,8 +18,8 @@ fn denied_offline_temporal_async_artifact(
     };
     let receipt = reference_set.anchor().observation_receipt();
     let target = causal_inspection_target(
-        receipt.observation_target_digest(),
-        receipt.result_shape_context_digest(),
+        receipt.observation_target().clone(),
+        receipt.result_shape_context().clone(),
     )
     .expect("offline temporal/async target should match");
     let request = request_causal_inspection(
@@ -52,11 +52,15 @@ fn offline_temporal_async_diagnostics_preserve_remask_replay_resume_and_stale_co
         vec![
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                "query-inspection:offline-remask",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "query-inspection:offline-remask",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgePreview,
-                "bridge-preview:offline-remask",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "bridge-preview:offline-remask",
+                ),
             ),
         ],
         &[CausalEvidenceFamily::BridgePreview],
@@ -67,11 +71,15 @@ fn offline_temporal_async_diagnostics_preserve_remask_replay_resume_and_stale_co
         vec![
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                "query-inspection:offline-replay-drift",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "query-inspection:offline-replay-drift",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeReplay,
-                "bridge-replay:offline-replay-drift",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "bridge-replay:offline-replay-drift",
+                ),
             ),
         ],
         &[CausalEvidenceFamily::BridgeReplay],
@@ -82,19 +90,27 @@ fn offline_temporal_async_diagnostics_preserve_remask_replay_resume_and_stale_co
         vec![
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                "query-inspection:offline-resume-mismatch",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "query-inspection:offline-resume-mismatch",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeReplay,
-                "bridge-replay:offline-resume-mismatch",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "bridge-replay:offline-resume-mismatch",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::SignalReplayCursor,
-                "signal-replay-cursor:offline-resume-mismatch",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "signal-replay-cursor:offline-resume-mismatch",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeContinuity,
-                "bridge-continuity:offline-resume-mismatch",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "bridge-continuity:offline-resume-mismatch",
+                ),
             ),
         ],
         &[
@@ -109,15 +125,21 @@ fn offline_temporal_async_diagnostics_preserve_remask_replay_resume_and_stale_co
         vec![
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                "query-inspection:offline-stale-completion",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "query-inspection:offline-stale-completion",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::SignalEvaluation,
-                "signal-evaluation:offline-stale-completion",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "signal-evaluation:offline-stale-completion",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeSourceFailure,
-                "bridge-source-failure:offline-stale-completion",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "bridge-source-failure:offline-stale-completion",
+                ),
             ),
         ],
         &[

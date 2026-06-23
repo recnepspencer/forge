@@ -1,12 +1,13 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
+use super::super::evidence_identities::runtime_live_subscription_counter_inspection_identity;
 use super::super::ForgeQueryRuntimeLiveSubscriptionInstallation;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryLiveSubscriptionInspectionCounters {
-    declaration_counter_digest: String,
-    active_lane_counter_digest: String,
-    consumer_attachment_counter_digest: String,
+    declaration_counter_identity: ForgeQueryEvidenceIdentity,
+    active_lane_counter_identity: ForgeQueryEvidenceIdentity,
+    consumer_attachment_counter_identity: ForgeQueryEvidenceIdentity,
     family_selection_count: u64,
     declaration_count: u64,
     bridge_lowering_count: u64,
@@ -18,7 +19,7 @@ pub struct ForgeQueryLiveSubscriptionInspectionCounters {
     active_lane_handle_issue_count: u64,
     consumer_attachment_count: u64,
     consumer_attachment_denial_count: u64,
-    counter_digest: String,
+    counter_inspection_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryLiveSubscriptionInspectionCounters {
@@ -28,9 +29,10 @@ impl ForgeQueryLiveSubscriptionInspectionCounters {
         let counters = installation.counters();
         let active_lane_counters = installation.active_lane_counters();
         let consumer_attachment_counters = installation.consumer_attachment_counters();
-        let declaration_counter_digest = counters.digest();
-        let active_lane_counter_digest = active_lane_counters.digest();
-        let consumer_attachment_counter_digest = consumer_attachment_counters.digest();
+        let declaration_counter_identity = counters.evidence_identity().clone();
+        let active_lane_counter_identity = active_lane_counters.evidence_identity().clone();
+        let consumer_attachment_counter_identity =
+            consumer_attachment_counters.evidence_identity().clone();
         let family_selection_count = counters.family_selection_count();
         let declaration_count = counters.declaration_count();
         let bridge_lowering_count = counters.bridge_lowering_count();
@@ -43,28 +45,10 @@ impl ForgeQueryLiveSubscriptionInspectionCounters {
         let consumer_attachment_count = consumer_attachment_counters.consumer_attachment_count();
         let consumer_attachment_denial_count =
             consumer_attachment_counters.consumer_attachment_denial_count();
-        let counter_digest = hash_parts(&[
-            "forge_query_live_subscription_inspection_counters_v1".to_string(),
-            format!("declaration-digest:{declaration_counter_digest}"),
-            format!("active-lane-digest:{active_lane_counter_digest}"),
-            format!("consumer-attachment-digest:{consumer_attachment_counter_digest}"),
-            format!("family-selection:{family_selection_count}"),
-            format!("declaration:{declaration_count}"),
-            format!("bridge-lowering:{bridge_lowering_count}"),
-            format!("admission:{admission_count}"),
-            format!("activation-input:{activation_input_count}"),
-            format!("active-lane-admission:{active_lane_admission_count}"),
-            format!("active-lane-creation:{active_lane_creation_count}"),
-            format!("active-lane-join:{active_lane_join_count}"),
-            format!("active-lane-handle-issue:{active_lane_handle_issue_count}"),
-            format!("consumer-attachment:{consumer_attachment_count}"),
-            format!("consumer-attachment-denial:{consumer_attachment_denial_count}"),
-        ]);
-
-        Self {
-            declaration_counter_digest,
-            active_lane_counter_digest,
-            consumer_attachment_counter_digest,
+        let counter_inspection_identity = runtime_live_subscription_counter_inspection_identity(
+            &declaration_counter_identity,
+            &active_lane_counter_identity,
+            &consumer_attachment_counter_identity,
             family_selection_count,
             declaration_count,
             bridge_lowering_count,
@@ -76,20 +60,49 @@ impl ForgeQueryLiveSubscriptionInspectionCounters {
             active_lane_handle_issue_count,
             consumer_attachment_count,
             consumer_attachment_denial_count,
-            counter_digest,
+        );
+
+        Self {
+            declaration_counter_identity,
+            active_lane_counter_identity,
+            consumer_attachment_counter_identity,
+            family_selection_count,
+            declaration_count,
+            bridge_lowering_count,
+            admission_count,
+            activation_input_count,
+            active_lane_admission_count,
+            active_lane_creation_count,
+            active_lane_join_count,
+            active_lane_handle_issue_count,
+            consumer_attachment_count,
+            consumer_attachment_denial_count,
+            counter_inspection_identity,
         }
     }
 
-    pub fn declaration_counter_digest(&self) -> &str {
-        &self.declaration_counter_digest
+    pub fn declaration_counter_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.declaration_counter_identity
     }
 
-    pub fn active_lane_counter_digest(&self) -> &str {
-        &self.active_lane_counter_digest
+    pub fn declaration_counter_for_reporting(&self) -> &str {
+        self.declaration_counter_identity.as_str()
     }
 
-    pub fn consumer_attachment_counter_digest(&self) -> &str {
-        &self.consumer_attachment_counter_digest
+    pub fn active_lane_counter_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.active_lane_counter_identity
+    }
+
+    pub fn active_lane_counter_for_reporting(&self) -> &str {
+        self.active_lane_counter_identity.as_str()
+    }
+
+    pub fn consumer_attachment_counter_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.consumer_attachment_counter_identity
+    }
+
+    pub fn consumer_attachment_counter_for_reporting(&self) -> &str {
+        self.consumer_attachment_counter_identity.as_str()
     }
 
     pub fn family_selection_count(&self) -> u64 {
@@ -136,7 +149,11 @@ impl ForgeQueryLiveSubscriptionInspectionCounters {
         self.consumer_attachment_denial_count
     }
 
-    pub fn counter_digest(&self) -> &str {
-        &self.counter_digest
+    pub fn counter_inspection_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.counter_inspection_identity
+    }
+
+    pub fn counter_inspection_for_reporting(&self) -> &str {
+        self.counter_inspection_identity.as_str()
     }
 }

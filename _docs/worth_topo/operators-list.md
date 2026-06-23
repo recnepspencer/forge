@@ -729,6 +729,18 @@ RepairBooleanClassificationFlip
 
 RecordBooleanDecisionLog
 
+RecordEdgeSplitDecisionLog
+
+AssemblePlanarBooleanSplitEdgeChainLedger
+
+BuildSplitEdgeChain
+
+BuildSplitLedgerReceipt
+
+CanonicalizeSplitLedgerOrdering
+
+ValidateSplitLedgerReceiptChain
+
 BuildStructuredBooleanDisagreementReport
 
 K. Sewing / Healing / Repair (Composite)

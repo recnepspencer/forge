@@ -1,5 +1,12 @@
 use super::super::support::*;
-use crate::identity::hash_parts;
+use crate::memory_workspace::ForgeQueryEntityIdentity;
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
+
+fn relational_test_entity_identity(table_id: u32, record_id: u64) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::entity(
+        table_id, record_id, 0,
+    ))
+}
 
 fn support_row<'a>(
     support: &'a ForgeQueryAuthoritativeMutationEvidenceSupport,
@@ -42,36 +49,19 @@ fn admitted_primary_profile(target_binding_family: &str) -> ForgeQueryRuntimeSup
     )
 }
 
-fn expected_snapshot_digest(binding_digest: &str, snapshot_token: &str) -> String {
-    hash_parts(&[
-        "forge_query_existing_truth_assumption_snapshot_v1".to_string(),
-        format!("binding:{binding_digest}"),
-        format!("snapshot:{snapshot_token}"),
-    ])
-}
-
-fn expected_precondition_digest(
-    binding_digest: &str,
-    snapshot_token: &str,
-    fragments: &[&str],
-) -> String {
-    let snapshot_digest = expected_snapshot_digest(binding_digest, snapshot_token);
-    hash_parts(
-        &std::iter::once("forge_query_existing_truth_verified_precondition_v1".to_string())
-            .chain(std::iter::once(format!(
-                "assumption-snapshot:{snapshot_digest}"
-            )))
-            .chain(fragments.iter().map(|fragment| fragment.to_string()))
-            .collect::<Vec<_>>(),
-    )
-}
-
 #[test]
 fn primary_bridge_backed_entity_verification_family_executes_when_profile_and_adapter_admit_it() {
-    let binding = ForgeQueryExistingEntityTarget::new("authority:task-1", "Task:1")
-        .expect("existing entity target should build")
-        .in_target_collection("Task")
-        .expect("existing entity target collection should build");
+    let binding = ForgeQueryExistingEntityTarget::new(
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity"),
+        relational_test_entity_identity(1, 1),
+    )
+    .expect("existing entity target should build")
+    .in_target_collection("Task")
+    .expect("existing entity target collection should build");
     let binding = ForgeQueryExistingTruthTargetBinding::from_entity_target(binding)
         .expect("entity binding should build");
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
@@ -123,6 +113,7 @@ fn primary_bridge_backed_entity_verification_family_executes_when_profile_and_ad
             .existing_truth_binding_evidence()
             .expect("verify receipt should retain binding evidence")
             .binding_digest()
+            .as_str()
     );
     assert_eq!(
         verify_assumptions.asserted_aspect_paths(),
@@ -136,18 +127,15 @@ fn primary_bridge_backed_entity_verification_family_executes_when_profile_and_ad
     );
     assert_eq!(
         verify_assumptions.assumption_snapshot_digest(),
-        expected_snapshot_digest(
-            verify_assumptions.binding_digest(),
-            verify_assumptions.assumption_snapshot_token()
-        )
+        verify_assumptions
+            .assumption_snapshot_evidence_digest()
+            .as_str()
     );
     assert_eq!(
         verify_assumptions.verified_precondition_digest(),
-        expected_precondition_digest(
-            verify_assumptions.binding_digest(),
-            verify_assumptions.assumption_snapshot_token(),
-            &["status.value:false:\"open\""]
-        )
+        verify_assumptions
+            .verified_precondition_evidence_digest()
+            .as_str()
     );
 
     let probe = workspace
@@ -210,20 +198,25 @@ fn primary_bridge_backed_entity_verification_family_executes_when_profile_and_ad
         .expect("verified delete should retain assumption set");
     assert_eq!(
         delete_assumptions.verified_precondition_digest(),
-        expected_precondition_digest(
-            delete_assumptions.binding_digest(),
-            delete_assumptions.assumption_snapshot_token(),
-            &["title.value:false:\"Seed title\""]
-        )
+        delete_assumptions
+            .verified_precondition_evidence_digest()
+            .as_str()
     );
 }
 
 #[test]
 fn primary_bridge_backed_relation_verification_family_executes_when_profile_and_adapter_admit_it() {
-    let binding = ForgeQueryExistingRelationTarget::new("authority:rel-1", "TaskRelation:1")
-        .expect("existing relation target should build")
-        .in_target_collection("TaskRelation")
-        .expect("existing relation target collection should build");
+    let binding = ForgeQueryExistingRelationTarget::new(
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity"),
+        relational_test_entity_identity(2, 1),
+    )
+    .expect("existing relation target should build")
+    .in_target_collection("TaskRelation")
+    .expect("existing relation target collection should build");
     let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(binding)
         .expect("relation binding should build");
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
@@ -283,11 +276,9 @@ fn primary_bridge_backed_relation_verification_family_executes_when_profile_and_
     );
     assert_eq!(
         update_assumptions.verified_precondition_digest(),
-        expected_precondition_digest(
-            update_assumptions.binding_digest(),
-            update_assumptions.assumption_snapshot_token(),
-            &["status.value:false:\"active\""]
-        )
+        update_assumptions
+            .verified_precondition_evidence_digest()
+            .as_str()
     );
     match workspace
         .inspect(&update_receipt)

@@ -5,7 +5,9 @@ fn subscription_preview_basis_admits_from_active_preview_session() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::BridgePreviewSessionIdentity::new("preview-session:subscription-basis"),
+            crate::facade::BridgePreviewSessionIdentity::admit_bridge_owned(
+                "preview-session:subscription-basis",
+            ),
             subscription_preview_declaration("subscription-basis"),
         )
         .expect("preview session should admit");
@@ -66,14 +68,18 @@ fn subscription_preview_basis_rejects_mismatched_execution_record() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::BridgePreviewSessionIdentity::new("preview-session:subscription-a"),
+            crate::facade::BridgePreviewSessionIdentity::admit_bridge_owned(
+                "preview-session:subscription-a",
+            ),
             subscription_preview_declaration("subscription-a"),
         )
         .expect("preview session should admit");
     let (active_preview, _) = runtime.activate_preview_session(admitted_preview, 2, 1, 1);
     let other_admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::BridgePreviewSessionIdentity::new("preview-session:subscription-b"),
+            crate::facade::BridgePreviewSessionIdentity::admit_bridge_owned(
+                "preview-session:subscription-b",
+            ),
             subscription_preview_declaration("subscription-b"),
         )
         .expect("other preview session should admit");
@@ -111,7 +117,9 @@ fn preview_subscription_activation_binds_preview_basis_and_activation_ready_proo
     let (runtime, ready) = activation_ready_detail_subscription();
     let admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::BridgePreviewSessionIdentity::new("preview-session:subscription-active"),
+            crate::facade::BridgePreviewSessionIdentity::admit_bridge_owned(
+                "preview-session:subscription-active",
+            ),
             subscription_preview_declaration("subscription-active"),
         )
         .expect("preview session should admit");

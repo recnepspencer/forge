@@ -3,9 +3,10 @@ use std::sync::Arc;
 use forge_foundational::facade::{AspectKey, ScalarAspectType};
 use forge_relational::facade::history::BranchId;
 use forge_runtime_bridge::facade::{
-    AspectKeySelector, BridgeDeliveryReceipt, BridgeSignalInvalidationDelivery,
-    BridgeTruthViewEvaluationRequest, InvalidationSink, SignalBridgeSinkError,
-    SnapshotReadContract, TruthBranchIdentity, TruthCommitIdentity, TruthPatchTargetSelector,
+    bridge_identity_reporting_label, AspectKeySelector, BridgeDeliveryReceipt,
+    BridgeSignalInvalidationDelivery, BridgeTruthViewEvaluationRequest, InvalidationSink,
+    SignalBridgeSinkError, SnapshotReadContract, TruthBranchIdentity, TruthCommitIdentity,
+    TruthPatchTargetSelector,
 };
 use schema::facade::platform::authority::{
     milestone_two_invalidation_declarations, DerivedInvalidationTarget, DerivedTruthSurfaceKind,
@@ -16,6 +17,7 @@ use crate::projection::runtime_boundary::bridge::{
     build_milestone_one_bridge, milestone_one_bridge_aspect_registrations,
     milestone_one_bridge_mapping_registrations,
 };
+use crate::projection::runtime_boundary::query_support::bridge_identity_projection;
 use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 
 #[derive(Clone)]
@@ -43,8 +45,11 @@ fn milestone_one_bridge_registration_packs_cover_topology_and_naming_aspects() {
     assert_eq!(aspects.len(), declarations.len());
     for declaration in declarations {
         assert!(mappings.iter().any(|registration| {
-            registration.mapping_id().as_str() == format!(":m2:{}", declaration.declaration_id)
-                && registration.signal_scope().as_str() == declaration.target.bridge_scope()
+            bridge_identity_reporting_label(&registration.mapping_id().bridge_admission_evidence())
+                == format!(":m2:{}", declaration.declaration_id)
+                && bridge_identity_reporting_label(
+                    &registration.signal_scope().bridge_admission_evidence(),
+                ) == declaration.target.bridge_scope()
                 && registration.truth_scope().aspect_selector()
                     == &native_aspect_selector(declaration.truth_patch_field)
                 && registration.truth_scope().target_selector()
@@ -53,8 +58,9 @@ fn milestone_one_bridge_registration_packs_cover_topology_and_naming_aspects() {
                     == &native_snapshot_read_contract(declaration.truth_patch_field)
         }));
         assert!(aspects.iter().any(|registration| {
-            registration.registration_id().as_str()
-                == format!(":m2:aspect:{}", declaration.declaration_id)
+            bridge_identity_reporting_label(
+                &registration.registration_id().bridge_admission_evidence(),
+            ) == format!(":m2:aspect:{}", declaration.declaration_id)
                 && registration.truth_scope().aspect_selector()
                     == &native_aspect_selector(declaration.truth_patch_field)
                 && registration.truth_scope().target_selector()
@@ -155,14 +161,13 @@ fn milestone_one_bridge_routes_and_evaluates_seeded_commit() {
         .expect(" bridge should build");
 
     let route = bridge
-        .route(TruthCommitIdentity::new(format!(
-            "commit-{}",
-            head_commit_id.0
-        )))
+        .route(TruthCommitIdentity::from_relational_commit_id(
+            head_commit_id.0,
+        ))
         .expect(" bridge should route a seeded commit");
     let evaluation = bridge
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::new("main"),
+            TruthBranchIdentity::from_relational_branch_id("main"),
         ))
         .expect(" bridge should evaluate current main branch head");
 
@@ -195,14 +200,13 @@ fn bridge_trace_anchor_tracks_real_runtime_diagnostics() {
     let bridge = build_milestone_one_bridge(Arc::clone(&runtime), RecordingSink)
         .expect(" bridge should build");
     let _route = bridge
-        .route(TruthCommitIdentity::new(format!(
-            "commit-{}",
-            head_commit_id.0
-        )))
+        .route(TruthCommitIdentity::from_relational_commit_id(
+            head_commit_id.0,
+        ))
         .expect(" bridge should route a seeded commit");
     let _evaluation = bridge
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::new("main"),
+            TruthBranchIdentity::from_relational_branch_id("main"),
         ))
         .expect(" bridge should evaluate current main branch head");
 
@@ -211,26 +215,37 @@ fn bridge_trace_anchor_tracks_real_runtime_diagnostics() {
     let anchor = BridgeTraceAnchor::new(
         route_records
             .iter()
-            .map(|record| record.route_identity().to_string())
+            .map(|record| {
+                bridge_identity_projection(record.route_identity().bridge_admission_evidence())
+            })
             .collect(),
         route_records
             .iter()
-            .map(|record| record.invalidation_identity().to_string())
+            .map(|record| {
+                bridge_identity_projection(
+                    record.invalidation_identity().bridge_admission_evidence(),
+                )
+            })
             .collect(),
         route_records
             .iter()
-            .map(|record| record.source_snapshot().as_str().to_string())
+            .map(|record| {
+                bridge_identity_projection(record.source_snapshot().bridge_admission_evidence())
+            })
             .chain(historical_records.iter().map(|record| {
-                record
-                    .decision_log()
-                    .snapshot_identity()
-                    .as_str()
-                    .to_string()
+                bridge_identity_projection(
+                    record
+                        .decision_log()
+                        .snapshot_identity()
+                        .bridge_admission_evidence(),
+                )
             }))
             .collect(),
         historical_records
             .iter()
-            .map(|record| record.record_identity().to_string())
+            .map(|record| {
+                bridge_identity_projection(record.record_identity().bridge_admission_evidence())
+            })
             .collect(),
     );
     assert_eq!(anchor.route_identities.len(), 1);

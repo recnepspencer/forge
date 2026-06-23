@@ -1,4 +1,7 @@
 fn _topology_operator_surface_contracts() {
+    let graph_obligation_catalog: TopologyOperatorGraphObligationCatalog =
+        topology_operator_graph_obligation_catalog();
+    let _graph_obligation_rows = graph_obligation_catalog.rows();
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
         &'a mut forge_query::facade::ForgeQueryWorkspace,

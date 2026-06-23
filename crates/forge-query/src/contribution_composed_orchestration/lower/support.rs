@@ -102,7 +102,7 @@ where
         target_family: ForgeQueryDeclarationEntryContributionTargetFamily::DeclarationBound,
         target_digest: admitted.payload().target().target_digest().to_string(),
         target_binding_digest: admitted.payload().target().binding_digest().to_string(),
-        evidence_digest: admitted.admitted_digest(),
+        evidence_digest: admitted.admitted_for_reporting(),
         posture_label: payload.posture_label().to_string(),
         semantic_code: payload.semantic_code().to_string(),
         detail: payload.detail().to_string(),

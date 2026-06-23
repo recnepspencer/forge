@@ -31,7 +31,7 @@ impl CanonicalStreamPosition {
         );
         let digest = digest_string("canonical-stream-position", &basis);
         Self {
-            stream_position_identity: StreamPositionIdentity::new(digest.clone()),
+            stream_position_identity: StreamPositionIdentity::admit_bridge_owned(digest.clone()),
             stream_protocol_identity,
             canonical_stream_member_identity: Arc::from(member.stream_member_identity()),
             ordinal_position,

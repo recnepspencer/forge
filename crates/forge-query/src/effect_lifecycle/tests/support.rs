@@ -11,10 +11,11 @@ use crate::preview::{
     PreviewSessionQueryContext,
 };
 use crate::workflow::{
-    bind_workflow_context, MergeLoweringInput, MutationLoweringInput,
-    WorkflowAuthorityTargetFamily, WorkflowBindingSource, WorkflowBudgetClass,
-    WorkflowContextBinding, WorkflowCostClass, WorkflowDeclarationFamily,
-    WorkflowDeclarationRequest, WorkflowFreshnessPolicy, WritebackLoweringInput,
+    bind_workflow_context, synthetic_runtime_workflow_binding_scoped_for_branch_snapshot_identity,
+    MergeLoweringInput, MutationLoweringInput, WorkflowAuthorityTargetFamily,
+    WorkflowBindingSource, WorkflowBudgetClass, WorkflowContextBinding, WorkflowCostClass,
+    WorkflowDeclarationFamily, WorkflowDeclarationRequest, WorkflowFreshnessPolicy,
+    WritebackLoweringInput,
 };
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::{EntityId, PartitionId};
@@ -23,6 +24,7 @@ use crate::effect_lifecycle::{
     admit_effect_intent, evaluate_effect_eligibility, normalize_raw_effect_intent,
     AdmittedEffectIntent, EffectAuthoringBasis, EffectEligibilityOutcome, RawEffectIntent,
 };
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 
 pub(super) fn branch_mutation_basis() -> crate::basis_lifecycle::ScopedMutationPreparationBasis {
     branch_mutation_basis_for("branch-a")
@@ -102,15 +104,30 @@ pub(super) fn durable_reload_effect_basis() -> EffectAuthoringBasis {
 }
 
 pub(super) fn runtime_workflow_binding() -> WorkflowContextBinding {
-    runtime_workflow_binding_with_snapshot("snapshot-1")
+    runtime_workflow_binding_with_snapshot(
+        crate::harness::fixtures::resolved_bases::primary_snapshot_identity(),
+    )
 }
 
 pub(super) fn runtime_workflow_binding_with_snapshot(
-    snapshot_token: &str,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
 ) -> WorkflowContextBinding {
-    let preflight = execution_preflights::runtime_preflight_with_snapshot_token(snapshot_token);
+    let preflight =
+        execution_preflights::runtime_preflight_with_snapshot_identity(snapshot_identity);
     bind_workflow_context(WorkflowBindingSource::RuntimePreflight(&preflight))
         .expect("runtime preflight should bind")
+}
+
+pub(super) fn runtime_workflow_binding_for_branch(
+    snapshot_identity: ForgeQuerySnapshotIdentity,
+    branch: &str,
+) -> WorkflowContextBinding {
+    synthetic_runtime_workflow_binding_scoped_for_branch_snapshot_identity(
+        "effect-lifecycle-runtime",
+        "effect-lifecycle-branch",
+        snapshot_identity,
+        BranchId(branch.to_string()),
+    )
 }
 
 pub(super) fn preview_workflow_binding() -> WorkflowContextBinding {

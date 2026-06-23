@@ -10,8 +10,8 @@ use super::support::{
 #[test]
 fn bridge_delivery_and_result_surfaces_expose_planning_and_lowering_proof_contracts() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch(crate::facade::TruthCommitIdentity::new("commit-a"), crate::facade::TruthPatchIdentity::new("patch-a"), TruthSnapshotIdentity::new("snapshot-a"), forge_foundational::facade::FieldKey::new("name".to_owned()).expect("valid harness field key")));
-    source.insert_snapshot(field_slice_snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    source.insert_committed_patch(committed_patch(crate::truth_identity_fixtures::truth_commit_fixture("commit-a"), crate::truth_identity_fixtures::truth_patch_fixture("patch-a"), crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"), forge_foundational::facade::FieldKey::new("name".to_owned()).expect("valid harness field key")));
+    source.insert_snapshot(field_slice_snapshot(crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"), "alice"));
     let sink = RecordingSignalBridgeSink::default();
     let runtime = build_runtime_with_aspects(
         source,
@@ -21,7 +21,7 @@ fn bridge_delivery_and_result_surfaces_expose_planning_and_lowering_proof_contra
     );
 
     let route = runtime
-        .plan_committed_patch(BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")))
+        .plan_committed_patch(BridgeRouteRequest::for_commit(crate::truth_identity_fixtures::truth_commit_fixture("commit-a")))
         .expect("bridge should plan route with proof metadata");
     let result = runtime
         .deliver_invalidation(route)

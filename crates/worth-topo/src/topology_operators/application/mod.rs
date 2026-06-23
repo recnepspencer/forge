@@ -8,9 +8,12 @@ mod dependency_paths;
 mod error;
 mod error_display;
 mod existing_truth;
+#[cfg(test)]
+mod touched_basis_boundary_tests;
 pub(crate) use crate::projection::runtime_boundary::query_runtime::TopologyPostWriteQueryArtifact;
 pub(crate) use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 pub(crate) use crate::projection::runtime_boundary::query_runtime::TopologyQueryMutationLaneExecutionShape;
+use declaration_entry::execution_finalize::ensure_declared_touched_basis_covers_sequence;
 pub(crate) use declaration_entry::mutation_payload::TopologyDeclarationMutationPayload;
 
 use std::collections::BTreeMap;
@@ -27,7 +30,7 @@ use crate::query_domain::TopologyQueryDomain;
 use super::mutation_records::TopologyMutationFamily;
 use super::{
     TopologyDeclaredMutationActionRef, TopologyDeclaredMutationMember,
-    TopologyMutationApplicationMode,
+    TopologyDeclaredMutationSequence, TopologyMutationApplicationMode,
 };
 pub(crate) use declaration_entry::TopologyRetainedApplicationHandoff;
 pub(crate) use declared_mutation_artifact::TopologyDeclaredMutationArtifact;
@@ -79,6 +82,11 @@ impl TopologyMutationApplicationStop {
 
     pub(crate) fn recovery(&self) -> Option<&forge_query::facade::ForgeQueryRecoveryBrief> {
         self.recovery.as_ref()
+    }
+
+    pub(crate) fn graph_obligation_envelope_digest(&self) -> Option<&str> {
+        self.error
+            .declaration_entry_graph_obligation_envelope_digest()
     }
 }
 
@@ -214,26 +222,48 @@ pub(crate) fn finalize_batch_write_closeout<I>(
     retained_handoff: TopologyRetainedApplicationHandoff<I>,
     lowered_mutations: ForgeQueryMutationBatchBuilder,
     semantic_family_key: &'static str,
+    mode: TopologyMutationApplicationMode,
     sequence: &super::TopologyDeclaredMutationSequence,
 ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError>
 where
     I: ForgeQueryDeclarationInput<TopologyQueryDomain>,
 {
-    let receipt = runner.workspace.batch(|_| lowered_mutations)?;
+    ensure_declared_touched_basis_covers_sequence_before_write(
+        &retained_handoff,
+        sequence,
+        mode.clone(),
+    )?;
+    let receipt = runner
+        .workspace
+        .submissions()?
+        .submit_batch_builder(lowered_mutations)?;
     finalize_graph_or_batch_receipt_closeout(
         runner,
         retained_handoff,
         semantic_family_key,
+        mode,
         sequence,
         receipt,
         TopologyQueryMutationLaneExecutionShape::ScalarMutation,
     )
 }
 
+pub(crate) fn ensure_declared_touched_basis_covers_sequence_before_write<I>(
+    retained_handoff: &TopologyRetainedApplicationHandoff<I>,
+    sequence: &TopologyDeclaredMutationSequence,
+    mode: TopologyMutationApplicationMode,
+) -> Result<(), TopologyMutationApplicationError>
+where
+    I: ForgeQueryDeclarationInput<TopologyQueryDomain>,
+{
+    ensure_declared_touched_basis_covers_sequence(retained_handoff, sequence, mode)
+}
+
 pub(crate) fn finalize_graph_or_batch_receipt_closeout<I>(
     runner: &mut TopologyMutationApplicationRunner<'_, '_>,
     retained_handoff: TopologyRetainedApplicationHandoff<I>,
     semantic_family_key: &'static str,
+    mode: TopologyMutationApplicationMode,
     sequence: &super::TopologyDeclaredMutationSequence,
     receipt: forge_query::facade::ForgeQueryBatchWriteReceipt,
     execution_shape: TopologyQueryMutationLaneExecutionShape,
@@ -241,6 +271,7 @@ pub(crate) fn finalize_graph_or_batch_receipt_closeout<I>(
 where
     I: ForgeQueryDeclarationInput<TopologyQueryDomain>,
 {
+    ensure_declared_touched_basis_covers_sequence(&retained_handoff, sequence, mode)?;
     let post_write_query_artifact = TopologyPostWriteQueryArtifact::build(
         runner.workspace,
         runner.surfaces,

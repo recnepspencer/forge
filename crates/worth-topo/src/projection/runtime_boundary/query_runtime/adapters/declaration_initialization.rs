@@ -2,7 +2,6 @@ use forge_query::facade::{
     ForgeQueryDerivedView, ForgeQueryMutationMetadata,
     ForgeQueryRuntimeDeclarationInitializationAdapter, ForgeQueryWorkspaceError,
 };
-use forge_relational::facade::bridge::bridge_snapshot_identity_for_handle;
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::projection::runtime_boundary::declared_query_surfaces::query_diagnostics::TopologyQueryMutationEvidence;
@@ -39,20 +38,12 @@ impl ForgeQueryRuntimeDeclarationInitializationAdapter
     fn declaration_initialization_metadata(
         &self,
         _view: &ForgeQueryDerivedView,
-        snapshot_token: &str,
     ) -> Result<ForgeQueryMutationMetadata, ForgeQueryWorkspaceError> {
         match &self.initialization {
             TopologyRuntimeDeclarationInitialization::Default => {
                 Ok(ForgeQueryMutationMetadata::default())
             }
             TopologyRuntimeDeclarationInitialization::HistoricalReadBasis(read_basis) => {
-                let expected = bridge_snapshot_identity_for_handle(read_basis.snapshot());
-                if expected.as_str() != snapshot_token {
-                    return Err(ForgeQueryWorkspaceError::new(format!(
-                        "topology declaration initialization received snapshot token `{snapshot_token}` but historical read basis requires `{}`",
-                        expected.as_str()
-                    )));
-                }
                 let mut metadata = ForgeQueryMutationMetadata::default();
                 metadata.insert(
                     TopologyQueryMutationEvidence::metadata_key().to_string(),

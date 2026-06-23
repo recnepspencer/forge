@@ -103,6 +103,9 @@ pub fn request_context_digest(request_context: &ForgeServerRequestContext) -> St
 
 pub fn support_posture_digest(posture: &ForgeServerQuerySupportPosture) -> String {
     match posture {
+        ForgeServerQuerySupportPosture::ProductIndependent { label } => {
+            format!("product-independent:{label}")
+        }
         ForgeServerQuerySupportPosture::QueryReadSupported { family_contract } => {
             format!("query-read-supported:{}", family_contract.contract_digest())
         }

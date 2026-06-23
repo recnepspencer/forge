@@ -1,5 +1,4 @@
-use crate::input::envelope::TruthBranchIdentity;
-use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+use crate::snapshot::BridgeTruthViewSelector;
 use crate::structural::{
     AdmittedStructuralRegistry, StructuralFingerprintEquivalenceContract,
     StructuralFingerprintFamily, StructuralFingerprintNormalizationRule,
@@ -13,10 +12,10 @@ use super::StructuralFingerprint;
 #[test]
 fn fingerprint_is_canonical_for_same_contract_and_read_packet() {
     let declaration = StructuralIdentityDeclaration::advisory_remap(
-        StructuralIdentityDeclarationIdentity::new("structural:geometry"),
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:geometry"),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintFamily::TopologyFingerprint,
             "topology-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -24,15 +23,15 @@ fn fingerprint_is_canonical_for_same_contract_and_read_packet() {
             StructuralFingerprintOmissionPolicy::SchemaDeclaredOmissionPolicy,
         ),
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::committed_snapshot(
-            TruthBranchIdentity::new("main"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     );
     let registry = AdmittedStructuralRegistry::freeze(vec![declaration]).unwrap();
     let contract = registry.contracts()[0].clone();
     let read_packet = crate::snapshot::SnapshotReadPacket::new(vec![]);
 
-    let snapshot_identity = TruthSnapshotIdentity::new("snapshot-a");
+    let snapshot_identity = crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a");
     let left = StructuralFingerprint::from_snapshot_read_packet(
         &contract,
         &read_packet,
@@ -53,7 +52,10 @@ fn fingerprint_is_canonical_for_same_contract_and_read_packet() {
     assert!(left.equivalence_member_evidence().members().is_empty());
     assert_eq!(
         left.snapshot_identity(),
-        &TruthSnapshotIdentity::new("snapshot-a")
+        &crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a")
     );
-    assert_eq!(left.snapshot_identity_text(), "snapshot-a");
+    assert_eq!(
+        left.snapshot_identity_text(),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a").as_str()
+    );
 }

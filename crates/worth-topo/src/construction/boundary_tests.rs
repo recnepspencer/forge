@@ -154,3 +154,94 @@ fn phase_five_internal_construction_boundary_deletes_stepwise_bucket_files() {
         );
     }
 }
+
+#[test]
+fn primitive_construction_birth_compose_requires_declared_touched_basis_before_query_write() {
+    let facade = include_str!("../facade.rs");
+    let construction_mod = include_str!("mod.rs");
+    let query_native_boundary = include_str!("query_native_boundary.rs");
+    let compose_mod = include_str!("query_native_boundary/compose_execution/mod.rs");
+    let execution = include_str!("query_native_boundary/compose_execution/execution.rs");
+    let family_programs =
+        include_str!("query_native_boundary/compose_execution/family_programs.rs");
+    let program = include_str!("query_native_boundary/compose_execution/program.rs");
+    let touched_basis = include_str!("query_native_boundary/compose_execution/touched_basis.rs");
+
+    assert!(
+        !facade.contains("execute_primitive_construction_birth_compose"),
+        "primitive construction birth compose execution must not remain an ordinary public facade entrypoint",
+    );
+    assert!(
+        !construction_mod.contains("execute_primitive_construction_birth_compose"),
+        "construction root must not re-export the graph-birth compose execution helper as a competing authority surface",
+    );
+    assert!(
+        !query_native_boundary.contains("execute_primitive_construction_birth_compose"),
+        "query-native construction boundary must not re-export graph-birth compose execution outside the compose module",
+    );
+    assert!(
+        compose_mod.contains("#[cfg(test)]\npub(crate) use execution::execute_primitive_construction_birth_compose"),
+        "compose execution helper should be scoped to certification tests, not production facade authority",
+    );
+    assert!(
+        execution.contains("pub(crate) fn execute_primitive_construction_birth_compose"),
+        "primitive construction graph-birth compose execution must be crate-private",
+    );
+    assert!(
+        execution.contains(
+            "declared_touched_basis: TopologyPrimitiveConstructionBirthDeclaredTouchedBasis"
+        ),
+        "primitive construction graph-birth compose execution must require the declared touched-basis product",
+    );
+
+    assert!(
+        !program.contains("pub(crate) fn execute("),
+        "primitive construction compose program must not expose a crate-visible raw Query graph write method",
+    );
+    assert!(
+        family_programs.contains("pub(super) fn build_primitive_construction_birth_compose_program"),
+        "primitive construction compose program builder should be visible only to the guarded compose execution module",
+    );
+    assert!(
+        execution.contains("program.execute_declared_touched_basis_checked("),
+        "primitive construction compose execution must reach Query graph writes through the proof-bearing program method",
+    );
+    assert!(
+        program.contains("admitted_handoff: &TopologyPrimitiveConstructionQueryAdmittedHandoff"),
+        "the program graph-write entry must carry the admitted handoff being checked",
+    );
+    assert!(
+        program.contains(
+            "declared_touched_basis: &TopologyPrimitiveConstructionBirthDeclaredTouchedBasis"
+        ),
+        "the program graph-write entry must require the declared touched-basis product",
+    );
+    assert!(
+        program.contains("fn execute_checked_graph_write(")
+            && !program.contains("pub(crate) fn execute_checked_graph_write(")
+            && !program.contains("pub(super) fn execute_checked_graph_write("),
+        "the raw compose_graph implementation must remain private to the program module",
+    );
+    let guard = program
+        .find("declared_touched_basis.require_matches_handoff(admitted_handoff)?")
+        .expect("compose program must check declared touched-basis coverage");
+    let write = program
+        .find("workspace.compose_graph(")
+        .expect("compose program must still call Query graph composition");
+    assert!(
+        guard < write,
+        "declared touched-basis coverage must be checked inside the program before Query graph composition executes",
+    );
+    assert!(
+        touched_basis.contains("TopologyDeclaredTouchedGraphBasis::from_sequence"),
+        "construction birth intent may feed canonical touched-basis construction but must not stand in as the basis",
+    );
+    assert!(
+        touched_basis.contains("TopologyDeclaredMutationSequenceBuilder"),
+        "construction birth touched-basis lowering should use the shared topology mutation sequence vocabulary",
+    );
+    assert!(
+        touched_basis.contains("TopologyTouchedOperatingWorld::mainline()"),
+        "construction birth touched-basis lowering must declare the operating world used for Query execution",
+    );
+}

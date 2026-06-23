@@ -1,4 +1,5 @@
 mod authoring;
+mod candidate_index;
 mod contacts;
 mod domain;
 mod facts;

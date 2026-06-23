@@ -5,7 +5,7 @@ fn runtime_classifies_writeback_idempotence_stably_for_same_inputs() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:idempotence"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:idempotence"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "idempotence",
@@ -16,10 +16,10 @@ fn runtime_classifies_writeback_idempotence_stably_for_same_inputs() {
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:idempotence"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:idempotence"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:idempotence"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:idempotence"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "canonical-upsert",
@@ -30,23 +30,23 @@ fn runtime_classifies_writeback_idempotence_stably_for_same_inputs() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:stable"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:stable"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let right = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:stable"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:stable"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let drifted_effect = runtime.lower_writeback_effect(
         &contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:idempotence:drifted"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:idempotence:drifted"),
             "commit-b",
         ),
-        BridgeWritebackEffectIdentity::new("effect:idempotence:drifted"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:idempotence:drifted"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "canonical-upsert-drifted",
@@ -56,7 +56,7 @@ fn runtime_classifies_writeback_idempotence_stably_for_same_inputs() {
         &drifted_effect,
         &lowered_policy,
         &truth_state_basis(&drifted_effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:stable"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:stable"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -70,7 +70,7 @@ fn runtime_validates_writeback_candidate_stably_for_same_inputs() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:candidate"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:candidate"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "candidate",
@@ -81,17 +81,17 @@ fn runtime_validates_writeback_candidate_stably_for_same_inputs() {
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:candidate"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:candidate"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:candidate"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:candidate"),
         writeback_effect_intent(BridgeWritebackEffectClass::ProjectedStateDiff, "candidate"),
     );
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:candidate"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:candidate"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let loop_prevention = runtime.classify_writeback_loop_prevention(&effect, &idempotence, None);
@@ -136,7 +136,7 @@ fn runtime_classifies_strategy_coherence_for_matching_shapes() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:strategy-coherence"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:strategy-coherence"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "strategy-coherence",
@@ -147,10 +147,10 @@ fn runtime_classifies_strategy_coherence_for_matching_shapes() {
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:strategy-coherence"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:strategy-coherence"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:strategy-coherence"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:strategy-coherence"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "strategy-coherence",
@@ -160,7 +160,7 @@ fn runtime_classifies_strategy_coherence_for_matching_shapes() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:strategy-coherence"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:strategy-coherence"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 

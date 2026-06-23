@@ -3,6 +3,15 @@ pub enum WorkloadCatalogRecipeKind {
     Cube,
     Tetrahedron,
     SingleFaceLoop,
+    BooleanCleanPlanarBodyPair,
+    BooleanEventCarrierCleanPlanarBodyPair,
+    BooleanEventExtractionMetabossPair,
+    BooleanMismatchedPosturePair,
+    BooleanCoplanarOverlapPair,
+    BooleanThinFeaturePair,
+    BooleanHighValenceContactPair,
+    BooleanDirtyCleanFailPair,
+    BooleanOpenUnboundedDenialPair,
     CoplanarOverlapStorm,
     ThinFeatureWall,
     DirtySelfIntersectingLoop,
@@ -24,6 +33,23 @@ impl WorkloadCatalogRecipeKind {
             Self::Cube => "worth.catalog.cube",
             Self::Tetrahedron => "worth.catalog.tetrahedron",
             Self::SingleFaceLoop => "worth.catalog.single_face_loop",
+            Self::BooleanCleanPlanarBodyPair => "worth.catalog.boolean_clean_planar_body_pair",
+            Self::BooleanEventCarrierCleanPlanarBodyPair => {
+                "worth.catalog.boolean_event_carrier_clean_planar_body_pair"
+            }
+            Self::BooleanEventExtractionMetabossPair => {
+                "worth.catalog.boolean_event_extraction_metaboss_pair"
+            }
+            Self::BooleanMismatchedPosturePair => "worth.catalog.boolean_mismatched_posture_pair",
+            Self::BooleanCoplanarOverlapPair => "worth.catalog.boolean_coplanar_overlap_pair",
+            Self::BooleanThinFeaturePair => "worth.catalog.boolean_thin_feature_pair",
+            Self::BooleanHighValenceContactPair => {
+                "worth.catalog.boolean_high_valence_contact_pair"
+            }
+            Self::BooleanDirtyCleanFailPair => "worth.catalog.boolean_dirty_clean_fail_pair",
+            Self::BooleanOpenUnboundedDenialPair => {
+                "worth.catalog.boolean_open_unbounded_denial_pair"
+            }
             Self::CoplanarOverlapStorm => "worth.catalog.coplanar_overlap_storm",
             Self::ThinFeatureWall => "worth.catalog.thin_feature_wall",
             Self::DirtySelfIntersectingLoop => "worth.catalog.dirty_self_intersecting_loop",
@@ -45,6 +71,19 @@ impl WorkloadCatalogRecipeKind {
             Self::Cube => "cube workload recipe",
             Self::Tetrahedron => "tetrahedron workload recipe",
             Self::SingleFaceLoop => "single face loop workload recipe",
+            Self::BooleanCleanPlanarBodyPair => "boolean clean planar body pair recipe",
+            Self::BooleanEventCarrierCleanPlanarBodyPair => {
+                "boolean event-carrier clean planar body pair recipe"
+            }
+            Self::BooleanEventExtractionMetabossPair => {
+                "boolean event-extraction metaboss operand pair recipe"
+            }
+            Self::BooleanMismatchedPosturePair => "boolean mismatched posture pair recipe",
+            Self::BooleanCoplanarOverlapPair => "boolean coplanar overlap pair recipe",
+            Self::BooleanThinFeaturePair => "boolean thin feature pair recipe",
+            Self::BooleanHighValenceContactPair => "boolean high-valence contact pair recipe",
+            Self::BooleanDirtyCleanFailPair => "boolean dirty clean-fail pair recipe",
+            Self::BooleanOpenUnboundedDenialPair => "boolean open or unbounded denial pair recipe",
             Self::CoplanarOverlapStorm => "coplanar overlap storm workload recipe",
             Self::ThinFeatureWall => "thin feature wall workload recipe",
             Self::DirtySelfIntersectingLoop => "dirty self-intersecting loop workload recipe",
@@ -66,6 +105,19 @@ impl WorkloadCatalogRecipeKind {
             Self::Cube => "catalog cube workload",
             Self::Tetrahedron => "catalog tetrahedron workload",
             Self::SingleFaceLoop => "catalog single face loop workload",
+            Self::BooleanCleanPlanarBodyPair => "catalog boolean clean planar body pair",
+            Self::BooleanEventCarrierCleanPlanarBodyPair => {
+                "catalog boolean event-carrier clean planar body pair"
+            }
+            Self::BooleanEventExtractionMetabossPair => {
+                "catalog boolean event-extraction metaboss operand pair"
+            }
+            Self::BooleanMismatchedPosturePair => "catalog boolean mismatched posture pair",
+            Self::BooleanCoplanarOverlapPair => "catalog boolean coplanar overlap pair",
+            Self::BooleanThinFeaturePair => "catalog boolean thin feature pair",
+            Self::BooleanHighValenceContactPair => "catalog boolean high-valence contact pair",
+            Self::BooleanDirtyCleanFailPair => "catalog boolean dirty clean-fail pair",
+            Self::BooleanOpenUnboundedDenialPair => "catalog boolean open or unbounded denial pair",
             Self::CoplanarOverlapStorm => "catalog coplanar overlap storm workload",
             Self::ThinFeatureWall => "catalog thin feature wall workload",
             Self::DirtySelfIntersectingLoop => "catalog dirty self-intersecting loop workload",
@@ -119,11 +171,13 @@ impl WorkloadCatalogSupportPosture {
 pub enum TransformRecipe {
     MovementRotationStack,
     HostileCancellation,
+    ReorientedMovementRotationStack,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorkloadTopologyBreadth {
     Default,
+    SingleFaceLoopEdges { edge_count: usize },
     MultiFaceShell { face_count: usize },
     HighValenceVertex { valence: usize },
 }

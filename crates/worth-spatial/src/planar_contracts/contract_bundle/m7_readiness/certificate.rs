@@ -4,6 +4,8 @@ use crate::planar_contracts::contract_bundle::{
     planar_contract_bundle_digest, PlanarContractBundleBooleanResult,
     PlanarContractBundleImprintAction,
 };
+use crate::planar_contracts::local_frame::PlanarLocalFrameCertificateReceipt;
+use crate::planar_contracts::precision_basis::PlanarPrecisionCertificateReceipt;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PlanarM7ReadinessReceipt {
@@ -78,6 +80,36 @@ impl PlanarM7ReadinessReceipt {
 
     pub fn counters(&self) -> PlanarM7ReadinessCounters {
         self.counters
+    }
+
+    pub fn precision_receipt(&self) -> &PlanarPrecisionCertificateReceipt {
+        self.basis.boolean_readiness().basis().precision_receipt()
+    }
+
+    pub fn local_frame_receipt(&self) -> &PlanarLocalFrameCertificateReceipt {
+        self.basis.boolean_readiness().basis().local_frame_receipt()
+    }
+
+    pub fn precision_fact_digest(&self) -> &str {
+        self.precision_receipt().fact_digest()
+    }
+
+    pub fn local_frame_fact_digest(&self) -> &str {
+        self.local_frame_receipt().fact_digest()
+    }
+
+    pub fn topology_basis_identity(&self) -> &str {
+        self.basis
+            .boolean_readiness()
+            .basis()
+            .topology_basis_identity()
+    }
+
+    pub fn movement_rotation_posture_identity(&self) -> &str {
+        self.basis
+            .boolean_readiness()
+            .basis()
+            .movement_rotation_posture_identity()
     }
 }
 

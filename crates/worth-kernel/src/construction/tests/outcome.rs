@@ -3,7 +3,9 @@ use super::super::request::{
     PrimitiveConstructionFamily, PrimitiveConstructionGeometryError,
     PrimitiveConstructionPhaseError,
 };
-use super::super::result::PrimitiveConstructionResultError;
+use super::super::result::{
+    prepare_primitive_construction_result, PrimitiveConstructionResultError,
+};
 use super::super::specs::{OrthotopeSpec, SimplexSolidSpec, WireBodySpec};
 use super::{
     prepare_primitive_construction_outcome, rejected_outcome, PrimitiveConstructionPreparedOutcome,
@@ -36,11 +38,23 @@ fn prepared_outcome_tracks_accepted_artifact_identity() {
 
 #[test]
 fn prepared_outcome_tracks_rejected_request_locality() {
-    let outcome = prepare_primitive_construction_outcome(PrimitiveConstructionIntent::wire_body(
-        WireBodySpec { edge_count: 2 },
-    ));
+    let intent = PrimitiveConstructionIntent::wire_body(WireBodySpec { edge_count: 2 });
+    let error = prepare_primitive_construction_result(intent.clone())
+        .expect_err("invalid wire body should reject");
+    match error {
+        PrimitiveConstructionResultError::Phase(
+            PrimitiveConstructionPhaseError::InvalidRequest { family, reason },
+        ) => {
+            assert_eq!(family, PrimitiveConstructionFamily::WireBody);
+            assert_eq!(
+                reason,
+                "polygonal construction families require at least three edges"
+            );
+        }
+        other => panic!("expected invalid wire_body request, got {other:?}"),
+    }
 
-    match outcome {
+    match prepare_primitive_construction_outcome(intent) {
         PrimitiveConstructionPreparedOutcome::Accepted(_) => {
             panic!("invalid wire body should be rejected")
         }
@@ -58,7 +72,6 @@ fn prepared_outcome_tracks_rejected_request_locality() {
                 rejected.recovery_actions(),
                 &[PrimitiveConstructionRecoveryAction::CorrectRequestFamilyOrCounts]
             );
-            assert!(rejected.reason().contains("invalid wire_body request"));
             assert!(!rejected.failure_digest().is_empty());
         }
     }

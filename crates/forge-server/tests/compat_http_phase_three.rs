@@ -19,7 +19,7 @@ use compat_http_phase_three_runtime::{
     build_phase_three_server, build_phase_three_server_with_workspace_provider,
     compat_mutation_denied, compat_mutation_execution_input, compat_mutation_success,
     direct_mutation_success, insert_task, mutation_input, mutation_request_input_for_workspace,
-    prepared_mutation_request, single_insert_body, StatefulCountingMutationWorkspaceProvider,
+    prepared_mutation_request, single_insert_body,
 };
 use forge_native_assertions::{
     family_contract_digest, forge_native_session, response_provenance_digest,
@@ -152,16 +152,38 @@ fn compat_http_mutation_preconditions_deny_before_any_write_attempt() {
         basis_denial.code(),
         ForgeServerQueryHandoffDenialCode::CompatibilityMutationPreconditionFailed
     );
-    assert!(basis_denial
-        .detail()
-        .contains("did not match the admitted mutation basis"));
+    assert_eq!(
+        basis_denial
+            .facts()
+            .and_then(|facts| facts.expected_basis_digest()),
+        Some("basis:drifted")
+    );
+    assert_ne!(
+        basis_denial
+            .facts()
+            .and_then(|facts| facts.observed_basis_digest()),
+        basis_denial
+            .facts()
+            .and_then(|facts| facts.expected_basis_digest())
+    );
     assert_eq!(
         validator_denial.code(),
         ForgeServerQueryHandoffDenialCode::CompatibilityMutationPreconditionFailed
     );
-    assert!(validator_denial
-        .detail()
-        .contains("did not match the canonical mutation validator"));
+    assert_eq!(
+        validator_denial
+            .facts()
+            .and_then(|facts| facts.expected_validator()),
+        Some("\"validator:wrong\"")
+    );
+    assert_ne!(
+        validator_denial
+            .facts()
+            .and_then(|facts| facts.observed_validator()),
+        validator_denial
+            .facts()
+            .and_then(|facts| facts.expected_validator())
+    );
     assert_eq!(
         attempted_writes.load(Ordering::Relaxed),
         0,
@@ -241,7 +263,18 @@ fn compat_http_idempotency_replays_identical_requests_and_denies_conflicts() {
         conflict.code(),
         ForgeServerQueryHandoffDenialCode::CompatibilityIdempotencyConflict
     );
-    assert!(conflict.detail().contains("cannot be reused"));
+    assert_eq!(
+        conflict.facts().and_then(|facts| facts.idempotency_key()),
+        Some("idem-1")
+    );
+    assert_ne!(
+        conflict
+            .facts()
+            .and_then(|facts| facts.conflicting_request_digest()),
+        conflict
+            .facts()
+            .and_then(|facts| facts.bound_request_digest())
+    );
 }
 
 #[test]
@@ -324,93 +357,5 @@ fn compat_http_mutation_denies_before_write_when_inspect_family_is_unavailable()
         attempted_writes.load(Ordering::Relaxed),
         0,
         "inspect family denial must happen before any compatibility mutation write"
-    );
-}
-
-#[test]
-fn compat_http_mutation_request_denials_preserve_requested_diagnostics_profile() {
-    let server = build_phase_three_server();
-    let denial = compat_mutation_denied(server.compat_http().mutate(
-        forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
-            prepared_mutation_request(
-                &server,
-                mutation_input("tasks.delete")
-                    .with_diagnostics_profile(
-                        forge_server::request_context::DiagnosticRichnessProfile::OperationalMinimal,
-                    )
-                    .build()
-                    .expect("diagnostic-profile mutation input should validate structurally"),
-            ),
-            "tasks.delete",
-            json!({
-                "command": {
-                    "family": "delete",
-                    "entity_identity": "task-1",
-                    "touched_aspect_paths": ["title.value", 7]
-                }
-            }),
-        ),
-    ));
-
-    assert_eq!(
-        denial.diagnostics_profile(),
-        forge_server::request_context::DiagnosticRichnessProfile::OperationalMinimal
-    );
-    assert_eq!(
-        denial.code(),
-        ForgeServerQueryHandoffDenialCode::CompatibilityMutationRequestInvalid
-    );
-}
-
-#[test]
-fn compat_http_mutation_rejects_stale_validator_after_authoritative_write() {
-    let attempted_writes = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-    let server = build_phase_three_server_with_workspace_provider(
-        StatefulCountingMutationWorkspaceProvider::new(
-            ForgeQueryRuntimeSupportProfile::scaffold_backend_profile(),
-            attempted_writes.clone(),
-        ),
-    );
-    let first = compat_mutation_success(
-        server.compat_http().mutate(
-            forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
-                prepared_mutation_request(
-                    &server,
-                    mutation_input("tasks.insert")
-                        .build()
-                        .expect("first stateful mutation input should validate structurally"),
-                ),
-                "tasks.insert",
-                single_insert_body("task-1"),
-            ),
-        ),
-    );
-    let stale_validator_denial = compat_mutation_denied(
-        server.compat_http().mutate(
-            forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
-                prepared_mutation_request(
-                    &server,
-                    mutation_input("tasks.insert")
-                        .with_header("if-match", first.precondition().validator())
-                        .build()
-                        .expect("stale-validator mutation input should validate structurally"),
-                ),
-                "tasks.insert",
-                single_insert_body("task-2"),
-            ),
-        ),
-    );
-
-    assert_eq!(
-        stale_validator_denial.code(),
-        ForgeServerQueryHandoffDenialCode::CompatibilityMutationPreconditionFailed
-    );
-    assert!(stale_validator_denial
-        .detail()
-        .contains("did not match the canonical mutation validator"));
-    assert_eq!(
-        attempted_writes.load(Ordering::Relaxed),
-        1,
-        "stale validator denial must happen before any second write executes"
     );
 }

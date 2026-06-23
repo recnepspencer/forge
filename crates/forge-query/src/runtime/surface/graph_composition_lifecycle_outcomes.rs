@@ -1,6 +1,8 @@
-use crate::identity::hash_parts;
-
 use super::ForgeQueryGraphCompositionProgram;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::runtime::ForgeQueryGraphCompositionProgramStepKind;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -71,7 +73,7 @@ impl ForgeQueryGraphCompositionLifecycleOutcomeEntry {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGraphCompositionLifecycleOutcomes {
     entries: Vec<ForgeQueryGraphCompositionLifecycleOutcomeEntry>,
-    lifecycle_digest: String,
+    lifecycle_digest: ForgeQueryEvidenceIdentity,
     counter_snapshot: String,
 }
 
@@ -122,34 +124,138 @@ impl ForgeQueryGraphCompositionLifecycleOutcomes {
             })
             .collect::<Vec<_>>();
 
-        let counter_snapshot = format!(
-            "created={};updated_identity_preserved={};retargeted_identity_preserved={};retired_current_truth={};superseded_with_lineage={};deleted_if_uncommitted={};denied_before_execution={}",
-            entries.iter().filter(|entry| entry.outcome_kind() == ForgeQueryGraphCompositionLifecycleOutcomeKind::Created).count(),
-            entries.iter().filter(|entry| entry.outcome_kind() == ForgeQueryGraphCompositionLifecycleOutcomeKind::UpdatedIdentityPreserved).count(),
-            entries.iter().filter(|entry| entry.outcome_kind() == ForgeQueryGraphCompositionLifecycleOutcomeKind::RetargetedIdentityPreserved).count(),
-            entries.iter().filter(|entry| entry.outcome_kind() == ForgeQueryGraphCompositionLifecycleOutcomeKind::RetiredCurrentTruth).count(),
-            entries.iter().filter(|entry| entry.outcome_kind() == ForgeQueryGraphCompositionLifecycleOutcomeKind::SupersededWithLineage).count(),
-            entries.iter().filter(|entry| entry.outcome_kind() == ForgeQueryGraphCompositionLifecycleOutcomeKind::DeletedIfUncommitted).count(),
-            entries.iter().filter(|entry| entry.outcome_kind() == ForgeQueryGraphCompositionLifecycleOutcomeKind::DeniedBeforeExecution).count(),
-        );
-        let lifecycle_digest = hash_parts(
-            &std::iter::once("forge_query_graph_composition_lifecycle_outcomes_v1".to_string())
-                .chain(std::iter::once(format!(
-                    "program:{}",
-                    program.program_digest()
-                )))
-                .chain(std::iter::once(format!("counters:{counter_snapshot}")))
-                .chain(entries.iter().map(|entry| {
-                    format!(
-                        "{}:{}:{}:{}",
-                        entry.component_index(),
-                        entry.outcome_kind().as_str(),
-                        entry.declared_collection(),
-                        entry.declared_symbol().unwrap_or("none")
-                    )
-                }))
-                .collect::<Vec<_>>(),
-        );
+        let created_count = entries
+            .iter()
+            .filter(|entry| {
+                entry.outcome_kind() == ForgeQueryGraphCompositionLifecycleOutcomeKind::Created
+            })
+            .count();
+        let updated_identity_preserved_count = entries
+            .iter()
+            .filter(|entry| {
+                entry.outcome_kind()
+                    == ForgeQueryGraphCompositionLifecycleOutcomeKind::UpdatedIdentityPreserved
+            })
+            .count();
+        let retargeted_identity_preserved_count = entries
+            .iter()
+            .filter(|entry| {
+                entry.outcome_kind()
+                    == ForgeQueryGraphCompositionLifecycleOutcomeKind::RetargetedIdentityPreserved
+            })
+            .count();
+        let retired_current_truth_count = entries
+            .iter()
+            .filter(|entry| {
+                entry.outcome_kind()
+                    == ForgeQueryGraphCompositionLifecycleOutcomeKind::RetiredCurrentTruth
+            })
+            .count();
+        let superseded_with_lineage_count = entries
+            .iter()
+            .filter(|entry| {
+                entry.outcome_kind()
+                    == ForgeQueryGraphCompositionLifecycleOutcomeKind::SupersededWithLineage
+            })
+            .count();
+        let deleted_if_uncommitted_count = entries
+            .iter()
+            .filter(|entry| {
+                entry.outcome_kind()
+                    == ForgeQueryGraphCompositionLifecycleOutcomeKind::DeletedIfUncommitted
+            })
+            .count();
+        let denied_before_execution_count = entries
+            .iter()
+            .filter(|entry| {
+                entry.outcome_kind()
+                    == ForgeQueryGraphCompositionLifecycleOutcomeKind::DeniedBeforeExecution
+            })
+            .count();
+        let counter_snapshot = diagnostic_counter_snapshot(&[
+            ("created", created_count),
+            (
+                "updated_identity_preserved",
+                updated_identity_preserved_count,
+            ),
+            (
+                "retargeted_identity_preserved",
+                retargeted_identity_preserved_count,
+            ),
+            ("retired_current_truth", retired_current_truth_count),
+            ("superseded_with_lineage", superseded_with_lineage_count),
+            ("deleted_if_uncommitted", deleted_if_uncommitted_count),
+            ("denied_before_execution", denied_before_execution_count),
+        ]);
+        let lifecycle_entry_digests = entries
+            .iter()
+            .map(|entry| {
+                forge_query_evidence_identity(
+                    ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "graph-composition-lifecycle-entry",
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("component"),
+                    entry.component_index(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("outcome"),
+                    entry.outcome_kind().as_str(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("declared_collection"),
+                    entry.declared_collection(),
+                )
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("declared_symbol"),
+                    entry.declared_symbol(),
+                )
+                .seal()
+            })
+            .collect::<Vec<_>>();
+        let lifecycle_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "graph-composition-lifecycle-outcomes",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("program"),
+                    program.program_evidence_digest(),
+                )
+                .field_usize(ForgeQueryEvidenceTag::new("created_count"), created_count)
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("updated_identity_preserved_count"),
+                    updated_identity_preserved_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("retargeted_identity_preserved_count"),
+                    retargeted_identity_preserved_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("retired_current_truth_count"),
+                    retired_current_truth_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("superseded_with_lineage_count"),
+                    superseded_with_lineage_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("deleted_if_uncommitted_count"),
+                    deleted_if_uncommitted_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("denied_before_execution_count"),
+                    denied_before_execution_count,
+                )
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("entry"),
+                    lifecycle_entry_digests.iter(),
+                )
+                .seal();
 
         Some(Self {
             entries,
@@ -163,10 +269,27 @@ impl ForgeQueryGraphCompositionLifecycleOutcomes {
     }
 
     pub fn lifecycle_digest(&self) -> &str {
+        self.lifecycle_digest.as_str()
+    }
+
+    pub fn lifecycle_evidence_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.lifecycle_digest
     }
 
     pub fn counter_snapshot(&self) -> &str {
         &self.counter_snapshot
     }
+}
+
+fn diagnostic_counter_snapshot(fields: &[(&str, usize)]) -> String {
+    let mut snapshot = String::new();
+    for (index, (label, value)) in fields.iter().enumerate() {
+        if index > 0 {
+            snapshot.push(';');
+        }
+        snapshot.push_str(label);
+        snapshot.push('=');
+        snapshot.push_str(&value.to_string());
+    }
+    snapshot
 }

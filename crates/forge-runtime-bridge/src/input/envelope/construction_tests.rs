@@ -3,9 +3,9 @@ use forge_foundational::facade::{AspectKey, AspectLocator, FieldKey, LocatorAuth
 use crate::error::BridgeRouteErrorKind;
 use crate::input::envelope::{
     BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem, BridgeCommittedPatchTarget,
-    BridgeProducerAuthorityKind, BridgeProducerMetadata, TruthBranchIdentity, TruthPatchIdentity,
+    BridgeProducerAuthorityKind, BridgeProducerMetadata,
 };
-use crate::snapshot::TruthSnapshotIdentity;
+use crate::truth_identity_fixtures::{truth_branch, truth_commit, truth_patch, truth_snapshot};
 
 use super::construct_committed_patch_envelope;
 
@@ -16,10 +16,10 @@ fn construction_sorts_and_deduplicates_patch_items() {
     let envelope = construct_committed_patch_envelope(
         BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
             BridgeProducerMetadata::bridge_harness_fixture(),
-            crate::facade::TruthCommitIdentity::new("commit"),
-            TruthPatchIdentity::new("patch"),
-            TruthSnapshotIdentity::new("snapshot"),
-            TruthBranchIdentity::new("branch"),
+            truth_commit(1),
+            truth_patch(1),
+            truth_snapshot(1, 1),
+            truth_branch("branch"),
         ),
         vec![
             entity_field_patch_item("user", name_field.clone()),
@@ -46,10 +46,10 @@ fn construction_digest_is_digest_shaped_not_raw_patch_basis() {
     let envelope = construct_committed_patch_envelope(
         BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
             BridgeProducerMetadata::bridge_harness_fixture(),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
-            TruthPatchIdentity::new("patch-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("main"),
+            truth_commit(2),
+            truth_patch(2),
+            truth_snapshot(2, 1),
+            truth_branch("main"),
         ),
         vec![entity_field_patch_item("entity-1", field_key("name"))],
     )
@@ -70,14 +70,14 @@ fn construction_digest_is_digest_shaped_not_raw_patch_basis() {
 }
 
 #[test]
-fn construction_rejects_empty_identity_bearing_fields() {
+fn construction_rejects_empty_producer_identity_bearing_fields() {
     let error = construct_committed_patch_envelope(
         BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
-            BridgeProducerMetadata::bridge_harness_fixture(),
-            crate::facade::TruthCommitIdentity::new("  "),
-            TruthPatchIdentity::new("patch-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("main"),
+            BridgeProducerMetadata::new(BridgeProducerAuthorityKind::BridgeHarnessFixture, " "),
+            truth_commit(3),
+            truth_patch(3),
+            truth_snapshot(3, 1),
+            truth_branch("main"),
         ),
         vec![entity_field_patch_item("entity-1", field_key("name"))],
     )
@@ -95,10 +95,10 @@ fn construction_rejects_non_authoritative_patch_item_target_locator() {
     let error = construct_committed_patch_envelope(
         BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
             BridgeProducerMetadata::bridge_harness_fixture(),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
-            TruthPatchIdentity::new("patch-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("main"),
+            truth_commit(4),
+            truth_patch(4),
+            truth_snapshot(4, 1),
+            truth_branch("main"),
         ),
         vec![BridgeCommittedPatchItem::with_target(
             "entity-1",
@@ -151,10 +151,10 @@ fn construction_rejects_unsupported_producer_schema() {
                 BridgeProducerAuthorityKind::BridgeHarnessFixture,
                 "forge-runtime-bridge.producer-envelope.v999",
             ),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
-            TruthPatchIdentity::new("patch-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("main"),
+            truth_commit(5),
+            truth_patch(5),
+            truth_snapshot(5, 1),
+            truth_branch("main"),
         ),
         vec![entity_field_patch_item("entity-1", field_key("name"))],
     )

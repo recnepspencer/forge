@@ -1,24 +1,38 @@
-use forge_query::facade::ForgeQueryBatchWriteReceipt;
 use schema::facade::platform::authority::EntityReference;
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{
+    ensure_declared_touched_basis_covers_sequence_before_write, TopologyDeclaredMutationArtifact,
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
+    TopologyRetainedApplicationHandoff,
 };
 use crate::topology_operators::topology_relation_dependency_path;
 use crate::topology_operators::{
     BoundaryMembershipKind, TopologyDeclaredMutationActionRef, TopologyDeclaredMutationSequence,
-    TopologyMutationFamily,
+    TopologyMutationApplicationMode, TopologyMutationFamily,
 };
 
 impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
-    pub(crate) fn compose_face_inner_loop_program(
+    pub(crate) fn compose_face_inner_loop_program<I>(
         &mut self,
+        retained_handoff: TopologyRetainedApplicationHandoff<I>,
+        mode: TopologyMutationApplicationMode,
+        semantic_family_key: &'static str,
         sequence: &TopologyDeclaredMutationSequence,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyMutationApplicationError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError>
+    where
+        I: forge_query::facade::ForgeQueryDeclarationInput<
+            crate::query_domain::TopologyQueryDomain,
+        >,
+    {
+        ensure_declared_touched_basis_covers_sequence_before_write(
+            &retained_handoff,
+            sequence,
+            mode.clone(),
+        )?;
         let members = sequence.members().collect::<Vec<_>>();
         let [create, attach] = members.as_slice() else {
             return Err(TopologyMutationApplicationError::UnsupportedFamilies(vec![
@@ -60,7 +74,8 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             );
         }
         let create_key = create_key.to_string();
-        self.workspace
+        let receipt = self
+            .workspace
             .compose_graph(|graph| {
                 let loop_symbol =
                     graph.insert_entity(create_key.clone(), "TopologyEntity", |mutation| {
@@ -92,6 +107,13 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 })?;
                 Ok(())
             })
-            .map_err(Into::into)
+            .map_err(TopologyMutationApplicationError::from)?;
+        self.finish_composed_membership_execution(
+            mode,
+            retained_handoff,
+            semantic_family_key,
+            sequence,
+            receipt,
+        )
     }
 }

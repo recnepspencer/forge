@@ -1,3 +1,4 @@
+mod access_planning_adoption;
 mod closeout;
 mod core;
 mod declaration_entry;

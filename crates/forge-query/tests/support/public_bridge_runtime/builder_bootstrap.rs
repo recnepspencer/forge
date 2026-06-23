@@ -36,7 +36,8 @@ impl PublicBridgeRuntimeBootstrapWithSupportProfile {
             .existing_truth_verification(PublicExistingTruthVerificationAdapter::new(
                 self.state.clone(),
             ))
-            .write_authority(PublicWriteAuthorityAdapter::new(self.state))
+            .write_authority(PublicWriteAuthorityAdapter::new(self.state.clone()))
+            .snapshot_identity(PublicSnapshotIdentityAdapter::new(self.state))
             .signal_sink(PublicSignalSinkAdapter)
             .subscription_activation(PublicSubscriptionActivationAdapter)
             .preview_basis(PublicPreviewBasisAdapter)

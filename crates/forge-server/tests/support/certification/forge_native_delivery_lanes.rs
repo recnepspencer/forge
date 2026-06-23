@@ -11,7 +11,9 @@ use crate::{
         ForgeServerCertificationBundle, ForgeServerCertificationOutputDigest as Output,
     },
     forge_native_assertions::{admitted_named_read, operator_evidence_record},
-    query_handoff_fixture::{admit_read, request_input, resolve_request_context, success},
+    query_handoff_fixture::{
+        admit_delivery_posture, request_input, resolve_request_context, success,
+    },
 };
 
 use super::forge_native_common::{
@@ -36,7 +38,9 @@ pub fn runtime_backed_delivery_bundle(
     )
     .with_output_digest(
         Output::SurfaceContract,
-        delivery.downstream_delivery_contract().contract_digest(),
+        delivery
+            .downstream_delivery_contract()
+            .contract_for_reporting(),
     )
     .with_output_digest(Output::Declaration, lease.declaration_digest())
     .with_output_digest(Output::Handoff, delivery.handoff_digest())
@@ -80,12 +84,11 @@ pub fn compatibility_runtime_backed_delivery_bundle(
         ),
     );
     let request_context_digest_value = request_context_digest(request_context.request_context());
-    let admission = admit_read(server, request_context);
     let handoff = success(
         server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admission,
+                admit_delivery_posture(server, request_context, lease.resume_basis_digest()),
                 ForgeServerQueryHandoffOperation::downstream_delivery(
                     operation_name,
                     request.freshness_mode(),
@@ -108,7 +111,7 @@ pub fn compatibility_runtime_backed_delivery_bundle(
     let support_posture = support_posture_digest(handoff.support_posture()).to_string();
     let surface_contract = handoff
         .downstream_delivery_contract()
-        .contract_digest()
+        .contract_for_reporting()
         .to_string();
     let response = server
         .responses()
@@ -165,11 +168,10 @@ pub fn compatibility_durable_delivery_denial_bundle(
         ),
     );
     let durable_request_context = request_context.request_context().clone();
-    let admission = admit_read(server, request_context);
     let denial = compatibility_delivery_denied(
         server,
         ForgeServerQueryHandoffInput::new(
-            admission,
+            admit_delivery_posture(server, request_context, lease.resume_basis_digest()),
             ForgeServerQueryHandoffOperation::downstream_delivery(
                 operation_name,
                 request.freshness_mode(),

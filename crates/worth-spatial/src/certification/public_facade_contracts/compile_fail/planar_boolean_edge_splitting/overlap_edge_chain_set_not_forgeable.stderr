@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/overlap_edge_chain_set_not_forgeable.rs:6:50
+  |
+6 |       let _set = PlanarBooleanOverlapEdgeChainSet::new(
+  |                                                    ^^^ private associated function
+  |
+ ::: src/workload_platform/planar_boolean_edge_splitting/overlap_edge_chains/chain_set.rs
+  |
+  | /     pub(crate) fn new(
+  | |         chain_set_identity: String,
+  | |         interval_subdivision_schedule_set_identity: String,
+  | |         split_edge_fragment_set_identity: String,
+  | |         chains: Vec<PlanarBooleanOverlapEdgeChain>,
+  | |         counters: PlanarBooleanOverlapEdgeChainCounters,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

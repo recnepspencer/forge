@@ -2,8 +2,9 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
 use forge_query::facade::{
-    ForgeQueryAspectValue, ForgeQueryExistingTruthTargetBinding, ForgeQuerySymbolicAspectReference,
-    ForgeQuerySymbolicTargetReference, ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
+    ForgeQueryAspectValue, ForgeQueryEntityIdentity, ForgeQueryExistingTruthTargetBinding,
+    ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicTargetReference, ForgeQueryWorkspaceError,
+    ForgeQueryWriteCommand,
 };
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{
@@ -12,8 +13,8 @@ use forge_relational::facade::transactions::{
 };
 
 use super::super::write_support::{
-    aspect_map, optional_text, parse_entity_identity, parse_relation_identity, required_text,
-    write_command_label,
+    aspect_map, entity_id_from_query_identity, optional_text, relation_id_from_query_identity,
+    required_text, write_command_label,
 };
 use super::patch_matching::LoweredPatchMatch;
 use super::write_lowering::{
@@ -95,13 +96,16 @@ fn lower_insert_command(
     let aspect_map = aspect_map(&aspects);
     let declared_aspect_paths = declared_insert_aspect_paths(&aspects, &symbolic_aspect_references);
     match collection.as_str() {
-        "TopologyEntity" => lower_entity_insert_command(
-            runtime,
-            created_entities,
-            &aspect_map,
-            declared_aspect_paths,
-            symbolic_target_reference,
-        ),
+        "TopologyEntity"
+        | crate::construction::TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION => {
+            lower_entity_insert_command(
+                runtime,
+                created_entities,
+                &aspect_map,
+                declared_aspect_paths,
+                symbolic_target_reference,
+            )
+        }
         "TopologyRelation" => lower_relation_insert_command(
             runtime,
             created_entities,
@@ -181,12 +185,12 @@ fn lower_existing_delete_command(
     let intent = match collection.as_str() {
         "TopologyEntity" => {
             MutationIntent::Entity(EntityMutationIntent::Delete(DeleteEntityIntent {
-                entity_id: parse_entity_identity(binding.resolved_target_identity())?,
+                entity_id: entity_id_from_query_identity(binding.resolved_target_identity())?,
             }))
         }
         "TopologyRelation" => {
             MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
-                relation_id: parse_relation_identity(binding.resolved_target_identity())?,
+                relation_id: relation_id_from_query_identity(binding.resolved_target_identity())?,
             }))
         }
         other => {
@@ -241,7 +245,7 @@ fn lower_existing_relation_update_command(
 
 fn existing_target_command(
     mutation_label: &'static str,
-    resolved_target_identity: &str,
+    resolved_target_identity: &ForgeQueryEntityIdentity,
     intents: Vec<MutationIntent>,
     declared_aspect_paths: Vec<String>,
     collection: String,
@@ -252,7 +256,7 @@ fn existing_target_command(
         declared_aspect_paths,
         expected_observable_patch_count: 1,
         patch_match: LoweredPatchMatch::ExistingTargetIdentity {
-            resolved_target_identity: resolved_target_identity.to_string(),
+            resolved_target_identity: resolved_target_identity.clone(),
         },
         declared_target_collection: Some(collection),
     }

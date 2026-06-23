@@ -9,6 +9,7 @@ use super::denial::PlanarBooleanReadinessWorkloadDenial;
 use super::evidence_basis::PlanarBooleanReadinessEvidenceBasis;
 use super::receipt::PlanarBooleanReadinessWorkloadReceipt;
 use super::required_stage::PlanarBooleanReadinessRequiredStage;
+use super::stage_coverage::PlanarBooleanReadinessStageCoverage;
 use super::validation::{
     m7_denial_to_workload_denial, query_boundary_denial, readiness_workload_digest,
     validate_readiness_receipt, validate_readiness_workload_basis,
@@ -68,6 +69,7 @@ impl PlanarBooleanReadinessWorkload {
             readiness_receipt,
             workload_digest,
             self.declaration,
+            PlanarBooleanReadinessStageCoverage::all_required(),
             PlanarBooleanReadinessWorkloadCounters::certified(
                 PlanarBooleanReadinessRequiredStage::ALL.len(),
                 evidence_ledger.rows().len(),

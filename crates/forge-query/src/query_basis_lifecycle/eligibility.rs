@@ -1,8 +1,8 @@
-use crate::identity::hash_parts;
+use super::identity::basis_lifecycle_digest;
 
 use super::{
     BasisAuthorityPosture, BasisOperationLaneRequest, BasisTenantSchemaPosture,
-    NormalizedBasisFamily, NormalizedBasisIntent,
+    NormalizedBasisFamily, NormalizedBasisIntent, NormalizedBasisSubject,
 };
 
 mod rules;
@@ -165,10 +165,16 @@ pub(crate) fn denied_basis_capability_for_lane_mismatch(
             explanation,
         },
         counters,
-        failure_digest: hash_parts(&[
-            format!("normalized_basis_intent_digest:{normalized_basis_intent_digest}"),
-            format!("failure:{failure_label}"),
-        ]),
+        failure_digest: basis_lifecycle_digest(
+            "basis_capability_ineligible_denial_v1",
+            [
+                (
+                    "normalized_basis_intent_digest",
+                    normalized_basis_intent_digest.to_string(),
+                ),
+                ("failure", failure_label.to_string()),
+            ],
+        ),
     }
 }
 
@@ -198,13 +204,19 @@ pub(crate) fn denied_basis_capability_for_lower_runtime_mismatch(
                 "lower-runtime authority evidence did not match the admitted query basis capability",
         },
         counters: counters.with_lower_runtime_check(1),
-        failure_digest: hash_parts(&[
-            format!("normalized_basis_intent_digest:{normalized_basis_intent_digest}"),
-            format!("authority:{authority}"),
-            format!("expected:{expected}"),
-            format!("observed:{observed}"),
-            "failure:lower_runtime_binding_mismatch".to_string(),
-        ]),
+        failure_digest: basis_lifecycle_digest(
+            "basis_lower_runtime_binding_mismatch_v1",
+            [
+                (
+                    "normalized_basis_intent_digest",
+                    normalized_basis_intent_digest.to_string(),
+                ),
+                ("authority", authority.to_string()),
+                ("expected", expected.clone()),
+                ("observed", observed.clone()),
+                ("failure", "lower_runtime_binding_mismatch".to_string()),
+            ],
+        ),
     }
 }
 
@@ -230,11 +242,17 @@ pub(crate) fn denied_basis_capability_for_lower_runtime_unsupported(
                 "the admitted query basis capability does not have a supported lower-runtime binding path for this authority",
         },
         counters: counters.with_lower_runtime_check(1),
-        failure_digest: hash_parts(&[
-            format!("normalized_basis_intent_digest:{normalized_basis_intent_digest}"),
-            format!("authority:{authority}"),
-            "failure:lower_runtime_capability_unsupported".to_string(),
-        ]),
+        failure_digest: basis_lifecycle_digest(
+            "basis_lower_runtime_capability_unsupported_v1",
+            [
+                (
+                    "normalized_basis_intent_digest",
+                    normalized_basis_intent_digest.to_string(),
+                ),
+                ("authority", authority.to_string()),
+                ("failure", "lower_runtime_capability_unsupported".to_string()),
+            ],
+        ),
     }
 }
 
@@ -260,11 +278,17 @@ pub(crate) fn denied_basis_capability_for_scoped_use_requires_admitted_capabilit
                 "scoped-use construction for this lane requires an admitted capability rather than an advisory one",
         },
         counters,
-        failure_digest: hash_parts(&[
-            format!("normalized_basis_intent_digest:{normalized_basis_intent_digest}"),
-            format!("scoped_label:{scoped_label}"),
-            "failure:scoped_use_requires_admitted_capability".to_string(),
-        ]),
+        failure_digest: basis_lifecycle_digest(
+            "basis_scoped_requires_admitted_capability_v1",
+            [
+                (
+                    "normalized_basis_intent_digest",
+                    normalized_basis_intent_digest.to_string(),
+                ),
+                ("scoped_label", scoped_label.to_string()),
+                ("failure", "scoped_use_requires_admitted_capability".to_string()),
+            ],
+        ),
     }
 }
 
@@ -273,6 +297,7 @@ pub struct BasisEligibility {
     normalized_basis_intent_digest: String,
     family: NormalizedBasisFamily,
     authority_posture: BasisAuthorityPosture,
+    normalized_subject: NormalizedBasisSubject,
     normalized_label: String,
     operation_lane: BasisOperationLaneRequest,
     tenant_schema_posture: BasisTenantSchemaPosture,
@@ -293,6 +318,10 @@ impl BasisEligibility {
 
     pub fn authority_posture(&self) -> &BasisAuthorityPosture {
         &self.authority_posture
+    }
+
+    pub fn normalized_subject(&self) -> &NormalizedBasisSubject {
+        &self.normalized_subject
     }
 
     pub fn normalized_label(&self) -> &str {

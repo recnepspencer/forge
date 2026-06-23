@@ -10,6 +10,7 @@ error[E0624]: associated function `new` is private
   | |         readiness_receipt: PlanarM7ReadinessReceipt,
   | |         workload_digest: String,
   | |         declaration: String,
+  | |         stage_coverage: PlanarBooleanReadinessStageCoverage,
   | |         counters: PlanarBooleanReadinessWorkloadCounters,
   | |     ) -> Self {
   | |_____________- private associated function defined here
@@ -25,9 +26,9 @@ warning: unreachable expression
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
 error[E0624]: associated function `certified` is private
-  --> src/certification/public_facade_contracts/compile_fail/boolean_readiness_workload/receipt_not_forgeable.rs:10:49
+  --> src/certification/public_facade_contracts/compile_fail/boolean_readiness_workload/receipt_not_forgeable.rs:11:49
    |
-10 |           PlanarBooleanReadinessWorkloadCounters::certified(0, 0, 0, 0, 0),
+11 |           PlanarBooleanReadinessWorkloadCounters::certified(0, 0, 0, 0, 0),
    |                                                   ^^^^^^^^^ private associated function
    |
   ::: src/workload_platform/boolean_readiness_workload/counters.rs

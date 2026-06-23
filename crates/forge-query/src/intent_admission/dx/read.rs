@@ -6,14 +6,17 @@ use crate::intent_admission::{
 };
 use crate::query_context::AdmittedQueryBasisContext;
 use crate::runtime::{
-    ForgeQueryIntentConsumerInspection, ForgeQueryReadFamily, ForgeQueryReadResult,
-    ForgeQueryRuntimeError, ForgeQueryWorkspace,
+    ForgeQueryAdmittedGraphReadAccessPlan, ForgeQueryGraphIndexInventoryMatchReport,
+    ForgeQueryGraphReadAccessAdmission, ForgeQueryGraphReadAccessAuthorityContext,
+    ForgeQueryGraphReadAccessPlanExplanation, ForgeQueryIntentConsumerInspection,
+    ForgeQueryReadFamily, ForgeQueryReadResult, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
 
 pub struct ForgeQueryWorkspaceReadIntentAuthoring<'a> {
     workspace: &'a mut ForgeQueryWorkspace,
     read_family: ForgeQueryReadFamily,
     basis_context: Option<AdmittedQueryBasisContext>,
+    graph_read_authority: Option<ForgeQueryGraphReadAccessAuthorityContext>,
 }
 
 impl<'a> ForgeQueryWorkspaceReadIntentAuthoring<'a> {
@@ -21,11 +24,13 @@ impl<'a> ForgeQueryWorkspaceReadIntentAuthoring<'a> {
         workspace: &'a mut ForgeQueryWorkspace,
         read_family: ForgeQueryReadFamily,
         basis_context: Option<AdmittedQueryBasisContext>,
+        graph_read_authority: Option<ForgeQueryGraphReadAccessAuthorityContext>,
     ) -> Self {
         Self {
             workspace,
             read_family,
             basis_context,
+            graph_read_authority,
         }
     }
 
@@ -38,6 +43,7 @@ impl<'a> ForgeQueryWorkspaceReadIntentAuthoring<'a> {
         Ok(ForgeQueryWorkspaceReadIntentAdmissionReview {
             workspace: self.workspace,
             review,
+            graph_read_authority: self.graph_read_authority,
         })
     }
 
@@ -55,6 +61,7 @@ impl<'a> ForgeQueryWorkspaceReadIntentAuthoring<'a> {
 pub struct ForgeQueryWorkspaceReadIntentAdmissionReview<'a> {
     workspace: &'a mut ForgeQueryWorkspace,
     review: ForgeQueryRuntimeIntentAdmissionReviewData,
+    graph_read_authority: Option<ForgeQueryGraphReadAccessAuthorityContext>,
 }
 
 impl<'a> ForgeQueryWorkspaceReadIntentAdmissionReview<'a> {
@@ -74,6 +81,91 @@ impl<'a> ForgeQueryWorkspaceReadIntentAdmissionReview<'a> {
         self.workspace
             .resolve_reviewed_admitted_read_execution_handoff(self.review.clone())
             .ok()
+    }
+
+    pub fn graph_read_access_admission(
+        &self,
+    ) -> Result<ForgeQueryGraphReadAccessAdmission, ForgeQueryRuntimeError> {
+        let handoff = self
+            .workspace
+            .resolve_reviewed_admitted_read_execution_handoff(self.review.clone())
+            .map_err(|_| {
+                self.workspace
+                    .read_execution_non_admitted_error(&self.review)
+            })?;
+        admit_graph_read_access_for_review_authority(
+            self.workspace,
+            handoff.read_family(),
+            self.graph_read_authority.as_ref(),
+        )
+        .map_err(|error| {
+            ForgeQueryRuntimeError::ReadCompositionDenied(
+                crate::runtime::ForgeQueryReadDenial::new(
+                    crate::runtime::ForgeQueryReadDenialKind::AuthoringDenied,
+                    error.as_str(),
+                ),
+            )
+        })
+    }
+
+    pub fn graph_read_access_plan(
+        &self,
+    ) -> Result<ForgeQueryAdmittedGraphReadAccessPlan, ForgeQueryRuntimeError> {
+        let handoff = self
+            .workspace
+            .resolve_reviewed_admitted_read_execution_handoff(self.review.clone())
+            .map_err(|_| {
+                self.workspace
+                    .read_execution_non_admitted_error(&self.review)
+            })?;
+        let admission = admit_graph_read_access_for_review_authority(
+            self.workspace,
+            handoff.read_family(),
+            self.graph_read_authority.as_ref(),
+        )
+        .map_err(|error| {
+            ForgeQueryRuntimeError::ReadCompositionDenied(
+                crate::runtime::ForgeQueryReadDenial::new(
+                    crate::runtime::ForgeQueryReadDenialKind::AuthoringDenied,
+                    error.as_str(),
+                ),
+            )
+        })?;
+        ForgeQueryAdmittedGraphReadAccessPlan::from_admission(admission.clone()).ok_or_else(|| {
+            let detail = admission
+                .denial()
+                .map(|denial| denial.kind().as_str())
+                .unwrap_or("graph_read_access_not_admitted");
+                ForgeQueryRuntimeError::ReadCompositionDenied(
+                    crate::runtime::ForgeQueryReadDenial::new(
+                        crate::runtime::ForgeQueryReadDenialKind::BasisPreflightDenied,
+                        detail,
+                    )
+                    .with_graph_read_persistent_artifact_audit_for_admission(&admission)
+                    .with_graph_read_access_admission(admission)
+                    .with_graph_read_access_execution_counters(
+                        crate::runtime::ForgeQueryGraphReadAccessExecutionCounters::pre_execution_denial(
+                    ),
+                ),
+            )
+        })
+    }
+
+    pub fn graph_index_support(
+        &self,
+    ) -> Result<ForgeQueryGraphIndexInventoryMatchReport, ForgeQueryRuntimeError> {
+        Ok(self
+            .graph_read_access_admission()?
+            .graph_index_inventory_match_report()
+            .clone())
+    }
+
+    pub fn graph_read_access_explanation(
+        &self,
+    ) -> Result<ForgeQueryGraphReadAccessPlanExplanation, ForgeQueryRuntimeError> {
+        Ok(ForgeQueryGraphReadAccessPlanExplanation::from_admission(
+            &self.graph_read_access_admission()?,
+        ))
     }
 
     pub fn decision_trace_envelope(&self) -> Option<&ForgeQueryIntentDecisionTraceEnvelope> {
@@ -102,7 +194,10 @@ impl<'a> ForgeQueryWorkspaceReadIntentAdmissionReview<'a> {
             })?;
         let execution_binding = self
             .workspace
-            .into_runtime_read_execution_binding(handoff.clone());
+            .into_runtime_read_execution_binding_in_authority(
+                handoff.clone(),
+                self.graph_read_authority.as_ref(),
+            )?;
         Ok(ForgeQueryAdmittedWorkspaceReadIntent {
             workspace: self.workspace,
             review: self.review,
@@ -113,6 +208,22 @@ impl<'a> ForgeQueryWorkspaceReadIntentAdmissionReview<'a> {
 
     pub fn execute(self) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError> {
         self.admit()?.execute()
+    }
+}
+
+fn admit_graph_read_access_for_review_authority(
+    workspace: &ForgeQueryWorkspace,
+    family: &ForgeQueryReadFamily,
+    authority: Option<&ForgeQueryGraphReadAccessAuthorityContext>,
+) -> Result<
+    ForgeQueryGraphReadAccessAdmission,
+    crate::runtime::ForgeQueryGraphReadAccessShapeExplanationError,
+> {
+    match authority {
+        Some(authority) => {
+            workspace.admit_graph_read_access_for_family_in_authority(family, authority)
+        }
+        None => workspace.admit_graph_read_access_for_family(family),
     }
 }
 

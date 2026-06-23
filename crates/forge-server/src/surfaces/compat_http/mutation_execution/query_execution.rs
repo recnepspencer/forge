@@ -1,42 +1,53 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
-
-use forge_proof::TransitionOutcome;
-use forge_query::facade::{
-    ForgeQueryInspection, ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily,
-};
-
 use crate::{
-    ForgeServerCompatibilityFacade, ForgeServerDirectContextArtifact,
-    ForgeServerDirectRemaskPosture, ForgeServerPipelineInput, ForgeServerPipelineIntent,
-    ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffDenialCode,
-    ForgeServerQueryHandoffFailure, ForgeServerQueryHandoffInput, ForgeServerQueryHandoffOperation,
-    ForgeServerQueryOperation, ForgeServerResponseInput,
+    ForgeServerCompatibilityFacade, ForgeServerCompatibilityMutationPreconditionContext,
+    ForgeServerDirectContextArtifact, ForgeServerDirectRemaskPosture, ForgeServerOperationFamily,
+    ForgeServerOperationInputEnvelope, ForgeServerOperationPlanner,
+    ForgeServerOperationPlannerInput, ForgeServerOperationPreconditionPosture,
+    ForgeServerOperationReadinessFacade, ForgeServerOperationRequestFacade,
+    ForgeServerPipelineInput, ForgeServerPipelineIntent, ForgeServerQueryHandoffDenial,
+    ForgeServerQueryHandoffDenialCode, ForgeServerQueryHandoffDenialFacts,
+    ForgeServerQueryHandoffFailure, ForgeServerQueryHandoffOperation,
+    ForgeServerQueryWorkspaceBindingRequest, ForgeServerScheduledMutationResult,
 };
+use forge_proof::TransitionOutcome;
+use forge_query::facade::ForgeQueryRuntimeFacadeFamily;
 
 use super::{
     envelope::ForgeServerCompatibilityMutationEnvelope,
     execution::{
         ForgeServerCompatibilityMutationExecutionInput, ForgeServerCompatibilityMutationOutcome,
     },
-    idempotency::{
-        ForgeServerIdempotencyKey, ForgeServerIdempotentReplayReceipt,
-        ForgeServerStoredCompatibilityMutation,
+    idempotency::{ForgeServerIdempotencyKey, ForgeServerIdempotentReplayReceipt},
+    query_execution_support::{
+        canonical_mutation_request_digest, map_operation_request_denial, map_readiness_denial,
     },
-    precondition::ForgeServerMutationPrecondition,
+    replay_cache::{record_replay, try_replay},
     request::ForgeServerCompatibilityMutationRequest,
     response::{ForgeServerCompatibilityMutation, ForgeServerCompatibilityMutationResult},
     schema::lower_query_operation,
 };
-
 impl ForgeServerCompatibilityFacade {
     pub fn mutate(
         &self,
         input: ForgeServerCompatibilityMutationExecutionInput,
     ) -> ForgeServerCompatibilityMutationOutcome<ForgeServerCompatibilityMutation> {
         let (prepared_request, operation_name, body) = input.into_parts();
+        let operation_request =
+            match ForgeServerOperationRequestFacade::new(self.operation_registry.clone())
+                .admit_from_compat_http(
+                    &prepared_request,
+                    ForgeServerOperationFamily::QueryDirectSubmission,
+                    &operation_name,
+                    Some(ForgeServerOperationInputEnvelope::json(
+                        "compat-http.query-mutation.v1",
+                        &body,
+                    )),
+                ) {
+                Ok(value) => value,
+                Err(denial) => {
+                    return TransitionOutcome::Denied(map_operation_request_denial(denial));
+                }
+            };
         let diagnostics_profile = prepared_request
             .admission()
             .request_context()
@@ -49,22 +60,28 @@ impl ForgeServerCompatibilityFacade {
         execute_compatibility_mutation_request(
             self,
             prepared_request,
-            operation_name,
+            operation_request,
             mutation_request,
         )
     }
 }
-
 pub(crate) fn execute_compatibility_mutation_request(
     facade: &ForgeServerCompatibilityFacade,
     prepared_request: crate::ForgeServerCompatibilityPreparedRequest,
-    operation_name: String,
+    operation_request: crate::ForgeServerOperationRequest,
     mutation_request: ForgeServerCompatibilityMutationRequest,
 ) -> ForgeServerCompatibilityMutationOutcome<ForgeServerCompatibilityMutation> {
-    let diagnostics_profile = prepared_request
-        .admission()
+    let diagnostics_profile = operation_request
+        .resolved_request_context()
         .request_context()
         .diagnostics_profile();
+    let operation_name = operation_request.identity().operation_name().to_string();
+    if let Err(denial) = facade.admit_operation_family_for_query(
+        diagnostics_profile,
+        ForgeServerOperationFamily::QueryDirectSubmission,
+    ) {
+        return TransitionOutcome::Denied(denial);
+    }
     let operation =
         match lower_query_operation(&operation_name, &mutation_request, diagnostics_profile) {
             Ok(value) => value,
@@ -94,22 +111,81 @@ pub(crate) fn execute_compatibility_mutation_request(
             ));
         }
     };
-    let mut handoff = match facade
+    let operation_admission =
+        match crate::ForgeServerOperationAdmissionFacade::with_operation_registry(
+            facade.operation_registry.clone(),
+        )
+        .admit_declared(&admission, &operation_request)
+        {
+            Ok(value) => value,
+            Err(denial) => {
+                return TransitionOutcome::Denied(
+                    crate::surfaces::compat_http::map_operation_admission_denial(denial),
+                );
+            }
+        };
+    let binding_request = ForgeServerQueryWorkspaceBindingRequest::for_query_handoff(
+        operation_admission
+            .authorization_proof()
+            .admission()
+            .resolved_request_context()
+            .clone(),
+        ForgeServerQueryHandoffOperation::query_mutation(&operation_name),
+    );
+    let bound_workspace = match facade
         .query_handoff
-        .prepare(ForgeServerQueryHandoffInput::new(
-            admission,
-            ForgeServerQueryHandoffOperation::query_mutation(&operation_name),
-        )) {
-        TransitionOutcome::Success(value) => value,
-        TransitionOutcome::Denied(value) => return TransitionOutcome::Denied(value),
-        TransitionOutcome::Deferred(value) => return TransitionOutcome::Deferred(value),
-        TransitionOutcome::Stale(value) => return TransitionOutcome::Stale(value),
-        TransitionOutcome::RebindRequired(value) => {
-            return TransitionOutcome::RebindRequired(value)
+        .config()
+        .workspace_provider()
+        .bind_workspace(&binding_request)
+    {
+        Ok(workspace) => workspace,
+        Err(error) => {
+            return TransitionOutcome::Denied(ForgeServerQueryHandoffDenial::new(
+                ForgeServerQueryHandoffDenialCode::WorkspaceBindingFailed,
+                diagnostics_profile,
+                format!("{}: {}", error.stage(), error.message()),
+            ));
         }
-        TransitionOutcome::Failed(value) => return TransitionOutcome::Failed(value),
     };
-    if let Err(error) = handoff
+    let observed_basis_digest = bound_workspace
+        .snapshot_identity()
+        .terminal_projection_for_reporting();
+    let readiness = ForgeServerOperationReadinessFacade::with_operation_registry(
+        facade.operation_registry.clone(),
+    );
+    let precondition = match readiness.evaluate_compatibility_mutation_preconditions(
+        ForgeServerCompatibilityMutationPreconditionContext::new(
+            &prepared_request,
+            &operation_name,
+            mutation_request.canonical_digest(),
+            &observed_basis_digest,
+        ),
+    ) {
+        Ok(value) => value,
+        Err(denial) => {
+            return TransitionOutcome::Denied(map_readiness_denial(&prepared_request, denial));
+        }
+    };
+    let plan = match ForgeServerOperationPlanner::with_operation_registry(
+        facade.query_handoff.config().clone(),
+        facade.operation_registry.clone(),
+    )
+    .lower(
+        ForgeServerOperationPlannerInput::new(
+            operation_admission,
+            ForgeServerQueryHandoffOperation::query_mutation_execution(operation.clone()),
+        )
+        .with_precondition_posture(
+            ForgeServerOperationPreconditionPosture::CompatibilityMutation(precondition.clone()),
+        )
+        .with_bound_workspace(bound_workspace),
+    ) {
+        Ok(value) => value,
+        Err(denial) => return TransitionOutcome::Denied(denial.into_query_handoff_denial()),
+    };
+    let plan_proof = plan.proof();
+    let query_handoff = plan.query_handoff();
+    if let Err(error) = query_handoff
         .workspace()
         .admit_public_api_family(ForgeQueryRuntimeFacadeFamily::Inspect)
     {
@@ -119,19 +195,9 @@ pub(crate) fn execute_compatibility_mutation_request(
             format!("query workspace does not admit `inspect` facade family: {error}"),
         ));
     }
-    let observed_basis_digest = handoff.workspace().snapshot_token();
-    let precondition = match ForgeServerMutationPrecondition::from_prepared_request(
-        &prepared_request,
-        &operation_name,
-        mutation_request.canonical_digest(),
-        &observed_basis_digest,
-    ) {
-        Ok(value) => value,
-        Err(denial) => return TransitionOutcome::Denied(denial),
-    };
-    if let Err(denial) = precondition.enforce(&prepared_request) {
-        return TransitionOutcome::Denied(denial);
-    }
+    let support_posture = query_handoff.support_posture().clone();
+    let workspace_name = query_handoff.workspace().name().to_string();
+    let handoff_digest = query_handoff.canonical_digest().to_string();
     let idempotency_key = match ForgeServerIdempotencyKey::from_prepared_request(&prepared_request)
     {
         Ok(value) => value,
@@ -154,20 +220,71 @@ pub(crate) fn execute_compatibility_mutation_request(
         Err(denial) => return TransitionOutcome::Denied(denial),
     }
 
-    let mutation_result = match execute_query_mutation_operation(
-        &operation,
-        &prepared_request,
-        handoff.workspace_mut(),
-    ) {
-        Ok(value) => value,
-        Err(outcome) => return outcome,
+    let executed = match crate::ForgeServerOperationScheduler::new(facade.responses.clone())
+        .schedule_batch([plan])
+    {
+        Ok(batch) => batch.execute(),
+        Err(denial) => {
+            return TransitionOutcome::Denied(ForgeServerQueryHandoffDenial::new(
+                ForgeServerQueryHandoffDenialCode::CompatibilityMutationPreconditionFailed,
+                diagnostics_profile,
+                denial.detail(),
+            ))
+        }
     };
-    let support_posture = handoff.support_posture().clone();
-    let workspace_name = handoff.workspace().name().to_string();
-    let handoff_digest = handoff.canonical_digest().to_string();
-    let response_envelope = facade
-        .responses
-        .shape_with_defaults(ForgeServerResponseInput::query_handoff_success(handoff));
+    let outcome = &executed.outcomes()[0];
+    if let Some(cancellation_posture) = outcome.cancellation_posture() {
+        return TransitionOutcome::Failed(ForgeServerQueryHandoffFailure::new(
+            match cancellation_posture {
+                crate::ForgeServerSchedulerCancellationPosture::BeforeAdmission => {
+                    "compatibility_mutation_cancelled_before_admission"
+                }
+                crate::ForgeServerSchedulerCancellationPosture::AfterAdmissionBeforeExecution => {
+                    "compatibility_mutation_cancelled_after_admission_before_execution"
+                }
+                crate::ForgeServerSchedulerCancellationPosture::DuringExecution => {
+                    "compatibility_mutation_cancelled_during_execution"
+                }
+            },
+        ));
+    }
+    if let Some(failure_posture) = outcome.failure_posture() {
+        return match failure_posture {
+            crate::ForgeServerSchedulerFailurePosture::StaleMutationBasis {
+                expected_basis_digest,
+                observed_basis_digest,
+            } => TransitionOutcome::Denied(
+                ForgeServerQueryHandoffDenial::new(
+                    ForgeServerQueryHandoffDenialCode::CompatibilityMutationPreconditionFailed,
+                    diagnostics_profile,
+                    format!(
+                        "compatibility mutation basis precondition `{expected_basis_digest}` did not match the scheduler-observed basis `{observed_basis_digest}`"
+                    ),
+                )
+                .with_facts(
+                    ForgeServerQueryHandoffDenialFacts::default()
+                        .with_basis_mismatch(expected_basis_digest, observed_basis_digest),
+                ),
+            ),
+            crate::ForgeServerSchedulerFailurePosture::IsolatedRuntimeFailure { .. }
+            | crate::ForgeServerSchedulerFailurePosture::DependentSharedBasisFailure { .. }
+            | crate::ForgeServerSchedulerFailurePosture::OrderedLaneClosed { .. } => {
+                TransitionOutcome::Failed(ForgeServerQueryHandoffFailure::new(
+                    "compatibility_mutation_scheduler_execution_failed",
+                ))
+            }
+        };
+    }
+    let mutation_result = map_scheduled_mutation_result(
+        outcome
+            .mutation_result()
+            .expect("scheduled compatibility mutation should carry a mutation result")
+            .clone(),
+    );
+    let response_envelope = outcome
+        .response_envelope()
+        .expect("scheduled compatibility mutation should shape a response envelope")
+        .clone();
     let direct_context = ForgeServerDirectContextArtifact::new(
         prepared_request.admission().request_context(),
         &support_posture,
@@ -195,6 +312,8 @@ pub(crate) fn execute_compatibility_mutation_request(
         replay_receipt,
     );
     let mutation = ForgeServerCompatibilityMutation::new(
+        operation_request,
+        plan_proof,
         mutation_request,
         precondition,
         mutation_result,
@@ -209,189 +328,23 @@ pub(crate) fn execute_compatibility_mutation_request(
     );
     TransitionOutcome::Success(mutation)
 }
-
-fn try_replay(
-    idempotency_store: &Arc<Mutex<HashMap<String, ForgeServerStoredCompatibilityMutation>>>,
-    prepared_request: &crate::ForgeServerCompatibilityPreparedRequest,
-    idempotency_key: &Option<ForgeServerIdempotencyKey>,
-    request_digest: &str,
-) -> Result<Option<ForgeServerCompatibilityMutation>, ForgeServerQueryHandoffDenial> {
-    let Some(key) = idempotency_key.as_ref() else {
-        return Ok(None);
-    };
-    let store = idempotency_store
-        .lock()
-        .expect("compatibility idempotency store mutex should not be poisoned");
-    let storage_key = key.scoped_storage_key(prepared_request);
-    let Some(stored) = store.get(&storage_key) else {
-        return Ok(None);
-    };
-    if stored.request_digest() != request_digest {
-        return Err(ForgeServerQueryHandoffDenial::new(
-            ForgeServerQueryHandoffDenialCode::CompatibilityIdempotencyConflict,
-            prepared_request.admission().request_context().diagnostics_profile(),
-            format!(
-                "compatibility mutation idempotency key `{}` was already bound to request digest `{}` and cannot be reused for `{request_digest}`",
-                key.value(),
-                stored.request_digest(),
-            ),
-        ));
-    }
-    Ok(Some(stored.mutation().to_replayed(
-        ForgeServerIdempotentReplayReceipt::replayed(
-            key,
-            request_digest,
-            stored.mutation().canonical_digest(),
-        ),
-    )))
-}
-
-fn record_replay(
-    idempotency_store: &Arc<Mutex<HashMap<String, ForgeServerStoredCompatibilityMutation>>>,
-    prepared_request: &crate::ForgeServerCompatibilityPreparedRequest,
-    idempotency_key: Option<ForgeServerIdempotencyKey>,
-    request_digest: String,
-    mutation: ForgeServerCompatibilityMutation,
-) {
-    let Some(key) = idempotency_key else {
-        return;
-    };
-    let storage_key = key.scoped_storage_key(prepared_request);
-    idempotency_store
-        .lock()
-        .expect("compatibility idempotency store mutex should not be poisoned")
-        .insert(
-            storage_key,
-            ForgeServerStoredCompatibilityMutation::new(request_digest, mutation),
-        );
-}
-
-fn canonical_mutation_request_digest(
-    prepared_request: &crate::ForgeServerCompatibilityPreparedRequest,
-    operation_name: &str,
-    mutation_request: &ForgeServerCompatibilityMutationRequest,
-    precondition: &ForgeServerMutationPrecondition,
-) -> String {
-    format!(
-        "compat-http-mutation-request-digest-v1|request:{}|operation:{}|mutation:{}|precondition:{}",
-        prepared_request.request_contract().canonical_digest(),
-        operation_name.trim(),
-        mutation_request.canonical_digest(),
-        precondition.request_identity_digest(),
-    )
-}
-
-fn execute_query_mutation_operation(
-    operation: &ForgeServerQueryOperation,
-    prepared_request: &crate::ForgeServerCompatibilityPreparedRequest,
-    workspace: &mut forge_query::facade::ForgeQueryWorkspace,
-) -> Result<
-    ForgeServerCompatibilityMutationResult,
-    ForgeServerCompatibilityMutationOutcome<ForgeServerCompatibilityMutation>,
-> {
-    match operation {
-        ForgeServerQueryOperation::SingleMutation { command, .. } => {
-            let receipt = match workspace.write_intent(command.clone()).review() {
-                Ok(review) => match review.admit() {
-                    Ok(admitted) => match admitted.execute() {
-                        Ok(receipt) => receipt,
-                        Err(error) => return Err(runtime_error_outcome(prepared_request, error)),
-                    },
-                    Err(error) => return Err(runtime_error_outcome(prepared_request, error)),
-                },
-                Err(error) => return Err(runtime_error_outcome(prepared_request, error)),
-            };
-            let inspection = match workspace.inspect(&receipt) {
-                Ok(ForgeQueryInspection::WriteReceipt(inspection)) => inspection,
-                Ok(other) => panic!("expected write receipt inspection, got {other:?}"),
-                Err(error) => return Err(runtime_error_outcome(prepared_request, error)),
-            };
-            Ok(ForgeServerCompatibilityMutationResult::Single {
-                receipt,
-                inspection,
-            })
-        }
-        ForgeServerQueryOperation::BatchMutation { commands, .. } => {
-            let receipt = match workspace.write_batch_intent(commands.clone()).review() {
-                Ok(review) => match review.admit() {
-                    Ok(admitted) => match admitted.execute() {
-                        Ok(receipt) => receipt,
-                        Err(error) => return Err(runtime_error_outcome(prepared_request, error)),
-                    },
-                    Err(error) => return Err(runtime_error_outcome(prepared_request, error)),
-                },
-                Err(error) => return Err(runtime_error_outcome(prepared_request, error)),
-            };
-            let inspection = match workspace.inspect(&receipt) {
-                Ok(ForgeQueryInspection::BatchWriteReceipt(inspection)) => inspection,
-                Ok(other) => panic!("expected batch write receipt inspection, got {other:?}"),
-                Err(error) => return Err(runtime_error_outcome(prepared_request, error)),
-            };
-            Ok(ForgeServerCompatibilityMutationResult::Batch {
-                receipt,
-                inspection,
-            })
-        }
-    }
-}
-
-fn runtime_error_outcome(
-    prepared_request: &crate::ForgeServerCompatibilityPreparedRequest,
-    error: ForgeQueryRuntimeError,
-) -> ForgeServerCompatibilityMutationOutcome<ForgeServerCompatibilityMutation> {
-    match error {
-        ForgeQueryRuntimeError::MutationBindingDenied(_) => {
-            TransitionOutcome::Denied(crate::ForgeServerQueryHandoffDenial::new(
-                crate::ForgeServerQueryHandoffDenialCode::DirectMutationBindingDenied,
-                prepared_request
-                    .admission()
-                    .request_context()
-                    .diagnostics_profile(),
-                error.to_string(),
-            ))
-        }
-        ForgeQueryRuntimeError::ExistingTruthAssertionDenied(_) => {
-            TransitionOutcome::Denied(crate::ForgeServerQueryHandoffDenial::new(
-                crate::ForgeServerQueryHandoffDenialCode::DirectMutationAssertionDenied,
-                prepared_request
-                    .admission()
-                    .request_context()
-                    .diagnostics_profile(),
-                error.to_string(),
-            ))
-        }
-        ForgeQueryRuntimeError::MutationContinuityDenied(_) => {
-            TransitionOutcome::Denied(crate::ForgeServerQueryHandoffDenial::new(
-                crate::ForgeServerQueryHandoffDenialCode::DirectMutationContinuityDenied,
-                prepared_request
-                    .admission()
-                    .request_context()
-                    .diagnostics_profile(),
-                error.to_string(),
-            ))
-        }
-        ForgeQueryRuntimeError::MutationNamingDenied(_) => {
-            TransitionOutcome::Denied(crate::ForgeServerQueryHandoffDenial::new(
-                crate::ForgeServerQueryHandoffDenialCode::DirectMutationNamingDenied,
-                prepared_request
-                    .admission()
-                    .request_context()
-                    .diagnostics_profile(),
-                error.to_string(),
-            ))
-        }
-        ForgeQueryRuntimeError::MutationTargetReferenceDenied(_) => {
-            TransitionOutcome::Denied(crate::ForgeServerQueryHandoffDenial::new(
-                crate::ForgeServerQueryHandoffDenialCode::DirectMutationTargetReferenceDenied,
-                prepared_request
-                    .admission()
-                    .request_context()
-                    .diagnostics_profile(),
-                error.to_string(),
-            ))
-        }
-        _ => TransitionOutcome::Failed(ForgeServerQueryHandoffFailure::new(
-            "compatibility_mutation_execution_failed",
-        )),
+fn map_scheduled_mutation_result(
+    mutation_result: ForgeServerScheduledMutationResult,
+) -> ForgeServerCompatibilityMutationResult {
+    match mutation_result {
+        ForgeServerScheduledMutationResult::Single {
+            receipt,
+            inspection,
+        } => ForgeServerCompatibilityMutationResult::Single {
+            receipt,
+            inspection,
+        },
+        ForgeServerScheduledMutationResult::Batch {
+            receipt,
+            inspection,
+        } => ForgeServerCompatibilityMutationResult::Batch {
+            receipt,
+            inspection,
+        },
     }
 }

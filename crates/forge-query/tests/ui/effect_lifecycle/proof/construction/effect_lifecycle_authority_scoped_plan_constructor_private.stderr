@@ -1,23 +1,7 @@
-error[E0451]: fields `admitted`, `invariant_scope`, `preview_posture`, `policy_posture`, `permitted_lowering_family`, `artifact_policy`, `conflict_footprint`, `plan_digest` and `counters` of struct `AuthorityScopedEffectPlan` are private
-  --> tests/ui/effect_lifecycle/proof/construction/effect_lifecycle_authority_scoped_plan_constructor_private.rs:13:9
+error[E0560]: struct `AuthorityScopedEffectPlan` has no field named `plan_digest`
+  --> tests/ui/effect_lifecycle/proof/construction/effect_lifecycle_authority_scoped_plan_constructor_private.rs:20:9
    |
-12 |     let _ = AuthorityScopedEffectPlan {
-   |             ------------------------- in this type
-13 |         admitted: admitted(),
-   |         ^^^^^^^^ private field
-14 |         invariant_scope: EffectInvariantScope::EntityScopedMutation,
-   |         ^^^^^^^^^^^^^^^ private field
-15 |         preview_posture: EffectPreviewPosture::NotPreviewBound,
-   |         ^^^^^^^^^^^^^^^ private field
-16 |         policy_posture: EffectPolicyPosture::Unmasked,
-   |         ^^^^^^^^^^^^^^ private field
-17 |         permitted_lowering_family: EffectPermittedLoweringFamily::MutationIntentDeclaration,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-18 |         artifact_policy: EffectArtifactPolicy::ReceiptFirst,
-   |         ^^^^^^^^^^^^^^^ private field
-19 |         conflict_footprint: EffectConflictFootprint::EntityMutation,
-   |         ^^^^^^^^^^^^^^^^^^ private field
 20 |         plan_digest: String::new(),
-   |         ^^^^^^^^^^^ private field
-21 |         counters: EffectLifecycleCounters::default(),
-   |         ^^^^^^^^ private field
+   |         ^^^^^^^^^^^ `AuthorityScopedEffectPlan` does not have this field
+   |
+   = note: all struct fields are already assigned

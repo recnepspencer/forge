@@ -27,6 +27,24 @@ impl ValidatedResultShapeArtifact {
     pub fn bindings(&self) -> &[ValidatedResultShapeBinding] {
         &self.bindings
     }
+
+    pub fn validated_result_shape_identity(
+        &self,
+    ) -> crate::evidence_identity::ForgeQueryEvidenceIdentity {
+        use crate::evidence_identity::{
+            forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+        };
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "validated_result_shape_digest_v1",
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("validated_result_shape_digest"),
+                self.digest.as_str(),
+            )
+            .seal()
+    }
 }
 
 pub(crate) fn build_validated_result_shape_artifact(

@@ -8,11 +8,12 @@ use crate::effect_lifecycle::{
 };
 
 use super::super::execution_support::{
-    branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
-    runtime_snapshot_token, update_entity_name,
+    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
+    runtime_snapshot_identity, update_entity_name,
 };
 use super::super::support::{
-    branch_mutation_basis, raw_mutation_effect_with_binding, runtime_workflow_binding_with_snapshot,
+    branch_mutation_basis, raw_mutation_effect_with_binding, runtime_workflow_binding_for_branch,
+    runtime_workflow_binding_with_snapshot,
 };
 
 #[test]
@@ -27,7 +28,7 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
             &BranchId("main".to_string()),
         )
         .expect("branch-a should be created");
-    let binding = runtime_workflow_binding_with_snapshot(&runtime_snapshot_token(&runtime));
+    let binding = runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime));
 
     let executed = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
@@ -112,7 +113,10 @@ fn mutation_batch_preserves_branch_scoped_authority_target() {
     let executed = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
         .push(raw_mutation_effect_with_binding(
-            runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+            runtime_workflow_binding_for_branch(
+                branch_snapshot_identity(&runtime, "branch-a"),
+                "branch-a",
+            ),
             entity_id,
             json!({ "name": "branch-batched" }),
         ))
@@ -144,7 +148,10 @@ fn retained_lowered_batch_denies_after_intervening_truth_change() {
     let lowered = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
         .push(raw_mutation_effect_with_binding(
-            runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+            runtime_workflow_binding_for_branch(
+                branch_snapshot_identity(&runtime, "branch-a"),
+                "branch-a",
+            ),
             entity_id,
             json!({ "name": "stale-batch" }),
         ))
@@ -194,7 +201,10 @@ fn lowered_branch_batch_does_not_deny_when_only_another_branch_moves() {
     let lowered = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
         .push(raw_mutation_effect_with_binding(
-            runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+            runtime_workflow_binding_for_branch(
+                branch_snapshot_identity(&runtime, "branch-a"),
+                "branch-a",
+            ),
             entity_id,
             json!({ "name": "branch-batched" }),
         ))

@@ -1,5 +1,4 @@
 use super::PricingWorkloadCertificationBundle;
-use crate::facade::TruthCommitIdentity;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::harness::tests) struct PricingBundleComparisonEvidence {
@@ -252,7 +251,7 @@ impl PricingWorkloadCertificationBundle {
                 self.restart_failure.error_kind
             ),
             historical_provenance_commit_matches_shock: self.provenance.shock_commit
-                == TruthCommitIdentity::new("commit:rubber-shock"),
+                == crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
             portfolio_reports_positive_blast_radius: self.portfolio.positive_retail_delta_count > 0,
             crisis_affects_portfolio_breadth: self.crisis.affected_product_count > 0,
             strategy_recommends_non_hold_response: self.strategy.recommended_strategy != "hold",

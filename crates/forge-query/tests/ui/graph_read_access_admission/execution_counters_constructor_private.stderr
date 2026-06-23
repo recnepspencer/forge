@@ -1,0 +1,33 @@
+error: cannot construct `ForgeQueryGraphReadAccessExecutionCounters` with struct literal syntax due to private fields
+ --> tests/ui/graph_read_access_admission/execution_counters_constructor_private.rs:4:13
+  |
+4 |     let _ = ForgeQueryGraphReadAccessExecutionCounters {
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         executor_entry_count: 0,
+  |         ----------------------- private field
+6 |         strategy_recompute_count: 0,
+  |         --------------------------- private field
+7 |         edge_scan_count: 0,
+  |         ------------------ private field
+8 |         materialized_row_count: 0,
+  |         ------------------------- private field
+  |
+  = note: ...and other private fields `ephemeral_index_allocation_count`, `per_result_neighbor_lookup_count` and `persistent_artifact_bypass_count` that were not provided
+help: you might have meant to use an associated function to build this type
+  |
+4 -     let _ = ForgeQueryGraphReadAccessExecutionCounters {
+5 -         executor_entry_count: 0,
+6 -         strategy_recompute_count: 0,
+7 -         edge_scan_count: 0,
+8 -         materialized_row_count: 0,
+9 -     };
+4 +     let _ = ForgeQueryGraphReadAccessExecutionCounters::pre_execution_denial();
+  |
+4 -     let _ = ForgeQueryGraphReadAccessExecutionCounters {
+5 -         executor_entry_count: 0,
+6 -         strategy_recompute_count: 0,
+7 -         edge_scan_count: 0,
+8 -         materialized_row_count: 0,
+9 -     };
+4 +     let _ = ForgeQueryGraphReadAccessExecutionCounters::observed_admitted_execution(_);
+  |

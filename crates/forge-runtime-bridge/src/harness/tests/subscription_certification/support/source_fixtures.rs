@@ -9,7 +9,7 @@ struct StaticSnapshotReader;
 
 impl TruthSnapshotReader for StaticSnapshotReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        TruthSnapshotIdentity::new("snapshot-a")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a")
     }
 
     fn read_packet(
@@ -18,7 +18,7 @@ impl TruthSnapshotReader for StaticSnapshotReader {
     ) -> Result<crate::snapshot::SnapshotReadPacketResult, crate::snapshot::BridgeSnapshotReadError>
     {
         Ok(crate::snapshot::SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             request
                 .reads()
                 .iter()
@@ -44,9 +44,9 @@ impl crate::adapter::CommittedPatchSource for StaticSource {
         BridgeCommittedPatchEnvelope::new(
             crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new(
                 request.commit_identity().clone(),
-                TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
-                TruthSnapshotIdentity::new("snapshot-a"),
-                TruthBranchIdentity::new("analysis"),
+                TruthPatchIdentity::from_relational_patch_position(1),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                TruthBranchIdentity::from_relational_branch_id("analysis"),
             ),
             vec![BridgeCommittedPatchItem::with_target(
                 "entity-1",
@@ -62,7 +62,7 @@ impl crate::adapter::SnapshotReadSource for StaticSource {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, crate::adapter::RelationalBridgeSourceError> {
-        if identity.as_str() == "snapshot-a" {
+        if crate::truth_identity_fixtures::truth_snapshot_fixture_matches(identity, "snapshot-a") {
             Ok(Box::new(StaticSnapshotReader))
         } else {
             Err(crate::adapter::RelationalBridgeSourceError::new(format!(
@@ -83,12 +83,9 @@ impl crate::adapter::TruthBranchHeadSource for StaticSource {
     > {
         BridgeCommittedPatchEnvelope::new(
             crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new(
-                crate::facade::TruthCommitIdentity::new(format!(
-                    "head-{}",
-                    branch_identity.as_str()
-                )),
-                TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::facade::TruthCommitIdentity::from_relational_commit_id(100),
+                TruthPatchIdentity::from_relational_patch_position(100),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 branch_identity.clone(),
             ),
             vec![BridgeCommittedPatchItem::with_target(
@@ -121,7 +118,7 @@ struct MisbindingSnapshotReader;
 
 impl TruthSnapshotReader for MisbindingSnapshotReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        TruthSnapshotIdentity::new("snapshot-bad")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-bad")
     }
 
     fn read_packet(
@@ -130,7 +127,7 @@ impl TruthSnapshotReader for MisbindingSnapshotReader {
     ) -> Result<crate::snapshot::SnapshotReadPacketResult, crate::snapshot::BridgeSnapshotReadError>
     {
         Ok(crate::snapshot::SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-bad"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-bad"),
             request
                 .reads()
                 .iter()
@@ -162,7 +159,7 @@ impl crate::adapter::SnapshotReadSource for MisbindingSource {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, crate::adapter::RelationalBridgeSourceError> {
-        if identity.as_str() == "snapshot-a" {
+        if crate::truth_identity_fixtures::truth_snapshot_fixture_matches(identity, "snapshot-a") {
             Ok(Box::new(MisbindingSnapshotReader))
         } else {
             Err(crate::adapter::RelationalBridgeSourceError::new(format!(
@@ -219,10 +216,10 @@ impl crate::adapter::TruthBranchHeadSource for WrongBranchHeadSource {
     > {
         BridgeCommittedPatchEnvelope::new(
             crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new(
-                crate::facade::TruthCommitIdentity::new("head-wrong"),
-                TruthPatchIdentity::new("patch-wrong"),
-                TruthSnapshotIdentity::new("snapshot-a"),
-                TruthBranchIdentity::new("wrong-branch"),
+                crate::truth_identity_fixtures::truth_commit_fixture("head-wrong"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-wrong"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("wrong-branch"),
             ),
             vec![BridgeCommittedPatchItem::with_target(
                 "entity-1",

@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 
 use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_runtime_bridge::facade::{
-    SnapshotReadPacket, SnapshotReadPacketResult, TruthSnapshotIdentity,
+    RelationalBridgeRecordIdentityKind, RelationalBridgeRecordIdentityParts, SnapshotReadPacket,
+    SnapshotReadPacketResult, TruthSnapshotIdentity,
 };
 
 use super::canonical_digest::row_set_digest;
@@ -10,15 +11,25 @@ use super::grouped_projection::RelationalGroupedTruthError;
 use super::snapshot_aspect_reads::decode_snapshot_aspect_read_value;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct RelationalRowIdentity(String);
+pub struct RelationalRowIdentity {
+    parts: RelationalBridgeRecordIdentityParts,
+    diagnostic_label: String,
+}
 
 impl RelationalRowIdentity {
     pub fn as_str(&self) -> &str {
-        &self.0
+        &self.diagnostic_label
     }
 
-    pub(crate) fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
+    pub fn parts(&self) -> RelationalBridgeRecordIdentityParts {
+        self.parts
+    }
+
+    pub(crate) fn new(parts: RelationalBridgeRecordIdentityParts) -> Self {
+        Self {
+            parts,
+            diagnostic_label: row_identity_label(parts),
+        }
     }
 }
 
@@ -118,7 +129,12 @@ pub fn materialize_relational_authoritative_row_set(
         BTreeMap::new();
     for (read, record) in packet.reads().iter().zip(result.records().iter()) {
         let aspect_read = decode_snapshot_aspect_read_value(record)?;
-        rows.entry(RelationalRowIdentity::new(read.entity_identity()))
+        let row_identity = read.relational_record_identity_parts().ok_or_else(|| {
+            RelationalGroupedTruthError::UntypedRelationalRowIdentity {
+                request_key: read.correlation_id().as_str().to_string(),
+            }
+        })?;
+        rows.entry(RelationalRowIdentity::new(row_identity))
             .or_default()
             .insert(read.aspect_key().clone(), aspect_read.value().clone());
     }
@@ -134,13 +150,26 @@ pub fn materialize_relational_authoritative_row_set(
             )
             .collect::<Vec<_>>();
 
-    let digest = row_set_digest(result.snapshot_identity(), &rows);
+    let digest = row_set_digest(result.snapshot_identity(), &rows)?;
 
     Ok(RelationalAuthoritativeRowSetArtifact {
         snapshot_identity: result.snapshot_identity().clone(),
         rows,
         digest,
     })
+}
+
+fn row_identity_label(parts: RelationalBridgeRecordIdentityParts) -> String {
+    let kind = match parts.kind() {
+        RelationalBridgeRecordIdentityKind::Entity => "entity",
+        RelationalBridgeRecordIdentityKind::Relation => "relation",
+    };
+    format!(
+        "{kind}:{}:{}:{}",
+        parts.partition_id(),
+        parts.local_slot(),
+        parts.generation()
+    )
 }
 
 #[cfg(test)]
@@ -150,6 +179,7 @@ mod tests {
         Symbol,
     };
     use forge_runtime_bridge::facade::{
+        RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
         SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
         SnapshotReadRequest, TruthSnapshotIdentity,
     };
@@ -159,13 +189,25 @@ mod tests {
     #[test]
     fn relational_row_set_preserves_row_identity_and_aspect_values() {
         let packet = SnapshotReadPacket::new(vec![
-            string_read("entity-1", "identity.id"),
-            string_read("entity-1", "status.lane"),
-            string_read("entity-2", "identity.id"),
-            string_read("entity-2", "status.lane"),
+            string_read(
+                RelationalBridgeRecordIdentityParts::entity(0, 1, 1),
+                "identity.id",
+            ),
+            string_read(
+                RelationalBridgeRecordIdentityParts::entity(0, 1, 1),
+                "status.lane",
+            ),
+            string_read(
+                RelationalBridgeRecordIdentityParts::entity(0, 2, 1),
+                "identity.id",
+            ),
+            string_read(
+                RelationalBridgeRecordIdentityParts::entity(0, 2, 1),
+                "status.lane",
+            ),
         ]);
         let result = SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            test_snapshot_identity(),
             vec![
                 read_record(&packet, 0, AspectValue::String("task-1".into())),
                 read_record(&packet, 1, AspectValue::String("todo".into())),
@@ -177,7 +219,10 @@ mod tests {
         let row_set = materialize_relational_authoritative_row_set(&packet, &result).unwrap();
 
         assert_eq!(row_set.rows().len(), 2);
-        assert_eq!(row_set.rows()[0].row_identity().as_str(), "entity-1");
+        assert_eq!(
+            row_set.rows()[0].row_identity().parts(),
+            RelationalBridgeRecordIdentityParts::entity(0, 1, 1)
+        );
         assert!(row_set.rows()[0]
             .projected_aspect_values()
             .contains_key(&AspectKey::new("identity.id").unwrap()));
@@ -191,9 +236,12 @@ mod tests {
 
     #[test]
     fn relational_row_set_rejects_non_scalar_snapshot_values_at_grouped_boundary() {
-        let packet = SnapshotReadPacket::new(vec![string_read("entity-1", "identity.id")]);
+        let packet = SnapshotReadPacket::new(vec![string_read(
+            RelationalBridgeRecordIdentityParts::entity(0, 1, 1),
+            "identity.id",
+        )]);
         let result = SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            test_snapshot_identity(),
             vec![read_record(
                 &packet,
                 0,
@@ -217,6 +265,31 @@ mod tests {
     }
 
     #[test]
+    fn relational_row_set_rejects_untyped_snapshot_read_identity() {
+        let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
+            // allowed-untyped-negative-test
+            "legacy-row",
+            SnapshotReadContract::scalar(aspect_key("identity.id"), ScalarAspectType::String),
+        )]);
+        let result = SnapshotReadPacketResult::new(
+            test_snapshot_identity(),
+            vec![read_record(
+                &packet,
+                0,
+                AspectValue::String("task-1".into()),
+            )],
+        );
+
+        let error = materialize_relational_authoritative_row_set(&packet, &result)
+            .expect_err("grouped truth row materialization requires typed relational row identity");
+
+        assert!(matches!(
+            error,
+            super::RelationalGroupedTruthError::UntypedRelationalRowIdentity { .. }
+        ));
+    }
+
+    #[test]
     fn relational_row_set_digest_preserves_interned_string_family() {
         let raw = row_set_with_identity_value(AspectValue::String(InternedString::Raw(
             "symbol:7".to_string(),
@@ -230,12 +303,21 @@ mod tests {
     fn row_set_with_identity_value(
         value: AspectValue,
     ) -> super::RelationalAuthoritativeRowSetArtifact {
-        let packet = SnapshotReadPacket::new(vec![string_read("entity-1", "identity.id")]);
+        let packet = SnapshotReadPacket::new(vec![string_read(
+            RelationalBridgeRecordIdentityParts::entity(0, 1, 1),
+            "identity.id",
+        )]);
         let result = SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            test_snapshot_identity(),
             vec![read_record(&packet, 0, value)],
         );
         materialize_relational_authoritative_row_set(&packet, &result).unwrap()
+    }
+
+    fn test_snapshot_identity() -> TruthSnapshotIdentity {
+        TruthSnapshotIdentity::from_relational_snapshot(RelationalBridgeSnapshotIdentityParts::new(
+            1, 1,
+        ))
     }
 
     fn read_record(
@@ -246,8 +328,11 @@ mod tests {
         SnapshotReadRecord::for_request(&packet.reads()[index], value)
     }
 
-    fn string_read(entity_identity: &str, aspect: &str) -> SnapshotReadRequest {
-        SnapshotReadRequest::for_coarse(
+    fn string_read(
+        entity_identity: RelationalBridgeRecordIdentityParts,
+        aspect: &str,
+    ) -> SnapshotReadRequest {
+        SnapshotReadRequest::for_relational_record(
             entity_identity,
             SnapshotReadContract::scalar(aspect_key(aspect), ScalarAspectType::String),
         )

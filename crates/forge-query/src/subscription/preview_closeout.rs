@@ -1,10 +1,16 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
 use super::active_counters::ActiveSubscriptionCounters;
 use super::active_digest::ActiveSubscriptionLaneDigest;
 use super::active_handle::ActiveSubscriptionLaneHandle;
 use super::attachment_digest::SubscriptionConsumerAttachmentDigest;
 use super::delivery_density::ActiveDeliveryDensityPosture;
+use super::evidence_identities::{
+    preview_discard_closeout_identity, preview_promotion_authority_identity,
+    preview_promotion_handoff_identity, preview_promotion_rebinding_identity,
+};
+use super::evidence_projection::subscription_evidence_projection;
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::performance_receipt::SubscriptionPerformanceReceipt;
 use super::preview_isolation::{
@@ -20,13 +26,13 @@ pub struct PreviewSubscriptionDiscardCloseout {
     active_lane_digest: ActiveSubscriptionLaneDigest,
     attachment_digest: SubscriptionConsumerAttachmentDigest,
     future_selection: QuerySubscriptionFutureSelection,
-    basis_binding_digest: String,
-    checkpoint_identity_digest: String,
-    preview_epoch_digest: String,
-    residue_report_digest: String,
+    basis_binding_identity: ForgeQueryEvidenceIdentity,
+    checkpoint_identity: ForgeQueryEvidenceIdentity,
+    preview_epoch_identity: ForgeQueryEvidenceIdentity,
+    residue_report_identity: ForgeQueryEvidenceIdentity,
     performance_receipt: SubscriptionPerformanceReceipt,
     counters: ActiveSubscriptionCounters,
-    closeout_digest: String,
+    closeout_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl PreviewSubscriptionDiscardCloseout {
@@ -43,53 +49,43 @@ impl PreviewSubscriptionDiscardCloseout {
             isolation.preview_residue_budget_width(),
             ActiveDeliveryDensityPosture::SparseDelta,
             super::active_budget::ActiveSubscriptionAllocationPosture::LifecycleArena,
-            isolation.isolation_digest(),
+            isolation.attachment_digest().evidence_identity(),
         );
         counters.subscription_performance_receipt_count = 1;
         counters.subscription_budget_consumption_width = performance_receipt.consumed_width();
         counters.subscription_budget_remaining_width = performance_receipt.remaining_width();
-        let closeout_digest = hash_parts(&[
-            "preview_subscription_discard_closeout_v1".to_string(),
-            format!("lane:{}", isolation.active_lane_digest().as_str()),
-            format!("attachment:{}", isolation.attachment_digest().as_str()),
-            format!(
-                "future_selection:{}",
-                isolation.future_selection().projection_digest()
-            ),
-            format!("basis:{}", isolation.basis_binding_digest()),
-            format!("checkpoint:{}", isolation.checkpoint_identity_digest()),
-            format!("epoch:{}", isolation.preview_epoch_digest()),
-            format!("isolation:{}", isolation.isolation_digest()),
-            format!("residue_report:{}", residue_report.report_digest()),
-            format!(
-                "performance:{}",
-                performance_receipt.performance_receipt_digest()
-            ),
-            format!(
-                "state:{}",
-                PreviewSubscriptionLifecycleState::PreviewDiscarded.as_str()
-            ),
-            format!("counters:{}", counters.digest()),
-        ]);
+        let closeout_identity = preview_discard_closeout_identity(
+            isolation.active_lane_digest().evidence_identity(),
+            isolation.attachment_digest().evidence_identity(),
+            isolation.future_selection().projection_identity(),
+            isolation.basis_binding_identity(),
+            isolation.checkpoint_identity(),
+            isolation.preview_epoch_identity(),
+            isolation.isolation_identity(),
+            residue_report.report_identity(),
+            performance_receipt.performance_receipt_identity(),
+            PreviewSubscriptionLifecycleState::PreviewDiscarded.as_str(),
+            &counters.evidence_identity(),
+        );
         Self {
             active_lane_digest: isolation.active_lane_digest().clone(),
             attachment_digest: isolation.attachment_digest().clone(),
             future_selection: isolation.future_selection().clone(),
-            basis_binding_digest: isolation.basis_binding_digest().to_string(),
-            checkpoint_identity_digest: isolation.checkpoint_identity_digest().to_string(),
-            preview_epoch_digest: isolation.preview_epoch_digest().to_string(),
-            residue_report_digest: residue_report.report_digest().to_string(),
+            basis_binding_identity: isolation.basis_binding_identity().clone(),
+            checkpoint_identity: isolation.checkpoint_identity().clone(),
+            preview_epoch_identity: isolation.preview_epoch_identity().clone(),
+            residue_report_identity: residue_report.report_identity().clone(),
             performance_receipt,
             counters,
-            closeout_digest,
+            closeout_identity,
         }
     }
 
-    pub fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.active_lane_digest
     }
 
-    pub fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
+    pub(crate) fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
         &self.attachment_digest
     }
 
@@ -97,20 +93,44 @@ impl PreviewSubscriptionDiscardCloseout {
         &self.future_selection
     }
 
-    pub fn basis_binding_digest(&self) -> &str {
-        &self.basis_binding_digest
+    pub fn basis_binding_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.basis_binding_identity)
     }
 
-    pub fn checkpoint_identity_digest(&self) -> &str {
-        &self.checkpoint_identity_digest
+    pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_binding_identity
     }
 
-    pub fn preview_epoch_digest(&self) -> &str {
-        &self.preview_epoch_digest
+    pub fn checkpoint_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.checkpoint_identity)
     }
 
-    pub fn residue_report_digest(&self) -> &str {
-        &self.residue_report_digest
+    pub fn checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.checkpoint_identity
+    }
+
+    pub fn preview_epoch_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.preview_epoch_identity)
+    }
+
+    pub fn preview_epoch_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.preview_epoch_identity
+    }
+
+    pub fn residue_report_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.residue_report_identity)
+    }
+
+    pub fn residue_report_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.residue_report_identity
     }
 
     pub fn counters(&self) -> &ActiveSubscriptionCounters {
@@ -121,8 +141,14 @@ impl PreviewSubscriptionDiscardCloseout {
         &self.performance_receipt
     }
 
-    pub fn closeout_digest(&self) -> &str {
-        &self.closeout_digest
+    pub fn closeout_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.closeout_identity)
+    }
+
+    pub fn closeout_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.closeout_identity
     }
 }
 
@@ -132,17 +158,17 @@ pub struct PreviewSubscriptionPromotionHandoff {
     authoritative_active_lane_digest: ActiveSubscriptionLaneDigest,
     attachment_digest: SubscriptionConsumerAttachmentDigest,
     future_selection: QuerySubscriptionFutureSelection,
-    preview_basis_binding_digest: String,
-    authoritative_basis_binding_digest: String,
-    preview_checkpoint_identity_digest: String,
-    authoritative_checkpoint_identity_digest: String,
-    preview_epoch_digest: String,
-    residue_report_digest: String,
-    authority_digest: String,
-    rebinding_digest: String,
+    preview_basis_binding_identity: ForgeQueryEvidenceIdentity,
+    authoritative_basis_binding_identity: ForgeQueryEvidenceIdentity,
+    preview_checkpoint_identity: ForgeQueryEvidenceIdentity,
+    authoritative_checkpoint_identity: ForgeQueryEvidenceIdentity,
+    preview_epoch_identity: ForgeQueryEvidenceIdentity,
+    residue_report_identity: ForgeQueryEvidenceIdentity,
+    authority_identity: ForgeQueryEvidenceIdentity,
+    rebinding_identity: ForgeQueryEvidenceIdentity,
     performance_receipt: SubscriptionPerformanceReceipt,
     counters: ActiveSubscriptionCounters,
-    handoff_digest: String,
+    handoff_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl PreviewSubscriptionPromotionHandoff {
@@ -150,12 +176,9 @@ impl PreviewSubscriptionPromotionHandoff {
         isolation: PreviewSubscriptionIsolationArtifact,
         residue_report: &PreviewSubscriptionResidueReport,
         authoritative_lane: &ActiveSubscriptionLaneHandle,
-        authority_digest: impl Into<String>,
+        authority_label: impl Into<String>,
     ) -> Self {
-        let authority_digest = hash_parts(&[
-            "preview_subscription_promotion_authority_v1".to_string(),
-            format!("authority:{}", authority_digest.into()),
-        ]);
+        let authority_identity = preview_promotion_authority_identity(&authority_label.into());
         let mut counters = ActiveSubscriptionCounters::default();
         counters.preview_promotion_handoff_count = 1;
         let performance_receipt = SubscriptionPerformanceReceipt::new(
@@ -163,95 +186,64 @@ impl PreviewSubscriptionPromotionHandoff {
             1,
             ActiveDeliveryDensityPosture::SparseDelta,
             super::active_budget::ActiveSubscriptionAllocationPosture::LifecycleArena,
-            isolation.isolation_digest(),
+            isolation.attachment_digest().evidence_identity(),
         );
-        let rebinding_digest = hash_parts(&[
-            "preview_subscription_promotion_rebinding_v1".to_string(),
-            format!("preview_basis:{}", isolation.basis_binding_digest()),
-            format!(
-                "authoritative_basis:{}",
-                authoritative_lane.basis_binding_digest()
-            ),
-            format!(
-                "preview_checkpoint:{}",
-                isolation.checkpoint_identity_digest()
-            ),
-            format!(
-                "authoritative_checkpoint:{}",
-                authoritative_lane.checkpoint_identity_digest()
-            ),
-        ]);
+        let rebinding_identity = preview_promotion_rebinding_identity(
+            isolation.basis_binding_identity(),
+            authoritative_lane.basis_binding_identity(),
+            isolation.checkpoint_identity(),
+            authoritative_lane.checkpoint_identity(),
+        );
         counters.subscription_performance_receipt_count = 1;
         counters.subscription_budget_consumption_width = performance_receipt.consumed_width();
         counters.subscription_budget_remaining_width = performance_receipt.remaining_width();
-        let handoff_digest = hash_parts(&[
-            "preview_subscription_promotion_handoff_v1".to_string(),
-            format!("preview_lane:{}", isolation.active_lane_digest().as_str()),
-            format!(
-                "authoritative_lane:{}",
-                authoritative_lane.lane_digest().as_str()
-            ),
-            format!("attachment:{}", isolation.attachment_digest().as_str()),
-            format!(
-                "future_selection:{}",
-                isolation.future_selection().projection_digest()
-            ),
-            format!("basis:{}", isolation.basis_binding_digest()),
-            format!(
-                "preview_checkpoint:{}",
-                isolation.checkpoint_identity_digest()
-            ),
-            format!(
-                "authoritative_checkpoint:{}",
-                authoritative_lane.checkpoint_identity_digest()
-            ),
-            format!("epoch:{}", isolation.preview_epoch_digest()),
-            format!("isolation:{}", isolation.isolation_digest()),
-            format!("residue_report:{}", residue_report.report_digest()),
-            format!("authority:{}", authority_digest),
-            format!("rebinding:{}", rebinding_digest),
-            format!(
-                "performance:{}",
-                performance_receipt.performance_receipt_digest()
-            ),
-            format!(
-                "state:{}",
-                PreviewSubscriptionLifecycleState::PreviewPromoted.as_str()
-            ),
-            format!("counters:{}", counters.digest()),
-        ]);
+        let handoff_identity = preview_promotion_handoff_identity(
+            isolation.active_lane_digest().evidence_identity(),
+            authoritative_lane.lane_digest().evidence_identity(),
+            isolation.attachment_digest().evidence_identity(),
+            isolation.future_selection().projection_identity(),
+            isolation.basis_binding_identity(),
+            isolation.checkpoint_identity(),
+            authoritative_lane.checkpoint_identity(),
+            isolation.preview_epoch_identity(),
+            isolation.isolation_identity(),
+            residue_report.report_identity(),
+            &authority_identity,
+            &rebinding_identity,
+            performance_receipt.performance_receipt_identity(),
+            PreviewSubscriptionLifecycleState::PreviewPromoted.as_str(),
+            &counters.evidence_identity(),
+        );
         Self {
             preview_lane_digest: isolation.active_lane_digest().clone(),
             authoritative_active_lane_digest: authoritative_lane.lane_digest().clone(),
             attachment_digest: isolation.attachment_digest().clone(),
             future_selection: isolation.future_selection().clone(),
-            preview_basis_binding_digest: isolation.basis_binding_digest().to_string(),
-            authoritative_basis_binding_digest: authoritative_lane
-                .basis_binding_digest()
-                .to_string(),
-            preview_checkpoint_identity_digest: isolation.checkpoint_identity_digest().to_string(),
-            authoritative_checkpoint_identity_digest: authoritative_lane
-                .checkpoint_identity_digest()
-                .to_string(),
-            preview_epoch_digest: isolation.preview_epoch_digest().to_string(),
-            residue_report_digest: residue_report.report_digest().to_string(),
-            authority_digest,
-            rebinding_digest,
+            preview_basis_binding_identity: isolation.basis_binding_identity().clone(),
+            authoritative_basis_binding_identity: authoritative_lane
+                .basis_binding_identity()
+                .clone(),
+            preview_checkpoint_identity: isolation.checkpoint_identity().clone(),
+            authoritative_checkpoint_identity: authoritative_lane.checkpoint_identity().clone(),
+            preview_epoch_identity: isolation.preview_epoch_identity().clone(),
+            residue_report_identity: residue_report.report_identity().clone(),
+            authority_identity,
+            rebinding_identity,
             performance_receipt,
             counters,
-            handoff_digest,
+            handoff_identity,
         }
     }
 
-    pub fn preview_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn preview_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.preview_lane_digest
     }
 
-    pub fn authoritative_active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn authoritative_active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.authoritative_active_lane_digest
     }
 
-    pub fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
+    pub(crate) fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
         &self.attachment_digest
     }
 
@@ -259,36 +251,84 @@ impl PreviewSubscriptionPromotionHandoff {
         &self.future_selection
     }
 
-    pub fn preview_basis_binding_digest(&self) -> &str {
-        &self.preview_basis_binding_digest
+    pub fn preview_basis_binding_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.preview_basis_binding_identity)
     }
 
-    pub fn authoritative_basis_binding_digest(&self) -> &str {
-        &self.authoritative_basis_binding_digest
+    pub fn preview_basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.preview_basis_binding_identity
     }
 
-    pub fn preview_checkpoint_identity_digest(&self) -> &str {
-        &self.preview_checkpoint_identity_digest
+    pub fn authoritative_basis_binding_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.authoritative_basis_binding_identity)
     }
 
-    pub fn authoritative_checkpoint_identity_digest(&self) -> &str {
-        &self.authoritative_checkpoint_identity_digest
+    pub fn authoritative_basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.authoritative_basis_binding_identity
     }
 
-    pub fn preview_epoch_digest(&self) -> &str {
-        &self.preview_epoch_digest
+    pub fn preview_checkpoint_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.preview_checkpoint_identity)
     }
 
-    pub fn residue_report_digest(&self) -> &str {
-        &self.residue_report_digest
+    pub fn preview_checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.preview_checkpoint_identity
     }
 
-    pub fn authority_digest(&self) -> &str {
-        &self.authority_digest
+    pub fn authoritative_checkpoint_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.authoritative_checkpoint_identity)
     }
 
-    pub fn rebinding_digest(&self) -> &str {
-        &self.rebinding_digest
+    pub fn authoritative_checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.authoritative_checkpoint_identity
+    }
+
+    pub fn preview_epoch_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.preview_epoch_identity)
+    }
+
+    pub fn preview_epoch_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.preview_epoch_identity
+    }
+
+    pub fn residue_report_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.residue_report_identity)
+    }
+
+    pub fn residue_report_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.residue_report_identity
+    }
+
+    pub fn authority_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.authority_identity)
+    }
+
+    pub fn authority_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.authority_identity
+    }
+
+    pub fn rebinding_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.rebinding_identity)
+    }
+
+    pub fn rebinding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.rebinding_identity
     }
 
     pub fn counters(&self) -> &ActiveSubscriptionCounters {
@@ -299,8 +339,14 @@ impl PreviewSubscriptionPromotionHandoff {
         &self.performance_receipt
     }
 
-    pub fn handoff_digest(&self) -> &str {
-        &self.handoff_digest
+    pub fn handoff_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.handoff_identity)
+    }
+
+    pub fn handoff_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.handoff_identity
     }
 }
 
@@ -314,7 +360,7 @@ pub fn discard_preview_subscription(
         return Err(PreviewSubscriptionIsolationError::new(
             PreviewSubscriptionIsolationDenialKind::PreviewLifecycleStateMismatch,
             "preview discard requires an active preview isolation artifact",
-            isolation.isolation_digest(),
+            isolation.isolation_identity().clone(),
             counters,
         ));
     }
@@ -326,7 +372,7 @@ pub fn discard_preview_subscription(
         return Err(PreviewSubscriptionIsolationError::new(
             PreviewSubscriptionIsolationDenialKind::PreviewDiscardResidueDenied,
             "preview discard cannot close while authoritative routing, checkpoint, replay, diagnostics, or writeback residue remains",
-            residue_report.report_digest(),
+            residue_report.report_identity().clone(),
             counters,
         ));
     }
@@ -337,7 +383,7 @@ pub fn discard_preview_subscription(
         return Err(PreviewSubscriptionIsolationError::new(
             PreviewSubscriptionIsolationDenialKind::PreviewDiscardResidueDenied,
             "preview discard cannot exceed the admitted preview residue budget",
-            residue_report.report_digest(),
+            residue_report.report_identity().clone(),
             counters,
         ));
     }
@@ -352,7 +398,7 @@ pub fn promote_preview_subscription(
     isolation: PreviewSubscriptionIsolationArtifact,
     residue_report: &PreviewSubscriptionResidueReport,
     authoritative_lane: &ActiveSubscriptionLaneHandle,
-    authority_digest: impl Into<String>,
+    authority_label: impl Into<String>,
 ) -> Result<PreviewSubscriptionPromotionHandoff, PreviewSubscriptionIsolationError> {
     if isolation.lifecycle_state() != PreviewSubscriptionLifecycleState::PreviewActive {
         let mut counters = ActiveSubscriptionCounters::default();
@@ -360,7 +406,7 @@ pub fn promote_preview_subscription(
         return Err(PreviewSubscriptionIsolationError::new(
             PreviewSubscriptionIsolationDenialKind::PreviewLifecycleStateMismatch,
             "preview promotion requires an active preview isolation artifact",
-            isolation.isolation_digest(),
+            isolation.isolation_identity().clone(),
             counters,
         ));
     }
@@ -369,6 +415,6 @@ pub fn promote_preview_subscription(
         isolation,
         residue_report,
         authoritative_lane,
-        authority_digest,
+        authority_label,
     ))
 }

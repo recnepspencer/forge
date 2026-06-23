@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::projection_consumption::identity::{
+    compose_certification_row_digest, compose_digest_sequence,
+};
 
 use super::super::proof_artifacts::ProjectionConsumptionCompileFailProof;
 
@@ -136,11 +138,10 @@ pub fn projection_consumption_public_boundary_audit() -> ProjectionConsumptionPu
             ProjectionConsumptionCompileFailProof::NonAdmittedCannotBindContract,
         ),
     ];
-    let audit_digest = hash_parts(
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>(),
+    let audit_digest = compose_digest_sequence(
+        "projection_consumption_public_boundary_audit_v1",
+        "row",
+        rows.iter().map(|row| row.row_digest().to_string()),
     );
     ProjectionConsumptionPublicBoundaryAudit { rows, audit_digest }
 }
@@ -151,13 +152,15 @@ fn row(
     required_artifact: &'static str,
     enforcement_proof: ProjectionConsumptionCompileFailProof,
 ) -> ProjectionConsumptionPublicBoundaryAuditRow {
-    let row_digest = hash_parts(&[
-        "projection_consumption_public_boundary_row_v1".to_string(),
-        format!("surface:{}", surface.as_str()),
-        format!("entrypoint:{blocked_entrypoint}"),
-        format!("required:{required_artifact}"),
-        format!("proof:{}", enforcement_proof.as_str()),
-    ]);
+    let row_digest = compose_certification_row_digest(
+        "projection_consumption_public_boundary_row_v1",
+        &[
+            ("surface", surface.as_str()),
+            ("entrypoint", blocked_entrypoint),
+            ("required", required_artifact),
+            ("proof", enforcement_proof.as_str()),
+        ],
+    );
     ProjectionConsumptionPublicBoundaryAuditRow {
         surface,
         blocked_entrypoint,

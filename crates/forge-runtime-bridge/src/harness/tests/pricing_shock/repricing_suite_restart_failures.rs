@@ -56,7 +56,7 @@ fn pricing_shock_repricing_signal_is_delta_driven_not_always_on() {
 fn pricing_shock_suites_25_through_27_emit_canonical_machine_checkable_artifacts() {
     let bundle = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-workload-suites"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-workload-suites"),
     );
     let suite_25 = bundle.suite_25_digest_evidence();
     let suite_26 = bundle.suite_26_digest_evidence();
@@ -110,7 +110,7 @@ fn pricing_shock_can_emit_ml_pipeline_export_file_when_requested() {
     };
     let bundle = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-ml-export-file"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-ml-export-file"),
     );
     std::fs::write(&path, bundle.ml_pipeline_export_pretty_json())
         .expect("ml pipeline export file should write");
@@ -121,7 +121,7 @@ fn pricing_shock_restart_replay_preserves_canonical_truth_across_rebuild() {
     let restart = capture_pricing_restart_replay_bundle(BridgeRuntimePolicy::development());
     let replay = capture_pricing_certification_matrix(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-restart-parity"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-restart-parity"),
     )
     .replay;
 
@@ -147,10 +147,10 @@ fn pricing_shock_missing_snapshot_fails_with_typed_delivery_record() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(pricing_patch(
         pricing_patch_envelope_identity(
-            TruthBranchIdentity::new("main"),
-            TruthCommitIdentity::new("commit:steel-missing-snapshot"),
-            TruthPatchIdentity::new("patch:steel-missing-snapshot"),
-            TruthSnapshotIdentity::new("snapshot:pricing-missing"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-missing-snapshot"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch:steel-missing-snapshot"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-missing"),
         ),
         "steel",
     ));
@@ -169,10 +169,10 @@ fn pricing_shock_missing_snapshot_fails_with_typed_delivery_record() {
     );
     assert_eq!(
         failure.source_commit,
-        TruthCommitIdentity::new("commit:steel-missing-snapshot")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-missing-snapshot")
     );
     assert_eq!(
         failure.source_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-missing")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-missing")
     );
 }

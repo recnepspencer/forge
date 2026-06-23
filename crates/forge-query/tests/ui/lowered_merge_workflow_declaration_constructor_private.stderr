@@ -9,24 +9,10 @@ warning: unreachable expression
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0451]: fields `declaration`, `merge_intent`, `authority_target`, `merge_request`, `freshness_binding`, `staleness_class`, `lowering_digest` and `counters` of struct `forge_query::facade::LoweredMergeWorkflowDeclaration` are private
-  --> tests/ui/lowered_merge_workflow_declaration_constructor_private.rs:5:9
+error[E0560]: struct `forge_query::facade::LoweredMergeWorkflowDeclaration` has no field named `lowering_digest`
+  --> tests/ui/lowered_merge_workflow_declaration_constructor_private.rs:11:9
    |
- 4 |     let _ = LoweredMergeWorkflowDeclaration {
-   |             ------------------------------- in this type
- 5 |         declaration: todo!(),
-   |         ^^^^^^^^^^^ private field
- 6 |         merge_intent: todo!(),
-   |         ^^^^^^^^^^^^ private field
- 7 |         authority_target: todo!(),
-   |         ^^^^^^^^^^^^^^^^ private field
- 8 |         merge_request: todo!(),
-   |         ^^^^^^^^^^^^^ private field
- 9 |         freshness_binding: todo!(),
-   |         ^^^^^^^^^^^^^^^^^ private field
-10 |         staleness_class: todo!(),
-   |         ^^^^^^^^^^^^^^^ private field
 11 |         lowering_digest: todo!(),
-   |         ^^^^^^^^^^^^^^^ private field
-12 |         counters: todo!(),
-   |         ^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^ `forge_query::facade::LoweredMergeWorkflowDeclaration` does not have this field
+   |
+   = note: all struct fields are already assigned

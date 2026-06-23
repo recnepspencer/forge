@@ -37,7 +37,7 @@ impl BridgeTemporalSubscriptionActivationReady {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             temporal_activation_ready_identity:
-                BridgeSubscriptionTemporalActivationReadyIdentity::new(format!(
+                BridgeSubscriptionTemporalActivationReadyIdentity::admit_bridge_owned(format!(
                     "bridge-temporal-subscription-activation-ready-id:sha256:{digest:x}"
                 )),
             ordinary_activation_ready,

@@ -1,6 +1,11 @@
 use super::async_result_state::ForgeQueryRuntimeAsyncResultProjection;
 use super::*;
-use crate::memory_workspace::{ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError};
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+use crate::memory_workspace::{
+    ForgeQueryCommitIdentity, ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError,
+};
 
 impl ForgeQueryRuntime {
     pub fn declare_live_view<T>(
@@ -27,23 +32,19 @@ impl ForgeQueryRuntime {
             &name,
             &activation.request,
         );
-        let pending_async_result_state = activation
-            .active_lane_handle
-            .future_selection()
-            .requests_completion_lifecycle()
-            .then(|| {
+        let future_selection = activation.active_lane_handle.future_selection();
+        let pending_async_projection_digest = future_selection
+            .future_selection_projection()
+            .label()
+            .to_string();
+        let pending_async_result_state =
+            future_selection.requests_completion_lifecycle().then(|| {
                 ForgeQueryRuntimeAsyncResultProjection::pending(&format!(
-                    "async-pending:{}",
-                    activation
-                        .active_lane_handle
-                        .future_selection()
-                        .projection_digest()
+                    "async-pending:{pending_async_projection_digest}"
                 ))
             });
-        let checkpoint_identity_digest = activation
-            .active_lane_handle
-            .checkpoint_identity_digest()
-            .to_string();
+        let basis_binding_identity = activation.installation.basis_binding_identity().clone();
+        let checkpoint_identity = activation.active_lane_handle.checkpoint_identity().clone();
         self.live_subscriptions.insert(
             name.clone(),
             ForgeQueryRuntimeLiveSubscriptionState {
@@ -61,8 +62,8 @@ impl ForgeQueryRuntime {
             self.project_async_result_state(
                 &name,
                 projection,
-                activation.installation.basis_binding_digest(),
-                &checkpoint_identity_digest,
+                &basis_binding_identity,
+                &checkpoint_identity,
             )?;
         }
         Ok(ForgeQueryLiveView::new(handle, activation.installation))
@@ -142,14 +143,25 @@ impl ForgeQueryRuntime {
             _ => return Ok(()),
         };
         let upstreams = retained_upstream_inputs_for_declaration(self, &declaration)?;
-        let snapshot_token = self.snapshot_token();
+        let snapshot_identity = self.current_snapshot_identity();
+        let refresh_identity = ForgeQueryCommitIdentity::preview(
+            ForgeQueryEvidenceIdentity::compose(
+                ForgeQueryEvidenceScope::WriteReceiptCommitIdentity,
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("refresh_origin"),
+                "derived-declaration",
+            )
+            .field_value(ForgeQueryEvidenceTag::new("view_name"), view_name)
+            .seal(),
+        );
         let refresh_metadata = self
             .backend
-            .declaration_initialization_metadata(&declaration, &snapshot_token)
+            .declaration_initialization_metadata(&declaration)
             .map_err(ForgeQueryRuntimeError::Workspace)?;
         let refresh = ForgeQueryRetainedRefreshContext::from_declaration_initialization(
-            format!("derived-declaration:{view_name}"),
-            snapshot_token,
+            refresh_identity,
+            snapshot_identity,
             refresh_metadata,
         );
         let Some(runtime) = self.derived_views.get_mut(view_name) else {
@@ -222,7 +234,7 @@ fn live_source_declaration_error(
     let closeout_message = match closeout_result {
         Ok(closeout) => format!(
             "active subscription closeout:{}:terminal:{}",
-            closeout.closeout_digest(),
+            closeout.closeout_projection().label(),
             closeout.lane_terminal()
         ),
         Err(closeout_error) => format!(

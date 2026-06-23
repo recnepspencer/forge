@@ -1,5 +1,6 @@
-use forge_query::facade::ForgeQueryEntity;
+use forge_query::facade::{ForgeQueryEntity, ForgeQueryEntityIdentity};
 use forge_relational::facade::identity::{EntityId, RelationId};
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::query_rows::{
@@ -76,7 +77,7 @@ impl<'a> TopologyQueryRowLookup<'a> {
     ) -> Result<EntityId, TopologyQueryRowLookupError> {
         self.entity_rows
             .iter()
-            .find(|row| row.identity() == identity)
+            .find(|row| query_identity_label(row.identity()).as_deref() == Some(identity))
             .ok_or_else(|| {
                 TopologyQueryRowLookupError::new(format!(
                     "query identity `{identity}` should resolve to one entity"
@@ -95,7 +96,7 @@ impl<'a> TopologyQueryRowLookup<'a> {
                 query_entity_id_from_row(row)
                     .ok()
                     .filter(|candidate| *candidate == entity_id)
-                    .map(|_| row.identity().to_string())
+                    .and_then(|_| query_identity_label(row.identity()))
             })
             .ok_or_else(|| {
                 TopologyQueryRowLookupError::new(format!(
@@ -194,4 +195,18 @@ impl<'a> TopologyQueryRowLookup<'a> {
             )?,
         ])
     }
+}
+
+fn query_identity_label(identity: &ForgeQueryEntityIdentity) -> Option<String> {
+    let parts = identity.relational_record_parts()?;
+    let kind = match parts.kind() {
+        RelationalBridgeRecordIdentityKind::Entity => "entity",
+        RelationalBridgeRecordIdentityKind::Relation => "relation",
+    };
+    Some(format!(
+        "{kind}:{}:{}:{}",
+        parts.partition_id(),
+        parts.local_slot(),
+        parts.generation()
+    ))
 }

@@ -1,12 +1,14 @@
 use crate::planar_contracts::contract_bundle::PlanarM7ReadinessReceipt;
 
 use super::counters::PlanarBooleanReadinessWorkloadCounters;
+use super::stage_coverage::PlanarBooleanReadinessStageCoverage;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PlanarBooleanReadinessWorkloadReceipt {
     readiness_receipt: PlanarM7ReadinessReceipt,
     workload_digest: String,
     declaration: String,
+    stage_coverage: PlanarBooleanReadinessStageCoverage,
     counters: PlanarBooleanReadinessWorkloadCounters,
 }
 
@@ -15,12 +17,14 @@ impl PlanarBooleanReadinessWorkloadReceipt {
         readiness_receipt: PlanarM7ReadinessReceipt,
         workload_digest: String,
         declaration: String,
+        stage_coverage: PlanarBooleanReadinessStageCoverage,
         counters: PlanarBooleanReadinessWorkloadCounters,
     ) -> Self {
         Self {
             readiness_receipt,
             workload_digest,
             declaration,
+            stage_coverage,
             counters,
         }
     }
@@ -35,6 +39,10 @@ impl PlanarBooleanReadinessWorkloadReceipt {
 
     pub fn declaration(&self) -> &str {
         &self.declaration
+    }
+
+    pub fn stage_coverage(&self) -> &PlanarBooleanReadinessStageCoverage {
+        &self.stage_coverage
     }
 
     pub fn counters(&self) -> PlanarBooleanReadinessWorkloadCounters {

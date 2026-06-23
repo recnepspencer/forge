@@ -5,6 +5,10 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         self.label.display()
     }
 
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
+        &self.label
+    }
+
     pub fn effect_policy(&self) -> ForgeQueryEffectPolicy {
         self.effect_policy
     }
@@ -28,10 +32,10 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         view: &ForgeQueryLiveView<T>,
     ) -> ForgeQueryPreviewHandleBindingEvidence {
         let evidence = ForgeQueryPreviewHandleBindingEvidence::live_view(
-            self.label.display(),
+            &self.label,
             view.name(),
             self.effect_policy,
-            self.basis_admission.evidence(),
+            &self.basis_admission.evidence(),
         );
         self.handle_bindings.push(evidence.clone());
         evidence
@@ -42,10 +46,10 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         computed: &ForgeQueryDerivedViewHandle<T>,
     ) -> ForgeQueryPreviewHandleBindingEvidence {
         let evidence = ForgeQueryPreviewHandleBindingEvidence::computed(
-            self.label.display(),
+            &self.label,
             computed.name(),
             self.effect_policy,
-            self.basis_admission.evidence(),
+            &self.basis_admission.evidence(),
         );
         self.handle_bindings.push(evidence.clone());
         evidence
@@ -62,12 +66,12 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             inspected.target_lane(),
         )?;
         let evidence = ForgeQueryPreviewHandleBindingEvidence::effect(
-            self.label.display(),
+            &self.label,
             effect.name(),
             inspected.target_lane(),
             self.effect_policy,
             disposition,
-            self.basis_admission.evidence(),
+            &self.basis_admission.evidence(),
         );
         self.handle_bindings.push(evidence.clone());
         Ok(evidence)
@@ -117,14 +121,14 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 ForgeQueryProgramEffect::Write(command) => {
                     self.admit_preview_write_intent()?;
                     let receipt = self.stage_command(command);
-                    trace.record_write_receipt(receipt.commit_identity().to_string());
+                    trace.record_write_receipt(receipt.commit_identity().clone());
                     write_receipts.push(receipt);
                 }
                 ForgeQueryProgramEffect::WriteTemplate(template) => {
                     self.admit_preview_write_intent()?;
                     let command = template.bind(&bound_inputs)?;
                     let receipt = self.stage_command(command);
-                    trace.record_write_receipt(receipt.commit_identity().to_string());
+                    trace.record_write_receipt(receipt.commit_identity().clone());
                     write_receipts.push(receipt);
                 }
                 ForgeQueryProgramEffect::ReadLive { view_name } => {

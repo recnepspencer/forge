@@ -1,5 +1,3 @@
-use forge_runtime_bridge::facade::TruthCommitIdentity;
-
 use super::artifact_support::{
     admitted_artifact, advisory_artifacts, denied_artifact_and_missing_evidence,
 };
@@ -8,9 +6,12 @@ use super::*;
 
 pub(in crate::runtime::tests) fn runtime_backed_causal_certification_bundle(
 ) -> CausalInspectionCertificationBundle {
-    let changed = admitted_artifact(TruthCommitIdentity::new("commit-query-cert-changed"));
-    let (full, redacted) =
-        advisory_artifacts(TruthCommitIdentity::new("commit-query-cert-redacted"));
+    let changed = admitted_artifact(super::super::causal_truth_commit_identity(
+        "commit-query-cert-changed",
+    ));
+    let (full, redacted) = advisory_artifacts(super::super::causal_truth_commit_identity(
+        "commit-query-cert-redacted",
+    ));
     let (denied, missing_evidence_digest) = denied_artifact_and_missing_evidence();
     let representatives = representative_matrix(&changed, &redacted, &denied);
     let boundary_audit =

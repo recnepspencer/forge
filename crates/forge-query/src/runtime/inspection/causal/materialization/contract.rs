@@ -6,10 +6,12 @@ use super::policy::{
     CausalInspectionMaterializationError, CausalInspectionMaterializationErrorKind,
     CausalInspectionMaterializationPolicy,
 };
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::evidence_identity::ForgeQueryEvidenceTag;
 use crate::runtime::inspection::causal::inventory::CausalEvidenceFamily;
 
 pub(super) fn validate_materialization_contract(
-    query_observation_digest: &str,
+    query_observation_identity: &ForgeQueryEvidenceIdentity,
     requested_families: &[CausalEvidenceFamily],
     envelope: &BridgeCausalExplanationEnvelope,
     materialization_policy: CausalInspectionMaterializationPolicy,
@@ -17,23 +19,31 @@ pub(super) fn validate_materialization_contract(
     if envelope.bindings().is_empty() {
         return Err(CausalInspectionMaterializationError::new(
             CausalInspectionMaterializationErrorKind::MaterializationPolicyOverclaim,
-            &[
-                format!("policy:{}", materialization_policy.as_str()),
-                format!("envelope:{}", envelope.envelope_digest()),
-                "bindings:0".to_string(),
-            ],
+            |identity| {
+                identity
+                    .field_shape(
+                        ForgeQueryEvidenceTag::new("policy"),
+                        materialization_policy.as_str(),
+                    )
+                    .field_value(
+                        ForgeQueryEvidenceTag::new("envelope"),
+                        envelope.envelope_for_reporting(),
+                    )
+                    .field_usize(ForgeQueryEvidenceTag::new("bindings"), 0)
+            },
         ));
     }
-    validate_query_observation_binding(query_observation_digest, envelope)?;
+    validate_query_observation_binding(query_observation_identity, envelope)?;
     validate_requested_replay_posture(requested_families, envelope)
 }
 
 fn validate_query_observation_binding(
-    query_observation_digest: &str,
+    query_observation_identity: &ForgeQueryEvidenceIdentity,
     envelope: &BridgeCausalExplanationEnvelope,
 ) -> Result<(), CausalInspectionMaterializationError> {
     let mut query_observation_binding_count = 0;
     let mut query_observation_matches_subject = false;
+    let expected_query_observation_identity = query_observation_identity.bridge_evidence_identity();
     for binding in envelope.bindings() {
         if binding.owner() != BridgeCausalEvidenceOwner::Query
             || binding.family() != BridgeCausalEvidenceFamily::QueryObservation
@@ -42,7 +52,7 @@ fn validate_query_observation_binding(
         }
         query_observation_binding_count += 1;
         query_observation_matches_subject |=
-            binding.reference_identity() == query_observation_digest;
+            binding.reference_evidence_identity() == expected_query_observation_identity;
     }
 
     match (
@@ -51,20 +61,20 @@ fn validate_query_observation_binding(
     ) {
         (0, _) => Err(query_observation_binding_error(
             CausalInspectionMaterializationErrorKind::QueryObservationBindingMissing,
-            query_observation_digest,
+            query_observation_identity,
             envelope,
             0,
         )),
         (1, true) => Ok(()),
         (1, false) => Err(query_observation_binding_error(
             CausalInspectionMaterializationErrorKind::QueryObservationBindingMismatch,
-            query_observation_digest,
+            query_observation_identity,
             envelope,
             1,
         )),
         (binding_count, _) => Err(query_observation_binding_error(
             CausalInspectionMaterializationErrorKind::QueryObservationBindingOverclaim,
-            query_observation_digest,
+            query_observation_identity,
             envelope,
             binding_count,
         )),
@@ -73,18 +83,25 @@ fn validate_query_observation_binding(
 
 fn query_observation_binding_error(
     kind: CausalInspectionMaterializationErrorKind,
-    query_observation_digest: &str,
+    query_observation_identity: &ForgeQueryEvidenceIdentity,
     envelope: &BridgeCausalExplanationEnvelope,
     query_observation_binding_count: usize,
 ) -> CausalInspectionMaterializationError {
-    CausalInspectionMaterializationError::new(
-        kind,
-        &[
-            format!("expected-query-observation:{query_observation_digest}"),
-            format!("query-observation-binding-count:{query_observation_binding_count}"),
-            format!("envelope:{}", envelope.envelope_digest()),
-        ],
-    )
+    CausalInspectionMaterializationError::new(kind, |identity| {
+        identity
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("expected_query_observation"),
+                query_observation_identity,
+            )
+            .field_usize(
+                ForgeQueryEvidenceTag::new("query_observation_binding_count"),
+                query_observation_binding_count,
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("envelope"),
+                envelope.envelope_for_reporting(),
+            )
+    })
 }
 
 fn validate_requested_replay_posture(
@@ -121,12 +138,28 @@ fn validate_requested_replay_posture(
 
     Err(CausalInspectionMaterializationError::new(
         CausalInspectionMaterializationErrorKind::ReplayPostureUnsupported,
-        &[
-            format!("envelope:{}", envelope.envelope_digest()),
-            format!("bridge-replay-requested:{bridge_replay_requested}"),
-            format!("bridge-replay-bound:{bridge_replay_bound}"),
-            format!("signal-cursor-requested:{signal_cursor_requested}"),
-            format!("signal-cursor-bound:{signal_cursor_bound}"),
-        ],
+        |identity| {
+            identity
+                .field_value(
+                    ForgeQueryEvidenceTag::new("envelope"),
+                    envelope.envelope_for_reporting(),
+                )
+                .field_bool(
+                    ForgeQueryEvidenceTag::new("bridge_replay_requested"),
+                    bridge_replay_requested,
+                )
+                .field_bool(
+                    ForgeQueryEvidenceTag::new("bridge_replay_bound"),
+                    bridge_replay_bound,
+                )
+                .field_bool(
+                    ForgeQueryEvidenceTag::new("signal_cursor_requested"),
+                    signal_cursor_requested,
+                )
+                .field_bool(
+                    ForgeQueryEvidenceTag::new("signal_cursor_bound"),
+                    signal_cursor_bound,
+                )
+        },
     ))
 }

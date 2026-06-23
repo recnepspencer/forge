@@ -10,6 +10,7 @@ use crate::facade::{
     FineGrainedMatchStatus, SubscriptionSliceKind, TruthBranchIdentity, TruthCommitIdentity,
     TruthDeltaSurfaceKind, TruthSnapshotIdentity,
 };
+use crate::identity::BridgeIdentity;
 use crate::routing::{BridgeInvalidationIdentity, BridgeRouteIdentity};
 use crate::snapshot::BridgeTruthViewSelectorIdentity;
 use sha2::{Digest, Sha256};
@@ -283,10 +284,10 @@ pub(in crate::harness::tests) struct PricingCertificationBasisEntry {
 }
 
 impl PricingCertificationBasisEntry {
-    fn new(name: &'static str, value: impl fmt::Display) -> Self {
+    fn new(name: &'static str, value: impl PricingCertificationBasisValue) -> Self {
         Self {
             name,
-            value: value.to_string(),
+            value: value.pricing_certification_basis_value(),
         }
     }
 
@@ -299,6 +300,25 @@ impl PricingCertificationBasisEntry {
 
     fn canonical_line(&self) -> String {
         format!("{}={}", self.name, self.value)
+    }
+}
+
+trait PricingCertificationBasisValue {
+    fn pricing_certification_basis_value(self) -> String;
+}
+
+impl<T> PricingCertificationBasisValue for T
+where
+    T: fmt::Display,
+{
+    fn pricing_certification_basis_value(self) -> String {
+        self.to_string()
+    }
+}
+
+impl<Tag> PricingCertificationBasisValue for &BridgeIdentity<Tag> {
+    fn pricing_certification_basis_value(self) -> String {
+        format!("{self:?}")
     }
 }
 

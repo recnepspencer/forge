@@ -12,6 +12,7 @@ fn admitted_diagnostic_bundle_carries_offline_semantic_labels_and_canonical_dige
     );
     let support_subject = QuerySubscriptionSupportSubject::active_lifecycle(
         &artifacts.declaration,
+        &artifacts.admission,
         &artifacts.active_admission,
     );
     let support_evidence =
@@ -71,6 +72,10 @@ fn admitted_diagnostic_bundle_carries_offline_semantic_labels_and_canonical_dige
             .as_str()
     );
     assert_eq!(
+        bundle.semantic_labels().live_graph_access_posture_label(),
+        artifacts.declaration.live_graph_access_posture().as_str()
+    );
+    assert_eq!(
         bundle.semantic_labels().support_posture_label(),
         support_report.support_posture().as_str()
     );
@@ -79,16 +84,21 @@ fn admitted_diagnostic_bundle_carries_offline_semantic_labels_and_canonical_dige
         "runtime_lifecycle_certified"
     );
     assert_eq!(
-        bundle.support_report_digest(),
-        support_report.report_digest()
+        bundle.support_report_projection().label(),
+        support_report.report_projection().label()
     );
     assert_eq!(
-        bundle.lifecycle_certification_digest(),
-        artifacts.lifecycle_bundle.certification_bundle_digest()
+        bundle.lifecycle_certification_projection().label(),
+        artifacts
+            .lifecycle_bundle
+            .certification_bundle_projection()
+            .label()
     );
     assert_eq!(
-        bundle.lifecycle_closeout_digest(),
-        Some(artifacts.closeout.closeout_digest())
+        bundle
+            .lifecycle_closeout_projection()
+            .map(|projection| projection.label().to_string()),
+        Some(artifacts.closeout.closeout_projection().label().to_string())
     );
     assert_eq!(
         receipt.bundle_assembly_posture(),
@@ -97,7 +107,7 @@ fn admitted_diagnostic_bundle_carries_offline_semantic_labels_and_canonical_dige
     assert_eq!(receipt.stage_rederivation_count(), 0);
     assert_eq!(bundle.counters().diagnostic_bundle_emission_count(), 1);
     assert_eq!(bundle.counters().denied_bundle_emission_count(), 0);
-    assert!(!bundle.bundle_digest().is_empty());
+    assert!(!bundle.bundle_projection().label().is_empty());
 }
 
 #[test]
@@ -144,7 +154,11 @@ fn denied_diagnostic_bundle_localizes_declaration_failure_and_omits_later_stages
         bundle.semantic_labels().query_family_label(),
         selection.family().as_str()
     );
-    assert_eq!(bundle.support_report_digest(), None);
+    assert_eq!(
+        bundle.semantic_labels().live_graph_access_posture_label(),
+        selection.live_graph_access_posture().as_str()
+    );
+    assert_eq!(bundle.support_report_projection(), None);
     assert_eq!(
         bundle.omitted_stages(),
         &[
@@ -156,7 +170,7 @@ fn denied_diagnostic_bundle_localizes_declaration_failure_and_omits_later_stages
     );
     assert_eq!(receipt.bundle_width().failure_evidence_count(), 1);
     assert_eq!(bundle.counters().denied_bundle_emission_count(), 1);
-    assert!(!bundle.bundle_digest().is_empty());
+    assert!(!bundle.bundle_projection().label().is_empty());
 }
 
 #[test]
@@ -164,6 +178,7 @@ fn admitted_bundle_rejects_trace_with_missing_terminal_certification_stage() {
     let artifacts = runtime_artifacts_for(LiveQueryFamily::Detail, None, 0);
     let support_subject = QuerySubscriptionSupportSubject::active_lifecycle(
         &artifacts.declaration,
+        &artifacts.admission,
         &artifacts.active_admission,
     );
     let support_evidence =
@@ -269,6 +284,7 @@ fn lifecycle_instance_churn_changes_trace_without_changing_family_semantic_label
     let base_support = report_query_subscription_support(
         QuerySubscriptionSupportSubject::active_lifecycle(
             &base.declaration,
+            &base.admission,
             &base.active_admission,
         ),
         QuerySubscriptionSupportEvidence::admission(&base.declaration, &base.admission).unwrap(),
@@ -349,12 +365,12 @@ fn lifecycle_instance_churn_changes_trace_without_changing_family_semantic_label
             .declaration_family_label()
     );
     assert_ne!(
-        base_bundle.trace().trace_digest(),
-        continued_bundle.trace().trace_digest()
+        base_bundle.trace().trace_projection().label(),
+        continued_bundle.trace().trace_projection().label()
     );
     assert_ne!(
-        base_bundle.bundle_digest(),
-        continued_bundle.bundle_digest()
+        base_bundle.bundle_projection().label(),
+        continued_bundle.bundle_projection().label()
     );
 }
 
@@ -407,7 +423,11 @@ fn selection_denied_diagnostic_bundle_localizes_family_selection_failure_and_omi
         bundle.semantic_labels().basis_posture_label(),
         "current_head"
     );
-    assert_eq!(bundle.support_report_digest(), None);
+    assert_eq!(
+        bundle.semantic_labels().live_graph_access_posture_label(),
+        "selection_denied"
+    );
+    assert_eq!(bundle.support_report_projection(), None);
     assert_eq!(
         bundle.omitted_stages(),
         &[
@@ -573,6 +593,7 @@ fn admitted_diagnostic_bundle_preserves_canonical_basis_posture_labels() {
     );
     let support_subject = QuerySubscriptionSupportSubject::active_lifecycle(
         &artifacts.declaration,
+        &artifacts.admission,
         &artifacts.active_admission,
     );
     let support_evidence =
@@ -721,10 +742,10 @@ fn runtime_artifacts_for_with_basis(
         let evidence = admit_subscription_continuation_evidence(
             attachment.lane_digest().clone(),
             SubscriptionContinuationClass::IdentityRemap,
-            "employee:old",
-            "employee:new",
-            "basis:current",
-            "identity-authority",
+            continuation_test_identity("employee:old"),
+            continuation_test_identity("employee:new"),
+            continuation_test_identity("basis:current"),
+            continuation_test_identity("identity-authority"),
             ContinuationRemapWidth::measured(continuation_width),
         )
         .unwrap();
@@ -734,7 +755,7 @@ fn runtime_artifacts_for_with_basis(
         (delta, Some(report), continued_window)
     } else {
         (
-            QuerySubscriptionMaintenanceDelta::admitted(
+            QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
                 QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
                 attachment.lane_digest().clone(),
                 "affected-scope",
@@ -745,7 +766,7 @@ fn runtime_artifacts_for_with_basis(
         )
     };
 
-    let delivery_window_digest = window.delivery_window_digest().to_string();
+    let _delivery_window_digest = window.delivery_window_projection().label().to_string();
     let (delta, lowering_report, _) = lower_query_subscription_maintenance_delta(delta).unwrap();
     let work_packet = build_active_delivery_work_packet(
         &mut runtime,
@@ -784,7 +805,7 @@ fn runtime_artifacts_for_with_basis(
         &active_admission,
         &handle,
         &attachment,
-        delivery_window_digest,
+        delivery_batch.delivery_window_identity(),
         &delta,
         &lowering_report,
         &work_packet,

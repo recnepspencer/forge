@@ -1,17 +1,23 @@
-error[E0451]: fields `owner`, `family`, `binding_class`, `reference_identity`, `retained_record_digest` and `binding_digest` of struct `BridgeCausalEvidenceBinding` are private
-  --> tests/ui/causal_envelope/bridge_causal_evidence_binding_constructor_private.rs:8:9
+error[E0560]: struct `BridgeCausalEvidenceBinding` has no field named `retained_record_digest`
+  --> tests/ui/causal_envelope/bridge_causal_evidence_binding_constructor_private.rs:12:9
    |
- 7 |     let _ = BridgeCausalEvidenceBinding {
-   |             --------------------------- in this type
- 8 |         owner: BridgeCausalEvidenceOwner::RuntimeBridge,
-   |         ^^^^^ private field
- 9 |         family: BridgeCausalEvidenceFamily::BridgeRoute,
-   |         ^^^^^^ private field
-10 |         binding_class: BridgeCausalEvidenceBindingClass::RetainedBridgeRecord,
-   |         ^^^^^^^^^^^^^ private field
-11 |         reference_identity: "route".into(),
-   |         ^^^^^^^^^^^^^^^^^^ private field
 12 |         retained_record_digest: sealed_authority_placeholder(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^^^^^^^^ `BridgeCausalEvidenceBinding` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0277]: the trait bound `BridgeIdentityEvidence: From<&str>` is not satisfied
+  --> tests/ui/causal_envelope/bridge_causal_evidence_binding_constructor_private.rs:11:37
+   |
+11 |         reference_identity: "route".into(),
+   |                                     ^^^^ the trait `From<&str>` is not implemented for `BridgeIdentityEvidence`
+   |
+   = note: required for `&str` to implement `Into<BridgeIdentityEvidence>`
+
+error[E0560]: struct `BridgeCausalEvidenceBinding` has no field named `binding_digest`
+  --> tests/ui/causal_envelope/bridge_causal_evidence_binding_constructor_private.rs:13:9
+   |
 13 |         binding_digest: sealed_authority_placeholder(),
-   |         ^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^ `BridgeCausalEvidenceBinding` does not have this field
+   |
+   = note: all struct fields are already assigned

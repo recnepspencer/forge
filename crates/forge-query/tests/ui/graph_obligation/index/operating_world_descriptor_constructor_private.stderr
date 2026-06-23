@@ -1,0 +1,7 @@
+error[E0451]: fields `kind` and `descriptor_digest` of struct `ForgeQueryGraphObligationOperatingWorldDescriptor` are private
+ --> tests/ui/graph_obligation/index/operating_world_descriptor_constructor_private.rs:5:11
+  |
+4 |     let _forged = ForgeQueryGraphObligationOperatingWorldDescriptor {
+  |                   ------------------------------------------------- in this type
+5 |         ..ForgeQueryGraphObligationOperatingWorldDescriptor::preview()
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ fields `kind` and `descriptor_digest` are private

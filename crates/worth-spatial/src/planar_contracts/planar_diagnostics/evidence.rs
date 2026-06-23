@@ -70,13 +70,13 @@ impl PlanarDiagnosticCausalEvidence {
         Self {
             reference_digest: format!(
                 "query-causal-reference:{}:{}:{}",
-                plan.anchor_digest(),
+                plan.anchor_for_reporting(),
                 plan.reference_set_digest(),
                 plan.admission_digest()
             ),
-            anchor_digest: plan.anchor_digest().to_string(),
+            anchor_digest: plan.anchor_for_reporting().to_string(),
             reference_set_digest: plan.reference_set_digest().to_string(),
-            request_digest: plan.request_digest().to_string(),
+            request_digest: plan.request_for_reporting().to_string(),
             admission_digest: plan.admission_digest().to_string(),
             richness: plan.requested_richness(),
             explanation_family: plan.explanation_family(),

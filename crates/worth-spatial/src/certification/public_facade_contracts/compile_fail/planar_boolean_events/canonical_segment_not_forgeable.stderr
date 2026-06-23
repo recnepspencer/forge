@@ -1,0 +1,27 @@
+error[E0451]: fields `operand_side`, `source_face_identity`, `source_loop_identity`, `source_edge_identity`, `loop_role`, `carrier_identity`, `normalized_endpoints`, `local_frame_identity`, `projection_stage_identity`, `precision_basis_identity` and `canonical_segment_identity` of struct `PlanarBooleanCanonicalSegment` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_events/canonical_segment_not_forgeable.rs:8:9
+   |
+ 7 |     let _ = PlanarBooleanCanonicalSegment {
+   |             ----------------------------- in this type
+ 8 |         operand_side: PlanarBooleanCommonPlaneOperandSide::Left,
+   |         ^^^^^^^^^^^^ private field
+ 9 |         source_face_identity: String::from("face"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+10 |         source_loop_identity: String::from("loop"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+11 |         source_edge_identity: String::from("edge"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+12 |         loop_role: PlanarBooleanLoopRole::OuterBoundary,
+   |         ^^^^^^^^^ private field
+13 |         carrier_identity: String::from("carrier"),
+   |         ^^^^^^^^^^^^^^^^ private field
+14 |         normalized_endpoints: unavailable_normalized_endpoints(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+15 |         local_frame_identity: String::from("frame"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+16 |         projection_stage_identity: String::from("projection"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         precision_basis_identity: String::from("precision"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         canonical_segment_identity: String::from("forged"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

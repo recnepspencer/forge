@@ -113,7 +113,9 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     assert!(lineage.entries().iter().all(|entry| {
         entry.family() == ForgeQueryContinuityMutationFamily::RebindExistingTarget
             && entry.outcome_class() == ForgeQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
-            && entry.target_collection() == Some("TopologyRelation")
+            && entry
+                .target_collection()
+                .is_some_and(|collection| collection.as_str() == "TopologyRelation")
     }));
     assert_eq!(execution.inspection().component_operations().len(), 6);
     assert!(execution

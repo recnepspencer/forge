@@ -12,6 +12,12 @@ explains what kind of read actually ran.
 Use this when you need a graph neighborhood or traversal-shaped read and you do
 not want to rebuild that neighborhood manually from raw rows.
 
+If the read shape carries graph obligation meaning, Graph Touch Obligation
+Authority is the check-selection path. Read composition declares graph-shaped
+access; obligation authority decides which registered obligations, diagnostic
+postures, budgets, and evidence apply to that access in the current operating
+world.
+
 ## Why You Use It
 
 - you want one obvious happy path for bounded graph reads
@@ -19,6 +25,9 @@ not want to rebuild that neighborhood manually from raw rows.
 - you want traversal breadth and fallback posture attached to the result
 - you want a runtime surface that can grow toward richer graph-native reads
   without changing the mental model again
+- you need graph-bearing read evidence to stay aligned with the same obligation
+  vocabulary used by mutation, live-read, preview, branch, and construction
+  lanes
 
 This feature is especially useful when a domain layer would otherwise be
 tempted to:
@@ -36,7 +45,10 @@ Current stable entry points:
 - `workspace.define_read_family(...)`
 - `workspace.define_read_family_with_invariant_pack(...)`
 - `workspace.execute_read_family(...)`
+- `workspace.execute_read_family_with_access_plan(...)`
 - `workspace.execute_read_family_in_basis_context(...)`
+- `workspace.execute_read_family_in_basis_context_with_access_plan(...)`
+- `workspace.read_family_intent(&family).review()`
 - `workspace.public_read_composition_support_report(...)`
 - `workspace.public_read_composition_phase_one_closeout(...)`
 - `workspace.public_read_composition_phase_gate(...)`
@@ -74,6 +86,68 @@ Current builder surface in this first slice:
 
 These are the first public scope-classed read shapes. They are the public
 starting point, not the full finished read-composition kernel.
+
+## Graph Read Access Accountability
+
+Read composition is the authoring surface for graph-shaped reads. Graph read
+access planning is the accountability surface beneath it.
+
+For a covered graph read, the declaration should lower into:
+
+```text
+read declaration
+-> graph read access requirement set
+-> access admission
+-> admitted access plan or typed denial
+-> receipt access-plan consumption counters
+```
+
+Use [Graph Read Access Planning](./graph-read-access-planning.md) when you need
+to inspect the access plan, understand why a broad read denied, prove a helper
+did not perform caller-owned N+1 work, or explain required persistent index,
+streaming, async materialization, store-backed capability, or domain capability
+registration posture.
+
+The declaration is the authoring surface. The access plan is the accountability
+surface. Friendly calls such as `execute_read_family(...)` may plan and execute
+in one step only when the receipt exposes the same admitted access-plan evidence
+available through explicit planning.
+
+The explicit accountability shape is:
+
+```rust
+let review = workspace.read_family_intent(&family).review()?;
+let access_plan = review.graph_read_access_plan()?;
+
+let result = workspace.execute_read_family_with_access_plan(
+    &family,
+    access_plan.clone(),
+)?;
+
+let consumed = result
+    .receipt()
+    .graph_read_access_plan_consumption()
+    .ok_or_else(|| missing_access_plan_consumption())?;
+
+assert_eq!(consumed.plan_digest(), access_plan.digest());
+assert_eq!(
+    consumed
+        .execution_counters()
+        .per_result_neighbor_lookup_count(),
+    0,
+);
+```
+
+For historical, preview, branch, or other admitted basis-context reads, use the
+same accountability shape with
+`workspace.execute_read_family_in_basis_context_with_access_plan(...)`. The
+basis context decides which runtime world is read; the access plan still proves
+which graph-read structures were admitted and consumed.
+
+Do not treat a broad boolean graph read, high-fanout traversal, or missing
+required index as a reason to rebuild the graph locally. It should return a
+typed access posture such as `persistent_index_required`,
+`paged_streaming_required`, `async_materialization_required`, or `denied`.
 
 Good to know:
 
@@ -269,7 +343,7 @@ use forge_query::facade::{
     SchemaFieldView, SchemaRelationView, TraversalSelector,
 };
 
-let mut workspace = runtime.workspace("editor").unwrap();
+let mut workspace = runtime.workspace("editor")?;
 
 let result = workspace
     .compose_read(|read| {
@@ -285,18 +359,18 @@ let result = workspace
             ),
             |query| {
                 query
-                    .project(AspectFieldSelector::new("identity", "id").unwrap())
-                    .project(AspectFieldSelector::new("title", "value").unwrap())
-                    .traverse(TraversalSelector::bounded("depends_on", 2).unwrap())
+                    .project(AspectFieldSelector::new("identity", "id")?)
+                    .project(AspectFieldSelector::new("title", "value")?)
+                    .traverse(TraversalSelector::bounded("depends_on", 2)?)
             },
             |shape| {
                 shape
-                    .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
-                    .field(AuthoredResultShapeField::new("title", "value", "title").unwrap())
+                    .field(AuthoredResultShapeField::new("identity", "id", "id")?)
+                    .field(AuthoredResultShapeField::new("title", "value", "title")?)
             },
         )
     })
-    .unwrap();
+    ?;
 
 assert_eq!(result.receipt().scope_class().as_str(), "anchored_expansion");
 ```
@@ -312,8 +386,8 @@ let result = workspace
             task_schema,
             depends_on_relation,
             2,
-            |query| query.project(AspectFieldSelector::new("title", "value").unwrap()),
-            |shape| shape.field(AuthoredResultShapeField::new("title", "value", "title").unwrap()),
+            |query| query.project(AspectFieldSelector::new("title", "value")?),
+            |shape| shape.field(AuthoredResultShapeField::new("title", "value", "title")?),
         )
     })?;
 ```
@@ -338,7 +412,7 @@ use forge_query::facade::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView, TraversalSelector,
 };
 
-let mut workspace = runtime.workspace("org-chart").unwrap();
+let mut workspace = runtime.workspace("org-chart")?;
 
 let manager_chain = workspace
     .compose_read_with_invariant_pack(
@@ -355,22 +429,22 @@ let manager_chain = workspace
                 ),
                 |query| {
                     query
-                        .project(AspectFieldSelector::new("identity", "id").unwrap())
+                        .project(AspectFieldSelector::new("identity", "id")?)
                         .project(
-                            AspectFieldSelector::new("profile", "display_name").unwrap(),
+                            AspectFieldSelector::new("profile", "display_name")?,
                         )
-                        .traverse(TraversalSelector::bounded("manager", 2).unwrap())
+                        .traverse(TraversalSelector::bounded("manager", 2)?)
                 },
                 |shape| {
                     shape
-                        .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+                        .field(AuthoredResultShapeField::new("identity", "id", "id")?)
                         .field(
                             AuthoredResultShapeField::new(
                                 "profile",
                                 "display_name",
                                 "display_name",
                             )
-                            .unwrap(),
+                            ?,
                         )
                 },
             )
@@ -387,7 +461,7 @@ let manager_chain = workspace
             }
         },
     )
-    .unwrap();
+    ?;
 
 assert_eq!(
     manager_chain.receipt().scope_class().as_str(),
@@ -403,10 +477,10 @@ let family = workspace
     .define_read_family("manager-chain", |read| {
         read.anchored_detail("User", schema, declare_query, declare_result_shape)
     })
-    .unwrap();
+    ?;
 
-let first = workspace.execute_read_family(&family).unwrap();
-let second = workspace.execute_read_family(&family).unwrap();
+let first = workspace.execute_read_family(&family)?;
+let second = workspace.execute_read_family(&family)?;
 
 assert_eq!(
     first.receipt().read_graph_digest(),
@@ -453,7 +527,7 @@ let family = workspace
             }
         },
     )
-    .unwrap();
+    ?;
 
 assert!(matches!(
     family.admission(),
@@ -475,7 +549,7 @@ use forge_query::facade::{
     ScalarPredicateValue, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
 };
 
-let mut workspace = runtime.workspace("org-chart").unwrap();
+let mut workspace = runtime.workspace("org-chart")?;
 
 let manager_detail = workspace
     .compose_read(|read| {
@@ -491,32 +565,32 @@ let manager_detail = workspace
             ),
             |query| {
                 query
-                    .project(AspectFieldSelector::new("identity", "id").unwrap())
-                    .project(AspectFieldSelector::new("profile", "display_name").unwrap())
+                    .project(AspectFieldSelector::new("identity", "id")?)
+                    .project(AspectFieldSelector::new("profile", "display_name")?)
                     .where_equal(
                         EqualityPredicate::new(
                             "profile",
                             "display_name",
                             ScalarPredicateValue::String("Ada".to_string()),
                         )
-                        .unwrap(),
+                        ?,
                     )
             },
             |shape| {
                 shape
-                    .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+                    .field(AuthoredResultShapeField::new("identity", "id", "id")?)
                     .field(
                         AuthoredResultShapeField::new(
                             "profile",
                             "display_name",
                             "display_name",
                         )
-                        .unwrap(),
+                        ?,
                     )
             },
         )
     })
-    .unwrap();
+    ?;
 
 assert_eq!(
     manager_detail.receipt().scope_class().as_str(),
@@ -548,26 +622,26 @@ let team = workspace
             schema,
             |query| {
                 query
-                    .project(AspectFieldSelector::new("identity", "id").unwrap())
-                    .project(AspectFieldSelector::new("profile", "display_name").unwrap())
-                    .traverse(TraversalSelector::bounded("manager", 1).unwrap())
-                    .order_by(OrderingSelector::ascending("profile", "display_name").unwrap())
+                    .project(AspectFieldSelector::new("identity", "id")?)
+                    .project(AspectFieldSelector::new("profile", "display_name")?)
+                    .traverse(TraversalSelector::bounded("manager", 1)?)
+                    .order_by(OrderingSelector::ascending("profile", "display_name")?)
             },
             |shape| {
                 shape
-                    .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+                    .field(AuthoredResultShapeField::new("identity", "id", "id")?)
                     .field(
                         AuthoredResultShapeField::new(
                             "profile",
                             "display_name",
                             "display_name",
                         )
-                        .unwrap(),
+                        ?,
                     )
             },
         )
     })
-    .unwrap();
+    ?;
 
 assert_eq!(
     team.receipt().graph_family(),
@@ -592,17 +666,17 @@ let result = workspace
         read.anchored_bounded_ancestor_detail(
             "User",
             schema,
-            RelationName::new("manager").unwrap(),
+            RelationName::new("manager")?,
             2,
             |query| {
-                query.project(AspectFieldSelector::new("identity", "id").unwrap())
+                query.project(AspectFieldSelector::new("identity", "id")?)
             },
             |shape| {
-                shape.field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+                shape.field(AuthoredResultShapeField::new("identity", "id", "id")?)
             },
         )
     })
-    .unwrap();
+    ?;
 
 assert_eq!(result.receipt().scope_class().as_str(), "anchored_expansion");
 ```
@@ -626,17 +700,17 @@ let result = workspace
         read.local_successor_walk_detail(
             "User",
             schema,
-            RelationName::new("next").unwrap(),
+            RelationName::new("next")?,
             3,
             |query| {
-                query.project(AspectFieldSelector::new("identity", "id").unwrap())
+                query.project(AspectFieldSelector::new("identity", "id")?)
             },
             |shape| {
-                shape.field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+                shape.field(AuthoredResultShapeField::new("identity", "id", "id")?)
             },
         )
     })
-    .unwrap();
+    ?;
 
 assert_eq!(result.receipt().scope_class().as_str(), "local_neighborhood");
 assert_eq!(
@@ -663,21 +737,21 @@ let result = workspace
             "User",
             schema,
             [
-                RelationName::new("manager").unwrap(),
-                RelationName::new("mentor").unwrap(),
+                RelationName::new("manager")?,
+                RelationName::new("mentor")?,
             ],
             2,
             |query| {
                 query
-                    .project(AspectFieldSelector::new("identity", "id").unwrap())
-                    .order_by(OrderingSelector::ascending("profile", "display_name").unwrap())
+                    .project(AspectFieldSelector::new("identity", "id")?)
+                    .order_by(OrderingSelector::ascending("profile", "display_name")?)
             },
             |shape| {
-                shape.field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+                shape.field(AuthoredResultShapeField::new("identity", "id", "id")?)
             },
         )
     })
-    .unwrap();
+    ?;
 
 assert_eq!(result.receipt().scope_class().as_str(), "anchored_expansion");
 assert_eq!(

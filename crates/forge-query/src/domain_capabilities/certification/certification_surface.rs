@@ -6,7 +6,7 @@ use crate::domain_capabilities::certification::{
     forge_query_domain_capability_public_surface_inventory,
     forge_query_domain_capability_target_dx_digest,
 };
-use crate::identity::hash_parts;
+use crate::domain_capabilities::identity::compose_certification_surface_digest;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDomainCapabilityCertificationSurface {
@@ -30,16 +30,15 @@ impl ForgeQueryDomainCapabilityCertificationSurface {
         golden_transcript_count: usize,
         compile_fail_boundary_count: usize,
     ) -> Self {
-        let certification_surface_digest = hash_parts(&[
-            "forge_query_domain_capability_certification_surface_v1".to_string(),
-            format!("public-surface:{public_surface_digest}"),
-            format!("target-dx:{target_dx_digest}"),
-            format!("golden:{golden_transcript_digest}"),
-            format!("compile-fail:{compile_fail_boundary_digest}"),
-            format!("categories:{category_count}"),
-            format!("golden-count:{golden_transcript_count}"),
-            format!("compile-fail-count:{compile_fail_boundary_count}"),
-        ]);
+        let certification_surface_digest = compose_certification_surface_digest(
+            &public_surface_digest,
+            &target_dx_digest,
+            &golden_transcript_digest,
+            &compile_fail_boundary_digest,
+            category_count,
+            golden_transcript_count,
+            compile_fail_boundary_count,
+        );
         Self {
             public_surface_digest,
             target_dx_digest,

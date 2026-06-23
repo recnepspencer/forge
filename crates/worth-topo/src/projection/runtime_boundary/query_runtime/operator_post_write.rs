@@ -1,7 +1,6 @@
-use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQueryWorkspace};
-#[cfg(test)]
 use forge_query::facade::{
-    ForgeQueryBatchWriteReceiptInspection, ForgeQueryBatchWriteRetainedArtifact,
+    ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection,
+    ForgeQueryBatchWriteRetainedArtifact, ForgeQueryWorkspace,
 };
 
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
@@ -12,7 +11,6 @@ use crate::topology_operators::application::TopologyMutationApplicationError;
 #[derive(Debug, Clone)]
 pub(crate) struct TopologyPostWriteQueryArtifact {
     materialized: MaterializedTopologyView,
-    #[cfg(test)]
     retained_artifact: ForgeQueryBatchWriteRetainedArtifact,
     #[cfg(test)]
     execution_shape: TopologyQueryMutationLaneExecutionShape,
@@ -42,7 +40,6 @@ impl TopologyPostWriteQueryArtifact {
         let _ = execution_shape;
         Ok(Self {
             materialized,
-            #[cfg(test)]
             retained_artifact,
             #[cfg(test)]
             execution_shape,
@@ -54,7 +51,6 @@ impl TopologyPostWriteQueryArtifact {
         self.retained_artifact.receipt()
     }
 
-    #[cfg(test)]
     pub(crate) fn inspection(&self) -> &ForgeQueryBatchWriteReceiptInspection {
         self.retained_artifact.inspection()
     }

@@ -1,7 +1,7 @@
 use super::super::schema::{
     PrimitiveConstructionCompoundGrazingKind, PrimitiveConstructionCompoundMotionKind,
 };
-use crate::construction::digest::digest_owned_parts;
+use crate::construction::tests::support::evidence_reports::sealed_report_identity;
 use worth_geom::facade::PrimitiveRealizationExhaustionWitnessKind;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -18,11 +18,16 @@ impl PrimitiveConstructionCompoundMotionParityRow {
         motion_kind: PrimitiveConstructionCompoundMotionKind,
         motion_digest: String,
     ) -> Self {
-        let row_digest = digest_owned_parts(&[
-            scenario_id.clone(),
-            motion_kind.as_str().to_string(),
-            motion_digest.clone(),
-        ]);
+        let row_digest = sealed_report_identity(
+            "worth-kernel.construction.compound-parity",
+            "motion-parity-row",
+            |report| {
+                report
+                    .value_participating("scenario", scenario_id.clone())?
+                    .shape_participating("motion-kind", motion_kind.as_str())?
+                    .value_participating("motion", motion_digest.clone())
+            },
+        );
         Self {
             scenario_id,
             motion_kind,
@@ -62,11 +67,16 @@ impl PrimitiveConstructionCompoundGrazingBoundaryRow {
         grazing_kind: PrimitiveConstructionCompoundGrazingKind,
         grazing_digest: String,
     ) -> Self {
-        let row_digest = digest_owned_parts(&[
-            scenario_id.clone(),
-            grazing_kind.as_str().to_string(),
-            grazing_digest.clone(),
-        ]);
+        let row_digest = sealed_report_identity(
+            "worth-kernel.construction.compound-parity",
+            "grazing-boundary-row",
+            |report| {
+                report
+                    .value_participating("scenario", scenario_id.clone())?
+                    .shape_participating("grazing-kind", grazing_kind.as_str())?
+                    .value_participating("grazing", grazing_digest.clone())
+            },
+        );
         Self {
             scenario_id,
             grazing_kind,
@@ -108,12 +118,17 @@ impl PrimitiveConstructionCompoundExhaustionWitnessParityRow {
         siege_row_digest: String,
         witness_row_digest: String,
     ) -> Self {
-        let row_digest = digest_owned_parts(&[
-            scenario_id.clone(),
-            witness_kind.as_str().to_string(),
-            siege_row_digest.clone(),
-            witness_row_digest.clone(),
-        ]);
+        let row_digest = sealed_report_identity(
+            "worth-kernel.construction.compound-parity",
+            "exhaustion-witness-row",
+            |report| {
+                report
+                    .value_participating("scenario", scenario_id.clone())?
+                    .shape_participating("witness-kind", witness_kind.as_str())?
+                    .value_participating("siege-row", siege_row_digest.clone())?
+                    .value_participating("witness-row", witness_row_digest.clone())
+            },
+        );
         Self {
             scenario_id,
             witness_kind,

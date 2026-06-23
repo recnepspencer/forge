@@ -5,13 +5,19 @@ use crate::declarative_live::{
     declare_runtime_live_query_session_with_grouped_baseline, DeclarativeLiveQueryRequest,
     DeclarativeLiveViewShape, DeclarativeProjectionField,
 };
-use crate::identity::hash_parts;
-use crate::lower_runtime_routing::{
-    ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeCapabilityEligibility,
-    ForgeQueryLowerRuntimeCapabilityRequest, ForgeQueryLowerRuntimeRouteKind,
-    ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeSeamKey,
-    LiveViewDeclarationAdmissionBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
+use crate::lower_runtime_routing::{
+    forge_query_lower_runtime_retained_evidence_identity, ForgeQueryLowerRuntimeAuthorityOwner,
+    ForgeQueryLowerRuntimeBoundaryEnvelope, ForgeQueryLowerRuntimeBoundaryExecutionReceipt,
+    ForgeQueryLowerRuntimeCapabilityEligibility, ForgeQueryLowerRuntimeCapabilityRequest,
+    ForgeQueryLowerRuntimeRouteKind, ForgeQueryLowerRuntimeRoutePlan,
+    ForgeQueryLowerRuntimeRouteSubjectIdentity, ForgeQueryLowerRuntimeSeamKey,
+    ForgeQueryLowerRuntimeSubjectIdentity, LiveViewDeclarationAdmissionBoundaryReceipt,
+    SubscriptionActivationBoundaryReceipt,
+};
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::{
     ForgeQueryRuntimeLiveSubscriptionInstallation, LiveViewDeclarationAdmissionReceipt,
 };
@@ -45,143 +51,68 @@ const RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY: &str =
 
 pub(crate) fn representative_public_live_view_declaration_row() -> RepresentativeArtifacts {
     let fixture = live_aggregate_fixture();
-    let subject_digest = hash_parts(&[
-        fixture
-            .declaration_boundary
-            .readmission_receipt()
-            .eligibility()
-            .request()
-            .request_digest()
-            .to_string(),
-        fixture.installation.installation_digest().to_string(),
-    ]);
-    let request = ForgeQueryLowerRuntimeCapabilityRequest::new(
+    aggregate_route_artifacts(
         ForgeQueryLowerRuntimeSeamKey::PublicLiveViewDeclaration,
-        ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
-        ForgeQueryLowerRuntimeAuthorityOwner::Query,
         "Public live view declaration",
-        subject_digest,
-    );
-    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(
-        request.clone(),
-        hash_parts(&[
-            fixture
-                .declaration_boundary
-                .readmission_receipt()
-                .eligibility()
-                .eligibility_digest()
-                .to_string(),
-            fixture.installation.installation_digest().to_string(),
-        ]),
-    );
-    let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(
-        eligibility.clone(),
-        hash_parts(&[
-            "public-live-view-declaration".to_string(),
-            fixture
-                .declaration_boundary
-                .boundary_execution_receipt()
-                .boundary_execution_digest()
-                .to_string(),
-            fixture.installation.installation_digest().to_string(),
-        ]),
-    );
-    let retained_evidence = hash_parts(&[
-        fixture
-            .declaration_boundary
-            .boundary_envelope()
-            .envelope_digest()
-            .to_string(),
-        fixture.installation.installation_digest().to_string(),
-    ]);
-    let boundary_receipt =
-        crate::lower_runtime_routing::ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
-        &route_plan,
-        &retained_evidence,
-    );
-    let envelope =
-        crate::lower_runtime_routing::ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
-            ForgeQueryLowerRuntimeSeamKey::PublicLiveViewDeclaration,
-            &route_plan,
-            &boundary_receipt,
-            &retained_evidence,
-        );
-    RepresentativeArtifacts {
-        seam_key: ForgeQueryLowerRuntimeSeamKey::PublicLiveViewDeclaration,
-        request,
-        eligibility,
-        route_plan: Some(route_plan),
-        boundary_receipt,
-        envelope,
-        evidence_source: ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture,
-    }
+        public_live_declaration_evidence(&fixture),
+    )
 }
 
 pub(crate) fn representative_runtime_live_installation_orchestration_row() -> RepresentativeArtifacts
 {
     let fixture = live_aggregate_fixture();
-    let subject_digest = hash_parts(&[
-        fixture
-            .activation_boundary
-            .route_plan()
-            .eligibility()
-            .request()
-            .request_digest()
-            .to_string(),
-        fixture.installation.installation_digest().to_string(),
-    ]);
-    let request = ForgeQueryLowerRuntimeCapabilityRequest::new(
+    aggregate_route_artifacts(
         ForgeQueryLowerRuntimeSeamKey::RuntimeLiveInstallationOrchestration,
+        "Runtime live installation orchestration",
+        runtime_live_installation_evidence(&fixture),
+    )
+}
+
+struct LiveAggregateFixture {
+    declaration_boundary: LiveViewDeclarationAdmissionBoundaryReceipt,
+    activation_boundary: SubscriptionActivationBoundaryReceipt,
+    _installation: ForgeQueryRuntimeLiveSubscriptionInstallation,
+}
+
+fn aggregate_route_artifacts(
+    seam_key: ForgeQueryLowerRuntimeSeamKey,
+    capability_label: &'static str,
+    evidence: ForgeQueryEvidenceIdentity,
+) -> RepresentativeArtifacts {
+    let request = ForgeQueryLowerRuntimeCapabilityRequest::new(
+        seam_key,
         ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
         ForgeQueryLowerRuntimeAuthorityOwner::Query,
-        "Runtime live installation orchestration",
-        subject_digest,
+        capability_label,
+        ForgeQueryLowerRuntimeSubjectIdentity::compose(capability_label)
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("aggregate"), &evidence)
+            .seal(),
     );
-    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(
+    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
         request.clone(),
-        hash_parts(&[
-            fixture
-                .activation_boundary
-                .route_plan()
-                .route_digest()
-                .to_string(),
-            fixture.installation.installation_digest().to_string(),
-        ]),
+        &evidence,
     );
     let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(
         eligibility.clone(),
-        hash_parts(&[
-            "runtime-live-installation-orchestration".to_string(),
-            fixture.installation.installation_digest().to_string(),
-            fixture
-                .activation_boundary
-                .boundary_envelope()
-                .envelope_digest()
-                .to_string(),
-        ]),
+        ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+            capability_label,
+            &evidence,
+        ),
     );
-    let retained_evidence = hash_parts(&[
-        fixture.installation.installation_digest().to_string(),
-        fixture
-            .activation_boundary
-            .boundary_execution_receipt()
-            .boundary_execution_digest()
-            .to_string(),
-    ]);
-    let boundary_receipt =
-        crate::lower_runtime_routing::ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
+    let retained_evidence =
+        forge_query_lower_runtime_retained_evidence_identity(capability_label, &evidence);
+    let boundary_receipt = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
         &route_plan,
         &retained_evidence,
     );
-    let envelope =
-        crate::lower_runtime_routing::ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
-            ForgeQueryLowerRuntimeSeamKey::RuntimeLiveInstallationOrchestration,
-            &route_plan,
-            &boundary_receipt,
-            &retained_evidence,
-        );
+    let envelope = ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
+        seam_key,
+        &route_plan,
+        &boundary_receipt,
+        &retained_evidence,
+    );
     RepresentativeArtifacts {
-        seam_key: ForgeQueryLowerRuntimeSeamKey::RuntimeLiveInstallationOrchestration,
+        seam_key,
         request,
         eligibility,
         route_plan: Some(route_plan),
@@ -191,10 +122,44 @@ pub(crate) fn representative_runtime_live_installation_orchestration_row() -> Re
     }
 }
 
-struct LiveAggregateFixture {
-    declaration_boundary: LiveViewDeclarationAdmissionBoundaryReceipt,
-    activation_boundary: SubscriptionActivationBoundaryReceipt,
-    installation: ForgeQueryRuntimeLiveSubscriptionInstallation,
+fn public_live_declaration_evidence(fixture: &LiveAggregateFixture) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("declaration_request"),
+            fixture
+                .declaration_boundary
+                .boundary_envelope()
+                .request_identity(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("declaration_envelope"),
+            fixture
+                .declaration_boundary
+                .boundary_envelope()
+                .envelope_identity(),
+        )
+        .seal()
+}
+
+fn runtime_live_installation_evidence(
+    fixture: &LiveAggregateFixture,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("declaration_envelope"),
+            fixture
+                .declaration_boundary
+                .boundary_envelope()
+                .envelope_identity(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("activation_envelope"),
+            fixture
+                .activation_boundary
+                .boundary_envelope()
+                .envelope_identity(),
+        )
+        .seal()
 }
 
 fn live_aggregate_fixture() -> LiveAggregateFixture {
@@ -219,7 +184,7 @@ fn live_aggregate_fixture() -> LiveAggregateFixture {
     let session = declare_runtime_live_query_session_with_grouped_baseline(
         request.clone(),
         schema_view,
-        "live-aggregate-snapshot",
+        phase_six_snapshot_identity("live-aggregate-snapshot"),
         None::<Vec<(String, String)>>,
     )
     .expect("live aggregate fixture should declare a runtime live session");
@@ -235,27 +200,28 @@ fn live_aggregate_fixture() -> LiveAggregateFixture {
         );
     let selection = select_query_subscription_family(live_admission, work_budget())
         .expect("live aggregate fixture should select a subscription family");
-    let subscription_family = selection.family().as_str().to_string();
+    let subscription_family = selection.family().clone();
     let declaration = declare_query_subscription(selection, slice_budget())
         .expect("live aggregate fixture should declare a subscription");
-    let subscription_declaration_digest = declaration.declaration_digest().as_str().to_string();
     let lowering = lower_query_subscription_to_bridge(declaration, lowering_budget())
         .expect("live aggregate fixture should lower a subscription");
     let admission = admit_query_subscription(lowering, admission_budget())
         .expect("live aggregate fixture should admit the lowered subscription");
-    let bridge_declaration_digest = admission.bridge_declaration_digest().to_string();
-    let admission_digest = admission.admission_digest().to_string();
-    let basis_binding_digest = admission.basis_binding_digest().to_string();
-    let signal_strategy_digest = admission.signal_strategy_digest().to_string();
+    let bridge_declaration_identity = admission.bridge_declaration_identity().clone();
+    let admission_identity = admission.evidence_identity().clone();
+    let basis_binding_identity = admission.basis_binding_identity().clone();
+    let signal_strategy_identity = admission.signal_strategy_identity().clone();
     let activation = prepare_subscription_activation(admission);
     let activation_receipt = crate::runtime::SubscriptionActivationReceipt::from_activation(
         LIVE_AGGREGATE_VIEW_NAME,
         &activation,
-        "certified-live-aggregate-support",
+        crate::runtime::runtime_subscription_support_evidence_identity(
+            "certified-live-aggregate-support",
+        ),
         None,
     );
-    let support_evidence = activation_receipt.support_evidence().to_string();
-    let activation_digest = activation_receipt.activation_digest().to_string();
+    let activation_identity = activation_receipt.activation_identity().clone();
+    let support_identity = activation_receipt.support_identity().clone();
     let activation_boundary = SubscriptionActivationBoundaryReceipt::from_activation(
         LIVE_AGGREGATE_VIEW_NAME,
         &activation,
@@ -263,34 +229,72 @@ fn live_aggregate_fixture() -> LiveAggregateFixture {
     );
     let (attachment, active_lane_counters, consumer_attachment_counters) =
         installation_attachment(&activation);
-    let active_lane_digest = attachment.lane_digest().as_str().to_string();
     let installation = ForgeQueryRuntimeLiveSubscriptionInstallation::new(
         LIVE_AGGREGATE_VIEW_NAME,
-        session.canonical().query().digest().as_str(),
-        session.live_view().lowering().digest(),
+        crate::runtime::live_subscription_source_identity(
+            "query",
+            activation.query_declaration_identity(),
+        ),
+        crate::runtime::live_subscription_source_identity(
+            "live_view",
+            &crate::runtime::live_subscription_view_shape_source_identity(
+                session.live_view().lowering().family(),
+            ),
+        ),
+        session.canonical().result_shape().digest().clone(),
         subscription_family,
-        subscription_declaration_digest,
-        bridge_declaration_digest,
-        admission_digest,
-        activation_digest,
-        basis_binding_digest,
-        signal_strategy_digest,
-        active_lane_digest,
+        crate::runtime::live_subscription_source_identity(
+            "subscription_declaration",
+            activation.query_declaration_identity(),
+        ),
+        crate::runtime::live_subscription_source_identity(
+            "bridge_declaration",
+            &bridge_declaration_identity,
+        ),
+        crate::runtime::live_subscription_source_identity("admission", &admission_identity),
+        crate::runtime::live_subscription_source_identity(
+            "activation",
+            &activation_identity,
+        ),
+        crate::runtime::live_subscription_source_identity("basis_binding", &basis_binding_identity),
+        crate::runtime::live_subscription_source_identity(
+            "signal_strategy",
+            &signal_strategy_identity,
+        ),
+        crate::runtime::live_subscription_source_identity(
+            "active_lane",
+            attachment.lane_digest().evidence_identity(),
+        ),
         &attachment,
         runtime_subscription_budget_policy(),
-        RUNTIME_ACTIVE_LIFECYCLE_BUDGET_POLICY,
-        RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY,
+        crate::runtime::ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity::active_lifecycle_policy(
+            RUNTIME_ACTIVE_LIFECYCLE_BUDGET_POLICY,
+        ),
+        crate::runtime::ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity::consumer_attachment_policy(
+            RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY,
+        ),
         active_lane_counters,
         consumer_attachment_counters,
-        support_evidence,
+        crate::runtime::live_subscription_source_identity(
+            "support",
+            &support_identity,
+        ),
         activation.counters().clone(),
     );
 
     LiveAggregateFixture {
         declaration_boundary,
         activation_boundary,
-        installation,
+        _installation: installation,
     }
+}
+
+fn phase_six_snapshot_identity(label: &'static str) -> ForgeQuerySnapshotIdentity {
+    ForgeQuerySnapshotIdentity::preview(
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WriteReceiptSnapshotIdentity)
+            .field_shape(ForgeQueryEvidenceTag::new("phase_six_fixture"), label)
+            .seal(),
+    )
 }
 
 fn installation_attachment(
@@ -312,7 +316,7 @@ fn installation_attachment(
         &handle,
         SubscriptionConsumerAttachmentRequest::admitted(
             "runtime-live-aggregate",
-            activation.activation_digest(),
+            activation.activation_projection().label(),
         ),
         consumer_attachment_budget(),
     )
@@ -359,12 +363,15 @@ fn consumer_attachment_budget() -> SubscriptionConsumerAttachmentBudget {
     )
 }
 
-fn runtime_subscription_budget_policy() -> String {
-    [
-        RUNTIME_SUBSCRIPTION_FAMILY_BUDGET_POLICY,
-        RUNTIME_SUBSCRIPTION_SLICE_BUDGET_POLICY,
-        RUNTIME_SUBSCRIPTION_BRIDGE_BUDGET_POLICY,
-        RUNTIME_SUBSCRIPTION_ADMISSION_BUDGET_POLICY,
-    ]
-    .join("|")
+fn runtime_subscription_budget_policy(
+) -> crate::runtime::ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity {
+    crate::runtime::ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity::subscription_policy(
+        [
+            RUNTIME_SUBSCRIPTION_FAMILY_BUDGET_POLICY,
+            RUNTIME_SUBSCRIPTION_SLICE_BUDGET_POLICY,
+            RUNTIME_SUBSCRIPTION_BRIDGE_BUDGET_POLICY,
+            RUNTIME_SUBSCRIPTION_ADMISSION_BUDGET_POLICY,
+        ]
+        .join("|"),
+    )
 }

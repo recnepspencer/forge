@@ -12,15 +12,17 @@ pub enum TopologyQueryBoundaryCleanupArea {
     ReadViewDecode,
     BasisAdapter,
     PublicFacade,
+    DerivedValidationRehome,
 }
 
 impl TopologyQueryBoundaryCleanupArea {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::OperatorPath,
         Self::SnapshotSurfaces,
         Self::ReadViewDecode,
         Self::BasisAdapter,
         Self::PublicFacade,
+        Self::DerivedValidationRehome,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -30,6 +32,7 @@ impl TopologyQueryBoundaryCleanupArea {
             Self::ReadViewDecode => "read_view_decode",
             Self::BasisAdapter => "basis_adapter",
             Self::PublicFacade => "public_facade",
+            Self::DerivedValidationRehome => "derived_validation_rehome",
         }
     }
 }
@@ -120,6 +123,7 @@ pub fn certify_topology_query_boundary_cleanup_closeout(
         rows::certify_read_view_decode_row()?,
         rows::certify_basis_adapter_row()?,
         rows::certify_public_facade_row()?,
+        rows::certify_derived_validation_rehome_row()?,
     ];
     let cleanup_complete = rows
         .iter()

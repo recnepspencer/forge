@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::{
     forge_query_lower_runtime_closeout_registry, forge_query_lower_runtime_crossing_inventory,
@@ -140,30 +142,57 @@ impl ForgeQueryLowerRuntimeSupportRow {
     }
 
     pub fn row_digest(&self) -> String {
-        let mut parts = vec![
-            "lower_runtime_support_row_v1".to_string(),
-            format!("seam:{}", self.seam_key.as_str()),
-            format!("capability:{}", self.capability_label),
-            format!("owner:{}", self.authority_owner.as_str()),
-            format!("route_kind:{}", self.route_kind.as_str()),
-            format!("artifact:{}", self.artifact_strength.as_str()),
-            format!("posture:{}", self.posture.as_str()),
-        ];
+        let mut identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "lower_runtime_support_row_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("seam"), self.seam_key.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("capability"),
+            self.capability_label,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("owner"),
+            self.authority_owner.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("route_kind"),
+            self.route_kind.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("artifact"),
+            self.artifact_strength.as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("posture"), self.posture.as_str());
         match self.detail {
             ForgeQueryLowerRuntimeSupportDetail::Crossing => {
-                parts.push("detail:crossing".to_string());
+                identity = identity.field_shape(ForgeQueryEvidenceTag::new("detail"), "crossing");
             }
             ForgeQueryLowerRuntimeSupportDetail::Closeout {
                 closeout_target,
                 required_closeout,
                 certification_row,
             } => {
-                parts.push(format!("detail:closeout:{closeout_target}"));
-                parts.push(format!("required_closeout:{required_closeout}"));
-                parts.push(format!("certification_row:{certification_row}"));
+                identity = identity
+                    .field_shape(ForgeQueryEvidenceTag::new("detail"), "closeout")
+                    .field_value(
+                        ForgeQueryEvidenceTag::new("closeout_target"),
+                        closeout_target,
+                    )
+                    .field_value(
+                        ForgeQueryEvidenceTag::new("required_closeout"),
+                        required_closeout,
+                    )
+                    .field_value(
+                        ForgeQueryEvidenceTag::new("certification_row"),
+                        certification_row,
+                    );
             }
         }
-        hash_parts(&parts)
+        identity.seal().as_str().to_string()
     }
 }
 
@@ -189,13 +218,26 @@ impl ForgeQueryLowerRuntimeSupportMatrix {
     }
 
     pub fn matrix_digest(&self) -> String {
-        hash_parts(
-            &self
-                .rows
-                .iter()
-                .map(ForgeQueryLowerRuntimeSupportRow::row_digest)
-                .collect::<Vec<_>>(),
-        )
+        let row_identities = self
+            .rows
+            .iter()
+            .map(|row| {
+                ForgeQueryEvidenceIdentity::compose(
+                    ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+                )
+                .field_value(ForgeQueryEvidenceTag::new("support_row"), row.row_digest())
+                .seal()
+            })
+            .collect::<Vec<_>>();
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "lower_runtime_support_matrix_v1",
+            )
+            .field_evidence_identity_sequence(ForgeQueryEvidenceTag::new("rows"), &row_identities)
+            .seal()
+            .as_str()
+            .to_string()
     }
 }
 

@@ -4,6 +4,9 @@ use forge_query::facade::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeServerQuerySupportPosture {
+    ProductIndependent {
+        label: String,
+    },
     QueryReadSupported {
         family_contract: ForgeQueryRuntimePublicApiFamilyContract,
     },
@@ -50,6 +53,9 @@ impl ForgeServerQuerySupportPosture {
         &self,
     ) -> forge_query::facade::ForgeQueryLowerRuntimeSupportPosture {
         match self {
+            Self::ProductIndependent { .. } => {
+                forge_query::facade::ForgeQueryLowerRuntimeSupportPosture::Forbidden
+            }
             Self::DownstreamDeliverySupported {
                 runtime_resume_support_posture,
                 ..
@@ -75,6 +81,9 @@ impl ForgeServerQuerySupportPosture {
         &self,
     ) -> forge_query::facade::ForgeQueryLowerRuntimeSupportPosture {
         match self {
+            Self::ProductIndependent { .. } => {
+                forge_query::facade::ForgeQueryLowerRuntimeSupportPosture::Forbidden
+            }
             Self::DownstreamDeliverySupported {
                 durable_resume_support_posture,
                 ..
@@ -98,6 +107,9 @@ impl ForgeServerQuerySupportPosture {
 
     pub(crate) fn canonical_label(&self) -> String {
         match self {
+            Self::ProductIndependent { label } => {
+                format!("product-independent:{label}")
+            }
             Self::QueryReadSupported { family_contract } => {
                 format!("query-read-supported:{}", family_contract.contract_digest())
             }

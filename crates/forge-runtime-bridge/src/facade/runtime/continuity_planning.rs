@@ -17,6 +17,17 @@ impl RuntimeBridge {
         crate::continuity::BridgeEligibleContinuityRequestSet::from_planned(planned)
     }
 
+    /// Plans continuity requests directly from a planned route before delivery.
+    pub fn plan_continuity_requests_from_planned_route(
+        &self,
+        planned_route: &BridgePlannedRoute,
+    ) -> Result<BridgeEligibleContinuityRequestSet, BridgeContinuityError> {
+        let planned = crate::continuity::BridgePlannedContinuityRequestSet::from_planned_route(
+            planned_route,
+        )?;
+        crate::continuity::BridgeEligibleContinuityRequestSet::from_planned(planned)
+    }
+
     /// Materializes one historical lineage packet from eligible continuity requests.
     pub fn plan_historical_lineage_packet(
         &self,

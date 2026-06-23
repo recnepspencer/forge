@@ -63,7 +63,7 @@ impl ForgeQueryPreviewEffectBindingDisposition {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryPreviewHandleBindingEvidence {
-    label: String,
+    label: ForgeQuerySessionLabel,
     handle_name: String,
     pub(super) family: ForgeQueryPreviewHandleBindingFamily,
     source_lane: ForgeQueryAuthorityLane,
@@ -78,13 +78,13 @@ pub struct ForgeQueryPreviewHandleBindingEvidence {
 
 impl ForgeQueryPreviewHandleBindingEvidence {
     pub(super) fn live_view(
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         handle_name: &str,
         effect_policy: ForgeQueryEffectPolicy,
         basis_evidence: &[String],
     ) -> Self {
         Self {
-            label: label.to_string(),
+            label: label.clone(),
             handle_name: handle_name.to_string(),
             family: ForgeQueryPreviewHandleBindingFamily::LiveView,
             source_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
@@ -99,13 +99,13 @@ impl ForgeQueryPreviewHandleBindingEvidence {
     }
 
     pub(super) fn computed(
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         handle_name: &str,
         effect_policy: ForgeQueryEffectPolicy,
         basis_evidence: &[String],
     ) -> Self {
         Self {
-            label: label.to_string(),
+            label: label.clone(),
             handle_name: handle_name.to_string(),
             family: ForgeQueryPreviewHandleBindingFamily::ComputedView,
             source_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
@@ -120,7 +120,7 @@ impl ForgeQueryPreviewHandleBindingEvidence {
     }
 
     pub(super) fn effect(
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         handle_name: &str,
         source_lane: ForgeQueryAuthorityLane,
         effect_policy: ForgeQueryEffectPolicy,
@@ -128,7 +128,7 @@ impl ForgeQueryPreviewHandleBindingEvidence {
         basis_evidence: &[String],
     ) -> Self {
         Self {
-            label: label.to_string(),
+            label: label.clone(),
             handle_name: handle_name.to_string(),
             family: ForgeQueryPreviewHandleBindingFamily::Effect,
             source_lane,
@@ -146,7 +146,15 @@ impl ForgeQueryPreviewHandleBindingEvidence {
     }
 
     pub fn label(&self) -> &str {
+        self.label.display()
+    }
+
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
         &self.label
+    }
+
+    pub fn label_identity(&self) -> &crate::evidence_identity::ForgeQueryEvidenceIdentity {
+        self.label.identity_digest()
     }
 
     pub fn handle_name(&self) -> &str {

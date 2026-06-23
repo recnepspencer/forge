@@ -1,77 +1,19 @@
-error: cannot construct `ForgeQueryFeedbackPhaseGraphInspection` with struct literal syntax due to private fields
-  --> tests/ui/runtime_feedback_phase_graph_inspection_constructor_private.rs:7:13
+error[E0560]: struct `ForgeQueryFeedbackPhaseGraphInspection` has no field named `trigger_commit_identity`
+  --> tests/ui/runtime_feedback_phase_graph_inspection_constructor_private.rs:10:9
    |
- 7 |     let _ = ForgeQueryFeedbackPhaseGraphInspection {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 8 |         effect_name: String::new(),
-   |         -------------------------- private field
- 9 |         trigger_source_kind: forge_query::facade::ForgeQueryEffectTriggerSourceKind::LiveView,
-   |         ------------------------------------------------------------------------------------- private field
 10 |         trigger_commit_identity: String::new(),
-   |         -------------------------------------- private field
-11 |         source_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-   |         -------------------------------------------------------- private field
-12 |         terminal_lane: ForgeQueryAuthorityLane::EffectDeliveryState,
-   |         ----------------------------------------------------------- private field
-13 |         effect_policy: Some(ForgeQueryEffectPolicy::AuthoritativeAllowed),
-   |         ----------------------------------------------------------------- private field
-14 |         loop_prevention: forge_query::facade::ForgeQueryEffectLoopPrevention::SingleCommitBoundary,
-   |         ------------------------------------------------------------------------------------------ private field
-15 |         idempotence: forge_query::facade::ForgeQueryEffectIdempotence::DeliveryReceiptIdentity,
-   |         -------------------------------------------------------------------------------------- private field
-16 |         termination: ForgeQueryFeedbackTermination::Delivered,
-   |         ----------------------------------------------------- private field
-17 |         phase_nodes: vec![ForgeQueryFeedbackPhaseNode::TruthRead],
-   |         --------------------------------------------------------- private field
-18 |         resubscribed_live_view_count: 0,
-   |         ------------------------------- private field
-19 |         resubscribed_derived_view_count: 0,
-   |         ---------------------------------- private field
-20 |         pending_write_intent_count: 0,
-   |         ----------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryFeedbackPhaseGraphInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_feedback_phase_graph_inspection_constructor_private.rs:21:23
+   |
 21 |         graph_digest: String::new(),
-   |         --------------------------- private field
+   |                       ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_feedback_phase_graph_inspection_constructor_private.rs:22:28
+   |
 22 |         inspection_digest: String::new(),
-   |         -------------------------------- private field
-   |
-   = note: ...and other private fields `write_adjacent_trigger_class` and `write_adjacent_trigger_origin_identity` that were not provided
-help: you might have meant to use an associated function to build this type
-   |
- 7 -     let _ = ForgeQueryFeedbackPhaseGraphInspection {
- 8 -         effect_name: String::new(),
- 9 -         trigger_source_kind: forge_query::facade::ForgeQueryEffectTriggerSourceKind::LiveView,
-10 -         trigger_commit_identity: String::new(),
-11 -         source_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-12 -         terminal_lane: ForgeQueryAuthorityLane::EffectDeliveryState,
-13 -         effect_policy: Some(ForgeQueryEffectPolicy::AuthoritativeAllowed),
-14 -         loop_prevention: forge_query::facade::ForgeQueryEffectLoopPrevention::SingleCommitBoundary,
-15 -         idempotence: forge_query::facade::ForgeQueryEffectIdempotence::DeliveryReceiptIdentity,
-16 -         termination: ForgeQueryFeedbackTermination::Delivered,
-17 -         phase_nodes: vec![ForgeQueryFeedbackPhaseNode::TruthRead],
-18 -         resubscribed_live_view_count: 0,
-19 -         resubscribed_derived_view_count: 0,
-20 -         pending_write_intent_count: 0,
-21 -         graph_digest: String::new(),
-22 -         inspection_digest: String::new(),
-23 -     };
- 7 +     let _ = ForgeQueryFeedbackPhaseGraphInspection::new(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _);
-   |
- 7 -     let _ = ForgeQueryFeedbackPhaseGraphInspection {
- 8 -         effect_name: String::new(),
- 9 -         trigger_source_kind: forge_query::facade::ForgeQueryEffectTriggerSourceKind::LiveView,
-10 -         trigger_commit_identity: String::new(),
-11 -         source_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-12 -         terminal_lane: ForgeQueryAuthorityLane::EffectDeliveryState,
-13 -         effect_policy: Some(ForgeQueryEffectPolicy::AuthoritativeAllowed),
-14 -         loop_prevention: forge_query::facade::ForgeQueryEffectLoopPrevention::SingleCommitBoundary,
-15 -         idempotence: forge_query::facade::ForgeQueryEffectIdempotence::DeliveryReceiptIdentity,
-16 -         termination: ForgeQueryFeedbackTermination::Delivered,
-17 -         phase_nodes: vec![ForgeQueryFeedbackPhaseNode::TruthRead],
-18 -         resubscribed_live_view_count: 0,
-19 -         resubscribed_derived_view_count: 0,
-20 -         pending_write_intent_count: 0,
-21 -         graph_digest: String::new(),
-22 -         inspection_digest: String::new(),
-23 -     };
- 7 +     let _ = ForgeQueryFeedbackPhaseGraphInspection::from_effect_intent_receipt(_);
-   |
+   |                            ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`

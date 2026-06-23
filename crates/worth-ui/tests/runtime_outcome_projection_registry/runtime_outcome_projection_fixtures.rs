@@ -1,4 +1,5 @@
 use forge_query::facade::{
+    worth_ui_query_binding_evidence_identity, ForgeQueryEvidenceIdentity,
     ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeAsyncResultStateKind,
 };
 use worth_ui::facade::{
@@ -75,8 +76,12 @@ fn async_result_state(
 ) -> ForgeQueryRuntimeAsyncResultState {
     ForgeQueryRuntimeAsyncResultState::new(
         kind,
-        causality_digest,
-        "basis.digest",
-        "generation.digest",
+        &fixture_async_evidence_identity(causality_digest),
+        &fixture_async_evidence_identity("basis.digest"),
+        &fixture_async_evidence_identity("generation.digest"),
     )
+}
+
+fn fixture_async_evidence_identity(label: &str) -> ForgeQueryEvidenceIdentity {
+    worth_ui_query_binding_evidence_identity("runtime-outcome-fixture", &[label.to_string()])
 }

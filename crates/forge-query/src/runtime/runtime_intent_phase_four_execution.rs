@@ -41,11 +41,20 @@ impl ForgeQueryRuntime {
                 ForgeQueryIntentDecisionTraceEnvelope::for_execution_violation(
                     &handoff, &execution, &violation,
                 );
+            let snapshot_evidence_identity = execution
+                .mutation_receipt()
+                .snapshot_identity
+                .evidence_identity();
             let execution_provenance =
-                ForgeQueryIntentExecutionProvenance::for_authoritative_binding(
-                    &binding,
+                ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+                    binding.family(),
+                    binding.entrypoint(),
+                    binding.execution_seam(),
+                    binding.handoff().decision_digest(),
+                    binding.handoff().handoff_digest(),
+                    binding.binding_digest(),
                     execution.outcome_digest(),
-                    execution.mutation_receipt().snapshot_token.as_str(),
+                    &snapshot_evidence_identity,
                 );
             self.intent_violation_error(
                 &declaration,
@@ -57,11 +66,21 @@ impl ForgeQueryRuntime {
         })?;
         let summary = classify_receipt_mutation_summary(execution.mutation_receipt());
         let handoff = ForgeQueryAdmittedIntentExecutionHandoff::from(binding.handoff().clone());
-        let execution_provenance = ForgeQueryIntentExecutionProvenance::for_authoritative_binding(
-            &binding,
-            execution.outcome_digest(),
-            execution.mutation_receipt().snapshot_token.as_str(),
-        );
+        let snapshot_evidence_identity = execution
+            .mutation_receipt()
+            .snapshot_identity
+            .evidence_identity();
+        let execution_provenance =
+            ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+                binding.family(),
+                binding.entrypoint(),
+                binding.execution_seam(),
+                binding.handoff().decision_digest(),
+                binding.handoff().handoff_digest(),
+                binding.binding_digest(),
+                execution.outcome_digest(),
+                &snapshot_evidence_identity,
+            );
         let decision_trace_envelope =
             ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution(&handoff, &execution);
         let write_receipt = self
@@ -81,6 +100,7 @@ impl ForgeQueryRuntime {
                 ForgeQueryMutationMetadata::default(),
                 Some(decision_trace_envelope.clone()),
                 Some(execution_provenance.clone()),
+                None,
             )
             .map_err(|error| {
                 self.intent_execution_routing_error(
@@ -118,17 +138,28 @@ impl ForgeQueryRuntime {
                 )
             })?;
         let declaration = binding.declaration().clone();
+        self.admit_effect_write_intent_graph_obligation_boundary(&handoff, &pending_delivery)?;
         let execution = self.backend.execute_intent(&declaration)?;
         admit_effect_execution(binding.handoff(), &execution).map_err(|violation| {
             let decision_trace_envelope =
                 ForgeQueryIntentDecisionTraceEnvelope::for_execution_violation(
                     &handoff, &execution, &violation,
                 );
-            let execution_provenance = ForgeQueryIntentExecutionProvenance::for_effect_binding(
-                &binding,
-                execution.outcome_digest(),
-                execution.mutation_receipt().snapshot_token.as_str(),
-            );
+            let snapshot_evidence_identity = execution
+                .mutation_receipt()
+                .snapshot_identity
+                .evidence_identity();
+            let execution_provenance =
+                ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+                    binding.family(),
+                    binding.entrypoint(),
+                    binding.execution_seam(),
+                    binding.handoff().decision_digest(),
+                    binding.handoff().handoff_digest(),
+                    binding.binding_digest(),
+                    execution.outcome_digest(),
+                    &snapshot_evidence_identity,
+                );
             self.intent_violation_error(
                 &declaration,
                 violation,
@@ -138,11 +169,21 @@ impl ForgeQueryRuntime {
             )
         })?;
         let summary = classify_receipt_mutation_summary(execution.mutation_receipt());
-        let execution_provenance = ForgeQueryIntentExecutionProvenance::for_effect_binding(
-            &binding,
-            execution.outcome_digest(),
-            execution.mutation_receipt().snapshot_token.as_str(),
-        );
+        let snapshot_evidence_identity = execution
+            .mutation_receipt()
+            .snapshot_identity
+            .evidence_identity();
+        let execution_provenance =
+            ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+                binding.family(),
+                binding.entrypoint(),
+                binding.execution_seam(),
+                binding.handoff().decision_digest(),
+                binding.handoff().handoff_digest(),
+                binding.binding_digest(),
+                execution.outcome_digest(),
+                &snapshot_evidence_identity,
+            );
         let decision_trace_envelope =
             ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution(&handoff, &execution);
         let write_receipt = self
@@ -162,6 +203,7 @@ impl ForgeQueryRuntime {
                 ForgeQueryMutationMetadata::default(),
                 Some(decision_trace_envelope.clone()),
                 Some(execution_provenance.clone()),
+                None,
             )
             .map_err(|error| {
                 self.intent_execution_routing_error(
@@ -208,5 +250,24 @@ impl ForgeQueryRuntime {
             .ok_or_else(|| {
                 ForgeQueryRuntimeError::MissingPendingWriteIntent(binding.effect_name().to_string())
             })
+    }
+
+    fn admit_effect_write_intent_graph_obligation_boundary(
+        &self,
+        _handoff: &ForgeQueryAdmittedIntentExecutionHandoff,
+        pending_delivery: &ForgeQueryEffectDelivery,
+    ) -> Result<(), ForgeQueryRuntimeError> {
+        if self
+            .graph_obligation_registration_catalog()
+            .registration_count()
+            == 0
+        {
+            return Ok(());
+        }
+        Err(
+            ForgeQueryRuntimeError::GraphObligationEffectTouchDescriptorMissing {
+                effect_name: pending_delivery.effect_name().to_string(),
+            },
+        )
     }
 }

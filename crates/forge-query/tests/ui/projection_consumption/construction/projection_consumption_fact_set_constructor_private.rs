@@ -8,7 +8,7 @@ fn main() {
         declaration_digest: "declaration:test".to_string(),
         contract_digest: "contract:test".to_string(),
         source_family: ProjectionSourceFamily::QueryWriteReceipt,
-        source_identity: "commit:test".to_string(),
+        source_identity: "commit:test".to_string().into(),
         support_posture: ProjectionContractSupportPosture::Admitted,
         counters: ProjectionFactExtractionCounters::default(),
         fact_set_digest: "fact-set:test".to_string(),

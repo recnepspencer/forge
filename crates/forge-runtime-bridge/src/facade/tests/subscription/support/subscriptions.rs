@@ -30,7 +30,9 @@ pub(crate) fn activation_ready_detail_subscription_in_runtime(
     let admitted = runtime
         .admit_subscription(
             &declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            ),
         )
         .expect("admission should succeed");
     runtime.prepare_subscription_activation(&admitted)
@@ -41,7 +43,7 @@ pub(crate) fn admitted_detail_subscription_in_runtime(
 ) -> crate::facade::AdmittedBridgeSubscription {
     admitted_detail_subscription_for_snapshot_in_runtime(
         runtime,
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     )
 }
 
@@ -93,7 +95,9 @@ pub(crate) fn branch_head_detail_subscription_in_runtime(
     runtime
         .admit_subscription(
             &declaration,
-            BridgeSubscriptionBasisRequest::branch_head(TruthBranchIdentity::new("main")),
+            BridgeSubscriptionBasisRequest::branch_head(
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            ),
         )
         .expect("branch-head admission should succeed")
 }
@@ -119,7 +123,9 @@ pub(crate) fn activation_ready_collection_subscription() -> (
     let admitted = runtime
         .admit_subscription(
             &declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            ),
         )
         .expect("admission should succeed");
     let ready = runtime.prepare_subscription_activation(&admitted);
@@ -200,7 +206,9 @@ pub(crate) fn active_collection_subscription_with_fanout(
     let admitted = runtime
         .admit_subscription(
             &declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            ),
         )
         .expect("admission should succeed");
     let ready = runtime.prepare_subscription_activation(&admitted);

@@ -1,4 +1,28 @@
 use super::super::super::support::*;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+use crate::runtime::evidence_identities::{
+    runtime_state_snapshot_basis_label_identity,
+    runtime_state_snapshot_result_shape_label_identity,
+    runtime_state_snapshot_test_subject_identity,
+};
+
+fn test_runtime_world_basis() -> crate::application::ForgeQueryAdmittedWorldBasis {
+    crate::application::ForgeQueryAdmittedWorldBasis::new(
+        "test.runtime.basis",
+        "TestRuntimeBasis",
+        "operating:runtime-basis".to_string(),
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("test_handle"),
+                "handle:runtime-basis",
+            )
+            .seal(),
+        "support:snapshot".to_string(),
+        crate::query_basis_lifecycle::query_basis_lifecycle_support_report().report_identity(),
+    )
+}
 #[test]
 fn runtime_public_handle_contract_freezes_inspection_sections_and_future_state_lanes() {
     let workspace = stateful_bridge_task_runtime()
@@ -213,15 +237,23 @@ fn runtime_workspace_state_snapshots_are_async_safe_and_support_gated() {
 #[test]
 fn runtime_state_snapshot_is_digest_bound_to_basis_shape_lane_and_state() {
     let ready = ForgeQueryRuntimeStateSnapshot::ready(
-        "basis:current",
-        "shape:table",
+        runtime_state_snapshot_basis_label_identity(&runtime_state_snapshot_test_subject_identity(
+            "basis:current",
+        )),
+        runtime_state_snapshot_result_shape_label_identity(
+            &runtime_state_snapshot_test_subject_identity("shape:table"),
+        ),
         ForgeQueryAuthorityLane::AuthoritativeTruth,
         "sync runtime-backed rows are ready",
     );
     let pending = ForgeQueryRuntimeStateSnapshot::deferred(
         ForgeQueryRuntimeStateKind::Pending,
-        "basis:current",
-        "shape:table",
+        runtime_state_snapshot_basis_label_identity(&runtime_state_snapshot_test_subject_identity(
+            "basis:current",
+        )),
+        runtime_state_snapshot_result_shape_label_identity(
+            &runtime_state_snapshot_test_subject_identity("shape:table"),
+        ),
         ForgeQueryAuthorityLane::BridgeExternalState,
         "async/resource family is deferred",
     );
@@ -243,7 +275,10 @@ fn runtime_workspace_states_basis_lifecycle_surfaces() {
     .expect("current-head observation should admit");
     let preview = crate::query_basis_lifecycle::admit_observation_basis_intent(
         crate::query_basis_lifecycle::RawBasisIntent::preview(
-            "preview:state-1",
+            forge_runtime_bridge::facade::BridgePreviewSessionIdentity::from_stable_name(
+                "preview:state-1",
+            )
+            .bridge_admission_evidence(),
             crate::query_basis_lifecycle::BasisOperationLaneRequest::Observation,
         ),
     )
@@ -271,16 +306,7 @@ fn runtime_workspace_inspection_surfaces_basis_lifecycle_artifacts() {
         ),
     )
     .expect("current-head observation should admit");
-    let world_basis = crate::application::ForgeQueryAdmittedWorldBasis::new(
-        "test.runtime.basis",
-        "TestRuntimeBasis",
-        "operating:runtime-basis".to_string(),
-        "handle:runtime-basis".to_string(),
-        "support:snapshot".to_string(),
-        crate::query_basis_lifecycle::query_basis_lifecycle_support_report()
-            .report_digest()
-            .to_string(),
-    );
+    let world_basis = test_runtime_world_basis();
 
     let capability_inspection = workspace
         .inspect(&current)
@@ -318,7 +344,8 @@ fn runtime_workspace_inspection_surfaces_basis_lifecycle_artifacts() {
             );
             assert_eq!(
                 inspection.shape_digest(),
-                world_basis.handle_identity_digest()
+                runtime_state_snapshot_result_shape_label_identity(world_basis.handle_identity())
+                    .as_str()
             );
         }
         other => panic!("expected admitted world basis inspection, got {other:?}"),
@@ -330,8 +357,12 @@ fn runtime_workspace_inspection_surfaces_basis_lifecycle_artifacts() {
 fn runtime_state_snapshot_rejects_ready_state_through_deferred_constructor() {
     let _ = ForgeQueryRuntimeStateSnapshot::deferred(
         ForgeQueryRuntimeStateKind::Ready,
-        "basis:current",
-        "shape:table",
+        runtime_state_snapshot_basis_label_identity(&runtime_state_snapshot_test_subject_identity(
+            "basis:current",
+        )),
+        runtime_state_snapshot_result_shape_label_identity(
+            &runtime_state_snapshot_test_subject_identity("shape:table"),
+        ),
         ForgeQueryAuthorityLane::AuthoritativeTruth,
         "ready state must not enter through the deferred constructor",
     );

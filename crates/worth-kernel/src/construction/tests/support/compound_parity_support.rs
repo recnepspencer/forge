@@ -1,6 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 use crate::construction::tests::support::compound_lane_support::{
     compound_authoring_order_parity_verified, compound_canonical_rows,
     compound_scenario_stable_across_orders,
@@ -19,6 +18,7 @@ use crate::construction::tests::support::compound_runtime::{
 use crate::construction::tests::support::compound_specialized_rows::{
     derive_specialized_rows, require_specialized_row_field,
 };
+use crate::construction::tests::support::evidence_reports::sealed_report_identity;
 use crate::construction::tests::support::realization::prepare_primitive_construction_realization_exhaustion_witness_report;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -179,15 +179,17 @@ pub(crate) fn motion_report_digest(
     siege: &PrimitiveConstructionCompoundAdversarialLanes,
     rows: &[PrimitiveConstructionCompoundMotionParityRow],
 ) -> String {
-    digest_owned_parts_with_scope(
-        ConstructionDigestScope::ParityIdentity,
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .chain(std::iter::once(
-                motion_parity_verified(siege, rows).to_string(),
-            ))
-            .collect::<Vec<_>>(),
+    sealed_report_identity(
+        "worth-kernel.construction.compound-parity",
+        "motion-parity-report",
+        |report| {
+            report
+                .value_sequence_participating(
+                    "row-identities",
+                    rows.iter().map(|row| row.row_digest().to_string()),
+                )?
+                .bool_participating("parity-verified", motion_parity_verified(siege, rows))
+        },
     )
 }
 
@@ -228,15 +230,17 @@ pub(crate) fn grazing_report_digest(
     siege: &PrimitiveConstructionCompoundAdversarialLanes,
     rows: &[PrimitiveConstructionCompoundGrazingBoundaryRow],
 ) -> String {
-    digest_owned_parts_with_scope(
-        ConstructionDigestScope::ParityIdentity,
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .chain(std::iter::once(
-                grazing_parity_verified(siege, rows).to_string(),
-            ))
-            .collect::<Vec<_>>(),
+    sealed_report_identity(
+        "worth-kernel.construction.compound-parity",
+        "grazing-parity-report",
+        |report| {
+            report
+                .value_sequence_participating(
+                    "row-identities",
+                    rows.iter().map(|row| row.row_digest().to_string()),
+                )?
+                .bool_participating("parity-verified", grazing_parity_verified(siege, rows))
+        },
     )
 }
 
@@ -287,14 +291,16 @@ pub(crate) fn exhaustion_report_digest(
     siege: &PrimitiveConstructionCompoundAdversarialLanes,
     rows: &[PrimitiveConstructionCompoundExhaustionWitnessParityRow],
 ) -> String {
-    digest_owned_parts_with_scope(
-        ConstructionDigestScope::ParityIdentity,
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .chain(std::iter::once(
-                exhaustion_parity_verified(siege, rows).to_string(),
-            ))
-            .collect::<Vec<_>>(),
+    sealed_report_identity(
+        "worth-kernel.construction.compound-parity",
+        "exhaustion-parity-report",
+        |report| {
+            report
+                .value_sequence_participating(
+                    "row-identities",
+                    rows.iter().map(|row| row.row_digest().to_string()),
+                )?
+                .bool_participating("parity-verified", exhaustion_parity_verified(siege, rows))
+        },
     )
 }

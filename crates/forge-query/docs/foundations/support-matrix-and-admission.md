@@ -85,6 +85,12 @@ Good to know:
   is now verified too. Remaining grouped follow-on work belongs to later
   durable/store-backed neighbors rather than runtime-backed grouped reusable
   composition/template closure or the grouped view-family row
+- the application support report also publishes
+  `support_report().identity_boundary_closure()`, whose posture is explicit:
+  `Closed` means the identity-boundary residue scans are clean on the ordinary
+  runtime-backed path, `Partial` means typed closure work exists but same-class
+  residue or support posture still blocks full closure, and `Open` means the
+  closure is genuinely not finished yet
 
 ## How It Executes
 
@@ -96,22 +102,172 @@ Good to know:
 4. admitted families return a sealed family contract
 5. deferred or unsupported families deny typed and early
 
+## Consumer Snapshots And Pins
+
+For downstream consumers, live support inspection is not always enough. A crate
+may need to freeze the rows it depends on and fail its own build when those
+rows regress. Use the [Consumer Kit](consumer-kit.md) for that job.
+
+The consumer path is:
+
+1. project the live matrix with `project_workspace_support_snapshot(...)`
+2. export or load the schema-versioned support snapshot document when needed
+3. declare required rows with `support_pinning_contract(...)`
+4. evaluate the pin contract against the snapshot
+5. fail through typed `ForgeQuerySupportPinFinding` rows when required posture
+   regresses
+
+Support snapshots are projections of this matrix. They are not a second support
+authority. Support pins bind to typed row identity and live row digests; a
+local list of required family names is not real pinning.
+
+## Graph Obligation Rows
+
+Graph touch obligation support rows must name the same covered obligation kinds
+as the graph authority, certification, and Consumer Kit docs:
+
+- `BlockingInvariant`
+- `SchemaContractValidator`
+- `AdvisoryObligation`
+- `PreflightSequencingObligation`
+- `CapabilityGapScreen`
+- `OperatingContextGate`
+
+They must use the same support status vocabulary:
+
+- `Supported`
+- `Unsupported`
+- `NotApplicable`
+- `DiagnosticOnly`
+- `DeferredToBackstop`
+
+Budget posture is part of row honesty. Docs and support rows must name
+`BudgetExceeded`, `budget-exceeded`, state-load counters, cost classes such as
+`sparse-topology`, and artifact-policy-gated diagnostics when large graph or
+boolean-like operations can exceed the admitted proof budget.
+
+Canonical kind labels are `blocking-invariant`,
+`schema-contract-validator`, `advisory-obligation`,
+`preflight-sequencing-obligation`, `capability-gap-screen`, and
+`operating-context-gate`. Canonical support status labels are `supported`,
+`unsupported`, `not-applicable`, `diagnostic-only`, and
+`deferred-to-backstop`.
+
+The `Milestone 9.9 Graph Touch Obligation Authority Hostile Certification Matrix`
+uses this covered lane vocabulary:
+
+- graph composition
+- authoritative command batch
+- scalar mutation
+- effect-triggered write intent
+- declaration entry
+- contribution orchestration
+- read family
+- live read
+- preview mutation
+- preview intent
+- branch intent
+- policy-aware graph mutation
+- primitive construction birth
+- worth-topo operator catalog
+- worth-kernel phase chain
+
+Canonical covered lane labels are `graph-composition`,
+`authoritative-command-batch`, `scalar-mutation`,
+`effect-triggered-write-intent`, `declaration-entry`,
+`contribution-orchestration`, `read-family`, `live-read`,
+`preview-mutation`, `preview-intent`, `branch-intent`,
+`policy-aware-graph-mutation`, `primitive-construction-birth`,
+`worth-topo-operator-catalog`, and `worth-kernel-phase-chain`.
+
+Support rows may deny, defer, or mark a lane not applicable, but they must keep
+the lane visible. A collapsed "batch" row is not a graph obligation support
+row.
+
+## Graph Read Access Planning Rows
+
+Graph read access planning is the Milestone 9.10 access and cost contract for
+declared graph reads. It is separate from graph touch obligation authority:
+obligation rows describe graph meaning that must be checked, while graph read
+access rows describe the access structures required to read graph-shaped data
+without hidden N+1 traversal or unbounded local materialization.
+
+The declaration is the authoring surface. The access plan is the accountability
+surface. Support rows must make it clear whether a graph read executes inline,
+uses bounded ephemeral access structures, streams, requires a persistent index,
+requires async materialization, requires store-backed capability, requires
+domain capability registration, or denies.
+
+The graph read access admission posture vocabulary is:
+
+- `inline_indexed`
+- `bounded_ephemeral_index`
+- `admitted_paged_streaming`
+- `paged_streaming_required`
+- `persistent_index_required`
+- `async_materialization_required`
+- `store_backed_capability_required`
+- `access_capability_registration_required`
+- `denied`
+
+The graph read access denial vocabulary is:
+
+- `budget_exceeded`
+- `required_async_materialization`
+- `required_access_capability_registration`
+- `required_persistent_index`
+- `unsupported_graph_index_support`
+
+The graph read access requirement vocabulary is:
+
+- `directional_adjacency`
+- `reverse_adjacency`
+- `predicate_support`
+- `ordering_support`
+- `traversal_workset`
+- `visited_set`
+- `dedup_set`
+- `proof_support`
+- `result_buffer`
+- `materialization_lifecycle`
+- `live_maintenance_support`
+- `domain_operation_capability_registration`
+
+The required capability owner vocabulary is:
+
+- `query_runtime`
+- `lower_runtime`
+- `persistent_store`
+- `domain_registration`
+- `async_materializer`
+
+Broad boolean graph reads and high-fanout traversals must not be described as
+ordinary inline reads unless their admitted access plan proves that posture. If
+the budget is exceeded, docs and support rows must preserve the typed denial
+and suggested posture instead of recommending local relation loops or broad RAM
+expansion.
+
+Receipt proof is part of support honesty. A read that claims graph-read access
+planning support must expose the consumed plan digest, admission digest,
+requirement-set digest, plan-consumption digest, and execution counters through
+the read receipt.
+
 ## Small Example
 
 ```rust
 use forge_query::facade::ForgeQueryRuntimeFacadeFamily;
 
-let workspace = runtime.workspace("support").unwrap();
+let workspace = runtime.workspace("support")?;
 
 let matrix = workspace.public_support_matrix();
-let live = matrix.row_for_family(ForgeQueryRuntimeFacadeFamily::Live).unwrap();
+let live = matrix.row_for_family(ForgeQueryRuntimeFacadeFamily::Live)?;
 
 assert_eq!(live.status().as_str(), "supported");
 assert!(!live.support_contract_digest().is_empty());
 
 workspace
     .admit_public_api_family(ForgeQueryRuntimeFacadeFamily::Live)
-    .unwrap();
+    ?;
 ```
 
 This is the smallest honest example because it shows both sides: inspect the
@@ -122,15 +278,15 @@ support matrix, then ask for executable admission.
 ```rust
 use forge_query::facade::{ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily};
 
-let workspace = runtime.workspace("future-gates").unwrap();
+let workspace = runtime.workspace("future-gates")?;
 let matrix = workspace.public_support_matrix();
 
-let temporal = matrix.row("temporal").unwrap();
-let async_resource = matrix.row("async-resource").unwrap();
-let downstream_delivery = matrix.row("downstream-delivery-contract").unwrap();
+let temporal = matrix.row("temporal")?;
+let async_resource = matrix.row("async-resource")?;
+let downstream_delivery = matrix.row("downstream-delivery-contract")?;
 let intent = matrix
     .row_for_family(ForgeQueryRuntimeFacadeFamily::Intent)
-    .unwrap();
+    ?;
 
 assert_eq!(temporal.status().as_str(), "supported");
 assert_eq!(temporal.teaching_posture().as_str(), "support-gate-only");
@@ -294,6 +450,8 @@ For deeper checks:
 
 ## Related Docs
 
+- [Graph Touch Obligation Authority](../authoring/graph-touch-obligation-authority.md)
+- [Graph Obligation Consumer Kit](../authoring/graph-obligation-consumer-kit.md)
 - [Workspace Overview](workspace-overview.md)
 - [State](state.md)
 - [Intent Admission](../execution/intent-admission.md)

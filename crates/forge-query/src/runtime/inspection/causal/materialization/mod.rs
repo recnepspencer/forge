@@ -10,7 +10,14 @@ mod temporal_async;
 use super::admission::{
     AdmittedCausalInspection, AdvisoryCausalInspection, DeniedCausalInspection,
 };
-use crate::identity::hash_parts;
+use super::identity::{
+    bridge_causal_admission_summary_kind_label, compose_bridge_causal_denial_identity,
+    compose_bridge_causal_envelope_identity, compose_bridge_causal_envelope_receipt_identity,
+    compose_bridge_causal_explanation_envelope_identity, compose_causal_artifact_causal_identity,
+    compose_causal_artifact_identity, compose_causal_denied_artifact_detail_identity,
+    compose_causal_materialized_detail_identity, CausalInspectionArtifactIdentity,
+};
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 use artifacts::BuiltBridgeBackedArtifact;
 pub use artifacts::DeniedQueryCausalInspectionArtifact;
 pub use artifacts::{
@@ -50,21 +57,21 @@ pub fn materialize_admitted_causal_inspection(
     materialization_policy: CausalInspectionMaterializationPolicy,
 ) -> Result<QueryCausalInspectionArtifact, CausalInspectionMaterializationError> {
     let readmission_proof = validate_bridge_summary(
-        inspection.admitted_inspection_digest(),
-        inspection.subject().anchor_digest(),
+        inspection.admitted_inspection_identity(),
+        inspection.subject().anchor_identity(),
         BridgeCausalInspectionAdmissionSummaryKind::Admitted,
         envelope,
     )?;
     validate_materialization_contract(
-        inspection.subject().query_observation_digest(),
+        inspection.subject().query_observation_evidence_identity(),
         inspection.subject().requested_evidence_families(),
         envelope,
         materialization_policy,
     )?;
     let built = build_bridge_backed_artifact(
         CausalInspectionArtifactKind::Admitted,
-        inspection.admitted_inspection_digest(),
-        inspection.subject().query_observation_digest(),
+        inspection.admitted_inspection_identity(),
+        inspection.subject().query_observation_evidence_identity(),
         None,
         envelope,
         &readmission_proof,
@@ -74,9 +81,9 @@ pub fn materialize_admitted_causal_inspection(
     let temporal_async_explanation = project_admitted_temporal_async_explanation(inspection);
     Ok(QueryCausalInspectionArtifact::Admitted(
         AdmittedQueryCausalInspectionArtifact::from_parts(
-            inspection.admitted_inspection_digest(),
-            inspection.subject().query_observation_digest(),
-            inspection.subject().result_shape_context_digest(),
+            inspection.admitted_inspection_identity(),
+            inspection.subject().query_observation_identity(),
+            inspection.subject().result_shape_context_identity(),
             envelope,
             temporal_async_explanation,
             built,
@@ -91,13 +98,13 @@ pub fn materialize_advisory_causal_inspection(
     materialization_policy: CausalInspectionMaterializationPolicy,
 ) -> Result<QueryCausalInspectionArtifact, CausalInspectionMaterializationError> {
     let readmission_proof = validate_bridge_summary(
-        inspection.advisory_inspection_digest(),
-        inspection.subject().anchor_digest(),
+        inspection.advisory_inspection_identity(),
+        inspection.subject().anchor_identity(),
         BridgeCausalInspectionAdmissionSummaryKind::Advisory,
         envelope,
     )?;
     validate_materialization_contract(
-        inspection.subject().query_observation_digest(),
+        inspection.subject().query_observation_evidence_identity(),
         inspection.subject().requested_evidence_families(),
         envelope,
         materialization_policy,
@@ -108,8 +115,8 @@ pub fn materialize_advisory_causal_inspection(
         .map_or("advisory".to_string(), |kind| kind.as_str().to_string());
     let built = build_bridge_backed_artifact(
         CausalInspectionArtifactKind::Advisory,
-        inspection.advisory_inspection_digest(),
-        inspection.subject().query_observation_digest(),
+        inspection.advisory_inspection_identity(),
+        inspection.subject().query_observation_evidence_identity(),
         Some(&advisory_reason),
         envelope,
         &readmission_proof,
@@ -119,9 +126,9 @@ pub fn materialize_advisory_causal_inspection(
     let temporal_async_explanation = project_advisory_temporal_async_explanation(inspection);
     Ok(QueryCausalInspectionArtifact::Advisory(
         AdvisoryQueryCausalInspectionArtifact::from_parts(
-            inspection.advisory_inspection_digest(),
-            inspection.subject().query_observation_digest(),
-            inspection.subject().result_shape_context_digest(),
+            inspection.advisory_inspection_identity(),
+            inspection.subject().query_observation_identity(),
+            inspection.subject().result_shape_context_identity(),
             advisory_reason,
             envelope,
             temporal_async_explanation,
@@ -146,106 +153,123 @@ pub fn materialize_denied_causal_inspection(
         CausalInspectionPerformanceEnvelope::for_denied_query,
         CausalInspectionPerformanceEnvelope::for_bridge_denial,
     );
-    let bridge_denial_digest = bridge_denial.map(|denial| denial.failure_digest().to_string());
-    let bridge_denial_kind = bridge_denial.map(|denial| denial.kind().as_str().to_string());
-    let bridge_denial_family = bridge_denial.map(|denial| denial.family().as_str().to_string());
+    let bridge_denial_identity = bridge_denial.map(compose_bridge_causal_denial_identity);
+    let bridge_denial_kind = bridge_denial.map(BridgeCausalEnvelopeDenial::kind);
+    let bridge_denial_family = bridge_denial.map(BridgeCausalEnvelopeDenial::family);
     let boundary_categories = policy::boundary_categories();
-    let detail_digest = hash_parts(&[
-        "denied_query_causal_inspection_artifact_detail_v1".to_string(),
-        format!(
-            "query-observation:{}",
-            inspection.subject().query_observation_digest()
-        ),
-        format!(
-            "result-shape:{}",
-            inspection.subject().result_shape_context_digest()
-        ),
-        format!("reason:{denial_reason}"),
-        format!(
-            "bridge-denial:{}",
-            bridge_denial_digest.as_deref().unwrap_or("none")
-        ),
-        format!(
-            "bridge-denial-kind:{}",
-            bridge_denial_kind.as_deref().unwrap_or("none")
-        ),
-        format!(
-            "bridge-denial-family:{}",
-            bridge_denial_family.as_deref().unwrap_or("none")
-        ),
-    ]);
+    let detail_identity = compose_causal_denied_artifact_detail_identity(
+        inspection.subject().query_observation_evidence_identity(),
+        inspection
+            .subject()
+            .result_shape_context_identity()
+            .evidence_identity(),
+        &denial_reason,
+        bridge_denial_identity.as_ref(),
+        bridge_denial_kind,
+        bridge_denial_family,
+    );
     let receipt = CausalMaterializationReceipt::new(
-        inspection.denied_inspection_digest(),
+        inspection.denied_inspection_identity(),
         None,
         None,
         redaction_policy,
         materialization_policy,
         &performance,
-        &detail_digest,
+        detail_identity.evidence_identity(),
     );
-    let artifact_digest = artifact_digest(
+    let artifact_identity = artifact_identity(
         CausalInspectionArtifactKind::Denied,
-        inspection.denied_inspection_digest(),
+        inspection.denied_inspection_identity(),
         None,
         None,
         &receipt,
         None,
-        &detail_digest,
+        detail_identity.evidence_identity(),
     );
     let temporal_async_explanation =
-        project_denied_temporal_async_explanation(inspection, bridge_denial_family.as_deref());
+        project_denied_temporal_async_explanation(inspection, bridge_denial_family);
     QueryCausalInspectionArtifact::Denied(DeniedQueryCausalInspectionArtifact::from_parts(
-        inspection.denied_inspection_digest(),
+        inspection.denied_inspection_identity(),
         denial_reason,
-        inspection.subject().query_observation_digest(),
-        inspection.subject().result_shape_context_digest(),
-        bridge_denial_digest,
+        inspection.subject().query_observation_identity(),
+        inspection.subject().result_shape_context_identity(),
+        bridge_denial_identity,
         bridge_denial_kind,
         bridge_denial_family,
         temporal_async_explanation,
         boundary_categories,
         performance,
         receipt,
-        artifact_digest,
+        artifact_identity,
     ))
 }
 fn validate_bridge_summary(
-    query_admission_digest: &str,
-    anchor_digest: &str,
+    query_admission_identity: &super::identity::CausalInspectionOutcomeIdentity,
+    anchor_identity: &super::observation_identity::CausalObservationAnchorDigest,
     expected_kind: BridgeCausalInspectionAdmissionSummaryKind,
     envelope: &BridgeCausalExplanationEnvelope,
 ) -> Result<CausalBridgeReadmissionProof, CausalInspectionMaterializationError> {
     if envelope.admission_summary_kind() != expected_kind {
         return Err(CausalInspectionMaterializationError::new(
             CausalInspectionMaterializationErrorKind::AdmissionSummaryKindMismatch,
-            &[
-                format!("expected:{expected_kind:?}"),
-                format!("actual:{:?}", envelope.admission_summary_kind()),
-            ],
+            |identity| {
+                identity
+                    .field_shape(
+                        ForgeQueryEvidenceTag::new("expected"),
+                        bridge_causal_admission_summary_kind_label(expected_kind),
+                    )
+                    .field_shape(
+                        ForgeQueryEvidenceTag::new("actual"),
+                        bridge_causal_admission_summary_kind_label(
+                            envelope.admission_summary_kind(),
+                        ),
+                    )
+            },
         ));
     }
     let expected_summary = match expected_kind {
         BridgeCausalInspectionAdmissionSummaryKind::Admitted => {
-            BridgeCausalInspectionAdmissionSummary::admitted(query_admission_digest, anchor_digest)
+            BridgeCausalInspectionAdmissionSummary::admitted(
+                query_admission_identity
+                    .evidence_identity()
+                    .bridge_evidence_identity(),
+                anchor_identity
+                    .evidence_identity()
+                    .bridge_evidence_identity(),
+            )
         }
         BridgeCausalInspectionAdmissionSummaryKind::Advisory => {
-            BridgeCausalInspectionAdmissionSummary::advisory(query_admission_digest, anchor_digest)
+            BridgeCausalInspectionAdmissionSummary::advisory(
+                query_admission_identity
+                    .evidence_identity()
+                    .bridge_evidence_identity(),
+                anchor_identity
+                    .evidence_identity()
+                    .bridge_evidence_identity(),
+            )
         }
     }
     .expect("existing Query admission and anchor digests should form a bridge summary");
-    if expected_summary.summary_digest() != envelope.admission_summary_digest() {
+    if expected_summary.summary_for_reporting() != envelope.admission_summary_for_reporting() {
         return Err(CausalInspectionMaterializationError::new(
             CausalInspectionMaterializationErrorKind::AdmissionSummaryDigestMismatch,
-            &[
-                format!("expected:{}", expected_summary.summary_digest()),
-                format!("actual:{}", envelope.admission_summary_digest()),
-            ],
+            |identity| {
+                identity
+                    .field_value(
+                        ForgeQueryEvidenceTag::new("expected"),
+                        expected_summary.summary_for_reporting(),
+                    )
+                    .field_value(
+                        ForgeQueryEvidenceTag::new("actual"),
+                        envelope.admission_summary_for_reporting(),
+                    )
+            },
         ));
     }
     Ok(
         CausalBridgeReadmissionProof::from_readmitted_bridge_envelope(
-            query_admission_digest,
-            anchor_digest,
+            query_admission_identity,
+            anchor_identity,
             envelope,
         ),
     )
@@ -253,8 +277,8 @@ fn validate_bridge_summary(
 
 fn build_bridge_backed_artifact(
     kind: CausalInspectionArtifactKind,
-    query_admission_digest: &str,
-    query_observation_digest: &str,
+    query_admission_identity: &super::identity::CausalInspectionOutcomeIdentity,
+    query_observation_identity: &ForgeQueryEvidenceIdentity,
     advisory_reason: Option<&str>,
     envelope: &BridgeCausalExplanationEnvelope,
     readmission_proof: &CausalBridgeReadmissionProof,
@@ -274,38 +298,42 @@ fn build_bridge_backed_artifact(
         .count();
     let performance =
         CausalInspectionPerformanceEnvelope::for_bridge_envelope(envelope, redaction_count);
-    let detail_digest = materialized_detail_digest(
-        query_observation_digest,
+    let detail_identity = materialized_detail_identity(
+        query_observation_identity,
         advisory_reason,
         readmission_proof,
         &evidence_references,
         redaction_policy,
         materialization_policy,
     );
+    let bridge_identity = compose_bridge_causal_envelope_identity(envelope.identity());
+    let bridge_envelope_identity = compose_bridge_causal_explanation_envelope_identity(envelope);
+    let bridge_receipt_identity =
+        compose_bridge_causal_envelope_receipt_identity(envelope.receipt());
     let receipt = CausalMaterializationReceipt::new(
-        query_admission_digest,
-        Some(envelope.envelope_digest()),
-        Some(envelope.receipt().receipt_digest()),
+        query_admission_identity,
+        Some(&bridge_envelope_identity),
+        Some(&bridge_receipt_identity),
         redaction_policy,
         materialization_policy,
         &performance,
-        &detail_digest,
+        detail_identity.evidence_identity(),
     );
-    let artifact_digest = artifact_digest(
+    let artifact_identity = artifact_identity(
         kind,
-        query_admission_digest,
-        Some(envelope.identity().identity_digest()),
-        Some(envelope.envelope_digest()),
+        query_admission_identity,
+        Some(&bridge_identity),
+        Some(&bridge_envelope_identity),
         &receipt,
         Some(readmission_proof),
-        &detail_digest,
+        detail_identity.evidence_identity(),
     );
-    let causal_identity_digest = causal_identity_digest(
+    let causal_identity = causal_materialization_identity(
         kind,
-        query_admission_digest,
-        query_observation_digest,
-        Some(envelope.identity().identity_digest()),
-        Some(envelope.envelope_digest()),
+        query_admission_identity,
+        query_observation_identity,
+        Some(&bridge_identity),
+        Some(&bridge_envelope_identity),
     );
     BuiltBridgeBackedArtifact {
         boundary_categories: policy::boundary_categories(),
@@ -313,89 +341,61 @@ fn build_bridge_backed_artifact(
         performance,
         receipt,
         readmission_proof: readmission_proof.clone(),
-        causal_identity_digest,
-        artifact_digest,
+        causal_identity,
+        artifact_identity,
     }
 }
 
-pub(super) fn causal_identity_digest(
+pub(super) fn causal_materialization_identity(
     kind: CausalInspectionArtifactKind,
-    query_admission_digest: &str,
-    query_observation_digest: &str,
-    bridge_identity_digest: Option<&str>,
-    bridge_envelope_digest: Option<&str>,
-) -> String {
-    hash_parts(&[
-        "query_causal_inspection_causal_identity_v1".to_string(),
-        format!("kind:{}", kind.as_str()),
-        format!("query-admission:{query_admission_digest}"),
-        format!("query-observation:{query_observation_digest}"),
-        format!(
-            "bridge-identity:{}",
-            bridge_identity_digest.unwrap_or("none")
-        ),
-        format!(
-            "bridge-envelope:{}",
-            bridge_envelope_digest.unwrap_or("none")
-        ),
-    ])
+    query_admission_identity: &super::identity::CausalInspectionOutcomeIdentity,
+    query_observation_identity: &ForgeQueryEvidenceIdentity,
+    bridge_identity: Option<&ForgeQueryEvidenceIdentity>,
+    bridge_envelope: Option<&ForgeQueryEvidenceIdentity>,
+) -> CausalInspectionArtifactIdentity {
+    compose_causal_artifact_causal_identity(
+        kind,
+        query_admission_identity,
+        query_observation_identity,
+        bridge_identity,
+        bridge_envelope,
+    )
 }
 
-fn materialized_detail_digest(
-    query_observation_digest: &str,
+fn materialized_detail_identity(
+    query_observation_identity: &ForgeQueryEvidenceIdentity,
     advisory_reason: Option<&str>,
     readmission_proof: &CausalBridgeReadmissionProof,
     evidence_references: &[QueryCausalEvidenceReferenceArtifact],
     redaction_policy: CausalInspectionRedactionPolicy,
     materialization_policy: CausalInspectionMaterializationPolicy,
-) -> String {
-    let reference_part = evidence_references
-        .iter()
-        .map(QueryCausalEvidenceReferenceArtifact::reference_digest)
-        .collect::<Vec<_>>()
-        .join("|");
-    hash_parts(&[
-        "query_causal_inspection_materialized_detail_v1".to_string(),
-        format!("query-observation:{query_observation_digest}"),
-        format!("advisory:{}", advisory_reason.unwrap_or("none")),
-        format!(
-            "readmission:{}",
-            readmission_proof.readmission_proof_digest()
-        ),
-        format!("references:{reference_part}"),
-        format!("redaction:{}", redaction_policy.as_str()),
-        format!("materialization:{}", materialization_policy.as_str()),
-    ])
+) -> super::identity::CausalInspectionMaterializedDetailIdentity {
+    compose_causal_materialized_detail_identity(
+        query_observation_identity,
+        advisory_reason,
+        readmission_proof,
+        evidence_references,
+        redaction_policy,
+        materialization_policy,
+    )
 }
 
-fn artifact_digest(
+fn artifact_identity(
     kind: CausalInspectionArtifactKind,
-    query_admission_digest: &str,
-    bridge_identity_digest: Option<&str>,
-    bridge_envelope_digest: Option<&str>,
+    query_admission_identity: &super::identity::CausalInspectionOutcomeIdentity,
+    bridge_identity: Option<&ForgeQueryEvidenceIdentity>,
+    bridge_envelope: Option<&ForgeQueryEvidenceIdentity>,
     receipt: &CausalMaterializationReceipt,
     readmission_proof: Option<&CausalBridgeReadmissionProof>,
-    detail_digest: &str,
-) -> String {
-    hash_parts(&[
-        "query_causal_inspection_artifact_v1".to_string(),
-        format!("kind:{}", kind.as_str()),
-        format!("query-admission:{query_admission_digest}"),
-        format!(
-            "bridge-identity:{}",
-            bridge_identity_digest.unwrap_or("none")
-        ),
-        format!(
-            "bridge-envelope:{}",
-            bridge_envelope_digest.unwrap_or("none")
-        ),
-        format!("receipt:{}", receipt.receipt_digest()),
-        format!(
-            "readmission:{}",
-            readmission_proof
-                .map(CausalBridgeReadmissionProof::readmission_proof_digest)
-                .unwrap_or("none")
-        ),
-        format!("detail:{detail_digest}"),
-    ])
+    detail_identity: &ForgeQueryEvidenceIdentity,
+) -> CausalInspectionArtifactIdentity {
+    compose_causal_artifact_identity(
+        kind,
+        query_admission_identity,
+        bridge_identity,
+        bridge_envelope,
+        receipt.receipt_identity(),
+        readmission_proof.map(CausalBridgeReadmissionProof::readmission_proof_identity),
+        detail_identity,
+    )
 }

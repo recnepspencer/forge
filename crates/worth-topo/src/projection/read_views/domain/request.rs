@@ -1,23 +1,94 @@
 use super::error::TopologyReadError;
 use crate::projection::runtime_boundary::read_lowering::schema::TopologyDomainTraversalRelation;
-use forge_query::facade::RelationName;
+use forge_query::facade::{ForgeQueryEntityIdentity, RelationName};
 
 use crate::projection::read_views::domain::read_proof::report::TopologyReadRequestFamily;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TopologyReadAnchorIdentity {
+    value: String,
+    authority: TopologyReadAnchorAuthority,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TopologyReadAnchorAuthority {
+    QueryEntityIdentity,
+    RuntimeRowLabel,
+}
+
+impl TopologyReadAnchorIdentity {
+    pub fn from_query_entity_identity(
+        identity: &ForgeQueryEntityIdentity,
+    ) -> Result<Self, TopologyReadError> {
+        let Some(parts) = identity.relational_entity_record_parts() else {
+            if identity.relational_record_parts().is_some() {
+                return Err(authority_denial(
+                    TopologyReadAnchorAuthority::QueryEntityIdentity,
+                    "query relation identity cannot anchor topology entity read",
+                ));
+            }
+            return Err(authority_denial(
+                TopologyReadAnchorAuthority::QueryEntityIdentity,
+                "non-relational query entity identity",
+            ));
+        };
+        Ok(Self {
+            value: format!(
+                "entity:{}:{}:{}",
+                parts.partition_id(),
+                parts.local_slot(),
+                parts.generation()
+            ),
+            authority: TopologyReadAnchorAuthority::QueryEntityIdentity,
+        })
+    }
+
+    pub(crate) fn from_runtime_row_label(value: impl Into<String>) -> Self {
+        Self {
+            value: value.into(),
+            authority: TopologyReadAnchorAuthority::RuntimeRowLabel,
+        }
+    }
+
+    pub(crate) fn as_str(&self) -> &str {
+        self.value.as_str()
+    }
+
+    fn validate(&self) -> Result<(), TopologyReadError> {
+        let trimmed = self.value.trim();
+        if trimmed.is_empty() {
+            return Err(authority_denial(
+                self.authority,
+                "empty topology read anchor identity",
+            ));
+        }
+        if trimmed.starts_with("projection:")
+            || trimmed.starts_with("cached:")
+            || trimmed.contains("terminal_projection")
+        {
+            return Err(authority_denial(
+                self.authority,
+                "projection-reconstructed topology read anchor identity",
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum TopologyReadRequest {
     HalfEdgeSharedVertexNeighborhood {
-        source_half_edge_identity: String,
+        source_half_edge_identity: TopologyReadAnchorIdentity,
     },
     HalfEdgeRadialNeighborhood {
-        source_half_edge_identity: String,
+        source_half_edge_identity: TopologyReadAnchorIdentity,
     },
     LoopCycleNeighborhood {
-        start_half_edge_identity: String,
+        start_half_edge_identity: TopologyReadAnchorIdentity,
         depth: u8,
     },
     LocalRewireNeighborhood {
-        moved_half_edge_identity: String,
+        moved_half_edge_identity: TopologyReadAnchorIdentity,
         cycle_depth: u8,
     },
 }
@@ -57,6 +128,7 @@ impl TopologyReadTraversalStep {
 
 impl TopologyReadRequest {
     pub(crate) fn validate(&self) -> Result<(), TopologyReadError> {
+        self.anchor().validate()?;
         let request_family = self.family();
         for step in self.traversal_steps() {
             step.validate(request_family)?;
@@ -80,21 +152,25 @@ impl TopologyReadRequest {
     }
 
     pub(crate) fn anchor_identity(&self) -> &str {
+        self.anchor().as_str()
+    }
+
+    fn anchor(&self) -> &TopologyReadAnchorIdentity {
         match self {
             Self::HalfEdgeSharedVertexNeighborhood {
                 source_half_edge_identity,
             }
             | Self::HalfEdgeRadialNeighborhood {
                 source_half_edge_identity,
-            } => source_half_edge_identity.as_str(),
+            } => source_half_edge_identity,
             Self::LoopCycleNeighborhood {
                 start_half_edge_identity,
                 ..
-            } => start_half_edge_identity.as_str(),
+            } => start_half_edge_identity,
             Self::LocalRewireNeighborhood {
                 moved_half_edge_identity,
                 ..
-            } => moved_half_edge_identity.as_str(),
+            } => moved_half_edge_identity,
         }
     }
 
@@ -135,4 +211,17 @@ impl TopologyReadRequest {
             ],
         }
     }
+}
+
+fn authority_denial(
+    authority: TopologyReadAnchorAuthority,
+    reason: &'static str,
+) -> TopologyReadError {
+    let authority_label = match authority {
+        TopologyReadAnchorAuthority::QueryEntityIdentity => "query_entity_identity",
+        TopologyReadAnchorAuthority::RuntimeRowLabel => "runtime_row_label",
+    };
+    TopologyReadError::runtime_boundary_authority_denied(format!(
+        "worth-topo/runtime_boundary/read_lowering rejected {authority_label}: {reason}"
+    ))
 }

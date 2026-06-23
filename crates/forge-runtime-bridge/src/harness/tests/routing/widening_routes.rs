@@ -1,4 +1,3 @@
-use crate::facade::TruthSnapshotIdentity;
 use crate::facade::{
     BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeRouteRequest, MappingSelector,
     SliceWideningPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind, TruthPatchScope,
@@ -13,16 +12,16 @@ use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBr
 fn registered_partition_widening_routes_deterministically() {
     let left_source = InMemoryRelationalBridgeSource::default();
     left_source.insert_committed_patch(committed_partition_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let left_runtime = build_runtime_with_aspects(
         left_source,
         RecordingSignalBridgeSink::default(),
         vec![surface_widening_registration()],
         vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("partition-widening"),
+            BridgeAspectRegistrationId::admit_bridge_owned("partition-widening"),
             TruthPatchScope::for_target(
                 MappingSelector::exact("user"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -42,16 +41,16 @@ fn registered_partition_widening_routes_deterministically() {
 
     let right_source = InMemoryRelationalBridgeSource::default();
     right_source.insert_committed_patch(committed_partition_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let right_runtime = build_runtime_with_aspects(
         right_source,
         RecordingSignalBridgeSink::default(),
         vec![surface_widening_registration()],
         vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("partition-widening"),
+            BridgeAspectRegistrationId::admit_bridge_owned("partition-widening"),
             TruthPatchScope::for_target(
                 MappingSelector::exact("user"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -71,12 +70,12 @@ fn registered_partition_widening_routes_deterministically() {
 
     let left_route = left_runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("partition widening route should plan");
     let right_route = right_runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("partition widening route should plan deterministically");
 

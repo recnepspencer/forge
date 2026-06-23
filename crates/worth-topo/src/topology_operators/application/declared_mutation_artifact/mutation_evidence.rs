@@ -1,17 +1,28 @@
 use forge_query::facade::{
+    ForgeQueryAuthoritativeMutationObligationDispatchProjection,
     ForgeQueryBatchWriteReceiptInspection, ForgeQueryExistingTruthAssertionMode,
+    ForgeQueryGraphObligationDispatchContextKind,
 };
 
 #[cfg_attr(not(test), allow(dead_code))]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(crate) struct TopologyMutationApplicationEvidence {
     backend_verified_update_count: usize,
     backend_verified_delete_count: usize,
+    graph_obligation_envelope_digest: Option<String>,
+    graph_obligation_dispatch_digest: Option<String>,
+    graph_obligation_execution_point: Option<ForgeQueryGraphObligationDispatchContextKind>,
+    graph_obligation_selected_count: usize,
 }
 
 #[cfg_attr(not(test), allow(dead_code))]
 impl TopologyMutationApplicationEvidence {
-    pub(crate) fn from_inspection(inspection: &ForgeQueryBatchWriteReceiptInspection) -> Self {
+    pub(crate) fn from_inspection_and_graph_obligation_projection(
+        inspection: &ForgeQueryBatchWriteReceiptInspection,
+        graph_obligation_projection: Option<
+            &ForgeQueryAuthoritativeMutationObligationDispatchProjection,
+        >,
+    ) -> Self {
         Self {
             backend_verified_update_count: inspection
                 .component_operations()
@@ -39,6 +50,16 @@ impl TopologyMutationApplicationEvidence {
                             })
                 })
                 .count(),
+            graph_obligation_envelope_digest: graph_obligation_projection
+                .and_then(|projection| projection.envelope_digest())
+                .map(str::to_string),
+            graph_obligation_dispatch_digest: graph_obligation_projection
+                .map(|projection| projection.dispatch_digest().to_string()),
+            graph_obligation_execution_point: graph_obligation_projection
+                .and_then(|projection| projection.context_kind()),
+            graph_obligation_selected_count: graph_obligation_projection
+                .map(|projection| projection.rows().len())
+                .unwrap_or(0),
         }
     }
 
@@ -48,5 +69,23 @@ impl TopologyMutationApplicationEvidence {
 
     pub(crate) fn backend_verified_delete_count(&self) -> usize {
         self.backend_verified_delete_count
+    }
+
+    pub(crate) fn graph_obligation_envelope_digest(&self) -> Option<&str> {
+        self.graph_obligation_envelope_digest.as_deref()
+    }
+
+    pub(crate) fn graph_obligation_dispatch_digest(&self) -> Option<&str> {
+        self.graph_obligation_dispatch_digest.as_deref()
+    }
+
+    pub(crate) fn graph_obligation_execution_point(
+        &self,
+    ) -> Option<ForgeQueryGraphObligationDispatchContextKind> {
+        self.graph_obligation_execution_point
+    }
+
+    pub(crate) fn graph_obligation_selected_count(&self) -> usize {
+        self.graph_obligation_selected_count
     }
 }

@@ -9,10 +9,11 @@ use worth_geom::facade::{
     PrimitiveRealizationExhaustionReason, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
 };
 
-use crate::construction::tests::support::corpus_replay_view::{
+use crate::construction::certification::corpus::replay_siege_report::{
     row_attempted_realization_strategies, row_birth_digest, row_blocking_boundary,
     row_construction_breadth, row_exhaustion_reason, row_realization_strategy, row_rejection_class,
     row_rejection_locality, row_stability_class, siege_report,
+    PrimitiveConstructionCorpusReplaySiegeReport,
 };
 
 #[test]
@@ -185,7 +186,7 @@ fn corpus_replay_siege_anchors_public_rows_on_named_canonical_lane_not_vector_po
     let report = siege_report("corpus-replay-siege.named-canonical-lane");
     let mut reordered_lanes = report.authoring_order_lanes().to_vec();
     reordered_lanes.rotate_left(2);
-    let reordered = crate::construction::tests::support::corpus_replay_view::PrimitiveConstructionCorpusReplaySiegeView::new(
+    let reordered = PrimitiveConstructionCorpusReplaySiegeReport::new(
         report.rows().to_vec(),
         report
             .rows()

@@ -1,13 +1,13 @@
+use crate::construction::certification::corpus::replay_siege_report::{
+    row_attempted_realization_strategies, row_normalization_disposition, siege_report,
+    siege_workspace,
+};
 use crate::construction::tests::support::corpus_cases::{
     simplex_world_collapsed_admitted_local_or_exact_intent,
     simplex_world_collapsed_explicit_exhaustion_intent,
     simplex_world_collapsed_threshold_rejected_intent,
 };
 use crate::construction::tests::support::corpus_replay_row::PrimitiveConstructionCorpusParameterRole;
-use crate::construction::tests::support::corpus_replay_view::{
-    row_attempted_realization_strategies, row_normalization_disposition, siege_report,
-    siege_workspace,
-};
 use crate::construction::tests::support::corpus_simplex_registry::{
     required_simplex_exhaustion_witness_kinds, required_simplex_ladder_scenarios,
 };

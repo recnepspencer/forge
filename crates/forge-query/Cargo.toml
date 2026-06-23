@@ -9,6 +9,7 @@ keywords = ["query", "canonicalization", "facade", "typed"]
 categories = ["data-structures", "science"]
 
 [dependencies]
+arc-swap = "1"
 forge-foundational.workspace = true
 forge-proof.workspace = true
 forge-relational.workspace = true
@@ -17,6 +18,8 @@ forge-signal.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2 = "0.10"
+proc-macro2 = { version = "1", features = ["span-locations"] }
+syn = { version = "2", features = ["full", "visit"] }
 
 [dev-dependencies]
 trybuild.workspace = true

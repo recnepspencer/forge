@@ -1,3 +1,9 @@
+use super::evidence_identities::{
+    runtime_state_snapshot_basis_label_identity,
+    runtime_state_snapshot_result_shape_batch_write_receipt_identity,
+    runtime_state_snapshot_result_shape_facade_family_identity,
+    runtime_state_snapshot_result_shape_write_receipt_identity,
+};
 use super::ordinary_runtime_posture::project_live_subscription_ordinary_runtime_posture;
 use super::{
     ForgeQueryAuthorityLane, ForgeQueryBatchWriteReceipt, ForgeQueryDerivedViewHandle,
@@ -26,18 +32,18 @@ pub(crate) fn snapshot_live_view_name(
         .last_delivery
         .as_ref()
         .map(|delivery| delivery.mixed_cause_delivery());
-    let (result_shape_digest, explanation) = match (
+    let (result_shape_identity, explanation) = match (
         state.last_delivery.as_ref(),
         state.async_result_state.as_ref(),
         mixed_cause_delivery,
     ) {
         (Some(delivery), Some(async_result_state), Some(mixed_cause_delivery)) => (
-            installation.view_shape_digest().to_string(),
+            installation.view_shape_identity().clone(),
             format!(
                 "sync runtime-backed live view `{}` is ready through retained subscription evidence; last delivery cause is `{}` with evidence `{}` at sequence {} and relational_patch={}; mixed-cause delivery is `{}` over ordered members `{}` with {} suppressed and {} denied causes; async result state is `{}` with causality `{}` over basis `{}` and generation `{}`",
                 installation.view_name(),
                 delivery.delivery_cause_kind().as_str(),
-                delivery.delivery_cause_digest(),
+                delivery.delivery_cause_for_reporting(),
                 delivery.sequence(),
                 delivery.has_relational_patch(),
                 mixed_cause_delivery.coalescing_kind().as_public_str(),
@@ -47,21 +53,21 @@ pub(crate) fn snapshot_live_view_name(
                     .map(|kind| kind.as_public_str())
                     .collect::<Vec<_>>()
                     .join(","),
-                mixed_cause_delivery.suppressed_cause_digests().len(),
-                mixed_cause_delivery.denied_cause_digests().len(),
+                mixed_cause_delivery.suppressed_cause_identities().len(),
+                mixed_cause_delivery.denied_cause_identities().len(),
                 async_result_state.kind().as_str(),
-                async_result_state.causality_digest(),
-                async_result_state.basis_digest(),
-                async_result_state.generation_digest()
+                async_result_state.causality_for_reporting(),
+                async_result_state.basis_for_reporting(),
+                async_result_state.checkpoint_for_reporting()
             ),
         ),
         (Some(delivery), None, Some(mixed_cause_delivery)) => (
-            installation.view_shape_digest().to_string(),
+            installation.view_shape_identity().clone(),
             format!(
                 "sync runtime-backed live view `{}` is ready through retained subscription evidence; last delivery cause is `{}` with evidence `{}` at sequence {} and relational_patch={}; mixed-cause delivery is `{}` over ordered members `{}` with {} suppressed and {} denied causes",
                 installation.view_name(),
                 delivery.delivery_cause_kind().as_str(),
-                delivery.delivery_cause_digest(),
+                delivery.delivery_cause_for_reporting(),
                 delivery.sequence(),
                 delivery.has_relational_patch(),
                 mixed_cause_delivery.coalescing_kind().as_public_str(),
@@ -71,30 +77,30 @@ pub(crate) fn snapshot_live_view_name(
                     .map(|kind| kind.as_public_str())
                     .collect::<Vec<_>>()
                     .join(","),
-                mixed_cause_delivery.suppressed_cause_digests().len(),
-                mixed_cause_delivery.denied_cause_digests().len()
+                mixed_cause_delivery.suppressed_cause_identities().len(),
+                mixed_cause_delivery.denied_cause_identities().len()
             ),
         ),
         (None, Some(async_result_state), None) => (
-            installation.view_shape_digest().to_string(),
+            installation.view_shape_identity().clone(),
             format!(
                 "sync runtime-backed live view `{}` is ready through retained subscription evidence; async result state is `{}` with causality `{}` over basis `{}` and generation `{}`",
                 installation.view_name(),
                 async_result_state.kind().as_str(),
-                async_result_state.causality_digest(),
-                async_result_state.basis_digest(),
-                async_result_state.generation_digest()
+                async_result_state.causality_for_reporting(),
+                async_result_state.basis_for_reporting(),
+                async_result_state.checkpoint_for_reporting()
             ),
         ),
         (None, None, None) => (
-            installation.view_shape_digest().to_string(),
+            installation.view_shape_identity().clone(),
             format!(
                 "sync runtime-backed live view `{}` is ready through retained subscription evidence",
                 installation.view_name()
             ),
         ),
         _ => (
-            installation.view_shape_digest().to_string(),
+            installation.view_shape_identity().clone(),
             format!(
                 "sync runtime-backed live view `{}` is ready through retained subscription evidence",
                 installation.view_name()
@@ -102,8 +108,8 @@ pub(crate) fn snapshot_live_view_name(
         ),
     };
     let mut snapshot = ForgeQueryRuntimeStateSnapshot::ready(
-        installation.basis_binding_digest(),
-        result_shape_digest,
+        installation.basis_binding_identity().clone(),
+        result_shape_identity,
         installation.authority_lane(),
         explanation,
     )
@@ -114,20 +120,20 @@ pub(crate) fn snapshot_live_view_name(
     if let Some(remask_posture) = state.remask_posture.clone() {
         snapshot = ForgeQueryRuntimeStateSnapshot::deferred(
             remask_posture.disposition_kind().state_kind(),
-            installation.basis_binding_digest(),
-            installation.view_shape_digest().to_string(),
+            remask_posture.basis_identity().clone(),
+            installation.view_shape_identity().clone(),
             installation.authority_lane(),
             format!(
                 "sync runtime-backed live view `{}` is {} through retained remask posture `{}` over basis `{}`; policy `{}`, tenant truth `{}`, tenant schema `{}`, relationship proof `{}`, schema context `{}`",
                 installation.view_name(),
                 remask_posture.disposition_kind().as_str(),
                 remask_posture.reason_kind().as_str(),
-                remask_posture.basis_digest(),
-                remask_posture.policy_digest(),
-                remask_posture.tenant_truth_digest(),
-                remask_posture.tenant_schema_digest(),
-                remask_posture.relationship_proof_digest(),
-                remask_posture.schema_context_digest()
+                remask_posture.basis_for_reporting(),
+                remask_posture.policy_for_reporting(),
+                remask_posture.tenant_truth_for_reporting(),
+                remask_posture.tenant_schema_for_reporting(),
+                remask_posture.relationship_proof_for_reporting(),
+                remask_posture.schema_context_for_reporting()
             ),
         )
         .with_ordinary_runtime_posture(project_live_subscription_ordinary_runtime_posture(state));
@@ -155,8 +161,8 @@ impl<T> ForgeQueryRuntimeStateTarget for &ForgeQueryDerivedViewHandle<T> {
     ) -> Result<ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeError> {
         let inspection = runtime.inspect_derived_view(self)?;
         Ok(ForgeQueryRuntimeStateSnapshot::ready(
-            inspection.dependency_digest(),
-            inspection.materialization_digest(),
+            inspection.dependency_identity(),
+            inspection.materialization_identity(),
             inspection.authority_lane(),
             format!(
                 "sync runtime-backed computed view `{}` is ready through retained materialization evidence",
@@ -191,12 +197,13 @@ impl ForgeQueryRuntimeStateTarget for ForgeQueryRuntimeFacadeFamily {
                 "runtime-backed facade family is unsupported by this runtime"
             }
         });
-        let result_shape_digest = format!("facade-family:{}", self.as_str());
+        let result_shape_identity =
+            runtime_state_snapshot_result_shape_facade_family_identity(self);
         match row.status() {
             ForgeQueryRuntimeFamilySupportStatus::Supported => {
                 Ok(ForgeQueryRuntimeStateSnapshot::ready(
-                    row.contract_digest(),
-                    result_shape_digest,
+                    runtime_state_snapshot_basis_label_identity(row.contract_identity()),
+                    result_shape_identity,
                     row.authority_lanes()
                         .first()
                         .copied()
@@ -207,8 +214,8 @@ impl ForgeQueryRuntimeStateTarget for ForgeQueryRuntimeFacadeFamily {
             ForgeQueryRuntimeFamilySupportStatus::DeferredDebt => {
                 Ok(ForgeQueryRuntimeStateSnapshot::deferred(
                     ForgeQueryRuntimeStateKind::Pending,
-                    row.contract_digest(),
-                    result_shape_digest,
+                    runtime_state_snapshot_basis_label_identity(row.contract_identity()),
+                    result_shape_identity,
                     deferred_authority_lane(self),
                     explanation,
                 ))
@@ -216,8 +223,8 @@ impl ForgeQueryRuntimeStateTarget for ForgeQueryRuntimeFacadeFamily {
             ForgeQueryRuntimeFamilySupportStatus::Unsupported => {
                 Ok(ForgeQueryRuntimeStateSnapshot::deferred(
                     ForgeQueryRuntimeStateKind::Unsupported,
-                    row.contract_digest(),
-                    result_shape_digest,
+                    runtime_state_snapshot_basis_label_identity(row.contract_identity()),
+                    result_shape_identity,
                     deferred_authority_lane(self),
                     explanation,
                 ))
@@ -231,19 +238,16 @@ impl ForgeQueryRuntimeStateTarget for &ForgeQueryWriteReceipt {
         self,
         _runtime: &ForgeQueryRuntime,
     ) -> Result<ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeError> {
-        let result_shape_digest = format!(
-            "mutation-receipt:{}:{}:{}",
-            self.mutation_family(),
-            self.declared_collection().unwrap_or(""),
-            self.declared_entity_identity().unwrap_or("")
-        );
+        let result_shape_identity =
+            runtime_state_snapshot_result_shape_write_receipt_identity(self);
+        let commit_evidence_identity = self.commit_evidence_identity().clone();
         Ok(ForgeQueryRuntimeStateSnapshot::ready(
-            self.commit_identity(),
-            result_shape_digest,
+            commit_evidence_identity,
+            result_shape_identity,
             self.authority_lane(),
             format!(
                 "mutation receipt `{}` is ready with `{}` family evidence over `{}` basis lane",
-                self.commit_identity(),
+                self.commit_evidence_identity().as_str(),
                 self.mutation_family(),
                 self.basis_lane()
             ),
@@ -257,12 +261,12 @@ impl ForgeQueryRuntimeStateTarget for &ForgeQueryBatchWriteReceipt {
         _runtime: &ForgeQueryRuntime,
     ) -> Result<ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeError> {
         Ok(ForgeQueryRuntimeStateSnapshot::ready(
-            self.batch_digest(),
-            format!("batch-write-receipt:{}", self.write_count()),
+            runtime_state_snapshot_basis_label_identity(self.batch_identity()),
+            runtime_state_snapshot_result_shape_batch_write_receipt_identity(self),
             self.authority_lane(),
             format!(
                 "batch write receipt `{}` is ready with {} component writes over `{}` basis lane",
-                self.batch_digest(),
+                self.batch_identity().as_str(),
                 self.write_count(),
                 self.basis_lane()
             ),
@@ -279,12 +283,17 @@ fn deferred_authority_lane(family: ForgeQueryRuntimeFacadeFamily) -> ForgeQueryA
         | ForgeQueryRuntimeFacadeFamily::DurableArtifacts => {
             ForgeQueryAuthorityLane::BridgeExternalState
         }
-        ForgeQueryRuntimeFacadeFamily::Computed => ForgeQueryAuthorityLane::DerivedRuntimeState,
+        ForgeQueryRuntimeFacadeFamily::Computed | ForgeQueryRuntimeFacadeFamily::SharedRead => {
+            ForgeQueryAuthorityLane::DerivedRuntimeState
+        }
         ForgeQueryRuntimeFacadeFamily::Effect => ForgeQueryAuthorityLane::EffectDeliveryState,
-        ForgeQueryRuntimeFacadeFamily::Intent => ForgeQueryAuthorityLane::PendingWriteIntent,
+        ForgeQueryRuntimeFacadeFamily::Intent | ForgeQueryRuntimeFacadeFamily::Submission => {
+            ForgeQueryAuthorityLane::PendingWriteIntent
+        }
         ForgeQueryRuntimeFacadeFamily::BranchPreview => ForgeQueryAuthorityLane::PreviewTruth,
         ForgeQueryRuntimeFacadeFamily::Read
         | ForgeQueryRuntimeFacadeFamily::Live
+        | ForgeQueryRuntimeFacadeFamily::Replay
         | ForgeQueryRuntimeFacadeFamily::Write
         | ForgeQueryRuntimeFacadeFamily::Inspect => ForgeQueryAuthorityLane::AuthoritativeTruth,
     }

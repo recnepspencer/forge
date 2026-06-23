@@ -1,0 +1,14 @@
+error[E0308]: mismatched types
+ --> tests/ui/query_runtime_phase_nine/mutation_delta_entity_string_authority_removed.rs:6:9
+  |
+4 |     let _delta = ForgeQueryMutationDelta::new(
+  |                  ---------------------------- arguments to this function are incorrect
+5 |         "TopologyEntity",
+6 |         "entity:1:1:1".to_string(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `ForgeQueryEntityIdentity`, found `String`
+  |
+note: associated function defined here
+ --> $WORKSPACE/crates/forge-query/src/memory_workspace/mod.rs
+  |
+  |     pub fn new(
+  |            ^^^

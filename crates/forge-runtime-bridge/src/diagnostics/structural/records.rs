@@ -50,7 +50,7 @@ impl BridgeStructuralRemapRecord {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            record_identity: BridgeStructuralRemapRecordIdentity::new(format!(
+            record_identity: BridgeStructuralRemapRecordIdentity::admit_bridge_owned(format!(
                 "structural-remap-record:sha256:{digest:x}"
             )),
             contract,
@@ -178,9 +178,9 @@ impl BridgeStructuralBranchComparisonRecord {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            record_identity: BridgeStructuralBranchComparisonRecordIdentity::new(format!(
-                "structural-branch-comparison-record:sha256:{digest:x}"
-            )),
+            record_identity: BridgeStructuralBranchComparisonRecordIdentity::admit_bridge_owned(
+                format!("structural-branch-comparison-record:sha256:{digest:x}"),
+            ),
             contract,
             planned_packet_set,
             reduced_match_set,

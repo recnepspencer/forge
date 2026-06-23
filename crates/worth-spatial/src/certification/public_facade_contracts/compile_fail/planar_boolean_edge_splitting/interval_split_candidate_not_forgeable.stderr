@@ -1,0 +1,35 @@
+error[E0451]: fields `candidate_identity`, `interval_event_identity`, `interval_event_kind`, `carrier_identity`, `source_edge_identity`, `segment_identity`, `source_interval_identity`, `source_parameter_range`, `source_sense`, `normalized_interval_identity`, `normalized_parameter_range`, `local_frame_identity`, `precision_basis_identity`, `participation_row_identity` and `event_group_identities` of struct `PlanarBooleanIntervalSplitCandidate` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/interval_split_candidate_not_forgeable.rs:8:9
+   |
+ 7 |     let _ = PlanarBooleanIntervalSplitCandidate {
+   |             ----------------------------------- in this type
+ 8 |         candidate_identity: String::from("forged"),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+ 9 |         interval_event_identity: String::from("synthetic interval event"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         interval_event_kind: PlanarBooleanIntervalEventKind::PartialOverlap,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+11 |         carrier_identity: String::from("carrier"),
+   |         ^^^^^^^^^^^^^^^^ private field
+12 |         source_edge_identity: String::from("edge"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+13 |         segment_identity: String::from("segment"),
+   |         ^^^^^^^^^^^^^^^^ private field
+14 |         source_interval_identity: String::from("source interval"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         source_parameter_range: [0.2, 0.7],
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         source_sense: PlanarBooleanSourceIntervalSense::Forward,
+   |         ^^^^^^^^^^^^ private field
+17 |         normalized_interval_identity: String::from("normalized interval"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         normalized_parameter_range: [0.2, 0.7],
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         local_frame_identity: String::from("frame"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+20 |         precision_basis_identity: String::from("precision"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+21 |         participation_row_identity: String::from("row"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+22 |         event_group_identities: vec![String::from("event group")],
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field

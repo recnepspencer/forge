@@ -1,4 +1,5 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
 use super::active_counters::ActiveSubscriptionCounters;
 use super::active_digest::ActiveSubscriptionLaneDigest;
@@ -6,6 +7,11 @@ use super::active_handle::ActiveSubscriptionLaneHandle;
 use super::attachment::SubscriptionConsumerAttachment;
 use super::attachment_digest::SubscriptionConsumerAttachmentDigest;
 use super::delivery_dimensions::PreviewResidueWidth;
+use super::evidence_identities::{
+    preview_authoritative_sharing_denial_identity, preview_epoch_identity,
+    preview_isolation_identity,
+};
+use super::evidence_projection::subscription_evidence_projection;
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::preview_isolation_error::{
     PreviewSubscriptionIsolationDenialKind, PreviewSubscriptionIsolationError,
@@ -42,13 +48,13 @@ pub struct PreviewSubscriptionIsolationArtifact {
     active_lane_digest: ActiveSubscriptionLaneDigest,
     attachment_digest: SubscriptionConsumerAttachmentDigest,
     future_selection: QuerySubscriptionFutureSelection,
-    basis_binding_digest: String,
-    checkpoint_identity_digest: String,
-    preview_epoch_digest: String,
+    basis_binding_identity: ForgeQueryEvidenceIdentity,
+    checkpoint_identity: ForgeQueryEvidenceIdentity,
+    preview_epoch_identity: ForgeQueryEvidenceIdentity,
     lifecycle_state: PreviewSubscriptionLifecycleState,
     preview_residue_budget_width: PreviewResidueWidth,
     counters: ActiveSubscriptionCounters,
-    isolation_digest: String,
+    isolation_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl PreviewSubscriptionIsolationArtifact {
@@ -57,50 +63,40 @@ impl PreviewSubscriptionIsolationArtifact {
         preview_epoch: impl Into<String>,
         preview_residue_budget_width: PreviewResidueWidth,
     ) -> Self {
-        let preview_epoch_digest = hash_parts(&[
-            "preview_subscription_epoch_v1".to_string(),
-            format!("epoch:{}", preview_epoch.into()),
-        ]);
+        let preview_epoch_identity = preview_epoch_identity(&preview_epoch.into());
         let mut counters = ActiveSubscriptionCounters::default();
         counters.preview_active_lane_count = 1;
         counters.preview_residue_width = preview_residue_budget_width.get();
-        let isolation_digest = hash_parts(&[
-            "preview_subscription_isolation_artifact_v1".to_string(),
-            format!("lane:{}", attachment.lane_digest().as_str()),
-            format!("attachment:{}", attachment.attachment_digest().as_str()),
-            format!(
-                "future_selection:{}",
-                attachment.future_selection().projection_digest()
-            ),
-            format!("basis:{}", attachment.basis_binding_digest()),
-            format!("checkpoint:{}", attachment.checkpoint_identity_digest()),
-            format!("epoch:{}", preview_epoch_digest),
-            format!(
-                "state:{}",
-                PreviewSubscriptionLifecycleState::PreviewActive.as_str()
-            ),
-            format!("residue_budget:{}", preview_residue_budget_width.get()),
-            format!("counters:{}", counters.digest()),
-        ]);
+        let isolation_identity = preview_isolation_identity(
+            attachment.lane_digest().evidence_identity(),
+            attachment.attachment_digest().evidence_identity(),
+            attachment.future_selection().projection_identity(),
+            attachment.basis_binding_identity(),
+            attachment.checkpoint_identity(),
+            &preview_epoch_identity,
+            PreviewSubscriptionLifecycleState::PreviewActive.as_str(),
+            preview_residue_budget_width.get(),
+            &counters.evidence_identity(),
+        );
         Self {
             active_lane_digest: attachment.lane_digest().clone(),
             attachment_digest: attachment.attachment_digest().clone(),
             future_selection: attachment.future_selection().clone(),
-            basis_binding_digest: attachment.basis_binding_digest().to_string(),
-            checkpoint_identity_digest: attachment.checkpoint_identity_digest().to_string(),
-            preview_epoch_digest,
+            basis_binding_identity: attachment.basis_binding_identity().clone(),
+            checkpoint_identity: attachment.checkpoint_identity().clone(),
+            preview_epoch_identity,
             lifecycle_state: PreviewSubscriptionLifecycleState::PreviewActive,
             preview_residue_budget_width,
             counters,
-            isolation_digest,
+            isolation_identity,
         }
     }
 
-    pub fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.active_lane_digest
     }
 
-    pub fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
+    pub(crate) fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
         &self.attachment_digest
     }
 
@@ -108,16 +104,34 @@ impl PreviewSubscriptionIsolationArtifact {
         &self.future_selection
     }
 
-    pub fn basis_binding_digest(&self) -> &str {
-        &self.basis_binding_digest
+    pub fn basis_binding_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.basis_binding_identity)
     }
 
-    pub fn checkpoint_identity_digest(&self) -> &str {
-        &self.checkpoint_identity_digest
+    pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_binding_identity
     }
 
-    pub fn preview_epoch_digest(&self) -> &str {
-        &self.preview_epoch_digest
+    pub fn checkpoint_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.checkpoint_identity)
+    }
+
+    pub fn checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.checkpoint_identity
+    }
+
+    pub fn preview_epoch_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.preview_epoch_identity)
+    }
+
+    pub fn preview_epoch_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.preview_epoch_identity
     }
 
     pub fn lifecycle_state(&self) -> PreviewSubscriptionLifecycleState {
@@ -132,8 +146,14 @@ impl PreviewSubscriptionIsolationArtifact {
         &self.counters
     }
 
-    pub fn isolation_digest(&self) -> &str {
-        &self.isolation_digest
+    pub fn isolation_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.isolation_identity)
+    }
+
+    pub fn isolation_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.isolation_identity
     }
 }
 
@@ -155,27 +175,18 @@ pub fn deny_preview_authoritative_sharing(
 ) -> Result<(), PreviewSubscriptionIsolationError> {
     let mut counters = ActiveSubscriptionCounters::default();
     counters.preview_authoritative_sharing_denial_count = 1;
+    let denial_identity = preview_authoritative_sharing_denial_identity(
+        isolation.isolation_identity(),
+        authoritative_lane.lane_digest().evidence_identity(),
+        isolation.basis_binding_identity(),
+        authoritative_lane.basis_binding_identity(),
+        isolation.checkpoint_identity(),
+        authoritative_lane.checkpoint_identity(),
+    );
     Err(PreviewSubscriptionIsolationError::new(
         PreviewSubscriptionIsolationDenialKind::PreviewAuthoritativeSharingDenied,
         "preview subscription isolation cannot share attachment or fanout state with an authoritative active lane",
-        hash_parts(&[
-            "preview_authoritative_sharing_denial_v1".to_string(),
-            format!("preview:{}", isolation.isolation_digest()),
-            format!("authoritative:{}", authoritative_lane.lane_digest().as_str()),
-            format!("preview_basis:{}", isolation.basis_binding_digest()),
-            format!(
-                "authoritative_basis:{}",
-                authoritative_lane.basis_binding_digest()
-            ),
-            format!(
-                "preview_checkpoint:{}",
-                isolation.checkpoint_identity_digest()
-            ),
-            format!(
-                "authoritative_checkpoint:{}",
-                authoritative_lane.checkpoint_identity_digest()
-            ),
-        ]),
+        denial_identity,
         counters,
     ))
 }

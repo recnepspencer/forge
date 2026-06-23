@@ -216,7 +216,13 @@ pub(crate) fn admit_authoritative_intent_execution(
         ));
     }
 
-    if execution.mutation_receipt().snapshot_token.is_empty() {
+    if execution
+        .mutation_receipt()
+        .snapshot_identity
+        .evidence_identity()
+        .as_str()
+        .is_empty()
+    {
         return Err(ForgeQueryIntentAdmissionDenial::new(
             "mutation-receipt-admission",
             "intent authority returned an execution without snapshot identity",

@@ -1,13 +1,7 @@
-error[E0451]: fields `capability`, `evidence`, `binding_digest` and `counters` of struct `forge_query::facade::LowerRuntimeBoundObservationBasis` are private
-  --> tests/ui/lower_runtime_bound_observation_basis_constructor_private.rs:8:9
+error[E0560]: struct `forge_query::facade::LowerRuntimeBoundObservationBasis` has no field named `binding_digest`
+  --> tests/ui/lower_runtime_bound_observation_basis_constructor_private.rs:10:9
    |
- 7 |     let _ = LowerRuntimeBoundObservationBasis {
-   |             --------------------------------- in this type
- 8 |         capability: unsafe { std::mem::zeroed::<ObservationBasisCapability>() },
-   |         ^^^^^^^^^^ private field
- 9 |         evidence: unsafe { std::mem::zeroed::<BridgeLowerRuntimeEvidenceReference>() },
-   |         ^^^^^^^^ private field
 10 |         binding_digest: String::new(),
-   |         ^^^^^^^^^^^^^^ private field
-11 |         counters: unsafe { std::mem::zeroed::<BasisEligibilityCounters>() },
-   |         ^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^ `forge_query::facade::LowerRuntimeBoundObservationBasis` does not have this field
+   |
+   = note: all struct fields are already assigned

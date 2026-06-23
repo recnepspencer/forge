@@ -1,25 +1,13 @@
-error: cannot construct `ForgeQueryPreviewBasisAdmission` with struct literal syntax due to private fields
-  --> tests/ui/runtime_preview_basis_admission_constructor_private.rs:6:13
+error[E0308]: mismatched types
+ --> tests/ui/runtime_preview_basis_admission_constructor_private.rs:7:16
+  |
+7 |         label: String::new(),
+  |                ^^^^^^^^^^^^^ expected `ForgeQuerySessionLabel`, found `String`
+
+error[E0560]: struct `ForgeQueryPreviewBasisAdmission` has no field named `evidence`
+  --> tests/ui/runtime_preview_basis_admission_constructor_private.rs:10:9
    |
- 6 |     let _ = ForgeQueryPreviewBasisAdmission {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 7 |         label: String::new(),
-   |         -------------------- private field
- 8 |         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
-   |         ------------------------------------------------- private field
- 9 |         authority_lane: ForgeQueryAuthorityLane::PreviewTruth,
-   |         ----------------------------------------------------- private field
 10 |         evidence: Vec::new(),
-   |         -------------------- private field
+   |         ^^^^^^^^ `ForgeQueryPreviewBasisAdmission` does not have this field
    |
-   = note: ...and other private field `admission_digest` that was not provided
-help: you might have meant to use the `new` associated function
-   |
- 6 -     let _ = ForgeQueryPreviewBasisAdmission {
- 7 -         label: String::new(),
- 8 -         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
- 9 -         authority_lane: ForgeQueryAuthorityLane::PreviewTruth,
-10 -         evidence: Vec::new(),
-11 -     };
- 6 +     let _ = ForgeQueryPreviewBasisAdmission::new(_, _, _, _);
-   |
+   = note: all struct fields are already assigned

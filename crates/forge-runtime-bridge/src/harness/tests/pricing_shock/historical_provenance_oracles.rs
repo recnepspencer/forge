@@ -11,8 +11,8 @@ fn pricing_shock_historical_commit_reads_bridge_visible_provenance_from_truth() 
     let historical = runtime
         .evaluate(
             BridgeTruthViewEvaluationRequest::for_historical_commit(
-                TruthBranchIdentity::new("pricing-shock"),
-                crate::facade::TruthCommitIdentity::new("commit:rubber-shock"),
+                crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
             )
             .with_read_packet(pricing_provenance_read_packet("rubber")),
         )
@@ -77,8 +77,8 @@ fn pricing_shock_historical_provenance_corruption_is_detectable_against_independ
     let provenance_eval = runtime
         .evaluate(
             BridgeTruthViewEvaluationRequest::for_historical_commit(
-                TruthBranchIdentity::new("pricing-shock"),
-                crate::facade::TruthCommitIdentity::new("commit:rubber-shock"),
+                crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
             )
             .with_read_packet(pricing_provenance_read_packet("rubber")),
         )
@@ -86,8 +86,8 @@ fn pricing_shock_historical_provenance_corruption_is_detectable_against_independ
     let cost_eval = runtime
         .evaluate(
             BridgeTruthViewEvaluationRequest::for_historical_commit(
-                TruthBranchIdentity::new("pricing-shock"),
-                crate::facade::TruthCommitIdentity::new("commit:rubber-shock"),
+                crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
             )
             .with_read_packet(pricing_component_read_packet("rubber")),
         )
@@ -187,8 +187,8 @@ fn pricing_shock_provenance_mutation_sweep_is_detectable_against_independent_ora
         let historical = runtime
             .evaluate(
                 BridgeTruthViewEvaluationRequest::for_historical_commit(
-                    TruthBranchIdentity::new("pricing-shock"),
-                    crate::facade::TruthCommitIdentity::new("commit:rubber-shock"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
                 )
                 .with_read_packet(pricing_provenance_read_packet("rubber")),
             )

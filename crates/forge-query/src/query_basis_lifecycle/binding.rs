@@ -1,271 +1,33 @@
 use forge_runtime_bridge::facade::{
     AdmittedBridgeSubscription, BridgeDeliveredContinuityResult, BridgeTruthViewEvaluation,
-    BridgeTruthViewKind,
+    BridgeTruthViewKind, TruthBranchIdentity, TruthCommitIdentity, TruthSnapshotIdentity,
 };
 
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{
+    admit_query_feeder_authority_identity, QueryFeederAuthorityIdentity, QueryFeederIdentityKind,
+};
 
+use super::binding_evidence::binding_identity;
 use super::{
     denied_basis_capability_for_lower_runtime_mismatch,
     denied_basis_capability_for_lower_runtime_unsupported, AdmittedBasisCapability,
-    BasisCapabilityAdmission, BasisEligibilityCounters, DeniedBasisCapability,
-    InspectionBasisCapability, NormalizedBasisFamily, ObservationBasisCapability,
-    SubscriptionActivationBasisCapability, SubscriptionDeclarationBasisCapability,
+    BasisCapabilityAdmission, BasisEligibilityCounters, BridgeLowerRuntimeEvidenceReference,
+    DeniedBasisCapability, InspectionBasisCapability, NormalizedBasisFamily,
+    ObservationBasisCapability, SubscriptionActivationBasisCapability,
+    SubscriptionDeclarationBasisCapability,
 };
 
 const BRIDGE_AUTHORITY: &str = "forge_runtime_bridge";
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BridgeLowerRuntimeEvidenceKind {
-    TruthViewEvaluation,
-    ContinuityDelivery,
-    SubscriptionAdmission,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BridgeLowerRuntimeEvidenceReference {
-    kind: BridgeLowerRuntimeEvidenceKind,
-    detail: BridgeLowerRuntimeEvidenceDetail,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-enum BridgeLowerRuntimeEvidenceDetail {
-    TruthViewEvaluation {
-        record_identity: String,
-        selector_identity: String,
-        authority_digest: String,
-        snapshot_identity: String,
-    },
-    ContinuityDelivery {
-        route_identity: String,
-        continuity_identity: String,
-        continuity_resolution_digest: String,
-        source_snapshot_identity: String,
-    },
-    SubscriptionAdmission {
-        admitted_subscription_identity: String,
-        basis_identity: String,
-        strategy_identity: String,
-        subscription_digest: String,
-    },
-}
-
-impl BridgeLowerRuntimeEvidenceReference {
-    pub fn kind(&self) -> BridgeLowerRuntimeEvidenceKind {
-        self.kind
-    }
-
-    pub fn record_identity(&self) -> Option<&str> {
-        match &self.detail {
-            BridgeLowerRuntimeEvidenceDetail::TruthViewEvaluation {
-                record_identity, ..
-            } => Some(record_identity.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn selector_identity(&self) -> Option<&str> {
-        match &self.detail {
-            BridgeLowerRuntimeEvidenceDetail::TruthViewEvaluation {
-                selector_identity, ..
-            } => Some(selector_identity.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn authority_digest(&self) -> Option<&str> {
-        match &self.detail {
-            BridgeLowerRuntimeEvidenceDetail::TruthViewEvaluation {
-                authority_digest, ..
-            } => Some(authority_digest.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn snapshot_identity(&self) -> Option<&str> {
-        match &self.detail {
-            BridgeLowerRuntimeEvidenceDetail::TruthViewEvaluation {
-                snapshot_identity, ..
-            } => Some(snapshot_identity.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn route_identity(&self) -> Option<&str> {
-        match &self.detail {
-            BridgeLowerRuntimeEvidenceDetail::ContinuityDelivery { route_identity, .. } => {
-                Some(route_identity.as_str())
-            }
-            _ => None,
-        }
-    }
-
-    pub fn continuity_identity(&self) -> Option<&str> {
-        match &self.detail {
-            BridgeLowerRuntimeEvidenceDetail::ContinuityDelivery {
-                continuity_identity,
-                ..
-            } => Some(continuity_identity.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn continuity_resolution_digest(&self) -> Option<&str> {
-        match &self.detail {
-            BridgeLowerRuntimeEvidenceDetail::ContinuityDelivery {
-                continuity_resolution_digest,
-                ..
-            } => Some(continuity_resolution_digest.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn source_snapshot_identity(&self) -> Option<&str> {
-        match &self.detail {
-            BridgeLowerRuntimeEvidenceDetail::ContinuityDelivery {
-                source_snapshot_identity,
-                ..
-            } => Some(source_snapshot_identity.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn admitted_subscription_identity(&self) -> Option<&str> {
-        match &self.detail {
-            BridgeLowerRuntimeEvidenceDetail::SubscriptionAdmission {
-                admitted_subscription_identity,
-                ..
-            } => Some(admitted_subscription_identity.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn basis_identity(&self) -> Option<&str> {
-        match &self.detail {
-            BridgeLowerRuntimeEvidenceDetail::SubscriptionAdmission { basis_identity, .. } => {
-                Some(basis_identity.as_str())
-            }
-            _ => None,
-        }
-    }
-
-    pub fn strategy_identity(&self) -> Option<&str> {
-        match &self.detail {
-            BridgeLowerRuntimeEvidenceDetail::SubscriptionAdmission {
-                strategy_identity, ..
-            } => Some(strategy_identity.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn subscription_digest(&self) -> Option<&str> {
-        match &self.detail {
-            BridgeLowerRuntimeEvidenceDetail::SubscriptionAdmission {
-                subscription_digest,
-                ..
-            } => Some(subscription_digest.as_str()),
-            _ => None,
-        }
-    }
-
-    fn truth_view(
-        record_identity: String,
-        selector_identity: String,
-        authority_digest: String,
-        snapshot_identity: String,
-    ) -> Self {
-        Self {
-            kind: BridgeLowerRuntimeEvidenceKind::TruthViewEvaluation,
-            detail: BridgeLowerRuntimeEvidenceDetail::TruthViewEvaluation {
-                record_identity,
-                selector_identity,
-                authority_digest,
-                snapshot_identity,
-            },
-        }
-    }
-
-    fn continuity(
-        route_identity: String,
-        continuity_identity: String,
-        continuity_resolution_digest: String,
-        source_snapshot_identity: String,
-    ) -> Self {
-        Self {
-            kind: BridgeLowerRuntimeEvidenceKind::ContinuityDelivery,
-            detail: BridgeLowerRuntimeEvidenceDetail::ContinuityDelivery {
-                route_identity,
-                continuity_identity,
-                continuity_resolution_digest,
-                source_snapshot_identity,
-            },
-        }
-    }
-
-    fn subscription(
-        admitted_subscription_identity: String,
-        basis_identity: String,
-        strategy_identity: String,
-        subscription_digest: String,
-    ) -> Self {
-        Self {
-            kind: BridgeLowerRuntimeEvidenceKind::SubscriptionAdmission,
-            detail: BridgeLowerRuntimeEvidenceDetail::SubscriptionAdmission {
-                admitted_subscription_identity,
-                basis_identity,
-                strategy_identity,
-                subscription_digest,
-            },
-        }
-    }
-
-    fn digest_parts(&self) -> Vec<String> {
-        match &self.detail {
-            BridgeLowerRuntimeEvidenceDetail::TruthViewEvaluation {
-                record_identity,
-                selector_identity,
-                authority_digest,
-                snapshot_identity,
-            } => vec![
-                "kind:truth_view_evaluation".to_string(),
-                format!("record_identity:{record_identity}"),
-                format!("selector_identity:{selector_identity}"),
-                format!("authority_digest:{authority_digest}"),
-                format!("snapshot_identity:{snapshot_identity}"),
-            ],
-            BridgeLowerRuntimeEvidenceDetail::ContinuityDelivery {
-                route_identity,
-                continuity_identity,
-                continuity_resolution_digest,
-                source_snapshot_identity,
-            } => vec![
-                "kind:continuity_delivery".to_string(),
-                format!("route_identity:{route_identity}"),
-                format!("continuity_identity:{continuity_identity}"),
-                format!("continuity_resolution_digest:{continuity_resolution_digest}"),
-                format!("source_snapshot_identity:{source_snapshot_identity}"),
-            ],
-            BridgeLowerRuntimeEvidenceDetail::SubscriptionAdmission {
-                admitted_subscription_identity,
-                basis_identity,
-                strategy_identity,
-                subscription_digest,
-            } => vec![
-                "kind:subscription_admission".to_string(),
-                format!("admitted_subscription_identity:{admitted_subscription_identity}"),
-                format!("basis_identity:{basis_identity}"),
-                format!("strategy_identity:{strategy_identity}"),
-                format!("subscription_digest:{subscription_digest}"),
-            ],
-        }
-    }
-}
+type LowerRuntimeBindingAuthority =
+    QueryFeederAuthorityIdentity<ForgeQueryEvidenceIdentity, QueryFeederIdentityKind>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LowerRuntimeBoundObservationBasis {
     capability: ObservationBasisCapability,
     evidence: BridgeLowerRuntimeEvidenceReference,
-    binding_digest: String,
+    binding_authority: LowerRuntimeBindingAuthority,
     counters: BasisEligibilityCounters,
 }
 
@@ -273,7 +35,7 @@ pub struct LowerRuntimeBoundObservationBasis {
 pub struct LowerRuntimeBoundInspectionBasis {
     capability: InspectionBasisCapability,
     evidence: BridgeLowerRuntimeEvidenceReference,
-    binding_digest: String,
+    binding_authority: LowerRuntimeBindingAuthority,
     counters: BasisEligibilityCounters,
 }
 
@@ -281,7 +43,7 @@ pub struct LowerRuntimeBoundInspectionBasis {
 pub struct LowerRuntimeBoundSubscriptionDeclarationBasis {
     capability: SubscriptionDeclarationBasisCapability,
     evidence: BridgeLowerRuntimeEvidenceReference,
-    binding_digest: String,
+    binding_authority: LowerRuntimeBindingAuthority,
     counters: BasisEligibilityCounters,
 }
 
@@ -289,7 +51,7 @@ pub struct LowerRuntimeBoundSubscriptionDeclarationBasis {
 pub struct LowerRuntimeBoundSubscriptionActivationBasis {
     capability: SubscriptionActivationBasisCapability,
     evidence: BridgeLowerRuntimeEvidenceReference,
-    binding_digest: String,
+    binding_authority: LowerRuntimeBindingAuthority,
     counters: BasisEligibilityCounters,
 }
 
@@ -308,8 +70,16 @@ macro_rules! impl_bound_accessors {
                 &self.evidence
             }
 
-            pub fn binding_digest(&self) -> &str {
-                &self.binding_digest
+            pub fn binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+                self.binding_authority.value()
+            }
+
+            pub fn binding_authority(&self) -> &LowerRuntimeBindingAuthority {
+                &self.binding_authority
+            }
+
+            pub fn binding_for_reporting(&self) -> &str {
+                self.binding_authority.value().as_str()
             }
 
             pub fn counters(&self) -> &BasisEligibilityCounters {
@@ -333,27 +103,31 @@ pub fn readmit_bridge_truth_view_evidence(
     match_truth_view_selector(
         &admitted,
         selector.view_kind(),
-        selector.branch_identity().as_str(),
-        selector.commit_identity().map(|identity| identity.as_str()),
-        selector
-            .snapshot_identity()
-            .map(|identity| identity.as_str()),
+        Some(truth_branch_label(selector.branch_identity())),
+        selector.commit_identity().map(truth_commit_label),
+        selector.snapshot_identity().map(truth_snapshot_label),
     )?;
 
     let counters = admitted.counters().clone().with_lower_runtime_check(0);
     let evidence = BridgeLowerRuntimeEvidenceReference::truth_view(
-        evaluation.record().record_identity().as_str().to_string(),
-        selector.selector_identity().as_str().to_string(),
+        evaluation
+            .record()
+            .record_identity()
+            .bridge_admission_evidence(),
+        selector.selector_identity().bridge_admission_evidence(),
         evaluation
             .record()
             .decision_log()
             .authority_digest()
             .to_string(),
-        evaluation.snapshot_identity().as_str().to_string(),
+        evaluation.snapshot_identity().bridge_admission_evidence(),
     );
     Ok(LowerRuntimeBoundObservationBasis {
         capability,
-        binding_digest: binding_digest(admitted.capability_digest(), &evidence),
+        binding_authority: admit_query_feeder_authority_identity(binding_identity(
+            admitted.capability_digest(),
+            &evidence,
+        )),
         evidence,
         counters,
     })
@@ -367,21 +141,24 @@ pub fn readmit_bridge_continuity_evidence(
     let record = continuity.canonical_record();
     match_continuity_record(
         &admitted,
-        record.route_record().source_branch().as_str(),
-        record.route_record().source_commit().as_str(),
-        record.source_snapshot().as_str(),
+        Some(truth_branch_label(record.route_record().source_branch())),
+        Some(truth_commit_label(record.route_record().source_commit())),
+        Some(truth_snapshot_label(record.source_snapshot())),
     )?;
 
     let counters = admitted.counters().clone().with_lower_runtime_check(0);
     let evidence = BridgeLowerRuntimeEvidenceReference::continuity(
-        record.route_identity().as_str().to_string(),
-        continuity.continuity_identity().as_str().to_string(),
+        record.route_identity().bridge_admission_evidence(),
+        continuity.continuity_identity().bridge_admission_evidence(),
         record.continuity_resolution_digest().to_string(),
-        record.source_snapshot().as_str().to_string(),
+        record.source_snapshot().bridge_admission_evidence(),
     );
     Ok(LowerRuntimeBoundInspectionBasis {
         capability,
-        binding_digest: binding_digest(admitted.capability_digest(), &evidence),
+        binding_authority: admit_query_feeder_authority_identity(binding_identity(
+            admitted.capability_digest(),
+            &evidence,
+        )),
         evidence,
         counters,
     })
@@ -398,7 +175,10 @@ pub fn readmit_bridge_subscription_declaration_evidence(
     let evidence = subscription_evidence(admitted_subscription);
     Ok(LowerRuntimeBoundSubscriptionDeclarationBasis {
         capability,
-        binding_digest: binding_digest(admitted.capability_digest(), &evidence),
+        binding_authority: admit_query_feeder_authority_identity(binding_identity(
+            admitted.capability_digest(),
+            &evidence,
+        )),
         evidence,
         counters,
     })
@@ -415,7 +195,10 @@ pub fn readmit_bridge_subscription_activation_evidence(
     let evidence = subscription_evidence(admitted_subscription);
     Ok(LowerRuntimeBoundSubscriptionActivationBasis {
         capability,
-        binding_digest: binding_digest(admitted.capability_digest(), &evidence),
+        binding_authority: admit_query_feeder_authority_identity(binding_identity(
+            admitted.capability_digest(),
+            &evidence,
+        )),
         evidence,
         counters,
     })
@@ -441,30 +224,33 @@ fn admitted_capability_from_lane(
 fn match_truth_view_selector(
     admitted: &AdmittedBasisCapability,
     view_kind: BridgeTruthViewKind,
-    branch_identity: &str,
-    commit_identity: Option<&str>,
-    snapshot_identity: Option<&str>,
+    branch_identity: Option<String>,
+    commit_identity: Option<String>,
+    snapshot_identity: Option<String>,
 ) -> Result<(), DeniedBasisCapability> {
     let (expected, observed) = match admitted.family() {
         NormalizedBasisFamily::BranchHead => (
             format!("branch_head:{}", admitted.scope_label()),
-            format!("branch_head:{branch_identity}"),
+            format!("branch_head:{}", branch_identity.as_deref().unwrap_or("-")),
         ),
         NormalizedBasisFamily::BranchSnapshot => (
             format!("branch_snapshot:{}", admitted.scope_label()),
             format!(
                 "branch_snapshot:{}@{}",
-                branch_identity,
-                snapshot_identity.unwrap_or("-")
+                branch_identity.as_deref().unwrap_or("-"),
+                snapshot_identity.as_deref().unwrap_or("-")
             ),
         ),
         NormalizedBasisFamily::RuntimeSnapshot | NormalizedBasisFamily::HistoricalSnapshot => (
             format!("snapshot:{}", admitted.scope_label()),
-            format!("snapshot:{}", snapshot_identity.unwrap_or("-")),
+            format!("snapshot:{}", snapshot_identity.as_deref().unwrap_or("-")),
         ),
         NormalizedBasisFamily::HistoricalCommit => (
             format!("historical_commit:{}", admitted.scope_label()),
-            format!("historical_commit:{}", commit_identity.unwrap_or("-")),
+            format!(
+                "historical_commit:{}",
+                commit_identity.as_deref().unwrap_or("-")
+            ),
         ),
         _ => {
             return Err(denied_basis_capability_for_lower_runtime_unsupported(
@@ -502,26 +288,33 @@ fn match_truth_view_selector(
 
 fn match_continuity_record(
     admitted: &AdmittedBasisCapability,
-    branch_identity: &str,
-    commit_identity: &str,
-    snapshot_identity: &str,
+    branch_identity: Option<String>,
+    commit_identity: Option<String>,
+    snapshot_identity: Option<String>,
 ) -> Result<(), DeniedBasisCapability> {
     let (expected, observed) = match admitted.family() {
         NormalizedBasisFamily::BranchHead => (
             format!("branch_head:{}", admitted.scope_label()),
-            format!("branch_head:{branch_identity}"),
+            format!("branch_head:{}", branch_identity.as_deref().unwrap_or("-")),
         ),
         NormalizedBasisFamily::BranchSnapshot => (
             format!("branch_snapshot:{}", admitted.scope_label()),
-            format!("branch_snapshot:{branch_identity}@{snapshot_identity}"),
+            format!(
+                "branch_snapshot:{}@{}",
+                branch_identity.as_deref().unwrap_or("-"),
+                snapshot_identity.as_deref().unwrap_or("-")
+            ),
         ),
         NormalizedBasisFamily::RuntimeSnapshot | NormalizedBasisFamily::HistoricalSnapshot => (
             format!("snapshot:{}", admitted.scope_label()),
-            format!("snapshot:{snapshot_identity}"),
+            format!("snapshot:{}", snapshot_identity.as_deref().unwrap_or("-")),
         ),
         NormalizedBasisFamily::HistoricalCommit => (
             format!("historical_commit:{}", admitted.scope_label()),
-            format!("historical_commit:{commit_identity}"),
+            format!(
+                "historical_commit:{}",
+                commit_identity.as_deref().unwrap_or("-")
+            ),
         ),
         _ => {
             return Err(denied_basis_capability_for_lower_runtime_unsupported(
@@ -559,7 +352,8 @@ fn match_subscription_binding(
                 "branch_head:{}",
                 binding
                     .branch_identity()
-                    .map(|id| id.as_str())
+                    .map(truth_branch_label)
+                    .as_deref()
                     .unwrap_or("-")
             ),
         ),
@@ -593,27 +387,36 @@ fn subscription_evidence(
     BridgeLowerRuntimeEvidenceReference::subscription(
         admitted_subscription
             .admitted_subscription_identity()
-            .as_str()
-            .to_string(),
+            .bridge_admission_evidence(),
         admitted_subscription
             .basis_binding()
             .basis_identity()
-            .as_str()
-            .to_string(),
+            .bridge_admission_evidence(),
         admitted_subscription
             .signal_strategy()
             .strategy_identity()
-            .as_str()
-            .to_string(),
+            .bridge_admission_evidence(),
         admitted_subscription.digest().to_string(),
     )
 }
 
-fn binding_digest(
-    capability_digest: &str,
-    evidence: &BridgeLowerRuntimeEvidenceReference,
-) -> String {
-    let mut parts = vec![format!("capability_digest:{capability_digest}")];
-    parts.extend(evidence.digest_parts());
-    hash_parts(&parts)
+fn truth_branch_label(identity: &TruthBranchIdentity) -> String {
+    identity
+        .bridge_admission_evidence()
+        .terminal_projection_for_reporting()
+        .to_string()
+}
+
+fn truth_commit_label(identity: &TruthCommitIdentity) -> String {
+    identity
+        .bridge_admission_evidence()
+        .terminal_projection_for_reporting()
+        .to_string()
+}
+
+fn truth_snapshot_label(identity: &TruthSnapshotIdentity) -> String {
+    identity
+        .bridge_admission_evidence()
+        .terminal_projection_for_reporting()
+        .to_string()
 }

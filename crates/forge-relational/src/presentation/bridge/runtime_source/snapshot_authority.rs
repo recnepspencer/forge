@@ -23,15 +23,15 @@ pub(super) fn resolve_snapshot_version(
             .or_else(|| runtime.published_snapshot_version(snapshot_id))
             .ok_or_else(|| {
             RelationalBridgeSourceError::new(format!(
-                "relational bridge snapshot identity `{}` does not resolve to an authoritative active/published snapshot binding or commit envelope",
-                identity.as_str()
+                "relational bridge snapshot `{}` does not resolve to an authoritative active/published snapshot binding or commit envelope",
+                snapshot_id.0
             ))
         })?
     };
     if observed_version_id != expected_version_id {
         return Err(RelationalBridgeSourceError::new(format!(
-            "relational bridge snapshot identity `{}` expected version `{}` but authoritative binding resolved to version `{}`",
-            identity.as_str(),
+            "relational bridge snapshot `{}` expected version `{}` but authoritative binding resolved to version `{}`",
+            snapshot_id.0,
             expected_version_id.0,
             observed_version_id.0
         )));

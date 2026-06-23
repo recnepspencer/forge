@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::active_budget::ActiveSubscriptionAllocationPosture;
 use super::active_counters::ActiveSubscriptionCounters;
@@ -10,6 +10,7 @@ use super::delivery_dimensions::{
     ActiveDeliveryContinuationWidth, ActiveDeliveryPreviewResidueWidth, PatchGroupWidth,
 };
 use super::delivery_error::{QueryDeliveryDenialKind, QueryDeliveryError};
+use super::evidence_identities::{lifecycle_work_packet_identity, typed_identity_drift};
 use super::maintenance_delta::{
     QueryMaintenanceDeltaLoweringReport, QuerySubscriptionMaintenanceDelta,
 };
@@ -30,7 +31,7 @@ pub struct ActiveDeliveryWorkPacket {
     allocation_scope_width: u64,
     allocation_posture: ActiveSubscriptionAllocationPosture,
     performance_receipt: SubscriptionPerformanceReceipt,
-    work_packet_digest: String,
+    work_packet_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ActiveDeliveryWorkPacket {
@@ -55,7 +56,7 @@ impl ActiveDeliveryWorkPacket {
             return Err(QueryDeliveryError::new(
                 QueryDeliveryDenialKind::AllocationPostureForbidden,
                 "active delivery work packets require patch-scratch allocation posture",
-                maintenance_delta.maintenance_delta_digest(),
+                maintenance_delta.evidence_identity().clone(),
                 counters,
             ));
         }
@@ -64,19 +65,22 @@ impl ActiveDeliveryWorkPacket {
             return Err(QueryDeliveryError::new(
                 QueryDeliveryDenialKind::DenseRefreshDenied,
                 "dense refresh delivery must be explicit debt or typed denial",
-                maintenance_delta.maintenance_delta_digest(),
+                maintenance_delta.evidence_identity().clone(),
                 counters,
             ));
         }
-        if maintenance_delta.active_lane_digest() != &active_lane_digest
-            || lowering_report.maintenance_delta_digest()
-                != maintenance_delta.maintenance_delta_digest()
-        {
+        if typed_identity_drift(
+            maintenance_delta.active_lane_digest().evidence_identity(),
+            active_lane_digest.evidence_identity(),
+        ) || typed_identity_drift(
+            lowering_report.maintenance_delta_identity(),
+            maintenance_delta.evidence_identity(),
+        ) {
             counters.delivery_window_overflow_count = 1;
             return Err(QueryDeliveryError::new(
                 QueryDeliveryDenialKind::WorkPacketDeltaMismatch,
                 "active delivery work packet must consume a lowered delta for the target lane",
-                maintenance_delta.maintenance_delta_digest(),
+                maintenance_delta.evidence_identity().clone(),
                 counters,
             ));
         }
@@ -99,27 +103,23 @@ impl ActiveDeliveryWorkPacket {
             budgeted_width,
             density_posture,
             allocation_posture,
-            maintenance_delta.maintenance_delta_digest(),
+            maintenance_delta.evidence_identity(),
         );
-        let work_packet_digest = hash_parts(&[
-            "active_delivery_work_packet_v1".to_string(),
-            format!("lane:{}", active_lane_digest.as_str()),
-            format!("attachment:{}", attachment_digest.as_str()),
-            format!("delta:{}", maintenance_delta.maintenance_delta_digest()),
-            format!("lowering:{}", lowering_report.lowering_report_digest()),
-            format!("density:{}", density_posture.as_str()),
-            format!("affected_lane_width:{}", affected_lane_width),
-            format!("affected_attachment_width:{}", affected_attachment_width),
-            format!("patch_group_width:{}", patch_group_width),
-            format!("continuation_width:{}", continuation_width),
-            format!("preview_residue_width:{}", preview_residue_width),
-            format!("allocation_scope_width:{}", allocation_scope_width),
-            format!("allocation_posture:{}", allocation_posture.as_str()),
-            format!(
-                "receipt:{}",
-                performance_receipt.performance_receipt_digest()
-            ),
-        ]);
+        let work_packet_identity = lifecycle_work_packet_identity(
+            active_lane_digest.evidence_identity(),
+            attachment_digest.evidence_identity(),
+            maintenance_delta.evidence_identity(),
+            lowering_report.evidence_identity(),
+            density_posture.as_str(),
+            affected_lane_width,
+            affected_attachment_width,
+            patch_group_width,
+            continuation_width,
+            preview_residue_width,
+            allocation_scope_width,
+            allocation_posture,
+            performance_receipt.performance_receipt_identity(),
+        );
         counters.active_delivery_work_packet_count = 1;
         counters.active_delivery_work_packet_width = consumed_width;
         match density_posture {
@@ -156,17 +156,17 @@ impl ActiveDeliveryWorkPacket {
                 allocation_scope_width,
                 allocation_posture,
                 performance_receipt,
-                work_packet_digest,
+                work_packet_identity,
             },
             counters,
         ))
     }
 
-    pub fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.active_lane_digest
     }
 
-    pub fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
+    pub(crate) fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
         &self.attachment_digest
     }
 
@@ -190,8 +190,8 @@ impl ActiveDeliveryWorkPacket {
         &self.performance_receipt
     }
 
-    pub fn work_packet_digest(&self) -> &str {
-        &self.work_packet_digest
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.work_packet_identity
     }
 
     pub fn affected_lane_width(&self) -> u64 {

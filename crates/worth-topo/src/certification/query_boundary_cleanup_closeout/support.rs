@@ -30,16 +30,21 @@ pub(super) fn closed_row(
     })
 }
 
+#[track_caller]
 pub(super) fn ensure(condition: bool) -> Result<(), TopologyCertificationError> {
     if condition {
         Ok(())
     } else {
-        Err(TopologyCertificationError::ReadView(
-            "worth-topo query boundary cleanup closeout structural proof failed".to_string(),
-        ))
+        let location = std::panic::Location::caller();
+        Err(TopologyCertificationError::ReadView(format!(
+            "worth-topo query boundary cleanup closeout structural proof failed at {}:{}",
+            location.file(),
+            location.line()
+        )))
     }
 }
 
+#[track_caller]
 pub(super) fn ensure_all(
     sources: &[String],
     predicate: impl Fn(&str) -> bool,
@@ -80,6 +85,44 @@ pub(super) fn collect_rs_sources(
         .collect::<Result<Vec<_>, TopologyCertificationError>>()?;
     sources.sort_by(|left, right| left.0.cmp(&right.0));
     Ok(sources)
+}
+
+pub(super) fn collect_rs_sources_recursive(
+    relative: &str,
+) -> Result<Vec<(String, String)>, TopologyCertificationError> {
+    let mut sources = Vec::new();
+    collect_rs_sources_recursive_from(&workspace_path(relative), &mut sources)?;
+    sources.sort_by(|left, right| left.0.cmp(&right.0));
+    Ok(sources)
+}
+
+fn collect_rs_sources_recursive_from(
+    dir: &Path,
+    sources: &mut Vec<(String, String)>,
+) -> Result<(), TopologyCertificationError> {
+    for entry in fs::read_dir(dir)
+        .map_err(|error| TopologyCertificationError::ReadView(error.to_string()))?
+    {
+        let path = entry
+            .map_err(|error| TopologyCertificationError::ReadView(error.to_string()))?
+            .path();
+        if path.is_dir() {
+            collect_rs_sources_recursive_from(&path, sources)?;
+            continue;
+        }
+        if path.extension().is_none_or(|ext| ext != "rs") {
+            continue;
+        }
+        let source = fs::read_to_string(&path)
+            .map_err(|error| TopologyCertificationError::ReadView(error.to_string()))?;
+        let relative = path
+            .strip_prefix(workspace_root())
+            .expect("source file should live inside workspace")
+            .to_string_lossy()
+            .replace('\\', "/");
+        sources.push((relative, source));
+    }
+    Ok(())
 }
 
 fn workspace_path(relative: &str) -> PathBuf {

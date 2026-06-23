@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+ --> tests/ui/raw_branch_alias_preview_forbidden.rs:4:50
+  |
+4 |     let _ = PreviewSessionQueryContext::declared("main", PreviewEvaluationClass::read_only());
+  |             ------------------------------------ ^^^^^^ expected `&BridgePreviewSession<PreviewDeclared>`, found `&str`
+  |             |
+  |             arguments to this function are incorrect
+  |
+  = note: expected reference `&forge_runtime_bridge::speculation::session::BridgePreviewSession<forge_runtime_bridge::speculation::taxonomy::PreviewDeclared>`
+             found reference `&'static str`
+note: associated function defined here
+ --> src/preview/mod.rs
+  |
+  |     pub fn declared(
+  |            ^^^^^^^^

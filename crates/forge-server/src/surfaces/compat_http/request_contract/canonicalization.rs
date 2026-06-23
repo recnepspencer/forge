@@ -84,7 +84,9 @@ fn validate_body_contract(
         return Err(ForgeServerCompatibilityDenial::new(
             ForgeServerCompatibilityDenialCode::UnexpectedRequestBody,
             diagnostics_profile,
-            format!("HTTP method `{method}` does not admit a request body at the compatibility boundary"),
+            format!(
+                "HTTP method `{method}` does not admit a request body at the compatibility boundary"
+            ),
         ));
     }
 

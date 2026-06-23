@@ -1,0 +1,12 @@
+error: cannot construct `ForgeQueryGraphObligationSelectionCounters` with struct literal syntax due to private fields
+ --> tests/ui/graph_obligation/index/selection_counters_constructor_private.rs:4:19
+  |
+4 |     let _forged = ForgeQueryGraphObligationSelectionCounters {};
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields that were not provided
+help: you might have meant to use the `new` associated function
+  |
+4 -     let _forged = ForgeQueryGraphObligationSelectionCounters {};
+4 +     let _forged = ForgeQueryGraphObligationSelectionCounters::new(_);
+  |

@@ -30,6 +30,18 @@ ValidateBooleanFailureLocalizationConsistency
 
 ValidateBooleanDecisionLogCoverage
 
+ValidateEdgeSplitDecisionLogCoverage
+
+ValidateSplitLedgerReceiptChain
+
+RejectSplitLedgerMissingValidationReceipt
+
+RejectSplitLedgerMissingPersistentNamingReceipt
+
+RejectSplitLedgerMissingDecisionLogReceipt
+
+RejectSplitLedgerForeignProductLineage
+
 ValidateBooleanPolicyOutcomeConsistency
 
 ValidateBooleanDivergenceClassificationConsistency

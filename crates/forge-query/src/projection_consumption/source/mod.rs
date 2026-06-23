@@ -1,5 +1,6 @@
 mod constructors;
 
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -119,6 +120,63 @@ pub(crate) enum ProjectionSourceCapabilityProfile {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectionSourceIdentity {
+    identity: ProjectionSourceIdentityKind,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum ProjectionSourceIdentityKind {
+    Evidence(ForgeQueryEvidenceIdentity),
+    Artifact(String),
+}
+
+impl ProjectionSourceIdentity {
+    pub fn from_evidence_identity(identity: ForgeQueryEvidenceIdentity) -> Self {
+        Self {
+            identity: ProjectionSourceIdentityKind::Evidence(identity),
+        }
+    }
+
+    pub fn artifact(identity: impl Into<String>) -> Self {
+        Self {
+            identity: ProjectionSourceIdentityKind::Artifact(identity.into()),
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        match &self.identity {
+            ProjectionSourceIdentityKind::Evidence(identity) => identity.as_str(),
+            ProjectionSourceIdentityKind::Artifact(identity) => identity,
+        }
+    }
+
+    pub fn evidence_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        match &self.identity {
+            ProjectionSourceIdentityKind::Evidence(identity) => Some(identity),
+            ProjectionSourceIdentityKind::Artifact(_) => None,
+        }
+    }
+}
+
+impl From<&str> for ProjectionSourceIdentity {
+    fn from(value: &str) -> Self {
+        Self::artifact(value)
+    }
+}
+
+impl From<String> for ProjectionSourceIdentity {
+    fn from(value: String) -> Self {
+        Self::artifact(value)
+    }
+}
+
+impl std::fmt::Display for ProjectionSourceIdentity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectionSourceReferenceIdentity {
     label: &'static str,
     identity: String,
@@ -154,7 +212,7 @@ pub struct ProjectionConsumptionSource {
     basis_digest: Option<String>,
     result_digest: Option<String>,
     result_shape_digest: Option<String>,
-    source_identity: String,
+    source_identity: ProjectionSourceIdentity,
     source_reference_identities: Vec<ProjectionSourceReferenceIdentity>,
     materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
 }
@@ -185,6 +243,10 @@ impl ProjectionConsumptionSource {
     }
 
     pub fn source_identity(&self) -> &str {
+        self.source_identity.as_str()
+    }
+
+    pub fn source_identity_handle(&self) -> &ProjectionSourceIdentity {
         &self.source_identity
     }
 
@@ -199,7 +261,7 @@ impl ProjectionConsumptionSource {
     pub(crate) fn synthetic_for_certification(
         family: ProjectionSourceFamily,
         capability_profile: ProjectionSourceCapabilityProfile,
-        source_identity: impl Into<String>,
+        source_identity: impl Into<ProjectionSourceIdentity>,
         source_reference_identities: Vec<ProjectionSourceReferenceIdentity>,
     ) -> Self {
         Self {
@@ -222,7 +284,7 @@ impl ProjectionConsumptionSource {
         basis_digest: Option<String>,
         result_digest: Option<String>,
         result_shape_digest: Option<String>,
-        source_identity: impl Into<String>,
+        source_identity: impl Into<ProjectionSourceIdentity>,
         source_reference_identities: Vec<ProjectionSourceReferenceIdentity>,
     ) -> Self {
         Self {

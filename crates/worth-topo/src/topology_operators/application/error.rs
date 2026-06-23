@@ -18,6 +18,7 @@ pub enum TopologyMutationApplicationError {
         stop_stage: Option<ForgeQueryDeclarationEntryOrchestrationStage>,
         refusal_class: Option<TopologyDeclarationEntryRefusalClass>,
         recovery: Option<ForgeQueryRecoveryBrief>,
+        graph_obligation_envelope_digest: Option<String>,
         reason: String,
     },
     MissingCreatedEntityReference(String),
@@ -86,16 +87,21 @@ pub(crate) enum TopologyDeclarationEntryStopClass {
     Deferred,
     Denied,
     Stale,
+    StaleCompletion,
     RebindRequired,
     Failed,
     Refused,
     Unsupported,
     Ambiguous,
+    AsyncRequestDrift,
     AspectConflict,
     AuthorityMismatch,
     BasisMismatch,
     ExplicitNarrowingRequired,
     MissingRequiredAspect,
+    PreviewCrossedResidue,
+    RemaskDrift,
+    ReplayDrift,
     Unavailable,
     WrongHandle,
     WrongWorld,
@@ -107,16 +113,21 @@ impl TopologyDeclarationEntryStopClass {
             Self::Deferred => "deferred",
             Self::Denied => "denied",
             Self::Stale => "stale",
+            Self::StaleCompletion => "stale_completion",
             Self::RebindRequired => "rebind_required",
             Self::Failed => "failed",
             Self::Refused => "refused",
             Self::Unsupported => "unsupported",
             Self::Ambiguous => "ambiguous",
+            Self::AsyncRequestDrift => "async_request_drift",
             Self::AspectConflict => "aspect_conflict",
             Self::AuthorityMismatch => "authority_mismatch",
             Self::BasisMismatch => "basis_mismatch",
             Self::ExplicitNarrowingRequired => "explicit_narrowing_required",
             Self::MissingRequiredAspect => "missing_required_aspect",
+            Self::PreviewCrossedResidue => "preview_crossed_residue",
+            Self::RemaskDrift => "remask_drift",
+            Self::ReplayDrift => "replay_drift",
             Self::Unavailable => "unavailable",
             Self::WrongHandle => "wrong_handle",
             Self::WrongWorld => "wrong_world",
@@ -153,12 +164,8 @@ impl From<ForgeQueryRecoveryStopKind> for TopologyDeclarationEntryStopClass {
     fn from(value: ForgeQueryRecoveryStopKind) -> Self {
         match value {
             ForgeQueryRecoveryStopKind::Ambiguous => Self::Ambiguous,
+            ForgeQueryRecoveryStopKind::AsyncRequestDrift => Self::AsyncRequestDrift,
             ForgeQueryRecoveryStopKind::AspectConflict => Self::AspectConflict,
-            ForgeQueryRecoveryStopKind::AsyncRequestDrift
-            | ForgeQueryRecoveryStopKind::PreviewCrossedResidue
-            | ForgeQueryRecoveryStopKind::RemaskDrift
-            | ForgeQueryRecoveryStopKind::ReplayDrift
-            | ForgeQueryRecoveryStopKind::StaleCompletion => Self::Stale,
             ForgeQueryRecoveryStopKind::AuthorityMismatch => Self::AuthorityMismatch,
             ForgeQueryRecoveryStopKind::BasisMismatch => Self::BasisMismatch,
             ForgeQueryRecoveryStopKind::ContributionDenied
@@ -166,9 +173,13 @@ impl From<ForgeQueryRecoveryStopKind> for TopologyDeclarationEntryStopClass {
             ForgeQueryRecoveryStopKind::Deferred => Self::Deferred,
             ForgeQueryRecoveryStopKind::Failed => Self::Failed,
             ForgeQueryRecoveryStopKind::MissingRequiredAspect => Self::MissingRequiredAspect,
+            ForgeQueryRecoveryStopKind::PreviewCrossedResidue => Self::PreviewCrossedResidue,
             ForgeQueryRecoveryStopKind::RebindRequired => Self::RebindRequired,
+            ForgeQueryRecoveryStopKind::RemaskDrift => Self::RemaskDrift,
+            ForgeQueryRecoveryStopKind::ReplayDrift => Self::ReplayDrift,
             ForgeQueryRecoveryStopKind::Refused => Self::Refused,
             ForgeQueryRecoveryStopKind::Stale => Self::Stale,
+            ForgeQueryRecoveryStopKind::StaleCompletion => Self::StaleCompletion,
             ForgeQueryRecoveryStopKind::Unavailable => Self::Unavailable,
             ForgeQueryRecoveryStopKind::Unsupported => Self::Unsupported,
             ForgeQueryRecoveryStopKind::WrongHandle => Self::WrongHandle,
@@ -245,6 +256,16 @@ impl TopologyMutationApplicationError {
     pub(crate) fn declaration_entry_recovery_brief(&self) -> Option<&ForgeQueryRecoveryBrief> {
         match self {
             Self::DeclarationEntry { recovery, .. } => recovery.as_ref(),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn declaration_entry_graph_obligation_envelope_digest(&self) -> Option<&str> {
+        match self {
+            Self::DeclarationEntry {
+                graph_obligation_envelope_digest,
+                ..
+            } => graph_obligation_envelope_digest.as_deref(),
             _ => None,
         }
     }

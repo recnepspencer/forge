@@ -12,18 +12,10 @@ fn runtime_public_support_gate_keeps_support_gated_rows_fail_closed_for_ordinary
         ForgeQueryRuntimeFacadeFamily::AsyncResource,
         ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
     ] {
-        let admitted = workspace
-            .admit_public_api_family(family)
-            .expect("support-gated runtime-backed family should admit");
         let matrix_row = matrix
             .row_for_family(family)
             .expect("support-matrix row should exist");
 
-        assert_eq!(admitted.family(), family);
-        assert_eq!(
-            admitted.status(),
-            ForgeQueryRuntimeFamilySupportStatus::Supported
-        );
         assert_eq!(
             matrix_row.status(),
             ForgeQueryRuntimeFamilySupportStatus::Supported
@@ -35,6 +27,24 @@ fn runtime_public_support_gate_keeps_support_gated_rows_fail_closed_for_ordinary
             matrix_row.teaching_posture(),
             ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly
         );
+
+        let error = workspace
+            .admit_public_api_family(family)
+            .expect_err("support-gated runtime-backed family should fail closed at admission");
+        match error {
+            ForgeQueryRuntimeError::UnsupportedFacadeFamily(denial) => {
+                assert_eq!(denial.family(), family);
+                assert_eq!(
+                    denial.status(),
+                    ForgeQueryRuntimeFamilySupportStatus::Supported
+                );
+                assert_eq!(
+                    denial.teaching_posture(),
+                    Some(ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly)
+                );
+            }
+            other => panic!("expected support-gated admission denial, got {other:?}"),
+        }
     }
 }
 
@@ -45,11 +55,20 @@ fn runtime_public_mutation_surface_report_lists_only_live_lower_level_command_su
         .expect("task runtime should open a named workspace");
     let report = workspace.public_mutation_surface_report();
 
-    assert_eq!(report.lower_level_stable_count(), 5);
+    assert_eq!(report.lower_level_stable_count(), 4);
     assert_eq!(report.support_gated_count(), 2);
     assert!(report
         .row_by_surface("ForgeQueryWriteCommand::Insert")
         .is_none());
+    assert_eq!(
+        report
+            .row_by_surface("workspace.submissions()?.submit_batch(commands)")
+            .expect("submission batch row should exist")
+            .posture(),
+        ForgeQueryMutationSurfacePosture::PreferredStable
+    );
+    assert!(report.row_by_surface("workspace.batch(...)").is_none());
+    assert!(report.row_by_surface("workspace.write(...)").is_none());
     assert_eq!(
         report
             .row_by_surface("ForgeQueryWriteCommand::InsertAspects")

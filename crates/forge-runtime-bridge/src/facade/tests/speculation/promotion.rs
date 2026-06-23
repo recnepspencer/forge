@@ -10,7 +10,7 @@ fn runtime_promotes_preview_session_and_replays_promoted_bundle() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:promotion"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:promotion"),
             preview_declaration(),
         )
         .expect("preview declaration should admit");
@@ -48,7 +48,7 @@ fn runtime_rejects_stale_duplicate_and_post_discard_promotion() {
 
     let admitted_a = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:promotion-a"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:promotion-a"),
             preview_declaration(),
         )
         .expect("first preview declaration should admit");
@@ -57,7 +57,7 @@ fn runtime_rejects_stale_duplicate_and_post_discard_promotion() {
 
     let admitted_b = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:promotion-b"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:promotion-b"),
             preview_declaration(),
         )
         .expect("second preview declaration should admit");
@@ -74,7 +74,7 @@ fn runtime_rejects_stale_duplicate_and_post_discard_promotion() {
 
     let duplicate_admission_error = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:promotion-b"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:promotion-b"),
             preview_declaration(),
         )
         .expect_err("duplicate preview session identity must fail at admission");
@@ -95,7 +95,7 @@ fn runtime_rejects_stale_duplicate_and_post_discard_promotion() {
         .expect("discard should succeed");
     let reactivated_admission_error = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:promotion-a"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:promotion-a"),
             preview_declaration(),
         )
         .expect_err("discarded preview session identity must remain reserved");

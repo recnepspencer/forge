@@ -8,6 +8,10 @@ use crate::application::{
     ForgeQueryDeclarationSignalCompatibilityTag, ForgeQueryDomainEntryMarker,
     ForgeQueryTemporalDeclarationSupport,
 };
+use crate::runtime::{
+    ForgeQueryGraphObligationRegistration, ForgeQueryGraphTouchDescriptor,
+    ForgeQueryGraphTouchDescriptorDenial,
+};
 
 use super::taxonomy::ForgeQueryDeclarationFamilyTaxonomy;
 
@@ -83,5 +87,19 @@ pub trait ForgeQueryDeclarationFamilyMarker<D: ForgeQueryDomainEntryMarker> {
 
     fn signal_compatibility_contract() -> Option<ForgeQueryDeclarationSignalCompatibilityContract> {
         None
+    }
+
+    fn orchestration_graph_touch_collection() -> Option<&'static str> {
+        None
+    }
+
+    fn orchestration_graph_touch_descriptor(
+    ) -> Option<Result<ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchDescriptorDenial>> {
+        None
+    }
+
+    fn orchestration_graph_obligation_registrations() -> Vec<ForgeQueryGraphObligationRegistration>
+    {
+        Vec::new()
     }
 }

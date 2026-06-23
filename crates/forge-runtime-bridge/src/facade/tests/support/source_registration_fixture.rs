@@ -9,7 +9,7 @@ pub(in crate::facade::tests) fn registered_source(
     capabilities: Vec<BridgeSourceCapability>,
 ) -> SourceDeclaration {
     SourceDeclaration::new(
-        SourceDeclarationIdentity::new(id),
+        SourceDeclarationIdentity::admit_bridge_owned(id),
         selector,
         BridgeSourceCapabilitySet::new(capabilities),
     )

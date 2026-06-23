@@ -19,8 +19,8 @@ artifact, orchestration, grouping, and recovery model.
   Typed domain entry, declaration pipeline, helpers, grouped work, recovery,
   continuation, and certification.
 - `foundations/`
-  Runtime posture, support, operating modes, policy/tenant narrowing, workspace,
-  and preview or branch context.
+  Runtime posture, support, operating modes, consumer proof, policy/tenant
+  narrowing, workspace, and preview or branch context.
 - `authoring/`
   Query authoring, read composition, collections/cursors, parallel admission,
   templates, and reusable shapes.
@@ -47,6 +47,9 @@ artifact, orchestration, grouping, and recovery model.
   [Recipes](./domain-capabilities/recipes/README.md)
 - if you need runtime posture and support context first:
   [foundations/support-matrix-and-admission.md](./foundations/support-matrix-and-admission.md)
+- if you need downstream consumer proof, support pins, audits, generic
+  consumer-residue-audit coverage, or test workspaces:
+  [foundations/consumer-kit.md](./foundations/consumer-kit.md)
 - if you need store-backed vs runtime-backed honesty:
   [foundations/query-operating-modes.md](./foundations/query-operating-modes.md)
 - if you need policy, tenant, or relationship-proof narrowing:
@@ -55,6 +58,14 @@ artifact, orchestration, grouping, and recovery model.
   [capabilities/basis-capability-lifecycle.md](./capabilities/basis-capability-lifecycle.md)
 - if you need cross-runtime “why” (not `workspace.inspect` alone):
   [capabilities/cross-runtime-causal-inspection.md](./capabilities/cross-runtime-causal-inspection.md)
+- if you need graph touch obligation selection, support rows, or downstream
+  graph-obligation proof:
+  [authoring/graph-touch-obligation-authority.md](./authoring/graph-touch-obligation-authority.md)
+- if you need graph read access planning, admitted access postures, required
+  index/materialization capability, or no-N+1 receipt proof:
+  [authoring/graph-read-access-planning.md](./authoring/graph-read-access-planning.md)
+- if you need the Milestone 9.9 closure record for graph obligation authority:
+  [_docs/forge-query/milestone-9.9-closeout.md](../../../_docs/forge-query/milestone-9.9-closeout.md)
 - if you need lower-runtime routing (not direct crate imports):
   [domain-capabilities/lower-runtime-capability-routing.md](./domain-capabilities/lower-runtime-capability-routing.md)
 - if you need contribution lane map:
@@ -64,12 +75,17 @@ artifact, orchestration, grouping, and recovery model.
 
 ## Foundations (feature docs)
 
+- [Consumer Kit](./foundations/consumer-kit.md)
 - [Query operating modes](./foundations/query-operating-modes.md)
 - [Policy, tenant, and relationship-proof narrowing](./foundations/policy-tenant-and-relationship-proof-narrowing.md)
 
 ## Authoring (feature docs)
 
 - [Collections, cursors, ordering, and aggregations](./authoring/collections-cursors-ordering-and-aggregations.md)
+- [Graph Composition Authoring](./authoring/graph-composition-authoring.md)
+- [Graph Read Access Planning](./authoring/graph-read-access-planning.md)
+- [Graph Touch Obligation Authority](./authoring/graph-touch-obligation-authority.md)
+- [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
 - [Planner parallel admission and scale posture](./authoring/planner-parallel-admission-and-scale-posture.md)
 
 ## Execution (feature docs)

@@ -17,7 +17,9 @@ fn preview_workflow_artifact_materializer_builds_preview_artifacts() {
         ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
             "spatial.preview.only",
             "preview remains read-only",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:42"),
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                "preview-session:42",
+            ),
         ),
     )));
     let promotion = success(materialize_query_preview_workflow_artifact(
@@ -25,7 +27,9 @@ fn preview_workflow_artifact_materializer_builds_preview_artifacts() {
             ForgeQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
                 "spatial.preview.lowering",
                 "promotion-eligible preview can lower bounded mutation workflow",
-                crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:77"),
+                crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                    "preview-session:77",
+                ),
             ),
             admitted_plan_target_parts(
                 "plan-preview-promotion",
@@ -39,7 +43,9 @@ fn preview_workflow_artifact_materializer_builds_preview_artifacts() {
         ForgeQueryWorkflowContributionAuthoring::discard_required_query_inspection(
             "spatial.preview.discard",
             "preview must discard rather than promote",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:99"),
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                "preview-session:99",
+            ),
         ),
     )));
 
@@ -48,7 +54,10 @@ fn preview_workflow_artifact_materializer_builds_preview_artifacts() {
         &crate::preview::PreviewWorkflowFoundationRequest::compare_basis_pair()
     );
     assert_eq!(
-        read_only.preview_session_identity().as_str(),
+        read_only
+            .preview_session_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting(),
         "preview-session:42"
     );
     assert_eq!(
@@ -56,7 +65,10 @@ fn preview_workflow_artifact_materializer_builds_preview_artifacts() {
         &crate::preview::PreviewEvaluationClass::read_only()
     );
     assert_eq!(
-        promotion.preview_session_identity().as_str(),
+        promotion
+            .preview_session_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting(),
         "preview-session:77"
     );
     assert_eq!(
@@ -68,14 +80,15 @@ fn preview_workflow_artifact_materializer_builds_preview_artifacts() {
         &crate::preview::PreviewEvaluationClass::promotion_eligible()
     );
     assert_eq!(
-        promotion.binding_digest(),
+        promotion.binding_for_reporting(),
         admitted_plan_target_parts(
             "plan-preview-promotion",
             "request-preview",
             "eligibility-preview",
             "decision-preview",
         )
-        .binding_digest()
+        .binding_identity()
+        .as_str()
     );
     assert_eq!(
         discard.request_family(),
@@ -90,7 +103,9 @@ fn preview_workflow_artifact_digest_changes_when_scope_changes() {
             ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
                 "spatial.preview.only",
                 "preview remains read-only",
-                crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:42"),
+                crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                    "preview-session:42",
+                ),
             ),
             admitted_plan_target_parts(
                 "plan-preview-left",
@@ -105,7 +120,9 @@ fn preview_workflow_artifact_digest_changes_when_scope_changes() {
             ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
                 "spatial.preview.only",
                 "preview remains read-only",
-                crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:42"),
+                crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                    "preview-session:42",
+                ),
             ),
             admitted_plan_target_parts(
                 "plan-preview-right",
@@ -116,8 +133,14 @@ fn preview_workflow_artifact_digest_changes_when_scope_changes() {
         ),
     ));
 
-    assert_ne!(left.digest(), right.digest());
-    assert_ne!(left.declaration_digest(), right.declaration_digest());
+    assert_ne!(
+        left.artifact_for_reporting(),
+        right.artifact_for_reporting()
+    );
+    assert_ne!(
+        left.declaration_digest_for_reporting(),
+        right.declaration_digest_for_reporting()
+    );
     assert_ne!(
         left.canonical_query_digest().as_str(),
         right.canonical_query_digest().as_str()
@@ -135,7 +158,7 @@ fn preview_workflow_artifact_separates_request_family_in_identity_basis() {
                 "request family must participate in preview declaration identity",
                 Some(super::ForgeQueryWorkflowRuntimeSemantics::new(
                     super::ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                        crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                        crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
                             "preview-session:identity",
                         ),
                         crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,
@@ -158,7 +181,7 @@ fn preview_workflow_artifact_separates_request_family_in_identity_basis() {
                 "request family must participate in preview declaration identity",
                 Some(super::ForgeQueryWorkflowRuntimeSemantics::new(
                     super::ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                        crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                        crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
                             "preview-session:identity",
                         ),
                         crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,
@@ -174,10 +197,19 @@ fn preview_workflow_artifact_separates_request_family_in_identity_basis() {
     )));
 
     assert_ne!(
-        promotion.declaration_identity().as_str(),
-        discard.declaration_identity().as_str()
+        promotion
+            .declaration_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting(),
+        discard
+            .declaration_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
     );
-    assert_ne!(promotion.declaration_digest(), discard.declaration_digest());
+    assert_ne!(
+        promotion.declaration_digest_for_reporting(),
+        discard.declaration_digest_for_reporting()
+    );
     assert_ne!(
         promotion.canonical_query_digest().as_str(),
         discard.canonical_query_digest().as_str()
@@ -190,7 +222,7 @@ fn preview_workflow_artifact_materializer_denies_runtime_only_workflow_postures(
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_query_inspection(
             "spatial.confirmation.runtime",
             "authoritative confirmation requires runtime preflight context",
-            "runtime-snapshot:77",
+            crate::memory_workspace::admit_external_snapshot_label("runtime-snapshot:77"),
         ),
         admitted_plan_target_parts(
             "plan-preview-runtime",
@@ -215,7 +247,9 @@ fn admitted_preview_workflow_foundation_materializer_builds_real_foundations() {
             ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
                 "spatial.preview.only",
                 "preview remains read-only",
-                crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:42"),
+                crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                    "preview-session:42",
+                ),
             ),
         ),
     ));
@@ -224,7 +258,9 @@ fn admitted_preview_workflow_foundation_materializer_builds_real_foundations() {
             ForgeQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
                 "spatial.preview.lowering",
                 "promotion-eligible preview can lower bounded mutation workflow",
-                crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:77"),
+                crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                    "preview-session:77",
+                ),
             ),
             admitted_plan_target_parts(
                 "plan-preview-promotion",
@@ -268,7 +304,9 @@ fn admitted_preview_workflow_foundation_admits_discard_required_requests() {
             ForgeQueryWorkflowContributionAuthoring::discard_required_query_inspection(
                 "spatial.preview.discard",
                 "preview must discard rather than promote",
-                crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:66"),
+                crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                    "preview-session:66",
+                ),
             ),
         ),
     ));
@@ -306,7 +344,7 @@ fn preview_workflow_materializer_denies_read_only_discard_required_runtime_seman
                 "discard-required preview semantics must not pretend read-only foundations can carry deferred writeback authority",
                 Some(super::ForgeQueryWorkflowRuntimeSemantics::new(
                     super::ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                        crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                        crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
                             "preview-session:denied",
                         ),
                         crate::workflow::WorkflowPreviewEvaluationClass::ReadOnly,

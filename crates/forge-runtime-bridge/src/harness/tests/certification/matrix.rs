@@ -1,4 +1,3 @@
-use crate::facade::TruthSnapshotIdentity;
 use forge_harness::facade::{
     certification_matrix, ExecutionProfile, ExecutionRequest, ScenarioPlan,
 };
@@ -13,20 +12,25 @@ fn bridge_certification_matrix_reports_diagnostics_for_candidate_profiles() {
         "bridge-certification",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("commit-a")
     .declare_observation("route")
     .compile();
     let request = ExecutionRequest::target(
         "deliver-commit-a",
-        BridgeHarnessTargetId::committed_route(crate::facade::TruthCommitIdentity::new("commit-a")),
+        BridgeHarnessTargetId::committed_route(
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        ),
     );
 
     let report = certification_matrix(
@@ -50,13 +54,16 @@ fn bridge_historical_certification_matrix_reports_candidate_profile_parity() {
         "bridge-historical-certification",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("history-commit:main:commit-a")
     .declare_observation("historical")
@@ -64,8 +71,8 @@ fn bridge_historical_certification_matrix_reports_candidate_profile_parity() {
     let request = ExecutionRequest::target(
         "historical-commit-a",
         BridgeHarnessTargetId::historical_commit(
-            crate::facade::TruthBranchIdentity::new("main"),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
     );
 

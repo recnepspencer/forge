@@ -10,13 +10,12 @@ use crate::effect_lifecycle::{
 };
 
 use super::execution_support::{
-    branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
+    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
     test_bridge_with_writeback_authority,
 };
 use super::support::{
     admitted_mutation_effect_for_entity_with_binding, admitted_tenant_writeback_effect,
-    branch_mutation_basis, raw_mutation_effect_with_binding,
-    runtime_workflow_binding_with_snapshot,
+    branch_mutation_basis, raw_mutation_effect_with_binding, runtime_workflow_binding_for_branch,
 };
 
 #[test]
@@ -31,7 +30,10 @@ fn mutation_execution_mints_receipt_first_envelope_and_diagnostics() {
         )
         .expect("branch-a should be created");
     let receipt = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
-        runtime_workflow_binding_with_snapshot("snapshot-1"),
+        runtime_workflow_binding_for_branch(
+            branch_snapshot_identity(&runtime, "branch-a"),
+            "branch-a",
+        ),
         entity_id,
         json!({ "name": "receipt-first" }),
     ))
@@ -60,24 +62,26 @@ fn mutation_execution_mints_receipt_first_envelope_and_diagnostics() {
     assert_eq!(envelope.authority_owner(), receipt.authority_owner());
     assert_eq!(envelope.basis_lane(), receipt.basis_lane());
     assert_eq!(
-        envelope.trace_digest(),
-        receipt.decision_trace().decision_trace_digest()
+        envelope.trace_for_reporting(),
+        receipt.decision_trace().decision_trace_for_reporting()
     );
     assert_eq!(
-        envelope.sources().receipt_digest(),
-        receipt.receipt_digest()
+        envelope.sources().receipt_for_reporting(),
+        receipt.receipt_for_reporting()
     );
     assert_eq!(
-        envelope.sources().lowered_digest(),
-        receipt.lowered_digest()
+        envelope.sources().lowered_for_reporting(),
+        receipt.lowered_for_reporting()
     );
     assert_eq!(
-        envelope.sources().authority_artifact_digest(),
-        receipt.integrity_markers().authority_artifact_digest()
+        envelope.sources().authority_artifact_for_reporting(),
+        receipt
+            .integrity_markers()
+            .authority_artifact_for_reporting()
     );
     assert_eq!(
-        envelope.sources().counter_snapshot_digest(),
-        receipt.integrity_markers().counter_snapshot_digest()
+        envelope.sources().counter_snapshot_for_reporting(),
+        receipt.integrity_markers().counter_snapshot_for_reporting()
     );
 
     let transitions = receipt.transition_rules();
@@ -92,8 +96,14 @@ fn mutation_execution_mints_receipt_first_envelope_and_diagnostics() {
     }));
 
     let diagnostics = receipt.materialize_diagnostics(EffectDiagnosticsRequest::forensic());
-    assert_eq!(diagnostics.receipt_digest(), receipt.receipt_digest());
-    assert_eq!(diagnostics.envelope_digest(), envelope.envelope_digest());
+    assert_eq!(
+        diagnostics.receipt_for_reporting(),
+        receipt.receipt_for_reporting()
+    );
+    assert_eq!(
+        diagnostics.envelope_for_reporting(),
+        envelope.envelope_for_reporting()
+    );
     assert!(diagnostics
         .detail_sections()
         .iter()
@@ -124,13 +134,13 @@ fn writeback_execution_mints_write_receipt_family() {
     assert_eq!(receipt.declared_effect_family(), EffectFamily::Writeback);
     match receipt.target_evidence() {
         EffectReceiptTargetEvidence::Writeback {
-            outcome_digest,
-            receipt_digest,
-            execution_receipt_digest,
+            outcome_identity,
+            authority_receipt_identity,
+            execution_receipt_identity,
         } => {
-            assert!(!outcome_digest.is_empty());
-            assert!(!receipt_digest.is_empty());
-            assert!(!execution_receipt_digest.is_empty());
+            assert!(!outcome_identity.as_str().is_empty());
+            assert!(!authority_receipt_identity.as_str().is_empty());
+            assert!(!execution_receipt_identity.as_str().is_empty());
         }
         other => panic!("expected writeback target evidence, got {other:?}"),
     }
@@ -140,8 +150,8 @@ fn writeback_execution_mints_write_receipt_family() {
     );
     assert!(receipt.effect_envelope().deferred_neighbors().len() >= 2);
     assert_eq!(
-        receipt.effect_envelope().transition_rules_digest(),
-        receipt.transition_rules().rules_digest()
+        receipt.effect_envelope().transition_rules_for_reporting(),
+        receipt.transition_rules().rules_for_reporting()
     );
     let executed = scope_admitted_effect_plan(admitted_tenant_writeback_effect())
         .lower()
@@ -175,12 +185,18 @@ fn batch_execution_mints_batch_write_receipt_family() {
             branch_mutation_basis(),
         ))
         .push(raw_mutation_effect_with_binding(
-            runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+            runtime_workflow_binding_for_branch(
+                branch_snapshot_identity(&runtime, "branch-a"),
+                "branch-a",
+            ),
             left,
             json!({ "name": "left-batch-receipt" }),
         ))
         .push(raw_mutation_effect_with_binding(
-            runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+            runtime_workflow_binding_for_branch(
+                branch_snapshot_identity(&runtime, "branch-a"),
+                "branch-a",
+            ),
             right,
             json!({ "name": "right-batch-receipt" }),
         ))
@@ -209,8 +225,8 @@ fn batch_execution_mints_batch_write_receipt_family() {
         EffectEnvelopePrimaryResult::BatchMutationCommitted
     );
     assert_ne!(
-        receipt.decision_trace().admitted_or_batch_digest(),
-        receipt.decision_trace().lowered_digest()
+        receipt.decision_trace().admitted_or_batch_for_reporting(),
+        receipt.decision_trace().lowered_for_reporting()
     );
 }
 

@@ -263,17 +263,42 @@ impl ForgeQueryLowerRuntimeCrossingRow {
     }
 
     pub fn row_digest(&self) -> String {
-        hash_parts(&[
-            "lower_runtime_crossing_row_v1".to_string(),
-            format!("seam:{}", self.seam_key.as_str()),
-            format!("capability:{}", self.capability_label),
-            format!("seam_path:{}", self.concrete_seam),
-            format!("classification:{}", self.classification.as_str()),
-            format!("route_kind:{}", self.route_kind.as_str()),
-            format!("owner:{}", self.lower_runtime_owner.as_str()),
-            format!("artifact:{}", self.current_artifact_strength.as_str()),
-            format!("required_action:{}", self.required_action),
-        ])
+        self.row_identity().as_str().to_string()
+    }
+
+    fn row_identity(&self) -> ForgeQueryEvidenceIdentity {
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "lower_runtime_crossing_row_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("seam"), self.seam_key.as_str())
+            .field_shape(
+                ForgeQueryEvidenceTag::new("capability"),
+                self.capability_label,
+            )
+            .field_value(ForgeQueryEvidenceTag::new("seam_path"), self.concrete_seam)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("classification"),
+                self.classification.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("route_kind"),
+                self.route_kind.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("owner"),
+                self.lower_runtime_owner.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("artifact"),
+                self.current_artifact_strength.as_str(),
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("required_action"),
+                self.required_action,
+            )
+            .seal()
     }
 }
 
@@ -291,30 +316,49 @@ impl ForgeQueryLowerRuntimeCrossingInventory {
         self.rows
     }
 
-    pub fn inventory_digest(&self) -> String {
-        hash_parts(
-            &self
-                .rows
-                .iter()
-                .map(ForgeQueryLowerRuntimeCrossingRow::row_digest)
-                .collect::<Vec<_>>(),
-        )
+    pub fn inventory_digest(&self) -> ForgeQueryEvidenceIdentity {
+        let row_identities = self
+            .rows
+            .iter()
+            .map(ForgeQueryLowerRuntimeCrossingRow::row_identity)
+            .collect::<Vec<_>>();
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "lower_runtime_crossing_inventory_v1",
+            )
+            .field_evidence_identity_sequence(ForgeQueryEvidenceTag::new("rows"), &row_identities)
+            .seal()
     }
 
-    pub fn classification_digest(&self) -> String {
-        hash_parts(
-            &self
-                .rows
-                .iter()
-                .map(|row| {
-                    format!(
-                        "{}:{}",
-                        row.seam_key().as_str(),
-                        row.classification().as_str()
-                    )
-                })
-                .collect::<Vec<_>>(),
-        )
+    pub fn classification_digest(&self) -> ForgeQueryEvidenceIdentity {
+        let classification_identities = self
+            .rows
+            .iter()
+            .map(|row| {
+                ForgeQueryEvidenceIdentity::compose(
+                    ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("seam"), row.seam_key().as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("classification"),
+                    row.classification().as_str(),
+                )
+                .seal()
+            })
+            .collect::<Vec<_>>();
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "lower_runtime_crossing_classification_v1",
+            )
+            .field_evidence_identity_sequence(
+                ForgeQueryEvidenceTag::new("rows"),
+                &classification_identities,
+            )
+            .seal()
     }
 }
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};

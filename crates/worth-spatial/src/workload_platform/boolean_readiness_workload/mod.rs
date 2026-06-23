@@ -4,6 +4,7 @@ mod denial;
 mod evidence_basis;
 mod receipt;
 mod required_stage;
+mod stage_coverage;
 mod validation;
 mod workload;
 
@@ -13,4 +14,5 @@ pub use denial::{PlanarBooleanReadinessWorkloadDenial, PlanarBooleanReadinessWor
 pub use evidence_basis::PlanarBooleanReadinessEvidenceBasis;
 pub use receipt::PlanarBooleanReadinessWorkloadReceipt;
 pub use required_stage::PlanarBooleanReadinessRequiredStage;
+pub use stage_coverage::PlanarBooleanReadinessStageCoverage;
 pub use workload::PlanarBooleanReadinessWorkload;

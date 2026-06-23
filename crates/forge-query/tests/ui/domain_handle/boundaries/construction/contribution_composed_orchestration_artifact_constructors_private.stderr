@@ -24,7 +24,7 @@ error: cannot construct `ForgeQueryContributionComposedOrchestrationTranscript<G
 89 |           contribution_digest: None,
    |           ------------------------- private field
    |
-   = note: ...and other private fields `request_descriptor`, `materialization_policy`, `declaration`, `composition_classification` and `intent_results` that were not provided
+   = note: ...and other private fields `request_descriptor`, `materialization_policy`, `declaration`, `composition_classification`, `graph_obligation_dispatch` and `intent_results` that were not provided
 help: you might have meant to use the `new` associated function
    |
 85 -     > {
@@ -33,5 +33,5 @@ help: you might have meant to use the `new` associated function
 88 -         linked_artifacts: unsafe { std::mem::zeroed() },
 89 -         contribution_digest: None,
 90 -     };
-85 +     >::new(_, _, _, _, _, _, _, _, _);
+85 +     >::new(_, _, _, _, _, _, _, _, _, _);
    |

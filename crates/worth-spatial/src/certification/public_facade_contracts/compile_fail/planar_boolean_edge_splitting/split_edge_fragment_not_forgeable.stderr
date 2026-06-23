@@ -1,0 +1,48 @@
+error[E0624]: associated function `original_source_start` is private
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_edge_fragment_not_forgeable.rs:6:60
+  |
+6 |       let start = PlanarBooleanSplitEdgeFragmentEndpointRef::original_source_start(
+  |                                                              ^^^^^^^^^^^^^^^^^^^^^ private associated function
+  |
+ ::: src/workload_platform/planar_boolean_edge_splitting/split_edge_fragments/endpoint_ref.rs
+  |
+  | /     pub(crate) fn original_source_start(
+  | |         source_edge_identity: &str,
+  | |         carrier_identity: &str,
+  | |         local_frame_identity: &str,
+  | |         precision_basis_identity: &str,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0624]: associated function `original_source_end` is private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_edge_fragment_not_forgeable.rs:12:58
+   |
+12 |       let end = PlanarBooleanSplitEdgeFragmentEndpointRef::original_source_end(
+   |                                                            ^^^^^^^^^^^^^^^^^^^ private associated function
+   |
+  ::: src/workload_platform/planar_boolean_edge_splitting/split_edge_fragments/endpoint_ref.rs
+   |
+   | /     pub(crate) fn original_source_end(
+   | |         source_edge_identity: &str,
+   | |         carrier_identity: &str,
+   | |         local_frame_identity: &str,
+   | |         precision_basis_identity: &str,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `new` is private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_edge_fragment_not_forgeable.rs:18:45
+   |
+18 |       let _ = PlanarBooleanSplitEdgeFragment::new(
+   |                                               ^^^ private associated function
+   |
+  ::: src/workload_platform/planar_boolean_edge_splitting/split_edge_fragments/fragment_row.rs
+   |
+   | /     pub(crate) fn new(
+   | |         fragment_identity: String,
+   | |         source_edge_identity: String,
+   | |         carrier_identity: String,
+...  |
+   | |         cause_provenance_identities: Vec<String>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

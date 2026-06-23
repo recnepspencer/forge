@@ -4,6 +4,7 @@ use crate::application::{
     ForgeQueryDeclarationEntryContributionComposition,
     ForgeQueryDeclarationEntryContributionEvidence, ForgeQueryDeclarationEnvelope,
     ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryGraphObligationOrchestrationDispatch,
 };
 
 use super::composition::{
@@ -132,6 +133,7 @@ pub struct ForgeQueryContributionComposedOrchestration<
     contributions: Vec<ForgeQueryContributionComposedContribution>,
     intent_results: Vec<ForgeQueryContributionComposedIntentResult>,
     composition: ForgeQueryContributionComposedComposition,
+    graph_obligation_dispatch: Option<ForgeQueryGraphObligationOrchestrationDispatch>,
 }
 
 impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
@@ -150,7 +152,16 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             contributions,
             intent_results,
             composition,
+            graph_obligation_dispatch: None,
         }
+    }
+
+    pub(crate) fn with_graph_obligation_dispatch(
+        mut self,
+        dispatch: Option<ForgeQueryGraphObligationOrchestrationDispatch>,
+    ) -> Self {
+        self.graph_obligation_dispatch = dispatch;
+        self
     }
 
     pub fn envelope(&self) -> &ForgeQueryDeclarationEnvelope<D, I> {
@@ -204,10 +215,20 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub fn composed_digest(&self) -> &str {
-        self.composition.composition_digest()
+        self.composition.composition_for_reporting()
     }
 
-    pub fn composition_digest(&self) -> &str {
-        self.composition.composition_digest()
+    pub fn composition_for_reporting(&self) -> &str {
+        self.composition.composition_for_reporting()
+    }
+
+    pub fn composition_identity(&self) -> &crate::ForgeQueryEvidenceIdentity {
+        self.composition.composition_identity()
+    }
+
+    pub fn graph_obligation_dispatch(
+        &self,
+    ) -> Option<&ForgeQueryGraphObligationOrchestrationDispatch> {
+        self.graph_obligation_dispatch.as_ref()
     }
 }

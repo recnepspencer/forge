@@ -1,15 +1,18 @@
 use forge_foundational::{
     foundational_diagnostic_boundary_artifact_subject, foundational_diagnostic_code,
     foundational_diagnostic_locator_boundary_artifact, foundational_diagnostic_scope,
-    BoundaryArtifactField, BoundaryArtifactId, BoundaryArtifactLocator,
-    FoundationalDiagnosticDenialClass, FoundationalDiagnosticEvidencePosture,
-    FoundationalDiagnosticLocalityClaim, FoundationalDiagnosticOutcomeKind,
-    FoundationalDiagnosticProvenanceReadyRow, FoundationalDiagnosticRow,
-    FoundationalDiagnosticSemanticLabelSet, FoundationalDiagnosticSeverity,
-    FoundationalDiagnosticSupportEvidencePosture, FoundationalDiagnosticSupportRow,
-    FoundationalDiagnosticWidenedFalloutPosture,
+    BoundaryArtifactField, BoundaryArtifactLocator, FoundationalDiagnosticDenialClass,
+    FoundationalDiagnosticEvidencePosture, FoundationalDiagnosticLocalityClaim,
+    FoundationalDiagnosticOutcomeKind, FoundationalDiagnosticProvenanceReadyRow,
+    FoundationalDiagnosticRow, FoundationalDiagnosticSemanticLabelSet,
+    FoundationalDiagnosticSeverity, FoundationalDiagnosticSupportEvidencePosture,
+    FoundationalDiagnosticSupportRow, FoundationalDiagnosticWidenedFalloutPosture,
 };
-use sha2::{Digest, Sha256};
+
+use super::identity::{
+    boundary_artifact_id, diagnostic_code_identity, diagnostic_label_identity,
+    diagnostic_scope_identity,
+};
 
 use super::super::payloads::{
     ForgeQueryDomainCapabilityPayload, ForgeQueryDomainCapabilitySemanticPosture,
@@ -41,7 +44,7 @@ where
     let category = payload.category();
     let semantic_posture = payload.semantic_posture();
     let target = contribution.payload().target();
-    let artifact_id = boundary_artifact_id(contribution.payload().request_digest());
+    let artifact_id = boundary_artifact_id(contribution.payload().request_identity());
     let subject = foundational_diagnostic_boundary_artifact_subject(
         artifact_id,
         BoundaryArtifactField::Payload,
@@ -50,18 +53,10 @@ where
         artifact_id,
         BoundaryArtifactField::Payload,
     ));
-    let scope = scope_id(&format!(
-        "query.domain_capabilities.{}.{}",
-        category.as_str(),
-        target.kind().as_str()
-    ));
+    let scope = scope_id(diagnostic_scope_identity(category, target.kind()).as_str());
     let primary_code = code_id(payload.semantic_code());
     let outcome_kind = semantic_posture.outcome_kind();
-    let labels = labels([
-        &format!("category.{}", category.as_str()),
-        &format!("target.{}", target.kind().as_str()),
-        &format!("outcome.{}", outcome_kind.canonical_name()),
-    ]);
+    let labels = diagnostic_labels(category, target.kind(), outcome_kind);
     let evidence_posture = evidence_posture_for(target.kind(), semantic_posture, outcome_kind);
     let support_evidence_posture =
         support_evidence_posture_for(target.kind(), semantic_posture, outcome_kind);
@@ -84,7 +79,7 @@ where
             ),
         ),
         FoundationalDiagnosticRow::Support(FoundationalDiagnosticSupportRow::new(
-            code_id(&format!("{}.support", payload.semantic_code())),
+            diagnostic_support_code(payload.semantic_code()),
             scope.clone(),
             severity_for_support(outcome_kind),
             subject.clone(),
@@ -98,7 +93,7 @@ where
     ];
     let standard_rows = vec![FoundationalDiagnosticRow::ProvenanceReady(
         FoundationalDiagnosticProvenanceReadyRow::new(
-            code_id(&format!("{}.provenance", payload.semantic_code())),
+            diagnostic_provenance_code(payload.semantic_code()),
             scope.clone(),
             FoundationalDiagnosticSeverity::Info,
             subject.clone(),
@@ -106,7 +101,7 @@ where
             outcome_kind,
             labels.clone(),
             foundational_diagnostic_locator_boundary_artifact(BoundaryArtifactLocator::new(
-                boundary_artifact_id(target.binding_digest()),
+                boundary_artifact_id(&target.binding_identity()),
                 BoundaryArtifactField::Basis,
             )),
             evidence_posture,
@@ -114,7 +109,7 @@ where
     )];
     let forensic_rows = vec![FoundationalDiagnosticRow::Support(
         FoundationalDiagnosticSupportRow::new(
-            code_id(&format!("{}.trace", payload.semantic_code())),
+            diagnostic_trace_code(payload.semantic_code()),
             scope.clone(),
             FoundationalDiagnosticSeverity::Info,
             subject.clone(),
@@ -236,8 +231,39 @@ fn widened_for(
     }
 }
 
-fn labels<const N: usize>(values: [&str; N]) -> FoundationalDiagnosticSemanticLabelSet {
-    FoundationalDiagnosticSemanticLabelSet::new(values.into_iter().map(code_id))
+fn diagnostic_labels(
+    category: super::super::payloads::ForgeQueryDomainCapabilityCategory,
+    target_kind: ForgeQueryDomainCapabilityTargetKind,
+    outcome_kind: FoundationalDiagnosticOutcomeKind,
+) -> FoundationalDiagnosticSemanticLabelSet {
+    FoundationalDiagnosticSemanticLabelSet::new([
+        diagnostic_label_code("category", category.as_str()),
+        diagnostic_label_code("target", target_kind.as_str()),
+        diagnostic_label_code("outcome", outcome_kind.canonical_name()),
+    ])
+}
+
+fn diagnostic_label_code(
+    role: &'static str,
+    value: &str,
+) -> forge_foundational::FoundationalDiagnosticCodeId {
+    code_id(diagnostic_label_identity(role, value).as_str())
+}
+
+fn diagnostic_support_code(
+    semantic_code: &str,
+) -> forge_foundational::FoundationalDiagnosticCodeId {
+    code_id(diagnostic_code_identity("support", semantic_code).as_str())
+}
+
+fn diagnostic_provenance_code(
+    semantic_code: &str,
+) -> forge_foundational::FoundationalDiagnosticCodeId {
+    code_id(diagnostic_code_identity("provenance", semantic_code).as_str())
+}
+
+fn diagnostic_trace_code(semantic_code: &str) -> forge_foundational::FoundationalDiagnosticCodeId {
+    code_id(diagnostic_code_identity("trace", semantic_code).as_str())
 }
 
 fn code_id(value: &str) -> forge_foundational::FoundationalDiagnosticCodeId {
@@ -269,13 +295,4 @@ fn normalize_fragment(value: &str) -> String {
     } else {
         normalized
     }
-}
-
-pub(crate) fn boundary_artifact_id(value: &str) -> BoundaryArtifactId {
-    let mut hasher = Sha256::new();
-    hasher.update(value.as_bytes());
-    let digest = hasher.finalize();
-    let mut bytes = [0u8; 8];
-    bytes.copy_from_slice(&digest[..8]);
-    BoundaryArtifactId::new(u64::from_be_bytes(bytes))
 }

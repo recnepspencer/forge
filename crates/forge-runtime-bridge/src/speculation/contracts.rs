@@ -54,7 +54,7 @@ impl BridgePromotionAdmissibilityProof {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            proof_identity: BridgePromotionAdmissibilityProofIdentity::new(format!(
+            proof_identity: BridgePromotionAdmissibilityProofIdentity::admit_bridge_owned(format!(
                 "promotion-admissibility-proof:sha256:{digest:x}"
             )),
             preview_session_identity: session.session_identity().clone(),
@@ -158,9 +158,9 @@ impl BridgePreviewReuseEquivalence {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            equivalence_identity: BridgePreviewReuseEquivalenceIdentity::new(format!(
-                "preview-reuse-equivalence:sha256:{digest:x}"
-            )),
+            equivalence_identity: BridgePreviewReuseEquivalenceIdentity::admit_bridge_owned(
+                format!("preview-reuse-equivalence:sha256:{digest:x}"),
+            ),
             source_preview_session_identity: source.session_identity().clone(),
             source_preview_execution_record_identity: source_execution_record_identity,
             target_preview_session_identity: target.session_identity().clone(),
@@ -259,7 +259,7 @@ impl BridgePreviewReuseEquivalence {
 #[cfg(test)]
 mod tests {
     use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::source::{BridgeSourceCapability, BridgeSourceCapabilitySet};
     use crate::speculation::{
         BridgePreviewRetainedArtifactSchema, BridgePreviewSessionBasis,
@@ -276,10 +276,10 @@ mod tests {
         signal_branch_identity: BridgeSignalBranchIdentity,
     ) -> crate::speculation::ValidatedBridgePreviewSessionDeclaration {
         BridgePreviewSessionDeclaration::new(
-            BridgePreviewSessionDeclarationIdentity::new(declaration_identity),
+            BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(declaration_identity),
             BridgeRequestKind::Preview,
             BridgeSpeculativeBranchBinding::new(
-                BridgeSpeculativeBranchBindingIdentity::new(format!(
+                BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(format!(
                     "binding:{declaration_identity}"
                 )),
                 truth_branch_identity.clone(),
@@ -288,7 +288,7 @@ mod tests {
             BridgePreviewSessionBasis::new(
                 BridgeTruthViewSelector::committed_snapshot(
                     truth_branch_identity,
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
                 BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
                 BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,
@@ -302,16 +302,18 @@ mod tests {
         session_identity: &str,
     ) -> BridgePreviewSession<crate::speculation::PreviewActive> {
         let declared = BridgePreviewSession::<crate::speculation::PreviewDeclared>::declare(
-            BridgePreviewSessionIdentity::new(session_identity),
+            BridgePreviewSessionIdentity::admit_bridge_owned(session_identity),
             declaration(
                 &format!("declaration:{session_identity}"),
-                TruthBranchIdentity::new("truth-branch"),
-                BridgeSignalBranchIdentity::new("signal-branch"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth-branch"),
+                BridgeSignalBranchIdentity::admit_bridge_owned("signal-branch"),
             ),
         );
         let admitted = declared.admit();
         admitted.activate(PreviewSessionActivation::new(
-            PreviewExecutionRecordIdentity::new(format!("execution:{session_identity}")),
+            PreviewExecutionRecordIdentity::admit_bridge_owned(format!(
+                "execution:{session_identity}"
+            )),
         ))
     }
 
@@ -319,11 +321,11 @@ mod tests {
         session_identity: &str,
     ) -> BridgePreviewSession<crate::speculation::PreviewAdmitted> {
         BridgePreviewSession::<crate::speculation::PreviewDeclared>::declare(
-            BridgePreviewSessionIdentity::new(session_identity),
+            BridgePreviewSessionIdentity::admit_bridge_owned(session_identity),
             declaration(
                 &format!("declaration:{session_identity}"),
-                TruthBranchIdentity::new("truth-branch"),
-                BridgeSignalBranchIdentity::new("signal-branch"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth-branch"),
+                BridgeSignalBranchIdentity::admit_bridge_owned("signal-branch"),
             ),
         )
         .admit()
@@ -336,11 +338,11 @@ mod tests {
 
         assert_eq!(
             proof.truth_branch_identity(),
-            &TruthBranchIdentity::new("truth-branch")
+            &crate::truth_identity_fixtures::truth_branch_fixture("truth-branch")
         );
         assert_eq!(
             proof.signal_branch_identity(),
-            &BridgeSignalBranchIdentity::new("signal-branch")
+            &BridgeSignalBranchIdentity::admit_bridge_owned("signal-branch")
         );
         assert!(proof.matches_active_session(&active));
     }
@@ -353,11 +355,11 @@ mod tests {
 
         assert_eq!(
             equivalence.truth_branch_identity(),
-            &TruthBranchIdentity::new("truth-branch")
+            &crate::truth_identity_fixtures::truth_branch_fixture("truth-branch")
         );
         assert_eq!(
             equivalence.signal_branch_identity(),
-            &BridgeSignalBranchIdentity::new("signal-branch")
+            &BridgeSignalBranchIdentity::admit_bridge_owned("signal-branch")
         );
         assert!(equivalence.matches_sessions(&source, &target));
     }

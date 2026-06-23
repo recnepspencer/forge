@@ -8,28 +8,8 @@ warning: unreachable statement
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
-warning: unused variable: `subject`
- --> tests/ui/admitted_causal_inspection_constructor_private.rs:8:9
-  |
-8 |     let subject: CausalInspectionAdmissionSubject = todo!();
-  |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_subject`
-  |
-  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
-
-error[E0451]: fields `subject`, `decision`, `decision_trace`, `receipt`, `counters` and `admitted_inspection_digest` of struct `AdmittedCausalInspection` are private
-  --> tests/ui/admitted_causal_inspection_constructor_private.rs:15:9
+error[E0308]: mismatched types
+  --> tests/ui/admitted_causal_inspection_constructor_private.rs:20:37
    |
-14 |     let _ = AdmittedCausalInspection {
-   |             ------------------------ in this type
-15 |         subject,
-   |         ^^^^^^^ private field
-16 |         decision,
-   |         ^^^^^^^^ private field
-17 |         decision_trace,
-   |         ^^^^^^^^^^^^^^ private field
-18 |         receipt,
-   |         ^^^^^^^ private field
-19 |         counters,
-   |         ^^^^^^^^ private field
 20 |         admitted_inspection_digest: "forged-admission".to_string(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `CausalInspectionOutcomeIdentity`, found `String`

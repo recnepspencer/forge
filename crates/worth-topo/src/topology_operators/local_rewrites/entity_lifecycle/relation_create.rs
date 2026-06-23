@@ -131,7 +131,7 @@ fn authored_relation_endpoint(
 ) -> ForgeQueryAspectMutationBuilder {
     match reference {
         LoweredEntityReference::Existing(binding) => {
-            mutation.aspect(aspect_path, binding.query_identity.clone())
+            mutation.aspect(aspect_path, binding.query_identity_label.clone())
         }
         LoweredEntityReference::Created { create_key } => mutation.symbolic_entity_identity(
             aspect_path,

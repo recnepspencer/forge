@@ -1,17 +1,15 @@
 use crate::construction::admitted_scaffold::{
-    prepare_primitive_construction_birth_placement_facts,
-    prepare_primitive_construction_topology_query_admitted_handoff_from_request,
-    PrimitiveConstructionBirthPlacementFacts,
+    prepare_primitive_construction_birth_placement_facts, PrimitiveConstructionBirthPlacementFacts,
 };
+use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::outcome::{
     prepare_primitive_construction_rejected_facts, PrimitiveConstructionRejectionClass,
     PrimitiveConstructionRejectionLocality,
 };
-use crate::construction::realization_snapshot::prepare_realization_snapshot;
-use crate::construction::request::{
-    primitive_construction_invalid_request_reason, PrimitiveConstructionRequest,
-};
+use crate::construction::request::PrimitiveConstructionRequest;
+use crate::construction::result::prepare_primitive_construction_result;
 use crate::construction::result::PrimitiveConstructionResultError;
+use crate::construction::tests::support::prepared_result::PreparedPrimitiveConstructionHandoffResult;
 use forge_query::facade::ForgeQueryRuntimeFacadeFamily;
 use topology::facade::{
     TopologyConstructionQueryFactProvenance, TopologyConstructionQueryInspectionSurface,
@@ -196,96 +194,66 @@ impl PrimitiveConstructionCertificationRuntimeTruth {
 pub(crate) fn prepare_primitive_construction_certification_runtime_truth(
     request: PrimitiveConstructionRequest,
 ) -> PrimitiveConstructionCertificationRuntimeTruth {
-    if let Some(reason) = primitive_construction_invalid_request_reason(&request) {
-        return PrimitiveConstructionCertificationRuntimeTruth::Rejected(
-            PrimitiveConstructionRejectedRuntimeTruth {
-                family: request.family(),
-                outcome_digest: format!("invalid:{}:{reason}", request.family().as_str()),
-                reason: format!("invalid {} request: {reason}", request.family().as_str()),
-                rejection_class: PrimitiveConstructionRejectionClass::InvalidRequest,
-                rejection_locality: PrimitiveConstructionRejectionLocality::Admission,
-                attempted_realization_strategies: Vec::new(),
-                stability_class: None,
-                feature_conditioning_class: None,
-                support_normal_class: None,
-                normalization_disposition: None,
-                exhaustion_reason: None,
-            },
-        );
+    let intent: PrimitiveConstructionIntent = request.clone().into();
+    let family = intent.family();
+    match prepare_primitive_construction_result(intent) {
+        Ok(prepared) => PrimitiveConstructionCertificationRuntimeTruth::Admitted(
+            admitted_runtime_truth_from_prepared_result(family, &request, &prepared),
+        ),
+        Err(error) => PrimitiveConstructionCertificationRuntimeTruth::Rejected(
+            rejected_runtime_truth_from_error(family, &error),
+        ),
     }
+}
 
-    let realization_snapshot = prepare_realization_snapshot(request.clone());
-    match prepare_primitive_construction_topology_query_admitted_handoff_from_request(&request) {
-        Ok(topology_query_admitted_handoff) => {
-            let topology_query_envelope = topology_query_admitted_handoff
-                .topology_query_handoff()
-                .topology_query_envelope();
-            let conditioning_witness = realization_snapshot
-                .conditioning_witness()
-                .expect("admitted realization snapshot should retain conditioning witness");
-            let realization_strategy = realization_snapshot
-                .selected_strategy()
-                .expect("admitted realization snapshot should retain selected strategy");
-            let stability_class = realization_snapshot
-                .stability_class()
-                .expect("admitted realization snapshot should retain stability class");
-            PrimitiveConstructionCertificationRuntimeTruth::Admitted(
-                PrimitiveConstructionAdmittedRuntimeTruth {
-                    family: request.family(),
-                    outcome_digest: topology_query_admitted_handoff
-                        .admitted_handoff_digest()
-                        .to_string(),
-                    birth_truth_digest: topology_query_envelope.source_birth_digest().to_string(),
-                    topology_fact_breadth: topology_query_envelope
-                        .fact_rows()
-                        .iter()
-                        .map(|row| row.fact_count())
-                        .sum(),
-                    placement_facts: prepare_primitive_construction_birth_placement_facts(&request)
-                        .expect(
-                            "admitted construction runtime truth should retain placement facts",
-                        ),
-                    required_query_families: topology_query_envelope
-                        .required_query_families()
-                        .to_vec(),
-                    mutation_surface: topology_query_envelope.mutation_surface(),
-                    read_surface: topology_query_envelope.read_surface(),
-                    inspection_surface: topology_query_envelope.inspection_surface(),
-                    fact_provenance: topology_query_envelope.fact_provenance(),
-                    topology_fact_digest: topology_query_envelope.fact_digest().to_string(),
-                    realization_strategy,
-                    attempted_realization_strategies: realization_snapshot
-                        .attempted_strategies()
-                        .to_vec(),
-                    stability_class,
-                    feature_conditioning_class: conditioning_witness.feature_conditioning_class(),
-                    support_normal_class: conditioning_witness.support_normal_class(),
-                    normalization_disposition: conditioning_witness.normalization_disposition(),
-                },
-            )
-        }
-        Err(error) => {
-            let rejection = prepare_primitive_construction_rejected_facts(
-                request.family(),
-                &PrimitiveConstructionResultError::Phase(error),
-            );
-            PrimitiveConstructionCertificationRuntimeTruth::Rejected(
-                PrimitiveConstructionRejectedRuntimeTruth {
-                    family: request.family(),
-                    outcome_digest: rejection.failure_digest().to_string(),
-                    reason: rejection.reason().to_string(),
-                    rejection_class: rejection.rejection_class(),
-                    rejection_locality: rejection.rejection_locality(),
-                    attempted_realization_strategies: rejection
-                        .attempted_realization_strategies()
-                        .to_vec(),
-                    stability_class: rejection.stability_class(),
-                    feature_conditioning_class: rejection.feature_conditioning_class(),
-                    support_normal_class: rejection.support_normal_class(),
-                    normalization_disposition: rejection.normalization_disposition(),
-                    exhaustion_reason: rejection.exhaustion_reason(),
-                },
-            )
-        }
+fn admitted_runtime_truth_from_prepared_result(
+    family: crate::construction::request::PrimitiveConstructionFamily,
+    request: &PrimitiveConstructionRequest,
+    prepared: &PreparedPrimitiveConstructionHandoffResult,
+) -> PrimitiveConstructionAdmittedRuntimeTruth {
+    let topology_query_envelope = prepared.topology_query_handoff().topology_query_envelope();
+    PrimitiveConstructionAdmittedRuntimeTruth {
+        family,
+        outcome_digest: prepared.result_digest().to_string(),
+        birth_truth_digest: prepared.birth_truth_digest().to_string(),
+        topology_fact_breadth: topology_query_envelope
+            .fact_rows()
+            .iter()
+            .map(|row| row.fact_count())
+            .sum(),
+        placement_facts: prepare_primitive_construction_birth_placement_facts(request)
+            .expect("prepared result should retain placement facts"),
+        required_query_families: topology_query_envelope.required_query_families().to_vec(),
+        mutation_surface: prepared.mutation_surface(),
+        read_surface: prepared.read_surface(),
+        inspection_surface: topology_query_envelope.inspection_surface(),
+        fact_provenance: prepared.fact_provenance(),
+        topology_fact_digest: prepared.topology_fact_digest().to_string(),
+        realization_strategy: prepared.realization_strategy(),
+        attempted_realization_strategies: prepared.attempted_realization_strategies().to_vec(),
+        stability_class: prepared.stability_class(),
+        feature_conditioning_class: prepared.feature_conditioning_class(),
+        support_normal_class: prepared.support_normal_class(),
+        normalization_disposition: prepared.normalization_disposition(),
+    }
+}
+
+fn rejected_runtime_truth_from_error(
+    family: crate::construction::request::PrimitiveConstructionFamily,
+    error: &PrimitiveConstructionResultError,
+) -> PrimitiveConstructionRejectedRuntimeTruth {
+    let rejection = prepare_primitive_construction_rejected_facts(family, error);
+    PrimitiveConstructionRejectedRuntimeTruth {
+        family,
+        outcome_digest: rejection.failure_digest().to_string(),
+        reason: rejection.reason().to_string(),
+        rejection_class: rejection.rejection_class(),
+        rejection_locality: rejection.rejection_locality(),
+        attempted_realization_strategies: rejection.attempted_realization_strategies().to_vec(),
+        stability_class: rejection.stability_class(),
+        feature_conditioning_class: rejection.feature_conditioning_class(),
+        support_normal_class: rejection.support_normal_class(),
+        normalization_disposition: rejection.normalization_disposition(),
+        exhaustion_reason: rejection.exhaustion_reason(),
     }
 }

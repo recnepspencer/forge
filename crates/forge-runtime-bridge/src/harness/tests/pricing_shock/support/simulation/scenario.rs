@@ -129,22 +129,24 @@ pub(in crate::harness::tests::pricing_shock) fn generated_pricing_scenario(
     let crisis_portfolio = world
         .price_matrix_with_scenario(crisis_overrides.clone(), crisis_family_tariff_bps.clone());
 
-    let main_snapshot_base =
-        world.snapshot_fixture(TruthSnapshotIdentity::new("snapshot:pricing-main"));
+    let main_snapshot_base = world.snapshot_fixture(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main"),
+    );
     let speculative_snapshot_base = world.snapshot_fixture_with_overrides(
-        TruthSnapshotIdentity::new("snapshot:pricing-shock"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-shock"),
         [(PricingMaterial::Rubber, speculative_rubber_cost)],
     );
-    let fanout_first_snapshot_base =
-        world.snapshot_fixture(TruthSnapshotIdentity::new("snapshot:pricing-fanout-a"));
+    let fanout_first_snapshot_base = world.snapshot_fixture(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-fanout-a"),
+    );
     let mut commit_attributions = BTreeMap::new();
     commit_attributions.insert(
         "commit:steel-main".to_owned(),
         pricing_commit_attribution(
             &world,
-            TruthCommitIdentity::new("commit:steel-main"),
-            TruthSnapshotIdentity::new("snapshot:pricing-main"),
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
             PricingMaterial::Steel,
             attribution_for(&main_wave, PricingMaterial::Steel),
             0,
@@ -156,9 +158,9 @@ pub(in crate::harness::tests::pricing_shock) fn generated_pricing_scenario(
         "commit:rubber-main".to_owned(),
         pricing_commit_attribution(
             &world,
-            TruthCommitIdentity::new("commit:rubber-main"),
-            TruthSnapshotIdentity::new("snapshot:pricing-main"),
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-main"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
             PricingMaterial::Rubber,
             attribution_for(&main_wave, PricingMaterial::Rubber),
             0,
@@ -170,9 +172,9 @@ pub(in crate::harness::tests::pricing_shock) fn generated_pricing_scenario(
         "commit:rubber-shock".to_owned(),
         pricing_commit_attribution(
             &world,
-            TruthCommitIdentity::new("commit:rubber-shock"),
-            TruthSnapshotIdentity::new("snapshot:pricing-shock"),
-            TruthBranchIdentity::new("pricing-shock"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-shock"),
+            crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
             PricingMaterial::Rubber,
             attribution_for(&main_wave, PricingMaterial::Rubber),
             speculative_rubber_cost - main_rubber_cost,
@@ -185,21 +187,23 @@ pub(in crate::harness::tests::pricing_shock) fn generated_pricing_scenario(
     let live_main_steel_cost = world.current_material_price_microunits(PricingMaterial::Steel);
     let interleaved_main_rubber_cost =
         world.current_material_price_microunits(PricingMaterial::Rubber);
-    let live_main_snapshot_base =
-        world.snapshot_fixture(TruthSnapshotIdentity::new("snapshot:pricing-main-live"));
-    let interleaved_main_snapshot_base = world.snapshot_fixture(TruthSnapshotIdentity::new(
-        "snapshot:pricing-main-interleaved",
-    ));
-    let fanout_second_snapshot_base =
-        world.snapshot_fixture(TruthSnapshotIdentity::new("snapshot:pricing-fanout-b"));
+    let live_main_snapshot_base = world.snapshot_fixture(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main-live"),
+    );
+    let interleaved_main_snapshot_base = world.snapshot_fixture(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main-interleaved"),
+    );
+    let fanout_second_snapshot_base = world.snapshot_fixture(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-fanout-b"),
+    );
     let fanout_second_steel_cost = live_main_steel_cost;
     commit_attributions.insert(
         "commit:steel-main-live".to_owned(),
         pricing_commit_attribution(
             &world,
-            TruthCommitIdentity::new("commit:steel-main-live"),
-            TruthSnapshotIdentity::new("snapshot:pricing-main-live"),
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main-live"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main-live"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
             PricingMaterial::Steel,
             attribution_for(&interleaved_wave, PricingMaterial::Steel),
             0,
@@ -211,9 +215,11 @@ pub(in crate::harness::tests::pricing_shock) fn generated_pricing_scenario(
         "commit:rubber-main-interleaved".to_owned(),
         pricing_commit_attribution(
             &world,
-            TruthCommitIdentity::new("commit:rubber-main-interleaved"),
-            TruthSnapshotIdentity::new("snapshot:pricing-main-interleaved"),
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-main-interleaved"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture(
+                "snapshot:pricing-main-interleaved",
+            ),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
             PricingMaterial::Rubber,
             attribution_for(&interleaved_wave, PricingMaterial::Rubber),
             0,
@@ -225,9 +231,9 @@ pub(in crate::harness::tests::pricing_shock) fn generated_pricing_scenario(
         "commit:steel-fanout-b".to_owned(),
         pricing_commit_attribution(
             &world,
-            TruthCommitIdentity::new("commit:steel-fanout-b"),
-            TruthSnapshotIdentity::new("snapshot:pricing-fanout-b"),
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-fanout-b"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-fanout-b"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
             PricingMaterial::Steel,
             attribution_for(&interleaved_wave, PricingMaterial::Steel),
             0,

@@ -64,7 +64,7 @@ fn certification_bundle_matches_equivalent_public_and_proof_outputs() {
         .for_intent(&declaration)
         .plans_preview_mutation(
             "workflow.preview_mutation",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new(
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
                 "preview-session:certification",
             ),
         )
@@ -75,7 +75,7 @@ fn certification_bundle_matches_equivalent_public_and_proof_outputs() {
         ForgeQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
             "worth.spatial.workflow.preview_mutation",
             "preview mutation planning should preserve canonical workflow semantics",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new(
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
                 "preview-session:certification",
             ),
         )
@@ -124,7 +124,7 @@ fn certification_bundle_matches_equivalent_public_and_proof_outputs() {
     assert_eq!(explanation, explanation_proof);
     assert_eq!(
         bundle.output_digest("explanation_artifact_digest"),
-        Some(explanation.artifact_digest())
+        Some(explanation.artifact_for_reporting())
     );
 
     let invariant = forge_query_domain("worth.spatial")
@@ -239,7 +239,7 @@ fn certification_bundle_matches_admission_continuity_and_aftermath_outputs() {
     assert_eq!(continuity, continuity_proof);
     assert_eq!(
         bundle.output_digest("continuity_artifact_digest"),
-        Some(continuity.continuity_resolution_digest())
+        Some(continuity.continuity_resolution_digest().as_str())
     );
 
     let aftermath = forge_query_domain("worth.spatial")
@@ -303,7 +303,7 @@ fn certification_bundle_boundary_and_failure_outputs_track_live_surfaces() {
     );
     assert_eq!(
         bundle.output_digest("failure_digest"),
-        Some(denial.failure_digest().as_str())
+        Some(denial.failure_for_reporting())
     );
 }
 

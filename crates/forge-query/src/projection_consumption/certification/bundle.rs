@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::projection_consumption::identity::compose_certification_bundle_digest;
 
 use super::audits::{
     projection_consumption_family_inventory, projection_consumption_forbidden_fallback_audit,
@@ -35,6 +35,7 @@ pub enum ProjectionConsumptionCertificationLane {
 }
 
 impl ProjectionConsumptionCertificationLane {
+    #[allow(dead_code)]
     pub(super) fn as_str(&self) -> &'static str {
         match self {
             Self::SupportMatrixSurface => "support_matrix_surface",
@@ -160,18 +161,12 @@ pub fn certify_projection_consumption_closeout_core() -> ProjectionConsumptionCe
         compile_fail_boundary_bundle_digest(),
         golden_transcript_bundle_digest(),
     );
-    let certification_bundle_digest = hash_parts(
-        &assembled
-            .rows
+    let certification_bundle_digest = compose_certification_bundle_digest(
+        assembled.rows.iter().map(|row| row.row_digest()),
+        assembled
+            .outputs
             .iter()
-            .map(|row| row.row_digest().to_string())
-            .chain(
-                assembled
-                    .outputs
-                    .iter()
-                    .map(|(name, value)| format!("output:{name}:{value}")),
-            )
-            .collect::<Vec<_>>(),
+            .map(|(name, value)| (*name, value.as_str())),
     );
     ProjectionConsumptionCertificationBundle {
         family_inventory,

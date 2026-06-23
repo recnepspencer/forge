@@ -154,6 +154,10 @@ pub enum RelationalGroupedTruthError {
     AspectValueDecodeFailure {
         request_key: String,
     },
+    UntypedRelationalRowIdentity {
+        request_key: String,
+    },
+    UntypedRelationalSnapshotIdentity,
     MissingIdentityAspect {
         row_identity: RelationalRowIdentity,
         aspect_key: AspectKey,
@@ -200,7 +204,7 @@ pub fn project_relational_grouped_truth(
         row_set.snapshot_identity(),
         &contract,
         &members,
-    );
+    )?;
 
     Ok(RelationalGroupedProjectionArtifact {
         row_set_digest: row_set.digest().clone(),
@@ -215,6 +219,7 @@ pub fn project_relational_grouped_truth(
 mod tests {
     use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
     use forge_runtime_bridge::facade::{
+        RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
         SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
         SnapshotReadRequest, TruthSnapshotIdentity,
     };
@@ -225,13 +230,25 @@ mod tests {
     #[test]
     fn relational_grouped_projection_preserves_member_and_grouping_pairing() {
         let packet = SnapshotReadPacket::new(vec![
-            string_read("entity-1", "identity.id"),
-            string_read("entity-1", "status.lane"),
-            string_read("entity-2", "identity.id"),
-            string_read("entity-2", "status.lane"),
+            string_read(
+                RelationalBridgeRecordIdentityParts::entity(0, 1, 1),
+                "identity.id",
+            ),
+            string_read(
+                RelationalBridgeRecordIdentityParts::entity(0, 1, 1),
+                "status.lane",
+            ),
+            string_read(
+                RelationalBridgeRecordIdentityParts::entity(0, 2, 1),
+                "identity.id",
+            ),
+            string_read(
+                RelationalBridgeRecordIdentityParts::entity(0, 2, 1),
+                "status.lane",
+            ),
         ]);
         let result = SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            test_snapshot_identity(),
             vec![
                 read_record(&packet, 0, AspectValue::String("task-1".into())),
                 read_record(&packet, 1, AspectValue::String("todo".into())),
@@ -252,7 +269,10 @@ mod tests {
         .unwrap();
 
         assert_eq!(grouped.members().len(), 2);
-        assert_eq!(grouped.members()[0].row_identity().as_str(), "entity-1");
+        assert_eq!(
+            grouped.members()[0].row_identity().parts(),
+            RelationalBridgeRecordIdentityParts::entity(0, 1, 1)
+        );
         assert_eq!(
             grouped.members()[0].identity_value(),
             &AspectValue::String("task-1".into())
@@ -261,9 +281,12 @@ mod tests {
 
     #[test]
     fn relational_grouped_projection_missing_identity_error_carries_typed_row_identity() {
-        let packet = SnapshotReadPacket::new(vec![string_read("entity-1", "status.lane")]);
+        let packet = SnapshotReadPacket::new(vec![string_read(
+            RelationalBridgeRecordIdentityParts::entity(0, 1, 1),
+            "status.lane",
+        )]);
         let result = SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            test_snapshot_identity(),
             vec![read_record(&packet, 0, AspectValue::String("todo".into()))],
         );
         let row_set = materialize_relational_authoritative_row_set(&packet, &result).unwrap();
@@ -283,7 +306,10 @@ mod tests {
                 row_identity,
                 aspect_key,
             } => {
-                assert_eq!(row_identity.as_str(), "entity-1");
+                assert_eq!(
+                    row_identity.parts(),
+                    RelationalBridgeRecordIdentityParts::entity(0, 1, 1)
+                );
                 assert_eq!(aspect_key, AspectKey::new("identity.id").unwrap());
             }
             other => panic!("expected missing identity aspect error, got {other:?}"),
@@ -298,8 +324,11 @@ mod tests {
         SnapshotReadRecord::for_request(&packet.reads()[index], value)
     }
 
-    fn string_read(entity_identity: &str, aspect: &str) -> SnapshotReadRequest {
-        SnapshotReadRequest::for_coarse(
+    fn string_read(
+        entity_identity: RelationalBridgeRecordIdentityParts,
+        aspect: &str,
+    ) -> SnapshotReadRequest {
+        SnapshotReadRequest::for_relational_record(
             entity_identity,
             SnapshotReadContract::scalar(aspect_key(aspect), ScalarAspectType::String),
         )
@@ -307,5 +336,11 @@ mod tests {
 
     fn aspect_key(value: &str) -> AspectKey {
         AspectKey::new(value).expect("valid test aspect key")
+    }
+
+    fn test_snapshot_identity() -> TruthSnapshotIdentity {
+        TruthSnapshotIdentity::from_relational_snapshot(RelationalBridgeSnapshotIdentityParts::new(
+            1, 1,
+        ))
     }
 }

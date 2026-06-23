@@ -1,5 +1,4 @@
-use crate::identity::hash_parts;
-
+use super::identity::basis_lifecycle_digest;
 use super::{
     AdmittedBasisCapability, AdvisoryBasisCapability, BasisCapabilityAdmission,
     BasisScopedAdmissionDenial, CertificationBasisCapability, DeniedBasisCapability,
@@ -226,28 +225,40 @@ fn counters_for_advisory(advisory: &AdvisoryBasisCapability) -> ScopedBasisConst
 fn digest_for_admission(label: &'static str, admission: &BasisCapabilityAdmission) -> String {
     match admission {
         BasisCapabilityAdmission::Admitted(admitted) => digest_for_admitted(label, admitted),
-        BasisCapabilityAdmission::Advisory(advisory) => hash_parts(&[
-            format!("scoped_label:{label}"),
-            format!(
-                "normalized_basis_intent_digest:{}",
-                advisory.normalized_basis_intent_digest()
-            ),
-            format!("operation_lane:{}", advisory.operation_lane().as_str()),
-            format!("disposition:advisory"),
-        ]),
+        BasisCapabilityAdmission::Advisory(advisory) => basis_lifecycle_digest(
+            "scoped_basis_advisory_v1",
+            [
+                ("scoped_label", label.to_string()),
+                (
+                    "normalized_basis_intent_digest",
+                    advisory.normalized_basis_intent_digest().to_string(),
+                ),
+                (
+                    "operation_lane",
+                    advisory.operation_lane().as_str().to_string(),
+                ),
+                ("disposition", "advisory".to_string()),
+            ],
+        ),
     }
 }
 
 fn digest_for_admitted(label: &'static str, admitted: &AdmittedBasisCapability) -> String {
-    hash_parts(&[
-        format!("scoped_label:{label}"),
-        format!(
-            "normalized_basis_intent_digest:{}",
-            admitted.normalized_basis_intent_digest()
-        ),
-        format!("operation_lane:{}", admitted.operation_lane().as_str()),
-        format!("disposition:admitted"),
-    ])
+    basis_lifecycle_digest(
+        "scoped_basis_admitted_v1",
+        [
+            ("scoped_label", label.to_string()),
+            (
+                "normalized_basis_intent_digest",
+                admitted.normalized_basis_intent_digest().to_string(),
+            ),
+            (
+                "operation_lane",
+                admitted.operation_lane().as_str().to_string(),
+            ),
+            ("disposition", "admitted".to_string()),
+        ],
+    )
 }
 
 macro_rules! define_scoped_common_path {

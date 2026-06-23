@@ -107,6 +107,10 @@ fn admitted_intent_receipt_exposes_linear_decision_trace() {
 #[test]
 fn effect_triggered_trace_eligibility_preserves_write_adjacent_trigger_proof() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
+    let origin_identity = test_write_adjacent_origin_identity(
+        ForgeQueryEffectWriteAdjacentTriggerClass::RemaskDrift,
+        "remask-drift:cause:task-title",
+    );
     let live = runtime
         .declare_live_view::<Value>("tasks.trace-follow-on", task_live_request(), task_schema())
         .expect("live should declare");
@@ -119,14 +123,14 @@ fn effect_triggered_trace_eligibility_preserves_write_adjacent_trigger_proof() {
             )
             .with_write_adjacent_trigger(
                 ForgeQueryEffectWriteAdjacentTriggerClass::RemaskDrift,
-                "remask-drift:cause:task-title",
+                origin_identity.clone(),
             ),
         )
         .expect("remask drift effect should declare");
 
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from remask drift"),
         })
@@ -147,7 +151,7 @@ fn effect_triggered_trace_eligibility_preserves_write_adjacent_trigger_proof() {
                 trigger.class(),
                 ForgeQueryEffectWriteAdjacentTriggerClass::RemaskDrift
             );
-            assert_eq!(trigger.origin_identity(), "remask-drift:cause:task-title");
+            assert_eq!(trigger.origin_evidence_identity(), &origin_identity);
         }
         other => panic!("expected structured eligibility evidence, got {other:?}"),
     }

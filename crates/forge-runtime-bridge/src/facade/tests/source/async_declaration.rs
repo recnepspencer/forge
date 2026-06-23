@@ -256,8 +256,8 @@ fn request_response_draft(
     .with_retry_max_attempts(3);
 
     BridgeAsyncSourceDeclarationDraft::request_response(
-        BridgeAsyncSourceDeclarationIdentity::new(declaration_identity),
-        BridgeAsyncSourceLegacyDeclarationIdentity::new(legacy_declaration_identity),
+        BridgeAsyncSourceDeclarationIdentity::admit_bridge_owned(declaration_identity),
+        BridgeAsyncSourceLegacyDeclarationIdentity::admit_bridge_owned(legacy_declaration_identity),
         declaration,
     )
 }
@@ -277,8 +277,8 @@ fn subscription_backed_draft(
     .with_retry_max_attempts(2);
 
     BridgeAsyncSourceDeclarationDraft::subscription_backed(
-        BridgeAsyncSourceDeclarationIdentity::new(declaration_identity),
-        BridgeAsyncSourceLegacyDeclarationIdentity::new(legacy_declaration_identity),
+        BridgeAsyncSourceDeclarationIdentity::admit_bridge_owned(declaration_identity),
+        BridgeAsyncSourceLegacyDeclarationIdentity::admit_bridge_owned(legacy_declaration_identity),
         declaration,
     )
 }

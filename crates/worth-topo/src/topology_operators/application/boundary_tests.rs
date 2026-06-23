@@ -89,13 +89,15 @@ fn query_anchor_family_mismatch_fails_before_local_artifact_projection() {
     use forge_query::facade::{ForgeQueryApplicationFacade, ForgeQueryDeclarationFamilyMarker};
     use schema::facade::platform::entities::TopologyEntityKind;
 
+    use crate::topology_operators::application::TopologyDeclarationMutationPayload;
     use crate::topology_operators::application::{
         TopologyMutationApplicationError, TopologyOperatorApplicationQueryAnchor,
         TopologyRetainedApplicationHandoff,
     };
     use crate::topology_operators::{
         TopologyCreateTopologyEntityDeclaration, TopologyCreateTopologyEntityFamily,
-        TopologyOperatorWorkflowHandleExt,
+        TopologyDeclaredTouchedGraphBasis, TopologyOperatorWorkflowHandleExt,
+        TopologyTouchedOperatingWorld,
     };
 
     let declaration = TopologyCreateTopologyEntityDeclaration::new(
@@ -109,12 +111,20 @@ fn query_anchor_family_mismatch_fails_before_local_artifact_projection() {
         .expect("current-head context should validate")
         .admit()
         .expect("current-head context should admit");
+    let declared_touched_basis = TopologyDeclaredTouchedGraphBasis::from_sequence(
+        TopologyCreateTopologyEntityFamily::semantic_family_key(),
+        declaration.clone(),
+        &declaration.clone().into_mutation_sequence(),
+        TopologyTouchedOperatingWorld::mainline(),
+    )
+    .expect("declared touched graph basis");
     let handoff = TopologyRetainedApplicationHandoff::new(
         handle
             .orchestrate_topology_operator_with_contributions(
                 crate::topology_operators::topology_operator_contribution_workflow(declaration),
             )
             .unwrap_or_else(|_| panic!("topology contribution-composed lane should admit")),
+        declared_touched_basis,
     );
     let anchor = TopologyOperatorApplicationQueryAnchor::from_retained_handoff(&handoff);
     let wrong_anchor =
@@ -188,12 +198,19 @@ fn retained_application_handoff_does_not_cache_a_parallel_semantic_aftermath_fie
         "declared mutation artifact should keep generic receipt and inspection behind test-only proof seams instead of exporting them as the live operator product surface",
     );
     assert!(
+        declared_mutation_artifact.contains(
+            "declared_touched_basis: TopologyDeclaredTouchedGraphBasisProof"
+        )
+            && declared_mutation_artifact.contains(
+                "pub(crate) fn declared_touched_basis(&self) -> &TopologyDeclaredTouchedGraphBasisProof"
+            ),
+        "declared mutation artifact should retain the declared touched-basis proof as the live topology authority product",
+    );
+    assert!(
         declared_mutation_artifact.contains("#[cfg(test)]\n    query_anchor: TopologyOperatorApplicationQueryAnchor")
-            && declared_mutation_artifact.contains("#[cfg(test)]\n    mutation_evidence: TopologyMutationApplicationEvidence")
             && declared_mutation_artifact.contains("#[cfg(test)]\n    pub(crate) fn query_anchor(")
-            && declared_mutation_artifact.contains("#[cfg(test)]\n    pub(crate) fn mutation_evidence(")
             && declared_mutation_artifact.contains("#[cfg(test)]\n    pub(crate) fn execution_shape("),
-        "declared mutation artifact should keep Query lineage, mutation evidence, and execution-shape proof payload behind test-only seams instead of retaining them as live committed-artifact contract",
+        "declared mutation artifact should keep Query lineage and execution-shape proof payload behind test-only seams instead of retaining them as live committed-artifact contract",
     );
     assert!(
         !declared_mutation_artifact.contains("TopologyOperatorRetainedContributionComposition"),
@@ -281,8 +298,8 @@ fn phase_four_contribution_and_recovery_boundary_is_closeout_ready() {
     );
     assert!(
         orchestration_boundary.contains(
-            "orchestrate_topology_operator_with_contributions(topology_operator_contribution_workflow("
-        ),
+            "ForgeQueryContributionComposedOrchestrationInput::new(declaration.clone())"
+        ) && orchestration_boundary.contains(".orchestrate_declaration_with_contributions("),
         "phase 4 remains incomplete if the declaration-entry runtime seam can enter through bare declaration orchestration instead of the topology contribution-composed workflow lane",
     );
     assert!(

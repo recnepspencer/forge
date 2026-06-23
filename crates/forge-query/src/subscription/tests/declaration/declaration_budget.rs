@@ -62,7 +62,7 @@ fn admitted_declaration_exposes_exact_structural_counters() {
     assert_eq!(declaration.counters().deduplicated_slice_count(), 4);
     assert_eq!(declaration.counters().slice_deduplication_input_count(), 4);
     assert_eq!(declaration.counters().slice_sort_comparison_count(), 3);
-    assert_eq!(declaration.counters().declaration_digest_part_count(), 17);
+    assert_eq!(declaration.counters().declaration_digest_part_count(), 18);
     assert_eq!(declaration.counters().masked_slice_denial_count(), 0);
     assert_eq!(declaration.counters().delivery_intent_denial_count(), 0);
 }

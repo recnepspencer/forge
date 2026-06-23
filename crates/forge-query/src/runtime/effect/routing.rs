@@ -172,7 +172,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
             };
             let suppressed = ForgeQueryEffectDelivery::suppressed(
                 &effect.declaration,
-                &receipt.commit_identity,
+                receipt.commit_identity.clone(),
                 effect.declaration.trigger().source_name(),
                 effect.declaration.trigger().source_kind(),
                 reason,
@@ -193,7 +193,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
                 ForgeQueryEffectAction::Deliver => {
                     let delivery = ForgeQueryEffectDelivery::delivered(
                         &effect.declaration,
-                        &receipt.commit_identity,
+                        receipt.commit_identity.clone(),
                         trigger.source,
                         trigger.source_kind,
                         trigger.aspect_paths,
@@ -206,7 +206,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
                 ForgeQueryEffectAction::WriteIntent => {
                     let delivery = ForgeQueryEffectDelivery::pending_write_intent(
                         &effect.declaration,
-                        &receipt.commit_identity,
+                        receipt.commit_identity.clone(),
                         trigger.source,
                         trigger.source_kind,
                         trigger.aspect_paths,
@@ -219,7 +219,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
                 ForgeQueryEffectAction::Derive => {
                     let delivery = ForgeQueryEffectDelivery::suppressed(
                             &effect.declaration,
-                            &receipt.commit_identity,
+                            receipt.commit_identity.clone(),
                             trigger.source,
                             trigger.source_kind,
                             "derive-only effects are admitted by policy but not executable as runtime deliveries",
@@ -232,7 +232,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
             EffectConditionOutcome::Suppressed(reason) => {
                 let delivery = ForgeQueryEffectDelivery::suppressed(
                     &effect.declaration,
-                    &receipt.commit_identity,
+                    receipt.commit_identity.clone(),
                     trigger.source,
                     trigger.source_kind,
                     reason,
@@ -244,7 +244,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
             EffectConditionOutcome::Failed(reason) => {
                 let delivery = ForgeQueryEffectDelivery::expression_failed(
                     &effect.declaration,
-                    &receipt.commit_identity,
+                    receipt.commit_identity.clone(),
                     trigger.source,
                     trigger.source_kind,
                     trigger.aspect_paths,
@@ -301,7 +301,7 @@ fn collect_trigger_change(
             let view = derived_views.get(view_name)?;
             let mut changed_aspects = BTreeSet::new();
             for patch in &view.patches {
-                if patch.commit_identity() != receipt.commit_identity {
+                if patch.commit_identity() != &receipt.commit_identity {
                     continue;
                 }
                 if patch.aspect_paths().is_empty() {

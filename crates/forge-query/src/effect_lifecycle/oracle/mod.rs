@@ -7,10 +7,17 @@ mod verification;
 use super::batch_execution::ExecutedEffectBatchPlan;
 use super::execution::ExecutedEffectPlan;
 use super::execution_relational_scalar::mutation_target_branch;
+use crate::ForgeQueryEvidenceIdentity;
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 
-pub use bridge_oracle::BridgeExecutionOracle;
+#[cfg(test)]
+pub(crate) use bridge_oracle::bridge_observation_execution_receipt_subject_identity;
+pub use bridge_oracle::{
+    bridge_observation_execution_record_subject_identity,
+    bridge_observation_outcome_subject_identity, bridge_observation_receipt_subject_identity,
+    bridge_observation_request_subject_identity, BridgeExecutionOracle,
+};
 pub use error::{EffectExecutionOracleError, EffectExecutionOracleErrorKind};
 pub use relational::RelationalExecutionOracle;
 pub use verification::{EffectExecutionOracleVerification, EffectExecutionOracleVerificationKind};
@@ -37,7 +44,7 @@ impl ExecutedEffectPlan {
             verification_kind,
         ) = relational_subject_for_plan(self)?;
         verify_relational_subject(
-            self.effect_execution_digest(),
+            self.effect_execution_identity(),
             expected_branch,
             observed_commit_id,
             observed_version_id,
@@ -68,12 +75,12 @@ impl ExecutedEffectBatchPlan {
             EffectExecutionOracleError::new(
                 EffectExecutionOracleErrorKind::RelationalOracleUnsupportedEffect,
                 "relational batch oracle verification currently requires an aggregate mutation artifact",
-                self.batch_digest(),
-                Some(oracle.relational_oracle_digest()),
+                self.batch_identity(),
+                Some(oracle.relational_oracle_identity()),
             )
         })?;
         verify_relational_subject(
-            self.batch_digest(),
+            self.batch_identity(),
             target_branch.0,
             aggregate.outcome.commit.commit_id.0,
             aggregate.outcome.commit.version_id.0,
@@ -108,7 +115,7 @@ fn relational_subject_for_plan(
             EffectExecutionOracleError::new(
                 EffectExecutionOracleErrorKind::RelationalOracleUnsupportedEffect,
                 message,
-                executed.effect_execution_digest(),
+                executed.effect_execution_identity(),
                 None,
             )
         })?;
@@ -151,7 +158,7 @@ fn relational_subject_for_plan(
     Err(EffectExecutionOracleError::new(
         EffectExecutionOracleErrorKind::RelationalOracleUnsupportedEffect,
         "relational oracle verification requires an executed mutation or merge artifact",
-        executed.effect_execution_digest(),
+        executed.effect_execution_identity(),
         None,
     ))
 }
@@ -164,7 +171,7 @@ fn relational_target_branch_for_plan(
             EffectExecutionOracleError::new(
                 EffectExecutionOracleErrorKind::RelationalOracleUnsupportedEffect,
                 message,
-                executed.effect_execution_digest(),
+                executed.effect_execution_identity(),
                 None,
             )
         });
@@ -175,7 +182,7 @@ fn relational_target_branch_for_plan(
     Err(EffectExecutionOracleError::new(
         EffectExecutionOracleErrorKind::RelationalOracleUnsupportedEffect,
         "relational oracle verification requires an executed mutation or merge artifact",
-        executed.effect_execution_digest(),
+        executed.effect_execution_identity(),
         None,
     ))
 }
@@ -192,7 +199,7 @@ fn relational_target_branch_for_batch(
         return Err(EffectExecutionOracleError::new(
             EffectExecutionOracleErrorKind::RelationalOracleUnsupportedEffect,
             "relational batch oracle verification requires at least one executed component",
-            executed.batch_digest(),
+            executed.batch_identity(),
             None,
         ));
     };
@@ -200,7 +207,7 @@ fn relational_target_branch_for_batch(
         return Err(EffectExecutionOracleError::new(
             EffectExecutionOracleErrorKind::BatchOracleMixedTargetBranch,
             "relational batch oracle verification requires one target branch across all components",
-            executed.batch_digest(),
+            executed.batch_identity(),
             None,
         ));
     }
@@ -208,7 +215,7 @@ fn relational_target_branch_for_batch(
 }
 
 fn verify_relational_subject(
-    execution_subject_digest: &str,
+    execution_subject_identity: &ForgeQueryEvidenceIdentity,
     expected_branch: String,
     observed_commit_id: u64,
     observed_version_id: u64,
@@ -224,8 +231,8 @@ fn verify_relational_subject(
                 "relational oracle observed branch `{}` but lowered execution targets `{expected_branch}`",
                 oracle.branch_identity()
             ),
-            execution_subject_digest,
-            Some(oracle.relational_oracle_digest()),
+            execution_subject_identity,
+            Some(oracle.relational_oracle_identity()),
         ));
     }
     if oracle.observed_commit_id() != observed_commit_id
@@ -240,8 +247,8 @@ fn verify_relational_subject(
                 observed_commit_id,
                 observed_version_id
             ),
-            execution_subject_digest,
-            Some(oracle.relational_oracle_digest()),
+            execution_subject_identity,
+            Some(oracle.relational_oracle_identity()),
         ));
     }
     if oracle.observed_parent_commit_ids() != observed_parent_commit_ids.as_slice() {
@@ -252,13 +259,13 @@ fn verify_relational_subject(
                 oracle.observed_parent_commit_ids(),
                 observed_parent_commit_ids
             ),
-            execution_subject_digest,
-            Some(oracle.relational_oracle_digest()),
+            execution_subject_identity,
+            Some(oracle.relational_oracle_identity()),
         ));
     }
     Ok(EffectExecutionOracleVerification::relational(
         verification_kind,
-        execution_subject_digest,
+        execution_subject_identity,
         oracle,
         component_count,
     ))

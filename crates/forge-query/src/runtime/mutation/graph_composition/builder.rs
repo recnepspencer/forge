@@ -1,9 +1,10 @@
 use std::collections::BTreeSet;
 
+mod existing_target_methods;
+
 use super::denial::{
     graph_composition_error, ForgeQueryGraphCompositionDenial, ForgeQueryGraphCompositionDenialKind,
 };
-use super::existing_lifecycle::{require_retarget_intent, require_supersession_intent};
 use super::relation_builder::ForgeQueryGraphRelationMutationBuilder;
 use super::symbols::{ForgeQueryGraphEntitySymbol, ForgeQueryGraphRelationSymbol};
 use crate::runtime::mutation::{ForgeQueryAspectMutationBuilder, ForgeQueryDeleteMutationBuilder};
@@ -13,6 +14,7 @@ use crate::runtime::{
     ForgeQueryGraphCompositionProgramStepKind, ForgeQueryRuntimeError,
     ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
 };
+use forge_relational::facade::identity::KindId;
 
 #[derive(Clone, Debug, Default)]
 pub struct ForgeQueryGraphCompositionBuilder {
@@ -58,20 +60,32 @@ impl ForgeQueryGraphCompositionBuilder {
             ForgeQueryGraphRelationMutationBuilder,
         ) -> ForgeQueryGraphRelationMutationBuilder,
     ) -> Result<(), ForgeQueryRuntimeError> {
+        self.insert_relation_with_kind_id(collection, None, declaration)
+    }
+
+    pub fn insert_relation_with_kind_id(
+        &mut self,
+        collection: impl Into<String>,
+        relation_kind_id: impl Into<Option<KindId>>,
+        declaration: impl FnOnce(
+            ForgeQueryGraphRelationMutationBuilder,
+        ) -> ForgeQueryGraphRelationMutationBuilder,
+    ) -> Result<(), ForgeQueryRuntimeError> {
         self.require_clean()?;
         let component_index = self.commands.len();
         let collection = collection.into();
+        let relation_kind_id = relation_kind_id.into();
         let command = declaration(ForgeQueryGraphRelationMutationBuilder::new())
             .into_inner()
             .build_insert(collection.clone())?;
         self.commands.push(command);
-        self.program_steps
-            .push(ForgeQueryGraphCompositionProgramStep::new(
-                component_index,
-                ForgeQueryGraphCompositionProgramStepKind::RelationDeclaration,
-                collection,
-                None,
-            ));
+        self.program_steps.push(graph_program_step(
+            component_index,
+            ForgeQueryGraphCompositionProgramStepKind::RelationDeclaration,
+            collection,
+            None,
+            relation_kind_id,
+        ));
         self.symbolic_relation_declaration_count += 1;
         Ok(())
     }
@@ -102,23 +116,39 @@ impl ForgeQueryGraphCompositionBuilder {
             ForgeQueryGraphRelationMutationBuilder,
         ) -> ForgeQueryGraphRelationMutationBuilder,
     ) -> Result<ForgeQueryGraphRelationSymbol, ForgeQueryRuntimeError> {
+        self.insert_symbolic_relation_with_kind_id(symbol, collection, None, declaration)
+    }
+
+    pub fn insert_symbolic_relation_with_kind_id(
+        &mut self,
+        symbol: impl Into<String>,
+        collection: impl Into<String>,
+        relation_kind_id: impl Into<Option<KindId>>,
+        declaration: impl FnOnce(
+            ForgeQueryGraphRelationMutationBuilder,
+        ) -> ForgeQueryGraphRelationMutationBuilder,
+    ) -> Result<ForgeQueryGraphRelationSymbol, ForgeQueryRuntimeError> {
         self.require_clean()?;
         let collection = collection.into();
+        let relation_kind_id = relation_kind_id.into();
         let reference = self.declare_symbol(symbol, &collection)?;
         let component_index = self.commands.len();
         let command = declaration(ForgeQueryGraphRelationMutationBuilder::new())
             .into_inner()
             .build_insert_symbolic(reference.symbol().to_string(), collection)?;
         self.commands.push(command);
-        self.program_steps
-            .push(ForgeQueryGraphCompositionProgramStep::new(
-                component_index,
-                ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationDeclaration,
-                reference.target_collection().unwrap_or(""),
-                Some(reference.symbol().to_string()),
-            ));
+        self.program_steps.push(graph_program_step(
+            component_index,
+            ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationDeclaration,
+            reference.target_collection().unwrap_or(""),
+            Some(reference.symbol().to_string()),
+            relation_kind_id,
+        ));
         self.symbolic_relation_declaration_count += 1;
-        Ok(ForgeQueryGraphRelationSymbol::new(reference))
+        Ok(ForgeQueryGraphRelationSymbol::new(
+            reference,
+            relation_kind_id,
+        ))
     }
     pub fn update_relation(
         &mut self,
@@ -133,13 +163,13 @@ impl ForgeQueryGraphCompositionBuilder {
             .into_inner()
             .build_update_symbolic(symbol.reference())?;
         self.commands.push(command);
-        self.program_steps
-            .push(ForgeQueryGraphCompositionProgramStep::new(
-                component_index,
-                ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationFollowupMutation,
-                symbol.reference().target_collection().unwrap_or(""),
-                Some(symbol.symbol().to_string()),
-            ));
+        self.program_steps.push(graph_program_step(
+            component_index,
+            ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationFollowupMutation,
+            symbol.reference().target_collection().unwrap_or(""),
+            Some(symbol.symbol().to_string()),
+            symbol.relation_kind_id(),
+        ));
         Ok(())
     }
     pub fn delete_relation(
@@ -152,163 +182,13 @@ impl ForgeQueryGraphCompositionBuilder {
         let command = declaration(ForgeQueryDeleteMutationBuilder::new())
             .build_delete_symbolic(symbol.reference())?;
         self.commands.push(command);
-        self.program_steps
-            .push(ForgeQueryGraphCompositionProgramStep::new(
-                component_index,
-                ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationRetirement,
-                symbol.reference().target_collection().unwrap_or(""),
-                Some(symbol.symbol().to_string()),
-            ));
-        Ok(())
-    }
-    pub fn update_existing(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    ) -> Result<(), ForgeQueryRuntimeError> {
-        self.require_clean()?;
-        let declared_collection = binding.target_collection().unwrap_or("").to_string();
-        let command =
-            declaration(ForgeQueryAspectMutationBuilder::new()).build_update_existing(binding)?;
-        self.push_existing_target_step(
-            command,
-            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetFollowupMutation,
-            declared_collection,
-        );
-        Ok(())
-    }
-    pub fn retarget_existing(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    ) -> Result<(), ForgeQueryRuntimeError> {
-        self.require_clean()?;
-        let declared_collection = binding.target_collection().unwrap_or("").to_string();
-        let command =
-            declaration(ForgeQueryAspectMutationBuilder::new()).build_update_existing(binding)?;
-        require_retarget_intent(&command, &declared_collection)?;
-        self.push_existing_target_step(
-            command,
-            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetRetarget,
-            declared_collection,
-        );
-        Ok(())
-    }
-    pub fn supersede_existing(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    ) -> Result<(), ForgeQueryRuntimeError> {
-        self.require_clean()?;
-        let declared_collection = binding.target_collection().unwrap_or("").to_string();
-        let command =
-            declaration(ForgeQueryAspectMutationBuilder::new()).build_update_existing(binding)?;
-        require_supersession_intent(&command, &declared_collection)?;
-        self.push_existing_target_step(
-            command,
-            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetSupersession,
-            declared_collection,
-        );
-        Ok(())
-    }
-    pub fn update_existing_verified(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        verify: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-        update: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    ) -> Result<(), ForgeQueryRuntimeError> {
-        self.require_clean()?;
-        let declared_collection = binding.target_collection().unwrap_or("").to_string();
-        let command = build_verified_existing_update_command(
-            binding,
-            verify,
-            update,
-            "backend-verified existing-truth update",
-        )?;
-        self.push_existing_target_step(
-            command,
-            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedFollowupMutation,
-            declared_collection,
-        );
-        Ok(())
-    }
-    pub fn retarget_existing_verified(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        verify: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-        update: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    ) -> Result<(), ForgeQueryRuntimeError> {
-        self.require_clean()?;
-        let declared_collection = binding.target_collection().unwrap_or("").to_string();
-        let command = build_verified_existing_update_command(
-            binding,
-            verify,
-            update,
-            "backend-verified existing-truth retarget",
-        )?;
-        require_retarget_intent(&command, &declared_collection)?;
-        self.push_existing_target_step(
-            command,
-            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget,
-            declared_collection,
-        );
-        Ok(())
-    }
-    pub fn supersede_existing_verified(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        verify: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-        update: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    ) -> Result<(), ForgeQueryRuntimeError> {
-        self.require_clean()?;
-        let declared_collection = binding.target_collection().unwrap_or("").to_string();
-        let command = build_verified_existing_update_command(
-            binding,
-            verify,
-            update,
-            "backend-verified existing-truth supersession",
-        )?;
-        require_supersession_intent(&command, &declared_collection)?;
-        self.push_existing_target_step(
-            command,
-            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedSupersession,
-            declared_collection,
-        );
-        Ok(())
-    }
-    pub fn delete_existing(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        declaration: impl FnOnce(ForgeQueryDeleteMutationBuilder) -> ForgeQueryDeleteMutationBuilder,
-    ) -> Result<(), ForgeQueryRuntimeError> {
-        self.require_clean()?;
-        let declared_collection = binding.target_collection().unwrap_or("").to_string();
-        let command =
-            declaration(ForgeQueryDeleteMutationBuilder::new()).build_delete_existing(binding)?;
-        self.push_existing_target_step(
-            command,
-            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetRetirement,
-            declared_collection,
-        );
-        Ok(())
-    }
-    pub fn delete_existing_verified(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        verify: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-        delete: impl FnOnce(ForgeQueryDeleteMutationBuilder) -> ForgeQueryDeleteMutationBuilder,
-    ) -> Result<(), ForgeQueryRuntimeError> {
-        self.require_clean()?;
-        let declared_collection = binding.target_collection().unwrap_or("").to_string();
-        let asserted_aspects = verify(ForgeQueryAspectMutationBuilder::new())
-            .finish_existing_truth_verification_aspects("backend-verified existing-truth delete")?;
-        let command = delete(ForgeQueryDeleteMutationBuilder::new())
-            .build_delete_existing_verified(binding, asserted_aspects)?;
-        self.push_existing_target_step(
-            command,
-            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetirement,
-            declared_collection,
-        );
+        self.program_steps.push(graph_program_step(
+            component_index,
+            ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationRetirement,
+            symbol.reference().target_collection().unwrap_or(""),
+            Some(symbol.symbol().to_string()),
+            symbol.relation_kind_id(),
+        ));
         Ok(())
     }
     pub fn finish(
@@ -387,14 +267,22 @@ impl ForgeQueryGraphCompositionBuilder {
             ));
     }
 }
-fn build_verified_existing_update_command(
-    binding: ForgeQueryExistingTruthTargetBinding,
-    verify: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    update: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    verification_context: &'static str,
-) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
-    let asserted_aspects = verify(ForgeQueryAspectMutationBuilder::new())
-        .finish_existing_truth_verification_aspects(verification_context)?;
-    update(ForgeQueryAspectMutationBuilder::new())
-        .build_update_existing_verified(binding, asserted_aspects)
+
+fn graph_program_step(
+    component_index: usize,
+    kind: ForgeQueryGraphCompositionProgramStepKind,
+    declared_collection: impl Into<String>,
+    declared_symbol: Option<String>,
+    relation_kind_id: Option<KindId>,
+) -> ForgeQueryGraphCompositionProgramStep {
+    let step = ForgeQueryGraphCompositionProgramStep::new(
+        component_index,
+        kind,
+        declared_collection,
+        declared_symbol,
+    );
+    match relation_kind_id {
+        Some(relation_kind_id) => step.with_relation_kind_id(relation_kind_id),
+        None => step,
+    }
 }

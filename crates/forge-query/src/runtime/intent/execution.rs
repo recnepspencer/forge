@@ -1,4 +1,5 @@
 use super::*;
+use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQuerySnapshotIdentity};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
@@ -59,8 +60,8 @@ impl ForgeQueryIntentExecution {
         canonical_input_digest: impl Into<String>,
         outcome_digest: impl Into<String>,
         invariant_evidence: impl IntoIterator<Item = impl Into<String>>,
-        commit_identity: impl Into<String>,
-        snapshot_token: impl Into<String>,
+        commit_identity: ForgeQueryCommitIdentity,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
     ) -> Self {
         Self {
             execution_kind: ForgeQueryIntentExecutionKind::IdempotentNoop,
@@ -70,12 +71,11 @@ impl ForgeQueryIntentExecution {
             canonical_input_digest: canonical_input_digest.into(),
             outcome_digest: outcome_digest.into(),
             invariant_evidence: invariant_evidence.into_iter().map(Into::into).collect(),
-            mutation_receipt: ForgeQueryMutationReceipt {
-                commit_identity: commit_identity.into(),
-                snapshot_token: snapshot_token.into(),
-                deltas: Vec::new(),
-                bridge_authority: None,
-            },
+            mutation_receipt: ForgeQueryMutationReceipt::from_authoritative_parts(
+                commit_identity,
+                snapshot_identity,
+                Vec::new(),
+            ),
         }
     }
 
@@ -86,7 +86,7 @@ impl ForgeQueryIntentExecution {
         canonical_input_digest: impl Into<String>,
         invariant_failure_digest: impl Into<String>,
         invariant_evidence: impl IntoIterator<Item = impl Into<String>>,
-        snapshot_token: impl Into<String>,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
     ) -> Self {
         Self {
             execution_kind: ForgeQueryIntentExecutionKind::InvariantViolation,
@@ -96,12 +96,11 @@ impl ForgeQueryIntentExecution {
             canonical_input_digest: canonical_input_digest.into(),
             outcome_digest: invariant_failure_digest.into(),
             invariant_evidence: invariant_evidence.into_iter().map(Into::into).collect(),
-            mutation_receipt: ForgeQueryMutationReceipt {
-                commit_identity: String::new(),
-                snapshot_token: snapshot_token.into(),
-                deltas: Vec::new(),
-                bridge_authority: None,
-            },
+            mutation_receipt: ForgeQueryMutationReceipt::from_authoritative_parts(
+                ForgeQueryCommitIdentity::absent(),
+                snapshot_identity,
+                Vec::new(),
+            ),
         }
     }
 

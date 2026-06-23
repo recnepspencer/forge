@@ -17,7 +17,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_multi_family
     let projected_contract = runtime_bridge
         .admit_writeback_declaration(
             crate::facade::BridgeWritebackDeclaration::writeback_capable(
-                crate::facade::BridgeWritebackDeclarationIdentity::new(
+                crate::facade::BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                     "harness:writeback-family-admission-boundary:projected",
                 ),
                 crate::facade::BridgeRequestKind::Authoritative,
@@ -36,7 +36,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_multi_family
     let aspect_contract = runtime_bridge
         .admit_writeback_declaration(
             crate::facade::BridgeWritebackDeclaration::writeback_capable(
-                crate::facade::BridgeWritebackDeclarationIdentity::new(
+                crate::facade::BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                     "harness:writeback-family-admission-boundary:aspect",
                 ),
                 crate::facade::BridgeRequestKind::Authoritative,
@@ -55,7 +55,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_multi_family
     let projected_effect = runtime_bridge.lower_writeback_effect(
         &projected_contract,
         &causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-family-admission-boundary:effect:projected",
         ),
         writeback_effect_intent(
@@ -66,7 +66,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_multi_family
     let aspect_effect = runtime_bridge.lower_writeback_effect(
         &aspect_contract,
         &causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-family-admission-boundary:effect:aspect",
         ),
         writeback_effect_intent(
@@ -78,7 +78,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_multi_family
         &projected_effect,
         &lowered_policy_bundle,
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(&projected_effect),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-family-admission-boundary:idempotence:projected",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
@@ -87,7 +87,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_multi_family
         &aspect_effect,
         &lowered_policy_bundle,
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(&aspect_effect),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-family-admission-boundary:idempotence:aspect",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
@@ -140,7 +140,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback) fn execute_multi_family
         })?;
     let shadow_protocol_error = runtime_bridge
         .validate_writeback_declaration(crate::facade::BridgeWritebackDeclaration::new(
-            crate::facade::BridgeWritebackDeclarationIdentity::new(
+            crate::facade::BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                 "harness:writeback-family-admission-boundary:shadow-protocol",
             ),
             crate::facade::BridgeRequestKind::Authoritative,

@@ -1,0 +1,35 @@
+error[E0451]: fields `digest`, `streaming_plan_digest`, `snapshot_identity_digest`, `convergence_result_digest`, `page_receipts` and `counters` of struct `ForgeQueryGraphReadStreamingReceipt` are private
+  --> tests/ui/graph_read_access_streaming/receipt_constructor_private.rs:7:9
+   |
+ 6 |     let _ = ForgeQueryGraphReadStreamingReceipt {
+   |             ----------------------------------- in this type
+ 7 |         digest: String::new(),
+   |         ^^^^^^ private field
+ 8 |         streaming_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         snapshot_identity_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         convergence_result_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         page_receipts: Vec::new(),
+   |         ^^^^^^^^^^^^^ private field
+12 |         counters: ForgeQueryGraphReadStreamingCounters {
+   |         ^^^^^^^^ private field
+
+error[E0451]: fields `page_count`, `emitted_row_count`, `max_resident_frontier_observed`, `max_resident_visited_observed`, `cursor_replay_denial_count` and `cursor_identity_denial_count` of struct `ForgeQueryGraphReadStreamingCounters` are private
+  --> tests/ui/graph_read_access_streaming/receipt_constructor_private.rs:13:13
+   |
+12 |         counters: ForgeQueryGraphReadStreamingCounters {
+   |                   ------------------------------------ in this type
+13 |             page_count: 0,
+   |             ^^^^^^^^^^ private field
+14 |             emitted_row_count: 0,
+   |             ^^^^^^^^^^^^^^^^^ private field
+15 |             max_resident_frontier_observed: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |             max_resident_visited_observed: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |             cursor_replay_denial_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |             cursor_identity_denial_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

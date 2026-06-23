@@ -46,9 +46,9 @@ impl LoweredHistoricalEvaluationArtifact {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            artifact_identity: LoweredHistoricalEvaluationArtifactIdentity::new(format!(
-                "lowered-historical-evaluation-artifact:sha256:{digest:x}"
-            )),
+            artifact_identity: LoweredHistoricalEvaluationArtifactIdentity::admit_bridge_owned(
+                format!("lowered-historical-evaluation-artifact:sha256:{digest:x}"),
+            ),
             declaration_identity: observation
                 .planned()
                 .declaration()

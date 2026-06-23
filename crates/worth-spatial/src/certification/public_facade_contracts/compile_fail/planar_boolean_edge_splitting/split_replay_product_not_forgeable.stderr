@@ -1,0 +1,30 @@
+warning: unreachable expression
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_replay_product_not_forgeable.rs:9:19
+  |
+8 |         original: todo!(),
+  |                   ------- any code following this expression is unreachable
+9 |         replayed: todo!(),
+  |                   ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `product_identity`, `original`, `replayed`, `replay_receipts`, `execution_mode`, `closure_manifest` and `counters` of struct `PlanarBooleanEdgeSplitReplayProduct` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_replay_product_not_forgeable.rs:7:9
+   |
+ 6 |     let _product = PlanarBooleanEdgeSplitReplayProduct {
+   |                    ----------------------------------- in this type
+ 7 |         product_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+ 8 |         original: todo!(),
+   |         ^^^^^^^^ private field
+ 9 |         replayed: todo!(),
+   |         ^^^^^^^^ private field
+10 |         replay_receipts: todo!(),
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         execution_mode: PlanarBooleanEdgeSplitReplayExecutionMode::RetainedReplay,
+   |         ^^^^^^^^^^^^^^ private field
+12 |         closure_manifest: todo!(),
+   |         ^^^^^^^^^^^^^^^^ private field
+13 |         counters: todo!(),
+   |         ^^^^^^^^ private field

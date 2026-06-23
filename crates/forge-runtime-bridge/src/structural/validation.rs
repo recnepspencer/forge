@@ -113,8 +113,8 @@ impl ValidatedStructuralIdentityDeclaration {
 #[cfg(test)]
 mod tests {
     use super::ValidatedStructuralIdentityDeclaration;
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::structural::{
         StructuralComparisonMode, StructuralFingerprintEquivalenceContract,
         StructuralFingerprintFamily, StructuralFingerprintNormalizationRule,
@@ -125,7 +125,7 @@ mod tests {
 
     fn contract(schema: &str) -> StructuralFingerprintEquivalenceContract {
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new(schema),
+            StructuralSchemaIdentity::admit_bridge_owned(schema),
             StructuralFingerprintFamily::TopologyFingerprint,
             "topology-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -137,12 +137,16 @@ mod tests {
     #[test]
     fn validation_rejects_branch_pair_basis_for_advisory_remap() {
         let declaration = StructuralIdentityDeclaration::advisory_remap(
-            StructuralIdentityDeclarationIdentity::new("structural:bad-remap"),
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:bad-remap"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             contract("schema:geometry"),
             StructuralTruthViewBasis::explicit_branch_pair(
-                BridgeTruthViewSelector::branch_head(TruthBranchIdentity::new("left")),
-                BridgeTruthViewSelector::branch_head(TruthBranchIdentity::new("right")),
+                BridgeTruthViewSelector::branch_head(
+                    crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                ),
+                BridgeTruthViewSelector::branch_head(
+                    crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                ),
             ),
         );
 
@@ -157,17 +161,17 @@ mod tests {
     #[test]
     fn validation_accepts_branch_comparison_with_branch_pair_basis() {
         let declaration = StructuralIdentityDeclaration::branch_comparison(
-            StructuralIdentityDeclarationIdentity::new("structural:branch-compare"),
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:branch-compare"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             contract("schema:geometry"),
             StructuralTruthViewBasis::explicit_branch_pair(
                 BridgeTruthViewSelector::branch_snapshot(
-                    TruthBranchIdentity::new("left"),
-                    TruthSnapshotIdentity::new("snapshot-left"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-left"),
                 ),
                 BridgeTruthViewSelector::branch_snapshot(
-                    TruthBranchIdentity::new("right"),
-                    TruthSnapshotIdentity::new("snapshot-right"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-right"),
                 ),
             ),
         );

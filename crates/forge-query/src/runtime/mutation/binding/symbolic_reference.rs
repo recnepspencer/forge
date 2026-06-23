@@ -1,5 +1,10 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::memory_workspace::ForgeQueryWorkspaceError;
+use crate::runtime::{
+    ForgeQueryMutationSymbolIdentity, ForgeQueryMutationTargetCollectionIdentity,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ForgeQuerySymbolicTargetReferenceFamily {
@@ -23,8 +28,8 @@ impl std::fmt::Display for ForgeQuerySymbolicTargetReferenceFamily {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQuerySymbolicTargetReference {
     family: ForgeQuerySymbolicTargetReferenceFamily,
-    symbol: String,
-    target_collection: Option<String>,
+    symbol: ForgeQueryMutationSymbolIdentity,
+    target_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
 }
 
 impl ForgeQuerySymbolicTargetReference {
@@ -37,7 +42,7 @@ impl ForgeQuerySymbolicTargetReference {
         }
         Ok(Self {
             family: ForgeQuerySymbolicTargetReferenceFamily::SameBatchDeclaredTarget,
-            symbol,
+            symbol: ForgeQueryMutationSymbolIdentity::new("symbolic-target-reference", symbol),
             target_collection: None,
         })
     }
@@ -52,7 +57,10 @@ impl ForgeQuerySymbolicTargetReference {
                 "symbolic target collection may not be empty",
             ));
         }
-        self.target_collection = Some(collection);
+        self.target_collection = Some(ForgeQueryMutationTargetCollectionIdentity::new(
+            "symbolic-target-reference",
+            collection,
+        ));
         Ok(self)
     }
 
@@ -61,11 +69,23 @@ impl ForgeQuerySymbolicTargetReference {
     }
 
     pub fn symbol(&self) -> &str {
+        self.symbol.as_str()
+    }
+
+    pub fn symbol_identity(&self) -> &ForgeQueryMutationSymbolIdentity {
         &self.symbol
     }
 
     pub fn target_collection(&self) -> Option<&str> {
-        self.target_collection.as_deref()
+        self.target_collection
+            .as_ref()
+            .map(ForgeQueryMutationTargetCollectionIdentity::as_str)
+    }
+
+    pub fn target_collection_identity(
+        &self,
+    ) -> Option<&ForgeQueryMutationTargetCollectionIdentity> {
+        self.target_collection.as_ref()
     }
 }
 
@@ -107,14 +127,31 @@ impl ForgeQuerySymbolicTargetReferenceDenial {
         message: impl Into<String>,
     ) -> Self {
         let message = message.into();
-        let denial_digest = hash_parts(&[
-            "forge_query_symbolic_target_reference_denial_v1".to_string(),
-            format!("family:{}", reference.family()),
-            format!("symbol:{}", reference.symbol()),
-            format!("collection:{}", reference.target_collection().unwrap_or("")),
-            format!("kind:{kind}"),
-            format!("message:{message}"),
-        ]);
+        let denial_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "symbolic-target-reference-denial",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("family"),
+                    reference.family().as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("symbol"),
+                    reference.symbol_identity().evidence_identity(),
+                )
+                .optional_evidence_identity(
+                    ForgeQueryEvidenceTag::new("collection"),
+                    reference
+                        .target_collection_identity()
+                        .map(ForgeQueryMutationTargetCollectionIdentity::evidence_identity),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .field_value(ForgeQueryEvidenceTag::new("message"), &message)
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             reference: reference.clone(),
             kind,

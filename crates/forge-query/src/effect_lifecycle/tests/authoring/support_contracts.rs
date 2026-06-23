@@ -182,6 +182,6 @@ fn preview_derived_mutation_returns_real_advisory_effect_posture() {
     assert_eq!(advisory.decision_trace().cause(), "advisory_only_execution");
     assert_ne!(
         advisory.normalized().capability_digest(),
-        advisory.decision_trace().trace_digest()
+        advisory.decision_trace().trace_for_reporting()
     );
 }

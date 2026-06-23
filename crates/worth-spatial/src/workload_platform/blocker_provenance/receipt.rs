@@ -12,6 +12,15 @@ use super::{
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanarBooleanBlockerProvenanceInput {
+    source_kind: WorkloadBlockerSourceKind,
+    boundary_kind: WorkloadBlockerBoundaryKind,
+    source_identity: String,
+    boundary_identity: String,
+    human_reason: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkloadBlockerProvenance {
     source_kind: WorkloadBlockerSourceKind,
     boundary_kind: WorkloadBlockerBoundaryKind,
@@ -31,6 +40,16 @@ pub struct WorkloadBlockerProvenanceReceipt {
 }
 
 impl WorkloadBlockerProvenance {
+    pub fn from_planar_boolean_outcome(input: &PlanarBooleanBlockerProvenanceInput) -> Self {
+        Self {
+            source_kind: input.source_kind(),
+            boundary_kind: input.boundary_kind(),
+            source_identity: input.source_identity().to_string(),
+            boundary_identity: input.boundary_identity().to_string(),
+            human_reason: input.human_reason().to_string(),
+        }
+    }
+
     pub fn dirty_kind_mismatch(error: &DirtyPlanarCleanFailError) -> Self {
         let human_reason = error.human_reason();
         let (source_identity, boundary_identity) = match error {
@@ -118,6 +137,93 @@ impl WorkloadBlockerProvenance {
             boundary_identity: self.boundary_identity,
             human_reason: summary.to_string(),
         })
+    }
+
+    pub fn certify_non_admitted(
+        self,
+        outcome: &WorthUserOutcome,
+    ) -> Result<WorkloadBlockerProvenanceReceipt, WorkloadBlockerProvenanceDenial> {
+        if outcome.kind() == WorthUserOutcomeKind::Admitted {
+            return Err(WorkloadBlockerProvenanceDenial::new(
+                WorkloadBlockerProvenanceDenialKind::OutcomeReportedAdmitted,
+                format!(
+                    "{} provenance cannot certify an admitted outcome",
+                    self.source_kind.human_name()
+                ),
+            ));
+        }
+        if outcome.cause().is_none() {
+            return Err(WorkloadBlockerProvenanceDenial::new(
+                WorkloadBlockerProvenanceDenialKind::OutcomeMissingCause,
+                format!(
+                    "{} provenance requires a typed non-admitted cause",
+                    self.source_kind.human_name()
+                ),
+            ));
+        }
+        let summary = outcome.human_response().summary();
+        if !reason_mentions_boundary(summary, &self.human_reason) {
+            return Err(WorkloadBlockerProvenanceDenial::new(
+                WorkloadBlockerProvenanceDenialKind::OutcomeDidNotExplainBoundary,
+                format!(
+                    "{} provenance response must explain the {} boundary",
+                    self.source_kind.human_name(),
+                    self.boundary_kind.human_name()
+                ),
+            ));
+        }
+        Ok(WorkloadBlockerProvenanceReceipt {
+            provenance_digest: provenance_digest(
+                self.source_kind,
+                self.boundary_kind,
+                &self.source_identity,
+                &self.boundary_identity,
+                summary,
+            ),
+            source_kind: self.source_kind,
+            boundary_kind: self.boundary_kind,
+            source_identity: self.source_identity,
+            boundary_identity: self.boundary_identity,
+            human_reason: summary.to_string(),
+        })
+    }
+}
+
+impl PlanarBooleanBlockerProvenanceInput {
+    pub fn new(
+        source_kind: WorkloadBlockerSourceKind,
+        boundary_kind: WorkloadBlockerBoundaryKind,
+        source_identity: impl Into<String>,
+        boundary_identity: impl Into<String>,
+        human_reason: impl Into<String>,
+    ) -> Self {
+        Self {
+            source_kind,
+            boundary_kind,
+            source_identity: source_identity.into(),
+            boundary_identity: boundary_identity.into(),
+            human_reason: human_reason.into(),
+        }
+    }
+
+    pub fn source_kind(&self) -> WorkloadBlockerSourceKind {
+        self.source_kind
+    }
+
+    pub fn boundary_kind(&self) -> WorkloadBlockerBoundaryKind {
+        self.boundary_kind
+    }
+
+    pub fn source_identity(&self) -> &str {
+        &self.source_identity
+    }
+
+    pub fn boundary_identity(&self) -> &str {
+        &self.boundary_identity
+    }
+
+    pub fn human_reason(&self) -> &str {
+        &self.human_reason
     }
 }
 

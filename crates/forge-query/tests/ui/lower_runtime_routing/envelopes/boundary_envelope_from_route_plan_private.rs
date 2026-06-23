@@ -9,7 +9,10 @@ fn from_route_plan(
     receipt: &ForgeQueryLowerRuntimeBoundaryExecutionReceipt,
 ) {
     let _ = ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
-        seam, plan, receipt, "retained",
+        seam,
+        plan,
+        receipt,
+        todo!(),
     );
 }
 

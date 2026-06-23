@@ -8,7 +8,6 @@ use crate::mapping::SubscriptionSliceKind;
 use crate::snapshot::{
     validate_snapshot_read_result_contract, BridgeSnapshotReadErrorKind, SnapshotReadContract,
     SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
-    TruthSnapshotIdentity,
 };
 
 #[test]
@@ -133,7 +132,7 @@ fn validation_rejects_unknown_struct_field_projection_mask() {
     let error = validate_snapshot_read_result_contract(
         &packet,
         SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             vec![SnapshotReadRecord::for_request(
                 &read,
                 forge_foundational::facade::AspectValue::String(("alice").into()),
@@ -170,14 +169,17 @@ fn packet_result_retains_snapshot_identity() {
         SnapshotReadContract::scalar(aspect_key("profile"), ScalarAspectType::String),
     );
     let result = SnapshotReadPacketResult::new(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         vec![SnapshotReadRecord::for_request(
             &read,
             forge_foundational::facade::AspectValue::String(("alice").into()),
         )],
     );
 
-    assert_eq!(result.snapshot_identity().as_str(), "snapshot-a");
+    assert_eq!(
+        result.snapshot_identity().as_str(),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a").as_str()
+    );
     assert_eq!(result.records()[0].correlation_id(), read.correlation_id());
 }
 
@@ -201,7 +203,7 @@ fn validation_rejects_missing_required_record() {
     let error = validate_snapshot_read_result_contract(
         &packet,
         SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             vec![SnapshotReadRecord::for_request(
                 &unrelated_read,
                 forge_foundational::facade::AspectValue::String(("alice").into()),
@@ -228,7 +230,7 @@ fn validation_rejects_duplicate_result_keys() {
     let error = validate_snapshot_read_result_contract(
         &packet,
         SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             vec![
                 SnapshotReadRecord::for_request(
                     &duplicate_read,
@@ -261,7 +263,7 @@ fn validation_rejects_value_family_outside_read_contract() {
     let error = validate_snapshot_read_result_contract(
         &packet,
         SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             vec![SnapshotReadRecord::for_request(
                 &read,
                 AspectValue::String("not-an-int".into()),
@@ -298,7 +300,7 @@ fn validation_accepts_foundational_struct_read_value() {
     let validated = validate_snapshot_read_result_contract(
         &packet,
         SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             vec![SnapshotReadRecord::for_request(&read, struct_value)],
         ),
     )

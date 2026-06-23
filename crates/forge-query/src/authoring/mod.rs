@@ -2,6 +2,7 @@ mod collection;
 mod collection_result_shape;
 mod detail;
 mod detail_result_shape;
+mod domain_operation;
 mod error;
 mod names;
 mod ordering;
@@ -23,6 +24,12 @@ pub use detail::DetailFamily;
 pub use detail::{DetailAuthoredQuery, DetailQueryBuilder};
 pub use detail_result_shape::DetailResultShapeFamily;
 pub use detail_result_shape::{DetailAuthoredResultShape, DetailResultShapeBuilder};
+pub use domain_operation::{
+    DomainGraphOperationDeclarationError, ForgeQueryAdmittedGraphReadDomainOperationReference,
+    ForgeQueryDomainOwner, ForgeQueryGraphReadDomainOperationDeclaration,
+    ForgeQueryGraphReadOperationKey, ForgeQueryGraphReadOperationName,
+    ForgeQueryGraphReadOperationVersion,
+};
 pub use error::{AuthoringError, AuthoringFailureClass};
 pub use names::{AspectFieldKey, AspectName, DeliveredFieldName, FieldName, RelationName};
 pub use ordering::{OrderingDirection, OrderingSelector};

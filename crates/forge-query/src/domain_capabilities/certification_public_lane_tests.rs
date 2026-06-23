@@ -81,7 +81,7 @@ fn public_common_and_checked_lanes_converge_for_named_categories() {
         .for_intent(&declaration)
         .plans_preview_mutation(
             "workflow.preview_mutation",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new(
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
                 "preview-session:public-lane",
             ),
         )
@@ -93,7 +93,7 @@ fn public_common_and_checked_lanes_converge_for_named_categories() {
             .for_intent(&declaration)
             .plans_preview_mutation(
                 "workflow.preview_mutation",
-                crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
                     "preview-session:public-lane",
                 ),
             )

@@ -2,6 +2,12 @@ use std::marker::PhantomData;
 
 use serde_json::Value;
 
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
+use crate::memory_workspace::ForgeQueryCommitIdentity;
+
 use super::super::ForgeQueryEffectPolicy;
 use super::super::{ForgeQueryAuthorityLane, ForgeQueryEffectAction};
 use super::declaration::{
@@ -50,7 +56,8 @@ pub enum ForgeQueryEffectDeliveryFamily {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryEffectDelivery {
     effect_name: String,
-    commit_identity: String,
+    commit_identity: ForgeQueryCommitIdentity,
+    trigger_commit_evidence_identity: ForgeQueryEvidenceIdentity,
     trigger_source: String,
     trigger_source_kind: ForgeQueryEffectTriggerSourceKind,
     target: String,
@@ -68,15 +75,18 @@ pub struct ForgeQueryEffectDelivery {
 impl ForgeQueryEffectDelivery {
     pub(in crate::runtime::effect) fn delivered(
         declaration: &ForgeQueryEffectDeclaration,
-        commit_identity: impl Into<String>,
+        commit_identity: ForgeQueryCommitIdentity,
         trigger_source: impl Into<String>,
         trigger_source_kind: ForgeQueryEffectTriggerSourceKind,
         aspect_paths: Vec<String>,
         payload: Value,
     ) -> Self {
+        let trigger_commit_evidence_identity =
+            effect_trigger_commit_evidence_identity(&commit_identity);
         Self {
             effect_name: declaration.name().to_string(),
-            commit_identity: commit_identity.into(),
+            commit_identity,
+            trigger_commit_evidence_identity,
             trigger_source: trigger_source.into(),
             trigger_source_kind,
             target: declaration.target().to_string(),
@@ -94,15 +104,18 @@ impl ForgeQueryEffectDelivery {
     }
     pub(in crate::runtime::effect) fn pending_write_intent(
         declaration: &ForgeQueryEffectDeclaration,
-        commit_identity: impl Into<String>,
+        commit_identity: ForgeQueryCommitIdentity,
         trigger_source: impl Into<String>,
         trigger_source_kind: ForgeQueryEffectTriggerSourceKind,
         aspect_paths: Vec<String>,
         payload: Value,
     ) -> Self {
+        let trigger_commit_evidence_identity =
+            effect_trigger_commit_evidence_identity(&commit_identity);
         Self {
             effect_name: declaration.name().to_string(),
-            commit_identity: commit_identity.into(),
+            commit_identity,
+            trigger_commit_evidence_identity,
             trigger_source: trigger_source.into(),
             trigger_source_kind,
             target: declaration.target().to_string(),
@@ -123,14 +136,17 @@ impl ForgeQueryEffectDelivery {
     }
     pub(in crate::runtime::effect) fn suppressed(
         declaration: &ForgeQueryEffectDeclaration,
-        commit_identity: impl Into<String>,
+        commit_identity: ForgeQueryCommitIdentity,
         trigger_source: impl Into<String>,
         trigger_source_kind: ForgeQueryEffectTriggerSourceKind,
         reason: impl Into<String>,
     ) -> Self {
+        let trigger_commit_evidence_identity =
+            effect_trigger_commit_evidence_identity(&commit_identity);
         Self {
             effect_name: declaration.name().to_string(),
-            commit_identity: commit_identity.into(),
+            commit_identity,
+            trigger_commit_evidence_identity,
             trigger_source: trigger_source.into(),
             trigger_source_kind,
             target: declaration.target().to_string(),
@@ -148,15 +164,18 @@ impl ForgeQueryEffectDelivery {
     }
     pub(in crate::runtime::effect) fn expression_failed(
         declaration: &ForgeQueryEffectDeclaration,
-        commit_identity: impl Into<String>,
+        commit_identity: ForgeQueryCommitIdentity,
         trigger_source: impl Into<String>,
         trigger_source_kind: ForgeQueryEffectTriggerSourceKind,
         aspect_paths: Vec<String>,
         reason: impl Into<String>,
     ) -> Self {
+        let trigger_commit_evidence_identity =
+            effect_trigger_commit_evidence_identity(&commit_identity);
         Self {
             effect_name: declaration.name().to_string(),
-            commit_identity: commit_identity.into(),
+            commit_identity,
+            trigger_commit_evidence_identity,
             trigger_source: trigger_source.into(),
             trigger_source_kind,
             target: declaration.target().to_string(),
@@ -175,8 +194,11 @@ impl ForgeQueryEffectDelivery {
     pub fn effect_name(&self) -> &str {
         &self.effect_name
     }
-    pub fn commit_identity(&self) -> &str {
+    pub fn commit_identity(&self) -> &ForgeQueryCommitIdentity {
         &self.commit_identity
+    }
+    pub fn trigger_commit_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.trigger_commit_evidence_identity
     }
     pub fn trigger_source(&self) -> &str {
         &self.trigger_source
@@ -217,6 +239,18 @@ impl ForgeQueryEffectDelivery {
     pub fn reason(&self) -> Option<&str> {
         self.reason.as_deref()
     }
+}
+
+fn effect_trigger_commit_evidence_identity(
+    commit_identity: &ForgeQueryCommitIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    let commit_evidence_identity = commit_identity.evidence_identity();
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::EffectTriggerCommitIdentity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("trigger_commit_identity"),
+            &commit_evidence_identity,
+        )
+        .seal()
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryEffectHandle<T = Value> {

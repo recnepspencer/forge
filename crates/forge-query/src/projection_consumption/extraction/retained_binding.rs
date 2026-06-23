@@ -4,6 +4,9 @@ use super::super::consumed::{
 };
 use super::super::contracts::MaterializedProjectionContract;
 use super::super::facts::ProjectionFactKind;
+use super::super::identity::{
+    compose_retained_binding_row_identity, compose_scoped_row_source_identity,
+};
 use super::super::source::ProjectionSourceFamily;
 use crate::projection_consumption::ProjectionFactExtractionError;
 use crate::runtime::ForgeQueryDerivedArtifactBinding;
@@ -17,7 +20,7 @@ pub(super) fn extract_retained_binding_facts(
         contract,
         ProjectionSourceFamily::RetainedDerivedArtifactBinding,
     )?;
-    super::ensure_source_identity(contract.source_identity(), binding.binding_digest())?;
+    super::ensure_source_identity(contract.source_identity(), binding.binding_for_reporting())?;
 
     let extracts_view_local_identity = contract
         .fact_families()
@@ -50,7 +53,7 @@ pub(super) fn extract_retained_binding_facts(
         for (index, row) in materialization.rows().iter().enumerate() {
             row_count += 1;
             let row_identity =
-                retained_binding_row_identity(binding.binding_digest(), view_name, index);
+                retained_binding_row_identity(binding.binding_for_reporting(), view_name, index);
             for fact_family in contract.fact_families() {
                 match fact_family.kind() {
                     ProjectionFactKind::ViewLocalIdentity => {
@@ -64,10 +67,9 @@ pub(super) fn extract_retained_binding_facts(
                         let value = row_path_value(row, field_key).ok_or_else(|| {
                             ProjectionFactExtractionError::MissingDeclaredFieldEvidence {
                                 source_family: contract.source_family(),
-                                source_identity: format!(
-                                    "{}::{}",
+                                source_identity: compose_scoped_row_source_identity(
                                     contract.source_identity(),
-                                    row_identity
+                                    row_identity.as_str(),
                                 ),
                                 field_key: field_key.to_string(),
                                 fact_kind: fact_family.kind(),
@@ -124,7 +126,7 @@ pub(super) fn extract_retained_binding_facts(
         contract.declaration_digest(),
         contract.contract_digest(),
         contract.source_family(),
-        contract.source_identity(),
+        contract.source_identity_handle().clone(),
         contract.support_posture().clone(),
         contract.materialized_fact_posture().cloned(),
         ProjectionFactExtractionCounters::new(
@@ -147,7 +149,7 @@ pub(super) fn extract_retained_binding_facts(
 }
 
 fn retained_binding_row_identity(binding_digest: &str, view_name: &str, index: usize) -> String {
-    format!("retained-binding:{binding_digest}:{view_name}:{index}")
+    compose_retained_binding_row_identity(binding_digest, view_name, index)
 }
 
 fn binding_target_source_references<'a>(

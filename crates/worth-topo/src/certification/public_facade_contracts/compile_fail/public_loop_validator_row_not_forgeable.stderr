@@ -1,0 +1,13 @@
+error[E0451]: fields `validator_name`, `runtime_lane`, `governs_topology_legality` and `proof_obligations` of struct `PlanarBooleanLoopValidatorRow` are private
+ --> src/certification/public_facade_contracts/compile_fail/public_loop_validator_row_not_forgeable.rs:5:9
+  |
+4 |     let _ = PlanarBooleanLoopValidatorRow {
+  |             ----------------------------- in this type
+5 |         validator_name: "FakeLoopValidator",
+  |         ^^^^^^^^^^^^^^ private field
+6 |         runtime_lane: PlanarBooleanLoopValidatorRuntimeLane::QueryGraphInvariantPack,
+  |         ^^^^^^^^^^^^ private field
+7 |         governs_topology_legality: true,
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+8 |         proof_obligations: &[],
+  |         ^^^^^^^^^^^^^^^^^ private field

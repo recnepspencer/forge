@@ -13,11 +13,11 @@ impl CommittedPatchSource for RuntimeBridgeRelationalSource {
         &self,
         request: RelationalCommittedPatchRequest,
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        let commit_id = parse_bridge_commit_identity(request.commit_identity().as_str())?;
+        let commit_id = parse_bridge_commit_identity(request.commit_identity())?;
         let envelope = self.runtime.commit_envelope(commit_id).ok_or_else(|| {
             RelationalBridgeSourceError::new(format!(
                 "relational runtime has no authoritative commit envelope for bridge commit `{}`",
-                request.commit_identity()
+                commit_id.0
             ))
         })?;
 

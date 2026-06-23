@@ -26,8 +26,9 @@ impl AdmittedStructuralComparisonContract {
             validated_declaration.digest()
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let contract_identity =
-            StructuralContractIdentity::new(format!("structural-contract:sha256:{digest:x}"));
+        let contract_identity = StructuralContractIdentity::admit_bridge_owned(format!(
+            "structural-contract:sha256:{digest:x}"
+        ));
         Self {
             validated_declaration,
             contract_identity,
@@ -158,8 +159,8 @@ impl AdmittedStructuralRegistry {
 #[cfg(test)]
 mod tests {
     use super::AdmittedStructuralRegistry;
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::structural::{
         StructuralFingerprintEquivalenceContract, StructuralFingerprintFamily,
         StructuralFingerprintNormalizationRule, StructuralFingerprintOmissionPolicy,
@@ -169,10 +170,10 @@ mod tests {
 
     fn declaration(id: &str) -> StructuralIdentityDeclaration {
         StructuralIdentityDeclaration::advisory_remap(
-            StructuralIdentityDeclarationIdentity::new(id),
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralIdentityDeclarationIdentity::admit_bridge_owned(id),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintEquivalenceContract::new(
-                StructuralSchemaIdentity::new("schema:geometry"),
+                StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                 StructuralFingerprintFamily::TopologyFingerprint,
                 "topology-v1",
                 StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -181,8 +182,8 @@ mod tests {
             ),
             StructuralTruthViewBasis::explicit_snapshot(
                 BridgeTruthViewSelector::committed_snapshot(
-                    TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             ),
         )

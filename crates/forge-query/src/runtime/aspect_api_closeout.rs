@@ -54,7 +54,7 @@ impl ForgeQueryAspectApiFinalizationCloseout {
             .collect::<Vec<_>>();
 
         let safe_to_build_now = vec![
-            "aspect-native authoritative CRUD through workspace.insert/update/delete/batch"
+            "aspect-native authoritative CRUD through workspace.insert/update/delete plus explicit submission batches"
                 .to_string(),
             "preview-local aspect-native CRUD through preview.insert/update/delete/batch"
                 .to_string(),
@@ -78,13 +78,13 @@ impl ForgeQueryAspectApiFinalizationCloseout {
                 .to_string(),
         ];
         let migration_guidance = vec![
-            "author new runtime code against workspace.insert/update/delete/batch and preview.insert/update/delete/batch"
+            "author new runtime code against workspace.insert/update/delete, workspace.submissions()?.submit_batch(commands), and preview.insert/update/delete/batch"
                 .to_string(),
-            "treat workspace.write(...) and ForgeQueryWriteCommand::* as lower-level seams, not the daily-driver API"
+            "treat ForgeQueryWriteCommand::* as lower-level command artifacts owned by explicit intent or submission lanes, not the daily-driver API"
                 .to_string(),
             "use `workspace.public_mutation_surface_report()` when a runtime or doc needs the exact preferred-versus-lower-level-versus-support-gated mutation posture"
                 .to_string(),
-            "keep workspace.write(...) available as an expert lower-level seam during the substrate rewrite, but do not require it in ordinary downstream runtime APIs"
+            "keep direct workspace write and batch helpers sealed; publish command-shaped mutation through workspace.write_intent(...) or workspace.submissions()"
                 .to_string(),
             "keep mutation receipts, state snapshots, and inspect output as the downstream explanation contract"
                 .to_string(),
@@ -125,7 +125,12 @@ impl ForgeQueryAspectApiFinalizationCloseout {
         let mut parts = vec![
             "forge_query_aspect_api_finalization_closeout_v1".to_string(),
             format!("posture:{}", backend_posture.as_str()),
-            format!("support:{}", support_matrix.matrix_digest()),
+            format!(
+                "support:{}",
+                support_matrix
+                    .matrix_digest()
+                    .terminal_projection_for_reporting()
+            ),
             format!("mutation:{}", mutation_surface.report_digest()),
             format!("naming:{}", naming_contract.contract_digest()),
         ];
@@ -153,7 +158,10 @@ impl ForgeQueryAspectApiFinalizationCloseout {
 
         Self {
             backend_posture,
-            support_matrix_digest: support_matrix.matrix_digest().to_string(),
+            support_matrix_digest: support_matrix
+                .matrix_digest()
+                .terminal_projection_for_reporting()
+                .to_string(),
             mutation_surface_digest: mutation_surface.report_digest().to_string(),
             naming_contract_digest: naming_contract.contract_digest().to_string(),
             preferred_stable_surfaces,

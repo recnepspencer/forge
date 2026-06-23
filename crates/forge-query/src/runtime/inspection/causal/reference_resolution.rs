@@ -1,13 +1,16 @@
 use std::collections::BTreeSet;
 
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::anchor::CausalObservationAnchor;
 use super::inventory::CausalEvidenceFamily;
+use super::observation_identity::CausalEvidenceReferenceDigest;
 use super::reference::{
-    CausalEvidenceReference, CausalEvidenceReferenceDigest, CausalEvidenceReferenceReceipt,
-    CausalEvidenceReferenceResolution, CausalEvidenceReferenceResolutionCounters,
-    CausalEvidenceReferenceResolutionDenial, CausalEvidenceReferenceSet,
+    CausalEvidenceReference, CausalEvidenceReferenceReceipt, CausalEvidenceReferenceResolution,
+    CausalEvidenceReferenceResolutionCounters, CausalEvidenceReferenceResolutionDenial,
+    CausalEvidenceReferenceSet,
 };
 use super::reference_index::{
     causal_evidence_reference_index, causal_evidence_reference_index_record, owner_for_family,
@@ -49,7 +52,7 @@ pub fn resolve_indexed_causal_evidence_references(
                     resolved_references.push(CausalEvidenceReference::new(
                         index_record.owner(),
                         family,
-                        index_record.reference_digest(),
+                        index_record.reference_digest().clone(),
                     ));
                 }
                 None => missing_indexed_reference_count += 1,
@@ -121,23 +124,19 @@ fn reference_set_digest(
     anchor: &CausalObservationAnchor,
     references: &[CausalEvidenceReference],
 ) -> CausalEvidenceReferenceDigest {
-    let reference_part = references
-        .iter()
-        .map(|reference| {
-            format!(
-                "{}:{}:{}",
-                reference.owner().as_str(),
-                reference.family().as_str(),
-                reference.reference_digest().as_str()
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("|");
-    CausalEvidenceReferenceDigest::new(hash_parts(&[
-        "causal_evidence_reference_set_v1".to_string(),
-        format!("anchor:{}", anchor.anchor_digest().as_str()),
-        format!("references:{reference_part}"),
-    ]))
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReference)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("anchor"),
+            anchor.anchor_digest().evidence_identity(),
+        )
+        .field_evidence_identity_sequence(
+            ForgeQueryEvidenceTag::new("references"),
+            references
+                .iter()
+                .map(CausalEvidenceReference::evidence_identity),
+        )
+        .seal()
+        .into()
 }
 
 fn anchor_derived_reference_index(
@@ -152,7 +151,7 @@ fn anchor_derived_reference_index(
                 causal_evidence_reference_index_record(
                     owner_for_family(identity.family()),
                     identity.family(),
-                    identity.reference_digest(),
+                    identity.reference_digest().clone(),
                 )
                 .expect("Phase 1 anchor validation rejects empty evidence identities")
             }),
@@ -162,7 +161,7 @@ fn anchor_derived_reference_index(
 fn anchor_reference_digests_for_family(
     anchor: &CausalObservationAnchor,
     family: CausalEvidenceFamily,
-) -> Vec<&str> {
+) -> Vec<&CausalEvidenceReferenceDigest> {
     anchor
         .observation_receipt()
         .evidence_identities()

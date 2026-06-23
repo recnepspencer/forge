@@ -5,7 +5,8 @@ mod provenance;
 
 pub use authority::{BridgeBatchMutationAuthorityBundle, BridgeMutationAuthorityBundle};
 pub use existing_truth::{
-    BridgeExistingTruthBindingBundle, BridgeExistingTruthBindingFamily,
-    BridgeExistingTruthBindingOutcome,
+    BridgeExistingTruthBindingAuthoritativeIdentity, BridgeExistingTruthBindingBundle,
+    BridgeExistingTruthBindingFamily, BridgeExistingTruthBindingOutcome,
+    BridgeExistingTruthBindingResolvedTargetIdentity, BridgeExistingTruthBindingTargetCollection,
 };
 pub use provenance::{BridgeMutationCausalityBundle, BridgeMutationProvenanceBundle};

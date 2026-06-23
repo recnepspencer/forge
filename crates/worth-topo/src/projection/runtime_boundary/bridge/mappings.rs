@@ -15,10 +15,10 @@ pub(crate) fn milestone_one_bridge_mapping_registrations() -> Vec<BridgeMappingR
         .map(|declaration| {
             let aspect_key = native_aspect_key(declaration.truth_patch_field);
             BridgeMappingRegistration::new(
-                BridgeMappingId::new(format!(":m2:{}", declaration.declaration_id)),
+                BridgeMappingId::from_stable_name(format!(":m2:{}", declaration.declaration_id)),
                 native_truth_patch_scope(aspect_key.clone(), declaration.truth_surface_kind),
                 native_snapshot_read_contract(declaration.truth_patch_field, aspect_key),
-                SignalInvalidationScope::new(declaration.target.bridge_scope()),
+                SignalInvalidationScope::from_stable_name(declaration.target.bridge_scope()),
                 CoarseRoutingMode::Direct,
             )
         })
@@ -31,7 +31,7 @@ pub(crate) fn milestone_one_bridge_aspect_registrations() -> Vec<BridgeAspectReg
         .map(|declaration| {
             let aspect_key = native_aspect_key(declaration.truth_patch_field);
             BridgeAspectRegistration::new(
-                BridgeAspectRegistrationId::new(format!(
+                BridgeAspectRegistrationId::from_stable_name(format!(
                     ":m2:aspect:{}",
                     declaration.declaration_id
                 )),

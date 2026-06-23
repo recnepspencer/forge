@@ -59,7 +59,14 @@ fn direct_projection_consumes_retained_live_read_facts_with_typed_receipt_bounda
     );
     assert_eq!(
         projection.basis_digest(),
-        Some(direct_read.read_result().receipt().snapshot_token())
+        Some(
+            direct_read
+                .read_result()
+                .receipt()
+                .snapshot_identity()
+                .terminal_projection_for_reporting()
+                .as_str()
+        )
     );
     assert_eq!(projection.policy_digest(), "policy:test");
     assert_eq!(

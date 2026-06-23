@@ -20,8 +20,26 @@ fn update_existing_preserves_naming_evidence_on_receipt_and_inspection() {
                 .aspect("title.value", "Named task")
         })
         .expect("seed insert should execute");
+    let attachment_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(
+            crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("persistent-name:task-1")
+                .expect("naming attachment authority label"),
+        )
+        .expect("naming attachment identity");
+    let target_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_target_authority(
+            crate::runtime::ForgeQueryNamingTargetAuthorityLabel::new("persistent-name:task-1")
+                .expect("naming target authority label"),
+        )
+        .expect("naming target authority identity");
+    let binding_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity");
     let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
-        "authority:task-1",
+        binding_authority.clone(),
         seed.deltas()[0].entity_identity.clone(),
     )
     .expect("binding should build")
@@ -30,8 +48,11 @@ fn update_existing_preserves_naming_evidence_on_receipt_and_inspection() {
 
     let receipt = workspace
         .update_existing(binding, |task| {
-            task.naming_attach_existing_target("persistent-name:task-1", "authority:task-1")
-                .aspect("title.value", "Named task renamed")
+            task.naming_attach_existing_target(
+                attachment_authority.clone(),
+                target_authority.clone(),
+            )
+            .aspect("title.value", "Named task renamed")
         })
         .expect("existing-target naming update should execute");
     let inspection = workspace
@@ -49,14 +70,19 @@ fn update_existing_preserves_naming_evidence_on_receipt_and_inspection() {
         naming.outcome(),
         ForgeQueryNamingMutationOutcome::AttachedToExistingTarget
     );
-    assert_eq!(naming.attachment_identity(), "persistent-name:task-1");
     assert_eq!(
-        naming.target_authoritative_identity(),
-        Some("authority:task-1")
+        naming.attachment_identity().as_str(),
+        expected_bridge_naming_attachment_label(&attachment_authority).as_str()
+    );
+    assert_eq!(
+        naming
+            .target_authoritative_identity()
+            .map(|identity| identity.as_str()),
+        Some(expected_bridge_naming_authority_label(&binding_authority).as_str())
     );
     assert_eq!(
         naming.resolved_target_entity_identity(),
-        Some(seed.deltas()[0].entity_identity.as_str())
+        Some(&seed.deltas()[0].entity_identity)
     );
 
     match inspection {
@@ -64,10 +90,15 @@ fn update_existing_preserves_naming_evidence_on_receipt_and_inspection() {
             let naming = inspection
                 .naming_mutation_evidence()
                 .expect("inspection should retain naming evidence");
-            assert_eq!(naming.attachment_identity(), "persistent-name:task-1");
             assert_eq!(
-                naming.target_authoritative_identity(),
-                Some("authority:task-1")
+                naming.attachment_identity().as_str(),
+                expected_bridge_naming_attachment_label(&attachment_authority).as_str()
+            );
+            assert_eq!(
+                naming
+                    .target_authoritative_identity()
+                    .map(|identity| identity.as_str()),
+                Some(expected_bridge_naming_authority_label(&binding_authority).as_str())
             );
         }
         other => panic!("expected write receipt inspection, got {other:?}"),
@@ -95,7 +126,11 @@ fn batch_naming_evidence_preserves_attach_and_rebind_outcomes() {
         })
         .expect("seed insert should execute");
     let existing_binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
-        "authority:task-existing",
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity"),
         seed.deltas()[0].entity_identity.clone(),
     )
     .expect("existing binding should build")
@@ -114,14 +149,16 @@ fn batch_naming_evidence_preserves_attach_and_rebind_outcomes() {
                         .aspect("title.value", "Draft")
                 })
                 .update_symbolic(symbolic.clone(), |task| {
-                    task.naming_attach_new_target("persistent-name:draft")
-                        .aspect("title.value", "Draft named")
+                    task.naming_attach_new_target(
+                        crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new(
+                            "persistent-name:draft",
+                        )
+                        .expect("naming attachment authority label")).expect("naming attachment identity"),
+                    )
+                    .aspect("title.value", "Draft named")
                 })
                 .update_existing(existing_binding, |task| {
-                    task.naming_rebind_target(
-                        "persistent-name:task-existing",
-                        "authority:task-existing-old",
-                        "authority:task-existing",
+                    task.naming_rebind_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("persistent-name:task-existing").expect("naming attachment authority label")).expect("naming attachment identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_prior_authority(crate::runtime::ForgeQueryNamingPriorAuthorityLabel::new("authority:task-existing-old").expect("naming prior authority label")).expect("naming prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_target_authority(crate::runtime::ForgeQueryNamingTargetAuthorityLabel::new("authority:task-existing").expect("naming target authority label")).expect("naming target authority identity"),
                     )
                     .aspect("title.value", "Existing rebound")
                 })
@@ -163,9 +200,24 @@ fn naming_existing_target_denies_missing_binding_typed_and_early() {
         .expect("task runtime should open a named workspace");
 
     let error = workspace
-        .update("entity:0:1:0", |task| {
-            task.naming_attach_existing_target("persistent-name:task-1", "authority:task-1")
-                .aspect("title.value", "No binding")
+        .update(test_entity_identity("entity:0:1:0"), |task| {
+            task.naming_attach_existing_target(
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(
+                    crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new(
+                        "persistent-name:task-1",
+                    )
+                    .expect("naming attachment authority label"),
+                )
+                .expect("naming attachment identity"),
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_target_authority(
+                    crate::runtime::ForgeQueryNamingTargetAuthorityLabel::new(
+                        "persistent-name:task-1",
+                    )
+                    .expect("naming target authority label"),
+                )
+                .expect("naming target authority identity"),
+            )
+            .aspect("title.value", "No binding")
         })
         .expect_err("naming attach-to-existing should deny without binding");
 
@@ -201,8 +253,26 @@ fn delete_existing_preserves_naming_removal_evidence_on_receipt_and_inspection()
                 .aspect("title.value", "Named task")
         })
         .expect("seed insert should execute");
+    let attachment_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(
+            crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("persistent-name:task-1")
+                .expect("naming attachment authority label"),
+        )
+        .expect("naming attachment identity");
+    let prior_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_prior_authority(
+            crate::runtime::ForgeQueryNamingPriorAuthorityLabel::new("persistent-name:task-1")
+                .expect("naming prior authority label"),
+        )
+        .expect("naming prior authority identity");
+    let binding_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity");
     let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
-        "authority:task-1",
+        binding_authority.clone(),
         seed.deltas()[0].entity_identity.clone(),
     )
     .expect("binding should build")
@@ -213,7 +283,7 @@ fn delete_existing_preserves_naming_removal_evidence_on_receipt_and_inspection()
         .delete_existing_with(binding, |delete| {
             delete
                 .touch("title.value")
-                .naming_remove("persistent-name:task-1", "authority:task-1")
+                .naming_remove(attachment_authority.clone(), prior_authority.clone())
         })
         .expect("existing-target naming delete should execute");
     let inspection = workspace
@@ -225,15 +295,20 @@ fn delete_existing_preserves_naming_removal_evidence_on_receipt_and_inspection()
         .expect("receipt should retain naming removal evidence");
     assert_eq!(naming.family(), ForgeQueryNamingMutationFamily::Remove);
     assert_eq!(naming.outcome(), ForgeQueryNamingMutationOutcome::Removed);
-    assert_eq!(naming.attachment_identity(), "persistent-name:task-1");
     assert_eq!(
-        naming.prior_authoritative_identity(),
-        Some("authority:task-1")
+        naming.attachment_identity().as_str(),
+        expected_bridge_naming_attachment_label(&attachment_authority).as_str()
+    );
+    assert_eq!(
+        naming
+            .prior_authoritative_identity()
+            .map(|identity| identity.as_str()),
+        Some(expected_bridge_naming_authority_label(&binding_authority).as_str())
     );
     assert_eq!(naming.target_authoritative_identity(), None);
     assert_eq!(
         naming.resolved_target_entity_identity(),
-        Some(seed.deltas()[0].entity_identity.as_str())
+        Some(&seed.deltas()[0].entity_identity)
     );
 
     match inspection {
@@ -243,10 +318,15 @@ fn delete_existing_preserves_naming_removal_evidence_on_receipt_and_inspection()
                 .expect("inspection should retain naming removal evidence");
             assert_eq!(naming.family(), ForgeQueryNamingMutationFamily::Remove);
             assert_eq!(naming.outcome(), ForgeQueryNamingMutationOutcome::Removed);
-            assert_eq!(naming.attachment_identity(), "persistent-name:task-1");
             assert_eq!(
-                naming.prior_authoritative_identity(),
-                Some("authority:task-1")
+                naming.attachment_identity().as_str(),
+                expected_bridge_naming_attachment_label(&attachment_authority).as_str()
+            );
+            assert_eq!(
+                naming
+                    .prior_authoritative_identity()
+                    .map(|identity| identity.as_str()),
+                Some(expected_bridge_naming_authority_label(&binding_authority).as_str())
             );
         }
         other => panic!("expected write receipt inspection, got {other:?}"),
@@ -260,13 +340,23 @@ fn naming_remove_denies_non_delete_family_typed_and_early() {
         .expect("task runtime should open a named workspace");
 
     let command = ForgeQueryWriteCommand::UpdateAspects {
-        entity_identity: "entity:0:1:0".to_string(),
+        entity_identity: crate::memory_workspace::admit_authored_entity_label("entity:0:1:0"),
         aspects: Vec::new(),
         metadata: ForgeQueryMutationMetadata::default(),
-        naming_intent: Some(
-            ForgeQueryNamingMutationIntent::remove("persistent-name:task-1", "authority:task-1")
-                .expect("naming removal intent should build"),
-        ),
+        naming_intent: Some(ForgeQueryNamingMutationIntent::remove(
+            crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(
+                crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new(
+                    "persistent-name:task-1",
+                )
+                .expect("naming attachment authority label"),
+            )
+            .expect("naming attachment identity"),
+            crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_prior_authority(
+                crate::runtime::ForgeQueryNamingPriorAuthorityLabel::new("persistent-name:task-1")
+                    .expect("naming prior authority label"),
+            )
+            .expect("naming prior authority identity"),
+        )),
         continuity_intent: None,
     };
     let error = workspace
@@ -315,8 +405,16 @@ fn preview_batch_symbolic_naming_preserves_typed_evidence() {
                         .in_target_collection("Task")
                         .expect("symbolic collection should build"),
                     |task| {
-                        task.naming_attach_new_target("persistent-name:draft")
-                            .aspect("title.value", "Preview named")
+                        task.naming_attach_new_target(
+                            crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(
+                                crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new(
+                                    "persistent-name:draft",
+                                )
+                                .expect("naming attachment authority label"),
+                            )
+                            .expect("naming attachment identity"),
+                        )
+                        .aspect("title.value", "Preview named")
                     },
                 )
         })
@@ -329,5 +427,8 @@ fn preview_batch_symbolic_naming_preserves_typed_evidence() {
         naming.outcome(),
         ForgeQueryNamingMutationOutcome::AttachedToNewTarget
     );
-    assert_eq!(naming.attachment_identity(), "persistent-name:draft");
+    assert_eq!(
+        naming.attachment_identity().as_str(),
+        "persistent-name:draft"
+    );
 }

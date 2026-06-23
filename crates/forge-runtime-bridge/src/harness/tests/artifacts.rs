@@ -1,5 +1,4 @@
 use crate::facade::BridgeRouteRequest;
-use crate::facade::TruthSnapshotIdentity;
 
 use super::support::{
     build_runtime, committed_patch_items, registration, snapshot, surface_widening_registration,
@@ -10,9 +9,9 @@ use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBr
 fn bridge_artifact_identities_are_bounded_and_stable_for_identical_patchsets() {
     let left_source = InMemoryRelationalBridgeSource::default();
     left_source.insert_committed_patch(committed_patch_items(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         vec![
             crate::facade::BridgeCommittedPatchItem::with_target(
                 "user",
@@ -58,7 +57,10 @@ fn bridge_artifact_identities_are_bounded_and_stable_for_identical_patchsets() {
             ),
         ],
     ));
-    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    left_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let left_runtime = build_runtime(
         left_source,
         RecordingSignalBridgeSink::default(),
@@ -67,9 +69,9 @@ fn bridge_artifact_identities_are_bounded_and_stable_for_identical_patchsets() {
 
     let right_source = InMemoryRelationalBridgeSource::default();
     right_source.insert_committed_patch(committed_patch_items(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         vec![
             crate::facade::BridgeCommittedPatchItem::with_target(
                 "user",
@@ -101,7 +103,10 @@ fn bridge_artifact_identities_are_bounded_and_stable_for_identical_patchsets() {
             ),
         ],
     ));
-    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    right_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let right_runtime = build_runtime(
         right_source,
         RecordingSignalBridgeSink::default(),
@@ -110,12 +115,12 @@ fn bridge_artifact_identities_are_bounded_and_stable_for_identical_patchsets() {
 
     let left_route = left_runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("bridge should plan canonical route identity");
     let right_route = right_runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("bridge should plan canonical route identity");
 

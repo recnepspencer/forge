@@ -30,8 +30,9 @@ impl AdmittedMergeHistoryContract {
             declaration.authority_basis().parent_order_proof().digest(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let contract_identity =
-            MergeContractIdentity::new(format!("merge-history-contract:sha256:{digest:x}"));
+        let contract_identity = MergeContractIdentity::admit_bridge_owned(format!(
+            "merge-history-contract:sha256:{digest:x}"
+        ));
 
         Self {
             validated_declaration,
@@ -171,7 +172,7 @@ mod tests {
 
     fn declaration(id: &str) -> MergeHistoryDeclaration {
         MergeHistoryDeclaration::new(
-            MergeHistoryDeclarationIdentity::new(id),
+            MergeHistoryDeclarationIdentity::admit_bridge_owned(id),
             BridgeMergeConsumptionClass::AspectReconciliationMerge,
             BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1"),
             BridgeMergeAuthorityBasis::new(
@@ -180,8 +181,8 @@ mod tests {
                 "rel-merge-v1",
                 "schema-policy-v1",
                 BridgeMergeParentOrderProof::new(vec![
-                    crate::facade::TruthCommitIdentity::new("parent-a"),
-                    crate::facade::TruthCommitIdentity::new("parent-b"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
                 ]),
             ),
         )

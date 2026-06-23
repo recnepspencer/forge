@@ -8,6 +8,7 @@ use crate::input::envelope::{
     BridgeCommittedPatchEnvelope, BridgeCommittedPatchItem, BridgeCommittedPatchTarget,
 };
 use crate::mapping::{FrozenAspectMappingRegistry, TruthDeltaSurfaceKind, TruthPatchTargetView};
+use crate::relational_identity::RelationalBridgeRecordIdentityParts;
 
 pub(crate) type TruthDeltaSurfaceIdentity = BridgeIdentity<TruthDeltaSurfaceIdentityTag>;
 
@@ -19,6 +20,7 @@ type TruthDeltaSurfaceTargetMaskIdentity = BridgeIdentity<TruthDeltaSurfaceTarge
 pub struct TruthDeltaSurface {
     surface_identity: TruthDeltaSurfaceIdentity,
     entity_identity: Arc<str>,
+    relational_record_identity: Option<RelationalBridgeRecordIdentityParts>,
     target: BridgeCommittedPatchTarget,
     native_target_basis: Arc<str>,
 }
@@ -38,6 +40,7 @@ impl Ord for TruthDeltaSurface {
 impl TruthDeltaSurface {
     fn from_native_target_parts(
         entity_identity: impl Into<Arc<str>>,
+        relational_record_identity: Option<RelationalBridgeRecordIdentityParts>,
         target: BridgeCommittedPatchTarget,
         native_target_basis: Arc<str>,
     ) -> Self {
@@ -52,6 +55,7 @@ impl TruthDeltaSurface {
         Self {
             surface_identity,
             entity_identity,
+            relational_record_identity,
             target,
             native_target_basis,
         }
@@ -59,6 +63,12 @@ impl TruthDeltaSurface {
 
     pub(crate) fn entity_identity(&self) -> &str {
         self.entity_identity.as_ref()
+    }
+
+    pub(crate) fn relational_record_identity_parts(
+        &self,
+    ) -> Option<RelationalBridgeRecordIdentityParts> {
+        self.relational_record_identity
     }
 
     pub(crate) fn aspect_key(&self) -> &AspectKey {
@@ -107,7 +117,7 @@ fn truth_delta_surface_identity(
         target_mask_identity.as_str(),
     );
     let digest = Sha256::digest(basis.as_bytes());
-    TruthDeltaSurfaceIdentity::new(format!("truth-delta-surface:sha256:{digest:x}"))
+    TruthDeltaSurfaceIdentity::admit_bridge_owned(format!("truth-delta-surface:sha256:{digest:x}"))
 }
 
 fn truth_delta_surface_target_mask_identity(
@@ -118,7 +128,7 @@ fn truth_delta_surface_target_mask_identity(
         target.canonical_basis()
     );
     let digest = Sha256::digest(basis.as_bytes());
-    TruthDeltaSurfaceTargetMaskIdentity::new(format!(
+    TruthDeltaSurfaceTargetMaskIdentity::admit_bridge_owned(format!(
         "truth-delta-surface-target-mask:sha256:{digest:x}"
     ))
 }
@@ -177,6 +187,7 @@ pub(crate) fn truth_delta_surface_count(envelope: &BridgeCommittedPatchEnvelope)
 fn derive_surface(item: &BridgeCommittedPatchItem) -> TruthDeltaSurface {
     TruthDeltaSurface::from_native_target_parts(
         item.entity_identity(),
+        item.relational_record_identity_parts(),
         item.target().clone(),
         Arc::from(item.target_canonical_basis()),
     )

@@ -1,7 +1,9 @@
 use crate::application::config::{
     ForgeQueryConfigSectionFamily, ForgeQuerySubsystemOwner, ValidatedForgeQueryConfig,
 };
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ForgeQueryCapabilityFamily {
@@ -249,21 +251,20 @@ impl ForgeQueryCapabilityRegistry {
             ),
         ];
 
-        let registry_digest = hash_parts(
-            &descriptors
-                .iter()
-                .map(|descriptor| {
-                    format!(
-                        "{}:{}:{}:{}:{}",
-                        descriptor.family().as_str(),
-                        descriptor.status().as_str(),
-                        descriptor.owner().as_str(),
-                        descriptor.config_section().as_str(),
-                        descriptor.reason()
-                    )
-                })
-                .collect::<Vec<_>>(),
-        );
+        let descriptor_identities = descriptors
+            .iter()
+            .map(capability_descriptor_identity)
+            .collect::<Vec<_>>();
+        let registry_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::ApplicationSupportReport)
+                .field_shape(ForgeQueryEvidenceTag::new("role"), "capability-registry")
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("descriptors"),
+                    descriptor_identities.iter().map(String::as_str),
+                )
+                .seal()
+                .as_str()
+                .to_string();
 
         Self {
             descriptors,
@@ -312,12 +313,19 @@ impl ForgeQuerySupportMatrix {
             .iter()
             .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Unsupported)
             .count();
-        let support_matrix_digest = hash_parts(&[
-            format!("registry:{}", registry.registry_digest()),
-            format!("admitted:{admitted}"),
-            format!("deferred:{deferred}"),
-            format!("unsupported:{unsupported}"),
-        ]);
+        let support_matrix_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::ApplicationSupportReport)
+                .field_shape(ForgeQueryEvidenceTag::new("role"), "support-matrix")
+                .field_value(
+                    ForgeQueryEvidenceTag::new("registry"),
+                    registry.registry_digest(),
+                )
+                .field_usize(ForgeQueryEvidenceTag::new("admitted"), admitted)
+                .field_usize(ForgeQueryEvidenceTag::new("deferred"), deferred)
+                .field_usize(ForgeQueryEvidenceTag::new("unsupported"), unsupported)
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             registry,
             support_matrix_digest,
@@ -362,4 +370,29 @@ impl ForgeQuerySupportMatrix {
             .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Unsupported)
             .count()
     }
+}
+
+fn capability_descriptor_identity(descriptor: &ForgeQueryCapabilityDescriptor) -> String {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::ApplicationSupportReport)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), "capability-descriptor")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            descriptor.family().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("status"),
+            descriptor.status().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("owner"),
+            descriptor.owner().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("config_section"),
+            descriptor.config_section().as_str(),
+        )
+        .field_value(ForgeQueryEvidenceTag::new("reason"), descriptor.reason())
+        .seal()
+        .as_str()
+        .to_string()
 }

@@ -54,7 +54,7 @@ impl BridgePreviewPromotionRecord {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            record_identity: BridgePreviewPromotionRecordIdentity::new(format!(
+            record_identity: BridgePreviewPromotionRecordIdentity::admit_bridge_owned(format!(
                 "preview-promotion-record:sha256:{digest:x}"
             )),
             preview_session_identity: Arc::from(session.session_identity().as_str()),

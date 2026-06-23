@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_edge_fragment_set_not_forgeable.rs:4:48
+  |
+4 |       let _ = PlanarBooleanSplitEdgeFragmentSet::new(
+  |                                                  ^^^ private associated function
+  |
+ ::: src/workload_platform/planar_boolean_edge_splitting/split_edge_fragments/fragment_set.rs
+  |
+  | /     pub(crate) fn new(
+  | |         fragment_set_identity: String,
+  | |         interval_subdivision_schedule_set_identity: String,
+  | |         split_vertex_identity_set_identity: String,
+  | |         schedules: Vec<PlanarBooleanSplitEdgeFragmentSchedule>,
+  | |         counters: PlanarBooleanSplitEdgeFragmentCounters,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

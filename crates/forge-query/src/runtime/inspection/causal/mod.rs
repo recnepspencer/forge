@@ -6,9 +6,12 @@ mod builder;
 mod builder_bridge;
 mod builder_support;
 mod certification;
+mod identity;
 mod inventory;
 mod materialization;
+mod observation_identity;
 mod receipt;
+mod receipt_helpers;
 mod receipt_types;
 mod reference;
 mod reference_index;
@@ -29,7 +32,7 @@ pub use admission_trace::{
 };
 pub use anchor::{
     anchor_causal_observation, CausalObservationAnchor, CausalObservationAnchorCounters,
-    CausalObservationAnchorDigest, CausalObservationAnchorError, CausalObservationAnchorErrorKind,
+    CausalObservationAnchorError, CausalObservationAnchorErrorKind,
     CausalObservationMissingReferencePosture,
 };
 pub use builder::{
@@ -69,14 +72,19 @@ pub use materialization::{
     QueryCausalEvidenceReferenceArtifact, QueryCausalInspectionArtifact,
     QueryCausalTemporalAsyncExplanation, QueryCausalTemporalAsyncExplanationKind,
 };
+pub use observation_identity::{CausalEvidenceReferenceDigest, CausalObservationAnchorDigest};
+#[cfg(test)]
+pub(crate) use observation_identity::{
+    CausalObservationTargetHandle, CausalResultShapeContextHandle,
+};
 pub use receipt_types::{
     CausalInspectionReason, CausalObservationEvidenceIdentity, CausalObservationOutcome,
     QueryObservationReceipt, QueryObservationReceiptFamily,
 };
 pub use reference::{
-    CausalEvidenceReference, CausalEvidenceReferenceDigest, CausalEvidenceReferenceReceipt,
-    CausalEvidenceReferenceResolution, CausalEvidenceReferenceResolutionCounters,
-    CausalEvidenceReferenceResolutionDenial, CausalEvidenceReferenceSet,
+    CausalEvidenceReference, CausalEvidenceReferenceReceipt, CausalEvidenceReferenceResolution,
+    CausalEvidenceReferenceResolutionCounters, CausalEvidenceReferenceResolutionDenial,
+    CausalEvidenceReferenceSet,
 };
 #[cfg(test)]
 pub(in crate::runtime) use reference_index::{
@@ -93,4 +101,13 @@ pub use request::{
     causal_inspection_target, request_causal_inspection, CausalInspectionExplanationFamily,
     CausalInspectionRequest, CausalInspectionRequestError, CausalInspectionRequestErrorKind,
     CausalInspectionRichness, CausalInspectionTarget,
+};
+
+#[cfg(test)]
+pub(crate) use identity::{
+    causal_test_bridge_binding_reference_for_reporting,
+    causal_test_compose_bridge_causal_denial_for_reporting,
+    causal_test_compose_bridge_causal_envelope_identity_for_reporting,
+    causal_test_compose_bridge_causal_envelope_receipt_identity_for_reporting,
+    causal_test_compose_bridge_causal_explanation_envelope_identity_for_reporting,
 };

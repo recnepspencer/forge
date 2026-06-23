@@ -1,3 +1,6 @@
+use super::preview_receipt_identity::{
+    preview_intent_admission_identity, preview_intent_receipt_identity,
+};
 use super::*;
 use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
@@ -14,8 +17,10 @@ pub struct ForgeQueryPreviewIntentReceipt {
     target_lane: ForgeQueryAuthorityLane,
     effect_policy: ForgeQueryEffectPolicy,
     basis_evidence: Vec<String>,
-    admission_digest: ForgeQueryEvidenceIdentity,
-    receipt_digest: ForgeQueryEvidenceIdentity,
+    basis_evidence_identity: ForgeQueryEvidenceIdentity,
+    admission_identity: ForgeQueryEvidenceIdentity,
+    obligation_dispatch: Option<crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch>,
+    receipt_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryPreviewIntentReceipt {
@@ -24,63 +29,23 @@ impl ForgeQueryPreviewIntentReceipt {
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
         admission: ForgeQueryEffectAdmission,
+        obligation_dispatch: Option<
+            crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch,
+        >,
     ) -> Self {
         let basis_evidence = basis_admission.evidence().to_vec();
         let canonical_input_digest = declaration.input_digest();
-        let admission_digest =
-            forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewIntentAdmission)
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("intent_name"),
-                    declaration.name(),
-                )
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("strategy_identity"),
-                    declaration.strategy_name(),
-                )
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("strategy_version"),
-                    declaration.strategy_version(),
-                )
-                .field_identity(
-                    ForgeQueryEvidenceTag::new("canonical_input_digest"),
-                    &canonical_input_digest,
-                )
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("source_lane"),
-                    declaration.source_lane().as_str(),
-                )
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("target_lane"),
-                    declaration.target_lane().as_str(),
-                )
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("effect_policy"),
-                    effect_policy.as_str(),
-                )
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("admitted_action"),
-                    admission.action().as_str(),
-                )
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("admitted_lane"),
-                    admission.target_lane().as_str(),
-                )
-                .field_identity(
-                    ForgeQueryEvidenceTag::new("basis_admission_digest"),
-                    basis_admission.admission_digest().as_str(),
-                )
-                .seal();
-        let receipt_digest =
-            forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewIntentReceipt)
-                .field_identity(
-                    ForgeQueryEvidenceTag::new("admission_digest"),
-                    admission_digest.as_str(),
-                )
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("posture"),
-                    "preview-local-staged-no-authoritative-execution",
-                )
-                .seal();
+        let basis_evidence_identity =
+            preview_intent_basis_evidence_identity(declaration.name(), basis_admission);
+        let admission_identity = preview_intent_admission_identity(
+            declaration,
+            effect_policy,
+            basis_admission,
+            admission,
+            &canonical_input_digest,
+        );
+        let receipt_identity =
+            preview_intent_receipt_identity(&admission_identity, obligation_dispatch.as_ref());
         Self {
             intent_name: declaration.name().to_string(),
             strategy_identity: declaration.strategy_name().to_string(),
@@ -90,8 +55,10 @@ impl ForgeQueryPreviewIntentReceipt {
             target_lane: declaration.target_lane(),
             effect_policy,
             basis_evidence,
-            admission_digest,
-            receipt_digest,
+            basis_evidence_identity,
+            admission_identity,
+            obligation_dispatch,
+            receipt_identity,
         }
     }
 
@@ -127,11 +94,46 @@ impl ForgeQueryPreviewIntentReceipt {
         &self.basis_evidence
     }
 
-    pub fn admission_digest(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.admission_digest
+    pub fn basis_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_evidence_identity
     }
 
-    pub fn receipt_digest(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.receipt_digest
+    pub fn admission_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.admission_identity
     }
+
+    pub fn admission_digest(&self) -> &str {
+        self.admission_identity.as_str()
+    }
+
+    pub fn obligation_dispatch(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch> {
+        self.obligation_dispatch.as_ref()
+    }
+
+    pub fn receipt_digest(&self) -> &str {
+        self.receipt_identity.as_str()
+    }
+
+    pub fn receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.receipt_identity
+    }
+}
+
+fn preview_intent_basis_evidence_identity(
+    intent_name: &str,
+    basis_admission: &ForgeQueryPreviewBasisAdmission,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewIntentBasisEvidence)
+        .field_shape(ForgeQueryEvidenceTag::new("intent_name"), intent_name)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("basis_evidence_count"),
+            basis_admission.evidence_rows().len(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("basis_admission_identity"),
+            basis_admission.admission_identity(),
+        )
+        .seal()
 }

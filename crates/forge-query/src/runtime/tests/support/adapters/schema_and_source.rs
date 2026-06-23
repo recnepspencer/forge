@@ -1,5 +1,11 @@
 use super::*;
-use crate::memory_workspace::{ForgeQueryLivePatch, ForgeQueryLiveViewHandle};
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+use crate::memory_workspace::{
+    ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQuerySnapshotIdentity,
+};
+use crate::runtime::backend::ForgeQueryRuntimeSnapshotIdentityAdapter;
 
 impl ForgeQueryRuntimeSchemaAdapter for TestSchemaAdapter {
     fn admit_live_view(
@@ -99,10 +105,6 @@ impl ForgeQueryRuntimeSourceAdapter for TestSourceAdapter {
         affected.dedup();
         affected
     }
-
-    fn snapshot_token(&self) -> String {
-        "external-snapshot".to_string()
-    }
 }
 
 pub(in crate::runtime::tests) struct CountingSourceAdapter {
@@ -144,42 +146,41 @@ impl ForgeQueryRuntimeSourceAdapter for CountingSourceAdapter {
     fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
         self.inner.affected_live_view_ids(receipt)
     }
+}
 
-    fn snapshot_token(&self) -> String {
-        self.inner.snapshot_token()
+#[derive(Default)]
+pub(in crate::runtime::tests) struct TestSnapshotIdentityAdapter;
+
+impl ForgeQueryRuntimeSnapshotIdentityAdapter for TestSnapshotIdentityAdapter {
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        ForgeQuerySnapshotIdentity::preview(
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeStateSnapshot)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("test_snapshot_authority"),
+                    "stable",
+                )
+                .field_usize(ForgeQueryEvidenceTag::new("test_snapshot_sequence"), 1)
+                .seal(),
+        )
     }
 }
 
 #[derive(Default)]
-pub(in crate::runtime::tests) struct DriftingSnapshotSourceAdapter {
+pub(in crate::runtime::tests) struct DriftingSnapshotIdentityAdapter {
     snapshot_sequence: std::cell::Cell<u64>,
 }
 
-impl ForgeQueryRuntimeSourceAdapter for DriftingSnapshotSourceAdapter {
-    fn declare_live_view(
-        &mut self,
-        name: String,
-        _request: DeclarativeLiveQueryRequest,
-        _schema_view: QuerySchemaView,
-    ) -> Result<ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError> {
-        Ok(ForgeQueryLiveViewHandle::new(name))
-    }
-
-    fn live_entities(&self, _view_name: &str) -> Vec<ForgeQueryEntity> {
-        Vec::new()
-    }
-
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
-        Vec::new()
-    }
-
-    fn affected_live_view_ids(&self, _receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
-        Vec::new()
-    }
-
-    fn snapshot_token(&self) -> String {
-        let next = self.snapshot_sequence.get() + 1;
-        self.snapshot_sequence.set(next);
-        format!("drifting-snapshot-{next}")
+impl ForgeQueryRuntimeSnapshotIdentityAdapter for DriftingSnapshotIdentityAdapter {
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        let snapshot_sequence = self.snapshot_sequence.get().saturating_add(1);
+        self.snapshot_sequence.set(snapshot_sequence);
+        ForgeQuerySnapshotIdentity::preview(
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeStateSnapshot)
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("drifting_snapshot_sequence"),
+                    snapshot_sequence as usize,
+                )
+                .seal(),
+        )
     }
 }

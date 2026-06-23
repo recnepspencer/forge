@@ -6,7 +6,7 @@ use crate::mapping::{
 
 pub(in crate::builder::tests) fn exact_registration(mapping_id: &str) -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new(mapping_id),
+        BridgeMappingId::admit_bridge_owned(mapping_id),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
@@ -17,7 +17,7 @@ pub(in crate::builder::tests) fn exact_registration(mapping_id: &str) -> BridgeM
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
             forge_foundational::facade::ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal.user.profile"),
+        SignalInvalidationScope::admit_bridge_owned("signal.user.profile"),
         CoarseRoutingMode::Direct,
     )
 }
@@ -26,7 +26,7 @@ pub(in crate::builder::tests) fn exact_aspect_registration(
     registration_id: &str,
 ) -> BridgeAspectRegistration {
     BridgeAspectRegistration::new(
-        BridgeAspectRegistrationId::new(registration_id),
+        BridgeAspectRegistrationId::admit_bridge_owned(registration_id),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),

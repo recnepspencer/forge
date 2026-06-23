@@ -1,113 +1,37 @@
-error: cannot construct `ForgeQueryPreviewOutcomeInspection` with struct literal syntax due to private fields
-  --> tests/ui/runtime_preview_outcome_inspection_constructor_private.rs:7:19
+error[E0308]: mismatched types
+ --> tests/ui/runtime_preview_outcome_inspection_constructor_private.rs:8:16
+  |
+8 |         label: String::new(),
+  |                ^^^^^^^^^^^^^ expected `ForgeQuerySessionLabel`, found `String`
+
+error[E0560]: struct `ForgeQueryPreviewOutcomeInspection` has no field named `basis_digest`
+  --> tests/ui/runtime_preview_outcome_inspection_constructor_private.rs:28:9
    |
- 7 |     let _forged = ForgeQueryPreviewOutcomeInspection {
-   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 8 |         label: String::new(),
-   |         -------------------- private field
- 9 |         closeout_kind: ForgeQueryPreviewCloseoutKind::Discarded,
-   |         ------------------------------------------------------- private field
-10 |         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
-   |         ------------------------------------------------- private field
-11 |         promoted: false,
-   |         --------------- private field
-12 |         discarded: true,
-   |         --------------- private field
-13 |         write_count: 0,
-   |         -------------- private field
-14 |         preview_binding_count: 0,
-   |         ------------------------ private field
-15 |         live_binding_count: 0,
-   |         --------------------- private field
-16 |         computed_binding_count: 0,
-   |         ------------------------- private field
-17 |         effect_binding_count: 0,
-   |         ----------------------- private field
-18 |         subscription_residue_count: 0,
-   |         ----------------------------- private field
-19 |         derived_runtime_residue_count: 0,
-   |         -------------------------------- private field
-20 |         effect_delivery_residue_count: 0,
-   |         -------------------------------- private field
-21 |         pending_write_intent_residue_count: 0,
-   |         ------------------------------------- private field
-22 |         preview_write_staging_count: 0,
-   |         ------------------------------ private field
-23 |         promoted_write_count: 0,
-   |         ----------------------- private field
-24 |         authoritative_residue_count: 0,
-   |         ------------------------------ private field
-25 |         source_lane: ForgeQueryAuthorityLane::PreviewTruth,
-   |         -------------------------------------------------- private field
-26 |         target_lane: ForgeQueryAuthorityLane::PreviewTruth,
-   |         -------------------------------------------------- private field
-27 |         basis_evidence: Vec::new(),
-   |         -------------------------- private field
 28 |         basis_digest: String::new(),
-   |         --------------------------- private field
+   |         ^^^^^^^^^^^^ `ForgeQueryPreviewOutcomeInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryPreviewOutcomeInspection` has no field named `closeout_digest`
+  --> tests/ui/runtime_preview_outcome_inspection_constructor_private.rs:29:9
+   |
 29 |         closeout_digest: String::new(),
-   |         ------------------------------ private field
+   |         ^^^^^^^^^^^^^^^ `ForgeQueryPreviewOutcomeInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryPreviewOutcomeInspection` has no field named `residue_digest`
+  --> tests/ui/runtime_preview_outcome_inspection_constructor_private.rs:30:9
+   |
 30 |         residue_digest: String::new(),
-   |         ----------------------------- private field
+   |         ^^^^^^^^^^^^^^ `ForgeQueryPreviewOutcomeInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryPreviewOutcomeInspection` has no field named `inspection_digest`
+  --> tests/ui/runtime_preview_outcome_inspection_constructor_private.rs:31:9
+   |
 31 |         inspection_digest: String::new(),
-   |         -------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^ `ForgeQueryPreviewOutcomeInspection` does not have this field
    |
-   = note: ...and other private fields that were not provided
-help: you might have meant to use an associated function to build this type
-   |
- 7 -     let _forged = ForgeQueryPreviewOutcomeInspection {
- 8 -         label: String::new(),
- 9 -         closeout_kind: ForgeQueryPreviewCloseoutKind::Discarded,
-10 -         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
-11 -         promoted: false,
-12 -         discarded: true,
-13 -         write_count: 0,
-14 -         preview_binding_count: 0,
-15 -         live_binding_count: 0,
-16 -         computed_binding_count: 0,
-17 -         effect_binding_count: 0,
-18 -         subscription_residue_count: 0,
-19 -         derived_runtime_residue_count: 0,
-20 -         effect_delivery_residue_count: 0,
-21 -         pending_write_intent_residue_count: 0,
-22 -         preview_write_staging_count: 0,
-23 -         promoted_write_count: 0,
-24 -         authoritative_residue_count: 0,
-25 -         source_lane: ForgeQueryAuthorityLane::PreviewTruth,
-26 -         target_lane: ForgeQueryAuthorityLane::PreviewTruth,
-27 -         basis_evidence: Vec::new(),
-28 -         basis_digest: String::new(),
-29 -         closeout_digest: String::new(),
-30 -         residue_digest: String::new(),
-31 -         inspection_digest: String::new(),
-32 -     };
- 7 +     let _forged = ForgeQueryPreviewOutcomeInspection::from_outcome(_);
-   |
- 7 -     let _forged = ForgeQueryPreviewOutcomeInspection {
- 8 -         label: String::new(),
- 9 -         closeout_kind: ForgeQueryPreviewCloseoutKind::Discarded,
-10 -         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
-11 -         promoted: false,
-12 -         discarded: true,
-13 -         write_count: 0,
-14 -         preview_binding_count: 0,
-15 -         live_binding_count: 0,
-16 -         computed_binding_count: 0,
-17 -         effect_binding_count: 0,
-18 -         subscription_residue_count: 0,
-19 -         derived_runtime_residue_count: 0,
-20 -         effect_delivery_residue_count: 0,
-21 -         pending_write_intent_residue_count: 0,
-22 -         preview_write_staging_count: 0,
-23 -         promoted_write_count: 0,
-24 -         authoritative_residue_count: 0,
-25 -         source_lane: ForgeQueryAuthorityLane::PreviewTruth,
-26 -         target_lane: ForgeQueryAuthorityLane::PreviewTruth,
-27 -         basis_evidence: Vec::new(),
-28 -         basis_digest: String::new(),
-29 -         closeout_digest: String::new(),
-30 -         residue_digest: String::new(),
-31 -         inspection_digest: String::new(),
-32 -     };
- 7 +     let _forged = ForgeQueryPreviewOutcomeInspection::from_closeout(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _);
-   |
+   = note: all struct fields are already assigned

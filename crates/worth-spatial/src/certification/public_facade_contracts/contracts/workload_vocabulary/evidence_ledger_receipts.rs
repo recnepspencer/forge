@@ -22,9 +22,9 @@ use worth_spatial::facade::workload_binding::{
 };
 use worth_spatial::facade::workload_vocabulary::{
     DiagnosticWorkload, GeometryBindingWorkload, ProjectionWorkload, ResponseWorkload,
-    RetainedReplayWorkload, SurfaceSupportWorkload, TransformWorkload, WorkloadEvidenceBacking,
-    WorkloadEvidenceGuardError, WorkloadEvidenceLedger, WorkloadEvidenceLedgerError,
-    WorkloadEvidenceRow, WorkloadEvidenceStage,
+    RetainedReplayWorkload, SurfaceSupportWorkload, TransformWorkload, WorkloadEvidenceGuardError,
+    WorkloadEvidenceLedger, WorkloadEvidenceLedgerError, WorkloadEvidenceRow,
+    WorkloadEvidenceStage,
 };
 
 use crate::public_api_retained_replay_workload::contract_subject::{
@@ -35,73 +35,74 @@ use crate::public_api_user_response::contract_subject::admitted_response;
 
 #[test]
 fn evidence_ledger_requires_source_receipts_for_every_completed_stage() {
-    let receipts = admitted_receipts();
-    let complete = WorkloadEvidenceLedger::from_rows(counter_backed_rows("complete ledger"))
-        .expect("receipt-backed rows should form an inspectable ledger")
+    super::run_stack_heavy_test(|| {
+        let receipts = admitted_receipts();
+        let complete = WorkloadEvidenceLedger::from_rows(counter_backed_rows("complete ledger"))
+            .expect("receipt-backed rows should form an inspectable ledger")
+            .certify_complete()
+            .expect("all authority stages should certify completion");
+
+        assert_eq!(complete.counters().rows(), 8);
+        complete
+            .guards()
+            .assert_counters_are_receipt_backed()
+            .expect("complete ledger rows should be receipt-backed with counters");
+
+        let simple_stage_receipts =
+            WorkloadEvidenceLedger::from_rows(receipt_backed_rows(&receipts))
+                .expect("simple stage receipts should remain inspectable")
+                .guards()
+                .assert_counters_are_receipt_backed()
+                .expect_err("honesty guards must reject rows without receipt-backed counters");
+        assert_eq!(
+            simple_stage_receipts,
+            WorkloadEvidenceGuardError::MissingReceiptBackedCounters(
+                WorkloadEvidenceStage::GeometryBinding
+            )
+        );
+
+        let mut mixed_rows = counter_backed_rows("mixed simple projection");
+        mixed_rows[3] = WorkloadEvidenceRow::from_projection_receipt(&receipts.projection);
+        let mixed_projection = WorkloadEvidenceLedger::from_rows(mixed_rows)
+            .expect("mixed rows should remain inspectable")
+            .guards()
+            .assert_counters_are_receipt_backed()
+            .expect_err("simple projection receipt must not count as structural proof");
+        assert_eq!(
+            mixed_projection,
+            WorkloadEvidenceGuardError::MissingReceiptBackedCounters(
+                WorkloadEvidenceStage::Projection
+            )
+        );
+
+        let manual_projection = WorkloadEvidenceLedger::from_rows(vec![
+            WorkloadEvidenceRow::from_topology_workload_and_seed_receipts(
+                &receipts.topology,
+                &receipts.topology_seed,
+            ),
+            WorkloadEvidenceRow::from_geometry_binding_receipt(&receipts.geometry),
+            WorkloadEvidenceRow::from_surface_support_receipt(&receipts.support),
+            WorkloadEvidenceRow::new(
+                WorkloadEvidenceStage::Projection,
+                "projection fixture label",
+            ),
+            WorkloadEvidenceRow::from_transform_receipt(&receipts.transform),
+            WorkloadEvidenceRow::from_retained_replay_receipt(&receipts.replay),
+            WorkloadEvidenceRow::from_diagnostic_receipt(&receipts.diagnostics),
+            WorkloadEvidenceRow::from_response_receipt(&receipts.response),
+        ])
+        .expect("manual rows remain inspectable before complete certification")
         .certify_complete()
-        .expect("all authority stages should certify completion");
+        .expect_err("complete ledger must reject hand-filled projection evidence");
 
-    assert_eq!(complete.counters().rows(), 8);
-    assert!(complete
-        .rows()
-        .iter()
-        .all(|row| row.backing() == WorkloadEvidenceBacking::Receipt));
-    assert!(complete
-        .rows()
-        .iter()
-        .all(|row| row.counters().total_receipt_backed_counters() > 0));
-
-    let simple_stage_receipts = WorkloadEvidenceLedger::from_rows(receipt_backed_rows(&receipts))
-        .expect("simple stage receipts should remain inspectable")
-        .guards()
-        .assert_counters_are_receipt_backed()
-        .expect_err("honesty guards must reject rows without receipt-backed counters");
-    assert_eq!(
-        simple_stage_receipts,
-        WorkloadEvidenceGuardError::MissingReceiptBackedCounters(
-            WorkloadEvidenceStage::GeometryBinding
-        )
-    );
-
-    let mut mixed_rows = counter_backed_rows("mixed simple projection");
-    mixed_rows[3] = WorkloadEvidenceRow::from_projection_receipt(&receipts.projection);
-    let mixed_projection = WorkloadEvidenceLedger::from_rows(mixed_rows)
-        .expect("mixed rows should remain inspectable")
-        .guards()
-        .assert_counters_are_receipt_backed()
-        .expect_err("simple projection receipt must not count as structural proof");
-    assert_eq!(
-        mixed_projection,
-        WorkloadEvidenceGuardError::MissingReceiptBackedCounters(WorkloadEvidenceStage::Projection)
-    );
-
-    let manual_projection = WorkloadEvidenceLedger::from_rows(vec![
-        WorkloadEvidenceRow::from_topology_workload_and_seed_receipts(
-            &receipts.topology,
-            &receipts.topology_seed,
-        ),
-        WorkloadEvidenceRow::from_geometry_binding_receipt(&receipts.geometry),
-        WorkloadEvidenceRow::from_surface_support_receipt(&receipts.support),
-        WorkloadEvidenceRow::new(
-            WorkloadEvidenceStage::Projection,
-            "projection fixture label",
-        ),
-        WorkloadEvidenceRow::from_transform_receipt(&receipts.transform),
-        WorkloadEvidenceRow::from_retained_replay_receipt(&receipts.replay),
-        WorkloadEvidenceRow::from_diagnostic_receipt(&receipts.diagnostics),
-        WorkloadEvidenceRow::from_response_receipt(&receipts.response),
-    ])
-    .expect("manual rows remain inspectable before complete certification")
-    .certify_complete()
-    .expect_err("complete ledger must reject hand-filled projection evidence");
-
-    assert_eq!(
-        manual_projection,
-        WorkloadEvidenceLedgerError::ManualAuthorityStage(WorkloadEvidenceStage::Projection)
-    );
-    assert!(manual_projection
-        .human_reason()
-        .contains("hand-filled projection evidence"));
+        assert_eq!(
+            manual_projection,
+            WorkloadEvidenceLedgerError::ManualAuthorityStage(WorkloadEvidenceStage::Projection)
+        );
+        assert!(manual_projection
+            .human_reason()
+            .contains("hand-filled projection evidence"));
+    });
 }
 
 pub(crate) struct VocabularyReceipts {

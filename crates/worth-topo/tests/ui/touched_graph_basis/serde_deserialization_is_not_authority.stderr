@@ -1,0 +1,22 @@
+error[E0277]: the trait bound `TopologyTouchedGraphBasis: serde::de::DeserializeOwned` is not satisfied
+ --> tests/ui/touched_graph_basis/serde_deserialization_is_not_authority.rs:7:28
+  |
+7 |     requires_deserialize::<TopologyTouchedGraphBasis>();
+  |                            ^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `for<'de> Deserialize<'de>` is not implemented for `TopologyTouchedGraphBasis`
+  |
+  = help: the following other types implement trait `Deserialize<'de>`:
+            `&'a Path` implements `Deserialize<'de>`
+            `&'a [u8]` implements `Deserialize<'de>`
+            `&'a str` implements `Deserialize<'de>`
+            `()` implements `Deserialize<'de>`
+            `(T,)` implements `Deserialize<'de>`
+            `(T0, T1)` implements `Deserialize<'de>`
+            `(T0, T1, T2)` implements `Deserialize<'de>`
+            `(T0, T1, T2, T3)` implements `Deserialize<'de>`
+          and $N others
+  = note: required for `TopologyTouchedGraphBasis` to implement `DeserializeOwned`
+note: required by a bound in `requires_deserialize`
+ --> tests/ui/touched_graph_basis/serde_deserialization_is_not_authority.rs:4:28
+  |
+4 | fn requires_deserialize<T: DeserializeOwned>() {}
+  |                            ^^^^^^^^^^^^^^^^ required by this bound in `requires_deserialize`

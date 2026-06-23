@@ -23,10 +23,13 @@ fn declaration_support_traceability_materializer_builds_real_declaration_artifac
         artifact.support_detail(),
         "intent.scope.traceability:support stays attached to the authored declaration"
     );
-    assert_eq!(artifact.intent_name(), "test.intent");
-    assert_eq!(artifact.strategy_name(), "test.strategy");
+    assert_eq!(artifact.intent_name(), "domain-capability.intent-support");
+    assert_eq!(
+        artifact.strategy_name(),
+        "forge.domain_capability.intent-support"
+    );
     assert_eq!(artifact.strategy_version(), "1");
-    assert_eq!(artifact.input_contract(), "test.contract");
+    assert_eq!(artifact.input_contract(), "forge.domain-capability.fixture");
     assert_eq!(
         artifact.source_lane(),
         crate::runtime::ForgeQueryIntentSourceLane::UserAuthored
@@ -35,8 +38,8 @@ fn declaration_support_traceability_materializer_builds_real_declaration_artifac
         artifact.target_lane(),
         crate::runtime::ForgeQueryAuthorityLane::AuthoritativeTruth
     );
-    assert!(!artifact.target_binding_digest().is_empty());
-    assert!(!artifact.request_digest().is_empty());
+    assert!(!artifact.target_binding_for_reporting().is_empty());
+    assert!(!artifact.request_for_reporting().is_empty());
     assert!(!artifact.materialization_digest().is_empty());
 }
 
@@ -59,12 +62,12 @@ fn lower_runtime_support_traceability_materializer_builds_real_boundary_artifact
     );
     assert_eq!(
         artifact.seam_key(),
-        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSeamKey::RuntimeIntentModule
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting
     );
-    assert_eq!(artifact.capability_label(), "test.capability");
+    assert_eq!(artifact.capability_label(), "Signal invalidation routing");
     assert_eq!(
         artifact.crossing_classification(),
-        crate::lower_runtime_routing::ForgeQueryLowerRuntimeCrossingClassification::CanonicalLowerRuntimeReuse
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeCrossingClassification::QueryBoundaryAdapter
     );
     assert_eq!(
         artifact.route_kind(),
@@ -74,9 +77,9 @@ fn lower_runtime_support_traceability_materializer_builds_real_boundary_artifact
         artifact.support_posture(),
         crate::lower_runtime_routing::ForgeQueryLowerRuntimeSupportPosture::Admitted
     );
-    assert_eq!(artifact.envelope_digest(), "test.envelope");
-    assert!(!artifact.target_binding_digest().is_empty());
-    assert!(!artifact.request_digest().is_empty());
+    assert!(!artifact.envelope_for_reporting().is_empty());
+    assert!(!artifact.target_binding_for_reporting().is_empty());
+    assert!(!artifact.request_for_reporting().is_empty());
     assert!(!artifact.materialization_digest().is_empty());
 }
 
@@ -107,7 +110,10 @@ fn declaration_support_traceability_digest_changes_when_scope_changes() {
         )),
     );
 
-    assert_ne!(left.target_binding_digest(), right.target_binding_digest());
+    assert_ne!(
+        left.target_binding_for_reporting(),
+        right.target_binding_for_reporting()
+    );
     assert_ne!(
         left.materialization_digest(),
         right.materialization_digest()
@@ -171,7 +177,10 @@ fn lower_runtime_support_traceability_digest_changes_when_scope_changes() {
         ),
     ));
 
-    assert_ne!(left.target_binding_digest(), right.target_binding_digest());
+    assert_ne!(
+        left.target_binding_for_reporting(),
+        right.target_binding_for_reporting()
+    );
     assert_ne!(
         left.materialization_digest(),
         right.materialization_digest()

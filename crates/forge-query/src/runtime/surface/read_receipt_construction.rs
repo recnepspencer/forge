@@ -1,4 +1,4 @@
-use crate::memory_workspace::ForgeQueryEntity;
+use crate::memory_workspace::{ForgeQueryEntity, ForgeQuerySnapshotIdentity};
 use crate::planning::{FallbackDisposition, PlannedExecutionRoute};
 use crate::query_context::{QueryContextExecutionArtifact, QueryContextExecutionFamily};
 use crate::runtime::read_composition_relationship_proof::support_profile_for_relationship_proof;
@@ -12,7 +12,7 @@ use super::{
 impl ForgeQueryReadReceipt {
     pub(in crate::runtime) fn from_materialized_rows(
         read_graph: &ForgeQueryReadGraph,
-        snapshot_token: String,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
         execution: &crate::execution::ExecutionResultEnvelope,
         rows: &[ForgeQueryEntity],
     ) -> Self {
@@ -24,7 +24,7 @@ impl ForgeQueryReadReceipt {
             read_graph,
             execution.report().query_digest().as_str(),
             execution.report().basis_digest().as_str(),
-            snapshot_token,
+            snapshot_identity,
             execution_engine_for_planned_route(read_graph),
             fallback_class_for_planned_route(read_graph),
             execution_counters.execution_fallback_taken_count(),
@@ -60,7 +60,7 @@ impl ForgeQueryReadReceipt {
 
     pub(in crate::runtime) fn from_query_context_execution(
         read_graph: &ForgeQueryReadGraph,
-        snapshot_token: String,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
         context_execution: &QueryContextExecutionArtifact,
         rows: &[ForgeQueryEntity],
     ) -> Self {
@@ -68,7 +68,7 @@ impl ForgeQueryReadReceipt {
             read_graph,
             context_execution.query_digest(),
             context_execution.basis_digest(),
-            snapshot_token,
+            snapshot_identity,
             execution_engine_for_query_context(context_execution.family()),
             fallback_class_for_planned_route(read_graph),
             0,
@@ -109,7 +109,7 @@ impl ForgeQueryReadReceipt {
         read_graph: &ForgeQueryReadGraph,
         query_digest: &str,
         basis_digest: &str,
-        snapshot_token: String,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
         execution_engine: ForgeQueryReadExecutionEngine,
         fallback_class: ForgeQueryReadFallbackClass,
         fallback_count: usize,
@@ -128,7 +128,7 @@ impl ForgeQueryReadReceipt {
             result_digest: materialized_result_digest(query_digest, basis_digest, rows)
                 .as_str()
                 .to_string(),
-            snapshot_token,
+            snapshot_identity,
             scope_class: read_graph.scope_class().clone(),
             execution_engine,
             fallback_class,
@@ -144,6 +144,13 @@ impl ForgeQueryReadReceipt {
             relationship_proof_support_profile,
             breadth,
             materialized_fact_posture: None,
+            graph_read_access_plan: None,
+            graph_read_access_plan_consumption: None,
+            ephemeral_graph_index_receipt: None,
+            graph_read_streaming_receipt: None,
+            graph_read_access_summary: None,
+            graph_read_access_complexity_counters: None,
+            graph_obligation_dispatch: None,
             decision_trace_envelope: None,
             execution_provenance: None,
         }

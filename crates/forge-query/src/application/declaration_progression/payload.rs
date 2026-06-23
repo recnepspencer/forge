@@ -39,7 +39,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             .to_string();
         let legality_digest = legality_evidence.legality_digest().to_string();
         let progression_contract = I::Family::progression_contract(
-            world_basis.handle_identity_digest(),
+            world_basis.handle_identity_for_reporting(),
             world_basis.operating_context_identity_digest(),
         );
 
@@ -62,7 +62,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub fn handle_identity_digest(&self) -> &str {
-        self.world_basis.handle_identity_digest()
+        self.world_basis.handle_identity_for_reporting()
     }
 
     pub fn declaration_digest(&self) -> &str {

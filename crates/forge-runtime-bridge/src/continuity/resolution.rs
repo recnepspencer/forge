@@ -296,7 +296,9 @@ mod tests {
         let (outcome, successor_slices) = classify_continuity(
             &prior_slice,
             crate::adapter::BridgeHistoricalLineageTopology::MergeLikeSuccessor,
-            &[BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
+            &[BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned(
+                "entity:0:4:2",
+            )],
         );
 
         assert_eq!(
@@ -317,8 +319,8 @@ mod tests {
             &prior_slice,
             crate::adapter::BridgeHistoricalLineageTopology::AmbiguousSuccessor,
             &[
-                BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
-                BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+                BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
+                BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:5:2"),
             ],
         );
 
@@ -358,7 +360,7 @@ mod tests {
         );
 
         PriorSubscriptionSlice::new(
-            BridgeSubscriptionSliceIdentity::new("slice-set:test"),
+            BridgeSubscriptionSliceIdentity::admit_bridge_owned("slice-set:test"),
             &native_slice,
         )
     }

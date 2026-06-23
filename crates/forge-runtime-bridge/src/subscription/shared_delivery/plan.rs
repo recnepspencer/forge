@@ -121,9 +121,10 @@ impl BridgeSharedConsumerDeliveryPlan {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            shared_delivery_plan_identity: BridgeSubscriptionSharedDeliveryPlanIdentity::new(
-                format!("bridge-shared-consumer-delivery-plan-id:sha256:{digest:x}"),
-            ),
+            shared_delivery_plan_identity:
+                BridgeSubscriptionSharedDeliveryPlanIdentity::admit_bridge_owned(format!(
+                    "bridge-shared-consumer-delivery-plan-id:sha256:{digest:x}"
+                )),
             active_subscription_identity: Arc::from(
                 active_subscription
                     .active_subscription_identity()

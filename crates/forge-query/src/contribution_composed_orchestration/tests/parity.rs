@@ -37,7 +37,7 @@ fn composed_orchestration_matches_explicit_declaration_bound_support_pipeline() 
         forge_proof::TransitionOutcome::Success(value) => value,
         _ => panic!("expected admitted support contribution"),
     };
-    let evidence_digest = admitted.admitted_digest();
+    let evidence_digest = admitted.admitted_for_reporting();
     let ready = match prepare_admitted_domain_capability_contribution_for_materialization(
         admitted,
         target_for_envelope(&handle, "face-a"),
@@ -175,5 +175,8 @@ fn equivalent_intent_orderings_share_the_same_composition_digest() {
         )
         .unwrap_or_else(|_| panic!("expected right composition"));
 
-    assert_eq!(left.composition_digest(), right.composition_digest());
+    assert_eq!(
+        left.composition_for_reporting(),
+        right.composition_for_reporting()
+    );
 }

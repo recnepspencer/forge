@@ -15,3 +15,11 @@ warning: unreachable expression
   |                                  ^^^^^^^^^^^^^^^^^^^ unreachable expression
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0560]: struct `QueryPatchGroup` has no field named `patch_group_digest`
+ --> tests/ui/active_subscription_public_vec_patch_group_forbidden.rs:9:13
+  |
+9 |             patch_group_digest: "patch".to_string(),
+  |             ^^^^^^^^^^^^^^^^^^ `QueryPatchGroup` does not have this field
+  |
+  = note: all struct fields are already assigned

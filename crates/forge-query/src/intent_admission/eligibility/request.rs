@@ -174,7 +174,7 @@ impl ForgeQueryRawIntentAdmissionRequest {
     ) -> Result<Self, ForgeQueryIntentViolationDecision> {
         Self::new(
             ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteUnifiedInspection,
-            seed.request_label().to_string(),
+            seed.request_label().as_str().to_string(),
             seed.request_input_digest().to_string(),
             ForgeQueryIntentAdmissionRequestPayload::GenericInspection(seed),
         )

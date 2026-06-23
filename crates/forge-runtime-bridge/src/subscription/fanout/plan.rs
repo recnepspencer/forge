@@ -157,9 +157,9 @@ impl BridgeSubscriptionFanoutPlan {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            fanout_plan_identity: BridgeSubscriptionFanoutPlanIdentity::new(format!(
-                "bridge-subscription-fanout-plan-id:sha256:{digest:x}"
-            )),
+            fanout_plan_identity: BridgeSubscriptionFanoutPlanIdentity::admit_bridge_owned(
+                format!("bridge-subscription-fanout-plan-id:sha256:{digest:x}"),
+            ),
             active_subscription_identity: active_subscription
                 .active_subscription_identity()
                 .clone(),

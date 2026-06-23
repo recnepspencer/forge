@@ -274,6 +274,8 @@ impl RelationshipProofAdmissionIdentity {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelationshipProofAdmission {
     identity: RelationshipProofAdmissionIdentity,
+    policy_digest: String,
+    tenant_schema_basis_digest: String,
     topology_classes: Vec<RelationshipProofTopologyClass>,
     budget: RelationshipProofBudget,
     descriptor_count: usize,
@@ -306,6 +308,8 @@ impl RelationshipProofAdmission {
         );
         Self {
             identity: RelationshipProofAdmissionIdentity::new(hash_parts(&parts)),
+            policy_digest: policy_digest.to_string(),
+            tenant_schema_basis_digest: tenant_schema_basis_digest.to_string(),
             topology_classes,
             budget,
             descriptor_count: descriptors.len(),
@@ -314,6 +318,14 @@ impl RelationshipProofAdmission {
 
     pub fn identity(&self) -> &RelationshipProofAdmissionIdentity {
         &self.identity
+    }
+
+    pub fn policy_digest(&self) -> &str {
+        &self.policy_digest
+    }
+
+    pub fn tenant_schema_basis_digest(&self) -> &str {
+        &self.tenant_schema_basis_digest
     }
 
     pub fn topology_classes(&self) -> &[RelationshipProofTopologyClass] {

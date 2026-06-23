@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn validation_rejects_single_parent_authority_basis() {
         let declaration = MergeHistoryDeclaration::new(
-            MergeHistoryDeclarationIdentity::new("merge:bad-parent-count"),
+            MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:bad-parent-count"),
             BridgeMergeConsumptionClass::AspectReconciliationMerge,
             BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1"),
             BridgeMergeAuthorityBasis::new(
@@ -129,9 +129,9 @@ mod tests {
                 "merge-artifact:commit-c",
                 "rel-merge-v1",
                 "schema-policy-v1",
-                BridgeMergeParentOrderProof::new(vec![crate::facade::TruthCommitIdentity::new(
-                    "parent-a",
-                )]),
+                BridgeMergeParentOrderProof::new(vec![
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                ]),
             ),
         );
 
@@ -146,7 +146,7 @@ mod tests {
     #[test]
     fn validation_accepts_lossless_many_to_one_bridge_class_lowering() {
         let declaration = MergeHistoryDeclaration::new(
-            MergeHistoryDeclarationIdentity::new("merge:many-to-one-bridge-class"),
+            MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:many-to-one-bridge-class"),
             BridgeMergeConsumptionClass::AspectReconciliationMerge,
             BridgeMergeOntologyMappingSurface::new(
                 "rel-merge-v1",
@@ -167,8 +167,8 @@ mod tests {
                 "rel-merge-v1",
                 "schema-policy-v1",
                 BridgeMergeParentOrderProof::new(vec![
-                    crate::facade::TruthCommitIdentity::new("parent-a"),
-                    crate::facade::TruthCommitIdentity::new("parent-b"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
                 ]),
             ),
         );

@@ -1,3 +1,6 @@
+use worth_primitives::{truth_digest_parts, TruthDigestScope};
+
+use crate::workload_platform::planar_boolean_common_plane::PlanarBooleanCommonPlaneLocalFrameSelectionReceipt;
 use crate::workload_platform::surface_support::CertifiedSurfaceSupport;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,6 +24,24 @@ impl LocalFrameBasis {
         }
     }
 
+    pub fn from_common_plane_selection(
+        selection: &PlanarBooleanCommonPlaneLocalFrameSelectionReceipt,
+    ) -> Self {
+        Self {
+            identity: selection.projection_local_basis_identity().to_string(),
+            human_label: format!(
+                "common-plane selected local frame {}",
+                selection.frame_identity()
+            ),
+            basis_parts: vec![
+                "origin".to_string(),
+                "u-axis".to_string(),
+                "v-axis".to_string(),
+                "normal".to_string(),
+            ],
+        }
+    }
+
     pub fn identity(&self) -> &str {
         &self.identity
     }
@@ -32,6 +53,27 @@ impl LocalFrameBasis {
     pub fn basis_parts(&self) -> &[String] {
         &self.basis_parts
     }
+}
+
+pub(crate) fn common_plane_projection_local_basis_identity(
+    selection: &PlanarBooleanCommonPlaneLocalFrameSelectionReceipt,
+) -> String {
+    truth_digest_parts(
+        TruthDigestScope::ArtifactIdentity,
+        &[
+            "planar-boolean-common-plane-projection-local-basis".to_string(),
+            format!(
+                "local-frame-selection:{}",
+                selection.local_frame_selection_receipt_identity()
+            ),
+            format!("shared-plane:{}", selection.shared_plane_identity()),
+            format!("frame:{}", selection.frame_identity()),
+            format!(
+                "movement-rotation:{}",
+                selection.movement_rotation_posture_identity()
+            ),
+        ],
+    )
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

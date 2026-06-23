@@ -9,7 +9,7 @@ pub(crate) fn retained_temporal_resume_basis(
 ) -> crate::facade::BridgeRetainedTemporalResumeBasis {
     let truth_basis = BridgeTemporalTruthViewBasis::authoritative(
         branch_identity,
-        TruthCommitIdentity::new("temporal-commit"),
+        crate::truth_identity_fixtures::truth_commit_fixture("temporal-commit"),
         snapshot_identity,
     );
     let admitted = admitted_temporal_basis(truth_basis);
@@ -28,10 +28,10 @@ pub(crate) fn admitted_async_request_identity(
     node: u64,
 ) -> AdmittedBridgeAsyncRequestIdentity {
     let declaration = BridgeAsyncSourceDeclarationDraft::request_response(
-        crate::facade::BridgeAsyncSourceDeclarationIdentity::new(format!(
+        crate::facade::BridgeAsyncSourceDeclarationIdentity::admit_bridge_owned(format!(
             "bridge-async:resume-basis:{node}"
         )),
-        crate::facade::BridgeAsyncSourceLegacyDeclarationIdentity::new(format!(
+        crate::facade::BridgeAsyncSourceLegacyDeclarationIdentity::admit_bridge_owned(format!(
             "bridge-async-legacy:resume-basis:{node}"
         )),
         ResourceNodeDeclaration::new(
@@ -50,7 +50,7 @@ pub(crate) fn admitted_async_request_identity(
         .expect("request-response declaration should lower");
     let truth_basis = BridgeAsyncRequestTruthViewBasis::authoritative(
         branch_identity,
-        TruthCommitIdentity::new(format!("commit:{node}")),
+        crate::truth_identity_fixtures::truth_commit_fixture(format!("commit:{node}")),
         snapshot_identity,
     );
     let binding = runtime.bind_async_request_basis(&lowered, truth_basis);

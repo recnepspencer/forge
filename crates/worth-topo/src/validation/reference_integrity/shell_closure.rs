@@ -14,14 +14,27 @@ use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 
 use super::shared::{RuntimeEntityRef, RuntimeTopologyGraph};
 
-pub fn registration() -> Result<
+pub(super) fn graph_composition_registration() -> Result<
     CustomInvariantRegistration,
     forge_relational::facade::runtime::CustomInvariantRegistrationError,
 > {
-    CustomInvariantRegistration::new(ShellClosureRule)
+    CustomInvariantRegistration::new(ShellClosureRule {
+        execution_point: InvariantExecutionPoint::GraphComposition,
+    })
 }
 
-struct ShellClosureRule;
+pub(super) fn commit_backstop_registration() -> Result<
+    CustomInvariantRegistration,
+    forge_relational::facade::runtime::CustomInvariantRegistrationError,
+> {
+    CustomInvariantRegistration::new(ShellClosureRule {
+        execution_point: InvariantExecutionPoint::CommitBoundary,
+    })
+}
+
+struct ShellClosureRule {
+    execution_point: InvariantExecutionPoint,
+}
 
 impl CustomInvariantRule for ShellClosureRule {
     type Scope = RuntimeTopologyGraph;
@@ -36,7 +49,7 @@ impl CustomInvariantRule for ShellClosureRule {
             },
             display_name: Arc::from(" Milestone 1 Shell Closure"),
             operational: CustomInvariantOperationalMetadata {
-                execution_point: InvariantExecutionPoint::CommitBoundary,
+                execution_point: self.execution_point,
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
                 cost_class: InvariantCostClass::Touched,
                 failure_effect: InvariantFailureEffect::BlockCommit,

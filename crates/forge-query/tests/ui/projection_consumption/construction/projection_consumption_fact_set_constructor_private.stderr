@@ -9,8 +9,8 @@ error: cannot construct `ConsumedProjectionFactSet` with struct literal syntax d
    |         -------------------------------------------- private field
 10 |         source_family: ProjectionSourceFamily::QueryWriteReceipt,
    |         -------------------------------------------------------- private field
-11 |         source_identity: "commit:test".to_string(),
-   |         ------------------------------------------ private field
+11 |         source_identity: "commit:test".to_string().into(),
+   |         ------------------------------------------------- private field
 12 |         support_posture: ProjectionContractSupportPosture::Admitted,
    |         ----------------------------------------------------------- private field
 13 |         counters: ProjectionFactExtractionCounters::default(),
@@ -43,7 +43,7 @@ help: you might have meant to use the `new` associated function
  8 -         declaration_digest: "declaration:test".to_string(),
  9 -         contract_digest: "contract:test".to_string(),
 10 -         source_family: ProjectionSourceFamily::QueryWriteReceipt,
-11 -         source_identity: "commit:test".to_string(),
+11 -         source_identity: "commit:test".to_string().into(),
 12 -         support_posture: ProjectionContractSupportPosture::Admitted,
 13 -         counters: ProjectionFactExtractionCounters::default(),
 14 -         fact_set_digest: "fact-set:test".to_string(),

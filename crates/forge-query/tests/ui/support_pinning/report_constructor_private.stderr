@@ -1,0 +1,31 @@
+error[E0451]: fields `consumer_name`, `contract_digest`, `observed_schema_identity`, `observed_source_matrix_digest`, `observed_snapshot_digest`, `requirement_count`, `observed_count`, `matched_required_count`, `snapshot_row_count`, `finding_count`, `blocking_finding_count`, `findings` and `report_digest` of struct `ForgeQuerySupportPinReport` are private
+  --> tests/ui/support_pinning/report_constructor_private.rs:5:9
+   |
+ 4 |     let _ = ForgeQuerySupportPinReport {
+   |             -------------------------- in this type
+ 5 |         consumer_name: String::new(),
+   |         ^^^^^^^^^^^^^ private field
+ 6 |         contract_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+ 7 |         observed_schema_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         observed_source_matrix_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         observed_snapshot_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         requirement_count: 0,
+   |         ^^^^^^^^^^^^^^^^^ private field
+11 |         observed_count: 0,
+   |         ^^^^^^^^^^^^^^ private field
+12 |         matched_required_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         snapshot_row_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+14 |         finding_count: 0,
+   |         ^^^^^^^^^^^^^ private field
+15 |         blocking_finding_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         findings: Vec::new(),
+   |         ^^^^^^^^ private field
+17 |         report_digest: String::new(),
+   |         ^^^^^^^^^^^^^ private field

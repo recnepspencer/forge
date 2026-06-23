@@ -42,7 +42,7 @@ impl ValidatedBridgeAsyncRequestBasisBinding {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            binding_identity: BridgeAsyncRequestBasisBindingIdentity::new(format!(
+            binding_identity: BridgeAsyncRequestBasisBindingIdentity::admit_bridge_owned(format!(
                 "bridge-async-request-basis-binding-id:sha256:{digest:x}"
             )),
             declaration_identity: lowered.declaration_identity().clone(),

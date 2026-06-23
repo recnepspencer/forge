@@ -1,6 +1,7 @@
 mod artifact;
 mod aspect;
 mod composition;
+mod declaration_record;
 mod input;
 mod intent_result;
 mod lower;
@@ -22,6 +23,7 @@ pub use composition::{
     ForgeQueryContributionComposedClassification, ForgeQueryContributionComposedComposition,
     ForgeQueryContributionComposedStop,
 };
+pub use declaration_record::ForgeQueryContributionComposedDeclarationRecord;
 pub use input::{
     ForgeQueryContributionComposedMaterializationPolicy,
     ForgeQueryContributionComposedOrchestrationInput, ForgeQueryContributionIntent,
@@ -39,10 +41,7 @@ pub use outcome::{
     ForgeQueryContributionComposedOrchestrationOutcome,
     ForgeQueryContributionComposedOrchestrationPosture,
 };
-pub use transcript::{
-    ForgeQueryContributionComposedDeclarationRecord,
-    ForgeQueryContributionComposedOrchestrationTranscript,
-};
+pub use transcript::ForgeQueryContributionComposedOrchestrationTranscript;
 
 pub(crate) use retained::orchestrate_progressed_declaration_with_contributions_checked_on_handle;
 pub(crate) use transcript::orchestrate_declaration_with_contributions_on_handle;

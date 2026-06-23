@@ -1,0 +1,25 @@
+error[E0451]: fields `consumption_identity`, `split_ledger_receipt_identity`, `split_ledger_downstream_identity`, `split_request_identity`, `decision_log_receipt_identity`, `validation_receipt_identity`, `persistent_naming_receipt_identity`, `replay_parity_receipt_identity`, `workload_stage_index_identity` and `counters` of struct `PlanarBooleanDownstreamSplitConsumption` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/downstream_split_consumption_not_forgeable.rs:5:9
+   |
+ 4 |     let _ = PlanarBooleanDownstreamSplitConsumption {
+   |             --------------------------------------- in this type
+ 5 |         consumption_identity: String::from("forged"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 6 |         split_ledger_receipt_identity: String::from("ledger"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         split_ledger_downstream_identity: String::from("downstream"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         split_request_identity: String::from("request"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         decision_log_receipt_identity: String::from("decision"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         validation_receipt_identity: String::from("validation"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         persistent_naming_receipt_identity: String::from("naming"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         replay_parity_receipt_identity: String::from("replay"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         workload_stage_index_identity: String::from("stage-index"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         counters: Default::default(),
+   |         ^^^^^^^^ private field

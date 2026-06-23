@@ -18,7 +18,7 @@ use crate::{
         build_server, build_server_with_profiled_counting_workspace,
         build_server_with_workspace_provider,
     },
-    query_handoff_fixture::{admit_read, request_input, resolve_request_context, success},
+    query_handoff_fixture::{admit_read_posture, request_input, resolve_request_context, success},
 };
 
 #[test]
@@ -79,7 +79,7 @@ fn direct_product_flow_preserves_compatibility_overlap_without_semantic_drift() 
         server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admit_read(
+                admit_read_posture(
                     &server,
                     resolve_request_context(
                         &server,
@@ -274,11 +274,11 @@ fn direct_product_flow_carries_retained_posture_and_typed_fact_receipts_without_
     assert_eq!(
         retained
             .async_result_state()
-            .map(|state| state.inner().result_state_digest()),
+            .map(|state| state.inner().result_state_for_reporting()),
         state
             .async_result_state()
             .as_ref()
-            .map(|state| state.inner().result_state_digest())
+            .map(|state| state.inner().result_state_for_reporting())
     );
     assert_eq!(
         retained

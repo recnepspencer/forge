@@ -272,9 +272,11 @@ impl BridgeSubscriptionPreviewLifecycleResidueEnvelope {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
             residue_envelope_identity:
-                BridgeSubscriptionPreviewLifecycleResidueEnvelopeIdentity::new(format!(
+                BridgeSubscriptionPreviewLifecycleResidueEnvelopeIdentity::admit_bridge_owned(
+                    format!(
                     "bridge-subscription-preview-lifecycle-residue-envelope-id:sha256:{digest:x}"
-                )),
+                ),
+                ),
             preview_active_subscription_identity: preview_active
                 .preview_active_subscription_identity()
                 .clone(),

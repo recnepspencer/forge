@@ -1,0 +1,29 @@
+error[E0599]: no variant or associated item named `from_external_authority_label` found for enum `ForgeQuerySnapshotIdentity` in the current scope
+ --> tests/ui/query_runtime_phase_eight/snapshot_external_authority_label_removed.rs:4:49
+  |
+4 |     let _snapshot = ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot:test");
+  |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ variant or associated item not found in `ForgeQuerySnapshotIdentity`
+  |
+note: if you're trying to build a new `ForgeQuerySnapshotIdentity` consider using one of the following associated functions:
+      ForgeQuerySnapshotIdentity::empty_relational_state
+      ForgeQuerySnapshotIdentity::from_relational_snapshot
+      ForgeQuerySnapshotIdentity::preview
+      ForgeQuerySnapshotIdentity::admit_external_token
+ --> $WORKSPACE/crates/forge-query/src/memory_workspace/identities.rs
+  |
+  |       pub fn empty_relational_state() -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |       pub fn from_relational_snapshot(parts: RelationalBridgeSnapshotIdentityParts) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |       pub fn preview(evidence_identity: ForgeQueryEvidenceIdentity) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  | /     pub fn admit_external_token(
+  | |         token: crate::identity_authority::QueryExternalIdentityToken<
+  | |             std::sync::Arc<str>,
+  | |             crate::identity_authority::QuerySnapshotIdentityKind,
+  | |         >,
+  | |     ) -> Self {
+  | |_____________^

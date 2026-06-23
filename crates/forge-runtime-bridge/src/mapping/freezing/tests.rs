@@ -19,10 +19,10 @@ fn registration(
 ) -> BridgeMappingRegistration {
     let snapshot_read_contract = declared_read_contract(&aspect);
     BridgeMappingRegistration::new(
-        BridgeMappingId::new(mapping_id),
+        BridgeMappingId::admit_bridge_owned(mapping_id),
         TruthPatchScope::new(entity, aspect, target),
         snapshot_read_contract,
-        SignalInvalidationScope::new(signal_scope),
+        SignalInvalidationScope::admit_bridge_owned(signal_scope),
         CoarseRoutingMode::Direct,
     )
 }

@@ -1,0 +1,17 @@
+error[E0432]: unresolved imports `schema::facade::platform::authority::WorthGeometryEvidenceSupportPosture`, `schema::facade::platform::authority::WorthGeometryOnlyEvidenceAdmission`, `schema::facade::platform::authority::WorthGeometryOnlyEvidenceCounters`, `schema::facade::platform::authority::WorthTouchedGraphBooleanEvidenceStage`
+ --> tests/ui/touched_graph_basis/schema_admission_public_facade_cannot_mint_basis.rs:2:5
+  |
+2 |     WorthGeometryEvidenceSupportPosture, WorthGeometryOnlyEvidenceAdmission,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthGeometryOnlyEvidenceAdmission` in `facade::platform::authority`
+  |     |
+  |     no `WorthGeometryEvidenceSupportPosture` in `facade::platform::authority`
+3 |     WorthGeometryOnlyEvidenceCounters, WorthTouchedGraphBooleanEvidenceStage,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthTouchedGraphBooleanEvidenceStage` in `facade::platform::authority`
+  |     |
+  |     no `WorthGeometryOnlyEvidenceCounters` in `facade::platform::authority`
+
+error[E0432]: unresolved import `topology::facade::topology_geometry_only_evidence_touched_graph_basis_from_schema_admission`
+ --> tests/ui/touched_graph_basis/schema_admission_public_facade_cannot_mint_basis.rs:6:5
+  |
+6 |     topology_geometry_only_evidence_touched_graph_basis_from_schema_admission,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `topology_geometry_only_evidence_touched_graph_basis_from_schema_admission` in `facade`

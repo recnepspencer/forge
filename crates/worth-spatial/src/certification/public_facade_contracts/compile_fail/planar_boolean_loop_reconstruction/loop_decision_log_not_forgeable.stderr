@@ -1,0 +1,27 @@
+warning: unreachable expression
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_loop_reconstruction/loop_decision_log_not_forgeable.rs:10:19
+   |
+ 9 |         lookup_index: panic!("not constructible"),
+   |                       --------------------------- any code following this expression is unreachable
+10 |         counters: Default::default(),
+   |                   ^^^^^^^^^^^^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `decision_log_identity`, `request_identity`, `split_ledger_receipt_identity`, `rows`, `lookup_index` and `counters` of struct `PlanarBooleanLoopDecisionLog` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_loop_reconstruction/loop_decision_log_not_forgeable.rs:5:9
+   |
+ 4 |     let _ = PlanarBooleanLoopDecisionLog {
+   |             ---------------------------- in this type
+ 5 |         decision_log_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 6 |         request_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+ 7 |         split_ledger_receipt_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         rows: Vec::new(),
+   |         ^^^^ private field
+ 9 |         lookup_index: panic!("not constructible"),
+   |         ^^^^^^^^^^^^ private field
+10 |         counters: Default::default(),
+   |         ^^^^^^^^ private field

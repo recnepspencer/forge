@@ -265,7 +265,7 @@ fn build_identity(
             .unwrap_or("-"),
     ));
     let digest = Sha256::digest(canonical_basis.as_bytes());
-    let request_identity = BridgeAsyncRequestIdentity::new(format!(
+    let request_identity = BridgeAsyncRequestIdentity::admit_bridge_owned(format!(
         "bridge-async-request-identity-id:sha256:{digest:x}"
     ));
     let in_flight_identity = BridgeAsyncInFlightRequestIdentity::new(

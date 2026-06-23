@@ -1,5 +1,5 @@
 use forge_proof::TransitionOutcome;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::core::{BranchMergeStrategy, MergeBoundaryWitness, MergeBoundaryWitnessKind};
 use super::semantics::SelectedMergeSemanticsBundle;
@@ -13,7 +13,7 @@ use super::strategy_witness_denial::{
 };
 use super::{SignalAspectPolicyInventoryEntry, SourceNodeAdoptionCarryPolicy};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignalMergeStrategyWitness {
     merge_strategy: SignalMergeStrategyIdentity,
     invalidation_strategy: SignalInvalidationStrategyIdentity,

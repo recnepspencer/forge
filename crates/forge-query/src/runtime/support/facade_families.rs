@@ -28,6 +28,9 @@ pub enum ForgeQueryRuntimeFacadeFamily {
     Read,
     Live,
     Computed,
+    SharedRead,
+    Submission,
+    Replay,
     Effect,
     BranchPreview,
     Write,
@@ -46,6 +49,9 @@ impl ForgeQueryRuntimeFacadeFamily {
             Self::Read => "read",
             Self::Live => "live",
             Self::Computed => "computed",
+            Self::SharedRead => "shared-read",
+            Self::Submission => "submission",
+            Self::Replay => "replay",
             Self::Effect => "effect",
             Self::BranchPreview => "branch-preview",
             Self::Write => "write",
@@ -257,6 +263,12 @@ impl ForgeQueryRuntimeFamilySupport {
                 | ForgeQueryRuntimeFacadeFamily::Inspect,
                 ForgeQueryRuntimeFamilySupportStatus::Supported,
             ) => "Milestone 9.3",
+            (
+                ForgeQueryRuntimeFacadeFamily::SharedRead
+                | ForgeQueryRuntimeFacadeFamily::Submission
+                | ForgeQueryRuntimeFacadeFamily::Replay,
+                ForgeQueryRuntimeFamilySupportStatus::Supported,
+            ) => "Milestone 9.7",
             (
                 ForgeQueryRuntimeFacadeFamily::Intent,
                 ForgeQueryRuntimeFamilySupportStatus::Unsupported,

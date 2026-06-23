@@ -262,7 +262,7 @@ fn route_enveloped<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput
     let basis_lifecycle_support_digest = route_plan
         .progressed_declaration()
         .retained_world_basis()
-        .basis_lifecycle_support_digest()
+        .basis_lifecycle_support_for_reporting()
         .to_string();
     let class = if mixed_origin {
         ForgeQueryDeclarationBridgeRoutingClass::MixedAuthorityBridgeContinuation

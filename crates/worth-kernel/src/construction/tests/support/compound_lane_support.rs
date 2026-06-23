@@ -1,6 +1,5 @@
 use std::collections::BTreeSet;
 
-use crate::construction::digest::digest_owned_parts;
 use crate::construction::tests::support::compound_ordering::{
     required_compound_adversarial_lane_name_set, PrimitiveConstructionAdversarialAuthoringOrderLane,
 };
@@ -12,6 +11,7 @@ use crate::construction::tests::support::compound_runtime::{
     compound_parity_registry, PrimitiveConstructionCompoundAdversarialLanes,
     PrimitiveConstructionCompoundRow,
 };
+use crate::construction::tests::support::evidence_reports::sealed_report_identity;
 
 pub(crate) fn compound_canonical_rows(
     lanes: &PrimitiveConstructionCompoundAdversarialLanes,
@@ -135,7 +135,11 @@ pub(crate) fn compound_report_digest(
                 .chain(rows.iter().map(row_digest))
         })
         .collect::<Vec<_>>();
-    digest_owned_parts(&parts)
+    sealed_report_identity(
+        "worth-kernel.construction.compound-lane",
+        "compound-authoring-order",
+        |report| report.value_sequence_participating("lane-parts", parts),
+    )
 }
 
 pub(crate) fn compound_scenario_stable_across_orders(
@@ -183,7 +187,11 @@ pub(crate) fn compound_scenario_stable_across_orders(
 }
 
 fn lane_digest(row_digests: impl IntoIterator<Item = String>) -> String {
-    digest_owned_parts(&row_digests.into_iter().collect::<Vec<_>>())
+    sealed_report_identity(
+        "worth-kernel.construction.compound-lane",
+        "lane-row-inventory",
+        |report| report.value_sequence_participating("row-identities", row_digests),
+    )
 }
 
 fn normalized_matrix_digest(row_pairs: impl IntoIterator<Item = (String, String)>) -> String {
@@ -192,5 +200,9 @@ fn normalized_matrix_digest(row_pairs: impl IntoIterator<Item = (String, String)
         .map(|(scenario_id, row_digest)| format!("{scenario_id}:{row_digest}"))
         .collect::<Vec<_>>();
     parts.sort();
-    digest_owned_parts(&parts)
+    sealed_report_identity(
+        "worth-kernel.construction.compound-lane",
+        "normalized-matrix",
+        |report| report.value_sequence_participating("scenario-row-identities", parts),
+    )
 }

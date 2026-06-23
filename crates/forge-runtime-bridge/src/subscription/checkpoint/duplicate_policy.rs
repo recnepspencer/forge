@@ -40,9 +40,10 @@ impl BridgeSubscriptionDuplicateReplayPolicy {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            duplicate_replay_policy_identity: BridgeSubscriptionDuplicateReplayPolicyIdentity::new(
-                format!("bridge-subscription-duplicate-replay-policy-id:sha256:{digest:x}"),
-            ),
+            duplicate_replay_policy_identity:
+                BridgeSubscriptionDuplicateReplayPolicyIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-duplicate-replay-policy-id:sha256:{digest:x}"
+                )),
             policy_kind,
             counters: BridgeSubscriptionCounters::from_duplicate_replay_policy_selection(),
             canonical_basis,

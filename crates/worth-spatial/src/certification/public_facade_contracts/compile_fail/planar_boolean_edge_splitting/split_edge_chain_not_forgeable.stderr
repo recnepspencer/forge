@@ -1,0 +1,33 @@
+error[E0451]: fields `chain_identity`, `source_edge_identity`, `carrier_identity`, `endpoint_boundary_schedule_identity`, `interval_subdivision_schedule_identity`, `split_vertex_schedule_identity`, `split_fragment_schedule_identity`, `fragment_identities`, `split_vertex_identities`, `overlap_chain_identities`, `persistent_name_row_identities`, `decision_identities`, `validation_fragment_coverage_identities` and `validation_overlap_coverage_identities` of struct `PlanarBooleanSplitEdgeChain` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_edge_chain_not_forgeable.rs:5:9
+   |
+ 4 |     let _chain = PlanarBooleanSplitEdgeChain {
+   |                  --------------------------- in this type
+ 5 |         chain_identity: "chain".to_string(),
+   |         ^^^^^^^^^^^^^^ private field
+ 6 |         source_edge_identity: "source".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         carrier_identity: "carrier".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+ 8 |         endpoint_boundary_schedule_identity: "endpoint".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         interval_subdivision_schedule_identity: "interval".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         split_vertex_schedule_identity: "vertices".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         split_fragment_schedule_identity: "fragments".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         fragment_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+13 |         split_vertex_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         overlap_chain_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         persistent_name_row_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         decision_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+17 |         validation_fragment_coverage_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         validation_overlap_coverage_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

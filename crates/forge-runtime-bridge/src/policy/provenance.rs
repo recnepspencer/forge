@@ -102,7 +102,7 @@ impl BridgePolicyProvenanceRecord {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            provenance_identity: BridgePolicyProvenanceIdentity::new(format!(
+            provenance_identity: BridgePolicyProvenanceIdentity::admit_bridge_owned(format!(
                 "bridge-policy-provenance:sha256:{digest:x}"
             )),
             contract_identity: contract.contract_identity().clone(),

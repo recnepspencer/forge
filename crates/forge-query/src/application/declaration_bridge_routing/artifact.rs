@@ -25,6 +25,15 @@ pub enum ForgeQueryDeclarationBridgeRoutingClass {
     MixedAuthorityBridgeContinuation,
 }
 
+impl ForgeQueryDeclarationBridgeRoutingClass {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::ExclusiveBridgeContinuation => "exclusive-bridge-continuation",
+            Self::MixedAuthorityBridgeContinuation => "mixed-authority-bridge-continuation",
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ForgeQueryDeclarationBridgeBinding {
     RuntimeRoute(BridgeRouteRequest),

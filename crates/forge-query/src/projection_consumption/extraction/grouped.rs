@@ -132,7 +132,7 @@ where
         contract.declaration_digest(),
         contract.contract_digest(),
         contract.source_family(),
-        contract.source_identity(),
+        contract.source_identity_handle().clone(),
         contract.support_posture().clone(),
         contract.materialized_fact_posture().cloned(),
         ProjectionFactExtractionCounters::new(

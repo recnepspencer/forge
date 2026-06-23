@@ -24,7 +24,9 @@ fn frozen_registry_order_is_canonical_and_stable() {
 #[test]
 fn duplicate_family_metadata_is_rejected() {
     let duplicate = BridgeSubscriptionDeclarationFamily::new(
-        BridgeSubscriptionDeclarationFamilyIdentity::new("subscription-family:detail-duplicate"),
+        BridgeSubscriptionDeclarationFamilyIdentity::admit_bridge_owned(
+            "subscription-family:detail-duplicate",
+        ),
         BridgeSubscriptionDeclarationFamilyKind::DetailExact,
         "detail_duplicate",
         vec![SubscriptionSliceKind::SignalField],
@@ -53,7 +55,7 @@ fn registry_identity_changes_when_family_semantics_change() {
     .expect("phase 1 families should freeze");
     let modified = FrozenSubscriptionFamilyRegistry::freeze(vec![
         BridgeSubscriptionDeclarationFamily::new(
-            BridgeSubscriptionDeclarationFamilyIdentity::new(
+            BridgeSubscriptionDeclarationFamilyIdentity::admit_bridge_owned(
                 "subscription-family:collection-membership",
             ),
             BridgeSubscriptionDeclarationFamilyKind::CollectionMembership,
@@ -66,7 +68,9 @@ fn registry_identity_changes_when_family_semantics_change() {
         )
         .expect("collection family should build"),
         BridgeSubscriptionDeclarationFamily::new(
-            BridgeSubscriptionDeclarationFamilyIdentity::new("subscription-family:detail-exact"),
+            BridgeSubscriptionDeclarationFamilyIdentity::admit_bridge_owned(
+                "subscription-family:detail-exact",
+            ),
             BridgeSubscriptionDeclarationFamilyKind::DetailExact,
             "detail_exact",
             vec![
@@ -86,7 +90,9 @@ fn registry_identity_changes_when_family_semantics_change() {
 #[test]
 fn family_constructor_canonicalizes_slice_kind_order() {
     let left = BridgeSubscriptionDeclarationFamily::new(
-        BridgeSubscriptionDeclarationFamilyIdentity::new("subscription-family:detail-exact"),
+        BridgeSubscriptionDeclarationFamilyIdentity::admit_bridge_owned(
+            "subscription-family:detail-exact",
+        ),
         BridgeSubscriptionDeclarationFamilyKind::DetailExact,
         "detail_exact",
         vec![
@@ -97,7 +103,9 @@ fn family_constructor_canonicalizes_slice_kind_order() {
     )
     .expect("family should build");
     let right = BridgeSubscriptionDeclarationFamily::new(
-        BridgeSubscriptionDeclarationFamilyIdentity::new("subscription-family:detail-exact"),
+        BridgeSubscriptionDeclarationFamilyIdentity::admit_bridge_owned(
+            "subscription-family:detail-exact",
+        ),
         BridgeSubscriptionDeclarationFamilyKind::DetailExact,
         "detail_exact",
         vec![
@@ -114,7 +122,9 @@ fn family_constructor_canonicalizes_slice_kind_order() {
 #[test]
 fn family_constructor_rejects_duplicate_slice_kinds() {
     let error = BridgeSubscriptionDeclarationFamily::new(
-        BridgeSubscriptionDeclarationFamilyIdentity::new("subscription-family:detail-exact"),
+        BridgeSubscriptionDeclarationFamilyIdentity::admit_bridge_owned(
+            "subscription-family:detail-exact",
+        ),
         BridgeSubscriptionDeclarationFamilyKind::DetailExact,
         "detail_exact",
         vec![

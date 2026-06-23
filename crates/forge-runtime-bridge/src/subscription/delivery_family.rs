@@ -39,9 +39,9 @@ impl BridgeSubscriptionDeliveryFamily {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            delivery_family_identity: BridgeSubscriptionDeliveryFamilyIdentity::new(format!(
-                "bridge-subscription-delivery-family-id:sha256:{digest:x}"
-            )),
+            delivery_family_identity: BridgeSubscriptionDeliveryFamilyIdentity::admit_bridge_owned(
+                format!("bridge-subscription-delivery-family-id:sha256:{digest:x}"),
+            ),
             family_kind,
             canonical_basis,
             digest: Arc::from(format!(

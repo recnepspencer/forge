@@ -9,22 +9,8 @@ warning: unreachable expression
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0451]: fields `family`, `outcome`, `attachment_identity`, `prior_authoritative_identity`, `target_authoritative_identity`, `resolved_target_entity_identity` and `target_collection` of struct `ForgeQueryNamingMutationEvidence` are private
-  --> tests/ui/runtime_naming_mutation_evidence_literal_private.rs:5:9
-   |
- 4 |     let _ = ForgeQueryNamingMutationEvidence {
-   |             -------------------------------- in this type
- 5 |         family: todo!(),
-   |         ^^^^^^ private field
- 6 |         outcome: todo!(),
-   |         ^^^^^^^ private field
- 7 |         attachment_identity: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^ private field
- 8 |         prior_authoritative_identity: None,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         target_authoritative_identity: None,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         resolved_target_entity_identity: None,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         target_collection: None,
-   |         ^^^^^^^^^^^^^^^^^ private field
+error[E0308]: mismatched types
+ --> tests/ui/runtime_naming_mutation_evidence_literal_private.rs:7:30
+  |
+7 |         attachment_identity: String::new(),
+  |                              ^^^^^^^^^^^^^ expected `ForgeQueryMutationAuthorityIdentity`, found `String`

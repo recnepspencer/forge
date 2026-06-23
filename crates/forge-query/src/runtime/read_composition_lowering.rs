@@ -181,6 +181,7 @@ pub(super) fn build_scoped_read_graph_from_authored(
     expected_scope_class: ForgeQueryReadScopeClass,
     built_in_operators: Vec<ForgeQueryReadBuiltInOperator>,
 ) -> Result<ForgeQueryReadGraph, ForgeQueryReadDenial> {
+    let domain_graph_operations = query.domain_graph_operations().to_vec();
     let request =
         declarative_request_from_authored_shape(query, result_shape).map_err(declarative_denial)?;
     validate_declared_traversal_contract(&request, &schema_view).map_err(declarative_denial)?;
@@ -210,6 +211,7 @@ pub(super) fn build_scoped_read_graph_from_authored(
         scope_class,
         validated.query().schema_basis().clone(),
         built_in_operators,
+        domain_graph_operations,
         validated.query().traversal().len(),
         validated
             .query()

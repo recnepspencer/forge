@@ -8,6 +8,7 @@ use crate::application::{
     ForgeQueryDeclarationProgressionRebindRequired, ForgeQueryDeclarationProgressionStale,
     ForgeQueryDomainEntryMarker,
 };
+use crate::ForgeQueryEvidenceIdentity;
 
 use super::class::ForgeQueryDeclarationFoundationalEvidenceClass;
 
@@ -149,6 +150,31 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub(crate) fn handle_identity_digest(&self) -> &str {
         self.canonical_declaration().handle_identity_digest()
+    }
+
+    pub(crate) fn handle_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        match self {
+            Self::LegalityEvidence(evidence) => Some(evidence.world_basis().handle_identity()),
+            Self::LegalityDenial(_) => None,
+            Self::AdmittedProgression(progressed) => {
+                Some(progressed.retained_world_basis().handle_identity())
+            }
+            Self::ProgressionDeferred(progress) => {
+                Some(progress.legality_evidence().world_basis().handle_identity())
+            }
+            Self::ProgressionDenied(progress) => {
+                Some(progress.legality_evidence().world_basis().handle_identity())
+            }
+            Self::ProgressionStale(progress) => {
+                Some(progress.legality_evidence().world_basis().handle_identity())
+            }
+            Self::ProgressionRebindRequired(progress) => {
+                Some(progress.legality_evidence().world_basis().handle_identity())
+            }
+            Self::ProgressionFailed(progress) => {
+                Some(progress.legality_evidence().world_basis().handle_identity())
+            }
+        }
     }
 
     pub(crate) fn operating_context_identity_digest(&self) -> &str {

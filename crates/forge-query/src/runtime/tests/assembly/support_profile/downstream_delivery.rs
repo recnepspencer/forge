@@ -19,9 +19,9 @@ fn runtime_public_downstream_delivery_contract_freezes_runtime_backed_and_durabl
     );
     assert!(contract.runtime_backed_resume_supported());
     assert!(contract.durable_resume_deferred());
-    assert!(!contract.runtime_resume_support_digest().is_empty());
-    assert!(!contract.durable_resume_support_digest().is_empty());
-    assert!(!contract.contract_digest().is_empty());
+    assert!(!contract.runtime_resume_support_for_reporting().is_empty());
+    assert!(!contract.durable_resume_support_for_reporting().is_empty());
+    assert!(!contract.contract_for_reporting().is_empty());
 }
 
 #[test]
@@ -50,7 +50,7 @@ fn runtime_public_support_matrix_exposes_downstream_delivery_contract_row() {
         Some(
             workspace
                 .public_downstream_delivery_contract()
-                .contract_digest()
+                .contract_for_reporting()
         )
     );
 }

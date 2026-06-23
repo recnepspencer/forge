@@ -1,4 +1,5 @@
 use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
+use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use crate::projection::TopologyQueryRowLookup;
 use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
@@ -40,7 +41,7 @@ fn row_lookup_finds_half_edge_neighbors_for_edge_fan_witnesses() {
         .map(|row| row.identity())
         .filter(|identity| {
             lookup
-                .edge_identity_of_half_edge(identity)
+                .edge_identity_of_half_edge(&query_entity_identity_reporting_label(identity))
                 .is_ok_and(|edge_identity| edge_identity == source_edge_identity)
         })
         .collect::<Vec<_>>();
@@ -49,7 +50,7 @@ fn row_lookup_finds_half_edge_neighbors_for_edge_fan_witnesses() {
         .map(|row| row.identity())
         .filter(|identity| {
             lookup
-                .edge_identity_of_half_edge(identity)
+                .edge_identity_of_half_edge(&query_entity_identity_reporting_label(identity))
                 .is_ok_and(|edge_identity| edge_identity != source_edge_identity)
         })
         .collect::<Vec<_>>();
@@ -58,23 +59,23 @@ fn row_lookup_finds_half_edge_neighbors_for_edge_fan_witnesses() {
     assert!(!different_edge.is_empty());
     assert!(same_edge.iter().all(|identity| {
         lookup
-            .edge_identity_of_half_edge(identity)
+            .edge_identity_of_half_edge(&query_entity_identity_reporting_label(identity))
             .expect("same-edge identity")
             == source_edge_identity
     }));
     assert!(different_edge.iter().all(|identity| {
         lookup
-            .edge_identity_of_half_edge(identity)
+            .edge_identity_of_half_edge(&query_entity_identity_reporting_label(identity))
             .expect("different-edge identity")
             != source_edge_identity
     }));
     let sharing_vertex = entity_rows
         .iter()
         .map(|row| row.identity())
-        .filter(|identity| *identity != source_identity)
+        .filter(|identity| query_entity_identity_reporting_label(identity) != source_identity)
         .filter(|identity| {
             lookup
-                .half_edge_vertex_identities(identity)
+                .half_edge_vertex_identities(&query_entity_identity_reporting_label(identity))
                 .is_ok_and(|candidate_vertices| {
                     candidate_vertices
                         .iter()

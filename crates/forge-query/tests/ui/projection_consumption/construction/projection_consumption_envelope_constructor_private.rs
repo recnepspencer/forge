@@ -13,7 +13,7 @@ fn main() {
         transition_rules_digest: String::new(),
         deferred_neighbors: Vec::new(),
         integrity_digest: String::new(),
-        performance_digest: String::new(),
+        performance_digest: String::new().into(),
         boundary_digest: String::new(),
         sources: panic!(),
         envelope_digest: String::new(),

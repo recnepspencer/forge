@@ -1,6 +1,6 @@
 use forge_query::facade::ForgeQueryWriteCommand;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum ForgeServerQueryOperation {
     SingleMutation {
         operation_name: String,
@@ -64,13 +64,9 @@ impl ForgeServerQueryOperation {
             Self::BatchMutation { commands, .. } => Some(commands),
         }
     }
-
-    pub(crate) fn handoff_operation(&self) -> ForgeServerQueryHandoffOperation {
-        ForgeServerQueryHandoffOperation::direct_mutation(self.operation_name())
-    }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum ForgeServerQueryHandoffOperation {
     QueryRead {
         operation_name: String,
@@ -89,9 +85,11 @@ pub enum ForgeServerQueryHandoffOperation {
     },
     DirectMutation {
         operation_name: String,
+        scheduled_operation: Option<ForgeServerQueryOperation>,
     },
     QueryMutation {
         operation_name: String,
+        scheduled_operation: Option<ForgeServerQueryOperation>,
     },
     DownstreamDelivery {
         view_name: String,
@@ -100,6 +98,121 @@ pub enum ForgeServerQueryHandoffOperation {
         requested_resume: ForgeServerQueryRequestedResume,
     },
 }
+
+impl PartialEq for ForgeServerQueryOperation {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                Self::SingleMutation {
+                    operation_name: left,
+                    ..
+                },
+                Self::SingleMutation {
+                    operation_name: right,
+                    ..
+                },
+            ) => left == right,
+            (
+                Self::BatchMutation {
+                    operation_name: left,
+                    commands: left_commands,
+                },
+                Self::BatchMutation {
+                    operation_name: right,
+                    commands: right_commands,
+                },
+            ) => left == right && left_commands.len() == right_commands.len(),
+            _ => false,
+        }
+    }
+}
+
+impl Eq for ForgeServerQueryOperation {}
+
+impl PartialEq for ForgeServerQueryHandoffOperation {
+    fn eq(&self, other: &Self) -> bool {
+        use ForgeServerQueryHandoffOperation as Operation;
+
+        match (self, other) {
+            (
+                Operation::QueryRead {
+                    operation_name: left,
+                },
+                Operation::QueryRead {
+                    operation_name: right,
+                },
+            )
+            | (
+                Operation::DirectRead {
+                    operation_name: left,
+                },
+                Operation::DirectRead {
+                    operation_name: right,
+                },
+            ) => left == right,
+            (
+                Operation::DirectState { target_label: left },
+                Operation::DirectState {
+                    target_label: right,
+                },
+            )
+            | (
+                Operation::DirectInspection { target_label: left },
+                Operation::DirectInspection {
+                    target_label: right,
+                },
+            )
+            | (
+                Operation::DirectProjection { target_label: left },
+                Operation::DirectProjection {
+                    target_label: right,
+                },
+            ) => left == right,
+            (
+                Operation::DirectMutation {
+                    operation_name: left,
+                    ..
+                },
+                Operation::DirectMutation {
+                    operation_name: right,
+                    ..
+                },
+            )
+            | (
+                Operation::QueryMutation {
+                    operation_name: left,
+                    ..
+                },
+                Operation::QueryMutation {
+                    operation_name: right,
+                    ..
+                },
+            ) => left == right,
+            (
+                Operation::DownstreamDelivery {
+                    view_name: left_view,
+                    freshness_mode: left_freshness,
+                    delivery_class: left_delivery,
+                    requested_resume: left_resume,
+                },
+                Operation::DownstreamDelivery {
+                    view_name: right_view,
+                    freshness_mode: right_freshness,
+                    delivery_class: right_delivery,
+                    requested_resume: right_resume,
+                },
+            ) => {
+                left_view == right_view
+                    && left_freshness == right_freshness
+                    && left_delivery == right_delivery
+                    && left_resume == right_resume
+            }
+            _ => false,
+        }
+    }
+}
+
+impl Eq for ForgeServerQueryHandoffOperation {}
 
 impl ForgeServerQueryHandoffOperation {
     pub fn query_read(operation_name: impl Into<String>) -> Self {
@@ -111,6 +224,14 @@ impl ForgeServerQueryHandoffOperation {
     pub fn query_mutation(operation_name: impl Into<String>) -> Self {
         Self::QueryMutation {
             operation_name: operation_name.into(),
+            scheduled_operation: None,
+        }
+    }
+
+    pub fn query_mutation_execution(operation: ForgeServerQueryOperation) -> Self {
+        Self::QueryMutation {
+            operation_name: operation.operation_name().to_string(),
+            scheduled_operation: Some(operation),
         }
     }
 
@@ -141,6 +262,14 @@ impl ForgeServerQueryHandoffOperation {
     pub fn direct_mutation(operation_name: impl Into<String>) -> Self {
         Self::DirectMutation {
             operation_name: operation_name.into(),
+            scheduled_operation: None,
+        }
+    }
+
+    pub fn direct_mutation_execution(operation: ForgeServerQueryOperation) -> Self {
+        Self::DirectMutation {
+            operation_name: operation.operation_name().to_string(),
+            scheduled_operation: Some(operation),
         }
     }
 
@@ -169,10 +298,12 @@ impl ForgeServerQueryHandoffOperation {
             Self::DirectProjection { target_label } => {
                 format!("direct-projection:{target_label}")
             }
-            Self::DirectMutation { operation_name } => {
+            Self::DirectMutation { operation_name, .. } => {
                 format!("direct-mutation:{operation_name}")
             }
-            Self::QueryMutation { operation_name } => format!("query-mutation:{operation_name}"),
+            Self::QueryMutation { operation_name, .. } => {
+                format!("query-mutation:{operation_name}")
+            }
             Self::DownstreamDelivery {
                 view_name,
                 freshness_mode,
@@ -184,6 +315,20 @@ impl ForgeServerQueryHandoffOperation {
                 delivery_class.as_str(),
                 requested_resume.canonical_label()
             ),
+        }
+    }
+
+    pub fn scheduled_query_operation(&self) -> Option<&ForgeServerQueryOperation> {
+        match self {
+            Self::DirectMutation {
+                scheduled_operation,
+                ..
+            }
+            | Self::QueryMutation {
+                scheduled_operation,
+                ..
+            } => scheduled_operation.as_ref(),
+            _ => None,
         }
     }
 }

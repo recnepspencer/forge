@@ -1,9 +1,10 @@
 use std::marker::PhantomData;
 
 use super::{
-    AspectFieldSelector, AuthoringError, EqualityPredicate, IntegerComparisonPredicate,
-    OrderingSelector, PredicateSelector, PresencePredicate, RawAuthoredQuery, RootEntityKey,
-    SetMembershipPredicate, StringContainsPredicate, TraversalSelector,
+    AspectFieldSelector, AuthoringError, EqualityPredicate,
+    ForgeQueryGraphReadDomainOperationDeclaration, IntegerComparisonPredicate, OrderingSelector,
+    PredicateSelector, PresencePredicate, RawAuthoredQuery, RootEntityKey, SetMembershipPredicate,
+    StringContainsPredicate, TraversalSelector,
 };
 
 pub trait QueryAuthoringFamily: Clone + std::fmt::Debug + Eq + PartialEq {
@@ -43,6 +44,14 @@ impl<F: QueryAuthoringFamily> QueryBuilder<F> {
 
     pub fn traverse(mut self, entry: TraversalSelector) -> Self {
         self.query = self.query.with_traversal(entry);
+        self
+    }
+
+    pub fn domain_graph_operation(
+        mut self,
+        operation: ForgeQueryGraphReadDomainOperationDeclaration,
+    ) -> Self {
+        self.query = self.query.with_domain_graph_operation(operation);
         self
     }
 

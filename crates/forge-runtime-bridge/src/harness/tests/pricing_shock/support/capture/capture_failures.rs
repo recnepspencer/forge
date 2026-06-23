@@ -1,5 +1,4 @@
 use super::*;
-use crate::facade::TruthSnapshotIdentity;
 use crate::facade::{
     BridgeMergeDenialClass, BridgeMergePrecedenceStage, BridgePolicyFieldKind,
     BridgePolicyRejectionKind, BridgeRouteErrorKind,
@@ -14,7 +13,9 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_restart_replay_b
         policy.clone(),
     );
     original_runtime
-        .route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
+            "commit:steel-main",
+        ))
         .expect("pricing restart control route should succeed");
     let canonical_record = original_runtime
         .diagnostics()
@@ -45,7 +46,9 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_restart_failure_
         RecordingSignalBridgeSink::default(),
     );
     original_runtime
-        .route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
+            "commit:steel-main",
+        ))
         .expect("pricing restart mismatch control route should succeed");
     let canonical_record = original_runtime
         .diagnostics()
@@ -55,10 +58,10 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_restart_failure_
     let drifted_source = InMemoryRelationalBridgeSource::default();
     drifted_source.insert_committed_patch(pricing_patch_items(
         pricing_patch_envelope_identity(
-            TruthBranchIdentity::new("main"),
-            TruthCommitIdentity::new("commit:steel-main"),
-            TruthPatchIdentity::new("patch:steel-main"),
-            TruthSnapshotIdentity::new("snapshot:pricing-main"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch:steel-main"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main"),
         ),
         vec![
             BridgeCommittedPatchItem::with_target(
@@ -93,15 +96,15 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_restart_failure_
     ));
     drifted_source.insert_committed_patch(pricing_patch(
         pricing_patch_envelope_identity(
-            TruthBranchIdentity::new("main"),
-            TruthCommitIdentity::new("commit:rubber-main"),
-            TruthPatchIdentity::new("patch:rubber-main"),
-            TruthSnapshotIdentity::new("snapshot:pricing-main"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-main"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch:rubber-main"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main"),
         ),
         "rubber",
     ));
     drifted_source.insert_snapshot(pricing_snapshot(
-        TruthSnapshotIdentity::new("snapshot:pricing-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main"),
         "100",
         "40",
     ));
@@ -130,7 +133,9 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_replay_policy_fa
         BridgeRuntimePolicy::operational().with_replay_artifacts(false),
     );
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:pricing-showcase-replay-conflict"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned(
+            "policy:pricing-showcase-replay-conflict",
+        ),
         BridgeRequestKind::Preview,
         BridgeExecutionPolicyClass::Optimized,
         BridgeDiagnosticsTier::Minimal,
@@ -157,7 +162,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_route_policy_con
         BridgeRuntimePolicy::operational().with_replay_artifacts(false),
     );
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:pricing-route-policy-conflict"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:pricing-route-policy-conflict"),
         BridgeRequestKind::Authoritative,
         BridgeExecutionPolicyClass::DeterministicCanonical,
         BridgeDiagnosticsTier::Standard,

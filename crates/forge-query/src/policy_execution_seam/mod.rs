@@ -8,6 +8,8 @@ pub use counters::PolicyAwareSeamCounters;
 pub use errors::{PolicyAwareExecutionSeamError, PolicyAwareExecutionSeamFailureClass};
 pub use modes::PolicyAwareExecutionMode;
 pub use seam::{PolicyAwareExecutionSeam, PolicyAwareExecutionSeamIdentity};
+#[cfg(test)]
+pub use support::graph_mutation_gate_certification_anchors;
 pub use support::{
     deny_durable_policy_artifact_reload_claim, deny_durable_policy_cursor_claim,
     deny_durable_policy_delivery_metadata_reload_claim, deny_policy_cross_tenant_fanout_claim,

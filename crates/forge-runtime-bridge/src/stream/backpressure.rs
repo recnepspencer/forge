@@ -50,7 +50,9 @@ impl BackpressureDecisionRecord {
         );
         let digest = digest_string("backpressure-decision-record", &basis);
         Self {
-            backpressure_decision_identity: BackpressureDecisionIdentity::new(digest),
+            backpressure_decision_identity: BackpressureDecisionIdentity::admit_bridge_owned(
+                digest,
+            ),
             consumer_contract_identity: window.consumer_contract_identity().clone(),
             stream_window_identity: window.stream_window_identity().clone(),
             pressure_class: Arc::from(pressure_class),

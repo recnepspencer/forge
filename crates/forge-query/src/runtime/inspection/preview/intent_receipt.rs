@@ -1,8 +1,11 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::super::super::{
     ForgeQueryAuthorityLane, ForgeQueryEffectPolicy, ForgeQueryIntentSourceLane,
     ForgeQueryPreviewIntentReceipt,
+};
+use super::intent_receipt_identity::{
+    preview_intent_receipt_inspection_basis_identity, preview_intent_receipt_inspection_identity,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -15,33 +18,18 @@ pub struct ForgeQueryPreviewIntentReceiptInspection {
     target_lane: ForgeQueryAuthorityLane,
     effect_policy: ForgeQueryEffectPolicy,
     basis_evidence: Vec<String>,
-    basis_digest: String,
-    admission_digest: String,
-    receipt_digest: String,
-    inspection_digest: String,
+    basis_identity: ForgeQueryEvidenceIdentity,
+    admission_identity: ForgeQueryEvidenceIdentity,
+    receipt_identity: ForgeQueryEvidenceIdentity,
+    inspection_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryPreviewIntentReceiptInspection {
     pub(in crate::runtime) fn from_receipt(receipt: &ForgeQueryPreviewIntentReceipt) -> Self {
         let basis_evidence = receipt.basis_evidence().to_vec();
-        let basis_digest = hash_parts(&[
-            "forge_query_preview_intent_receipt_basis_v1".to_string(),
-            format!("intent:{}", receipt.intent_name()),
-            format!("basis:{}", basis_evidence.join("|")),
-        ]);
-        let inspection_digest = hash_parts(&[
-            "forge_query_preview_intent_receipt_inspection_v1".to_string(),
-            format!("intent:{}", receipt.intent_name()),
-            format!("strategy:{}", receipt.strategy_identity()),
-            format!("version:{}", receipt.strategy_version()),
-            format!("input:{}", receipt.canonical_input_digest()),
-            format!("source:{}", receipt.source_lane().as_str()),
-            format!("target:{}", receipt.target_lane()),
-            format!("policy:{}", receipt.effect_policy().as_str()),
-            format!("basis:{basis_digest}"),
-            format!("admission:{}", receipt.admission_digest()),
-            format!("receipt:{}", receipt.receipt_digest()),
-        ]);
+        let basis_identity = preview_intent_receipt_inspection_basis_identity(receipt);
+        let inspection_identity =
+            preview_intent_receipt_inspection_identity(receipt, &basis_identity);
         Self {
             intent_name: receipt.intent_name().to_string(),
             strategy_identity: receipt.strategy_identity().to_string(),
@@ -51,10 +39,10 @@ impl ForgeQueryPreviewIntentReceiptInspection {
             target_lane: receipt.target_lane(),
             effect_policy: receipt.effect_policy(),
             basis_evidence,
-            basis_digest,
-            admission_digest: receipt.admission_digest().to_string(),
-            receipt_digest: receipt.receipt_digest().to_string(),
-            inspection_digest,
+            basis_identity,
+            admission_identity: receipt.admission_identity().clone(),
+            receipt_identity: receipt.receipt_identity().clone(),
+            inspection_identity,
         }
     }
 
@@ -83,15 +71,27 @@ impl ForgeQueryPreviewIntentReceiptInspection {
         &self.basis_evidence
     }
     pub fn basis_digest(&self) -> &str {
-        &self.basis_digest
+        self.basis_identity.as_str()
+    }
+    pub fn basis_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_identity
     }
     pub fn admission_digest(&self) -> &str {
-        &self.admission_digest
+        self.admission_identity.as_str()
+    }
+    pub fn admission_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.admission_identity
     }
     pub fn receipt_digest(&self) -> &str {
-        &self.receipt_digest
+        self.receipt_identity.as_str()
+    }
+    pub fn receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.receipt_identity
     }
     pub fn inspection_digest(&self) -> &str {
-        &self.inspection_digest
+        self.inspection_identity.as_str()
+    }
+    pub fn inspection_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.inspection_identity
     }
 }

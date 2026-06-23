@@ -73,7 +73,7 @@ fn kernel_consumes_certified_polygon_winding_without_synthesizing_containment() 
         .compile(&contracts)
         .expect("compiled winding plan");
     assert_eq!(plan.loop_count(), 2);
-    assert_eq!(plan.segment_contact_pairs_required(), 16);
+    assert_eq!(plan.segment_contact_pairs_required(), 20);
 
     let receipt = plan.certify().expect("winding receipt");
     assert_eq!(
@@ -85,7 +85,11 @@ fn kernel_consumes_certified_polygon_winding_without_synthesizing_containment() 
         Some(CertifiedLoopContainment::ContainedHole)
     );
     assert!(receipt.counters().winding_predicates_consumed() >= 4);
-    assert!(receipt.counters().segment_contacts_classified() >= 16);
+    assert_eq!(receipt.counters().segment_contact_possible_pairs(), 20);
+    assert_eq!(receipt.counters().segment_contact_candidate_pairs(), 0);
+    assert_eq!(receipt.counters().segment_contact_culled_pairs(), 20);
+    assert_eq!(receipt.counters().segment_contacts_classified(), 0);
+    assert!(!receipt.counters().segment_contact_fallback_used());
     assert!(!receipt.fact_digest().is_empty());
 }
 

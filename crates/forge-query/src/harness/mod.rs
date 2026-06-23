@@ -39,6 +39,8 @@ pub(crate) mod milestone_nine_five_hostile_matrix;
 #[cfg(test)]
 pub(crate) mod milestone_nine_one_certification;
 #[cfg(test)]
+pub(crate) mod milestone_nine_six_identity_boundary_matrix;
+#[cfg(test)]
 pub(crate) mod milestone_nine_three_certification;
 #[cfg(test)]
 pub(crate) mod milestone_nine_two_certification;
@@ -79,3 +81,5 @@ mod workflow_certification;
 
 #[cfg(test)]
 pub(crate) use preview_certification::MilestoneFivePointTwoPreviewCertificationAdapter;
+#[cfg(test)]
+pub(crate) use runtime_api_stabilization::RuntimeApiStabilizationAdapter;

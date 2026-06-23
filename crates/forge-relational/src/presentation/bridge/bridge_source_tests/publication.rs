@@ -28,7 +28,7 @@ fn runtime_bridge_relational_source_exposes_latest_publication_bundle_authoritat
         bridge_snapshot_identity_for_commit(bundle.commit.commit_id, bundle.commit.version_id);
     let expected_commit_identity =
         forge_runtime_bridge::facade::RelationalCommittedPatchRequest::new(
-            TruthCommitIdentity::new(format!("commit-{}", bundle.commit.commit_id.0)),
+            TruthCommitIdentity::from_relational_commit_id(bundle.commit.commit_id.0),
         );
 
     let source = RuntimeBridgeRelationalSource::new(Arc::new(runtime));
@@ -59,7 +59,7 @@ fn runtime_bridge_relational_source_drives_public_bridge_delivery_with_canonical
         .latest_bundle()
         .expect("runtime publication bundle")
         .clone();
-    let commit_identity = TruthCommitIdentity::new(format!("commit-{}", bundle.commit.commit_id.0));
+    let commit_identity = TruthCommitIdentity::from_relational_commit_id(bundle.commit.commit_id.0);
     let expected_snapshot_identity =
         bridge_snapshot_identity_for_commit(bundle.commit.commit_id, bundle.commit.version_id);
 
@@ -140,7 +140,7 @@ fn runtime_bridge_replays_historical_commit_after_newer_publication_arrives() {
 
     let source = RuntimeBridgeRelationalSource::new(Arc::new(runtime));
     let historical_commit_identity = RelationalCommittedPatchRequest::new(
-        TruthCommitIdentity::new(format!("commit-{}", historical_commit_id.0)),
+        TruthCommitIdentity::from_relational_commit_id(historical_commit_id.0),
     );
     let envelope = source
         .load_committed_patch(historical_commit_identity.clone())

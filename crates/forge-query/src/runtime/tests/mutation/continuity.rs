@@ -20,17 +20,44 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
                 .aspect("title.value", "Before continuity rebind")
         })
         .expect("seed insert should execute");
+    let binding_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity");
+    let prior_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(
+            crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-1")
+                .expect("continuity prior authority label"),
+        )
+        .expect("continuity prior authority identity");
+    let successor_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(
+            crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                "authority:task-1-successor",
+            )
+            .expect("continuity successor authority label"),
+        )
+        .expect("continuity successor authority identity");
     let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
-        "authority:task-1",
+        binding_authority.clone(),
         seed.deltas()[0].entity_identity.clone(),
     )
     .expect("binding should build")
     .in_target_collection("Task")
     .expect("binding collection should build");
+    let expected_basis_binding_digest = ForgeQueryMutationEvidenceDigest::source_identity(
+        "continuity-basis-binding",
+        binding.binding_evidence_identity(),
+    );
     let receipt = workspace
         .update_existing(binding, |task| {
-            task.continuity_rebind_existing_target("authority:task-1", "authority:task-1-successor")
-                .aspect("title.value", "After continuity rebind")
+            task.continuity_rebind_existing_target(
+                prior_authority.clone(),
+                successor_authority.clone(),
+            )
+            .aspect("title.value", "After continuity rebind")
         })
         .expect("continuity-aware existing-target update should execute");
     let inspection = workspace
@@ -49,22 +76,32 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
         ForgeQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
     );
     assert_eq!(
-        continuity.prior_authoritative_identity(),
-        "authority:task-1"
+        continuity.prior_authoritative_identity().as_str(),
+        expected_bridge_continuity_authority_label(&prior_authority).as_str()
     );
     assert_eq!(
-        continuity.successor_authoritative_identity(),
-        Some("authority:task-1-successor")
+        continuity
+            .successor_authoritative_identity()
+            .map(|identity| identity.as_str()),
+        Some(expected_bridge_continuity_authority_label(&successor_authority).as_str(),)
     );
     let basis_binding_digest = continuity
         .basis_binding_digest()
-        .expect("continuity evidence should retain a bridge-derived binding basis digest");
-    assert!(basis_binding_digest.starts_with("bridge-continuity-mutation-binding-basis:sha256:"));
+        .expect("continuity evidence should retain typed query binding basis digest");
+    assert_eq!(
+        basis_binding_digest.as_str(),
+        expected_basis_binding_digest.as_str()
+    );
     assert_eq!(
         continuity.resolved_target_entity_identity(),
-        Some(seed.deltas()[0].entity_identity.as_str())
+        Some(&seed.deltas()[0].entity_identity)
     );
-    assert_eq!(continuity.target_collection(), Some("Task"));
+    assert_eq!(
+        continuity
+            .target_collection()
+            .map(|collection| collection.as_str()),
+        Some("Task")
+    );
     assert!(!continuity.lineage_digest().is_empty());
     assert!(!continuity.continuity_resolution_digest().is_empty());
 
@@ -74,16 +111,20 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
                 .continuity_mutation_evidence()
                 .expect("inspection should retain continuity evidence");
             assert_eq!(
-                continuity.prior_authoritative_identity(),
-                "authority:task-1"
+                continuity.prior_authoritative_identity().as_str(),
+                expected_bridge_continuity_authority_label(&prior_authority).as_str()
             );
             assert_eq!(
-                continuity.successor_authoritative_identity(),
-                Some("authority:task-1-successor")
+                continuity
+                    .successor_authoritative_identity()
+                    .map(|identity| identity.as_str()),
+                Some(expected_bridge_continuity_authority_label(&successor_authority).as_str(),)
             );
             assert_eq!(
-                continuity.basis_binding_digest(),
-                Some(basis_binding_digest)
+                continuity
+                    .basis_binding_digest()
+                    .map(|digest| digest.as_str()),
+                Some(basis_binding_digest.as_str())
             );
             assert_eq!(
                 continuity.lineage_digest(),
@@ -118,7 +159,11 @@ fn mixed_batch_preserves_continuity_and_naming_session_evidence() {
         })
         .expect("seed insert should execute");
     let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
-        "authority:task-existing",
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity"),
         seed.deltas()[0].entity_identity.clone(),
     )
     .expect("binding should build")
@@ -139,14 +184,17 @@ fn mixed_batch_preserves_continuity_and_naming_session_evidence() {
                         .in_target_collection("Task")
                         .expect("symbolic collection should build"),
                     |task| {
-                        task.naming_attach_new_target("persistent-name:draft")
-                            .aspect("title.value", "Draft named")
+                        task.naming_attach_new_target(
+                            crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new(
+                                "persistent-name:draft",
+                            )
+                            .expect("naming attachment authority label")).expect("naming attachment identity"),
+                        )
+                        .aspect("title.value", "Draft named")
                     },
                 )
                 .update_existing(binding, |task| {
-                    task.continuity_rebind_merge_successor(
-                        "authority:task-existing",
-                        "authority:task-existing-merged",
+                    task.continuity_rebind_merge_successor(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-existing").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-existing-merged").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                     )
                     .aspect("title.value", "Existing continuity merged")
                 })
@@ -201,7 +249,8 @@ fn mixed_batch_preserves_continuity_and_naming_session_evidence() {
                 inspection.component_operations()[2]
                     .continuity_mutation_evidence()
                     .expect("existing continuity component should retain evidence")
-                    .basis_binding_digest(),
+                    .basis_binding_digest()
+                    .map(|digest| digest.as_str()),
                 Some(binding_digest.as_str())
             );
         }
@@ -216,8 +265,8 @@ fn continuity_update_denies_missing_binding_typed_and_early() {
         .expect("task runtime should open a named workspace");
 
     let error = workspace
-        .update("entity:0:1:0", |task| {
-            task.continuity_rebind_existing_target("authority:task-1", "authority:task-1-successor")
+        .update(test_entity_identity("entity:0:1:0"), |task| {
+            task.continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-1").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-1-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"))
                 .aspect("title.value", "No binding")
         })
         .expect_err("continuity-aware update should deny without existing binding");
@@ -242,7 +291,7 @@ fn continuity_insert_denies_non_update_family_typed_and_early() {
 
     let error = workspace
         .insert("Task", |task| {
-            task.continuity_rebind_existing_target("authority:task-1", "authority:task-1-successor")
+            task.continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-1").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-1-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"))
                 .aspect("identity.id", "task-2")
         })
         .expect_err("continuity-aware insert should deny on non-update family");
@@ -279,7 +328,11 @@ fn preview_update_existing_denies_continuity_without_authoritative_lane() {
         })
         .expect("seed insert should execute");
     let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
-        "authority:task-preview",
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity"),
         seed.deltas()[0].entity_identity.clone(),
     )
     .expect("binding should build")
@@ -292,9 +345,7 @@ fn preview_update_existing_denies_continuity_without_authoritative_lane() {
 
     let error = preview
         .update_existing(binding, |task| {
-            task.continuity_rebind_existing_target(
-                "authority:task-preview",
-                "authority:task-preview-successor",
+            task.continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-preview").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-preview-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
             )
             .aspect("title.value", "Preview continuity denied")
         })
@@ -333,7 +384,11 @@ fn preview_batch_denies_continuity_without_authoritative_lane() {
         })
         .expect("seed insert should execute");
     let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
-        "authority:task-preview-batch",
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity"),
         seed.deltas()[0].entity_identity.clone(),
     )
     .expect("binding should build")
@@ -347,9 +402,7 @@ fn preview_batch_denies_continuity_without_authoritative_lane() {
     let error = preview
         .batch(|batch| {
             batch.update_existing(binding, |task| {
-                task.continuity_rebind_existing_target(
-                    "authority:task-preview-batch",
-                    "authority:task-preview-batch-successor",
+                task.continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-preview-batch").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-preview-batch-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                 )
                 .aspect("title.value", "Preview continuity batch denied")
             })

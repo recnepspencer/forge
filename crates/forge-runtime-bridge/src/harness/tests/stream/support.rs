@@ -1,4 +1,3 @@
-use crate::facade::TruthSnapshotIdentity;
 use forge_harness::facade::ScenarioPlan;
 
 use crate::facade::TruthCommitIdentity;
@@ -15,20 +14,23 @@ pub(super) fn stream_fixture(
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-b"),
-                crate::facade::TruthPatchIdentity::new("patch-b"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("stream")
     .declare_observation("stream")
@@ -45,7 +47,7 @@ pub(super) fn replay_audit_target() -> BridgeHarnessTargetId {
 
 fn stream_commit_window() -> [TruthCommitIdentity; 2] {
     [
-        TruthCommitIdentity::new("commit-a"),
-        TruthCommitIdentity::new("commit-b"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
     ]
 }

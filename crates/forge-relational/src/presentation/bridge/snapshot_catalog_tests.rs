@@ -1,5 +1,5 @@
-use crate::facade::history::CommitId;
-use crate::facade::identity::{EntityId, PartitionId};
+use crate::facade::history::{BranchId, CommitId};
+use crate::facade::identity::{EntityId, PartitionId, VersionId};
 use crate::facade::publication::{
     PatchOrdering, PatchPublicationMode, PatchStreamPosition, PublishedAuthoritativePatchEnvelope,
     PublishedAuthoritativeRecordPatch, RecordStructuralChange,
@@ -9,8 +9,9 @@ use crate::publication::patch::data::{
 };
 use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
 use forge_runtime_bridge::facade::{
-    CommittedPatchSource, SnapshotReadContract, SnapshotReadRecord, SnapshotReadRequest,
-    SnapshotReadSource, TruthCommitIdentity, TruthSnapshotIdentity,
+    CommittedPatchSource, RelationalBridgeRecordIdentityParts, RelationalCommittedPatchRequest,
+    SnapshotReadContract, SnapshotReadRecord, SnapshotReadRequest, SnapshotReadSource,
+    TruthCommitIdentity, TruthSnapshotIdentity,
 };
 
 use super::{PublicationBridgeCatalog, PublicationBridgeSnapshot};
@@ -20,8 +21,10 @@ fn publication_bridge_catalog_exposes_committed_patch_and_snapshot() {
     let catalog = PublicationBridgeCatalog::default();
     catalog.register_patch(
         CommitId(7),
-        "main",
-        "snapshot-a",
+        &BranchId("main".to_string()),
+        TruthSnapshotIdentity::from_relational_snapshot(
+            forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts::new(7, 7),
+        ),
         &PublishedAuthoritativePatchEnvelope {
             ordering: PatchOrdering::CanonicalCommitOrder,
             publication_mode: PatchPublicationMode::CommitNative,
@@ -43,15 +46,16 @@ fn publication_bridge_catalog_exposes_committed_patch_and_snapshot() {
             }],
         },
     );
-    let snapshot_request = SnapshotReadRequest::for_coarse(
-        "entity:0:4:1",
+    let snapshot_request = SnapshotReadRequest::for_relational_record(
+        RelationalBridgeRecordIdentityParts::entity(0, 4, 1),
         SnapshotReadContract::scalar(
             AspectKey::new("profile.name").unwrap(),
             ScalarAspectType::String,
         ),
     );
+    let snapshot_identity = super::bridge_snapshot_identity_for_commit(CommitId(7), VersionId(7));
     catalog.register_snapshot(PublicationBridgeSnapshot::new(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        snapshot_identity.clone(),
         vec![SnapshotReadRecord::for_request(
             &snapshot_request,
             AspectValue::String("alice".into()),
@@ -59,22 +63,23 @@ fn publication_bridge_catalog_exposes_committed_patch_and_snapshot() {
     ));
 
     let envelope = catalog
-        .load_committed_patch(
-            forge_runtime_bridge::facade::RelationalCommittedPatchRequest::new(
-                TruthCommitIdentity::new("commit-7"),
-            ),
-        )
+        .load_committed_patch(RelationalCommittedPatchRequest::new(
+            TruthCommitIdentity::from_relational_commit_id(7),
+        ))
         .expect("registered publication patch");
     let reader = catalog
-        .open_snapshot(&TruthSnapshotIdentity::new("snapshot-a"))
+        .open_snapshot(&snapshot_identity)
         .expect("registered publication snapshot");
 
-    assert_eq!(envelope.patch_identity().as_str(), "patch-11");
+    assert_eq!(
+        envelope.patch_identity().relational_patch_position(),
+        Some(11)
+    );
     assert_eq!(
         envelope.patch_body().canonical_items()[0]
             .aspect_key()
             .as_str(),
         "profile.name"
     );
-    assert_eq!(reader.snapshot_identity().as_str(), "snapshot-a");
+    assert_eq!(reader.snapshot_identity(), snapshot_identity);
 }
