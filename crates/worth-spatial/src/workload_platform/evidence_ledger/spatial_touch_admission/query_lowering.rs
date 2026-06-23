@@ -30,6 +30,7 @@ use super::{
     SpatialEvidenceLookupProduct, SpatialEvidenceLookupProductDigest,
     SpatialGeometryEvidenceTouchAuthority, SpatialGeometryEvidenceTouchDigest,
 };
+use crate::workload_platform::evidence_ledger::WorkloadEvidenceStage;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SpatialEvidenceQueryTouchDescriptor {
@@ -38,6 +39,9 @@ pub struct SpatialEvidenceQueryTouchDescriptor {
     product_digest: SpatialEvidenceQueryTouchDescriptorDigest,
     spatial_touch_digest: SpatialGeometryEvidenceTouchDigest,
     lookup_product_digest: SpatialEvidenceLookupProductDigest,
+    evidence_stage: WorkloadEvidenceStage,
+    evidence_identity: String,
+    stage_index_identity: String,
     collection: String,
     relation_kind: String,
     aspect_paths: Vec<String>,
@@ -97,6 +101,9 @@ impl SpatialEvidenceQueryTouchDescriptor {
             product_digest,
             spatial_touch_digest: authority.digest().clone(),
             lookup_product_digest: lookup.product_digest().clone(),
+            evidence_stage: lookup.evidence_stage(),
+            evidence_identity: lookup.evidence_identity().to_string(),
+            stage_index_identity: lookup.lookup_key().stage_index_identity().to_string(),
             collection,
             relation_kind,
             aspect_paths,
@@ -125,6 +132,18 @@ impl SpatialEvidenceQueryTouchDescriptor {
 
     pub fn lookup_product_digest(&self) -> &SpatialEvidenceLookupProductDigest {
         &self.lookup_product_digest
+    }
+
+    pub fn evidence_stage(&self) -> WorkloadEvidenceStage {
+        self.evidence_stage
+    }
+
+    pub fn evidence_identity(&self) -> &str {
+        &self.evidence_identity
+    }
+
+    pub fn stage_index_identity(&self) -> &str {
+        &self.stage_index_identity
     }
 
     pub fn collection(&self) -> &str {

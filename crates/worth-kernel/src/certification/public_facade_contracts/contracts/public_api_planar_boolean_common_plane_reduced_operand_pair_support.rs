@@ -127,7 +127,10 @@ fn bind_boolean_declaration(
     )
     .from_basis(
         PlanarBooleanEntryBasis::bind(
-            entry_support::certified_boolean_readiness_workload_receipt(readiness_scope),
+            entry_support::certified_boolean_readiness_workload_receipt_from_ledger(
+                readiness_scope,
+                pair.left().workload().evidence_ledger().clone(),
+            ),
             format!("{readiness_scope} basis"),
         )
         .expect("entry basis should certify"),

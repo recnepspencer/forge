@@ -254,18 +254,42 @@ Done when:
 
 ## Milestone 5: Query Obligation Selection From Touched Basis
 
+Spec: [`touched-graph-milestone-5-query-obligation-selection-migration.md`](./touched-graph-milestone-5-query-obligation-selection-migration.md)
+
 Freeze Query obligation selection as a consumer of topology basis translations
 and spatial Query descriptors.
 
 Closes:
+- strangler migration inventory for every Worth graph-obligation selection,
+  adoption, support, selected-count, and local ceremony surface
+- parallel Query-owned selection substrate built beside current Worth-local
+  paths before public cutover
+- primitive construction as the first migrated vertical lane, with parity and
+  stronger denial proof
+- spatial touch authority to Query obligation selection through
+  `SpatialEvidenceQueryTouchDescriptor`
 - Query-owned selector semantics for touched descriptors
 - counters for attempted buckets, matches, deduplication, rejection, selection
 - Query-gap rows for missing selector expressiveness
 
 Done when:
 - Worth does not fork Query selector matching
+- the old selector path is no longer a future dependency after each migrated
+  vertical lane reaches parity
 - broad collection-only or lifecycle-only selector use is capped residue
 - selection breadth scales with touched descriptor breadth
+- local selector tables, local graph walks, copied counts, local support rows,
+  and in-memory adoption-as-execution-proof are deleted or mechanically denied
+- Phase 8 closeout exposes a selected-obligation Milestone 6 seed carrying
+  nonempty authority digests, touch descriptor digests, selected registration
+  digests, execution proof digests, adoption manifest digests, residue manifest
+  digests, and selector precision report digests
+- Phase 8 closeout records exactly 1 capped broad selector residue row and
+  exactly 1 Query selector expressiveness gap row for the spatial descriptor
+  lane, while topology touched basis selection remains touched-descriptor
+  bounded with 0 broad selector residue and 0 Query selector gap rows
+- Phase 8 closeout explicitly does not claim graph-read access planning,
+  validator derivation, invalidation, replay, conflict, cache, or diagnostics
 
 ## Milestone 6: Worth Graph-Read Access Inventory And Hard Break
 

@@ -10,6 +10,15 @@ mod stage_requirements;
 mod workload_catalog;
 mod worth_workload;
 
+pub use crate::query_obligation_selection::public_facade::{
+    IntoQueryGraphObligationSelectionRequest, QueryGraphObligationSelectionAuthorityKind,
+    QueryGraphObligationSelectionFacadeError, QueryGraphObligationSelectionFacadeErrorKind,
+    QueryGraphObligationSelectionRequest, WorthQueryObligationSelectionMilestoneFiveCloseout,
+    WorthQueryObligationSelectionMilestoneFiveCloseoutError,
+    WorthQueryObligationSelectionMilestoneSixSeed, WorthQuerySelectedGraphObligationCloseout,
+    WorthQuerySelectedGraphObligations, WorthQuerySelectorPrecisionPosture,
+    WorthQuerySelectorPrecisionReport,
+};
 pub use boolean_common_plane_reduction::{
     PlanarBooleanCommonPlaneAdmittedOperandScope,
     PlanarBooleanCommonPlaneLocalFrameSelectedRequest,

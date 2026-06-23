@@ -5,6 +5,7 @@ mod boolean_loop_reconstruction_handoff;
 mod boolean_loop_reconstruction_products;
 mod boolean_split_handoff;
 mod boolean_stage_requirements;
+mod query_obligation_selection;
 mod spatial_touch_authority;
 use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanDownstreamSplitConsumptionDenial;
 use worth_spatial::facade::workload_vocabulary::{

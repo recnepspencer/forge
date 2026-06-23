@@ -38,6 +38,7 @@ pub struct ForgeQueryGraphObligationLocalCeremonyFinding {
 pub struct ForgeQueryGraphObligationLocalCeremonyAudit {
     findings: Vec<ForgeQueryGraphObligationLocalCeremonyFinding>,
     evaluated_source_count: usize,
+    audited_source_labels: Vec<String>,
     audit_digest: String,
 }
 
@@ -45,16 +46,23 @@ impl ForgeQueryGraphObligationLocalCeremonyAudit {
     pub fn evaluate(sources: &ForgeQueryBoundaryAuditSourceSet) -> Self {
         let findings = collect_local_ceremony_findings(sources);
         let evaluated_source_count = sources.sources().len();
+        let audited_source_labels = sources
+            .sources()
+            .iter()
+            .map(|source| source.label().to_string())
+            .collect::<Vec<_>>();
         let evaluated_source_count_text = evaluated_source_count.to_string();
         let audit_digest = kit_digest(
             "graph-obligation-local-ceremony-audit",
             [evaluated_source_count_text.as_str()]
                 .into_iter()
+                .chain(audited_source_labels.iter().map(String::as_str))
                 .chain(findings.iter().map(|finding| finding.pattern)),
         );
         Self {
             findings,
             evaluated_source_count,
+            audited_source_labels,
             audit_digest,
         }
     }
@@ -63,6 +71,7 @@ impl ForgeQueryGraphObligationLocalCeremonyAudit {
         Self {
             findings: Vec::new(),
             evaluated_source_count: 0,
+            audited_source_labels: Vec::new(),
             audit_digest: kit_digest("graph-obligation-local-ceremony-audit", ["clean"]),
         }
     }
@@ -81,6 +90,10 @@ impl ForgeQueryGraphObligationLocalCeremonyAudit {
 
     pub fn evaluated_source_count(&self) -> usize {
         self.evaluated_source_count
+    }
+
+    pub fn audited_source_labels(&self) -> &[String] {
+        &self.audited_source_labels
     }
 
     pub fn is_clean(&self) -> bool {

@@ -124,11 +124,14 @@ pub use query_workflow::{
 pub use rejection_locality::{
     RejectedMutationScopeReport, RejectedMutationScopeRow, TopologyMutationRejectionClass,
 };
-pub(crate) use touched_graph_basis::TopologyTouchedOperatingWorldIdentityDigest;
 pub use touched_graph_basis::{
     topology_operator_touch_descriptor_from_touched_graph_basis, TopologyDeclaredTouchedGraphBasis,
     TopologyDeclaredTouchedGraphBasisProof, TopologyGraphLifecyclePosture, TopologyTouchedAspect,
     TopologyTouchedEntity, TopologyTouchedGraphBasis, TopologyTouchedGraphCounters,
     TopologyTouchedOperatingWorld, TopologyTouchedOperatingWorldPosture, TopologyTouchedRelation,
     TopologyTouchedScope,
+};
+pub(crate) use touched_graph_basis::{
+    topology_touched_graph_basis_from_mutation_sequence,
+    TopologyTouchedOperatingWorldIdentityDigest,
 };

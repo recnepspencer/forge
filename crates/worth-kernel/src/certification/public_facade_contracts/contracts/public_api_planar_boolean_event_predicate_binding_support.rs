@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::{Mutex, OnceLock};
 
 #[path = "public_api_planar_boolean_event_predicate_binding_predicate_cache.rs"]
 mod predicate_cache;
@@ -108,9 +109,8 @@ fn binding_subject_from_projected_operands(
             &mut projection_cache,
         ));
     }
-    let predicate_handle = predicate_handle();
     let predicates =
-        predicate_cache::unique_orientation_predicates_cached(&segment_receipts, &predicate_handle);
+        predicate_cache::unique_orientation_predicates_from_segment_receipts(&segment_receipts);
     let predicate_consumption =
         predicate_consumption_receipt(readiness_scope, segment_receipts.clone(), predicates);
     BindingSubject {
@@ -176,10 +176,8 @@ fn binding_subject_with_alternate_segment_contract_scope(
             )
         })
         .collect();
-    let predicate_handle = predicate_handle();
-    let predicates = predicate_cache::unique_orientation_predicates_cached(
+    let predicates = predicate_cache::unique_orientation_predicates_from_segment_receipts(
         &subject.segment_receipts,
-        &predicate_handle,
     );
     subject.predicate_consumption = predicate_consumption_receipt(
         readiness_scope,
@@ -291,23 +289,44 @@ fn predicate_receipt(
 }
 
 macro_rules! handle {
-    ($name:ident, $domain:expr, $world:expr, $domain_ty:ty, $world_ty:ty) => {
+    ($name:ident, $cache:ident, $domain:expr, $world:expr, $domain_ty:ty, $world_ty:ty) => {
         fn $name(
             world: &'static str,
         ) -> forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<$domain_ty, $world_ty> {
-            ForgeQueryApplicationFacade::runtime_backed_default()
-                .domain($domain)
-                .with_operating_context($world(world))
-                .validate()
-                .expect("validated predicate-binding contract domain")
-                .admit()
-                .expect("admitted predicate-binding contract domain")
+            static $cache: OnceLock<
+                Mutex<
+                    BTreeMap<
+                        &'static str,
+                        forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
+                            $domain_ty,
+                            $world_ty,
+                        >,
+                    >,
+                >,
+            > = OnceLock::new();
+            let mut cache = $cache
+                .get_or_init(|| Mutex::new(BTreeMap::new()))
+                .lock()
+                .expect("predicate-binding handle cache lock");
+            cache
+                .entry(world)
+                .or_insert_with(|| {
+                    ForgeQueryApplicationFacade::runtime_backed_default()
+                        .domain($domain)
+                        .with_operating_context($world(world))
+                        .validate()
+                        .expect("validated predicate-binding contract domain")
+                        .admit()
+                        .expect("admitted predicate-binding contract domain")
+                })
+                .clone()
         }
     };
 }
 
 handle!(
     frame_handle,
+    FRAME_HANDLE_CACHE,
     PlanarLocalFrameCertificateQueryDomain,
     PlanarLocalFrameCertificateQueryWorld::new,
     PlanarLocalFrameCertificateQueryDomain,
@@ -315,6 +334,7 @@ handle!(
 );
 handle!(
     precision_handle,
+    PRECISION_HANDLE_CACHE,
     PlanarPrecisionCertificationQueryDomain,
     PlanarPrecisionCertificationQueryWorld::new,
     PlanarPrecisionCertificationQueryDomain,
@@ -322,6 +342,7 @@ handle!(
 );
 handle!(
     projection_handle,
+    PROJECTION_HANDLE_CACHE,
     ProjectPointToCertifiedPlane2DQueryDomain,
     ProjectPointToCertifiedPlane2DQueryWorld::new,
     ProjectPointToCertifiedPlane2DQueryDomain,
@@ -329,6 +350,7 @@ handle!(
 );
 handle!(
     segment_handle,
+    SEGMENT_HANDLE_CACHE,
     CertifiedSegmentSegment2DQueryDomain,
     CertifiedSegmentSegment2DQueryWorld::new,
     CertifiedSegmentSegment2DQueryDomain,
@@ -336,6 +358,7 @@ handle!(
 );
 handle!(
     predicate_consumption_handle,
+    PREDICATE_CONSUMPTION_HANDLE_CACHE,
     PredicateCertificateConsumptionQueryDomain,
     PredicateCertificateConsumptionQueryWorld::new,
     PredicateCertificateConsumptionQueryDomain,
@@ -346,13 +369,23 @@ fn predicate_handle() -> forge_query::facade::ForgeQueryAdmittedConfiguredDomain
     PlanarPredicateAuthorityQueryDomain,
     PlanarPredicateAuthorityQueryWorld,
 > {
-    ForgeQueryApplicationFacade::runtime_backed_default()
-        .domain(PlanarPredicateAuthorityQueryDomain)
-        .with_operating_context(PlanarPredicateAuthorityQueryWorld::new(
-            "event-predicate-binding",
-        ))
-        .validate()
-        .expect("validated predicate domain")
-        .admit()
-        .expect("admitted predicate domain")
+    static PREDICATE_HANDLE_CACHE: OnceLock<
+        forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
+            PlanarPredicateAuthorityQueryDomain,
+            PlanarPredicateAuthorityQueryWorld,
+        >,
+    > = OnceLock::new();
+    PREDICATE_HANDLE_CACHE
+        .get_or_init(|| {
+            ForgeQueryApplicationFacade::runtime_backed_default()
+                .domain(PlanarPredicateAuthorityQueryDomain)
+                .with_operating_context(PlanarPredicateAuthorityQueryWorld::new(
+                    "event-predicate-binding",
+                ))
+                .validate()
+                .expect("validated predicate domain")
+                .admit()
+                .expect("admitted predicate domain")
+        })
+        .clone()
 }

@@ -30,11 +30,23 @@ impl TopologyDeclaredTouchedGraphBasisProof {
         basis: TopologyTouchedGraphBasis,
     ) -> Result<Self, ForgeQueryGraphTouchDescriptorDenial> {
         let touch_descriptor = topology_operator_touch_descriptor_from_touched_graph_basis(&basis)?;
-        Ok(Self {
+        Ok(Self::from_basis_with_touch_descriptor(
             semantic_family_key,
             basis,
             touch_descriptor,
-        })
+        ))
+    }
+
+    pub(crate) fn from_basis_with_touch_descriptor(
+        semantic_family_key: &'static str,
+        basis: TopologyTouchedGraphBasis,
+        touch_descriptor: ForgeQueryGraphTouchDescriptor,
+    ) -> Self {
+        Self {
+            semantic_family_key,
+            basis,
+            touch_descriptor,
+        }
     }
 
     pub fn semantic_family_key(&self) -> &'static str {
@@ -51,6 +63,10 @@ impl TopologyDeclaredTouchedGraphBasisProof {
 
     pub const fn counters(&self) -> TopologyTouchedGraphCounters {
         self.basis.counters()
+    }
+
+    pub fn operating_world(&self) -> &TopologyTouchedOperatingWorld {
+        self.basis.operating_world()
     }
 
     pub fn touch_descriptor(&self) -> &ForgeQueryGraphTouchDescriptor {

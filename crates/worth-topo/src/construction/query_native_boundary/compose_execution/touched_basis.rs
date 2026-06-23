@@ -2,8 +2,9 @@ use schema::facade::platform::entities::TopologyEntityKind;
 
 use super::super::admitted_handoff::TopologyPrimitiveConstructionQueryAdmittedHandoff;
 use super::error::TopologyPrimitiveConstructionBirthComposeExecutionError;
+use super::obligation_registration::topology_primitive_construction_birth_touch_descriptor;
 use crate::topology_operators::{
-    TopologyDeclaredMutationSequenceBuilder, TopologyDeclaredTouchedGraphBasis,
+    topology_touched_graph_basis_from_mutation_sequence, TopologyDeclaredMutationSequenceBuilder,
     TopologyDeclaredTouchedGraphBasisProof, TopologyTouchedOperatingWorld,
 };
 
@@ -20,20 +21,26 @@ impl TopologyPrimitiveConstructionBirthDeclaredTouchedBasis {
         handoff: &TopologyPrimitiveConstructionQueryAdmittedHandoff,
     ) -> Result<Self, TopologyPrimitiveConstructionBirthComposeExecutionError> {
         let sequence = primitive_construction_birth_sequence_from_handoff(handoff);
-        let declared = TopologyDeclaredTouchedGraphBasis::from_sequence(
-            PRIMITIVE_CONSTRUCTION_BIRTH_SEMANTIC_FAMILY_KEY,
-            (),
+        let basis = topology_touched_graph_basis_from_mutation_sequence(
             &sequence,
             TopologyTouchedOperatingWorld::mainline(),
-        )
-        .map_err(|denial| {
-            TopologyPrimitiveConstructionBirthComposeExecutionError::TouchedBasisDescriptor {
-                reason: format!("{denial:?}"),
-            }
-        })?;
-        Ok(Self {
-            proof: declared.proof().clone(),
-        })
+        );
+        let touch_descriptor =
+            topology_primitive_construction_birth_touch_descriptor().map_err(|denial| {
+                TopologyPrimitiveConstructionBirthComposeExecutionError::TouchedBasisDescriptor {
+                    reason: format!("{denial:?}"),
+                }
+            })?;
+        let proof = TopologyDeclaredTouchedGraphBasisProof::from_basis_with_touch_descriptor(
+            PRIMITIVE_CONSTRUCTION_BIRTH_SEMANTIC_FAMILY_KEY,
+            basis,
+            touch_descriptor,
+        );
+        Ok(Self { proof })
+    }
+
+    pub fn proof(&self) -> &TopologyDeclaredTouchedGraphBasisProof {
+        &self.proof
     }
 
     pub(crate) fn require_matches_handoff(

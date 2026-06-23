@@ -81,7 +81,7 @@ mod tests {
         assert_eq!(counters.attempted_bucket_lookup_count(), 14);
         assert_eq!(counters.candidate_registration_count(), 1);
         assert_eq!(counters.denied_row_count(), 0);
-        assert_eq!(counters.residue_row_count(), 1);
+        assert_eq!(counters.residue_row_count(), 2);
         assert_eq!(counters.full_scan_count(), 0);
         assert_eq!(counters.witness_resolution_request_count(), 8);
         assert_eq!(counters.denied_witness_count(), 4);

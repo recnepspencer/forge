@@ -1,14 +1,33 @@
 use forge_query::facade::{
     ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphObligationRegistration,
     ForgeQueryGraphObligationRuleIdentity, ForgeQueryGraphObligationSupportLane,
-    ForgeQueryGraphObligationSupportPosture, ForgeQueryGraphTouchSelector,
-    ForgeQueryMutationFamily,
+    ForgeQueryGraphObligationSupportPosture, ForgeQueryGraphTouchDescriptor,
+    ForgeQueryGraphTouchDescriptorDenial, ForgeQueryGraphTouchSelector, ForgeQueryMutationFamily,
 };
 
 pub const TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION: &str =
     "TopologyPrimitiveConstructionBirth";
 pub(crate) const TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_LAYOUT_VIOLATION_COLLECTION: &str =
     "TopologyPrimitiveConstructionBirthLayoutViolation";
+
+pub(super) fn topology_primitive_construction_birth_touch_descriptor(
+) -> Result<ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchDescriptorDenial> {
+    ForgeQueryGraphTouchDescriptor::declared_mutation_collection(
+        TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
+        ForgeQueryMutationFamily::Insert,
+        None,
+        [
+            "set:topology.kind",
+            "set:topology.structure",
+            "set:naming.persistent_name",
+        ],
+        [
+            "topology.kind",
+            "topology.structure",
+            "naming.persistent_name",
+        ],
+    )
+}
 
 pub fn topology_primitive_construction_birth_graph_obligation_registration(
     support_lane: ForgeQueryGraphObligationSupportLane,

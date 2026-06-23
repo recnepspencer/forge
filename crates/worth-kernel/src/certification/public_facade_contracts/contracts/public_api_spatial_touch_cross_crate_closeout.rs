@@ -123,7 +123,7 @@ fn phase10_residue_rejection_keeps_deleted_surfaces_from_reentering_authority() 
 
     let residue =
         spatial_query_graph_obligation_residue_manifest().expect("Query adoption residue manifest");
-    assert_eq!(residue.rows().len(), 1);
+    assert_eq!(residue.rows().len(), 2);
     assert_eq!(
         current_spatial_query_consumer_kit_adoption_status()
             .expect("Query adoption status")

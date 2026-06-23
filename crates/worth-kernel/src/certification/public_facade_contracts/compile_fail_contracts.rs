@@ -59,6 +59,69 @@ const WORTH_GRAPH_AUTHORITY_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/worth_graph_authority/closeout_matrix_row_fields_private.rs",
 ];
 
+const QUERY_OBLIGATION_SELECTION_FIXTURES: &[&str] = &[
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/internal_authority/from_authority_parts_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/internal_authority/with_spatial_descriptor_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/internal_authority/raw_selection_input_fields_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/internal_authority/selected_obligations_constructor_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/internal_authority/in_memory_proof_cannot_build_selected_obligations.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/internal_authority/local_ceremony_audit_cannot_build_selected_obligations.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/internal_authority/residue_manifest_cannot_build_selected_obligations.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/spatial_substitution/spatial_raw_row_cannot_select_query_obligations.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/spatial_substitution/spatial_lookup_product_cannot_select_without_authority.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/spatial_substitution/spatial_query_descriptor_fields_cannot_be_copied.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/spatial_substitution/topology_touched_basis_cannot_select_spatial_obligations.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/public_facade/public_request_fields_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/public_facade/public_selected_closeout_fields_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/public_facade/public_selected_status_fields_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/public_facade/public_selected_status_from_selected_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/public_facade/public_workload_rejects_raw_string_selection.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/public_facade/public_workload_rejects_copied_count_selection.rs",
+    "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/public_facade/public_workload_rejects_lookup_product_selection.rs",
+];
+
+const QUERY_OBLIGATION_SELECTION_SPATIAL_EXPECTED_ERRORS: &[(&str, &str)] = &[
+    (
+        "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/spatial_substitution/spatial_raw_row_cannot_select_query_obligations.rs",
+        "expected `QueryObligationSelectionInput`",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/spatial_substitution/spatial_lookup_product_cannot_select_without_authority.rs",
+        "expected `QueryObligationSelectionInput`",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/spatial_substitution/spatial_query_descriptor_fields_cannot_be_copied.rs",
+        "private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/spatial_substitution/topology_touched_basis_cannot_select_spatial_obligations.rs",
+        "expected `&SpatialEvidenceQueryTouchDescriptor`",
+    ),
+];
+
+const QUERY_OBLIGATION_SELECTION_AUTHORITY_EXPECTED_ERRORS: &[(&str, &str)] = &[
+    (
+        "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/internal_authority/selected_obligations_constructor_private.rs",
+        "associated function `from_query_proof` is private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/internal_authority/in_memory_proof_cannot_build_selected_obligations.rs",
+        "associated function `from_query_proof` is private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/internal_authority/local_ceremony_audit_cannot_build_selected_obligations.rs",
+        "associated function `from_query_proof` is private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/internal_authority/residue_manifest_cannot_build_selected_obligations.rs",
+        "associated function `from_query_proof` is private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/query_obligation_selection/public_facade/public_selected_status_from_selected_private.rs",
+        "associated function `from_selected` is private",
+    ),
+];
+
 const COMPILE_FAIL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_prepare_helpers_demoted.rs",
@@ -203,6 +266,23 @@ fn kernel_public_boundary_rejects_worth_graph_authority_gate_forgery() {
         )
     {
         assert_compile_fail_fixture(guard.planned_compile_fail_path());
+    }
+}
+
+#[test]
+fn kernel_public_boundary_rejects_query_obligation_selection_forgery() {
+    for fixture in QUERY_OBLIGATION_SELECTION_FIXTURES {
+        assert_compile_fail_fixture(fixture);
+    }
+    for (fixture, expected_stderr) in QUERY_OBLIGATION_SELECTION_AUTHORITY_EXPECTED_ERRORS {
+        assert_compile_fail_fixture_with_stderr(fixture, expected_stderr);
+    }
+}
+
+#[test]
+fn kernel_public_boundary_rejects_spatial_query_obligation_substitution_for_expected_reasons() {
+    for (fixture, expected_stderr) in QUERY_OBLIGATION_SELECTION_SPATIAL_EXPECTED_ERRORS {
+        assert_compile_fail_fixture_with_stderr(fixture, expected_stderr);
     }
 }
 

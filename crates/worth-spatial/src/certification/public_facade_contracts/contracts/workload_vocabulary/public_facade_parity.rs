@@ -171,6 +171,6 @@ fn public_facade_accessors_match_internal_spatial_touch_query_and_residue_produc
             status.residue_row_count(),
             proof.residue_manifest().rows().len()
         );
-        assert_eq!(status.residue_row_count(), 1);
+        assert_eq!(status.residue_row_count(), 2);
     });
 }

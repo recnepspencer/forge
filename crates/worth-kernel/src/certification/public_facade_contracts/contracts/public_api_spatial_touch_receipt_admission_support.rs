@@ -245,7 +245,7 @@ pub(crate) fn assert_split_replay_preserves_cross_crate_spatial_query_handoff() 
             .execution_proof()
             .has_real_executor_rows()
     );
-    assert_eq!(residue_manifest.rows().len(), 1);
+    assert_eq!(residue_manifest.rows().len(), 2);
 }
 
 fn completed_workload_with_boolean_receipt<T>(

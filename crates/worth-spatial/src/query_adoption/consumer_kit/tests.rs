@@ -27,7 +27,16 @@ fn adoption_proof_uses_query_consumer_kit_execution_authority() {
         proof.local_ceremony_audit().evaluated_source_count(),
         expected_local_ceremony_source_labels().len()
     );
-    assert_eq!(proof.residue_manifest().rows().len(), 1);
+    assert_eq!(
+        proof.local_ceremony_audit().audited_source_labels(),
+        expected_local_ceremony_source_labels()
+    );
+    assert_eq!(proof.residue_manifest().rows().len(), 2);
+    assert!(proof
+        .residue_manifest()
+        .rows()
+        .iter()
+        .any(|row| row.class() == "worth-spatial-broad-collection-selector"));
     assert_eq!(proof.execution_proof().selected_obligation_count(), 1);
     assert_eq!(proof.execution_proof().rows().len(), 1);
     assert!(!proof.manifest().manifest_digest().is_empty());
@@ -176,7 +185,7 @@ fn spatial_public_status_exposes_execution_backed_adoption_status() {
     assert_eq!(status.candidate_registration_count(), 1);
     assert_eq!(status.denied_row_count(), 0);
     assert_eq!(status.full_scan_count(), 0);
-    assert_eq!(status.residue_row_count(), 1);
+    assert_eq!(status.residue_row_count(), 2);
     assert!(!status.adoption_manifest_digest().is_empty());
     assert!(!status.execution_proof_digest().is_empty());
     assert!(!status.evidence_report_identity().is_empty());
@@ -202,6 +211,10 @@ fn local_ceremony_audit_covers_real_worth_spatial_sources() {
     assert_eq!(
         audit.evaluated_source_count(),
         expected_local_ceremony_source_labels().len()
+    );
+    assert_eq!(
+        audit.audited_source_labels(),
+        expected_local_ceremony_source_labels()
     );
 }
 
@@ -246,6 +259,13 @@ fn hard_break_deletes_local_reports_and_caps_remaining_support_projection_residu
         .expect("support projection residue row");
     assert_eq!(support_projection.owner(), "worth-spatial");
     assert_eq!(support_projection.current_count(), 1);
+    let broad_selector = residue
+        .rows()
+        .iter()
+        .find(|row| row.class() == "worth-spatial-broad-collection-selector")
+        .expect("broad selector residue row");
+    assert_eq!(broad_selector.owner(), "worth-spatial");
+    assert_eq!(broad_selector.current_count(), 1);
 
     let inventory = spatial_query_adoption_inventory();
     assert!(inventory.iter().any(|row| {

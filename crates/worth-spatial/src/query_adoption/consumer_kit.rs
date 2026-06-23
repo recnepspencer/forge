@@ -261,6 +261,17 @@ pub fn spatial_query_graph_obligation_residue_manifest(
 ) -> Result<ForgeQueryGraphObligationResidueManifest, WorthSpatialQueryConsumerKitAdoptionError> {
     ForgeQueryGraphObligationResidueManifest::capped([
         ForgeQueryGraphObligationResidueRow::explicit(
+            "worth-spatial-broad-collection-selector",
+            "worth-spatial",
+            "touched-graph-milestone-5-phase-5",
+            1,
+            1,
+            "spatial graph obligation adoption still registers a broad collection selector because Query cannot yet express the spatial lookup product as a declared mutation selector",
+            "replace the collection selector with a Query-owned spatial lookup-product selector or declared mutation selector expression",
+            "capped broad selector residue; it may select only beside Query counters and typed selector expressiveness gaps",
+        )
+        .map_err(WorthSpatialQueryConsumerKitAdoptionError::QueryConsumerKit)?,
+        ForgeQueryGraphObligationResidueRow::explicit(
             "worth-spatial-runtime-facade-support-projection",
             "worth-spatial",
             "touched-graph-milestone-4-phase-8",

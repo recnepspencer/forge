@@ -73,6 +73,10 @@ impl PrimitiveConstructionGraphObligationExecutionMatrixRow {
         &self.rule_identity_digest
     }
 
+    pub(crate) fn execution_budget_digest(&self) -> &str {
+        &self.execution_budget_digest
+    }
+
     pub(crate) fn obligation_kind(&self) -> ForgeQueryGraphObligationKind {
         self.obligation_kind
     }
@@ -140,7 +144,7 @@ fn execute_primitive_family_graph_obligation_case(
     family: PrimitiveConstructionFamily,
     label: &str,
 ) -> PrimitiveConstructionGraphObligationExecutionMatrixRow {
-    let intent = representative_intent(family);
+    let intent = representative_primitive_construction_intent(family);
     let result = execute_primitive_family_result_with_compose_evidence(&intent, label);
     let evidence = result.topology_compose_evidence();
     let outcome_digest = execute_primitive_family_outcome_evidence_digest(intent, label);
@@ -207,7 +211,9 @@ fn primitive_family_execution_matrix_row_from_evidence(
     }
 }
 
-fn representative_intent(family: PrimitiveConstructionFamily) -> PrimitiveConstructionIntent {
+pub(super) fn representative_primitive_construction_intent(
+    family: PrimitiveConstructionFamily,
+) -> PrimitiveConstructionIntent {
     match family {
         PrimitiveConstructionFamily::SimplexSolid => {
             PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(1.25))
