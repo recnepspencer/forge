@@ -3,10 +3,13 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[path = "contracts/graph_read_access_inventory/fixture_catalog.rs"]
+mod graph_read_access_inventory_contracts;
 #[allow(dead_code)]
 #[path = "contracts/public_api_planar_boolean_loop_reconstruction_guard_coverage.rs"]
 mod loop_reconstruction_guard_coverage;
 
+use graph_read_access_inventory_contracts::graph_read_access_inventory_expected_compile_fail_fixtures;
 use loop_reconstruction_guard_coverage::loop_reconstruction_compile_fail_fixtures;
 
 const PLANAR_BOOLEAN_ENTRY_BASIS_KERNEL_SUMMARY_FIXTURE: &str =
@@ -266,6 +269,13 @@ fn kernel_public_boundary_rejects_worth_graph_authority_gate_forgery() {
         )
     {
         assert_compile_fail_fixture(guard.planned_compile_fail_path());
+    }
+}
+
+#[test]
+fn kernel_public_boundary_rejects_graph_read_access_inventory_forgery() {
+    for (fixture, expected_stderr) in graph_read_access_inventory_expected_compile_fail_fixtures() {
+        assert_compile_fail_fixture_with_stderr(fixture, expected_stderr);
     }
 }
 

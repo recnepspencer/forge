@@ -1,4 +1,5 @@
 mod public_api_construction_branch_preview;
+mod public_api_graph_read_access_inventory_milestone_six_closeout;
 mod public_api_planar_boolean_7_0_closeout;
 mod public_api_planar_boolean_canonical_segments;
 mod public_api_planar_boolean_collinear_relations;

@@ -68,6 +68,85 @@ typed touched graph product, the roadmap has failed.
   copied-row admission, and type-name guards are hostile until proven
   non-authoritative. The default action is deletion and caller cleanup.
 
+## Migration Execution Law
+
+Every broad touched-graph cleanup must use a parallel migration plus hard
+deletion shape unless the milestone spec names a narrower exception.
+
+The required pattern is:
+
+1. inventory the old authority surface and classify every row as migrate,
+   delete, cap, or Query-gap
+2. build a responsibility-named parallel folder or product lane beside the old
+   code
+3. migrate one vertical product slice until the new lane proves parity or
+   stronger authority
+4. cut public callers to the new lane through sealed proof products
+5. delete the old lane, or cap residue with owner, count, blocker, and removal
+   trigger
+6. add hard-break compile-fail, source-firewall, and closeout tests so the old
+   lane cannot be silently revived
+
+In-place refactoring is not the default strategy. It is allowed only for small
+mechanical edits inside the new lane or when a spec explicitly proves that
+parallel ownership would create a false authority boundary. Slow conversion
+adapters, compatibility shims, and "temporarily keep both paths" bridges are
+hostile until the spec gives them a cap, owner, blocker, and deletion trigger.
+
+Each milestone spec must therefore plan:
+
+- the old folders and public surfaces being displaced
+- the new parallel folder/product lane
+- the first migrated vertical slice
+- the cutover proof
+- the hard deletion or capped residue closeout
+- the firewall that prevents reintroduction
+
+If a milestone does not delete, cap, or Query-gap the old path it touches, it
+has not closed.
+
+## Declare-Once Routing Target
+
+The final architecture is not "run smaller local checks." It is:
+
+```text
+domain/operator declares touched graph authority once
+registered catalogs declare applicability and requirements once
+runtime routing intersects touched graph facts with registered catalogs
+matching read plans, validators, invariants, invalidation, evidence lookup,
+replay, undo, conflict, cache, diagnostics, and public proof apply automatically
+```
+
+Operator code may produce touched authority. It may not carry manual read-plan
+lists, validator arrays, invariant packs, dirty lists, evidence lookup lists,
+replay scopes, conflict predicates, cache keys, or diagnostic choreographies.
+
+Later milestones must treat each category as a registered catalog consumed by
+touched graph routing:
+
+- graph-read families declare access shape, selectivity posture, required
+  capabilities, and receipt requirements
+- validator and invariant families declare touched-closure applicability,
+  required entity/relation/aspect classes, required graph-read posture,
+  enforcement phase, violation/advisory witness, and diagnostic projection
+- derived products declare consumed graph facts, consumed spatial evidence,
+  invalidation predicate, and rebuild/update posture
+- evidence lookup families declare spatial touch authority, topology touch
+  identity, stage/receipt identity, and lookup product posture
+- replay and undo families declare scope derivation from touched proof and
+  effect receipts
+- conflict and batch families declare overlap/independence predicates over
+  touched closures before execution
+- cache and equivalence families declare source authority digest, touched
+  digest, invariant set, evidence set, stage, and equivalence policy
+- diagnostics declare exact touched facts, registered family, selected
+  obligation, witness, and denial or advisory posture
+
+Adding a new registered family once must make it apply to every matching
+operator or stage without editing those operators. If that is not true by
+Milestone 16, the roadmap has produced scoped refactoring rather than the
+declarative touched-graph architecture.
+
 ## Why This Needs Its Own Roadmap
 
 Touched graph authority is not one refactor. It is a sequence of authority
@@ -293,10 +372,15 @@ Done when:
 
 ## Milestone 6: Worth Graph-Read Access Inventory And Hard Break
 
+Spec:
+[touched-graph-milestone-6-graph-read-access-inventory-hard-break.md](./touched-graph-milestone-6-graph-read-access-inventory-hard-break.md)
+
 Freeze every Worth graph-read access surface that still teaches local graph
 folklore after Query `9.10` exists.
 
 Closes:
+- a parallel responsibility-named graph-read access inventory lane built beside
+  old Worth graph-read adoption scaffolding before public closeout cuts over
 - typed inventory rows for covered topology, spatial, kernel, and test graph
   reads that use relation loops, per-result neighbor lookup, ad hoc adjacency
   maps, local graph caches, broad boolean scans, local support rows, or
@@ -317,6 +401,8 @@ Done when:
   required-capability work, or deleted local folklore
 - no local support row, helper wrapper, or fixture receipt can be mistaken for
   Query access authority
+- old `query_adoption/graph_read_access` authority is deleted or mechanically
+  capped so future milestones cannot keep building on the old lane
 
 ## Milestone 7: Touched Authority To Query Access Declarations
 
@@ -327,9 +413,13 @@ capability rows.
 Closes:
 - topology closure and spatial touch authority lower into covered Query
   graph-read declarations before any covered read executes
+- graph-read families become a registered declaration catalog keyed by touched
+  authority, not per-operator read-plan code
 - domain graph-read operations needed by Worth declare operation resolution,
   access shape, selectivity posture, requirement rows, basis, policy, tenant,
   and relationship-proof posture through Query-owned vocabulary
+- registered read families declare access shape, selectivity posture, required
+  capability rows, required receipt posture, and Query-gap posture once
 - missing Query expressiveness becomes typed Query-gap or required-capability
   posture, not a local Worth traversal adapter
 - declaration construction is sealed so raw ids, strings, mutation rows, local
@@ -339,6 +429,10 @@ Closes:
 Done when:
 - every covered touched graph read has either a Query declaration path or a
   typed gap with owner, cap, and deletion trigger
+- one registered read family applies to multiple matching touched authorities
+  without editing those operators or stages
+- no operator-local read plan, helper-local neighbor traversal, declaration
+  shim, or Worth-owned access requirement mirror remains on a covered path
 - access requirements are derived by Query from admitted declarations, not
   hand-written in Worth
 - broad boolean graph predicates and dense frontier reads reach Query posture
@@ -354,6 +448,8 @@ plans, typed postures, counters, and receipts.
 Closes:
 - covered topology, spatial, and kernel graph reads execute only through
   admitted Query graph-read access plans or typed Query postures
+- access-plan routing consumes the registered read-family catalog from
+  Milestone 7 instead of operator-local execution hints
 - access posture rows distinguish inline indexed, bounded ephemeral, admitted
   paged streaming, persistent-index-required, async-materialization-required,
   store-backed-required, access-capability-registration-required, and denial
@@ -367,93 +463,129 @@ Closes:
 Done when:
 - covered Worth graph reads consume admitted Query access plans or fail with a
   typed Query denial/required posture before expensive edge traversal starts
+- operators cannot opt into access plans manually; touched authority plus
+  registered read-family applicability selects the plan or denial
 - access-plan receipts are available to later validator, invalidation, evidence,
   replay, conflict, cache, public proof, and diagnostic milestones
 - no covered lane performs caller-owned N+1 work, hidden broad scans, unbounded
   background indexing, or fabricated execution proof
 - deletion manifests and closeout tests prove migrated local folklore is gone
 
-## Milestone 9: Validator And Invariant Derivation
+## Milestone 9: Validator And Invariant Catalog Routing
 
-Freeze topology validator and invariant selection as a derived consequence of
-touched graph closure.
+Freeze topology validator and invariant selection as registered catalogs routed
+by touched graph closure.
 
 Closes:
-- validator family predicates over touched closure
+- validator and invariant family catalogs with touched-closure applicability
+  predicates
+- required entity, relation, aspect, scope, lifecycle, and authority classes
+  for each family
+- required graph-read/access posture for each family before enforcement
+- enforcement phase, violation/advisory witness, and diagnostic projection for
+  each family
 - deletion or collapse of static milestone-one invariant packs
 - whole-view validation restricted to certification or named residue
 
 Done when:
-- operator-local legality consumes touched graph closure
+- operator-local legality consumes touched graph closure and registered
+  families, not manual validator lists
+- adding one validator or invariant family once applies to multiple matching
+  operators without editing those operators
 - global validator packs cannot satisfy ordinary operator closeout
 - adding a validator family without a touched predicate fails certification
+- operator-local validator arrays, expectation arrays, and "remember to run"
+  invariant hooks fail certification or source-firewall tests
 
 ## Milestone 10: Derived Invalidation And Dirty Propagation
 
-Freeze derived topology invalidation as a plan derived from touched graph
-closure.
+Freeze derived topology invalidation as registered derived-product contracts
+routed by touched graph closure.
 
 Closes:
 - direct versus closure-expanded touch propagation
-- invalidation contracts for derived products
+- derived product catalogs declaring consumed graph facts, consumed spatial
+  evidence, invalidation predicate, rebuild/update posture, and diagnostics
 - counters proving invalidation breadth equals closure breadth
+- deletion of operator-authored dirty lists and hidden projection expansion
 
 Done when:
 - ordinary local operators do not rebuild all derived topology
+- ordinary local operators do not author dirty lists except as touched facts
 - projection rebuild code does not hide dirty expansion
 - derived products without invalidation contracts cannot be consumed
+- adding a derived product invalidation contract once makes every matching
+  touched closure route to it without editing operators
 
 ## Milestone 11: Evidence Lookup And Boolean Stage Indexing
 
-Freeze spatial and boolean evidence lookup around spatial touch authority and
-related topology touched graph identity.
+Freeze spatial and boolean evidence lookup as registered lookup families over
+spatial touch authority and related topology touched graph identity.
 
 Closes:
 - spatial touch authority keyed lookup products
+- lookup family catalog entries for spatial touch authority, topology touch
+  identity, stage/receipt identity, and lookup product posture
 - stage and receipt digest lookup identity
 - deletion of raw evidence vectors and broad stage scans
 
 Done when:
 - wrong spatial touch digest or mismatched topology digest cannot satisfy lookup
+- boolean and spatial stages cannot call "find nearby evidence" loops outside
+  registered lookup products
 - raw evidence vectors cannot act as public lookup products
 - Query descriptors and evidence lookup products cannot satisfy each other
+- adding one lookup family once applies to every matching stage/touch authority
+  without stage-local lookup wiring
 
 ## Milestone 12: Replay, Undo, And Transaction Scope
 
-Freeze replay and undo boundaries as consumers of touched graph proof.
+Freeze replay and undo boundaries as registered scope derivations from touched
+graph proof and effect receipts.
 
 Closes:
-- replay scope from touched graph closure
+- replay scope derivation from touched graph closure
 - minimal reversible graph patch or named undo residue
 - transaction boundaries exposing touched graph digest, validators,
   invalidation, and evidence receipts
+- undo-family catalog entries declaring scope, effect receipt requirements, and
+  rollback denial posture
 
 Done when:
 - replay does not re-run global topology to prove local edits
 - rollback does not re-query authority already captured by proof products
 - hidden mutation outside undo scope fails closeout
+- replay and undo cannot rediscover scope from operator folklore, command
+  names, global topology scans, or post-hoc readbacks
 
 ## Milestone 13: Conflict, Independence, And Batch Admission
 
-Freeze independence proof and conflict denial as touched graph products.
+Freeze independence proof and conflict denial as registered overlap contracts
+over touched graph products.
 
 Closes:
-- disjointness and compatible aspect-level overlap proof
+- disjointness and compatible aspect-level overlap proof over touched closures
 - conflict classes for entity, relation, aspect, closure, evidence, validators
 - batch admission before execution
+- batch-family catalog entries declaring compatible overlap, denied overlap,
+  serialization posture, and diagnostic witness
 
 Done when:
 - conflict detection is structural, not speculative lock-first execution
 - disjoint operations batch-admit with separate proof products
 - closure conflicts deny or serialize with named reasons
+- no covered path uses "try it and see if conflict happens" execution as the
+  ordinary conflict detector
 
 ## Milestone 14: Cache, Equivalence, And Reuse Contracts
 
-Freeze reuse as a touched graph equivalence claim.
+Freeze reuse as registered touched graph equivalence contracts.
 
 Closes:
 - cache keys over touched digest, source authority digest, stage, equivalence
   policy, validator set, and evidence set
+- equivalence-family catalog entries declaring source authority digest, touched
+  digest, invariant set, evidence set, stage, comparator, and reuse posture
 - separation of geometry-only and topology-touch equivalence
 - public denial of cache proof forgery
 
@@ -462,6 +594,8 @@ Done when:
   justify reuse
 - benign ordering noise preserves equivalence identity
 - different touched closures deny reuse
+- adding an equivalence family once enables reuse for every matching product
+  without operator-local cache-key code
 
 ## Milestone 15: Public API, Diagnostics, And Explainers
 
@@ -472,12 +606,17 @@ Closes:
 - read-only public proof/status APIs
 - selected obligation, validator, invalidation, evidence, conflict, and denial
   diagnostics
+- diagnostics that identify the exact touched facts, registered family,
+  selected obligation, access receipt, witness, and denial/advisory posture
 - compile-fail fences against raw constructors and local ceremony
 
 Done when:
 - public callers can inspect proof/status but cannot construct authority
 - diagnostics localize rejection to exact touched graph facts or Query gaps
 - public APIs do not expose support pins, raw rows, or proof helpers
+- public diagnostics explain why routing selected a read family, validator,
+  invariant, invalidation product, evidence lookup, replay scope, conflict
+  class, or cache/equivalence result
 
 ## Milestone 16: Cross-Crate Closeout And 7.5 Readiness
 
@@ -486,12 +625,23 @@ authority or is explicitly deleted, capped residue, or Query-gap.
 
 Closes:
 - cross-category closeout matrix
+- declare-once routing proof across read families, validators, invariants,
+  invalidation, evidence lookup, replay, undo, conflict, cache, diagnostics,
+  and public proof
 - hard-break reintroduction tests
 - line-cap and composition proof
 - documentation consistency with certified counts
 
 Done when:
 - `Milestone 7.5` can consume touched graph proof for overlap extraction
+- one new representative registered read family, validator/invariant family,
+  invalidation family, evidence lookup family, replay/undo family, conflict
+  family, cache/equivalence family, and diagnostic family can each be declared
+  once and apply to multiple matching operators or stages without editing those
+  operators or stages
+- no operator names validator lists, invariant lists, dirty lists, evidence
+  lookup lists, replay scopes, conflict predicates, cache keys, or diagnostic
+  choreography on covered paths
 - no slow-conversion adapter remains in production without cap and removal
   trigger
 - certified closeout counts match the roadmap and implementation state
@@ -502,6 +652,13 @@ Each touched graph milestone should have its own runner state file and closeout
 boundary. A runner may finish the current `Milestone 3` in the old state file,
 but it should stop before starting `Milestone 4` so the remaining work can be
 split into standalone milestone specs.
+
+Each runner plan must follow the Migration Execution Law. It must name the
+parallel folder/product lane, the old lane being displaced, the cutover proof,
+and the hard deletion or capped-residue closeout before implementation starts.
+The runner should treat in-place refactoring, compatibility adapters, and
+slow-conversion bridges as QA findings unless the milestone spec already
+approved them with an owner, cap, blocker, and deletion trigger.
 
 Runner escalation policy:
 - pause and report after 10 attempts in one milestone
@@ -520,7 +677,15 @@ The touched graph roadmap is complete only when:
   touched authority into Query graph-read declarations, and execute only
   through admitted Query access plans or typed Query postures
 - validators, invariants, invalidation, evidence lookup, replay, undo,
-  conflict, cache, public proof, and diagnostics derive from those products
+  conflict, cache, public proof, and diagnostics are registered once and routed
+  automatically from touched graph products
+- adding a representative read family, validator/invariant family,
+  invalidation family, evidence lookup family, replay/undo family, conflict
+  family, cache/equivalence family, or diagnostic family once applies to
+  multiple matching operators or stages without editing them
+- covered operators do not carry manual read plans, validator arrays, invariant
+  packs, dirty lists, evidence lookup lists, replay scopes, conflict
+  predicates, cache keys, or diagnostic choreography
 - old static/global paths are deleted or mechanically sealed as residue
 - `Milestone 7.5` starts from touched graph authority rather than local
   validator, evidence, dirty-region, replay, or diagnostic rules

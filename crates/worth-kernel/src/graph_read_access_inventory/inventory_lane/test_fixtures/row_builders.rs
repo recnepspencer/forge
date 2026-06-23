@@ -1,0 +1,152 @@
+use super::super::{
+    WorthGraphReadAccessClassification, WorthGraphReadAccessCostPosture,
+    WorthGraphReadAccessDeletionAction, WorthGraphReadAccessInventoryRow,
+    WorthGraphReadAccessInventoryRowBuilder, WorthGraphReadAccessMilestoneSevenDisposition,
+    WorthGraphReadAccessOutOfScopeReason, WorthGraphReadAccessOwner,
+};
+use super::residue_rows::capped_residue_row;
+use super::scope_bindings::{
+    certification_scope, declaration_scope, deleted_source_scope, out_of_scope_binding,
+    spatial_scope,
+};
+
+pub(super) fn declaration_candidate_row() -> WorthGraphReadAccessInventoryRowBuilder {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path("crates/worth-topo/src/projection/read_views/domain")
+        .owner(WorthGraphReadAccessOwner::WorthTopo)
+        .current_caller("TopologyReadGraphAccessProof")
+        .classification(WorthGraphReadAccessClassification::QueryDeclarationCandidate)
+        .cost_posture(WorthGraphReadAccessCostPosture::PerResultNeighborLookup)
+        .deletion_action(WorthGraphReadAccessDeletionAction::MigrateToQueryDeclaration)
+        .milestone_seven_disposition(
+            WorthGraphReadAccessMilestoneSevenDisposition::DeclarationCandidate,
+        )
+        .scope_binding(declaration_scope())
+}
+
+pub(super) fn declaration_candidate_row_without_owner() -> WorthGraphReadAccessInventoryRowBuilder {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path("crates/worth-topo/src/projection/read_views/domain")
+        .current_caller("TopologyReadGraphAccessProof")
+        .classification(WorthGraphReadAccessClassification::QueryDeclarationCandidate)
+        .cost_posture(WorthGraphReadAccessCostPosture::PerResultNeighborLookup)
+        .deletion_action(WorthGraphReadAccessDeletionAction::MigrateToQueryDeclaration)
+        .milestone_seven_disposition(
+            WorthGraphReadAccessMilestoneSevenDisposition::DeclarationCandidate,
+        )
+        .scope_binding(declaration_scope())
+}
+
+pub(super) fn declaration_candidate_row_without_cost_posture(
+) -> WorthGraphReadAccessInventoryRowBuilder {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path("crates/worth-topo/src/projection/read_views/domain")
+        .owner(WorthGraphReadAccessOwner::WorthTopo)
+        .current_caller("TopologyReadGraphAccessProof")
+        .classification(WorthGraphReadAccessClassification::QueryDeclarationCandidate)
+        .deletion_action(WorthGraphReadAccessDeletionAction::MigrateToQueryDeclaration)
+        .milestone_seven_disposition(
+            WorthGraphReadAccessMilestoneSevenDisposition::DeclarationCandidate,
+        )
+        .scope_binding(declaration_scope())
+}
+
+pub(super) fn declaration_candidate_row_without_deletion_action(
+) -> WorthGraphReadAccessInventoryRowBuilder {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path("crates/worth-topo/src/projection/read_views/domain")
+        .owner(WorthGraphReadAccessOwner::WorthTopo)
+        .current_caller("TopologyReadGraphAccessProof")
+        .classification(WorthGraphReadAccessClassification::QueryDeclarationCandidate)
+        .cost_posture(WorthGraphReadAccessCostPosture::PerResultNeighborLookup)
+        .milestone_seven_disposition(
+            WorthGraphReadAccessMilestoneSevenDisposition::DeclarationCandidate,
+        )
+        .scope_binding(declaration_scope())
+}
+
+pub(super) fn declaration_candidate_row_without_disposition(
+) -> WorthGraphReadAccessInventoryRowBuilder {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path("crates/worth-topo/src/projection/read_views/domain")
+        .owner(WorthGraphReadAccessOwner::WorthTopo)
+        .current_caller("TopologyReadGraphAccessProof")
+        .classification(WorthGraphReadAccessClassification::QueryDeclarationCandidate)
+        .cost_posture(WorthGraphReadAccessCostPosture::PerResultNeighborLookup)
+        .deletion_action(WorthGraphReadAccessDeletionAction::MigrateToQueryDeclaration)
+        .scope_binding(declaration_scope())
+}
+
+pub(super) fn deletion_target_row() -> WorthGraphReadAccessInventoryRowBuilder {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path("crates/worth-kernel/src/query_adoption/graph_read_access")
+        .owner(WorthGraphReadAccessOwner::WorthKernel)
+        .current_caller("deleted graph-read adoption scaffolding")
+        .classification(WorthGraphReadAccessClassification::DeletionTarget)
+        .cost_posture(WorthGraphReadAccessCostPosture::FabricatedReceiptOrSupportRow)
+        .deletion_action(WorthGraphReadAccessDeletionAction::DeleteAfterConsumerCutover)
+        .milestone_seven_disposition(WorthGraphReadAccessMilestoneSevenDisposition::DeletionOnly)
+        .scope_binding(deleted_source_scope(
+            "crates/worth-kernel/src/query_adoption/graph_read_access",
+        ))
+}
+
+pub(super) fn capped_residue_inventory_row() -> WorthGraphReadAccessInventoryRowBuilder {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path("crates/worth-kernel/src/query_adoption/graph_read_access")
+        .owner(WorthGraphReadAccessOwner::WorthKernel)
+        .current_caller("deleted graph-read adoption scaffolding")
+        .classification(WorthGraphReadAccessClassification::CappedResidue)
+        .cost_posture(WorthGraphReadAccessCostPosture::FabricatedReceiptOrSupportRow)
+        .deletion_action(WorthGraphReadAccessDeletionAction::CapUntilQueryCapabilityExists)
+        .milestone_seven_disposition(WorthGraphReadAccessMilestoneSevenDisposition::CapabilityGap)
+        .scope_binding(deleted_source_scope(
+            "crates/worth-kernel/src/query_adoption/graph_read_access",
+        ))
+        .capped_residue(capped_residue_row().build().unwrap())
+}
+
+pub(super) fn certification_only_row() -> WorthGraphReadAccessInventoryRowBuilder {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path("crates/worth-topo/src/projection/read_views/domain/read_proof")
+        .owner(WorthGraphReadAccessOwner::WorthTopo)
+        .current_caller("TopologyReadGraphAccessProof")
+        .classification(WorthGraphReadAccessClassification::CertificationOnlySupport)
+        .cost_posture(WorthGraphReadAccessCostPosture::BoundedTouchedRegion)
+        .deletion_action(WorthGraphReadAccessDeletionAction::KeepCertificationOnly)
+        .milestone_seven_disposition(
+            WorthGraphReadAccessMilestoneSevenDisposition::CertificationOnly,
+        )
+        .scope_binding(certification_scope(
+            "crates/worth-topo/src/projection/read_views/domain/read_proof",
+        ))
+}
+
+pub(super) fn capability_gap_row() -> WorthGraphReadAccessInventoryRowBuilder {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path("crates/worth-spatial/src/workload_platform/planar_boolean_events")
+        .owner(WorthGraphReadAccessOwner::WorthSpatial)
+        .current_caller("PlanarBooleanFragmentContinuationIndex")
+        .classification(WorthGraphReadAccessClassification::QueryAccessCapabilityGap)
+        .cost_posture(WorthGraphReadAccessCostPosture::FrontierOrVisitedSet)
+        .deletion_action(WorthGraphReadAccessDeletionAction::CapUntilQueryCapabilityExists)
+        .milestone_seven_disposition(WorthGraphReadAccessMilestoneSevenDisposition::CapabilityGap)
+        .scope_binding(spatial_scope(
+            "crates/worth-spatial/src/workload_platform/planar_boolean_events",
+        ))
+}
+
+pub(super) fn out_of_scope_row() -> WorthGraphReadAccessInventoryRowBuilder {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path("crates/worth-kernel/src/docs_closeout")
+        .owner(WorthGraphReadAccessOwner::WorthKernel)
+        .current_caller("docs closeout")
+        .classification(WorthGraphReadAccessClassification::OutOfScopeNonGraphRead)
+        .cost_posture(WorthGraphReadAccessCostPosture::NoGraphTraversal)
+        .deletion_action(WorthGraphReadAccessDeletionAction::OutOfScopeNoGraphRead)
+        .milestone_seven_disposition(WorthGraphReadAccessMilestoneSevenDisposition::OutOfScope)
+        .out_of_scope_reason(WorthGraphReadAccessOutOfScopeReason::NonGraphReadCloseout)
+        .scope_binding(out_of_scope_binding(
+            "crates/worth-kernel/src/docs_closeout",
+        ))
+}
