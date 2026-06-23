@@ -194,8 +194,10 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         for command in &commands {
             self.runtime.backend.admit_preview_write_command(command)?;
         }
-        let mut symbolic_targets =
-            BTreeMap::<String, (ForgeQueryEntityIdentity, Option<String>)>::new();
+        let mut symbolic_targets = BTreeMap::<
+            ForgeQuerySameBatchSymbolicTargetKey,
+            ForgeQuerySameBatchSymbolicTarget,
+        >::new();
         let mut receipts = Vec::with_capacity(commands.len());
         for command in commands {
             let symbolic_target_reference = command.symbolic_target_reference().cloned();
@@ -207,10 +209,10 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     naming_intent,
                     continuity_intent,
                 } => {
-                    let (resolved_entity_identity, resolved_collection) =
+                    let resolved_target =
                         resolve_preview_symbolic_target(&symbolic_targets, reference)?;
                     let concrete = ForgeQueryWriteCommand::UpdateAspects {
-                        entity_identity: resolved_entity_identity.clone(),
+                        entity_identity: resolved_target.entity_identity().clone(),
                         aspects: aspects.clone(),
                         metadata: metadata.clone(),
                         naming_intent: naming_intent.clone(),
@@ -224,8 +226,8 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     )
                     .with_symbolic_target_reference(
                         reference,
-                        resolved_entity_identity,
-                        resolved_collection,
+                        resolved_target.entity_identity().clone(),
+                        resolved_target.target_collection_identity().cloned(),
                     )
                 }
                 ForgeQueryWriteCommand::DeleteSymbolicAspects {
@@ -234,11 +236,11 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     metadata,
                     naming_intent,
                 } => {
-                    let (resolved_entity_identity, resolved_collection) =
+                    let resolved_target =
                         resolve_preview_symbolic_target(&symbolic_targets, reference)?;
                     let concrete = ForgeQueryWriteCommand::DeleteAspects {
-                        entity_identity: resolved_entity_identity.clone(),
-                        declared_collection: resolved_collection.clone(),
+                        entity_identity: resolved_target.entity_identity().clone(),
+                        declared_collection: resolved_target.target_collection_identity().cloned(),
                         touched_aspects: touched_aspects.clone(),
                         metadata: metadata.clone(),
                         naming_intent: naming_intent.clone(),
@@ -251,8 +253,8 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     )
                     .with_symbolic_target_reference(
                         reference,
-                        resolved_entity_identity,
-                        resolved_collection,
+                        resolved_target.entity_identity().clone(),
+                        resolved_target.target_collection_identity().cloned(),
                     )
                 }
                 _ => ForgeQueryWriteReceipt::preview(
@@ -279,7 +281,7 @@ fn admit_preview_batch_symbolic_references(
     commands: &[ForgeQueryWriteCommand],
 ) -> Result<(), ForgeQueryRuntimeError> {
     let mut planned_symbolic_targets =
-        BTreeMap::<String, (ForgeQueryEntityIdentity, Option<String>)>::new();
+        BTreeMap::<ForgeQuerySameBatchSymbolicTargetKey, ForgeQuerySameBatchSymbolicTarget>::new();
     for command in commands {
         if let Some(reference) = command.symbolic_target_reference() {
             if command.mutation_family() != crate::runtime::ForgeQueryMutationFamily::Insert {
@@ -295,7 +297,10 @@ fn admit_preview_batch_symbolic_references(
 }
 
 fn record_planned_preview_symbolic_target(
-    planned_symbolic_targets: &mut BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
+    planned_symbolic_targets: &mut BTreeMap<
+        ForgeQuerySameBatchSymbolicTargetKey,
+        ForgeQuerySameBatchSymbolicTarget,
+    >,
     command: &ForgeQueryWriteCommand,
 ) {
     if command.mutation_family() != crate::runtime::ForgeQueryMutationFamily::Insert {
@@ -309,18 +314,19 @@ fn record_planned_preview_symbolic_target(
         reference.symbol()
     ));
     planned_symbolic_targets.insert(
-        reference.symbol().to_string(),
-        (
+        ForgeQuerySameBatchSymbolicTargetKey::from_reference(reference),
+        ForgeQuerySameBatchSymbolicTarget::new(
             planned_identity,
-            command
-                .terminal_declared_collection_projection()
-                .map(str::to_string),
+            command.declared_collection_identity(),
         ),
     );
 }
 
 fn record_preview_symbolic_target(
-    symbolic_targets: &mut BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
+    symbolic_targets: &mut BTreeMap<
+        ForgeQuerySameBatchSymbolicTargetKey,
+        ForgeQuerySameBatchSymbolicTarget,
+    >,
     reference: &ForgeQuerySymbolicTargetReference,
     receipt: &ForgeQueryWriteReceipt,
 ) {
@@ -331,23 +337,23 @@ fn record_preview_symbolic_target(
         return;
     };
     symbolic_targets.insert(
-        reference.symbol().to_string(),
-        (
+        ForgeQuerySameBatchSymbolicTargetKey::from_reference(reference),
+        ForgeQuerySameBatchSymbolicTarget::new(
             target_entity_identity.clone(),
-            receipt
-                .terminal_target_collection_projection()
-                .map(str::to_string),
+            receipt.target_collection_identity().cloned(),
         ),
     );
 }
 
 fn resolve_preview_symbolic_target(
-    symbolic_targets: &BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
+    symbolic_targets: &BTreeMap<
+        ForgeQuerySameBatchSymbolicTargetKey,
+        ForgeQuerySameBatchSymbolicTarget,
+    >,
     reference: &ForgeQuerySymbolicTargetReference,
-) -> Result<(ForgeQueryEntityIdentity, Option<String>), ForgeQueryRuntimeError> {
-    let Some((resolved_entity_identity, resolved_collection)) =
-        symbolic_targets.get(reference.symbol())
-    else {
+) -> Result<ForgeQuerySameBatchSymbolicTarget, ForgeQueryRuntimeError> {
+    let target_key = ForgeQuerySameBatchSymbolicTargetKey::from_reference(reference);
+    let Some(resolved_target) = symbolic_targets.get(&target_key) else {
         return Err(ForgeQueryRuntimeError::MutationTargetReferenceDenied(
             ForgeQuerySymbolicTargetReferenceDenial::new(
                 reference,
@@ -359,8 +365,13 @@ fn resolve_preview_symbolic_target(
             ),
         ));
     };
-    if let Some(expected_collection) = reference.target_collection() {
-        if resolved_collection.as_deref() != Some(expected_collection) {
+    if let Some(expected_collection) = reference.target_collection_identity() {
+        if resolved_target
+            .target_collection_identity()
+            .is_none_or(|resolved_collection| {
+                !resolved_collection.same_target_collection_as(expected_collection)
+            })
+        {
             return Err(ForgeQueryRuntimeError::MutationTargetReferenceDenied(
                 ForgeQuerySymbolicTargetReferenceDenial::new(
                     reference,
@@ -368,16 +379,17 @@ fn resolve_preview_symbolic_target(
                     format!(
                         "same-batch symbolic target `{}` resolved to collection `{}`, not `{expected_collection}`",
                         reference.symbol(),
-                        resolved_collection.as_deref().unwrap_or("unknown"),
+                        resolved_target
+                            .target_collection_identity()
+                            .map(|collection| collection.as_str())
+                            .unwrap_or("unknown"),
+                        expected_collection = expected_collection.as_str(),
                     ),
                 ),
             ));
         }
     }
-    Ok((
-        resolved_entity_identity.clone(),
-        resolved_collection.clone(),
-    ))
+    Ok(resolved_target.clone())
 }
 
 fn deny_preview_continuity(command: &ForgeQueryWriteCommand) -> Result<(), ForgeQueryRuntimeError> {

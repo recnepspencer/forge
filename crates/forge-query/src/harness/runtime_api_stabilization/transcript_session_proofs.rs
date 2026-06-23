@@ -7,8 +7,8 @@ use crate::facade::{
 use crate::identity::hash_parts;
 use crate::runtime::ForgeQueryNativeRow;
 use crate::ForgeQuerySessionLabel;
-use forge_foundational::facade::AspectValue;
 
+use super::transcript_aspect_touch;
 use super::transcripts::TranscriptSpec;
 
 pub(super) fn preview_proof(
@@ -35,16 +35,16 @@ pub(super) fn preview_proof(
         .expect("effect should bind in preview");
     let preview_write = preview
         .insert(spec.collection, |entity| {
-            let entity = entity.aspect(
-                aspect_touch("identity.id"),
+            let entity = entity.set_aspect(
+                transcript_aspect_touch("identity.id"),
                 string_aspect_value(format!("{}-preview-1", spec.family)),
             );
             spec.produced_aspects
                 .iter()
                 .enumerate()
                 .fold(entity, |builder, (index, aspect)| {
-                    builder.aspect(
-                        aspect_touch(*aspect),
+                    builder.set_aspect(
+                        transcript_aspect_touch(*aspect),
                         string_aspect_value(format!("{}-preview-{index}", spec.family)),
                     )
                 })
@@ -172,11 +172,6 @@ pub(super) fn intent_declaration(
     )
 }
 
-fn aspect_touch(aspect_path: impl Into<String>) -> crate::runtime::ForgeQueryAspectTouch {
-    crate::runtime::ForgeQueryAspectTouch::from_authoring_path(aspect_path)
-        .expect("runtime transcript aspect should admit")
-}
-
-fn string_aspect_value(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+fn string_aspect_value(value: impl Into<String>) -> crate::runtime::ForgeQueryAuthoredAspectValue {
+    crate::runtime::ForgeQueryAuthoredAspectValue::string(value)
 }

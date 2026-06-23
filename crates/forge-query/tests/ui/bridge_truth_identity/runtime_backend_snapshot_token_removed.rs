@@ -1,8 +1,8 @@
 use forge_query::facade::{
     DeclarativeLiveQueryRequest, ForgeQueryDerivedView, ForgeQueryEffectPolicy,
     ForgeQueryEntity, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution, ForgeQueryLivePatch,
-    ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission,
-    ForgeQueryBackendAdmissibleMutation, ForgeQueryRuntimeBackend,
+    ForgeQueryLiveArtifactTarget, ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt,
+    ForgeQueryPreviewBasisAdmission, ForgeQueryBackendAdmissibleMutation, ForgeQueryRuntimeBackend,
     ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeError, ForgeQueryRuntimeInspectionEvidence,
     ForgeQueryRuntimeSupportProfile, ForgeQuerySessionLabel, ForgeQueryWorkspaceError,
     ForgeQueryWriteReceipt,
@@ -56,11 +56,17 @@ impl ForgeQueryRuntimeBackend for StringSnapshotBackend {
         panic!("not executed")
     }
 
-    fn live_entities(&self, _view_name: &str) -> Vec<ForgeQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity> {
         Vec::new()
     }
 
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
+    fn drain_live_patches_for_target(
+        &mut self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch> {
         Vec::new()
     }
 

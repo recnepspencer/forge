@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use crate::intent_admission::{ForgeQueryLiveReadExecutionHandoff, ForgeQueryReadExecutionHandoff};
 use crate::query_context::{AdmittedQueryBasisContext, QueryContextFamily};
-use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
+use forge_foundational::facade::CanonicalFieldPath;
 
 use super::{
     ForgeQueryAuthoritativeMutationObligationDispatch, ForgeQueryGraphObligationDispatchContext,
@@ -144,12 +144,8 @@ fn read_field_touch(
     field: &crate::authoring::AspectFieldKey,
 ) -> crate::runtime::ForgeQueryAspectTouch {
     crate::runtime::ForgeQueryAspectTouch::from_native_parts(
-        AspectKey::new(field.aspect().as_str())
-            .expect("declarative read aspect should already be a foundational aspect key"),
-        Some(CanonicalFieldPath::single(
-            FieldKey::new(field.field().as_str())
-                .expect("declarative read field should already be a foundational field key"),
-        )),
+        field.native_aspect_key(),
+        Some(CanonicalFieldPath::single(field.native_field_key())),
     )
 }
 

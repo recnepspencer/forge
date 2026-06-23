@@ -1,4 +1,6 @@
-use crate::runtime::{ForgeQueryAspectTouch, ForgeQueryMutationFamily};
+use crate::runtime::{
+    ForgeQueryAspectTouch, ForgeQueryMutationFamily, ForgeQueryMutationTargetCollectionIdentity,
+};
 
 use super::super::read_verb::ForgeQueryGraphTouchReadVerb;
 use super::{ForgeQueryGraphTouchDescriptorRow, ForgeQueryGraphTouchDescriptorRowInput};
@@ -48,7 +50,10 @@ fn read_touch_row(
         read_verb: Some(verb),
         program_step_kind: None,
         lifecycle_family: None,
-        declared_collection: Some(collection.to_string()),
+        declared_collection: Some(ForgeQueryMutationTargetCollectionIdentity::new(
+            "graph-read-touch-row",
+            collection,
+        )),
         relation_kind_id: None,
         declared_symbol: None,
         declared_aspect_operations: Vec::new(),

@@ -285,13 +285,13 @@ impl HostileExecutionState {
                 .expect("preview churn should admit");
             preview
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value(identity),
+                        test_authored_string_aspect_value(identity),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value(title),
+                        test_authored_string_aspect_value(title),
                     )
                 })
                 .expect("preview staging should succeed");
@@ -367,13 +367,13 @@ impl HostileExecutionState {
                 .expect("preview churn should admit");
             preview
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value(identity),
+                        test_authored_string_aspect_value(identity),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value(title),
+                        test_authored_string_aspect_value(title),
                     )
                 })
                 .expect("preview promotion staging should succeed");

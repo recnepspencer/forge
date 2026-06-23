@@ -2,13 +2,13 @@ use super::super::*;
 use super::state::{NativeExternalRow, StatefulBridgeState};
 use super::writes::native_external_field_path_for_touch;
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
-use crate::runtime::mutation::aspect_value_native_digest_text;
+use crate::runtime::mutation::terminal_aspect_value_digest_text;
 use forge_foundational::facade::AspectValue;
 
 pub(super) fn verify_existing_truth_assertion(
     state: &StatefulBridgeState,
     binding: &ForgeQueryExistingTruthTargetBinding,
-    aspects: &[ForgeQueryAspectValue],
+    aspects: &[ForgeQueryAdmittedAspectValue],
     snapshot_identity: ForgeQuerySnapshotIdentity,
 ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial> {
     let row = authoritative_row(state, binding).map_err(|message| {
@@ -38,7 +38,7 @@ pub(super) fn verify_existing_truth_assertion(
                 binding,
                 ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
                 Some(aspect_touch.clone()),
-                Some(aspect.native_digest_material()),
+                Some(aspect.terminal_digest_material()),
                 None,
                 "authoritative truth did not contain the asserted aspect",
             ));
@@ -48,7 +48,7 @@ pub(super) fn verify_existing_truth_assertion(
                 binding,
                 ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
                 Some(aspect_touch.clone()),
-                Some(aspect.native_digest_material()),
+                Some(aspect.terminal_digest_material()),
                 None,
                 "asserted aspect did not retain a native value",
             ));
@@ -58,8 +58,8 @@ pub(super) fn verify_existing_truth_assertion(
                 binding,
                 ForgeQueryExistingTruthAssertionDenialKind::AssertedValueMismatch,
                 Some(aspect_touch.clone()),
-                Some(aspect.native_digest_material()),
-                Some(native_digest_from_aspect_value(found)),
+                Some(aspect.terminal_digest_material()),
+                Some(terminal_digest_from_aspect_value(found)),
                 "authoritative truth did not match the asserted value",
             ));
         }
@@ -78,8 +78,8 @@ pub(super) fn verify_existing_truth_assertion(
     )
 }
 
-fn native_digest_from_aspect_value(value: &AspectValue) -> String {
-    aspect_value_native_digest_text(value)
+fn terminal_digest_from_aspect_value(value: &AspectValue) -> String {
+    terminal_aspect_value_digest_text(value)
 }
 
 pub(super) fn probe_existing_truth(
@@ -104,8 +104,10 @@ pub(super) fn probe_existing_truth(
                 "authoritative truth did not contain the probed aspect",
             ));
         };
-        let field =
-            ForgeQueryExistingTruthProbeField::new_native(aspect_touch.clone(), value.clone());
+        let field = ForgeQueryExistingTruthProbeField::from_admitted_aspect_touch(
+            aspect_touch.clone(),
+            value.clone(),
+        );
         fields.push(field);
     }
     Ok(ForgeQueryExistingTruthProbe::backend_verified(

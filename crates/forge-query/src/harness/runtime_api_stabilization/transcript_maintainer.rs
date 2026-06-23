@@ -1,4 +1,4 @@
-use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
 
 use crate::facade::{
     ForgeQueryDerivedPatch, ForgeQueryDerivedPatchPayload, ForgeQueryDerivedView,
@@ -22,21 +22,24 @@ impl ForgeQueryDerivedViewMaintainer for TranscriptMaintainer {
         let retained_scalars = [
             (
                 retained_field_path("family"),
-                AspectValue::String(self.prefix.to_string().into()),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                    self.prefix.to_string(),
+                ),
             ),
             (
                 retained_field_path("entity"),
-                AspectValue::String(
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
                     delta
                         .entity_identity
                         .terminal_projection_for_reporting()
-                        .to_string()
-                        .into(),
+                        .to_string(),
                 ),
             ),
             (
                 retained_field_path("view"),
-                AspectValue::String(view.name().to_string().into()),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                    view.name().to_string(),
+                ),
             ),
         ];
         if self.replace {

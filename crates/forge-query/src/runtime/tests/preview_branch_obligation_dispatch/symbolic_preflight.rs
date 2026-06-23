@@ -22,9 +22,9 @@ fn preview_batch_symbolic_denial_precedes_graph_obligation_denial() {
     let error = preview
         .batch(|batch| {
             batch.update_symbolic(missing_symbol, |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Should fail before obligation dispatch"),
+                    test_authored_string_aspect_value("Should fail before obligation dispatch"),
                 )
             })
         })
@@ -48,9 +48,9 @@ fn preview_batch_symbolic_preflight_edges_precede_obligation_denial() {
         |batch| {
             batch
                 .insert_symbolic("draft-task", "Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("draft-task"),
+                        test_authored_string_aspect_value("draft-task"),
                     )
                 })
                 .update_symbolic(
@@ -59,9 +59,9 @@ fn preview_batch_symbolic_preflight_edges_precede_obligation_denial() {
                         .in_target_collection("Project")
                         .expect("symbolic collection should build"),
                     |task| {
-                        task.aspect(
+                        task.set_aspect(
                             test_aspect_touch("title.value"),
-                            test_string_aspect_value("wrong collection"),
+                            test_authored_string_aspect_value("wrong collection"),
                         )
                     },
                 )
@@ -72,18 +72,18 @@ fn preview_batch_symbolic_preflight_edges_precede_obligation_denial() {
     assert_preview_symbolic_target_denial_precedes_obligation(
         |batch| {
             batch.insert("TaskEdge", |edge| {
-                edge.aspect(
+                edge.set_aspect(
                     test_aspect_touch("edge.kind"),
-                    test_string_aspect_value("depends_on"),
+                    test_authored_string_aspect_value("depends_on"),
                 )
                 .symbolic_entity_identity(
                     test_aspect_touch("edge.source_identity"),
                     ForgeQuerySymbolicTargetReference::new("missing-task")
                         .expect("symbolic reference should build"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("edge.target_identity"),
-                    test_string_aspect_value("task-existing"),
+                    test_authored_string_aspect_value("task-existing"),
                 )
             })
         },

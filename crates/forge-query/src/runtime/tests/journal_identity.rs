@@ -35,13 +35,13 @@ fn submitted_write_receipt_carries_typed_committed_journal_position() {
         .workspace("tasks.journal-position.single")
         .expect("task runtime should open a named workspace");
     let command = ForgeQueryAspectMutationBuilder::new()
-        .aspect(
+        .set_aspect(
             test_aspect_touch("identity.id"),
-            test_string_aspect_value("task-1"),
+            test_authored_string_aspect_value("task-1"),
         )
-        .aspect(
+        .set_aspect(
             test_aspect_touch("title.value"),
-            test_string_aspect_value("First"),
+            test_authored_string_aspect_value("First"),
         )
         .build_insert("Task")
         .expect("insert command should build");
@@ -156,25 +156,25 @@ fn preview_receipt_carries_preview_journal_position_without_commit_collision() {
             .expect("preview session should admit");
         let first_receipt = preview
             .insert("Task", |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("preview-task"),
+                    test_authored_string_aspect_value("preview-task"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Preview"),
+                    test_authored_string_aspect_value("Preview"),
                 )
             })
             .expect("preview insert should stage");
         let second_receipt = preview
             .insert("Task", |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("preview-task-2"),
+                    test_authored_string_aspect_value("preview-task-2"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Preview Two"),
+                    test_authored_string_aspect_value("Preview Two"),
                 )
             })
             .expect("second preview insert should stage");
@@ -238,33 +238,33 @@ fn submitted_batch_positions_with_inspection(
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-1"),
+                        test_authored_string_aspect_value("task-1"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("First"),
+                        test_authored_string_aspect_value("First"),
                     )
                 })
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-2"),
+                        test_authored_string_aspect_value("task-2"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Second"),
+                        test_authored_string_aspect_value("Second"),
                     )
                 })
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-3"),
+                        test_authored_string_aspect_value("task-3"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Third"),
+                        test_authored_string_aspect_value("Third"),
                     )
                 })
         })
@@ -341,13 +341,13 @@ fn submission_schedule_commands() -> Vec<ForgeQueryWriteCommand> {
         .enumerate()
         .map(|(index, title)| {
             ForgeQueryAspectMutationBuilder::new()
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value(format!("task-{}", index + 1)),
+                    test_authored_string_aspect_value(format!("task-{}", index + 1)),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value(*title),
+                    test_authored_string_aspect_value(*title),
                 )
                 .build_insert("Task")
                 .expect("schedule insert command should build")

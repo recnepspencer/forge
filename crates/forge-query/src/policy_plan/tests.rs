@@ -55,7 +55,8 @@ fn narrowed() -> crate::policy_narrowing::NarrowedPolicyQueryArtifact {
     .unwrap();
     let mask = PolicyMaskSnapshot::synthetic_authority(
         admitted.bundle().policy_digest(),
-        PolicyAspectMask::allow_all().with_masked(AspectFieldKey::new("secret", "salary").unwrap()),
+        PolicyAspectMask::allow_all()
+            .with_masked(AspectFieldKey::from_authoring_parts("secret", "salary").unwrap()),
     );
     narrow_policy_query(
         &canonical,

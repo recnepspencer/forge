@@ -29,13 +29,18 @@ fn read_result_extracts_identity_and_payload_fields_without_reopening_authority(
             .view_local_identities()
             .display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             )
             .derived_scalar_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "metrics", "priority",
+                    forge_foundational::facade::FieldKey::new("metrics")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("priority")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
     )
@@ -72,8 +77,10 @@ fn read_result_extraction_rejects_query_basis_or_result_receipt_drift() {
         binding_for_result_shape(result_shape.digest().as_str(), &["profile.display_name"]),
         ProjectMaterializedFacts::declare().display_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
-                "profile",
-                "display_name",
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
             ]),
         ),
     )

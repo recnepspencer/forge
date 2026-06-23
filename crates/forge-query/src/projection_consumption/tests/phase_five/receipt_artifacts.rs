@@ -15,8 +15,10 @@ fn consumed_fact_set_issues_receipt_with_stable_operational_fields() {
             .entity_identities()
             .display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
     )
@@ -76,8 +78,10 @@ fn receipt_derives_self_describing_projection_consumption_envelope() {
             .entity_identities()
             .display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
     )

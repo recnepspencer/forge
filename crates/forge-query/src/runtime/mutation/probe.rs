@@ -7,7 +7,7 @@ use forge_foundational::facade::AspectValue;
 
 use super::denied_aspect_touch::ForgeQueryDeniedAspectTouch;
 use super::{
-    aspect_value_native_digest_text, ForgeQueryAspectTouch, ForgeQueryExistingTruthTargetBinding,
+    terminal_aspect_value_digest_text, ForgeQueryAspectTouch, ForgeQueryExistingTruthTargetBinding,
     ForgeQueryParsedAspectTarget,
 };
 
@@ -245,7 +245,10 @@ pub struct ForgeQueryExistingTruthProbeField {
 }
 
 impl ForgeQueryExistingTruthProbeField {
-    pub fn new_native(aspect_touch: ForgeQueryAspectTouch, value: AspectValue) -> Self {
+    pub fn from_admitted_aspect_touch(
+        aspect_touch: ForgeQueryAspectTouch,
+        value: AspectValue,
+    ) -> Self {
         let target = aspect_touch.into_parsed_target();
         let aspect_touch = ForgeQueryAspectTouch::from_parsed_target(target.clone());
         let value_digest =
@@ -260,7 +263,7 @@ impl ForgeQueryExistingTruthProbeField {
                 )
                 .field_value(
                     ForgeQueryEvidenceTag::new("value"),
-                    aspect_value_native_digest_text(&value),
+                    terminal_aspect_value_digest_text(&value),
                 )
                 .seal()
                 .as_str()

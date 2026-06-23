@@ -99,7 +99,12 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
             ForgeQueryRuntimeError::GraphCompositionDenied(ForgeQueryGraphCompositionDenial::new(
                 ForgeQueryGraphCompositionDenialKind::DuplicateSymbolDeclaration,
                 Some("task_symbol".to_string()),
-                Some("Task".to_string()),
+                Some(
+                    crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+                        "graph-composition-test",
+                        "Task",
+                    ),
+                ),
                 "duplicate symbol",
             )),
             ConsumerStopRoute::GraphCompositionDenied(

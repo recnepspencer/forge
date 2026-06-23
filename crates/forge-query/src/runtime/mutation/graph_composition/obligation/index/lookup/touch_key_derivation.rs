@@ -2,9 +2,12 @@ use std::collections::BTreeSet;
 
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch, ForgeQueryGraphTouchDescriptor,
+    ForgeQueryMutationTargetCollectionIdentity,
 };
 
-use super::ForgeQueryGraphObligationTouchLookupKey;
+use super::{
+    ForgeQueryGraphObligationCollectionLookupIdentity, ForgeQueryGraphObligationTouchLookupKey,
+};
 
 pub(in crate::runtime::mutation::graph_composition::obligation::index) fn touch_lookup_keys_for_descriptor(
     descriptor: &ForgeQueryGraphTouchDescriptor,
@@ -12,7 +15,7 @@ pub(in crate::runtime::mutation::graph_composition::obligation::index) fn touch_
     let mut keys = BTreeSet::new();
     keys.insert(ForgeQueryGraphObligationTouchLookupKey::AnyGraphTouch);
     for row in descriptor.rows() {
-        insert_row_collection_key(&mut keys, row.declared_collection());
+        insert_row_collection_key(&mut keys, row.declared_collection_identity());
         insert_row_relation_kind_key(&mut keys, row.relation_kind_id());
         insert_row_declared_aspect_operation_keys(&mut keys, row.declared_aspect_operations());
         insert_row_touched_aspect_keys(&mut keys, row.admitted_touched_aspects());
@@ -34,11 +37,11 @@ pub(in crate::runtime::mutation::graph_composition::obligation::index) fn touch_
 
 fn insert_row_collection_key(
     keys: &mut BTreeSet<ForgeQueryGraphObligationTouchLookupKey>,
-    collection: Option<&str>,
+    collection: Option<&ForgeQueryMutationTargetCollectionIdentity>,
 ) {
     if let Some(collection) = collection {
         keys.insert(ForgeQueryGraphObligationTouchLookupKey::Collection(
-            collection.to_string(),
+            ForgeQueryGraphObligationCollectionLookupIdentity::from_collection_identity(collection),
         ));
     }
 }

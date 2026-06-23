@@ -1,13 +1,14 @@
 use crate::consumer_kit::support_pinning::{
-    load_support_pin_contract_document, support_pinning_contract, ForgeQueryPinnedSupportStatus,
-    ForgeQueryPinnedTeachingPosture, ForgeQuerySupportPinContractSchemaVersion,
-    ForgeQuerySupportPinningErrorKind,
+    load_support_pin_contract_terminal_json_document, support_pinning_contract,
+    ForgeQueryPinnedSupportStatus, ForgeQueryPinnedTeachingPosture,
+    ForgeQuerySupportPinContractSchemaVersion, ForgeQuerySupportPinningErrorKind,
 };
 use crate::runtime::ForgeQueryRuntimeFacadeFamily;
 
-use super::{empty_family_snapshot, scaffold_snapshot, write_deferred_snapshot};
-
-type TerminalSupportPinContractDocumentJson = serde_json::Value;
+use super::{
+    empty_family_snapshot, hostile_terminal_document::HostileSupportPinContractTerminalDocument,
+    scaffold_snapshot, write_deferred_snapshot,
+};
 
 #[test]
 fn assert_satisfied_returns_typed_error_for_blocking_findings() {
@@ -86,12 +87,12 @@ fn stale_vocabulary_document_fails_typed_at_load() {
         .unwrap()
         .seal()
         .unwrap();
-    let mut document = terminal_support_pin_contract_document_json(&contract);
-    document["pinned_vocabulary_identity"] = terminal_pin_document_string("stale");
-    let json = terminal_support_pin_contract_json(document);
+    let mut terminal_json_document =
+        HostileSupportPinContractTerminalDocument::from_contract(&contract);
+    terminal_json_document.replace_top_level_string("pinned_vocabulary_identity", "stale");
 
-    let error = load_support_pin_contract_document(
-        &json,
+    let error = load_support_pin_contract_terminal_json_document(
+        &terminal_json_document.into_external_terminal_json_document(),
         ForgeQuerySupportPinContractSchemaVersion::current(),
     )
     .unwrap_err();
@@ -117,12 +118,12 @@ fn tampered_contract_document_fails_digest_validation() {
         .unwrap()
         .seal()
         .unwrap();
-    let mut document = terminal_support_pin_contract_document_json(&contract);
-    document["requirements"][0]["required_status"] = terminal_pin_document_string("unsupported");
-    let json = terminal_support_pin_contract_json(document);
+    let mut terminal_json_document =
+        HostileSupportPinContractTerminalDocument::from_contract(&contract);
+    terminal_json_document.replace_first_requirement_string("required_status", "unsupported");
 
-    let error = load_support_pin_contract_document(
-        &json,
+    let error = load_support_pin_contract_terminal_json_document(
+        &terminal_json_document.into_external_terminal_json_document(),
         ForgeQuerySupportPinContractSchemaVersion::current(),
     )
     .unwrap_err();
@@ -149,12 +150,12 @@ fn invalid_document_family_fails_typed_at_load() {
         .unwrap()
         .seal()
         .unwrap();
-    let mut document = terminal_support_pin_contract_document_json(&contract);
-    document["requirements"][0]["family"] = terminal_pin_document_string("made-up");
-    let json = terminal_support_pin_contract_json(document);
+    let mut terminal_json_document =
+        HostileSupportPinContractTerminalDocument::from_contract(&contract);
+    terminal_json_document.replace_first_requirement_string("family", "made-up");
 
-    let error = load_support_pin_contract_document(
-        &json,
+    let error = load_support_pin_contract_terminal_json_document(
+        &terminal_json_document.into_external_terminal_json_document(),
         ForgeQuerySupportPinContractSchemaVersion::current(),
     )
     .unwrap_err();
@@ -190,20 +191,4 @@ fn duplicate_pin_declarations_fail_before_sealing() {
         ForgeQuerySupportPinningErrorKind::DuplicateRequiredFamily
     );
     assert_eq!(error.family(), Some("write"));
-}
-
-fn terminal_support_pin_contract_document_json(
-    contract: &crate::consumer_kit::support_pinning::ForgeQuerySupportPinContract,
-) -> TerminalSupportPinContractDocumentJson {
-    serde_json::from_str(&contract.to_canonical_json().unwrap()).unwrap()
-}
-
-fn terminal_support_pin_contract_json(document: TerminalSupportPinContractDocumentJson) -> String {
-    serde_json::to_string_pretty(&document).unwrap()
-}
-
-fn terminal_pin_document_string(
-    value: impl Into<String>,
-) -> TerminalSupportPinContractDocumentJson {
-    TerminalSupportPinContractDocumentJson::String(value.into())
 }

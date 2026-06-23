@@ -79,7 +79,7 @@ fn external_row_from_mutation(
 fn resolved_aspects(
     state: &StatefulBridgeState,
     mutation: &ForgeQueryBackendAdmissibleMutation,
-) -> Result<Vec<ForgeQueryAspectValue>, ForgeQueryWorkspaceError> {
+) -> Result<Vec<ForgeQueryAdmittedAspectValue>, ForgeQueryWorkspaceError> {
     let mut aspects = mutation.admitted_aspect_values().to_vec();
     for reference in mutation.symbolic_aspect_references() {
         let resolved_identity = state
@@ -92,16 +92,16 @@ fn resolved_aspects(
                     reference.reference().symbol()
                 ))
             })?;
-        aspects.push(ForgeQueryAspectValue::new_set(
+        aspects.push(ForgeQueryAdmittedAspectValue::new_set(
             reference.aspect_touch().clone(),
-            AspectValue::String(resolved_identity.into()),
+            crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(resolved_identity),
         )?);
     }
     Ok(aspects)
 }
 
 fn external_row_from_aspects(
-    aspects: &[ForgeQueryAspectValue],
+    aspects: &[ForgeQueryAdmittedAspectValue],
 ) -> Result<NativeExternalRow, ForgeQueryWorkspaceError> {
     let mut external_row = NativeExternalRow::new();
     apply_aspects_to_external_row(&mut external_row, aspects)?;
@@ -110,7 +110,7 @@ fn external_row_from_aspects(
 
 fn apply_aspects_to_external_row(
     external_row: &mut NativeExternalRow,
-    aspects: &[ForgeQueryAspectValue],
+    aspects: &[ForgeQueryAdmittedAspectValue],
 ) -> Result<(), ForgeQueryWorkspaceError> {
     for aspect in aspects {
         let aspect_touch = aspect.aspect_touch();
@@ -139,7 +139,7 @@ pub(super) fn native_external_field_path_for_touch(
     aspect_touch: &ForgeQueryAspectTouch,
 ) -> Result<CanonicalFieldPath, ForgeQueryWorkspaceError> {
     let mut fields = vec![
-        FieldKey::new(aspect_touch.native_aspect_key().as_str().to_string()).ok_or_else(|| {
+        FieldKey::new(aspect_touch.native_aspect_key().as_str()).ok_or_else(|| {
             ForgeQueryWorkspaceError::new(format!(
                 "stateful bridge could not use native aspect `{}` as an external field",
                 aspect_touch.native_aspect_key().as_str()
@@ -157,11 +157,10 @@ pub(super) fn native_external_field_path_for_touch(
     })
 }
 
-pub(super) fn external_row_text(
+pub(super) fn external_row_text_at_path(
     external_row: &NativeExternalRow,
-    dotted_path: &str,
+    field_path: &CanonicalFieldPath,
 ) -> Option<String> {
-    let field_path = native_external_field_path(dotted_path).ok()?;
     match external_row.get(&field_path)? {
         AspectValue::String(value) => Some(match value {
             forge_foundational::facade::InternedString::Raw(value) => value.clone(),
@@ -180,25 +179,4 @@ pub(super) fn external_row_text(
         AspectValue::Bool(value) => Some(value.to_string()),
         _ => None,
     }
-}
-
-pub(super) fn native_external_field_path(
-    dotted_path: &str,
-) -> Result<CanonicalFieldPath, ForgeQueryWorkspaceError> {
-    CanonicalFieldPath::new(
-        dotted_path
-            .split('.')
-            .map(|part| FieldKey::new(part.to_string()))
-            .collect::<Option<Vec<_>>>()
-            .ok_or_else(|| {
-                ForgeQueryWorkspaceError::new(format!(
-                    "stateful bridge external row path `{dotted_path}` was not a valid field path"
-                ))
-            })?,
-    )
-    .ok_or_else(|| {
-        ForgeQueryWorkspaceError::new(format!(
-            "stateful bridge external row path `{dotted_path}` was empty"
-        ))
-    })
 }

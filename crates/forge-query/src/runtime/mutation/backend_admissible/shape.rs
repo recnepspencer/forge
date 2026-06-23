@@ -1,16 +1,16 @@
 use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::{
-    ForgeQueryAspectTouch, ForgeQueryAspectValue, ForgeQueryContinuityMutationIntent,
+    ForgeQueryAdmittedAspectValue, ForgeQueryAspectTouch, ForgeQueryContinuityMutationIntent,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationMetadata,
-    ForgeQueryNamingMutationIntent, ForgeQuerySymbolicAspectReference,
-    ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryNamingMutationIntent,
+    ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
 };
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum ForgeQueryBackendAdmissibleMutationShape {
     Insert {
-        collection: String,
-        aspects: Vec<ForgeQueryAspectValue>,
+        collection: ForgeQueryMutationTargetCollectionIdentity,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
         symbolic_aspect_references: Vec<ForgeQuerySymbolicAspectReference>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
@@ -19,15 +19,15 @@ pub(super) enum ForgeQueryBackendAdmissibleMutationShape {
     },
     UpdateDirect {
         entity_identity: ForgeQueryEntityIdentity,
-        aspects: Vec<ForgeQueryAspectValue>,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
     },
     UpdateExisting {
         binding: ForgeQueryExistingTruthTargetBinding,
-        asserted_aspects: Vec<ForgeQueryAspectValue>,
-        aspects: Vec<ForgeQueryAspectValue>,
+        asserted_aspects: Vec<ForgeQueryAdmittedAspectValue>,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
         symbolic_aspect_references: Vec<ForgeQuerySymbolicAspectReference>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
@@ -35,26 +35,26 @@ pub(super) enum ForgeQueryBackendAdmissibleMutationShape {
     },
     Assertion {
         binding: ForgeQueryExistingTruthTargetBinding,
-        aspects: Vec<ForgeQueryAspectValue>,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
         metadata: ForgeQueryMutationMetadata,
     },
     UpdateSymbolic {
         reference: ForgeQuerySymbolicTargetReference,
-        aspects: Vec<ForgeQueryAspectValue>,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
     },
     DeleteDirect {
         entity_identity: ForgeQueryEntityIdentity,
-        declared_collection: Option<String>,
+        declared_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
         touched_aspects: Vec<ForgeQueryAspectTouch>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
     },
     DeleteExisting {
         binding: ForgeQueryExistingTruthTargetBinding,
-        asserted_aspects: Vec<ForgeQueryAspectValue>,
+        asserted_aspects: Vec<ForgeQueryAdmittedAspectValue>,
         touched_aspects: Vec<ForgeQueryAspectTouch>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
@@ -79,7 +79,10 @@ impl ForgeQueryBackendAdmissibleMutationShape {
                 continuity_intent,
                 symbolic_target_reference,
             } => Self::Insert {
-                collection,
+                collection: ForgeQueryMutationTargetCollectionIdentity::new(
+                    "backend-admissible-declared",
+                    collection.as_str(),
+                ),
                 aspects,
                 symbolic_aspect_references,
                 metadata,
@@ -177,7 +180,12 @@ impl ForgeQueryBackendAdmissibleMutationShape {
                 naming_intent,
             } => Self::DeleteDirect {
                 entity_identity,
-                declared_collection,
+                declared_collection: declared_collection.map(|collection| {
+                    ForgeQueryMutationTargetCollectionIdentity::new(
+                        "backend-admissible-declared",
+                        collection.as_str(),
+                    )
+                }),
                 touched_aspects,
                 metadata,
                 naming_intent,

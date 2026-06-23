@@ -7,7 +7,6 @@ use crate::runtime::{
 };
 use crate::ForgeQuerySessionLabel;
 use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
-use forge_foundational::facade::AspectValue;
 
 use super::digests::{inspection_digest, touched_aspect_digest};
 use super::fixture::{
@@ -15,6 +14,7 @@ use super::fixture::{
 };
 use super::rejections::{duplicate_aspect_authoring_rejection, unsupported_intent_rejection};
 use super::{
+    description_value_touch, identity_id_touch, title_value_touch, ui_batch_summary_touch,
     AspectApiFinalizationCertificationBundle, AspectApiFinalizationPerturbationClass,
     AspectApiFinalizationRejectionBundle,
 };
@@ -40,9 +40,9 @@ pub(super) fn canonical_rows() -> Vec<
             perturbation_class: AspectApiFinalizationPerturbationClass::TypedClearNarrowing,
             hostile_expectation: HostileExpectation::DistinctFromControl,
             parity_anchor: ParityAnchor::Hostile,
-            control_lane: clear_lane("description.value"),
-            hostile_lane: clear_lane("title.value"),
-            parity_lane: clear_lane("title.value"),
+            control_lane: clear_lane(description_value_touch()),
+            hostile_lane: clear_lane(title_value_touch()),
+            parity_lane: clear_lane(title_value_touch()),
         },
         CanonicalCertificationRow {
             row_name: "preview-batch-lane-isolation",
@@ -105,27 +105,20 @@ fn authoritative_crud_lane(
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(aspect_touch("identity.id"), string_aspect_value(entity_id))
-                .aspect(
-                    aspect_touch("title.value"),
-                    string_aspect_value(initial_title),
-                )
+            task.set_aspect(identity_id_touch(), string_aspect_value(entity_id))
+                .set_aspect(title_value_touch(), string_aspect_value(initial_title))
         })
         .expect("seed insert should execute");
     let _ = workspace.observe(&live);
     let update = workspace
         .update(seed.deltas()[0].entity_identity.clone(), |task| {
-            task.aspect(
-                aspect_touch("title.value"),
-                string_aspect_value(renamed_title),
-            )
+            task.set_aspect(title_value_touch(), string_aspect_value(renamed_title))
         })
         .expect("rename should execute");
     let _patches = workspace.observe(&live);
     let delete = workspace
         .delete_with(seed.deltas()[0].entity_identity.clone(), |task| {
-            task.touch(aspect_touch("identity.id"))
-                .touch(aspect_touch("title.value"))
+            task.touch(identity_id_touch()).touch(title_value_touch())
         })
         .expect("delete should execute");
     let state = workspace.state(&delete).expect("state should resolve");
@@ -165,7 +158,7 @@ fn authoritative_crud_lane(
     }
 }
 
-fn clear_lane(aspect_path: &str) -> AspectApiFinalizationCertificationBundle {
+fn clear_lane(aspect_touch: ForgeQueryAspectTouch) -> AspectApiFinalizationCertificationBundle {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.clear")
         .expect("workspace should open");
@@ -173,19 +166,16 @@ fn clear_lane(aspect_path: &str) -> AspectApiFinalizationCertificationBundle {
         task_live_view(&mut workspace, "tasks.cert-clear");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(aspect_touch("identity.id"), string_aspect_value("task-1"))
-                .aspect(aspect_touch("title.value"), string_aspect_value("Buy milk"))
-                .aspect(
-                    aspect_touch("description.value"),
-                    string_aspect_value("whole milk"),
-                )
+            task.set_aspect(identity_id_touch(), string_aspect_value("task-1"))
+                .set_aspect(title_value_touch(), string_aspect_value("Buy milk"))
+                .set_aspect(description_value_touch(), string_aspect_value("whole milk"))
         })
         .expect("seed insert should execute");
     let _ = workspace.observe(&live);
 
     let receipt = workspace
         .update(seed.deltas()[0].entity_identity.clone(), |task| {
-            task.clear(aspect_touch(aspect_path))
+            task.clear(aspect_touch)
         })
         .expect("clear should execute");
     let patches = workspace.observe(&live);
@@ -239,8 +229,8 @@ fn authoritative_batch_lane() -> AspectApiFinalizationCertificationBundle {
             "tasks.cert-batch-summary",
             |c| {
                 c.depends_on_live(&live)
-                    .reads([aspect_touch("title.value")])
-                    .produces([aspect_touch("ui.batch_summary")])
+                    .reads([title_value_touch()])
+                    .produces([ui_batch_summary_touch()])
             },
             CertificationTitleListMaintainer,
         )
@@ -249,15 +239,12 @@ fn authoritative_batch_lane() -> AspectApiFinalizationCertificationBundle {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect(aspect_touch("identity.id"), string_aspect_value("task-1"))
-                        .aspect(aspect_touch("title.value"), string_aspect_value("Buy milk"))
+                    task.set_aspect(identity_id_touch(), string_aspect_value("task-1"))
+                        .set_aspect(title_value_touch(), string_aspect_value("Buy milk"))
                 })
                 .insert("Task", |task| {
-                    task.aspect(aspect_touch("identity.id"), string_aspect_value("task-2"))
-                        .aspect(
-                            aspect_touch("title.value"),
-                            string_aspect_value("Buy bread"),
-                        )
+                    task.set_aspect(identity_id_touch(), string_aspect_value("task-2"))
+                        .set_aspect(title_value_touch(), string_aspect_value("Buy bread"))
                 })
         })
         .expect("batch should execute");
@@ -302,13 +289,8 @@ fn authoritative_batch_lane() -> AspectApiFinalizationCertificationBundle {
     }
 }
 
-fn aspect_touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    ForgeQueryAspectTouch::from_authoring_path(aspect_path)
-        .expect("aspect API certification aspect path should admit")
-}
-
-fn string_aspect_value(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+fn string_aspect_value(value: impl Into<String>) -> crate::runtime::ForgeQueryAuthoredAspectValue {
+    crate::runtime::ForgeQueryAuthoredAspectValue::string(value)
 }
 
 fn preview_batch_lane() -> AspectApiFinalizationCertificationBundle {
@@ -329,24 +311,18 @@ fn preview_batch_lane() -> AspectApiFinalizationCertificationBundle {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect(
-                        aspect_touch("identity.id"),
-                        string_aspect_value("preview-task-1"),
-                    )
-                    .aspect(
-                        aspect_touch("title.value"),
-                        string_aspect_value("Preview title one"),
-                    )
+                    task.set_aspect(identity_id_touch(), string_aspect_value("preview-task-1"))
+                        .set_aspect(
+                            title_value_touch(),
+                            string_aspect_value("Preview title one"),
+                        )
                 })
                 .insert("Task", |task| {
-                    task.aspect(
-                        aspect_touch("identity.id"),
-                        string_aspect_value("preview-task-2"),
-                    )
-                    .aspect(
-                        aspect_touch("title.value"),
-                        string_aspect_value("Preview title two"),
-                    )
+                    task.set_aspect(identity_id_touch(), string_aspect_value("preview-task-2"))
+                        .set_aspect(
+                            title_value_touch(),
+                            string_aspect_value("Preview title two"),
+                        )
                 })
         })
         .expect("preview batch should stage");

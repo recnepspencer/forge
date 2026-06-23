@@ -15,11 +15,11 @@ fn compose_graph_denies_existing_target_collection_mismatch_typed_and_early() {
             |q| {
                 q.from("TaskRelation")
                     .select([
-                        crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                        crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
-                        crate::authoring::AspectFieldKey::new("status", "value").unwrap(),
+                        identity_id_field_key(),
+                        kind_value_field_key(),
+                        status_value_field_key(),
                     ])
-                    .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
+                    .order_by(identity_id_field_key())
                     .schema_basis(
                         "tasks-graph-composition-existing-target-collection-mismatch-relations",
                     )
@@ -29,17 +29,17 @@ fn compose_graph_denies_existing_target_collection_mismatch_typed_and_early() {
     let relation_seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("rel-update"),
+                    test_authored_string_aspect_value("rel-update"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("kind.value"),
-                    test_string_aspect_value("depends_on"),
+                    test_authored_string_aspect_value("depends_on"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("open"),
+                    test_authored_string_aspect_value("open"),
                 )
         })
         .expect("relation seed should execute");
@@ -58,9 +58,9 @@ fn compose_graph_denies_existing_target_collection_mismatch_typed_and_early() {
     let error = workspace
         .compose_graph(|graph| {
             graph.update_existing(binding, |relation| {
-                relation.aspect(
+                relation.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("closed"),
+                    test_authored_string_aspect_value("closed"),
                 )
             })?;
             Ok(())

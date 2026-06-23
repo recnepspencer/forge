@@ -307,7 +307,7 @@ impl ForgeQueryWriteReceipt {
         mut self,
         reference: &ForgeQuerySymbolicTargetReference,
         resolved_entity_identity: ForgeQueryEntityIdentity,
-        resolved_collection: Option<String>,
+        resolved_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
     ) -> Self {
         self.symbolic_target_reference_evidence =
             Some(ForgeQuerySymbolicTargetReferenceEvidence::from_reference(
@@ -315,12 +315,7 @@ impl ForgeQueryWriteReceipt {
                 &resolved_entity_identity,
             ));
         self.target_entity_identity = Some(resolved_entity_identity);
-        self.target_collection_identity = resolved_collection.map(|collection| {
-            crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
-                "write-receipt-symbolic-target",
-                collection,
-            )
-        });
+        self.target_collection_identity = resolved_collection;
         self
     }
 

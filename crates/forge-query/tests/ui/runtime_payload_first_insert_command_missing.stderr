@@ -1,5 +1,5 @@
 error[E0599]: no variant named `Insert` found for enum `ForgeQueryWriteCommand`
- --> tests/ui/runtime_payload_first_insert_command_missing.rs:5:37
+ --> tests/ui/runtime_payload_first_insert_command_missing.rs:4:37
   |
-5 |     let _ = ForgeQueryWriteCommand::Insert {
+4 |     let _ = ForgeQueryWriteCommand::Insert {
   |                                     ^^^^^^ variant not found in `ForgeQueryWriteCommand`

@@ -28,5 +28,7 @@ pub use phase::{
     ForgeQueryEffectPhaseEvidence,
 };
 
-pub(super) use registry::{insert_effect_runtime, ForgeQueryEffectIndex, ForgeQueryEffectRuntime};
+pub(super) use registry::{
+    insert_effect_runtime, ForgeQueryEffectIndex, ForgeQueryEffectRuntime, ForgeQueryEffectTarget,
+};
 pub(super) use routing::{admit_effect_declaration, route_effect_deliveries};

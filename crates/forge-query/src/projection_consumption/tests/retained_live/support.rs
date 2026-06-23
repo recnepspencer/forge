@@ -102,7 +102,7 @@ pub(super) fn retained_binding() -> crate::runtime::ForgeQueryDerivedArtifactBin
         retained_snapshot.clone(),
         BTreeMap::from([
             (
-                first.view_name().to_string(),
+                first.clone(),
                 ForgeQueryDerivedMaterializationResult::test_only_retained_rows(
                     vec![
                         retained_materialized_row([
@@ -122,7 +122,7 @@ pub(super) fn retained_binding() -> crate::runtime::ForgeQueryDerivedArtifactBin
                 ),
             ),
             (
-                second.view_name().to_string(),
+                second.clone(),
                 ForgeQueryDerivedMaterializationResult::test_only_retained_rows(
                     vec![retained_materialized_row([(
                         "profile.display_name",
@@ -151,7 +151,7 @@ pub(super) fn live_binding() -> crate::runtime::ForgeQueryLiveArtifactBinding {
         live_snapshot.clone(),
         BTreeMap::from([
             (
-                first.view_name().to_string(),
+                first.clone(),
                 ForgeQueryLiveReadResult::test_only(
                     vec![
                         ForgeQueryEntity::from_native_field_values(
@@ -176,7 +176,7 @@ pub(super) fn live_binding() -> crate::runtime::ForgeQueryLiveArtifactBinding {
                 ),
             ),
             (
-                second.view_name().to_string(),
+                second.clone(),
                 ForgeQueryLiveReadResult::test_only(
                     vec![ForgeQueryEntity::from_native_field_values(
                         crate::memory_workspace::admit_authored_entity_label("entity-3"),
@@ -232,7 +232,7 @@ fn retained_materialized_row(
 }
 
 fn text_value(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+    crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value)
 }
 
 fn retained_field_path(path: &str) -> ForgeQueryRetainedFieldPath {
@@ -279,15 +279,19 @@ pub(super) fn request_for_kind(kind: ProjectionFactKind) -> ProjectMaterializedF
         }
         ProjectionFactKind::DisplayField => ProjectMaterializedFacts::declare().display_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
-                "profile",
-                "display_name",
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
             ]),
         ),
         ProjectionFactKind::DerivedScalarField => ProjectMaterializedFacts::declare()
             .derived_scalar_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
     }

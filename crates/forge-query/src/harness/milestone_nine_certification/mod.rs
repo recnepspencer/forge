@@ -852,7 +852,7 @@ fn phase_two_mask_snapshot(
 }
 
 fn secret_salary_key() -> crate::authoring::AspectFieldKey {
-    crate::authoring::AspectFieldKey::new("secret", "salary").unwrap()
+    crate::authoring::AspectFieldKey::from_authoring_parts("secret", "salary").unwrap()
 }
 
 pub(crate) fn phase_three_test_narrowed_artifact(
@@ -1456,7 +1456,7 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
                 .with_non_disclosing_use_only(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none().with_grouping_field(
-            crate::authoring::AspectFieldKey::new("secret", "salary").unwrap(),
+            crate::authoring::AspectFieldKey::from_authoring_parts("secret", "salary").unwrap(),
         ),
         RelationshipProofDescriptorSet::none(),
     )
@@ -1470,7 +1470,7 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
                 .with_masked(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none().with_template_predicate_field(
-            crate::authoring::AspectFieldKey::new("secret", "salary").unwrap(),
+            crate::authoring::AspectFieldKey::from_authoring_parts("secret", "salary").unwrap(),
         ),
         RelationshipProofDescriptorSet::none(),
     )
@@ -1578,7 +1578,7 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
                 .with_masked(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none().with_aggregation_field(
-            crate::authoring::AspectFieldKey::new("secret", "salary").unwrap(),
+            crate::authoring::AspectFieldKey::from_authoring_parts("secret", "salary").unwrap(),
         ),
         RelationshipProofDescriptorSet::none(),
     )
@@ -1591,8 +1591,9 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
             crate::authorized_projection::PolicyAspectMask::allow_all()
                 .with_masked(secret_salary_key()),
         ),
-        crate::authorized_projection::PolicyInfluenceSet::none()
-            .with_cursor_field(crate::authoring::AspectFieldKey::new("secret", "salary").unwrap()),
+        crate::authorized_projection::PolicyInfluenceSet::none().with_cursor_field(
+            crate::authoring::AspectFieldKey::from_authoring_parts("secret", "salary").unwrap(),
+        ),
         RelationshipProofDescriptorSet::none(),
     )
     .unwrap_err();
@@ -1605,7 +1606,7 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
                 .with_masked(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none().with_view_membership_field(
-            crate::authoring::AspectFieldKey::new("secret", "salary").unwrap(),
+            crate::authoring::AspectFieldKey::from_authoring_parts("secret", "salary").unwrap(),
         ),
         RelationshipProofDescriptorSet::none(),
     )

@@ -19,13 +19,16 @@ impl ForgeQueryRuntime {
     pub fn drain_patches<T>(&mut self, view: &ForgeQueryLiveView<T>) -> ForgeQueryPatchBatch {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Live)
             .expect("live support was admitted before patch draining");
-        let _legacy_patch_buffer = self.backend.drain_live_patches(view.name());
+        let live_target = ForgeQueryLiveArtifactTarget::from_subscription_installation(
+            view.subscription_installation(),
+        );
+        let _legacy_patch_buffer = self.backend.drain_live_patches_for_target(&live_target);
         ForgeQueryPatchBatch {
             view_name: view.name().to_string(),
             live_patches: Vec::new(),
             query_delivery_batches: self
                 .live_subscriptions
-                .get_mut(view.name())
+                .get_mut(&live_target)
                 .map(|state| std::mem::take(&mut state.delivery_batches))
                 .unwrap_or_default(),
             derived_patch_notes: Vec::new(),
@@ -48,7 +51,7 @@ impl ForgeQueryRuntime {
             .expect("computed support was admitted before derived patch draining");
         let derived_patches = self
             .derived_views
-            .get_mut(view_name)
+            .get_mut(&ForgeQueryDerivedMaterializationTarget::new(view_name))
             .map(|view| std::mem::take(&mut view.patches))
             .unwrap_or_default();
         ForgeQueryPatchBatch {
@@ -91,8 +94,9 @@ impl ForgeQueryRuntime {
         effect: &ForgeQueryEffectHandle<T>,
     ) -> Result<Vec<ForgeQueryEffectDelivery>, ForgeQueryRuntimeError> {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Effect)?;
+        let effect_target = ForgeQueryEffectTarget::from_name(effect.name());
         self.effects
-            .get_mut(effect.name())
+            .get_mut(&effect_target)
             .map(|runtime| std::mem::take(&mut runtime.deliveries))
             .ok_or_else(|| ForgeQueryRuntimeError::MissingEffect(effect.name().to_string()))
     }
@@ -111,8 +115,9 @@ impl ForgeQueryRuntime {
         &self,
         effect_name: &str,
     ) -> Result<ForgeQueryEffectInspectionEvidence, ForgeQueryRuntimeError> {
+        let effect_target = ForgeQueryEffectTarget::from_name(effect_name);
         self.effects
-            .get(effect_name)
+            .get(&effect_target)
             .map(ForgeQueryEffectInspectionEvidence::from_runtime)
             .ok_or_else(|| ForgeQueryRuntimeError::MissingEffect(effect_name.to_string()))
     }
@@ -120,20 +125,26 @@ impl ForgeQueryRuntime {
     pub(super) fn computed_candidate_live_views(
         &self,
         receipt: &ForgeQueryMutationReceipt,
-    ) -> BTreeSet<String> {
+    ) -> BTreeSet<ForgeQueryLiveArtifactTarget> {
         let mut candidates = BTreeSet::new();
         for delta in &receipt.deltas {
-            if let Some(view_names) = self.live_subscription_index.get(&delta.collection) {
-                candidates.extend(view_names.iter().cloned());
+            if let Some(entry) = self.live_subscription_index.iter().find(|entry| {
+                delta
+                    .target_collection_identity()
+                    .same_target_collection_as(entry.target_collection())
+            }) {
+                candidates.extend(entry.targets().iter().cloned());
             }
         }
         candidates
     }
 
-    pub(super) fn live_view_targets(&self) -> BTreeMap<String, String> {
+    pub(super) fn live_artifact_target_collections(
+        &self,
+    ) -> BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryMutationTargetCollectionIdentity> {
         self.live_subscriptions
             .iter()
-            .map(|(view_name, state)| (view_name.clone(), state.request.target().to_string()))
+            .map(|(target, state)| (target.clone(), state.request.target_collection_identity()))
             .collect()
     }
 
@@ -145,9 +156,10 @@ impl ForgeQueryRuntime {
         &mut self,
         program: ForgeQueryProgram,
     ) -> Result<ForgeQueryInstalledProgram, ForgeQueryRuntimeError> {
-        let program_id = program.id().to_string();
-        self.installed_programs.insert(program_id.clone(), program);
-        Ok(ForgeQueryInstalledProgram { program_id })
+        let program_identity = ForgeQueryProgramInstallationIdentity::from_program_id(program.id());
+        self.installed_programs
+            .insert(program_identity.clone(), program);
+        Ok(ForgeQueryInstalledProgram { program_identity })
     }
 
     pub fn run_operation(
@@ -159,8 +171,8 @@ impl ForgeQueryRuntime {
         admit_authority_requirements(query_operation.authority_requirements())?;
         let bound_inputs = validate_inputs(&query_operation, &inputs)?;
         let mut trace = ForgeQueryProgramTrace::new(
-            operation.program_id.clone(),
-            operation.operation_id.clone(),
+            operation.program_identity.as_str(),
+            operation.operation_identity.as_str(),
             &bound_inputs,
             query_operation
                 .authority_requirements()
@@ -201,7 +213,7 @@ impl ForgeQueryRuntime {
                 ForgeQueryProgramEffect::ReadLive { view_name } => {
                     let installation = self
                         .live_subscriptions
-                        .get(&view_name)
+                        .get(&ForgeQueryLiveArtifactTarget::from_view_name(&view_name))
                         .map(|state| state.installation.clone())
                         .ok_or_else(|| {
                             ForgeQueryRuntimeError::MissingLiveView(view_name.clone())
@@ -214,10 +226,22 @@ impl ForgeQueryRuntime {
                     trace.record_replay_or_parity(format!("read-live:{view_name}"));
                 }
                 ForgeQueryProgramEffect::DrainPatches { view_name } => {
-                    let _legacy_patch_buffer = self.backend.drain_live_patches(&view_name);
+                    let live_target = self
+                        .live_subscriptions
+                        .get(&ForgeQueryLiveArtifactTarget::from_view_name(&view_name))
+                        .map(|state| {
+                            ForgeQueryLiveArtifactTarget::from_subscription_installation(
+                                &state.installation,
+                            )
+                        })
+                        .unwrap_or_else(|| {
+                            ForgeQueryLiveArtifactTarget::from_view_name(view_name.clone())
+                        });
+                    let _legacy_patch_buffer =
+                        self.backend.drain_live_patches_for_target(&live_target);
                     let query_delivery_batches = self
                         .live_subscriptions
-                        .get_mut(&view_name)
+                        .get_mut(&live_target)
                         .map(|state| std::mem::take(&mut state.delivery_batches))
                         .unwrap_or_default();
                     for batch in &query_delivery_batches {
@@ -237,10 +261,10 @@ impl ForgeQueryRuntime {
                 }
             }
         }
-        let run_id = self.next_run_identity(&operation);
-        self.run_traces.insert(run_id.clone(), trace);
+        let run_identity = self.next_run_identity(&operation);
+        self.run_traces.insert(run_identity.clone(), trace);
         Ok(ForgeQueryRunReceipt {
-            run_id,
+            run_identity,
             operation,
             outputs,
             write_receipts,
@@ -254,23 +278,32 @@ impl ForgeQueryRuntime {
     ) -> Result<crate::program::ForgeQueryOperation, ForgeQueryRuntimeError> {
         let program = self
             .installed_programs
-            .get(&operation.program_id)
-            .ok_or_else(|| ForgeQueryRuntimeError::UnknownProgram(operation.program_id.clone()))?;
+            .get(&operation.program_identity)
+            .ok_or_else(|| {
+                ForgeQueryRuntimeError::UnknownProgram(
+                    operation.program_identity.as_str().to_string(),
+                )
+            })?;
         program
-            .operation(&operation.operation_id)
+            .operation(operation.operation_identity.as_str())
             .ok_or_else(|| ForgeQueryRuntimeError::UnknownOperation {
-                program_id: operation.program_id.clone(),
-                operation_id: operation.operation_id.clone(),
+                program_id: operation.program_identity.as_str().to_string(),
+                operation_id: operation.operation_identity.as_str().to_string(),
             })
             .cloned()
     }
 
-    pub(super) fn next_run_identity(&mut self, operation: &ForgeQueryInstalledOperation) -> String {
+    pub(super) fn next_run_identity(
+        &mut self,
+        operation: &ForgeQueryInstalledOperation,
+    ) -> ForgeQueryProgramRunIdentity {
         self.next_run_id += 1;
-        format!(
+        ForgeQueryProgramRunIdentity::from_run_id(format!(
             "query-run:{}:{}:{}",
-            operation.program_id, operation.operation_id, self.next_run_id
-        )
+            operation.program_identity.as_str(),
+            operation.operation_identity.as_str(),
+            self.next_run_id
+        ))
     }
 
     pub fn inspect_run(
@@ -279,7 +312,7 @@ impl ForgeQueryRuntime {
     ) -> Result<ForgeQueryProgramTrace, ForgeQueryRuntimeError> {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
         self.run_traces
-            .get(run.run_id())
+            .get(&run.run_identity)
             .cloned()
             .ok_or_else(|| ForgeQueryRuntimeError::UnknownProgram(run.run_id().to_string()))
     }

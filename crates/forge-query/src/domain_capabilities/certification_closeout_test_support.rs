@@ -53,7 +53,10 @@ pub(super) fn admitted_projection_consumption_plan() -> ForgeQueryAdmittedIntent
         projection_binding(),
         crate::projection_consumption::ProjectMaterializedFacts::declare().display_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
-                "field", "visible",
+                forge_foundational::facade::FieldKey::new("field")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("visible")
+                    .expect("projection fact field segment should admit"),
             ]),
         ),
     )

@@ -1,14 +1,15 @@
-use forge_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
+use crate::support::aspect_touch as touch;
+use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
     compose_public_bridge_hostile_certification_digest,
     public_bridge_hostile_certification_evidence_label,
     public_bridge_hostile_published_artifact_component_digest, ForgeQueryAspectMutationBuilder,
-    ForgeQueryAspectTouch, ForgeQueryCommitIdentity, ForgeQueryDerivedPatch,
-    ForgeQueryDerivedPatchPayload, ForgeQueryDerivedView, ForgeQueryDerivedViewHandle,
-    ForgeQueryDerivedViewMaintainer, ForgeQueryDerivedViewMaterialization, ForgeQueryLiveView,
-    ForgeQueryNativeRow, ForgeQueryPublishedDerivedArtifactHandle, ForgeQueryRetainedFieldPath,
-    ForgeQueryRuntime, ForgeQueryRuntimeSupportProfile, ForgeQueryWorkspace,
-    ForgeQueryWriteCommand, ForgeQueryWriteReceipt, PublicBridgeHostileCertificationComposeInput,
+    ForgeQueryCommitIdentity, ForgeQueryDerivedPatch, ForgeQueryDerivedPatchPayload,
+    ForgeQueryDerivedView, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
+    ForgeQueryDerivedViewMaterialization, ForgeQueryLiveView, ForgeQueryNativeRow,
+    ForgeQueryPublishedDerivedArtifactHandle, ForgeQueryRetainedFieldPath, ForgeQueryRuntime,
+    ForgeQueryRuntimeSupportProfile, ForgeQueryWorkspace, ForgeQueryWriteCommand,
+    ForgeQueryWriteReceipt, PublicBridgeHostileCertificationComposeInput,
 };
 use forge_query::{
     ForgeQueryPublicBridgeProjectionConsumptionEvidence,
@@ -43,7 +44,10 @@ impl ForgeQueryDerivedViewMaintainer for PublicHostileMaintainer {
             .get(next)
             .copied()
             .unwrap_or(self.titles[self.titles.len() - 1]);
-        let retained_scalar = (retained_field_path(["title", "value"]), text(title));
+        let retained_scalar = (
+            retained_field_path(["title", "value"]),
+            AspectValue::String(title.to_string().into()),
+        );
         materialization
             .replace_retained_scalar_row([retained_scalar.clone()])
             .expect("title row should retain scalar values");
@@ -147,10 +151,15 @@ fn declare_public_bridge_hostile_projection(
         .live_view("public.bridge.hostile-certification.tasks", |q| {
             q.from("Task")
                 .select([
-                    forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
-                    forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(forge_query::facade::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("public-bridge-hostile-certification-tasks")
         })
         .expect("task live view should declare");
@@ -210,8 +219,8 @@ fn discard_public_bridge_preview_churn(workspace: &mut ForgeQueryWorkspace) -> S
         .expect("preview churn should admit");
     preview
         .insert("Task", |task| {
-            task.aspect(touch("identity.id"), text("preview-discard"))
-                .aspect(touch("title.value"), text("Preview discard"))
+            task.set_aspect(touch("identity.id"), authored_text("preview-discard"))
+                .set_aspect(touch("title.value"), authored_text("Preview discard"))
         })
         .expect("preview staging should succeed");
     preview
@@ -258,8 +267,8 @@ fn promote_preview_task_and_consume_published_title(
         .expect("preview churn should admit");
     preview
         .insert("Task", |task| {
-            task.aspect(touch("identity.id"), text("task-3"))
-                .aspect(touch("title.value"), text("Task Three"))
+            task.set_aspect(touch("identity.id"), authored_text("task-3"))
+                .set_aspect(touch("title.value"), authored_text("Task Three"))
         })
         .expect("preview promotion staging should succeed");
     let promoted = preview.promote().expect("preview promotion should succeed");
@@ -313,8 +322,8 @@ fn runtime_for_bootstrap_path(
 
 fn insert_task_command(id: &str, title: &str) -> ForgeQueryWriteCommand {
     ForgeQueryAspectMutationBuilder::new()
-        .aspect(touch("identity.id"), text(id))
-        .aspect(touch("title.value"), text(title))
+        .set_aspect(touch("identity.id"), authored_text(id))
+        .set_aspect(touch("title.value"), authored_text(title))
         .build_insert("Task")
         .expect("insert command should build")
 }
@@ -360,27 +369,6 @@ fn retained_field_path(
     ForgeQueryRetainedFieldPath::from_canonical_field_path(canonical)
 }
 
-fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    let mut segments = aspect_path.split('.');
-    let aspect = segments
-        .next()
-        .and_then(|segment| AspectKey::new(segment.to_string()))
-        .expect("test aspect path aspect should admit");
-    let fields = segments
-        .map(|segment| {
-            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
-        })
-        .collect::<Vec<_>>();
-    if fields.is_empty() {
-        ForgeQueryAspectTouch::aspect(aspect)
-    } else {
-        ForgeQueryAspectTouch::field_path(
-            aspect,
-            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
-        )
-    }
-}
-
-fn text(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
 }

@@ -83,7 +83,7 @@ impl ForgeQueryEntity {
         }
     }
 
-    pub(crate) fn native_result_digest_parts(&self) -> Vec<String> {
+    pub(crate) fn terminal_result_digest_parts(&self) -> Vec<String> {
         match &self.row {
             ForgeQueryEntityRow::AspectProjection {
                 aspect_values,

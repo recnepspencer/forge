@@ -96,8 +96,10 @@ fn time_only_materialized_read_receipt_retains_projection_consumption_posture() 
             &authorized_projection,
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )
@@ -142,8 +144,10 @@ fn async_backed_query_context_consumption_receipt_retains_materialized_posture()
             &authorized_projection,
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )
@@ -196,8 +200,10 @@ fn temporal_async_consumed_facts_remain_basis_policy_and_support_bound() {
             &authorized_projection_left,
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )
@@ -211,8 +217,10 @@ fn temporal_async_consumed_facts_remain_basis_policy_and_support_bound() {
             &authorized_projection_right,
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )

@@ -3,8 +3,9 @@ use super::*;
 use forge_foundational::facade::AspectValue;
 
 use crate::runtime::{
-    ForgeQueryAspectTouch, ForgeQueryLiveView, ForgeQueryRetainedFieldPath,
-    ForgeQueryRetainedMaterializedRow, ForgeQueryRuntimeError,
+    ForgeQueryAspectTouch, ForgeQueryDerivedMaterializationTarget, ForgeQueryLiveArtifactTarget,
+    ForgeQueryLiveView, ForgeQueryRetainedFieldPath, ForgeQueryRetainedMaterializedRow,
+    ForgeQueryRuntimeError,
 };
 
 use crate::evidence_identity::{
@@ -33,14 +34,20 @@ impl Default for ForgeQueryDerivedViewMaterialization {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ForgeQueryRetainedUpstreamInputs {
-    live_rows: BTreeMap<String, Vec<ForgeQueryEntity>>,
-    computed_rows: BTreeMap<String, Vec<ForgeQueryRetainedMaterializedRow>>,
+    live_rows: BTreeMap<ForgeQueryLiveArtifactTarget, Vec<ForgeQueryEntity>>,
+    computed_rows:
+        BTreeMap<ForgeQueryDerivedMaterializationTarget, Vec<ForgeQueryRetainedMaterializedRow>>,
 }
 
 impl ForgeQueryRetainedUpstreamInputs {
     pub(in crate::runtime) fn new(
-        live_rows: impl IntoIterator<Item = (String, Vec<ForgeQueryEntity>)>,
-        computed_rows: impl IntoIterator<Item = (String, Vec<ForgeQueryRetainedMaterializedRow>)>,
+        live_rows: impl IntoIterator<Item = (ForgeQueryLiveArtifactTarget, Vec<ForgeQueryEntity>)>,
+        computed_rows: impl IntoIterator<
+            Item = (
+                ForgeQueryDerivedMaterializationTarget,
+                Vec<ForgeQueryRetainedMaterializedRow>,
+            ),
+        >,
     ) -> Self {
         Self {
             live_rows: live_rows.into_iter().collect(),
@@ -49,18 +56,31 @@ impl ForgeQueryRetainedUpstreamInputs {
     }
 
     pub(in crate::runtime) fn from_retained_computed_rows(
-        live_rows: impl IntoIterator<Item = (String, Vec<ForgeQueryEntity>)>,
-        computed_rows: impl IntoIterator<Item = (String, Vec<ForgeQueryRetainedMaterializedRow>)>,
+        live_rows: impl IntoIterator<Item = (ForgeQueryLiveArtifactTarget, Vec<ForgeQueryEntity>)>,
+        computed_rows: impl IntoIterator<
+            Item = (
+                ForgeQueryDerivedMaterializationTarget,
+                Vec<ForgeQueryRetainedMaterializedRow>,
+            ),
+        >,
     ) -> Self {
         Self::new(live_rows, computed_rows)
     }
 
     pub fn live_rows_for<T>(&self, view: &ForgeQueryLiveView<T>) -> Option<&[ForgeQueryEntity]> {
-        self.live_rows_by_name(view.name())
+        self.live_rows
+            .get(
+                &ForgeQueryLiveArtifactTarget::from_subscription_installation(
+                    view.subscription_installation(),
+                ),
+            )
+            .map(Vec::as_slice)
     }
 
     fn live_rows_by_name(&self, view_name: &str) -> Option<&[ForgeQueryEntity]> {
-        self.live_rows.get(view_name).map(Vec::as_slice)
+        self.live_rows
+            .get(&ForgeQueryLiveArtifactTarget::from_view_name(view_name))
+            .map(Vec::as_slice)
     }
 
     pub fn declared_live_rows_for<T>(
@@ -106,7 +126,7 @@ impl ForgeQueryRetainedUpstreamInputs {
         view_name: &str,
     ) -> &[ForgeQueryRetainedMaterializedRow] {
         self.computed_rows
-            .get(view_name)
+            .get(&ForgeQueryDerivedMaterializationTarget::new(view_name))
             .map(Vec::as_slice)
             .unwrap_or_default()
     }
@@ -813,7 +833,7 @@ fn computed_materialization_inspection_identity(
 ) -> ForgeQueryEvidenceIdentity {
     let row_shapes: Vec<String> = rows
         .iter()
-        .map(|row| row.native_digest_parts().join(";"))
+        .map(|row| row.terminal_digest_parts().join(";"))
         .collect();
     forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
         .field_shape(
@@ -893,7 +913,7 @@ fn derived_patch_inspection_identity(
     }
     if !patch.aspect_touches().is_empty() {
         encoder = encoder.field_value_sequence(
-            ForgeQueryEvidenceTag::new("aspect_paths"),
+            ForgeQueryEvidenceTag::new("admitted_aspect_touches"),
             patch
                 .aspect_touches()
                 .iter()

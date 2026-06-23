@@ -28,10 +28,15 @@ fn compose_graph_supports_existing_target_retarget_lifecycle() {
         .live_view("tasks.graph-composition-retarget-existing-tasks", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-retarget-existing-tasks")
         })
         .expect("task live view should declare");
@@ -39,12 +44,17 @@ fn compose_graph_supports_existing_target_retarget_lifecycle() {
         .live_view("tasks.graph-composition-retarget-existing-relations", |q| {
             q.from("TaskRelation")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
-                    crate::authoring::AspectFieldKey::new("source", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("target", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("source", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("target", "id").unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-retarget-existing-relations")
         })
         .expect("relation live view should declare");
@@ -52,21 +62,21 @@ fn compose_graph_supports_existing_target_retarget_lifecycle() {
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("rel-next"),
+                    test_authored_string_aspect_value("rel-next"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("kind.value"),
-                    test_string_aspect_value("loop_successor"),
+                    test_authored_string_aspect_value("loop_successor"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("source.id"),
-                    test_string_aspect_value("loop-a"),
+                    test_authored_string_aspect_value("loop-a"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("target.id"),
-                    test_string_aspect_value("loop-b"),
+                    test_authored_string_aspect_value("loop-b"),
                 )
         })
         .expect("seed insert should execute");
@@ -85,8 +95,8 @@ fn compose_graph_supports_existing_target_retarget_lifecycle() {
     let receipt = workspace
         .compose_graph(|graph| {
             let _ = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect(test_aspect_touch("identity.id"), test_string_aspect_value("task-loop-c"))
-                    .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Loop successor target"))
+                task.set_aspect(test_aspect_touch("identity.id"), test_authored_string_aspect_value("task-loop-c"))
+                    .set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Loop successor target"))
             })?;
             graph.retarget_existing(binding, |relation| {
                 relation
@@ -94,7 +104,7 @@ fn compose_graph_supports_existing_target_retarget_lifecycle() {
                     )
                     .continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:rel-next").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:rel-next-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                     )
-                    .aspect(test_aspect_touch("target.id"), test_string_aspect_value("loop-c"))
+                    .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("loop-c"))
             })?;
             Ok(())
         })
@@ -197,8 +207,8 @@ fn compose_graph_supports_verified_existing_target_retarget_lifecycle() {
                 binding,
                 |verify| {
                     verify
-                        .aspect(test_aspect_touch("source.id"), test_string_aspect_value("loop-a"))
-                        .aspect(test_aspect_touch("target.id"), test_string_aspect_value("loop-b"))
+                        .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("loop-a"))
+                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("loop-b"))
                 },
                 |update| {
                     update
@@ -206,7 +216,7 @@ fn compose_graph_supports_verified_existing_target_retarget_lifecycle() {
                         )
                         .continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:rel-next").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:rel-next-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         )
-                        .aspect(test_aspect_touch("target.id"), test_string_aspect_value("loop-c"))
+                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("loop-c"))
                 },
             )?;
             Ok(())

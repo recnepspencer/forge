@@ -40,7 +40,9 @@ pub(super) fn sorted_unique_touches(
         .collect()
 }
 
-pub(super) fn native_touch_digest_parts(touched_aspects: &[ForgeQueryAspectTouch]) -> Vec<String> {
+pub(super) fn terminal_touch_digest_parts(
+    touched_aspects: &[ForgeQueryAspectTouch],
+) -> Vec<String> {
     touched_aspects
         .iter()
         .map(ForgeQueryAspectTouch::admitted_touch_digest_part)
@@ -71,7 +73,7 @@ pub(super) fn contains_all_aspect_touches(
     })
 }
 
-pub(super) fn native_declared_aspect_operation_digest_part(
+pub(super) fn terminal_declared_aspect_operation_digest_part(
     operation: &ForgeQueryAspectMutationOperation,
 ) -> String {
     format!(

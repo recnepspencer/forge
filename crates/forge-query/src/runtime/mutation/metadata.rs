@@ -39,20 +39,20 @@ impl ForgeQueryMutationMetadataValue {
         Ok(Self { text })
     }
 
-    pub fn native_digest_text(&self) -> &str {
+    pub fn terminal_digest_text(&self) -> &str {
         &self.text
     }
 }
 
 impl std::fmt::Display for ForgeQueryMutationMetadataValue {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str(self.native_digest_text())
+        formatter.write_str(self.terminal_digest_text())
     }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ForgeQueryMutationMetadata {
-    entries: BTreeMap<String, ForgeQueryMutationMetadataValue>,
+    entries: BTreeMap<ForgeQueryMutationMetadataKey, ForgeQueryMutationMetadataValue>,
 }
 
 impl ForgeQueryMutationMetadata {
@@ -68,7 +68,7 @@ impl ForgeQueryMutationMetadata {
         &self,
         key: &ForgeQueryMutationMetadataKey,
     ) -> Option<&ForgeQueryMutationMetadataValue> {
-        self.entries.get(key.as_str())
+        self.entries.get(key)
     }
 
     pub fn entries(
@@ -79,9 +79,7 @@ impl ForgeQueryMutationMetadata {
             &ForgeQueryMutationMetadataValue,
         ),
     > + '_ {
-        self.entries
-            .iter()
-            .map(|(key, value)| (ForgeQueryMutationMetadataKey { text: key.clone() }, value))
+        self.entries.iter().map(|(key, value)| (key.clone(), value))
     }
 
     pub fn insert(
@@ -98,10 +96,10 @@ impl ForgeQueryMutationMetadata {
         value: impl Into<String>,
     ) -> Result<(), ForgeQueryWorkspaceError> {
         let key = ForgeQueryMutationMetadataKey::new(key)?;
-        let key = key.as_str().to_string();
         if self.entries.contains_key(&key) {
             return Err(ForgeQueryWorkspaceError::new(format!(
-                "mutation metadata `{key}` may only be declared once per mutation"
+                "mutation metadata `{}` may only be declared once per mutation",
+                key.as_str()
             )));
         }
         let value = ForgeQueryMutationMetadataValue::from_text(value)?;

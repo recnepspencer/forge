@@ -1,6 +1,6 @@
 use super::*;
 use crate::aspect_field_authoring::{entity_string_field_aspect, planned_field_path_locator};
-use crate::runtime::{ForgeQueryAspectTouch, ForgeQueryAspectValue};
+use crate::runtime::{ForgeQueryAdmittedAspectValue, ForgeQueryAspectTouch};
 use forge_foundational::facade::AspectValue;
 use forge_relational::facade::config::RelationalRuntimeProfile;
 use forge_relational::facade::identity::PartitionId;
@@ -42,7 +42,7 @@ impl ForgeQueryMemoryWorkspace {
                 let target = touch.parsed_target();
                 let field_label = match target.field_path().and_then(single_field_label).cloned() {
                     Some(field_label) => field_label,
-                    None => final_field_key(aspect.external_projection_path())?.clone(),
+                    None => final_field_key(aspect.native_field_path())?.clone(),
                 };
                 entity_string_field_aspect(target.aspect_key().as_str(), field_label.as_str())
             })
@@ -80,7 +80,7 @@ impl ForgeQueryMemoryWorkspace {
 
     pub fn insert_aspects(
         &mut self,
-        aspects: Vec<ForgeQueryAspectValue>,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
         let touched_aspects = touches_from_aspect_values(&aspects);
         let fields = self.field_patch_from_aspect_values(&aspects)?;
@@ -90,7 +90,7 @@ impl ForgeQueryMemoryWorkspace {
     pub fn update_aspects(
         &mut self,
         entity_identity: ForgeQueryEntityIdentity,
-        aspects: Vec<ForgeQueryAspectValue>,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
         let entity_id = super::runtime_identity::entity_id_from_identity(entity_identity)?;
         self.ensure_entity_exists(entity_id)?;
@@ -129,12 +129,14 @@ impl ForgeQueryMemoryWorkspace {
         let mut receipt =
             self.receipt_from_commit(result, ForgeQueryMutationKind::Deleted, Vec::new());
         if receipt.deltas.is_empty() {
-            receipt.deltas.push(ForgeQueryMutationDelta {
-                collection: self.kind_name.clone(),
-                entity_identity,
-                kind: ForgeQueryMutationKind::Deleted,
-                touched_aspects: Vec::new(),
-            });
+            receipt
+                .deltas
+                .push(ForgeQueryMutationDelta::from_collection_identity(
+                    self.mutation_delta_collection_identity(),
+                    entity_identity,
+                    ForgeQueryMutationKind::Deleted,
+                    Vec::new(),
+                ));
         }
         Ok(receipt)
     }
@@ -216,7 +218,7 @@ impl ForgeQueryMemoryWorkspace {
 
     fn field_patch_from_aspect_values(
         &self,
-        aspects: &[ForgeQueryAspectValue],
+        aspects: &[ForgeQueryAdmittedAspectValue],
     ) -> Result<forge_relational::facade::transactions::AspectFieldPatch, ForgeQueryWorkspaceError>
     {
         let mut targets = std::collections::BTreeMap::new();
@@ -233,7 +235,7 @@ impl ForgeQueryMemoryWorkspace {
             let field_path = match target.field_path() {
                 Some(path) => path.clone(),
                 None => forge_foundational::facade::CanonicalFieldPath::single(
-                    final_field_key(declared.external_projection_path())
+                    final_field_key(declared.native_field_path())
                         .map_err(ForgeQueryWorkspaceError::new)?
                         .clone(),
                 ),
@@ -269,7 +271,7 @@ impl ForgeQueryMemoryWorkspace {
                 continue;
             };
             aspect_values.insert(target.aspect_key().clone(), value.clone());
-            native_field_values.insert(aspect.external_projection_path().clone(), value.clone());
+            native_field_values.insert(aspect.native_field_path().clone(), value.clone());
         }
         (aspect_values, native_field_values)
     }
@@ -301,12 +303,12 @@ impl ForgeQueryMemoryWorkspace {
             .iter()
             .filter_map(|record| match record {
                 forge_relational::facade::transactions::RecordRef::Entity(entity) => {
-                    Some(ForgeQueryMutationDelta {
-                        collection: self.kind_name.clone(),
-                        entity_identity: super::runtime_identity::entity_identity(*entity),
-                        kind: kind.clone(),
-                        touched_aspects: touched_aspects.clone(),
-                    })
+                    Some(ForgeQueryMutationDelta::from_collection_identity(
+                        self.mutation_delta_collection_identity(),
+                        super::runtime_identity::entity_identity(*entity),
+                        kind.clone(),
+                        touched_aspects.clone(),
+                    ))
                 }
                 forge_relational::facade::transactions::RecordRef::Relation(_) => None,
             })
@@ -320,30 +322,36 @@ impl ForgeQueryMemoryWorkspace {
             bridge_authority: None,
         }
     }
+
+    fn mutation_delta_collection_identity(
+        &self,
+    ) -> crate::runtime::ForgeQueryMutationTargetCollectionIdentity {
+        crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+            "memory-workspace-mutation-delta-collection",
+            &self.kind_name,
+        )
+    }
 }
 
-fn touches_from_aspect_values(aspects: &[ForgeQueryAspectValue]) -> Vec<ForgeQueryAspectTouch> {
+fn touches_from_aspect_values(
+    aspects: &[ForgeQueryAdmittedAspectValue],
+) -> Vec<ForgeQueryAspectTouch> {
     aspects
         .iter()
         .map(|aspect| ForgeQueryAspectTouch::from_parsed_target(aspect.parsed_target().clone()))
         .collect()
 }
 
-fn parsed_aspect_touch(label: &str) -> Result<ForgeQueryAspectTouch, String> {
-    ForgeQueryAspectTouch::from_authoring_path(label.to_string()).map_err(|error| error.to_string())
-}
-
 fn declared_aspect_matches_touch(
     aspect: &ForgeQueryAspect,
     requested: &ForgeQueryAspectTouch,
 ) -> bool {
-    std::iter::once(aspect.aspect_touch().clone())
-        .chain(
-            parsed_aspect_touch(&terminal_projection_from_field_path(
-                aspect.external_projection_path(),
-            ))
-            .ok(),
-        )
+    let field_path_alias = ForgeQueryAspectTouch::aspect_field_path(
+        aspect.aspect_touch().native_aspect_key().clone(),
+        aspect.native_field_path().clone(),
+    );
+    [aspect.aspect_touch().clone(), field_path_alias]
+        .into_iter()
         .any(|declared| declared.matches_or_contains(requested))
 }
 
@@ -362,15 +370,5 @@ fn final_field_key(
 ) -> Result<&forge_foundational::facade::FieldKey, String> {
     path.fields()
         .last()
-        .ok_or_else(|| "external projection path must contain a field segment".to_string())
-}
-
-fn terminal_projection_from_field_path(
-    path: &forge_foundational::facade::CanonicalFieldPath,
-) -> String {
-    path.fields()
-        .iter()
-        .map(forge_foundational::facade::FieldKey::as_str)
-        .collect::<Vec<_>>()
-        .join(".")
+        .ok_or_else(|| "native field path must contain a field segment".to_string())
 }

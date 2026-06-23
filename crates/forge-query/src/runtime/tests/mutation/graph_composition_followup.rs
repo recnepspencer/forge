@@ -13,10 +13,15 @@ fn compose_graph_supports_symbolic_relation_followup_mutation() {
         .live_view("tasks.graph-composition-relation-followup-tasks", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-relation-followup-tasks")
         })
         .expect("task live view should declare");
@@ -24,11 +29,21 @@ fn compose_graph_supports_symbolic_relation_followup_mutation() {
         .live_view("tasks.graph-composition-relation-followup-edges", |q| {
             q.from("TaskEdge")
                 .select([
-                    crate::authoring::AspectFieldKey::new("edge", "kind").unwrap(),
-                    crate::authoring::AspectFieldKey::new("edge", "source_identity").unwrap(),
-                    crate::authoring::AspectFieldKey::new("edge", "target_identity").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts(
+                        "edge",
+                        "source_identity",
+                    )
+                    .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts(
+                        "edge",
+                        "target_identity",
+                    )
+                    .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("edge", "kind").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind").unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-relation-followup-edges")
         })
         .expect("edge live view should declare");
@@ -36,20 +51,20 @@ fn compose_graph_supports_symbolic_relation_followup_mutation() {
     let receipt = workspace
         .compose_graph(|graph| {
             let draft = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("task-draft"),
+                    test_authored_string_aspect_value("task-draft"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Draft task"),
+                    test_authored_string_aspect_value("Draft task"),
                 )
             })?;
             let edge = graph.insert_symbolic_relation("draft-edge", "TaskEdge", |relation| {
                 relation
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("edge.kind"),
-                        test_string_aspect_value("depends_on"),
+                        test_authored_string_aspect_value("depends_on"),
                     )
                     .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &draft)
                     .existing_entity_identity(
@@ -58,9 +73,9 @@ fn compose_graph_supports_symbolic_relation_followup_mutation() {
                     )
             })?;
             graph.update_relation(&edge, |relation| {
-                relation.aspect(
+                relation.set_aspect(
                     test_aspect_touch("edge.kind"),
-                    test_string_aspect_value("blocks"),
+                    test_authored_string_aspect_value("blocks"),
                 )
             })?;
             Ok(())

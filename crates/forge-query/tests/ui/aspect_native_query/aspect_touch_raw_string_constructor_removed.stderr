@@ -5,15 +5,15 @@ error[E0599]: no function or associated item named `new` found for struct `Forge
   |                                    ^^^ function or associated item not found in `ForgeQueryAspectTouch`
   |
 note: if you're trying to build a new `ForgeQueryAspectTouch` consider using one of the following associated functions:
-      ForgeQueryAspectTouch::aspect
-      ForgeQueryAspectTouch::field_path
+      ForgeQueryAspectTouch::whole_aspect
+      ForgeQueryAspectTouch::aspect_field_path
  --> src/runtime/mutation/touch.rs
   |
-  |     pub fn aspect(aspect_key: AspectKey) -> Self {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |     pub fn whole_aspect(aspect_key: AspectKey) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ...
-  |     pub fn field_path(aspect_key: AspectKey, field_path: CanonicalFieldPath) -> Self {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |     pub fn aspect_field_path(aspect_key: AspectKey, field_path: CanonicalFieldPath) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 help: there is a method `ne` with a similar name
   |
 4 -     let _ = ForgeQueryAspectTouch::new("title.value");

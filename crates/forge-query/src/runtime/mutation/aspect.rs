@@ -10,7 +10,8 @@ use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::memory_workspace::{ForgeQueryEntityIdentity, ForgeQueryWorkspaceError};
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAspectMutationOperationKind,
-    ForgeQueryAspectTouch, ForgeQueryContinuityMutationIntent, ForgeQueryNamingMutationIntent,
+    ForgeQueryAspectTouch, ForgeQueryContinuityMutationIntent,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryNamingMutationIntent,
     ForgeQueryRuntimeError, ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicTargetReference,
     ForgeQueryWriteCommand,
 };
@@ -23,11 +24,55 @@ mod aspect_existing_truth;
 use aspect_builder_helpers::{finish_aspects, reject_symbolic_aspect_references};
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct ForgeQueryAspectValue {
+pub struct ForgeQueryAdmittedAspectValue {
     parsed: ForgeQueryParsedDesiredAspect,
 }
 
-impl ForgeQueryAspectValue {
+#[derive(Clone, Debug, PartialEq)]
+pub struct ForgeQueryAuthoredAspectValue {
+    value: AspectValue,
+}
+
+impl ForgeQueryAuthoredAspectValue {
+    pub fn string(value: impl Into<String>) -> Self {
+        Self {
+            value: AspectValue::String(value.into().into()),
+        }
+    }
+
+    pub fn int64(value: i64) -> Self {
+        Self {
+            value: AspectValue::Int64(value),
+        }
+    }
+
+    pub fn bool(value: bool) -> Self {
+        Self {
+            value: AspectValue::Bool(value),
+        }
+    }
+
+    pub fn null() -> Self {
+        Self {
+            value: AspectValue::Null,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn from_foundational_value(value: AspectValue) -> Self {
+        Self { value }
+    }
+
+    pub(crate) fn into_foundational_value(self) -> AspectValue {
+        self.value
+    }
+}
+
+impl ForgeQueryAdmittedAspectValue {
+    pub(crate) fn native_string_value(value: impl Into<String>) -> AspectValue {
+        AspectValue::String(value.into().into())
+    }
+
     #[cfg(test)]
     pub(crate) fn new(
         aspect_touch: ForgeQueryAspectTouch,
@@ -52,7 +97,7 @@ impl ForgeQueryAspectValue {
     ) -> Result<Self, ForgeQueryWorkspaceError> {
         Ok(Self::from_touch_parts(
             aspect_touch,
-            ForgeQueryDesiredAspectValue::set_native(AspectValue::String(identity.as_str().into())),
+            ForgeQueryDesiredAspectValue::set_native(Self::native_string_value(identity.as_str())),
         ))
     }
 
@@ -79,12 +124,12 @@ impl ForgeQueryAspectValue {
         self.parsed.desired().value()
     }
 
-    pub(crate) fn native_digest_material(&self) -> String {
+    pub(crate) fn terminal_digest_material(&self) -> String {
         format!(
             "{}={}",
             ForgeQueryAspectTouch::from_parsed_target(self.parsed_target().clone())
                 .admitted_touch_digest_part(),
-            self.parsed.desired().native_digest_material()
+            self.parsed.desired().terminal_digest_material()
         )
     }
 
@@ -115,7 +160,7 @@ impl ForgeQueryAspectValue {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ForgeQueryAspectMutationBuilder {
-    aspects: Vec<ForgeQueryAspectValue>,
+    aspects: Vec<ForgeQueryAdmittedAspectValue>,
     symbolic_aspect_references: Vec<ForgeQuerySymbolicAspectReference>,
     seen_aspects: BTreeSet<ForgeQueryAspectTouch>,
     metadata: ForgeQueryMutationMetadata,
@@ -129,11 +174,16 @@ impl ForgeQueryAspectMutationBuilder {
         Self::default()
     }
 
-    pub fn aspect(mut self, aspect_touch: ForgeQueryAspectTouch, value: AspectValue) -> Self {
+    pub fn set_aspect(
+        mut self,
+        aspect_touch: ForgeQueryAspectTouch,
+        value: ForgeQueryAuthoredAspectValue,
+    ) -> Self {
         if self.error.is_some() {
             return self;
         }
-        match ForgeQueryAspectValue::new_set(aspect_touch, value) {
+        match ForgeQueryAdmittedAspectValue::new_set(aspect_touch, value.into_foundational_value())
+        {
             Ok(aspect) => {
                 let aspect_touch =
                     ForgeQueryAspectTouch::from_parsed_target(aspect.parsed_target().clone());
@@ -176,7 +226,7 @@ impl ForgeQueryAspectMutationBuilder {
         if self.error.is_some() {
             return self;
         }
-        match ForgeQueryAspectValue::new_clear(aspect_touch) {
+        match ForgeQueryAdmittedAspectValue::new_clear(aspect_touch) {
             Ok(aspect) => {
                 let aspect_touch =
                     ForgeQueryAspectTouch::from_parsed_target(aspect.parsed_target().clone());
@@ -236,18 +286,12 @@ impl ForgeQueryAspectMutationBuilder {
         self.build_insert_internal(collection, None)
     }
 
-    pub fn build_insert_symbolic(
+    pub(crate) fn build_insert_symbolic_reference(
         self,
-        symbol: impl Into<String>,
+        reference: ForgeQuerySymbolicTargetReference,
         collection: impl Into<String>,
     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
-        self.build_insert_internal(
-            collection,
-            Some(
-                ForgeQuerySymbolicTargetReference::new(symbol)
-                    .map_err(ForgeQueryRuntimeError::Workspace)?,
-            ),
-        )
+        self.build_insert_internal(collection, Some(reference))
     }
 
     fn build_insert_internal(
@@ -269,6 +313,22 @@ impl ForgeQueryAspectMutationBuilder {
             return Err(ForgeQueryRuntimeError::Workspace(
                 ForgeQueryWorkspaceError::new("collection may not be empty"),
             ));
+        }
+        let collection =
+            ForgeQueryMutationTargetCollectionIdentity::new("write-command-declared", collection);
+        if let Some(reference_collection) = symbolic_target_reference
+            .as_ref()
+            .and_then(ForgeQuerySymbolicTargetReference::target_collection_identity)
+        {
+            if !collection.same_target_collection_as(reference_collection) {
+                return Err(ForgeQueryRuntimeError::Workspace(
+                    ForgeQueryWorkspaceError::new(format!(
+                        "symbolic target collection `{}` does not match insert collection `{}`",
+                        reference_collection.as_str(),
+                        collection.as_str()
+                    )),
+                ));
+            }
         }
         Ok(ForgeQueryWriteCommand::InsertAspects {
             collection,

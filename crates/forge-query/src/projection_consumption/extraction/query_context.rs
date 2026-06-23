@@ -8,7 +8,6 @@ use super::super::identity::compose_query_context_row_identity;
 use super::super::source::ProjectionSourceFamily;
 use crate::projection_consumption::ProjectionFactExtractionError;
 use crate::query_context::QueryContextExecutionArtifact;
-use forge_foundational::facade::AspectValue;
 
 pub(super) fn extract_query_context_facts(
     contract: &MaterializedProjectionContract,
@@ -46,7 +45,8 @@ pub(super) fn extract_query_context_facts(
 
     for (index, row) in execution.rows().iter().enumerate() {
         let row_identity = query_context_row_identity(execution, index);
-        let row_value = AspectValue::String(row.clone().into());
+        let row_value =
+            crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(row.clone());
         for fact_family in contract.fact_families() {
             match fact_family.kind() {
                 ProjectionFactKind::EntityIdentity => {

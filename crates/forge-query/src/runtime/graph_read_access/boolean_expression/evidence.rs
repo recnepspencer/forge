@@ -54,13 +54,12 @@ impl ForgeQueryBooleanExpressionAdmissionError {
         filter: &DeclarativePredicateFilter,
         family: &str,
     ) -> Self {
+        let field = filter.source_field_key();
         Self {
             kind: ForgeQueryBooleanExpressionAdmissionErrorKind::MissingAdmittedPredicateReference,
             read_graph_digest: read_graph.digest().to_string(),
-            aspect: AspectKey::new(filter.aspect())
-                .expect("declarative predicate filter aspect must be a foundational aspect key"),
-            field: FieldKey::new(filter.field())
-                .expect("declarative predicate filter field must be a foundational field key"),
+            aspect: field.native_aspect_key(),
+            field: field.native_field_key(),
             family: family.to_string(),
         }
     }

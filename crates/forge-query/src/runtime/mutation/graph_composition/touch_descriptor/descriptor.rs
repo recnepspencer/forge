@@ -133,7 +133,10 @@ impl ForgeQueryGraphTouchDescriptor {
             read_verb: None,
             program_step_kind: None,
             lifecycle_family,
-            declared_collection: Some(collection),
+            declared_collection: Some(ForgeQueryMutationTargetCollectionIdentity::new(
+                "graph-touch-descriptor-declared",
+                collection,
+            )),
             relation_kind_id: None,
             declared_symbol: None,
             declared_aspect_operations: sorted_unique_operations(declared_aspect_operations),
@@ -325,13 +328,9 @@ impl ForgeQueryGraphTouchDescriptor {
         &self,
         collection: &ForgeQueryMutationTargetCollectionIdentity,
     ) -> bool {
-        self.touches_collection(collection.as_str())
-    }
-
-    pub(crate) fn touches_collection(&self, collection: &str) -> bool {
         self.rows
             .iter()
-            .any(|row| row.declared_collection() == Some(collection))
+            .any(|row| row.touches_declared_collection(collection))
     }
 
     pub fn touches_relation_kind_id(&self, relation_kind_id: KindId) -> bool {

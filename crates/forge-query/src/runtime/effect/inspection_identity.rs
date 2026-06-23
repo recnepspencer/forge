@@ -206,7 +206,7 @@ fn pending_delivery_row_identity(
             effect_delivery_family_label(delivery.family()),
         )
         .field_value_sequence(
-            ForgeQueryEvidenceTag::new("aspect_path"),
+            ForgeQueryEvidenceTag::new("admitted_aspect_touch"),
             delivery
                 .aspect_touches()
                 .iter()

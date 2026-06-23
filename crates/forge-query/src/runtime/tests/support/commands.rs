@@ -15,10 +15,10 @@ where
         .fold(
             ForgeQueryAspectMutationBuilder::new(),
             |builder, (path, value)| {
-                builder.aspect(
-                    ForgeQueryAspectTouch::from_authoring_path(path.into())
-                        .expect("test aspect path is valid"),
-                    value.into(),
+                let touch_fixture = path.into();
+                builder.set_aspect(
+                    test_aspect_touch(&touch_fixture),
+                    ForgeQueryAuthoredAspectValue::from_foundational_value(value.into()),
                 )
             },
         )

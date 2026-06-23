@@ -156,7 +156,7 @@ fn projection_consumption_admitted_decision_materializes_contract_plan_without_h
             crate::projection_consumption::test_authorized_field_paths(&["field.visible"]),
         ),
         crate::projection_consumption::ProjectMaterializedFacts::declare()
-            .display_field_path(crate::projection_consumption::projection_fact_field_path_from_segments(["field", "visible"])),
+            .display_field_path(crate::projection_consumption::projection_fact_field_path_from_segments([forge_foundational::facade::FieldKey::new("field").expect("projection fact field segment should admit"), forge_foundational::facade::FieldKey::new("visible").expect("projection fact field segment should admit")])),
     )
     .expect("projection declaration should build");
     let request =

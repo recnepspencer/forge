@@ -31,7 +31,7 @@ pub(super) fn graph_resolution_identities(
                     entry.component_index(),
                 )
                 .optional_value(
-                    ForgeQueryEvidenceTag::new("aspect_path"),
+                    ForgeQueryEvidenceTag::new("admitted_aspect_touch"),
                     aspect_digest.as_deref(),
                 )
                 .field_evidence_identity(
@@ -207,7 +207,7 @@ fn component_artifact_identity(
         )
         .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("touched_aspect"),
-            evidence_touch_identities(
+            terminal_touch_projection_identities(
                 "component-touched-aspect",
                 component.admitted_touched_aspects(),
             )
@@ -233,7 +233,7 @@ fn evidence_value_identities(
         .collect()
 }
 
-fn evidence_touch_identities(
+fn terminal_touch_projection_identities(
     role: &'static str,
     touches: &[ForgeQueryAspectTouch],
 ) -> Vec<ForgeQueryEvidenceIdentity> {
@@ -264,7 +264,7 @@ fn symbolic_aspect_resolution_identities(
                 ForgeQueryEvidenceScope::BatchWriteReceiptSymbolicAspectResolution,
             )
             .field_value(
-                ForgeQueryEvidenceTag::new("aspect_path"),
+                ForgeQueryEvidenceTag::new("admitted_aspect_touch"),
                 evidence.aspect_touch().admitted_touch_digest_part(),
             )
             .field_evidence_identity(
@@ -301,7 +301,7 @@ fn declared_aspect_operation_identities(
                 operation.kind().as_str(),
             )
             .field_value(
-                ForgeQueryEvidenceTag::new("aspect_path"),
+                ForgeQueryEvidenceTag::new("admitted_aspect_touch"),
                 operation.aspect_touch().admitted_touch_digest_part(),
             )
             .seal()

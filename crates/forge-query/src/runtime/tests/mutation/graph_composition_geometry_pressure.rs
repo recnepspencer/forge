@@ -25,19 +25,19 @@ fn compose_graph_supports_verified_loop_successor_rewire_with_assumption_summary
         .compose_graph(|graph| {
             let successor = graph.insert_entity("draft-half-edge", "HalfEdge", |half_edge| {
                 half_edge
-                    .aspect(test_aspect_touch("identity.id"), test_string_aspect_value("he-3"))
-                    .aspect(test_aspect_touch("kind.value"), test_string_aspect_value("half_edge"))
+                    .set_aspect(test_aspect_touch("identity.id"), test_authored_string_aspect_value("he-3"))
+                    .set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("half_edge"))
             })?;
             graph.retarget_existing_verified(
                 binding,
                 |verify| {
                     verify
-                        .aspect(test_aspect_touch("source.id"), test_string_aspect_value("he-1"))
-                        .aspect(test_aspect_touch("target.id"), test_string_aspect_value("he-2"))
+                        .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("he-1"))
+                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("he-2"))
                 },
                 |update| {
                     update
-                        .aspect(test_aspect_touch("source.id"), test_string_aspect_value("he-1"))
+                        .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("he-1"))
                         .continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:loop-next-rel").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:loop-next-rel-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         )
                         .symbolic_entity_identity(test_aspect_touch("target.id"), successor.reference().clone())
@@ -220,8 +220,8 @@ fn compose_graph_denies_loop_successor_rewire_when_identity_preservation_is_unav
                 binding,
                 |verify| {
                     verify
-                        .aspect(test_aspect_touch("source.id"), test_string_aspect_value("he-1"))
-                        .aspect(test_aspect_touch("target.id"), test_string_aspect_value("he-2"))
+                        .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("he-1"))
+                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("he-2"))
                 },
                 |update| {
                     update
@@ -241,7 +241,7 @@ fn compose_graph_denies_loop_successor_rewire_when_identity_preservation_is_unav
                                 .expect("continuity successor authority label")).expect("continuity successor authority identity"),
                             ],
                         )
-                        .aspect(test_aspect_touch("target.id"), test_string_aspect_value("he-3"))
+                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("he-3"))
                 },
             )?;
             Ok(())

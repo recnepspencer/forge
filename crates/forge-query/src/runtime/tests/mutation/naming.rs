@@ -9,23 +9,28 @@ fn update_existing_preserves_naming_evidence_on_receipt_and_inspection() {
         .live_view("tasks.naming-existing-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-naming-existing-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Named task"),
+                test_authored_string_aspect_value("Named task"),
             )
         })
         .expect("seed insert should execute");
@@ -61,9 +66,9 @@ fn update_existing_preserves_naming_evidence_on_receipt_and_inspection() {
                 attachment_authority.clone(),
                 target_authority.clone(),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Named task renamed"),
+                test_authored_string_aspect_value("Named task renamed"),
             )
         })
         .expect("existing-target naming update should execute");
@@ -126,23 +131,28 @@ fn batch_naming_evidence_preserves_attach_and_rebind_outcomes() {
         .live_view("tasks.naming-batch-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-naming-batch-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-existing"),
+                test_authored_string_aspect_value("task-existing"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Existing"),
+                test_authored_string_aspect_value("Existing"),
             )
         })
         .expect("seed insert should execute");
@@ -166,8 +176,8 @@ fn batch_naming_evidence_preserves_attach_and_rebind_outcomes() {
         .batch(|batch| {
             batch
                 .insert_symbolic("draft-task", "Task", |task| {
-                    task.aspect(test_aspect_touch("identity.id"), test_string_aspect_value("task-draft"))
-                        .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Draft"))
+                    task.set_aspect(test_aspect_touch("identity.id"), test_authored_string_aspect_value("task-draft"))
+                        .set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Draft"))
                 })
                 .update_symbolic(symbolic.clone(), |task| {
                     task.naming_attach_new_target(
@@ -176,12 +186,12 @@ fn batch_naming_evidence_preserves_attach_and_rebind_outcomes() {
                         )
                         .expect("naming attachment authority label")).expect("naming attachment identity"),
                     )
-                    .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Draft named"))
+                    .set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Draft named"))
                 })
                 .update_existing(existing_binding, |task| {
                     task.naming_rebind_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("persistent-name:task-existing").expect("naming attachment authority label")).expect("naming attachment identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_prior_authority(crate::runtime::ForgeQueryNamingPriorAuthorityLabel::new("authority:task-existing-old").expect("naming prior authority label")).expect("naming prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_target_authority(crate::runtime::ForgeQueryNamingTargetAuthorityLabel::new("authority:task-existing").expect("naming target authority label")).expect("naming target authority identity"),
                     )
-                    .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Existing rebound"))
+                    .set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Existing rebound"))
                 })
         })
         .expect("naming batch should execute");
@@ -238,9 +248,9 @@ fn naming_existing_target_denies_missing_binding_typed_and_early() {
                 )
                 .expect("naming target authority identity"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("No binding"),
+                test_authored_string_aspect_value("No binding"),
             )
         })
         .expect_err("naming attach-to-existing should deny without binding");
@@ -266,23 +276,28 @@ fn delete_existing_preserves_naming_removal_evidence_on_receipt_and_inspection()
         .live_view("tasks.naming-remove-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-naming-remove-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Named task"),
+                test_authored_string_aspect_value("Named task"),
             )
         })
         .expect("seed insert should execute");
@@ -417,10 +432,15 @@ fn preview_batch_symbolic_naming_preserves_typed_evidence() {
         .live_view("tasks.preview-naming-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-preview-naming-table")
         })
         .expect("live view should declare");
@@ -432,13 +452,13 @@ fn preview_batch_symbolic_naming_preserves_typed_evidence() {
         .batch(|batch| {
             batch
                 .insert_symbolic("draft-task", "Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-draft"),
+                        test_authored_string_aspect_value("task-draft"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Draft"),
+                        test_authored_string_aspect_value("Draft"),
                     )
                 })
                 .update_symbolic(
@@ -456,9 +476,9 @@ fn preview_batch_symbolic_naming_preserves_typed_evidence() {
                             )
                             .expect("naming attachment identity"),
                         )
-                        .aspect(
+                        .set_aspect(
                             test_aspect_touch("title.value"),
-                            test_string_aspect_value("Preview named"),
+                            test_authored_string_aspect_value("Preview named"),
                         )
                     },
                 )

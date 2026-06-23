@@ -56,8 +56,10 @@ fn retained_binding_declaration_preserves_binding_identity_and_target_refs() {
             ),
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )
@@ -106,8 +108,10 @@ fn live_binding_eligibility_admits_honest_fact_families() {
                 .entity_identities()
                 .display_field_path(
                     crate::projection_consumption::projection_fact_field_path_from_segments([
-                        "profile",
-                        "display_name",
+                        forge_foundational::facade::FieldKey::new("profile")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("display_name")
+                            .expect("projection fact field segment should admit"),
                     ]),
                 )
                 .source_references(),

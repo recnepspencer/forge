@@ -247,7 +247,7 @@ impl ForgeQueryRuntime {
             intent,
             basis_binding_digest.as_deref(),
             target_entity_identity.as_ref(),
-            target_collection.as_deref(),
+            target_collection.as_ref(),
         ) {
             Some(bundle) => attach_continuity_mutation_to_receipt(receipt, bundle),
             None => receipt,
@@ -266,15 +266,13 @@ impl ForgeQueryRuntime {
         let (_, mut target_collection, mut target_entity_identity) =
             classify_receipt_mutation_summary(&receipt);
         if let Some(binding) = existing_truth_binding {
-            target_collection = binding
-                .terminal_target_collection_projection()
-                .map(str::to_string);
+            target_collection = binding.target_collection_identity().cloned();
             target_entity_identity = Some(binding.resolved_entity_artifact_identity());
         }
         match bridge_naming_mutation_bundle(
             intent,
             target_entity_identity.as_ref(),
-            target_collection.as_deref(),
+            target_collection.as_ref(),
         ) {
             Some(bundle) => attach_naming_mutation_to_receipt(receipt, bundle),
             None => receipt,

@@ -6,8 +6,9 @@ impl ForgeQueryRuntime {
         view_name: &str,
     ) -> Result<&ForgeQueryRuntimeLiveSubscriptionInstallation, ForgeQueryRuntimeError> {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
+        let target = ForgeQueryLiveArtifactTarget::from_view_name(view_name);
         self.live_subscriptions
-            .get(view_name)
+            .get(&target)
             .map(|state| &state.installation)
             .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveSubscription(view_name.to_string()))
     }
@@ -23,7 +24,10 @@ impl ForgeQueryRuntime {
         &self,
         view: &ForgeQueryLiveView<T>,
     ) -> Result<ForgeQueryLiveViewInspection, ForgeQueryRuntimeError> {
-        let state = self.live_subscriptions.get(view.name()).ok_or_else(|| {
+        let target = ForgeQueryLiveArtifactTarget::from_subscription_installation(
+            view.subscription_installation(),
+        );
+        let state = self.live_subscriptions.get(&target).ok_or_else(|| {
             ForgeQueryRuntimeError::MissingLiveSubscription(view.name().to_string())
         })?;
         Ok(ForgeQueryLiveViewInspection::from_state(state))
@@ -126,9 +130,10 @@ impl ForgeQueryRuntime {
         effect: &ForgeQueryEffectHandle<T>,
     ) -> Result<ForgeQueryFeedbackPhaseGraphInspection, ForgeQueryRuntimeError> {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
+        let effect_target = ForgeQueryEffectTarget::from_name(effect.name());
         let runtime = self
             .effects
-            .get(effect.name())
+            .get(&effect_target)
             .ok_or_else(|| ForgeQueryRuntimeError::MissingEffect(effect.name().to_string()))?;
         ForgeQueryFeedbackPhaseGraphInspection::from_effect_runtime(runtime).ok_or_else(|| {
             ForgeQueryRuntimeError::MissingEffect(format!(

@@ -12,7 +12,7 @@ fn main() {
             Arc::from("task-1"),
         )),
         ForgeQueryMutationKind::Updated,
-        vec![ForgeQueryAspectTouch::field_path(AspectKey::new("title").unwrap(), CanonicalFieldPath::single(FieldKey::new("value").unwrap()))],
+        vec![ForgeQueryAspectTouch::aspect_field_path(AspectKey::new("title").unwrap(), CanonicalFieldPath::single(FieldKey::new("value").unwrap()))],
     );
 
     let _ = delta.terminal_aspect_paths_projection();

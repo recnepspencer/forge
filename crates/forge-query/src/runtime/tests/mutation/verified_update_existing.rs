@@ -9,28 +9,34 @@ fn update_existing_verified_preserves_backend_verified_assertion_evidence_on_upd
         .live_view("tasks.update-existing-verified-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
-                    crate::authoring::AspectFieldKey::new("status", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("status", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-update-existing-verified-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Seed title"),
+                test_authored_string_aspect_value("Seed title"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("status.value"),
-                test_string_aspect_value("open"),
+                test_authored_string_aspect_value("open"),
             )
         })
         .expect("seed insert should execute");
@@ -50,15 +56,15 @@ fn update_existing_verified_preserves_backend_verified_assertion_evidence_on_upd
         .update_existing_verified(
             binding,
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("open"),
+                    test_authored_string_aspect_value("open"),
                 )
             },
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("closed"),
+                    test_authored_string_aspect_value("closed"),
                 )
             },
         )
@@ -121,28 +127,34 @@ fn update_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
         .live_view("tasks.update-existing-verified-mismatch-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
-                    crate::authoring::AspectFieldKey::new("status", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("status", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-update-existing-verified-mismatch-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Seed title"),
+                test_authored_string_aspect_value("Seed title"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("status.value"),
-                test_string_aspect_value("open"),
+                test_authored_string_aspect_value("open"),
             )
         })
         .expect("seed insert should execute");
@@ -162,15 +174,15 @@ fn update_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
         .update_existing_verified(
             binding.clone(),
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("closed"),
+                    test_authored_string_aspect_value("closed"),
                 )
             },
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("done"),
+                    test_authored_string_aspect_value("done"),
                 )
             },
         )
@@ -187,10 +199,10 @@ fn update_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
                 Some(&test_aspect_touch("status.value"))
             );
             assert_eq!(
-                denial.expected_native_value_digest(),
+                denial.expected_terminal_value_digest(),
                 Some("status:value=set:string:6:closed")
             );
-            assert_eq!(denial.found_native_value_digest(), Some("string:4:open"));
+            assert_eq!(denial.found_terminal_value_digest(), Some("string:4:open"));
         }
         other => panic!("expected typed assertion denial, got {other:?}"),
     }
@@ -216,40 +228,46 @@ fn batch_update_existing_verified_preserves_aggregate_assertion_digest() {
         .live_view("tasks.batch-update-existing-verified-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
-                    crate::authoring::AspectFieldKey::new("status", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("status", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-batch-update-existing-verified-table")
         })
         .expect("live view should declare");
 
     let seed_one = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("First"),
+                test_authored_string_aspect_value("First"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("status.value"),
-                test_string_aspect_value("open"),
+                test_authored_string_aspect_value("open"),
             )
         })
         .expect("first seed should execute");
     let seed_two = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-2"),
+                test_authored_string_aspect_value("task-2"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Second"),
+                test_authored_string_aspect_value("Second"),
             )
         })
         .expect("second seed should execute");
@@ -283,15 +301,15 @@ fn batch_update_existing_verified_preserves_aggregate_assertion_digest() {
                 .update_existing_verified(
                     binding_one,
                     |task| {
-                        task.aspect(
+                        task.set_aspect(
                             test_aspect_touch("status.value"),
-                            test_string_aspect_value("open"),
+                            test_authored_string_aspect_value("open"),
                         )
                     },
                     |task| {
-                        task.aspect(
+                        task.set_aspect(
                             test_aspect_touch("status.value"),
-                            test_string_aspect_value("closed"),
+                            test_authored_string_aspect_value("closed"),
                         )
                     },
                 )
@@ -383,30 +401,30 @@ fn primary_multi_verified_update_batch_shares_one_commit_boundary() {
                 .update_existing_verified(
                     binding_one,
                     |task| {
-                        task.aspect(
+                        task.set_aspect(
                             test_aspect_touch("status.value"),
-                            test_string_aspect_value("open"),
+                            test_authored_string_aspect_value("open"),
                         )
                     },
                     |task| {
-                        task.aspect(
+                        task.set_aspect(
                             test_aspect_touch("status.value"),
-                            test_string_aspect_value("closed"),
+                            test_authored_string_aspect_value("closed"),
                         )
                     },
                 )
                 .update_existing_verified(
                     binding_two,
                     |task| {
-                        task.aspect(
+                        task.set_aspect(
                             test_aspect_touch("status.value"),
-                            test_string_aspect_value("open"),
+                            test_authored_string_aspect_value("open"),
                         )
                     },
                     |task| {
-                        task.aspect(
+                        task.set_aspect(
                             test_aspect_touch("status.value"),
-                            test_string_aspect_value("closed"),
+                            test_authored_string_aspect_value("closed"),
                         )
                     },
                 )
@@ -447,15 +465,15 @@ fn update_existing_verified_denies_unsupported_backend_typed_and_early() {
         .update_existing_verified(
             binding,
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("open"),
+                    test_authored_string_aspect_value("open"),
                 )
             },
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("closed"),
+                    test_authored_string_aspect_value("closed"),
                 )
             },
         )
@@ -481,23 +499,28 @@ fn preview_update_existing_verified_requires_authoritative_lane() {
         .live_view("tasks.preview-update-existing-verified-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("status", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("status", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-preview-update-existing-verified-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("status.value"),
-                test_string_aspect_value("open"),
+                test_authored_string_aspect_value("open"),
             )
         })
         .expect("seed insert should execute");
@@ -520,15 +543,15 @@ fn preview_update_existing_verified_requires_authoritative_lane() {
         .update_existing_verified(
             binding,
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("open"),
+                    test_authored_string_aspect_value("open"),
                 )
             },
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("closed"),
+                    test_authored_string_aspect_value("closed"),
                 )
             },
         )

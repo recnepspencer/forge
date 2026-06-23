@@ -118,10 +118,15 @@ fn runtime_workspace_closure_builders_cover_live_computed_effect_dx() {
         .live_view("tasks.builder-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("runtime-task-builder")
                 .as_surface("tasks.builder-table")
         })
@@ -152,13 +157,13 @@ fn runtime_workspace_closure_builders_cover_live_computed_effect_dx() {
 
     workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Builder DX"),
+                test_authored_string_aspect_value("Builder DX"),
             )
         })
         .expect("builder workspace write should route through declared surfaces");
@@ -179,10 +184,10 @@ fn runtime_public_declaration_builders_support_downstream_vocab_layers() {
     let live = ForgeQueryLiveViewBuilder::surface("tasks.external-table")
         .from("Task")
         .select([
-            crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-            crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+            crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id").unwrap(),
+            crate::authoring::AspectFieldKey::from_authoring_parts("title", "value").unwrap(),
         ])
-        .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+        .order_by(crate::authoring::AspectFieldKey::from_authoring_parts("title", "value").unwrap())
         .allow_traversal_relation("manager", 2)
         .schema_basis("external-task-table")
         .build()
@@ -214,8 +219,10 @@ fn runtime_workspace_state_snapshots_are_async_safe_and_support_gated() {
         .live_view("tasks.state-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
                 .schema_basis("runtime-task-state")
         })
@@ -234,13 +241,13 @@ fn runtime_workspace_state_snapshots_are_async_safe_and_support_gated() {
 
     workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("State DX"),
+                test_authored_string_aspect_value("State DX"),
             )
         })
         .expect("write should route through state surfaces");

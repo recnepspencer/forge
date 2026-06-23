@@ -40,7 +40,7 @@ impl ForgeQueryBatchWriteComponentInspection {
                 let mut collections = receipt
                     .deltas()
                     .iter()
-                    .map(|delta| delta.collection.clone())
+                    .map(|delta| delta.collection().to_string())
                     .collect::<Vec<_>>();
                 collections.sort();
                 collections.dedup();
@@ -61,16 +61,13 @@ impl ForgeQueryBatchWriteComponentInspection {
                 entity_identities
             });
 
-        let mut touched_aspects = std::collections::BTreeMap::new();
+        let mut touched_aspects = std::collections::BTreeSet::new();
         for touch in receipt
             .deltas()
             .iter()
             .flat_map(|delta| delta.admitted_touched_aspects())
         {
-            touched_aspects.insert(
-                touch.admitted_touch_digest_part().to_string(),
-                touch.clone(),
-            );
+            touched_aspects.insert(touch.clone());
         }
 
         Self {
@@ -99,7 +96,7 @@ impl ForgeQueryBatchWriteComponentInspection {
             target_entity_identity: receipt.target_entity_identity().cloned(),
             collections,
             entity_identities,
-            touched_aspects: touched_aspects.into_values().collect(),
+            touched_aspects: touched_aspects.into_iter().collect(),
             declared_aspect_operations: receipt.declared_aspect_operations().to_vec(),
         }
     }

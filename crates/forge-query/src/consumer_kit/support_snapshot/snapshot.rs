@@ -1,6 +1,8 @@
 use crate::runtime::ForgeQueryRuntimePublicSupportMatrix;
 
-use super::document::ForgeQuerySupportSnapshotDocument;
+use super::document::{
+    ForgeQuerySupportSnapshotDocument, ForgeQuerySupportSnapshotTerminalJsonDocument,
+};
 use super::error::{ForgeQuerySupportSnapshotError, ForgeQuerySupportSnapshotErrorKind};
 use super::evidence::support_snapshot_document_identity;
 use super::row::ForgeQuerySupportSnapshotRow;
@@ -84,16 +86,20 @@ impl ForgeQuerySupportSnapshot {
         &self.snapshot_digest
     }
 
-    pub fn to_document(&self) -> ForgeQuerySupportSnapshotDocument {
+    pub(crate) fn to_document(&self) -> ForgeQuerySupportSnapshotDocument {
         ForgeQuerySupportSnapshotDocument::from_snapshot(self)
     }
 
-    pub fn to_stable_json(&self) -> Result<String, ForgeQuerySupportSnapshotError> {
-        self.to_canonical_json()
+    pub fn to_stable_terminal_json_document(
+        &self,
+    ) -> Result<ForgeQuerySupportSnapshotTerminalJsonDocument, ForgeQuerySupportSnapshotError> {
+        self.to_canonical_terminal_json_document()
     }
 
-    pub fn to_canonical_json(&self) -> Result<String, ForgeQuerySupportSnapshotError> {
-        self.to_document().to_stable_json()
+    pub fn to_canonical_terminal_json_document(
+        &self,
+    ) -> Result<ForgeQuerySupportSnapshotTerminalJsonDocument, ForgeQuerySupportSnapshotError> {
+        self.to_document().to_stable_terminal_json_document()
     }
 
     pub(crate) fn rebuild_digest(&self) -> Result<String, ForgeQuerySupportSnapshotError> {

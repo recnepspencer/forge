@@ -12,33 +12,38 @@ fn seed_relation_binding(
         .live_view(workspace_name, |q| {
             q.from("TaskRelation")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
-                    crate::authoring::AspectFieldKey::new("source", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("target", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("source", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("target", "id").unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                )
                 .schema_basis(workspace_name)
         })
         .expect("relation live view should declare");
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("rel-next"),
+                    test_authored_string_aspect_value("rel-next"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("kind.value"),
-                    test_string_aspect_value("loop_successor"),
+                    test_authored_string_aspect_value("loop_successor"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("source.id"),
-                    test_string_aspect_value("loop-a"),
+                    test_authored_string_aspect_value("loop-a"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("target.id"),
-                    test_string_aspect_value("loop-b"),
+                    test_authored_string_aspect_value("loop-b"),
                 )
         })
         .expect("seed insert should execute");
@@ -85,7 +90,7 @@ fn compose_graph_denies_existing_target_retarget_with_split_successor_continuity
                             .expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         ],
                     )
-                    .aspect(test_aspect_touch("target.id"), test_string_aspect_value("loop-c"))
+                    .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("loop-c"))
             })?;
             Ok(())
         })
@@ -120,9 +125,9 @@ fn compose_graph_denies_existing_target_retarget_without_rebind_intent() {
     let error = workspace
         .compose_graph(|graph| {
             graph.retarget_existing(binding, |relation| {
-                relation.aspect(
+                relation.set_aspect(
                     test_aspect_touch("target.id"),
-                    test_string_aspect_value("loop-c"),
+                    test_authored_string_aspect_value("loop-c"),
                 )
             })?;
             Ok(())

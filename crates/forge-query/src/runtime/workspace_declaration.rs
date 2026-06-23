@@ -15,9 +15,9 @@ use crate::declarative_live::DeclarativeProjectionField;
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 use crate::program::ForgeQueryDerivedView;
 use crate::runtime::ForgeQueryAspectTouch;
-use crate::schema_view::SchemaFieldKind;
+use crate::schema_view::{SchemaFieldKind, SchemaFieldView};
 use forge_foundational::facade::AspectKey;
-use workspace_declaration_schema::{schema_field_view, schema_relation_view};
+use workspace_declaration_schema::schema_relation_view;
 pub use workspace_live_view_declaration::ForgeQueryWorkspaceLiveViewDeclaration;
 
 pub struct ForgeQueryLiveViewBuilder {
@@ -105,29 +105,22 @@ impl ForgeQueryLiveViewBuilder {
         let mut projected = self.projection;
         if projected.is_empty() {
             projected.push(
-                AspectFieldKey::new("identity", "id")
+                AspectFieldKey::from_authoring_parts("identity", "id")
                     .map_err(|error| workspace_error(format!("{error:?}")))?,
             );
         }
         let mut request = DeclarativeLiveQueryRequest::new(collection, self.view_shape);
-        let mut schema_fields = BTreeSet::new();
+        let mut schema_fields = BTreeSet::<AspectFieldKey>::new();
         for aspect in &projected {
-            let section = aspect.aspect().as_str();
-            let field = aspect.field().as_str();
             let delivered_name = terminal_aspect_field_key_projection(aspect);
             request = request.project(
-                DeclarativeProjectionField::from_authoring_parts(section, field)
-                    .delivered_as(delivered_name),
+                DeclarativeProjectionField::new(aspect.clone()).delivered_as(delivered_name),
             );
-            schema_fields.insert((section.to_string(), field.to_string()));
+            schema_fields.insert(aspect.clone());
         }
         if let Some(ordering) = self.ordering {
-            let section = ordering.aspect().as_str();
-            let field = ordering.field().as_str();
-            request = request.order_by(DeclarativeProjectionField::from_authoring_parts(
-                section, field,
-            ));
-            schema_fields.insert((section.to_string(), field.to_string()));
+            request = request.order_by(DeclarativeProjectionField::new(ordering.clone()));
+            schema_fields.insert(ordering);
         }
         let schema_relations = normalize_schema_relations(self.schema_relations)?;
         for (relation, max_depth) in &schema_relations {
@@ -138,8 +131,14 @@ impl ForgeQueryLiveViewBuilder {
         }
         let schema_field_views = schema_fields
             .into_iter()
-            .map(|(section, field)| schema_field_view(section, field, SchemaFieldKind::String))
-            .collect::<Result<Vec<_>, ForgeQueryRuntimeError>>()?;
+            .map(|field| {
+                SchemaFieldView::new(
+                    field.aspect().clone(),
+                    field.field().clone(),
+                    SchemaFieldKind::String,
+                )
+            })
+            .collect::<Vec<_>>();
         let schema_relation_views = schema_relations
             .into_iter()
             .map(|(relation, max_depth)| schema_relation_view(relation, max_depth))

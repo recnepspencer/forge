@@ -21,13 +21,18 @@ fn current_query_context_extracts_identity_and_row_bound_field_facts() {
             .view_local_identities()
             .display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             )
             .derived_scalar_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "metrics", "priority",
+                    forge_foundational::facade::FieldKey::new("metrics")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("priority")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
     )
@@ -69,8 +74,10 @@ fn query_context_extracts_bound_source_reference_metadata() {
         ProjectMaterializedFacts::declare()
             .display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             )
             .source_references(),
@@ -106,8 +113,10 @@ fn query_context_extraction_rejects_result_shape_drift() {
         binding_for_result_shape("result-shape:test", &["profile.display_name"]),
         ProjectMaterializedFacts::declare().display_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
-                "profile",
-                "display_name",
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
             ]),
         ),
     )

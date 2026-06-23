@@ -29,14 +29,12 @@ pub struct ForgeQueryMutationTargetDescriptor {
 impl ForgeQueryMutationTargetDescriptor {
     pub(in crate::runtime) fn new(
         target_class: ForgeQueryMutationTargetClass,
-        collection: Option<String>,
+        collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
         entity_identity: Option<ForgeQueryEntityIdentity>,
     ) -> Self {
         Self {
             target_class,
-            collection: collection.map(|collection| {
-                ForgeQueryMutationTargetCollectionIdentity::new("mutation-target", collection)
-            }),
+            collection,
             entity_identity,
         }
     }

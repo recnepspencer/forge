@@ -8,23 +8,20 @@ fn probe_existing_returns_backend_verified_values_for_entity_targets() {
     let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.probe-existing-entity-table", |q| {
             q.from("Task")
-                .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
-                ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .select([identity_id_field_key(), title_value_field_key()])
+                .order_by(title_value_field_key())
                 .schema_basis("tasks-probe-existing-entity-table")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Seed title"),
+                test_authored_string_aspect_value("Seed title"),
             )
         })
         .expect("seed insert should execute");
@@ -75,24 +72,21 @@ fn probe_existing_returns_backend_verified_values_for_relation_targets() {
     let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.probe-existing-relation-table", |q| {
             q.from("TaskRelation")
-                .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
-                ])
-                .order_by(crate::authoring::AspectFieldKey::new("kind", "value").unwrap())
+                .select([identity_id_field_key(), kind_value_field_key()])
+                .order_by(kind_value_field_key())
                 .schema_basis("tasks-probe-existing-relation-table")
         })
         .expect("relation live view should declare");
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("rel-1"),
+                    test_authored_string_aspect_value("rel-1"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("kind.value"),
-                    test_string_aspect_value("depends_on"),
+                    test_authored_string_aspect_value("depends_on"),
                 )
         })
         .expect("seed insert should execute");
@@ -133,23 +127,20 @@ fn probe_existing_denies_missing_aspect_typed_and_early() {
     let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.probe-existing-missing-aspect-table", |q| {
             q.from("Task")
-                .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
-                ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .select([identity_id_field_key(), title_value_field_key()])
+                .order_by(title_value_field_key())
                 .schema_basis("tasks-probe-existing-missing-aspect-table")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Seed title"),
+                test_authored_string_aspect_value("Seed title"),
             )
         })
         .expect("seed insert should execute");
@@ -192,23 +183,20 @@ fn probe_existing_reports_the_actual_missing_aspect_in_multi_aspect_requests() {
     let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.probe-existing-multi-missing-aspect-table", |q| {
             q.from("Task")
-                .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
-                ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .select([identity_id_field_key(), title_value_field_key()])
+                .order_by(title_value_field_key())
                 .schema_basis("tasks-probe-existing-multi-missing-aspect-table")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Seed title"),
+                test_authored_string_aspect_value("Seed title"),
             )
         })
         .expect("seed insert should execute");

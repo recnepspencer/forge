@@ -4,12 +4,13 @@ use super::super::batch_digest_helpers::{
 };
 use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::{
-    ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationFamily,
-    ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,
-    ForgeQueryMutationFamily, ForgeQueryNamingMutationEvidence,
-    ForgeQuerySymbolicTargetReferenceEvidence,
+    ForgeQueryAspectTouch, ForgeQueryContinuityMutationEvidence,
+    ForgeQueryContinuityMutationFamily, ForgeQueryExistingTruthAssertionEvidence,
+    ForgeQueryExistingTruthBindingEvidence, ForgeQueryMutationFamily,
+    ForgeQueryNamingMutationEvidence, ForgeQuerySymbolicTargetReferenceEvidence,
 };
 use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_runtime_bridge::facade::{
     BridgeContinuityAuthoritativeIdentity, BridgeContinuityMutationBundle,
     BridgeContinuityOutcomeClass, BridgeContinuityResolvedTargetIdentity,
@@ -327,10 +328,9 @@ fn existing_truth_mode_summary_digest_changes_with_mutation_family() {
                 relational_entity(1, 1, 0),
             )
             .expect("binding should build"),
-            &[crate::runtime::ForgeQueryAspectValue::new(
-                crate::runtime::ForgeQueryAspectTouch::from_authoring_path("title.value".to_string())
-                    .expect("test aspect path should parse"),
-                forge_foundational::facade::AspectValue::String("Seed title".into()),
+            &[crate::runtime::ForgeQueryAdmittedAspectValue::new(
+                title_value_touch(),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("Seed title"),
             )
             .expect("aspect should build")],
             crate::memory_workspace::admit_external_snapshot_label("snapshot:test"),
@@ -363,10 +363,9 @@ fn existing_truth_mode_summary_digest_changes_with_assertion_mode() {
                 relational_entity(1, 1, 0),
             )
             .expect("binding should build"),
-            &[crate::runtime::ForgeQueryAspectValue::new(
-                crate::runtime::ForgeQueryAspectTouch::from_authoring_path("title.value".to_string())
-                    .expect("test aspect path should parse"),
-                forge_foundational::facade::AspectValue::String("Seed title".into()),
+            &[crate::runtime::ForgeQueryAdmittedAspectValue::new(
+                title_value_touch(),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("Seed title"),
             )
             .expect("aspect should build")],
             crate::memory_workspace::admit_external_snapshot_label("snapshot:test"),
@@ -398,4 +397,12 @@ fn existing_truth_mode_summary_panics_on_invalid_family_mode_pair() {
         &[ForgeQueryMutationFamily::Update],
         &[Some(retained)],
     );
+}
+
+fn title_value_touch() -> ForgeQueryAspectTouch {
+    let aspect_key = AspectKey::new("title").expect("batch evidence test aspect key should admit");
+    let field_key = FieldKey::new("value").expect("batch evidence test field key should admit");
+    let field_path =
+        CanonicalFieldPath::new([field_key]).expect("batch evidence test field path should admit");
+    ForgeQueryAspectTouch::aspect_field_path(aspect_key, field_path)
 }

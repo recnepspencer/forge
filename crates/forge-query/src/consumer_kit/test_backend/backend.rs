@@ -9,7 +9,8 @@ use crate::memory_workspace::{
 use crate::runtime::{
     runtime_subscription_support_evidence_identity, ForgeQueryBackendAdmissibleMutation,
     ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryEffectPolicy, ForgeQueryIntentDeclaration,
-    ForgeQueryIntentExecution, ForgeQueryMutationFamily, ForgeQueryPreviewBasisAdmission,
+    ForgeQueryIntentExecution, ForgeQueryLiveArtifactTarget, ForgeQueryMutationFamily,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryPreviewBasisAdmission,
     ForgeQueryRuntimeBackend, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile, ForgeQueryWriteCommand,
     ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt,
@@ -24,7 +25,7 @@ use super::support_profile::in_memory_test_backend_support_profile;
 pub(super) struct ForgeQueryInMemoryTestBackend {
     workspace: ForgeQueryMemoryWorkspace,
     support_profile: ForgeQueryRuntimeSupportProfile,
-    live_views: BTreeMap<String, String>,
+    live_views: BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryMutationTargetCollectionIdentity>,
 }
 
 impl ForgeQueryInMemoryTestBackend {
@@ -128,10 +129,10 @@ impl ForgeQueryInMemoryTestBackend {
         }
     }
 
-    fn view_targets_collection(&self, view_name: &str) -> bool {
+    fn view_targets_collection(&self, target: &ForgeQueryLiveArtifactTarget) -> bool {
         self.live_views
-            .get(view_name)
-            .is_some_and(|target| target == self.workspace.kind_name())
+            .get(target)
+            .is_some_and(|target| target.as_str() == self.workspace.kind_name())
     }
 }
 
@@ -164,8 +165,9 @@ impl ForgeQueryRuntimeBackend for ForgeQueryInMemoryTestBackend {
         _schema_view: QuerySchemaView,
     ) -> Result<ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError> {
         self.ensure_live_request_target(&request)?;
+        let live_target = ForgeQueryLiveArtifactTarget::from_view_name(name.clone());
         self.live_views
-            .insert(name.clone(), request.target().to_string());
+            .insert(live_target, request.target_collection_identity());
         Ok(ForgeQueryLiveViewHandle::new(name))
     }
 
@@ -200,27 +202,37 @@ impl ForgeQueryRuntimeBackend for ForgeQueryInMemoryTestBackend {
         Err(ForgeQueryRuntimeError::MissingIntentAuthority)
     }
 
-    fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity> {
-        if self.view_targets_collection(view_name) {
+    fn live_entities_for_target(
+        &self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity> {
+        if self.view_targets_collection(target) {
             return self.workspace.entities();
         }
         Vec::new()
     }
 
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
+    fn drain_live_patches_for_target(
+        &mut self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch> {
         Vec::new()
     }
 
-    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+    fn affected_live_view_targets(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget> {
         self.live_views
             .iter()
             .filter(|(_, target)| {
-                receipt
-                    .deltas()
-                    .iter()
-                    .any(|delta| delta.collection() == target.as_str())
+                receipt.deltas().iter().any(|delta| {
+                    delta
+                        .target_collection_identity()
+                        .same_target_collection_as(target)
+                })
             })
-            .map(|(name, _)| name.clone())
+            .map(|(target, _)| target.clone())
             .collect()
     }
 

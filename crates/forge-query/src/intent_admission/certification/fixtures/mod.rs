@@ -41,6 +41,7 @@ use crate::memory_workspace::{
     ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
 };
 use crate::runtime::ForgeQueryNativeRow;
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 pub(super) fn certification_commit_identity_for(
@@ -72,6 +73,27 @@ pub(super) fn certification_snapshot_identity_for(
 
 pub(super) fn certification_entity_identity(label: impl AsRef<str>) -> ForgeQueryEntityIdentity {
     crate::memory_workspace::admit_authored_entity_label(label)
+}
+
+pub(super) fn identity_id_touch() -> ForgeQueryAspectTouch {
+    certification_aspect_field_touch("identity", "id")
+}
+
+pub(super) fn title_value_touch() -> ForgeQueryAspectTouch {
+    certification_aspect_field_touch("title", "value")
+}
+
+fn certification_aspect_field_touch(
+    aspect_label: &'static str,
+    field_label: &'static str,
+) -> ForgeQueryAspectTouch {
+    let aspect_key =
+        AspectKey::new(aspect_label).expect("certification static aspect key should admit");
+    let field_key =
+        FieldKey::new(field_label).expect("certification static field key should admit");
+    let field_path =
+        CanonicalFieldPath::new([field_key]).expect("certification static field path should admit");
+    ForgeQueryAspectTouch::aspect_field_path(aspect_key, field_path)
 }
 
 fn stable_certification_position(namespace: impl AsRef<str>, evidence: impl AsRef<str>) -> u64 {
@@ -284,22 +306,17 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
     let delegated_effect = delegated_effect_runtime
         .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.certification.reconcile",
-            ForgeQueryEffectTrigger::live_view(
-                &delegated_live,
-                [ForgeQueryAspectTouch::from_authoring_path("title.value")
-                    .expect("delegated effect aspect should admit")],
-            ),
+            ForgeQueryEffectTrigger::live_view(&delegated_live, [title_value_touch()]),
             "strategy.intent.reconcile",
         ))
         .expect("effect should declare");
     delegated_effect_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
             entity_identity: certification_entity_identity("task-1"),
-            aspect: crate::facade::ForgeQueryAspectValue::new_set(
-                crate::facade::ForgeQueryAspectTouch::from_authoring_path("title.value")
-                    .expect("delegated effect aspect should admit"),
-                forge_foundational::facade::AspectValue::String(
-                    "title from delegated effect".into(),
+            aspect: crate::facade::ForgeQueryAdmittedAspectValue::new_set(
+                title_value_touch(),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                    "title from delegated effect",
                 ),
             )
             .expect("delegated effect aspect should admit"),
@@ -320,22 +337,17 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
     let canonical_effect = canonical_effect_runtime
         .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.certification.reconcile",
-            ForgeQueryEffectTrigger::live_view(
-                &canonical_live,
-                [ForgeQueryAspectTouch::from_authoring_path("title.value")
-                    .expect("canonical effect aspect should admit")],
-            ),
+            ForgeQueryEffectTrigger::live_view(&canonical_live, [title_value_touch()]),
             "strategy.intent.reconcile",
         ))
         .expect("canonical effect should declare");
     canonical_effect_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
             entity_identity: certification_entity_identity("task-1"),
-            aspect: crate::facade::ForgeQueryAspectValue::new_set(
-                crate::facade::ForgeQueryAspectTouch::from_authoring_path("title.value")
-                    .expect("canonical effect aspect should admit"),
-                forge_foundational::facade::AspectValue::String(
-                    "title from delegated effect".into(),
+            aspect: crate::facade::ForgeQueryAdmittedAspectValue::new_set(
+                title_value_touch(),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                    "title from delegated effect",
                 ),
             )
             .expect("canonical effect aspect should admit"),

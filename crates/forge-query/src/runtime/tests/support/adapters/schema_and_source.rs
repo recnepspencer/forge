@@ -52,7 +52,7 @@ impl ForgeQueryRuntimeSchemaAdapter for DriftingSchemaReceiptAdapter {
 
 #[derive(Default)]
 pub(in crate::runtime::tests) struct TestSourceAdapter {
-    live_views: BTreeMap<String, String>,
+    live_views: BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryMutationTargetCollectionIdentity>,
     fail_declare: bool,
 }
 
@@ -77,28 +77,42 @@ impl ForgeQueryRuntimeSourceAdapter for TestSourceAdapter {
                 "source declaration denied by test adapter",
             ));
         }
+        let live_target = ForgeQueryLiveArtifactTarget::from_view_name(name.clone());
         self.live_views
-            .insert(name.clone(), request.target().to_string());
+            .insert(live_target, request.target_collection_identity());
         Ok(ForgeQueryLiveViewHandle::new(name))
     }
 
-    fn live_entities(&self, _view_name: &str) -> Vec<ForgeQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity> {
         Vec::new()
     }
 
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
+    fn drain_live_patches_for_target(
+        &mut self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch> {
         Vec::new()
     }
 
-    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+    fn affected_live_view_targets(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget> {
         let mut affected = receipt
             .deltas
             .iter()
             .flat_map(|delta| {
                 self.live_views
                     .iter()
-                    .filter(move |(_, collection)| *collection == &delta.collection)
-                    .map(|(name, _)| name.clone())
+                    .filter(move |(_, collection)| {
+                        delta
+                            .target_collection_identity()
+                            .same_target_collection_as(collection)
+                    })
+                    .map(|(target, _)| target.clone())
             })
             .collect::<Vec<_>>();
         affected.sort();
@@ -135,16 +149,25 @@ impl ForgeQueryRuntimeSourceAdapter for CountingSourceAdapter {
         self.inner.declare_live_view(name, request, schema_view)
     }
 
-    fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity> {
-        self.inner.live_entities(view_name)
+    fn live_entities_for_target(
+        &self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity> {
+        self.inner.live_entities_for_target(target)
     }
 
-    fn drain_live_patches(&mut self, view_name: &str) -> Vec<ForgeQueryLivePatch> {
-        self.inner.drain_live_patches(view_name)
+    fn drain_live_patches_for_target(
+        &mut self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch> {
+        self.inner.drain_live_patches_for_target(target)
     }
 
-    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
-        self.inner.affected_live_view_ids(receipt)
+    fn affected_live_view_targets(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget> {
+        self.inner.affected_live_view_targets(receipt)
     }
 }
 

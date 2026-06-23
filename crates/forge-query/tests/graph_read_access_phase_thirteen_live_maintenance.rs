@@ -1,19 +1,17 @@
-use forge_foundational::{AspectKey, CanonicalFieldPath, FieldKey};
 #[allow(dead_code)]
 mod graph_read_access_cost_model_support;
 #[path = "support/mod.rs"]
 mod support;
 
-use forge_foundational::facade::AspectValue;
 use forge_query::facade::runtime::{
-    plan_admitted_graph_read_access_for_family, ForgeQueryAspectTouch,
-    ForgeQueryLiveGraphReadAccessPosture, ForgeQueryLiveGraphReadMaintenanceBudget,
-    ForgeQueryNativeRow, QueryPatchGroupKind,
+    plan_admitted_graph_read_access_for_family, ForgeQueryLiveGraphReadAccessPosture,
+    ForgeQueryLiveGraphReadMaintenanceBudget, ForgeQueryNativeRow, QueryPatchGroupKind,
 };
 
 use graph_read_access_cost_model_support::{
     dense_traversal_family, simple_traversal_family, workspace,
 };
+use support::aspect_touch as touch;
 
 #[test]
 fn live_plan_preserves_one_shot_access_shape_and_required_index_digests() {
@@ -101,10 +99,15 @@ fn live_read_receipt_exposes_live_graph_access_counters() {
             query
                 .from("Task")
                 .select([
-                    forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
-                    forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(forge_query::facade::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("phase-thirteen-live-receipt")
         })
         .expect("live view should declare");
@@ -139,18 +142,23 @@ fn live_mutation_delivery_carries_graph_read_maintenance_receipt() {
             query
                 .from("Task")
                 .select([
-                    forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
-                    forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(forge_query::facade::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("phase-thirteen-live-mutation-maintenance")
         })
         .expect("live view should declare");
 
     workspace
         .insert("Task", |task| {
-            task.aspect(touch("identity.id"), text("task-maintained"))
-                .aspect(touch("title.value"), text("Maintained task"))
+            task.set_aspect(touch("identity.id"), authored_text("task-maintained"))
+                .set_aspect(touch("title.value"), authored_text("Maintained task"))
         })
         .expect("insert should execute through the public runtime");
 
@@ -194,18 +202,23 @@ fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery
             query
                 .from("Task")
                 .select([
-                    forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
-                    forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(forge_query::facade::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("phase-thirteen-live-update-maintenance")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(touch("identity.id"), text("task-updated"))
-                .aspect(touch("title.value"), text("Original title"))
-                .aspect(touch("description.value"), text("hidden"))
+            task.set_aspect(touch("identity.id"), authored_text("task-updated"))
+                .set_aspect(touch("title.value"), authored_text("Original title"))
+                .set_aspect(touch("description.value"), authored_text("hidden"))
         })
         .expect("seed insert should execute");
     let entity_identity = seed.deltas()[0].entity_identity().clone();
@@ -213,7 +226,7 @@ fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery
 
     workspace
         .update(entity_identity.clone(), |task| {
-            task.aspect(touch("title.value"), text("Updated title"))
+            task.set_aspect(touch("title.value"), authored_text("Updated title"))
         })
         .expect("projected update should execute");
     let projected = workspace.observe(&live_view);
@@ -224,7 +237,7 @@ fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery
 
     workspace
         .update(entity_identity, |task| {
-            task.aspect(touch("description.value"), text("hidden again"))
+            task.set_aspect(touch("description.value"), authored_text("hidden again"))
         })
         .expect("hidden update should execute");
     let hidden_only = workspace.observe(&live_view);
@@ -251,27 +264,6 @@ fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery
     assert!(hidden_only.query_delivery_batches.is_empty());
 }
 
-fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    let mut segments = aspect_path.split('.');
-    let aspect = segments
-        .next()
-        .and_then(|segment| AspectKey::new(segment.to_string()))
-        .expect("test aspect path aspect should admit");
-    let fields = segments
-        .map(|segment| {
-            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
-        })
-        .collect::<Vec<_>>();
-    if fields.is_empty() {
-        ForgeQueryAspectTouch::aspect(aspect)
-    } else {
-        ForgeQueryAspectTouch::field_path(
-            aspect,
-            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
-        )
-    }
-}
-
-fn text(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
 }

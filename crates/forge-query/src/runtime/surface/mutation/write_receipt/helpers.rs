@@ -51,7 +51,7 @@ pub(super) fn naming_mutation_evidence(
     bridge_naming: Option<&forge_runtime_bridge::facade::BridgeNamingMutationBundle>,
     authored_intent: Option<&ForgeQueryNamingMutationIntent>,
     resolved_target_entity_identity: Option<&ForgeQueryEntityIdentity>,
-    target_collection: Option<&str>,
+    target_collection: Option<&ForgeQueryMutationTargetCollectionIdentity>,
 ) -> Option<ForgeQueryNamingMutationEvidence> {
     bridge_naming
         .map(|bundle| {
@@ -77,7 +77,7 @@ pub(super) fn continuity_mutation_evidence(
     authored_intent: Option<&ForgeQueryContinuityMutationIntent>,
     existing_truth_binding: Option<&crate::runtime::ForgeQueryExistingTruthTargetBinding>,
     resolved_target_entity_identity: Option<&ForgeQueryEntityIdentity>,
-    target_collection: Option<&str>,
+    target_collection: Option<&ForgeQueryMutationTargetCollectionIdentity>,
 ) -> Option<ForgeQueryContinuityMutationEvidence> {
     let basis_binding_identity =
         existing_truth_binding.map(|binding| binding.binding_evidence_identity());
@@ -168,12 +168,12 @@ pub(super) fn target_evidence_from_receipt(
     ForgeQueryMutationTargetEvidence::new(
         ForgeQueryMutationTargetDescriptor::new(
             declared_target_class,
-            declared_collection.map(|collection| collection.as_str().to_string()),
+            declared_collection,
             declared_entity_identity,
         ),
         ForgeQueryMutationTargetDescriptor::new(
             resolved_target_class,
-            target_collection.map(|collection| collection.as_str().to_string()),
+            target_collection,
             target_entity_identity,
         ),
     )

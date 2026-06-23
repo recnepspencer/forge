@@ -157,7 +157,7 @@ fn semantic_delta_rows(receipt: &ForgeQueryWriteReceipt) -> String {
                 "{}:{:?}:{}",
                 delta.collection(),
                 delta.kind(),
-                native_aspect_digest_parts(delta.admitted_touched_aspects())
+                terminal_aspect_touch_digest_parts(delta.admitted_touched_aspects())
                     .iter()
                     .map(String::as_str)
                     .collect::<Vec<_>>()
@@ -168,7 +168,7 @@ fn semantic_delta_rows(receipt: &ForgeQueryWriteReceipt) -> String {
         .join("|")
 }
 
-fn native_aspect_digest_parts(touches: &[ForgeQueryAspectTouch]) -> Vec<String> {
+fn terminal_aspect_touch_digest_parts(touches: &[ForgeQueryAspectTouch]) -> Vec<String> {
     touches
         .iter()
         .map(ForgeQueryAspectTouch::admitted_touch_digest_part)

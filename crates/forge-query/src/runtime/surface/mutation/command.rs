@@ -5,9 +5,9 @@ use crate::runtime::mutation::{
 };
 use crate::runtime::surface::mutation::ForgeQueryMutationFamily;
 use crate::runtime::{
-    ForgeQueryAspectMutationOperation, ForgeQueryAspectValue, ForgeQueryExistingTruthTargetBinding,
-    ForgeQueryMutationTargetCollectionIdentity, ForgeQuerySymbolicAspectReference,
-    ForgeQuerySymbolicTargetReference,
+    ForgeQueryAdmittedAspectValue, ForgeQueryAspectMutationOperation,
+    ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationTargetCollectionIdentity,
+    ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicTargetReference,
 };
 
 #[path = "command/accessors.rs"]
@@ -17,8 +17,8 @@ mod accessors;
 pub enum ForgeQueryWriteCommand {
     #[non_exhaustive]
     InsertAspects {
-        collection: String,
-        aspects: Vec<ForgeQueryAspectValue>,
+        collection: ForgeQueryMutationTargetCollectionIdentity,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
         symbolic_aspect_references: Vec<ForgeQuerySymbolicAspectReference>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
@@ -28,12 +28,12 @@ pub enum ForgeQueryWriteCommand {
     #[non_exhaustive]
     UpdateAspect {
         entity_identity: ForgeQueryEntityIdentity,
-        aspect: ForgeQueryAspectValue,
+        aspect: ForgeQueryAdmittedAspectValue,
     },
     #[non_exhaustive]
     UpdateAspects {
         entity_identity: ForgeQueryEntityIdentity,
-        aspects: Vec<ForgeQueryAspectValue>,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
@@ -41,7 +41,7 @@ pub enum ForgeQueryWriteCommand {
     #[non_exhaustive]
     UpdateExistingAspects {
         binding: ForgeQueryExistingTruthTargetBinding,
-        aspects: Vec<ForgeQueryAspectValue>,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
@@ -49,8 +49,8 @@ pub enum ForgeQueryWriteCommand {
     #[non_exhaustive]
     VerifyThenUpdateExistingAspects {
         binding: ForgeQueryExistingTruthTargetBinding,
-        asserted_aspects: Vec<ForgeQueryAspectValue>,
-        aspects: Vec<ForgeQueryAspectValue>,
+        asserted_aspects: Vec<ForgeQueryAdmittedAspectValue>,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
         symbolic_aspect_references: Vec<ForgeQuerySymbolicAspectReference>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
@@ -59,7 +59,7 @@ pub enum ForgeQueryWriteCommand {
     #[non_exhaustive]
     VerifyThenDeleteExistingAspects {
         binding: ForgeQueryExistingTruthTargetBinding,
-        asserted_aspects: Vec<ForgeQueryAspectValue>,
+        asserted_aspects: Vec<ForgeQueryAdmittedAspectValue>,
         touched_aspects: Vec<ForgeQueryAspectTouch>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
@@ -67,19 +67,19 @@ pub enum ForgeQueryWriteCommand {
     #[non_exhaustive]
     AssertExistingAspects {
         binding: ForgeQueryExistingTruthTargetBinding,
-        aspects: Vec<ForgeQueryAspectValue>,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
         metadata: ForgeQueryMutationMetadata,
     },
     #[non_exhaustive]
     VerifyExistingAspects {
         binding: ForgeQueryExistingTruthTargetBinding,
-        aspects: Vec<ForgeQueryAspectValue>,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
         metadata: ForgeQueryMutationMetadata,
     },
     #[non_exhaustive]
     UpdateSymbolicAspects {
         reference: ForgeQuerySymbolicTargetReference,
-        aspects: Vec<ForgeQueryAspectValue>,
+        aspects: Vec<ForgeQueryAdmittedAspectValue>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
@@ -87,7 +87,7 @@ pub enum ForgeQueryWriteCommand {
     #[non_exhaustive]
     DeleteAspects {
         entity_identity: ForgeQueryEntityIdentity,
-        declared_collection: Option<String>,
+        declared_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
         touched_aspects: Vec<ForgeQueryAspectTouch>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
@@ -143,51 +143,36 @@ impl ForgeQueryWriteCommand {
     pub fn declared_collection_identity(
         &self,
     ) -> Option<ForgeQueryMutationTargetCollectionIdentity> {
-        self.declared_collection_terminal_projection()
-            .map(|collection| {
-                ForgeQueryMutationTargetCollectionIdentity::new(
-                    "write-command-declared",
-                    collection,
-                )
-            })
-    }
-
-    pub(crate) fn terminal_declared_collection_projection(&self) -> Option<&str> {
-        self.declared_collection_terminal_projection()
-    }
-
-    fn declared_collection_terminal_projection(&self) -> Option<&str> {
         match self {
-            Self::InsertAspects { collection, .. } => Some(collection.as_str()),
-            Self::UpdateAspect { .. }
-            | Self::UpdateAspects { .. }
-            | Self::UpdateExistingAspects { .. }
-            | Self::Delete { .. } => None,
+            Self::InsertAspects { collection, .. } => Some(collection.clone()),
             Self::VerifyThenUpdateExistingAspects {
                 binding,
                 symbolic_aspect_references,
                 ..
-            } => {
-                if let Some(collection) = binding.terminal_target_collection_projection() {
-                    Some(collection)
-                } else {
-                    symbolic_aspect_references
-                        .first()
-                        .and_then(|reference| reference.reference().target_collection())
-                }
-            }
+            } => binding.target_collection_identity().cloned().or_else(|| {
+                symbolic_aspect_references
+                    .first()
+                    .and_then(|reference| reference.reference().target_collection_identity())
+                    .cloned()
+            }),
             Self::VerifyThenDeleteExistingAspects { binding, .. }
             | Self::AssertExistingAspects { binding, .. }
             | Self::VerifyExistingAspects { binding, .. }
             | Self::DeleteExistingAspects { binding, .. } => {
-                binding.terminal_target_collection_projection()
+                binding.target_collection_identity().cloned()
             }
             Self::UpdateSymbolicAspects { reference, .. }
-            | Self::DeleteSymbolicAspects { reference, .. } => reference.target_collection(),
+            | Self::DeleteSymbolicAspects { reference, .. } => {
+                reference.target_collection_identity().cloned()
+            }
             Self::DeleteAspects {
                 declared_collection,
                 ..
-            } => declared_collection.as_deref(),
+            } => declared_collection.clone(),
+            Self::UpdateAspect { .. }
+            | Self::UpdateAspects { .. }
+            | Self::UpdateExistingAspects { .. }
+            | Self::Delete { .. } => None,
         }
     }
 
@@ -262,7 +247,7 @@ impl ForgeQueryWriteCommand {
         }
     }
 
-    pub fn admitted_aspect_values(&self) -> &[ForgeQueryAspectValue] {
+    pub fn admitted_aspect_values(&self) -> &[ForgeQueryAdmittedAspectValue] {
         match self {
             Self::InsertAspects { aspects, .. }
             | Self::UpdateAspects { aspects, .. }
@@ -280,7 +265,7 @@ impl ForgeQueryWriteCommand {
         }
     }
 
-    pub fn asserted_admitted_aspect_values(&self) -> &[ForgeQueryAspectValue] {
+    pub fn asserted_admitted_aspect_values(&self) -> &[ForgeQueryAdmittedAspectValue] {
         match self {
             Self::VerifyThenUpdateExistingAspects {
                 asserted_aspects, ..

@@ -15,7 +15,9 @@ mod operation;
 mod probe;
 mod touch;
 
-pub use aspect::{ForgeQueryAspectMutationBuilder, ForgeQueryAspectValue};
+pub use aspect::{
+    ForgeQueryAdmittedAspectValue, ForgeQueryAspectMutationBuilder, ForgeQueryAuthoredAspectValue,
+};
 pub use assertion::{
     ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthAssertionDenialKind,
     ForgeQueryExistingTruthAssertionMode, ForgeQueryVerifiedExistingTruthAssertion,
@@ -104,7 +106,7 @@ pub use naming::{
     ForgeQueryNamingMutationFamily, ForgeQueryNamingMutationIntent,
 };
 pub(crate) use native_intent::{
-    aspect_value_native_digest_text, ForgeQueryDesiredAspectValue, ForgeQueryParsedAspectTarget,
+    terminal_aspect_value_digest_text, ForgeQueryDesiredAspectValue, ForgeQueryParsedAspectTarget,
     ForgeQueryParsedDesiredAspect,
 };
 pub use operation::{ForgeQueryAspectMutationOperation, ForgeQueryAspectMutationOperationKind};

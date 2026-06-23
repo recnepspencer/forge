@@ -1,37 +1,8 @@
-error[E0451]: fields `schema_version`, `schema_identity`, `pinned_vocabulary_identity`, `support_snapshot_schema_identity`, `source_matrix_digest`, `consumer_name`, `contract_digest`, `document_digest`, `requirements` and `observed_rows` of struct `ForgeQuerySupportPinContractDocument` are private
-  --> tests/ui/support_pinning/document_constructor_private.rs:5:9
-   |
- 4 |     let _ = ForgeQuerySupportPinContractDocument {
-   |             ------------------------------------ in this type
- 5 |         schema_version: 1,
-   |         ^^^^^^^^^^^^^^ private field
- 6 |         schema_identity: String::new(),
-   |         ^^^^^^^^^^^^^^^ private field
- 7 |         pinned_vocabulary_identity: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 8 |         support_snapshot_schema_identity: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         source_matrix_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
-10 |         consumer_name: String::new(),
-   |         ^^^^^^^^^^^^^ private field
-11 |         contract_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^ private field
-12 |         document_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^ private field
-13 |         requirements: Vec::new(),
-   |         ^^^^^^^^^^^^ private field
-14 |         observed_rows: Vec::new(),
-   |         ^^^^^^^^^^^^^ private field
-
-error: type `forge_query::consumer_kit::support_pinning::document::row_documents::ForgeQuerySupportPinRequirementDocument` is private
-  --> tests/ui/support_pinning/document_constructor_private.rs:13:23
-   |
-13 |         requirements: Vec::new(),
-   |                       ^^^^^^^^^^ private type
-
-error: type `forge_query::consumer_kit::support_pinning::document::row_documents::ForgeQueryObservedSupportPinDocument` is private
-  --> tests/ui/support_pinning/document_constructor_private.rs:14:24
-   |
-14 |         observed_rows: Vec::new(),
-   |                        ^^^^^^^^^^ private type
+error[E0432]: unresolved import `forge_query::facade::consumer_kit::ForgeQuerySupportPinContractDocument`
+ --> tests/ui/support_pinning/document_constructor_private.rs:1:5
+  |
+1 | use forge_query::facade::consumer_kit::ForgeQuerySupportPinContractDocument;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------------------------------------
+  |     |                                  |
+  |     |                                  help: a similar name exists in the module: `ForgeQuerySupportPinContractBuilder`
+  |     no `ForgeQuerySupportPinContractDocument` in `facade::consumer_kit`

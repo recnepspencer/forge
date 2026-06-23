@@ -22,6 +22,6 @@ pub(crate) fn single_native_string_aspect_field_patch(
     single_native_aspect_field_patch(
         aspect_label,
         field_label,
-        AspectValue::String(value.into().into()),
+        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value),
     )
 }

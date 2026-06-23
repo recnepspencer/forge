@@ -25,14 +25,17 @@ pub(super) fn runtime_with_registrations(
 
 pub(super) fn task_insert_command(id: &str) -> ForgeQueryWriteCommand {
     ForgeQueryWriteCommand::InsertAspects {
-        collection: "Task".to_string(),
+        collection: crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+            "write-command-declared",
+            "Task",
+        ),
         aspects: vec![
-            ForgeQueryAspectValue::new(
+            ForgeQueryAdmittedAspectValue::new(
                 test_aspect_touch("identity.id"),
                 test_string_aspect_value(id),
             )
             .unwrap(),
-            ForgeQueryAspectValue::new(
+            ForgeQueryAdmittedAspectValue::new(
                 test_aspect_touch("title.value"),
                 test_string_aspect_value("Phase 11 executor task"),
             )

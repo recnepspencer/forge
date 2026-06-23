@@ -35,18 +35,18 @@ impl ForgeQueryDesiredAspectValue {
         self.operation == ForgeQueryDesiredAspectOperation::Clear
     }
 
-    pub(crate) fn native_digest_material(&self) -> String {
+    pub(crate) fn terminal_digest_material(&self) -> String {
         match (self.operation, self.value.as_ref()) {
             (ForgeQueryDesiredAspectOperation::Clear, _) => "clear".to_string(),
             (ForgeQueryDesiredAspectOperation::Set, Some(value)) => {
-                format!("set:{}", aspect_value_native_digest_text(value))
+                format!("set:{}", terminal_aspect_value_digest_text(value))
             }
             (ForgeQueryDesiredAspectOperation::Set, None) => "set:<missing>".to_string(),
         }
     }
 }
 
-pub(crate) fn aspect_value_native_digest_text(value: &AspectValue) -> String {
+pub(crate) fn terminal_aspect_value_digest_text(value: &AspectValue) -> String {
     match value {
         AspectValue::Null => "null".to_string(),
         AspectValue::Bool(value) => format!("bool:{value}"),

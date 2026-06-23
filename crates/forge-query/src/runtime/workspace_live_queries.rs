@@ -71,12 +71,14 @@ impl ForgeQueryWorkspace {
         let mut reads = BTreeMap::new();
         for target in retained_targets {
             let installation = target.subscription_installation().cloned().ok_or_else(|| {
-                ForgeQueryRuntimeError::MissingLiveView(target.view_name().to_string())
+                ForgeQueryRuntimeError::MissingLiveView(
+                    target.terminal_view_name_projection().to_string(),
+                )
             })?;
             let result = self
                 .runtime
                 .execute_live_read_for_installation(installation)?;
-            reads.insert(target.view_name().to_string(), result);
+            reads.insert(target, result);
         }
         let snapshot_identity = live_bundle_snapshot_identity(&reads)?;
         Ok(ForgeQueryLiveArtifactBundle::new(snapshot_identity, reads))
@@ -121,13 +123,13 @@ impl ForgeQueryWorkspace {
 }
 
 fn live_bundle_snapshot_identity(
-    reads: &BTreeMap<String, ForgeQueryLiveReadResult>,
+    reads: &BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryLiveReadResult>,
 ) -> Result<ForgeQuerySnapshotIdentity, ForgeQueryRuntimeError> {
     let snapshot_identities = reads
         .iter()
-        .map(|(view_name, result)| {
+        .map(|(target, result)| {
             (
-                view_name.clone(),
+                target.terminal_view_name_projection().to_string(),
                 result.receipt().snapshot_identity().clone(),
             )
         })

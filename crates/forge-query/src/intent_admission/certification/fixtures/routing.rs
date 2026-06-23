@@ -7,6 +7,7 @@ use crate::intent_admission::{
 };
 
 use super::runtime::certification_runtime;
+use super::{identity_id_touch, title_value_touch};
 
 #[derive(Clone)]
 pub(in crate::intent_admission::certification) struct CertifiedRoutingIntentFixture {
@@ -171,12 +172,7 @@ pub(in crate::intent_admission::certification) fn routing_delegation_parity_fixt
 }
 
 fn probe_aspects() -> [ForgeQueryAspectTouch; 2] {
-    [
-        ForgeQueryAspectTouch::from_authoring_path("identity.id")
-            .expect("routing certification identity aspect should admit"),
-        ForgeQueryAspectTouch::from_authoring_path("title.value")
-            .expect("routing certification title aspect should admit"),
-    ]
+    [identity_id_touch(), title_value_touch()]
 }
 
 fn seeded_probe_binding(
@@ -184,15 +180,13 @@ fn seeded_probe_binding(
 ) -> ForgeQueryExistingTruthTargetBinding {
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
-                ForgeQueryAspectTouch::from_authoring_path("identity.id")
-                    .expect("routing certification identity aspect should admit"),
-                forge_foundational::facade::AspectValue::String("task-1".into()),
+            task.set_aspect(
+                identity_id_touch(),
+                crate::runtime::ForgeQueryAuthoredAspectValue::string("task-1"),
             )
-            .aspect(
-                ForgeQueryAspectTouch::from_authoring_path("title.value")
-                    .expect("routing certification title aspect should admit"),
-                forge_foundational::facade::AspectValue::String("Seed title".into()),
+            .set_aspect(
+                title_value_touch(),
+                crate::runtime::ForgeQueryAuthoredAspectValue::string("Seed title"),
             )
         })
         .expect("routing certification seed insert should execute");

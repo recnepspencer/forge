@@ -1,15 +1,16 @@
-use forge_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
+use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use forge_query::facade::consumer_kit::{
     compare_test_backend_write_receipts, in_memory_test_runtime, ForgeQueryTestBackendSchema,
 };
 use forge_query::facade::runtime::{InvariantCatalog, InvariantRegistration, InvariantRule};
 use forge_query::facade::{
-    ForgeQueryAspectTouch, ForgeQueryNativeRow, ForgeQueryRuntimeError,
-    ForgeQueryWorkspaceErrorKind, ForgeQueryWriteReceipt,
+    ForgeQueryNativeRow, ForgeQueryRuntimeError, ForgeQueryWorkspaceErrorKind,
+    ForgeQueryWriteReceipt,
 };
 
 mod support;
 
+use support::aspect_touch as touch;
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 
 #[test]
@@ -27,16 +28,18 @@ fn in_memory_test_backend_facade_builds_a_real_workspace() {
     let tasks = workspace
         .live_view::<ForgeQueryNativeRow>("consumer-kit.facade.tasks", |view| {
             view.from("Task").select([
-                forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
-                forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                    .unwrap(),
+                forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                    .unwrap(),
             ])
         })
         .expect("facade workspace should declare a live view");
 
     workspace
         .insert("Task", |task| {
-            task.aspect(touch("identity.id"), text("task-1"))
-                .aspect(touch("title.value"), text("Facade proof"))
+            task.set_aspect(touch("identity.id"), authored_text("task-1"))
+                .set_aspect(touch("title.value"), authored_text("Facade proof"))
         })
         .expect("facade workspace should write through the real runtime");
 
@@ -61,8 +64,8 @@ fn in_memory_test_backend_facade_admits_preview_and_invariant_denial() {
         .expect("facade should admit preview");
     preview
         .insert("Task", |task| {
-            task.aspect(touch("identity.id"), text("task-preview"))
-                .aspect(touch("title.value"), text("Preview facade proof"))
+            task.set_aspect(touch("identity.id"), authored_text("task-preview"))
+                .set_aspect(touch("title.value"), authored_text("Preview facade proof"))
         })
         .expect("facade preview should stage schema-backed write");
     assert_eq!(preview.discard().authoritative_residue_count(), 0);
@@ -78,8 +81,8 @@ fn in_memory_test_backend_facade_admits_preview_and_invariant_denial() {
         .expect("facade should build invariant workspace");
     let error = invariant_workspace
         .insert("Task", |task| {
-            task.aspect(touch("identity.id"), text("task-denied"))
-                .aspect(touch("title.value"), text("Denied"))
+            task.set_aspect(touch("identity.id"), authored_text("task-denied"))
+                .set_aspect(touch("title.value"), authored_text("Denied"))
         })
         .expect_err("facade invariant should deny through runtime write path");
 
@@ -104,10 +107,15 @@ fn in_memory_test_backend_matches_bridge_harness_for_covered_live_write_path() {
             |view| {
                 view.from("Task")
                     .select([
-                        forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
-                        forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                        forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                        forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                            .unwrap(),
                     ])
-                    .order_by(forge_query::facade::AspectFieldKey::new("title", "value").unwrap())
+                    .order_by(
+                        forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                            .unwrap(),
+                    )
             },
         )
         .expect("in-memory facade should declare live view");
@@ -115,23 +123,28 @@ fn in_memory_test_backend_matches_bridge_harness_for_covered_live_write_path() {
         .live_view::<ForgeQueryNativeRow>("consumer-kit.facade.equivalence.bridge.tasks", |view| {
             view.from("Task")
                 .select([
-                    forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
-                    forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(forge_query::facade::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
         })
         .expect("bridge harness should declare live view");
 
     let in_memory_receipt = in_memory_workspace
         .insert("Task", |task| {
-            task.aspect(touch("identity.id"), text("task-equivalence"))
-                .aspect(touch("title.value"), text("Equivalent task"))
+            task.set_aspect(touch("identity.id"), authored_text("task-equivalence"))
+                .set_aspect(touch("title.value"), authored_text("Equivalent task"))
         })
         .expect("in-memory write should execute through runtime");
     let bridge_receipt = bridge_workspace
         .insert("Task", |task| {
-            task.aspect(touch("identity.id"), text("task-equivalence"))
-                .aspect(touch("title.value"), text("Equivalent task"))
+            task.set_aspect(touch("identity.id"), authored_text("task-equivalence"))
+                .set_aspect(touch("title.value"), authored_text("Equivalent task"))
         })
         .expect("bridge write should execute through runtime");
     let in_memory_identity = in_memory_receipt
@@ -159,12 +172,12 @@ fn in_memory_test_backend_matches_bridge_harness_for_covered_live_write_path() {
 
     let in_memory_update = in_memory_workspace
         .update(in_memory_identity.clone(), |task| {
-            task.aspect(touch("title.value"), text("Updated equivalently"))
+            task.set_aspect(touch("title.value"), authored_text("Updated equivalently"))
         })
         .expect("in-memory update should execute");
     let bridge_update = bridge_workspace
         .update(bridge_identity.clone(), |task| {
-            task.aspect(touch("title.value"), text("Updated equivalently"))
+            task.set_aspect(touch("title.value"), authored_text("Updated equivalently"))
         })
         .expect("bridge update should execute");
     assert_test_backend_receipt_equivalence(&in_memory_update, &bridge_update);
@@ -230,14 +243,13 @@ fn task_schema() -> ForgeQueryTestBackendSchema {
 
 fn selected_task_scalars(
     row: &forge_query::facade::ForgeQueryEntity,
-) -> Vec<(String, Option<AspectValue>)> {
+) -> Vec<(CanonicalFieldPath, Option<AspectValue>)> {
     ["identity.id", "title.value"]
         .into_iter()
         .map(|path| {
-            (
-                path.to_string(),
-                row.scalar_value_at(&field_path(path)).cloned(),
-            )
+            let field_path = field_path(path);
+            let value = row.scalar_value_at(&field_path).cloned();
+            (field_path, value)
         })
         .collect()
 }
@@ -251,29 +263,8 @@ fn field_path(path: &str) -> CanonicalFieldPath {
     .expect("test field path should be non-empty")
 }
 
-fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    let mut segments = aspect_path.split('.');
-    let aspect = segments
-        .next()
-        .and_then(|segment| AspectKey::new(segment.to_string()))
-        .expect("test aspect path aspect should admit");
-    let fields = segments
-        .map(|segment| {
-            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
-        })
-        .collect::<Vec<_>>();
-    if fields.is_empty() {
-        ForgeQueryAspectTouch::aspect(aspect)
-    } else {
-        ForgeQueryAspectTouch::field_path(
-            aspect,
-            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
-        )
-    }
-}
-
-fn text(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
 }
 
 fn assert_workspace_error_kind(error: ForgeQueryRuntimeError, kind: ForgeQueryWorkspaceErrorKind) {

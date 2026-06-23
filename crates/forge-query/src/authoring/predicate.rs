@@ -21,7 +21,7 @@ fn validate_predicate_target(
     aspect: impl Into<String>,
     field: impl Into<String>,
 ) -> Result<AspectFieldKey, AuthoringError> {
-    AspectFieldKey::new(aspect, field)
+    AspectFieldKey::from_authoring_parts(aspect, field)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -38,6 +38,10 @@ impl EqualityPredicate {
     ) -> Result<Self, AuthoringError> {
         let target = validate_predicate_target(aspect, field)?;
         Ok(Self { target, value })
+    }
+
+    pub fn from_target_field_key(target: AspectFieldKey, value: ScalarPredicateValue) -> Self {
+        Self { target, value }
     }
 
     pub fn target_field_key(&self) -> &AspectFieldKey {
@@ -105,6 +109,22 @@ impl IntegerComparisonPredicate {
         })
     }
 
+    pub fn greater_than_target_field_key(target: AspectFieldKey, value: i64) -> Self {
+        Self {
+            target,
+            operator: IntegerComparisonOperator::GreaterThan,
+            value,
+        }
+    }
+
+    pub fn less_than_target_field_key(target: AspectFieldKey, value: i64) -> Self {
+        Self {
+            target,
+            operator: IntegerComparisonOperator::LessThan,
+            value,
+        }
+    }
+
     pub fn target_field_key(&self) -> &AspectFieldKey {
         &self.target
     }
@@ -151,6 +171,13 @@ impl StringContainsPredicate {
         Ok(Self { target, value })
     }
 
+    pub fn from_target_field_key(target: AspectFieldKey, value: impl Into<String>) -> Self {
+        Self {
+            target,
+            value: value.into(),
+        }
+    }
+
     pub fn target_field_key(&self) -> &AspectFieldKey {
         &self.target
     }
@@ -189,6 +216,17 @@ impl SetMembershipPredicate {
         values: impl IntoIterator<Item = ScalarPredicateValue>,
     ) -> Result<Self, AuthoringError> {
         let target = validate_predicate_target(aspect, field)?;
+        let values: Vec<_> = values.into_iter().collect();
+        if values.is_empty() {
+            return Err(AuthoringError::EmptyProjectionSet);
+        }
+        Ok(Self { target, values })
+    }
+
+    pub fn from_target_field_key(
+        target: AspectFieldKey,
+        values: impl IntoIterator<Item = ScalarPredicateValue>,
+    ) -> Result<Self, AuthoringError> {
         let values: Vec<_> = values.into_iter().collect();
         if values.is_empty() {
             return Err(AuthoringError::EmptyProjectionSet);
@@ -244,6 +282,13 @@ impl PresencePredicate {
         })
     }
 
+    pub fn is_present_target_field_key(target: AspectFieldKey) -> Self {
+        Self {
+            target,
+            kind: PresencePredicateKind::IsPresent,
+        }
+    }
+
     pub fn target_field_key(&self) -> &AspectFieldKey {
         &self.target
     }
@@ -294,26 +339,6 @@ impl PredicateSelector {
             Self::StringContains(predicate) => predicate.target_field_key(),
             Self::SetMembership(predicate) => predicate.target_field_key(),
             Self::Presence(predicate) => predicate.target_field_key(),
-        }
-    }
-
-    pub(crate) fn aspect(&self) -> &str {
-        match self {
-            Self::Equality(predicate) => predicate.aspect(),
-            Self::IntegerComparison(predicate) => predicate.aspect(),
-            Self::StringContains(predicate) => predicate.aspect(),
-            Self::SetMembership(predicate) => predicate.aspect(),
-            Self::Presence(predicate) => predicate.aspect(),
-        }
-    }
-
-    pub(crate) fn field(&self) -> &str {
-        match self {
-            Self::Equality(predicate) => predicate.field(),
-            Self::IntegerComparison(predicate) => predicate.field(),
-            Self::StringContains(predicate) => predicate.field(),
-            Self::SetMembership(predicate) => predicate.field(),
-            Self::Presence(predicate) => predicate.field(),
         }
     }
 }

@@ -1,21 +1,11 @@
-error[E0624]: method `aspect` is private
+error[E0599]: no method named `aspect` found for struct `DeclarativeWritebackChange` in the current scope
  --> tests/ui/aspect_native_query/declarative_writeback_change_string_aliases_removed.rs:8:20
   |
 8 |     let _ = change.aspect();
-  |                    ^^^^^^ private method
-  |
- ::: src/declarative_live.rs
-  |
-  |     pub(crate) fn aspect(&self) -> &str {
-  |     ----------------------------------- private method defined here
+  |                    ^^^^^^ method not found in `DeclarativeWritebackChange`
 
-error[E0624]: method `field` is private
+error[E0599]: no method named `field` found for struct `DeclarativeWritebackChange` in the current scope
  --> tests/ui/aspect_native_query/declarative_writeback_change_string_aliases_removed.rs:9:20
   |
 9 |     let _ = change.field();
-  |                    ^^^^^ private method
-  |
- ::: src/declarative_live.rs
-  |
-  |     pub(crate) fn field(&self) -> &str {
-  |     ---------------------------------- private method defined here
+  |                    ^^^^^ method not found in `DeclarativeWritebackChange`

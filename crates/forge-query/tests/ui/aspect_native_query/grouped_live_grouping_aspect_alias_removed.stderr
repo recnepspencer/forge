@@ -38,7 +38,7 @@ error[E0599]: no method named `grouping_aspect` found for struct `GroupedExecuti
   --> tests/ui/aspect_native_query/grouped_live_grouping_aspect_alias_removed.rs:17:28
    |
 17 |     let _ = execution_lane.grouping_aspect();
-   |                            ^^^^^^^^^^^^^^^ private field, not a method
+   |                            ^^^^^^^^^^^^^^^
    |
 help: there is a method `native_grouping_aspect_key` with a similar name
    |

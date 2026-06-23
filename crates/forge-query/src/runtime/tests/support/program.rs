@@ -17,11 +17,11 @@ pub(in crate::runtime::tests) fn preview_safe_program() -> ForgeQueryProgram {
                 ForgeQueryWriteCommandTemplate::InsertAspects {
                     collection: "Task".to_string(),
                     aspects: vec![
-                        ForgeQueryAspectValueTemplate::new(
+                        ForgeQueryAdmittedAspectValueTemplate::new(
                             test_aspect_touch("identity.id"),
                             ForgeQueryValueExpr::literal(ForgeQueryProgramValue::string("")),
                         ),
-                        ForgeQueryAspectValueTemplate::new(
+                        ForgeQueryAdmittedAspectValueTemplate::new(
                             test_aspect_touch("title.value"),
                             ForgeQueryValueExpr::input("title"),
                         ),
@@ -43,7 +43,7 @@ pub(in crate::runtime::tests) struct SummaryMaintainer;
 pub(in crate::runtime::tests) struct RefreshCountMaintainer;
 
 fn test_delta_display_identity(delta: &crate::memory_workspace::ForgeQueryMutationDelta) -> String {
-    if let Some(upstream_view) = delta.collection.strip_prefix("derived:") {
+    if let Some(upstream_view) = delta.collection().strip_prefix("derived:") {
         if delta.entity_identity
             == crate::memory_workspace::admit_authored_entity_label(upstream_view)
         {
@@ -193,11 +193,11 @@ impl ForgeQueryProgramSource for FakeDsl {
                     ForgeQueryWriteCommandTemplate::InsertAspects {
                         collection: "Task".to_string(),
                         aspects: vec![
-                            ForgeQueryAspectValueTemplate::new(
+                            ForgeQueryAdmittedAspectValueTemplate::new(
                                 test_aspect_touch("identity.id"),
                                 ForgeQueryValueExpr::literal(ForgeQueryProgramValue::string("")),
                             ),
-                            ForgeQueryAspectValueTemplate::new(
+                            ForgeQueryAdmittedAspectValueTemplate::new(
                                 test_aspect_touch("title.value"),
                                 ForgeQueryValueExpr::input("title"),
                             ),

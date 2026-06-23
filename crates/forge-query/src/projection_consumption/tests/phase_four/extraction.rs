@@ -30,14 +30,18 @@ fn relational_row_set_extracts_identity_and_field_facts() {
             .view_local_identities()
             .display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             )
             .derived_scalar_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
     )
@@ -162,7 +166,10 @@ fn extraction_rejects_missing_field_evidence_and_family_mismatch() {
         binding(&["profile.missing"]),
         ProjectMaterializedFacts::declare().display_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
-                "profile", "missing",
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("missing")
+                    .expect("projection fact field segment should admit"),
             ]),
         ),
     )
@@ -194,11 +201,19 @@ fn extraction_rejects_missing_field_evidence_and_family_mismatch() {
             vec![
                 SnapshotReadRecord::for_request(
                     &entity_one_display_read,
-                    aspect_value(AspectValue::String("Task One".into())),
+                    aspect_value(
+                        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                            "Task One",
+                        ),
+                    ),
                 ),
                 SnapshotReadRecord::for_request(
                     &entity_two_display_read,
-                    aspect_value(AspectValue::String("Task Two".into())),
+                    aspect_value(
+                        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                            "Task Two",
+                        ),
+                    ),
                 ),
             ],
         ),

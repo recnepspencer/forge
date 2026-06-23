@@ -93,7 +93,10 @@ error[E0624]: associated function `new` is private
   ::: src/runtime/computed/surface.rs
    |
    | /     pub(in crate::runtime) fn new(
-   | |         live_rows: impl IntoIterator<Item = (String, Vec<ForgeQueryEntity>)>,
-   | |         computed_rows: impl IntoIterator<Item = (String, Vec<ForgeQueryRetainedMaterializedRow>)>,
+   | |         live_rows: impl IntoIterator<Item = (ForgeQueryLiveArtifactTarget, Vec<ForgeQueryEntity>)>,
+   | |         computed_rows: impl IntoIterator<
+   | |             Item = (
+...  |
+   | |         >,
    | |     ) -> Self {
    | |_____________- private associated function defined here

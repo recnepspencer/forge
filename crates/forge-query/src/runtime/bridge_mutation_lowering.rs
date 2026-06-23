@@ -11,18 +11,19 @@ use crate::memory_workspace::ForgeQueryEntityIdentity;
 
 use super::{
     ForgeQueryContinuityMutationFamily, ForgeQueryContinuityMutationIntent,
-    ForgeQueryContinuityMutationOutcomeClass, ForgeQueryNamingMutationFamily,
-    ForgeQueryNamingMutationIntent,
+    ForgeQueryContinuityMutationOutcomeClass, ForgeQueryMutationTargetCollectionIdentity,
+    ForgeQueryNamingMutationFamily, ForgeQueryNamingMutationIntent,
 };
 
 pub(super) fn bridge_naming_mutation_bundle(
     intent: &ForgeQueryNamingMutationIntent,
     resolved_target_entity_identity: Option<&ForgeQueryEntityIdentity>,
-    target_collection: Option<&str>,
+    target_collection: Option<&ForgeQueryMutationTargetCollectionIdentity>,
 ) -> Option<BridgeNamingMutationBundle> {
     let resolved_target_entity_identity =
         resolved_target_entity_identity.and_then(bridge_naming_resolved_target_identity);
-    let target_collection = target_collection.map(BridgeNamingTargetCollection::new);
+    let target_collection =
+        target_collection.map(|collection| BridgeNamingTargetCollection::new(collection.as_str()));
     let attachment_identity = bridge_naming_attachment_identity(intent.attachment_identity());
     match intent.family() {
         ForgeQueryNamingMutationFamily::AttachNewTarget => {
@@ -89,7 +90,7 @@ pub(super) fn bridge_continuity_mutation_bundle(
     intent: &ForgeQueryContinuityMutationIntent,
     _basis_binding_digest: Option<&str>,
     resolved_target_entity_identity: Option<&ForgeQueryEntityIdentity>,
-    target_collection: Option<&str>,
+    target_collection: Option<&ForgeQueryMutationTargetCollectionIdentity>,
 ) -> Option<BridgeContinuityMutationBundle> {
     let outcome_class = match intent.outcome_class() {
         ForgeQueryContinuityMutationOutcomeClass::ContinuesAsSingleSuccessor => {
@@ -111,7 +112,7 @@ pub(super) fn bridge_continuity_mutation_bundle(
         None => None,
     };
     let target_collection = match target_collection {
-        Some(collection) => Some(continuity_target_collection(collection)?),
+        Some(collection) => Some(continuity_target_collection(collection.as_str())?),
         None => None,
     };
 
@@ -199,7 +200,7 @@ mod tests {
     use crate::memory_workspace::ForgeQueryEntityIdentity;
     use crate::runtime::{
         ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationIntent,
-        ForgeQueryNamingMutationIntent,
+        ForgeQueryMutationTargetCollectionIdentity, ForgeQueryNamingMutationIntent,
     };
     use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 
@@ -224,9 +225,15 @@ mod tests {
         let entity_identity = ForgeQueryEntityIdentity::from_relational_record(
             RelationalBridgeRecordIdentityParts::entity(1, 42, 1),
         );
-        let lowered =
-            bridge_continuity_mutation_bundle(&intent, None, Some(&entity_identity), Some("Task"))
-                .expect("bridge continuity bundle should lower");
+        let target_collection =
+            ForgeQueryMutationTargetCollectionIdentity::new("test-target", "Task");
+        let lowered = bridge_continuity_mutation_bundle(
+            &intent,
+            None,
+            Some(&entity_identity),
+            Some(&target_collection),
+        )
+        .expect("bridge continuity bundle should lower");
 
         let bridge_evidence = ForgeQueryContinuityMutationEvidence::from_bridge(&lowered);
 
@@ -285,10 +292,16 @@ mod tests {
         );
         let authored_identity =
             crate::memory_workspace::admit_authored_entity_label("entity:task-1");
+        let target_collection =
+            ForgeQueryMutationTargetCollectionIdentity::new("test-target", "Task");
 
         assert!(
-            bridge_naming_mutation_bundle(&intent, Some(&authored_identity), Some("Task"))
-                .is_none(),
+            bridge_naming_mutation_bundle(
+                &intent,
+                Some(&authored_identity),
+                Some(&target_collection)
+            )
+            .is_none(),
             "bridge mutation lowering must not smuggle authored Query evidence into native bridge target identity"
         );
     }

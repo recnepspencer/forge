@@ -110,7 +110,10 @@ pub use mutation_evidence::{
 pub use naming_mutation_evidence::{
     ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationOutcome,
 };
-pub use program::{ForgeQueryInstalledOperation, ForgeQueryInstalledProgram, ForgeQueryRunReceipt};
+pub use program::{
+    ForgeQueryInstalledOperation, ForgeQueryInstalledProgram,
+    ForgeQueryProgramInstallationIdentity, ForgeQueryProgramRunIdentity, ForgeQueryRunReceipt,
+};
 pub use read_access_counters::ForgeQueryGraphReadAccessComplexityCounters;
 pub use read_access_summary::ForgeQueryGraphReadAccessReceiptSummary;
 pub use read_breadth::ForgeQueryReadBreadth;

@@ -7,6 +7,23 @@ use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQueryEntity};
 use crate::runtime::ForgeQueryAspectTouch;
 use crate::schema_view::QuerySchemaView;
 
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct ForgeQueryProgramOperationIdentity {
+    value: String,
+}
+
+impl ForgeQueryProgramOperationIdentity {
+    pub(crate) fn from_operation_id(operation_id: impl Into<String>) -> Self {
+        Self {
+            value: operation_id.into(),
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.value
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryProgramValue {
     value: ForgeQueryProgramValueTree,
@@ -214,12 +231,12 @@ impl ForgeQueryValueExpr {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct ForgeQueryAspectValueTemplate {
+pub struct ForgeQueryAdmittedAspectValueTemplate {
     aspect_touch: ForgeQueryAspectTouch,
     value: ForgeQueryValueExpr,
 }
 
-impl ForgeQueryAspectValueTemplate {
+impl ForgeQueryAdmittedAspectValueTemplate {
     pub fn new(aspect_touch: ForgeQueryAspectTouch, value: ForgeQueryValueExpr) -> Self {
         Self {
             aspect_touch,
@@ -232,7 +249,7 @@ impl ForgeQueryAspectValueTemplate {
 pub enum ForgeQueryWriteCommandTemplate {
     InsertAspects {
         collection: String,
-        aspects: Vec<ForgeQueryAspectValueTemplate>,
+        aspects: Vec<ForgeQueryAdmittedAspectValueTemplate>,
     },
     UpdateAspect {
         entity_identity: ForgeQueryValueExpr,
@@ -254,11 +271,14 @@ impl ForgeQueryWriteCommandTemplate {
                 collection,
                 aspects,
             } => Ok(crate::runtime::ForgeQueryWriteCommand::InsertAspects {
-                collection: collection.clone(),
+                collection: crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+                    "write-command-declared",
+                    collection,
+                ),
                 aspects: aspects
                     .iter()
                     .map(|aspect| {
-                        crate::runtime::ForgeQueryAspectValue::new_set(
+                        crate::runtime::ForgeQueryAdmittedAspectValue::new_set(
                             aspect.aspect_touch.clone(),
                             aspect.value.evaluate(inputs)?.foundational_scalar_value()?,
                         )
@@ -279,7 +299,7 @@ impl ForgeQueryWriteCommandTemplate {
                 entity_identity: crate::memory_workspace::admit_authored_entity_label(
                     expect_string(entity_identity.evaluate(inputs)?, "entity_identity")?,
                 ),
-                aspect: crate::runtime::ForgeQueryAspectValue::new_set(
+                aspect: crate::runtime::ForgeQueryAdmittedAspectValue::new_set(
                     aspect_touch.clone(),
                     value.evaluate(inputs)?.foundational_scalar_value()?,
                 )
@@ -664,7 +684,7 @@ impl ForgeQueryOperation {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryProgram {
     id: String,
-    operations: BTreeMap<String, ForgeQueryOperation>,
+    operations: BTreeMap<ForgeQueryProgramOperationIdentity, ForgeQueryOperation>,
     workflow_graph: ForgeQueryWorkflowGraph,
 }
 
@@ -675,14 +695,20 @@ impl ForgeQueryProgram {
     ) -> Result<Self, ForgeQueryProgramError> {
         let operations = operations
             .into_iter()
-            .map(|operation| (operation.id.clone(), operation))
+            .map(|operation| {
+                (
+                    ForgeQueryProgramOperationIdentity::from_operation_id(operation.id.clone()),
+                    operation,
+                )
+            })
             .collect::<BTreeMap<_, _>>();
         if operations.is_empty() {
             return Err(ForgeQueryProgramError::new(
                 "program must declare at least one operation",
             ));
         }
-        let workflow_graph = ForgeQueryWorkflowGraph::linear(operations.keys().cloned());
+        let workflow_graph =
+            ForgeQueryWorkflowGraph::linear(operations.keys().map(|key| key.as_str().to_string()));
         Ok(Self {
             id: id.into(),
             operations,
@@ -703,7 +729,8 @@ impl ForgeQueryProgram {
     }
 
     pub fn operation(&self, id: &str) -> Option<&ForgeQueryOperation> {
-        self.operations.get(id)
+        self.operations
+            .get(&ForgeQueryProgramOperationIdentity::from_operation_id(id))
     }
 
     pub fn operations(&self) -> impl Iterator<Item = &ForgeQueryOperation> {
@@ -1045,7 +1072,9 @@ fn foundational_scalar_value_from_program_value_tree(
                 )))
             }
         }
-        ForgeQueryProgramValueTree::String(value) => Ok(AspectValue::String(value.clone().into())),
+        ForgeQueryProgramValueTree::String(value) => {
+            Ok(crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value.clone()))
+        }
         ForgeQueryProgramValueTree::Array(_) => Err(ForgeQueryProgramError::new(
             "program scalar aspect value cannot be an array",
         )),

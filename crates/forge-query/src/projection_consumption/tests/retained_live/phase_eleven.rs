@@ -119,8 +119,10 @@ fn retained_binding_common_path_consumes_admitted_field_and_source_reference_fac
                 .view_local_identities()
                 .display_field_path(
                     crate::projection_consumption::projection_fact_field_path_from_segments([
-                        "profile",
-                        "display_name",
+                        forge_foundational::facade::FieldKey::new("profile")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("display_name")
+                            .expect("projection fact field segment should admit"),
                     ]),
                 )
                 .source_references(),
@@ -162,8 +164,10 @@ fn live_binding_common_path_consumes_entity_identity_field_and_source_reference_
                 .view_local_identities()
                 .display_field_path(
                     crate::projection_consumption::projection_fact_field_path_from_segments([
-                        "profile",
-                        "display_name",
+                        forge_foundational::facade::FieldKey::new("profile")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("display_name")
+                            .expect("projection fact field segment should admit"),
                     ]),
                 )
                 .source_references(),
@@ -200,7 +204,10 @@ fn retained_binding_missing_declared_field_evidence_fails_extraction_honestly() 
             ),
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "metrics", "priority",
+                    forge_foundational::facade::FieldKey::new("metrics")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("priority")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )
@@ -225,7 +232,10 @@ fn live_binding_missing_declared_field_evidence_fails_extraction_honestly() {
             ),
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "metrics", "priority",
+                    forge_foundational::facade::FieldKey::new("metrics")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("priority")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )
@@ -289,8 +299,10 @@ fn retained_and_live_common_path_preserve_receipt_and_envelope_identity() {
                 .view_local_identities()
                 .display_field_path(
                     crate::projection_consumption::projection_fact_field_path_from_segments([
-                        "profile",
-                        "display_name",
+                        forge_foundational::facade::FieldKey::new("profile")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("display_name")
+                            .expect("projection fact field segment should admit"),
                     ]),
                 )
                 .source_references(),
@@ -308,8 +320,10 @@ fn retained_and_live_common_path_preserve_receipt_and_envelope_identity() {
                 .entity_identities()
                 .display_field_path(
                     crate::projection_consumption::projection_fact_field_path_from_segments([
-                        "profile",
-                        "display_name",
+                        forge_foundational::facade::FieldKey::new("profile")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("display_name")
+                            .expect("projection fact field segment should admit"),
                     ]),
                 )
                 .source_references(),
@@ -362,8 +376,10 @@ fn retained_and_live_common_path_keep_visibility_denial_on_hidden_fields() {
             ),
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )
@@ -374,8 +390,10 @@ fn retained_and_live_common_path_keep_visibility_denial_on_hidden_fields() {
             &authorized_projection("query:test", &shared_test_result_shape().digest, &[]),
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )

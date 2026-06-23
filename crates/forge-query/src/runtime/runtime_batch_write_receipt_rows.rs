@@ -24,20 +24,10 @@ impl ForgeQueryRuntime {
                 let symbolic_aspect_resolution_evidence =
                     summary.symbolic_aspect_resolution_evidence();
                 let mutation_metadata = summary.mutation_metadata();
-                let affected_live_view_targets = self
-                    .backend
-                    .affected_live_view_ids(&receipt)
-                    .into_iter()
-                    .map(ForgeQueryLiveArtifactTarget::from_view_name)
-                    .collect::<Vec<_>>();
+                let affected_live_view_targets = self.backend.affected_live_view_targets(&receipt);
                 let (_, target_collection, mut target_entity_identity) =
                     classify_receipt_mutation_summary(&receipt);
-                let mut target_collection_identity = target_collection.map(|collection| {
-                    ForgeQueryMutationTargetCollectionIdentity::new(
-                        "write-receipt-batch-target",
-                        collection,
-                    )
-                });
+                let mut target_collection_identity = target_collection;
                 if let Some(binding) = existing_truth_binding.as_ref() {
                     target_collection_identity = binding.target_collection_identity().cloned();
                     target_entity_identity = Some(binding.resolved_entity_artifact_identity());

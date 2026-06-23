@@ -386,7 +386,7 @@ pub use downstream_delivery_resume::{
 };
 use effect::{
     admit_effect_declaration, insert_effect_runtime, route_effect_deliveries,
-    ForgeQueryEffectIndex, ForgeQueryEffectRuntime,
+    ForgeQueryEffectIndex, ForgeQueryEffectRuntime, ForgeQueryEffectTarget,
 };
 pub use effect::{
     ForgeQueryEffectCondition, ForgeQueryEffectCounters, ForgeQueryEffectDeclaration,
@@ -647,8 +647,9 @@ pub(crate) use mutation::{
 };
 #[allow(unused_imports)]
 pub use mutation::{
-    ForgeQueryAspectMutationBuilder, ForgeQueryAspectMutationOperation,
-    ForgeQueryAspectMutationOperationKind, ForgeQueryAspectTouch, ForgeQueryAspectValue,
+    ForgeQueryAdmittedAspectValue, ForgeQueryAspectMutationBuilder,
+    ForgeQueryAspectMutationOperation, ForgeQueryAspectMutationOperationKind,
+    ForgeQueryAspectTouch, ForgeQueryAuthoredAspectValue,
     ForgeQueryAuthoritativeMutationObligationDispatch,
     ForgeQueryAuthoritativeMutationObligationDispatchProjection,
     ForgeQueryAuthoritativeMutationObligationDispatchProjectionRow,
@@ -767,7 +768,8 @@ use runtime_helpers::{
     runtime_consumer_attachment_budget, runtime_consumer_attachment_budget_policy,
     runtime_family_budget, runtime_slice_budget, runtime_subscription_admission_budget,
     runtime_subscription_budget_policy, subscription_dimensions_for_request,
-    synthetic_existing_assertion_receipt,
+    synthetic_existing_assertion_receipt, ForgeQuerySameBatchSymbolicTarget,
+    ForgeQuerySameBatchSymbolicTargetKey,
 };
 #[allow(unused_imports)]
 pub use shared_read::{
@@ -832,11 +834,12 @@ pub use surface::{
     ForgeQueryMutationFamily, ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetClass,
     ForgeQueryMutationTargetDescriptor, ForgeQueryMutationTargetEvidence,
     ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationOutcome, ForgeQueryNativeRow,
-    ForgeQueryPatchBatch, ForgeQueryReadAccessPlanBindingMismatch, ForgeQueryReadBreadth,
-    ForgeQueryReadBuiltInOperator, ForgeQueryReadBuiltInOperatorDenial,
-    ForgeQueryReadBuiltInOperatorDenialReason, ForgeQueryReadCompositionExtensionHookBoundary,
-    ForgeQueryReadCompositionExtensionHookFamily, ForgeQueryReadCompositionExtensionHookSupportRow,
-    ForgeQueryReadDenial, ForgeQueryReadDenialKind, ForgeQueryReadDomainInvariantDenial,
+    ForgeQueryPatchBatch, ForgeQueryProgramInstallationIdentity, ForgeQueryProgramRunIdentity,
+    ForgeQueryReadAccessPlanBindingMismatch, ForgeQueryReadBreadth, ForgeQueryReadBuiltInOperator,
+    ForgeQueryReadBuiltInOperatorDenial, ForgeQueryReadBuiltInOperatorDenialReason,
+    ForgeQueryReadCompositionExtensionHookBoundary, ForgeQueryReadCompositionExtensionHookFamily,
+    ForgeQueryReadCompositionExtensionHookSupportRow, ForgeQueryReadDenial,
+    ForgeQueryReadDenialKind, ForgeQueryReadDomainInvariantDenial,
     ForgeQueryReadDomainInvariantSummary, ForgeQueryReadExecutionEngine,
     ForgeQueryReadFallbackClass, ForgeQueryReadFamily, ForgeQueryReadFamilyAdmission,
     ForgeQueryReadFamilyInvariantEvidence, ForgeQueryReadGraph, ForgeQueryReadGraphFamily,
@@ -864,17 +867,18 @@ pub struct ForgeQueryRuntime {
     preview_session_labels: BTreeSet<ForgeQuerySessionLabel>,
     branch_session_labels: BTreeSet<ForgeQuerySessionLabel>,
     active_subscriptions: ActiveSubscriptionRuntime,
-    live_subscriptions: BTreeMap<String, ForgeQueryRuntimeLiveSubscriptionState>,
-    materialized_read_views: BTreeMap<String, DeclarativeLiveQueryRequest>,
-    live_subscription_index: BTreeMap<String, BTreeSet<String>>,
-    installed_programs: BTreeMap<String, ForgeQueryProgram>,
-    run_traces: BTreeMap<String, ForgeQueryProgramTrace>,
-    derived_views: BTreeMap<String, ForgeQueryDerivedViewRuntime>,
+    live_subscriptions:
+        BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryRuntimeLiveSubscriptionState>,
+    materialized_read_views: BTreeMap<ForgeQueryLiveArtifactTarget, DeclarativeLiveQueryRequest>,
+    live_subscription_index: Vec<delivery::ForgeQueryLiveSubscriptionIndexEntry>,
+    installed_programs: BTreeMap<ForgeQueryProgramInstallationIdentity, ForgeQueryProgram>,
+    run_traces: BTreeMap<ForgeQueryProgramRunIdentity, ForgeQueryProgramTrace>,
+    derived_views: BTreeMap<ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewRuntime>,
     shared_read_pins: shared_read_pins::ForgeQuerySharedReadPinRegistry,
     published_artifacts: published_artifacts::ForgeQueryPublishedArtifactRegistry,
     journal_replay: journal_replay::ForgeQueryJournalReplayRegistry,
     derived_dependency_index: ForgeQueryComputedDependencyIndex,
-    effects: BTreeMap<String, ForgeQueryEffectRuntime>,
+    effects: BTreeMap<ForgeQueryEffectTarget, ForgeQueryEffectRuntime>,
     effect_index: ForgeQueryEffectIndex,
     graph_obligation_registration_catalog: ForgeQueryGraphObligationRegistrationCatalog,
     graph_obligation_index: ForgeQueryGraphObligationIndex,

@@ -19,7 +19,7 @@ use crate::memory_workspace::{
     ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQuerySnapshotIdentity,
 };
 use crate::runtime::{
-    build_bridge_authority_bundle, ForgeQueryAspectTouch, ForgeQueryAspectValue,
+    build_bridge_authority_bundle, ForgeQueryAdmittedAspectValue,
     ForgeQueryBackendAdmissibleMutation, ForgeQueryBasisAdmissionEvidenceRow,
     ForgeQueryEffectPolicy, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeSourceAdapter, ForgeQueryWriteCommand, LiveViewDeclarationAdmissionReceipt,
@@ -30,8 +30,9 @@ use crate::session_label::ForgeQuerySessionLabel;
 use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 use super::{
-    representative_bridge_authority_runtime, ForgeQueryLowerRuntimeRepresentativeEvidenceSource,
-    RepresentativeArtifacts, RepresentativeSourceAdapter,
+    priority_value_touch, representative_bridge_authority_runtime, status_value_touch,
+    ForgeQueryLowerRuntimeRepresentativeEvidenceSource, RepresentativeArtifacts,
+    RepresentativeSourceAdapter,
 };
 
 fn fixture_retained_evidence_identity(
@@ -45,11 +46,6 @@ fn fixture_retained_evidence_identity(
             retained_label,
         )
         .seal()
-}
-
-fn representative_aspect_touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    ForgeQueryAspectTouch::from_authoring_path(aspect_path)
-        .expect("representative fixture aspect touch should admit")
 }
 
 fn fixture_subject_identity(
@@ -137,7 +133,7 @@ pub(crate) fn representative_write_authority_row() -> RepresentativeArtifacts {
             "Task",
             representative_entity_identity("task-7"),
             ForgeQueryMutationKind::Deleted,
-            vec![representative_aspect_touch("status.value")],
+            vec![status_value_touch()],
         )],
     );
     let execution = WriteAuthorityExecutionReceipt::from_command(&command, mutation_receipt);
@@ -157,16 +153,14 @@ pub(crate) fn representative_signal_invalidation_row() -> RepresentativeArtifact
     let command = ForgeQueryWriteCommand::UpdateAspects {
         entity_identity: representative_task_identity.clone(),
         aspects: vec![
-            ForgeQueryAspectValue::new_set(
-                crate::runtime::ForgeQueryAspectTouch::from_authoring_path("status.value")
-                    .expect("representative signal status aspect should admit"),
-                forge_foundational::facade::AspectValue::String("ready".into()),
+            ForgeQueryAdmittedAspectValue::new_set(
+                status_value_touch(),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("ready"),
             )
             .expect("representative signal status aspect should build"),
-            ForgeQueryAspectValue::new_set(
-                crate::runtime::ForgeQueryAspectTouch::from_authoring_path("priority.value")
-                    .expect("representative signal priority aspect should admit"),
-                forge_foundational::facade::AspectValue::String("high".into()),
+            ForgeQueryAdmittedAspectValue::new_set(
+                priority_value_touch(),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("high"),
             )
             .expect("representative signal priority aspect should build"),
         ],
@@ -196,13 +190,13 @@ pub(crate) fn representative_signal_invalidation_row() -> RepresentativeArtifact
                 "Task",
                 representative_task_identity,
                 ForgeQueryMutationKind::Updated,
-                vec![representative_aspect_touch("status.value")],
+                vec![status_value_touch()],
             ),
             ForgeQueryMutationDelta::from_touched_aspects(
                 "Task",
                 representative_entity_identity("task-10"),
                 ForgeQueryMutationKind::Updated,
-                vec![representative_aspect_touch("priority.value")],
+                vec![priority_value_touch()],
             ),
         ],
         bridge_authority,

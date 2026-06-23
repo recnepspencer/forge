@@ -1,7 +1,8 @@
 use super::symbols::ForgeQueryGraphEntitySymbol;
 use crate::memory_workspace::ForgeQueryEntityIdentity;
-use crate::runtime::mutation::{ForgeQueryAspectMutationBuilder, ForgeQueryAspectTouch};
-use forge_foundational::facade::AspectValue;
+use crate::runtime::mutation::{
+    ForgeQueryAspectMutationBuilder, ForgeQueryAspectTouch, ForgeQueryAuthoredAspectValue,
+};
 use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
 
 #[derive(Clone, Debug, Default)]
@@ -14,8 +15,12 @@ impl ForgeQueryGraphRelationMutationBuilder {
         Self::default()
     }
 
-    pub fn aspect(mut self, aspect_touch: ForgeQueryAspectTouch, value: AspectValue) -> Self {
-        self.inner = self.inner.aspect(aspect_touch, value);
+    pub fn set_aspect(
+        mut self,
+        aspect_touch: ForgeQueryAspectTouch,
+        value: ForgeQueryAuthoredAspectValue,
+    ) -> Self {
+        self.inner = self.inner.set_aspect(aspect_touch, value);
         self
     }
 
@@ -24,9 +29,9 @@ impl ForgeQueryGraphRelationMutationBuilder {
         aspect_touch: ForgeQueryAspectTouch,
         entity_identity: ForgeQueryEntityIdentity,
     ) -> Self {
-        self.inner = self.inner.aspect(
+        self.inner = self.inner.set_aspect(
             aspect_touch,
-            AspectValue::String(endpoint_identity_label(&entity_identity).into()),
+            ForgeQueryAuthoredAspectValue::string(endpoint_identity_label(&entity_identity)),
         );
         self
     }

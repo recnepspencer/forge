@@ -330,8 +330,11 @@ pub(super) fn build_batch_write_receipt_inspection_digest(
         )
         .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("touched_aspect"),
-            evidence_touch_identities("batch-inspection-touched-aspect", inputs.touched_aspects)
-                .iter(),
+            terminal_touch_projection_identities(
+                "batch-inspection-touched-aspect",
+                inputs.touched_aspects,
+            )
+            .iter(),
         )
         .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("affected_live_view_id"),
@@ -369,7 +372,7 @@ fn evidence_value_identities(
         .collect()
 }
 
-fn evidence_touch_identities(
+fn terminal_touch_projection_identities(
     role: &'static str,
     touches: &[ForgeQueryAspectTouch],
 ) -> Vec<ForgeQueryEvidenceIdentity> {

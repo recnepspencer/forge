@@ -51,7 +51,7 @@ impl ForgeQueryRetainedMaterializedRow {
         self.scalar_values.iter()
     }
 
-    pub(in crate::runtime) fn native_digest_parts(&self) -> Vec<String> {
+    pub(in crate::runtime) fn terminal_digest_parts(&self) -> Vec<String> {
         self.scalar_values
             .iter()
             .map(|(field_path, value)| {

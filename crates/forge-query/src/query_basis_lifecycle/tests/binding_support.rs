@@ -2,8 +2,7 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
 use forge_foundational::facade::{
-    AspectKey, AspectLocator, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
-    ScalarAspectType,
+    AspectKey, AspectLocator, CanonicalFieldPath, FieldKey, LocatorAuthority, ScalarAspectType,
 };
 use forge_runtime_bridge::facade::{
     AspectKeySelector, BridgeAspectRegistration, BridgeAspectRegistrationId,
@@ -171,7 +170,9 @@ impl TruthSnapshotReader for TestSnapshotReader {
             .first()
             .and_then(SnapshotReadRecord::scalar_aspect_value)
             .cloned()
-            .unwrap_or_else(|| AspectValue::String("unknown".into()));
+            .unwrap_or_else(|| {
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("unknown")
+            });
         let records = request
             .reads()
             .iter()
@@ -420,7 +421,7 @@ fn snapshot_records(_key: &str, value: &str) -> Vec<SnapshotReadRecord> {
     );
     vec![SnapshotReadRecord::for_request(
         &read,
-        AspectValue::String(value.into()),
+        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value),
     )]
 }
 

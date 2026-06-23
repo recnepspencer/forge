@@ -48,17 +48,14 @@ impl ForgeQueryDerivedArtifactBinding {
         let mut targets = required_targets.into_iter().collect::<Vec<_>>();
         targets.sort();
         targets.dedup();
-        let target_view_names = targets
-            .iter()
-            .map(|target| target.view_name().to_string())
-            .collect::<Vec<_>>();
 
-        let bundle_view_names = bundle
-            .terminal_target_view_names_projection()
-            .collect::<Vec<_>>();
-        if bundle.target_count() != target_view_names.len()
+        if bundle.target_count() != targets.len()
             || !targets.iter().all(|target| bundle.includes_target(target))
         {
+            let target_view_names = terminal_target_view_names(&targets);
+            let bundle_view_names = bundle
+                .terminal_target_view_names_projection()
+                .collect::<Vec<_>>();
             return Err(ForgeQueryRuntimeError::RetainedRowDecode {
                 view_name: artifact_name.clone(),
                 stage: "derived-artifact-binding",
@@ -79,7 +76,9 @@ impl ForgeQueryDerivedArtifactBinding {
                 .field_shape(ForgeQueryEvidenceTag::new("bundle"), bundle.bundle_digest())
                 .field_value_sequence(
                     ForgeQueryEvidenceTag::new("target"),
-                    target_view_names.iter().map(String::as_str),
+                    targets
+                        .iter()
+                        .map(ForgeQueryDerivedMaterializationTarget::terminal_view_name_projection),
                 )
                 .seal();
 
@@ -130,12 +129,19 @@ impl ForgeQueryDerivedArtifactBinding {
         &self,
         target: &ForgeQueryDerivedMaterializationTarget,
     ) -> Result<&ForgeQueryDerivedMaterializationResult, ForgeQueryRuntimeError> {
-        self.bundle.materialization_by_name(target.view_name())
+        self.bundle.materialization_for_target(target)
     }
 
     pub fn into_bundle(self) -> ForgeQueryDerivedMaterializationBundle {
         self.bundle
     }
+}
+
+fn terminal_target_view_names(targets: &[ForgeQueryDerivedMaterializationTarget]) -> Vec<String> {
+    targets
+        .iter()
+        .map(|target| target.terminal_view_name_projection().to_string())
+        .collect()
 }
 
 #[cfg(test)]
@@ -166,7 +172,7 @@ mod tests {
         ForgeQueryDerivedMaterializationResult::from_retained_rows(
             vec![scalar_row(
                 "value",
-                AspectValue::String(InternedString::Raw(value.to_string())),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value),
             )],
             ForgeQueryDerivedMaterializationReceipt::test_only(
                 view_name,
@@ -189,15 +195,15 @@ mod tests {
             crate::memory_workspace::admit_external_snapshot_label("snapshot-test"),
             BTreeMap::from([
                 (
-                    first.name().to_string(),
+                    ForgeQueryDerivedMaterializationTarget::from(&first),
                     retained_row(first.name(), "first"),
                 ),
                 (
-                    second.name().to_string(),
+                    ForgeQueryDerivedMaterializationTarget::from(&second),
                     retained_row(second.name(), "second"),
                 ),
                 (
-                    third.name().to_string(),
+                    ForgeQueryDerivedMaterializationTarget::from(&third),
                     retained_row(third.name(), "third"),
                 ),
             ]),

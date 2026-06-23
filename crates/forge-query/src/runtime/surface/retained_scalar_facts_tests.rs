@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey, InternedString};
+use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 
 use crate::runtime::surface::{
     ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedMaterializationBundle,
@@ -33,7 +33,7 @@ fn binding() -> ForgeQueryDerivedArtifactBinding {
             ("authority_snapshot_id", AspectValue::Int64(7)),
             (
                 "nested.truth_basis_digest_hex",
-                AspectValue::String(InternedString::Raw("basis:test".to_string())),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("basis:test"),
             ),
         ])],
         ForgeQueryDerivedMaterializationReceipt::test_only(
@@ -42,16 +42,13 @@ fn binding() -> ForgeQueryDerivedArtifactBinding {
             "result:test",
         ),
     );
+    let target = ForgeQueryDerivedMaterializationTarget::new("surface:test");
     let bundle = ForgeQueryDerivedMaterializationBundle::new(
         snapshot_identity,
-        BTreeMap::from([("surface:test".to_string(), materialization)]),
+        BTreeMap::from([(target.clone(), materialization)]),
     );
-    ForgeQueryDerivedArtifactBinding::bind(
-        bundle,
-        "artifact:test",
-        [ForgeQueryDerivedMaterializationTarget::new("surface:test")],
-    )
-    .expect("binding should build")
+    ForgeQueryDerivedArtifactBinding::bind(bundle, "artifact:test", [target])
+        .expect("binding should build")
 }
 
 fn view_handle() -> ForgeQueryDerivedViewHandle<crate::runtime::ForgeQueryNativeRow> {
@@ -81,9 +78,7 @@ fn retained_scalar_fact_set_reads_nested_fields() {
     );
     assert_eq!(
         facts.field_value_at(&truth_basis_digest),
-        Some(&AspectValue::String(InternedString::Raw(
-            "basis:test".to_string()
-        )))
+        Some(&crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("basis:test"))
     );
     assert!(!facts.fact_set_digest().is_empty());
 }

@@ -6,23 +6,24 @@ use crate::facade::{
     ForgeQueryAuthorityLane, ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryEffectPolicy,
     ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthProbeDenial,
     ForgeQueryExistingTruthProbeDenialKind, ForgeQueryIntentAuthorityAdapter,
-    ForgeQueryIntentDeclaration, ForgeQueryIntentExecution, ForgeQueryLiveViewHandle,
-    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeInspectionEvidence,
-    ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
-    ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
-    ForgeQueryRuntimeSnapshotIdentityAdapter, ForgeQueryRuntimeSourceAdapter,
-    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeSupportProfile,
-    ForgeQuerySessionLabel, ForgeQueryWorkspaceError, ForgeQueryWriteReceipt,
-    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SchemaFieldKind, SchemaFieldView,
-    SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
-    SubscriptionActivationInput,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentExecution, ForgeQueryLiveArtifactTarget,
+    ForgeQueryLiveViewHandle, ForgeQueryMutationDelta, ForgeQueryMutationKind,
+    ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeExistingTruthVerificationAdapter,
+    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
+    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeInspectorEvidenceAdapter,
+    ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
+    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSnapshotIdentityAdapter,
+    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
+    ForgeQueryRuntimeSupportProfile, ForgeQuerySessionLabel, ForgeQueryWorkspaceError,
+    ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
+    SchemaFieldKind, SchemaFieldView, SignalInvalidationBoundaryReceipt,
+    SubscriptionActivationBoundaryReceipt, SubscriptionActivationInput,
 };
 use crate::identity::hash_parts;
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryLivePatch};
+use crate::runtime::ForgeQueryMutationTargetCollectionIdentity;
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::RuntimeBridge;
 use std::collections::BTreeMap;
@@ -30,7 +31,8 @@ use std::collections::BTreeMap;
 use super::write_authority::CertificationWriteAuthority;
 use super::{
     certification_commit_identity_for, certification_entity_identity,
-    certification_snapshot_identity, certification_snapshot_identity_for,
+    certification_snapshot_identity, certification_snapshot_identity_for, identity_id_touch,
+    title_value_touch,
 };
 
 pub(crate) fn certification_runtime() -> ForgeQueryRuntime {
@@ -157,7 +159,7 @@ impl ForgeQueryRuntimeSchemaAdapter for CertificationSchemaAdapter {
 
 #[derive(Default)]
 struct CertificationSourceAdapter {
-    live_views: BTreeMap<String, String>,
+    live_views: BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryMutationTargetCollectionIdentity>,
 }
 
 impl ForgeQueryRuntimeSourceAdapter for CertificationSourceAdapter {
@@ -167,28 +169,42 @@ impl ForgeQueryRuntimeSourceAdapter for CertificationSourceAdapter {
         request: DeclarativeLiveQueryRequest,
         _schema_view: QuerySchemaView,
     ) -> Result<ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError> {
+        let live_target = ForgeQueryLiveArtifactTarget::from_view_name(name.clone());
         self.live_views
-            .insert(name.clone(), request.target().to_string());
+            .insert(live_target, request.target_collection_identity());
         Ok(ForgeQueryLiveViewHandle::new(name))
     }
 
-    fn live_entities(&self, _view_name: &str) -> Vec<ForgeQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity> {
         Vec::new()
     }
 
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
+    fn drain_live_patches_for_target(
+        &mut self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch> {
         Vec::new()
     }
 
-    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+    fn affected_live_view_targets(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget> {
         let mut affected = receipt
             .deltas
             .iter()
             .flat_map(|delta| {
                 self.live_views
                     .iter()
-                    .filter(move |(_, collection)| *collection == &delta.collection)
-                    .map(|(name, _)| name.clone())
+                    .filter(move |(_, collection)| {
+                        delta
+                            .target_collection_identity()
+                            .same_target_collection_as(collection)
+                    })
+                    .map(|(target, _)| target.clone())
             })
             .collect::<Vec<_>>();
         affected.sort();
@@ -203,7 +219,7 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter for CertificationExisting
     fn verify_existing_truth_assertion(
         &self,
         _binding: &crate::runtime::ForgeQueryExistingTruthTargetBinding,
-        _aspects: &[crate::runtime::ForgeQueryAspectValue],
+        _aspects: &[crate::runtime::ForgeQueryAdmittedAspectValue],
     ) -> Result<(), ForgeQueryExistingTruthAssertionDenial> {
         Ok(())
     }
@@ -217,25 +233,24 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter for CertificationExisting
     > {
         let mut values = Vec::with_capacity(request.aspect_touches().len());
         for aspect_touch in request.aspect_touches() {
-            let aspect_path = aspect_touch.admitted_touch_digest_part();
-            let value = match aspect_path {
-                ref path if path == "identity:id" => {
-                    forge_foundational::facade::AspectValue::String("task-1".to_string().into())
-                }
-                ref path if path == "title:value" => {
-                    forge_foundational::facade::AspectValue::String("Seed title".to_string().into())
-                }
-                _ => {
-                    return Err(ForgeQueryExistingTruthProbeDenial::new(
-                        request.binding(),
-                        ForgeQueryExistingTruthProbeDenialKind::MissingProbedAspect,
-                        Some(aspect_touch.clone()),
-                        "certification verification adapter does not expose that aspect",
-                    ));
-                }
+            let value = if aspect_touch == &identity_id_touch() {
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                    "task-1".to_string(),
+                )
+            } else if aspect_touch == &title_value_touch() {
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                    "Seed title".to_string(),
+                )
+            } else {
+                return Err(ForgeQueryExistingTruthProbeDenial::new(
+                    request.binding(),
+                    ForgeQueryExistingTruthProbeDenialKind::MissingProbedAspect,
+                    Some(aspect_touch.clone()),
+                    "certification verification adapter does not expose that aspect",
+                ));
             };
             values.push(
-                crate::runtime::ForgeQueryExistingTruthProbeField::new_native(
+                crate::runtime::ForgeQueryExistingTruthProbeField::from_admitted_aspect_touch(
                     aspect_touch.clone(),
                     value,
                 ),
@@ -244,6 +259,7 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter for CertificationExisting
         Ok(values)
     }
 }
+
 struct CertificationIntentAuthority;
 
 impl ForgeQueryIntentAuthorityAdapter for CertificationIntentAuthority {
@@ -268,10 +284,7 @@ impl ForgeQueryIntentAuthorityAdapter for CertificationIntentAuthority {
                 collection,
                 certification_entity_identity("certification-intent-entity-1"),
                 ForgeQueryMutationKind::Updated,
-                vec![
-                    crate::runtime::ForgeQueryAspectTouch::from_authoring_path("title.value")
-                        .expect("certification intent aspect touch should admit"),
-                ],
+                vec![title_value_touch()],
             )],
         );
         Ok(ForgeQueryIntentExecution::admitted(

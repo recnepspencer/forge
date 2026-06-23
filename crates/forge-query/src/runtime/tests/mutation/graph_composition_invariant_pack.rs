@@ -28,10 +28,15 @@ fn compose_graph_with_invariant_pack_executes_when_pack_admits_program() {
         .live_view("tasks.graph-composition-invariant-pack-tasks", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-invariant-pack-tasks")
         })
         .expect("task live view should declare");
@@ -39,11 +44,21 @@ fn compose_graph_with_invariant_pack_executes_when_pack_admits_program() {
         .live_view("tasks.graph-composition-invariant-pack-edges", |q| {
             q.from("TaskEdge")
                 .select([
-                    crate::authoring::AspectFieldKey::new("edge", "kind").unwrap(),
-                    crate::authoring::AspectFieldKey::new("edge", "source_identity").unwrap(),
-                    crate::authoring::AspectFieldKey::new("edge", "target_identity").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts(
+                        "edge",
+                        "source_identity",
+                    )
+                    .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts(
+                        "edge",
+                        "target_identity",
+                    )
+                    .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("edge", "kind").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind").unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-invariant-pack-edges")
         })
         .expect("edge live view should declare");
@@ -54,19 +69,19 @@ fn compose_graph_with_invariant_pack_executes_when_pack_admits_program() {
         .compose_graph_with_invariant_pack(
             |graph| {
                 let task = graph.insert_entity("draft-task", "Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-draft"),
+                        test_authored_string_aspect_value("task-draft"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Draft task"),
+                        test_authored_string_aspect_value("Draft task"),
                     )
                 })?;
                 graph.insert_relation("TaskEdge", |edge| {
-                    edge.aspect(
+                    edge.set_aspect(
                         test_aspect_touch("edge.kind"),
-                        test_string_aspect_value("depends_on"),
+                        test_authored_string_aspect_value("depends_on"),
                     )
                     .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &task)
                     .existing_entity_identity(
@@ -107,10 +122,15 @@ fn compose_graph_with_invariant_pack_does_not_overclaim_symbolic_relation_target
             |q| {
                 q.from("Task")
                     .select([
-                        crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                        crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                            .unwrap(),
                     ])
-                    .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                    .order_by(
+                        crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                            .unwrap(),
+                    )
                     .schema_basis("tasks-graph-composition-invariant-pack-unrelated-tasks")
             },
         )
@@ -121,11 +141,23 @@ fn compose_graph_with_invariant_pack_does_not_overclaim_symbolic_relation_target
             |q| {
                 q.from("TaskEdge")
                     .select([
-                        crate::authoring::AspectFieldKey::new("edge", "kind").unwrap(),
-                        crate::authoring::AspectFieldKey::new("edge", "source_identity").unwrap(),
-                        crate::authoring::AspectFieldKey::new("edge", "target_identity").unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts(
+                            "edge",
+                            "source_identity",
+                        )
+                        .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts(
+                            "edge",
+                            "target_identity",
+                        )
+                        .unwrap(),
                     ])
-                    .order_by(crate::authoring::AspectFieldKey::new("edge", "kind").unwrap())
+                    .order_by(
+                        crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind")
+                            .unwrap(),
+                    )
                     .schema_basis("tasks-graph-composition-invariant-pack-unrelated-edges")
             },
         )
@@ -135,11 +167,11 @@ fn compose_graph_with_invariant_pack_does_not_overclaim_symbolic_relation_target
         .compose_graph_with_invariant_pack(
             |graph| {
                 graph.insert_entity("draft-task", "Task", |task| {
-                    task.aspect(test_aspect_touch("identity.id"), test_string_aspect_value("task-draft"))
-                        .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Draft task"))
+                    task.set_aspect(test_aspect_touch("identity.id"), test_authored_string_aspect_value("task-draft"))
+                        .set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Draft task"))
                 })?;
                 graph.insert_relation("TaskEdge", |edge| {
-                    edge.aspect(test_aspect_touch("edge.kind"), test_string_aspect_value("depends_on"))
+                    edge.set_aspect(test_aspect_touch("edge.kind"), test_authored_string_aspect_value("depends_on"))
                         .existing_entity_identity(test_aspect_touch("edge.source_identity"),
                             test_entity_identity("task-existing-left"),
                         )
@@ -194,19 +226,19 @@ fn compose_graph_with_invariant_pack_denies_domain_invalid_program_distinctly() 
             |graph| {
                 let successor = graph.insert_entity("draft-half-edge", "HalfEdge", |half_edge| {
                     half_edge
-                        .aspect(test_aspect_touch("identity.id"), test_string_aspect_value("he-3"))
-                        .aspect(test_aspect_touch("kind.value"), test_string_aspect_value("half_edge"))
+                        .set_aspect(test_aspect_touch("identity.id"), test_authored_string_aspect_value("he-3"))
+                        .set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("half_edge"))
                 })?;
                 graph.retarget_existing_verified(
                     binding,
                     |verify| {
                         verify
-                            .aspect(test_aspect_touch("source.id"), test_string_aspect_value("he-1"))
-                            .aspect(test_aspect_touch("target.id"), test_string_aspect_value("he-2"))
+                            .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("he-1"))
+                            .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("he-2"))
                     },
                     |update| {
                         update
-                            .aspect(test_aspect_touch("source.id"), test_string_aspect_value("he-1"))
+                            .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("he-1"))
                             .continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:loop-next-rel").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:loop-next-rel-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                             )
                             .symbolic_entity_identity(test_aspect_touch("target.id"), successor.reference().clone())

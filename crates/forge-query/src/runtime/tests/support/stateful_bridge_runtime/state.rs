@@ -3,12 +3,14 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::tests::support::test_bridge_with_writeback_authority;
+use crate::runtime::{ForgeQueryLiveArtifactTarget, ForgeQueryMutationTargetCollectionIdentity};
 use forge_foundational::facade::{AspectValue, CanonicalFieldPath};
 
 pub(super) type NativeExternalRow = BTreeMap<CanonicalFieldPath, AspectValue>;
 
 pub(super) struct StatefulBridgeState {
-    pub(super) live_views: BTreeMap<String, String>,
+    pub(super) live_views:
+        BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryMutationTargetCollectionIdentity>,
     pub(super) installed_collections: BTreeSet<String>,
     pub(super) rows_by_collection: BTreeMap<String, BTreeMap<String, NativeExternalRow>>,
     pub(super) collection_by_identity: BTreeMap<String, String>,

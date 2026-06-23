@@ -14,7 +14,9 @@ use crate::runtime::{
 use super::batch_receipt_aggregates::{
     batch_bridge_evidence_from_receipts, derive_batch_receipt_aggregates,
 };
-use super::batch_receipt_identity::{evidence_touch_identities, evidence_value_identities};
+use super::batch_receipt_identity::{
+    evidence_value_identities, terminal_touch_projection_identities,
+};
 use super::ForgeQueryWriteReceipt;
 
 mod graph_composition_accessors;
@@ -123,7 +125,8 @@ impl ForgeQueryBatchWriteReceipt {
                 )
                 .field_evidence_identity_sequence(
                     ForgeQueryEvidenceTag::new("touched_aspect"),
-                    evidence_touch_identities("batch-touched-aspect", &touched_aspects).iter(),
+                    terminal_touch_projection_identities("batch-touched-aspect", &touched_aspects)
+                        .iter(),
                 )
                 .field_evidence_identity_sequence(
                     ForgeQueryEvidenceTag::new("affected_live_view_id"),

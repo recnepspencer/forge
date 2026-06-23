@@ -26,7 +26,10 @@ fn common_aftermath_contract_lane_matches_proof_lane_materialization() {
                 admitted_projection_binding(),
                 ProjectMaterializedFacts::declare().display_field_path(
                     crate::projection_consumption::projection_fact_field_path_from_segments([
-                        "field", "visible",
+                        forge_foundational::facade::FieldKey::new("field")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("visible")
+                            .expect("projection fact field segment should admit"),
                     ]),
                 ),
             ),
@@ -76,7 +79,10 @@ fn common_aftermath_support_and_eligibility_lanes_preserve_warning_truth() {
                 warning_projection_binding(),
                 ProjectMaterializedFacts::declare().display_field_path(
                     crate::projection_consumption::projection_fact_field_path_from_segments([
-                        "field", "visible",
+                        forge_foundational::facade::FieldKey::new("field")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("visible")
+                            .expect("projection fact field segment should admit"),
                     ]),
                 ),
             ),
@@ -94,7 +100,10 @@ fn common_aftermath_support_and_eligibility_lanes_preserve_warning_truth() {
                 warning_projection_binding(),
                 ProjectMaterializedFacts::declare().display_field_path(
                     crate::projection_consumption::projection_fact_field_path_from_segments([
-                        "field", "visible",
+                        forge_foundational::facade::FieldKey::new("field")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("visible")
+                            .expect("projection fact field segment should admit"),
                     ]),
                 ),
             ),
@@ -133,7 +142,10 @@ fn checked_aftermath_lane_preserves_denied_metadata() {
                 admitted_projection_binding(),
                 ProjectMaterializedFacts::declare().display_field_path(
                     crate::projection_consumption::projection_fact_field_path_from_segments([
-                        "field", "visible",
+                        forge_foundational::facade::FieldKey::new("field")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("visible")
+                            .expect("projection fact field segment should admit"),
                     ]),
                 ),
             ),
@@ -164,7 +176,10 @@ fn proof_contract(
         admitted_projection_binding(),
         ProjectMaterializedFacts::declare().display_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
-                "field", "visible",
+                forge_foundational::facade::FieldKey::new("field")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("visible")
+                    .expect("projection fact field segment should admit"),
             ]),
         ),
     )
@@ -222,7 +237,10 @@ fn admitted_projection_consumption_plan() -> ForgeQueryAdmittedIntentPlan {
         admitted_projection_binding(),
         ProjectMaterializedFacts::declare().display_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
-                "field", "visible",
+                forge_foundational::facade::FieldKey::new("field")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("visible")
+                    .expect("projection fact field segment should admit"),
             ]),
         ),
     )

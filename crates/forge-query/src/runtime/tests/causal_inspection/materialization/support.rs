@@ -212,7 +212,9 @@ impl TruthSnapshotReader for MaterializationSnapshotReader {
                 .map(|read| {
                     SnapshotReadRecord::for_request(
                         read,
-                        forge_foundational::facade::AspectValue::String("fixture".into()),
+                        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                            "fixture",
+                        ),
                     )
                 })
                 .collect(),

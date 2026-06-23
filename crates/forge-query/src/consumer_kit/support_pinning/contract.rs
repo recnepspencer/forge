@@ -2,7 +2,9 @@ use std::collections::BTreeSet;
 
 use super::super::support_snapshot::ForgeQuerySupportSnapshot;
 use super::document::schema::ForgeQuerySupportPinContractSchemaVersion;
-use super::document::ForgeQuerySupportPinContractDocument;
+use super::document::{
+    ForgeQuerySupportPinContractDocument, ForgeQuerySupportPinContractTerminalJsonDocument,
+};
 use super::error::{ForgeQuerySupportPinningError, ForgeQuerySupportPinningErrorKind};
 use super::evaluation::{evaluate_support_pin_contract, ForgeQuerySupportPinReport};
 use super::observed_row::ForgeQueryObservedSupportPin;
@@ -60,15 +62,21 @@ impl ForgeQuerySupportPinContract {
         evaluate_support_pin_contract(self, snapshot)
     }
 
-    pub fn to_canonical_json(&self) -> Result<String, ForgeQuerySupportPinningError> {
-        self.to_document().to_canonical_json()
+    pub fn to_canonical_terminal_json_document(
+        &self,
+    ) -> Result<ForgeQuerySupportPinContractTerminalJsonDocument, ForgeQuerySupportPinningError>
+    {
+        self.to_document().to_canonical_terminal_json_document()
     }
 
-    pub fn to_stable_json(&self) -> Result<String, ForgeQuerySupportPinningError> {
-        self.to_canonical_json()
+    pub fn to_stable_terminal_json_document(
+        &self,
+    ) -> Result<ForgeQuerySupportPinContractTerminalJsonDocument, ForgeQuerySupportPinningError>
+    {
+        self.to_canonical_terminal_json_document()
     }
 
-    pub fn to_document(&self) -> ForgeQuerySupportPinContractDocument {
+    pub(crate) fn to_document(&self) -> ForgeQuerySupportPinContractDocument {
         ForgeQuerySupportPinContractDocument::from_contract(self)
     }
 

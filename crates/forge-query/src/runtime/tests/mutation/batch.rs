@@ -9,10 +9,15 @@ fn workspace_batch_aggregates_touched_surfaces_and_remains_inspectable() {
         .live_view("tasks.batch-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-batch-table")
         })
         .expect("live view should declare");
@@ -32,23 +37,23 @@ fn workspace_batch_aggregates_touched_surfaces_and_remains_inspectable() {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-1"),
+                        test_authored_string_aspect_value("task-1"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Buy milk"),
+                        test_authored_string_aspect_value("Buy milk"),
                     )
                 })
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-2"),
+                        test_authored_string_aspect_value("task-2"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Buy bread"),
+                        test_authored_string_aspect_value("Buy bread"),
                     )
                 })
         })
@@ -258,23 +263,23 @@ fn preview_batch_stages_multiple_aspect_native_writes_in_preview_lane() {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("preview-task-1"),
+                        test_authored_string_aspect_value("preview-task-1"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Preview title one"),
+                        test_authored_string_aspect_value("Preview title one"),
                     )
                 })
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("preview-task-2"),
+                        test_authored_string_aspect_value("preview-task-2"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Preview title two"),
+                        test_authored_string_aspect_value("Preview title two"),
                     )
                 })
         })
@@ -311,23 +316,23 @@ fn preview_batch_uses_batch_target_evidence_without_authority_bundles() {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("preview-task-1"),
+                        test_authored_string_aspect_value("preview-task-1"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Preview title one"),
+                        test_authored_string_aspect_value("Preview title one"),
                     )
                 })
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("preview-task-2"),
+                        test_authored_string_aspect_value("preview-task-2"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Preview title two"),
+                        test_authored_string_aspect_value("Preview title two"),
                     )
                 })
         })

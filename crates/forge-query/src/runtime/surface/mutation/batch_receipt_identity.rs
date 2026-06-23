@@ -19,7 +19,7 @@ pub(super) fn evidence_value_identities(
         .collect()
 }
 
-pub(super) fn evidence_touch_identities(
+pub(super) fn terminal_touch_projection_identities(
     role: &'static str,
     touches: &[ForgeQueryAspectTouch],
 ) -> Vec<ForgeQueryEvidenceIdentity> {

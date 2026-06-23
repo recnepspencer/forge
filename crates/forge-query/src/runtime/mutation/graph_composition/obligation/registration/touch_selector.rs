@@ -5,27 +5,28 @@ use crate::evidence_identity::{
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch, ForgeQueryGraphTouchDescriptor,
     ForgeQueryGraphTouchLifecycleFamily, ForgeQueryGraphTouchReadVerb, ForgeQueryMutationFamily,
+    ForgeQueryMutationTargetCollectionIdentity,
 };
 use forge_relational::facade::identity::KindId;
 
 use super::registration_denial::ForgeQueryGraphObligationRegistrationDenial;
 use super::selector_class::ForgeQueryGraphTouchSelectorClass;
 use super::selector_helpers::{
-    contains_all_aspect_touches, contains_all_operations,
-    native_declared_aspect_operation_digest_part, native_touch_digest_parts,
-    non_empty_selector_value, sorted_unique_operations, sorted_unique_touches,
-    terminal_mutation_family,
+    contains_all_aspect_touches, contains_all_operations, non_empty_selector_value,
+    sorted_unique_operations, sorted_unique_touches,
+    terminal_declared_aspect_operation_digest_part, terminal_mutation_family,
+    terminal_touch_digest_parts,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ForgeQueryGraphTouchSelectorKind {
     Any,
-    Collection(String),
+    Collection(ForgeQueryMutationTargetCollectionIdentity),
     RelationKindId(u32),
     AspectTouch(ForgeQueryAspectTouch),
     DeclaredAspectOperation(ForgeQueryAspectMutationOperation),
     DeclaredMutationCollection {
-        collection: String,
+        collection: ForgeQueryMutationTargetCollectionIdentity,
         mutation_family: ForgeQueryMutationFamily,
         declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
         touched_aspects: Vec<ForgeQueryAspectTouch>,
@@ -49,8 +50,9 @@ impl ForgeQueryGraphTouchSelector {
     pub fn collection(
         collection: impl Into<String>,
     ) -> Result<Self, ForgeQueryGraphObligationRegistrationDenial> {
+        let collection = non_empty_selector_value(collection.into(), "collection")?;
         Ok(Self::new(ForgeQueryGraphTouchSelectorKind::Collection(
-            non_empty_selector_value(collection.into(), "collection")?,
+            ForgeQueryMutationTargetCollectionIdentity::new("graph-touch-selector", collection),
         )))
     }
 
@@ -86,9 +88,13 @@ impl ForgeQueryGraphTouchSelector {
         declared_aspect_operations: impl IntoIterator<Item = ForgeQueryAspectMutationOperation>,
         touched_aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
     ) -> Result<Self, ForgeQueryGraphObligationRegistrationDenial> {
+        let collection = non_empty_selector_value(collection.into(), "collection")?;
         Ok(Self::new(
             ForgeQueryGraphTouchSelectorKind::DeclaredMutationCollection {
-                collection: non_empty_selector_value(collection.into(), "collection")?,
+                collection: ForgeQueryMutationTargetCollectionIdentity::new(
+                    "graph-touch-declared-mutation-selector",
+                    collection,
+                ),
                 mutation_family,
                 declared_aspect_operations: sorted_unique_operations(declared_aspect_operations),
                 touched_aspects: sorted_unique_touches(touched_aspects),
@@ -131,7 +137,7 @@ impl ForgeQueryGraphTouchSelector {
         match &self.kind {
             ForgeQueryGraphTouchSelectorKind::Any => true,
             ForgeQueryGraphTouchSelectorKind::Collection(collection) => {
-                descriptor.touches_collection(collection)
+                descriptor.touches_target_collection(collection)
             }
             ForgeQueryGraphTouchSelectorKind::RelationKindId(relation_kind_id) => {
                 descriptor.touches_relation_kind_id(KindId(*relation_kind_id))
@@ -149,7 +155,7 @@ impl ForgeQueryGraphTouchSelector {
                 touched_aspects,
             } => descriptor.rows().iter().any(|row| {
                 row.read_verb().is_none()
-                    && row.declared_collection() == Some(collection.as_str())
+                    && row.touches_declared_collection(collection)
                     && row.mutation_family() == *mutation_family
                     && contains_all_operations(
                         row.declared_aspect_operations(),
@@ -220,9 +226,9 @@ impl ForgeQueryGraphTouchSelector {
         }
     }
 
-    pub(in crate::runtime::mutation::graph_composition::obligation) fn collection_value(
+    pub(in crate::runtime::mutation::graph_composition::obligation) fn collection_identity(
         &self,
-    ) -> Option<&str> {
+    ) -> Option<&ForgeQueryMutationTargetCollectionIdentity> {
         match &self.kind {
             ForgeQueryGraphTouchSelectorKind::Collection(collection) => Some(collection),
             _ => None,
@@ -251,7 +257,7 @@ impl ForgeQueryGraphTouchSelector {
 
     pub(in crate::runtime::mutation::graph_composition::obligation) fn declared_mutation_collection_value(
         &self,
-    ) -> Option<&str> {
+    ) -> Option<&ForgeQueryMutationTargetCollectionIdentity> {
         match &self.kind {
             ForgeQueryGraphTouchSelectorKind::DeclaredMutationCollection { collection, .. } => {
                 Some(collection)
@@ -320,9 +326,9 @@ fn selector_kind_name(kind: &ForgeQueryGraphTouchSelectorKind) -> &'static str {
 fn selector_kind_value(kind: &ForgeQueryGraphTouchSelectorKind) -> Option<String> {
     match kind {
         ForgeQueryGraphTouchSelectorKind::Any => None,
-        ForgeQueryGraphTouchSelectorKind::Collection(value) => Some(value.clone()),
+        ForgeQueryGraphTouchSelectorKind::Collection(value) => Some(value.as_str().to_string()),
         ForgeQueryGraphTouchSelectorKind::DeclaredAspectOperation(value) => {
-            Some(native_declared_aspect_operation_digest_part(value))
+            Some(terminal_declared_aspect_operation_digest_part(value))
         }
         ForgeQueryGraphTouchSelectorKind::AspectTouch(value) => {
             Some(value.admitted_touch_digest_part())
@@ -334,14 +340,14 @@ fn selector_kind_value(kind: &ForgeQueryGraphTouchSelectorKind) -> Option<String
             touched_aspects,
         } => Some(format!(
             "{}|{}|{}|{}",
-            collection,
+            collection.as_str(),
             mutation_family.as_str(),
             declared_aspect_operations
                 .iter()
-                .map(native_declared_aspect_operation_digest_part)
+                .map(terminal_declared_aspect_operation_digest_part)
                 .collect::<Vec<_>>()
                 .join(","),
-            native_touch_digest_parts(touched_aspects).join(",")
+            terminal_touch_digest_parts(touched_aspects).join(",")
         )),
         ForgeQueryGraphTouchSelectorKind::RelationKindId(value) => Some(value.to_string()),
         ForgeQueryGraphTouchSelectorKind::MutationFamily(family) => {

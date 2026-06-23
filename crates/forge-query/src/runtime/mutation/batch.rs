@@ -40,8 +40,15 @@ impl ForgeQueryMutationBatchBuilder {
         if self.error.is_some() {
             return self;
         }
+        let reference = match ForgeQuerySymbolicTargetReference::new(symbol) {
+            Ok(reference) => reference,
+            Err(error) => {
+                self.error = Some(error.to_string());
+                return self;
+            }
+        };
         match declaration(ForgeQueryAspectMutationBuilder::new())
-            .build_insert_symbolic(symbol, collection)
+            .build_insert_symbolic_reference(reference, collection)
         {
             Ok(command) => self.commands.push(command),
             Err(error) => self.error = Some(error.to_string()),

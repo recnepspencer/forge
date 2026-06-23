@@ -42,27 +42,27 @@ error[E0624]: method `source_field` is private
    |     pub(crate) fn source_field(&self) -> &str {
    |     ----------------------------------------- private method defined here
 
-error[E0624]: method `aspect` is private
+error[E0599]: no method named `aspect` found for struct `OrderingSelector` in the current scope
   --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:17:22
    |
 17 |     let _ = ordering.aspect();
-   |                      ^^^^^^ private method
+   |                      ^^^^^^
    |
-  ::: src/authoring/ordering.rs
+help: there is a method `aspect_name` with a similar name
    |
-   |     pub(crate) fn aspect(&self) -> &str {
-   |     ----------------------------------- private method defined here
+17 |     let _ = ordering.aspect_name();
+   |                            +++++
 
-error[E0624]: method `field` is private
+error[E0599]: no method named `field` found for struct `OrderingSelector` in the current scope
   --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:18:22
    |
 18 |     let _ = ordering.field();
-   |                      ^^^^^ private method
+   |                      ^^^^^
    |
-  ::: src/authoring/ordering.rs
+help: there is a method `field_name` with a similar name
    |
-   |     pub(crate) fn field(&self) -> &str {
-   |     ---------------------------------- private method defined here
+18 |     let _ = ordering.field_name();
+   |                           +++++
 
 error[E0624]: method `aspect` is private
   --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:23:22
@@ -174,24 +174,14 @@ error[E0624]: method `field` is private
    |     pub(crate) fn field(&self) -> &str {
    |     ---------------------------------- private method defined here
 
-error[E0624]: method `aspect` is private
+error[E0599]: no method named `aspect` found for enum `PredicateSelector` in the current scope
   --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:48:23
    |
 48 |     let _ = predicate.aspect();
-   |                       ^^^^^^ private method
-   |
-  ::: src/authoring/predicate.rs
-   |
-   |     pub(crate) fn aspect(&self) -> &str {
-   |     ----------------------------------- private method defined here
+   |                       ^^^^^^ method not found in `PredicateSelector`
 
-error[E0624]: method `field` is private
+error[E0599]: no method named `field` found for enum `PredicateSelector` in the current scope
   --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:49:23
    |
 49 |     let _ = predicate.field();
-   |                       ^^^^^ private method
-   |
-  ::: src/authoring/predicate.rs
-   |
-   |     pub(crate) fn field(&self) -> &str {
-   |     ---------------------------------- private method defined here
+   |                       ^^^^^ method not found in `PredicateSelector`

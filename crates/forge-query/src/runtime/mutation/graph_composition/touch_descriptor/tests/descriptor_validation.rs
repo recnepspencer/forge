@@ -2,7 +2,8 @@ use crate::runtime::{
     ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram,
     ForgeQueryGraphCompositionProgramStep, ForgeQueryGraphCompositionProgramStepKind,
     ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchDescriptorDenialKind,
-    ForgeQueryMutationMetadata, ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
+    ForgeQueryMutationMetadata, ForgeQueryMutationTargetCollectionIdentity,
+    ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
 };
 
 use super::fixtures::{one_step_delete_program, touch};
@@ -63,7 +64,7 @@ fn mismatched_program_command_collection_is_denied_with_matching_counts() {
         vec![ForgeQueryGraphCompositionProgramStep::new(
             0,
             ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationRetirement,
-            "topology.face",
+            Some(target_collection("topology.face")),
             Some("edge".to_string()),
         )],
         &breadth,
@@ -95,7 +96,7 @@ fn mismatched_program_command_symbol_is_denied_with_matching_counts() {
         vec![ForgeQueryGraphCompositionProgramStep::new(
             0,
             ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationRetirement,
-            "topology.edge",
+            Some(target_collection("topology.edge")),
             Some("other-edge".to_string()),
         )],
         &breadth,
@@ -119,4 +120,8 @@ fn reference(symbol: &str, collection: &str) -> ForgeQuerySymbolicTargetReferenc
         .unwrap()
         .in_target_collection(collection)
         .unwrap()
+}
+
+fn target_collection(collection: &str) -> ForgeQueryMutationTargetCollectionIdentity {
+    ForgeQueryMutationTargetCollectionIdentity::new("graph-composition-test", collection)
 }

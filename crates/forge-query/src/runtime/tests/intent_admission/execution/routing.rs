@@ -93,13 +93,13 @@ fn seeded_probe_binding(
 ) -> ForgeQueryExistingTruthTargetBinding {
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Seed title"),
+                test_authored_string_aspect_value("Seed title"),
             )
         })
         .expect("seed insert should execute");

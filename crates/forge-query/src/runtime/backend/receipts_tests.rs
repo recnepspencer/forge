@@ -5,11 +5,11 @@ use crate::memory_workspace::{
 };
 use crate::runtime::tests::support::test_bridge_with_writeback_authority;
 use crate::runtime::{
-    build_bridge_authority_bundle, ForgeQueryAspectTouch, ForgeQueryAspectValue,
+    build_bridge_authority_bundle, ForgeQueryAdmittedAspectValue, ForgeQueryAspectTouch,
     ForgeQueryBackendAdmissibleMutation, ForgeQueryWriteCommand,
 };
 use crate::ForgeQueryEvidenceScope;
-use forge_foundational::facade::AspectValue;
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 #[test]
@@ -46,16 +46,14 @@ fn signal_invalidation_routing_receipt_summarizes_delta_width() {
     let command = ForgeQueryWriteCommand::UpdateAspects {
         entity_identity: command_entity_identity.clone(),
         aspects: vec![
-            ForgeQueryAspectValue::new_set(
-                ForgeQueryAspectTouch::from_authoring_path("title.value")
-                    .expect("title aspect should admit"),
-                AspectValue::String("Done".into()),
+            ForgeQueryAdmittedAspectValue::new_set(
+                title_value_touch(),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("Done"),
             )
             .expect("title aspect should build"),
-            ForgeQueryAspectValue::new_set(
-                ForgeQueryAspectTouch::from_authoring_path("status.value")
-                    .expect("status aspect should admit"),
-                AspectValue::String("closed".into()),
+            ForgeQueryAdmittedAspectValue::new_set(
+                status_value_touch(),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("closed"),
             )
             .expect("status aspect should build"),
         ],
@@ -86,19 +84,13 @@ fn signal_invalidation_routing_receipt_summarizes_delta_width() {
                 "Task",
                 crate::memory_workspace::admit_authored_entity_label("task-1"),
                 ForgeQueryMutationKind::Created,
-                vec![
-                    crate::runtime::ForgeQueryAspectTouch::from_authoring_path("title.value")
-                        .expect("test title aspect touch should admit"),
-                ],
+                vec![title_value_touch()],
             ),
             ForgeQueryMutationDelta::from_touched_aspects(
                 "Task",
                 crate::memory_workspace::admit_authored_entity_label("task-2"),
                 ForgeQueryMutationKind::Updated,
-                vec![
-                    crate::runtime::ForgeQueryAspectTouch::from_authoring_path("status.value")
-                        .expect("test status aspect touch should admit"),
-                ],
+                vec![status_value_touch()],
             ),
         ],
         bridge_authority,
@@ -172,10 +164,9 @@ fn bridge_authority_for_title_value(
     let entity_identity = crate::memory_workspace::admit_authored_entity_label("task-1");
     let command = ForgeQueryWriteCommand::UpdateAspects {
         entity_identity: entity_identity.clone(),
-        aspects: vec![ForgeQueryAspectValue::new_set(
-            ForgeQueryAspectTouch::from_authoring_path("title.value")
-                .expect("title aspect should admit"),
-            AspectValue::String(value.into()),
+        aspects: vec![ForgeQueryAdmittedAspectValue::new_set(
+            title_value_touch(),
+            crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value),
         )
         .expect("title aspect should build")],
         metadata: Default::default(),
@@ -197,4 +188,24 @@ fn bridge_authority_for_title_value(
         ForgeQueryMutationKind::Updated,
     )
     .expect("test bridge authority should build")
+}
+
+fn title_value_touch() -> ForgeQueryAspectTouch {
+    aspect_field_touch("title", "value")
+}
+
+fn status_value_touch() -> ForgeQueryAspectTouch {
+    aspect_field_touch("status", "value")
+}
+
+fn aspect_field_touch(
+    aspect_label: &'static str,
+    field_label: &'static str,
+) -> ForgeQueryAspectTouch {
+    let aspect_key =
+        AspectKey::new(aspect_label).expect("receipt test static aspect key should admit");
+    let field_key = FieldKey::new(field_label).expect("receipt test static field key should admit");
+    let field_path =
+        CanonicalFieldPath::new([field_key]).expect("receipt test static field path should admit");
+    ForgeQueryAspectTouch::aspect_field_path(aspect_key, field_path)
 }

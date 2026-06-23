@@ -17,7 +17,9 @@ pub(super) fn effect_trigger_commit_evidence_identity(
         .seal()
 }
 
-pub(super) fn native_touch_digest_sequence(touches: &[ForgeQueryAspectTouch]) -> String {
+pub(super) fn terminal_touch_digest_projection_sequence(
+    touches: &[ForgeQueryAspectTouch],
+) -> String {
     touches
         .iter()
         .map(ForgeQueryAspectTouch::admitted_touch_digest_part)

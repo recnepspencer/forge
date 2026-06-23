@@ -12,6 +12,7 @@ enum ForgeQueryIntentInputValue {
     Bool(bool),
     Number(String),
     String(String),
+    AspectTouch(ForgeQueryAspectTouch),
     Array(Vec<ForgeQueryIntentInputValue>),
     Object(BTreeMap<String, ForgeQueryIntentInputValue>),
 }
@@ -93,19 +94,19 @@ impl ForgeQueryIntentInput {
             ),
             (
                 "changed_aspects".to_string(),
-                intent_input_string_array(payload.changed_aspect_touches()),
+                intent_input_aspect_touch_array(payload.changed_aspect_touches()),
             ),
         ]);
         if !payload.input_aspect_touches().is_empty() {
             fields.insert(
                 "input_aspects".to_string(),
-                intent_input_string_array(payload.input_aspect_touches()),
+                intent_input_aspect_touch_array(payload.input_aspect_touches()),
             );
         }
         if !payload.output_aspect_touches().is_empty() {
             fields.insert(
                 "output_aspects".to_string(),
-                intent_input_string_array(payload.output_aspect_touches()),
+                intent_input_aspect_touch_array(payload.output_aspect_touches()),
             );
         }
         Self {
@@ -128,13 +129,14 @@ impl ForgeQueryIntentInput {
     }
 }
 
-fn intent_input_string_array(touches: &[ForgeQueryAspectTouch]) -> ForgeQueryIntentInputValue {
+fn intent_input_aspect_touch_array(
+    touches: &[ForgeQueryAspectTouch],
+) -> ForgeQueryIntentInputValue {
     ForgeQueryIntentInputValue::Array(
         touches
             .iter()
-            .map(|touch| {
-                ForgeQueryIntentInputValue::String(touch.admitted_touch_digest_part().to_string())
-            })
+            .cloned()
+            .map(ForgeQueryIntentInputValue::AspectTouch)
             .collect(),
     )
 }
@@ -145,6 +147,9 @@ fn intent_input_digest_material(input: &ForgeQueryIntentInputValue) -> String {
         ForgeQueryIntentInputValue::Bool(value) => format!("bool:{value}"),
         ForgeQueryIntentInputValue::Number(value) => format!("number:{value}"),
         ForgeQueryIntentInputValue::String(value) => format!("string:{}:{value}", value.len()),
+        ForgeQueryIntentInputValue::AspectTouch(touch) => {
+            format!("aspect_touch:{}", touch.admitted_touch_digest_part())
+        }
         ForgeQueryIntentInputValue::Array(values) => {
             let values = values
                 .iter()

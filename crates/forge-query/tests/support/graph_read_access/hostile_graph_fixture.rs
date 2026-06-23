@@ -1,7 +1,5 @@
-use forge_foundational::facade::AspectValue;
-use forge_foundational::{AspectKey, CanonicalFieldPath, FieldKey};
+use crate::support::aspect_touch as touch;
 use forge_query::facade::runtime::ForgeQueryWorkspace;
-use forge_query::facade::ForgeQueryAspectTouch;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HostileGraphFixtureSummary {
@@ -58,11 +56,11 @@ pub fn seed_hostile_frontier_graph(
     for index in 0..spec.active_user_count {
         workspace
             .insert("user", |user| {
-                user.aspect(touch("identity.id"), text(user_id(prefix, index)))
-                    .aspect(touch("status.value"), text("active"))
-                    .aspect(
+                user.set_aspect(touch("identity.id"), authored_text(user_id(prefix, index)))
+                    .set_aspect(touch("status.value"), authored_text("active"))
+                    .set_aspect(
                         touch("profile.display_name"),
-                        text(format!("User {index:03}")),
+                        authored_text(format!("User {index:03}")),
                     )
             })
             .expect("hostile active user should insert");
@@ -70,11 +68,11 @@ pub fn seed_hostile_frontier_graph(
     for index in spec.active_user_count..spec.total_user_count() {
         workspace
             .insert("user", |user| {
-                user.aspect(touch("identity.id"), text(user_id(prefix, index)))
-                    .aspect(touch("status.value"), text("inactive"))
-                    .aspect(
+                user.set_aspect(touch("identity.id"), authored_text(user_id(prefix, index)))
+                    .set_aspect(touch("status.value"), authored_text("inactive"))
+                    .set_aspect(
                         touch("profile.display_name"),
-                        text(format!("Decoy {index:03}")),
+                        authored_text(format!("Decoy {index:03}")),
                     )
             })
             .expect("hostile decoy user should insert");
@@ -113,12 +111,18 @@ fn seed_relation_edges(
             let target_index = (source_index + branch) % active_user_count;
             workspace
                 .insert(relation, |edge| {
-                    edge.aspect(
+                    edge.set_aspect(
                         touch("identity.id"),
-                        text(format!("{prefix}-{relation}-{source_index}-{target_index}")),
+                        authored_text(format!("{prefix}-{relation}-{source_index}-{target_index}")),
                     )
-                    .aspect(touch("source.id"), text(user_id(prefix, source_index)))
-                    .aspect(touch("target.id"), text(user_id(prefix, target_index)))
+                    .set_aspect(
+                        touch("source.id"),
+                        authored_text(user_id(prefix, source_index)),
+                    )
+                    .set_aspect(
+                        touch("target.id"),
+                        authored_text(user_id(prefix, target_index)),
+                    )
                 })
                 .expect("hostile relation edge should insert");
             edge_count += 1;
@@ -131,27 +135,6 @@ fn user_id(prefix: &str, index: usize) -> String {
     format!("{prefix}-{index}")
 }
 
-fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    let mut segments = aspect_path.split('.');
-    let aspect = segments
-        .next()
-        .and_then(|segment| AspectKey::new(segment.to_string()))
-        .expect("fixture aspect path aspect should admit");
-    let fields = segments
-        .map(|segment| {
-            FieldKey::new(segment.to_string()).expect("fixture aspect path field should admit")
-        })
-        .collect::<Vec<_>>();
-    if fields.is_empty() {
-        ForgeQueryAspectTouch::aspect(aspect)
-    } else {
-        ForgeQueryAspectTouch::field_path(
-            aspect,
-            CanonicalFieldPath::new(fields).expect("fixture aspect path should have fields"),
-        )
-    }
-}
-
-fn text(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
 }

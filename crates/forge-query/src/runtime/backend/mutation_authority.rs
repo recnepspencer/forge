@@ -166,21 +166,21 @@ fn writeback_identity(
             mutation
                 .admitted_aspect_values()
                 .iter()
-                .map(|aspect| aspect.native_digest_material()),
+                .map(|aspect| aspect.terminal_digest_material()),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("asserted_aspect_values"),
             mutation
                 .asserted_admitted_aspect_values()
                 .iter()
-                .map(|aspect| aspect.native_digest_material()),
+                .map(|aspect| aspect.terminal_digest_material()),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("mutation_metadata"),
             mutation
                 .mutation_metadata()
                 .entries()
-                .map(|(key, value)| format!("{}={}", key.as_str(), value.native_digest_text())),
+                .map(|(key, value)| format!("{}={}", key.as_str(), value.terminal_digest_text())),
         )
         .seal()
 }

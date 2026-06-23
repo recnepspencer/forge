@@ -29,10 +29,15 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
         .live_view("topology.edge-split-vertices", |q| {
             q.from("Vertex")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                )
                 .schema_basis("topology-edge-split-vertices")
         })
         .expect("vertex live view should declare");
@@ -40,12 +45,17 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
         .live_view("topology.edge-split-edges", |q| {
             q.from("Edge")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
-                    crate::authoring::AspectFieldKey::new("source", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("target", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("source", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("target", "id").unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                )
                 .schema_basis("topology-edge-split-edges")
         })
         .expect("edge live view should declare");
@@ -53,11 +63,15 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
         .live_view("topology.edge-split-adjacencies", |q| {
             q.from("VertexEdgeAdjacency")
                 .select([
-                    crate::authoring::AspectFieldKey::new("vertex", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("edge", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("role", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("vertex", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("edge", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("role", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("role", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("role", "value")
+                        .unwrap(),
+                )
                 .schema_basis("topology-edge-split-adjacencies")
         })
         .expect("adjacency live view should declare");
@@ -66,51 +80,51 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
         .compose_graph(|graph| {
             let split_vertex = graph.insert_entity("split-vertex", "Vertex", |vertex| {
                 vertex
-                    .aspect(test_aspect_touch("identity.id"), test_string_aspect_value("vertex-split"))
-                    .aspect(test_aspect_touch("kind.value"), test_string_aspect_value("split"))
+                    .set_aspect(test_aspect_touch("identity.id"), test_authored_string_aspect_value("vertex-split"))
+                    .set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("split"))
             })?;
             let left_edge = graph.insert_entity("edge-left", "Edge", |edge| {
-                edge.aspect(test_aspect_touch("identity.id"), test_string_aspect_value("edge-left"))
-                    .aspect(test_aspect_touch("kind.value"), test_string_aspect_value("edge"))
-                    .aspect(test_aspect_touch("source.id"), test_string_aspect_value("vertex-a"))
+                edge.set_aspect(test_aspect_touch("identity.id"), test_authored_string_aspect_value("edge-left"))
+                    .set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("edge"))
+                    .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("vertex-a"))
                     .symbolic_entity_identity(test_aspect_touch("target.id"), split_vertex.reference().clone())
             })?;
             let right_edge = graph.insert_entity("edge-right", "Edge", |edge| {
-                edge.aspect(test_aspect_touch("identity.id"), test_string_aspect_value("edge-right"))
-                    .aspect(test_aspect_touch("kind.value"), test_string_aspect_value("edge"))
+                edge.set_aspect(test_aspect_touch("identity.id"), test_authored_string_aspect_value("edge-right"))
+                    .set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("edge"))
                     .symbolic_entity_identity(test_aspect_touch("source.id"), split_vertex.reference().clone())
-                    .aspect(test_aspect_touch("target.id"), test_string_aspect_value("vertex-b"))
+                    .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("vertex-b"))
             })?;
             graph.insert_relation("VertexEdgeAdjacency", |relation| {
                 relation
                     .existing_entity_identity(test_aspect_touch("vertex.id"), test_entity_identity("vertex-a"))
                     .symbolic_entity_identity(test_aspect_touch("edge.id"), &left_edge)
-                    .aspect(test_aspect_touch("role.value"), test_string_aspect_value("source"))
+                    .set_aspect(test_aspect_touch("role.value"), test_authored_string_aspect_value("source"))
             })?;
             graph.insert_relation("VertexEdgeAdjacency", |relation| {
                 relation
                     .symbolic_entity_identity(test_aspect_touch("vertex.id"), &split_vertex)
                     .symbolic_entity_identity(test_aspect_touch("edge.id"), &left_edge)
-                    .aspect(test_aspect_touch("role.value"), test_string_aspect_value("split-left"))
+                    .set_aspect(test_aspect_touch("role.value"), test_authored_string_aspect_value("split-left"))
             })?;
             graph.insert_relation("VertexEdgeAdjacency", |relation| {
                 relation
                     .symbolic_entity_identity(test_aspect_touch("vertex.id"), &split_vertex)
                     .symbolic_entity_identity(test_aspect_touch("edge.id"), &right_edge)
-                    .aspect(test_aspect_touch("role.value"), test_string_aspect_value("split-right"))
+                    .set_aspect(test_aspect_touch("role.value"), test_authored_string_aspect_value("split-right"))
             })?;
             graph.insert_relation("VertexEdgeAdjacency", |relation| {
                 relation
                     .existing_entity_identity(test_aspect_touch("vertex.id"), test_entity_identity("vertex-b"))
                     .symbolic_entity_identity(test_aspect_touch("edge.id"), &right_edge)
-                    .aspect(test_aspect_touch("role.value"), test_string_aspect_value("target"))
+                    .set_aspect(test_aspect_touch("role.value"), test_authored_string_aspect_value("target"))
             })?;
             graph.supersede_existing_verified(
                 binding,
                 |verify| {
                     verify
-                        .aspect(test_aspect_touch("source.id"), test_string_aspect_value("vertex-a"))
-                        .aspect(test_aspect_touch("target.id"), test_string_aspect_value("vertex-b"))
+                        .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("vertex-a"))
+                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("vertex-b"))
                 },
                 |edge| {
                     edge.continuity_split_successors(
@@ -129,7 +143,7 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
                             .expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         ],
                     )
-                    .aspect(test_aspect_touch("kind.value"), test_string_aspect_value("split-parent"))
+                    .set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("split-parent"))
                 },
             )?;
             Ok(())

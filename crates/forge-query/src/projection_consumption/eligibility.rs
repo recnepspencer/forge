@@ -347,10 +347,9 @@ fn authorized_field_matches_projection_fact(
     authorized: &AuthorizedProjectionFieldPath,
     field_path: &super::facts::ProjectionFactFieldPath,
 ) -> bool {
-    let fields = field_path.canonical_field_path().fields();
-    let [aspect, field] = fields else {
+    let Some(requested) = field_path.native_aspect_field_key() else {
         return false;
     };
-    authorized.native_aspect_key().as_str() == aspect.as_str()
-        && authorized.native_field_key().as_str() == field.as_str()
+    authorized.native_aspect_key() == requested.native_aspect_key()
+        && authorized.native_field_key() == requested.native_field_key()
 }

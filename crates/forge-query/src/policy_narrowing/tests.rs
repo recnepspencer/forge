@@ -12,6 +12,7 @@ use crate::relationship_proof::{
     RelationshipProofBudget, RelationshipProofDescriptor, RelationshipProofDescriptorSet,
 };
 use crate::tenant_basis::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot};
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 use super::lowering::narrow_policy_query_with_budget;
 use super::{
@@ -110,21 +111,28 @@ fn mask_snapshot(
 }
 
 fn secret_salary_key() -> AspectFieldKey {
-    AspectFieldKey::new("secret", "salary").unwrap()
+    AspectFieldKey::from_authoring_parts("secret", "salary").unwrap()
 }
 
 fn native_field_pairs(
     fields: &[crate::authorized_projection::AuthorizedProjectionFieldPath],
-) -> Vec<(String, String)> {
+) -> Vec<(AspectKey, FieldKey)> {
     fields
         .iter()
         .map(|field| {
             (
-                field.native_aspect_key().as_str().to_string(),
-                field.native_field_key().as_str().to_string(),
+                field.native_aspect_key().clone(),
+                field.native_field_key().clone(),
             )
         })
         .collect()
+}
+
+fn native_field_pair(aspect: &str, field: &str) -> (AspectKey, FieldKey) {
+    (
+        AspectKey::new(aspect).expect("test aspect key should admit"),
+        FieldKey::new(field).expect("test field key should admit"),
+    )
 }
 
 #[test]
@@ -166,7 +174,7 @@ fn narrowed_artifact_binds_policy_tenant_projection_and_proof() {
                 .masked_projection()
                 .masked_field_paths()
         ),
-        vec![("secret".to_string(), "salary".to_string())]
+        vec![native_field_pair("secret", "salary")]
     );
     assert_eq!(narrowed.relationship_proof().descriptor_count(), 1);
     assert_eq!(narrowed.counters().narrowed_artifact_count(), 1);
@@ -302,15 +310,13 @@ fn optimizer_input_is_derived_from_narrowed_artifact_only() {
     assert_eq!(
         native_field_pairs(optimizer.visible_field_paths()),
         vec![
-            ("identity".to_string(), "id".to_string()),
-            ("profile".to_string(), "display_name".to_string())
+            native_field_pair("identity", "id"),
+            native_field_pair("profile", "display_name")
         ]
     );
-    assert!(!optimizer.visible_field_paths().iter().any(|field| field
-        .native_aspect_key()
-        .as_str()
-        == "secret"
-        && field.native_field_key().as_str() == "salary"));
+    assert!(!native_field_pairs(optimizer.visible_field_paths())
+        .iter()
+        .any(|field| field == &native_field_pair("secret", "salary")));
     assert_eq!(
         optimizer.authorized_projection_digest(),
         narrowed.authorized_projection().identity().as_str()

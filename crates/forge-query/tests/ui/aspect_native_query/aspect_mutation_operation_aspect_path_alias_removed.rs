@@ -3,6 +3,6 @@ use forge_query::facade::{ForgeQueryAspectMutationOperation, ForgeQueryAspectTou
 
 fn main() {
     let operation =
-        ForgeQueryAspectMutationOperation::set(ForgeQueryAspectTouch::field_path(AspectKey::new("title").unwrap(), CanonicalFieldPath::single(FieldKey::new("value").unwrap())));
+        ForgeQueryAspectMutationOperation::set(ForgeQueryAspectTouch::aspect_field_path(AspectKey::new("title").unwrap(), CanonicalFieldPath::single(FieldKey::new("value").unwrap())));
     let _ = operation.aspect_path();
 }

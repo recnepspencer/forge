@@ -14,13 +14,13 @@ fn workspace_reads_live_artifact_binding_as_one_snapshot_coherent_named_pack() {
 
     workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Live artifact"),
+                test_authored_string_aspect_value("Live artifact"),
             )
         })
         .expect("workspace write should execute");

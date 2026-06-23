@@ -25,7 +25,10 @@ fn aftermath_runtime_materializer_builds_projection_consumption() {
                 crate::projection_consumption::ProjectMaterializedFacts::declare()
                     .display_field_path(
                         crate::projection_consumption::projection_fact_field_path_from_segments([
-                            "field", "visible",
+                            forge_foundational::facade::FieldKey::new("field")
+                                .expect("projection fact field segment should admit"),
+                            forge_foundational::facade::FieldKey::new("visible")
+                                .expect("projection fact field segment should admit"),
                         ]),
                     ),
             ),
@@ -42,7 +45,10 @@ fn aftermath_runtime_materializer_builds_projection_consumption() {
                 crate::projection_consumption::ProjectMaterializedFacts::declare()
                     .display_field_path(
                         crate::projection_consumption::projection_fact_field_path_from_segments([
-                            "field", "visible",
+                            forge_foundational::facade::FieldKey::new("field")
+                                .expect("projection fact field segment should admit"),
+                            forge_foundational::facade::FieldKey::new("visible")
+                                .expect("projection fact field segment should admit"),
                         ]),
                     ),
             ),
@@ -85,7 +91,10 @@ fn aftermath_runtime_materializer_denies_invalid_projection_declaration() {
             invalid_projection_binding(),
             crate::projection_consumption::ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "field", "visible",
+                    forge_foundational::facade::FieldKey::new("field")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("visible")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         ),
@@ -111,7 +120,10 @@ fn aftermath_runtime_materializer_preserves_warning_bearing_eligibility() {
                 crate::projection_consumption::ProjectMaterializedFacts::declare()
                     .display_field_path(
                         crate::projection_consumption::projection_fact_field_path_from_segments([
-                            "field", "visible",
+                            forge_foundational::facade::FieldKey::new("field")
+                                .expect("projection fact field segment should admit"),
+                            forge_foundational::facade::FieldKey::new("visible")
+                                .expect("projection fact field segment should admit"),
                         ]),
                     ),
             ),

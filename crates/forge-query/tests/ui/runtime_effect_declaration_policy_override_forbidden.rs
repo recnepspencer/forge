@@ -10,7 +10,7 @@ fn sample_live_view() -> ForgeQueryLiveView<ForgeQueryNativeRow> {
 
 fn main() {
     let live = sample_live_view();
-    let title = ForgeQueryAspectTouch::aspect(AspectKey::new("title").unwrap());
+    let title = ForgeQueryAspectTouch::whole_aspect(AspectKey::new("title").unwrap());
     let declaration =
         ForgeQueryEffectDeclaration::deliver("effect", ForgeQueryEffectTrigger::live_view(&live, [title]), "target");
     let _ = declaration.with_effect_policy(ForgeQueryEffectPolicy::Muted);

@@ -64,7 +64,10 @@ pub(super) fn admitted_projection_consumption_plan() -> ForgeQueryAdmittedIntent
         admitted_projection_binding(),
         ProjectMaterializedFacts::declare().display_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
-                "field", "visible",
+                forge_foundational::facade::FieldKey::new("field")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("visible")
+                    .expect("projection fact field segment should admit"),
             ]),
         ),
     )
@@ -87,7 +90,10 @@ pub(super) fn projection_contract_request() -> ForgeQueryProjectionContractReque
         admitted_projection_binding(),
         ProjectMaterializedFacts::declare().display_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
-                "field", "visible",
+                forge_foundational::facade::FieldKey::new("field")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("visible")
+                    .expect("projection fact field segment should admit"),
             ]),
         ),
     )

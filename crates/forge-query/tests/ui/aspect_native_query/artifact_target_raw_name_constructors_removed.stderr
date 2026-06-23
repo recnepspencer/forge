@@ -15,6 +15,11 @@ error[E0599]: no function or associated item named `new` found for struct `Forge
 5 |     let _ = ForgeQueryLiveArtifactTarget::new("live.task_table");
   |                                           ^^^ function or associated item not found in `ForgeQueryLiveArtifactTarget`
   |
+note: if you're trying to build a new `ForgeQueryLiveArtifactTarget`, consider using `ForgeQueryLiveArtifactTarget::from_source_adapter_declared_view_name` which returns `ForgeQueryLiveArtifactTarget`
+ --> src/runtime/surface/live_artifact_bundle.rs
+  |
+  |     pub fn from_source_adapter_declared_view_name(view_name: impl Into<String>) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 help: there is a method `ne` with a similar name
   |
 5 -     let _ = ForgeQueryLiveArtifactTarget::new("live.task_table");

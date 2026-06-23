@@ -85,8 +85,7 @@ impl FieldPredicateState {
                     }
                     self.membership = Some((
                         CanonicalPredicateEntry {
-                            aspect: existing.0.aspect.clone(),
-                            field: existing.0.field.clone(),
+                            field: existing.0.field_key().clone(),
                             family: CanonicalPredicateFamily::ScalarMembership,
                             operand: CanonicalPredicateOperand::ScalarSet(intersection),
                         },
@@ -159,8 +158,7 @@ impl FieldPredicateState {
                     .expect("single-value reduced membership must have a first value")
                     .clone();
                 let equality = CanonicalPredicateEntry {
-                    aspect: membership.0.aspect.clone(),
-                    field: membership.0.field.clone(),
+                    field: membership.0.field_key().clone(),
                     family: CanonicalPredicateFamily::Equality,
                     operand: CanonicalPredicateOperand::Scalar(only),
                 };
@@ -318,8 +316,7 @@ fn apply_range_to_membership(
 
     Ok(Some((
         CanonicalPredicateEntry {
-            aspect: membership.0.aspect.clone(),
-            field: membership.0.field.clone(),
+            field: membership.0.field_key().clone(),
             family: CanonicalPredicateFamily::ScalarMembership,
             operand: CanonicalPredicateOperand::ScalarSet(reduced),
         },

@@ -326,13 +326,13 @@ impl ConcurrentMatrixState {
                 .expect("preview should admit");
             preview
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("phase16-preview-discard"),
+                        test_authored_string_aspect_value("phase16-preview-discard"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Preview Discard"),
+                        test_authored_string_aspect_value("Preview Discard"),
                     )
                 })
                 .expect("preview insert should stage");
@@ -351,13 +351,13 @@ impl ConcurrentMatrixState {
                 .expect("preview should admit");
             preview
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("phase16-preview-promote"),
+                        test_authored_string_aspect_value("phase16-preview-promote"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Preview Promote"),
+                        test_authored_string_aspect_value("Preview Promote"),
                     )
                 })
                 .expect("preview insert should stage");

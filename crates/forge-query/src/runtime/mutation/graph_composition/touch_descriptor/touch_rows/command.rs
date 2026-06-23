@@ -36,9 +36,8 @@ fn row_from_command(
     let lifecycle_family =
         program_step_kind.map(ForgeQueryGraphTouchLifecycleFamily::from_program_step_kind);
     let declared_collection = command
-        .terminal_declared_collection_projection()
-        .map(str::to_string)
-        .or_else(|| step.map(|step| step.declared_collection().to_string()));
+        .declared_collection_identity()
+        .or_else(|| step.and_then(|step| step.declared_collection_identity().cloned()));
     let relation_kind_id = step.and_then(ForgeQueryGraphCompositionProgramStep::relation_kind_id);
     let declared_symbol = step.and_then(|step| step.declared_symbol().map(str::to_string));
     ForgeQueryGraphTouchDescriptorRow::new(ForgeQueryGraphTouchDescriptorRowInput {

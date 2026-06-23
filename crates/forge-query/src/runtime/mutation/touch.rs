@@ -9,19 +9,20 @@ pub struct ForgeQueryAspectTouch {
 }
 
 impl ForgeQueryAspectTouch {
-    pub(crate) fn from_authoring_path(
-        aspect_path: impl Into<String>,
+    pub(crate) fn admit_authoring_ingress_text(
+        authored_touch_text: impl Into<String>,
     ) -> Result<Self, ForgeQueryWorkspaceError> {
-        let target = ForgeQueryParsedAspectTarget::from_authoring_path(aspect_path)
-            .map_err(|error| ForgeQueryWorkspaceError::new(error.to_string()))?;
+        let target =
+            ForgeQueryParsedAspectTarget::parse_authoring_ingress_text(authored_touch_text)
+                .map_err(|error| ForgeQueryWorkspaceError::new(error.to_string()))?;
         Ok(Self { target })
     }
 
-    pub fn aspect(aspect_key: AspectKey) -> Self {
+    pub fn whole_aspect(aspect_key: AspectKey) -> Self {
         Self::from_native_parts(aspect_key, None)
     }
 
-    pub fn field_path(aspect_key: AspectKey, field_path: CanonicalFieldPath) -> Self {
+    pub fn aspect_field_path(aspect_key: AspectKey, field_path: CanonicalFieldPath) -> Self {
         Self::from_native_parts(aspect_key, Some(field_path))
     }
 

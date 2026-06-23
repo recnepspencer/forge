@@ -12,6 +12,14 @@ error[E0560]: struct `ForgeQueryMutationReceipt` has no field named `snapshot_to
   |
   = note: all struct fields are already assigned
 
+error[E0560]: struct `ForgeQueryMutationDelta` has no field named `collection`
+  --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:11:13
+   |
+11 |             collection: "Task".to_string(),
+   |             ^^^^^^^^^^ `ForgeQueryMutationDelta` does not have this field
+   |
+   = note: all struct fields are already assigned
+
 error[E0308]: mismatched types
   --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:12:30
    |

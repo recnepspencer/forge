@@ -1,21 +1,25 @@
 use super::super::*;
 use super::state::StatefulBridgeState;
 use super::verification::{probe_existing_truth, verify_existing_truth_assertion};
-use super::writes::{apply_command, external_row_text};
+use super::writes::{
+    apply_command, external_row_text_at_path, native_external_field_path_for_touch,
+};
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 use crate::runtime::backend::build_bridge_authority_bundle;
+use crate::runtime::ForgeQueryAspectTouch;
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::declarative_live::DeclarativeLiveViewShape;
+use crate::declarative_live::{DeclarativeLiveViewShape, DeclarativeProjectionField};
 use crate::memory_workspace::{
     ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQueryLivePatch,
     ForgeQueryLiveViewHandle, ForgeQuerySnapshotIdentity,
 };
 use crate::subscription::SubscriptionActivationInput;
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 
 type SharedState = Rc<RefCell<StatefulBridgeState>>;
@@ -69,10 +73,11 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         request: DeclarativeLiveQueryRequest,
         _schema_view: QuerySchemaView,
     ) -> Result<ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError> {
+        let live_target = ForgeQueryLiveArtifactTarget::from_view_name(name.clone());
         self.state
             .borrow_mut()
             .live_views
-            .insert(name.clone(), request.target().to_string());
+            .insert(live_target, request.target_collection_identity());
         Ok(ForgeQueryLiveViewHandle::new(name))
     }
 
@@ -237,7 +242,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
     fn verify_existing_truth_assertion(
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
-        aspects: &[ForgeQueryAspectValue],
+        aspects: &[ForgeQueryAdmittedAspectValue],
     ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>
     {
         let state = self.state.borrow();
@@ -259,12 +264,15 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         Err(ForgeQueryRuntimeError::MissingIntentAuthority)
     }
 
-    fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity> {
         let state = self.state.borrow();
-        let Some(collection) = state.live_views.get(view_name) else {
+        let Some(collection) = state.live_views.get(target) else {
             return Vec::new();
         };
-        let Some(rows) = state.rows_by_collection.get(collection) else {
+        let Some(rows) = state.rows_by_collection.get(collection.as_str()) else {
             return Vec::new();
         };
         rows.iter()
@@ -283,11 +291,17 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
             .collect()
     }
 
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
+    fn drain_live_patches_for_target(
+        &mut self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch> {
         Vec::new()
     }
 
-    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+    fn affected_live_view_targets(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget> {
         let state = self.state.borrow();
         let mut affected = receipt
             .deltas
@@ -296,8 +310,12 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                 state
                     .live_views
                     .iter()
-                    .filter(move |(_, collection)| *collection == &delta.collection)
-                    .map(|(name, _)| name.clone())
+                    .filter(move |(_, collection)| {
+                        delta
+                            .target_collection_identity()
+                            .same_target_collection_as(collection)
+                    })
+                    .map(|(target, _)| target.clone())
             })
             .collect::<Vec<_>>();
         affected.sort();
@@ -342,19 +360,20 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         else {
             return Ok(None);
         };
-        let grouping_aspect_text = grouping_aspect.as_str();
         let identity_path = request
             .projection()
             .iter()
-            .find(|field| field.aspect() == "identity")
-            .map(|field| format!("{}.{}", field.aspect(), field.field()))
-            .unwrap_or_else(|| "identity.id".to_string());
+            .find(|field| field.source_field_key().native_aspect_key() == identity_aspect_key())
+            .map(native_external_field_path_for_projection_field)
+            .unwrap_or_else(|| native_external_field_path_for_aspect_field("identity", "id"));
+        let identity_path = identity_path?;
         let grouping_path = request
             .projection()
             .iter()
-            .find(|field| field.aspect() == grouping_aspect_text)
-            .map(|field| format!("{}.{}", field.aspect(), field.field()))
-            .unwrap_or_else(|| format!("{grouping_aspect_text}.value"));
+            .find(|field| field.source_field_key().native_aspect_key() == *grouping_aspect)
+            .map(native_external_field_path_for_projection_field)
+            .unwrap_or_else(|| native_external_field_path_for_grouping_aspect(grouping_aspect));
+        let grouping_path = grouping_path?;
         let members = self
             .state
             .borrow()
@@ -363,9 +382,9 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
             .into_iter()
             .flat_map(|rows| rows.iter())
             .filter_map(|(entity_identity, external_row)| {
-                let member = external_row_text(external_row, &identity_path)
+                let member = external_row_text_at_path(external_row, &identity_path)
                     .unwrap_or_else(|| entity_identity.clone());
-                let lane = external_row_text(external_row, &grouping_path)?;
+                let lane = external_row_text_at_path(external_row, &grouping_path)?;
                 Some(
                     crate::view_shape_live::ForgeQueryGroupedBaselineMember::from_authoritative_member_lane_keys(
                         member,
@@ -376,4 +395,38 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
             .collect::<Vec<_>>();
         Ok(Some(members))
     }
+}
+
+fn identity_aspect_key() -> AspectKey {
+    AspectKey::new("identity").expect("identity aspect key must admit")
+}
+
+fn native_external_field_path_for_projection_field(
+    field: &DeclarativeProjectionField,
+) -> Result<CanonicalFieldPath, ForgeQueryWorkspaceError> {
+    native_external_field_path_for_touch(&ForgeQueryAspectTouch::aspect_field_path(
+        field.source_field_key().native_aspect_key(),
+        CanonicalFieldPath::single(field.source_field_key().native_field_key()),
+    ))
+}
+
+fn native_external_field_path_for_grouping_aspect(
+    grouping_aspect: &AspectKey,
+) -> Result<CanonicalFieldPath, ForgeQueryWorkspaceError> {
+    native_external_field_path_for_touch(&ForgeQueryAspectTouch::aspect_field_path(
+        grouping_aspect.clone(),
+        CanonicalFieldPath::single(FieldKey::new("value").expect("value field key must admit")),
+    ))
+}
+
+fn native_external_field_path_for_aspect_field(
+    aspect: &str,
+    field: &str,
+) -> Result<CanonicalFieldPath, ForgeQueryWorkspaceError> {
+    native_external_field_path_for_touch(&ForgeQueryAspectTouch::aspect_field_path(
+        AspectKey::new(aspect).expect("stateful bridge fixture aspect key must admit"),
+        CanonicalFieldPath::single(
+            FieldKey::new(field).expect("stateful bridge fixture field key must admit"),
+        ),
+    ))
 }

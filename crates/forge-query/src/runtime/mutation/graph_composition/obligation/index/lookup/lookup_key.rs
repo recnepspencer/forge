@@ -8,13 +8,34 @@ use super::super::selection::ForgeQueryGraphObligationOperatingWorldDescriptorKi
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch,
     ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphTouchSelector,
+    ForgeQueryMutationTargetCollectionIdentity,
 };
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub(in crate::runtime::mutation::graph_composition::obligation::index) struct ForgeQueryGraphObligationCollectionLookupIdentity
+{
+    label: String,
+}
+
+impl ForgeQueryGraphObligationCollectionLookupIdentity {
+    pub(in crate::runtime::mutation::graph_composition::obligation::index) fn from_collection_identity(
+        collection: &ForgeQueryMutationTargetCollectionIdentity,
+    ) -> Self {
+        Self {
+            label: collection.as_str().to_string(),
+        }
+    }
+
+    fn as_str(&self) -> &str {
+        &self.label
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub(in crate::runtime::mutation::graph_composition::obligation::index) enum ForgeQueryGraphObligationTouchLookupKey
 {
     AnyGraphTouch,
-    Collection(String),
+    Collection(ForgeQueryGraphObligationCollectionLookupIdentity),
     RelationKindId(KindId),
     AspectTouch(ForgeQueryAspectTouch),
     DeclaredAspectOperation(ForgeQueryAspectMutationOperation),
@@ -40,10 +61,11 @@ impl ForgeQueryGraphObligationTouchLookupKey {
         match selector.selector_class() {
             ForgeQueryGraphTouchSelectorClass::Any => Self::AnyGraphTouch,
             ForgeQueryGraphTouchSelectorClass::Collection => Self::Collection(
-                selector
-                    .collection_value()
-                    .expect("collection selector has a native collection")
-                    .to_string(),
+                ForgeQueryGraphObligationCollectionLookupIdentity::from_collection_identity(
+                    selector
+                        .collection_identity()
+                        .expect("collection selector has a native collection"),
+                ),
             ),
             ForgeQueryGraphTouchSelectorClass::RelationKindId => Self::RelationKindId(
                 selector
@@ -65,10 +87,11 @@ impl ForgeQueryGraphObligationTouchLookupKey {
                 )
             }
             ForgeQueryGraphTouchSelectorClass::DeclaredMutationCollection => Self::Collection(
-                selector
-                    .declared_mutation_collection_value()
-                    .expect("declared mutation collection selector has a native collection")
-                    .to_string(),
+                ForgeQueryGraphObligationCollectionLookupIdentity::from_collection_identity(
+                    selector
+                        .declared_mutation_collection_value()
+                        .expect("declared mutation collection selector has a native collection"),
+                ),
             ),
             ForgeQueryGraphTouchSelectorClass::MutationFamily => Self::MutationFamily(
                 selector
@@ -103,15 +126,15 @@ impl ForgeQueryGraphObligationTouchLookupKey {
         }
     }
 
-    pub(in crate::runtime::mutation::graph_composition::obligation::index) fn value(
+    pub(in crate::runtime::mutation::graph_composition::obligation::index) fn terminal_value_projection(
         &self,
     ) -> Option<String> {
         match self {
             Self::AnyGraphTouch => None,
-            Self::Collection(value) => Some(value.clone()),
+            Self::Collection(value) => Some(value.as_str().to_string()),
             Self::AspectTouch(value) => Some(value.admitted_touch_digest_part()),
             Self::DeclaredAspectOperation(value) => {
-                Some(native_declared_aspect_operation_digest_part(value))
+                Some(terminal_declared_aspect_operation_digest_part(value))
             }
             Self::RelationKindId(value) => Some(value.0.to_string()),
             Self::MutationFamily(value) => Some(value.as_str().to_string()),
@@ -168,7 +191,7 @@ impl ForgeQueryGraphObligationOperatingWorldLookupKey {
     }
 }
 
-fn native_declared_aspect_operation_digest_part(
+fn terminal_declared_aspect_operation_digest_part(
     operation: &ForgeQueryAspectMutationOperation,
 ) -> String {
     format!(

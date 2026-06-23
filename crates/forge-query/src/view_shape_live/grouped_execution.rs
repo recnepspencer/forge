@@ -9,20 +9,30 @@ use forge_runtime_bridge::facade::BridgeGroupedTruthViewArtifact;
 
 use super::counters::ViewShapeLiveCounters;
 use super::error::{ViewShapeLiveError, ViewShapeLiveFailureClass};
+use super::grouped_state::GroupedLaneIdentity;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GroupedExecutionLaneValue {
-    grouping_aspect: AspectKey,
-    lane_key: String,
+    identity: GroupedLaneIdentity,
 }
 
 impl GroupedExecutionLaneValue {
+    pub(crate) fn new(grouping_aspect: AspectKey, lane_key: impl Into<String>) -> Self {
+        Self {
+            identity: GroupedLaneIdentity::new(grouping_aspect, lane_key),
+        }
+    }
+
     pub fn native_grouping_aspect_key(&self) -> &AspectKey {
-        &self.grouping_aspect
+        self.identity.native_grouping_aspect_key()
     }
 
     pub fn lane_key(&self) -> &str {
-        &self.lane_key
+        self.identity.lane_key()
+    }
+
+    pub fn native_lane_identity(&self) -> &GroupedLaneIdentity {
+        &self.identity
     }
 }
 
@@ -190,10 +200,10 @@ pub fn materialize_grouped_execution_surface_from_truth_view(
         .iter()
         .map(|member| GroupedExecutionMemberRow {
             member_key: canonical_value_text(member.identity_value()),
-            lane: GroupedExecutionLaneValue {
-                grouping_aspect: grouped_planning.native_grouping_aspect_key().clone(),
-                lane_key: canonical_value_text(member.lane().value()),
-            },
+            lane: GroupedExecutionLaneValue::new(
+                grouped_planning.native_grouping_aspect_key().clone(),
+                canonical_value_text(member.lane().value()),
+            ),
         })
         .collect::<Vec<_>>();
     if member_rows.is_empty() {

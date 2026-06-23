@@ -85,7 +85,7 @@ pub(super) fn write_observation_query_identity(
                 .flat_map(|(key, value)| {
                     [
                         key.as_str().to_string(),
-                        value.native_digest_text().to_string(),
+                        value.terminal_digest_text().to_string(),
                     ]
                 }),
         );

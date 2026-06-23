@@ -9,10 +9,15 @@ fn batch_write_retained_artifact_keeps_receipt_inspection_and_exact_retained_bin
         .live_view("tasks.post-write-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-post-write-table")
         })
         .expect("live view should declare");
@@ -31,13 +36,13 @@ fn batch_write_retained_artifact_keeps_receipt_inspection_and_exact_retained_bin
     let receipt = workspace
         .batch(|batch| {
             batch.insert("Task", |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("task-1"),
+                    test_authored_string_aspect_value("task-1"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Buy milk"),
+                    test_authored_string_aspect_value("Buy milk"),
                 )
             })
         })

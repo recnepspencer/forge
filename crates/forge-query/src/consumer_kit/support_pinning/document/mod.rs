@@ -2,6 +2,9 @@ mod integrity;
 mod row_documents;
 pub(crate) mod schema;
 mod semantic_admission;
+mod terminal_json_codec;
+
+use std::borrow::Cow;
 
 use super::contract::ForgeQuerySupportPinContract;
 use super::error::{ForgeQuerySupportPinningError, ForgeQuerySupportPinningErrorKind};
@@ -16,8 +19,54 @@ use schema::support_pin_vocabulary_identity;
 
 pub use schema::ForgeQuerySupportPinContractSchemaVersion;
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryExternalSupportPinContractTerminalJsonDocument {
+    text: Cow<'static, str>,
+}
+
+impl ForgeQueryExternalSupportPinContractTerminalJsonDocument {
+    pub fn from_external_terminal_json_document(text: impl Into<String>) -> Self {
+        Self {
+            text: Cow::Owned(text.into()),
+        }
+    }
+
+    pub const fn from_static_external_terminal_json_document(text: &'static str) -> Self {
+        Self {
+            text: Cow::Borrowed(text),
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.text.as_ref()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQuerySupportPinContractTerminalJsonDocument {
+    text: String,
+}
+
+impl ForgeQuerySupportPinContractTerminalJsonDocument {
+    pub(crate) fn from_native_terminal_projection(text: impl Into<String>) -> Self {
+        Self { text: text.into() }
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.text
+    }
+
+    pub fn to_external_terminal_json_document(
+        &self,
+    ) -> ForgeQueryExternalSupportPinContractTerminalJsonDocument {
+        ForgeQueryExternalSupportPinContractTerminalJsonDocument::from_external_terminal_json_document(
+            self.text.clone(),
+        )
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub struct ForgeQuerySupportPinContractDocument {
+pub(crate) struct ForgeQuerySupportPinContractDocument {
     schema_version: u16,
     schema_identity: String,
     pinned_vocabulary_identity: String,
@@ -61,22 +110,17 @@ impl ForgeQuerySupportPinContractDocument {
         document
     }
 
-    pub fn from_json(json: &str) -> Result<Self, ForgeQuerySupportPinningError> {
-        serde_json::from_str(json).map_err(|error| {
-            ForgeQuerySupportPinningError::new(
-                ForgeQuerySupportPinningErrorKind::JsonDecodeFailed,
-                format!("support pin contract document JSON decode failed: {error}"),
-            )
-        })
+    pub fn from_terminal_json_document(
+        terminal_json_document: &ForgeQueryExternalSupportPinContractTerminalJsonDocument,
+    ) -> Result<Self, ForgeQuerySupportPinningError> {
+        terminal_json_codec::decode_external_terminal_json_document(terminal_json_document)
     }
 
-    pub fn to_canonical_json(&self) -> Result<String, ForgeQuerySupportPinningError> {
-        serde_json::to_string_pretty(self).map_err(|error| {
-            ForgeQuerySupportPinningError::new(
-                ForgeQuerySupportPinningErrorKind::JsonEncodeFailed,
-                format!("support pin contract document JSON encode failed: {error}"),
-            )
-        })
+    pub fn to_canonical_terminal_json_document(
+        &self,
+    ) -> Result<ForgeQuerySupportPinContractTerminalJsonDocument, ForgeQuerySupportPinningError>
+    {
+        terminal_json_codec::encode_native_terminal_json_document(self)
     }
 
     pub(crate) fn validate(

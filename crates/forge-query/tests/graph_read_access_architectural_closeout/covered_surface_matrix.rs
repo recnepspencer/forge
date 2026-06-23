@@ -293,10 +293,15 @@ fn assert_live_read_receipt_proves_no_caller_owned_n_plus_one() {
             query
                 .from("Task")
                 .select([
-                    forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
-                    forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(forge_query::facade::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("graph-read-access-closeout-live")
         })
         .expect("live view should declare");

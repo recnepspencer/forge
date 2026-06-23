@@ -1,8 +1,6 @@
-use forge_foundational::facade::AspectValue;
-use forge_foundational::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_query::facade::runtime::{
-    ForgeQueryAspectTouch, ForgeQueryEphemeralGraphIndexScopeKind,
-    ForgeQueryGraphReadAccessAdmissionPosture, ForgeQueryGraphReadAccessRequirementKind,
+    ForgeQueryEphemeralGraphIndexScopeKind, ForgeQueryGraphReadAccessAdmissionPosture,
+    ForgeQueryGraphReadAccessRequirementKind,
 };
 
 #[allow(dead_code)]
@@ -10,6 +8,7 @@ mod graph_read_access_cost_model_support;
 mod support;
 
 use graph_read_access_cost_model_support::{dense_traversal_family, workspace};
+use support::aspect_touch as touch;
 use support::graph_index_inventory::read_families::traversal_collection_family;
 use support::graph_index_inventory::runtime_profiles::{
     profile_with_ephemeral_graph_support, workspace_with_graph_support,
@@ -172,11 +171,11 @@ fn bounded_ephemeral_receipt_changes_when_snapshot_scope_changes() {
         traversal_collection_family(&mut second_workspace, "phase-eight-scope-sensitive");
     second_workspace
         .insert("user", |user| {
-            user.aspect(
+            user.set_aspect(
                 touch("identity.id"),
-                text("phase-eight-scope-sensitive-user"),
+                authored_text("phase-eight-scope-sensitive-user"),
             )
-            .aspect(touch("status.value"), text("active"))
+            .set_aspect(touch("status.value"), authored_text("active"))
         })
         .expect("state change should create a distinct snapshot scope");
     let second_receipt = second_workspace
@@ -253,27 +252,6 @@ fn ordinary_inline_indexed_read_does_not_emit_ephemeral_receipt() {
     );
 }
 
-fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    let mut segments = aspect_path.split('.');
-    let aspect = segments
-        .next()
-        .and_then(|segment| AspectKey::new(segment.to_string()))
-        .expect("test aspect path aspect should admit");
-    let fields = segments
-        .map(|segment| {
-            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
-        })
-        .collect::<Vec<_>>();
-    if fields.is_empty() {
-        ForgeQueryAspectTouch::aspect(aspect)
-    } else {
-        ForgeQueryAspectTouch::field_path(
-            aspect,
-            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
-        )
-    }
-}
-
-fn text(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
 }

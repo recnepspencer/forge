@@ -11,3 +11,19 @@ error[E0560]: struct `forge_query::facade::ForgeQueryBatchWriteReceipt` has no f
    |         ^^^^^^^^^^^^^^^^^^^^ `forge_query::facade::ForgeQueryBatchWriteReceipt` does not have this field
    |
    = note: all struct fields are already assigned
+
+error[E0560]: struct `forge_query::facade::ForgeQueryBatchWriteReceipt` has no field named `affected_live_view_ids`
+  --> tests/ui/runtime_batch_mutation_privates_forbidden.rs:16:9
+   |
+16 |         affected_live_view_ids: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ `forge_query::facade::ForgeQueryBatchWriteReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `forge_query::facade::ForgeQueryBatchWriteReceipt` has no field named `affected_derived_view_ids`
+  --> tests/ui/runtime_batch_mutation_privates_forbidden.rs:17:9
+   |
+17 |         affected_derived_view_ids: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ `forge_query::facade::ForgeQueryBatchWriteReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned

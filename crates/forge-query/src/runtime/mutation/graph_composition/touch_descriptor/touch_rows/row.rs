@@ -5,6 +5,7 @@ use crate::evidence_identity::{
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch,
     ForgeQueryGraphCompositionProgramStepKind, ForgeQueryMutationFamily,
+    ForgeQueryMutationTargetCollectionIdentity,
 };
 use forge_relational::facade::identity::KindId;
 
@@ -18,7 +19,7 @@ pub struct ForgeQueryGraphTouchDescriptorRow {
     read_verb: Option<ForgeQueryGraphTouchReadVerb>,
     program_step_kind: Option<ForgeQueryGraphCompositionProgramStepKind>,
     lifecycle_family: Option<ForgeQueryGraphTouchLifecycleFamily>,
-    declared_collection: Option<String>,
+    declared_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
     relation_kind_id: Option<KindId>,
     declared_symbol: Option<String>,
     declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
@@ -56,7 +57,10 @@ impl ForgeQueryGraphTouchDescriptorRow {
                 )
                 .optional_value(
                     ForgeQueryEvidenceTag::new("declared_collection"),
-                    input.declared_collection.as_deref(),
+                    input
+                        .declared_collection
+                        .as_ref()
+                        .map(ForgeQueryMutationTargetCollectionIdentity::as_str),
                 )
                 .optional_value(
                     ForgeQueryEvidenceTag::new("relation_kind_id"),
@@ -74,7 +78,7 @@ impl ForgeQueryGraphTouchDescriptorRow {
                     input
                         .declared_aspect_operations
                         .iter()
-                        .map(native_declared_aspect_operation_digest_part),
+                        .map(terminal_declared_aspect_operation_digest_part),
                 )
                 .field_value_sequence(
                     ForgeQueryEvidenceTag::new("touched_aspect"),
@@ -135,7 +139,24 @@ impl ForgeQueryGraphTouchDescriptorRow {
     }
 
     pub fn declared_collection(&self) -> Option<&str> {
-        self.declared_collection.as_deref()
+        self.declared_collection
+            .as_ref()
+            .map(ForgeQueryMutationTargetCollectionIdentity::as_str)
+    }
+
+    pub fn declared_collection_identity(
+        &self,
+    ) -> Option<&ForgeQueryMutationTargetCollectionIdentity> {
+        self.declared_collection.as_ref()
+    }
+
+    pub(crate) fn touches_declared_collection(
+        &self,
+        collection: &ForgeQueryMutationTargetCollectionIdentity,
+    ) -> bool {
+        self.declared_collection
+            .as_ref()
+            .is_some_and(|declared| declared.same_target_collection_as(collection))
     }
 
     pub fn relation_kind_id(&self) -> Option<KindId> {
@@ -181,7 +202,7 @@ pub(crate) struct ForgeQueryGraphTouchDescriptorRowInput {
     pub read_verb: Option<ForgeQueryGraphTouchReadVerb>,
     pub program_step_kind: Option<ForgeQueryGraphCompositionProgramStepKind>,
     pub lifecycle_family: Option<ForgeQueryGraphTouchLifecycleFamily>,
-    pub declared_collection: Option<String>,
+    pub declared_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
     pub relation_kind_id: Option<KindId>,
     pub declared_symbol: Option<String>,
     pub declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
@@ -191,7 +212,7 @@ pub(crate) struct ForgeQueryGraphTouchDescriptorRowInput {
     pub symbolic_aspect_reference_count: usize,
 }
 
-pub(super) fn native_declared_aspect_operation_digest_part(
+pub(super) fn terminal_declared_aspect_operation_digest_part(
     operation: &ForgeQueryAspectMutationOperation,
 ) -> String {
     format!(

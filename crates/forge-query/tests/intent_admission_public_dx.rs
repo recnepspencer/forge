@@ -1,8 +1,7 @@
-use forge_foundational::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
     forge_query_basis_observation_intent, forge_query_projection_consumption_intent,
-    AdmittedQueryBasisContext, ForgeQueryAspectTouch, ForgeQueryBatchWriteReceipt,
-    ForgeQueryEffectHandle, ForgeQueryEffectIntentReceipt, ForgeQueryExistingTruthProbeRequest,
+    AdmittedQueryBasisContext, ForgeQueryBatchWriteReceipt, ForgeQueryEffectHandle,
+    ForgeQueryEffectIntentReceipt, ForgeQueryExistingTruthProbeRequest,
     ForgeQueryExistingTruthProbeResult, ForgeQueryExistingTruthTargetBinding,
     ForgeQueryIntentAdmissionDecision, ForgeQueryIntentConsumerOutcomeClass,
     ForgeQueryIntentDeclaration, ForgeQueryIntentReceipt, ForgeQueryNativeRow,
@@ -10,6 +9,10 @@ use forge_query::facade::{
     ForgeQueryWorkspace, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
     ProjectionConsumptionDeclaration, RawBasisIntent,
 };
+
+mod support;
+
+use support::aspect_touch as touch;
 
 fn authoritative_common_path_compiles(
     runtime: &mut ForgeQueryRuntime,
@@ -425,27 +428,6 @@ fn existing_truth_probe_request_typecheck(
     binding: ForgeQueryExistingTruthTargetBinding,
 ) -> Result<ForgeQueryExistingTruthProbeRequest, forge_query::facade::ForgeQueryWorkspaceError> {
     ForgeQueryExistingTruthProbeRequest::new(binding, [touch("identity.id")])
-}
-
-fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    let mut segments = aspect_path.split('.');
-    let aspect = segments
-        .next()
-        .and_then(|segment| AspectKey::new(segment.to_string()))
-        .expect("test aspect path aspect should admit");
-    let fields = segments
-        .map(|segment| {
-            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
-        })
-        .collect::<Vec<_>>();
-    if fields.is_empty() {
-        ForgeQueryAspectTouch::aspect(aspect)
-    } else {
-        ForgeQueryAspectTouch::field_path(
-            aspect,
-            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
-        )
-    }
 }
 
 #[test]

@@ -2,9 +2,7 @@ use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
 };
-use crate::runtime::{
-    ForgeQueryAspectTouch, ForgeQueryVerificationReadSetBreadth, ForgeQueryWriteReceipt,
-};
+use crate::runtime::{ForgeQueryVerificationReadSetBreadth, ForgeQueryWriteReceipt};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGraphCompositionAssumptionSummary {
@@ -53,8 +51,6 @@ impl ForgeQueryGraphCompositionAssumptionSummary {
             .iter()
             .flat_map(|set| set.asserted_aspects().iter().cloned())
             .collect::<Vec<_>>();
-        let asserted_aspect_touch_digests =
-            native_asserted_aspect_touch_digest_parts(&asserted_aspects);
         let cleared_assertion_count = assumption_sets
             .iter()
             .map(|set| {
@@ -113,7 +109,9 @@ impl ForgeQueryGraphCompositionAssumptionSummary {
                 )
                 .field_value_sequence(
                     ForgeQueryEvidenceTag::new("asserted_aspect_touch"),
-                    asserted_aspect_touch_digests.iter().map(String::as_str),
+                    asserted_aspects
+                        .iter()
+                        .map(|touch| touch.admitted_touch_digest_part()),
                 )
                 .seal();
 
@@ -210,13 +208,4 @@ fn aggregate_digest(
         .field_shape(ForgeQueryEvidenceTag::new("role"), label)
         .field_evidence_identity_sequence(ForgeQueryEvidenceTag::new("digest"), digests.iter())
         .seal()
-}
-
-fn native_asserted_aspect_touch_digest_parts(
-    asserted_aspects: &[ForgeQueryAspectTouch],
-) -> Vec<String> {
-    asserted_aspects
-        .iter()
-        .map(|touch| touch.admitted_touch_digest_part().to_string())
-        .collect()
 }

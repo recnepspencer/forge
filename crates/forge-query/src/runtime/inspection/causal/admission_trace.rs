@@ -13,6 +13,19 @@ use super::admission_decision::{
     CausalInspectionAdmissionSubject,
 };
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+struct CausalDecisionTraceLookupKey {
+    value: String,
+}
+
+impl CausalDecisionTraceLookupKey {
+    fn from_key(value: impl Into<String>) -> Self {
+        Self {
+            value: value.into(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalDecisionTraceRow {
     key: String,
@@ -80,7 +93,7 @@ impl CausalDecisionTraceRow {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalDecisionTraceIndex {
     rows: Vec<CausalDecisionTraceRow>,
-    lookup: HashMap<String, usize>,
+    lookup: HashMap<CausalDecisionTraceLookupKey, usize>,
     trace_identity: CausalInspectionDecisionTraceIdentity,
 }
 
@@ -89,7 +102,7 @@ impl CausalDecisionTraceIndex {
         let lookup = rows
             .iter()
             .enumerate()
-            .map(|(index, row)| (row.key().to_string(), index))
+            .map(|(index, row)| (CausalDecisionTraceLookupKey::from_key(row.key()), index))
             .collect();
         let mut trace = Self {
             rows,
@@ -110,7 +123,9 @@ impl CausalDecisionTraceIndex {
     }
 
     pub fn row_for_key(&self, key: &str) -> Option<&CausalDecisionTraceRow> {
-        self.lookup.get(key).and_then(|index| self.rows.get(*index))
+        self.lookup
+            .get(&CausalDecisionTraceLookupKey::from_key(key))
+            .and_then(|index| self.rows.get(*index))
     }
 
     pub fn trace_for_reporting(&self) -> &str {

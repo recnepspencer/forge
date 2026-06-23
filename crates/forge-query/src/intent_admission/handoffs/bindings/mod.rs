@@ -314,13 +314,13 @@ fn hash_effect_pending_delivery(pending_delivery: &ForgeQueryEffectDelivery) -> 
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("aspect"),
-            native_aspect_digest_parts(pending_delivery.aspect_touches())
+            terminal_aspect_touch_digest_parts(pending_delivery.aspect_touches())
                 .iter()
                 .map(String::as_str),
         )
         .field_value(
             ForgeQueryEvidenceTag::new("payload"),
-            pending_delivery.payload().native_digest_material(),
+            pending_delivery.payload().terminal_digest_material(),
         )
         .optional_value(
             ForgeQueryEvidenceTag::new("reason"),
@@ -335,7 +335,7 @@ fn hash_effect_pending_delivery(pending_delivery: &ForgeQueryEffectDelivery) -> 
         .to_string()
 }
 
-fn native_aspect_digest_parts(touches: &[ForgeQueryAspectTouch]) -> Vec<String> {
+fn terminal_aspect_touch_digest_parts(touches: &[ForgeQueryAspectTouch]) -> Vec<String> {
     touches
         .iter()
         .map(ForgeQueryAspectTouch::admitted_touch_digest_part)

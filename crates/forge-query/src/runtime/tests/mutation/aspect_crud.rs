@@ -9,23 +9,28 @@ fn workspace_insert_uses_aspect_native_authoring_and_routes_live_delivery() {
         .live_view("tasks.aspect-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-aspect-table")
         })
         .expect("live view should declare");
 
     let receipt = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Buy milk"),
+                test_authored_string_aspect_value("Buy milk"),
             )
         })
         .expect("aspect-native insert should execute");
@@ -135,27 +140,32 @@ fn workspace_update_supports_multi_aspect_authoring_and_narrows_by_touched_meani
         .live_view("tasks.title-only", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-title-only")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Buy milk"),
+                test_authored_string_aspect_value("Buy milk"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("description.value"),
-                test_string_aspect_value("whole milk"),
+                test_authored_string_aspect_value("whole milk"),
             )
         })
         .expect("seed insert should execute");
@@ -163,13 +173,13 @@ fn workspace_update_supports_multi_aspect_authoring_and_narrows_by_touched_meani
 
     let rename = workspace
         .update(seed.deltas()[0].entity_identity.clone(), |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Buy oat milk"),
+                test_authored_string_aspect_value("Buy oat milk"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("description.value"),
-                test_string_aspect_value("oat milk"),
+                test_authored_string_aspect_value("oat milk"),
             )
         })
         .expect("multi-aspect update should execute");
@@ -196,9 +206,9 @@ fn workspace_update_supports_multi_aspect_authoring_and_narrows_by_touched_meani
 
     let irrelevant = workspace
         .update(seed.deltas()[0].entity_identity.clone(), |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("description.value"),
-                test_string_aspect_value("still hidden"),
+                test_authored_string_aspect_value("still hidden"),
             )
         })
         .expect("irrelevant aspect update should still execute");
@@ -223,10 +233,15 @@ fn write_receipt_inspection_retains_authored_mutation_metadata() {
         .live_view("tasks.metadata-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-metadata-table")
         })
         .expect("live view should declare");
@@ -235,13 +250,13 @@ fn write_receipt_inspection_retains_authored_mutation_metadata() {
         .insert("Task", |task| {
             task.metadata("author", "worth-topo")
                 .metadata("intent", "topology-refresh")
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("task-1"),
+                    test_authored_string_aspect_value("task-1"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Metadata receipt"),
+                    test_authored_string_aspect_value("Metadata receipt"),
                 )
         })
         .expect("aspect-native insert should execute");
@@ -255,14 +270,14 @@ fn write_receipt_inspection_retains_authored_mutation_metadata() {
                 inspection
                     .mutation_metadata()
                     .get(&test_mutation_metadata_key("author"))
-                    .map(|value| value.native_digest_text()),
+                    .map(|value| value.terminal_digest_text()),
                 Some("worth-topo")
             );
             assert_eq!(
                 inspection
                     .mutation_metadata()
                     .get(&test_mutation_metadata_key("intent"))
-                    .map(|value| value.native_digest_text()),
+                    .map(|value| value.terminal_digest_text()),
                 Some("topology-refresh")
             );
             assert_eq!(
@@ -285,27 +300,32 @@ fn workspace_update_clear_supports_typed_reset_without_waking_unrelated_surfaces
         .live_view("tasks.clear-title-only", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-clear-title-only")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Buy milk"),
+                test_authored_string_aspect_value("Buy milk"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("description.value"),
-                test_string_aspect_value("whole milk"),
+                test_authored_string_aspect_value("whole milk"),
             )
         })
         .expect("seed insert should execute");

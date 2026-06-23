@@ -1,11 +1,9 @@
-use crate::runtime::{
-    ForgeQueryAspectTouch, ForgeQueryIntentDeclaration, ForgeQueryIntentInput,
-    ForgeQueryRuntimeError,
-};
-use forge_foundational::facade::AspectValue;
+use crate::runtime::{ForgeQueryIntentDeclaration, ForgeQueryIntentInput, ForgeQueryRuntimeError};
 
 use super::fixture::stateful_bridge_task_runtime;
-use super::{AspectApiFinalizationFailureClass, AspectApiFinalizationRejectionBundle};
+use super::{
+    title_value_touch, AspectApiFinalizationFailureClass, AspectApiFinalizationRejectionBundle,
+};
 
 pub(super) fn unsupported_intent_rejection() -> AspectApiFinalizationRejectionBundle {
     let mut workspace = stateful_bridge_task_runtime()
@@ -55,8 +53,8 @@ pub(super) fn duplicate_aspect_authoring_rejection() -> AspectApiFinalizationRej
         .update(
             crate::memory_workspace::admit_authored_entity_label("entity:1:1:1"),
             |task| {
-                task.clear(aspect_touch("title.value"))
-                    .aspect(aspect_touch("title.value"), string_aspect_value("Buy milk"))
+                task.clear(title_value_touch())
+                    .set_aspect(title_value_touch(), string_aspect_value("Buy milk"))
             },
         )
         .expect_err("duplicate aspect authoring should fail closed");
@@ -78,13 +76,8 @@ pub(super) fn duplicate_aspect_authoring_rejection() -> AspectApiFinalizationRej
     }
 }
 
-fn aspect_touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    ForgeQueryAspectTouch::from_authoring_path(aspect_path)
-        .expect("aspect API rejection aspect path should admit")
-}
-
-fn string_aspect_value(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+fn string_aspect_value(value: impl Into<String>) -> crate::runtime::ForgeQueryAuthoredAspectValue {
+    crate::runtime::ForgeQueryAuthoredAspectValue::string(value)
 }
 
 fn intent_input(

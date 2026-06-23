@@ -23,17 +23,14 @@ impl ForgeQueryLiveArtifactBinding {
         let mut targets = required_targets.into_iter().collect::<Vec<_>>();
         targets.sort();
         targets.dedup();
-        let target_view_names = targets
-            .iter()
-            .map(|target| target.view_name().to_string())
-            .collect::<Vec<_>>();
 
-        let bundle_view_names = bundle
-            .terminal_target_view_names_projection()
-            .collect::<Vec<_>>();
-        if bundle.target_count() != target_view_names.len()
+        if bundle.target_count() != targets.len()
             || !targets.iter().all(|target| bundle.includes_target(target))
         {
+            let target_view_names = terminal_target_view_names(&targets);
+            let bundle_view_names = bundle
+                .terminal_target_view_names_projection()
+                .collect::<Vec<_>>();
             return Err(ForgeQueryRuntimeError::ReadCompositionDenied(
                 crate::runtime::ForgeQueryReadDenial::new(
                     crate::runtime::ForgeQueryReadDenialKind::ExecutionDenied,
@@ -53,9 +50,9 @@ impl ForgeQueryLiveArtifactBinding {
                     bundle.bundle_digest()
                 )))
                 .chain(
-                    target_view_names
+                    targets
                         .iter()
-                        .map(|view_name| format!("target:{view_name}")),
+                        .map(|target| format!("target:{}", target.terminal_view_name_projection())),
                 )
                 .collect::<Vec<_>>(),
         );
@@ -103,6 +100,13 @@ impl ForgeQueryLiveArtifactBinding {
         &self,
         target: &ForgeQueryLiveArtifactTarget,
     ) -> Result<&ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
-        self.bundle.read_by_name(target.view_name())
+        self.bundle.read_for_target(target)
     }
+}
+
+fn terminal_target_view_names(targets: &[ForgeQueryLiveArtifactTarget]) -> Vec<String> {
+    targets
+        .iter()
+        .map(|target| target.terminal_view_name_projection().to_string())
+        .collect()
 }

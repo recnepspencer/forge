@@ -9,23 +9,28 @@ fn update_existing_preserves_authoritative_binding_evidence() {
         .live_view("tasks.update-existing-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-update-existing-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Before existing update"),
+                test_authored_string_aspect_value("Before existing update"),
             )
         })
         .expect("seed insert should execute");
@@ -49,9 +54,9 @@ fn update_existing_preserves_authoritative_binding_evidence() {
 
     let receipt = workspace
         .update_existing(binding, |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("After existing update"),
+                test_authored_string_aspect_value("After existing update"),
             )
         })
         .expect("existing-target update should execute");
@@ -136,9 +141,9 @@ fn update_existing_denies_missing_target_typed_and_early() {
 
     let error = workspace
         .update_existing(binding, |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("No target"),
+                test_authored_string_aspect_value("No target"),
             )
         })
         .expect_err("missing existing target should deny early");
@@ -164,35 +169,40 @@ fn batch_existing_targets_preserve_component_and_aggregate_binding_evidence() {
         .live_view("tasks.batch-existing-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-batch-existing-table")
         })
         .expect("live view should declare");
 
     let seed_one = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("First"),
+                test_authored_string_aspect_value("First"),
             )
         })
         .expect("first seed should execute");
     let seed_two = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-2"),
+                test_authored_string_aspect_value("task-2"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Second"),
+                test_authored_string_aspect_value("Second"),
             )
         })
         .expect("second seed should execute");
@@ -236,9 +246,9 @@ fn batch_existing_targets_preserve_component_and_aggregate_binding_evidence() {
         .batch(|batch| {
             batch
                 .update_existing(binding_one, |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("First renamed"),
+                        test_authored_string_aspect_value("First renamed"),
                     )
                 })
                 .delete_existing_with(binding_two, |delete| {
@@ -307,23 +317,28 @@ fn mixed_existing_and_symbolic_batch_preserves_aggregate_session_digests() {
         .live_view("tasks.batch-existing-symbolic-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-batch-existing-symbolic-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-existing"),
+                test_authored_string_aspect_value("task-existing"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Existing"),
+                test_authored_string_aspect_value("Existing"),
             )
         })
         .expect("seed should execute");
@@ -343,19 +358,19 @@ fn mixed_existing_and_symbolic_batch_preserves_aggregate_session_digests() {
         .batch(|batch| {
             batch
                 .insert_symbolic("draft-task", "Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-draft"),
+                        test_authored_string_aspect_value("task-draft"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Draft"),
+                        test_authored_string_aspect_value("Draft"),
                     )
                 })
                 .update_existing(binding, |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Existing renamed"),
+                        test_authored_string_aspect_value("Existing renamed"),
                     )
                 })
                 .update_symbolic(
@@ -364,9 +379,9 @@ fn mixed_existing_and_symbolic_batch_preserves_aggregate_session_digests() {
                         .in_target_collection("Task")
                         .expect("symbolic collection should build"),
                     |task| {
-                        task.aspect(
+                        task.set_aspect(
                             test_aspect_touch("title.value"),
-                            test_string_aspect_value("Draft renamed"),
+                            test_authored_string_aspect_value("Draft renamed"),
                         )
                     },
                 )
@@ -394,10 +409,15 @@ fn delete_existing_relation_preserves_relation_binding_family() {
         .live_view("tasks.relation-table", |q| {
             q.from("TaskRelation")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("kind", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-relation-table")
         })
         .expect("relation live view should declare");
@@ -405,13 +425,13 @@ fn delete_existing_relation_preserves_relation_binding_family() {
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("rel-1"),
+                    test_authored_string_aspect_value("rel-1"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("kind.value"),
-                    test_string_aspect_value("depends_on"),
+                    test_authored_string_aspect_value("depends_on"),
                 )
         })
         .expect("seed insert should execute");

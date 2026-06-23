@@ -36,6 +36,13 @@ impl OrderingKeyPath {
             field_key: FieldKey::new(field).expect("ordering field must be foundational"),
         }
     }
+
+    pub(crate) fn from_native_keys(aspect_key: AspectKey, field_key: FieldKey) -> Self {
+        Self {
+            aspect_key,
+            field_key,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -645,9 +652,9 @@ impl CollectionPlanBundle {
                 .iter()
                 .map(|entry| {
                     CollectionOrderingEntry::new(
-                        OrderingKeyPath::new(
-                            entry.native_aspect_key().as_str(),
-                            entry.native_field_key().as_str(),
+                        OrderingKeyPath::from_native_keys(
+                            entry.native_aspect_key().clone(),
+                            entry.native_field_key().clone(),
                         ),
                         CollectionOrderingDirection::from_validated_direction(entry.direction()),
                     )

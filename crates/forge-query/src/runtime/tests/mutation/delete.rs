@@ -9,23 +9,28 @@ fn workspace_delete_receipt_preserves_family_target_and_inspection_posture() {
         .live_view("tasks.delete-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-delete-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Buy milk"),
+                test_authored_string_aspect_value("Buy milk"),
             )
         })
         .expect("seed insert should execute");
@@ -107,23 +112,28 @@ fn workspace_delete_with_preserves_touched_aspects_and_metadata_for_routing() {
         .live_view("tasks.delete-with-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-delete-with-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Buy milk"),
+                test_authored_string_aspect_value("Buy milk"),
             )
         })
         .expect("seed insert should execute");
@@ -174,7 +184,7 @@ fn workspace_delete_with_preserves_touched_aspects_and_metadata_for_routing() {
                 inspection
                     .mutation_metadata()
                     .get(&test_mutation_metadata_key("author"))
-                    .map(|value| value.native_digest_text()),
+                    .map(|value| value.terminal_digest_text()),
                 Some("worth-topo")
             );
             assert_eq!(
@@ -205,22 +215,27 @@ fn preview_delete_with_preserves_declared_target_collection_and_delete_meaning()
         .live_view("tasks.preview-delete-with-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-preview-delete-with-table")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Preview delete target"),
+                test_authored_string_aspect_value("Preview delete target"),
             )
         })
         .expect("seed insert should execute");
@@ -278,7 +293,7 @@ fn preview_delete_with_preserves_declared_target_collection_and_delete_meaning()
                 inspection
                     .mutation_metadata()
                     .get(&test_mutation_metadata_key("author"))
-                    .map(|value| value.native_digest_text()),
+                    .map(|value| value.terminal_digest_text()),
                 Some("worth-topo")
             );
         }
@@ -295,10 +310,15 @@ fn workspace_batch_routes_shared_computeds_once_per_batch_boundary() {
         .live_view("tasks.batch-routing-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-batch-routing-table")
         })
         .expect("live view should declare");
@@ -318,23 +338,23 @@ fn workspace_batch_routes_shared_computeds_once_per_batch_boundary() {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-1"),
+                        test_authored_string_aspect_value("task-1"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Buy milk"),
+                        test_authored_string_aspect_value("Buy milk"),
                     )
                 })
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-2"),
+                        test_authored_string_aspect_value("task-2"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Buy bread"),
+                        test_authored_string_aspect_value("Buy bread"),
                     )
                 })
         })

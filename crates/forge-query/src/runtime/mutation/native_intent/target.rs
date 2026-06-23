@@ -7,7 +7,7 @@ pub struct ForgeQueryParsedAspectTarget {
 }
 
 impl ForgeQueryParsedAspectTarget {
-    pub(crate) fn from_authoring_path(
+    pub(crate) fn parse_authoring_ingress_text(
         path: impl Into<String>,
     ) -> Result<Self, ForgeQueryParsedAspectTargetDenial> {
         let path = path.into();

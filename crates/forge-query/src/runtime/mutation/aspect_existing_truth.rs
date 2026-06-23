@@ -1,4 +1,4 @@
-use super::{ForgeQueryAspectMutationBuilder, ForgeQueryAspectValue};
+use super::{ForgeQueryAdmittedAspectValue, ForgeQueryAspectMutationBuilder};
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 use crate::runtime::{
     ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError, ForgeQueryWriteCommand,
@@ -10,7 +10,7 @@ impl ForgeQueryAspectMutationBuilder {
     pub(crate) fn finish_existing_truth_verification_aspects(
         self,
         lane_description: &'static str,
-    ) -> Result<Vec<ForgeQueryAspectValue>, ForgeQueryRuntimeError> {
+    ) -> Result<Vec<ForgeQueryAdmittedAspectValue>, ForgeQueryRuntimeError> {
         let ForgeQueryAspectMutationBuilder {
             aspects,
             symbolic_aspect_references,
@@ -121,7 +121,7 @@ impl ForgeQueryAspectMutationBuilder {
     pub(crate) fn build_update_existing_verified(
         self,
         binding: ForgeQueryExistingTruthTargetBinding,
-        asserted_aspects: Vec<ForgeQueryAspectValue>,
+        asserted_aspects: Vec<ForgeQueryAdmittedAspectValue>,
     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
         let ForgeQueryAspectMutationBuilder {
             aspects,

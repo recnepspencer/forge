@@ -3,7 +3,7 @@ use crate::memory_workspace::{
     ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt,
     ForgeQueryWorkspaceError,
 };
-use crate::runtime::ForgeQueryRuntimeSourceAdapter;
+use crate::runtime::{ForgeQueryLiveArtifactTarget, ForgeQueryRuntimeSourceAdapter};
 use crate::schema_view::QuerySchemaView;
 
 pub(crate) struct RepresentativeSourceAdapter;
@@ -18,15 +18,24 @@ impl ForgeQueryRuntimeSourceAdapter for RepresentativeSourceAdapter {
         Ok(ForgeQueryLiveViewHandle::new(name))
     }
 
-    fn live_entities(&self, _view_name: &str) -> Vec<ForgeQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity> {
         Vec::new()
     }
 
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
+    fn drain_live_patches_for_target(
+        &mut self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch> {
         Vec::new()
     }
 
-    fn affected_live_view_ids(&self, _receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+    fn affected_live_view_targets(
+        &self,
+        _receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget> {
         Vec::new()
     }
 }

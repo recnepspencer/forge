@@ -17,11 +17,11 @@ fn delivery_shape_uses_narrowed_result_shape() {
         delivery.narrowed_result_shape_digest(),
         artifact.narrowed_result_shape_digest()
     );
-    assert!(!delivery.delivered_field_paths().iter().any(|field| field
-        .native_aspect_key()
-        .as_str()
-        == "secret"
-        && field.native_field_key().as_str() == "salary"));
+    let hidden_salary = authorized_field("secret", "salary");
+    assert!(!delivery
+        .delivered_field_paths()
+        .iter()
+        .any(|field| field == &hidden_salary));
     assert_eq!(delivery.report().delivery_width(), 2);
 }
 

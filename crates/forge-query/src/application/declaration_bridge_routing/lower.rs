@@ -1,4 +1,4 @@
-use forge_foundational::facade::{AspectKey, AspectValue};
+use forge_foundational::facade::AspectKey;
 use forge_runtime_bridge::facade::{
     BridgeDeliveryIntent, BridgeDiagnosticsTier, BridgeIdentityEvidence,
     BridgePreviewRetainedArtifactSchema, BridgePreviewSessionBasis,
@@ -349,7 +349,9 @@ fn writeback_preparation_request<
         BridgeWritebackEffectClass::ProjectedStateDiff,
         AspectKey::new("query.writeback.preparation")
             .expect("static query writeback preparation aspect key is valid"),
-        AspectValue::String(envelope.declaration_digest().to_string().into()),
+        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+            envelope.declaration_digest().to_string(),
+        ),
     )
     .expect("query writeback preparation effect intent should validate");
 

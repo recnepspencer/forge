@@ -3,6 +3,7 @@ use crate::authoring::{
     GuidedAuthoringPath, OrderingSelector, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
     ScalarPredicateValue,
 };
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 use super::{
     derive_authorized_projection, AuthorizedProjectionFailureClass, PolicyAspectMask,
@@ -26,7 +27,7 @@ fn canonical_query() -> crate::canonicalization::CanonicalQueryBundle {
 }
 
 fn secret_salary_key() -> AspectFieldKey {
-    AspectFieldKey::new("secret", "salary").unwrap()
+    AspectFieldKey::from_authoring_parts("secret", "salary").unwrap()
 }
 
 #[test]
@@ -47,7 +48,7 @@ fn masked_projection_is_excluded_from_authorized_projection() {
     assert_eq!(artifact.visible_field_paths().len(), 2);
     assert_eq!(
         native_field_pairs(artifact.masked_projection().masked_field_paths()),
-        vec![("secret".to_string(), "salary".to_string())]
+        vec![native_field_pair("secret", "salary")]
     );
     assert_eq!(artifact.counters().masked_projection_entry_count(), 1);
 }
@@ -81,21 +82,30 @@ fn non_disclosing_predicate_is_allowed_when_not_emitted() {
 
     assert_eq!(
         native_field_pairs(artifact.visible_field_paths()),
-        vec![("identity".to_string(), "id".to_string())]
+        vec![native_field_pair("identity", "id")]
     );
     assert_eq!(artifact.counters().hidden_predicate_denial_count(), 0);
 }
 
-fn native_field_pairs(fields: &[super::AuthorizedProjectionFieldPath]) -> Vec<(String, String)> {
+fn native_field_pairs(
+    fields: &[super::AuthorizedProjectionFieldPath],
+) -> Vec<(AspectKey, FieldKey)> {
     fields
         .iter()
         .map(|field| {
             (
-                field.native_aspect_key().as_str().to_string(),
-                field.native_field_key().as_str().to_string(),
+                field.native_aspect_key().clone(),
+                field.native_field_key().clone(),
             )
         })
         .collect()
+}
+
+fn native_field_pair(aspect: &str, field: &str) -> (AspectKey, FieldKey) {
+    (
+        AspectKey::new(aspect).expect("test aspect key should admit"),
+        FieldKey::new(field).expect("test field key should admit"),
+    )
 }
 
 #[test]

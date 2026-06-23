@@ -11,8 +11,12 @@ impl AspectFieldSelector {
         field: impl Into<String>,
     ) -> Result<Self, AuthoringError> {
         Ok(Self {
-            key: AspectFieldKey::new(aspect, field)?,
+            key: AspectFieldKey::from_authoring_parts(aspect, field)?,
         })
+    }
+
+    pub fn from_source_field_key(key: AspectFieldKey) -> Self {
+        Self { key }
     }
 
     pub fn source_field_key(&self) -> &AspectFieldKey {

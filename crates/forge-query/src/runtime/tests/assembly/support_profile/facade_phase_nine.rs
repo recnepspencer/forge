@@ -83,13 +83,13 @@ fn phase_nine_facade_families_are_supported_and_admitted() {
 #[test]
 fn workspace_submission_lane_matches_existing_workspace_convenience_receipts() {
     let command = ForgeQueryAspectMutationBuilder::new()
-        .aspect(
+        .set_aspect(
             test_aspect_touch("identity.id"),
-            test_string_aspect_value("task-1"),
+            test_authored_string_aspect_value("task-1"),
         )
-        .aspect(
+        .set_aspect(
             test_aspect_touch("title.value"),
-            test_string_aspect_value("Phase Nine"),
+            test_authored_string_aspect_value("Phase Nine"),
         )
         .build_insert("Task")
         .expect("insert command should build");
@@ -145,13 +145,13 @@ fn workspace_shared_read_lane_matches_runtime_owned_context_without_recomputatio
     workspace
         .insert("Task", |builder| {
             builder
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("task-1"),
+                    test_authored_string_aspect_value("task-1"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Phase Nine"),
+                    test_authored_string_aspect_value("Phase Nine"),
                 )
         })
         .expect("insert should publish derived artifact");

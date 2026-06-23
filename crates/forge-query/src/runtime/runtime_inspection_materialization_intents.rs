@@ -45,8 +45,8 @@ impl ForgeQueryWorkspace {
 
         let mut materializations = BTreeMap::new();
         for target in retained_targets {
-            let result = self.materialize_derived_view_by_name(target.view_name().to_string())?;
-            materializations.insert(target.view_name().to_string(), result);
+            let result = self.materialize_derived_target(&target)?;
+            materializations.insert(target, result);
         }
         let snapshot_identity = bundle_snapshot_identity(&materializations)?;
         Ok(ForgeQueryDerivedMaterializationBundle::new(
@@ -153,11 +153,12 @@ impl ForgeQueryWorkspace {
             .execute_derived_inspection_execution_binding(binding)
     }
 
-    fn materialize_derived_view_by_name(
+    fn materialize_derived_target(
         &mut self,
-        view_name: String,
+        target: &ForgeQueryDerivedMaterializationTarget,
     ) -> Result<ForgeQueryDerivedMaterializationResult, ForgeQueryRuntimeError> {
-        let review = self.review_derived_materialization(view_name)?;
+        let review = self
+            .review_derived_materialization(target.terminal_view_name_projection().to_string())?;
         let handoff = self.resolve_reviewed_admitted_derived_materialization_handoff(review)?;
         let binding = self.into_runtime_derived_materialization_binding(handoff);
         self.execute_bound_derived_materialization(binding)
@@ -262,7 +263,9 @@ impl ForgeQueryRuntime {
         let evidence = self.derived_view_evidence(binding.view_name())?;
         let rows = self
             .derived_views
-            .get(binding.view_name())
+            .get(&ForgeQueryDerivedMaterializationTarget::new(
+                binding.view_name(),
+            ))
             .map(|runtime| runtime.materialization.retained_rows().to_vec())
             .ok_or_else(|| {
                 ForgeQueryRuntimeError::MissingDerivedView(binding.view_name().to_string())
@@ -364,7 +367,7 @@ impl ForgeQueryRuntime {
         view_name: &str,
     ) -> Result<ForgeQueryComputedInspectionEvidence, ForgeQueryRuntimeError> {
         self.derived_views
-            .get(view_name)
+            .get(&ForgeQueryDerivedMaterializationTarget::new(view_name))
             .map(ForgeQueryComputedInspectionEvidence::from_runtime)
             .ok_or_else(|| ForgeQueryRuntimeError::MissingDerivedView(view_name.to_string()))
     }

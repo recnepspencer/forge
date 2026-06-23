@@ -143,8 +143,8 @@ fn declared_mutation_collection_selector_requires_all_declared_facts() {
     assert!(!selector.matches_descriptor(&read_shape));
 }
 
-fn set_operation(aspect_path: &str) -> ForgeQueryAspectMutationOperation {
-    ForgeQueryAspectMutationOperation::set(touch(aspect_path))
+fn set_operation(touch_fixture: &str) -> ForgeQueryAspectMutationOperation {
+    ForgeQueryAspectMutationOperation::set(touch(touch_fixture))
 }
 
 #[test]

@@ -43,16 +43,20 @@ impl ForgeQueryWriteReceipt {
         };
         let committed_truth_identity = super::write_receipt_committed_truth_identity(&inner);
         let target_entity_identity = preview_target_entity_identity(command, &delta);
-        let target_collection = command
-            .terminal_declared_collection_projection()
-            .map(str::to_string);
+        let declared_collection_identity = command.declared_collection_identity();
+        let target_collection_identity = declared_collection_identity.as_ref().map(|collection| {
+            ForgeQueryMutationTargetCollectionIdentity::new(
+                "write-receipt-preview-target",
+                collection.as_str(),
+            )
+        });
         let naming_mutation_evidence = naming_mutation_evidence(
             None,
             command.naming_intent(),
             target_entity_identity
                 .as_ref()
                 .or(Some(&delta.entity_identity)),
-            target_collection.as_deref(),
+            target_collection_identity.as_ref(),
         );
         let continuity_mutation_evidence = continuity_mutation_evidence(
             None,
@@ -61,7 +65,7 @@ impl ForgeQueryWriteReceipt {
             target_entity_identity
                 .as_ref()
                 .or(Some(&delta.entity_identity)),
-            target_collection.as_deref(),
+            target_collection_identity.as_ref(),
         );
         Self {
             inner,
@@ -74,9 +78,9 @@ impl ForgeQueryWriteReceipt {
             basis_lane: ForgeQueryAuthorityLane::PreviewTruth,
             target_evidence: target_evidence_from_receipt(
                 command.mutation_family(),
-                command.declared_collection_identity(),
+                declared_collection_identity.clone(),
                 command.declared_entity_identity(),
-                command.declared_collection_identity(),
+                target_collection_identity.clone(),
                 command.declared_entity_identity(),
             ),
             existing_truth_assertion_evidence: None,
@@ -94,14 +98,9 @@ impl ForgeQueryWriteReceipt {
             continuity_mutation_evidence,
             causality_evidence: None,
             provenance_evidence: None,
-            declared_collection_identity: command.declared_collection_identity(),
+            declared_collection_identity,
             declared_entity_identity: command.declared_entity_identity(),
-            target_collection_identity: target_collection.map(|collection| {
-                ForgeQueryMutationTargetCollectionIdentity::new(
-                    "write-receipt-preview-target",
-                    collection,
-                )
-            }),
+            target_collection_identity,
             target_entity_identity,
             declared_aspect_operations: command.declared_aspect_operations(),
             declared_aspect_value_digest: crate::runtime::command_declared_aspect_value_identity(
@@ -132,7 +131,7 @@ pub(super) fn preview_receipt_delta(
     match command {
         ForgeQueryWriteCommand::InsertAspects { collection, .. } => {
             crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
-                collection.clone(),
+                collection.as_str(),
                 ForgeQueryEntityIdentity::preview(preview_identity.clone()),
                 crate::memory_workspace::ForgeQueryMutationKind::Created,
                 command.declared_aspect_touches(),
@@ -222,8 +221,9 @@ pub(super) fn preview_receipt_delta(
             ..
         } => crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
             declared_collection
-                .clone()
-                .unwrap_or_else(|| "preview".to_string()),
+                .as_ref()
+                .map(|collection| collection.as_str())
+                .unwrap_or("preview"),
             entity_identity.clone(),
             crate::memory_workspace::ForgeQueryMutationKind::Deleted,
             touched_aspects.to_vec(),
@@ -294,9 +294,11 @@ fn preview_symbolic_entity_identity(
     ForgeQueryEntityIdentity::preview(
         forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewWriteReceiptIdentity)
             .field_value(ForgeQueryEvidenceTag::new("symbol"), reference.symbol())
-            .optional_shape(
+            .optional_evidence_identity(
                 ForgeQueryEvidenceTag::new("target_collection"),
-                reference.target_collection(),
+                reference
+                    .target_collection_identity()
+                    .map(|collection| collection.evidence_identity()),
             )
             .seal(),
     )

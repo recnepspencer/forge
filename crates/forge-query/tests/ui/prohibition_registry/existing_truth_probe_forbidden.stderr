@@ -6,11 +6,11 @@ error[E0624]: method `probe_existing` is private
   |
  ::: src/runtime/workspace_mutations.rs
   |
-  | /     pub(crate) fn probe_existing<I, S>(
+  | /     pub(crate) fn probe_existing<I>(
   | |         &self,
   | |         binding: ForgeQueryExistingTruthTargetBinding,
-  | |         aspect_paths: I,
-... |
-  | |         I: IntoIterator<Item = S>,
-  | |         S: Into<String>,
-  | |________________________- private method defined here
+  | |         aspect_touches: I,
+  | |     ) -> Result<super::ForgeQueryExistingTruthProbe, ForgeQueryRuntimeError>
+  | |     where
+  | |         I: IntoIterator<Item = super::ForgeQueryAspectTouch>,
+  | |_____________________________________________________________- private method defined here

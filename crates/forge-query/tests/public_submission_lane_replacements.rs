@@ -1,13 +1,12 @@
-use forge_foundational::facade::{
-    AspectKey, AspectValue, CanonicalFieldPath, FieldKey, InternedString,
-};
+use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey, InternedString};
 use forge_query::facade::{
-    ForgeQueryAspectMutationBuilder, ForgeQueryAspectTouch, ForgeQueryLiveView,
-    ForgeQueryMutationFamily, ForgeQueryNativeRow, ForgeQueryWriteCommand,
+    ForgeQueryAspectMutationBuilder, ForgeQueryLiveView, ForgeQueryMutationFamily,
+    ForgeQueryNativeRow, ForgeQueryWriteCommand,
 };
 
 mod support;
 
+use support::aspect_touch as touch;
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 
 #[test]
@@ -87,8 +86,8 @@ fn public_submission_lane_submit_batch_replaces_direct_workspace_batch() {
 
 fn task_insert_command(id: &str, title: &str) -> ForgeQueryWriteCommand {
     ForgeQueryAspectMutationBuilder::new()
-        .aspect(touch("identity.id"), text(id))
-        .aspect(touch("title.value"), text(title))
+        .set_aspect(touch("identity.id"), authored_text(id))
+        .set_aspect(touch("title.value"), authored_text(title))
         .build_insert("Task")
         .expect("task insert command should build")
 }
@@ -101,38 +100,26 @@ fn task_live_view(
         .live_view(name, |q| {
             q.from("Task")
                 .select([
-                    forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
-                    forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(forge_query::facade::AspectFieldKey::new("identity", "id").unwrap())
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                )
                 .schema_basis(format!("{name}-schema"))
         })
         .expect("task live view should declare")
 }
 
-fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    let mut segments = aspect_path.split('.');
-    let aspect = segments
-        .next()
-        .and_then(|segment| AspectKey::new(segment.to_string()))
-        .expect("test aspect path aspect should admit");
-    let fields = segments
-        .map(|segment| {
-            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
-        })
-        .collect::<Vec<_>>();
-    if fields.is_empty() {
-        ForgeQueryAspectTouch::aspect(aspect)
-    } else {
-        ForgeQueryAspectTouch::field_path(
-            aspect,
-            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
-        )
-    }
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
 }
 
-fn text(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+fn text(value: impl Into<String>) -> forge_foundational::facade::AspectValue {
+    forge_foundational::facade::AspectValue::String(value.into().into())
 }
 
 fn field_path(path: &str) -> CanonicalFieldPath {

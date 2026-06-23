@@ -57,14 +57,17 @@ fn graph_touch_descriptor_replay_is_stable_for_equivalent_real_graph_programs() 
 fn ordinary_batch_reuses_touch_vocabulary_without_graph_lifecycle_overclaim() {
     let runtime = stateful_bridge_task_runtime();
     let command = ForgeQueryWriteCommand::InsertAspects {
-        collection: "Task".to_string(),
+        collection: crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+            "write-command-declared",
+            "Task",
+        ),
         aspects: vec![
-            ForgeQueryAspectValue::new(
+            ForgeQueryAdmittedAspectValue::new(
                 test_aspect_touch("identity.id"),
                 test_string_aspect_value("task-ordinary"),
             )
             .unwrap(),
-            ForgeQueryAspectValue::new(
+            ForgeQueryAdmittedAspectValue::new(
                 test_aspect_touch("title.value"),
                 test_string_aspect_value("Ordinary task"),
             )
@@ -135,22 +138,22 @@ fn mixed_graph_program() -> (
     let task = graph
         .insert_entity("task", "Task", |entity| {
             entity
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("task-touch"),
+                    test_authored_string_aspect_value("task-touch"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Draft"),
+                    test_authored_string_aspect_value("Draft"),
                 )
         })
         .unwrap();
     let edge = graph
         .insert_symbolic_relation("edge", "TaskEdge", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("edge.kind"),
-                    test_string_aspect_value("depends_on"),
+                    test_authored_string_aspect_value("depends_on"),
                 )
                 .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &task)
                 .existing_entity_identity(
@@ -161,9 +164,9 @@ fn mixed_graph_program() -> (
         .unwrap();
     graph
         .update_entity(&task, |entity| {
-            entity.aspect(
+            entity.set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Published"),
+                test_authored_string_aspect_value("Published"),
             )
         })
         .unwrap();

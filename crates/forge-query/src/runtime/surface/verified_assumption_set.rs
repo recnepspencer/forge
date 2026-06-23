@@ -24,7 +24,7 @@ impl ForgeQueryVerificationReadSetBreadth {
     ) -> Self {
         let distinct_asserted_aspect_touch_count = asserted_aspects
             .iter()
-            .map(|touch| touch.admitted_touch_digest_part())
+            .cloned()
             .collect::<BTreeSet<_>>()
             .len();
         let counter_snapshot = diagnostic_counter_snapshot(&[

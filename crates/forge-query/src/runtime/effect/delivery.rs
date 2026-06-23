@@ -9,7 +9,7 @@ use super::declaration::{
     ForgeQueryEffectTriggerSourceKind,
 };
 use super::delivery_helpers::{
-    effect_trigger_commit_evidence_identity, native_touch_digest_sequence,
+    effect_trigger_commit_evidence_identity, terminal_touch_digest_projection_sequence,
 };
 use super::follow_on::ForgeQueryEffectWriteAdjacentTrigger;
 use super::phase::ForgeQueryEffectPhaseEvidence;
@@ -107,7 +107,7 @@ impl ForgeQueryEffectPayload {
         &self.changed_aspects
     }
 
-    pub(crate) fn native_digest_material(&self) -> String {
+    pub(crate) fn terminal_digest_material(&self) -> String {
         let Some(condition) = self.condition.as_deref() else {
             return "condition:<none>".to_string();
         };
@@ -115,15 +115,15 @@ impl ForgeQueryEffectPayload {
             format!("condition:{condition}"),
             format!(
                 "input:{}",
-                native_touch_digest_sequence(&self.input_aspects)
+                terminal_touch_digest_projection_sequence(&self.input_aspects)
             ),
             format!(
                 "output:{}",
-                native_touch_digest_sequence(&self.output_aspects)
+                terminal_touch_digest_projection_sequence(&self.output_aspects)
             ),
             format!(
                 "changed:{}",
-                native_touch_digest_sequence(&self.changed_aspects)
+                terminal_touch_digest_projection_sequence(&self.changed_aspects)
             ),
         ]
         .join("|")

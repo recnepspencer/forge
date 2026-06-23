@@ -18,7 +18,7 @@ pub(super) fn declared_aspect_operation_identities(
                 operation.kind().as_str(),
             )
             .field_value(
-                ForgeQueryEvidenceTag::new("aspect_path"),
+                ForgeQueryEvidenceTag::new("admitted_aspect_touch"),
                 operation.aspect_touch().admitted_touch_digest_part(),
             )
             .seal()
@@ -38,7 +38,7 @@ pub(super) fn mutation_metadata_entry_identities(
             .field_value(ForgeQueryEvidenceTag::new("key"), key.as_str())
             .field_value(
                 ForgeQueryEvidenceTag::new("value"),
-                value.native_digest_text(),
+                value.terminal_digest_text(),
             )
             .seal()
         })

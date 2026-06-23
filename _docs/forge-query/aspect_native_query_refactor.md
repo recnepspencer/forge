@@ -111,6 +111,19 @@ Query is supposed to be the platform's daily-driver authoring and read layer. It
 
 Query should declare intent once, lower once, and execute against canonical truth without stealing authority from relational, bridge, or foundational subsystems. That requires a stricter internal authority model than the current public DX freeze delivered.
 
+`forge-foundational` JSON compatibility
+
+Foundational is the source of aspect truth and the source of transitional JSON
+compatibility. If a Query boundary receives JSON that semantically represents
+aspect values, aspect state, or aspect patches, Query must route that input
+through `forge_foundational::compatibility().json()`,
+`JsonCompatibilityAspectInput`, `lower_json_aspect_value(...)`, or
+`lower_json_record_aspect_state(...)` instead of defining a local JSON lowering
+lane. Query-owned `serde_json` may only parse or print explicitly named
+terminal documents whose semantic authority has already been moved into native
+Query/foundational carriers. Native Query authoring must not be routed through
+the Foundational JSON compatibility bridge merely for convenience.
+
 `test-requirements.md`
 
 This migration is not done when the happy-path facade compiles. It is done when certification, replay, parity, and adversarial harnesses all prove that foundational-native carriers are the actual substrate.
@@ -331,13 +344,28 @@ An unlisted production `serde_json::Value` occurrence under
 it. Test JSON is tolerated only with an explicit debt note while production
 APIs are being replaced.
 
+JSON-as-aspect-truth is not an allowlist category for Query. If an external
+contract supplies JSON whose meaning is an aspect value/state/patch, the only
+approved compatibility path is Foundational's JSON bridge. A Query production
+file that imports `serde_json` for aspect compatibility must either disappear
+or be a tiny external boundary that immediately delegates to
+`forge_foundational::compatibility().json()` and returns native validated or
+authoritative artifacts. The current Query codebase has no approved production
+JSON-as-aspect compatibility boundary.
+
 Current production allowlist:
 
 | Module | Approved reason | Native authority carrier | Removal condition |
 | --- | --- | --- | --- |
-| None | No production `serde_json::Value` authority exception is currently approved | Native carriers must own authority before terminal projection or after test-only ingress | Any new production JSON use must add an explicit row before phase closeout |
+| `crates/forge-query/src/consumer_kit/support_snapshot/document/terminal_json_codec.rs` | External support snapshot documents are durable terminal artifacts; JSON is decoded only from `ForgeQueryExternalSupportSnapshotTerminalJsonDocument` and encoded only from validated native support snapshot documents | `ForgeQuerySupportSnapshotDocument` validates into `ForgeQuerySupportSnapshot`; native support snapshot rows own semantic authority before terminal export and after external ingress | Remove when support snapshot durability moves to a non-JSON external format or outside `forge-query`; `production_serde_json_is_confined_to_support_terminal_codecs` must be updated or fail |
+| `crates/forge-query/src/consumer_kit/support_pinning/document/terminal_json_codec.rs` | External support pin contracts are durable terminal artifacts consumed from checked-in downstream support pins; JSON is decoded only from `ForgeQueryExternalSupportPinContractTerminalJsonDocument` and encoded only from sealed native support pin contracts | `ForgeQuerySupportPinContractDocument` validates into `ForgeQuerySupportPinContract`; native pin requirements and observed rows own semantic authority before terminal export and after external ingress | Remove when support pin durability moves to a non-JSON external format or outside `forge-query`; `production_serde_json_is_confined_to_support_terminal_codecs` must be updated or fail |
 
-No other production JSON usage is pre-approved.
+No other production JSON usage is pre-approved. The allowlist is mechanically
+enforced by
+`consumer_kit::support_snapshot::tests::runtime_boundary::production_serde_json_is_confined_to_support_terminal_codecs`.
+The two surviving support terminal codecs are also mechanically barred from
+becoming local aspect compatibility bridges by
+`consumer_kit::support_snapshot::tests::runtime_boundary::support_terminal_json_codecs_do_not_become_aspect_compatibility_bridges`.
 
 ## Legacy authority baseline
 
@@ -5984,6 +6012,2769 @@ claims.
 - This is a Law 41 enforcement slice: aspect/touch proof can still be rendered
   into digest/report text, but consumers now cross a named admitted-proof or
   terminal-digest boundary. The compiler, not grep, owns the migration map.
+
+## Query support document terminal JSON boundary fence
+
+- Removed the neutral public support-document JSON vocabulary from consumer-kit
+  support snapshot and support pinning APIs. `from_json(...)`,
+  `to_canonical_json(...)`, `to_stable_json(...)`,
+  `load_support_snapshot_document(...)`, and
+  `load_support_pin_contract_document(...)` are no longer public or production
+  API names.
+- Replaced them with explicit terminal-boundary names:
+  `from_terminal_json_document(...)`,
+  `to_canonical_terminal_json_document(...)`,
+  `to_stable_terminal_json_document(...)`,
+  `load_support_snapshot_terminal_json_document(...)`, and
+  `load_support_pin_contract_terminal_json_document(...)`.
+- Support snapshot and pinning documents still use typed serde
+  encode/decode at the external durable-document boundary. The semantic
+  authority remains the typed support snapshot / support pin contract and their
+  digest validation; JSON strings are not accepted by native mutation,
+  materialization, effect, retained-row, or certification authority paths.
+- Added aspect-native compile-fail coverage:
+  `support_document_neutral_json_api_removed.rs` proves facade callers cannot
+  import the old neutral loaders or call the old neutral document JSON methods.
+- Verification covered `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query support_snapshot --lib`, focused green
+  `cargo test -p forge-query support_pinning --lib`, and green normal
+  `cargo test -p forge-query --test aspect_native_query_compile_fail`.
+- This is a Law 41 naming and boundary-enforcement slice: surviving document
+  JSON is explicitly terminal I/O, while support state remains sealed behind
+  typed document validation and cannot be mistaken for an ordinary authority
+  carrier.
+
+## Query support document carrier visibility fence
+
+- Removed `ForgeQuerySupportSnapshotDocument` and
+  `ForgeQuerySupportPinContractDocument` from public `consumer_kit`, facade,
+  and crate-root exports.
+- Made both document structs crate-private and narrowed
+  `ForgeQuerySupportSnapshot::to_document(...)` and
+  `ForgeQuerySupportPinContract::to_document(...)` to crate-private helpers.
+- Public callers now interact with native support snapshots / support pin
+  contracts, or with explicit terminal JSON document text through
+  `to_canonical_terminal_json_document(...)` and
+  `load_*_terminal_json_document(...)`. They cannot name, traffic in, or
+  attempt to construct the intermediate serde document carrier.
+- Refreshed support snapshot/pinning compile-fail fixtures so the document
+  boundary proof is now stronger than private fields: the document carrier is
+  absent from the public facade entirely.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, green normal
+  `cargo test -p forge-query --test support_snapshot_facade`, green normal
+  `cargo test -p forge-query --test support_pinning_facade`, green normal
+  `cargo test -p forge-query --test aspect_native_query_compile_fail`, focused
+  green `cargo test -p forge-query support_snapshot --lib`, and focused green
+  `cargo test -p forge-query support_pinning --lib`.
+- This is a Law 41 visibility fence around the surviving terminal JSON
+  exception: terminal durable document encoding still exists, but the
+  serde-shaped document carrier no longer crosses the public/native boundary as
+  a reusable authority object.
+
+## Query support terminal document text proof fence
+
+- Introduced explicit terminal-document text carriers:
+  `ForgeQuerySupportSnapshotTerminalJsonDocument` and
+  `ForgeQuerySupportPinContractTerminalJsonDocument`.
+- Changed support snapshot and support pinning terminal loaders to accept those
+  carriers instead of bare `&str`.
+- Changed canonical/stable support document export methods to return the
+  terminal-document carriers instead of anonymous strings.
+- Test-only document mutation helpers now wrap mutated JSON text in the
+  terminal carrier before calling the loader, making terminal ingress visible
+  at the call site.
+- Added `support_terminal_json_document_rejects_bare_string.rs` compile-fail
+  coverage proving facade callers cannot pass a raw string directly into either
+  terminal loader.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, green normal
+  `cargo test -p forge-query --test aspect_native_query_compile_fail`, focused
+  green `cargo test -p forge-query support_snapshot --lib`, focused green
+  `cargo test -p forge-query support_pinning --lib`, green
+  `cargo test -p forge-query --test support_snapshot_facade`, and green
+  `cargo test -p forge-query --test support_pinning_facade`.
+- This is a Law 41 transition-order fence for the remaining support JSON
+  exception: external terminal JSON text must be admitted as terminal-document
+  evidence before it can be lowered into native support snapshot or support pin
+  proof carriers.
+
+## Query aspect closeout JSON authority wording fence
+
+- Updated the executable aspect API closeout artifact and its closeout document
+  so they no longer teach that JSON removal is merely a future internal
+  rewrite underneath an otherwise-stable public facade.
+- The closeout now says terminal document JSON and external reference artifacts
+  are not native authority carriers, and downstream runtimes may build on Query
+  only while JSON-shaped authority remains forbidden.
+- Renamed the embedded Worth support-pin reference artifact constant to
+  `WORTH_QUERY_SUPPORT_PINS_TERMINAL_JSON_DOCUMENT`, making the remaining
+  `.json` reference visibly external/terminal instead of a neutral support-pin
+  authority source.
+- Verification covered green `cargo check -p forge-query --tests`, focused
+  green `cargo test -p forge-query runtime_public_aspect_api_finalization_closeout --lib`,
+  focused green `cargo test -p forge-query consumer_kit_closure --lib`, and
+  a production scan showing non-test `serde_json` calls only in support
+  snapshot/pinning terminal document encode/decode.
+- This is a current-contract cleanup, not broad documentation polish: the
+  runtime artifact that downstreams inspect now matches the aspect-native
+  direction instead of preserving stale JSON-lowering guidance.
+
+## Query phase-boundary raw JSON fixture cleanup
+
+- Removed stale raw `serde_json` construction from top-level phase-boundary
+  compile-fail fixtures that predated the aspect-native migration.
+- `runtime_aspect_mutation_privates_forbidden.rs` now proves callers cannot
+  construct `ForgeQueryAspectValue` through a struct literal instead of
+  teaching the removed path-plus-JSON field shape.
+- `runtime_payload_first_insert_command_missing.rs` now proves the
+  payload-first `ForgeQueryWriteCommand::Insert` variant is absent without
+  constructing a raw JSON payload.
+- Refreshed the affected trybuild stderr snapshots, including already-stale
+  compiler wording for graph composition and intent receipt phase-boundary
+  fixtures.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, and green normal
+  `cargo test -p forge-query --test phase_boundaries_compile_fail`.
+- This is a test-harness teaching cleanup: the compile-fail suite still proves
+  old authority paths are unavailable, but no longer demonstrates JSON payloads
+  as the example of how callers try to construct those paths.
+
+## Query support external terminal ingress proof split
+
+- Split the remaining support terminal JSON boundary into two Law 41 states:
+  native-derived terminal projection documents and weaker external terminal
+  ingress documents.
+- `ForgeQuerySupportSnapshotTerminalJsonDocument` and
+  `ForgeQuerySupportPinContractTerminalJsonDocument` are now produced only by
+  native support snapshot/contract export paths.
+- New external ingress carriers,
+  `ForgeQueryExternalSupportSnapshotTerminalJsonDocument` and
+  `ForgeQueryExternalSupportPinContractTerminalJsonDocument`, are the only
+  public types accepted by the support snapshot and support pin terminal
+  loaders.
+- Round-trip tests now explicitly cross from native terminal projection to
+  external terminal ingress with `to_external_terminal_json_document()`, making
+  the boundary visible instead of letting one JSON-shaped type satisfy both
+  sides.
+- The terminal support serde documents remain crate-private; public callers can
+  neither construct them nor pass a raw `&str` as loader authority.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, green normal
+  `cargo test -p forge-query --test aspect_native_query_compile_fail`, focused
+  green `cargo test -p forge-query support_snapshot --lib`, focused green
+  `cargo test -p forge-query support_pinning --lib`, green serial
+  `cargo test -p forge-query --test support_snapshot_facade`, and green serial
+  `cargo test -p forge-query --test support_pinning_facade`.
+- This is a stronger Law 41 fence than the prior terminal document wrapper:
+  exported terminal JSON, externally supplied terminal JSON, decoded support
+  documents, and validated native support proof carriers are now distinct
+  states in the type system.
+
+## Query embedded support pin terminal JSON source typing
+
+- Converted the embedded Worth `query_support_pins.json` reference from a
+  neutral `&str` source constant into
+  `ForgeQueryExternalSupportPinContractTerminalJsonDocument`.
+- Added a static external-terminal constructor to the external support terminal
+  document carriers, allowing embedded source artifacts to carry the same
+  external-ingress proof type as runtime-loaded terminal documents.
+- Changed consumer-kit closure certification source inventory rows to store
+  `ForgeQueryConsumerKitCertificationSourceText` instead of raw source text.
+  Ordinary source files use `StaticSource`; the Worth support pin JSON row uses
+  `ExternalSupportPinContractTerminalJsonDocument`.
+- Generic source digest code still projects text with `as_str()` because source
+  inventories digest text, but the inventory no longer stores the JSON row as
+  an anonymous source body.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query consumer_kit_closure --lib`, and focused green
+  `cargo test -p forge-query consumer_residue --lib`.
+- This is a narrow JSON authority exposure slice: the remaining embedded
+  `.json` path is still present because it is a real terminal artifact, but it
+  now enters Query through an external support-pin terminal document proof
+  state instead of an untyped string constant.
+
+## Query test backend schema aspect-touch storage
+
+- Converted `ForgeQueryTestBackendSchema` from retaining aspect labels as
+  `String` to retaining admitted `ForgeQueryAspectTouch` proof carriers.
+- The public ergonomic `aspect(label, external_projection_path)` method still
+  accepts authoring text, but it parses and admits the aspect touch at schema
+  construction time instead of storing the string and reparsing it during
+  workspace materialization.
+- `memory_aspects()` now lowers directly from the stored touch proof into
+  `ForgeQueryAspect::from_native_external_projection_path(...)`.
+- Public schema iteration now returns `(&ForgeQueryAspectTouch,
+  &CanonicalFieldPath)`, and the compile-fail fixture proves callers cannot
+  recover either the aspect label or projection path as `&str` authority.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query test_backend --lib`, green
+  `cargo test -p forge-query --test in_memory_test_backend_facade`, and green
+  normal `cargo test -p forge-query --test aspect_native_query_compile_fail`.
+- This is a Law 41 proof-retention slice: test backend schema admission now
+  consumes weaker authoring text and stores the stronger native aspect touch
+  state for downstream consumers.
+
+## Query graph obligation support-matrix static aspect proof
+
+- Converted support-matrix certification and selector-perturbation
+  representative aspect touches from static raw aspect-path parsing to native
+  `AspectKey` construction followed by `ForgeQueryAspectTouch::whole_aspect`.
+- Removed the local `aspect_touch(&str)` / `set_operation(&str)` helpers from
+  the support-matrix selector perturbation cases, so static `"capacity"` and
+  `"boundary"` examples no longer flow through the authoring parser at the
+  point where graph obligation proof fixtures are assembled.
+- The remaining collection names in these files are still collection selector
+  labels, not aspect authority. Aspect identity now enters the representative
+  mutation descriptors as foundational aspect-key proof.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query graph_obligation --lib`, focused green
+  `cargo test -p forge-query --test graph_obligation_consumer_kit_facade`, and
+  a targeted scan proving the support-matrix folder no longer contains the
+  removed `"capacity"` / `"boundary"` authoring-parser calls or raw aspect-path
+  helper names.
+- This is a Law 41 mechanical-enforcement slice: static certification fixtures
+  now build stronger native aspect-touch proof directly instead of relying on
+  late parsing of weaker dotted-string authoring text.
+
+## Query support hostile terminal JSON test quarantine
+
+- Removed the anonymous `TerminalSupport*DocumentJson = serde_json::Value`
+  aliases from support snapshot and support pinning tests.
+- Added test-only hostile terminal-document helpers under the support snapshot
+  and support pinning test modules. Raw `serde_json::Value` mutation now lives
+  only inside helpers named
+  `HostileSupportSnapshotTerminalDocument` and
+  `HostileSupportPinContractTerminalDocument`.
+- Rewrote support snapshot schema/digest/vocabulary denial tests and support
+  pinning stale/tampered/invalid contract document tests to use named terminal
+  mutation methods such as `replace_top_level_string`,
+  `replace_top_level_number`, `replace_first_row_string`, and
+  `replace_first_requirement_string`.
+- The tests still exercise malformed or hostile external terminal JSON, but
+  ordinary test bodies no longer index arbitrary JSON values or teach
+  `serde_json::Value` as a normal Query support substrate.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query support_snapshot --lib`, focused green
+  `cargo test -p forge-query support_pinning --lib`, and a support
+  snapshot/pinning scan showing raw `serde_json::Value` only in the production
+  terminal encode/decode files and the two explicitly named hostile terminal
+  document test helpers.
+- This is a test-harness teaching cleanup for the surviving support terminal
+  JSON exception: JSON mutation remains available only as hostile external I/O
+  evidence, not as an ordinary authority helper in support tests.
+
+## Query support terminal JSON codec boundary extraction
+
+- Moved the remaining production support snapshot and support pinning
+  `serde_json` encode/decode calls out of the semantic document roots and into
+  explicitly named `terminal_json_codec` modules.
+- `ForgeQuerySupportSnapshotDocument::from_terminal_json_document(...)` now
+  delegates to `support_snapshot/document/terminal_json_codec.rs`, and
+  `to_canonical_terminal_json_document(...)` delegates to the matching native
+  terminal projection encoder.
+- `ForgeQuerySupportPinContractDocument::from_terminal_json_document(...)` and
+  `to_canonical_terminal_json_document(...)` now do the same through
+  `support_pinning/document/terminal_json_codec.rs`.
+- The semantic document types still own validated support snapshot / support
+  pin document state and validation. Raw JSON parsing and pretty-printing are
+  now isolated to files whose names state the external terminal contract.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query support_snapshot --lib`, focused green
+  `cargo test -p forge-query support_pinning --lib`, green
+  `cargo test -p forge-query --test support_snapshot_facade`, green
+  `cargo test -p forge-query --test support_pinning_facade`, and a support
+  scan showing production `serde_json` calls only in the two
+  `terminal_json_codec.rs` modules.
+- This is a production boundary isolation slice: the remaining support JSON
+  exception is now physically boxed into terminal codec files instead of being
+  embedded in the document validation modules.
+
+## Query intent-admission certification native aspect touches
+
+- Removed static `ForgeQueryAspectTouch::from_authoring_path(...)` calls from
+  the intent-admission certification fixture directory.
+- Added fixture-root helpers `identity_id_touch()` and `title_value_touch()`
+  that construct `AspectKey`, `FieldKey`, `CanonicalFieldPath`, and then
+  `ForgeQueryAspectTouch::aspect_field_path(...)`.
+- Converted effect certification, routing probe/seed certification,
+  authoritative intent execution fixtures, and legacy/canonical effect
+  delegation parity fixtures to reuse those native touch helpers instead of
+  reparsing `"identity.id"` or `"title.value"` at each proof site.
+- The remaining `aspect_path` text in the fixture directory is a local
+  reporting/digest variable derived from an admitted touch, not an authority
+  constructor.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query intent_admission::certification --lib`, green
+  `cargo test -p forge-query --test intent_admission_public_dx`, and a fixture
+  directory scan showing no remaining `from_authoring_path` calls.
+- This is a Law 41 fixture-hardening slice: certification examples that
+  represent proven Query behavior now start from foundational aspect/field
+  proof carriers, not static dotted-string authoring text.
+
+## Query lower-runtime certification native aspect touches
+
+- Removed static `ForgeQueryAspectTouch::from_authoring_path(...)` calls from
+  the lower-runtime-routing certification surface fixture subtree.
+- Added shared lower-runtime representative touch helpers for
+  `title.value`, `status.value`, and `priority.value` that build
+  `AspectKey`, `FieldKey`, `CanonicalFieldPath`, and then
+  `ForgeQueryAspectTouch::aspect_field_path(...)`.
+- Converted write-authority, signal-invalidation, projection-query-receipt,
+  and causal-bridge representative fixtures to use those native helpers
+  instead of parsing static dotted aspect paths at proof assembly sites.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query lower_runtime_routing::certification --lib`,
+  focused green `cargo test -p forge-query lower_runtime_routing --lib`, and a
+  fixture subtree scan showing no remaining `from_authoring_path` calls.
+- This is another Law 41 fixture-hardening slice: lower-runtime certification
+  rows that claim boundary proof now construct aspect touches from foundational
+  proof carriers directly, rather than treating static authoring strings as
+  the source of truth.
+
+## Query backend receipt test native aspect touches
+
+- Removed static `ForgeQueryAspectTouch::from_authoring_path(...)` calls from
+  runtime backend receipt tests.
+- Added receipt-test helpers for `title.value` and `status.value` that build
+  `AspectKey`, `FieldKey`, `CanonicalFieldPath`, and then
+  `ForgeQueryAspectTouch::aspect_field_path(...)`.
+- Signal-invalidation routing receipt tests and bridge writeback effect-intent
+  tests now build representative touched aspects from foundational proof
+  carriers instead of parsing dotted strings at the assertion site.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query runtime::backend::receipts::tests --lib`, focused
+  green `cargo test -p forge-query bridge_writeback_effect_intent --lib`, and
+  a targeted scan showing no `from_authoring_path`, `title.value`, or
+  `status.value` residue in `runtime/backend/receipts_tests.rs`.
+- This is a test-fixture teaching cleanup: backend receipt tests now model
+  admitted aspect proof directly instead of reintroducing the old authoring
+  parser shape.
+
+## Query aspect API finalization harness native aspect touches
+
+- Removed static `ForgeQueryAspectTouch::from_authoring_path(...)` calls from
+  the aspect API finalization certification harness.
+- Added harness-level helpers for `identity.id`, `title.value`,
+  `description.value`, and `ui.batch_summary` that build `AspectKey`,
+  `FieldKey`, `CanonicalFieldPath`, and then
+  `ForgeQueryAspectTouch::aspect_field_path(...)`.
+- Converted canonical CRUD, typed-clear narrowing, batch, preview-batch, and
+  duplicate-authoring rejection rows to use those native proof helpers instead
+  of local `aspect_touch(&str)` parser helpers.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query aspect_api_finalization_certification --lib`,
+  focused green
+  `cargo test -p forge-query runtime_public_aspect_api_finalization_closeout --lib`,
+  and targeted harness scans showing no `from_authoring_path`,
+  `aspect_touch(...)`, or old dotted touch literal residue in the harness
+  subtree.
+- This is a Law 41 teaching-surface slice: the certification harness for the
+  public aspect API now constructs representative aspect touches through
+  foundational proof carriers, matching the story it certifies.
+
+## Query runtime API stabilization transcript native aspect lowering
+
+- Removed `ForgeQueryAspectTouch::from_authoring_path(...)` usage from the
+  runtime API stabilization transcript harness.
+- Added a shared `transcript_aspect_touch(...)` helper that lowers transcript
+  fixture path text through foundational `AspectKey`, `FieldKey`,
+  `CanonicalFieldPath`, and then
+  `ForgeQueryAspectTouch::aspect_field_path(...)`.
+- Converted golden transcript computed read/produce dependencies, effect
+  trigger/condition dependencies, authoritative transcript writes, and preview
+  proof writes to use that native lowering helper instead of local
+  `aspect_touch(...)` parser helpers.
+- Transcript specs still use text labels as fixture data because they model
+  user-facing transcript families, but aspect-touch construction no longer
+  delegates to Query's authoring-path parser as the authority source.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query runtime_api_stabilization --lib`, and a targeted
+  runtime-stabilization harness scan showing no remaining
+  `from_authoring_path` or `fn aspect_touch(...)` parser helpers.
+- This is a Law 41 transcript-harness slice: golden DX certification now lowers
+  transcript aspect data into native proof carriers before it reaches runtime
+  declarations and writes.
+
+## Query mutation evidence batch tests native aspect touch
+
+- Removed the remaining static `ForgeQueryAspectTouch::from_authoring_path(...)`
+  calls from mutation-evidence batch tests.
+- Added a `title_value_touch()` helper that builds `AspectKey`, `FieldKey`,
+  `CanonicalFieldPath`, and then
+  `ForgeQueryAspectTouch::aspect_field_path(...)` for verified existing-truth
+  assertion fixtures.
+- Existing-truth mode summary tests now use the native touch helper instead of
+  parsing `"title.value"` as authoring text.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query runtime::surface::mutation_evidence::batch --lib`,
+  focused green
+  `cargo test -p forge-query existing_truth_mode_summary --lib`, and a targeted
+  scan showing no `from_authoring_path` or `title.value` residue in the batch
+  evidence test file.
+- This is a test-proof cleanup: batch mutation evidence tests now construct the
+  touched aspect proof directly rather than re-teaching static dotted-string
+  admission.
+
+## Query graph-composition fixture native touch lowering
+
+- Removed the remaining graph-composition test fixture dependence on
+  `ForgeQueryAspectTouch::from_authoring_path(...)`.
+- Converted touch-descriptor, graph-obligation registration, and
+  graph-obligation index fixture helpers to lower fixture touch text through
+  foundational `AspectKey`, `FieldKey`, and `CanonicalFieldPath` before
+  constructing `ForgeQueryAspectTouch`.
+- The helper still accepts fixture text because some graph selector cases model
+  static aspect-field examples such as `topology.kind`, but the construction no
+  longer delegates authority to Query's authoring-path parser.
+- Cleaned the graph-composition fixture/test vocabulary so the subtree no
+  longer retains `aspect_path` parameter names for these touch helpers.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query graph_composition --lib`, focused green
+  `cargo test -p forge-query graph_obligation --lib`, and a targeted
+  graph-composition scan showing no remaining `from_authoring_path` or
+  `aspect_path` hits.
+- This is a Law 41 fixture-hardening slice: static graph-composition proof
+  examples now move through foundational touch proof construction instead of
+  re-teaching the old dotted-string parser path.
+
+## Query runtime support fixture native touch lowering
+
+- Removed `ForgeQueryAspectTouch::from_authoring_path(...)` from the shared
+  runtime test support helpers, graph-composition assertion support,
+  existing-truth verification adapter, command builder helper, and stop-class
+  representative error fixture.
+- Added a shared runtime-test `test_aspect_touch(...)` lowering path that
+  converts fixture touch text into foundational `AspectKey`, `FieldKey`, and
+  `CanonicalFieldPath` before constructing `ForgeQueryAspectTouch`.
+- Converted memory-workspace unit tests and consumer-kit test-backend behavior
+  tests to the same native fixture lowering pattern instead of local
+  authoring-parser helpers.
+- The remaining source `from_authoring_path(...)` hits are now production
+  authoring-ingress boundaries (`ForgeQueryTestBackendSchema`,
+  memory-workspace declaration admission), private parser implementation, or
+  compile-fail fixtures proving removed neutral helpers.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query runtime::tests::stop_class --lib`, focused green
+  `cargo test -p forge-query graph_composition --lib`, focused green
+  `cargo test -p forge-query memory_workspace --lib`, focused green
+  `cargo test -p forge-query test_backend --lib`, and a global parser scan
+  confirming no ordinary runtime/support/memory-workspace/consumer-kit
+  behavior test helpers still call `ForgeQueryAspectTouch::from_authoring_path`.
+- This is a test-surface teaching cleanup: broad runtime and consumer-kit
+  helpers still accept compact fixture text, but their proof construction now
+  flows through foundational native carriers instead of Query's legacy
+  authoring parser.
+
+## Query authored touch ingress boundary naming
+
+- Removed production `from_authoring_path(...)` vocabulary from Query aspect
+  touch admission.
+- Renamed the crate-private aspect-touch authoring boundary to
+  `ForgeQueryAspectTouch::admit_authoring_ingress_text(...)` and the parsed
+  target parser to `ForgeQueryParsedAspectTarget::parse_authoring_ingress_text(...)`.
+- Updated the two remaining production authoring-ingress callers,
+  `ForgeQueryTestBackendSchema::aspect(...)` and memory-workspace declared
+  aspect matching, to call the explicitly named ingress boundary.
+- After this slice, global `from_authoring_path(...)` hits under
+  `forge-query` are compile-fail fixtures for removed retained/projection
+  neutral helpers, not production aspect-touch authority.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query test_backend --lib`, focused green
+  `cargo test -p forge-query memory_workspace --lib`, and a global parser scan
+  proving production no longer contains `ForgeQueryAspectTouch::from_authoring_path`
+  or `ForgeQueryParsedAspectTarget::from_authoring_path`.
+- This is a naming/visibility enforcement slice: ergonomic text parsing still
+  exists where Query admits authored ingress, but the production API no longer
+  presents it as a neutral authority-construction path.
+
+## Query hostile support terminal test JSON carrier removal
+
+- Removed raw `serde_json::Value` carriers from the hostile support snapshot
+  and support pinning terminal-document test helpers.
+- The hostile helpers now start from native-produced terminal documents and
+  perform bounded scalar text substitutions for the small set of denial cases
+  they need to exercise.
+- Support tests still cover malformed external terminal JSON, stale vocabulary,
+  digest drift, invalid facade families, invalid support statuses, invalid
+  teaching postures, and blank required fields, but ordinary hostile helpers no
+  longer carry a general-purpose JSON object model.
+- After this slice, global `serde_json` hits under current Query source/tests
+  are limited to the two production support terminal codec files and three
+  compile-fail fixtures that intentionally try raw JSON APIs.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query support_snapshot --lib`, focused green
+  `cargo test -p forge-query support_pinning --lib`, and a global JSON scan
+  confirming hostile support test helpers no longer import `serde_json`.
+- This is a test-boundary cleanup for the final support terminal exception:
+  hostile external document tests remain, but they no longer teach
+  `serde_json::Value` as an ordinary support-document mutation substrate.
+
+## Query support terminal JSON allowlist enforcement
+
+- Replaced the stale "no production JSON allowlist" table with the actual two
+  surviving terminal codec exceptions:
+  `support_snapshot/document/terminal_json_codec.rs` and
+  `support_pinning/document/terminal_json_codec.rs`.
+- Added `production_serde_json_is_confined_to_support_terminal_codecs` to the
+  support snapshot runtime-boundary tests. The test scans production Rust
+  source under `crates/forge-query/src`, skips test-only source files, and
+  fails unless the only `serde_json` production files are the two named
+  terminal codecs.
+- The allowlist rows name the external terminal contract, the native authority
+  carrier before/after the boundary, and the removal condition for each codec.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query production_serde_json_is_confined_to_support_terminal_codecs --lib`,
+  focused green `cargo test -p forge-query support_snapshot --lib`, and a
+  global JSON scan showing production JSON confined to the terminal codecs.
+- This is mechanical containment for the remaining JSON island: new production
+  JSON cannot appear silently while the larger terminal-format removal decision
+  remains open.
+
+## Query Foundational JSON Compatibility Guard
+
+- Re-anchored the spec around Forge Foundational as both the source of aspect
+  truth and the source of transitional JSON compatibility. Query must not own
+  a generic JSON-as-aspect lowering lane.
+- Added
+  `support_terminal_json_codecs_do_not_become_aspect_compatibility_bridges`.
+  The test allows the two remaining `serde_json` terminal codecs to parse and
+  print durable support documents, but fails if either codec starts importing
+  foundational aspect contracts, aspect values, authoritative aspect carriers,
+  or Foundational JSON compatibility lowering markers.
+- After this slice, the production JSON position is explicit: Query currently
+  has no approved production JSON-as-aspect compatibility boundary. If one is
+  introduced later for a hard external contract, it must delegate immediately
+  to `forge_foundational::compatibility().json()` and return native validated
+  or authoritative artifacts.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green
+  `cargo test -p forge-query
+  support_terminal_json_codecs_do_not_become_aspect_compatibility_bridges
+  --lib`, and a production scan showing `serde_json` still confined to the two
+  support terminal codec files.
+- This is the Foundational-compatibility correction: support document JSON is
+  terminal I/O, not aspect truth. JSON that is aspect truth belongs to
+  Foundational's compatibility bridge, not to Query-local lowering code.
+
+## Query admitted aspect value proof-carrier rename
+
+- Renamed the remaining mutation value proof carrier from
+  `ForgeQueryAspectValue` to `ForgeQueryAdmittedAspectValue` across production
+  Query, facade exports, certification fixtures, integration tests, and
+  compile-fail fixtures.
+- Did not leave a compatibility alias. Any consumer still reaching for the old
+  weak name now fails to compile instead of being silently routed through a
+  neutral "aspect value" vocabulary.
+- The renamed carrier still stores parsed native desired-aspect state over
+  foundational `AspectValue`; JSON is not part of its semantic authority.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, green `cargo test -p forge-query
+  --test aspect_native_query_compile_fail`, focused green `cargo test -p
+  forge-query support_terminal_json_codecs_do_not_become_aspect_compatibility_bridges
+  --lib`, and a source/stderr scan showing no remaining
+  `ForgeQueryAspectValue` in Query code or compile-fail outputs.
+- This is a Law 41 naming and public-surface break: the carrier now advertises
+  the proof state it represents instead of reading like a generic aspect value
+  that could be reconstructed from weaker JSON or dotted-string inputs.
+
+## Query admitted aspect value scalar factory privacy
+
+- Removed the public `ForgeQueryAdmittedAspectValue::string(...)` scalar factory
+  that survived the proof-carrier rename. That method returned a raw
+  foundational `AspectValue`, not an admitted Query proof value, so it made the
+  admitted carrier look like a public weak-value constructor.
+- Replaced internal call sites with the crate-local
+  `ForgeQueryAdmittedAspectValue::native_string_value(...)` helper and updated
+  external integration fixtures to construct Foundational `AspectValue`
+  directly where they are asserting retained/public bridge scalar material.
+- Added the compile-fail fixture
+  `aspect_value_native_string_factory_private.rs`, proving facade consumers
+  cannot use the admitted proof carrier as a scalar factory.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, green `cargo test -p forge-query
+  --test aspect_native_query_compile_fail`, and a residue scan showing external
+  `native_string_value(...)` mentions only in the compile-fail fixture and its
+  expected stderr.
+- This is another Law 41 fence: public authoring text remains on
+  `ForgeQueryAuthoredAspectValue::string(...)`; admitted mutation proof no
+  longer doubles as a public lower-authority value factory.
+
+## Query memory workspace native field path vocabulary
+
+- Renamed the memory-workspace retained aspect carrier from
+  `external_projection_path` to `native_field_path` and removed the public
+  `external_projection_path()` accessor.
+- Renamed the cross-module constructor from
+  `from_native_external_projection_path(...)` to `from_native_field_path(...)`
+  so test-backend lowering hands memory workspace a retained
+  `CanonicalFieldPath` without preserving external/projection vocabulary as the
+  authority name.
+- Kept the test-backend `.aspect(label, projection_field_path_text)` parameter
+  as explicitly authoring-ingress text, then immediately lowers it into
+  `CanonicalFieldPath`; stored schema aspects and `schema.aspects()` expose the
+  native field-path proof, not string text.
+- Refreshed aspect-native compile-fail coverage so
+  `ForgeQueryAspect::external_projection_path()` is proven absent and
+  `native_field_path()` / test-backend schema aspect paths cannot be treated as
+  `&str`.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, green `cargo test -p forge-query
+  --test aspect_native_query_compile_fail`, focused green `cargo test -p
+  forge-query memory_workspace --lib`, focused green `cargo test -p
+  forge-query test_backend --lib`, and scans showing production
+  `external_projection_path`, `from_native_external_projection_path`, and
+  `external projection path` residue removed.
+- This is a Law 41 naming/enforcement slice: memory workspace and test-backend
+  schema now advertise the proven carrier they hold, while authoring text stays
+  visibly pre-proof ingress.
+
+## Query projection consumption aspect-key extraction
+
+- Changed query-read result row extraction so aspect values flow into
+  projection fact path construction as `AspectKey` carriers instead of
+  immediately projecting each key to an `aspect_path` string.
+- Replaced the private
+  `projection_fact_field_path_from_aspect_label(&str)` helper with
+  `projection_fact_field_path_from_aspect_key(&AspectKey)`. Terminal text is
+  now used only for diagnostic content after the native carrier reaches the
+  deliberate projection fact field-path boundary.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query projection_consumption --lib`, and a projection-consumption scan
+  showing the old `projection_fact_field_path_from_aspect_label`,
+  `aspect_path = aspect_key.as_str()`, and `projection fact aspect label`
+  vocabulary removed.
+- This is a narrow Law 41 extraction cleanup: an already-admitted row aspect
+  key is no longer weakened to string text before the field-path extraction
+  transition.
+
+## Query projection consumption native visibility key
+
+- Added crate-private `ProjectionFactAspectFieldKey`, derived only when a
+  requested `ProjectionFactFieldPath` proves the exact `aspect.field` shape.
+- Changed projection-consumption visibility admission so authorized projection
+  fields compare `AspectKey` and `FieldKey` carriers directly instead of
+  comparing `native_*().as_str()` against canonical field path segments.
+- Added
+  `visibility_admission_requires_exact_native_aspect_field_key`, proving an
+  authorized `profile.display_name` field does not admit a deeper
+  `profile.display_name.extra` request through loose path text matching.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo test -p forge-query projection_consumption --lib`, green
+  `cargo check -p forge-query --tests`, and a targeted scan showing the
+  projection-consumption `native_aspect_key().as_str() == ...` /
+  `native_field_key().as_str() == ...` visibility comparison is gone.
+- This is a Law 41 visibility-gate slice: the request path must first prove it
+  is a native aspect-field key before it can satisfy authorized projection
+  visibility.
+
+## Query projection consumption extraction carrier cleanup
+
+- Added private `ProjectionMaterializedField` for row-like extraction so
+  external relational/bridge field labels are lowered into
+  `ProjectionFactFieldPath` at the source boundary before entering the shared
+  row extractor.
+- Added private `ProjectionGroupedMember` for grouped extraction so grouped
+  membership and relation-endpoint extraction consume named row identity,
+  member identity, and grouping value fields instead of positional
+  `(&str, AspectValue, AspectValue)` tuples.
+- The bridge/relational read contract surfaces still expose terminal field
+  labels where those APIs require them, but the projection-consumption core no
+  longer uses `(&str, AspectValue)` or `(&str, AspectValue, AspectValue)`
+  iterator items as its retained extraction substrate.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo test -p forge-query projection_consumption --lib`, green
+  `cargo check -p forge-query --tests`, and targeted scans showing the old
+  row-like/grouped tuple iterator shapes removed from
+  `crates/forge-query/src/projection_consumption`.
+- This is a production Law 41 extraction cleanup: terminal field text is
+  admitted into a typed projection field carrier before shared fact extraction
+  consumes the row.
+
+## Query read-composition native identity anchor key
+
+- Replaced the read-composition scope classifier's direct
+  `native_aspect_key().as_str() == "identity"` /
+  `native_field_key().as_str() == "id"` checks with a local
+  `NativeIdentityAnchorPredicateKey` carrying foundational `AspectKey` and
+  `FieldKey` values.
+- The classifier still treats predicate family and value kind as existing
+  validated predicate metadata, but aspect identity no longer falls back to
+  text comparison when deciding whether a predicate is the local identity
+  anchor.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo test -p forge-query read_composition --lib`, green
+  `cargo check -p forge-query --tests`, and a targeted scan showing the
+  read-composition native-key string comparison was removed.
+- This is a Law 41 read-classification slice: a validated predicate's native
+  aspect and field carriers are now what prove identity-anchor status.
+
+## Query native key string-equality residue cleanup
+
+- Converted the intent-admission certification existing-truth probe fixture so
+  it matches requested probe fields against admitted `ForgeQueryAspectTouch`
+  fixtures (`identity_id_touch()` / `title_value_touch()`) instead of peeling
+  touches back into aspect/field text.
+- Updated policy delivery and policy narrowing assertions to compare
+  `AuthorizedProjectionFieldPath` or `(AspectKey, FieldKey)` carriers instead
+  of asserting absence through literal `native_*().as_str()` comparisons.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo test -p forge-query intent_admission --lib`, green `cargo test -p
+  forge-query policy_delivery --lib`, green `cargo test -p forge-query
+  policy_narrowing --lib`, green `cargo check -p forge-query --tests`, and a
+  targeted scan with no remaining direct native aspect/field key string
+  equality sites under `crates/forge-query/src`.
+- This is mechanical enforcement support for Law 41: code may still project
+  native keys for terminal reporting/digests, but this equality pattern can no
+  longer hide authority decisions behind text comparisons.
+
+## Query mutation metadata admitted-key storage
+
+- Changed `ForgeQueryMutationMetadata` storage from
+  `BTreeMap<String, ForgeQueryMutationMetadataValue>` to
+  `BTreeMap<ForgeQueryMutationMetadataKey, ForgeQueryMutationMetadataValue>`.
+- The public lookup and iterator fences already required typed metadata keys;
+  the internal map now preserves that admitted key proof instead of dropping
+  back to anonymous string storage after validation.
+- Duplicate detection and iteration now operate on
+  `ForgeQueryMutationMetadataKey` directly, projecting key text only for the
+  human-readable duplicate denial message.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query mutation_metadata --lib`, focused green `cargo test -p
+  forge-query write_receipt_inspection_retains_authored_mutation_metadata
+  --lib`, green `cargo test -p forge-query --test
+  aspect_native_query_compile_fail`, and a scan showing the raw metadata map
+  shape removed from production.
+- This is a Law 41 storage-shape closeout: metadata key admission is now
+  reflected in the retained carrier, not just in public accessors.
+
+## Query public bridge existing-truth native key harness
+
+- Replaced the public bridge runtime test harness existing-truth map key from
+  `(String, String, String)` to `PublicExistingTruthKey`, which retains the
+  existing-truth binding digest, target collection projection, and admitted
+  `ForgeQueryAspectTouch`.
+- Changed `seed_backend_authoritative_truth(...)` to accept
+  `ForgeQueryAspectTouch` instead of raw aspect-path text, so tests seed
+  existing truth with the same admitted aspect proof that verification/probe
+  requests use.
+- Updated graph-composition and public bridge runtime bootstrap tests to pass
+  native `touch(...)` fixtures into the seed helper. The returned seed record
+  still exposes `terminal_aspect_path_projection()` for reporting assertions,
+  but that projection no longer participates in the verification map key.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query --test public_bridge_runtime_bootstrap`, focused green
+  `cargo test -p forge-query --test graph_composition_public_bridge`, focused
+  green `cargo test -p forge-query --test
+  graph_composition_public_bridge_existing`, and scans showing the old
+  tuple-string existing-truth key plus raw-string seed calls removed.
+- This is a test-harness Law 41 cleanup: the public bridge certification
+  harness now models existing-truth verification over admitted aspect touches
+  instead of terminal aspect-path strings.
+
+## Query runtime test existing-truth native key adapter
+
+- Replaced the runtime test `TestExistingTruthVerificationAdapter` backing map
+  key from `(String, String, String)` to `TestExistingTruthKey`, retaining the
+  existing-truth binding digest, target collection projection, and admitted
+  `ForgeQueryAspectTouch`.
+- Kept `with_value(binding, touch_fixture, value)` ergonomic for tests, but the
+  fixture text now lowers once through `test_aspect_touch(...)` and storage
+  retains the native touch proof instead of `admitted_touch_digest_part()` text.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query bridge_backed_verification_execution --lib`, focused green
+  `cargo test -p forge-query graph_composition_verified_existing --lib`,
+  focused green `cargo test -p forge-query graph_composition_edge_split
+  --lib`, and scans showing the old tuple-key shape removed from the adapter.
+- This is the same Law 41 harness tightening as the public bridge seed map:
+  backend existing-truth verification tests now retain admitted aspect-touch
+  keys instead of terminal digest strings.
+
+## Query public bridge external-row native touch paths
+
+- Replaced the public bridge runtime test harness external-row writer path from
+  `ForgeQueryAspectTouch -> terminal dotted string -> CanonicalFieldPath` with
+  direct `ForgeQueryAspectTouch -> CanonicalFieldPath` derivation.
+- `apply_aspects_to_external_row(...)` now calls native touch setters/removers;
+  the row writer uses `native_aspect_key()` plus any native field path carried
+  by the admitted touch. Terminal dotted strings no longer participate in
+  public bridge row mutation.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query --test public_bridge_runtime_bootstrap`, focused green
+  `cargo test -p forge-query --test graph_composition_public_bridge`, focused
+  green `cargo test -p forge-query --test
+  graph_composition_public_bridge_existing`, focused green `cargo test -p
+  forge-query --test public_submission_lane_replacements`, and a scan showing
+  `terminal_aspect_path_projection`, string-path setters/removers, and
+  `admitted_touch_digest_part()` are gone from
+  `tests/support/public_bridge_runtime/external_row.rs`.
+- This closes another Law 41 test-harness weakness: public bridge external
+  rows are still a backend simulation artifact, but their mutation authority is
+  now the admitted aspect touch rather than a terminal path string.
+
+## Query intent-admission certification probe native matching
+
+- Removed control-flow dependence on `admitted_touch_digest_part()` from the
+  intent-admission certification runtime's existing-truth probe fixture.
+- The certification adapter now matches probed fields by inspecting
+  `ForgeQueryAspectTouch::native_aspect_key()` and
+  `ForgeQueryAspectTouch::native_field_path()` directly, preserving the
+  admitted touch as the decision carrier instead of formatting it into
+  `identity:id` / `title:value` strings and branching on those projections.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query intent_admission --lib`, focused green `cargo test -p
+  forge-query --test intent_admission_public_dx`, and a targeted scan showing
+  `admitted_touch_digest_part()` is gone from
+  `src/intent_admission/certification/fixtures/runtime.rs`.
+- This keeps digest projections in proof/evidence/reporting lanes while
+  removing one production-hosted certification fixture that had been using the
+  digest string as semantic branch authority.
+
+## Query graph-read predicate admission native lookup key
+
+- Replaced boolean predicate admission's raw
+  `BTreeMap<(String, String, String), ...>` lookup key with
+  `AdmittedPredicateKey`, retaining Foundational `AspectKey`, Foundational
+  `FieldKey`, and the local predicate family label.
+- Admitted predicate rows now enter the index through their native aspect and
+  field carriers. Declarative predicate filters are admitted into the same
+  typed key shape before lookup instead of comparing anonymous string triples.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query --test graph_read_access_phase_four_requirements`, focused green
+  `cargo test -p forge-query --test graph_read_access_phase_six_admission`,
+  focused green `cargo test -p forge-query --test
+  graph_read_access_phase_two_selectivity`, focused green `cargo test -p
+  forge-query --test graph_read_access_phase_four_operator_matrix`, and a
+  scan showing the raw `(String, String, String)` admitted predicate lookup
+  shape removed from Query source/tests.
+- This is a graph-read Law 41 storage/lookup cleanup: admitted schema
+  predicate references now keep their aspect/field proof through boolean
+  expression admission instead of being weakened to string tuples.
+
+## Query effect intent input native aspect-touch value
+
+- Added a private `ForgeQueryIntentInputValue::AspectTouch` variant so
+  effect-derived intent inputs retain `ForgeQueryAspectTouch` values inside the
+  input tree.
+- `ForgeQueryIntentInput::from_effect_payload(...)` now stores
+  `changed_aspects`, `input_aspects`, and `output_aspects` arrays as native
+  touch values instead of generic string values containing
+  `admitted_touch_digest_part()` projections.
+- Digest material still projects aspect touches into stable text at the final
+  digest boundary, but the pre-digest carrier is no longer an anonymous
+  `String` inside intent input.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query intent_admission --lib`, focused green `cargo test -p
+  forge-query effect --lib`, and a targeted scan showing the old
+  `ForgeQueryIntentInputValue::String(...admitted_touch_digest_part...)`
+  construction and `intent_input_string_array` helper are gone.
+- This is a Law 41 transition-order cleanup for effect-triggered intent
+  payloads: aspect touches remain native until digest serialization instead of
+  becoming generic intent strings during payload shaping.
+
+## Query batch touched-aspect native dedupe
+
+- Replaced digest-string keyed touched-aspect dedupe maps with native
+  `BTreeSet<ForgeQueryAspectTouch>` in batch write execution, batch receipt
+  aggregate derivation, and unified batch component inspection.
+- These paths still return ordered, deduplicated native touch vectors, but the
+  uniqueness rule is now enforced by the admitted touch carrier itself instead
+  of by `admitted_touch_digest_part()` string projections.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query batch --lib`, focused green `cargo test -p forge-query
+  inspection --lib`, focused green `cargo test -p forge-query --test
+  public_submission_lane_replacements`, and a scan showing digest-keyed
+  touched-aspect insertions removed from the converted runtime files.
+- This is a Law 41 mechanical enforcement slice for batch/inspection
+  aggregation: touch identity is now a native set membership fact, not a string
+  map key that happens to round-trip to a native touch afterward.
+
+## Query preview affected-target native routing maps
+
+- Replaced preview session affected-aspect propagation maps from
+  `BTreeMap<String, Vec<ForgeQueryAspectTouch>>` to maps keyed by
+  `ForgeQueryLiveArtifactTarget` and `ForgeQueryDerivedMaterializationTarget`.
+- Preview live/computed/effect routing still reports handle names in public
+  evidence, but internal propagation now routes changed aspect touches through
+  the existing native target wrappers instead of anonymous view-name strings.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query preview --lib`, focused green `cargo test -p forge-query effect
+  --lib`, focused green `cargo test -p forge-query --test
+  public_submission_lane_replacements`, and a scan showing the old
+  `BTreeMap<String, Vec<ForgeQueryAspectTouch>>` preview routing shape removed.
+- This is a scoped Law 41 routing cleanup: aspect-touch propagation across
+  preview live and computed surfaces is now indexed by typed Query artifact
+  targets, while terminal handle text remains at the reporting boundary.
+
+## Query focused-inspector denial native aspect retention
+
+- Changed view-shape live focused-inspector projection filtering so rejected
+  widening aspects are retained as Foundational `AspectKey` values until the
+  final diagnostic string is rendered.
+- `focus_projection(...)` already received a native focus aspect. Its failure
+  branch now returns rejected native aspect keys instead of weakening each
+  rejected key to `String` before the denial decision is built.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query focused_inspector_widening_is_denied_and_counted --lib`, and a
+  targeted scan showing `native_aspect_key().as_str().to_string()` removed
+  from `src/view_shape_live/execution.rs`.
+- This is a Law 41 denial-path cleanup: focused inspector widening rejection is
+  decided over native aspect identity, with string projection confined to the
+  human-readable error message.
+
+## Query retained evidence admitted-aspect-touch vocabulary
+
+- Renamed production evidence identity tags that still described admitted touch
+  material as `aspect_path` / `aspect_paths`.
+- Computed patch inspection, effect delivery inspection, preview execution
+  evidence, intent-admission symbolic aspect seeds, unified write/batch
+  inspection identities, graph-composition evidence, and batch mutation
+  evidence now use `admitted_aspect_touch` or `admitted_aspect_touches`.
+- The digest values still project admitted touches to stable text at the
+  evidence boundary, but retained evidence no longer teaches that those values
+  are free-form aspect paths.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query batch --lib`, focused green `cargo test -p forge-query effect
+  --lib`, focused green `cargo test -p forge-query preview --lib`, focused
+  green `cargo test -p forge-query intent_admission --lib`, and a production
+  scan showing `ForgeQueryEvidenceTag::new("aspect_path")` and
+  `ForgeQueryEvidenceTag::new("aspect_paths")` removed from
+  `crates/forge-query/src`.
+- This is a retained-evidence Law 41 cleanup: evidence rows now name the proof
+  state they are digesting instead of preserving the old dotted-path authority
+  vocabulary.
+
+## Query in-memory facade native row equivalence keys
+
+- Replaced the in-memory test-backend facade live-row equivalence carrier from
+  `Vec<(String, Option<AspectValue>)>` to
+  `Vec<(CanonicalFieldPath, Option<AspectValue>)>`.
+- The facade equivalence test still uses short authoring text to build
+  fixtures, but the assertion key is now the same native field-path carrier
+  used by retained rows.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query --test in_memory_test_backend_facade`, and a crate scan showing
+  the old `Vec<(String, Option<AspectValue>)>` shape removed.
+- This closes a test-harness Law 41 leak where bridge/in-memory row equality
+  was being proven against string field labels instead of native field-path
+  identity.
+
+## Query grouped row fixture native value carriers
+
+- Replaced grouped live/view-shape and milestone-eight certification
+  `GroupedRowFixture = (String, String, String)` aliases with named
+  `GroupedRowFixture` structs.
+- Fixture member identity remains the terminal record selector needed by the
+  bridge harness, but display and lane values are retained as foundational
+  `AspectValue` values produced through Query's native scalar helper instead
+  of anonymous string tuple slots.
+- Snapshot read helpers now ask the row fixture for the value corresponding to
+  the terminal bridge read contract. Terminal labels such as `identity.id`,
+  `profile.display_name`, and `status.lane` remain at the bridge read-contract
+  boundary, not as the retained row carrier shape.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo test -p forge-query view_shape_live --lib`, green `cargo test -p
+  forge-query milestone_eight_certification --lib`, green `cargo check -p
+  forge-query --tests`, and scans showing grouped row tuple aliases,
+  destructures, and string-tuple literals removed from those grouped harnesses.
+- This is a certification/test Law 41 cleanup: grouped fixtures now name the
+  proof-bearing row fields and retain native scalar values instead of relying
+  on positional string triples.
+
+## Query projection-policy native assertion keys
+
+- Replaced projection and policy test assertion helpers that converted
+  authorized field paths into `(String, String)` tuples.
+- `authorized_projection`, `policy_live`, and `policy_narrowing` tests now
+  compare `(AspectKey, FieldKey)` tuples cloned from
+  `AuthorizedProjectionFieldPath`.
+- Fixture authoring still uses short string literals, but the proof assertions
+  no longer weaken admitted projection fields to string labels before equality
+  checks.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query authorized_projection --lib`, focused green `cargo test -p
+  forge-query policy_live --lib`, focused green `cargo test -p forge-query
+  policy_narrowing --lib`, and a scan showing
+  `native_aspect_key().as_str().to_string()` /
+  `native_field_key().as_str().to_string()` removed from those three test
+  modules.
+- This is a test-certification Law 41 cleanup: policy projection proof checks
+  now assert over native aspect/field identity, not terminal string pairs.
+
+## Query integration fixture authored-touch ingress
+
+- Added a shared integration-test `support::aspect_touch(...)` helper as the
+  single root-level fixture ingress from short authored touch text to
+  `ForgeQueryAspectTouch`.
+- Replaced duplicated local `fn touch(aspect_path: &str)` parsers across the
+  public bridge, graph read, intent DX, in-memory backend, public submission,
+  hostile graph fixture, and public-bridge hostile support tests.
+- Renamed the remaining graph-obligation local wrapper vocabulary from
+  `aspect_path` to `authored_touch_text`. That fixture keeps a local parser
+  because its module tree cannot import the root `tests/support` module without
+  pulling in submodules that rely on a different crate-root topology.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green integration runs for
+  `graph_composition_public_bridge`,
+  `graph_composition_public_bridge_existing`,
+  `runtime_backed_read_bootstrap`, `public_bridge_runtime_bootstrap`,
+  `graph_read_access_phase_eight_ephemeral_provisioning`,
+  `graph_read_access_phase_nine_streaming_frontier`,
+  `graph_read_access_phase_thirteen_live_maintenance`,
+  `in_memory_test_backend_facade`, `public_submission_lane_replacements`,
+  `graph_obligation_consumer_kit_facade`,
+  `graph_obligation_hostile_certification`, and `intent_admission_public_dx`.
+- A test-source scan now shows no local `fn touch(aspect_path: &str)`, no
+  `fn set_operation(aspect_path: &str)`, no old `test/fixture aspect path`
+  parser messages, and no `AspectKey::new(segment.to_string())` /
+  `FieldKey::new(segment.to_string())` parser clones under
+  `crates/forge-query/tests`.
+- This is a mechanical test-harness cleanup: tests still get ergonomic authored
+  touch fixtures, but the dotted-text lowering is centralized and named as
+  authoring ingress instead of being reimplemented as ad hoc aspect-path
+  authority in every integration test.
+
+## Query boundary reporting admitted-touch cleanup
+
+- Replaced the test-backend schema duplicate-aspect diagnostic helper from
+  `terminal_projection_from_aspect_touch(...)` to
+  `reporting_projection_from_admitted_touch(...)`.
+- The schema already stored `ForgeQueryAspectTouch`; duplicate diagnostics now
+  report the admitted touch digest from that carrier instead of rebuilding a
+  terminal dotted aspect path from native keys.
+- Renamed the public bridge existing-truth seed reporting helper from
+  `terminal_aspect_path_projection(...)` to
+  `admitted_aspect_touch_reporting_projection(...)` and changed the assertion
+  to the admitted-touch reporting form.
+- Simplified public bridge and stateful bridge external-row boundary lowering
+  so `FieldKey::new(...)` receives the native aspect key text directly instead
+  of explicitly allocating `native_aspect_key().as_str().to_string()`.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, focused green `cargo test -p
+  forge-query test_backend --lib`, focused green `cargo test -p forge-query
+  --test public_bridge_runtime_bootstrap`, focused green `cargo test -p
+  forge-query --test public_submission_lane_replacements`, and focused green
+  `cargo test -p forge-query bridge_backed_verification_execution --lib`.
+- Source scans now show no
+  `native_aspect_key().as_str().to_string()`,
+  `native_field_key().as_str().to_string()`, or
+  `terminal_aspect_path_projection(...)` under production or non-UI test
+  sources. The only `terminal_aspect_path_projection(...)` mentions left are
+  compile-fail fixtures that prove those public APIs remain removed.
+- This closes the remaining boundary/reporting old-vocabulary leaks without
+  adding a public terminal projection API or weakening the crate-private
+  admitted-touch digest fence.
+
+## Query crate-wide JSON residue enforcement
+
+- Added
+  `consumer_kit::support_snapshot::tests::runtime_boundary::rust_source_serde_json_residue_stays_terminal_or_compile_fail_only`.
+  This scans every Rust source file under the `forge-query` crate root and
+  fails unless `serde_json` appears only in the two approved support terminal
+  codecs, the guard file itself, or the deliberately hostile compile-fail
+  fixtures that prove raw JSON cannot enter retained rows, derived patches, or
+  program operation inputs.
+- Added
+  `consumer_kit::support_snapshot::tests::runtime_boundary::query_sources_do_not_define_local_foundational_json_compatibility_bridge`.
+  This keeps Query from quietly adding `JsonCompatibility*`,
+  `compatibility().json()`, or `lower_json_*` usage as an unapproved local
+  aspect-compatibility bridge. The current policy remains that external
+  JSON-as-aspect lowering belongs in Foundational before Query receives native
+  artifacts.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query
+  rust_source_serde_json_residue_stays_terminal_or_compile_fail_only --lib`,
+  and green focused `cargo test -p forge-query
+  query_sources_do_not_define_local_foundational_json_compatibility_bridge
+  --lib`.
+- This is a mechanical enforcement slice: it does not remove the two approved
+  durable terminal document codecs, but it prevents ordinary production or
+  certification code from regrowing JSON authority without deliberately
+  changing the checked allowlist.
+
+## Query certification fixture aspect-path vocabulary cleanup
+
+- Renamed the runtime API stabilization transcript touch helper parameter from
+  `aspect_path` to `authored_touch_text` and its live field helper parameter to
+  `authored_field_text`.
+- Renamed the remaining computed-test update helper parameter from
+  `aspect_path` to `authored_touch_text`.
+- These helpers already lower into `AspectKey`, `FieldKey`,
+  `CanonicalFieldPath`, `AspectFieldKey`, or `ForgeQueryAspectTouch`; the
+  cleanup removes stale authority vocabulary from src-hosted certification and
+  computed test support.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query runtime_api_stabilization --lib`, green focused
+  `cargo test -p forge-query computed --lib`, green `cargo check -p
+  forge-query --tests`, and a targeted scan showing no `fn .*aspect_path`,
+  `aspect_path:`, `let aspect_path`, or old runtime-transcript aspect-path
+  messages under Query Rust sources except the explicitly terminal computed
+  projection helper.
+
+## Query effect live-trigger target carrier cleanup
+
+- Renamed `ForgeQueryRuntime::live_view_targets()` to
+  `live_artifact_target_collections()` and changed its map key from raw live
+  view-name `String` to `ForgeQueryLiveArtifactTarget`.
+- Changed effect delivery routing so live-trigger lookup constructs the same
+  `ForgeQueryLiveArtifactTarget` carrier used by mutation receipts, preview
+  routing, and live artifact bindings before it reaches the declared collection
+  comparison.
+- This does not pretend the live artifact target owns the collection identity;
+  the collection text still comes from the live declaration request and is used
+  only at the receipt-delta boundary. The improvement is that live-trigger
+  routing no longer treats arbitrary live-view strings as the map authority for
+  affected live artifacts.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query effect --lib`, green `cargo check -p
+  forge-query --tests`, and a targeted scan showing the removed
+  `live_view_targets(...)` helper gone from the converted routing files.
+
+## Query verified-assumption native touch breadth cleanup
+
+- Changed `ForgeQueryVerificationReadSetBreadth::new(...)` so distinct
+  asserted aspect touch counting dedupes `ForgeQueryAspectTouch` carriers
+  directly instead of first projecting every touch through
+  `admitted_touch_digest_part()`.
+- Removed the graph-composition assumption summary helper named
+  `native_asserted_aspect_touch_digest_parts(...)`; assumption summary evidence
+  now keeps the collected `ForgeQueryAspectTouch` values and formats them only
+  at the final `field_value_sequence(...)` digest boundary.
+- This keeps verification-read-set breadth counters and graph-composition
+  assumption summary construction native through counting/aggregation, while
+  preserving existing digest material at the terminal evidence identity layer.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  graph_composition --lib`, green focused `cargo test -p forge-query
+  bridge_backed_verification_execution --lib`, green focused `cargo test -p
+  forge-query graph_composition_verified_existing --lib`, and a targeted scan
+  showing the removed digest-helper/string-dedupe pattern gone.
+
+## Query effect payload terminal touch digest vocabulary cleanup
+
+- Renamed `native_touch_digest_sequence(...)` to
+  `terminal_touch_digest_projection_sequence(...)` in the effect delivery
+  helpers.
+- `ForgeQueryEffectPayload` already retains input, output, and changed aspects
+  as `ForgeQueryAspectTouch` values; the helper only joins admitted touch
+  digest parts for terminal digest/evidence material. The helper name makes
+  that final string projection explicit instead of calling it native.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query effect --lib`, green `cargo check -p
+  forge-query --tests`, and a targeted scan showing the old helper name gone
+  from runtime effect sources.
+
+## Query terminal aspect-touch digest helper vocabulary cleanup
+
+- Renamed remaining helper functions that projected admitted aspect touches into
+  strings while calling the result `native`:
+  `native_aspect_digest_parts(...)` became
+  `terminal_aspect_touch_digest_parts(...)` in the consumer test-backend
+  equivalence report and effect-triggered intent handoff binding identity.
+- Renamed graph obligation registration
+  `native_touch_digest_parts(...)` to `terminal_touch_digest_parts(...)`.
+  Selector matching and lookup still retain `ForgeQueryAspectTouch` carriers;
+  this helper is used only while composing selector evidence identity material.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query intent_admission --lib`, green focused
+  `cargo test -p forge-query graph_obligation --lib`, green focused
+  `cargo test -p forge-query test_backend --lib`, green `cargo check -p
+  forge-query --tests`, and a targeted source scan showing the old helper names
+  gone.
+
+## Query same-batch symbolic target carrier cleanup
+
+- Added internal `ForgeQuerySameBatchSymbolicTarget` with private fields and
+  read-only accessors for resolved same-batch symbolic target identity and
+  optional target collection.
+- Converted authoritative batch symbolic admission, resolution, symbolic aspect
+  evidence rebuilding, and backend atomic-batch deferred target tracking from
+  `BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>` to the named
+  carrier.
+- Converted preview batch symbolic admission and staged symbolic target
+  resolution to the same internal carrier, so preview and authoritative lanes
+  no longer maintain parallel anonymous tuple target folklore.
+- This is a Law 41 enforcement slice: unresolved/mismatched symbolic target
+  validation still happens at the resolution transition, and downstream update,
+  delete, receipt, and symbolic-aspect evidence code now receives a proven
+  resolved target object instead of reconstructing meaning from tuple slots.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query batch --lib`, green focused `cargo test -p
+  forge-query preview --lib`, green `cargo check -p forge-query --tests`, and
+  a targeted scan showing no remaining `(ForgeQueryEntityIdentity,
+  Option<String>)` same-batch symbolic target maps under
+  `crates/forge-query/src/runtime`.
+
+## Query grouped execution lane identity carrier cleanup
+
+- Changed `GroupedExecutionLaneValue` to retain the existing native
+  `GroupedLaneIdentity` carrier instead of duplicating `AspectKey` plus lane
+  text fields locally.
+- Kept the public grouped execution accessors intact while adding a native lane
+  identity accessor for downstream code that needs the complete proof-bearing
+  lane value.
+- Grouped execution, grouped baseline, desired-state construction, and grouped
+  delta comparison now share the same lane identity vocabulary after truth-view
+  materialization.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query view_shape_live --lib`, and green `cargo check
+  -p forge-query --tests`.
+
+## Query collection ordering native key constructor cleanup
+
+- Added `OrderingKeyPath::from_native_keys(...)` for validated ordering entries
+  that already carry Foundational `AspectKey` and `FieldKey` values.
+- Changed collection planning to build ordering key paths from cloned native
+  keys instead of projecting validated keys through `as_str()` and reparsing
+  them with the weaker text constructor.
+- The existing text constructor remains for authoring/default construction, but
+  validated query-bundle lowering no longer recovers ordering identity from
+  terminal key text after validation has already produced native carriers.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query collection --lib`, and green `cargo check -p
+  forge-query --tests`.
+
+## Query live relevance native field-key constructor cleanup
+
+- Added `QueryFieldKey::from_native_keys(...)` for validated live relevance
+  fields that already carry Foundational `AspectKey` and `FieldKey` values.
+- Changed detail, ordered collection, and bounded materialization live
+  relevance contracts to preserve native projection/ordering field keys from
+  validated query bundles instead of projecting them through `as_str()` and
+  reparsing with the weaker authoring constructor.
+- Added `QueryFieldKey::terminal_digest_part(...)` and routed detail field
+  patch digest formatting through that terminal formatter, so the remaining
+  text projection is explicitly evidence material rather than relevance
+  authority.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query live --lib`, green `cargo check -p forge-query
+  --tests`, and a targeted scan showing the old live relevance
+  `entry.native_*().as_str()` reparse pattern removed.
+
+## Query effect aspect admission native-boundary cleanup
+
+- Removed the `validate_declared_effect_aspects(...)` runtime helper that
+  projected each `ForgeQueryAspectTouch` through
+  `native_aspect_key().as_str().is_empty()` during effect declaration
+  admission.
+- Effect admission still rejects empty trigger/input/output aspect lists, but
+  individual aspect validity now comes from the native `ForgeQueryAspectTouch`
+  / Foundational `AspectKey` construction boundary instead of an impossible
+  post-hoc string check.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query effect --lib`, green `cargo check -p
+  forge-query --tests`, and a targeted scan showing the removed effect
+  validator and native-key string emptiness check are gone.
+
+## Query aspect-field native lowering boundary cleanup
+
+- Added crate-private `AspectFieldKey::native_aspect_key()` and
+  `AspectFieldKey::native_field_key()` as the single authoring-name to
+  Foundational-key lowering boundary for admitted aspect field keys.
+- Converted read obligation dispatch, preview aspect touch derivation, and live
+  subscription delivery routing to use that named boundary instead of each
+  consumer rebuilding `AspectKey` / `FieldKey` from `field.aspect().as_str()`
+  and `field.field().as_str()`.
+- This keeps the unavoidable authoring-to-native transition in one place and
+  removes three runtime consumers that were reconstructing native proof from
+  text after declarative read/live/preview admission.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query read_obligation_dispatch --lib`, green focused
+  `cargo test -p forge-query preview --lib`, green focused `cargo test -p
+  forge-query live --lib`, green `cargo check -p forge-query --tests`, and a
+  targeted scan showing the repeated runtime `AspectKey::new(field.aspect()
+  .as_str())` / `FieldKey::new(field.field().as_str())` pattern removed.
+
+## Query graph composition terminal operation digest vocabulary cleanup
+
+- Renamed the graph composition helper
+  `native_declared_aspect_operation_digest_part(...)` to
+  `terminal_declared_aspect_operation_digest_part(...)` in obligation
+  registration selector helpers, lookup-key material, and touch descriptor row
+  digest construction.
+- Behavior is unchanged: `ForgeQueryAspectMutationOperation` remains the
+  native operation carrier, and the produced string is terminal selector,
+  digest, and evidence material rather than native authority.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query graph_obligation --lib`, green focused
+  `cargo test -p forge-query graph_composition --lib`, green `cargo check -p
+  forge-query --tests`, and a targeted scan showing no
+  `native_declared_aspect_operation_digest_part` residue under graph
+  composition.
+
+## Query terminal digest material vocabulary root break
+
+- Mechanically renamed the high-fanout `native_digest_material()` helper family
+  to `terminal_digest_material()` across admitted aspect values, desired aspect
+  values, effect payloads, mutation lowering, backend mutation authority,
+  assertion construction, intent handoff bindings, and verification adapters.
+- Renamed the coupled `aspect_value_native_digest_text(...)` formatter to
+  `terminal_aspect_value_digest_text(...)`, making the `AspectValue` carrier
+  native while the formatted string is explicitly terminal digest/evidence
+  material.
+- Renamed internal row and metadata formatter helpers from
+  `native_digest_text`, `native_digest_parts`, and
+  `native_result_digest_parts` to terminal vocabulary where they produce
+  evidence strings from already-native carriers.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query mutation --lib`, green focused `cargo test -p
+  forge-query effect --lib`, green focused `cargo test -p forge-query computed
+  --lib`, green `cargo test -p forge-query --test
+  aspect_native_query_compile_fail`, green `cargo check -p forge-query
+  --tests`, and residue scans showing no remaining
+  `native_digest_material`, `aspect_value_native_digest_text`,
+  `native_digest_text`, `native_digest_parts`, or
+  `native_result_digest_parts` helper names.
+
+## Query existing-truth denial terminal value digest fence
+
+- Renamed `ForgeQueryExistingTruthAssertionDenial`'s stored
+  `expected_native_value_digest` and `found_native_value_digest` strings to
+  `expected_terminal_value_digest` and `found_terminal_value_digest`.
+- Renamed the public denial accessors to
+  `expected_terminal_value_digest()` and `found_terminal_value_digest()`, so
+  consumers cannot treat terminal digest strings as native value authority.
+- Renamed the existing-truth denial evidence tags from
+  `expected_native_value` / `found_native_value` to
+  `expected_terminal_value` / `found_terminal_value`, and renamed the mutation
+  lowering row value tag from `native_value` to `terminal_value`.
+- Added `assertion_denial_native_value_digest_alias_removed.rs` compile-fail
+  coverage proving facade callers cannot use the old native-value digest
+  accessors and are directed to the terminal accessors instead.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query verify_existing --lib`, green focused
+  `cargo test -p forge-query verified_update_existing --lib`, green focused
+  `cargo test -p forge-query verified_delete_existing --lib`, green
+  `cargo test -p forge-query --test aspect_native_query_compile_fail`, green
+  `cargo check -p forge-query --tests`, and residue scans showing no remaining
+  `expected_native_value_digest`, `found_native_value_digest`,
+  `native_value_digest`, `expected_native_value`, `found_native_value`, or
+  `native_value` evidence tag usage in Query Rust sources.
+
+## Query grouped binding native source-key constructor cleanup
+
+- Added `AspectFieldKey::from_native_keys(...)` as the named crate-local bridge
+  for constructing authoring field keys from already-native foundational
+  `AspectKey` and `FieldKey` values.
+- Replaced grouped planning identity-binding checks that compared
+  `native_source_aspect_key().as_str()` and
+  `native_source_field_key().as_str()` with equality against native
+  `AspectKey` / `FieldKey` carriers.
+- Replaced `QueryResultBindingProof::new(String/String, ...)` with
+  `QueryResultBindingProof::from_native_source_keys(&AspectKey, &FieldKey, ...)`
+  so grouped planning cannot rebuild binding proofs from arbitrary terminal
+  text.
+- Remaining string projection inside the constructor is localized to creating
+  the terminal composite binding aspect key / authoring field key; grouped
+  planning authority now flows through the native source keys.
+- Verification passed: `cargo check -p forge-query --tests`, and a targeted
+  scan showing no remaining `QueryResultBindingProof::new` or grouped planning
+  `native_source_*().as_str()` comparisons.
+
+## Query projection-consumption native grouping-aspect oracle cleanup
+
+- Changed projection-consumption grouped oracle comparison helpers so membership
+  entries accept `&AspectKey` and relation-endpoint entries accept
+  `Option<&AspectKey>` instead of arbitrary grouping-aspect text.
+- Localized the final string conversion behind
+  `terminal_grouping_aspect_digest_part(...)`, making the terminal projection a
+  digest boundary instead of a caller-supplied authority input.
+- Converted the structured-content validation fixture to compare
+  `native_source_aspect_key()` / `native_source_field_key()` against
+  foundational `AspectKey` / `FieldKey` values instead of comparing their
+  `.as_str()` projections to `"content"` / `"bio"`.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query projection_consumption --lib`, green focused
+  `cargo test -p forge-query validation_cases --lib`, green
+  `cargo check -p forge-query --tests`, and a targeted scan showing no old
+  grouped oracle `grouping_aspect().as_str()` handoff or structured-content
+  `native_source_*().as_str()` comparison residue.
+
+## Query grouped support native claim-admission cleanup
+
+- Converted grouped shared-posture support admission away from string decisions:
+  `SharedMaterialPreview` now compares `ForgeQueryGroupedIntent::Authoritative`
+  directly, and `SharedContinuity` now compares
+  `ForgeQueryGroupedContinuityAssumption::PreserveNeighborhood` directly.
+- Replaced grouped support `AspectFieldKey` matching through
+  `key.aspect().as_str()` / `key.field().as_str()` with equality against an
+  `AspectFieldKey` built from foundational `AspectKey` / `FieldKey` carriers.
+- Removed the local `aspect_field_key_matches(...)` helper so support-claim
+  admission cannot accidentally accept arbitrary aspect/field labels as proof.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query grouped_authoring --lib`, green
+  `cargo check -p forge-query --tests`, and a targeted scan showing the old
+  grouped-support string comparison patterns removed.
+
+## Query memory workspace native declared-aspect alias cleanup
+
+- Replaced memory workspace declared-aspect matching that reparsed
+  `native_field_path` through a terminal dotted string with direct construction
+  of a native `ForgeQueryAspectTouch::aspect_field_path(...)` alias.
+- Removed the local `parsed_aspect_touch(...)` helper and deleted the now-dead
+  workspace terminal field-path projection helper, so declared-aspect matching
+  no longer recovers an admitted touch from display text after the workspace
+  already has native `AspectKey` / `CanonicalFieldPath` carriers.
+- Left `memory_workspace/entity_row.rs` terminal field-path formatting in place
+  because it is only used for `terminal_result_digest_parts()` digest/report
+  material, not for workspace declaration matching.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query memory_workspace --lib`, green focused
+  `cargo test -p forge-query test_backend --lib`, green
+  `cargo check -p forge-query --tests`, and targeted scans showing
+  `parsed_aspect_touch(...)` gone from the memory workspace.
+
+## Query stateful bridge grouped baseline native projection selection cleanup
+
+- Changed the stateful bridge runtime test backend grouped baseline member
+  extraction so it selects identity and grouping projection fields by native
+  `AspectKey` values from `DeclarativeProjectionField::source_field_key()`
+  instead of comparing `field.aspect()` against terminal grouping aspect text.
+- Added `external_row_text_at_path(...)` for named external-row terminal lookup
+  from an already-built native `CanonicalFieldPath`, then deleted the stale
+  dotted-path `external_row_text(...)` / `native_external_field_path(...)`
+  helpers from the stateful bridge write support.
+- The remaining aspect-as-field conversion is localized inside
+  `native_external_field_path_for_touch(...)`, which is the test backend's
+  explicit external-row compatibility boundary.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo test -p forge-query --test public_bridge_runtime_bootstrap`, green
+  `cargo test -p forge-query --test runtime_backed_read_bootstrap`, green
+  focused `cargo test -p forge-query live_grouped --lib`, green focused
+  `cargo test -p forge-query runtime::tests::live --lib`, green
+  `cargo check -p forge-query --tests`, and a targeted scan showing the old
+  grouped baseline `grouping_aspect_text` / dotted-path helper residue removed
+  from the stateful bridge runtime support.
+
+## Query same-batch symbolic collection carrier cleanup
+
+- Changed `ForgeQuerySameBatchSymbolicTarget` so resolved same-batch symbolic
+  targets retain `ForgeQueryMutationTargetCollectionIdentity` instead of
+  `Option<String>` collection text.
+- Converted authoritative batch execution, atomic-batch planning/rebuild,
+  preview-batch preflight, preview symbolic receipt construction, and command
+  declared-collection identity derivation to pass collection proof carriers
+  through the symbolic target flow.
+- Left string projection only at explicit bridge, memory-delta, receipt, and
+  denial-message boundaries. Collection mismatch checks now compare the labels
+  from admitted collection identity carriers because the evidence identity is
+  role-scoped by construction.
+- Added
+  `symbolic_target_reference_denies_collection_mismatch_with_native_target_identity`,
+  proving authoritative same-batch symbolic resolution denies a typed
+  collection mismatch while preserving the native resolved-target carrier
+  through admission.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query symbolic_reference --lib`, green focused
+  `cargo test -p forge-query preview_branch_obligation_dispatch --lib`, green
+  focused `cargo test -p forge-query batch --lib`, green `cargo check -p
+  forge-query --tests`, and a targeted scan showing the old
+  `BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>` symbolic
+  target shape no longer appears in the converted runtime symbolic paths.
+
+## Query retained projection source target carrier cleanup
+
+- Changed projection-consumption source construction for retained derived
+  artifact bindings and live artifact bindings to build source-reference
+  identities from `ForgeQueryDerivedMaterializationTarget` and
+  `ForgeQueryLiveArtifactTarget` carriers instead of consuming
+  `terminal_target_view_names_projection()` iterators.
+- This aligns `ProjectionConsumptionSource::from_retained_derived_artifact_binding`
+  and `ProjectionConsumptionSource::from_live_artifact_binding` with the
+  retained/live extraction paths, which already iterate `binding.targets()`.
+- The only remaining view-name string projection in this path is the explicit
+  source-reference identity formatting boundary via each target's
+  `terminal_view_name_projection()`.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query retained_binding_declaration_preserves_binding_identity_and_target_refs --lib`,
+  green focused `cargo test -p forge-query retained_live --lib`, green
+  focused `cargo test -p forge-query projection_consumption --lib`, green
+  `cargo check -p forge-query --tests`, and a targeted scan showing
+  `terminal_target_view_names_projection()` gone from projection-consumption
+  source construction and extraction.
+
+## Query graph composition collection carrier cleanup
+
+- Changed `ForgeQueryGraphCompositionProgramStep` so declared collection state
+  is stored as `Option<ForgeQueryMutationTargetCollectionIdentity>` instead of
+  raw `String` text. `declared_collection_identity()` is now the native carrier
+  accessor; `declared_collection()` remains only as a terminal/reporting
+  projection.
+- Converted graph-composition builder symbolic entity/relation declarations,
+  symbolic followups/retirements, duplicate-symbol denials, existing-target
+  lifecycle steps, retarget/supersession denial helpers, and workspace graph
+  error mapping to pass target collection identities instead of terminal
+  collection strings.
+- Updated graph touch descriptor validation and touch-row derivation to compare
+  and derive from command/program collection identity carriers, projecting to
+  strings only for denial messages and descriptor rows.
+- Converted graph obligation/touch descriptor fixtures and stop-class graph
+  denial fixtures that directly constructed program steps or denials to use
+  `ForgeQueryMutationTargetCollectionIdentity` carriers.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check -p
+  forge-query --tests`, green focused `cargo test -p forge-query
+  graph_composition --lib`, green focused `cargo test -p forge-query
+  graph_obligation --lib`, and a targeted scan showing the chased
+  graph-composition collection string projections removed.
+
+## Query mutation receipt target evidence carrier cleanup
+
+- Changed `ForgeQueryMutationTargetDescriptor::new(...)` to accept
+  `Option<ForgeQueryMutationTargetCollectionIdentity>` instead of
+  `Option<String>`, so receipt target evidence no longer strips collection
+  identities to labels and reconstructs weaker replacement identities.
+- Updated write receipt target evidence construction to pass declared and
+  resolved collection identity carriers directly.
+- Updated symbolic target reference evidence, symbolic aspect resolution
+  evidence, and symbolic aspect lowering digest rows to clone/use the
+  collection identity already attached to the Query symbolic reference instead
+  of rebuilding a target collection identity from
+  `reference.target_collection()` terminal text.
+- Updated preview symbolic entity identity construction to cite the target
+  collection evidence identity rather than embedding collection text as an
+  optional shape field.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check -p
+  forge-query --tests`, green focused `cargo test -p forge-query
+  symbolic_reference --lib`, green focused `cargo test -p forge-query
+  aspect_preview --lib`, and green focused `cargo test -p forge-query batch
+  --lib`.
+
+## Query naming and continuity target collection evidence cleanup
+
+- Changed naming and continuity mutation evidence construction so receipt
+  helpers accept `ForgeQueryMutationTargetCollectionIdentity` carriers rather
+  than optional collection string slices.
+- Authoritative, batch, and preview write receipt construction now passes the
+  target collection identity carrier through naming/continuity evidence instead
+  of projecting the collection label and rebuilding a weaker identity.
+- Preview receipt construction now derives its target collection identity from
+  `command.declared_collection_identity()` and no longer depends on command
+  terminal collection projection helpers.
+- Removed the now-dead command terminal declared-collection projection accessor
+  and updated the compile-fail fixture to prove outside consumers cannot call
+  it.
+- Bridge bundle text remains an explicit bridge-boundary compatibility input;
+  the bridge helpers convert it once into a target collection identity and
+  native receipt construction stays on carriers after that.
+- Verification covered green `cargo check -p forge-query --tests`, green
+  `cargo test -p forge-query --test aspect_native_query_compile_fail`, green
+  focused `cargo test -p forge-query naming --lib`, and green focused
+  `cargo test -p forge-query continuity --lib`.
+
+## Query receipt-summary collection carrier cleanup
+
+- Changed `classify_receipt_mutation_summary(...)` so the single resolved
+  receipt collection returns `ForgeQueryMutationTargetCollectionIdentity`
+  instead of raw collection text.
+- Updated authoritative write routing, batch component receipt construction,
+  intent/effect execution routing, and same-batch symbolic target recording to
+  pass that collection carrier through instead of projecting labels and
+  rebuilding target identities.
+- Updated bridge naming/continuity lowering and symbolic-target bridge lowering
+  to accept Query target collection identity carriers. Bridge lowering still
+  projects terminal text at the bridge facade boundary, but runtime callers no
+  longer hand it anonymous strings.
+- Updated preview symbolic write receipt attachment to retain collection
+  identity carriers and removed the now-dead cloned terminal collection helper
+  from same-batch symbolic targets.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, green focused `cargo test -p
+  forge-query bridge_lowered_continuity --lib`, green focused `cargo test -p
+  forge-query batch --lib`, and green focused `cargo test -p forge-query
+  aspect_preview --lib`.
+
+## Query read-composition relation materialization cleanup
+
+- Changed runtime read-composition materialization so traversal selection passes
+  native `RelationName` carriers into relation-target lookup instead of passing
+  `terminal_relation_projection_for_boundary()` text.
+- Localized the legacy row-field compatibility mapping in
+  `relation_target_field_path(...)`, which accepts a `RelationName` and builds
+  the corresponding foundational `CanonicalFieldPath` from explicit
+  `FieldKey`s.
+- Changed identity anchor and identity ordering detection to compare
+  `Declarative*::source_field_key()` through native `AspectFieldKey` lowering
+  rather than comparing `aspect() == "identity"` / `field() == "id"` terminal
+  aliases.
+- A targeted scan now shows no
+  `terminal_relation_projection_for_boundary()`, `ordering.aspect()`,
+  `ordering.field()`, `filter.aspect()`, or `filter.field()` use in
+  `read_composition_materialization.rs`.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo test -p forge-query read_composition --lib`, and green
+  `cargo check -p forge-query --tests`.
+
+## Query bridge row extraction native projection cleanup
+
+- Changed bridge truth-view row-set projection fact extraction so bridge fields
+  derive `ProjectionFactFieldPath` from
+  `BridgeMaterializedFieldValue::projection()` metadata instead of parsing
+  `BridgeMaterializedFieldIdentity::as_str()` as a dotted field path.
+- Added `ProjectionMaterializedField::from_bridge_field_value(...)` as the
+  bridge-specific constructor. It uses the bridge field locator's native
+  `CanonicalFieldPath` when present, and falls back to the bridge projection's
+  native aspect key for whole-aspect projections.
+- Bridge field identity text remains available only for diagnostic field labels
+  on invalid bridge field shapes; it no longer feeds consumed fact lookup keys.
+- A targeted scan now shows the bridge row-set path no longer calls
+  `key.as_str()` / `from_external_boundary(...)` for field authority; the
+  remaining `key.as_str()` in `row_like.rs` is the separate relational row-set
+  extraction root.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, and green focused
+  `cargo test -p forge-query projection_consumption --lib`.
+
+## Query memory workspace aspect constructor proof check
+
+- Changed public `ForgeQueryAspect::new(...)` to return
+  `Result<ForgeQueryAspect, ForgeQueryWorkspaceError>` and deny mismatches
+  between the admitted `ForgeQueryAspectTouch` and the declared
+  `CanonicalFieldPath`.
+- The constructor now proves that every declared memory-workspace native field
+  path is rooted at the admitted aspect key. For field-specific touches, it
+  also proves the full path equals `aspect_key + touch field path`, so callers
+  cannot combine `title.value` touch authority with an `identity.id` storage
+  path and let the workspace carry that false proof downstream.
+- The crate-local `from_native_field_path(...)` remains the trusted conversion
+  used by test-backend schema lowering after that schema has already admitted
+  the touch and field path pair.
+- Added
+  `memory_workspace_aspect_rejects_mismatched_native_field_path` and refreshed
+  the aspect-native compile-fail fixture so the public constructor stays
+  fallible while `native_field_path()` still cannot be treated as `&str`.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query memory_workspace --lib`, green
+  `cargo check -p forge-query --tests`, and green
+  `cargo test -p forge-query --test aspect_native_query_compile_fail`.
+
+## Query authoring aspect-field native key storage cleanup
+
+- Changed `AspectName` and `FieldName` in `authoring/names.rs` from raw
+  `String` wrappers to foundational `AspectKey` and `FieldKey` wrappers.
+- `AspectFieldKey` now retains foundational key proof through its existing
+  name wrappers. Public authoring ergonomics and `aspect().as_str()` /
+  `field().as_str()` display access stay intact, but admission now uses the
+  same Foundational key constructors as downstream native authority paths.
+- `AspectFieldKey::from_native_keys(...)` now clones existing `AspectKey` /
+  `FieldKey` carriers directly instead of projecting them to text and
+  reparsing. `native_aspect_key()` and `native_field_key()` also clone the
+  retained carriers instead of reconstructing proof from strings.
+- Added focused authoring tests proving invalid aspect/field text is rejected
+  by foundational admission and native-key construction preserves the original
+  carriers.
+- Verification covered green `cargo fmt -p forge-query`, green focused
+  `cargo test -p forge-query authoring::names --lib`, green
+  `cargo check -p forge-query --tests`, a line-count check showing
+  `authoring/names.rs` remains under the 400-line cap, and a targeted scan
+  showing the removed native-key text reparse pattern is gone.
+
+## Query write-command collection identity storage cleanup
+
+- Changed `ForgeQueryWriteCommand::InsertAspects.collection` and
+  `ForgeQueryWriteCommand::DeleteAspects.declared_collection` to retain
+  `ForgeQueryMutationTargetCollectionIdentity` carriers instead of raw
+  collection text.
+- Insert/delete builders still accept ergonomic collection text, but they lower
+  immediately into `"write-command-declared"` target collection identities
+  before constructing command proof state.
+- Changed `ForgeQueryBackendAdmissibleMutationShape::Insert.collection` and
+  `DeleteDirect.declared_collection` to retain backend-admissible collection
+  identities. Command-to-backend admission re-roles the carrier once at the
+  proof-state transition boundary.
+- Converted symbolic delete rebuilds and direct command-literal fixtures to
+  carry collection identities. Preview memory deltas now project collection
+  labels only at the terminal memory-delta boundary.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query mutation
+  --lib`, green focused `cargo test -p forge-query batch --lib`, green
+  focused `cargo test -p forge-query preview_branch_obligation_dispatch
+  --lib`, line-count checks for the touched files, and targeted scans showing
+  the old command/backend-admissible collection string fields are gone.
+
+## Query graph touch selector collection carrier cleanup
+
+- Changed graph touch selector collection variants to retain
+  `ForgeQueryMutationTargetCollectionIdentity` carriers instead of collection
+  text. Public selector constructors remain ergonomic text ingress, but lower
+  immediately to selector-role collection identities.
+- Changed graph touch descriptor rows to retain declared collection identity
+  carriers. Row `declared_collection()` remains a terminal/reporting
+  projection, while selector matching uses `touches_declared_collection(...)`
+  against collection identity carriers.
+- Added a private graph-obligation collection lookup identity for index keys,
+  built only from target collection carriers. This removes the old
+  `Collection(String)` lookup shape while preserving deterministic ordered
+  lookup keys.
+- Removed the dead string-based `touches_collection(...)` and collection-value
+  selector accessors, so graph obligation matching no longer has a raw
+  collection-label comparison path.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  graph_obligation --lib`, green focused `cargo test -p forge-query
+  graph_touch_descriptor --lib`, line-count checks showing touched files under
+  the 400-line cap, and a targeted scan showing old graph selector/row
+  collection string shapes are gone.
+
+## Query retained/live artifact bundle target carrier cleanup
+
+- Changed `ForgeQueryLiveArtifactBundle` storage from
+  `BTreeMap<String, ForgeQueryLiveReadResult>` to
+  `BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryLiveReadResult>`.
+- Changed `ForgeQueryDerivedMaterializationBundle` storage from
+  `BTreeMap<String, ForgeQueryDerivedMaterializationResult>` to
+  `BTreeMap<ForgeQueryDerivedMaterializationTarget,
+  ForgeQueryDerivedMaterializationResult>`.
+- Converted bundle construction in live artifact reads, derived artifact
+  materialization, published shared-read artifacts, retained/live projection
+  tests, and retained scalar tests to insert target carriers as keys instead
+  of view-name strings.
+- Replaced bundle by-name lookups with carrier-based
+  `read_for_target(...)` / `materialization_for_target(...)`. Binding exact-set
+  validation now compares required target carriers against carrier-keyed bundle
+  membership; terminal target names are projected only for digest/error text.
+- Refreshed compile-fail expectations so public consumers now see removed
+  by-name methods, not merely private string helpers.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  retained_live --lib`, green focused `cargo test -p forge-query
+  projection_consumption --lib`, green focused `cargo test -p forge-query
+  runtime::tests::live_artifacts --lib`, green focused `cargo test -p
+  forge-query retained_scalar --lib`, green `cargo test -p forge-query --test
+  aspect_native_query_compile_fail`, line-count checks showing touched bundle
+  and binding files under the 400-line cap, and a targeted scan showing the old
+  bundle map/by-name authority shapes removed from production Query.
+
+## Query backend live lookup target carrier cleanup
+
+- Changed `ForgeQueryRuntimeBackend` and `ForgeQueryRuntimeSourceAdapter` so
+  live row reads and patch draining accept `ForgeQueryLiveArtifactTarget`
+  carriers instead of terminal view-name `&str` values.
+- Added `ForgeQueryLiveArtifactTarget::from_subscription_installation(...)`
+  so ordinary live reads, patch drains, preview program reads, and retained
+  live refreshes can pass the installed subscription proof through the backend
+  lookup path. Materialized read-composition views use the same target carrier
+  without an attached installation because they are backend-declared internal
+  read views rather than runtime subscriptions.
+- Converted bridge-backed backend forwarding, in-memory test backend,
+  stateful bridge runtime support, public bridge runtime support, certification
+  fixtures, transcript fixtures, and source-adapter fixtures to the target
+  carrier contract. Source adapters may still project
+  `terminal_view_name_projection()` internally as the hard external lookup
+  boundary, but runtime callers no longer hand anonymous view-name strings to
+  backend/source-adapter live lookup APIs.
+- Moved the default unavailable snapshot identity helper out of
+  `runtime/backend/contracts.rs` so the touched trait contract file stays under
+  the 400-line cap.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  runtime::tests::live --lib`, green focused `cargo test -p forge-query
+  retained_live --lib`, green focused `cargo test -p forge-query
+  read_composition --lib`, green `cargo test -p forge-query --test
+  phase_boundaries_bridge_truth_identity_compile_fail`, and a targeted scan
+  showing the old `live_entities(&str)` / `drain_live_patches(&str)` method
+  names gone from current Query source and tests.
+
+## Query relational projection fact path ingress cleanup
+
+- Removed the generic `ProjectionMaterializedField::from_external_boundary(...)`
+  constructor from relational row-set extraction. Relational materialized rows
+  now call `from_relational_projected_aspect_key(...)`, which accepts the
+  `AspectKey` carrier retained by `RelationalProjectedAspectValueSet` instead
+  of accepting arbitrary field-path text.
+- Renamed the dotted lowering helper to
+  `projection_fact_field_path_from_relational_projected_aspect_key(...)` and
+  confined the remaining split to this named compatibility boundary. This
+  documents the actual upstream contract: relational grouped truth currently
+  exposes projected snapshot reads as foundational `AspectKey` values whose
+  labels encode the projected field path.
+- Bridge row-set extraction remains on
+  `BridgeMaterializedFieldProjection` metadata and query-owned read/live rows
+  remain on native entity field paths; neither path uses the relational
+  compatibility helper.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  projection_consumption --lib`, a line-count check showing touched files under
+  the 400-line cap, and a targeted scan showing the old
+  `from_external_boundary` / `projection_fact_field_path_from_external_boundary`
+  names removed from projection consumption.
+
+## Query projection fact field-path segment carrier cleanup
+
+- Changed `projection_fact_field_path_from_segments(...)` so it now accepts
+  `FieldKey` carriers instead of raw string segments. This turns the helper
+  from an unchecked string-segment constructor into a native foundational
+  field-key assembly point.
+- Mechanically converted the projection-consumption, domain-capability,
+  intent-admission, retained/live, shared-read, hostile certification, and
+  certification fixture call sites to construct foundational `FieldKey`
+  segments before building a `ProjectionFactFieldPath`.
+- The public/native `ProjectionFactFieldPath::from_canonical_field_path(...)`
+  path remains the direct proof-carrying constructor. Bridge row extraction
+  still uses bridge projection metadata, query/read/live extraction still uses
+  native entity field paths, and relational row extraction is still fenced
+  behind the named relational projected-aspect-key compatibility boundary.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  projection_consumption --lib`, and line-count checks showing touched files
+  under the 400-line cap.
+
+## Query predicate admission native key cleanup
+
+- Added crate-internal authoring predicate constructors that accept
+  `AspectFieldKey` carriers directly, so declarative predicate lowering no
+  longer has to project an already-admitted field back into aspect/field text
+  and reparse it.
+- Changed declarative predicate projection normalization, duplicate field
+  detection, and canonical predicate lowering to flow through
+  `source_field_key()` instead of `filter.aspect()` / `filter.field()`.
+- Removed the crate-local `aspect()` / `field()` aliases from
+  `DeclarativeEqualityFilter`, `DeclarativeIntegerComparisonFilter`,
+  `DeclarativeStringContainsFilter`, `DeclarativeSetMembershipFilter`,
+  `DeclarativePresenceFilter`, and the aggregate
+  `DeclarativePredicateFilter`, so future predicate consumers must use the
+  proof carrier.
+- Converted graph-read boolean predicate admission/evidence and schema
+  reference admission to key admitted predicate lookups and schema rows by
+  native `AspectKey` / `FieldKey` carriers. Terminal strings remain only for
+  denial text.
+- Refreshed the predicate string-alias compile-fail fixture from "private
+  method" to "method not found", which is the stronger Law 41 fence: the
+  lower-authority reconstruction API is gone instead of merely hidden outside
+  the crate.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green `cargo test -p forge-query --test
+  aspect_native_query_compile_fail`, green focused `cargo test -p forge-query
+  graph_read_access --lib`, and green focused `cargo test -p forge-query
+  read_composition --lib`.
+
+## Query AspectFieldKey and declarative carrier enforcement
+
+- Renamed the neutral `AspectFieldKey::new(...)` constructor to
+  `AspectFieldKey::from_authoring_parts(...)`, added
+  `AspectFieldKey::from_native_keys(...)` as the named foundational
+  `AspectKey` / `FieldKey` bridge, and added
+  `aspect_field_key_neutral_constructor_removed.rs` so the old neutral
+  constructor cannot return silently.
+- Added native field-carrier constructors for projection, result-shape,
+  ordering, and predicate authoring selectors. Declarative canonicalization and
+  read-composition lowering now pass `AspectFieldKey` through
+  `source_field_key()` / `target_field_key()` instead of decomposing fields
+  into `(aspect, field)` strings and rebuilding them.
+- Removed crate-local declarative raw helper roots for equality, integer,
+  string-contains, set-membership, presence, ordering, projection, branch
+  compare, and writeback string aliases where the compiler showed they were no
+  longer needed. The surviving `from_authoring_parts` calls are now named
+  authoring/test ingress points rather than hidden reparse steps in the
+  lowering path.
+- Refreshed compile-fail fixtures so the strongest fences now report "method
+  not found" for removed aliases on `OrderingSelector`,
+  `PredicateSelector`, `DeclarativeProjectionField`,
+  `DeclarativeBranchCompareFieldDelta`, and
+  `DeclarativeWritebackChange`.
+- Verification covered green `cargo check -p forge-query --tests` and green
+  `cargo test -p forge-query --test aspect_native_query_compile_fail`.
+  `rustfmt` on the whole crate still intermittently hit Windows mapped-section
+  locks, so touched-file formatting should be retried before closeout if the
+  lock clears.
+
+## Query mutation seed touch evidence carrier cleanup
+
+- Changed runtime mutation lowering digest-row helpers to accept
+  `ForgeQueryAspectTouch` carriers instead of caller-rendered admitted touch
+  digest strings. Terminal text projection now happens inside the final
+  evidence-row helper, not at every mutation-lowering call site.
+- Changed authoritative mutation seed identity construction so declared aspect
+  operations lower as structured evidence identities with operation kind plus
+  admitted aspect touch evidence. The seed no longer stores operations as
+  anonymous `kind:touch_digest` value strings.
+- This is a narrow Law 41 improvement: the mutation seed/lowering callers must
+  keep the native touch proof until the explicitly terminal evidence field.
+  The remaining `admitted_touch_digest_part()` calls in the touched files are
+  terminal evidence projection points rather than precomputed control values.
+- Verification covered touched-file `rustfmt`, green `cargo check -p
+  forge-query --tests`, green focused `cargo test -p forge-query
+  intent_admission --lib`, and green focused `cargo test -p forge-query
+  mutation --lib`. Both touched source files stayed under the 400-line cap.
+
+## Query workspace declaration field carrier cleanup
+
+- Changed workspace live declaration assembly so schema fields are retained as
+  `AspectFieldKey` carriers instead of `(String, String)` label pairs.
+- Live projection and ordering construction now use
+  `DeclarativeProjectionField::new(...)` with the retained native field key
+  instead of decomposing to aspect/field strings and calling
+  `from_authoring_parts(...)` again.
+- Removed the now-dead `schema_field_view(...)` string-to-name helper from the
+  workspace declaration schema module. Schema relations still parse relation
+  authoring text because relation names are not aspect-field authority.
+- Verification covered touched-file `rustfmt`, green `cargo check -p
+  forge-query --tests`, and green focused `cargo test -p forge-query
+  workspace_declaration --lib`.
+
+## Query canonical validation aspect-field carrier cleanup
+
+- Changed canonical projection, predicate, ordering, and result-shape entries
+  to retain `AspectFieldKey` carriers instead of separate `AspectName` /
+  `FieldName` fields.
+- Authorized projection, schema validation, predicate normalization, ordering
+  validation, result-shape validation, and validated-artifact construction now
+  consume the retained field carrier directly. Terminal labels are projected
+  only for diagnostics, digest text, and event rows.
+- Removed the obsolete `result_shape::source_projection_key(...)` helper
+  because result-shape fields now keep their source `AspectFieldKey` proof.
+- The deliberate `cargo check -p forge-query --tests` red exposed 65 old
+  split-field consumers across validation and predicate-state normalization;
+  those consumers now follow the native carrier boundary.
+- Verification covered touched-file `rustfmt`, green `cargo check -p
+  forge-query --tests`, green focused `cargo test -p forge-query
+  canonicalization --lib`, green focused `cargo test -p forge-query
+  validation --lib`, and green focused `cargo test -p forge-query
+  authorized_projection --lib`. Touched source files stayed under the 400-line
+  cap.
+
+## Query mutation delta collection identity carrier cleanup
+
+- Changed `ForgeQueryMutationDelta` to retain
+  `ForgeQueryMutationTargetCollectionIdentity` instead of a raw collection
+  `String`.
+- Added a native collection-identity constructor for mutation deltas and routed
+  memory-workspace production receipt construction through it. The existing
+  collection text accessor now projects from the retained identity for terminal
+  compatibility and existing string-keyed indexes.
+- Live subscription maintenance evidence now consumes
+  `delta.target_collection_identity().evidence_identity()` directly instead
+  of rebuilding a collection identity from `delta.collection` text.
+- The deliberate `cargo check -p forge-query --tests` red exposed direct
+  `delta.collection` field consumers in production routing, inspection,
+  preview relevance, signal invalidation, and critical harness adapters; those
+  consumers now use either the native identity or the terminal accessor.
+- Verification covered touched-file `rustfmt`, green `cargo check -p
+  forge-query --tests`, green focused `cargo test -p forge-query
+  memory_workspace --lib`, green focused `cargo test -p forge-query mutation
+  --lib`, and green focused `cargo test -p forge-query preview --lib`.
+  `cargo test -p forge-query live_subscription --lib` matched no tests, so
+  live subscription routing is covered here by compile-time type enforcement.
+  Touched source files stayed under the 400-line cap.
+
+## Query live subscription index target carrier cleanup
+
+- Converted `ForgeQueryRuntime::live_subscription_index` from a raw
+  view-name cache to `BTreeMap<String, BTreeSet<ForgeQueryLiveArtifactTarget>>`.
+  Registration now stores the artifact target derived from the admitted
+  subscription installation.
+- `route_live_subscription_delivery(...)` now consumes target carriers and
+  returns affected `ForgeQueryLiveArtifactTarget` values. It projects
+  `view_name()` only at the runtime state-map boundary and for delivery error
+  reporting.
+- `route_authoritative_mutation_summary(...)` now preserves the affected live
+  targets returned by delivery instead of rebuilding them from raw strings.
+  Computed candidate routing still projects target carriers to view names at
+  the computed dependency boundary; that is the next routing-family cleanup, not
+  part of this live-index slice.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check -p
+  forge-query --tests`, and focused green `cargo test -p forge-query
+  aspect_crud --lib`.
+- This is a Law 41 routing-carrier slice: once a live subscription has an
+  admitted artifact target, downstream mutation routing and write receipts keep
+  that proof carrier instead of reconstructing authority from a string name.
+
+## Query computed dependency target carrier cleanup
+
+- Converted `ForgeQueryComputedDependencyIndex` so live dependency keys are
+  `ForgeQueryLiveArtifactTarget` values and computed dependency keys/values are
+  `ForgeQueryDerivedMaterializationTarget` values.
+- `computed_candidate_live_views(...)` now returns live artifact targets
+  directly from the live subscription index instead of projecting candidate
+  view-name strings.
+- `route_derived_view_patches(...)` now consumes live target candidates and
+  returns affected derived materialization targets. Authoritative mutation
+  routing preserves those targets for write receipts and effect routing instead
+  of rebuilding them from returned strings.
+- Retained upstream live-row routing still stores rows under view-name keys
+  because `ForgeQueryRetainedUpstreamInputs` and `ForgeQueryDerivedView`
+  declarations are still string-addressed boundaries. That is now a localized
+  boundary, not the computed dependency graph's authority carrier.
+- Verification covered green `cargo check -p forge-query --tests`, green
+  focused `cargo test -p forge-query computed --lib`, and green focused
+  `cargo test -p forge-query retained_live --lib`.
+- This is a Law 41 dependency-routing slice: the computed refresh graph now
+  propagates typed live and derived artifact targets until the remaining
+  declaration/materialization boundary explicitly projects terminal names.
+
+## Query effect trigger index target carrier cleanup
+
+- Converted `ForgeQueryEffectIndex` so live trigger keys are
+  `ForgeQueryLiveArtifactTarget` values and computed trigger keys are
+  `ForgeQueryDerivedMaterializationTarget` values.
+- Effect declaration admission now checks declared trigger names by first
+  admitting them into live/derived target sets derived from runtime state,
+  rather than checking raw view-name sets.
+- Effect candidate selection now consumes the affected live and derived target
+  slices directly. It no longer projects affected write-route targets to view
+  names before asking the effect index which effects should run.
+- Live trigger change collection still projects the declaration's trigger name
+  into a live target to look up the target collection, because
+  `ForgeQueryEffectTrigger` remains the public declaration boundary. The effect
+  index and candidate-selection authority no longer use raw names as their
+  routing key.
+- Verification covered green `cargo check -p forge-query --tests` and green
+  focused `cargo test -p forge-query effect --lib`.
+- This is a Law 41 effect-routing slice: affected live/derived target proofs
+  now flow into effect candidate selection without being weakened to strings.
+
+## Query graph descriptor collection identity cleanup
+
+- `ForgeQueryGraphTouchDescriptorRow::touches_declared_collection(...)` now
+  compares native `ForgeQueryMutationTargetCollectionIdentity` carriers through
+  an explicit target-collection semantic comparator instead of projecting both
+  sides to `&str`.
+- `ForgeQueryGraphTouchDescriptorInventory` now retains declared collection
+  identity carriers and dedupes them through that native semantic comparator
+  instead of storing a `BTreeSet<String>`.
+- Added deterministic ordering support for
+  `ForgeQueryMutationTargetCollectionIdentity` so collection identity carriers
+  can participate in ordered native collections where the semantic owner wants
+  that shape.
+- Verification covered green `cargo check -p forge-query --tests`, green
+  focused `cargo test -p forge-query graph_touch_descriptor --lib`, and green
+  focused `cargo test -p forge-query graph_obligation --lib`.
+- This is a Law 41 selector-root cleanup: graph obligation selection can now
+  ask whether a descriptor touches a target collection through a native carrier
+  comparison, while terminal `declared_collection()` text remains a reporting
+  projection.
+
+## Query same-batch symbolic collection identity cleanup
+
+- `record_same_batch_symbolic_target(...)` now matches created deltas against
+  declared target collections through
+  `ForgeQueryMutationTargetCollectionIdentity::same_target_collection_as(...)`
+  instead of comparing terminal collection strings.
+- `resolve_same_batch_symbolic_target(...)` now validates expected versus
+  resolved collection through the same native semantic comparator.
+- `classify_receipt_mutation_summary(...)` now collects mutation delta
+  collection identities directly and returns the retained identity when the
+  receipt has one semantic target collection, instead of collecting strings and
+  rebuilding a new summary identity.
+- Verification covered green `cargo check -p forge-query --tests`, green
+  focused `cargo test -p forge-query symbolic_reference --lib`, and green
+  focused `cargo test -p forge-query batch --lib`.
+- This is a Law 41 batch-target cleanup: same-batch symbolic resolution and
+  mutation summary classification keep collection identity carriers through the
+  batch boundary instead of re-deriving authority from collection text.
+
+## Query backend affected live target carrier cleanup
+
+- `ForgeQueryRuntimeBackend::affected_live_view_ids(...)` and
+  `ForgeQueryRuntimeSourceAdapter::affected_live_view_ids(...)` were replaced
+  by `affected_live_view_targets(...)`, returning
+  `Vec<ForgeQueryLiveArtifactTarget>`.
+- Runtime batch receipt rows now carry backend/source affected-live targets
+  directly instead of rebuilding target carriers from terminal live-view ids.
+- Bridge-backed runtime forwarding, consumer-kit backends, runtime
+  stabilization harnesses, intent-admission certification fixtures, stateful
+  bridge runtime support, and public bridge runtime support all implement the
+  native target-returning contract.
+- Source-adapter declared view names enter through the explicit
+  `ForgeQueryLiveArtifactTarget::from_source_adapter_declared_view_name(...)`
+  boundary; ordinary raw target constructors remain private or unavailable.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, green focused
+  `cargo test -p forge-query batch --lib`, green
+  `cargo test -p forge-query --test graph_composition_public_bridge`, and
+  green `cargo test -p forge-query --test aspect_native_query_compile_fail`.
+- This is a Law 41 backend-boundary cleanup: affected live-view identity now
+  crosses the backend/source-adapter boundary as artifact target proof, while
+  terminal live-view id projection remains an explicit reporting/accessor
+  boundary.
+
+## Query preview target collection carrier cleanup
+
+- `DeclarativeLiveQueryRequest` now exposes
+  `target_collection_identity()` so preview relevance can retain the request's
+  target collection proof instead of comparing against `request.target()` text.
+- `relevant_live_aspects(...)` now compares mutation delta target collection
+  identities to the request target identity with
+  `same_target_collection_as(...)`.
+- Preview same-batch symbolic target resolution now validates expected versus
+  resolved collection identities with the same native semantic comparator
+  instead of comparing `as_str()` projections.
+- `ForgeQueryMutationTargetCollectionIdentity` is exported through the facade
+  and exposes the semantic comparator publicly, while its raw constructor
+  remains sealed. Downstream runtime adapters can therefore stay native without
+  gaining an arbitrary collection-token minting route.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, green
+  `cargo test -p forge-query preview --lib`, green
+  `cargo test -p forge-query --test public_bridge_runtime_bootstrap`, green
+  `cargo test -p forge-query intent_admission --lib`, green
+  `cargo test -p forge-query --test graph_composition_public_bridge`, green
+  `cargo test -p forge-query --test graph_composition_public_bridge_existing`,
+  green `cargo test -p forge-query --test public_submission_lane_replacements`,
+  and green `cargo test -p forge-query --test
+  aspect_native_query_compile_fail`.
+- A focused residue scan over `crates/forge-query/src` and
+  `crates/forge-query/tests/support` found no remaining
+  `live_views: BTreeMap<String, String>`,
+  `request.target().to_string()` live-view target storage,
+  `*collection == delta.collection()`,
+  `delta.collection() == target.as_str()`,
+  `delta.collection() != request.target()`, or expected/resolved collection
+  `as_str()` mismatch comparisons.
+- This is a Law 41 preview and adapter-root cleanup: preview relevance and
+  source-adapter affected-view routing now keep collection identity carriers
+  through control decisions and only project text for terminal lookup/reporting.
+
+## Query live subscription target collection index cleanup
+
+- `ForgeQueryRuntime::live_subscription_index` now groups subscriptions by
+  `ForgeQueryMutationTargetCollectionIdentity` entries rather than a
+  `BTreeMap<String, ...>` keyed by target collection text.
+- Live subscription registration stores the request's native target collection
+  identity and dedupes entries through
+  `same_target_collection_as(...)`. Unregistration prunes native index entries
+  after removing the target carrier.
+- Live delivery routing and computed candidate live-view discovery now find
+  candidate subscriptions by comparing mutation delta target collection
+  identities to index entry identities, instead of calling
+  `.get(delta.collection())`.
+- Effect routing's live-trigger collection map now carries
+  `ForgeQueryMutationTargetCollectionIdentity` values and compares native
+  mutation delta identities when collecting trigger changes.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, green `cargo test -p forge-query live
+  --lib`, green `cargo test -p forge-query computed --lib`, green
+  `cargo test -p forge-query effect --lib`, and green `cargo test -p
+  forge-query --test aspect_native_query_compile_fail`.
+- Focused residue scans found no remaining runtime
+  `live_subscription_index: BTreeMap`, no
+  `BTreeMap<String, BTreeSet<ForgeQueryLiveArtifactTarget>>`, no
+  runtime `.get(delta.collection())`, no
+  `BTreeMap<ForgeQueryLiveArtifactTarget, String>` authority map, and no
+  `delta.collection() != collection` live-trigger comparison.
+- This is a Law 41 routing-index cleanup: live subscription and downstream
+  effect/computed routing now preserve target collection identity as a control
+  carrier, while terminal collection text remains only for receipts,
+  inspection, and explicit compatibility/reporting boundaries.
+
+## Query published artifact target registry cleanup
+
+- `ForgeQueryPublishedArtifactRegistry` now stores generation entries under
+  `ForgeQueryDerivedMaterializationTarget` keys instead of
+  `BTreeMap<String, ForgeQueryPublishedArtifactEntry>`.
+- Shared-read publication creates a derived materialization target for each
+  runtime derived view before publishing the generation. Shared-read
+  consumption resolves published artifacts by that target carrier, not by a
+  view-name string.
+- `ForgeQueryPublishedArtifactEntry` stores its target carrier and
+  `bind_shared_read_artifact(...)` receives that target directly, avoiding the
+  previous `ForgeQueryDerivedMaterializationTarget::new(view_name)` rebuild at
+  the binding point.
+- Terminal view names remain only for public handle reporting, error text, and
+  existing shared-read evidence labels.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, green `cargo test -p forge-query
+  shared_read --lib`, green `cargo test -p forge-query runtime_boundary --lib`,
+  and green `cargo test -p forge-query --test aspect_native_query_compile_fail`.
+- This is a Law 41 shared-read/materialization cleanup: published artifact
+  resolution no longer treats view-name text as the registry authority key.
+
+## Query live subscription state target key cleanup
+
+- `ForgeQueryRuntime::live_subscriptions` now stores subscription state under
+  `ForgeQueryLiveArtifactTarget` keys instead of `BTreeMap<String,
+  ForgeQueryRuntimeLiveSubscriptionState>`.
+- Live declaration inserts state by the installed subscription target. Delivery
+  routing, time-only delivery, mixed-cause delivery, async result projection,
+  live reads, preview session routing, unified inspection, runtime state
+  snapshots, downstream delivery, and critical test support now construct a
+  target carrier at lookup boundaries.
+- `live_artifact_target_collections(...)` now reuses the native map key instead
+  of reconstructing `ForgeQueryLiveArtifactTarget` from a string key.
+- Existing public APIs that accept view handles or view-name text remain as
+  ergonomic/terminal boundaries; the runtime state table itself is no longer a
+  raw-name authority map.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, green `cargo test -p forge-query live
+  --lib`, green `cargo test -p forge-query shared_read --lib`, green
+  `cargo test -p forge-query runtime_boundary --lib`, and green `cargo test -p
+  forge-query --test aspect_native_query_compile_fail`.
+- Focused scans found no remaining runtime
+  `live_subscriptions: BTreeMap<String, ...>`,
+  `BTreeMap<String, ForgeQueryRuntimeLiveSubscriptionState>`,
+  `BTreeMap<String, ForgeQueryPublishedArtifactEntry>`,
+  string-keyed published-artifact entry map, or
+  `request.target().to_string()` production runtime residue.
+- This is a Law 41 live-state cleanup: runtime subscription state is keyed by
+  live artifact target proof, with name text projected only at existing
+  declaration, handle, inspection, and error-reporting boundaries.
+
+## Query computed derived target authority cleanup
+
+- `ForgeQueryRuntime::derived_views` now stores computed runtime state under
+  `ForgeQueryDerivedMaterializationTarget` keys instead of view-name strings.
+- Derived-view admission, cycle detection, topological ordering, retained
+  upstream discovery, patch routing, shared-read publication, effect-trigger
+  lookup, preview binding lookup, runtime read drains, and inspection
+  materialization lookup now construct or receive derived materialization target
+  carriers at the boundary where text enters.
+- `ForgeQueryRetainedUpstreamInputs` now stores live rows by
+  `ForgeQueryLiveArtifactTarget` and computed rows by
+  `ForgeQueryDerivedMaterializationTarget`. Runtime authoritative mutation
+  routing no longer projects affected live targets back into
+  `BTreeMap<String, rows>` before refreshing computed materializations.
+- Public handle/declaration helpers still provide ergonomic access, but raw
+  view-name lookup and raw construction remain outside the public surface and
+  are enforced by the aspect-native compile-fail suite.
+- Verification covered green `cargo fmt -p forge-query`, green
+  `cargo check -p forge-query --tests`, green focused `cargo test -p
+  forge-query computed --lib`, green focused `cargo test -p forge-query effect
+  --lib`, green focused `cargo test -p forge-query shared_read --lib`, green
+  focused `cargo test -p forge-query runtime_boundary --lib`, and green `cargo
+  test -p forge-query --test aspect_native_query_compile_fail`.
+- Focused scans found no remaining runtime
+  `BTreeMap<String, ForgeQueryDerivedViewRuntime>`, raw-name retained upstream
+  input maps, or old `(String, Vec<ForgeQueryEntity>)` retained-upstream test
+  fixture construction. Production `serde_json` under `crates/forge-query/src`
+  remains confined to the two support terminal JSON codecs.
+- This is a strong Law 41 materialization-root cleanup: computed refresh and
+  downstream consumers now flow through typed target proof carriers instead of
+  treating terminal view-name text as the runtime authority key.
+
+## Query effect runtime target authority cleanup
+
+- Added runtime-local `ForgeQueryEffectTarget` as the authority carrier for
+  effect runtime registration and lookup.
+- `ForgeQueryRuntime::effects` now stores effect runtime state under
+  `ForgeQueryEffectTarget` keys instead of `BTreeMap<String,
+  ForgeQueryEffectRuntime>`.
+- `ForgeQueryEffectIndex` now indexes live/computed trigger candidates to
+  `ForgeQueryEffectTarget` sets instead of raw effect-name strings. Effect
+  routing therefore resolves candidates by target carrier after live/computed
+  trigger matching.
+- Public handle names, declaration names, delivery labels, receipt labels, and
+  error text still expose ordinary effect-name text as ergonomic/terminal
+  reporting boundaries. Runtime consumers lift those names into
+  `ForgeQueryEffectTarget` at lookup boundaries for delivery draining,
+  inspection, pending write-intent admission, pending delivery removal, and
+  effect-triggered intent execution.
+- The phase-four stale pending-delivery test now removes pending work through
+  the effect target carrier instead of reusing the public handle name as the
+  runtime table key.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check -p
+  forge-query --tests`, green focused `cargo test -p forge-query effect
+  --lib`, green focused `cargo test -p forge-query intent_admission --lib`,
+  and green `cargo test -p forge-query --test
+  aspect_native_query_compile_fail`.
+- Focused scans found no remaining runtime `BTreeMap<String,
+  ForgeQueryEffectRuntime>`, `effects: BTreeMap<String, ...>`, effect trigger
+  indexes storing `BTreeSet<String>`, or unlifted `self.effects.get(...)` /
+  `get_mut(...)` lookup boundaries. Production `serde_json` under
+  `crates/forge-query/src` remains confined to the two support terminal JSON
+  codecs.
+- This is a Law 41 effect-routing cleanup: after effect declaration admission,
+  runtime effect state and trigger routing use a typed effect target proof
+  carrier instead of treating terminal effect-name text as registry authority.
+
+## Query same-batch symbolic target key cleanup
+
+- Added runtime-local `ForgeQuerySameBatchSymbolicTargetKey` as the authority
+  key for same-batch symbolic target planning and resolution.
+- Authoritative batch write routing now stores planned and resolved
+  same-batch symbolic targets under `ForgeQuerySameBatchSymbolicTargetKey`
+  instead of `BTreeMap<String, ForgeQuerySameBatchSymbolicTarget>`.
+- Backend atomic-batch replay uses the same typed key while rebuilding
+  symbolic aspect resolution evidence from deferred receipts, so the deferred
+  path no longer reintroduces a raw-symbol map.
+- Preview batch admission and preview write staging now use the same typed key
+  for planned/resolved symbolic targets. Preview denial text still projects the
+  public symbol string for human-readable diagnostics.
+- Same-batch symbolic target resolution now constructs the key from
+  `ForgeQuerySymbolicTargetReference` at the lookup boundary instead of using
+  `reference.symbol()` directly as map authority.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check -p
+  forge-query --tests`, green focused `cargo test -p forge-query
+  symbolic_reference --lib`, green focused `cargo test -p forge-query preview
+  --lib`, green focused `cargo test -p forge-query batch --lib`, and green
+  `cargo test -p forge-query --test aspect_native_query_compile_fail`.
+- Focused scans found no remaining production
+  `BTreeMap<String, ForgeQuerySameBatchSymbolicTarget>`, no same-batch
+  symbolic target map initialized as `BTreeMap::<String, ...>`, and no
+  `symbolic_targets.get(reference.symbol())` lookup. Production `serde_json`
+  under `crates/forge-query/src` remains confined to the two support terminal
+  JSON codecs.
+- This is a Law 41 mutation-authority cleanup: once a symbolic target
+  reference is admitted, same-batch target resolution flows through a typed
+  symbolic target key carrier instead of treating the terminal symbol string as
+  the batch authority key.
+
+## Query graph-composition symbolic declaration cleanup
+
+- `ForgeQueryGraphCompositionBuilder` now tracks declared graph-composition
+  symbols with `ForgeQueryMutationSymbolIdentity` instead of
+  `BTreeSet<String>`.
+- Graph symbolic entity and relation declaration commands now pass the already
+  admitted `ForgeQuerySymbolicTargetReference` into command construction
+  through `build_insert_symbolic_reference(...)` instead of projecting
+  `reference.symbol().to_string()` and rebuilding the proof.
+- The raw `ForgeQueryAspectMutationBuilder::build_insert_symbolic(...)` entry
+  point was removed. Public batch authoring still accepts ergonomic symbol text
+  at `ForgeQueryMutationBatchBuilder::insert_symbolic(...)`, but that boundary
+  now lowers text into `ForgeQuerySymbolicTargetReference` before command
+  construction.
+- Symbolic insert command construction validates a reference's retained target
+  collection identity against the insert collection identity, so a proof
+  admitted for one collection cannot be silently attached to another.
+- Added aspect-native compile-fail coverage proving facade callers cannot use
+  the old raw symbolic insert builder method.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  graph_composition --lib`, green focused `cargo test -p forge-query
+  symbolic_reference --lib`, green focused `cargo test -p forge-query batch
+  --lib`, and green `cargo test -p forge-query --test
+  aspect_native_query_compile_fail`.
+- Focused scans found no remaining production
+  `declared_symbols: BTreeSet<String>`, no
+  `reference.symbol().to_string()` symbolic insert command construction, and no
+  raw `build_insert_symbolic(...)` method. Production `serde_json` under
+  `crates/forge-query/src` remains confined to the two support terminal JSON
+  codecs.
+- This is a Law 41 symbolic-declaration cleanup: public authoring text is
+  admitted once into symbolic reference proof, graph composition and batch
+  command construction consume that proof, and terminal symbol text remains
+  only for reporting/program evidence.
+
+## Query materialized read target registry cleanup
+
+- `ForgeQueryRuntime::materialized_read_views` now stores read materialization
+  registrations under `ForgeQueryLiveArtifactTarget` keys instead of
+  `BTreeMap<String, DeclarativeLiveQueryRequest>`.
+- Runtime read materialization still derives the backend live-view declaration
+  name from the read graph digest, but immediately lifts that name into a live
+  artifact target before consulting the runtime cache or reading backend rows.
+- Materialized-read cache collision checks and registration now consume the
+  live artifact target carrier. Terminal view-name text remains only at the
+  backend live-declaration boundary, which still requires a declared view name.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  read_composition --lib`, and green focused `cargo test -p forge-query
+  materialized_read --lib`.
+- Focused scans found no remaining production
+  `materialized_read_views: BTreeMap<String, ...>`, no materialized-read cache
+  lookup by `view_name`, no old materialized-read name-availability helper, and
+  production `serde_json` under `crates/forge-query/src` remains confined to
+  the two support terminal JSON codecs.
+- This is a Law 41 read/materialization cleanup: once a read graph has a
+  generated materialized live-view identity, runtime cache authority flows
+  through the typed live artifact target instead of treating generated view-name
+  text as the registry key.
+
+## Query program registry identity cleanup
+
+- Added sealed runtime surface carriers
+  `ForgeQueryProgramInstallationIdentity` and `ForgeQueryProgramRunIdentity`
+  for installed-program and retained-run-trace authority.
+- `ForgeQueryRuntime::installed_programs` now stores installed programs under
+  `ForgeQueryProgramInstallationIdentity` keys instead of raw program-id text.
+  Public `ForgeQueryInstalledProgram::program_id()` remains a terminal display
+  accessor, while `ForgeQueryInstalledOperation` retains the installation
+  identity internally.
+- `ForgeQueryRuntime::run_traces` now stores traces under
+  `ForgeQueryProgramRunIdentity` keys instead of raw run-id text. Normal
+  runtime execution and preview-session execution both allocate the run identity
+  once, retain traces by that carrier, and expose `ForgeQueryRunReceipt::run_id()`
+  only as a terminal display accessor.
+- Added aspect-native compile-fail coverage proving facade callers cannot
+  construct installed operations or run receipts by supplying raw `program_id`
+  and `run_id` strings.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query program
+  --lib`, green focused `cargo test -p forge-query preview --lib`, and green
+  `cargo test -p forge-query --test aspect_native_query_compile_fail`.
+- Focused scans found no remaining `installed_programs: BTreeMap<String, ...>`,
+  no `run_traces: BTreeMap<String, ...>`, no installed-program lookup by
+  `operation.program_id`, no run-trace lookup by `run.run_id()`, and no public
+  struct-literal construction path using raw `program_id` or `run_id` fields.
+- This is a Law 41 runtime-program cleanup: after a program is installed and a
+  run is allocated, runtime lookup and trace retention flow through typed proof
+  carriers; raw program/run text remains only for terminal display,
+  diagnostics, and generated trace labels.
+
+## Query backend live-view target map cleanup
+
+- `ForgeQueryInMemoryTestBackend::live_views` now stores declared live views
+  under `ForgeQueryLiveArtifactTarget` keys instead of raw view-name strings.
+- Backend live reads and affected-live-view routing consume the retained target
+  carrier directly; terminal view-name text remains only at the backend
+  declaration/handle/activation boundary where the backend trait still receives
+  names.
+- The src-hosted runtime test source adapter and public bridge runtime support
+  state now use the same target-keyed map, so critical adapter tests no longer
+  preserve a raw live-view-name authority table beside the production
+  consumer-kit backend.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  test_backend --lib`, green `cargo test -p forge-query --test
+  public_bridge_runtime_bootstrap`, and green `cargo test -p forge-query
+  --test aspect_native_query_compile_fail`.
+- Focused scans found no remaining `live_views: BTreeMap<String, ...>` in the
+  consumer-kit test backend, runtime source adapter support, or public bridge
+  runtime support; no live entity lookup by
+  `target.terminal_view_name_projection()` in those roots; and no affected-view
+  projection from raw `(name, _)` map keys.
+- This is a Law 41 backend/source-adapter cleanup: once a live declaration has
+  been admitted, the backend support maps retain a live artifact target proof
+  carrier rather than using terminal view-name text as lookup authority.
+
+## Query read materialized row identity index cleanup
+
+- Added private `ForgeQueryReadMaterializedRowIdentity` as the row-identity key
+  carrier for read-composition materialization traversal and shared-neighborhood
+  selection.
+- `row_index(...)` now returns
+  `BTreeMap<ForgeQueryReadMaterializedRowIdentity, ForgeQueryEntity>` instead
+  of `BTreeMap<String, ForgeQueryEntity>`.
+- Anchor identities, relation targets, traversal cursors, selected-row maps,
+  and identity ordering now carry the private row identity type instead of
+  moving anonymous identity strings through control flow.
+- The private carrier deliberately exposes no string accessor; row identity text
+  is read from native row fields at the extraction boundary and is not projected
+  again for downstream selection.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  read_composition --lib`, and green focused `cargo test -p forge-query
+  materialized_read --lib`.
+- Focused scans found no remaining read-composition
+  `row_index: &BTreeMap<String, ForgeQueryEntity>`, no `row_index(...) ->
+  BTreeMap<String, ForgeQueryEntity>`, no `row_identity_label(...) ->
+  Option<String>`, and no traversal cursor reassignment through
+  `next_identity.to_string()`.
+- This is a Law 41 read-materialization cleanup: once a materialized native row
+  exposes an identity field, traversal/indexing uses a phase-local proof carrier
+  instead of treating the scalar string as the read engine's authority key.
+
+## Query causal decision trace lookup cleanup
+
+- Added private `CausalDecisionTraceLookupKey` for the retained causal decision
+  trace index.
+- `CausalDecisionTraceIndex::lookup` now stores
+  `HashMap<CausalDecisionTraceLookupKey, usize>` instead of
+  `HashMap<String, usize>`.
+- Trace rows still expose `key()` as terminal/reporting text, and public
+  `row_for_key(&str)` remains the ergonomic lookup boundary, but the retained
+  index immediately lifts that key text into the private lookup carrier before
+  consulting the map.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query causal
+  --lib`, and green focused `cargo test -p forge-query inspection --lib`.
+- Focused scans found no remaining `lookup: HashMap<String, ...>` or
+  production `HashMap<String, ...>` residue in the causal admission trace root.
+- This is a Law 41 inspection-evidence cleanup: retained causal trace lookup no
+  longer treats raw row-key text as the stored index authority, while terminal
+  key strings remain available only at the public query/reporting boundary.
+
+## Query program operation lookup cleanup
+
+- Added `ForgeQueryProgramOperationIdentity` as the program operation lookup
+  carrier.
+- `ForgeQueryProgram::operations` now stores operations under
+  `BTreeMap<ForgeQueryProgramOperationIdentity, ForgeQueryOperation>` instead
+  of `BTreeMap<String, ForgeQueryOperation>`.
+- `ForgeQueryInstalledOperation` now retains the operation identity carrier
+  instead of raw `operation_id` text. Runtime execution and preview execution
+  consume that carrier for program lookup, trace construction, error text, and
+  run-id display projection.
+- Existing public ergonomic boundaries still accept operation id text when a
+  caller asks an installed program for an operation, and trace/error reporting
+  still exposes terminal operation id strings.
+- Strengthened the aspect-native compile-fail fixture for program runtime
+  receipts: facade callers now fail when attempting to construct installed
+  operations with raw `program_id`, raw `operation_id`, or run receipts with raw
+  `run_id`.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query program
+  --lib`, and green `cargo test -p forge-query --test
+  aspect_native_query_compile_fail`.
+- Focused scans found no remaining `operations: BTreeMap<String, ...>`, no
+  runtime `operation.operation_id` lookup/display consumers, and no raw public
+  installed-operation struct-literal path for `operation_id`.
+- This is a Law 41 program-execution cleanup: after an operation is selected
+  from an installed program, runtime execution carries a typed operation proof
+  rather than a free operation-id string.
+
+## Query source-hosted live-view target cleanup
+
+- Converted the runtime API stabilization transcript source adapter,
+  intent-admission certification runtime source adapter, and shared stateful
+  bridge runtime test support from
+  `BTreeMap<String, ForgeQueryMutationTargetCollectionIdentity>` live-view
+  lookup tables to
+  `BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryMutationTargetCollectionIdentity>`.
+- Live-view declaration still accepts the public view name and returns the
+  public `ForgeQueryLiveViewHandle`, but the source adapters immediately lift
+  the name into `ForgeQueryLiveArtifactTarget` before retaining lookup state.
+- Affected-live-view routing now returns cloned live target carriers from the
+  retained map instead of reconstructing targets from raw view-name map keys.
+  The stateful bridge runtime live-read path now looks up by
+  `ForgeQueryLiveArtifactTarget` directly instead of using
+  `target.terminal_view_name_projection()` as an internal key.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  runtime_api_stabilization --lib`, green focused `cargo test -p forge-query
+  intent_admission --lib`, and green focused `cargo test -p forge-query --test
+  public_bridge_runtime_bootstrap`.
+- Focused scans found no remaining
+  `live_views: BTreeMap<String, ForgeQueryMutationTargetCollectionIdentity>`,
+  no stateful bridge lookup by `target.terminal_view_name_projection()`, and no
+  affected-view reconstruction from `(name, _)` live-view map keys in the
+  converted source-hosted runtime roots.
+- This is a Law 41 runtime/source-adapter cleanup: after live-view declaration,
+  transcript, certification, and critical stateful bridge paths retain the live
+  artifact target proof carrier instead of treating terminal view-name text as
+  the routing table authority.
+
+## Query bridge readmission fixture identity cleanup
+
+- Converted the phase-six lower-runtime readmission certification fixture from
+  terminal-string bridge identity maps to runtime-bridge identity carriers:
+  `committed_patches` is now keyed by `TruthCommitIdentity`, `branch_heads`
+  maps `TruthBranchIdentity` to `TruthCommitIdentity`, and `snapshots` is keyed
+  by `TruthSnapshotIdentity`.
+- The fixture now stores committed patch, branch-head, and snapshot authority
+  using the bridge identities already present at the source boundary instead of
+  projecting them through `bridge_admission_evidence().terminal_projection_for_reporting()`
+  for internal lookup.
+- Added the mechanical guard
+  `bridge_readmission_fixtures_do_not_key_authority_by_terminal_strings` to the
+  existing support snapshot runtime-boundary residue tests. It fails if the
+  readmission fixture reintroduces `BTreeMap<String, ...>` authority maps for
+  committed patches, branch heads, or snapshots, or if it stores lookup keys via
+  terminal bridge evidence projection.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  bridge_readmission_fixtures_do_not_key_authority_by_terminal_strings --lib`,
+  and green focused `cargo test -p forge-query lower_runtime_routing --lib`.
+- Focused scans found no remaining `committed_patches: BTreeMap<String, ...>`,
+  `branch_heads: BTreeMap<String, ...>`, `snapshots: BTreeMap<String, ...>`, or
+  terminal bridge-evidence projection lookup in the readmission fixture.
+- This is a Law 41 bridge-readmission cleanup: Query certification fixtures now
+  retain the bridge-provided identity proof carriers for readmission authority
+  instead of treating rendered identity strings as the bridge source of truth.
+
+## Query production string-map residue classification guard
+
+- Added the mechanical guard
+  `production_string_map_residue_is_classified_grammar_or_reporting_only` to
+  the support snapshot runtime-boundary residue tests.
+- The guard recursively scans production Query source for `BTreeMap<String` and
+  `HashMap<String` and fails unless the complete file-level residue set is:
+  `composition/templates/instantiation.rs`,
+  `consumer_kit/evidence_report/report.rs`,
+  `consumer_kit/evidence_report_adoption/syntax.rs`, `program.rs`, and
+  `runtime/intent/input.rs`.
+- The classified survivors are grammar/reporting roots: template slot/binding
+  grammar, evidence report field indexes, evidence report adoption symbol
+  counters, program value/value-expression object grammar and bound inputs, and
+  intent input object grammar. They are not approved runtime authority storage
+  locations for aspect truth.
+- This guard complements the existing production `serde_json` confinement
+  guard. Together they make new JSON/string-map authority residue a test
+  failure instead of a manual scan habit.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  production_string_map_residue_is_classified_grammar_or_reporting_only
+  --lib`, and green focused `cargo test -p forge-query
+  production_serde_json_is_confined_to_support_terminal_codecs --lib`.
+- This is a Law 41 closeout enforcement slice: Query may keep explicit string
+  grammar where the domain is literally named fields, slots, or program inputs,
+  but production authority roots cannot quietly add raw string-keyed maps
+  without changing the guard and explaining why.
+
+## Query graph obligation digest-string projection guard
+
+- Audited the graph-obligation index/selection path for admitted aspect-touch
+  digest strings. Matching already uses native
+  `ForgeQueryGraphObligationTouchLookupKey` values in
+  `GraphObligationBuckets`, including `ForgeQueryAspectTouch` and
+  `ForgeQueryAspectMutationOperation` carriers, rather than rendered digest
+  strings.
+- Renamed the internal lookup-key string projection helper from `value()` to
+  `terminal_value_projection()` and renamed the public index-entry accessor
+  from `touch_key_value()` to `terminal_touch_key_value_projection()`.
+- Added the mechanical guard
+  `graph_obligation_index_does_not_expose_touch_digest_as_lookup_key_value` to
+  the support snapshot runtime-boundary residue tests. It fails if the graph
+  obligation index reintroduces a public `touch_key_value()` accessor or an
+  ambiguous lookup-key `value()` helper, and it requires terminal projection
+  naming for the retained evidence text.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  graph_obligation_index_does_not_expose_touch_digest_as_lookup_key_value
+  --lib`, and green focused `cargo test -p forge-query graph_obligation
+  --lib`.
+- This is a Law 41 digest-string closeout slice: graph-obligation dispatch
+  keeps native lookup authority for selection, and any rendered touch digest
+  exposed from the index is explicitly terminal evidence text, not a reusable
+  lookup key.
+
+## Query write receipt touch digest projection guard
+
+- Audited the write-receipt replay outcome helper that renders admitted aspect
+  touches into journal replay evidence. The rendered touch digest text feeds
+  only replay evidence construction, not routing, matching, or mutation
+  authority.
+- Renamed the helper from `touched_aspect_digest_parts(...)` to
+  `terminal_touched_aspect_digest_projections(...)` so the API describes the
+  value as terminal evidence projection rather than reusable authority parts.
+- Added the mechanical guard
+  `write_receipt_touch_digest_helpers_are_terminal_projections_only` to the
+  support snapshot runtime-boundary residue tests. It fails if the ambiguous
+  helper name returns or if the terminal-projection helper disappears.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  write_receipt_touch_digest_helpers_are_terminal_projections_only --lib`, and
+  green focused `cargo test -p forge-query write_receipt --lib`.
+- This is a Law 41 digest-string closeout slice: write receipt replay may
+  render admitted touch digest text for terminal evidence identities, but the
+  helper name and guard prevent that text from being treated as a reusable
+  mutation authority part.
+
+## Query batch receipt touch digest projection guard
+
+- Audited the batch receipt and unified batch write inspection digest helpers
+  that render admitted aspect touches into evidence identities. These helpers
+  feed only batch receipt / inspection evidence construction, not routing,
+  matching, or mutation authority.
+- Renamed the repeated `evidence_touch_identities(...)` helpers to
+  `terminal_touch_projection_identities(...)` in the batch receipt identity,
+  unified batch write digest, and unified batch write digest component helpers.
+- Updated batch receipt construction to call the terminal-projection helper
+  explicitly for admitted touched aspects.
+- Added the mechanical guard
+  `batch_receipt_touch_digest_helpers_are_terminal_projections_only` to the
+  support snapshot runtime-boundary residue tests. It fails if the ambiguous
+  helper name returns or if any guarded batch helper file stops naming rendered
+  touch digest text as terminal projection evidence.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  batch_receipt_touch_digest_helpers_are_terminal_projections_only --lib`, and
+  green focused `cargo test -p forge-query batch --lib`.
+- This is a Law 41 digest-string closeout slice: batch receipts may render
+  admitted touch digest text for terminal evidence identities, but batch
+  evidence helpers no longer present that rendered text as generic evidence
+  identity authority.
+
+## Query computed/preview/verified/effect touch digest projection guard
+
+- Audited the remaining computed inspection, preview execution evidence,
+  verified-assumption summaries, graph-composition assumption summaries, and
+  effect delivery payload digest material for admitted aspect-touch digest
+  rendering.
+- These roots retain native `ForgeQueryAspectTouch` carriers for runtime state
+  and expose rendered touch digest text only at evidence identity / terminal
+  digest material boundaries.
+- Renamed the effect delivery helper from `terminal_touch_digest_sequence(...)`
+  to `terminal_touch_digest_projection_sequence(...)` so the helper identifies
+  its output as terminal projection text rather than a reusable touch authority
+  sequence.
+- Added the mechanical guard
+  `summary_and_effect_touch_digest_rendering_stays_terminal_evidence_only` to
+  the support snapshot runtime-boundary residue tests. It fails if the effect
+  helper returns to the ambiguous name or if the guarded computed, preview, or
+  verified-assumption summary files render touch digests outside evidence
+  identity construction.
+- Verification covered green `cargo fmt -p forge-query`, green `cargo check
+  -p forge-query --tests`, green focused `cargo test -p forge-query
+  summary_and_effect_touch_digest_rendering_stays_terminal_evidence_only
+  --lib`, green focused `cargo test -p forge-query effect --lib`, and green
+  focused `cargo test -p forge-query computed --lib`.
+- This is a Law 41 digest-string closeout slice: the remaining summary/effect
+  roots can still render touch digests for terminal evidence, but native touch
+  carriers stay authoritative for runtime behavior.
+
+## Remaining high-impact mechanical roots
+
+The closeout audit did not identify another production authority root that
+still decides mutation, read, projection, effect, replay, or certification
+truth from JSON, dotted aspect strings, or untyped string maps.
+
+- The digest-string authority audit is closed for the currently identified
+  admitted-aspect-touch roots: graph-obligation lookup/selection,
+  write-receipt replay outcome, batch receipt digest helpers, computed
+  inspection, preview execution evidence, verified-assumption summaries,
+  graph-composition assumption summaries, and effect delivery summaries all
+  either retain native carriers or are guarded as terminal evidence
+  projections.
+- Production `serde_json` and production `BTreeMap<String, ...>` /
+  `HashMap<String, ...>` residue are guarded by exact runtime-boundary tests.
+  The remaining allowed string maps are grammar/reporting surfaces: program
+  object fields, intent input object fields, template slots, and report
+  indexes. They are not authority storage unless a future audit finds a
+  concrete control-authority role.
+- Do not continue converting strings only to make broad search output empty.
+  Further work should start only from a concrete production authority leak or a
+  failing Law 41 guard.
+
+## Closeout status checkpoint - 2026-06-23
+
+- The aspect-native closeout guard cluster is green:
+  `cargo test -p forge-query runtime_boundary --lib` passes all 14 guarded
+  support snapshot/runtime-boundary tests, including the production
+  `serde_json`, local JSON compatibility bridge, production string-map
+  residue, live-target identity, and terminal touch-digest projection guards.
+- `cargo check -p forge-query --tests` is green after the latest closeout
+  slices.
+- A full `cargo test -p forge-query` run exposed one real concentrated test
+  fixture issue: declaration aspect test keys were still split at the first
+  dot even though foundational aspect keys may contain dotted namespaces and
+  field keys may not contain dots. The test helper now splits at the last dot,
+  and the previously failing declaration bridge-routing, relational-routing,
+  signal-compatibility, binding-pipeline, and signal-orchestration clusters are
+  green in focused runs.
+- The subsequent full-suite failures observed were stale trybuild stderr
+  expectations where the compiler now reports stronger/native boundary
+  failures. Refreshed targeted suites:
+  `phase_boundaries_bridge_truth_identity_compile_fail`,
+  `phase_boundaries_compile_fail`, and
+  `phase_boundaries_domain_capabilities_compile_fail`,
+  `phase_boundaries_graph_read_access_compile_fail`,
+  `phase_boundaries_runtime_receipts_compile_fail`, and
+  `prohibition_registry_compile_fail`.
+- Final closeout verification is green: `cargo test -p forge-query` completed
+  successfully after the targeted trybuild refreshes.
+- Current residue scans show production JSON compatibility terms only inside
+  the mechanical guard source and hostile compile-fail fixtures, and broad
+  string-map residue is covered by the runtime-boundary classification guard.
 
 ## Self-check
 

@@ -56,7 +56,7 @@ impl ForgeQueryGraphCompositionEvidence {
                     entry.component_index(),
                 )
                 .optional_value(
-                    ForgeQueryEvidenceTag::new("aspect_path"),
+                    ForgeQueryEvidenceTag::new("admitted_aspect_touch"),
                     aspect_digest.as_deref(),
                 )
                 .field_evidence_identity(

@@ -31,14 +31,12 @@ pub(in crate::runtime::tests) fn assert_graph_composition_resolution_snapshot(
         graph_composition_resolution_snapshot(map),
         expected
             .iter()
-            .map(|(component_index, aspect_path, symbol, identity)| {
+            .map(|(component_index, touch_fixture, symbol, identity)| {
                 (
                     *component_index,
-                    aspect_path.as_ref().map(|path| {
-                        ForgeQueryAspectTouch::from_authoring_path(path)
-                            .expect("expected graph resolution aspect should admit")
-                            .admitted_touch_digest_part()
-                    }),
+                    touch_fixture
+                        .as_ref()
+                        .map(|path| test_aspect_touch(path).admitted_touch_digest_part()),
                     symbol.clone(),
                     identity.clone(),
                 )

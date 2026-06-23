@@ -27,28 +27,32 @@ impl OrderingSelector {
         Self::new(aspect, field, OrderingDirection::Descending)
     }
 
+    pub fn ascending_source_field_key(key: AspectFieldKey) -> Self {
+        Self::from_source_field_key(key, OrderingDirection::Ascending)
+    }
+
+    pub fn descending_source_field_key(key: AspectFieldKey) -> Self {
+        Self::from_source_field_key(key, OrderingDirection::Descending)
+    }
+
     fn new(
         aspect: impl Into<String>,
         field: impl Into<String>,
         direction: OrderingDirection,
     ) -> Result<Self, AuthoringError> {
         Ok(Self {
-            key: AspectFieldKey::new(aspect, field)
+            key: AspectFieldKey::from_authoring_parts(aspect, field)
                 .map_err(|_| AuthoringError::EmptyOrderingSelector)?,
             direction,
         })
     }
 
+    fn from_source_field_key(key: AspectFieldKey, direction: OrderingDirection) -> Self {
+        Self { key, direction }
+    }
+
     pub fn source_field_key(&self) -> &AspectFieldKey {
         &self.key
-    }
-
-    pub(crate) fn aspect(&self) -> &str {
-        self.key.aspect().as_str()
-    }
-
-    pub(crate) fn field(&self) -> &str {
-        self.key.field().as_str()
     }
 
     pub fn aspect_name(&self) -> &AspectName {

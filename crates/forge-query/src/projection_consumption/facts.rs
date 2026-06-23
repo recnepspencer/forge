@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 
 use super::identity::compose_materialized_fact_posture_digest;
 
@@ -8,6 +8,22 @@ use super::identity::compose_materialized_fact_posture_digest;
 pub struct ProjectionFactFieldPath {
     path: CanonicalFieldPath,
     terminal_projection: String,
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub(crate) struct ProjectionFactAspectFieldKey {
+    aspect_key: AspectKey,
+    field_key: FieldKey,
+}
+
+impl ProjectionFactAspectFieldKey {
+    pub(crate) fn native_aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
+    }
+
+    pub(crate) fn native_field_key(&self) -> &FieldKey {
+        &self.field_key
+    }
 }
 
 impl ProjectionFactFieldPath {
@@ -31,19 +47,24 @@ impl ProjectionFactFieldPath {
     pub fn canonical_field_path(&self) -> &CanonicalFieldPath {
         &self.path
     }
+
+    pub(crate) fn native_aspect_field_key(&self) -> Option<ProjectionFactAspectFieldKey> {
+        let [aspect, field] = self.path.fields() else {
+            return None;
+        };
+        Some(ProjectionFactAspectFieldKey {
+            aspect_key: AspectKey::new(aspect.as_str())
+                .expect("canonical projection fact aspect segment should be non-empty"),
+            field_key: field.clone(),
+        })
+    }
 }
 
 pub(crate) fn projection_fact_field_path_from_segments(
-    segments: impl IntoIterator<Item = impl Into<String>>,
+    segments: impl IntoIterator<Item = FieldKey>,
 ) -> ProjectionFactFieldPath {
-    let fields = segments
-        .into_iter()
-        .map(|segment| {
-            FieldKey::new(segment.into()).expect("projection fact field segments must be non-empty")
-        })
-        .collect::<Vec<_>>();
     ProjectionFactFieldPath::from_canonical_field_path(
-        CanonicalFieldPath::new(fields)
+        CanonicalFieldPath::new(segments.into_iter().collect::<Vec<_>>())
             .expect("projection fact field paths must contain at least one field"),
     )
 }

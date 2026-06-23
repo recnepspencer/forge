@@ -3,6 +3,7 @@ use crate::harness::validation_cases::support::{
     assert_rejects_with, canonical_bundle_with_projection,
 };
 use crate::validation::QueryValidationError;
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 #[test]
 fn unknown_aspect_rejects_before_planning() {
@@ -69,13 +70,15 @@ fn structured_content_projection_validates_when_schema_admits_it() {
     .expect("queryable structured content projection should validate");
 
     assert_eq!(validated.query().projection().len(), 2);
+    let content_aspect_key = AspectKey::new("content").expect("fixture aspect key should admit");
+    let bio_field_key = FieldKey::new("bio").expect("fixture field key should admit");
     let bio_binding = validated
         .result_shape()
         .bindings()
         .iter()
         .find(|binding| {
-            binding.native_source_aspect_key().as_str() == "content"
-                && binding.native_source_field_key().as_str() == "bio"
+            binding.native_source_aspect_key() == &content_aspect_key
+                && binding.native_source_field_key() == &bio_field_key
         })
         .expect("structured content binding should be present");
     assert_eq!(

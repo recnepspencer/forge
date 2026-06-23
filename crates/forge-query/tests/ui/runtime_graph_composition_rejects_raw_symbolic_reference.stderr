@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/runtime_graph_composition_rejects_raw_symbolic_reference.rs:11:52
+  --> tests/ui/runtime_graph_composition_rejects_raw_symbolic_reference.rs:12:52
    |
-11 |         .symbolic_entity_identity(source_identity, &reference);
+12 |         .symbolic_entity_identity(source_identity, &reference);
    |          ------------------------                  ^^^^^^^^^^ expected `&ForgeQueryGraphEntitySymbol`, found `&ForgeQuerySymbolicTargetReference`
    |          |
    |          arguments to this method are incorrect

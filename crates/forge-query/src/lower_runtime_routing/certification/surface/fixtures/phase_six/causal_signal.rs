@@ -11,8 +11,8 @@ use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeSeamKey,
 };
 use crate::runtime::{
-    CausalInspection, ForgeQueryAspectMutationBuilder, ForgeQueryAspectTouch, ForgeQueryReadFamily,
-    ForgeQueryReadResult, ForgeQueryWorkspace, QueryObservationReceipt,
+    CausalInspection, ForgeQueryAspectMutationBuilder, ForgeQueryReadFamily, ForgeQueryReadResult,
+    ForgeQueryWorkspace, QueryObservationReceipt,
 };
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
 use forge_signal::facade::adapters::{
@@ -24,7 +24,9 @@ use forge_signal::facade::adapters::{
 };
 use forge_signal::facade::{Aspect, NodeId, PartitionSubscription};
 
-use super::super::{ForgeQueryLowerRuntimeRepresentativeEvidenceSource, RepresentativeArtifacts};
+use super::super::{
+    title_value_touch, ForgeQueryLowerRuntimeRepresentativeEvidenceSource, RepresentativeArtifacts,
+};
 
 pub(crate) fn representative_causal_bridge_materialization_row() -> RepresentativeArtifacts {
     let read_result = certification_read_result();
@@ -213,10 +215,9 @@ fn certification_read_result() -> ForgeQueryReadResult {
         .expect("causal bridge workspace should build");
     workspace
         .insert("Task", |task: ForgeQueryAspectMutationBuilder| {
-            task.aspect(
-                ForgeQueryAspectTouch::from_authoring_path("title.value")
-                    .expect("causal bridge title aspect should admit"),
-                forge_foundational::facade::AspectValue::String("Causal fixture".into()),
+            task.set_aspect(
+                title_value_touch(),
+                crate::runtime::ForgeQueryAuthoredAspectValue::string("Causal fixture"),
             )
         })
         .expect("causal bridge seed write should succeed");

@@ -1,4 +1,5 @@
 use super::*;
+use crate::runtime::ForgeQueryLiveArtifactTarget;
 
 impl<'a> ForgeQueryPreviewSession<'a> {
     pub fn label(&self) -> &str {
@@ -86,8 +87,8 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         admit_authority_requirements(query_operation.authority_requirements())?;
         let bound_inputs = validate_inputs(&query_operation, &inputs)?;
         let mut trace = ForgeQueryProgramTrace::new(
-            operation.program_id.clone(),
-            operation.operation_id.clone(),
+            operation.program_identity.as_str(),
+            operation.operation_identity.as_str(),
             &bound_inputs,
             query_operation
                 .authority_requirements()
@@ -132,7 +133,19 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     write_receipts.push(receipt);
                 }
                 ForgeQueryProgramEffect::ReadLive { view_name } => {
-                    let rows = self.runtime.backend.live_entities(&view_name);
+                    let target = self
+                        .runtime
+                        .live_subscriptions
+                        .get(&ForgeQueryLiveArtifactTarget::from_view_name(&view_name))
+                        .map(|state| {
+                            ForgeQueryLiveArtifactTarget::from_subscription_installation(
+                                &state.installation,
+                            )
+                        })
+                        .unwrap_or_else(|| {
+                            ForgeQueryLiveArtifactTarget::from_view_name(view_name.clone())
+                        });
+                    let rows = self.runtime.backend.live_entities_for_target(&target);
                     outputs.push(ForgeQueryOperationOutput::from_live_read_entities(
                         format!("preview-live:{view_name}"),
                         rows,
@@ -154,11 +167,11 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             }
         }
 
-        let run_id = self.runtime.next_run_identity(&operation);
-        self.runtime.run_traces.insert(run_id.clone(), trace);
+        let run_identity = self.runtime.next_run_identity(&operation);
+        self.runtime.run_traces.insert(run_identity.clone(), trace);
         self.writes.extend(write_receipts.iter().cloned());
         Ok(ForgeQueryRunReceipt {
-            run_id,
+            run_identity,
             operation,
             outputs,
             write_receipts,

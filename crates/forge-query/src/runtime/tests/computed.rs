@@ -15,13 +15,16 @@ fn touches<const N: usize>(paths: [&str; N]) -> [ForgeQueryAspectTouch; N] {
 
 fn update_string_aspect(
     entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity,
-    aspect_path: &str,
+    authored_touch_text: &str,
     value: &str,
 ) -> ForgeQueryWriteCommand {
     ForgeQueryWriteCommand::UpdateAspect {
         entity_identity,
-        aspect: ForgeQueryAspectValue::new_set(touch(aspect_path), test_string_aspect_value(value))
-            .expect("test aspect update should build"),
+        aspect: ForgeQueryAdmittedAspectValue::new_set(
+            touch(authored_touch_text),
+            test_string_aspect_value(value),
+        )
+        .expect("test aspect update should build"),
     }
 }
 
@@ -1246,7 +1249,7 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
             let author = refresh
                 .refresh_metadata()
                 .get(&test_mutation_metadata_key("author"))
-                .map(|value| value.native_digest_text())
+                .map(|value| value.terminal_digest_text())
                 .unwrap_or("missing");
             let row = retained_string_test_row(
                 "value",
@@ -1290,10 +1293,15 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
         .live_view("tasks.table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-metadata-table")
         })
         .expect("task live view should declare");
@@ -1309,9 +1317,9 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
 
     let receipt = workspace
         .insert("Task", |builder| {
-            builder.metadata("author", "worth-topo").aspect(
+            builder.metadata("author", "worth-topo").set_aspect(
                 touch("title.value"),
-                test_string_aspect_value("Metadata proof"),
+                test_authored_string_aspect_value("Metadata proof"),
             )
         })
         .expect("task insert should succeed");
@@ -1335,9 +1343,9 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
 #[test]
 fn retained_upstreams_decode_single_computed_rows_through_query_runtime_floor() {
     let upstreams = ForgeQueryRetainedUpstreamInputs::from_retained_computed_rows(
-        Vec::<(String, Vec<ForgeQueryEntity>)>::new(),
+        Vec::<(ForgeQueryLiveArtifactTarget, Vec<ForgeQueryEntity>)>::new(),
         [(
-            "computed.materialized".to_string(),
+            ForgeQueryDerivedMaterializationTarget::test_only("computed.materialized"),
             vec![retained_test_row([("count", AspectValue::UInt64(4))])],
         )],
     );
@@ -1501,10 +1509,15 @@ fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_r
         .live_view("tasks.table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-bundle-table")
         })
         .expect("task live view should declare");
@@ -1533,9 +1546,9 @@ fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_r
 
     let receipt = workspace
         .insert("Task", |builder| {
-            builder.aspect(
+            builder.set_aspect(
                 touch("title.value"),
-                test_string_aspect_value("Bundle proof"),
+                test_authored_string_aspect_value("Bundle proof"),
             )
         })
         .expect("task insert should succeed");
@@ -1582,7 +1595,9 @@ fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_r
     assert_eq!(retained_u64_field(materialized_count, "count"), 1);
 
     let missing = bundle
-        .materialization_by_name("computed.bundle.missing")
+        .materialization_for_target(&ForgeQueryDerivedMaterializationTarget::test_only(
+            "computed.bundle.missing",
+        ))
         .expect_err("missing retained bundle target should fail closed");
     match missing {
         ForgeQueryRuntimeError::RetainedRowDecode {
@@ -1770,10 +1785,15 @@ fn derived_materialization_bundle_binds_one_exact_retained_artifact() {
         .live_view("computed.bundle.binding.tasks", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("computed-bundle-binding")
         })
         .expect("task live view should declare");
@@ -1802,9 +1822,9 @@ fn derived_materialization_bundle_binds_one_exact_retained_artifact() {
 
     workspace
         .insert("Task", |builder| {
-            builder.aspect(
+            builder.set_aspect(
                 touch("title.value"),
-                test_string_aspect_value("Artifact proof"),
+                test_authored_string_aspect_value("Artifact proof"),
             )
         })
         .expect("task insert should succeed");

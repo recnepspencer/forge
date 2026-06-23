@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativeLiveViewShape};
 use crate::memory_workspace::{ForgeQueryMutationKind, ForgeQueryMutationReceipt};
@@ -12,31 +12,38 @@ use crate::subscription::{
     MaintenanceDeltaWidth, PatchGroupWidth, QueryDeliveryWindowBudget,
     QuerySubscriptionMaintenanceDelta, QuerySubscriptionMaintenanceDeltaKind,
 };
-use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
+use forge_foundational::facade::CanonicalFieldPath;
 
 use super::delivery::{
-    ForgeQueryRuntimeDeliveryBatch, ForgeQueryRuntimeLiveSubscriptionState,
-    ForgeQueryRuntimeRetainedDelivery,
+    ForgeQueryLiveSubscriptionIndexEntry, ForgeQueryRuntimeDeliveryBatch,
+    ForgeQueryRuntimeLiveSubscriptionState, ForgeQueryRuntimeRetainedDelivery,
 };
 use super::{
-    ForgeQueryAspectTouch, ForgeQueryLiveGraphReadAccessPlan,
+    ForgeQueryAspectTouch, ForgeQueryLiveArtifactTarget, ForgeQueryLiveGraphReadAccessPlan,
     ForgeQueryLiveGraphReadMaintenanceBudget, ForgeQueryLiveGraphReadMaintenanceReceipt,
-    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeError,
 };
 
 pub(super) fn route_live_subscription_delivery(
     active_subscriptions: &mut ActiveSubscriptionRuntime,
-    live_subscriptions: &mut BTreeMap<String, ForgeQueryRuntimeLiveSubscriptionState>,
-    live_subscription_index: &BTreeMap<String, BTreeSet<String>>,
+    live_subscriptions: &mut BTreeMap<
+        ForgeQueryLiveArtifactTarget,
+        ForgeQueryRuntimeLiveSubscriptionState,
+    >,
+    live_subscription_index: &[ForgeQueryLiveSubscriptionIndexEntry],
     receipt: &ForgeQueryMutationReceipt,
-) -> Result<Vec<String>, ForgeQueryRuntimeError> {
+) -> Result<Vec<ForgeQueryLiveArtifactTarget>, ForgeQueryRuntimeError> {
     let mut affected = Vec::new();
     for delta in &receipt.deltas {
-        let Some(candidate_view_names) = live_subscription_index.get(&delta.collection) else {
+        let Some(candidate_entry) = live_subscription_index.iter().find(|entry| {
+            delta
+                .target_collection_identity()
+                .same_target_collection_as(entry.target_collection())
+        }) else {
             continue;
         };
-        for view_name in candidate_view_names {
-            let Some(state) = live_subscriptions.get_mut(view_name) else {
+        for target in candidate_entry.targets() {
+            let Some(state) = live_subscriptions.get_mut(target) else {
                 continue;
             };
             let Some(delta_kind) = maintenance_delta_kind_for_live_change(
@@ -49,7 +56,7 @@ pub(super) fn route_live_subscription_delivery(
             route_relevant_live_subscription_delta(
                 active_subscriptions,
                 state,
-                view_name,
+                target,
                 receipt,
                 delta,
                 delta_kind,
@@ -65,12 +72,13 @@ pub(super) fn route_live_subscription_delivery(
 fn route_relevant_live_subscription_delta(
     active_subscriptions: &mut ActiveSubscriptionRuntime,
     state: &mut ForgeQueryRuntimeLiveSubscriptionState,
-    view_name: &str,
+    target: &ForgeQueryLiveArtifactTarget,
     receipt: &ForgeQueryMutationReceipt,
     delta: &crate::memory_workspace::ForgeQueryMutationDelta,
     delta_kind: QuerySubscriptionMaintenanceDeltaKind,
-    affected: &mut Vec<String>,
+    affected: &mut Vec<ForgeQueryLiveArtifactTarget>,
 ) -> Result<(), ForgeQueryRuntimeError> {
+    let view_name = target.view_name();
     let patch_width = delta.admitted_touched_aspects().len().max(1) as u64;
     let maintenance_delta =
         admitted_subscription_maintenance_delta(receipt, delta, delta_kind, state, patch_width);
@@ -147,7 +155,7 @@ fn route_relevant_live_subscription_delta(
             message: error.message().to_string(),
         },
     )?;
-    affected.push(view_name.to_string());
+    affected.push(target.clone());
     Ok(())
 }
 
@@ -160,15 +168,11 @@ fn admitted_subscription_maintenance_delta(
 ) -> QuerySubscriptionMaintenanceDelta {
     let commit_evidence = receipt.commit_identity.evidence_identity();
     let entity_evidence = delta.entity_identity.evidence_identity();
-    let collection_identity = ForgeQueryMutationTargetCollectionIdentity::new(
-        "live-subscription-maintenance-delta",
-        &delta.collection,
-    );
     QuerySubscriptionMaintenanceDelta::admitted_with_typed_scope(
         delta_kind,
         state.active_lane_handle.lane_digest().clone(),
         &commit_evidence,
-        collection_identity.evidence_identity(),
+        delta.target_collection_identity().evidence_identity(),
         &entity_evidence,
         MaintenanceDeltaWidth::measured(patch_width),
     )
@@ -287,11 +291,7 @@ fn is_membership_change(mutation_kind: &ForgeQueryMutationKind) -> bool {
 
 fn live_request_field_touch(field: &crate::authoring::AspectFieldKey) -> ForgeQueryAspectTouch {
     ForgeQueryAspectTouch::from_native_parts(
-        AspectKey::new(field.aspect().as_str())
-            .expect("declarative live aspect should already be a foundational aspect key"),
-        Some(CanonicalFieldPath::single(
-            FieldKey::new(field.field().as_str())
-                .expect("declarative live field should already be a foundational field key"),
-        )),
+        field.native_aspect_key(),
+        Some(CanonicalFieldPath::single(field.native_field_key())),
     )
 }

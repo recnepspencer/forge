@@ -3,13 +3,14 @@ use std::collections::BTreeSet;
 use super::{ForgeQueryAspectTouch, ForgeQueryMutationMetadata};
 use crate::memory_workspace::{ForgeQueryEntityIdentity, ForgeQueryWorkspaceError};
 use crate::runtime::{
-    ForgeQueryAspectValue, ForgeQueryExistingTruthTargetBinding, ForgeQueryNamingMutationIntent,
+    ForgeQueryAdmittedAspectValue, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryNamingMutationIntent,
     ForgeQueryRuntimeError, ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
 };
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ForgeQueryDeleteMutationBuilder {
-    declared_collection: Option<String>,
+    declared_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
     touched_aspects: Vec<ForgeQueryAspectTouch>,
     seen_aspects: BTreeSet<ForgeQueryAspectTouch>,
     metadata: ForgeQueryMutationMetadata,
@@ -31,7 +32,10 @@ impl ForgeQueryDeleteMutationBuilder {
             self.error = Some("delete target collection may not be empty".to_string());
             return self;
         }
-        self.declared_collection = Some(collection);
+        self.declared_collection = Some(ForgeQueryMutationTargetCollectionIdentity::new(
+            "write-command-declared",
+            collection,
+        ));
         self
     }
 
@@ -131,7 +135,7 @@ impl ForgeQueryDeleteMutationBuilder {
     pub(crate) fn build_delete_existing_verified(
         self,
         binding: ForgeQueryExistingTruthTargetBinding,
-        asserted_aspects: Vec<ForgeQueryAspectValue>,
+        asserted_aspects: Vec<ForgeQueryAdmittedAspectValue>,
     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
         if let Some(error) = self.error {
             return Err(ForgeQueryRuntimeError::Workspace(

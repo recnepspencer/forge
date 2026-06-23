@@ -150,8 +150,10 @@ fn assert_task_live_row_count(runtime: ForgeQueryRuntime, workspace: &str, expec
         .live_view("tasks.policy-denial-state", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
                 .schema_basis("tasks-policy-denial-state")
         })

@@ -13,23 +13,28 @@ fn mixed_batch_symbolic_and_existing_targets_preserve_distinct_evidence() {
         .live_view("tasks.mixed-target-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-mixed-target-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-existing"),
+                test_authored_string_aspect_value("task-existing"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Existing"),
+                test_authored_string_aspect_value("Existing"),
             )
         })
         .expect("seed insert should execute");
@@ -55,25 +60,25 @@ fn mixed_batch_symbolic_and_existing_targets_preserve_distinct_evidence() {
         .batch(|batch| {
             batch
                 .insert_symbolic("draft-task", "Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-draft"),
+                        test_authored_string_aspect_value("task-draft"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Draft"),
+                        test_authored_string_aspect_value("Draft"),
                     )
                 })
                 .update_symbolic(symbolic.clone(), |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Draft renamed"),
+                        test_authored_string_aspect_value("Draft renamed"),
                     )
                 })
                 .update_existing(existing_binding, |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Existing renamed"),
+                        test_authored_string_aspect_value("Existing renamed"),
                     )
                 })
         })
@@ -135,9 +140,9 @@ fn symbolic_target_reference_denies_missing_same_batch_target() {
     let error = workspace
         .batch(|batch| {
             batch.update_symbolic(symbolic, |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("No target"),
+                    test_authored_string_aspect_value("No target"),
                 )
             })
         })
@@ -156,6 +161,47 @@ fn symbolic_target_reference_denies_missing_same_batch_target() {
 }
 
 #[test]
+fn symbolic_target_reference_denies_collection_mismatch_with_native_target_identity() {
+    let mut workspace = stateful_bridge_task_runtime()
+        .workspace("tasks.symbolic-collection-mismatch")
+        .expect("task runtime should open a named workspace");
+    let symbolic = ForgeQuerySymbolicTargetReference::new("draft-task")
+        .expect("symbolic reference should build")
+        .in_target_collection("Project")
+        .expect("symbolic reference collection should build");
+
+    let error = workspace
+        .batch(|batch| {
+            batch
+                .insert_symbolic("draft-task", "Task", |task| {
+                    task.set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value("task-draft"),
+                    )
+                })
+                .update_symbolic(symbolic, |task| {
+                    task.set_aspect(
+                        test_aspect_touch("title.value"),
+                        test_authored_string_aspect_value("Wrong collection"),
+                    )
+                })
+        })
+        .expect_err("collection-mismatched same-batch symbolic target should deny");
+
+    match error {
+        ForgeQueryRuntimeError::MutationTargetReferenceDenied(denial) => {
+            assert_eq!(
+                denial.kind(),
+                ForgeQuerySymbolicTargetReferenceDenialKind::CollectionMismatch
+            );
+            assert!(denial.message().contains("resolved to collection `Task`"));
+            assert!(denial.message().contains("not `Project`"));
+        }
+        other => panic!("expected symbolic target denial, got {other:?}"),
+    }
+}
+
+#[test]
 fn preview_batch_symbolic_target_preserves_symbolic_evidence() {
     let runtime = stateful_bridge_task_runtime();
     let mut workspace = runtime
@@ -165,10 +211,15 @@ fn preview_batch_symbolic_target_preserves_symbolic_evidence() {
         .live_view("tasks.preview-symbolic-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-preview-symbolic-table")
         })
         .expect("live view should declare");
@@ -180,13 +231,13 @@ fn preview_batch_symbolic_target_preserves_symbolic_evidence() {
         .batch(|batch| {
             batch
                 .insert_symbolic("draft-task", "Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-draft"),
+                        test_authored_string_aspect_value("task-draft"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Draft"),
+                        test_authored_string_aspect_value("Draft"),
                     )
                 })
                 .update_symbolic(
@@ -195,9 +246,9 @@ fn preview_batch_symbolic_target_preserves_symbolic_evidence() {
                         .in_target_collection("Task")
                         .expect("symbolic reference collection should build"),
                     |task| {
-                        task.aspect(
+                        task.set_aspect(
                             test_aspect_touch("title.value"),
-                            test_string_aspect_value("Draft preview renamed"),
+                            test_authored_string_aspect_value("Draft preview renamed"),
                         )
                     },
                 )
@@ -226,18 +277,18 @@ fn symbolic_aspect_reference_requires_batch_context() {
         .workspace("tasks.symbolic-aspect-single")
         .expect("runtime should open a named workspace");
     let command = ForgeQueryAspectMutationBuilder::new()
-        .aspect(
+        .set_aspect(
             test_aspect_touch("edge.kind"),
-            test_string_aspect_value("depends_on"),
+            test_authored_string_aspect_value("depends_on"),
         )
         .symbolic_entity_identity(
             test_aspect_touch("edge.source_identity"),
             ForgeQuerySymbolicTargetReference::new("draft-task")
                 .expect("symbolic reference should build"),
         )
-        .aspect(
+        .set_aspect(
             test_aspect_touch("edge.target_identity"),
-            test_string_aspect_value("task-existing"),
+            test_authored_string_aspect_value("task-existing"),
         )
         .build_insert("TaskEdge")
         .expect("insert command should build");
@@ -266,10 +317,15 @@ fn symbolic_aspect_reference_resolves_same_batch_created_entity_identity() {
         .live_view("tasks.symbolic-aspect-tasks", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-symbolic-aspect-tasks")
         })
         .expect("task live view should declare");
@@ -277,11 +333,21 @@ fn symbolic_aspect_reference_resolves_same_batch_created_entity_identity() {
         .live_view("tasks.symbolic-aspect-edges", |q| {
             q.from("TaskEdge")
                 .select([
-                    crate::authoring::AspectFieldKey::new("edge", "kind").unwrap(),
-                    crate::authoring::AspectFieldKey::new("edge", "source_identity").unwrap(),
-                    crate::authoring::AspectFieldKey::new("edge", "target_identity").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts(
+                        "edge",
+                        "source_identity",
+                    )
+                    .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts(
+                        "edge",
+                        "target_identity",
+                    )
+                    .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("edge", "kind").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind").unwrap(),
+                )
                 .schema_basis("tasks-symbolic-aspect-edges")
         })
         .expect("edge live view should declare");
@@ -290,28 +356,28 @@ fn symbolic_aspect_reference_resolves_same_batch_created_entity_identity() {
         .batch(|batch| {
             batch
                 .insert_symbolic("draft-task", "Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-draft"),
+                        test_authored_string_aspect_value("task-draft"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Draft task"),
+                        test_authored_string_aspect_value("Draft task"),
                     )
                 })
                 .insert("TaskEdge", |edge| {
-                    edge.aspect(
+                    edge.set_aspect(
                         test_aspect_touch("edge.kind"),
-                        test_string_aspect_value("depends_on"),
+                        test_authored_string_aspect_value("depends_on"),
                     )
                     .symbolic_entity_identity(
                         test_aspect_touch("edge.source_identity"),
                         ForgeQuerySymbolicTargetReference::new("draft-task")
                             .expect("symbolic reference should build"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("edge.target_identity"),
-                        test_string_aspect_value("task-existing"),
+                        test_authored_string_aspect_value("task-existing"),
                     )
                 })
         })

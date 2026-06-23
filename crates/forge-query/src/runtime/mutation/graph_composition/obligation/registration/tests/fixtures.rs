@@ -3,21 +3,23 @@ use crate::runtime::{
     ForgeQueryGraphCompositionProgramStep, ForgeQueryGraphCompositionProgramStepKind,
     ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphObligationRegistration,
     ForgeQueryGraphObligationRuleIdentity, ForgeQueryGraphTouchDescriptor,
-    ForgeQueryGraphTouchSelector, ForgeQueryMutationMetadata, ForgeQuerySymbolicTargetReference,
+    ForgeQueryGraphTouchSelector, ForgeQueryMutationMetadata,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQuerySymbolicTargetReference,
     ForgeQueryWriteCommand,
 };
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_relational::facade::identity::KindId;
 
 pub(super) fn symbolic_relation_touch_descriptor(
     collection: &str,
-    touched_aspect_path: &str,
+    touched_fixture: &str,
 ) -> ForgeQueryGraphTouchDescriptor {
-    symbolic_relation_touch_descriptor_with_relation_kind_id(collection, touched_aspect_path, None)
+    symbolic_relation_touch_descriptor_with_relation_kind_id(collection, touched_fixture, None)
 }
 
 pub(super) fn symbolic_relation_touch_descriptor_with_relation_kind_id(
     collection: &str,
-    touched_aspect_path: &str,
+    touched_fixture: &str,
     relation_kind_id: Option<KindId>,
 ) -> ForgeQueryGraphTouchDescriptor {
     let command = ForgeQueryWriteCommand::DeleteSymbolicAspects {
@@ -25,7 +27,7 @@ pub(super) fn symbolic_relation_touch_descriptor_with_relation_kind_id(
             .unwrap()
             .in_target_collection(collection)
             .unwrap(),
-        touched_aspects: vec![touch(touched_aspect_path)],
+        touched_aspects: vec![touch(touched_fixture)],
         metadata: ForgeQueryMutationMetadata::new(),
         naming_intent: None,
     };
@@ -33,7 +35,7 @@ pub(super) fn symbolic_relation_touch_descriptor_with_relation_kind_id(
     let mut step = ForgeQueryGraphCompositionProgramStep::new(
         0,
         ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationRetirement,
-        collection,
+        Some(target_collection(collection)),
         Some("edge".to_string()),
     );
     if let Some(relation_kind_id) = relation_kind_id {
@@ -48,9 +50,29 @@ pub(super) fn symbolic_relation_touch_descriptor_with_relation_kind_id(
     .unwrap()
 }
 
-pub(super) fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    ForgeQueryAspectTouch::from_authoring_path(aspect_path.to_string())
-        .expect("test aspect path should parse")
+pub(super) fn touch(touch_fixture: &str) -> ForgeQueryAspectTouch {
+    native_touch(touch_fixture)
+}
+
+fn native_touch(aspect_fixture: &str) -> ForgeQueryAspectTouch {
+    let mut segments = aspect_fixture.split('.');
+    let aspect_key = AspectKey::new(
+        segments
+            .next()
+            .expect("test touch fixture should name an aspect"),
+    )
+    .expect("test aspect key should admit");
+    let field_segments = segments
+        .map(|segment| FieldKey::new(segment).expect("test field key should admit"))
+        .collect::<Vec<_>>();
+    if field_segments.is_empty() {
+        ForgeQueryAspectTouch::whole_aspect(aspect_key)
+    } else {
+        ForgeQueryAspectTouch::aspect_field_path(
+            aspect_key,
+            CanonicalFieldPath::new(field_segments).expect("test field path should admit"),
+        )
+    }
 }
 
 pub(super) fn registration(
@@ -63,4 +85,8 @@ pub(super) fn registration(
         selector,
         ForgeQueryGraphObligationOperatingWorldSelector::any_committed_authority(),
     )
+}
+
+fn target_collection(collection: &str) -> ForgeQueryMutationTargetCollectionIdentity {
+    ForgeQueryMutationTargetCollectionIdentity::new("graph-composition-test", collection)
 }

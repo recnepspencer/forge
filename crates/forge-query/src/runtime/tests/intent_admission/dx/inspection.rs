@@ -7,11 +7,8 @@ fn derived_summary_view(
     let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
-                .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
-                ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .select([identity_id_field_key(), title_value_field_key()])
+                .order_by(title_value_field_key())
                 .schema_basis("intent-admission-derived-inspection")
         })
         .expect("live view should declare");
@@ -108,11 +105,8 @@ fn inspect_intent_common_path_helper_executes_through_canonical_handoff() {
     let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
-                .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
-                ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .select([identity_id_field_key(), title_value_field_key()])
+                .order_by(title_value_field_key())
                 .schema_basis("intent-admission-generic-inspection-common")
         })
         .expect("live view should declare");
@@ -144,11 +138,8 @@ fn inspect_intent_advanced_path_helper_exposes_request_eligibility_decision_and_
     let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
-                .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
-                ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .select([identity_id_field_key(), title_value_field_key()])
+                .order_by(title_value_field_key())
                 .schema_basis("intent-admission-generic-inspection-advanced")
         })
         .expect("live view should declare");

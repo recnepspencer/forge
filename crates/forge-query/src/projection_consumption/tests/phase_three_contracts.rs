@@ -5,8 +5,8 @@ use super::super::source::{
 use super::super::{
     declare_projection_consumption, evaluate_projection_consumption_eligibility,
     AdmittedProjectionConsumption, ProjectMaterializedFacts, ProjectionConsumptionBindingContext,
-    ProjectionConsumptionEligibility, ProjectionConsumptionSource,
-    ProjectionConsumptionWarningKind, ProjectionContractSourcePosture,
+    ProjectionConsumptionDenialReason, ProjectionConsumptionEligibility,
+    ProjectionConsumptionSource, ProjectionConsumptionWarningKind, ProjectionContractSourcePosture,
     ProjectionContractSupportPosture, ProjectionFactKind, ProjectionSourceFamily,
 };
 use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
@@ -88,6 +88,37 @@ fn query_write_source_with_source_references() -> ProjectionConsumptionSource {
 }
 
 #[test]
+fn visibility_admission_requires_exact_native_aspect_field_key() {
+    let declaration = declare_projection_consumption(
+        query_read_source(),
+        test_binding(&["profile.display_name"]),
+        ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("extra")
+                    .expect("projection fact field segment should admit"),
+            ]),
+        ),
+    )
+    .expect("declaration should be valid");
+
+    let denied = match evaluate_projection_consumption_eligibility(&declaration) {
+        ProjectionConsumptionEligibility::Denied(denied) => denied,
+        other => panic!("expected exact native field-key visibility denial, got {other:?}"),
+    };
+
+    assert_eq!(
+        denied.reason(),
+        &ProjectionConsumptionDenialReason::FactFamilyNotVisible {
+            field_key: "profile.display_name.extra".to_string(),
+        }
+    );
+}
+
+#[test]
 fn admitted_read_receipt_binds_query_owned_contract() {
     let admitted = admitted(
         query_read_source(),
@@ -96,8 +127,10 @@ fn admitted_read_receipt_binds_query_owned_contract() {
             .entity_identities()
             .display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
     );
@@ -155,8 +188,10 @@ fn warning_bearing_query_context_contract_carries_warning_posture() {
         test_binding(&["profile.display_name"]),
         ProjectMaterializedFacts::declare().display_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
-                "profile",
-                "display_name",
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
             ]),
         ),
     );
@@ -261,8 +296,10 @@ fn equivalent_contracts_normalize_to_the_same_digest() {
             .entity_identities()
             .display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
     )
@@ -274,8 +311,10 @@ fn equivalent_contracts_normalize_to_the_same_digest() {
             .entity_identities()
             .display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
     )
@@ -299,8 +338,10 @@ fn contract_digest_changes_for_fact_inventory_and_policy_basis() {
             .entity_identities()
             .display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
     )
@@ -328,14 +369,18 @@ fn bound_fact_inventory_preserves_requested_kind_and_field_shape() {
             .entity_identities()
             .display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             )
             .derived_scalar_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
     )

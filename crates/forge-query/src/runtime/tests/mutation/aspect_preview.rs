@@ -14,13 +14,13 @@ fn preview_insert_uses_aspect_native_authoring_and_stays_preview_local() {
 
     let receipt = preview
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("preview-task-1"),
+                test_authored_string_aspect_value("preview-task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Preview title"),
+                test_authored_string_aspect_value("Preview title"),
             )
         })
         .expect("preview insert should stage");

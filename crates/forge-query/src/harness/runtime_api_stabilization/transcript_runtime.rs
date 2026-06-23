@@ -6,22 +6,25 @@ use crate::evidence_identity::{
 use crate::facade::{
     DeclarativeLiveQueryRequest, ForgeQueryAuthorityLane, ForgeQueryBasisAdmissionEvidenceRow,
     ForgeQueryEffectPolicy, ForgeQueryIntentAuthorityAdapter, ForgeQueryIntentDeclaration,
-    ForgeQueryIntentExecution, ForgeQueryLiveViewHandle, ForgeQueryMutationDelta,
-    ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission,
-    ForgeQueryRuntime, ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeInspectionEvidence,
-    ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
-    ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
-    ForgeQueryRuntimeSnapshotIdentityAdapter, ForgeQueryRuntimeSourceAdapter,
-    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeSupportProfile,
-    ForgeQueryWorkspaceError, ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt,
-    QuerySchemaView, SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
+    ForgeQueryIntentExecution, ForgeQueryLiveArtifactTarget, ForgeQueryLiveViewHandle,
+    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
+    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
+    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeInspectorEvidenceAdapter,
+    ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
+    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSnapshotIdentityAdapter,
+    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
+    ForgeQueryRuntimeSupportProfile, ForgeQueryWorkspaceError, ForgeQueryWriteReceipt,
+    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
+    SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
     SubscriptionActivationInput,
 };
 use crate::identity::hash_parts;
 use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQuerySnapshotIdentity};
 use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryLivePatch};
-use crate::runtime::runtime_subscription_support_evidence_identity;
+use crate::runtime::{
+    runtime_subscription_support_evidence_identity, ForgeQueryMutationTargetCollectionIdentity,
+};
 use crate::ForgeQuerySessionLabel;
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::{
@@ -109,7 +112,7 @@ impl ForgeQueryRuntimeSchemaAdapter for TranscriptSchemaAdapter {
 
 #[derive(Default)]
 struct TranscriptSourceAdapter {
-    live_views: BTreeMap<String, String>,
+    live_views: BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryMutationTargetCollectionIdentity>,
 }
 
 impl ForgeQueryRuntimeSourceAdapter for TranscriptSourceAdapter {
@@ -119,28 +122,42 @@ impl ForgeQueryRuntimeSourceAdapter for TranscriptSourceAdapter {
         request: DeclarativeLiveQueryRequest,
         _schema_view: QuerySchemaView,
     ) -> Result<ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError> {
+        let live_target = ForgeQueryLiveArtifactTarget::from_view_name(name.clone());
         self.live_views
-            .insert(name.clone(), request.target().to_string());
+            .insert(live_target, request.target_collection_identity());
         Ok(ForgeQueryLiveViewHandle::new(name))
     }
 
-    fn live_entities(&self, _view_name: &str) -> Vec<ForgeQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity> {
         Vec::new()
     }
 
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
+    fn drain_live_patches_for_target(
+        &mut self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch> {
         Vec::new()
     }
 
-    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+    fn affected_live_view_targets(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget> {
         let mut affected = receipt
             .deltas
             .iter()
             .flat_map(|delta| {
                 self.live_views
                     .iter()
-                    .filter(move |(_, collection)| *collection == &delta.collection)
-                    .map(|(name, _)| name.clone())
+                    .filter(move |(_, collection)| {
+                        delta
+                            .target_collection_identity()
+                            .same_target_collection_as(collection)
+                    })
+                    .map(|(target, _)| target.clone())
             })
             .collect::<Vec<_>>();
         affected.sort();

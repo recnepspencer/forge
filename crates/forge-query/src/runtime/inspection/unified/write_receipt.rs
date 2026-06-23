@@ -76,7 +76,7 @@ impl ForgeQueryWriteReceiptInspection {
                     ForgeQueryEvidenceScope::WriteReceiptInspectionArtifact,
                 )
                 .field_shape(ForgeQueryEvidenceTag::new("role"), "live-patch-artifact")
-                .field_value(ForgeQueryEvidenceTag::new("collection"), &delta.collection)
+                .field_value(ForgeQueryEvidenceTag::new("collection"), delta.collection())
                 .field_evidence_identity(
                     ForgeQueryEvidenceTag::new("entity_identity"),
                     &delta.entity_identity.evidence_identity(),

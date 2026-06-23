@@ -252,7 +252,10 @@ fn certification_bundle_matches_admission_continuity_and_aftermath_outputs() {
                 crate::projection_consumption::ProjectMaterializedFacts::declare()
                     .display_field_path(
                         crate::projection_consumption::projection_fact_field_path_from_segments([
-                            "field", "visible",
+                            forge_foundational::facade::FieldKey::new("field")
+                                .expect("projection fact field segment should admit"),
+                            forge_foundational::facade::FieldKey::new("visible")
+                                .expect("projection fact field segment should admit"),
                         ]),
                     ),
             ),
@@ -267,7 +270,7 @@ fn certification_bundle_matches_admission_continuity_and_aftermath_outputs() {
             projection_source(),
             projection_binding(),
             crate::projection_consumption::ProjectMaterializedFacts::declare()
-                .display_field_path(crate::projection_consumption::projection_fact_field_path_from_segments(["field", "visible"])),
+                .display_field_path(crate::projection_consumption::projection_fact_field_path_from_segments([forge_foundational::facade::FieldKey::new("field").expect("projection fact field segment should admit"), forge_foundational::facade::FieldKey::new("visible").expect("projection fact field segment should admit")])),
         )
         .for_admitted_intent_plan(&projection_plan),
     )));

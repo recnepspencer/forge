@@ -2,6 +2,7 @@ use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch, ForgeQueryGraphTouchDescriptor,
     ForgeQueryGraphTouchReadVerb, ForgeQueryGraphTouchSelector, ForgeQueryMutationFamily,
 };
+use forge_foundational::facade::AspectKey;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGraphObligationSelectorPerturbationCase {
@@ -24,36 +25,36 @@ impl ForgeQueryGraphObligationSelectorPerturbationCase {
             ),
             Self::new(
                 "aspect path",
-                ForgeQueryGraphTouchSelector::aspect_touch(aspect_touch("capacity")),
+                ForgeQueryGraphTouchSelector::aspect_touch(capacity_aspect_touch()),
                 mutation_touch_with_aspect(
                     "topology.edge",
                     ForgeQueryMutationFamily::Update,
-                    set_operation("capacity"),
-                    aspect_touch("capacity"),
+                    set_capacity_operation(),
+                    capacity_aspect_touch(),
                 ),
-                ForgeQueryGraphTouchSelector::aspect_touch(aspect_touch("capacity")),
+                ForgeQueryGraphTouchSelector::aspect_touch(capacity_aspect_touch()),
                 mutation_touch_with_aspect(
                     "topology.edge",
                     ForgeQueryMutationFamily::Update,
-                    set_operation("boundary"),
-                    aspect_touch("boundary"),
+                    set_boundary_operation(),
+                    boundary_aspect_touch(),
                 ),
             ),
             Self::new(
                 "declared operation",
-                ForgeQueryGraphTouchSelector::declared_aspect_operation(set_operation("capacity")),
+                ForgeQueryGraphTouchSelector::declared_aspect_operation(set_capacity_operation()),
                 mutation_touch_with_aspect(
                     "topology.edge",
                     ForgeQueryMutationFamily::Update,
-                    set_operation("capacity"),
-                    aspect_touch("capacity"),
+                    set_capacity_operation(),
+                    capacity_aspect_touch(),
                 ),
-                ForgeQueryGraphTouchSelector::declared_aspect_operation(set_operation("capacity")),
+                ForgeQueryGraphTouchSelector::declared_aspect_operation(set_capacity_operation()),
                 mutation_touch_with_aspect(
                     "topology.edge",
                     ForgeQueryMutationFamily::Update,
-                    ForgeQueryAspectMutationOperation::clear(aspect_touch("capacity")),
-                    aspect_touch("capacity"),
+                    ForgeQueryAspectMutationOperation::clear(capacity_aspect_touch()),
+                    capacity_aspect_touch(),
                 ),
             ),
             Self::new(
@@ -121,8 +122,8 @@ fn mutation_touch(
     mutation_touch_with_aspect(
         collection,
         family,
-        set_operation("capacity"),
-        aspect_touch("capacity"),
+        set_capacity_operation(),
+        capacity_aspect_touch(),
     )
 }
 
@@ -142,13 +143,26 @@ fn mutation_touch_with_aspect(
     .expect("static selector perturbation touch is valid")
 }
 
-fn set_operation(aspect_path: &str) -> ForgeQueryAspectMutationOperation {
-    ForgeQueryAspectMutationOperation::set(aspect_touch(aspect_path))
+fn set_capacity_operation() -> ForgeQueryAspectMutationOperation {
+    ForgeQueryAspectMutationOperation::set(capacity_aspect_touch())
 }
 
-fn aspect_touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    ForgeQueryAspectTouch::from_authoring_path(aspect_path)
-        .expect("static selector aspect path should admit")
+fn set_boundary_operation() -> ForgeQueryAspectMutationOperation {
+    ForgeQueryAspectMutationOperation::set(boundary_aspect_touch())
+}
+
+fn capacity_aspect_touch() -> ForgeQueryAspectTouch {
+    whole_static_aspect_touch("capacity")
+}
+
+fn boundary_aspect_touch() -> ForgeQueryAspectTouch {
+    whole_static_aspect_touch("boundary")
+}
+
+fn whole_static_aspect_touch(aspect_label: &'static str) -> ForgeQueryAspectTouch {
+    ForgeQueryAspectTouch::whole_aspect(
+        AspectKey::new(aspect_label).expect("static selector aspect key should admit"),
+    )
 }
 
 fn read_touch(verb: ForgeQueryGraphTouchReadVerb) -> ForgeQueryGraphTouchDescriptor {

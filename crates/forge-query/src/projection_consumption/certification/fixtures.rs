@@ -80,8 +80,10 @@ pub fn control_row_set_lifecycle(row_count: usize) -> ProjectionConsumptionCerti
             .entity_identities()
             .display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
     )
@@ -134,8 +136,10 @@ pub fn parity_row_set_lifecycle(row_count: usize) -> ProjectionConsumptionCertif
         .entity_identities()
         .display_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
-                "profile",
-                "display_name",
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
             ]),
         )
         .source(
@@ -177,8 +181,10 @@ pub fn denied_masked_field_failure_digest() -> String {
             .entity_identities()
             .display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
     )
@@ -272,15 +278,15 @@ pub fn certification_row_set(row_count: usize) -> RelationalAuthoritativeRowSetA
         let priority_read = scalar_read(entity, "metrics.priority", ScalarAspectType::UInt64);
         records.push(SnapshotReadRecord::for_request(
             &identity_read,
-            aspect_value(AspectValue::String(task.into())),
+            aspect_value(crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(task)),
         ));
         records.push(SnapshotReadRecord::for_request(
             &lane_read,
-            aspect_value(AspectValue::String(lane.into())),
+            aspect_value(crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(lane)),
         ));
         records.push(SnapshotReadRecord::for_request(
             &display_name_read,
-            aspect_value(AspectValue::String(name.into())),
+            aspect_value(crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(name)),
         ));
         records.push(SnapshotReadRecord::for_request(
             &priority_read,
@@ -341,7 +347,10 @@ pub(crate) fn intent_admission_admitted_projection_declaration() -> ProjectionCo
         intent_admission_projection_binding("query-read:certification-admitted"),
         ProjectMaterializedFacts::declare().display_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
-                "field", "visible",
+                forge_foundational::facade::FieldKey::new("field")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("visible")
+                    .expect("projection fact field segment should admit"),
             ]),
         ),
     )
@@ -366,7 +375,10 @@ pub(crate) fn intent_admission_warning_projection_declaration() -> ProjectionCon
         intent_admission_projection_binding("query-context:certification-warning"),
         ProjectMaterializedFacts::declare().display_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
-                "field", "visible",
+                forge_foundational::facade::FieldKey::new("field")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("visible")
+                    .expect("projection fact field segment should admit"),
             ]),
         ),
     )

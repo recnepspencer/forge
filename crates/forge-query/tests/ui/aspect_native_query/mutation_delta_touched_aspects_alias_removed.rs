@@ -14,7 +14,7 @@ fn removed_mutation_delta_touched_aspects_alias() {
             Arc::from("task-1"),
         )),
         ForgeQueryMutationKind::Updated,
-        vec![ForgeQueryAspectTouch::field_path(
+        vec![ForgeQueryAspectTouch::aspect_field_path(
             AspectKey::new("title").unwrap(),
             CanonicalFieldPath::single(FieldKey::new("value").unwrap()),
         )],

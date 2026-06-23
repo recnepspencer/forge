@@ -2,7 +2,8 @@ use crate::canonicalization::CanonicalResultShapeArtifact;
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::query_context::{QueryContextExecutionArtifact, QueryContextExecutionFamily};
 use crate::runtime::{
-    ForgeQueryDerivedArtifactBinding, ForgeQueryLiveArtifactBinding, ForgeQueryLiveReadReceipt,
+    ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedMaterializationTarget,
+    ForgeQueryLiveArtifactBinding, ForgeQueryLiveArtifactTarget, ForgeQueryLiveReadReceipt,
     ForgeQueryMutationTargetClass, ForgeQueryReadExecutionEngine, ForgeQueryReadReceipt,
     ForgeQueryWriteReceipt,
 };
@@ -202,9 +203,9 @@ impl ProjectionConsumptionSource {
         binding: &ForgeQueryDerivedArtifactBinding,
     ) -> Self {
         Self {
-            source_reference_identities: retained_target_references(
+            source_reference_identities: retained_derived_target_references(
                 "retained_target_view",
-                binding.terminal_target_view_names_projection(),
+                binding.targets(),
             ),
             family: ProjectionSourceFamily::RetainedDerivedArtifactBinding,
             capability_profile: ProjectionSourceCapabilityProfile::RetainedDerivedArtifactBinding,
@@ -225,9 +226,9 @@ impl ProjectionConsumptionSource {
 
     pub fn from_live_artifact_binding(binding: &ForgeQueryLiveArtifactBinding) -> Self {
         Self {
-            source_reference_identities: retained_target_references(
+            source_reference_identities: retained_live_target_references(
                 "live_target_view",
-                binding.terminal_target_view_names_projection(),
+                binding.targets(),
             ),
             family: ProjectionSourceFamily::LiveArtifactBinding,
             capability_profile: ProjectionSourceCapabilityProfile::LiveArtifactBinding,
@@ -291,11 +292,32 @@ pub(crate) fn execution_posture_from_query_context_family(
     }
 }
 
-fn retained_target_references<'a>(
+fn retained_derived_target_references<'a>(
     label: &'static str,
-    target_view_names: impl Iterator<Item = &'a str>,
+    targets: impl IntoIterator<Item = &'a ForgeQueryDerivedMaterializationTarget>,
 ) -> Vec<ProjectionSourceReferenceIdentity> {
-    target_view_names
-        .map(|view_name| ProjectionSourceReferenceIdentity::synthetic(label, view_name))
+    targets
+        .into_iter()
+        .map(|target| {
+            ProjectionSourceReferenceIdentity::synthetic(
+                label,
+                target.terminal_view_name_projection(),
+            )
+        })
+        .collect()
+}
+
+fn retained_live_target_references<'a>(
+    label: &'static str,
+    targets: impl IntoIterator<Item = &'a ForgeQueryLiveArtifactTarget>,
+) -> Vec<ProjectionSourceReferenceIdentity> {
+    targets
+        .into_iter()
+        .map(|target| {
+            ProjectionSourceReferenceIdentity::synthetic(
+                label,
+                target.terminal_view_name_projection(),
+            )
+        })
         .collect()
 }

@@ -6,7 +6,7 @@ pub(in crate::runtime::tests) use crate::declarative_live::{
 };
 use crate::memory_workspace::ForgeQueryEntityIdentity;
 pub(in crate::runtime::tests) use crate::program::{
-    ForgeQueryAspectValueTemplate, ForgeQueryOperation, ForgeQueryPortType,
+    ForgeQueryAdmittedAspectValueTemplate, ForgeQueryOperation, ForgeQueryPortType,
     ForgeQueryProgramSource, ForgeQueryProgramValue, ForgeQuerySchemaAdapter, ForgeQueryTypedPort,
     ForgeQueryValueExpr, ForgeQueryWriteCommandTemplate,
 };
@@ -189,7 +189,7 @@ pub(in crate::runtime::tests) fn live_subscription_async_identity(
 ) {
     let state = runtime
         .live_subscriptions
-        .get(view_name)
+        .get(&ForgeQueryLiveArtifactTarget::from_view_name(view_name))
         .expect("live subscription state should exist");
     (
         state.installation.basis_binding_identity().clone(),
@@ -235,7 +235,10 @@ pub(in crate::runtime::tests) fn retained_string_test_row(
     field: impl Into<String>,
     value: impl Into<String>,
 ) -> ForgeQueryRetainedMaterializedRow {
-    retained_test_row([(field.into(), AspectValue::String(value.into().into()))])
+    retained_test_row([(
+        field.into(),
+        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value),
+    )])
 }
 
 pub(in crate::runtime::tests) fn test_native_scalar_value<'a>(
@@ -278,30 +281,82 @@ pub(in crate::runtime::tests) fn test_has_native_field_prefix(
     })
 }
 
-pub(in crate::runtime::tests) fn test_aspect_touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    ForgeQueryAspectTouch::from_authoring_path(aspect_path.to_string())
-        .expect("test aspect path should parse")
+pub(in crate::runtime::tests) fn test_aspect_touch(touch_fixture: &str) -> ForgeQueryAspectTouch {
+    let mut segments = touch_fixture.split('.');
+    let aspect_key = AspectKey::new(
+        segments
+            .next()
+            .expect("test touch fixture should name an aspect"),
+    )
+    .expect("test aspect key should admit");
+    let field_segments = segments
+        .map(|field| FieldKey::new(field).expect("test field key should admit"))
+        .collect::<Vec<_>>();
+    if field_segments.is_empty() {
+        ForgeQueryAspectTouch::whole_aspect(aspect_key)
+    } else {
+        ForgeQueryAspectTouch::aspect_field_path(
+            aspect_key,
+            CanonicalFieldPath::new(field_segments).expect("test field path should admit"),
+        )
+    }
 }
 
 pub(in crate::runtime::tests) fn test_aspect_touches<const N: usize>(
-    aspect_paths: [&str; N],
+    touch_fixtures: [&str; N],
 ) -> [ForgeQueryAspectTouch; N] {
-    aspect_paths.map(test_aspect_touch)
+    touch_fixtures.map(test_aspect_touch)
+}
+
+pub(in crate::runtime::tests) fn identity_id_field_key() -> crate::authoring::AspectFieldKey {
+    let aspect = AspectKey::new("identity").expect("identity aspect key should admit");
+    let field = FieldKey::new("id").expect("id field key should admit");
+    crate::authoring::AspectFieldKey::from_native_keys(&aspect, &field)
+}
+
+pub(in crate::runtime::tests) fn title_value_field_key() -> crate::authoring::AspectFieldKey {
+    let aspect = AspectKey::new("title").expect("title aspect key should admit");
+    let field = FieldKey::new("value").expect("value field key should admit");
+    crate::authoring::AspectFieldKey::from_native_keys(&aspect, &field)
+}
+
+pub(in crate::runtime::tests) fn kind_value_field_key() -> crate::authoring::AspectFieldKey {
+    let aspect = AspectKey::new("kind").expect("kind aspect key should admit");
+    let field = FieldKey::new("value").expect("value field key should admit");
+    crate::authoring::AspectFieldKey::from_native_keys(&aspect, &field)
+}
+
+pub(in crate::runtime::tests) fn edge_kind_field_key() -> crate::authoring::AspectFieldKey {
+    let aspect = AspectKey::new("edge").expect("edge aspect key should admit");
+    let field = FieldKey::new("kind").expect("kind field key should admit");
+    crate::authoring::AspectFieldKey::from_native_keys(&aspect, &field)
+}
+
+pub(in crate::runtime::tests) fn status_value_field_key() -> crate::authoring::AspectFieldKey {
+    let aspect = AspectKey::new("status").expect("status aspect key should admit");
+    let field = FieldKey::new("value").expect("value field key should admit");
+    crate::authoring::AspectFieldKey::from_native_keys(&aspect, &field)
 }
 
 pub(in crate::runtime::tests) fn test_string_aspect_value(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+    crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value)
+}
+
+pub(in crate::runtime::tests) fn test_authored_string_aspect_value(
+    value: impl Into<String>,
+) -> ForgeQueryAuthoredAspectValue {
+    ForgeQueryAuthoredAspectValue::string(value)
 }
 
 pub(in crate::runtime::tests) fn test_update_string_aspect_command(
     entity_identity: ForgeQueryEntityIdentity,
-    aspect_path: &str,
+    touch_fixture: &str,
     value: impl Into<String>,
 ) -> ForgeQueryWriteCommand {
     ForgeQueryWriteCommand::UpdateAspect {
         entity_identity,
-        aspect: ForgeQueryAspectValue::new_set(
-            test_aspect_touch(aspect_path),
+        aspect: ForgeQueryAdmittedAspectValue::new_set(
+            test_aspect_touch(touch_fixture),
             test_string_aspect_value(value),
         )
         .expect("test update aspect should build"),

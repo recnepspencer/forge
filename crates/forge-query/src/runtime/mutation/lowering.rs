@@ -1,14 +1,13 @@
 use super::{
-    ForgeQueryAspectMutationOperation, ForgeQueryAspectMutationOperationKind,
-    ForgeQueryAspectValue, ForgeQuerySymbolicAspectReference,
+    ForgeQueryAdmittedAspectValue, ForgeQueryAspectMutationOperation,
+    ForgeQueryAspectMutationOperationKind, ForgeQuerySymbolicAspectReference,
 };
 use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
 };
 use crate::runtime::{
-    ForgeQueryMutationSymbolIdentity, ForgeQueryMutationTargetCollectionIdentity,
-    ForgeQueryWriteCommand,
+    ForgeQueryAspectTouch, ForgeQueryMutationSymbolIdentity, ForgeQueryWriteCommand,
 };
 
 pub(crate) fn command_declared_aspect_touches(
@@ -30,7 +29,7 @@ pub(crate) fn command_declared_aspect_operations(
             ..
         } => aspects
             .iter()
-            .map(ForgeQueryAspectValue::declared_operation)
+            .map(ForgeQueryAdmittedAspectValue::declared_operation)
             .chain(
                 symbolic_aspect_references
                     .iter()
@@ -43,7 +42,7 @@ pub(crate) fn command_declared_aspect_operations(
         | ForgeQueryWriteCommand::VerifyExistingAspects { aspects, .. }
         | ForgeQueryWriteCommand::UpdateSymbolicAspects { aspects, .. } => aspects
             .iter()
-            .map(ForgeQueryAspectValue::declared_operation)
+            .map(ForgeQueryAdmittedAspectValue::declared_operation)
             .collect(),
         ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects {
             aspects,
@@ -51,7 +50,7 @@ pub(crate) fn command_declared_aspect_operations(
             ..
         } => aspects
             .iter()
-            .map(ForgeQueryAspectValue::declared_operation)
+            .map(ForgeQueryAdmittedAspectValue::declared_operation)
             .chain(
                 symbolic_aspect_references
                     .iter()
@@ -104,9 +103,9 @@ pub(crate) fn command_declared_aspect_value_identity(
                     .map(|aspect| {
                         declared_aspect_value_digest_row(
                             "declared",
-                            aspect.aspect_touch().admitted_touch_digest_part(),
+                            aspect.aspect_touch(),
                             aspect.clears_existing_value(),
-                            aspect.native_digest_material(),
+                            aspect.terminal_digest_material(),
                         )
                     })
                     .chain(symbolic_aspect_references.iter().map(|reference| {
@@ -131,17 +130,17 @@ pub(crate) fn command_declared_aspect_value_identity(
                 .map(|aspect| {
                     declared_aspect_value_digest_row(
                         "assert",
-                        aspect.aspect_touch().admitted_touch_digest_part(),
+                        aspect.aspect_touch(),
                         aspect.clears_existing_value(),
-                        aspect.native_digest_material(),
+                        aspect.terminal_digest_material(),
                     )
                 })
                 .chain(aspects.iter().map(|aspect| {
                     declared_aspect_value_digest_row(
                         "update",
-                        aspect.aspect_touch().admitted_touch_digest_part(),
+                        aspect.aspect_touch(),
                         aspect.clears_existing_value(),
-                        aspect.native_digest_material(),
+                        aspect.terminal_digest_material(),
                     )
                 }))
                 .chain(symbolic_aspect_references.iter().map(|reference| {
@@ -160,14 +159,16 @@ pub(crate) fn command_declared_aspect_value_identity(
                 .map(|aspect| {
                     declared_aspect_value_digest_row(
                         "assert",
-                        aspect.aspect_touch().admitted_touch_digest_part(),
+                        aspect.aspect_touch(),
                         aspect.clears_existing_value(),
-                        aspect.native_digest_material(),
+                        aspect.terminal_digest_material(),
                     )
                 })
-                .chain(touched_aspects.iter().map(|touch| {
-                    touched_aspect_digest_row("delete", touch.admitted_touch_digest_part())
-                }))
+                .chain(
+                    touched_aspects
+                        .iter()
+                        .map(|touch| touched_aspect_digest_row("delete", touch)),
+                )
                 .collect::<Vec<_>>();
             return Some(declared_aspect_value_identity(rows));
         }
@@ -175,9 +176,9 @@ pub(crate) fn command_declared_aspect_value_identity(
             return Some(declared_aspect_value_identity(vec![
                 declared_aspect_value_digest_row(
                     "declared",
-                    aspect.aspect_touch().admitted_touch_digest_part(),
+                    aspect.aspect_touch(),
                     aspect.clears_existing_value(),
-                    aspect.native_digest_material(),
+                    aspect.terminal_digest_material(),
                 ),
             ]));
         }
@@ -192,9 +193,9 @@ pub(crate) fn command_declared_aspect_value_identity(
             .map(|aspect| {
                 declared_aspect_value_digest_row(
                     "declared",
-                    aspect.aspect_touch().admitted_touch_digest_part(),
+                    aspect.aspect_touch(),
                     aspect.clears_existing_value(),
-                    aspect.native_digest_material(),
+                    aspect.terminal_digest_material(),
                 )
             })
             .collect::<Vec<_>>(),
@@ -212,9 +213,9 @@ fn symbolic_aspect_reference_operation(
 
 fn declared_aspect_value_digest_row(
     prefix: &str,
-    aspect_touch_digest: String,
+    aspect_touch: ForgeQueryAspectTouch,
     clears_existing_value: bool,
-    native_value_digest: String,
+    terminal_value_digest: String,
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
         .field_shape(
@@ -224,7 +225,7 @@ fn declared_aspect_value_digest_row(
         .field_shape(ForgeQueryEvidenceTag::new("prefix"), prefix)
         .field_value(
             ForgeQueryEvidenceTag::new("aspect_touch"),
-            aspect_touch_digest,
+            aspect_touch.admitted_touch_digest_part(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("operation"),
@@ -235,8 +236,8 @@ fn declared_aspect_value_digest_row(
             },
         )
         .field_value(
-            ForgeQueryEvidenceTag::new("native_value"),
-            native_value_digest,
+            ForgeQueryEvidenceTag::new("terminal_value"),
+            terminal_value_digest,
         )
         .seal()
 }
@@ -249,9 +250,7 @@ fn symbolic_aspect_reference_digest_row(
         "symbolic-aspect-reference",
         reference.reference().symbol(),
     );
-    let collection_identity = reference.reference().target_collection().map(|collection| {
-        ForgeQueryMutationTargetCollectionIdentity::new("symbolic-aspect-reference", collection)
-    });
+    let collection_identity = reference.reference().target_collection_identity();
     let mut identity =
         forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
             .field_shape(
@@ -271,7 +270,7 @@ fn symbolic_aspect_reference_digest_row(
                 ForgeQueryEvidenceTag::new("symbol"),
                 symbol_identity.evidence_identity(),
             );
-    if let Some(collection) = collection_identity.as_ref() {
+    if let Some(collection) = collection_identity {
         identity = identity.field_evidence_identity(
             ForgeQueryEvidenceTag::new("collection"),
             collection.evidence_identity(),
@@ -282,14 +281,14 @@ fn symbolic_aspect_reference_digest_row(
 
 fn touched_aspect_digest_row(
     prefix: &'static str,
-    aspect_touch_digest: String,
+    aspect_touch: &ForgeQueryAspectTouch,
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
         .field_shape(ForgeQueryEvidenceTag::new("role"), "touched-aspect-row")
         .field_shape(ForgeQueryEvidenceTag::new("prefix"), prefix)
         .field_value(
             ForgeQueryEvidenceTag::new("aspect_touch"),
-            aspect_touch_digest,
+            aspect_touch.admitted_touch_digest_part(),
         )
         .seal()
 }

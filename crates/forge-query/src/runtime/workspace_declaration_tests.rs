@@ -37,7 +37,7 @@ fn traversal_relation_declarations_reject_duplicates() {
 fn traversal_relation_declarations_lower_into_request_and_schema_view() {
     let declaration = ForgeQueryLiveViewBuilder::surface("runtime.traversal-lowered")
         .from("WorthTopologyEntity")
-        .select([crate::authoring::AspectFieldKey::new("identity", "id").unwrap()])
+        .select([crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id").unwrap()])
         .allow_traversal_relation("HalfEdgeNext", 2)
         .build()
         .expect("declared traversal relations should lower into the request");

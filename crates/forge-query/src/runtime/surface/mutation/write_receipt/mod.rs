@@ -161,9 +161,7 @@ impl ForgeQueryWriteReceipt {
                 .and_then(|bundle| bundle.naming_mutation()),
             naming_intent.as_ref(),
             target_entity_identity.as_ref(),
-            target_collection_identity
-                .as_ref()
-                .map(ForgeQueryMutationTargetCollectionIdentity::as_str),
+            target_collection_identity.as_ref(),
         );
         let continuity_mutation_evidence = continuity_mutation_evidence(
             inner
@@ -173,9 +171,7 @@ impl ForgeQueryWriteReceipt {
             continuity_intent.as_ref(),
             existing_truth_binding.as_ref(),
             target_entity_identity.as_ref(),
-            target_collection_identity
-                .as_ref()
-                .map(ForgeQueryMutationTargetCollectionIdentity::as_str),
+            target_collection_identity.as_ref(),
         );
         Self {
             inner,
@@ -294,9 +290,7 @@ impl ForgeQueryWriteReceipt {
                 .and_then(|bundle| bundle.naming_mutation()),
             naming_intent.as_ref(),
             target_entity_identity.as_ref(),
-            target_collection_identity
-                .as_ref()
-                .map(ForgeQueryMutationTargetCollectionIdentity::as_str),
+            target_collection_identity.as_ref(),
         );
         let continuity_mutation_evidence = continuity_mutation_evidence(
             inner
@@ -306,9 +300,7 @@ impl ForgeQueryWriteReceipt {
             continuity_intent.as_ref(),
             existing_truth_binding.as_ref(),
             target_entity_identity.as_ref(),
-            target_collection_identity
-                .as_ref()
-                .map(ForgeQueryMutationTargetCollectionIdentity::as_str),
+            target_collection_identity.as_ref(),
         );
         Self {
             inner,
@@ -375,7 +367,8 @@ fn write_receipt_committed_truth_identity(
                 "{}:{}:{}",
                 delta.collection(),
                 mutation_kind_as_str(delta.kind()),
-                touched_aspect_digest_parts(delta.admitted_touched_aspects()).join("|")
+                terminal_touched_aspect_digest_projections(delta.admitted_touched_aspects())
+                    .join("|")
             )
         })
         .collect::<Vec<_>>();
@@ -393,7 +386,7 @@ fn write_receipt_committed_truth_identity(
     .seal()
 }
 
-fn touched_aspect_digest_parts(touches: &[ForgeQueryAspectTouch]) -> Vec<String> {
+fn terminal_touched_aspect_digest_projections(touches: &[ForgeQueryAspectTouch]) -> Vec<String> {
     touches
         .iter()
         .map(ForgeQueryAspectTouch::admitted_touch_digest_part)

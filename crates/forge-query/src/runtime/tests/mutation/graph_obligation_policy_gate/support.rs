@@ -106,14 +106,17 @@ pub(super) fn policy_gate_registration_for_collection(
 
 pub(super) fn task_insert_command(id: &str) -> ForgeQueryWriteCommand {
     ForgeQueryWriteCommand::InsertAspects {
-        collection: "Task".to_string(),
+        collection: crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+            "write-command-declared",
+            "Task",
+        ),
         aspects: vec![
-            ForgeQueryAspectValue::new(
+            ForgeQueryAdmittedAspectValue::new(
                 test_aspect_touch("identity.id"),
                 test_string_aspect_value(id),
             )
             .unwrap(),
-            ForgeQueryAspectValue::new(
+            ForgeQueryAdmittedAspectValue::new(
                 test_aspect_touch("title.value"),
                 test_string_aspect_value("Policy gated task"),
             )
@@ -138,13 +141,13 @@ pub(super) fn task_graph_program(
     graph
         .insert_entity("task", "Task", |entity| {
             entity
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value(id),
+                    test_authored_string_aspect_value(id),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Policy gated graph task"),
+                    test_authored_string_aspect_value("Policy gated graph task"),
                 )
         })
         .unwrap();

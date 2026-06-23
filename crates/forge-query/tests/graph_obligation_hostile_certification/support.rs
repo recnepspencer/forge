@@ -41,27 +41,25 @@ pub fn unrelated_touch() -> ForgeQueryGraphTouchDescriptor {
     .expect("representative unrelated touch")
 }
 
-fn set_operation(aspect_path: &str) -> ForgeQueryAspectMutationOperation {
-    ForgeQueryAspectMutationOperation::set(touch(aspect_path))
+fn set_operation(authored_touch_text: &str) -> ForgeQueryAspectMutationOperation {
+    ForgeQueryAspectMutationOperation::set(touch(authored_touch_text))
 }
 
-fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    let mut segments = aspect_path.split('.');
+fn touch(authored_touch_text: &str) -> ForgeQueryAspectTouch {
+    let mut segments = authored_touch_text.split('.');
     let aspect = segments
         .next()
-        .and_then(|segment| AspectKey::new(segment.to_string()))
-        .expect("test aspect path aspect should admit");
+        .and_then(AspectKey::new)
+        .expect("test authored touch aspect should admit");
     let fields = segments
-        .map(|segment| {
-            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
-        })
+        .map(|segment| FieldKey::new(segment).expect("test authored touch field should admit"))
         .collect::<Vec<_>>();
     if fields.is_empty() {
-        ForgeQueryAspectTouch::aspect(aspect)
+        ForgeQueryAspectTouch::whole_aspect(aspect)
     } else {
-        ForgeQueryAspectTouch::field_path(
+        ForgeQueryAspectTouch::aspect_field_path(
             aspect,
-            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
+            CanonicalFieldPath::new(fields).expect("test authored touch should have fields"),
         )
     }
 }

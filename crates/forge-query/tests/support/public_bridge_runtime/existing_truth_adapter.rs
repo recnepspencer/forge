@@ -1,11 +1,12 @@
 use forge_foundational::facade::AspectValue;
 use forge_query::facade::{
-    ForgeQueryAspectTouch, ForgeQueryAspectValue, ForgeQueryExistingTruthAssertionDenial,
+    ForgeQueryAdmittedAspectValue, ForgeQueryExistingTruthAssertionDenial,
     ForgeQueryExistingTruthAssertionDenialKind, ForgeQueryExistingTruthProbeDenial,
     ForgeQueryExistingTruthProbeDenialKind, ForgeQueryExistingTruthProbeField,
     ForgeQueryExistingTruthProbeRequest, ForgeQueryExistingTruthTargetBinding,
 };
 
+use super::state::PublicExistingTruthKey;
 use super::SharedRuntimeState;
 
 pub(super) struct PublicExistingTruthVerificationAdapter {
@@ -24,13 +25,12 @@ impl forge_query::facade::ForgeQueryRuntimeExistingTruthVerificationAdapter
     fn verify_existing_truth_assertion(
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
-        aspects: &[ForgeQueryAspectValue],
+        aspects: &[ForgeQueryAdmittedAspectValue],
     ) -> Result<(), ForgeQueryExistingTruthAssertionDenial> {
         let state = self.state.borrow();
         for aspect in aspects {
             let aspect_touch = aspect.aspect_touch();
-            let aspect_path = terminal_aspect_path_projection(&aspect_touch);
-            let key = existing_truth_key(binding, &aspect_path);
+            let key = PublicExistingTruthKey::new(binding, aspect_touch.clone());
             let Some(expected) = aspect.foundational_value() else {
                 continue;
             };
@@ -39,7 +39,7 @@ impl forge_query::facade::ForgeQueryRuntimeExistingTruthVerificationAdapter
                     binding,
                     ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
                     Some(aspect_touch.clone()),
-                    Some(native_digest_from_aspect_value(expected)),
+                    Some(terminal_digest_from_aspect_value(expected)),
                     None,
                     "public bridge verification state did not contain the asserted aspect",
                 ));
@@ -49,8 +49,8 @@ impl forge_query::facade::ForgeQueryRuntimeExistingTruthVerificationAdapter
                     binding,
                     ForgeQueryExistingTruthAssertionDenialKind::AssertedValueMismatch,
                     Some(aspect_touch.clone()),
-                    Some(native_digest_from_aspect_value(expected)),
-                    Some(native_digest_from_aspect_value(found)),
+                    Some(terminal_digest_from_aspect_value(expected)),
+                    Some(terminal_digest_from_aspect_value(found)),
                     "public bridge verification state did not match the asserted value",
                 ));
             }
@@ -65,8 +65,7 @@ impl forge_query::facade::ForgeQueryRuntimeExistingTruthVerificationAdapter
         let state = self.state.borrow();
         let mut fields = Vec::with_capacity(request.aspect_touches().len());
         for aspect_touch in request.aspect_touches() {
-            let aspect_path = terminal_aspect_path_projection(aspect_touch);
-            let key = existing_truth_key(request.binding(), &aspect_path);
+            let key = PublicExistingTruthKey::new(request.binding(), aspect_touch.clone());
             let Some(value) = state.existing_truth_values.get(&key) else {
                 return Err(ForgeQueryExistingTruthProbeDenial::new(
                     request.binding(),
@@ -75,45 +74,18 @@ impl forge_query::facade::ForgeQueryRuntimeExistingTruthVerificationAdapter
                     "public bridge verification state did not contain the probed aspect",
                 ));
             };
-            fields.push(ForgeQueryExistingTruthProbeField::new_native(
-                aspect_touch.clone(),
-                value.clone(),
-            ));
+            fields.push(
+                ForgeQueryExistingTruthProbeField::from_admitted_aspect_touch(
+                    aspect_touch.clone(),
+                    value.clone(),
+                ),
+            );
         }
         Ok(fields)
     }
 }
 
-fn existing_truth_key(
-    binding: &ForgeQueryExistingTruthTargetBinding,
-    aspect_path: &str,
-) -> (String, String, String) {
-    (
-        binding.binding_digest(),
-        binding
-            .terminal_target_collection_projection()
-            .unwrap_or("none")
-            .to_string(),
-        aspect_path.to_string(),
-    )
-}
-
-fn terminal_aspect_path_projection(touch: &ForgeQueryAspectTouch) -> String {
-    match touch.native_field_path() {
-        Some(path) => format!(
-            "{}.{}",
-            touch.native_aspect_key().as_str(),
-            path.fields()
-                .iter()
-                .map(|field| field.as_str())
-                .collect::<Vec<_>>()
-                .join(".")
-        ),
-        None => touch.native_aspect_key().as_str().to_string(),
-    }
-}
-
-fn native_digest_from_aspect_value(value: &AspectValue) -> String {
+fn terminal_digest_from_aspect_value(value: &AspectValue) -> String {
     match value {
         AspectValue::Null => "null".to_string(),
         AspectValue::Bool(value) => format!("bool:{value}"),

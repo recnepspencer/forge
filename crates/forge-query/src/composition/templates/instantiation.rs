@@ -275,8 +275,8 @@ impl TemplateBindingValue {
             Self::Predicate(predicate) => predicate_binding_digest_fragment(predicate),
             Self::Ordering(ordering) => format!(
                 "{}:{}:{:?}",
-                ordering.aspect(),
-                ordering.field(),
+                ordering.source_field_key().aspect().as_str(),
+                ordering.source_field_key().field().as_str(),
                 ordering.direction()
             ),
             Self::Projection(projection) => {

@@ -1,24 +1,16 @@
-error[E0308]: arguments to this function are incorrect
- --> tests/ui/aspect_native_query/memory_workspace_aspect_external_projection_path_not_string.rs:4:18
-  |
-4 |     let aspect = ForgeQueryAspect::new("title.value", "title.value");
-  |                  ^^^^^^^^^^^^^^^^^^^^^ -------------  ------------- expected `CanonicalFieldPath`, found `&str`
-  |                                        |
-  |                                        expected `ForgeQueryAspectTouch`, found `&str`
-  |
-note: associated function defined here
- --> src/memory_workspace/mod.rs
-  |
-  |     pub fn new(
-  |            ^^^
+error[E0599]: no method named `external_projection_path` found for struct `ForgeQueryAspect` in the current scope
+  --> tests/ui/aspect_native_query/memory_workspace_aspect_external_projection_path_not_string.rs:17:26
+   |
+17 |     let _: &str = aspect.external_projection_path();
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryAspect`
 
 error[E0308]: mismatched types
- --> tests/ui/aspect_native_query/memory_workspace_aspect_external_projection_path_not_string.rs:5:19
-  |
-5 |     let _: &str = aspect.external_projection_path();
-  |            ----   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `&CanonicalFieldPath`
-  |            |
-  |            expected due to this
-  |
-  = note: expected reference `&str`
-             found reference `&forge_foundational::aspects::structs::field_path::CanonicalFieldPath`
+  --> tests/ui/aspect_native_query/memory_workspace_aspect_external_projection_path_not_string.rs:18:19
+   |
+18 |     let _: &str = aspect.native_field_path();
+   |            ----   ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `&CanonicalFieldPath`
+   |            |
+   |            expected due to this
+   |
+   = note: expected reference `&str`
+              found reference `&CanonicalFieldPath`

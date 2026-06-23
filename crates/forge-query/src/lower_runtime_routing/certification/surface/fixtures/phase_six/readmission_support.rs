@@ -2,8 +2,7 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
 use forge_foundational::facade::{
-    AspectKey, AspectLocator, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
-    ScalarAspectType,
+    AspectKey, AspectLocator, CanonicalFieldPath, FieldKey, LocatorAuthority, ScalarAspectType,
 };
 use forge_runtime_bridge::facade::{
     AdmittedBridgeSubscription, AspectKeySelector, BridgeAspectRegistration,
@@ -30,9 +29,9 @@ const SNAPSHOT_A: &str = "snapshot-a";
 
 #[derive(Debug, Clone, Default)]
 struct TestRelationalState {
-    committed_patches: BTreeMap<String, BridgeCommittedPatchEnvelope>,
-    branch_heads: BTreeMap<String, String>,
-    snapshots: BTreeMap<String, Vec<SnapshotReadRecord>>,
+    committed_patches: BTreeMap<TruthCommitIdentity, BridgeCommittedPatchEnvelope>,
+    branch_heads: BTreeMap<TruthBranchIdentity, TruthCommitIdentity>,
+    snapshots: BTreeMap<TruthSnapshotIdentity, Vec<SnapshotReadRecord>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -47,32 +46,16 @@ impl TestRelationalSource {
             .write()
             .expect("fixture bridge source lock poisoned");
         state.branch_heads.insert(
-            patch
-                .branch_identity()
-                .bridge_admission_evidence()
-                .terminal_projection_for_reporting()
-                .to_string(),
-            patch
-                .commit_identity()
-                .bridge_admission_evidence()
-                .terminal_projection_for_reporting()
-                .to_string(),
+            patch.branch_identity().clone(),
+            patch.commit_identity().clone(),
         );
-        state.committed_patches.insert(
-            patch
-                .commit_identity()
-                .bridge_admission_evidence()
-                .terminal_projection_for_reporting()
-                .to_string(),
-            patch,
-        );
+        state
+            .committed_patches
+            .insert(patch.commit_identity().clone(), patch);
     }
 
     fn insert_snapshot(&self, snapshot_identity: &str, records: Vec<SnapshotReadRecord>) {
-        let snapshot_key = fixture_snapshot_identity(snapshot_identity)
-            .bridge_admission_evidence()
-            .terminal_projection_for_reporting()
-            .to_string();
+        let snapshot_key = fixture_snapshot_identity(snapshot_identity);
         self.state
             .write()
             .expect("fixture bridge source lock poisoned")
@@ -90,12 +73,7 @@ impl CommittedPatchSource for TestRelationalSource {
             .read()
             .expect("fixture bridge source lock poisoned")
             .committed_patches
-            .get(
-                request
-                    .commit_identity()
-                    .bridge_admission_evidence()
-                    .terminal_projection_for_reporting(),
-            )
+            .get(request.commit_identity())
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
@@ -116,11 +94,7 @@ impl SnapshotReadSource for TestRelationalSource {
             .read()
             .expect("fixture bridge source lock poisoned")
             .snapshots
-            .get(
-                identity
-                    .bridge_admission_evidence()
-                    .terminal_projection_for_reporting(),
-            )
+            .get(identity)
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
@@ -144,30 +118,20 @@ impl TruthBranchHeadSource for TestRelationalSource {
             .state
             .read()
             .expect("fixture bridge source lock poisoned");
-        let commit_identity = state
-            .branch_heads
-            .get(
+        let commit_identity = state.branch_heads.get(branch_identity).ok_or_else(|| {
+            RelationalBridgeSourceError::new(format!(
+                "no branch head registered for `{:?}`",
                 branch_identity
-                    .bridge_admission_evidence()
-                    .terminal_projection_for_reporting(),
-            )
-            .ok_or_else(|| {
-                RelationalBridgeSourceError::new(format!(
-                    "no branch head registered for `{:?}`",
-                    branch_identity
-                ))
-            })?;
+            ))
+        })?;
         state
             .committed_patches
             .get(commit_identity)
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
-                    "branch head `{}` for `{}` had no patch envelope",
-                    commit_identity,
-                    branch_identity
-                        .bridge_admission_evidence()
-                        .terminal_projection_for_reporting()
+                    "branch head `{:?}` for `{:?}` had no patch envelope",
+                    commit_identity, branch_identity
                 ))
             })
     }
@@ -194,7 +158,9 @@ impl TruthSnapshotReader for TestSnapshotReader {
             .first()
             .and_then(SnapshotReadRecord::scalar_aspect_value)
             .cloned()
-            .unwrap_or_else(|| AspectValue::String("unknown".into()));
+            .unwrap_or_else(|| {
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("unknown")
+            });
         let records = request
             .reads()
             .iter()
@@ -411,7 +377,7 @@ fn snapshot_records(_key: &str, value: &str) -> Vec<SnapshotReadRecord> {
     );
     vec![SnapshotReadRecord::for_request(
         &read,
-        AspectValue::String(value.into()),
+        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value),
     )]
 }
 

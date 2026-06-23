@@ -3,6 +3,56 @@ use crate::memory_workspace::{
     ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
 };
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct ForgeQuerySameBatchSymbolicTarget {
+    entity_identity: ForgeQueryEntityIdentity,
+    target_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(super) struct ForgeQuerySameBatchSymbolicTargetKey {
+    symbol: String,
+}
+
+impl ForgeQuerySameBatchSymbolicTargetKey {
+    pub(super) fn from_reference(reference: &ForgeQuerySymbolicTargetReference) -> Self {
+        Self::from_symbol(reference.symbol())
+    }
+
+    pub(super) fn from_symbol(symbol: impl Into<String>) -> Self {
+        Self {
+            symbol: symbol.into(),
+        }
+    }
+}
+
+impl ForgeQuerySameBatchSymbolicTarget {
+    pub(super) fn new(
+        entity_identity: ForgeQueryEntityIdentity,
+        target_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
+    ) -> Self {
+        Self {
+            entity_identity,
+            target_collection,
+        }
+    }
+
+    pub(super) fn entity_identity(&self) -> &ForgeQueryEntityIdentity {
+        &self.entity_identity
+    }
+
+    pub(super) fn target_collection_identity(
+        &self,
+    ) -> Option<&ForgeQueryMutationTargetCollectionIdentity> {
+        self.target_collection.as_ref()
+    }
+
+    pub(super) fn terminal_target_collection_projection(&self) -> Option<&str> {
+        self.target_collection_identity()
+            .map(ForgeQueryMutationTargetCollectionIdentity::as_str)
+    }
+}
+
 pub(super) fn admit_authority_requirements(
     requirements: &std::collections::BTreeSet<ForgeQueryAuthorityRequirement>,
 ) -> Result<(), ForgeQueryRuntimeError> {
@@ -99,9 +149,12 @@ pub(super) fn synthetic_existing_assertion_receipt(
 }
 
 pub(super) fn record_same_batch_symbolic_target(
-    symbolic_targets: &mut BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
+    symbolic_targets: &mut BTreeMap<
+        ForgeQuerySameBatchSymbolicTargetKey,
+        ForgeQuerySameBatchSymbolicTarget,
+    >,
     reference: Option<&ForgeQuerySymbolicTargetReference>,
-    declared_collection: Option<&str>,
+    declared_collection: Option<&ForgeQueryMutationTargetCollectionIdentity>,
     receipt: &ForgeQueryMutationReceipt,
 ) {
     if receipt
@@ -120,33 +173,44 @@ pub(super) fn record_same_batch_symbolic_target(
                 .deltas
                 .iter()
                 .filter(|delta| {
-                    delta.kind == ForgeQueryMutationKind::Created && delta.collection == collection
+                    delta.kind == ForgeQueryMutationKind::Created
+                        && delta
+                            .target_collection_identity()
+                            .same_target_collection_as(collection)
                 })
-                .map(|delta| (delta.entity_identity.clone(), Some(collection.to_string())))
+                .map(|delta| {
+                    ForgeQuerySameBatchSymbolicTarget::new(
+                        delta.entity_identity.clone(),
+                        Some(collection.clone()),
+                    )
+                })
                 .collect::<Vec<_>>();
             (matches.len() == 1).then(|| matches.remove(0))
         })
         .or_else(|| {
             let (_, target_collection, target_entity_identity) =
                 classify_receipt_mutation_summary(receipt);
-            target_entity_identity.map(|identity| (identity, target_collection))
+            target_entity_identity
+                .map(|identity| ForgeQuerySameBatchSymbolicTarget::new(identity, target_collection))
         });
-    let Some((target_entity_identity, target_collection)) = resolved_target else {
+    let Some(resolved_target) = resolved_target else {
         return;
     };
     symbolic_targets.insert(
-        reference.symbol().to_string(),
-        (target_entity_identity, target_collection),
+        ForgeQuerySameBatchSymbolicTargetKey::from_reference(reference),
+        resolved_target,
     );
 }
 
 pub(super) fn resolve_same_batch_symbolic_target(
-    symbolic_targets: &BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
+    symbolic_targets: &BTreeMap<
+        ForgeQuerySameBatchSymbolicTargetKey,
+        ForgeQuerySameBatchSymbolicTarget,
+    >,
     reference: &ForgeQuerySymbolicTargetReference,
-) -> Result<(ForgeQueryEntityIdentity, Option<String>), ForgeQueryRuntimeError> {
-    let Some((resolved_entity_identity, resolved_collection)) =
-        symbolic_targets.get(reference.symbol())
-    else {
+) -> Result<ForgeQuerySameBatchSymbolicTarget, ForgeQueryRuntimeError> {
+    let target_key = ForgeQuerySameBatchSymbolicTargetKey::from_reference(reference);
+    let Some(resolved_target) = symbolic_targets.get(&target_key) else {
         return Err(ForgeQueryRuntimeError::MutationTargetReferenceDenied(
             ForgeQuerySymbolicTargetReferenceDenial::new(
                 reference,
@@ -158,8 +222,13 @@ pub(super) fn resolve_same_batch_symbolic_target(
             ),
         ));
     };
-    if let Some(expected_collection) = reference.target_collection() {
-        if resolved_collection.as_deref() != Some(expected_collection) {
+    if let Some(expected_collection) = reference.target_collection_identity() {
+        if resolved_target
+            .target_collection_identity()
+            .is_none_or(|resolved_collection| {
+                !resolved_collection.same_target_collection_as(expected_collection)
+            })
+        {
             return Err(ForgeQueryRuntimeError::MutationTargetReferenceDenied(
                 ForgeQuerySymbolicTargetReferenceDenial::new(
                     reference,
@@ -167,28 +236,32 @@ pub(super) fn resolve_same_batch_symbolic_target(
                     format!(
                         "same-batch symbolic target `{}` resolved to collection `{}`, not `{expected_collection}`",
                         reference.symbol(),
-                        resolved_collection.as_deref().unwrap_or("unknown"),
+                        resolved_target
+                            .terminal_target_collection_projection()
+                            .unwrap_or("unknown"),
+                        expected_collection = expected_collection.as_str(),
                     ),
                 ),
             ));
         }
     }
-    Ok((
-        resolved_entity_identity.clone(),
-        resolved_collection.clone(),
-    ))
+    Ok(resolved_target.clone())
 }
 
 pub(super) fn resolve_symbolic_aspect_references(
-    symbolic_targets: &BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
-    mut aspects: Vec<ForgeQueryAspectValue>,
+    symbolic_targets: &BTreeMap<
+        ForgeQuerySameBatchSymbolicTargetKey,
+        ForgeQuerySameBatchSymbolicTarget,
+    >,
+    mut aspects: Vec<ForgeQueryAdmittedAspectValue>,
     symbolic_aspect_references: &[ForgeQuerySymbolicAspectReference],
-) -> Result<Vec<ForgeQueryAspectValue>, ForgeQueryRuntimeError> {
+) -> Result<Vec<ForgeQueryAdmittedAspectValue>, ForgeQueryRuntimeError> {
     for reference in symbolic_aspect_references {
-        let (resolved_entity_identity, _) =
+        let resolved_target =
             resolve_same_batch_symbolic_target(symbolic_targets, reference.reference())?;
-        let resolved_entity_evidence_identity = resolved_entity_identity.evidence_identity();
-        aspects.push(ForgeQueryAspectValue::new_set_evidence_identity(
+        let resolved_entity_evidence_identity =
+            resolved_target.entity_identity().evidence_identity();
+        aspects.push(ForgeQueryAdmittedAspectValue::new_set_evidence_identity(
             reference.aspect_touch().clone(),
             &resolved_entity_evidence_identity,
         )?);
@@ -236,7 +309,7 @@ pub(super) fn classify_receipt_mutation_summary(
     receipt: &ForgeQueryMutationReceipt,
 ) -> (
     ForgeQueryMutationFamily,
-    Option<String>,
+    Option<ForgeQueryMutationTargetCollectionIdentity>,
     Option<ForgeQueryEntityIdentity>,
 ) {
     let mutation_family = receipt
@@ -251,10 +324,10 @@ pub(super) fn classify_receipt_mutation_summary(
     let mut collections = receipt
         .deltas
         .iter()
-        .map(|delta| delta.collection.clone())
+        .map(|delta| delta.target_collection_identity().clone())
         .collect::<Vec<_>>();
     collections.sort();
-    collections.dedup();
+    collections.dedup_by(|left, right| left.same_target_collection_as(right));
     let mut entity_identities = receipt
         .deltas
         .iter()

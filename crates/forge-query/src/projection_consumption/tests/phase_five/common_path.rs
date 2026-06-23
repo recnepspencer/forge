@@ -26,8 +26,10 @@ fn read_result_common_path_consumes_projection_facts_through_receipt() {
                 .entity_identities()
                 .display_field_path(
                     crate::projection_consumption::projection_fact_field_path_from_segments([
-                        "profile",
-                        "display_name",
+                        forge_foundational::facade::FieldKey::new("profile")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("display_name")
+                            .expect("projection fact field segment should admit"),
                     ]),
                 ),
         )
@@ -76,8 +78,10 @@ fn query_context_common_path_preserves_warning_bearing_admission() {
             &authorized_projection,
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )
@@ -123,8 +127,10 @@ fn completed_common_path_exposes_receipt_first_inspection_helpers() {
                 .entity_identities()
                 .display_field_path(
                     crate::projection_consumption::projection_fact_field_path_from_segments([
-                        "profile",
-                        "display_name",
+                        forge_foundational::facade::FieldKey::new("profile")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("display_name")
+                            .expect("projection fact field segment should admit"),
                     ]),
                 ),
         )
@@ -184,8 +190,10 @@ fn attempt_inspection_helpers_preserve_typed_non_admitted_postures() {
             &read_authorized_projection,
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )
@@ -222,8 +230,10 @@ fn attempt_inspection_helpers_preserve_typed_non_admitted_postures() {
             &write_authorized_projection,
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )
@@ -254,8 +264,10 @@ fn common_path_read_result_returns_typed_denial_without_constructing_later_phase
             &authorized_projection,
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )
@@ -286,8 +298,10 @@ fn common_path_write_receipt_returns_typed_deferred_without_constructing_later_p
             &authorized_projection,
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "profile",
-                    "display_name",
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )

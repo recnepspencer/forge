@@ -41,55 +41,46 @@ impl PublicBridgeRuntimeHarness {
     pub fn seed_backend_authoritative_truth(
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
-        aspect_path: &str,
+        aspect_touch: ForgeQueryAspectTouch,
         value: AspectValue,
     ) -> PublicExistingTruthSeedRecord {
-        let record = PublicExistingTruthSeedRecord::new(binding, aspect_path);
-        let key = (
-            record.binding_digest.clone(),
-            record.target_collection.clone(),
-            record.aspect_path.clone(),
-        );
+        let record = PublicExistingTruthSeedRecord::new(binding, aspect_touch);
         self.state
             .borrow_mut()
             .existing_truth_values
-            .insert(key, value);
+            .insert(record.key.clone(), value);
         record
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PublicExistingTruthSeedRecord {
-    binding_digest: String,
-    target_collection: String,
-    aspect_path: String,
+    key: PublicExistingTruthKey,
 }
 
 impl PublicExistingTruthSeedRecord {
-    fn new(binding: &ForgeQueryExistingTruthTargetBinding, aspect_path: &str) -> Self {
+    fn new(
+        binding: &ForgeQueryExistingTruthTargetBinding,
+        aspect_touch: ForgeQueryAspectTouch,
+    ) -> Self {
         Self {
-            binding_digest: binding.binding_digest(),
-            target_collection: binding
-                .terminal_target_collection_projection()
-                .unwrap_or("none")
-                .to_string(),
-            aspect_path: aspect_path.to_string(),
+            key: PublicExistingTruthKey::new(binding, aspect_touch),
         }
     }
 
     #[allow(dead_code)]
     pub fn binding_digest(&self) -> &str {
-        &self.binding_digest
+        self.key.binding_digest()
     }
 
     #[allow(dead_code)]
     pub fn target_collection(&self) -> &str {
-        &self.target_collection
+        self.key.target_collection()
     }
 
     #[allow(dead_code)]
-    pub fn terminal_aspect_path_projection(&self) -> &str {
-        &self.aspect_path
+    pub fn admitted_aspect_touch_reporting_projection(&self) -> String {
+        self.key.admitted_aspect_touch_reporting_projection()
     }
 }
 

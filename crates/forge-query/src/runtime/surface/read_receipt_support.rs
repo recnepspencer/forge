@@ -15,7 +15,7 @@ pub(super) fn materialized_result_digest(
                     "row_identity:{}",
                     row.identity().terminal_projection_for_reporting()
                 ))
-                .chain(row.native_result_digest_parts())
+                .chain(row.terminal_result_digest_parts())
             })
             .chain(std::iter::once(format!("query:{query_digest}")))
             .chain(std::iter::once(format!("basis:{basis_digest}")))

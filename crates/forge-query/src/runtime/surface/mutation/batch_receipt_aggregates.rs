@@ -22,16 +22,13 @@ pub(super) struct ForgeQueryBatchReceiptAggregates {
 pub(super) fn derive_batch_receipt_aggregates(
     write_receipts: &[ForgeQueryWriteReceipt],
 ) -> ForgeQueryBatchReceiptAggregates {
-    let mut touched_aspects = std::collections::BTreeMap::new();
+    let mut touched_aspects = std::collections::BTreeSet::new();
     for touch in write_receipts
         .iter()
         .flat_map(|receipt| receipt.deltas())
         .flat_map(|delta| delta.admitted_touched_aspects())
     {
-        touched_aspects.insert(
-            touch.admitted_touch_digest_part().to_string(),
-            touch.clone(),
-        );
+        touched_aspects.insert(touch.clone());
     }
 
     let mut affected_live_view_targets = write_receipts
@@ -49,7 +46,7 @@ pub(super) fn derive_batch_receipt_aggregates(
     affected_derived_view_targets.dedup();
 
     ForgeQueryBatchReceiptAggregates {
-        touched_aspects: touched_aspects.into_values().collect(),
+        touched_aspects: touched_aspects.into_iter().collect(),
         affected_live_view_targets,
         affected_derived_view_targets,
         considered_computed_view_count: write_receipts

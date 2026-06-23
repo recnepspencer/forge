@@ -21,8 +21,8 @@ fn live_relevance_uses_authorized_fields_only() {
     assert_eq!(
         native_relevance_fields(live.relevance().authorized_field_paths()),
         vec![
-            ("identity".to_string(), "id".to_string()),
-            ("profile".to_string(), "display_name".to_string())
+            native_field_pair("identity", "id"),
+            native_field_pair("profile", "display_name")
         ]
     );
     assert_eq!(
@@ -37,16 +37,23 @@ fn live_relevance_uses_authorized_fields_only() {
 
 fn native_relevance_fields(
     fields: &[crate::authorized_projection::AuthorizedProjectionFieldPath],
-) -> Vec<(String, String)> {
+) -> Vec<(AspectKey, FieldKey)> {
     fields
         .iter()
         .map(|field| {
             (
-                field.native_aspect_key().as_str().to_string(),
-                field.native_field_key().as_str().to_string(),
+                field.native_aspect_key().clone(),
+                field.native_field_key().clone(),
             )
         })
         .collect()
+}
+
+fn native_field_pair(aspect: &str, field: &str) -> (AspectKey, FieldKey) {
+    (
+        AspectKey::new(aspect).expect("test aspect key should admit"),
+        FieldKey::new(field).expect("test field key should admit"),
+    )
 }
 
 fn authorized_fields(
@@ -56,8 +63,8 @@ fn authorized_fields(
         .into_iter()
         .map(|(aspect, field)| {
             crate::authorized_projection::AuthorizedProjectionFieldPath::from_native_keys(
-                AspectKey::new(aspect.to_string()).expect("test aspect key"),
-                FieldKey::new(field.to_string()).expect("test field key"),
+                AspectKey::new(aspect).expect("test aspect key"),
+                FieldKey::new(field).expect("test field key"),
             )
         })
         .collect()

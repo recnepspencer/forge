@@ -12,7 +12,8 @@ use super::{
     ForgeQueryOperationInput, ForgeQueryOperationOutput, ForgeQueryPatchBatch,
     ForgeQueryPreviewBasisAdmission, ForgeQueryPreviewIntentReceipt, ForgeQueryProgramEffect,
     ForgeQueryProgramTrace, ForgeQueryRunReceipt, ForgeQueryRuntime, ForgeQueryRuntimeError,
-    ForgeQueryRuntimeFacadeFamily, ForgeQuerySymbolicTargetReference,
+    ForgeQueryRuntimeFacadeFamily, ForgeQuerySameBatchSymbolicTarget,
+    ForgeQuerySameBatchSymbolicTargetKey, ForgeQuerySymbolicTargetReference,
     ForgeQuerySymbolicTargetReferenceDenial, ForgeQuerySymbolicTargetReferenceDenialKind,
     ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };

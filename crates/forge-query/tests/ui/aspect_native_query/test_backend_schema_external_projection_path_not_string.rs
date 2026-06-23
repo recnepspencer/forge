@@ -5,7 +5,8 @@ fn main() {
         .aspect("title.value", "title.value")
         .unwrap();
 
-    for (_, external_projection_path) in schema.aspects() {
-        let _: &str = external_projection_path;
+    for (aspect_touch, native_field_path) in schema.aspects() {
+        let _: &str = aspect_touch;
+        let _: &str = native_field_path;
     }
 }

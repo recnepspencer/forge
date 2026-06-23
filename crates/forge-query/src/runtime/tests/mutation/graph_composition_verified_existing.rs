@@ -61,36 +61,36 @@ fn compose_graph_supports_verified_existing_target_lifecycle() {
     let receipt = workspace
         .compose_graph(|graph| {
             let _ = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("task-verified-existing"),
+                    test_authored_string_aspect_value("task-verified-existing"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Verified existing task"),
+                    test_authored_string_aspect_value("Verified existing task"),
                 )
             })?;
             graph.update_existing_verified(
                 binding.clone(),
                 |verify| {
-                    verify.aspect(
+                    verify.set_aspect(
                         test_aspect_touch("status.value"),
-                        test_string_aspect_value("active"),
+                        test_authored_string_aspect_value("active"),
                     )
                 },
                 |update| {
-                    update.aspect(
+                    update.set_aspect(
                         test_aspect_touch("status.value"),
-                        test_string_aspect_value("retired"),
+                        test_authored_string_aspect_value("retired"),
                     )
                 },
             )?;
             graph.delete_existing_verified(
                 binding,
                 |verify| {
-                    verify.aspect(
+                    verify.set_aspect(
                         test_aspect_touch("kind.value"),
-                        test_string_aspect_value("depends_on"),
+                        test_authored_string_aspect_value("depends_on"),
                     )
                 },
                 |delete| delete.touch(test_aspect_touch("kind.value")),
@@ -243,15 +243,15 @@ fn compose_graph_denies_verified_existing_target_when_backend_verification_is_un
             graph.update_existing_verified(
                 binding,
                 |verify| {
-                    verify.aspect(
+                    verify.set_aspect(
                         test_aspect_touch("status.value"),
-                        test_string_aspect_value("active"),
+                        test_authored_string_aspect_value("active"),
                     )
                 },
                 |update| {
-                    update.aspect(
+                    update.set_aspect(
                         test_aspect_touch("status.value"),
-                        test_string_aspect_value("retired"),
+                        test_authored_string_aspect_value("retired"),
                     )
                 },
             )?;

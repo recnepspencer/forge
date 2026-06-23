@@ -1,8 +1,9 @@
 use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::{
-    ForgeQueryAspectMutationOperation, ForgeQueryAspectMutationOperationKind,
-    ForgeQueryAspectTouch, ForgeQueryAspectValue, ForgeQueryContinuityMutationIntent,
-    ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationFamily, ForgeQueryMutationMetadata,
+    ForgeQueryAdmittedAspectValue, ForgeQueryAspectMutationOperation,
+    ForgeQueryAspectMutationOperationKind, ForgeQueryAspectTouch,
+    ForgeQueryContinuityMutationIntent, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryMutationFamily, ForgeQueryMutationMetadata,
     ForgeQueryMutationTargetCollectionIdentity, ForgeQueryNamingMutationIntent,
     ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
 };
@@ -50,10 +51,7 @@ impl ForgeQueryBackendAdmissibleMutation {
     ) -> Option<ForgeQueryMutationTargetCollectionIdentity> {
         match &self.shape {
             ForgeQueryBackendAdmissibleMutationShape::Insert { collection, .. } => {
-                Some(ForgeQueryMutationTargetCollectionIdentity::new(
-                    "backend-admissible-declared",
-                    collection,
-                ))
+                Some(collection.clone())
             }
             ForgeQueryBackendAdmissibleMutationShape::UpdateExisting {
                 binding,
@@ -76,12 +74,7 @@ impl ForgeQueryBackendAdmissibleMutation {
             ForgeQueryBackendAdmissibleMutationShape::DeleteDirect {
                 declared_collection,
                 ..
-            } => declared_collection.as_ref().map(|collection| {
-                ForgeQueryMutationTargetCollectionIdentity::new(
-                    "backend-admissible-declared",
-                    collection,
-                )
-            }),
+            } => declared_collection.clone(),
             ForgeQueryBackendAdmissibleMutationShape::UpdateDirect { .. } => None,
         }
     }
@@ -134,7 +127,7 @@ impl ForgeQueryBackendAdmissibleMutation {
         }
     }
 
-    pub fn admitted_aspect_values(&self) -> &[ForgeQueryAspectValue] {
+    pub fn admitted_aspect_values(&self) -> &[ForgeQueryAdmittedAspectValue] {
         match &self.shape {
             ForgeQueryBackendAdmissibleMutationShape::Insert { aspects, .. }
             | ForgeQueryBackendAdmissibleMutationShape::UpdateDirect { aspects, .. }
@@ -147,7 +140,7 @@ impl ForgeQueryBackendAdmissibleMutation {
         }
     }
 
-    pub fn asserted_admitted_aspect_values(&self) -> &[ForgeQueryAspectValue] {
+    pub fn asserted_admitted_aspect_values(&self) -> &[ForgeQueryAdmittedAspectValue] {
         match &self.shape {
             ForgeQueryBackendAdmissibleMutationShape::UpdateExisting {
                 asserted_aspects, ..
@@ -202,7 +195,7 @@ impl ForgeQueryBackendAdmissibleMutation {
             | ForgeQueryMutationFamily::Assertion => self
                 .admitted_aspect_values()
                 .iter()
-                .map(ForgeQueryAspectValue::declared_operation)
+                .map(ForgeQueryAdmittedAspectValue::declared_operation)
                 .chain(self.symbolic_aspect_references().iter().map(|reference| {
                     ForgeQueryAspectMutationOperation::from_touch(
                         reference.aspect_touch().clone(),

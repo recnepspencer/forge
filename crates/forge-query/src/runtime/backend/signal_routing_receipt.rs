@@ -32,7 +32,7 @@ impl SignalInvalidationRoutingReceipt {
         let routed_collection_count = receipt
             .deltas
             .iter()
-            .map(|delta| delta.collection.clone())
+            .map(|delta| delta.collection().to_string())
             .collect::<BTreeSet<_>>()
             .len();
         let delta_count = receipt.deltas.len();

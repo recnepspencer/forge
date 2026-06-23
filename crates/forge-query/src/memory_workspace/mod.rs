@@ -1,5 +1,5 @@
 use crate::view_shape_live::ViewShapePatchEnvelope;
-use forge_foundational::facade::CanonicalFieldPath;
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
 use forge_relational::facade::identity::{EntityId, KindId};
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::BridgeMutationAuthorityBundle;
@@ -28,27 +28,28 @@ pub use truth_identity_admission::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForgeQueryAspect {
     touch: crate::runtime::ForgeQueryAspectTouch,
-    external_projection_path: CanonicalFieldPath,
+    native_field_path: CanonicalFieldPath,
 }
 
 impl ForgeQueryAspect {
     pub fn new(
         touch: crate::runtime::ForgeQueryAspectTouch,
-        external_projection_path: CanonicalFieldPath,
-    ) -> Self {
-        Self {
+        native_field_path: CanonicalFieldPath,
+    ) -> Result<Self, ForgeQueryWorkspaceError> {
+        ensure_touch_matches_native_field_path(&touch, &native_field_path)?;
+        Ok(Self {
             touch,
-            external_projection_path,
-        }
+            native_field_path,
+        })
     }
 
-    pub(crate) fn from_native_external_projection_path(
+    pub(crate) fn from_native_field_path(
         touch: crate::runtime::ForgeQueryAspectTouch,
-        external_projection_path: CanonicalFieldPath,
+        native_field_path: CanonicalFieldPath,
     ) -> Self {
         Self {
             touch,
-            external_projection_path,
+            native_field_path,
         }
     }
 
@@ -56,9 +57,48 @@ impl ForgeQueryAspect {
         &self.touch
     }
 
-    pub fn external_projection_path(&self) -> &CanonicalFieldPath {
-        &self.external_projection_path
+    pub fn native_field_path(&self) -> &CanonicalFieldPath {
+        &self.native_field_path
     }
+}
+
+fn ensure_touch_matches_native_field_path(
+    touch: &crate::runtime::ForgeQueryAspectTouch,
+    native_field_path: &CanonicalFieldPath,
+) -> Result<(), ForgeQueryWorkspaceError> {
+    let expected_aspect_root =
+        FieldKey::new(touch.native_aspect_key().as_str()).ok_or_else(|| {
+            ForgeQueryWorkspaceError::new(format!(
+                "aspect `{}` cannot anchor a memory workspace native field path",
+                touch.native_aspect_key().as_str()
+            ))
+        })?;
+    let native_fields = native_field_path.fields();
+    if native_fields.first() != Some(&expected_aspect_root) {
+        return Err(ForgeQueryWorkspaceError::new(format!(
+            "memory workspace aspect `{}` must use native field path rooted at `{}`",
+            touch.admitted_touch_digest_part(),
+            touch.native_aspect_key().as_str()
+        )));
+    }
+    let Some(touch_field_path) = touch.native_field_path() else {
+        return Ok(());
+    };
+    let expected = std::iter::once(expected_aspect_root)
+        .chain(touch_field_path.fields().iter().cloned())
+        .collect::<Vec<_>>();
+    if native_fields != expected.as_slice() {
+        return Err(ForgeQueryWorkspaceError::new(format!(
+            "memory workspace aspect `{}` must use matching native field path `{}`",
+            touch.admitted_touch_digest_part(),
+            expected
+                .iter()
+                .map(|field| field.as_str())
+                .collect::<Vec<_>>()
+                .join(".")
+        )));
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,7 +110,7 @@ pub enum ForgeQueryMutationKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForgeQueryMutationDelta {
-    pub(crate) collection: String,
+    pub(crate) collection_identity: crate::runtime::ForgeQueryMutationTargetCollectionIdentity,
     pub(crate) entity_identity: ForgeQueryEntityIdentity,
     pub(crate) kind: ForgeQueryMutationKind,
     pub(crate) touched_aspects: Vec<crate::runtime::ForgeQueryAspectTouch>,
@@ -83,8 +123,26 @@ impl ForgeQueryMutationDelta {
         kind: ForgeQueryMutationKind,
         touched_aspects: Vec<crate::runtime::ForgeQueryAspectTouch>,
     ) -> Self {
+        let collection = collection.into();
         Self {
-            collection: collection.into(),
+            collection_identity: crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+                "mutation-delta-collection",
+                collection,
+            ),
+            entity_identity,
+            kind,
+            touched_aspects,
+        }
+    }
+
+    pub(crate) fn from_collection_identity(
+        collection_identity: crate::runtime::ForgeQueryMutationTargetCollectionIdentity,
+        entity_identity: ForgeQueryEntityIdentity,
+        kind: ForgeQueryMutationKind,
+        touched_aspects: Vec<crate::runtime::ForgeQueryAspectTouch>,
+    ) -> Self {
+        Self {
+            collection_identity,
             entity_identity,
             kind,
             touched_aspects,
@@ -92,7 +150,13 @@ impl ForgeQueryMutationDelta {
     }
 
     pub fn collection(&self) -> &str {
-        &self.collection
+        self.collection_identity.as_str()
+    }
+
+    pub fn target_collection_identity(
+        &self,
+    ) -> &crate::runtime::ForgeQueryMutationTargetCollectionIdentity {
+        &self.collection_identity
     }
 
     pub fn entity_identity(&self) -> &ForgeQueryEntityIdentity {

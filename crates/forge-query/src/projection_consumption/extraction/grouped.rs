@@ -21,7 +21,7 @@ pub(super) fn extract_relational_grouped_facts(
         projection.digest().as_str(),
         projection.contract().grouping_aspect(),
         projection.members().iter().map(|member| {
-            (
+            ProjectionGroupedMember::new(
                 member.row_identity().as_str(),
                 member.identity_value().clone(),
                 member.grouping_value().clone(),
@@ -40,7 +40,7 @@ pub(super) fn extract_bridge_grouped_facts(
         grouped_truth_view.digest().as_str(),
         grouped_truth_view.contract().native_grouping_aspect_key(),
         grouped_truth_view.members().iter().map(|member| {
-            (
+            ProjectionGroupedMember::new(
                 member.row_identity().as_str(),
                 member.identity_value().clone(),
                 member.lane().value().clone(),
@@ -49,7 +49,35 @@ pub(super) fn extract_bridge_grouped_facts(
     )
 }
 
-fn extract_grouped_facts<'a, Members>(
+struct ProjectionGroupedMember {
+    row_identity: String,
+    member_identity: AspectValue,
+    grouping_value: AspectValue,
+}
+
+impl ProjectionGroupedMember {
+    fn new(row_identity: &str, member_identity: AspectValue, grouping_value: AspectValue) -> Self {
+        Self {
+            row_identity: row_identity.to_string(),
+            member_identity,
+            grouping_value,
+        }
+    }
+
+    fn row_identity(&self) -> &str {
+        &self.row_identity
+    }
+
+    fn member_identity(&self) -> &AspectValue {
+        &self.member_identity
+    }
+
+    fn grouping_value(&self) -> &AspectValue {
+        &self.grouping_value
+    }
+}
+
+fn extract_grouped_facts<Members>(
     contract: &MaterializedProjectionContract,
     expected_family: ProjectionSourceFamily,
     source_identity: &str,
@@ -57,7 +85,7 @@ fn extract_grouped_facts<'a, Members>(
     members: Members,
 ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError>
 where
-    Members: Iterator<Item = (&'a str, AspectValue, AspectValue)>,
+    Members: Iterator<Item = ProjectionGroupedMember>,
 {
     super::ensure_contract_family(contract, expected_family)?;
     super::ensure_source_identity(contract.source_identity(), source_identity)?;
@@ -79,29 +107,29 @@ where
     let mut memberships = Vec::new();
     let mut relation_endpoints = Vec::new();
 
-    for (row_identity, member_identity, grouping_value) in &materialized_members {
+    for member in &materialized_members {
         for fact_family in contract.fact_families() {
             match fact_family.kind() {
                 ProjectionFactKind::ViewLocalIdentity => {
                     view_local_identities.push(ConsumedViewLocalIdentityFact::new(
-                        *row_identity,
-                        *row_identity,
+                        member.row_identity(),
+                        member.row_identity(),
                     ));
                 }
                 ProjectionFactKind::Membership => {
                     memberships.push(ConsumedMembershipFact::new(
-                        *row_identity,
-                        member_identity.clone(),
+                        member.row_identity(),
+                        member.member_identity().clone(),
                         grouping_aspect.clone(),
-                        grouping_value.clone(),
+                        member.grouping_value().clone(),
                     ));
                 }
                 ProjectionFactKind::RelationEndpoint => {
                     relation_endpoints.push(ConsumedRelationEndpointFact::grouped(
-                        *row_identity,
-                        member_identity.clone(),
+                        member.row_identity(),
+                        member.member_identity().clone(),
                         grouping_aspect.clone(),
-                        grouping_value.clone(),
+                        member.grouping_value().clone(),
                     ));
                 }
                 ProjectionFactKind::EntityIdentity

@@ -15,6 +15,7 @@ use crate::runtime::{
     ForgeQueryReadBuiltInOperator, ForgeQueryReadDenial, ForgeQueryReadDenialKind,
     ForgeQueryReadGraph, ForgeQueryReadResult, ForgeQueryReadScopeClass, ForgeQueryRuntime,
 };
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 use super::graph_read_access::ForgeQueryGraphReadAccessExecutionRecorder;
 use super::materialized_fact_posture::materialized_fact_posture_from_live_subscription_state;
@@ -94,10 +95,35 @@ pub(super) fn classify_scope_shape_with_operators(
 }
 
 fn is_identity_anchor_predicate(predicate: &crate::validation::ValidatedPredicateEntry) -> bool {
-    predicate.native_aspect_key().as_str() == "identity"
-        && predicate.native_field_key().as_str() == "id"
+    let anchor = NativeIdentityAnchorPredicateKey::new();
+    predicate.native_aspect_key() == anchor.native_aspect_key()
+        && predicate.native_field_key() == anchor.native_field_key()
         && predicate.predicate_family() == "equality"
         && predicate.value_kind() == "String"
+}
+
+struct NativeIdentityAnchorPredicateKey {
+    aspect_key: AspectKey,
+    field_key: FieldKey,
+}
+
+impl NativeIdentityAnchorPredicateKey {
+    fn new() -> Self {
+        Self {
+            aspect_key: AspectKey::new("identity")
+                .expect("identity anchor aspect key should be foundational"),
+            field_key: FieldKey::new("id")
+                .expect("identity anchor field key should be foundational"),
+        }
+    }
+
+    fn native_aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
+    }
+
+    fn native_field_key(&self) -> &FieldKey {
+        &self.field_key
+    }
 }
 
 pub(super) fn runtime_basis_intent() -> ExecutionBasisIntent {

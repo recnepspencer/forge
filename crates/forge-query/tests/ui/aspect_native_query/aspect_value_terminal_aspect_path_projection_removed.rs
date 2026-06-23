@@ -1,12 +1,10 @@
-use forge_foundational::facade::AspectValue;
 use forge_foundational::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_query::facade::{ForgeQueryAspectMutationBuilder, ForgeQueryAspectTouch};
 
 fn main() {
     let command = ForgeQueryAspectMutationBuilder::new()
-        .aspect(
-            ForgeQueryAspectTouch::field_path(AspectKey::new("title").unwrap(), CanonicalFieldPath::single(FieldKey::new("value").unwrap())),
-            AspectValue::String("Title".into()),
+        .set_aspect(ForgeQueryAspectTouch::aspect_field_path(AspectKey::new("title").unwrap(), CanonicalFieldPath::single(FieldKey::new("value").unwrap())),
+            forge_query::facade::ForgeQueryAuthoredAspectValue::string("Title"),
         )
         .build_insert("Task")
         .unwrap();

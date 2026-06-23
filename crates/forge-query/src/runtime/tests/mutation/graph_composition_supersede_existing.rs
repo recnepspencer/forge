@@ -28,10 +28,15 @@ fn compose_graph_supports_existing_target_supersession_lifecycle() {
         .live_view("tasks.graph-composition-supersede-existing-tasks", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-supersede-existing-tasks")
         })
         .expect("task live view should declare");
@@ -41,12 +46,19 @@ fn compose_graph_supports_existing_target_supersession_lifecycle() {
             |q| {
                 q.from("TaskRelation")
                     .select([
-                        crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                        crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
-                        crate::authoring::AspectFieldKey::new("source", "id").unwrap(),
-                        crate::authoring::AspectFieldKey::new("target", "id").unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("source", "id")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("target", "id")
+                            .unwrap(),
                     ])
-                    .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
+                    .order_by(
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                    )
                     .schema_basis("tasks-graph-composition-supersede-existing-relations")
             },
         )
@@ -55,21 +67,21 @@ fn compose_graph_supports_existing_target_supersession_lifecycle() {
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("rel-edge"),
+                    test_authored_string_aspect_value("rel-edge"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("kind.value"),
-                    test_string_aspect_value("edge"),
+                    test_authored_string_aspect_value("edge"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("source.id"),
-                    test_string_aspect_value("vertex-a"),
+                    test_authored_string_aspect_value("vertex-a"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("target.id"),
-                    test_string_aspect_value("vertex-b"),
+                    test_authored_string_aspect_value("vertex-b"),
                 )
         })
         .expect("seed insert should execute");
@@ -88,8 +100,8 @@ fn compose_graph_supports_existing_target_supersession_lifecycle() {
     let receipt = workspace
         .compose_graph(|graph| {
             let _ = graph.insert_entity("draft-vertex", "Task", |task| {
-                task.aspect(test_aspect_touch("identity.id"), test_string_aspect_value("vertex-split"))
-                    .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Split vertex"))
+                task.set_aspect(test_aspect_touch("identity.id"), test_authored_string_aspect_value("vertex-split"))
+                    .set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Split vertex"))
             })?;
             graph.supersede_existing(binding, |relation| {
                 relation
@@ -109,7 +121,7 @@ fn compose_graph_supports_existing_target_supersession_lifecycle() {
                             .expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         ],
                     )
-                    .aspect(test_aspect_touch("target.id"), test_string_aspect_value("vertex-split"))
+                    .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("vertex-split"))
             })?;
             Ok(())
         })
@@ -204,14 +216,14 @@ fn compose_graph_supports_verified_existing_target_supersession_lifecycle() {
                 binding,
                 |verify| {
                     verify
-                        .aspect(test_aspect_touch("source.id"), test_string_aspect_value("vertex-a"))
-                        .aspect(test_aspect_touch("target.id"), test_string_aspect_value("vertex-b"))
+                        .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("vertex-a"))
+                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("vertex-b"))
                 },
                 |update| {
                     update
                         .continuity_rebind_merge_successor(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:rel-edge").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:rel-edge-merged").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         )
-                        .aspect(test_aspect_touch("target.id"), test_string_aspect_value("vertex-merged"))
+                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("vertex-merged"))
                 },
             )?;
             Ok(())
@@ -276,33 +288,38 @@ fn compose_graph_denies_existing_target_supersession_without_lineage_intent() {
         .live_view("tasks.graph-composition-supersede-denial-relations", |q| {
             q.from("TaskRelation")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
-                    crate::authoring::AspectFieldKey::new("source", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("target", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("source", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("target", "id").unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-supersede-denial-relations")
         })
         .expect("relation live view should declare");
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("rel-edge"),
+                    test_authored_string_aspect_value("rel-edge"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("kind.value"),
-                    test_string_aspect_value("edge"),
+                    test_authored_string_aspect_value("edge"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("source.id"),
-                    test_string_aspect_value("vertex-a"),
+                    test_authored_string_aspect_value("vertex-a"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("target.id"),
-                    test_string_aspect_value("vertex-b"),
+                    test_authored_string_aspect_value("vertex-b"),
                 )
         })
         .expect("seed insert should execute");
@@ -324,7 +341,7 @@ fn compose_graph_denies_existing_target_supersession_without_lineage_intent() {
                 relation
                     .continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:rel-edge").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:rel-edge-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                     )
-                    .aspect(test_aspect_touch("target.id"), test_string_aspect_value("vertex-c"))
+                    .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("vertex-c"))
             })?;
             Ok(())
         })

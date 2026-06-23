@@ -14,6 +14,7 @@ use super::super::identity::compose_scoped_row_source_identity;
 use super::super::source::ProjectionSourceFamily;
 use super::row_like_field_paths::{
     identity_field_path, lower_materialized_fields, query_read_result_row_fields,
+    ProjectionMaterializedField,
 };
 use super::row_like_values::consumed_aspect_value_as_str;
 use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryEntityIdentity};
@@ -32,16 +33,31 @@ pub(super) fn extract_relational_row_set_facts(
 ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError> {
     super::ensure_contract_family(contract, ProjectionSourceFamily::RelationalRowSet)?;
     super::ensure_source_identity(contract.source_identity(), row_set.digest().as_str())?;
-    extract_field_map_rows(
-        contract,
-        row_set.rows().iter().map(|row| {
-            (
+    let materialized_rows = row_set
+        .rows()
+        .iter()
+        .map(|row| {
+            Ok((
                 row.row_identity().as_str(),
                 row.projected_aspect_values()
                     .iter()
-                    .map(|(key, value)| (key.as_str(), value.clone())),
-            )
-        }),
+                    .map(|(key, value)| {
+                        ProjectionMaterializedField::from_relational_projected_aspect_key(
+                            contract,
+                            row.row_identity().as_str(),
+                            key,
+                            value.clone(),
+                        )
+                    })
+                    .collect::<Result<Vec<_>, ProjectionFactExtractionError>>()?,
+            ))
+        })
+        .collect::<Result<Vec<_>, ProjectionFactExtractionError>>()?;
+    extract_field_map_rows(
+        contract,
+        materialized_rows
+            .iter()
+            .map(|(row_identity, fields)| (*row_identity, fields.iter().cloned())),
         RowIdentityExtractionMode::IdentityFieldBackedEntityIdentity,
     )
 }
@@ -60,8 +76,8 @@ pub(super) fn extract_bridge_row_set_facts(
                 row.row_identity().as_str(),
                 row.fields()
                     .iter()
-                    .map(|(key, value)| {
-                        let value = match value.validated_value().payload().view() {
+                    .map(|(_key, bridge_field)| {
+                        let value = match bridge_field.validated_value().payload().view() {
                             ContractValidatedAspectValueView::Scalar(value) => value.clone(),
                             ContractValidatedAspectValueView::Struct(_) => {
                                 return Err(
@@ -71,14 +87,23 @@ pub(super) fn extract_bridge_row_set_facts(
                                             contract.source_identity(),
                                             row.row_identity().as_str(),
                                         ),
-                                        field_key: key.as_str().to_string(),
+                                        field_key: bridge_field
+                                            .projection()
+                                            .field_identity()
+                                            .as_str()
+                                            .to_string(),
                                         fact_kind: ProjectionFactKind::DerivedScalarField,
                                         expected_shape: "foundational scalar",
                                     },
                                 );
                             }
                         };
-                        Ok((key.as_str(), value))
+                        ProjectionMaterializedField::from_bridge_field_value(
+                            contract,
+                            row.row_identity().as_str(),
+                            bridge_field.projection(),
+                            value,
+                        )
                     })
                     .collect::<Result<Vec<_>, ProjectionFactExtractionError>>()?,
             ))
@@ -132,14 +157,14 @@ fn extract_field_map_rows<'a, Rows, Fields>(
 ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError>
 where
     Rows: Iterator<Item = (&'a str, Fields)>,
-    Fields: Iterator<Item = (&'a str, AspectValue)>,
+    Fields: Iterator<Item = ProjectionMaterializedField>,
 {
     let materialized_rows = rows
         .map(|(row_identity, fields)| {
             Ok((
                 row_identity.to_string(),
                 None,
-                lower_materialized_fields(contract, row_identity, fields)?,
+                lower_materialized_fields(fields)?,
             ))
         })
         .collect::<Result<Vec<_>, ProjectionFactExtractionError>>()?;

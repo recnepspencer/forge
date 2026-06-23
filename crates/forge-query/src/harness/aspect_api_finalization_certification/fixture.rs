@@ -5,7 +5,7 @@ use crate::runtime::{
     ForgeQueryDerivedViewMaterialization, ForgeQueryLiveView, ForgeQueryRetainedFieldPath,
     ForgeQueryRuntime, ForgeQueryWorkspace,
 };
-use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
 
 pub(super) struct CertificationTitleListMaintainer;
 
@@ -18,12 +18,11 @@ impl ForgeQueryDerivedViewMaintainer for CertificationTitleListMaintainer {
     ) -> ForgeQueryDerivedPatch {
         let retained_scalar = (
             retained_field_path("value"),
-            AspectValue::String(
+            crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
                 delta
                     .entity_identity
                     .terminal_projection_for_reporting()
-                    .to_string()
-                    .into(),
+                    .to_string(),
             ),
         );
         materialization
@@ -67,10 +66,15 @@ pub(super) fn task_live_view<T>(
         .live_view(name, |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("aspect-api-cert-task")
         })
         .expect("live view should declare")

@@ -9,34 +9,39 @@ fn batch_verify_existing_preserves_aggregate_assertion_digest() {
         .live_view("tasks.batch-verify-existing-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-batch-verify-existing-table")
         })
         .expect("live view should declare");
     let seed_one = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("First"),
+                test_authored_string_aspect_value("First"),
             )
         })
         .expect("first seed should execute");
     let seed_two = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-2"),
+                test_authored_string_aspect_value("task-2"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Second"),
+                test_authored_string_aspect_value("Second"),
             )
         })
         .expect("second seed should execute");
@@ -67,9 +72,9 @@ fn batch_verify_existing_preserves_aggregate_assertion_digest() {
         .batch(|batch| {
             batch
                 .verify_existing(binding_one, |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("First"),
+                        test_authored_string_aspect_value("First"),
                     )
                 })
                 .delete_existing_with(binding_two, |delete| {
@@ -113,22 +118,27 @@ fn preview_verify_existing_requires_authoritative_lane() {
         .live_view("tasks.preview-verify-existing-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-preview-verify-existing-table")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Seed title"),
+                test_authored_string_aspect_value("Seed title"),
             )
         })
         .expect("seed insert should execute");
@@ -149,9 +159,9 @@ fn preview_verify_existing_requires_authoritative_lane() {
 
     let error = preview
         .verify_existing(binding, |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Seed title"),
+                test_authored_string_aspect_value("Seed title"),
             )
         })
         .expect_err("preview verification should require authoritative lane");
@@ -174,10 +184,15 @@ fn verify_existing_relation_preserves_backend_verified_assertion_evidence() {
         .live_view("tasks.verify-existing-relation-table", |q| {
             q.from("TaskRelation")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("kind", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-verify-existing-relation-table")
         })
         .expect("relation live view should declare");
@@ -185,13 +200,13 @@ fn verify_existing_relation_preserves_backend_verified_assertion_evidence() {
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("rel-1"),
+                    test_authored_string_aspect_value("rel-1"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("kind.value"),
-                    test_string_aspect_value("depends_on"),
+                    test_authored_string_aspect_value("depends_on"),
                 )
         })
         .expect("seed insert should execute");
@@ -209,9 +224,9 @@ fn verify_existing_relation_preserves_backend_verified_assertion_evidence() {
 
     let receipt = workspace
         .verify_existing(binding, |relation| {
-            relation.aspect(
+            relation.set_aspect(
                 test_aspect_touch("kind.value"),
-                test_string_aspect_value("depends_on"),
+                test_authored_string_aspect_value("depends_on"),
             )
         })
         .expect("backend-verified relation assertion should execute");

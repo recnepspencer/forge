@@ -110,7 +110,7 @@ impl ForgeQueryPreviewExecutionEvidence {
                     source_evidence_identity,
                 )
                 .field_value_sequence(
-                    ForgeQueryEvidenceTag::new("aspect_path"),
+                    ForgeQueryEvidenceTag::new("admitted_aspect_touch"),
                     aspect_touches
                         .iter()
                         .map(|touch| touch.admitted_touch_digest_part()),

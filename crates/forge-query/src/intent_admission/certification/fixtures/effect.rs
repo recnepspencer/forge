@@ -2,9 +2,8 @@ use super::certification_entity_identity;
 use super::runtime::{
     certification_runtime, certification_task_live_request, certification_task_schema,
 };
-use crate::facade::runtime::{
-    ForgeQueryAspectTouch, ForgeQueryEffectDeclaration, ForgeQueryEffectTrigger,
-};
+use super::title_value_touch;
+use crate::facade::runtime::{ForgeQueryEffectDeclaration, ForgeQueryEffectTrigger};
 use crate::runtime::ForgeQueryNativeRow;
 
 #[derive(Clone)]
@@ -32,22 +31,17 @@ pub(in crate::intent_admission::certification) fn certified_effect_intent_fixtur
     let effect = runtime
         .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.certification.reconcile",
-            ForgeQueryEffectTrigger::live_view(
-                &live,
-                [ForgeQueryAspectTouch::from_authoring_path("title.value")
-                    .expect("effect certification aspect should admit")],
-            ),
+            ForgeQueryEffectTrigger::live_view(&live, [title_value_touch()]),
             "strategy.intent.reconcile",
         ))
         .expect("effect certification effect should declare");
     runtime
         .write(crate::facade::ForgeQueryWriteCommand::UpdateAspect {
             entity_identity: certification_entity_identity("task-1"),
-            aspect: crate::facade::ForgeQueryAspectValue::new_set(
-                ForgeQueryAspectTouch::from_authoring_path("title.value")
-                    .expect("effect certification aspect should admit"),
-                forge_foundational::facade::AspectValue::String(
-                    "title from certification effect".into(),
+            aspect: crate::facade::ForgeQueryAdmittedAspectValue::new_set(
+                title_value_touch(),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                    "title from certification effect",
                 ),
             )
             .expect("effect certification aspect should admit"),

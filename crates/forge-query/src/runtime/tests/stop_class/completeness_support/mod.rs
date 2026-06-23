@@ -55,7 +55,12 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
     let graph_denial = ForgeQueryGraphCompositionDenial::new(
         ForgeQueryGraphCompositionDenialKind::DuplicateSymbolDeclaration,
         Some("task_symbol".to_string()),
-        Some("Task".to_string()),
+        Some(
+            crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+                "graph-composition-test",
+                "Task",
+            ),
+        ),
         "duplicate symbol",
     );
     let graph_domain_denial = ForgeQueryGraphCompositionDomainInvariantDenial::from_contributed(
@@ -261,6 +266,5 @@ pub(super) fn existing_binding() -> ForgeQueryExistingTruthTargetBinding {
 }
 
 pub(super) fn status_value_touch() -> ForgeQueryAspectTouch {
-    ForgeQueryAspectTouch::from_authoring_path("status.value")
-        .expect("status value touch should parse")
+    test_aspect_touch("status.value")
 }

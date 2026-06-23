@@ -11,10 +11,15 @@ fn compose_graph_without_lineage_steps_fails_closed_on_lineage_summary() {
             |q| {
                 q.from("Vertex")
                     .select([
-                        crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                        crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                            .unwrap(),
                     ])
-                    .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
+                    .order_by(
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                    )
                     .schema_basis("topology-graph-composition-no-lineage-summary-vertices")
             },
         )
@@ -24,13 +29,13 @@ fn compose_graph_without_lineage_steps_fails_closed_on_lineage_summary() {
         .compose_graph(|graph| {
             graph.insert_entity("vertex-only", "Vertex", |vertex| {
                 vertex
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("vertex-only"),
+                        test_authored_string_aspect_value("vertex-only"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("kind.value"),
-                        test_string_aspect_value("plain"),
+                        test_authored_string_aspect_value("plain"),
                     )
             })?;
             Ok(())

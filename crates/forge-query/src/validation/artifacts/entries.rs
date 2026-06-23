@@ -1,4 +1,4 @@
-use crate::authoring::{AspectName, DeliveredFieldName, FieldName, RelationName};
+use crate::authoring::{DeliveredFieldName, RelationName};
 use crate::canonicalization::{
     CanonicalOrderingEntry, CanonicalPredicateEntry, CanonicalPredicateFamily,
     CanonicalPredicateOperand, CanonicalProjectionEntry, CanonicalResultField,
@@ -32,8 +32,8 @@ impl ValidatedProjectionEntry {
         field_kind: SchemaFieldKind,
     ) -> Self {
         Self {
-            aspect_key: native_aspect_key(&entry.aspect),
-            field_key: native_field_key(&entry.field),
+            aspect_key: entry.field_key().native_aspect_key(),
+            field_key: entry.field_key().native_field_key(),
             field_kind,
         }
     }
@@ -114,8 +114,8 @@ impl ValidatedResultShapeBinding {
         field_kind: SchemaFieldKind,
     ) -> Self {
         Self {
-            source_aspect_key: native_aspect_key(&field.source_aspect),
-            source_field_key: native_field_key(&field.source_field),
+            source_aspect_key: field.source_field_key().native_aspect_key(),
+            source_field_key: field.source_field_key().native_field_key(),
             delivered_name: field.delivered_name.clone(),
             field_kind,
         }
@@ -173,8 +173,8 @@ impl ValidatedPredicateEntry {
         value_kind: &'static str,
     ) -> Self {
         Self {
-            aspect_key: native_aspect_key(&entry.aspect),
-            field_key: native_field_key(&entry.field),
+            aspect_key: entry.field_key().native_aspect_key(),
+            field_key: entry.field_key().native_field_key(),
             predicate_family: match entry.family {
                 CanonicalPredicateFamily::Equality => "equality",
                 CanonicalPredicateFamily::IntegerGreaterThan => "integer-greater-than",
@@ -238,8 +238,8 @@ impl ValidatedOrderingEntry {
         projected: bool,
     ) -> Self {
         Self {
-            aspect_key: native_aspect_key(&entry.aspect),
-            field_key: native_field_key(&entry.field),
+            aspect_key: entry.field_key().native_aspect_key(),
+            field_key: entry.field_key().native_field_key(),
             direction: match entry.direction {
                 crate::authoring::OrderingDirection::Ascending => "ascending",
                 crate::authoring::OrderingDirection::Descending => "descending",
@@ -259,15 +259,6 @@ impl ValidatedOrderingEntry {
             self.projected
         )
     }
-}
-
-fn native_aspect_key(aspect: &AspectName) -> AspectKey {
-    AspectKey::new(aspect.as_str())
-        .expect("validated aspect names must be foundational aspect keys")
-}
-
-fn native_field_key(field: &FieldName) -> FieldKey {
-    FieldKey::new(field.as_str()).expect("validated field names must be foundational field keys")
 }
 
 fn canonical_operand_basis(operand: &CanonicalPredicateOperand) -> String {

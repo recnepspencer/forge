@@ -1,11 +1,11 @@
 use crate::facade::{
-    AspectFieldKey, ForgeQueryAspectTouch, ForgeQueryInspection, ForgeQueryRuntimeFacadeFamily,
+    AspectFieldKey, ForgeQueryInspection, ForgeQueryRuntimeFacadeFamily,
     ForgeQueryRuntimePublicApiTranscriptEvidence,
 };
 use crate::identity::hash_parts;
 use crate::runtime::ForgeQueryNativeRow;
-use forge_foundational::facade::AspectValue;
 
+use super::transcript_aspect_touch;
 use super::transcript_maintainer::TranscriptMaintainer;
 use super::transcript_runtime::transcript_runtime;
 use super::transcript_session_proofs::{
@@ -146,12 +146,12 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
                     .reads(
                         spec.produced_aspects
                             .iter()
-                            .map(|aspect| aspect_touch(*aspect)),
+                            .map(|aspect| transcript_aspect_touch(*aspect)),
                     )
                     .produces(
                         spec.produced_aspects
                             .iter()
-                            .map(|aspect| aspect_touch(format!("{aspect}.derived"))),
+                            .map(|aspect| transcript_aspect_touch(format!("{aspect}.derived"))),
                     )
             },
             TranscriptMaintainer {
@@ -168,12 +168,12 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
                     .reads(
                         spec.produced_aspects
                             .iter()
-                            .map(|aspect| aspect_touch(format!("{aspect}.derived"))),
+                            .map(|aspect| transcript_aspect_touch(format!("{aspect}.derived"))),
                     )
                     .produces(
                         spec.produced_aspects
                             .iter()
-                            .map(|aspect| aspect_touch(format!("{aspect}.ready"))),
+                            .map(|aspect| transcript_aspect_touch(format!("{aspect}.ready"))),
                     )
             },
             TranscriptMaintainer {
@@ -188,14 +188,17 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
                 &second,
                 spec.produced_aspects
                     .iter()
-                    .map(|aspect| aspect_touch(format!("{aspect}.ready"))),
+                    .map(|aspect| transcript_aspect_touch(format!("{aspect}.ready"))),
             )
             .condition_expression(
                 format!("{}.custom-expression", spec.family),
                 spec.produced_aspects
                     .iter()
-                    .map(|aspect| aspect_touch(format!("{aspect}.ready"))),
-                [aspect_touch(format!("{}.effect-output", spec.family))],
+                    .map(|aspect| transcript_aspect_touch(format!("{aspect}.ready"))),
+                [transcript_aspect_touch(format!(
+                    "{}.effect-output",
+                    spec.family
+                ))],
             )
             .write_intent("strategy.intent.transcript")
             .meaningful_change_suppression()
@@ -209,16 +212,16 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
         .expect("authoritative transcript intent should commit");
     let write = workspace
         .insert(spec.collection, |entity| {
-            let entity = entity.aspect(
-                aspect_touch("identity.id"),
+            let entity = entity.set_aspect(
+                transcript_aspect_touch("identity.id"),
                 string_aspect_value(format!("{}-entity-1", spec.family)),
             );
             spec.produced_aspects
                 .iter()
                 .enumerate()
                 .fold(entity, |builder, (index, aspect)| {
-                    builder.aspect(
-                        aspect_touch(*aspect),
+                    builder.set_aspect(
+                        transcript_aspect_touch(*aspect),
                         string_aspect_value(format!("{}-value-{index}", spec.family)),
                     )
                 })
@@ -333,18 +336,14 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
     )
 }
 
-fn live_field(aspect_path: &str) -> AspectFieldKey {
-    let (aspect, field) = aspect_path
+fn live_field(authored_field_text: &str) -> AspectFieldKey {
+    let (aspect, field) = authored_field_text
         .split_once('.')
-        .expect("transcript aspect path should use aspect.field form");
-    AspectFieldKey::new(aspect, field).expect("transcript aspect field should be valid")
+        .expect("transcript authored field should use aspect.field form");
+    AspectFieldKey::from_authoring_parts(aspect, field)
+        .expect("transcript aspect field should be valid")
 }
 
-fn aspect_touch(aspect_path: impl Into<String>) -> ForgeQueryAspectTouch {
-    ForgeQueryAspectTouch::from_authoring_path(aspect_path)
-        .expect("runtime transcript computed aspect should admit")
-}
-
-fn string_aspect_value(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+fn string_aspect_value(value: impl Into<String>) -> crate::runtime::ForgeQueryAuthoredAspectValue {
+    crate::runtime::ForgeQueryAuthoredAspectValue::string(value)
 }

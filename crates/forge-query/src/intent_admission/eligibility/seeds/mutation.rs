@@ -2,6 +2,7 @@ use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
 };
+use crate::runtime::ForgeQueryAspectMutationOperation;
 use crate::runtime::{
     command_declared_aspect_value_digest, ForgeQueryContinuityMutationDenial,
     ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthBindingDenial,
@@ -185,6 +186,11 @@ fn mutation_input_identity(command: &ForgeQueryWriteCommand) -> ForgeQueryEviden
         .iter()
         .map(symbolic_aspect_reference_identity)
         .collect::<Vec<_>>();
+    let operation_identities = command
+        .declared_aspect_operations()
+        .into_iter()
+        .map(declared_aspect_operation_identity)
+        .collect::<Vec<_>>();
     let mut identity =
         forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeMutationIntentSeed)
             .field_shape(
@@ -207,18 +213,9 @@ fn mutation_input_identity(command: &ForgeQueryWriteCommand) -> ForgeQueryEviden
                     .existing_truth_binding()
                     .map(|binding| binding.binding_evidence_identity()),
             )
-            .field_value_sequence(
+            .field_evidence_identity_sequence(
                 ForgeQueryEvidenceTag::new("operations"),
-                command
-                    .declared_aspect_operations()
-                    .into_iter()
-                    .map(|operation| {
-                        format!(
-                            "{}:{}",
-                            operation.kind().as_str(),
-                            operation.aspect_touch().admitted_touch_digest_part()
-                        )
-                    }),
+                operation_identities.iter(),
             )
             .optional_evidence_identity(
                 ForgeQueryEvidenceTag::new("aspect_values"),
@@ -239,6 +236,25 @@ fn mutation_input_identity(command: &ForgeQueryWriteCommand) -> ForgeQueryEviden
         );
     }
     identity.seal()
+}
+
+fn declared_aspect_operation_identity(
+    operation: ForgeQueryAspectMutationOperation,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeMutationIntentSeed)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("role"),
+            "declared-aspect-operation",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("kind"),
+            operation.kind().as_str(),
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("admitted_aspect_touch"),
+            operation.aspect_touch().admitted_touch_digest_part(),
+        )
+        .seal()
 }
 
 fn symbolic_target_reference_identity(
@@ -273,7 +289,7 @@ fn symbolic_aspect_reference_identity(
     forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeMutationIntentSeed)
         .field_shape(ForgeQueryEvidenceTag::new("role"), "symbolic-aspect")
         .field_value(
-            ForgeQueryEvidenceTag::new("aspect_path"),
+            ForgeQueryEvidenceTag::new("admitted_aspect_touch"),
             reference.aspect_touch().admitted_touch_digest_part(),
         )
         .field_shape(

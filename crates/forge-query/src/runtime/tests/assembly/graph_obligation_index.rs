@@ -141,7 +141,12 @@ fn symbolic_relation_retirement_descriptor() -> ForgeQueryGraphTouchDescriptor {
     let step = ForgeQueryGraphCompositionProgramStep::new(
         0,
         ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationRetirement,
-        "topology.edge",
+        Some(
+            crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+                "graph-composition-test",
+                "topology.edge",
+            ),
+        ),
         Some("edge".to_string()),
     )
     .with_relation_kind_id(forge_relational::facade::identity::KindId(77));

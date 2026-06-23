@@ -83,19 +83,21 @@ pub use prohibition_registry::{
     ForgeQueryProhibitionRegistryRow,
 };
 pub use support_pinning::{
-    load_support_pin_contract_document, support_pinning_contract, ForgeQueryObservedSupportPin,
+    load_support_pin_contract_terminal_json_document, support_pinning_contract,
+    ForgeQueryExternalSupportPinContractTerminalJsonDocument, ForgeQueryObservedSupportPin,
     ForgeQueryPinnedSupportStatus, ForgeQueryPinnedTeachingPosture, ForgeQuerySupportPinContract,
-    ForgeQuerySupportPinContractBuilder, ForgeQuerySupportPinContractDocument,
-    ForgeQuerySupportPinContractSchemaVersion, ForgeQuerySupportPinDeclaration,
+    ForgeQuerySupportPinContractBuilder, ForgeQuerySupportPinContractSchemaVersion,
+    ForgeQuerySupportPinContractTerminalJsonDocument, ForgeQuerySupportPinDeclaration,
     ForgeQuerySupportPinFinding, ForgeQuerySupportPinFindingKind, ForgeQuerySupportPinReport,
     ForgeQuerySupportPinRequirement, ForgeQuerySupportPinRequirementDraft,
     ForgeQuerySupportPinningError, ForgeQuerySupportPinningErrorKind,
 };
 pub use support_snapshot::{
-    load_support_snapshot_document, project_support_snapshot, project_workspace_support_snapshot,
-    ForgeQuerySupportSnapshot, ForgeQuerySupportSnapshotDocument, ForgeQuerySupportSnapshotError,
-    ForgeQuerySupportSnapshotErrorKind, ForgeQuerySupportSnapshotRow,
-    ForgeQuerySupportSnapshotSchemaVersion,
+    load_support_snapshot_terminal_json_document, project_support_snapshot,
+    project_workspace_support_snapshot, ForgeQueryExternalSupportSnapshotTerminalJsonDocument,
+    ForgeQuerySupportSnapshot, ForgeQuerySupportSnapshotError, ForgeQuerySupportSnapshotErrorKind,
+    ForgeQuerySupportSnapshotRow, ForgeQuerySupportSnapshotSchemaVersion,
+    ForgeQuerySupportSnapshotTerminalJsonDocument,
 };
 pub use test_backend::{
     compare_test_backend_write_receipts, in_memory_test_runtime, query_test_backend_residue_audit,

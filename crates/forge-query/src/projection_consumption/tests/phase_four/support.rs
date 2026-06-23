@@ -112,27 +112,39 @@ pub(crate) fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
         vec![
             SnapshotReadRecord::for_request(
                 &entity_one_identity,
-                aspect_value(AspectValue::String("task-1".into())),
+                aspect_value(
+                    crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("task-1"),
+                ),
             ),
             SnapshotReadRecord::for_request(
                 &entity_one_lane,
-                aspect_value(AspectValue::String("todo".into())),
+                aspect_value(
+                    crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("todo"),
+                ),
             ),
             SnapshotReadRecord::for_request(
                 &entity_one_display,
-                aspect_value(AspectValue::String("Task One".into())),
+                aspect_value(
+                    crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("Task One"),
+                ),
             ),
             SnapshotReadRecord::for_request(
                 &entity_two_identity,
-                aspect_value(AspectValue::String("task-2".into())),
+                aspect_value(
+                    crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("task-2"),
+                ),
             ),
             SnapshotReadRecord::for_request(
                 &entity_two_lane,
-                aspect_value(AspectValue::String("doing".into())),
+                aspect_value(
+                    crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("doing"),
+                ),
             ),
             SnapshotReadRecord::for_request(
                 &entity_two_display,
-                aspect_value(AspectValue::String("Task Two".into())),
+                aspect_value(
+                    crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("Task Two"),
+                ),
             ),
         ],
     );
@@ -259,7 +271,7 @@ pub(crate) fn entity_from_projection(
 }
 
 pub(crate) fn text_value(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+    crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value)
 }
 
 pub(crate) fn int_value(value: i64) -> AspectValue {

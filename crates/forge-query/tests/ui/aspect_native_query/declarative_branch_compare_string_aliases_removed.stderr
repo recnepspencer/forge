@@ -10,24 +10,14 @@ error[E0599]: no method named `field` found for struct `DeclarativeBranchCompare
 8 |     let _ = value.field();
   |                   ^^^^^ method not found in `DeclarativeBranchCompareValue`
 
-error[E0624]: method `aspect` is private
+error[E0599]: no method named `aspect` found for struct `DeclarativeBranchCompareFieldDelta` in the current scope
   --> tests/ui/aspect_native_query/declarative_branch_compare_string_aliases_removed.rs:11:19
    |
 11 |     let _ = delta.aspect();
-   |                   ^^^^^^ private method
-   |
-  ::: src/declarative_live.rs
-   |
-   |     pub(crate) fn aspect(&self) -> &str {
-   |     ----------------------------------- private method defined here
+   |                   ^^^^^^ method not found in `DeclarativeBranchCompareFieldDelta`
 
-error[E0624]: method `field` is private
+error[E0599]: no method named `field` found for struct `DeclarativeBranchCompareFieldDelta` in the current scope
   --> tests/ui/aspect_native_query/declarative_branch_compare_string_aliases_removed.rs:12:19
    |
 12 |     let _ = delta.field();
-   |                   ^^^^^ private method
-   |
-  ::: src/declarative_live.rs
-   |
-   |     pub(crate) fn field(&self) -> &str {
-   |     ---------------------------------- private method defined here
+   |                   ^^^^^ method not found in `DeclarativeBranchCompareFieldDelta`

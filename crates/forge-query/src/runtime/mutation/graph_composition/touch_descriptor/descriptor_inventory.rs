@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch, ForgeQueryMutationFamily,
+    ForgeQueryMutationTargetCollectionIdentity,
 };
 use forge_relational::facade::identity::KindId;
 
@@ -9,7 +10,7 @@ use super::touch_rows::ForgeQueryGraphTouchDescriptorRow;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct ForgeQueryGraphTouchDescriptorInventory {
-    declared_collections: BTreeSet<String>,
+    declared_collections: Vec<ForgeQueryMutationTargetCollectionIdentity>,
     relation_kind_ids: BTreeSet<KindId>,
     declared_aspect_touches: BTreeSet<ForgeQueryAspectTouch>,
     declared_aspect_operations: BTreeSet<ForgeQueryAspectMutationOperation>,
@@ -83,11 +84,24 @@ impl ForgeQueryGraphTouchDescriptorInventory {
     }
 }
 
-fn collect_declared_collections(rows: &[ForgeQueryGraphTouchDescriptorRow]) -> BTreeSet<String> {
-    rows.iter()
-        .filter_map(ForgeQueryGraphTouchDescriptorRow::declared_collection)
-        .map(str::to_string)
-        .collect()
+fn collect_declared_collections(
+    rows: &[ForgeQueryGraphTouchDescriptorRow],
+) -> Vec<ForgeQueryMutationTargetCollectionIdentity> {
+    let mut collections = Vec::new();
+    for collection in rows
+        .iter()
+        .filter_map(ForgeQueryGraphTouchDescriptorRow::declared_collection_identity)
+    {
+        if !collections
+            .iter()
+            .any(|existing: &ForgeQueryMutationTargetCollectionIdentity| {
+                existing.same_target_collection_as(collection)
+            })
+        {
+            collections.push(collection.clone());
+        }
+    }
+    collections
 }
 
 fn collect_relation_kind_ids(rows: &[ForgeQueryGraphTouchDescriptorRow]) -> BTreeSet<KindId> {

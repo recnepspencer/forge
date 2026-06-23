@@ -1,8 +1,10 @@
 use crate::authoring::AspectFieldKey;
 
 pub(crate) fn test_declaration_aspect_key(value: &str) -> AspectFieldKey {
-    let (aspect, field) = value.split_once('.').expect("test aspect key shape");
-    AspectFieldKey::new(aspect, field).expect("valid test aspect key")
+    let (aspect, field) = value.rsplit_once('.').expect("test aspect key shape");
+    AspectFieldKey::from_authoring_parts(aspect, field).unwrap_or_else(|error| {
+        panic!("valid test aspect key `{value}`: {error:?}");
+    })
 }
 
 pub(crate) fn test_declaration_aspect_keys(values: &[&str]) -> Vec<AspectFieldKey> {

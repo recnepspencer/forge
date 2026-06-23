@@ -1,0 +1,14 @@
+error[E0599]: no function or associated item named `new_native` found for struct `ForgeQueryExistingTruthProbeField` in the current scope
+ --> tests/ui/aspect_native_query/existing_truth_probe_field_new_native_removed.rs:9:48
+  |
+9 |     let _ = ForgeQueryExistingTruthProbeField::new_native(
+  |                                                ^^^^^^^^^^ function or associated item not found in `ForgeQueryExistingTruthProbeField`
+  |
+note: if you're trying to build a new `ForgeQueryExistingTruthProbeField`, consider using `ForgeQueryExistingTruthProbeField::from_admitted_aspect_touch` which returns `ForgeQueryExistingTruthProbeField`
+ --> src/runtime/mutation/probe.rs
+  |
+  | /     pub fn from_admitted_aspect_touch(
+  | |         aspect_touch: ForgeQueryAspectTouch,
+  | |         value: AspectValue,
+  | |     ) -> Self {
+  | |_____________^

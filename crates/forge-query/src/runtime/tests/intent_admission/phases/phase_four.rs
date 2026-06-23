@@ -260,7 +260,8 @@ fn stale_effect_execution_binding_fails_as_typed_handoff_violation() {
         )
         .expect("effect handoff should admit");
     let binding = runtime.prepare_effect_intent_execution_binding(handoff, &pending_delivery);
-    runtime.remove_pending_effect_delivery(effect.name(), 0, &pending_delivery);
+    let effect_target = ForgeQueryEffectTarget::from_name(effect.name());
+    runtime.remove_pending_effect_delivery(&effect_target, 0, &pending_delivery);
 
     let error = runtime
         .execute_effect_intent_execution_binding(binding)

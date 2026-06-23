@@ -1,9 +1,6 @@
-use forge_foundational::facade::AspectValue;
-use forge_foundational::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_query::facade::runtime::{
-    ForgeQueryAspectTouch, ForgeQueryGraphReadAccessAdmissionPosture,
-    ForgeQueryGraphReadBudgetClassKind, ForgeQueryGraphReadStreamingCursorDenialKind,
-    ForgeQueryGraphReadStreamingReceipt,
+    ForgeQueryGraphReadAccessAdmissionPosture, ForgeQueryGraphReadBudgetClassKind,
+    ForgeQueryGraphReadStreamingCursorDenialKind, ForgeQueryGraphReadStreamingReceipt,
 };
 
 #[allow(dead_code)]
@@ -13,6 +10,7 @@ mod support;
 use graph_read_access_cost_model_support::{
     dense_traversal_family, frontier_search_family, projection_only_family, workspace,
 };
+use support::aspect_touch as touch;
 
 #[test]
 fn frontier_read_admits_streaming_plan_before_execution() {
@@ -220,9 +218,15 @@ fn seed_active_users(
     for index in 0..count {
         workspace
             .insert("user", |user| {
-                user.aspect(touch("identity.id"), text(format!("{prefix}-{index}")))
-                    .aspect(touch("status.value"), text("active"))
-                    .aspect(touch("profile.display_name"), text(format!("User {index}")))
+                user.set_aspect(
+                    touch("identity.id"),
+                    authored_text(format!("{prefix}-{index}")),
+                )
+                .set_aspect(touch("status.value"), authored_text("active"))
+                .set_aspect(
+                    touch("profile.display_name"),
+                    authored_text(format!("User {index}")),
+                )
             })
             .expect("seed user should insert through runtime");
     }
@@ -236,39 +240,24 @@ fn seed_frontier_edges(
         for index in 0..2 {
             workspace
                 .insert(relation, |edge| {
-                    edge.aspect(
+                    edge.set_aspect(
                         touch("identity.id"),
-                        text(format!("{prefix}-{relation}-{index}")),
+                        authored_text(format!("{prefix}-{relation}-{index}")),
                     )
-                    .aspect(touch("source.id"), text(format!("{prefix}-{index}")))
-                    .aspect(touch("target.id"), text(format!("{prefix}-{}", index + 1)))
+                    .set_aspect(
+                        touch("source.id"),
+                        authored_text(format!("{prefix}-{index}")),
+                    )
+                    .set_aspect(
+                        touch("target.id"),
+                        authored_text(format!("{prefix}-{}", index + 1)),
+                    )
                 })
                 .expect("seed frontier relation should insert through runtime");
         }
     }
 }
 
-fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    let mut segments = aspect_path.split('.');
-    let aspect = segments
-        .next()
-        .and_then(|segment| AspectKey::new(segment.to_string()))
-        .expect("test aspect path aspect should admit");
-    let fields = segments
-        .map(|segment| {
-            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
-        })
-        .collect::<Vec<_>>();
-    if fields.is_empty() {
-        ForgeQueryAspectTouch::aspect(aspect)
-    } else {
-        ForgeQueryAspectTouch::field_path(
-            aspect,
-            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
-        )
-    }
-}
-
-fn text(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
 }

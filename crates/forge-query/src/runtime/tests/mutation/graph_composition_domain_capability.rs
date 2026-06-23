@@ -19,10 +19,15 @@ fn compose_graph_with_domain_invariant_denial_accepts_contributed_denial_artifac
             |q| {
                 q.from("Task")
                     .select([
-                        crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                        crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                            .unwrap(),
                     ])
-                    .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                    .order_by(
+                        crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                            .unwrap(),
+                    )
                     .schema_basis("tasks-graph-composition-domain-capability-denial-tasks")
             },
         )
@@ -33,11 +38,23 @@ fn compose_graph_with_domain_invariant_denial_accepts_contributed_denial_artifac
             |q| {
                 q.from("TaskEdge")
                     .select([
-                        crate::authoring::AspectFieldKey::new("edge", "kind").unwrap(),
-                        crate::authoring::AspectFieldKey::new("edge", "source_identity").unwrap(),
-                        crate::authoring::AspectFieldKey::new("edge", "target_identity").unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts(
+                            "edge",
+                            "source_identity",
+                        )
+                        .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts(
+                            "edge",
+                            "target_identity",
+                        )
+                        .unwrap(),
                     ])
-                    .order_by(crate::authoring::AspectFieldKey::new("edge", "kind").unwrap())
+                    .order_by(
+                        crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind")
+                            .unwrap(),
+                    )
                     .schema_basis("tasks-graph-composition-domain-capability-denial-edges")
             },
         )
@@ -65,19 +82,19 @@ fn compose_graph_with_domain_invariant_denial_accepts_contributed_denial_artifac
         .compose_graph_with_domain_invariant_denial(
             |graph| {
                 let task = graph.insert_entity("draft-task", "Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("task-draft"),
+                        test_authored_string_aspect_value("task-draft"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Draft task"),
+                        test_authored_string_aspect_value("Draft task"),
                     )
                 })?;
                 graph.insert_relation("TaskEdge", |edge| {
-                    edge.aspect(
+                    edge.set_aspect(
                         test_aspect_touch("edge.kind"),
-                        test_string_aspect_value("depends_on"),
+                        test_authored_string_aspect_value("depends_on"),
                     )
                     .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &task)
                     .existing_entity_identity(

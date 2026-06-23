@@ -18,10 +18,15 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
         .live_view("topology.face-inner-loop-loops", |q| {
             q.from("Loop")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                )
                 .schema_basis("topology-face-inner-loop-loops")
         })
         .expect("loop live view should declare");
@@ -29,10 +34,15 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
         .live_view("topology.face-inner-loop-half-edges", |q| {
             q.from("HalfEdge")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                )
                 .schema_basis("topology-face-inner-loop-half-edges")
         })
         .expect("half-edge live view should declare");
@@ -40,11 +50,14 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
         .live_view("topology.face-inner-loop-face-loops", |q| {
             q.from("FaceLoopRelation")
                 .select([
-                    crate::authoring::AspectFieldKey::new("face", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("loop", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("role", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("face", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("loop", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("role", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("face", "id").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("face", "id").unwrap(),
+                )
                 .schema_basis("topology-face-inner-loop-face-loops")
         })
         .expect("face-loop live view should declare");
@@ -52,11 +65,16 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
         .live_view("topology.face-inner-loop-loop-edges", |q| {
             q.from("LoopHalfEdgeRelation")
                 .select([
-                    crate::authoring::AspectFieldKey::new("loop", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("half_edge", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("position", "ordinal").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("loop", "id").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("half_edge", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("position", "ordinal")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("position", "ordinal").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("position", "ordinal")
+                        .unwrap(),
+                )
                 .schema_basis("topology-face-inner-loop-loop-edges")
         })
         .expect("loop-edge live view should declare");
@@ -65,37 +83,37 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
         .compose_graph(|graph| {
             let inner_loop = graph.insert_entity("draft-loop", "Loop", |loop_entity| {
                 loop_entity
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("loop-inner-1"),
+                        test_authored_string_aspect_value("loop-inner-1"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("kind.value"),
-                        test_string_aspect_value("inner"),
+                        test_authored_string_aspect_value("inner"),
                     )
             })?;
             let first_half_edge =
                 graph.insert_entity("draft-half-edge-a", "HalfEdge", |half_edge| {
                     half_edge
-                        .aspect(
+                        .set_aspect(
                             test_aspect_touch("identity.id"),
-                            test_string_aspect_value("he-inner-1"),
+                            test_authored_string_aspect_value("he-inner-1"),
                         )
-                        .aspect(
+                        .set_aspect(
                             test_aspect_touch("kind.value"),
-                            test_string_aspect_value("half_edge"),
+                            test_authored_string_aspect_value("half_edge"),
                         )
                 })?;
             let second_half_edge =
                 graph.insert_entity("draft-half-edge-b", "HalfEdge", |half_edge| {
                     half_edge
-                        .aspect(
+                        .set_aspect(
                             test_aspect_touch("identity.id"),
-                            test_string_aspect_value("he-inner-2"),
+                            test_authored_string_aspect_value("he-inner-2"),
                         )
-                        .aspect(
+                        .set_aspect(
                             test_aspect_touch("kind.value"),
-                            test_string_aspect_value("half_edge"),
+                            test_authored_string_aspect_value("half_edge"),
                         )
                 })?;
             graph.insert_relation("FaceLoopRelation", |relation| {
@@ -105,27 +123,27 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
                         test_entity_identity("face-1"),
                     )
                     .symbolic_entity_identity(test_aspect_touch("loop.id"), &inner_loop)
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("role.value"),
-                        test_string_aspect_value("inner"),
+                        test_authored_string_aspect_value("inner"),
                     )
             })?;
             graph.insert_relation("LoopHalfEdgeRelation", |relation| {
                 relation
                     .symbolic_entity_identity(test_aspect_touch("loop.id"), &inner_loop)
                     .symbolic_entity_identity(test_aspect_touch("half_edge.id"), &first_half_edge)
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("position.ordinal"),
-                        test_string_aspect_value("0"),
+                        test_authored_string_aspect_value("0"),
                     )
             })?;
             graph.insert_relation("LoopHalfEdgeRelation", |relation| {
                 relation
                     .symbolic_entity_identity(test_aspect_touch("loop.id"), &inner_loop)
                     .symbolic_entity_identity(test_aspect_touch("half_edge.id"), &second_half_edge)
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("position.ordinal"),
-                        test_string_aspect_value("1"),
+                        test_authored_string_aspect_value("1"),
                     )
             })?;
             Ok(())

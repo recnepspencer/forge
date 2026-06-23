@@ -5,6 +5,7 @@ use crate::projection_consumption::identity::{
 };
 use crate::projection_consumption::ConsumedProjectionFactSet;
 use crate::ForgeQueryEvidenceTag;
+use forge_foundational::facade::AspectKey;
 
 use super::super::fixtures::{certification_grouped_projection, certification_row_set};
 use super::value_terms::canonical_aspect_value;
@@ -81,12 +82,12 @@ pub(super) fn grouped_worth_expected_digest(row_count: usize) -> String {
             [
                 compose_oracle_membership_entry(
                     member.row_identity().as_str(),
-                    grouped.contract().grouping_aspect().as_str(),
+                    grouped.contract().grouping_aspect(),
                     &canonical_aspect_value(member.grouping_value()),
                 ),
                 compose_oracle_relation_endpoint_entry(
                     member.row_identity().as_str(),
-                    grouped.contract().grouping_aspect().as_str(),
+                    Some(grouped.contract().grouping_aspect()),
                     &canonical_aspect_value(member.grouping_value()),
                 ),
                 compose_oracle_view_local_identity_entry(
@@ -110,7 +111,7 @@ pub(super) fn grouped_worth_actual_digest(facts: &ConsumedProjectionFactSet) -> 
         .map(|fact| {
             compose_oracle_membership_entry(
                 fact.source_row_identity(),
-                fact.native_grouping_aspect_key().as_str(),
+                fact.native_grouping_aspect_key(),
                 &canonical_aspect_value(fact.grouping_value()),
             )
         })
@@ -121,9 +122,7 @@ pub(super) fn grouped_worth_actual_digest(facts: &ConsumedProjectionFactSet) -> 
                 .unwrap_or_else(|| "none".to_string());
             compose_oracle_relation_endpoint_entry(
                 fact.source_row_identity().unwrap_or("none"),
-                fact.native_grouping_aspect_key()
-                    .map(|key| key.as_str())
-                    .unwrap_or("none"),
+                fact.native_grouping_aspect_key(),
                 &grouping_value,
             )
         }))
@@ -169,14 +168,17 @@ fn compose_oracle_display_field_entry(source_row: &str, field_key: &str, value: 
 
 fn compose_oracle_membership_entry(
     source_row: &str,
-    grouping_aspect: &str,
+    grouping_aspect: &AspectKey,
     grouping_value: &str,
 ) -> String {
     compose_labeled_entry_digest(
         "projection_consumption_oracle_membership_entry_v1",
         &[
             ("source_row", source_row),
-            ("grouping_aspect", grouping_aspect),
+            (
+                "grouping_aspect",
+                terminal_grouping_aspect_digest_part(grouping_aspect),
+            ),
             ("grouping_value", grouping_value),
         ],
     )
@@ -184,17 +186,26 @@ fn compose_oracle_membership_entry(
 
 fn compose_oracle_relation_endpoint_entry(
     source_row: &str,
-    grouping_aspect: &str,
+    grouping_aspect: Option<&AspectKey>,
     grouping_value: &str,
 ) -> String {
     compose_labeled_entry_digest(
         "projection_consumption_oracle_relation_endpoint_entry_v1",
         &[
             ("source_row", source_row),
-            ("grouping_aspect", grouping_aspect),
+            (
+                "grouping_aspect",
+                grouping_aspect
+                    .map(terminal_grouping_aspect_digest_part)
+                    .unwrap_or("none"),
+            ),
             ("grouping_value", grouping_value),
         ],
     )
+}
+
+fn terminal_grouping_aspect_digest_part(grouping_aspect: &AspectKey) -> &str {
+    grouping_aspect.as_str()
 }
 
 fn compose_oracle_view_local_identity_entry(source_row: &str, view_local_identity: &str) -> String {

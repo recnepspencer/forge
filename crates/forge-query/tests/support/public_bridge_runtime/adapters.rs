@@ -4,9 +4,9 @@ use std::rc::Rc;
 use forge_query::facade::{
     runtime_subscription_support_evidence_identity, DeclarativeLiveQueryRequest,
     ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryEffectPolicy, ForgeQueryEntity,
-    ForgeQueryEvidenceIdentity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
-    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryEvidenceIdentity, ForgeQueryLiveArtifactTarget, ForgeQueryLivePatch,
+    ForgeQueryLiveViewHandle, ForgeQueryMutationDelta, ForgeQueryMutationKind,
+    ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeInspectorEvidenceAdapter,
     ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
     ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSnapshotIdentityAdapter,
@@ -60,19 +60,24 @@ impl ForgeQueryRuntimeSourceAdapter for PublicSourceAdapter {
         request: DeclarativeLiveQueryRequest,
         _schema_view: QuerySchemaView,
     ) -> Result<ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError> {
+        let live_target =
+            ForgeQueryLiveArtifactTarget::from_source_adapter_declared_view_name(name.clone());
         self.state
             .borrow_mut()
             .live_views
-            .insert(name.clone(), request.target().to_string());
+            .insert(live_target, request.target_collection_identity());
         Ok(ForgeQueryLiveViewHandle::new(name))
     }
 
-    fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity> {
         let state = self.state.borrow();
-        let Some(collection) = state.live_views.get(view_name) else {
+        let Some(collection) = state.live_views.get(target) else {
             return Vec::new();
         };
-        let Some(rows) = state.rows_by_collection.get(collection) else {
+        let Some(rows) = state.rows_by_collection.get(collection.as_str()) else {
             return Vec::new();
         };
         rows.iter()
@@ -82,11 +87,17 @@ impl ForgeQueryRuntimeSourceAdapter for PublicSourceAdapter {
             .collect()
     }
 
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
+    fn drain_live_patches_for_target(
+        &mut self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch> {
         Vec::new()
     }
 
-    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+    fn affected_live_view_targets(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget> {
         let state = self.state.borrow();
         let mut affected = receipt
             .deltas()
@@ -95,8 +106,12 @@ impl ForgeQueryRuntimeSourceAdapter for PublicSourceAdapter {
                 state
                     .live_views
                     .iter()
-                    .filter(move |(_, collection)| *collection == delta.collection())
-                    .map(|(name, _)| name.clone())
+                    .filter(move |(_, collection)| {
+                        delta
+                            .target_collection_identity()
+                            .same_target_collection_as(collection)
+                    })
+                    .map(|(target, _)| target.clone())
             })
             .collect::<Vec<_>>();
         affected.sort();

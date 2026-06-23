@@ -1,11 +1,11 @@
 use forge_query::facade::{
-    ForgeQueryAspectValue, ForgeQueryExistingTruthTargetBinding, ForgeQuerySnapshotIdentity,
+    ForgeQueryAdmittedAspectValue, ForgeQueryExistingTruthTargetBinding, ForgeQuerySnapshotIdentity,
     ForgeQueryVerifiedExistingTruthAssertion,
 };
 
 fn forbidden(
     binding: &ForgeQueryExistingTruthTargetBinding,
-    aspects: &[ForgeQueryAspectValue],
+    aspects: &[ForgeQueryAdmittedAspectValue],
     snapshot_identity: &ForgeQuerySnapshotIdentity,
 ) {
     let _ = ForgeQueryVerifiedExistingTruthAssertion::from_snapshot_identity(

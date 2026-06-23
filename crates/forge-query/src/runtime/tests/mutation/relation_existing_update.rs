@@ -13,11 +13,17 @@ fn update_existing_relation_preserves_identity_binding_and_receipt_target() {
         .live_view("tasks.update-existing-relation-table", |q| {
             q.from("TaskRelation")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
-                    crate::authoring::AspectFieldKey::new("status", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("status", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("kind", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-update-existing-relation-table")
         })
         .expect("relation live view should declare");
@@ -25,17 +31,17 @@ fn update_existing_relation_preserves_identity_binding_and_receipt_target() {
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("rel-1"),
+                    test_authored_string_aspect_value("rel-1"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("kind.value"),
-                    test_string_aspect_value("depends_on"),
+                    test_authored_string_aspect_value("depends_on"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("open"),
+                    test_authored_string_aspect_value("open"),
                 )
         })
         .expect("seed insert should execute");
@@ -53,9 +59,9 @@ fn update_existing_relation_preserves_identity_binding_and_receipt_target() {
 
     let receipt = workspace
         .update_existing(binding, |relation| {
-            relation.aspect(
+            relation.set_aspect(
                 test_aspect_touch("kind.value"),
-                test_string_aspect_value("blocks"),
+                test_authored_string_aspect_value("blocks"),
             )
         })
         .expect("relation update should execute");
@@ -116,11 +122,17 @@ fn update_existing_verified_relation_preserves_relation_identity_and_assertion_m
         .live_view("tasks.update-existing-verified-relation-table", |q| {
             q.from("TaskRelation")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
-                    crate::authoring::AspectFieldKey::new("status", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("status", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("kind", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-update-existing-verified-relation-table")
         })
         .expect("relation live view should declare");
@@ -128,17 +140,17 @@ fn update_existing_verified_relation_preserves_relation_identity_and_assertion_m
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("rel-1"),
+                    test_authored_string_aspect_value("rel-1"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("kind.value"),
-                    test_string_aspect_value("depends_on"),
+                    test_authored_string_aspect_value("depends_on"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("open"),
+                    test_authored_string_aspect_value("open"),
                 )
         })
         .expect("seed insert should execute");
@@ -158,15 +170,15 @@ fn update_existing_verified_relation_preserves_relation_identity_and_assertion_m
         .update_existing_verified(
             binding,
             |relation| {
-                relation.aspect(
+                relation.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("open"),
+                    test_authored_string_aspect_value("open"),
                 )
             },
             |relation| {
-                relation.aspect(
+                relation.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("closed"),
+                    test_authored_string_aspect_value("closed"),
                 )
             },
         )
@@ -226,11 +238,17 @@ fn batch_relation_updates_preserve_identity_binding_aggregate_digest() {
         .live_view("tasks.batch-existing-relation-update-table", |q| {
             q.from("TaskRelation")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("kind", "value").unwrap(),
-                    crate::authoring::AspectFieldKey::new("status", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("status", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("kind", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-batch-existing-relation-update-table")
         })
         .expect("relation live view should declare");
@@ -238,34 +256,34 @@ fn batch_relation_updates_preserve_identity_binding_aggregate_digest() {
     let first = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("rel-1"),
+                    test_authored_string_aspect_value("rel-1"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("kind.value"),
-                    test_string_aspect_value("depends_on"),
+                    test_authored_string_aspect_value("depends_on"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("open"),
+                    test_authored_string_aspect_value("open"),
                 )
         })
         .expect("first seed should execute");
     let second = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("rel-2"),
+                    test_authored_string_aspect_value("rel-2"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("kind.value"),
-                    test_string_aspect_value("blocks"),
+                    test_authored_string_aspect_value("blocks"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("open"),
+                    test_authored_string_aspect_value("open"),
                 )
         })
         .expect("second seed should execute");
@@ -297,15 +315,15 @@ fn batch_relation_updates_preserve_identity_binding_aggregate_digest() {
         .batch(|batch| {
             batch
                 .update_existing(first_binding, |relation| {
-                    relation.aspect(
+                    relation.set_aspect(
                         test_aspect_touch("status.value"),
-                        test_string_aspect_value("closed"),
+                        test_authored_string_aspect_value("closed"),
                     )
                 })
                 .update_existing(second_binding, |relation| {
-                    relation.aspect(
+                    relation.set_aspect(
                         test_aspect_touch("kind.value"),
-                        test_string_aspect_value("follows"),
+                        test_authored_string_aspect_value("follows"),
                     )
                 })
         })
@@ -375,15 +393,15 @@ fn update_existing_verified_relation_denies_unsupported_backend_typed_and_early(
         .update_existing_verified(
             binding,
             |relation| {
-                relation.aspect(
+                relation.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("open"),
+                    test_authored_string_aspect_value("open"),
                 )
             },
             |relation| {
-                relation.aspect(
+                relation.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("closed"),
+                    test_authored_string_aspect_value("closed"),
                 )
             },
         )

@@ -53,8 +53,19 @@ impl QueryFieldKey {
         }
     }
 
+    fn from_native_keys(aspect_key: AspectKey, field_key: FieldKey) -> Self {
+        Self {
+            aspect_key,
+            field_key,
+        }
+    }
+
     fn matches(&self, delta: &BridgeFieldDelta) -> bool {
         self == delta.field_key()
+    }
+
+    fn terminal_digest_part(&self) -> String {
+        format!("{}:{}", self.aspect_key.as_str(), self.field_key.as_str())
     }
 }
 
@@ -91,9 +102,9 @@ impl QueryRelevanceContract {
                 .projection()
                 .iter()
                 .map(|entry| {
-                    QueryFieldKey::new(
-                        entry.native_aspect_key().as_str(),
-                        entry.native_field_key().as_str(),
+                    QueryFieldKey::from_native_keys(
+                        entry.native_aspect_key().clone(),
+                        entry.native_field_key().clone(),
                     )
                 })
                 .collect(),
@@ -113,9 +124,9 @@ impl QueryRelevanceContract {
                 .projection()
                 .iter()
                 .map(|entry| {
-                    QueryFieldKey::new(
-                        entry.native_aspect_key().as_str(),
-                        entry.native_field_key().as_str(),
+                    QueryFieldKey::from_native_keys(
+                        entry.native_aspect_key().clone(),
+                        entry.native_field_key().clone(),
                     )
                 })
                 .collect(),
@@ -125,9 +136,9 @@ impl QueryRelevanceContract {
                 .entries()
                 .iter()
                 .map(|entry| {
-                    QueryFieldKey::new(
-                        entry.native_aspect_key().as_str(),
-                        entry.native_field_key().as_str(),
+                    QueryFieldKey::from_native_keys(
+                        entry.native_aspect_key().clone(),
+                        entry.native_field_key().clone(),
                     )
                 })
                 .collect(),
@@ -146,9 +157,9 @@ impl QueryRelevanceContract {
                 .projection()
                 .iter()
                 .map(|entry| {
-                    QueryFieldKey::new(
-                        entry.native_aspect_key().as_str(),
-                        entry.native_field_key().as_str(),
+                    QueryFieldKey::from_native_keys(
+                        entry.native_aspect_key().clone(),
+                        entry.native_field_key().clone(),
                     )
                 })
                 .collect(),
@@ -158,9 +169,9 @@ impl QueryRelevanceContract {
                 .entries()
                 .iter()
                 .map(|entry| {
-                    QueryFieldKey::new(
-                        entry.native_aspect_key().as_str(),
-                        entry.native_field_key().as_str(),
+                    QueryFieldKey::from_native_keys(
+                        entry.native_aspect_key().clone(),
+                        entry.native_field_key().clone(),
                     )
                 })
                 .collect(),
@@ -1169,9 +1180,8 @@ impl LiveQueryPlan {
                 let mut digest_parts = Vec::new();
                 digest_parts.extend(field_deltas.iter().map(|delta| {
                     format!(
-                        "field_delta:{}:{}:{:?}:{:?}",
-                        delta.field.native_aspect_key().as_str(),
-                        delta.field.native_field_key().as_str(),
+                        "field_delta:{}:{:?}:{:?}",
+                        delta.field.terminal_digest_part(),
                         delta.old_value,
                         delta.new_value
                     )

@@ -338,13 +338,13 @@ pub(in crate::runtime::tests) fn hostile_insert_task_command(
     title: &str,
 ) -> ForgeQueryWriteCommand {
     ForgeQueryAspectMutationBuilder::new()
-        .aspect(
+        .set_aspect(
             test_aspect_touch("identity.id"),
-            test_string_aspect_value(id),
+            test_authored_string_aspect_value(id),
         )
-        .aspect(
+        .set_aspect(
             test_aspect_touch("title.value"),
-            test_string_aspect_value(title),
+            test_authored_string_aspect_value(title),
         )
         .build_insert("Task")
         .expect("insert command should build")
@@ -360,7 +360,10 @@ pub(in crate::runtime::tests) fn hostile_consume_title_attempt(
             &authorized_projection,
             ProjectMaterializedFacts::declare().display_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
-                    "title", "value",
+                    forge_foundational::facade::FieldKey::new("title")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("value")
+                        .expect("projection fact field segment should admit"),
                 ]),
             ),
         )

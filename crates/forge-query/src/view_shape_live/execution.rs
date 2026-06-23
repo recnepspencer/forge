@@ -29,14 +29,14 @@ fn ordered_patch_width(patch: &OrderedCollectionPatch) -> usize {
 fn focus_projection<'a>(
     deltas: &'a [ProjectionFieldDelta],
     focus_aspect: &AspectKey,
-) -> Result<Vec<&'a ProjectionFieldDelta>, Vec<String>> {
+) -> Result<Vec<&'a ProjectionFieldDelta>, Vec<AspectKey>> {
     let mut accepted = Vec::new();
     let mut rejected = Vec::new();
     for delta in deltas {
         if delta.field().native_aspect_key() == focus_aspect {
             accepted.push(delta);
         } else {
-            rejected.push(delta.field().native_aspect_key().as_str().to_string());
+            rejected.push(delta.field().native_aspect_key().clone());
         }
     }
     if rejected.is_empty() {
@@ -207,12 +207,17 @@ fn execute_live_view_shape_change_inner(
                 focus_projection(patch.field_deltas(), &focus_aspect).map_err(|received| {
                     counters.add_focused_inspector_widening_denial();
                     counters.add_view_family_fallback_denial();
+                    let received = received
+                        .iter()
+                        .map(|aspect| aspect.as_str())
+                        .collect::<Vec<_>>()
+                        .join(",");
                     ViewShapeLiveError::new(
                         ViewShapeLiveFailureClass::FocusedInspectorWideningDenied,
                         format!(
                             "focused inspector aspect '{}' denied widening into aspects '{}'",
                             focus_aspect.as_str(),
-                            received.join(",")
+                            received
                         ),
                         counters.clone(),
                     )

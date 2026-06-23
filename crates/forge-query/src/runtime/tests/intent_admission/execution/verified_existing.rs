@@ -6,17 +6,17 @@ fn seeded_existing_binding(
 ) -> ForgeQueryExistingTruthTargetBinding {
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value(format!("{workspace_name}-task")),
+                test_authored_string_aspect_value(format!("{workspace_name}-task")),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Seed title"),
+                test_authored_string_aspect_value("Seed title"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("status.value"),
-                test_string_aspect_value("open"),
+                test_authored_string_aspect_value("open"),
             )
         })
         .expect("seed insert should execute");
@@ -43,9 +43,9 @@ fn workspace_verify_existing_delegates_to_authoritative_mutation_intent_executio
     let delegated_binding = seeded_existing_binding(&mut delegated_workspace, WORKSPACE_NAME);
     let delegated = delegated_workspace
         .verify_existing(delegated_binding, |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("status.value"),
-                test_string_aspect_value("open"),
+                test_authored_string_aspect_value("open"),
             )
         })
         .expect("legacy verify_existing should execute");
@@ -55,9 +55,9 @@ fn workspace_verify_existing_delegates_to_authoritative_mutation_intent_executio
         .expect("workspace should open");
     let canonical_binding = seeded_existing_binding(&mut canonical_workspace, WORKSPACE_NAME);
     let command = ForgeQueryAspectMutationBuilder::new()
-        .aspect(
+        .set_aspect(
             test_aspect_touch("status.value"),
-            test_string_aspect_value("open"),
+            test_authored_string_aspect_value("open"),
         )
         .build_verify_existing(canonical_binding)
         .expect("verify command should build");
@@ -93,15 +93,15 @@ fn workspace_update_existing_verified_delegates_to_authoritative_mutation_intent
         .update_existing_verified(
             delegated_binding.clone(),
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("open"),
+                    test_authored_string_aspect_value("open"),
                 )
             },
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("closed"),
+                    test_authored_string_aspect_value("closed"),
                 )
             },
         )
@@ -118,16 +118,16 @@ fn workspace_update_existing_verified_delegates_to_authoritative_mutation_intent
         .expect("workspace should open");
     let canonical_binding = seeded_existing_binding(&mut canonical_workspace, WORKSPACE_NAME);
     let asserted_aspects = ForgeQueryAspectMutationBuilder::new()
-        .aspect(
+        .set_aspect(
             test_aspect_touch("status.value"),
-            test_string_aspect_value("open"),
+            test_authored_string_aspect_value("open"),
         )
         .finish_existing_truth_verification_aspects("backend-verified existing-truth update")
         .expect("asserted aspects should build");
     let command = ForgeQueryAspectMutationBuilder::new()
-        .aspect(
+        .set_aspect(
             test_aspect_touch("status.value"),
-            test_string_aspect_value("closed"),
+            test_authored_string_aspect_value("closed"),
         )
         .build_update_existing_verified(canonical_binding.clone(), asserted_aspects)
         .expect("verified update command should build");
@@ -187,9 +187,9 @@ fn workspace_delete_existing_verified_delegates_to_authoritative_mutation_intent
         .delete_existing_verified(
             delegated_binding.clone(),
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Seed title"),
+                    test_authored_string_aspect_value("Seed title"),
                 )
             },
             |delete| delete.touch(test_aspect_touch("title.value")),
@@ -201,9 +201,9 @@ fn workspace_delete_existing_verified_delegates_to_authoritative_mutation_intent
         .expect("workspace should open");
     let canonical_binding = seeded_existing_binding(&mut canonical_workspace, WORKSPACE_NAME);
     let asserted_aspects = ForgeQueryAspectMutationBuilder::new()
-        .aspect(
+        .set_aspect(
             test_aspect_touch("title.value"),
-            test_string_aspect_value("Seed title"),
+            test_authored_string_aspect_value("Seed title"),
         )
         .finish_existing_truth_verification_aspects("backend-verified existing-truth delete")
         .expect("asserted aspects should build");

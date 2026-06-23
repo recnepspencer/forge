@@ -338,22 +338,22 @@ fn graph_batch_program() -> (
     let task = graph
         .insert_entity("task", "Task", |entity| {
             entity
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("task-dispatch"),
+                    test_authored_string_aspect_value("task-dispatch"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Draft"),
+                    test_authored_string_aspect_value("Draft"),
                 )
         })
         .unwrap();
     let edge = graph
         .insert_symbolic_relation("edge", "TaskEdge", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("edge.kind"),
-                    test_string_aspect_value("depends_on"),
+                    test_authored_string_aspect_value("depends_on"),
                 )
                 .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &task)
                 .existing_entity_identity(
@@ -376,14 +376,17 @@ fn graph_batch_program() -> (
 
 fn task_insert_command(id: &str) -> ForgeQueryWriteCommand {
     ForgeQueryWriteCommand::InsertAspects {
-        collection: "Task".to_string(),
+        collection: crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+            "write-command-declared",
+            "Task",
+        ),
         aspects: vec![
-            ForgeQueryAspectValue::new(
+            ForgeQueryAdmittedAspectValue::new(
                 test_aspect_touch("identity.id"),
                 test_string_aspect_value(id),
             )
             .unwrap(),
-            ForgeQueryAspectValue::new(
+            ForgeQueryAdmittedAspectValue::new(
                 test_aspect_touch("title.value"),
                 test_string_aspect_value("Ordinary task"),
             )

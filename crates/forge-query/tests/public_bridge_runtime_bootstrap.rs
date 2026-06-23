@@ -1,6 +1,6 @@
-use forge_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
-    ForgeQueryAspectTouch, ForgeQueryEntityIdentity, ForgeQueryExistingEntityTarget,
+    ForgeQueryEntityIdentity, ForgeQueryExistingEntityTarget,
     ForgeQueryExistingTruthBindingAuthorityLabel, ForgeQueryExistingTruthProbeDenialKind,
     ForgeQueryExistingTruthProbeMode, ForgeQueryExistingTruthProbeRequest,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryLiveView, ForgeQueryMutationAuthorityIdentity,
@@ -8,6 +8,7 @@ use forge_query::facade::{
 };
 mod support;
 
+use support::aspect_touch as touch;
 use support::public_bridge_runtime::{
     public_bridge_runtime_bootstrap_invocation_count, public_graph_support_profile,
     reset_public_bridge_runtime_bootstrap_invocations, PublicBridgeRuntimeBootstrapPath,
@@ -63,18 +64,23 @@ fn public_bridge_runtime_common_bootstrap_lane_builds_runtime_backed_live_reads(
         .live_view("public.bridge-runtime-bootstrap.common-lane.tasks", |q| {
             q.from("Task")
                 .select([
-                    forge_query::facade::AspectFieldKey::new("identity", "id").unwrap(),
-                    forge_query::facade::AspectFieldKey::new("title", "value").unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(forge_query::facade::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("public-bridge-runtime-bootstrap-common-lane-tasks")
         })
         .expect("task live view should declare");
 
     workspace
         .insert("Task", |task| {
-            task.aspect(touch("identity.id"), text("task-bootstrap"))
-                .aspect(touch("title.value"), text("Bootstrap task"))
+            task.set_aspect(touch("identity.id"), authored_text("task-bootstrap"))
+                .set_aspect(touch("title.value"), authored_text("Bootstrap task"))
         })
         .expect("insert should execute through the public bridge-backed bootstrap lane");
 
@@ -104,12 +110,15 @@ fn public_bridge_runtime_builder_lane_supports_seeded_existing_truth_probe() {
     let binding = existing_task_binding("authority:task-bootstrap", "public-entity-1");
     let seed = harness.seed_backend_authoritative_truth(
         &binding,
-        "title.value",
+        touch("title.value"),
         text("Seeded bootstrap task"),
     );
     assert_eq!(seed.binding_digest(), binding.binding_digest());
     assert_eq!(seed.target_collection(), "Task");
-    assert_eq!(seed.terminal_aspect_path_projection(), "title.value");
+    assert_eq!(
+        seed.admitted_aspect_touch_reporting_projection(),
+        "title:value"
+    );
 
     let probe = workspace
         .probe_existing_intent(
@@ -215,29 +224,12 @@ fn public_bridge_runtime_builder_lane_usage_stays_explicit() {
     );
 }
 
-fn touch(aspect_path: &str) -> ForgeQueryAspectTouch {
-    let mut segments = aspect_path.split('.');
-    let aspect = segments
-        .next()
-        .and_then(|segment| AspectKey::new(segment.to_string()))
-        .expect("test aspect path aspect should admit");
-    let fields = segments
-        .map(|segment| {
-            FieldKey::new(segment.to_string()).expect("test aspect path field should admit")
-        })
-        .collect::<Vec<_>>();
-    if fields.is_empty() {
-        ForgeQueryAspectTouch::aspect(aspect)
-    } else {
-        ForgeQueryAspectTouch::field_path(
-            aspect,
-            CanonicalFieldPath::new(fields).expect("test aspect path should have fields"),
-        )
-    }
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
 }
 
-fn text(value: impl Into<String>) -> AspectValue {
-    AspectValue::String(value.into().into())
+fn text(value: impl Into<String>) -> forge_foundational::facade::AspectValue {
+    forge_foundational::facade::AspectValue::String(value.into().into())
 }
 
 fn field_path(path: &str) -> CanonicalFieldPath {

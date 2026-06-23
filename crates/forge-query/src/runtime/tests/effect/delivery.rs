@@ -189,12 +189,11 @@ fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
         .expect("computed title row should retain value");
     assert_eq!(
         retained_value,
-        &AspectValue::String(
+        &crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
             write.deltas()[0]
                 .entity_identity
                 .terminal_projection_for_reporting()
                 .to_string()
-                .into()
         )
     );
 }

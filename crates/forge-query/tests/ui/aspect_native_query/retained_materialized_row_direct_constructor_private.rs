@@ -9,6 +9,6 @@ fn main() {
     );
     let _ = ForgeQueryRetainedMaterializedRow::from_scalar_values(BTreeMap::from([(
         field_path,
-        AspectValue::String("direct".into()),
+        AspectValue::String("direct".to_string().into()),
     )]));
 }

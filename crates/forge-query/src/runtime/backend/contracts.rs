@@ -28,9 +28,10 @@ use crate::runtime::{
     ForgeQueryExistingTruthProbe, ForgeQueryExistingTruthProbeDenial,
     ForgeQueryExistingTruthProbeField, ForgeQueryExistingTruthProbeRequest,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile,
-    ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQueryLiveArtifactTarget, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryRuntimeSupportProfile, ForgeQueryVerifiedExistingTruthAssertion,
+    ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };
 
 pub fn runtime_subscription_support_evidence_identity(
@@ -49,7 +50,7 @@ pub trait ForgeQueryRuntimeBackend {
     fn support_profile(&self) -> ForgeQueryRuntimeSupportProfile;
 
     fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
-        unavailable_snapshot_identity()
+        super::unavailable_snapshot_identity()
     }
 
     fn admit_live_view_declaration(
@@ -86,7 +87,7 @@ pub trait ForgeQueryRuntimeBackend {
     fn verify_existing_truth_assertion(
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
-        _aspects: &[crate::runtime::ForgeQueryAspectValue],
+        _aspects: &[crate::runtime::ForgeQueryAdmittedAspectValue],
     ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>
     {
         Err(ForgeQueryExistingTruthAssertionDenial::new(
@@ -116,11 +117,20 @@ pub trait ForgeQueryRuntimeBackend {
         declaration: &ForgeQueryIntentDeclaration,
     ) -> Result<ForgeQueryIntentExecution, ForgeQueryRuntimeError>;
 
-    fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity>;
+    fn live_entities_for_target(
+        &self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity>;
 
-    fn drain_live_patches(&mut self, view_name: &str) -> Vec<ForgeQueryLivePatch>;
+    fn drain_live_patches_for_target(
+        &mut self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch>;
 
-    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String>;
+    fn affected_live_view_targets(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget>;
 
     fn install_live_subscription(
         &mut self,
@@ -163,21 +173,6 @@ pub trait ForgeQueryRuntimeBackend {
     }
 }
 
-pub(in crate::runtime) fn unavailable_snapshot_identity() -> ForgeQuerySnapshotIdentity {
-    ForgeQuerySnapshotIdentity::preview(
-        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeStateSnapshot)
-            .field_shape(
-                ForgeQueryEvidenceTag::new("snapshot_authority"),
-                "unavailable",
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("snapshot_contract"),
-                "backend-must-override-for-authoritative-truth",
-            )
-            .seal(),
-    )
-}
-
 pub trait ForgeQueryRuntimeSchemaAdapter {
     fn build_live_view_declaration_admission_receipt(
         &self,
@@ -212,11 +207,20 @@ pub trait ForgeQueryRuntimeSourceAdapter {
         schema_view: QuerySchemaView,
     ) -> Result<ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError>;
 
-    fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity>;
+    fn live_entities_for_target(
+        &self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity>;
 
-    fn drain_live_patches(&mut self, view_name: &str) -> Vec<ForgeQueryLivePatch>;
+    fn drain_live_patches_for_target(
+        &mut self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch>;
 
-    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String>;
+    fn affected_live_view_targets(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget>;
 }
 
 pub trait ForgeQueryRuntimeSnapshotIdentityAdapter {
@@ -227,7 +231,7 @@ pub trait ForgeQueryRuntimeExistingTruthVerificationAdapter {
     fn verify_existing_truth_assertion(
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
-        aspects: &[crate::runtime::ForgeQueryAspectValue],
+        aspects: &[crate::runtime::ForgeQueryAdmittedAspectValue],
     ) -> Result<(), ForgeQueryExistingTruthAssertionDenial>;
 
     fn probe_existing_truth(

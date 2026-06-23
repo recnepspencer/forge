@@ -90,10 +90,15 @@ fn bridge_backed_entity_verification_rows_match_runtime_behavior() {
             |q| {
                 q.from("Task")
                     .select([
-                        crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                        crate::authoring::AspectFieldKey::new("status", "value").unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("status", "value")
+                            .unwrap(),
                     ])
-                    .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
+                    .order_by(
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                    )
                     .schema_basis("tasks-bridge-backed-entity-verification-support-table")
             },
         )
@@ -101,17 +106,17 @@ fn bridge_backed_entity_verification_rows_match_runtime_behavior() {
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-1"),
+                test_authored_string_aspect_value("task-1"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Task one"),
+                test_authored_string_aspect_value("Task one"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("status.value"),
-                test_string_aspect_value("open"),
+                test_authored_string_aspect_value("open"),
             )
         })
         .expect("seed insert should execute");
@@ -142,9 +147,9 @@ fn bridge_backed_entity_verification_rows_match_runtime_behavior() {
 
     workspace
         .verify_existing(binding.clone(), |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("status.value"),
-                test_string_aspect_value("open"),
+                test_authored_string_aspect_value("open"),
             )
         })
         .expect("entity verify_existing should execute");
@@ -155,15 +160,15 @@ fn bridge_backed_entity_verification_rows_match_runtime_behavior() {
         .update_existing_verified(
             binding.clone(),
             |verify| {
-                verify.aspect(
+                verify.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("open"),
+                    test_authored_string_aspect_value("open"),
                 )
             },
             |update| {
-                update.aspect(
+                update.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("closed"),
+                    test_authored_string_aspect_value("closed"),
                 )
             },
         )
@@ -172,9 +177,9 @@ fn bridge_backed_entity_verification_rows_match_runtime_behavior() {
         .delete_existing_verified(
             binding,
             |verify| {
-                verify.aspect(
+                verify.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("closed"),
+                    test_authored_string_aspect_value("closed"),
                 )
             },
             |delete| delete.touch(test_aspect_touch("status.value")),
@@ -194,10 +199,15 @@ fn bridge_backed_relation_verification_rows_match_runtime_behavior() {
             |q| {
                 q.from("TaskRelation")
                     .select([
-                        crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                        crate::authoring::AspectFieldKey::new("status", "value").unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("status", "value")
+                            .unwrap(),
                     ])
-                    .order_by(crate::authoring::AspectFieldKey::new("identity", "id").unwrap())
+                    .order_by(
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                    )
                     .schema_basis("tasks-bridge-backed-relation-verification-support-table")
             },
         )
@@ -206,17 +216,17 @@ fn bridge_backed_relation_verification_rows_match_runtime_behavior() {
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("identity.id"),
-                    test_string_aspect_value("rel-1"),
+                    test_authored_string_aspect_value("rel-1"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("kind.value"),
-                    test_string_aspect_value("depends_on"),
+                    test_authored_string_aspect_value("depends_on"),
                 )
-                .aspect(
+                .set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("active"),
+                    test_authored_string_aspect_value("active"),
                 )
         })
         .expect("seed insert should execute");
@@ -247,9 +257,9 @@ fn bridge_backed_relation_verification_rows_match_runtime_behavior() {
 
     workspace
         .verify_existing(binding.clone(), |relation| {
-            relation.aspect(
+            relation.set_aspect(
                 test_aspect_touch("status.value"),
-                test_string_aspect_value("active"),
+                test_authored_string_aspect_value("active"),
             )
         })
         .expect("relation verify_existing should execute");
@@ -260,15 +270,15 @@ fn bridge_backed_relation_verification_rows_match_runtime_behavior() {
         .update_existing_verified(
             binding.clone(),
             |verify| {
-                verify.aspect(
+                verify.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("active"),
+                    test_authored_string_aspect_value("active"),
                 )
             },
             |update| {
-                update.aspect(
+                update.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("retired"),
+                    test_authored_string_aspect_value("retired"),
                 )
             },
         )
@@ -277,9 +287,9 @@ fn bridge_backed_relation_verification_rows_match_runtime_behavior() {
         .delete_existing_verified(
             binding,
             |verify| {
-                verify.aspect(
+                verify.set_aspect(
                     test_aspect_touch("status.value"),
-                    test_string_aspect_value("retired"),
+                    test_authored_string_aspect_value("retired"),
                 )
             },
             |delete| delete.touch(test_aspect_touch("status.value")),
@@ -319,7 +329,7 @@ fn primary_entity_bridge_backed_verification_rows_match_runtime_denials() {
     );
 
     assert!(matches!(
-        workspace.verify_existing(binding.clone(), |task| task.aspect(test_aspect_touch("status.value"), test_string_aspect_value("open"))),
+        workspace.verify_existing(binding.clone(), |task| task.set_aspect(test_aspect_touch("status.value"), test_authored_string_aspect_value("open"))),
         Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial))
             if denial.kind() == ForgeQueryExistingTruthAssertionDenialKind::BackendVerificationUnsupported
     ));
@@ -331,8 +341,8 @@ fn primary_entity_bridge_backed_verification_rows_match_runtime_denials() {
     assert!(matches!(
         workspace.update_existing_verified(
             binding.clone(),
-            |verify| verify.aspect(test_aspect_touch("status.value"), test_string_aspect_value("open")),
-            |update| update.aspect(test_aspect_touch("status.value"), test_string_aspect_value("closed")),
+            |verify| verify.set_aspect(test_aspect_touch("status.value"), test_authored_string_aspect_value("open")),
+            |update| update.set_aspect(test_aspect_touch("status.value"), test_authored_string_aspect_value("closed")),
         ),
         Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial))
             if denial.kind() == ForgeQueryExistingTruthAssertionDenialKind::BackendVerificationUnsupported
@@ -340,7 +350,7 @@ fn primary_entity_bridge_backed_verification_rows_match_runtime_denials() {
     assert!(matches!(
         workspace.delete_existing_verified(
             binding,
-            |verify| verify.aspect(test_aspect_touch("status.value"), test_string_aspect_value("closed")),
+            |verify| verify.set_aspect(test_aspect_touch("status.value"), test_authored_string_aspect_value("closed")),
             |delete| delete.touch(test_aspect_touch("status.value")),
         ),
         Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial))
@@ -383,7 +393,7 @@ fn primary_relation_bridge_backed_verification_rows_match_runtime_denials() {
     );
 
     assert!(matches!(
-        workspace.verify_existing(binding.clone(), |relation| relation.aspect(test_aspect_touch("kind.value"), test_string_aspect_value("depends_on"))),
+        workspace.verify_existing(binding.clone(), |relation| relation.set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("depends_on"))),
         Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial))
             if denial.kind() == ForgeQueryExistingTruthAssertionDenialKind::BackendVerificationUnsupported
     ));
@@ -395,8 +405,8 @@ fn primary_relation_bridge_backed_verification_rows_match_runtime_denials() {
     assert!(matches!(
         workspace.update_existing_verified(
             binding.clone(),
-            |verify| verify.aspect(test_aspect_touch("kind.value"), test_string_aspect_value("depends_on")),
-            |update| update.aspect(test_aspect_touch("kind.value"), test_string_aspect_value("blocked_by")),
+            |verify| verify.set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("depends_on")),
+            |update| update.set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("blocked_by")),
         ),
         Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial))
             if denial.kind() == ForgeQueryExistingTruthAssertionDenialKind::BackendVerificationUnsupported
@@ -404,7 +414,7 @@ fn primary_relation_bridge_backed_verification_rows_match_runtime_denials() {
     assert!(matches!(
         workspace.delete_existing_verified(
             binding,
-            |verify| verify.aspect(test_aspect_touch("kind.value"), test_string_aspect_value("depends_on")),
+            |verify| verify.set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("depends_on")),
             |delete| delete.touch(test_aspect_touch("kind.value")),
         ),
         Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial))

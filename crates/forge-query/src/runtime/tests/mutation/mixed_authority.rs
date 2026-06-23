@@ -9,59 +9,64 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
         .live_view("tasks.mixed-authority-batch-table", |q| {
             q.from("Task")
                 .select([
-                    crate::authoring::AspectFieldKey::new("identity", "id").unwrap(),
-                    crate::authoring::AspectFieldKey::new("title", "value").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
                 ])
-                .order_by(crate::authoring::AspectFieldKey::new("title", "value").unwrap())
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-mixed-authority-batch-table")
         })
         .expect("live view should declare");
 
     let assert_seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-assert"),
+                test_authored_string_aspect_value("task-assert"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Assert seed"),
+                test_authored_string_aspect_value("Assert seed"),
             )
         })
         .expect("assert seed insert should execute");
     let verify_seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-verify"),
+                test_authored_string_aspect_value("task-verify"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Verify seed"),
+                test_authored_string_aspect_value("Verify seed"),
             )
         })
         .expect("verify seed insert should execute");
     let update_seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-update"),
+                test_authored_string_aspect_value("task-update"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Update seed"),
+                test_authored_string_aspect_value("Update seed"),
             )
         })
         .expect("update seed insert should execute");
     let delete_seed = workspace
         .insert("Task", |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("identity.id"),
-                test_string_aspect_value("task-delete"),
+                test_authored_string_aspect_value("task-delete"),
             )
-            .aspect(
+            .set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Delete seed"),
+                test_authored_string_aspect_value("Delete seed"),
             )
         })
         .expect("delete seed insert should execute");
@@ -117,23 +122,23 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
         .batch(|batch| {
             batch
                 .assert_existing(assert_binding, |task| {
-                    task.aspect(test_aspect_touch("title.value"), test_string_aspect_value("Assert seed"))
+                    task.set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Assert seed"))
                 })
                 .verify_existing(verify_binding, |task| {
-                    task.aspect(test_aspect_touch("title.value"), test_string_aspect_value("Verify seed"))
+                    task.set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Verify seed"))
                 })
                 .update_existing_verified(
                     update_binding,
-                    |task| task.aspect(test_aspect_touch("title.value"), test_string_aspect_value("Update seed")),
+                    |task| task.set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Update seed")),
                     |task| {
                         task.continuity_rebind_merge_successor(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-update").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-update-merged").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         )
-                        .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Update merged"))
+                        .set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Update merged"))
                     },
                 )
                 .delete_existing_verified(
                     delete_binding,
-                    |task| task.aspect(test_aspect_touch("title.value"), test_string_aspect_value("Delete seed")),
+                    |task| task.set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Delete seed")),
                     |delete| {
                         delete
                             .touch(test_aspect_touch("title.value"))
@@ -141,8 +146,8 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
                     },
                 )
                 .insert_symbolic("draft-task", "Task", |task| {
-                    task.aspect(test_aspect_touch("identity.id"), test_string_aspect_value("task-draft"))
-                        .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Draft"))
+                    task.set_aspect(test_aspect_touch("identity.id"), test_authored_string_aspect_value("task-draft"))
+                        .set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Draft"))
                 })
                 .update_symbolic(
                     ForgeQuerySymbolicTargetReference::new("draft-task")
@@ -151,7 +156,7 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
                         .expect("symbolic collection should build"),
                     |task| {
                         task.naming_attach_new_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("persistent-name:draft").expect("naming attachment authority label")).expect("naming attachment identity"))
-                            .aspect(test_aspect_touch("title.value"), test_string_aspect_value("Draft named"))
+                            .set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Draft named"))
                     },
                 )
         })
@@ -352,9 +357,9 @@ fn existing_truth_cluster_unsupported_backend_denials_remain_typed_and_distinct(
 
     let verify_error = workspace
         .verify_existing(binding.clone(), |task| {
-            task.aspect(
+            task.set_aspect(
                 test_aspect_touch("title.value"),
-                test_string_aspect_value("Seed title"),
+                test_authored_string_aspect_value("Seed title"),
             )
         })
         .expect_err("unsupported backend verification should deny");
@@ -372,15 +377,15 @@ fn existing_truth_cluster_unsupported_backend_denials_remain_typed_and_distinct(
         .update_existing_verified(
             binding.clone(),
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Seed title"),
+                    test_authored_string_aspect_value("Seed title"),
                 )
             },
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Updated title"),
+                    test_authored_string_aspect_value("Updated title"),
                 )
             },
         )
@@ -399,9 +404,9 @@ fn existing_truth_cluster_unsupported_backend_denials_remain_typed_and_distinct(
         .delete_existing_verified(
             binding,
             |task| {
-                task.aspect(
+                task.set_aspect(
                     test_aspect_touch("title.value"),
-                    test_string_aspect_value("Seed title"),
+                    test_authored_string_aspect_value("Seed title"),
                 )
             },
             |delete| delete.touch(test_aspect_touch("title.value")),

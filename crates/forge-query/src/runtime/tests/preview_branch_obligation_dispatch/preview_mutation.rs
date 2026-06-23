@@ -58,23 +58,23 @@ fn preview_batch_dispatches_without_inventing_authoritative_batch_context() {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("preview-batch-a"),
+                        test_authored_string_aspect_value("preview-batch-a"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Preview A"),
+                        test_authored_string_aspect_value("Preview A"),
                     )
                 })
                 .insert("Task", |task| {
-                    task.aspect(
+                    task.set_aspect(
                         test_aspect_touch("identity.id"),
-                        test_string_aspect_value("preview-batch-b"),
+                        test_authored_string_aspect_value("preview-batch-b"),
                     )
-                    .aspect(
+                    .set_aspect(
                         test_aspect_touch("title.value"),
-                        test_string_aspect_value("Preview B"),
+                        test_authored_string_aspect_value("Preview B"),
                     )
                 })
         })
