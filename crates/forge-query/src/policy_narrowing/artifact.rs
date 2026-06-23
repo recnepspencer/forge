@@ -1,4 +1,4 @@
-use crate::authorized_projection::AuthorizedProjectionArtifact;
+use crate::authorized_projection::{AuthorizedProjectionArtifact, AuthorizedProjectionFieldPath};
 use crate::identity::hash_parts;
 use crate::policy_basis::{AdmittedPolicyTenantContext, PolicyCostPosture, PolicyWorkBudget};
 use crate::relationship_proof::RelationshipProofAdmission;
@@ -287,7 +287,7 @@ impl SavedPolicyNarrowingReuseDescriptor {
 pub struct PolicyAwareOptimizerInput {
     source_narrowed_artifact_digest: String,
     authorized_projection_digest: String,
-    visible_fields: Vec<String>,
+    visible_fields: Vec<AuthorizedProjectionFieldPath>,
     relationship_proof_digest: String,
     validation_report_digest: String,
     optimizer_input_digest: String,
@@ -301,7 +301,10 @@ impl PolicyAwareOptimizerInput {
             .identity()
             .as_str()
             .to_string();
-        let visible_fields = artifact.authorized_projection().visible_fields().to_vec();
+        let visible_fields = artifact
+            .authorized_projection()
+            .visible_field_paths()
+            .to_vec();
         let relationship_proof_digest = artifact
             .relationship_proof()
             .identity()
@@ -317,7 +320,7 @@ impl PolicyAwareOptimizerInput {
         parts.extend(
             visible_fields
                 .iter()
-                .map(|field| format!("visible:{field}")),
+                .map(|field| format!("visible:{}", field.terminal_projection_for_boundary())),
         );
         Self {
             source_narrowed_artifact_digest,
@@ -337,7 +340,7 @@ impl PolicyAwareOptimizerInput {
         &self.authorized_projection_digest
     }
 
-    pub fn visible_fields(&self) -> &[String] {
+    pub fn visible_field_paths(&self) -> &[AuthorizedProjectionFieldPath] {
         &self.visible_fields
     }
 

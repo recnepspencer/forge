@@ -74,7 +74,8 @@ impl ForgeQueryRuntime {
     > {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Effect)?;
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Intent)?;
-        let pending_delivery = self.pending_effect_write_delivery(effect_name)?.1;
+        let effect_target = ForgeQueryEffectTarget::from_name(effect_name);
+        let pending_delivery = self.pending_effect_write_delivery(&effect_target)?.1;
         let request = self.effect_runtime_intent_request(
             &pending_delivery,
             strategy_version.into(),
@@ -118,7 +119,8 @@ impl ForgeQueryRuntime {
     > {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Effect)?;
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Intent)?;
-        let (_, pending_delivery) = self.pending_effect_write_delivery(effect_name)?;
+        let effect_target = ForgeQueryEffectTarget::from_name(effect_name);
+        let (_, pending_delivery) = self.pending_effect_write_delivery(&effect_target)?;
         let request = self.effect_runtime_intent_request(
             &pending_delivery,
             strategy_version,
@@ -155,7 +157,7 @@ impl ForgeQueryRuntime {
             delivery.target().to_string(),
             strategy_version,
             input_contract,
-            delivery.payload().clone(),
+            ForgeQueryIntentInput::from_effect_payload(delivery.payload()),
         )
         .with_source_lane(ForgeQueryIntentSourceLane::EffectTriggered)
         .with_effect_trigger(delivery.write_adjacent_trigger().clone());
@@ -244,14 +246,13 @@ impl ForgeQueryRuntime {
         )
     }
 
-    pub(crate) fn pending_effect_write_delivery(
+    pub(in crate::runtime) fn pending_effect_write_delivery(
         &self,
-        effect_name: &str,
+        effect_target: &ForgeQueryEffectTarget,
     ) -> Result<(usize, ForgeQueryEffectDelivery), ForgeQueryRuntimeError> {
-        let runtime = self
-            .effects
-            .get(effect_name)
-            .ok_or_else(|| ForgeQueryRuntimeError::MissingEffect(effect_name.to_string()))?;
+        let runtime = self.effects.get(effect_target).ok_or_else(|| {
+            ForgeQueryRuntimeError::MissingEffect(effect_target.as_str().to_string())
+        })?;
         runtime
             .deliveries
             .iter()
@@ -261,17 +262,19 @@ impl ForgeQueryRuntime {
             })
             .map(|(index, delivery)| (index, delivery.clone()))
             .ok_or_else(|| {
-                ForgeQueryRuntimeError::MissingPendingWriteIntent(effect_name.to_string())
+                ForgeQueryRuntimeError::MissingPendingWriteIntent(
+                    effect_target.as_str().to_string(),
+                )
             })
     }
 
-    pub(crate) fn remove_pending_effect_delivery(
+    pub(in crate::runtime) fn remove_pending_effect_delivery(
         &mut self,
-        effect_name: &str,
+        effect_target: &ForgeQueryEffectTarget,
         pending_index: usize,
         pending_delivery: &ForgeQueryEffectDelivery,
     ) {
-        if let Some(runtime) = self.effects.get_mut(effect_name) {
+        if let Some(runtime) = self.effects.get_mut(effect_target) {
             if runtime
                 .deliveries
                 .get(pending_index)

@@ -86,7 +86,7 @@ pub fn lower_policy_aware_historical_plan(
             artifact,
             PolicyAwareExecutionMode::HistoricalRead,
             posture,
-            artifact.authorized_projection().visible_fields().len(),
+            artifact.authorized_projection().visible_field_paths().len(),
             0,
         ),
         basis,

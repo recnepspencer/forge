@@ -1,6 +1,6 @@
 use super::eligibility::{AdmittedProjectionConsumption, ProjectionConsumptionWarningKind};
 use super::facts::ProjectionMaterializedFactPosture;
-use super::facts::{ProjectionFactKind, ProjectionFactRequest};
+use super::facts::{ProjectionFactFieldPath, ProjectionFactKind, ProjectionFactRequest};
 use super::identity::compose_materialized_projection_contract_digest;
 use super::source::{
     ProjectionSourceFamily, ProjectionSourceIdentity, ProjectionSourceReferenceIdentity,
@@ -64,8 +64,8 @@ impl BoundProjectionFactFamily {
         self.request.kind()
     }
 
-    pub fn field_key(&self) -> Option<&str> {
-        self.request.field_key()
+    pub fn field_path(&self) -> Option<&ProjectionFactFieldPath> {
+        self.request.field_path()
     }
 
     pub fn support_posture(&self) -> &ProjectionContractSupportPosture {

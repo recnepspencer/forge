@@ -47,8 +47,8 @@ impl QuerySchemaView {
             digest_parts.extend(aspect_view.fields.values().map(|field| {
                 format!(
                     "field:{}:{}:{:?}:{}:{}:{}:{}:{}:{}",
-                    field.aspect(),
-                    field.field(),
+                    field.aspect_name().as_str(),
+                    field.field_name().as_str(),
                     field.kind(),
                     field.is_queryable(),
                     field.is_orderable(),
@@ -59,11 +59,13 @@ impl QuerySchemaView {
                 )
             }));
         }
-        digest_parts.extend(
-            relations.values().map(|relation| {
-                format!("relation:{}:{}", relation.relation(), relation.max_depth())
-            }),
-        );
+        digest_parts.extend(relations.values().map(|relation| {
+            format!(
+                "relation:{}:{}",
+                relation.terminal_relation_projection_for_boundary(),
+                relation.max_depth()
+            )
+        }));
 
         Self {
             basis: SchemaBasisDigest::from_parts(&digest_parts),
@@ -76,15 +78,15 @@ impl QuerySchemaView {
         &self.basis
     }
 
-    pub fn field(&self, aspect: &str, field: &str) -> Option<&SchemaFieldView> {
+    pub fn field(&self, aspect: &AspectName, field: &FieldName) -> Option<&SchemaFieldView> {
         self.fields.get(aspect)?.fields.get(field)
     }
 
-    pub fn has_aspect(&self, aspect: &str) -> bool {
+    pub fn has_aspect(&self, aspect: &AspectName) -> bool {
         self.fields.contains_key(aspect)
     }
 
-    pub fn relation(&self, relation: &str) -> Option<&SchemaRelationView> {
+    pub fn relation(&self, relation: &RelationName) -> Option<&SchemaRelationView> {
         self.relations.get(relation)
     }
 }

@@ -5,19 +5,33 @@ fn update_existing_preserves_naming_evidence_on_receipt_and_inspection() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.naming-existing")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.naming-existing-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-naming-existing-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Named task")
+            task.set_aspect(
+                test_aspect_touch("identity.id"),
+                test_authored_string_aspect_value("task-1"),
+            )
+            .set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("Named task"),
+            )
         })
         .expect("seed insert should execute");
     let attachment_authority =
@@ -52,7 +66,10 @@ fn update_existing_preserves_naming_evidence_on_receipt_and_inspection() {
                 attachment_authority.clone(),
                 target_authority.clone(),
             )
-            .aspect("title.value", "Named task renamed")
+            .set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("Named task renamed"),
+            )
         })
         .expect("existing-target naming update should execute");
     let inspection = workspace
@@ -110,19 +127,33 @@ fn batch_naming_evidence_preserves_attach_and_rebind_outcomes() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.naming-batch")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.naming-batch-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-naming-batch-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-existing")
-                .aspect("title.value", "Existing")
+            task.set_aspect(
+                test_aspect_touch("identity.id"),
+                test_authored_string_aspect_value("task-existing"),
+            )
+            .set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("Existing"),
+            )
         })
         .expect("seed insert should execute");
     let existing_binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
@@ -145,8 +176,8 @@ fn batch_naming_evidence_preserves_attach_and_rebind_outcomes() {
         .batch(|batch| {
             batch
                 .insert_symbolic("draft-task", "Task", |task| {
-                    task.aspect("identity.id", "task-draft")
-                        .aspect("title.value", "Draft")
+                    task.set_aspect(test_aspect_touch("identity.id"), test_authored_string_aspect_value("task-draft"))
+                        .set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Draft"))
                 })
                 .update_symbolic(symbolic.clone(), |task| {
                     task.naming_attach_new_target(
@@ -155,12 +186,12 @@ fn batch_naming_evidence_preserves_attach_and_rebind_outcomes() {
                         )
                         .expect("naming attachment authority label")).expect("naming attachment identity"),
                     )
-                    .aspect("title.value", "Draft named")
+                    .set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Draft named"))
                 })
                 .update_existing(existing_binding, |task| {
                     task.naming_rebind_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("persistent-name:task-existing").expect("naming attachment authority label")).expect("naming attachment identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_prior_authority(crate::runtime::ForgeQueryNamingPriorAuthorityLabel::new("authority:task-existing-old").expect("naming prior authority label")).expect("naming prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_target_authority(crate::runtime::ForgeQueryNamingTargetAuthorityLabel::new("authority:task-existing").expect("naming target authority label")).expect("naming target authority identity"),
                     )
-                    .aspect("title.value", "Existing rebound")
+                    .set_aspect(test_aspect_touch("title.value"), test_authored_string_aspect_value("Existing rebound"))
                 })
         })
         .expect("naming batch should execute");
@@ -217,7 +248,10 @@ fn naming_existing_target_denies_missing_binding_typed_and_early() {
                 )
                 .expect("naming target authority identity"),
             )
-            .aspect("title.value", "No binding")
+            .set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("No binding"),
+            )
         })
         .expect_err("naming attach-to-existing should deny without binding");
 
@@ -238,19 +272,33 @@ fn delete_existing_preserves_naming_removal_evidence_on_receipt_and_inspection()
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.naming-remove")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.naming-remove-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-naming-remove-table")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Named task")
+            task.set_aspect(
+                test_aspect_touch("identity.id"),
+                test_authored_string_aspect_value("task-1"),
+            )
+            .set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("Named task"),
+            )
         })
         .expect("seed insert should execute");
     let attachment_authority =
@@ -282,7 +330,7 @@ fn delete_existing_preserves_naming_removal_evidence_on_receipt_and_inspection()
     let receipt = workspace
         .delete_existing_with(binding, |delete| {
             delete
-                .touch("title.value")
+                .touch(test_aspect_touch("title.value"))
                 .naming_remove(attachment_authority.clone(), prior_authority.clone())
         })
         .expect("existing-target naming delete should execute");
@@ -380,11 +428,19 @@ fn preview_batch_symbolic_naming_preserves_typed_evidence() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-naming")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.preview-naming-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-preview-naming-table")
         })
         .expect("live view should declare");
@@ -396,8 +452,14 @@ fn preview_batch_symbolic_naming_preserves_typed_evidence() {
         .batch(|batch| {
             batch
                 .insert_symbolic("draft-task", "Task", |task| {
-                    task.aspect("identity.id", "task-draft")
-                        .aspect("title.value", "Draft")
+                    task.set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value("task-draft"),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("title.value"),
+                        test_authored_string_aspect_value("Draft"),
+                    )
                 })
                 .update_symbolic(
                     ForgeQuerySymbolicTargetReference::new("draft-task")
@@ -414,7 +476,10 @@ fn preview_batch_symbolic_naming_preserves_typed_evidence() {
                             )
                             .expect("naming attachment identity"),
                         )
-                        .aspect("title.value", "Preview named")
+                        .set_aspect(
+                            test_aspect_touch("title.value"),
+                            test_authored_string_aspect_value("Preview named"),
+                        )
                     },
                 )
         })

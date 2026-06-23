@@ -19,7 +19,7 @@ fn identity_aware_inspector_freeze_captures_identity_contract() {
             admit_view_shape(
                 &direct,
                 ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-                    "profile",
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
                     InspectorIdentityClassification::AdvisoryCandidates,
                 ),
             )
@@ -101,7 +101,7 @@ fn identity_aware_inspector_reuse_requires_fresh_freeze_on_contract_change() {
             admit_view_shape(
                 &direct,
                 ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-                    "profile",
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
                     InspectorIdentityClassification::AdvisoryCandidates,
                 ),
             )
@@ -165,7 +165,9 @@ fn observed_and_focused_inspector_reuse_require_fresh_freeze_on_lane_change() {
             detail_schema_view(),
             admit_view_shape(
                 &direct,
-                ViewShapeDescriptor::inspector_detail_focused("profile"),
+                ViewShapeDescriptor::inspector_detail_focused(
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
+                ),
             )
             .unwrap(),
         )

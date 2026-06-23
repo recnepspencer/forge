@@ -3,12 +3,13 @@ use super::runtime_batching::{
     BatchCommandSummary,
 };
 use super::*;
-use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::runtime_writes::ForgeQueryWriteAdmissionExecutionRecord;
 #[path = "runtime_batch_write_bridge_refs.rs"]
 mod runtime_batch_write_bridge_refs;
 #[path = "runtime_batch_write_receipt_context.rs"]
 mod runtime_batch_write_receipt_context;
+#[path = "runtime_batch_write_receipt_rows.rs"]
+mod runtime_batch_write_receipt_rows;
 #[path = "runtime_batch_write_symbolics.rs"]
 mod runtime_batch_write_symbolics;
 
@@ -41,10 +42,14 @@ impl ForgeQueryRuntime {
         let use_backend_atomic_batch = should_use_backend_atomic_batch(&support_profile, &commands);
         let mut command_summaries: Vec<BatchCommandSummary> = Vec::with_capacity(commands.len());
         let mut resolved_receipts = Vec::with_capacity(commands.len());
-        let mut symbolic_targets =
-            BTreeMap::<String, (ForgeQueryEntityIdentity, Option<String>)>::new();
-        let mut planned_symbolic_targets =
-            BTreeMap::<String, (ForgeQueryEntityIdentity, Option<String>)>::new();
+        let mut symbolic_targets = BTreeMap::<
+            ForgeQuerySameBatchSymbolicTargetKey,
+            ForgeQuerySameBatchSymbolicTarget,
+        >::new();
+        let mut planned_symbolic_targets = BTreeMap::<
+            ForgeQuerySameBatchSymbolicTargetKey,
+            ForgeQuerySameBatchSymbolicTarget,
+        >::new();
         let mut deferred_backend_commands = Vec::new();
         for command in commands {
             if let Some(binding) = command.existing_truth_binding() {
@@ -56,7 +61,7 @@ impl ForgeQueryRuntime {
                 .map_err(ForgeQueryRuntimeError::MutationContinuityDenied)?;
             admit_naming_intent(&command).map_err(ForgeQueryRuntimeError::MutationNamingDenied)?;
             let mutation_family = command.mutation_family();
-            let declared_collection = command.declared_collection();
+            let declared_collection_identity = command.declared_collection_identity();
             let declared_entity_identity = command.declared_entity_identity();
             let existing_truth_binding = command.existing_truth_binding().cloned();
             let verified_existing_truth_assertion =
@@ -75,7 +80,7 @@ impl ForgeQueryRuntime {
             };
             let summary = BatchCommandSummary::new(
                 mutation_family,
-                declared_collection,
+                declared_collection_identity,
                 declared_entity_identity,
                 existing_truth_binding,
                 verified_existing_truth_assertion,
@@ -96,7 +101,9 @@ impl ForgeQueryRuntime {
                 )
             {
                 record_planned_same_batch_symbolic_target(&mut planned_symbolic_targets, &command);
-                deferred_backend_commands.push(command);
+                deferred_backend_commands.push(
+                    ForgeQueryBackendAdmissibleMutation::from_admitted_command(command),
+                );
                 command_summaries.push(summary);
                 resolved_receipts.push(None);
                 continue;
@@ -124,19 +131,23 @@ impl ForgeQueryRuntime {
                     naming_intent,
                     continuity_intent,
                     symbolic_target_reference,
-                } => self.backend.write(ForgeQueryWriteCommand::InsertAspects {
-                    collection,
-                    aspects: resolve_symbolic_aspect_references(
-                        &symbolic_targets,
-                        aspects,
-                        &symbolic_aspect_references,
-                    )?,
-                    symbolic_aspect_references: Vec::new(),
-                    metadata,
-                    naming_intent,
-                    continuity_intent,
-                    symbolic_target_reference,
-                })?,
+                } => self.backend.write(
+                    ForgeQueryBackendAdmissibleMutation::from_admitted_command(
+                        ForgeQueryWriteCommand::InsertAspects {
+                            collection,
+                            aspects: resolve_symbolic_aspect_references(
+                                &symbolic_targets,
+                                aspects,
+                                &symbolic_aspect_references,
+                            )?,
+                            symbolic_aspect_references: Vec::new(),
+                            metadata,
+                            naming_intent,
+                            continuity_intent,
+                            symbolic_target_reference,
+                        },
+                    ),
+                )?,
                 ForgeQueryWriteCommand::UpdateSymbolicAspects {
                     reference,
                     aspects,
@@ -144,21 +155,25 @@ impl ForgeQueryRuntime {
                     naming_intent,
                     continuity_intent,
                 } => {
-                    let (resolved_entity_identity, resolved_collection) =
+                    let resolved_target =
                         resolve_same_batch_symbolic_target(&symbolic_targets, &reference)?;
                     let symbolic_target_reference = bridge_symbolic_target_reference(
                         &reference,
-                        &resolved_entity_identity,
-                        resolved_collection.as_deref(),
+                        resolved_target.entity_identity(),
+                        resolved_target.target_collection_identity(),
                     )?;
                     attach_symbolic_target_reference_to_receipt(
-                        self.backend.write(ForgeQueryWriteCommand::UpdateAspects {
-                            entity_identity: resolved_entity_identity.clone(),
-                            aspects,
-                            metadata,
-                            naming_intent,
-                            continuity_intent,
-                        })?,
+                        self.backend.write(
+                            ForgeQueryBackendAdmissibleMutation::from_admitted_command(
+                                ForgeQueryWriteCommand::UpdateAspects {
+                                    entity_identity: resolved_target.entity_identity().clone(),
+                                    aspects,
+                                    metadata,
+                                    naming_intent,
+                                    continuity_intent,
+                                },
+                            ),
+                        )?,
                         symbolic_target_reference,
                     )
                 }
@@ -170,48 +185,60 @@ impl ForgeQueryRuntime {
                     metadata,
                     naming_intent,
                     continuity_intent,
-                } => self.backend.write(Self::lower_backend_write_command(
-                    ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects {
-                        binding,
-                        asserted_aspects,
-                        aspects: resolve_symbolic_aspect_references(
-                            &symbolic_targets,
-                            aspects,
-                            &symbolic_aspect_references,
-                        )?,
-                        symbolic_aspect_references: Vec::new(),
-                        metadata,
-                        naming_intent,
-                        continuity_intent,
-                    },
-                ))?,
+                } => self.backend.write(
+                    ForgeQueryBackendAdmissibleMutation::from_admitted_command(
+                        Self::lower_backend_write_command(
+                            ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects {
+                                binding,
+                                asserted_aspects,
+                                aspects: resolve_symbolic_aspect_references(
+                                    &symbolic_targets,
+                                    aspects,
+                                    &symbolic_aspect_references,
+                                )?,
+                                symbolic_aspect_references: Vec::new(),
+                                metadata,
+                                naming_intent,
+                                continuity_intent,
+                            },
+                        ),
+                    ),
+                )?,
                 ForgeQueryWriteCommand::DeleteSymbolicAspects {
                     reference,
-                    touched_aspect_paths,
+                    touched_aspects,
                     metadata,
                     naming_intent,
                 } => {
-                    let (resolved_entity_identity, resolved_collection) =
+                    let resolved_target =
                         resolve_same_batch_symbolic_target(&symbolic_targets, &reference)?;
                     let symbolic_target_reference = bridge_symbolic_target_reference(
                         &reference,
-                        &resolved_entity_identity,
-                        resolved_collection.as_deref(),
+                        resolved_target.entity_identity(),
+                        resolved_target.target_collection_identity(),
                     )?;
                     attach_symbolic_target_reference_to_receipt(
-                        self.backend.write(ForgeQueryWriteCommand::DeleteAspects {
-                            entity_identity: resolved_entity_identity.clone(),
-                            declared_collection: resolved_collection.clone(),
-                            touched_aspect_paths,
-                            metadata,
-                            naming_intent,
-                        })?,
+                        self.backend.write(
+                            ForgeQueryBackendAdmissibleMutation::from_admitted_command(
+                                ForgeQueryWriteCommand::DeleteAspects {
+                                    entity_identity: resolved_target.entity_identity().clone(),
+                                    declared_collection: resolved_target
+                                        .target_collection_identity()
+                                        .cloned(),
+                                    touched_aspects,
+                                    metadata,
+                                    naming_intent,
+                                },
+                            ),
+                        )?,
                         symbolic_target_reference,
                     )
                 }
-                other => self
-                    .backend
-                    .write(Self::lower_backend_write_command(other))?,
+                other => self.backend.write(
+                    ForgeQueryBackendAdmissibleMutation::from_admitted_command(
+                        Self::lower_backend_write_command(other),
+                    ),
+                )?,
             };
             if let Some(intent) = summary.continuity_intent().as_ref() {
                 let (_, target_collection, target_entity_identity) =
@@ -224,7 +251,7 @@ impl ForgeQueryRuntime {
                     intent,
                     basis_binding_digest.as_deref(),
                     target_entity_identity.as_ref(),
-                    target_collection.as_deref(),
+                    target_collection.as_ref(),
                 ) {
                     receipt = attach_continuity_mutation_to_receipt(receipt, bundle);
                 }
@@ -235,7 +262,7 @@ impl ForgeQueryRuntime {
                 if let Some(bundle) = bridge_naming_mutation_bundle(
                     intent,
                     target_entity_identity.as_ref(),
-                    target_collection.as_deref(),
+                    target_collection.as_ref(),
                 ) {
                     receipt = attach_naming_mutation_to_receipt(receipt, bundle);
                 }
@@ -243,7 +270,7 @@ impl ForgeQueryRuntime {
             record_same_batch_symbolic_target(
                 &mut symbolic_targets,
                 summary.symbolic_target_reference().as_ref(),
-                summary.declared_collection().as_deref(),
+                summary.declared_collection_identity().as_ref(),
                 &receipt,
             );
             command_summaries.push(summary);
@@ -277,8 +304,10 @@ impl ForgeQueryRuntime {
                     );
                 }
             }
-            let mut deferred_symbolic_targets =
-                BTreeMap::<String, (ForgeQueryEntityIdentity, Option<String>)>::new();
+            let mut deferred_symbolic_targets = BTreeMap::<
+                ForgeQuerySameBatchSymbolicTargetKey,
+                ForgeQuerySameBatchSymbolicTarget,
+            >::new();
             let mut rebuilt_summaries = Vec::with_capacity(command_summaries.len());
             for (summary, receipt) in command_summaries.into_iter().zip(resolved_receipts.iter()) {
                 let receipt = receipt
@@ -294,7 +323,7 @@ impl ForgeQueryRuntime {
                 record_same_batch_symbolic_target(
                     &mut deferred_symbolic_targets,
                     rebuilt_summary.symbolic_target_reference().as_ref(),
-                    rebuilt_summary.declared_collection().as_deref(),
+                    rebuilt_summary.declared_collection_identity().as_ref(),
                     receipt,
                 );
                 rebuilt_summaries.push(rebuilt_summary);
@@ -312,59 +341,15 @@ impl ForgeQueryRuntime {
             &combined_receipt,
             &ForgeQueryMutationMetadata::default(),
         )?;
-        let write_receipts = receipts
-            .into_iter()
-            .zip(command_summaries)
-            .map(|(receipt, summary)| {
-                let mutation_family = summary.mutation_family();
-                let declared_collection = summary.declared_collection();
-                let declared_entity_identity = summary.declared_entity_identity();
-                let existing_truth_binding = summary.existing_truth_binding();
-                let verified_existing_truth_assertion = summary.verified_existing_truth_assertion();
-                let symbolic_target_reference = summary.symbolic_target_reference();
-                let naming_intent = summary.naming_intent();
-                let continuity_intent = summary.continuity_intent();
-                let declared_aspect_operations = summary.declared_aspect_operations();
-                let declared_aspect_value_digest = summary.declared_aspect_value_digest();
-                let symbolic_aspect_resolution_evidence =
-                    summary.symbolic_aspect_resolution_evidence();
-                let mutation_metadata = summary.mutation_metadata();
-                let affected_live_view_ids = self.backend.affected_live_view_ids(&receipt);
-                let (_, mut target_collection, mut target_entity_identity) =
-                    classify_receipt_mutation_summary(&receipt);
-                if let Some(binding) = existing_truth_binding.as_ref() {
-                    target_collection = binding.target_collection().map(str::to_string);
-                    target_entity_identity = Some(binding.resolved_entity_artifact_identity());
-                }
-                ForgeQueryWriteReceipt::batch_component(
-                    receipt,
-                    mutation_family,
-                    ForgeQueryAuthorityLane::AuthoritativeTruth,
-                    declared_collection,
-                    declared_entity_identity,
-                    existing_truth_binding,
-                    verified_existing_truth_assertion,
-                    symbolic_target_reference,
-                    symbolic_aspect_resolution_evidence,
-                    naming_intent,
-                    continuity_intent,
-                    target_collection,
-                    target_entity_identity,
-                    declared_aspect_operations,
-                    declared_aspect_value_digest,
-                    mutation_metadata,
-                    affected_live_view_ids,
-                    ForgeQueryAuthorityLane::AuthoritativeTruth,
-                )
-            })
-            .collect::<Vec<_>>();
-        let mut touched_aspect_paths = combined_receipt
+        let write_receipts = self.build_batch_component_write_receipts(receipts, command_summaries);
+        let mut touched_aspects = std::collections::BTreeSet::new();
+        for touch in combined_receipt
             .deltas
             .iter()
-            .flat_map(|delta| delta.aspect_paths.iter().cloned())
-            .collect::<Vec<_>>();
-        touched_aspect_paths.sort();
-        touched_aspect_paths.dedup();
+            .flat_map(|delta| delta.admitted_touched_aspects())
+        {
+            touched_aspects.insert(touch.clone());
+        }
         let batch_request_detail = format!("batch-write:{}", write_receipts.len());
         let execution_provenance =
             batch_execution_provenance(shared_admission.as_ref(), &combined_receipt);
@@ -379,9 +364,9 @@ impl ForgeQueryRuntime {
             ForgeQueryAuthorityLane::AuthoritativeTruth,
             graph_composition_breadth,
             graph_composition_program,
-            touched_aspect_paths,
-            summary.affected_live_view_ids,
-            summary.affected_derived_view_ids,
+            touched_aspects.into_iter().collect(),
+            summary.affected_live_view_targets,
+            summary.affected_derived_view_targets,
             summary.considered_computed_view_count,
             summary.considered_effect_count,
             summary.delivered_effect_count,

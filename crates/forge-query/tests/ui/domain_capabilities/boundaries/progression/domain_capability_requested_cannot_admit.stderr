@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/domain_capabilities/boundaries/progression/domain_capability_requested_cannot_admit.rs:20:59
+  --> tests/ui/domain_capabilities/boundaries/progression/domain_capability_requested_cannot_admit.rs:19:59
    |
-20 |     let _ = admit_eligible_domain_capability_contribution(requested);
+19 |     let _ = admit_eligible_domain_capability_contribution(requested);
    |             --------------------------------------------- ^^^^^^^^^ expected `ForgeQueryEligibleDomainCapabilityContribution<_, _>`, found `ForgeQueryRequestedDomainCapabilityContribution<..., ...>`
    |             |
    |             arguments to this function are incorrect

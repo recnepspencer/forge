@@ -125,9 +125,9 @@ impl ForgeQueryRuntime {
         binding: ForgeQueryLiveReadExecutionBinding,
     ) -> Result<ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Read)?;
-        let rows = self
-            .backend
-            .live_entities(binding.installation().view_name());
+        let target =
+            ForgeQueryLiveArtifactTarget::from_subscription_installation(binding.installation());
+        let rows = self.backend.live_entities_for_target(&target);
         let snapshot_identity = self.current_snapshot_identity();
         let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         let materialized_fact_posture = self.materialized_fact_posture_for_live_read(
@@ -195,7 +195,8 @@ impl ForgeQueryRuntime {
         view_name: &str,
         basis_identity: &crate::ForgeQueryEvidenceIdentity,
     ) -> Option<crate::projection_consumption::ProjectionMaterializedFactPosture> {
-        let state = self.live_subscriptions.get(view_name)?;
+        let target = ForgeQueryLiveArtifactTarget::from_view_name(view_name);
+        let state = self.live_subscriptions.get(&target)?;
         Some(materialized_fact_posture_from_live_subscription_state(
             state,
             basis_identity,

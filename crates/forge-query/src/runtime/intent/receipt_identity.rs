@@ -32,11 +32,11 @@ pub(super) fn authoritative_intent_receipt_identity(
     });
     let affected_live_view_identities = receipt_value_identities(
         "authoritative-receipt-affected-live-view",
-        write_receipt.affected_live_view_ids(),
+        &write_receipt.terminal_affected_live_view_ids_projection(),
     );
     let affected_derived_view_identities = receipt_value_identities(
         "authoritative-receipt-affected-derived-view",
-        write_receipt.affected_derived_view_ids(),
+        &write_receipt.terminal_affected_derived_view_ids_projection(),
     );
 
     forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeIntentReceipt)

@@ -7,9 +7,10 @@ use super::evidence_identities::{
 use super::ordinary_runtime_posture::project_live_subscription_ordinary_runtime_posture;
 use super::{
     ForgeQueryAuthorityLane, ForgeQueryBatchWriteReceipt, ForgeQueryDerivedViewHandle,
-    ForgeQueryLiveView, ForgeQueryRuntime, ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeStateKind,
-    ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeSupportDenial, ForgeQueryWriteReceipt,
+    ForgeQueryLiveArtifactTarget, ForgeQueryLiveView, ForgeQueryRuntime, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus,
+    ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeSupportDenial,
+    ForgeQueryWriteReceipt,
 };
 
 pub trait ForgeQueryRuntimeStateTarget {
@@ -25,7 +26,7 @@ pub(crate) fn snapshot_live_view_name(
 ) -> Result<ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeError> {
     let state = runtime
         .live_subscriptions
-        .get(view_name)
+        .get(&ForgeQueryLiveArtifactTarget::from_view_name(view_name))
         .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveSubscription(view_name.to_string()))?;
     let installation = &state.installation;
     let mixed_cause_delivery = state

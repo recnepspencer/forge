@@ -47,9 +47,9 @@ impl ForgeQueryGraphCompositionAssumptionSummary {
             .iter()
             .map(|set| set.verification_read_set_breadth().asserted_aspect_count())
             .sum();
-        let asserted_aspect_paths = assumption_sets
+        let asserted_aspects = assumption_sets
             .iter()
-            .flat_map(|set| set.asserted_aspect_paths().iter().cloned())
+            .flat_map(|set| set.asserted_aspects().iter().cloned())
             .collect::<Vec<_>>();
         let cleared_assertion_count = assumption_sets
             .iter()
@@ -61,7 +61,7 @@ impl ForgeQueryGraphCompositionAssumptionSummary {
         let verification_read_set_breadth = ForgeQueryVerificationReadSetBreadth::new(
             target_binding_count,
             asserted_aspect_count,
-            &asserted_aspect_paths,
+            &asserted_aspects,
             cleared_assertion_count,
         );
         let verified_step_count = assumption_sets.len();
@@ -108,8 +108,10 @@ impl ForgeQueryGraphCompositionAssumptionSummary {
                     verification_read_set_breadth.cleared_assertion_count(),
                 )
                 .field_value_sequence(
-                    ForgeQueryEvidenceTag::new("asserted_aspect_path"),
-                    asserted_aspect_paths.iter().map(String::as_str),
+                    ForgeQueryEvidenceTag::new("asserted_aspect_touch"),
+                    asserted_aspects
+                        .iter()
+                        .map(|touch| touch.admitted_touch_digest_part()),
                 )
                 .seal();
 

@@ -16,13 +16,16 @@ fn detail_schema_view() -> crate::schema_view::QuerySchemaView {
         "saved-query-detail",
         [
             crate::schema_view::SchemaFieldView::new(
-                "identity",
-                "id",
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             ),
             crate::schema_view::SchemaFieldView::new(
-                "profile",
-                "display_name",
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             )
             .text_predicate_queryable(),
@@ -36,19 +39,24 @@ fn collection_schema_view() -> crate::schema_view::QuerySchemaView {
         "saved-query-collection",
         [
             crate::schema_view::SchemaFieldView::new(
-                "identity",
-                "id",
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             ),
             crate::schema_view::SchemaFieldView::new(
-                "profile",
-                "display_name",
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             )
             .text_predicate_queryable(),
             crate::schema_view::SchemaFieldView::new(
-                "status",
-                "lane",
+                crate::authoring::AspectName::new("status")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("lane")
+                    .expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             )
             .text_predicate_queryable(),

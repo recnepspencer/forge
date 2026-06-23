@@ -1,10 +1,11 @@
 use forge_query::facade::{
     DeclarativeLiveQueryRequest, ForgeQueryDerivedView, ForgeQueryEffectPolicy,
     ForgeQueryEntity, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution, ForgeQueryLivePatch,
-    ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission,
-    ForgeQueryRuntimeBackend, ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeError,
-    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile, ForgeQuerySessionLabel,
-    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQueryLiveArtifactTarget, ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt,
+    ForgeQueryPreviewBasisAdmission, ForgeQueryBackendAdmissibleMutation, ForgeQueryRuntimeBackend,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeError, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryRuntimeSupportProfile, ForgeQuerySessionLabel, ForgeQueryWorkspaceError,
+    ForgeQueryWriteReceipt,
     LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput,
     SubscriptionActivationReceipt,
 };
@@ -36,14 +37,14 @@ impl ForgeQueryRuntimeBackend for StringSnapshotBackend {
 
     fn write(
         &mut self,
-        _command: ForgeQueryWriteCommand,
+        _command: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
         panic!("not executed")
     }
 
     fn write_batch(
         &mut self,
-        _commands: Vec<ForgeQueryWriteCommand>,
+        _commands: Vec<ForgeQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
         panic!("not executed")
     }
@@ -55,11 +56,17 @@ impl ForgeQueryRuntimeBackend for StringSnapshotBackend {
         panic!("not executed")
     }
 
-    fn live_entities(&self, _view_name: &str) -> Vec<ForgeQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity> {
         Vec::new()
     }
 
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
+    fn drain_live_patches_for_target(
+        &mut self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch> {
         Vec::new()
     }
 

@@ -95,8 +95,9 @@ Good to know:
   caller-side reconstruction
 - once those retained derived rows exist, downstream crates should consume them
   through the admitted materialization floor rather than reopening raw row
-  archaeology; `materialize_intent(...).execute().decode_single_row::<T>()`
-  is the preferred retained-artifact seam for one typed historical computed row
+  archaeology;
+  `materialize_intent(...).execute().terminal_json_decode_single_row::<T>()`
+  is the preferred terminal export seam for one typed historical computed row
 - when one historical step needs a coherent retained artifact across several
   computed surfaces from the same admitted basis, downstream crates should use
   `materialize_derived_artifact_bundle(...)` instead of rebuilding that pack
@@ -144,7 +145,7 @@ maintained computed surfaces over historical truth:
   rows
 - downstream callers that need one typed retained historical row should cross
   the admitted derived-materialization artifact instead of combining
-  `workspace.materialize(...)` with local decode helpers
+  `workspace.materialize_result(...)` with local decode helpers
 - downstream callers that need several typed retained historical computed rows
   from one admitted basis should cross the retained derived-materialization
   bundle artifact instead of assembling the pack locally

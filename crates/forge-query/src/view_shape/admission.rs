@@ -48,7 +48,7 @@ pub fn admit_view_shape(
     );
 
     if descriptor.family() == ViewShapeFamily::InspectorDetailFocused
-        && descriptor.focused_aspect().is_none()
+        && descriptor.native_focused_aspect_key().is_none()
     {
         return Err(ViewShapeError::new(
             ViewShapeFailureClass::FocusAspectRequired,
@@ -57,7 +57,7 @@ pub fn admit_view_shape(
     }
 
     if descriptor.family() == ViewShapeFamily::KanbanGrouped
-        && descriptor.grouping_aspect().is_none()
+        && descriptor.native_grouping_aspect_key().is_none()
     {
         return Err(ViewShapeError::new(
             ViewShapeFailureClass::GroupingAspectRequired,
@@ -110,10 +110,19 @@ pub fn admit_view_shape(
             "result_shape_family:{:?}",
             canonical.result_shape().family()
         ),
-        format!("focus:{}", descriptor.focused_aspect().unwrap_or("none")),
+        format!(
+            "focus:{}",
+            descriptor
+                .native_focused_aspect_key()
+                .map(|key| key.as_str())
+                .unwrap_or("none")
+        ),
         format!(
             "grouping:{}",
-            descriptor.grouping_aspect().unwrap_or("none")
+            descriptor
+                .native_grouping_aspect_key()
+                .map(|key| key.as_str())
+                .unwrap_or("none")
         ),
         format!(
             "identity_consumption:{}",

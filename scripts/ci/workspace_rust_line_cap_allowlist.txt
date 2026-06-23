@@ -95,6 +95,9 @@ crates/forge-query/src/runtime/public_api.rs
 crates/forge-query/src/runtime/tests/computed.rs
 crates/forge-query/src/runtime/tests/identity_boundary/mod.rs
 crates/forge-query/src/runtime/tests/intent.rs
+crates/forge-query/src/runtime/tests/mutation/mixed_authority.rs
+crates/forge-query/src/runtime/tests/mutation/verified_delete_existing.rs
+crates/forge-query/src/runtime/tests/mutation/verified_update_existing.rs
 crates/forge-query/src/runtime/tests/preview/execution.rs
 crates/forge-query/src/runtime/tests/shared_read.rs
 crates/forge-query/src/runtime/tests/support/bridge/hostile_certification_schedule.rs
@@ -310,3 +313,21 @@ crates/worth-topo/src/certification/report.rs
 crates/worth-topo/src/derived_topology/traversal_views/tests.rs
 crates/worth-topo/src/validation/reference_integrity/tests.rs
 crates/worth-topo/src/validation/tests.rs
+# Owner: forge-query aspect-native live builder field-key migration.
+# Removal trigger: split mutation bridge verification scenarios by bridge support family.
+crates/forge-query/src/runtime/tests/mutation/bridge_backed_verification_support.rs
+# Owner: forge-query aspect-native live builder field-key migration.
+# Removal trigger: split continuity mutation scenarios by scalar, batch, preview, and denial family.
+crates/forge-query/src/runtime/tests/mutation/continuity.rs
+# Owner: forge-query aspect-native live builder field-key migration.
+# Removal trigger: split existing-binding mutation scenarios by scalar, batch, symbolic, and relation family.
+crates/forge-query/src/runtime/tests/mutation/existing_binding.rs
+# Owner: forge-query aspect-native live builder field-key migration.
+# Removal trigger: split graph-composition denial scenarios by leak, mismatch, and relation family.
+crates/forge-query/src/runtime/tests/mutation/graph_composition_denial.rs
+# Owner: forge-query aspect-native live builder field-key migration.
+# Removal trigger: split graph-composition edge-split scenarios by topology phase.
+crates/forge-query/src/runtime/tests/mutation/graph_composition_edge_split.rs
+# Owner: forge-query aspect-native live builder field-key migration.
+# Removal trigger: split naming mutation scenarios by rename, conflict, batch, and preview family.
+crates/forge-query/src/runtime/tests/mutation/naming.rs

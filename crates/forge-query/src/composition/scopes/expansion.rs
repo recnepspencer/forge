@@ -141,7 +141,7 @@ fn apply_traversal_scope(
                     descriptor.label(),
                     descriptor.max_depth(),
                     traversal.depth(),
-                    traversal.relation()
+                    traversal.terminal_relation_projection_for_boundary()
                 ),
             ));
         }

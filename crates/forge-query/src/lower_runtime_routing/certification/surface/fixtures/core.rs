@@ -19,7 +19,8 @@ use crate::memory_workspace::{
     ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQuerySnapshotIdentity,
 };
 use crate::runtime::{
-    build_bridge_authority_bundle, ForgeQueryAspectValue, ForgeQueryBasisAdmissionEvidenceRow,
+    build_bridge_authority_bundle, ForgeQueryAdmittedAspectValue,
+    ForgeQueryBackendAdmissibleMutation, ForgeQueryBasisAdmissionEvidenceRow,
     ForgeQueryEffectPolicy, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeSourceAdapter, ForgeQueryWriteCommand, LiveViewDeclarationAdmissionReceipt,
     SignalInvalidationRoutingReceipt,
@@ -29,8 +30,9 @@ use crate::session_label::ForgeQuerySessionLabel;
 use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 use super::{
-    representative_bridge_authority_runtime, ForgeQueryLowerRuntimeRepresentativeEvidenceSource,
-    RepresentativeArtifacts, RepresentativeSourceAdapter,
+    priority_value_touch, representative_bridge_authority_runtime, status_value_touch,
+    ForgeQueryLowerRuntimeRepresentativeEvidenceSource, RepresentativeArtifacts,
+    RepresentativeSourceAdapter,
 };
 
 fn fixture_retained_evidence_identity(
@@ -92,8 +94,12 @@ fn admitted_fixture_eligibility_from_evidence(
 
 pub(crate) fn representative_live_view_schema_row() -> RepresentativeArtifacts {
     let request = DeclarativeLiveQueryRequest::new("Task", DeclarativeLiveViewShape::table())
-        .project(DeclarativeProjectionField::new("title", "value"))
-        .project(DeclarativeProjectionField::new("status", "value"));
+        .project(DeclarativeProjectionField::from_authoring_parts(
+            "title", "value",
+        ))
+        .project(DeclarativeProjectionField::from_authoring_parts(
+            "status", "value",
+        ));
     let admission_receipt =
         LiveViewDeclarationAdmissionReceipt::from_request("tasks.table", &request);
     let boundary_receipt = LiveViewDeclarationAdmissionBoundaryReceipt::from_request(
@@ -123,11 +129,11 @@ pub(crate) fn representative_write_authority_row() -> RepresentativeArtifacts {
     let mutation_receipt = ForgeQueryMutationReceipt::from_authoritative_parts(
         representative_commit_identity("commit-route-write-7"),
         representative_snapshot_identity("snapshot-route-write-7"),
-        vec![ForgeQueryMutationDelta::new(
+        vec![ForgeQueryMutationDelta::from_touched_aspects(
             "Task",
             representative_entity_identity("task-7"),
             ForgeQueryMutationKind::Deleted,
-            vec!["status.value".to_string()],
+            vec![status_value_touch()],
         )],
     );
     let execution = WriteAuthorityExecutionReceipt::from_command(&command, mutation_receipt);
@@ -147,15 +153,22 @@ pub(crate) fn representative_signal_invalidation_row() -> RepresentativeArtifact
     let command = ForgeQueryWriteCommand::UpdateAspects {
         entity_identity: representative_task_identity.clone(),
         aspects: vec![
-            ForgeQueryAspectValue::new_set("status.value", "ready")
-                .expect("representative signal status aspect should build"),
-            ForgeQueryAspectValue::new_set("priority.value", "high")
-                .expect("representative signal priority aspect should build"),
+            ForgeQueryAdmittedAspectValue::new_set(
+                status_value_touch(),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("ready"),
+            )
+            .expect("representative signal status aspect should build"),
+            ForgeQueryAdmittedAspectValue::new_set(
+                priority_value_touch(),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("high"),
+            )
+            .expect("representative signal priority aspect should build"),
         ],
         metadata: Default::default(),
         naming_intent: None,
         continuity_intent: None,
     };
+    let mutation = ForgeQueryBackendAdmissibleMutation::from_admitted_command(command);
     let bridge = representative_bridge_authority_runtime();
     let snapshot_identity = ForgeQuerySnapshotIdentity::from_relational_snapshot(
         RelationalBridgeSnapshotIdentityParts::new(1, 1),
@@ -163,7 +176,7 @@ pub(crate) fn representative_signal_invalidation_row() -> RepresentativeArtifact
     let bridge_authority = build_bridge_authority_bundle(
         &bridge,
         &snapshot_identity,
-        &command,
+        &mutation,
         "Task",
         &representative_task_identity,
         ForgeQueryMutationKind::Updated,
@@ -173,17 +186,17 @@ pub(crate) fn representative_signal_invalidation_row() -> RepresentativeArtifact
         ForgeQueryCommitIdentity::from_relational_commit_id(1),
         snapshot_identity,
         vec![
-            ForgeQueryMutationDelta::new(
+            ForgeQueryMutationDelta::from_touched_aspects(
                 "Task",
                 representative_task_identity,
                 ForgeQueryMutationKind::Updated,
-                vec!["status.value".to_string()],
+                vec![status_value_touch()],
             ),
-            ForgeQueryMutationDelta::new(
+            ForgeQueryMutationDelta::from_touched_aspects(
                 "Task",
                 representative_entity_identity("task-10"),
                 ForgeQueryMutationKind::Updated,
-                vec!["priority.value".to_string()],
+                vec![priority_value_touch()],
             ),
         ],
         bridge_authority,
@@ -229,13 +242,28 @@ fn representative_entity_identity(label: impl AsRef<str>) -> ForgeQueryEntityIde
 
 pub(crate) fn representative_live_view_source_row() -> RepresentativeArtifacts {
     let request = DeclarativeLiveQueryRequest::new("Task", DeclarativeLiveViewShape::table())
-        .project(DeclarativeProjectionField::new("identity", "id"))
-        .project(DeclarativeProjectionField::new("title", "value"));
+        .project(DeclarativeProjectionField::from_authoring_parts(
+            "identity", "id",
+        ))
+        .project(DeclarativeProjectionField::from_authoring_parts(
+            "title", "value",
+        ));
     let schema_view = QuerySchemaView::new(
         "certification-live-source",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("title", "value", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("title")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("value")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
         [],
     );

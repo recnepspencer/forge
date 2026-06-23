@@ -57,11 +57,19 @@ fn workspace_read_delegates_to_live_read_intent_execution() {
     let runtime = read_runtime();
     let mut delegated_workspace =
         ForgeQueryWorkspace::new("delegated-live-read", runtime).expect("workspace should build");
-    let delegated_view: ForgeQueryLiveView<Value> = delegated_workspace
+    let delegated_view: ForgeQueryLiveView<ForgeQueryNativeRow> = delegated_workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("intent-admission-live-read")
         })
         .expect("live view should declare");
@@ -70,11 +78,19 @@ fn workspace_read_delegates_to_live_read_intent_execution() {
     let runtime = read_runtime();
     let mut canonical_workspace =
         ForgeQueryWorkspace::new("canonical-live-read", runtime).expect("workspace should build");
-    let canonical_view: ForgeQueryLiveView<Value> = canonical_workspace
+    let canonical_view: ForgeQueryLiveView<ForgeQueryNativeRow> = canonical_workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("intent-admission-live-read")
         })
         .expect("live view should declare");
@@ -110,13 +126,13 @@ fn workspace_read_delegates_to_live_read_intent_execution() {
 #[test]
 fn runtime_read_live_delegates_to_canonical_live_read_execution() {
     let mut runtime = read_runtime();
-    let live_view: ForgeQueryLiveView<Value> = runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+    let live_view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
+        .declare_live_view::<ForgeQueryNativeRow>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
 
     let delegated = runtime.read_live(&live_view);
     let canonical = runtime
-        .execute_live_read_by_name(live_view.name())
+        .read_live_result(&live_view)
         .expect("canonical runtime live read should execute");
 
     assert_eq!(delegated, canonical.rows());

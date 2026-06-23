@@ -6,6 +6,7 @@ use arc_swap::ArcSwap;
 
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::shared_read_pins::ForgeQuerySharedReadGenerationId;
+use crate::runtime::ForgeQueryDerivedMaterializationTarget;
 
 use super::{
     ForgeQueryPublishedArtifactCounters, ForgeQueryPublishedArtifactDiagnostics,
@@ -23,7 +24,7 @@ impl ForgeQueryPublishedArtifactRegistry {
     pub(in crate::runtime) fn publish_generation(
         &self,
         generation: &ForgeQuerySharedReadGenerationId,
-        entries: BTreeMap<String, ForgeQueryPublishedArtifactEntry>,
+        entries: BTreeMap<ForgeQueryDerivedMaterializationTarget, ForgeQueryPublishedArtifactEntry>,
     ) {
         let mut generations = self.generations.load_full().as_ref().clone();
         generations.publish_generation(generation, entries);
@@ -40,9 +41,9 @@ impl ForgeQueryPublishedArtifactRegistry {
     pub(in crate::runtime) fn resolve(
         &self,
         generation: &ForgeQuerySharedReadGenerationId,
-        view_name: &str,
+        target: &ForgeQueryDerivedMaterializationTarget,
     ) -> ForgeQueryPublishedArtifactResolution {
-        let resolution = self.generations.load().resolve(generation, view_name);
+        let resolution = self.generations.load().resolve(generation, target);
         if matches!(
             resolution,
             ForgeQueryPublishedArtifactResolution::Published { .. }
@@ -73,7 +74,7 @@ impl ForgeQueryPublishedArtifactGenerations {
     fn publish_generation(
         &mut self,
         generation: &ForgeQuerySharedReadGenerationId,
-        entries: BTreeMap<String, ForgeQueryPublishedArtifactEntry>,
+        entries: BTreeMap<ForgeQueryDerivedMaterializationTarget, ForgeQueryPublishedArtifactEntry>,
     ) {
         self.generations.insert(
             generation.ordinal(),
@@ -95,12 +96,12 @@ impl ForgeQueryPublishedArtifactGenerations {
     fn resolve(
         &self,
         generation: &ForgeQuerySharedReadGenerationId,
-        view_name: &str,
+        target: &ForgeQueryDerivedMaterializationTarget,
     ) -> ForgeQueryPublishedArtifactResolution {
         let Some(published_generation) = self.generations.get(&generation.ordinal()) else {
             return ForgeQueryPublishedArtifactResolution::MissingGeneration;
         };
-        published_generation.resolve(generation, view_name)
+        published_generation.resolve(generation, target)
     }
 
     fn generation_diagnostics(&self) -> Vec<ForgeQueryPublishedArtifactGenerationDiagnostic> {
@@ -115,14 +116,14 @@ impl ForgeQueryPublishedArtifactGenerations {
 struct ForgeQueryPublishedArtifactGeneration {
     ordinal: u64,
     snapshot_identity: ForgeQuerySnapshotIdentity,
-    entries: BTreeMap<String, ForgeQueryPublishedArtifactEntry>,
+    entries: BTreeMap<ForgeQueryDerivedMaterializationTarget, ForgeQueryPublishedArtifactEntry>,
 }
 
 impl ForgeQueryPublishedArtifactGeneration {
     fn new(
         ordinal: u64,
         snapshot_identity: ForgeQuerySnapshotIdentity,
-        entries: BTreeMap<String, ForgeQueryPublishedArtifactEntry>,
+        entries: BTreeMap<ForgeQueryDerivedMaterializationTarget, ForgeQueryPublishedArtifactEntry>,
     ) -> Self {
         Self {
             ordinal,
@@ -134,16 +135,19 @@ impl ForgeQueryPublishedArtifactGeneration {
     fn resolve(
         &self,
         generation: &ForgeQuerySharedReadGenerationId,
-        view_name: &str,
+        target: &ForgeQueryDerivedMaterializationTarget,
     ) -> ForgeQueryPublishedArtifactResolution {
         if self.ordinal != generation.ordinal()
             || self.snapshot_identity != *generation.snapshot_identity()
         {
             return ForgeQueryPublishedArtifactResolution::MissingGeneration;
         }
-        let Some(entry) = self.entries.get(view_name) else {
+        let Some(entry) = self.entries.get(target) else {
             return ForgeQueryPublishedArtifactResolution::MissingView;
         };
+        if entry.target() != target {
+            return ForgeQueryPublishedArtifactResolution::MissingView;
+        }
         match entry.published_binding() {
             Some(binding) => ForgeQueryPublishedArtifactResolution::Published {
                 binding,

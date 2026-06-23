@@ -19,4 +19,4 @@ help: you might have meant to use an associated function to build this type
 4 -     let _ = ForgeQueryGraphTouchSelector {};
 4 +     let _ = ForgeQueryGraphTouchSelector::relational_kind_id(_);
   |
-  = and 3 other candidates
+  = and 5 other candidates

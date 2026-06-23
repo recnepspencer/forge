@@ -8,8 +8,11 @@ use super::super::super::source::ProjectionSourceReferenceIdentity;
 pub(crate) fn compose_fact_request_entry_digest(request: &ProjectionFactRequest) -> String {
     let mut encoder = consumption_scope_encoder("projection_fact_request_entry_v1")
         .field_shape(ForgeQueryEvidenceTag::new("kind"), request.kind().as_str());
-    if let Some(field) = request.field_key() {
-        encoder = encoder.field_shape(ForgeQueryEvidenceTag::new("field"), field);
+    if let Some(field) = request.field_path() {
+        encoder = encoder.field_shape(
+            ForgeQueryEvidenceTag::new("field"),
+            field.terminal_projection_for_boundary(),
+        );
     }
     seal(encoder)
 }
@@ -36,8 +39,11 @@ pub(crate) fn compose_bound_fact_family_entry_digest(
             ForgeQueryEvidenceTag::new("support_posture"),
             fact_family.support_posture().as_str(),
         );
-    if let Some(field_key) = fact_family.field_key() {
-        encoder = encoder.field_shape(ForgeQueryEvidenceTag::new("field"), field_key);
+    if let Some(field_path) = fact_family.field_path() {
+        encoder = encoder.field_shape(
+            ForgeQueryEvidenceTag::new("field"),
+            field_path.terminal_projection_for_boundary(),
+        );
     }
     seal(encoder)
 }

@@ -13,10 +13,11 @@ mod state;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use forge_foundational::facade::AspectValue;
 use forge_query::facade::{
-    ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntime, ForgeQueryRuntimeSupportProfile,
+    ForgeQueryAspectTouch, ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntime,
+    ForgeQueryRuntimeSupportProfile,
 };
-use serde_json::Value;
 
 use self::adapters::{
     PublicInspectorEvidenceAdapter, PublicPreviewBasisAdapter, PublicSchemaAdapter,
@@ -24,7 +25,7 @@ use self::adapters::{
     PublicSubscriptionActivationAdapter, PublicWriteAuthorityAdapter,
 };
 use self::existing_truth_adapter::PublicExistingTruthVerificationAdapter;
-use self::state::PublicBridgeRuntimeState;
+use self::state::{PublicBridgeRuntimeState, PublicExistingTruthKey};
 
 type SharedRuntimeState = Rc<RefCell<PublicBridgeRuntimeState>>;
 

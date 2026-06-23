@@ -9,7 +9,7 @@ fn admitted_intent_receipt_exposes_linear_decision_trace() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({"entity": "task-1", "title": "Intent committed title"}),
+            test_intent_input([("entity", "task-1"), ("title", "Intent committed title")]),
         ))
         .expect("intent should execute");
     let decision_trace = receipt.decision_trace_envelope();
@@ -112,13 +112,17 @@ fn effect_triggered_trace_eligibility_preserves_write_adjacent_trigger_proof() {
         "remask-drift:cause:task-title",
     );
     let live = runtime
-        .declare_live_view::<Value>("tasks.trace-follow-on", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.trace-follow-on",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(
+        .declare_effect::<ForgeQueryNativeRow>(
             ForgeQueryEffectDeclaration::write_intent(
                 "effects.trace-follow-on",
-                ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+                ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
                 "strategy.intent.reconcile",
             )
             .with_write_adjacent_trigger(
@@ -129,11 +133,11 @@ fn effect_triggered_trace_eligibility_preserves_write_adjacent_trigger_proof() {
         .expect("remask drift effect should declare");
 
     runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from remask drift"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title from remask drift",
+        ))
         .expect("write should queue pending intent");
 
     let receipt = runtime

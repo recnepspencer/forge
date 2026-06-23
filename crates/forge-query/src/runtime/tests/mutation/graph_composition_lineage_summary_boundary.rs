@@ -5,13 +5,21 @@ fn compose_graph_without_lineage_steps_fails_closed_on_lineage_summary() {
     let mut workspace = stateful_bridge_vertex_runtime()
         .workspace("topology.graph-composition-no-lineage-summary")
         .expect("workspace should open");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view(
             "topology.graph-composition-no-lineage-summary-vertices",
             |q| {
                 q.from("Vertex")
-                    .select(["identity.id", "kind.value"])
-                    .order_by("identity.id")
+                    .select([
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                            .unwrap(),
+                    ])
+                    .order_by(
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                    )
                     .schema_basis("topology-graph-composition-no-lineage-summary-vertices")
             },
         )
@@ -21,8 +29,14 @@ fn compose_graph_without_lineage_steps_fails_closed_on_lineage_summary() {
         .compose_graph(|graph| {
             graph.insert_entity("vertex-only", "Vertex", |vertex| {
                 vertex
-                    .aspect("identity.id", "vertex-only")
-                    .aspect("kind.value", "plain")
+                    .set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value("vertex-only"),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("kind.value"),
+                        test_authored_string_aspect_value("plain"),
+                    )
             })?;
             Ok(())
         })

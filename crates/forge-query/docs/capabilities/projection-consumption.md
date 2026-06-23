@@ -386,7 +386,7 @@ Those are framework-level artifacts, not the normal app entry point.
   exist as narrower expert utilities and should not be treated as the primary
   typed-fact path.
 - This feature does not replace `workspace.read(...)`, `workspace.observe(...)`,
-  or `workspace.materialize(...)`. Use those when rows are the real product
+  or `workspace.materialize_result(...)`. Use those when rows are the real product
   surface.
 
 ## Related Docs

@@ -12,7 +12,14 @@ use super::support::{test_binding, test_binding_with_projection_metadata, test_s
 fn equivalent_declarations_share_digest() {
     let requested = ProjectMaterializedFacts::declare()
         .entity_identities()
-        .display_field("profile.display_name");
+        .display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
+            ]),
+        );
 
     let left = declare_projection_consumption(
         test_source(ProjectionSourceFamily::QueryReadReceipt),
@@ -37,7 +44,14 @@ fn read_receipt_admits_visible_identity_and_display_requests() {
         test_binding(&["identity.id", "profile.display_name"]),
         ProjectMaterializedFacts::declare()
             .entity_identities()
-            .display_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            ),
     )
     .expect("read-backed declaration should be valid");
 
@@ -57,7 +71,14 @@ fn masked_display_field_denies_before_admission() {
         test_binding(&["identity.id"]),
         ProjectMaterializedFacts::declare()
             .entity_identities()
-            .display_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            ),
     )
     .expect("masked field declaration should still be structurally valid");
 
@@ -136,7 +157,14 @@ fn query_context_support_and_admission_share_warning_posture() {
     let declaration = declare_projection_consumption(
         source,
         test_binding(&["profile.display_name"]),
-        ProjectMaterializedFacts::declare().derived_scalar_field("profile.display_name"),
+        ProjectMaterializedFacts::declare().derived_scalar_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
+            ]),
+        ),
     )
     .expect("query-context declaration should be valid");
     let eligibility = evaluate_projection_consumption_eligibility(&declaration);
@@ -172,7 +200,7 @@ fn source_and_binding_result_shapes_must_match() {
         ProjectionConsumptionBindingContext::test_only(
             "result-shape:other",
             "authorized-projection:test",
-            vec!["identity.id".to_string()],
+            crate::projection_consumption::test_authorized_field_paths(&["identity.id"]),
         ),
         ProjectMaterializedFacts::declare().entity_identities(),
     );
@@ -219,7 +247,7 @@ fn binding_result_shape_must_match_authorized_projection_result_shape() {
             "narrowed-result-shape:test",
             "policy:test",
             "tenant-schema:test",
-            vec!["identity.id".to_string()],
+            crate::projection_consumption::test_authorized_field_paths(&["identity.id"]),
         ),
         ProjectMaterializedFacts::declare().entity_identities(),
     );

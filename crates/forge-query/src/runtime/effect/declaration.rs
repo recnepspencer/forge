@@ -6,11 +6,12 @@ use super::follow_on::{
     ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryEffectWriteAdjacentTriggerClass,
 };
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::runtime::ForgeQueryAspectTouch;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryEffectTrigger {
     pub(in crate::runtime::effect) source: ForgeQueryEffectTriggerSource,
-    aspects: Vec<String>,
+    aspects: Vec<ForgeQueryAspectTouch>,
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::runtime::effect) enum ForgeQueryEffectTriggerSource {
@@ -20,36 +21,36 @@ pub(in crate::runtime::effect) enum ForgeQueryEffectTriggerSource {
 impl ForgeQueryEffectTrigger {
     pub fn live_view<T>(
         view: &ForgeQueryLiveView<T>,
-        aspects: impl IntoIterator<Item = impl Into<String>>,
+        aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
     ) -> Self {
         Self {
             source: ForgeQueryEffectTriggerSource::LiveView {
                 view_name: view.name().to_string(),
             },
-            aspects: aspects.into_iter().map(Into::into).collect(),
+            aspects: aspects.into_iter().collect(),
         }
     }
     pub fn computed_view<T>(
         view: &ForgeQueryDerivedViewHandle<T>,
-        aspects: impl IntoIterator<Item = impl Into<String>>,
+        aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
     ) -> Self {
         Self {
             source: ForgeQueryEffectTriggerSource::ComputedView {
                 view_name: view.name().to_string(),
             },
-            aspects: aspects.into_iter().map(Into::into).collect(),
+            aspects: aspects.into_iter().collect(),
         }
     }
     #[cfg(test)]
     pub(in crate::runtime) fn live_view_name(
         view_name: impl Into<String>,
-        aspects: impl IntoIterator<Item = impl Into<String>>,
+        aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
     ) -> Self {
         Self {
             source: ForgeQueryEffectTriggerSource::LiveView {
                 view_name: view_name.into(),
             },
-            aspects: aspects.into_iter().map(Into::into).collect(),
+            aspects: aspects.into_iter().collect(),
         }
     }
     pub fn source_name(&self) -> &str {
@@ -58,7 +59,7 @@ impl ForgeQueryEffectTrigger {
             | ForgeQueryEffectTriggerSource::ComputedView { view_name } => view_name,
         }
     }
-    pub fn aspects(&self) -> &[String] {
+    pub fn aspect_touches(&self) -> &[ForgeQueryAspectTouch] {
         &self.aspects
     }
     pub fn source_kind(&self) -> ForgeQueryEffectTriggerSourceKind {
@@ -96,25 +97,25 @@ impl ForgeQueryEffectCondition {
     }
     pub fn expression(
         descriptor: impl Into<String>,
-        input_aspects: impl IntoIterator<Item = impl Into<String>>,
-        output_aspects: impl IntoIterator<Item = impl Into<String>>,
+        input_aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
+        output_aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
     ) -> Self {
         Self::Expression(ForgeQueryEffectExpression {
             descriptor: descriptor.into(),
-            input_aspects: input_aspects.into_iter().map(Into::into).collect(),
-            output_aspects: output_aspects.into_iter().map(Into::into).collect(),
+            input_aspects: input_aspects.into_iter().collect(),
+            output_aspects: output_aspects.into_iter().collect(),
             failure_posture: ForgeQueryEffectExpressionFailurePosture::Admitted,
         })
     }
     pub fn failing_expression(
         descriptor: impl Into<String>,
-        input_aspects: impl IntoIterator<Item = impl Into<String>>,
-        output_aspects: impl IntoIterator<Item = impl Into<String>>,
+        input_aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
+        output_aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
     ) -> Self {
         Self::Expression(ForgeQueryEffectExpression {
             descriptor: descriptor.into(),
-            input_aspects: input_aspects.into_iter().map(Into::into).collect(),
-            output_aspects: output_aspects.into_iter().map(Into::into).collect(),
+            input_aspects: input_aspects.into_iter().collect(),
+            output_aspects: output_aspects.into_iter().collect(),
             failure_posture: ForgeQueryEffectExpressionFailurePosture::DeterministicFailure,
         })
     }
@@ -122,8 +123,8 @@ impl ForgeQueryEffectCondition {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryEffectExpression {
     descriptor: String,
-    input_aspects: Vec<String>,
-    output_aspects: Vec<String>,
+    input_aspects: Vec<ForgeQueryAspectTouch>,
+    output_aspects: Vec<ForgeQueryAspectTouch>,
     failure_posture: ForgeQueryEffectExpressionFailurePosture,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -135,16 +136,17 @@ impl ForgeQueryEffectExpression {
     pub fn descriptor(&self) -> &str {
         &self.descriptor
     }
-    pub fn input_aspects(&self) -> &[String] {
+    pub fn input_aspect_touches(&self) -> &[ForgeQueryAspectTouch] {
         &self.input_aspects
     }
-    pub fn output_aspects(&self) -> &[String] {
+    pub fn output_aspect_touches(&self) -> &[ForgeQueryAspectTouch] {
         &self.output_aspects
     }
     pub fn failure_posture(&self) -> ForgeQueryEffectExpressionFailurePosture {
         self.failure_posture
     }
 }
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryEffectSuppressionPolicy {
     None,

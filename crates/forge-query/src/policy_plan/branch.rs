@@ -64,7 +64,7 @@ pub fn lower_policy_aware_branch_plan(
             artifact,
             PolicyAwareExecutionMode::BranchRead,
             PolicyAwarePlanCostPosture::RuntimeBranchBounded,
-            artifact.authorized_projection().visible_fields().len(),
+            artifact.authorized_projection().visible_field_paths().len(),
             0,
         ),
         basis,

@@ -55,11 +55,11 @@ fn runtime_mixed_cause_delivery_replays_canonically_across_shuffled_bridge_input
         .expect("mixed-cause delivery window should plan");
 
     let mut runtime_a = stateful_bridge_task_runtime();
-    let view_a: ForgeQueryLiveView<Value> = runtime_a
+    let view_a: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime_a
         .declare_live_view("tasks.mixed-cause-a", task_live_request(), task_schema())
         .expect("first live view should declare");
     let mut runtime_b = stateful_bridge_task_runtime();
-    let view_b: ForgeQueryLiveView<Value> = runtime_b
+    let view_b: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime_b
         .declare_live_view("tasks.mixed-cause-b", task_live_request(), task_schema())
         .expect("second live view should declare");
 
@@ -130,7 +130,7 @@ fn runtime_mixed_cause_delivery_retains_duplicate_suppression_explicitly() {
         .expect("single ordered cause should still plan a delivery window");
 
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.mixed-duplicate", task_live_request(), task_schema())
         .expect("live view should declare");
     runtime
@@ -183,7 +183,7 @@ fn runtime_mixed_cause_delivery_preserves_denied_preview_boundary_without_coales
         .expect("authoritative truth patch should still admit a delivery window");
 
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.mixed-preview-boundary",
             task_live_request(),
@@ -248,7 +248,7 @@ fn runtime_state_and_inspection_retain_mixed_cause_delivery_projection_after_dra
         .expect("coalesced mixed-cause delivery window should plan");
 
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.mixed-state-inspection",
             task_live_request(),
@@ -261,7 +261,7 @@ fn runtime_state_and_inspection_retain_mixed_cause_delivery_projection_after_dra
     let _drained = runtime.drain_patches(&view);
 
     let snapshot =
-        <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
+        <&ForgeQueryLiveView<ForgeQueryNativeRow> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
             &view, &runtime,
         )
         .expect("state snapshot should remain available after drain");

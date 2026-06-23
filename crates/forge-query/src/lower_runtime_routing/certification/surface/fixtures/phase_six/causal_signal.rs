@@ -24,7 +24,9 @@ use forge_signal::facade::adapters::{
 };
 use forge_signal::facade::{Aspect, NodeId, PartitionSubscription};
 
-use super::super::{ForgeQueryLowerRuntimeRepresentativeEvidenceSource, RepresentativeArtifacts};
+use super::super::{
+    title_value_touch, ForgeQueryLowerRuntimeRepresentativeEvidenceSource, RepresentativeArtifacts,
+};
 
 pub(crate) fn representative_causal_bridge_materialization_row() -> RepresentativeArtifacts {
     let read_result = certification_read_result();
@@ -213,7 +215,10 @@ fn certification_read_result() -> ForgeQueryReadResult {
         .expect("causal bridge workspace should build");
     workspace
         .insert("Task", |task: ForgeQueryAspectMutationBuilder| {
-            task.aspect("title.value", "Causal fixture")
+            task.set_aspect(
+                title_value_touch(),
+                crate::runtime::ForgeQueryAuthoredAspectValue::string("Causal fixture"),
+            )
         })
         .expect("causal bridge seed write should succeed");
     let family = certification_read_family(&mut workspace, "lower-runtime-causal-family");
@@ -233,8 +238,20 @@ fn certification_read_family(
                 QuerySchemaView::new(
                     "lower-runtime-causal-read",
                     [
-                        SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-                        SchemaFieldView::new("title", "value", SchemaFieldKind::String),
+                        SchemaFieldView::new(
+                            crate::authoring::AspectName::new("identity")
+                                .expect("schema aspect literal must be valid"),
+                            crate::authoring::FieldName::new("id")
+                                .expect("schema field literal must be valid"),
+                            SchemaFieldKind::String,
+                        ),
+                        SchemaFieldView::new(
+                            crate::authoring::AspectName::new("title")
+                                .expect("schema aspect literal must be valid"),
+                            crate::authoring::FieldName::new("value")
+                                .expect("schema field literal must be valid"),
+                            SchemaFieldKind::String,
+                        ),
                     ],
                     [],
                 ),

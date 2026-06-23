@@ -5,6 +5,7 @@ use crate::application::{
     ForgeQueryDomainEntryMarker, ForgeQueryGraphObligationOrchestrationDispatch,
     ForgeQueryGroupedDeclarationPosture,
 };
+use crate::authoring::AspectFieldKey;
 use crate::identity::hash_parts;
 
 use super::posture::{
@@ -48,18 +49,18 @@ impl ForgeQueryGroupedDeclarationAspectRecord {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGroupedAspectParticipationSummary {
-    present_any: Vec<String>,
-    present_all: Vec<String>,
-    masked_any: Vec<String>,
-    conflicting_any: Vec<String>,
+    present_any: Vec<AspectFieldKey>,
+    present_all: Vec<AspectFieldKey>,
+    masked_any: Vec<AspectFieldKey>,
+    conflicting_any: Vec<AspectFieldKey>,
 }
 
 impl ForgeQueryGroupedAspectParticipationSummary {
     pub(crate) fn new(
-        present_any: Vec<String>,
-        present_all: Vec<String>,
-        masked_any: Vec<String>,
-        conflicting_any: Vec<String>,
+        present_any: Vec<AspectFieldKey>,
+        present_all: Vec<AspectFieldKey>,
+        masked_any: Vec<AspectFieldKey>,
+        conflicting_any: Vec<AspectFieldKey>,
     ) -> Self {
         Self {
             present_any,
@@ -69,20 +70,34 @@ impl ForgeQueryGroupedAspectParticipationSummary {
         }
     }
 
-    pub fn present_any(&self) -> &[String] {
+    pub fn present_any(&self) -> &[AspectFieldKey] {
         &self.present_any
     }
 
-    pub fn present_all(&self) -> &[String] {
+    pub fn present_all(&self) -> &[AspectFieldKey] {
         &self.present_all
     }
 
-    pub fn masked_any(&self) -> &[String] {
+    pub fn masked_any(&self) -> &[AspectFieldKey] {
         &self.masked_any
     }
 
-    pub fn conflicting_any(&self) -> &[String] {
+    pub fn conflicting_any(&self) -> &[AspectFieldKey] {
         &self.conflicting_any
+    }
+
+    pub(crate) fn terminal_present_all_projections_for_boundary(&self) -> Vec<String> {
+        self.present_all
+            .iter()
+            .map(grouped_terminal_declaration_aspect_projection_for_digest)
+            .collect()
+    }
+
+    pub(crate) fn terminal_conflicting_any_projections_for_boundary(&self) -> Vec<String> {
+        self.conflicting_any
+            .iter()
+            .map(grouped_terminal_declaration_aspect_projection_for_digest)
+            .collect()
     }
 }
 
@@ -213,11 +228,15 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             format!("aspect_coverage_basis:{:?}", aspect_record.coverage_basis()),
             format!(
                 "present_all:{}",
-                aspect_participation.present_all().join("|")
+                aspect_participation
+                    .terminal_present_all_projections_for_boundary()
+                    .join("|")
             ),
             format!(
                 "conflicting_any:{}",
-                aspect_participation.conflicting_any().join("|")
+                aspect_participation
+                    .terminal_conflicting_any_projections_for_boundary()
+                    .join("|")
             ),
             format!(
                 "members:{}",
@@ -327,4 +346,8 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     pub fn group_digest(&self) -> &str {
         &self.group_digest
     }
+}
+
+fn grouped_terminal_declaration_aspect_projection_for_digest(key: &AspectFieldKey) -> String {
+    format!("{}.{}", key.aspect().as_str(), key.field().as_str())
 }

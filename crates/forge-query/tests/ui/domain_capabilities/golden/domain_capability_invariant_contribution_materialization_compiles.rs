@@ -1,8 +1,7 @@
 use forge_query::facade::runtime::{
-    forge_query_domain, ForgeQueryIntentDeclaration, InvariantCatalog, InvariantRegistration,
+    forge_query_domain, ForgeQueryIntentDeclaration, ForgeQueryIntentInput, InvariantCatalog, InvariantRegistration,
     InvariantRule,
 };
-use serde_json::json;
 
 fn invariant_common_lane() {
     let declaration = ForgeQueryIntentDeclaration::strategy_commit(
@@ -10,7 +9,7 @@ fn invariant_common_lane() {
         "spatial.commit",
         "1",
         "geometry.patch",
-        json!({"edge":"e-1"}),
+        ForgeQueryIntentInput::object([("edge", ForgeQueryIntentInput::string("e-1"))]),
     );
     let invariant_catalog = InvariantCatalog {
         registrations: vec![InvariantRegistration::commit_boundary_blocking(

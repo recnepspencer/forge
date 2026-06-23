@@ -4,19 +4,23 @@ use super::super::support::*;
 fn preview_effect_policy_bindings_distinguish_delivery_and_write_intent() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>("tasks.preview-policy", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.preview-policy",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let delivery_effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::deliver(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::deliver(
             "ui.preview-policy",
-            ForgeQueryEffectTrigger::live_view(&live, ["title"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "ui.preview",
         ))
         .expect("delivery effect should declare");
     let intent_effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "intent.preview-policy",
-            ForgeQueryEffectTrigger::live_view(&live, ["title"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "preview-intent",
         ))
         .expect("write-intent effect should declare");

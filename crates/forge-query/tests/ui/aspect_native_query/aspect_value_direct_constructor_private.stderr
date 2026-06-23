@@ -1,0 +1,13 @@
+error[E0624]: associated function `new_set` is private
+ --> tests/ui/aspect_native_query/aspect_value_direct_constructor_private.rs:6:44
+  |
+6 |       let _ = ForgeQueryAdmittedAspectValue::new_set(
+  |                                              ^^^^^^^ private associated function
+  |
+ ::: src/runtime/mutation/aspect.rs
+  |
+  | /     pub(crate) fn new_set(
+  | |         aspect_touch: ForgeQueryAspectTouch,
+  | |         value: AspectValue,
+  | |     ) -> Result<Self, ForgeQueryWorkspaceError> {
+  | |_______________________________________________- private associated function defined here

@@ -1,10 +1,10 @@
 use super::super::*;
-use super::state::StatefulBridgeState;
-use serde_json::Value;
+use super::state::{NativeExternalRow, StatefulBridgeState};
+use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 
 pub(super) fn apply_command(
     state: &mut StatefulBridgeState,
-    command: &ForgeQueryWriteCommand,
+    mutation: &ForgeQueryBackendAdmissibleMutation,
     collection: &str,
     entity_identity: &ForgeQueryEntityIdentity,
     entity_identity_text: &str,
@@ -12,9 +12,9 @@ pub(super) fn apply_command(
     let entity_identity_key = entity_identity
         .terminal_projection_for_reporting()
         .to_string();
-    match command.mutation_family() {
+    match mutation.mutation_family() {
         ForgeQueryMutationFamily::Insert => {
-            let external_row = external_row_from_command(state, command)?;
+            let external_row = external_row_from_mutation(state, mutation)?;
             state
                 .rows_by_collection
                 .entry(collection.to_string())
@@ -26,7 +26,7 @@ pub(super) fn apply_command(
             state
                 .identity_by_storage_key
                 .insert(entity_identity_key.clone(), entity_identity.clone());
-            if let Some(reference) = command.symbolic_target_reference() {
+            if let Some(reference) = mutation.symbolic_target_reference() {
                 state
                     .identity_by_symbol
                     .insert(reference.symbol().to_string(), entity_identity.clone());
@@ -38,7 +38,7 @@ pub(super) fn apply_command(
             Ok(ForgeQueryMutationKind::Created)
         }
         ForgeQueryMutationFamily::Update | ForgeQueryMutationFamily::Assertion => {
-            let resolved_aspects = resolved_aspects(state, command)?;
+            let resolved_aspects = resolved_aspects(state, mutation)?;
             let row = state
                 .rows_by_collection
                 .entry(collection.to_string())
@@ -69,19 +69,19 @@ pub(super) fn apply_command(
     }
 }
 
-fn external_row_from_command(
+fn external_row_from_mutation(
     state: &StatefulBridgeState,
-    command: &ForgeQueryWriteCommand,
-) -> Result<Value, ForgeQueryWorkspaceError> {
-    external_row_from_aspects(&resolved_aspects(state, command)?)
+    mutation: &ForgeQueryBackendAdmissibleMutation,
+) -> Result<NativeExternalRow, ForgeQueryWorkspaceError> {
+    external_row_from_aspects(&resolved_aspects(state, mutation)?)
 }
 
 fn resolved_aspects(
     state: &StatefulBridgeState,
-    command: &ForgeQueryWriteCommand,
-) -> Result<Vec<ForgeQueryAspectValue>, ForgeQueryWorkspaceError> {
-    let mut aspects = command.aspect_values().to_vec();
-    for reference in command.symbolic_aspect_references() {
+    mutation: &ForgeQueryBackendAdmissibleMutation,
+) -> Result<Vec<ForgeQueryAdmittedAspectValue>, ForgeQueryWorkspaceError> {
+    let mut aspects = mutation.admitted_aspect_values().to_vec();
+    for reference in mutation.symbolic_aspect_references() {
         let resolved_identity = state
             .identity_text_by_symbol
             .get(reference.reference().symbol())
@@ -92,74 +92,91 @@ fn resolved_aspects(
                     reference.reference().symbol()
                 ))
             })?;
-        aspects.push(ForgeQueryAspectValue::new_set(
-            reference.aspect_path().to_string(),
-            resolved_identity,
+        aspects.push(ForgeQueryAdmittedAspectValue::new_set(
+            reference.aspect_touch().clone(),
+            crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(resolved_identity),
         )?);
     }
     Ok(aspects)
 }
 
 fn external_row_from_aspects(
-    aspects: &[ForgeQueryAspectValue],
-) -> Result<Value, ForgeQueryWorkspaceError> {
-    let mut external_row = Value::Object(serde_json::Map::new());
+    aspects: &[ForgeQueryAdmittedAspectValue],
+) -> Result<NativeExternalRow, ForgeQueryWorkspaceError> {
+    let mut external_row = NativeExternalRow::new();
     apply_aspects_to_external_row(&mut external_row, aspects)?;
     Ok(external_row)
 }
 
 fn apply_aspects_to_external_row(
-    external_row: &mut Value,
-    aspects: &[ForgeQueryAspectValue],
+    external_row: &mut NativeExternalRow,
+    aspects: &[ForgeQueryAdmittedAspectValue],
 ) -> Result<(), ForgeQueryWorkspaceError> {
     for aspect in aspects {
-        set_external_row_path(external_row, aspect.aspect_path(), aspect.value().clone())?;
+        let aspect_touch = aspect.aspect_touch();
+        set_external_row_touch(
+            external_row,
+            &aspect_touch,
+            aspect
+                .foundational_value()
+                .cloned()
+                .unwrap_or(AspectValue::Null),
+        )?;
     }
     Ok(())
 }
 
-fn set_external_row_path(
-    external_row: &mut Value,
-    dotted_path: &str,
-    value: Value,
+fn set_external_row_touch(
+    external_row: &mut NativeExternalRow,
+    aspect_touch: &ForgeQueryAspectTouch,
+    value: AspectValue,
 ) -> Result<(), ForgeQueryWorkspaceError> {
-    let mut current = external_row;
-    let mut parts = dotted_path.split('.').peekable();
-    while let Some(part) = parts.next() {
-        if parts.peek().is_none() {
-            return match current {
-                Value::Object(object) => {
-                    object.insert(part.to_string(), value);
-                    Ok(())
-                }
-                _ => Err(ForgeQueryWorkspaceError::new(format!(
-                    "stateful bridge external row path `{dotted_path}` crossed a non-object boundary"
-                ))),
-            };
-        }
-        current = match current {
-            Value::Object(object) => object
-                .entry(part.to_string())
-                .or_insert_with(|| Value::Object(serde_json::Map::new())),
-            _ => {
-                return Err(ForgeQueryWorkspaceError::new(format!(
-                "stateful bridge external row path `{dotted_path}` crossed a non-object boundary"
-            )))
-            }
-        };
-    }
+    external_row.insert(native_external_field_path_for_touch(aspect_touch)?, value);
     Ok(())
 }
 
-pub(super) fn external_row_text(external_row: &Value, dotted_path: &str) -> Option<String> {
-    let mut current = external_row;
-    for part in dotted_path.split('.') {
-        current = current.get(part)?;
+pub(super) fn native_external_field_path_for_touch(
+    aspect_touch: &ForgeQueryAspectTouch,
+) -> Result<CanonicalFieldPath, ForgeQueryWorkspaceError> {
+    let mut fields = vec![
+        FieldKey::new(aspect_touch.native_aspect_key().as_str()).ok_or_else(|| {
+            ForgeQueryWorkspaceError::new(format!(
+                "stateful bridge could not use native aspect `{}` as an external field",
+                aspect_touch.native_aspect_key().as_str()
+            ))
+        })?,
+    ];
+    if let Some(field_path) = aspect_touch.native_field_path() {
+        fields.extend(field_path.fields().iter().cloned());
     }
-    match current {
-        Value::String(text) => Some(text.clone()),
-        Value::Number(number) => Some(number.to_string()),
-        Value::Bool(flag) => Some(flag.to_string()),
+    CanonicalFieldPath::new(fields).ok_or_else(|| {
+        ForgeQueryWorkspaceError::new(format!(
+            "stateful bridge could not derive external field path for `{}`",
+            aspect_touch.admitted_touch_digest_part()
+        ))
+    })
+}
+
+pub(super) fn external_row_text_at_path(
+    external_row: &NativeExternalRow,
+    field_path: &CanonicalFieldPath,
+) -> Option<String> {
+    match external_row.get(&field_path)? {
+        AspectValue::String(value) => Some(match value {
+            forge_foundational::facade::InternedString::Raw(value) => value.clone(),
+            forge_foundational::facade::InternedString::Symbol(symbol) => {
+                format!("symbol:{}", symbol.0)
+            }
+        }),
+        AspectValue::Int8(value) => Some(value.to_string()),
+        AspectValue::Int16(value) => Some(value.to_string()),
+        AspectValue::Int32(value) => Some(value.to_string()),
+        AspectValue::Int64(value) => Some(value.to_string()),
+        AspectValue::UInt8(value) => Some(value.to_string()),
+        AspectValue::UInt16(value) => Some(value.to_string()),
+        AspectValue::UInt32(value) => Some(value.to_string()),
+        AspectValue::UInt64(value) => Some(value.to_string()),
+        AspectValue::Bool(value) => Some(value.to_string()),
         _ => None,
     }
 }

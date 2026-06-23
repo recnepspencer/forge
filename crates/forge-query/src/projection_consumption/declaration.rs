@@ -1,5 +1,7 @@
-use crate::authorized_projection::AuthorizedProjectionArtifact;
+use crate::authorized_projection::{AuthorizedProjectionArtifact, AuthorizedProjectionFieldPath};
 use crate::canonicalization::CanonicalResultShapeArtifact;
+#[cfg(test)]
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 use super::facts::ProjectMaterializedFacts;
 use super::identity::compose_declaration_digest;
@@ -14,7 +16,7 @@ pub struct ProjectionConsumptionBindingContext {
     narrowed_result_shape_digest: String,
     policy_digest: String,
     tenant_schema_basis_digest: String,
-    authorized_visible_fields: Vec<String>,
+    authorized_visible_fields: Vec<AuthorizedProjectionFieldPath>,
 }
 
 impl ProjectionConsumptionBindingContext {
@@ -43,7 +45,7 @@ impl ProjectionConsumptionBindingContext {
             tenant_schema_basis_digest: authorized_projection
                 .tenant_schema_basis_digest()
                 .to_string(),
-            authorized_visible_fields: authorized_projection.visible_fields().to_vec(),
+            authorized_visible_fields: authorized_projection.visible_field_paths().to_vec(),
         }
     }
 
@@ -62,7 +64,7 @@ impl ProjectionConsumptionBindingContext {
         narrowed_result_shape_digest: impl Into<String>,
         policy_digest: impl Into<String>,
         tenant_schema_basis_digest: impl Into<String>,
-        authorized_visible_fields: Vec<String>,
+        authorized_visible_fields: Vec<AuthorizedProjectionFieldPath>,
     ) -> Self {
         Self {
             result_shape_digest: result_shape_digest.into(),
@@ -105,7 +107,7 @@ impl ProjectionConsumptionBindingContext {
         &self.tenant_schema_basis_digest
     }
 
-    pub fn authorized_visible_fields(&self) -> &[String] {
+    pub fn authorized_visible_field_paths(&self) -> &[AuthorizedProjectionFieldPath] {
         &self.authorized_visible_fields
     }
 
@@ -113,7 +115,7 @@ impl ProjectionConsumptionBindingContext {
     pub(crate) fn test_only(
         result_shape_digest: impl Into<String>,
         authorized_projection_identity: impl Into<String>,
-        authorized_visible_fields: Vec<String>,
+        authorized_visible_fields: Vec<AuthorizedProjectionFieldPath>,
     ) -> Self {
         Self {
             result_shape_digest: result_shape_digest.into(),
@@ -136,7 +138,7 @@ impl ProjectionConsumptionBindingContext {
         narrowed_result_shape_digest: impl Into<String>,
         policy_digest: impl Into<String>,
         tenant_schema_basis_digest: impl Into<String>,
-        authorized_visible_fields: Vec<String>,
+        authorized_visible_fields: Vec<AuthorizedProjectionFieldPath>,
     ) -> Self {
         let result_shape_digest = result_shape_digest.into();
         Self {
@@ -160,7 +162,7 @@ impl ProjectionConsumptionBindingContext {
         narrowed_result_shape_digest: impl Into<String>,
         policy_digest: impl Into<String>,
         tenant_schema_basis_digest: impl Into<String>,
-        authorized_visible_fields: Vec<String>,
+        authorized_visible_fields: Vec<AuthorizedProjectionFieldPath>,
     ) -> Self {
         let result_shape_digest = result_shape_digest.into();
         Self {
@@ -175,6 +177,35 @@ impl ProjectionConsumptionBindingContext {
             authorized_visible_fields,
         }
     }
+}
+
+#[cfg(test)]
+pub(crate) fn test_authorized_field_paths(fields: &[&str]) -> Vec<AuthorizedProjectionFieldPath> {
+    fields
+        .iter()
+        .map(|field| {
+            authorized_projection_field_path_from_test_boundary(field)
+                .expect("test authorized projection field path should be foundational")
+        })
+        .collect()
+}
+
+#[cfg(test)]
+fn authorized_projection_field_path_from_test_boundary(
+    field: &str,
+) -> Result<AuthorizedProjectionFieldPath, String> {
+    let Some((aspect, field)) = field.split_once('.') else {
+        return Err(format!(
+            "`{field}` is not a test authorized projection field path"
+        ));
+    };
+    let aspect_key = AspectKey::new(aspect.to_string())
+        .ok_or_else(|| format!("`{aspect}` is not a foundational aspect key"))?;
+    let field_key = FieldKey::new(field.to_string())
+        .ok_or_else(|| format!("`{field}` is not a foundational field key"))?;
+    Ok(AuthorizedProjectionFieldPath::from_native_keys(
+        aspect_key, field_key,
+    ))
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

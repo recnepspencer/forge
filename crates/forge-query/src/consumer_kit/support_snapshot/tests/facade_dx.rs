@@ -8,11 +8,11 @@ fn public_consumer_kit_facade_projects_exports_loads_and_compares_snapshot() {
     let matrix = workspace.public_support_matrix();
 
     let snapshot = facade::consumer_kit::project_workspace_support_snapshot(&workspace);
-    let json = snapshot
-        .to_canonical_json()
+    let terminal_json_document = snapshot
+        .to_canonical_terminal_json_document()
         .expect("facade snapshot export should encode");
-    let loaded = facade::consumer_kit::load_support_snapshot_document(
-        &json,
+    let loaded = facade::consumer_kit::load_support_snapshot_terminal_json_document(
+        &terminal_json_document.to_external_terminal_json_document(),
         facade::consumer_kit::ForgeQuerySupportSnapshotSchemaVersion::current(),
     )
     .expect("facade loader should accept current support snapshot schema");

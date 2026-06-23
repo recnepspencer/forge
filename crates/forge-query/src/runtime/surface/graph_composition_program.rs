@@ -5,6 +5,7 @@ use crate::evidence_identity::{
 use forge_relational::facade::identity::KindId;
 
 use super::ForgeQueryGraphCompositionBreadth;
+use crate::runtime::ForgeQueryMutationTargetCollectionIdentity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryGraphCompositionProgramStepKind {
@@ -51,7 +52,7 @@ impl ForgeQueryGraphCompositionProgramStepKind {
 pub struct ForgeQueryGraphCompositionProgramStep {
     component_index: usize,
     kind: ForgeQueryGraphCompositionProgramStepKind,
-    declared_collection: String,
+    declared_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
     relation_kind_id: Option<KindId>,
     declared_symbol: Option<String>,
 }
@@ -60,13 +61,13 @@ impl ForgeQueryGraphCompositionProgramStep {
     pub(crate) fn new(
         component_index: usize,
         kind: ForgeQueryGraphCompositionProgramStepKind,
-        declared_collection: impl Into<String>,
+        declared_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
         declared_symbol: Option<String>,
     ) -> Self {
         Self {
             component_index,
             kind,
-            declared_collection: declared_collection.into(),
+            declared_collection,
             relation_kind_id: None,
             declared_symbol,
         }
@@ -85,8 +86,17 @@ impl ForgeQueryGraphCompositionProgramStep {
         self.kind
     }
 
+    pub fn declared_collection_identity(
+        &self,
+    ) -> Option<&ForgeQueryMutationTargetCollectionIdentity> {
+        self.declared_collection.as_ref()
+    }
+
     pub fn declared_collection(&self) -> &str {
-        &self.declared_collection
+        self.declared_collection
+            .as_ref()
+            .map(ForgeQueryMutationTargetCollectionIdentity::as_str)
+            .unwrap_or("")
     }
 
     pub fn relation_kind_id(&self) -> Option<KindId> {

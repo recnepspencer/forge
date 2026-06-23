@@ -1,5 +1,5 @@
 use crate::consumer_kit::{
-    load_support_snapshot_document, project_support_snapshot,
+    load_support_snapshot_terminal_json_document, project_support_snapshot,
     ForgeQuerySupportSnapshotSchemaVersion,
 };
 
@@ -56,13 +56,15 @@ fn support_snapshot_matches_live_matrix_row_for_row_and_digest_for_digest() {
 fn loaded_support_snapshot_still_compares_to_the_live_matrix() {
     let matrix = live_support_matrix();
     let snapshot = project_support_snapshot(&matrix);
-    let json = snapshot
-        .to_canonical_json()
+    let terminal_json_document = snapshot
+        .to_canonical_terminal_json_document()
         .expect("snapshot JSON should encode");
 
-    let loaded =
-        load_support_snapshot_document(&json, ForgeQuerySupportSnapshotSchemaVersion::current())
-            .expect("current snapshot should load");
+    let loaded = load_support_snapshot_terminal_json_document(
+        &terminal_json_document.to_external_terminal_json_document(),
+        ForgeQuerySupportSnapshotSchemaVersion::current(),
+    )
+    .expect("current snapshot should load");
 
     loaded
         .assert_equivalent_to_live_matrix(&matrix)

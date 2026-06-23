@@ -1,11 +1,61 @@
+use std::borrow::Cow;
+
+mod terminal_json_codec;
+
 use super::error::{ForgeQuerySupportSnapshotError, ForgeQuerySupportSnapshotErrorKind};
 use super::schema::ForgeQuerySupportSnapshotSchemaVersion;
 use super::semantic_admission::admit_support_snapshot_backend_posture;
 use super::snapshot::ForgeQuerySupportSnapshot;
 use super::ForgeQuerySupportSnapshotRow;
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryExternalSupportSnapshotTerminalJsonDocument {
+    text: Cow<'static, str>,
+}
+
+impl ForgeQueryExternalSupportSnapshotTerminalJsonDocument {
+    pub fn from_external_terminal_json_document(text: impl Into<String>) -> Self {
+        Self {
+            text: Cow::Owned(text.into()),
+        }
+    }
+
+    pub const fn from_static_external_terminal_json_document(text: &'static str) -> Self {
+        Self {
+            text: Cow::Borrowed(text),
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.text.as_ref()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQuerySupportSnapshotTerminalJsonDocument {
+    text: String,
+}
+
+impl ForgeQuerySupportSnapshotTerminalJsonDocument {
+    pub(crate) fn from_native_terminal_projection(text: impl Into<String>) -> Self {
+        Self { text: text.into() }
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.text
+    }
+
+    pub fn to_external_terminal_json_document(
+        &self,
+    ) -> ForgeQueryExternalSupportSnapshotTerminalJsonDocument {
+        ForgeQueryExternalSupportSnapshotTerminalJsonDocument::from_external_terminal_json_document(
+            self.text.clone(),
+        )
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub struct ForgeQuerySupportSnapshotDocument {
+pub(crate) struct ForgeQuerySupportSnapshotDocument {
     schema_version: u16,
     schema_identity: String,
     backend_posture: String,
@@ -26,26 +76,22 @@ impl ForgeQuerySupportSnapshotDocument {
         }
     }
 
-    pub fn from_json(json: &str) -> Result<Self, ForgeQuerySupportSnapshotError> {
-        serde_json::from_str(json).map_err(|error| {
-            ForgeQuerySupportSnapshotError::new(
-                ForgeQuerySupportSnapshotErrorKind::JsonDecodeFailed,
-                format!("support snapshot document JSON decode failed: {error}"),
-            )
-        })
+    pub fn from_terminal_json_document(
+        terminal_json_document: &ForgeQueryExternalSupportSnapshotTerminalJsonDocument,
+    ) -> Result<Self, ForgeQuerySupportSnapshotError> {
+        terminal_json_codec::decode_external_terminal_json_document(terminal_json_document)
     }
 
-    pub fn to_stable_json(&self) -> Result<String, ForgeQuerySupportSnapshotError> {
-        self.to_canonical_json()
+    pub fn to_stable_terminal_json_document(
+        &self,
+    ) -> Result<ForgeQuerySupportSnapshotTerminalJsonDocument, ForgeQuerySupportSnapshotError> {
+        self.to_canonical_terminal_json_document()
     }
 
-    pub fn to_canonical_json(&self) -> Result<String, ForgeQuerySupportSnapshotError> {
-        serde_json::to_string_pretty(self).map_err(|error| {
-            ForgeQuerySupportSnapshotError::new(
-                ForgeQuerySupportSnapshotErrorKind::JsonEncodeFailed,
-                format!("support snapshot document JSON encode failed: {error}"),
-            )
-        })
+    pub fn to_canonical_terminal_json_document(
+        &self,
+    ) -> Result<ForgeQuerySupportSnapshotTerminalJsonDocument, ForgeQuerySupportSnapshotError> {
+        terminal_json_codec::encode_native_terminal_json_document(self)
     }
 
     pub(crate) fn validate(

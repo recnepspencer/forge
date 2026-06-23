@@ -1,5 +1,5 @@
 use forge_query::facade::consumer_kit::{
-    load_support_pin_contract_document, project_support_snapshot, support_pinning_contract,
+    load_support_pin_contract_terminal_json_document, project_support_snapshot, support_pinning_contract,
     ForgeQueryPinnedSupportStatus, ForgeQueryPinnedTeachingPosture, ForgeQueryRuntimeFacadeFamily,
     ForgeQuerySupportPinContractSchemaVersion, ForgeQuerySupportPinFindingKind,
 };
@@ -33,8 +33,9 @@ fn main() {
         .assert_satisfied()
         .unwrap();
 
-    let durable_pins = load_support_pin_contract_document(
-        &pins.to_canonical_json().unwrap(),
+    let terminal_json_document = pins.to_canonical_terminal_json_document().unwrap();
+    let durable_pins = load_support_pin_contract_terminal_json_document(
+        &terminal_json_document.to_external_terminal_json_document(),
         ForgeQuerySupportPinContractSchemaVersion::current(),
     )
     .unwrap();

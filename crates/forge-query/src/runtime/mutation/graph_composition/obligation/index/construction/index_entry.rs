@@ -24,7 +24,7 @@ impl ForgeQueryGraphObligationIndexEntry {
         operating_world_key: ForgeQueryGraphObligationOperatingWorldLookupKey,
         registration: ForgeQueryGraphObligationRegistration,
     ) -> Self {
-        let touch_key_value = touch_key.value();
+        let touch_key_value = touch_key.terminal_value_projection();
         let entry_digest =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::GraphObligationIndexEntry)
                 .field_shape(
@@ -57,7 +57,7 @@ impl ForgeQueryGraphObligationIndexEntry {
         self.touch_key_kind
     }
 
-    pub fn touch_key_value(&self) -> Option<&str> {
+    pub fn terminal_touch_key_value_projection(&self) -> Option<&str> {
         self.touch_key_value.as_deref()
     }
 

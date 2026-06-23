@@ -1,7 +1,12 @@
 use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
+use crate::authoring::AspectFieldKey;
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 use super::artifact::ForgeQueryGroupedDeclarationArtifact;
-use super::posture::ForgeQueryGroupedSharedPostureClaim;
+use super::posture::{
+    ForgeQueryGroupedContinuityAssumption, ForgeQueryGroupedIntent,
+    ForgeQueryGroupedSharedPostureClaim,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryGroupedSupportFeature {
@@ -157,21 +162,32 @@ fn claim_supported<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput
     claim: ForgeQueryGroupedSharedPostureClaim,
 ) -> bool {
     match claim {
-        ForgeQueryGroupedSharedPostureClaim::SharedSelectionFocus => declaration
-            .aspect_participation()
-            .present_all()
-            .iter()
-            .any(|value| value == "selection.active_face"),
-        ForgeQueryGroupedSharedPostureClaim::SharedMaterialPreview => {
+        ForgeQueryGroupedSharedPostureClaim::SharedSelectionFocus => {
+            let required_field = grouped_support_field_key("selection", "active_face");
             declaration
                 .aspect_participation()
                 .present_all()
                 .iter()
-                .any(|value| value == "selection.material_preview")
-                && declaration.grouping_intent().as_str() == "authoritative"
+                .any(|value| value == &required_field)
+        }
+        ForgeQueryGroupedSharedPostureClaim::SharedMaterialPreview => {
+            let required_field = grouped_support_field_key("selection", "material_preview");
+            declaration
+                .aspect_participation()
+                .present_all()
+                .iter()
+                .any(|value| value == &required_field)
+                && declaration.grouping_intent() == ForgeQueryGroupedIntent::Authoritative
         }
         ForgeQueryGroupedSharedPostureClaim::SharedContinuity => {
-            declaration.continuity_assumption().as_str() == "preserve_neighborhood"
+            declaration.continuity_assumption()
+                == ForgeQueryGroupedContinuityAssumption::PreserveNeighborhood
         }
     }
+}
+
+fn grouped_support_field_key(aspect: &str, field: &str) -> AspectFieldKey {
+    let aspect_key = AspectKey::new(aspect).expect("grouped support aspect key must admit");
+    let field_key = FieldKey::new(field).expect("grouped support field key must admit");
+    AspectFieldKey::from_native_keys(&aspect_key, &field_key)
 }

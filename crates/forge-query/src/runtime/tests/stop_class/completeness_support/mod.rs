@@ -13,10 +13,11 @@ pub(super) use variant_keys::{runtime_error_variant_key, stop_class_variant_key}
 
 pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError> {
     let binding = existing_binding();
+    let status_touch = status_value_touch();
     let assertion_denial = ForgeQueryExistingTruthAssertionDenial::new(
         &binding,
         ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
-        Some("status.value".to_string()),
+        Some(status_touch.clone()),
         Some("\"open\"".to_string()),
         None,
         "missing asserted aspect",
@@ -24,7 +25,7 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
     let probe_denial = ForgeQueryExistingTruthProbeDenial::new(
         &binding,
         ForgeQueryExistingTruthProbeDenialKind::MissingProbedAspect,
-        Some("status.value".to_string()),
+        Some(status_touch),
         "missing probed aspect",
     );
     let binding_denial = ForgeQueryExistingTruthBindingDenial::new(
@@ -54,7 +55,12 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
     let graph_denial = ForgeQueryGraphCompositionDenial::new(
         ForgeQueryGraphCompositionDenialKind::DuplicateSymbolDeclaration,
         Some("task_symbol".to_string()),
-        Some("Task".to_string()),
+        Some(
+            crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+                "graph-composition-test",
+                "Task",
+            ),
+        ),
         "duplicate symbol",
     );
     let graph_domain_denial = ForgeQueryGraphCompositionDomainInvariantDenial::from_contributed(
@@ -257,4 +263,8 @@ pub(super) fn existing_binding() -> ForgeQueryExistingTruthTargetBinding {
     .expect("binding should build")
     .in_target_collection("Task")
     .expect("collection should build")
+}
+
+pub(super) fn status_value_touch() -> ForgeQueryAspectTouch {
+    test_aspect_touch("status.value")
 }

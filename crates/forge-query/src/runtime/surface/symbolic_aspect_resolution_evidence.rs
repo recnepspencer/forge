@@ -1,12 +1,12 @@
 use crate::memory_workspace::ForgeQueryEntityIdentity;
-use crate::runtime::ForgeQuerySymbolicAspectReference;
+use crate::runtime::{ForgeQueryAspectTouch, ForgeQuerySymbolicAspectReference};
 use crate::runtime::{
     ForgeQueryMutationSymbolIdentity, ForgeQueryMutationTargetCollectionIdentity,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQuerySymbolicAspectResolutionEvidence {
-    aspect_path: String,
+    aspect_touch: ForgeQueryAspectTouch,
     family: crate::runtime::ForgeQuerySymbolicAspectReferenceFamily,
     symbol: ForgeQueryMutationSymbolIdentity,
     resolved_entity_identity: ForgeQueryEntityIdentity,
@@ -19,21 +19,19 @@ impl ForgeQuerySymbolicAspectResolutionEvidence {
         resolved_entity_identity: &ForgeQueryEntityIdentity,
     ) -> Self {
         Self {
-            aspect_path: reference.aspect_path().to_string(),
+            aspect_touch: reference.aspect_touch().clone(),
             family: reference.family(),
             symbol: ForgeQueryMutationSymbolIdentity::new(
                 "symbolic-aspect-reference",
                 reference.reference().symbol(),
             ),
             resolved_entity_identity: resolved_entity_identity.clone(),
-            target_collection: reference.reference().target_collection().map(|collection| {
-                ForgeQueryMutationTargetCollectionIdentity::new("symbolic-aspect", collection)
-            }),
+            target_collection: reference.reference().target_collection_identity().cloned(),
         }
     }
 
-    pub fn aspect_path(&self) -> &str {
-        &self.aspect_path
+    pub fn aspect_touch(&self) -> &ForgeQueryAspectTouch {
+        &self.aspect_touch
     }
 
     pub fn family(&self) -> crate::runtime::ForgeQuerySymbolicAspectReferenceFamily {

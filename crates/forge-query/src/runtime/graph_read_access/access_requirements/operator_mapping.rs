@@ -20,9 +20,9 @@ pub(crate) fn traversal_operators_for_relation(
             }
             ForgeQueryGraphReadResolvedOperationKind::DomainRegistered(operation)
                 if operation
-                    .accepted_relations()
+                    .accepted_relation_names()
                     .iter()
-                    .any(|name| name == relation.relation()) =>
+                    .any(|name| name == relation.relation_name()) =>
             {
                 Some(operation.traversal_operator().clone())
             }

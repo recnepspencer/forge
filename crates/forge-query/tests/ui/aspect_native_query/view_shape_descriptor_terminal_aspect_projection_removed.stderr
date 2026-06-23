@@ -1,0 +1,11 @@
+error[E0599]: no method named `terminal_focused_aspect_projection` found for reference `&ViewShapeDescriptor` in the current scope
+ --> tests/ui/aspect_native_query/view_shape_descriptor_terminal_aspect_projection_removed.rs:4:24
+  |
+4 |     let _ = descriptor.terminal_focused_aspect_projection();
+  |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ViewShapeDescriptor`
+
+error[E0599]: no method named `terminal_grouping_aspect_projection` found for reference `&ViewShapeDescriptor` in the current scope
+ --> tests/ui/aspect_native_query/view_shape_descriptor_terminal_aspect_projection_removed.rs:5:24
+  |
+5 |     let _ = descriptor.terminal_grouping_aspect_projection();
+  |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ViewShapeDescriptor`

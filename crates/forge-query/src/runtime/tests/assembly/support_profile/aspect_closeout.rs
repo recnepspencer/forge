@@ -76,7 +76,7 @@ fn runtime_public_aspect_api_finalization_closeout_document_matches_certified_co
     for command in closeout.required_verification_commands() {
         assert!(ASPECT_API_CLOSEOUT_DOC.contains(command));
     }
-    assert!(
-        ASPECT_API_CLOSEOUT_DOC.contains("JSON may still exist as an internal lowering adapter")
-    );
+    assert!(ASPECT_API_CLOSEOUT_DOC
+        .contains("Terminal JSON documents are external import/export artifacts only"));
+    assert!(ASPECT_API_CLOSEOUT_DOC.contains("JSON-shaped authority remains forbidden"));
 }

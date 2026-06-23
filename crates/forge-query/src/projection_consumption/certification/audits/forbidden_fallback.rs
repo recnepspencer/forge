@@ -17,8 +17,8 @@ impl ProjectionConsumptionForbiddenFallbackSeam {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::ConsumeScalarFields => "consume_scalar_fields",
-            Self::DecodeRowPair => "decode_row_pair",
-            Self::DecodeRowTriple => "decode_row_triple",
+            Self::DecodeRowPair => "decode_retained_row_pair",
+            Self::DecodeRowTriple => "decode_retained_row_triple",
             Self::VerifyScalarAlignment => "verify_scalar_alignment",
             Self::ReadLiveArtifactBundle => "read_live_artifact_bundle",
             Self::BindLiveArtifact => "bind_live_artifact",
@@ -29,8 +29,8 @@ impl ProjectionConsumptionForbiddenFallbackSeam {
     fn needle(&self) -> &'static str {
         match self {
             Self::ConsumeScalarFields => "consume_scalar_fields",
-            Self::DecodeRowPair => "decode_row_pair",
-            Self::DecodeRowTriple => "decode_row_triple",
+            Self::DecodeRowPair => "decode_retained_row_pair",
+            Self::DecodeRowTriple => "decode_retained_row_triple",
             Self::VerifyScalarAlignment => "verify_scalar_alignment",
             Self::ReadLiveArtifactBundle => "read_live_artifact_bundle",
             Self::BindLiveArtifact => "bind_live_artifact",

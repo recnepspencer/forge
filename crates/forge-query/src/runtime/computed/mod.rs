@@ -1,8 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::marker::PhantomData;
 
-use serde_json::Value;
-
 use crate::memory_workspace::{
     ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
 };
@@ -26,6 +24,6 @@ pub(in crate::runtime) use state::{
 };
 pub use surface::{
     ForgeQueryComputedInspectionEvidence, ForgeQueryDerivedPatch, ForgeQueryDerivedPatchFamily,
-    ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
+    ForgeQueryDerivedPatchPayload, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
     ForgeQueryDerivedViewMaterialization, ForgeQueryRetainedUpstreamInputs,
 };

@@ -3,7 +3,7 @@ use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 use crate::runtime::remask_posture::ForgeQueryRuntimeRemaskProjection;
-use crate::runtime::ForgeQueryRuntimeRemaskPosture;
+use crate::runtime::{ForgeQueryMutationTargetCollectionIdentity, ForgeQueryRuntimeRemaskPosture};
 use crate::subscription::SubscriptionActivationInput;
 
 #[path = "signal_routing_receipt.rs"]
@@ -14,7 +14,7 @@ pub use signal_routing_receipt::SignalInvalidationRoutingReceipt;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LiveViewDeclarationAdmissionReceipt {
     view_name: String,
-    target_collection: String,
+    target_collection: ForgeQueryMutationTargetCollectionIdentity,
     view_shape: DeclarativeLiveViewShape,
     query_projection_count: usize,
     result_field_count: usize,
@@ -30,7 +30,7 @@ impl LiveViewDeclarationAdmissionReceipt {
         request: &DeclarativeLiveQueryRequest,
     ) -> Self {
         let view_name = view_name.into();
-        let target_collection = request.target().to_string();
+        let target_collection = request.target_collection_identity();
         let view_shape = request.view_shape().clone();
         let query_projection_count = request.query_projection().len();
         let result_field_count = request.result_fields().len();
@@ -45,7 +45,10 @@ impl LiveViewDeclarationAdmissionReceipt {
             "live-view-declaration-admission-receipt",
         )
         .field_value(ForgeQueryEvidenceTag::new("view"), &view_name)
-        .field_value(ForgeQueryEvidenceTag::new("target"), &target_collection)
+        .field_value(
+            ForgeQueryEvidenceTag::new("target"),
+            target_collection.as_str(),
+        )
         .field_shape(ForgeQueryEvidenceTag::new("shape"), view_shape.as_str())
         .field_usize(
             ForgeQueryEvidenceTag::new("query_projection_count"),
@@ -84,7 +87,7 @@ impl LiveViewDeclarationAdmissionReceipt {
     }
 
     pub fn target_collection_for_reporting(&self) -> &str {
-        &self.target_collection
+        self.target_collection.as_str()
     }
 
     pub fn view_shape(&self) -> &DeclarativeLiveViewShape {
@@ -134,11 +137,15 @@ impl LiveViewDeclarationAdmissionReceipt {
                 self.view_name()
             ));
         }
-        if self.target_collection != request.target() {
+        let request_target_collection = request.target_collection_identity();
+        if !self
+            .target_collection
+            .same_target_collection_as(&request_target_collection)
+        {
             return Some(format!(
                 "live-view admission receipt target drifted: expected `{}`, found `{}`",
-                request.target(),
-                self.target_collection
+                request_target_collection.as_str(),
+                self.target_collection.as_str()
             ));
         }
         if self.view_shape() != request.view_shape()

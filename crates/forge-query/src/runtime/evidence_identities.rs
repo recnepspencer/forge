@@ -729,7 +729,7 @@ pub(in crate::runtime) fn runtime_state_snapshot_result_shape_write_receipt_iden
         )
         .optional_shape(
             ForgeQueryEvidenceTag::new("declared_collection"),
-            receipt.declared_collection(),
+            receipt.terminal_declared_collection_projection(),
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("commit_evidence_identity"),

@@ -30,6 +30,7 @@ impl ForgeQueryRuntime {
         register_live_subscription_index(
             &mut self.live_subscription_index,
             &name,
+            ForgeQueryLiveArtifactTarget::from_subscription_installation(&activation.installation),
             &activation.request,
         );
         let future_selection = activation.active_lane_handle.future_selection();
@@ -45,8 +46,10 @@ impl ForgeQueryRuntime {
             });
         let basis_binding_identity = activation.installation.basis_binding_identity().clone();
         let checkpoint_identity = activation.active_lane_handle.checkpoint_identity().clone();
+        let live_target =
+            ForgeQueryLiveArtifactTarget::from_subscription_installation(&activation.installation);
         self.live_subscriptions.insert(
-            name.clone(),
+            live_target,
             ForgeQueryRuntimeLiveSubscriptionState {
                 installation: activation.installation.clone(),
                 active_lane_handle: activation.active_lane_handle,
@@ -106,8 +109,8 @@ impl ForgeQueryRuntime {
         &self,
         view: &ForgeQueryDerivedView,
     ) -> Result<(), ForgeQueryRuntimeError> {
-        let live_view_names = self.live_subscriptions.keys().cloned().collect();
-        admit_derived_view_declaration(&self.derived_views, &live_view_names, view).map_err(
+        let live_view_targets = self.live_subscriptions.keys().cloned().collect();
+        admit_derived_view_declaration(&self.derived_views, &live_view_targets, view).map_err(
             |error| ForgeQueryRuntimeError::ComputedDeclaration {
                 view_name: view.name().to_string(),
                 stage: "dependency-admission",
@@ -121,9 +124,15 @@ impl ForgeQueryRuntime {
         declaration: ForgeQueryEffectDeclaration,
     ) -> Result<ForgeQueryEffectHandle<T>, ForgeQueryRuntimeError> {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Effect)?;
-        let live_view_names = self.live_subscriptions.keys().cloned().collect();
-        let computed_view_names = self.derived_views.keys().cloned().collect();
-        admit_effect_declaration(&live_view_names, &computed_view_names, &declaration)?;
+        let live_view_targets = self
+            .live_subscriptions
+            .values()
+            .map(|state| {
+                ForgeQueryLiveArtifactTarget::from_subscription_installation(&state.installation)
+            })
+            .collect();
+        let computed_view_targets = self.derived_views.keys().cloned().collect();
+        admit_effect_declaration(&live_view_targets, &computed_view_targets, &declaration)?;
         let name = declaration.name().to_string();
         let target_lane = declaration.target_lane();
         insert_effect_runtime(&mut self.effects, &mut self.effect_index, declaration);
@@ -136,7 +145,8 @@ impl ForgeQueryRuntime {
         &mut self,
         view_name: &str,
     ) -> Result<(), ForgeQueryRuntimeError> {
-        let declaration = match self.derived_views.get(view_name) {
+        let target = ForgeQueryDerivedMaterializationTarget::new(view_name);
+        let declaration = match self.derived_views.get(&target) {
             Some(runtime) if !runtime.declaration.incremental() && runtime.maintainer.is_some() => {
                 runtime.declaration.clone()
             }
@@ -164,7 +174,7 @@ impl ForgeQueryRuntime {
             snapshot_identity,
             refresh_metadata,
         );
-        let Some(runtime) = self.derived_views.get_mut(view_name) else {
+        let Some(runtime) = self.derived_views.get_mut(&target) else {
             return Ok(());
         };
         let Some(maintainer) = runtime.maintainer.as_mut() else {
@@ -258,23 +268,31 @@ fn retained_upstream_inputs_for_declaration(
         .upstream_live_views()
         .iter()
         .map(|view_name| {
+            let installation = runtime
+                .live_subscriptions
+                .get(&ForgeQueryLiveArtifactTarget::from_view_name(view_name))
+                .map(|state| state.installation.clone())
+                .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveView(view_name.clone()))?;
             runtime
-                .execute_live_read_by_name(view_name)
-                .map(|read| (view_name.clone(), read.rows().to_vec()))
+                .execute_live_read_for_installation(installation)
+                .map(|read| {
+                    (
+                        ForgeQueryLiveArtifactTarget::from_view_name(view_name),
+                        read.rows().to_vec(),
+                    )
+                })
         })
         .collect::<Result<Vec<_>, _>>()?;
     let computed_rows = declaration
         .upstream_derived_views()
         .iter()
         .filter_map(|view_name| {
+            let target = ForgeQueryDerivedMaterializationTarget::new(view_name);
             runtime
                 .derived_views
-                .get(view_name)
-                .map(|runtime| (view_name.clone(), runtime.materialization.rows().to_vec()))
+                .get(&target)
+                .map(|runtime| (target, runtime.materialization.retained_rows().to_vec()))
         })
         .collect::<Vec<_>>();
-    Ok(ForgeQueryRetainedUpstreamInputs::new(
-        live_rows,
-        computed_rows,
-    ))
+    Ok(ForgeQueryRetainedUpstreamInputs::from_retained_computed_rows(live_rows, computed_rows))
 }

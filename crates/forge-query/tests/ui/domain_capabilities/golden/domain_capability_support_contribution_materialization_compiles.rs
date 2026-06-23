@@ -1,5 +1,4 @@
-use forge_query::facade::runtime::{forge_query_domain, ForgeQueryIntentDeclaration};
-use serde_json::json;
+use forge_query::facade::runtime::{forge_query_domain, ForgeQueryIntentDeclaration, ForgeQueryIntentInput};
 
 fn support_common_lane() {
     let declaration = ForgeQueryIntentDeclaration::strategy_commit(
@@ -7,7 +6,7 @@ fn support_common_lane() {
         "spatial.commit",
         "1",
         "geometry.patch",
-        json!({"edge":"e-1"}),
+        ForgeQueryIntentInput::object([("edge", ForgeQueryIntentInput::string("e-1"))]),
     );
 
     let _support = forge_query_domain("worth.spatial")

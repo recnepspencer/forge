@@ -1,0 +1,18 @@
+error[E0599]: no function or associated item named `new` found for struct `PolicyPlaceholderMaskingRequest` in the current scope
+ --> tests/ui/aspect_native_query/policy_placeholder_request_new_removed.rs:4:46
+  |
+4 |     let _ = PolicyPlaceholderMaskingRequest::new(vec!["secret.salary".to_string()]);
+  |                                              ^^^ function or associated item not found in `PolicyPlaceholderMaskingRequest`
+  |
+note: if you're trying to build a new `PolicyPlaceholderMaskingRequest`, consider using `PolicyPlaceholderMaskingRequest::from_authorized_field_paths` which returns `PolicyPlaceholderMaskingRequest`
+ --> src/policy_delivery/shape.rs
+  |
+  | /     pub fn from_authorized_field_paths(
+  | |         requested_placeholder_fields: Vec<AuthorizedProjectionFieldPath>,
+  | |     ) -> Self {
+  | |_____________^
+help: there is a method `ne` with a similar name
+  |
+4 -     let _ = PolicyPlaceholderMaskingRequest::new(vec!["secret.salary".to_string()]);
+4 +     let _ = PolicyPlaceholderMaskingRequest::ne(vec!["secret.salary".to_string()]);
+  |

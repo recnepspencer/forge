@@ -8,9 +8,10 @@ use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAuthorityLane,
     ForgeQueryContinuityMutationEvidence, ForgeQueryIntentConsumerInspection,
     ForgeQueryJournalPosition, ForgeQueryMutationCausalityEvidence, ForgeQueryMutationFamily,
-    ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetEvidence,
-    ForgeQueryNamingMutationEvidence, ForgeQuerySymbolicAspectResolutionEvidence,
-    ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceEvidence,
+    ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetCollectionIdentity,
+    ForgeQueryMutationTargetEvidence, ForgeQueryNamingMutationEvidence,
+    ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReference,
+    ForgeQuerySymbolicTargetReferenceEvidence,
 };
 
 impl ForgeQueryWriteReceipt {
@@ -110,18 +111,33 @@ impl ForgeQueryWriteReceipt {
         self.provenance_evidence.as_ref()
     }
 
-    pub fn declared_collection(&self) -> Option<&str> {
-        self.declared_collection.as_deref()
+    pub fn declared_collection_identity(
+        &self,
+    ) -> Option<&ForgeQueryMutationTargetCollectionIdentity> {
+        self.declared_collection_identity.as_ref()
+    }
+
+    pub fn terminal_declared_collection_projection(&self) -> Option<&str> {
+        self.declared_collection_identity
+            .as_ref()
+            .map(ForgeQueryMutationTargetCollectionIdentity::as_str)
     }
 
     pub fn declared_entity_identity(&self) -> Option<&ForgeQueryEntityIdentity> {
         self.declared_entity_identity.as_ref()
     }
 
-    pub fn target_collection(&self) -> Option<&str> {
-        self.target_collection
-            .as_deref()
-            .or(self.declared_collection.as_deref())
+    pub fn target_collection_identity(
+        &self,
+    ) -> Option<&ForgeQueryMutationTargetCollectionIdentity> {
+        self.target_collection_identity
+            .as_ref()
+            .or(self.declared_collection_identity.as_ref())
+    }
+
+    pub fn terminal_target_collection_projection(&self) -> Option<&str> {
+        self.target_collection_identity()
+            .map(ForgeQueryMutationTargetCollectionIdentity::as_str)
     }
 
     pub fn target_entity_identity(&self) -> Option<&ForgeQueryEntityIdentity> {
@@ -154,12 +170,28 @@ impl ForgeQueryWriteReceipt {
         &self.inner.deltas
     }
 
-    pub fn affected_live_view_ids(&self) -> &[String] {
-        &self.affected_live_view_ids
+    pub fn affected_live_view_targets(&self) -> &[crate::runtime::ForgeQueryLiveArtifactTarget] {
+        &self.affected_live_view_targets
     }
 
-    pub fn affected_derived_view_ids(&self) -> &[String] {
-        &self.affected_derived_view_ids
+    pub fn affected_derived_view_targets(
+        &self,
+    ) -> &[crate::runtime::ForgeQueryDerivedMaterializationTarget] {
+        &self.affected_derived_view_targets
+    }
+
+    pub fn terminal_affected_live_view_ids_projection(&self) -> Vec<String> {
+        self.affected_live_view_targets
+            .iter()
+            .map(|target| target.view_name().to_string())
+            .collect()
+    }
+
+    pub fn terminal_affected_derived_view_ids_projection(&self) -> Vec<String> {
+        self.affected_derived_view_targets
+            .iter()
+            .map(|target| target.view_name().to_string())
+            .collect()
     }
 
     pub fn considered_computed_view_count(&self) -> usize {
@@ -275,7 +307,7 @@ impl ForgeQueryWriteReceipt {
         mut self,
         reference: &ForgeQuerySymbolicTargetReference,
         resolved_entity_identity: ForgeQueryEntityIdentity,
-        resolved_collection: Option<String>,
+        resolved_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
     ) -> Self {
         self.symbolic_target_reference_evidence =
             Some(ForgeQuerySymbolicTargetReferenceEvidence::from_reference(
@@ -283,7 +315,7 @@ impl ForgeQueryWriteReceipt {
                 &resolved_entity_identity,
             ));
         self.target_entity_identity = Some(resolved_entity_identity);
-        self.target_collection = resolved_collection;
+        self.target_collection_identity = resolved_collection;
         self
     }
 
@@ -345,15 +377,25 @@ impl ForgeQueryWriteReceipt {
             continuity_mutation_evidence: continuity,
             provenance_evidence: provenance_execution_record_digest
                 .map(ForgeQueryMutationProvenanceEvidence::test_only),
-            declared_collection: target_collection.map(str::to_string),
+            declared_collection_identity: target_collection.map(|collection| {
+                crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+                    "write-receipt-test-declared",
+                    collection,
+                )
+            }),
             declared_entity_identity: target_entity_identity.clone(),
-            target_collection: target_collection.map(str::to_string),
+            target_collection_identity: target_collection.map(|collection| {
+                crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+                    "write-receipt-test-target",
+                    collection,
+                )
+            }),
             target_entity_identity,
             declared_aspect_operations: Vec::new(),
             declared_aspect_value_digest: None,
             mutation_metadata: crate::runtime::ForgeQueryMutationMetadata::new(),
-            affected_live_view_ids: Vec::new(),
-            affected_derived_view_ids: Vec::new(),
+            affected_live_view_targets: Vec::new(),
+            affected_derived_view_targets: Vec::new(),
             considered_computed_view_count: 0,
             considered_effect_count: 0,
             delivered_effect_count: 0,

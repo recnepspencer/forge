@@ -45,7 +45,7 @@ impl ForgeQueryNamingMutationEvidence {
     pub(in crate::runtime) fn from_bridge_with_query_context(
         bundle: &BridgeNamingMutationBundle,
         resolved_target_entity_identity: Option<&ForgeQueryEntityIdentity>,
-        target_collection: Option<&str>,
+        target_collection: Option<&ForgeQueryMutationTargetCollectionIdentity>,
     ) -> Self {
         Self {
             family: match bundle.family() {
@@ -104,17 +104,17 @@ impl ForgeQueryNamingMutationEvidence {
                 .or_else(|| resolved_target_entity_identity.cloned()),
             target_collection: bundle
                 .target_collection()
-                .or(target_collection)
                 .map(|collection| {
                     ForgeQueryMutationTargetCollectionIdentity::new("naming-target", collection)
-                }),
+                })
+                .or_else(|| target_collection.cloned()),
         }
     }
 
     pub(in crate::runtime) fn from_intent(
         intent: &crate::runtime::ForgeQueryNamingMutationIntent,
         resolved_target_entity_identity: Option<&ForgeQueryEntityIdentity>,
-        target_collection: Option<&str>,
+        target_collection: Option<&ForgeQueryMutationTargetCollectionIdentity>,
     ) -> Self {
         Self {
             family: intent.family(),
@@ -136,9 +136,7 @@ impl ForgeQueryNamingMutationEvidence {
             prior_authoritative_identity: intent.prior_authoritative_identity().cloned(),
             target_authoritative_identity: intent.target_authoritative_identity().cloned(),
             resolved_target_entity_identity: resolved_target_entity_identity.cloned(),
-            target_collection: target_collection.map(|collection| {
-                ForgeQueryMutationTargetCollectionIdentity::new("naming-target", collection)
-            }),
+            target_collection: target_collection.cloned(),
         }
     }
 

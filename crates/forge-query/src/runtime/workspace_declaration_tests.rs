@@ -2,7 +2,7 @@ use super::{
     DeclarativeLiveQueryRequest, DeclarativeLiveViewShape, ForgeQueryLiveViewBuilder,
     ForgeQueryWorkspaceLiveViewDeclaration, QuerySchemaView,
 };
-use crate::authoring::TraversalSelector;
+use crate::authoring::{RelationName, TraversalSelector};
 use crate::declarative_live::DeclarativeProjectionField;
 use crate::schema_view::{SchemaFieldKind, SchemaFieldView};
 
@@ -37,22 +37,24 @@ fn traversal_relation_declarations_reject_duplicates() {
 fn traversal_relation_declarations_lower_into_request_and_schema_view() {
     let declaration = ForgeQueryLiveViewBuilder::surface("runtime.traversal-lowered")
         .from("WorthTopologyEntity")
-        .select(["identity.id"])
+        .select([crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id").unwrap()])
         .allow_traversal_relation("HalfEdgeNext", 2)
         .build()
         .expect("declared traversal relations should lower into the request");
 
     assert_eq!(declaration.request().traversal().len(), 1);
     assert_eq!(
-        declaration.request().traversal()[0].relation(),
+        declaration.request().traversal()[0]
+            .relation_name()
+            .as_str(),
         "HalfEdgeNext"
     );
     assert_eq!(declaration.request().traversal()[0].depth(), 2);
     let relation = declaration
         .schema_view()
-        .relation("HalfEdgeNext")
+        .relation(&RelationName::new("HalfEdgeNext").expect("test relation name should be valid"))
         .expect("schema view should retain the declared traversal relation");
-    assert_eq!(relation.relation(), "HalfEdgeNext");
+    assert_eq!(relation.relation_name().as_str(), "HalfEdgeNext");
     assert_eq!(relation.max_depth(), 2);
 }
 
@@ -60,13 +62,16 @@ fn traversal_relation_declarations_lower_into_request_and_schema_view() {
 fn direct_live_view_declaration_rejects_traversal_schema_mismatch() {
     let request =
         DeclarativeLiveQueryRequest::new("WorthTopologyEntity", DeclarativeLiveViewShape::detail())
-            .project(DeclarativeProjectionField::new("identity", "id"))
+            .project(DeclarativeProjectionField::from_authoring_parts(
+                "identity", "id",
+            ))
             .traverse(TraversalSelector::bounded("HalfEdgeNext", 2).unwrap());
     let schema_view = QuerySchemaView::new(
         "runtime.traversal-mismatch",
         [SchemaFieldView::new(
-            "identity",
-            "id",
+            crate::authoring::AspectName::new("identity")
+                .expect("schema aspect literal must be valid"),
+            crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
             SchemaFieldKind::String,
         )],
         [],

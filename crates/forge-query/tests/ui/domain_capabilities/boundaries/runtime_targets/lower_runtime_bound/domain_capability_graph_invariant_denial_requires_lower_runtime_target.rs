@@ -2,7 +2,7 @@ use forge_query::facade::{
     admit_eligible_domain_capability_contribution, evaluate_requested_domain_capability_contribution,
     materialize_graph_composition_domain_invariant_denial,
     prepare_admitted_domain_capability_contribution_for_materialization,
-    ForgeQueryIntentDeclaration, ForgeQueryInvariantCapabilityContributionAuthoring,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentInput, ForgeQueryInvariantCapabilityContributionAuthoring,
 };
 
 fn main() {
@@ -11,7 +11,7 @@ fn main() {
         "test.strategy",
         "1",
         "test.contract",
-        serde_json::json!({ "entity": "edge:42" }),
+        ForgeQueryIntentInput::object([("entity", ForgeQueryIntentInput::string("edge:42"))]),
     );
     let requested = ForgeQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(
         "spatial.non_manifold_edge_split",

@@ -14,6 +14,14 @@ error[E0560]: struct `ForgeQueryPreviewExecutionEvidence` has no field named `co
    |
    = note: all struct fields are already assigned
 
+error[E0560]: struct `ForgeQueryPreviewExecutionEvidence` has no field named `aspect_paths`
+  --> tests/ui/runtime_preview_execution_evidence_constructor_private.rs:13:9
+   |
+13 |         aspect_paths: Vec::new(),
+   |         ^^^^^^^^^^^^ `ForgeQueryPreviewExecutionEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned
+
 error[E0560]: struct `ForgeQueryPreviewExecutionEvidence` has no field named `execution_digest`
   --> tests/ui/runtime_preview_execution_evidence_constructor_private.rs:14:9
    |

@@ -2,15 +2,15 @@ use forge_foundational::facade::AspectKey;
 use forge_relational::facade::grouped_truth::{
     project_relational_grouped_truth, GroupedProjectionContract,
 };
-use serde_json::json;
 
 use super::super::super::{
     ConsumedProjectionFactSet, MaterializedProjectionContract, ProjectMaterializedFacts,
     ProjectionConsumptionSource, ProjectionFactExtractionError,
 };
 use super::support::{
-    admitted, binding, binding_for_result_shape, read_result, read_result_shape,
-    relational_grouped_projection, relational_row_set, test_entity_identity,
+    admitted, binding, binding_for_result_shape, canonical_field_path, int_value, read_result,
+    read_result_shape, relational_grouped_projection, relational_row_set, test_entity_identity,
+    text_value,
 };
 use crate::runtime::{ForgeQueryReadExecutionEngine, ForgeQueryReadReceipt, ForgeQueryReadResult};
 
@@ -27,8 +27,22 @@ fn read_result_extracts_identity_and_payload_fields_without_reopening_authority(
         ProjectMaterializedFacts::declare()
             .entity_identities()
             .view_local_identities()
-            .display_field("profile.display_name")
-            .derived_scalar_field("metrics.priority"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            )
+            .derived_scalar_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("metrics")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("priority")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            ),
     )
     .bind_contract();
 
@@ -44,10 +58,12 @@ fn read_result_extracts_identity_and_payload_fields_without_reopening_authority(
         test_entity_identity("task-1").terminal_projection_for_reporting()
     );
     assert_eq!(
-        consumed.display_fields()[0].field_key(),
-        "profile.display_name"
+        consumed.display_fields()[0]
+            .field_path()
+            .canonical_field_path(),
+        &canonical_field_path("profile.display_name")
     );
-    assert_eq!(consumed.derived_scalar_fields()[1].value(), &json!(2));
+    assert_eq!(consumed.derived_scalar_fields()[1].value(), &int_value(2));
     assert_eq!(consumed.counters().source_row_width_consumed(), 6);
     assert_eq!(consumed.counters().authority_reopen_count(), 0);
 }
@@ -59,7 +75,14 @@ fn read_result_extraction_rejects_query_basis_or_result_receipt_drift() {
     let contract = admitted(
         ProjectionConsumptionSource::from_read_receipt(result.receipt(), &result_shape),
         binding_for_result_shape(result_shape.digest().as_str(), &["profile.display_name"]),
-        ProjectMaterializedFacts::declare().display_field("profile.display_name"),
+        ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
+            ]),
+        ),
     )
     .bind_contract();
     let mismatched_result = ForgeQueryReadResult::test_only(
@@ -105,10 +128,12 @@ fn grouped_sources_extract_memberships_and_grouped_relation_endpoints() {
     assert_eq!(relational_consumed.memberships().len(), 2);
     assert_eq!(
         relational_consumed.memberships()[0].member_identity(),
-        &json!("task-1")
+        &text_value("task-1")
     );
     assert_eq!(
-        relational_consumed.relation_endpoints()[0].grouping_aspect(),
+        relational_consumed.relation_endpoints()[0]
+            .native_grouping_aspect_key()
+            .map(|key| key.as_str()),
         Some("status")
     );
     assert_eq!(

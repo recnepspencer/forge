@@ -48,12 +48,24 @@ fn compose_graph_denies_duplicate_symbol_declarations_typed_and_early() {
     let error = workspace
         .compose_graph(|graph| {
             let _ = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-draft-one")
-                    .aspect("title.value", "Draft one")
+                task.set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-draft-one"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Draft one"),
+                )
             })?;
             let _ = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-draft-two")
-                    .aspect("title.value", "Draft two")
+                task.set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-draft-two"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Draft two"),
+                )
             })?;
             Ok(())
         })
@@ -90,19 +102,41 @@ fn compose_graph_denies_relation_symbol_reuse_across_compositions_typed_and_earl
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition-relation-leak")
         .expect("runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.graph-composition-relation-leak-tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-relation-leak-tasks")
         })
         .expect("task live view should declare");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.graph-composition-relation-leak-edges", |q| {
             q.from("TaskEdge")
-                .select(["edge.kind", "edge.source_identity", "edge.target_identity"])
-                .order_by("edge.kind")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts(
+                        "edge",
+                        "source_identity",
+                    )
+                    .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts(
+                        "edge",
+                        "target_identity",
+                    )
+                    .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind").unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-relation-leak-edges")
         })
         .expect("edge live view should declare");
@@ -110,21 +144,31 @@ fn compose_graph_denies_relation_symbol_reuse_across_compositions_typed_and_earl
     let _receipt = workspace
         .compose_graph(|graph| {
             let draft = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-draft")
-                    .aspect("title.value", "Draft task")
+                task.set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-draft"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Draft task"),
+                )
             })?;
-            saved_relation =
-                Some(
-                    graph.insert_symbolic_relation("draft-edge", "TaskEdge", |relation| {
-                        relation
-                            .aspect("edge.kind", "depends_on")
-                            .symbolic_entity_identity("edge.source_identity", &draft)
-                            .existing_entity_identity(
-                                "edge.target_identity",
-                                test_entity_identity("task-existing"),
-                            )
-                    })?,
-                );
+            saved_relation = Some(graph.insert_symbolic_relation(
+                "draft-edge",
+                "TaskEdge",
+                |relation| {
+                    relation
+                        .set_aspect(
+                            test_aspect_touch("edge.kind"),
+                            test_authored_string_aspect_value("depends_on"),
+                        )
+                        .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &draft)
+                        .existing_entity_identity(
+                            test_aspect_touch("edge.target_identity"),
+                            test_entity_identity("task-existing"),
+                        )
+                },
+            )?);
             Ok(())
         })
         .expect("initial composition should execute");
@@ -134,8 +178,14 @@ fn compose_graph_denies_relation_symbol_reuse_across_compositions_typed_and_earl
         .compose_graph(|graph| {
             graph.update_relation(&saved_relation, |relation| {
                 relation
-                    .aspect("edge.kind", "blocks")
-                    .aspect("edge.target_identity", "task-second-existing")
+                    .set_aspect(
+                        test_aspect_touch("edge.kind"),
+                        test_authored_string_aspect_value("blocks"),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("edge.target_identity"),
+                        test_authored_string_aspect_value("task-second-existing"),
+                    )
             })?;
             Ok(())
         })
@@ -175,11 +225,19 @@ fn compose_graph_denies_entity_symbol_reuse_across_compositions_typed_and_early(
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.graph-composition-entity-leak")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.graph-composition-entity-leak-tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-entity-leak-tasks")
         })
         .expect("task live view should declare");
@@ -187,8 +245,14 @@ fn compose_graph_denies_entity_symbol_reuse_across_compositions_typed_and_early(
     let _receipt = workspace
         .compose_graph(|graph| {
             saved_entity = Some(graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-draft")
-                    .aspect("title.value", "Draft task")
+                task.set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-draft"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Draft task"),
+                )
             })?);
             Ok(())
         })
@@ -198,7 +262,10 @@ fn compose_graph_denies_entity_symbol_reuse_across_compositions_typed_and_early(
     let error = workspace
         .compose_graph(|graph| {
             graph.update_entity(&saved_entity, |task| {
-                task.aspect("title.value", "Leaked title")
+                task.set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Leaked title"),
+                )
             })?;
             Ok(())
         })
@@ -229,19 +296,41 @@ fn compose_graph_denies_symbolic_collection_mismatch_typed_and_early() {
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition-collection-mismatch")
         .expect("runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.graph-composition-collection-mismatch-tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-collection-mismatch-tasks")
         })
         .expect("task live view should declare");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.graph-composition-collection-mismatch-edges", |q| {
             q.from("TaskEdge")
-                .select(["edge.kind", "edge.source_identity", "edge.target_identity"])
-                .order_by("edge.kind")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind").unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts(
+                        "edge",
+                        "source_identity",
+                    )
+                    .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts(
+                        "edge",
+                        "target_identity",
+                    )
+                    .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind").unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-collection-mismatch-edges")
         })
         .expect("edge live view should declare");
@@ -249,23 +338,35 @@ fn compose_graph_denies_symbolic_collection_mismatch_typed_and_early() {
     let error = workspace
         .compose_graph(|graph| {
             let task = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-draft")
-                    .aspect("title.value", "Draft task")
+                task.set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-draft"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Draft task"),
+                )
             })?;
             let _ = graph.insert_symbolic_relation("draft-edge", "TaskEdge", |edge| {
-                edge.aspect("edge.kind", "depends_on")
-                    .symbolic_entity_identity("edge.source_identity", &task)
-                    .existing_entity_identity(
-                        "edge.target_identity",
-                        test_entity_identity("task-existing"),
-                    )
+                edge.set_aspect(
+                    test_aspect_touch("edge.kind"),
+                    test_authored_string_aspect_value("depends_on"),
+                )
+                .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &task)
+                .existing_entity_identity(
+                    test_aspect_touch("edge.target_identity"),
+                    test_entity_identity("task-existing"),
+                )
             })?;
             let leaked_entity = ForgeQueryGraphEntitySymbol::new(
                 ForgeQuerySymbolicTargetReference::new("draft-edge")?
                     .in_target_collection("Task")?,
             );
             graph.update_entity(&leaked_entity, |entity| {
-                entity.aspect("title.value", "Should never lower")
+                entity.set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Should never lower"),
+                )
             })?;
             Ok(())
         })
@@ -309,12 +410,24 @@ fn graph_composition_denial_traces_distinguish_symbol_validation_from_lowering_f
     let duplicate = workspace
         .compose_graph(|graph| {
             let _ = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-draft-one")
-                    .aspect("title.value", "Draft one")
+                task.set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-draft-one"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Draft one"),
+                )
             })?;
             let _ = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-draft-two")
-                    .aspect("title.value", "Draft two")
+                task.set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-draft-two"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Draft two"),
+                )
             })?;
             Ok(())
         })
@@ -327,7 +440,12 @@ fn graph_composition_denial_traces_distinguish_symbol_validation_from_lowering_f
                     .in_target_collection("TaskEdge")?,
                 None,
             );
-            graph.update_relation(&relation, |edge| edge.aspect("edge.kind", "blocks"))?;
+            graph.update_relation(&relation, |edge| {
+                edge.set_aspect(
+                    test_aspect_touch("edge.kind"),
+                    test_authored_string_aspect_value("blocks"),
+                )
+            })?;
             Ok(())
         })
         .expect_err("unresolved symbolic relation should deny");

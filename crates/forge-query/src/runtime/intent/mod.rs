@@ -1,5 +1,3 @@
-use serde_json::Value;
-
 use crate::memory_workspace::ForgeQueryMutationReceipt;
 
 use super::{
@@ -15,6 +13,7 @@ mod denial;
 mod effect_triggered;
 mod execution;
 mod failure;
+mod input;
 mod preview;
 mod preview_receipt_identity;
 mod provenance;
@@ -38,6 +37,7 @@ pub use denial::ForgeQueryIntentDenialEvidence;
 pub use effect_triggered::ForgeQueryEffectIntentReceipt;
 pub use execution::{ForgeQueryIntentExecution, ForgeQueryIntentExecutionKind};
 pub use failure::ForgeQueryIntentExecutionFailureEvidence;
+pub use input::ForgeQueryIntentInput;
 pub use preview::ForgeQueryPreviewIntentReceipt;
 pub use provenance::ForgeQueryIntentExecutionProvenance;
 pub use receipt::ForgeQueryIntentReceipt;

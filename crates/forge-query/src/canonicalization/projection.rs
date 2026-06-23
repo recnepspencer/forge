@@ -16,12 +16,10 @@ pub(super) fn canonicalize_projection(
     let mut duplicate_projection_entries = Vec::new();
     for entry in projection {
         let canonical = CanonicalProjectionEntry {
-            aspect: entry.aspect_name().clone(),
-            field: entry.field_name().clone(),
+            field: entry.source_field_key().clone(),
         };
         if !seen.insert(canonical.clone()) {
-            duplicate_projection_entries
-                .push((canonical.aspect.to_string(), canonical.field.to_string()));
+            duplicate_projection_entries.push(terminal_field_pair(canonical.field_key()));
             counters.query_deduplication_count += 1;
             continue;
         }
@@ -33,8 +31,8 @@ pub(super) fn canonicalize_projection(
         ordered
             .iter()
             .map(|canonical| NormalizationEvent::ProjectionRetained {
-                aspect: canonical.aspect.to_string(),
-                field: canonical.field.to_string(),
+                aspect: canonical.field_key().aspect().to_string(),
+                field: canonical.field_key().field().to_string(),
             }),
     );
     for (aspect, field) in duplicate_projection_entries {
@@ -45,4 +43,8 @@ pub(super) fn canonicalize_projection(
         events.push(NormalizationEvent::ProjectionCollapsedDuplicate { aspect, field });
     }
     ordered
+}
+
+fn terminal_field_pair(field: &crate::authoring::AspectFieldKey) -> (String, String) {
+    (field.aspect().to_string(), field.field().to_string())
 }

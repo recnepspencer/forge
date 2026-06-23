@@ -1,12 +1,15 @@
-use serde_json::Value;
-
 use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 use crate::runtime::ForgeQueryMutationTargetCollectionIdentity;
+use forge_foundational::facade::AspectValue;
 
-use super::ForgeQueryExistingTruthTargetBinding;
+use super::denied_aspect_touch::ForgeQueryDeniedAspectTouch;
+use super::{
+    terminal_aspect_value_digest_text, ForgeQueryAspectTouch, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryParsedAspectTarget,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ForgeQueryExistingTruthProbeMode {
@@ -32,6 +35,7 @@ pub enum ForgeQueryExistingTruthProbeDenialKind {
     BackendProbeUnsupported,
     ResolvedTargetUnavailable,
     MissingProbedAspect,
+    UnsupportedProbedAspectValue,
 }
 
 impl ForgeQueryExistingTruthProbeDenialKind {
@@ -40,6 +44,7 @@ impl ForgeQueryExistingTruthProbeDenialKind {
             Self::BackendProbeUnsupported => "backend_probe_unsupported",
             Self::ResolvedTargetUnavailable => "resolved_target_unavailable",
             Self::MissingProbedAspect => "missing_probed_aspect",
+            Self::UnsupportedProbedAspectValue => "unsupported_probed_aspect_value",
         }
     }
 }
@@ -54,7 +59,7 @@ impl std::fmt::Display for ForgeQueryExistingTruthProbeDenialKind {
 pub struct ForgeQueryExistingTruthProbeDenial {
     binding: ForgeQueryExistingTruthTargetBinding,
     kind: ForgeQueryExistingTruthProbeDenialKind,
-    probed_aspect_path: Option<String>,
+    probed_aspect_touch: Option<ForgeQueryDeniedAspectTouch>,
     message: String,
     denial_digest: String,
 }
@@ -63,13 +68,38 @@ impl ForgeQueryExistingTruthProbeDenial {
     pub fn new(
         binding: &ForgeQueryExistingTruthTargetBinding,
         kind: ForgeQueryExistingTruthProbeDenialKind,
-        probed_aspect_path: Option<String>,
+        probed_aspect_touch: Option<ForgeQueryAspectTouch>,
+        message: impl Into<String>,
+    ) -> Self {
+        let probed_aspect_touch = probed_aspect_touch.map(ForgeQueryDeniedAspectTouch::Admitted);
+        Self::from_denied_aspect_touch(binding, kind, probed_aspect_touch, message)
+    }
+
+    fn from_admitted_touch(
+        binding: &ForgeQueryExistingTruthTargetBinding,
+        kind: ForgeQueryExistingTruthProbeDenialKind,
+        probed_aspect_touch: ForgeQueryAspectTouch,
+        message: impl Into<String>,
+    ) -> Self {
+        Self::from_denied_aspect_touch(
+            binding,
+            kind,
+            Some(ForgeQueryDeniedAspectTouch::Admitted(probed_aspect_touch)),
+            message,
+        )
+    }
+
+    fn from_denied_aspect_touch(
+        binding: &ForgeQueryExistingTruthTargetBinding,
+        kind: ForgeQueryExistingTruthProbeDenialKind,
+        probed_aspect_touch: Option<ForgeQueryDeniedAspectTouch>,
         message: impl Into<String>,
     ) -> Self {
         let message = message.into();
-        let target_collection_identity = binding.target_collection().map(|collection| {
-            ForgeQueryMutationTargetCollectionIdentity::new("existing-truth-probe", collection)
-        });
+        let probed_aspect_touch_digest = probed_aspect_touch
+            .as_ref()
+            .map(ForgeQueryDeniedAspectTouch::admitted_touch_digest_part);
+        let target_collection_identity = binding.target_collection_identity();
         let denial_digest =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
                 .field_shape(
@@ -91,13 +121,12 @@ impl ForgeQueryExistingTruthProbeDenial {
                 .optional_evidence_identity(
                     ForgeQueryEvidenceTag::new("collection"),
                     target_collection_identity
-                        .as_ref()
                         .map(ForgeQueryMutationTargetCollectionIdentity::evidence_identity),
                 )
                 .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
                 .optional_value(
-                    ForgeQueryEvidenceTag::new("aspect"),
-                    probed_aspect_path.as_deref(),
+                    ForgeQueryEvidenceTag::new("aspect_touch"),
+                    probed_aspect_touch_digest.as_deref(),
                 )
                 .field_value(ForgeQueryEvidenceTag::new("message"), &message)
                 .seal()
@@ -106,7 +135,7 @@ impl ForgeQueryExistingTruthProbeDenial {
         Self {
             binding: binding.clone(),
             kind,
-            probed_aspect_path,
+            probed_aspect_touch,
             message,
             denial_digest,
         }
@@ -120,8 +149,10 @@ impl ForgeQueryExistingTruthProbeDenial {
         self.kind
     }
 
-    pub fn probed_aspect_path(&self) -> Option<&str> {
-        self.probed_aspect_path.as_deref()
+    pub fn probed_aspect_touch(&self) -> Option<&ForgeQueryAspectTouch> {
+        self.probed_aspect_touch
+            .as_ref()
+            .and_then(ForgeQueryDeniedAspectTouch::admitted_touch)
     }
 
     pub fn message(&self) -> &str {
@@ -150,26 +181,19 @@ impl std::error::Error for ForgeQueryExistingTruthProbeDenial {}
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryExistingTruthProbeRequest {
     binding: ForgeQueryExistingTruthTargetBinding,
-    aspect_paths: Vec<String>,
+    aspect_touches: Vec<ForgeQueryAspectTouch>,
     request_digest: String,
 }
 
 impl ForgeQueryExistingTruthProbeRequest {
-    pub fn new<I, S>(
+    pub fn new(
         binding: ForgeQueryExistingTruthTargetBinding,
-        aspect_paths: I,
-    ) -> Result<Self, ForgeQueryWorkspaceError>
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        let mut aspect_paths = aspect_paths
-            .into_iter()
-            .map(|path| normalize_non_empty(path.into(), "probe aspect path may not be empty"))
-            .collect::<Result<Vec<_>, _>>()?;
-        aspect_paths.sort();
-        aspect_paths.dedup();
-        if aspect_paths.is_empty() {
+        aspect_touches: impl IntoIterator<Item = ForgeQueryAspectTouch>,
+    ) -> Result<Self, ForgeQueryWorkspaceError> {
+        let mut aspect_touches = aspect_touches.into_iter().collect::<Vec<_>>();
+        aspect_touches.sort();
+        aspect_touches.dedup();
+        if aspect_touches.is_empty() {
             return Err(ForgeQueryWorkspaceError::new(
                 "existing-truth probe must declare at least one aspect path",
             ));
@@ -186,14 +210,16 @@ impl ForgeQueryExistingTruthProbeRequest {
                 )
                 .field_value_sequence(
                     ForgeQueryEvidenceTag::new("aspect"),
-                    aspect_paths.iter().map(String::as_str),
+                    aspect_touches
+                        .iter()
+                        .map(ForgeQueryAspectTouch::admitted_touch_digest_part),
                 )
                 .seal()
                 .as_str()
                 .to_string();
         Ok(Self {
             binding,
-            aspect_paths,
+            aspect_touches,
             request_digest,
         })
     }
@@ -202,8 +228,8 @@ impl ForgeQueryExistingTruthProbeRequest {
         &self.binding
     }
 
-    pub fn aspect_paths(&self) -> &[String] {
-        &self.aspect_paths
+    pub fn aspect_touches(&self) -> &[ForgeQueryAspectTouch] {
+        &self.aspect_touches
     }
 
     pub fn request_digest(&self) -> &str {
@@ -213,45 +239,48 @@ impl ForgeQueryExistingTruthProbeRequest {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryExistingTruthProbeField {
-    aspect_path: String,
-    value: Value,
-    external_value_json: String,
+    target: ForgeQueryParsedAspectTarget,
+    value: AspectValue,
     value_digest: String,
 }
 
 impl ForgeQueryExistingTruthProbeField {
-    fn new(aspect_path: String, value: Value) -> Self {
-        let external_value_json =
-            serde_json::to_string(&value).unwrap_or_else(|_| value.to_string());
+    pub fn from_admitted_aspect_touch(
+        aspect_touch: ForgeQueryAspectTouch,
+        value: AspectValue,
+    ) -> Self {
+        let target = aspect_touch.into_parsed_target();
+        let aspect_touch = ForgeQueryAspectTouch::from_parsed_target(target.clone());
         let value_digest =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
                 .field_shape(
                     ForgeQueryEvidenceTag::new("role"),
                     "existing-truth-probe-field",
                 )
-                .field_value(ForgeQueryEvidenceTag::new("aspect"), &aspect_path)
-                .field_value(ForgeQueryEvidenceTag::new("value"), &external_value_json)
+                .field_value(
+                    ForgeQueryEvidenceTag::new("aspect_touch"),
+                    aspect_touch.admitted_touch_digest_part(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("value"),
+                    terminal_aspect_value_digest_text(&value),
+                )
                 .seal()
                 .as_str()
                 .to_string();
         Self {
-            aspect_path,
+            target,
             value,
-            external_value_json,
             value_digest,
         }
     }
 
-    pub fn aspect_path(&self) -> &str {
-        &self.aspect_path
+    pub fn aspect_touch(&self) -> ForgeQueryAspectTouch {
+        ForgeQueryAspectTouch::from_parsed_target(self.target.clone())
     }
 
-    pub fn value(&self) -> &Value {
+    pub fn foundational_value(&self) -> &AspectValue {
         &self.value
-    }
-
-    pub fn external_value_json(&self) -> &str {
-        &self.external_value_json
     }
 
     pub fn value_digest(&self) -> &str {
@@ -270,12 +299,21 @@ pub struct ForgeQueryExistingTruthProbe {
 impl ForgeQueryExistingTruthProbe {
     pub(crate) fn backend_verified(
         request: &ForgeQueryExistingTruthProbeRequest,
-        fields: Vec<(String, Value)>,
-    ) -> Self {
-        let fields = fields
-            .into_iter()
-            .map(|(aspect_path, value)| ForgeQueryExistingTruthProbeField::new(aspect_path, value))
-            .collect::<Vec<_>>();
+        fields: Vec<ForgeQueryExistingTruthProbeField>,
+    ) -> Result<Self, ForgeQueryExistingTruthProbeDenial> {
+        for requested in request.aspect_touches() {
+            if !fields
+                .iter()
+                .any(|field| field.target == *requested.parsed_target())
+            {
+                return Err(ForgeQueryExistingTruthProbeDenial::from_admitted_touch(
+                    request.binding(),
+                    ForgeQueryExistingTruthProbeDenialKind::MissingProbedAspect,
+                    requested.clone(),
+                    "backend probe response did not return the requested aspect",
+                ));
+            }
+        }
         let field_identities = fields
             .iter()
             .map(|field| {
@@ -286,7 +324,10 @@ impl ForgeQueryExistingTruthProbe {
                     ForgeQueryEvidenceTag::new("role"),
                     "existing-truth-probe-row",
                 )
-                .field_value(ForgeQueryEvidenceTag::new("aspect"), field.aspect_path())
+                .field_value(
+                    ForgeQueryEvidenceTag::new("aspect_touch"),
+                    field.aspect_touch().admitted_touch_digest_part(),
+                )
                 .field_value(ForgeQueryEvidenceTag::new("field"), field.value_digest())
                 .seal()
             })
@@ -313,12 +354,12 @@ impl ForgeQueryExistingTruthProbe {
                 .seal()
                 .as_str()
                 .to_string();
-        Self {
+        Ok(Self {
             binding: request.binding().clone(),
             mode: ForgeQueryExistingTruthProbeMode::BackendVerifiedProbe,
             fields,
             probe_digest,
-        }
+        })
     }
 
     pub fn binding(&self) -> &ForgeQueryExistingTruthTargetBinding {
@@ -333,23 +374,16 @@ impl ForgeQueryExistingTruthProbe {
         &self.fields
     }
 
-    pub fn field(&self, aspect_path: &str) -> Option<&ForgeQueryExistingTruthProbeField> {
+    pub fn field_for_touch(
+        &self,
+        aspect_touch: &ForgeQueryAspectTouch,
+    ) -> Option<&ForgeQueryExistingTruthProbeField> {
         self.fields
             .iter()
-            .find(|field| field.aspect_path() == aspect_path)
+            .find(|field| field.target == *aspect_touch.parsed_target())
     }
 
     pub fn probe_digest(&self) -> &str {
         &self.probe_digest
     }
-}
-
-fn normalize_non_empty(
-    value: String,
-    message: &'static str,
-) -> Result<String, ForgeQueryWorkspaceError> {
-    if value.trim().is_empty() {
-        return Err(ForgeQueryWorkspaceError::new(message));
-    }
-    Ok(value)
 }

@@ -113,8 +113,11 @@ fn preview_promotion_stop_class_preserves_kind_and_evidence() {
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("denied-preview")),
-                    ("title.value", json!("Denied preview write")),
+                    ("identity.id", test_string_aspect_value("denied-preview")),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Denied preview write"),
+                    ),
                 ],
             ))
             .expect("preview write should stage");
@@ -157,8 +160,14 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("stale-preview-stop-class")),
-                    ("title.value", json!("Should not promote")),
+                    (
+                        "identity.id",
+                        test_string_aspect_value("stale-preview-stop-class"),
+                    ),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Should not promote"),
+                    ),
                 ],
             ))
             .expect("preview write should stage");
@@ -204,8 +213,14 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("preview-batch-stop-class-1")),
-                    ("title.value", json!("First staged write")),
+                    (
+                        "identity.id",
+                        test_string_aspect_value("preview-batch-stop-class-1"),
+                    ),
+                    (
+                        "title.value",
+                        test_string_aspect_value("First staged write"),
+                    ),
                 ],
             ))
             .expect("first preview write should stage");
@@ -213,8 +228,14 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("preview-batch-stop-class-2")),
-                    ("title.value", json!("Second staged write")),
+                    (
+                        "identity.id",
+                        test_string_aspect_value("preview-batch-stop-class-2"),
+                    ),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Second staged write"),
+                    ),
                 ],
             ))
             .expect("second preview write should stage");
@@ -244,7 +265,7 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
 
     let rebinding_required_error = {
         let mut runtime = stateful_bridge_task_runtime();
-        let view: ForgeQueryLiveView<Value> = runtime
+        let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
             .declare_live_view(
                 "tasks.preview-promotion-stop-class-mismatch",
                 task_live_request(),
@@ -278,9 +299,12 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
                 [
                     (
                         "identity.id",
-                        json!("preview-promotion-stop-class-mismatch"),
+                        test_string_aspect_value("preview-promotion-stop-class-mismatch"),
                     ),
-                    ("title.value", json!("Should require rebinding")),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Should require rebinding"),
+                    ),
                 ],
             ))
             .expect("preview write should stage");
@@ -363,7 +387,7 @@ fn intent_commit_stop_class_preserves_stage_and_evidence() {
                 "strategy.intent.reconcile",
                 "1.0",
                 "intent.reconcile.input.v1",
-                json!({ "entity": "task-1" }),
+                test_intent_input([("entity", "task-1")]),
             ))
             .expect_err("derive-only branch must deny write intents")
     };

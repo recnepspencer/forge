@@ -21,7 +21,7 @@ fn validate_predicate_target(
     aspect: impl Into<String>,
     field: impl Into<String>,
 ) -> Result<AspectFieldKey, AuthoringError> {
-    AspectFieldKey::new(aspect, field)
+    AspectFieldKey::from_authoring_parts(aspect, field)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -40,11 +40,19 @@ impl EqualityPredicate {
         Ok(Self { target, value })
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn from_target_field_key(target: AspectFieldKey, value: ScalarPredicateValue) -> Self {
+        Self { target, value }
+    }
+
+    pub fn target_field_key(&self) -> &AspectFieldKey {
+        &self.target
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
         self.target.aspect().as_str()
     }
 
-    pub fn field(&self) -> &str {
+    pub(crate) fn field(&self) -> &str {
         self.target.field().as_str()
     }
 
@@ -101,11 +109,31 @@ impl IntegerComparisonPredicate {
         })
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn greater_than_target_field_key(target: AspectFieldKey, value: i64) -> Self {
+        Self {
+            target,
+            operator: IntegerComparisonOperator::GreaterThan,
+            value,
+        }
+    }
+
+    pub fn less_than_target_field_key(target: AspectFieldKey, value: i64) -> Self {
+        Self {
+            target,
+            operator: IntegerComparisonOperator::LessThan,
+            value,
+        }
+    }
+
+    pub fn target_field_key(&self) -> &AspectFieldKey {
+        &self.target
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
         self.target.aspect().as_str()
     }
 
-    pub fn field(&self) -> &str {
+    pub(crate) fn field(&self) -> &str {
         self.target.field().as_str()
     }
 
@@ -143,11 +171,22 @@ impl StringContainsPredicate {
         Ok(Self { target, value })
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn from_target_field_key(target: AspectFieldKey, value: impl Into<String>) -> Self {
+        Self {
+            target,
+            value: value.into(),
+        }
+    }
+
+    pub fn target_field_key(&self) -> &AspectFieldKey {
+        &self.target
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
         self.target.aspect().as_str()
     }
 
-    pub fn field(&self) -> &str {
+    pub(crate) fn field(&self) -> &str {
         self.target.field().as_str()
     }
 
@@ -184,11 +223,26 @@ impl SetMembershipPredicate {
         Ok(Self { target, values })
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn from_target_field_key(
+        target: AspectFieldKey,
+        values: impl IntoIterator<Item = ScalarPredicateValue>,
+    ) -> Result<Self, AuthoringError> {
+        let values: Vec<_> = values.into_iter().collect();
+        if values.is_empty() {
+            return Err(AuthoringError::EmptyProjectionSet);
+        }
+        Ok(Self { target, values })
+    }
+
+    pub fn target_field_key(&self) -> &AspectFieldKey {
+        &self.target
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
         self.target.aspect().as_str()
     }
 
-    pub fn field(&self) -> &str {
+    pub(crate) fn field(&self) -> &str {
         self.target.field().as_str()
     }
 
@@ -228,11 +282,22 @@ impl PresencePredicate {
         })
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn is_present_target_field_key(target: AspectFieldKey) -> Self {
+        Self {
+            target,
+            kind: PresencePredicateKind::IsPresent,
+        }
+    }
+
+    pub fn target_field_key(&self) -> &AspectFieldKey {
+        &self.target
+    }
+
+    pub(crate) fn aspect(&self) -> &str {
         self.target.aspect().as_str()
     }
 
-    pub fn field(&self) -> &str {
+    pub(crate) fn field(&self) -> &str {
         self.target.field().as_str()
     }
 
@@ -267,23 +332,13 @@ pub enum PredicateSelector {
 }
 
 impl PredicateSelector {
-    pub fn aspect(&self) -> &str {
+    pub fn target_field_key(&self) -> &AspectFieldKey {
         match self {
-            Self::Equality(predicate) => predicate.aspect(),
-            Self::IntegerComparison(predicate) => predicate.aspect(),
-            Self::StringContains(predicate) => predicate.aspect(),
-            Self::SetMembership(predicate) => predicate.aspect(),
-            Self::Presence(predicate) => predicate.aspect(),
-        }
-    }
-
-    pub fn field(&self) -> &str {
-        match self {
-            Self::Equality(predicate) => predicate.field(),
-            Self::IntegerComparison(predicate) => predicate.field(),
-            Self::StringContains(predicate) => predicate.field(),
-            Self::SetMembership(predicate) => predicate.field(),
-            Self::Presence(predicate) => predicate.field(),
+            Self::Equality(predicate) => predicate.target_field_key(),
+            Self::IntegerComparison(predicate) => predicate.target_field_key(),
+            Self::StringContains(predicate) => predicate.target_field_key(),
+            Self::SetMembership(predicate) => predicate.target_field_key(),
+            Self::Presence(predicate) => predicate.target_field_key(),
         }
     }
 }

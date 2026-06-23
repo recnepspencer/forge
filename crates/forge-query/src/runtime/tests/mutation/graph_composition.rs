@@ -9,19 +9,31 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition")
         .expect("runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.graph-composition-tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([identity_id_field_key(), title_value_field_key()])
+                .order_by(title_value_field_key())
                 .schema_basis("tasks-graph-composition-tasks")
         })
         .expect("task live view should declare");
-    let edges: ForgeQueryLiveView<Value> = workspace
+    let edges: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.graph-composition-edges", |q| {
             q.from("TaskEdge")
-                .select(["edge.kind", "edge.source_identity", "edge.target_identity"])
-                .order_by("edge.kind")
+                .select([
+                    edge_kind_field_key(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts(
+                        "edge",
+                        "source_identity",
+                    )
+                    .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts(
+                        "edge",
+                        "target_identity",
+                    )
+                    .unwrap(),
+                ])
+                .order_by(edge_kind_field_key())
                 .schema_basis("tasks-graph-composition-edges")
         })
         .expect("edge live view should declare");
@@ -29,16 +41,25 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
     let receipt = workspace
         .compose_graph(|graph| {
             let draft = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-draft")
-                    .aspect("title.value", "Draft task")
+                task.set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-draft"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Draft task"),
+                )
             })?;
             graph.insert_relation("TaskEdge", |edge| {
-                edge.aspect("edge.kind", "depends_on")
-                    .symbolic_entity_identity("edge.source_identity", &draft)
-                    .existing_entity_identity(
-                        "edge.target_identity",
-                        test_entity_identity("task-existing"),
-                    )
+                edge.set_aspect(
+                    test_aspect_touch("edge.kind"),
+                    test_authored_string_aspect_value("depends_on"),
+                )
+                .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &draft)
+                .existing_entity_identity(
+                    test_aspect_touch("edge.target_identity"),
+                    test_entity_identity("task-existing"),
+                )
             })?;
             Ok(())
         })
@@ -116,8 +137,8 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
     assert_eq!(resolution_map.len(), 1);
     assert_eq!(resolution_map.entries()[0].component_index(), 1);
     assert_eq!(
-        resolution_map.entries()[0].aspect_path(),
-        Some("edge.source_identity")
+        resolution_map.entries()[0].aspect_touch(),
+        Some(&test_aspect_touch("edge.source_identity"))
     );
     assert_eq!(resolution_map.entries()[0].symbol().as_str(), "draft-task");
     assert_eq!(
@@ -143,7 +164,7 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
     );
     assert_eq!(edge_rows.len(), 1);
     assert_eq!(
-        edge_rows[0].external_row()["edge"]["source_identity"].as_str(),
+        test_native_string_value(&edge_rows[0], "edge.source_identity").as_deref(),
         Some(
             draft_identity
                 .evidence_identity()
@@ -151,7 +172,7 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
         )
     );
     assert_eq!(
-        edge_rows[0].external_row()["edge"]["target_identity"].as_str(),
+        test_native_string_value(&edge_rows[0], "edge.target_identity").as_deref(),
         Some(
             test_relational_endpoint_identity_label(&test_entity_identity("task-existing"))
                 .as_str()
@@ -249,12 +270,9 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
                 Some("TaskEdge")
             );
             assert_eq!(
-                inspection.component_operations()[1].touched_aspect_paths(),
-                &[
-                    "edge.kind".to_string(),
-                    "edge.source_identity".to_string(),
-                    "edge.target_identity".to_string()
-                ]
+                inspection.component_operations()[1].admitted_touched_aspects(),
+                test_aspect_touches(["edge.kind", "edge.source_identity", "edge.target_identity"])
+                    .as_slice()
             );
             assert_eq!(
                 inspection.component_operations()[1]
@@ -264,8 +282,8 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
             );
             assert_eq!(
                 inspection.component_operations()[1].symbolic_aspect_resolution_evidence()[0]
-                    .aspect_path(),
-                "edge.source_identity"
+                    .aspect_touch(),
+                &test_aspect_touch("edge.source_identity")
             );
             assert!(inspection.component_operations()[1]
                 .existing_truth_binding_evidence()

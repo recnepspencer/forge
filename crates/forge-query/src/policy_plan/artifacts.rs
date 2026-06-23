@@ -87,7 +87,7 @@ impl PolicyAwarePlanWorkBudget {
         digest_part_count: usize,
     ) -> Self {
         Self::new(
-            artifact.authorized_projection().visible_fields().len(),
+            artifact.authorized_projection().visible_field_paths().len(),
             artifact.relationship_proof().descriptor_count(),
             artifact
                 .relationship_proof()

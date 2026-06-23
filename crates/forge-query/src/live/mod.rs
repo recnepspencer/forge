@@ -4,6 +4,7 @@ use crate::execution::{execute_preflight_bundle, ExecutionError};
 use crate::identity::{hash_parts, CollectionPlanDigest, PlanDigest, ValidatedQueryDigest};
 use crate::live_performance::{IncrementalPatchEligibility, LivePerformanceReport};
 use crate::validation::ValidatedQueryBundle;
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 mod region_scoped;
 pub use region_scoped::{
@@ -30,28 +31,41 @@ impl LiveQueryFamily {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct QueryFieldKey {
-    aspect: String,
-    field: String,
+    aspect_key: AspectKey,
+    field_key: FieldKey,
 }
 
 impl QueryFieldKey {
-    pub fn aspect(&self) -> &str {
-        &self.aspect
+    pub fn native_aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
     }
 
-    pub fn field(&self) -> &str {
-        &self.field
+    pub fn native_field_key(&self) -> &FieldKey {
+        &self.field_key
     }
 
     fn new(aspect: impl Into<String>, field: impl Into<String>) -> Self {
+        let aspect = aspect.into();
+        let field = field.into();
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            aspect_key: AspectKey::new(aspect).expect("query field aspect must be foundational"),
+            field_key: FieldKey::new(field).expect("query field name must be foundational"),
+        }
+    }
+
+    fn from_native_keys(aspect_key: AspectKey, field_key: FieldKey) -> Self {
+        Self {
+            aspect_key,
+            field_key,
         }
     }
 
     fn matches(&self, delta: &BridgeFieldDelta) -> bool {
-        self.aspect == delta.aspect && self.field == delta.field
+        self == delta.field_key()
+    }
+
+    fn terminal_digest_part(&self) -> String {
+        format!("{}:{}", self.aspect_key.as_str(), self.field_key.as_str())
     }
 }
 
@@ -87,7 +101,12 @@ impl QueryRelevanceContract {
                 .query()
                 .projection()
                 .iter()
-                .map(|entry| QueryFieldKey::new(entry.aspect(), entry.field()))
+                .map(|entry| {
+                    QueryFieldKey::from_native_keys(
+                        entry.native_aspect_key().clone(),
+                        entry.native_field_key().clone(),
+                    )
+                })
                 .collect(),
             ordering_fields: Vec::new(),
             traversal_relations: Vec::new(),
@@ -104,14 +123,24 @@ impl QueryRelevanceContract {
                 .query()
                 .projection()
                 .iter()
-                .map(|entry| QueryFieldKey::new(entry.aspect(), entry.field()))
+                .map(|entry| {
+                    QueryFieldKey::from_native_keys(
+                        entry.native_aspect_key().clone(),
+                        entry.native_field_key().clone(),
+                    )
+                })
                 .collect(),
             ordering_fields: bundle
                 .query()
                 .ordering()
                 .entries()
                 .iter()
-                .map(|entry| QueryFieldKey::new(entry.aspect(), entry.field()))
+                .map(|entry| {
+                    QueryFieldKey::from_native_keys(
+                        entry.native_aspect_key().clone(),
+                        entry.native_field_key().clone(),
+                    )
+                })
                 .collect(),
             traversal_relations: Vec::new(),
         }
@@ -127,14 +156,24 @@ impl QueryRelevanceContract {
                 .query()
                 .projection()
                 .iter()
-                .map(|entry| QueryFieldKey::new(entry.aspect(), entry.field()))
+                .map(|entry| {
+                    QueryFieldKey::from_native_keys(
+                        entry.native_aspect_key().clone(),
+                        entry.native_field_key().clone(),
+                    )
+                })
                 .collect(),
             ordering_fields: bundle
                 .query()
                 .ordering()
                 .entries()
                 .iter()
-                .map(|entry| QueryFieldKey::new(entry.aspect(), entry.field()))
+                .map(|entry| {
+                    QueryFieldKey::from_native_keys(
+                        entry.native_aspect_key().clone(),
+                        entry.native_field_key().clone(),
+                    )
+                })
                 .collect(),
             traversal_relations: collection
                 .traversal_bound()
@@ -206,18 +245,13 @@ impl QueryRelevanceContract {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeFieldDelta {
-    aspect: String,
-    field: String,
+    field: QueryFieldKey,
     old_value: Option<String>,
     new_value: Option<String>,
 }
 
 impl BridgeFieldDelta {
-    pub fn aspect(&self) -> &str {
-        &self.aspect
-    }
-
-    pub fn field(&self) -> &str {
+    pub fn field_key(&self) -> &QueryFieldKey {
         &self.field
     }
 
@@ -236,8 +270,7 @@ impl BridgeFieldDelta {
         new_value: Option<impl Into<String>>,
     ) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            field: QueryFieldKey::new(aspect, field),
             old_value: old_value.map(Into::into),
             new_value: new_value.map(Into::into),
         }
@@ -1117,7 +1150,7 @@ impl LiveQueryPlan {
                             .any(|field| field.matches(delta))
                     })
                     .map(|delta| ProjectionFieldDelta {
-                        field: QueryFieldKey::new(delta.aspect(), delta.field()),
+                        field: delta.field_key().clone(),
                         old_value: delta.old_value().map(ToOwned::to_owned),
                         new_value: delta.new_value().map(ToOwned::to_owned),
                     })
@@ -1147,9 +1180,8 @@ impl LiveQueryPlan {
                 let mut digest_parts = Vec::new();
                 digest_parts.extend(field_deltas.iter().map(|delta| {
                     format!(
-                        "field_delta:{}:{}:{:?}:{:?}",
-                        delta.field.aspect(),
-                        delta.field.field(),
+                        "field_delta:{}:{:?}:{:?}",
+                        delta.field.terminal_digest_part(),
                         delta.old_value,
                         delta.new_value
                     )
@@ -1380,7 +1412,7 @@ impl LiveQueryPlan {
                     .any(|field| field.matches(delta))
             })
             .map(|delta| ProjectionFieldDelta {
-                field: QueryFieldKey::new(delta.aspect(), delta.field()),
+                field: delta.field_key().clone(),
                 old_value: delta.old_value().map(ToOwned::to_owned),
                 new_value: delta.new_value().map(ToOwned::to_owned),
             })
@@ -1399,7 +1431,7 @@ impl LiveQueryPlan {
                     .any(|field| field.matches(delta))
             })
             .map(|delta| OrderingFieldDelta {
-                field: QueryFieldKey::new(delta.aspect(), delta.field()),
+                field: delta.field_key().clone(),
                 old_value: delta.old_value().map(ToOwned::to_owned),
                 new_value: delta.new_value().map(ToOwned::to_owned),
             })
@@ -4775,6 +4807,14 @@ fn bounded_outcome_digest(outcome: &BoundedMaterializationLiveOutcome) -> (Strin
 mod tests {
     use super::*;
 
+    fn aspect_key(value: &str) -> AspectKey {
+        AspectKey::new(value).expect("test aspect key should be valid")
+    }
+
+    fn field_key(value: &str) -> FieldKey {
+        FieldKey::new(value).expect("test field key should be valid")
+    }
+
     #[test]
     fn detail_preflight_promotes_to_detail_live_plan() {
         let preflight = crate::harness::fixtures::execution_preflights::direct_runtime_preflight();
@@ -4889,8 +4929,8 @@ mod tests {
             DetailLiveOutcome::Patch(patch) => {
                 assert_eq!(patch.field_deltas().len(), 1);
                 let delta = &patch.field_deltas()[0];
-                assert_eq!(delta.field().aspect(), "identity");
-                assert_eq!(delta.field().field(), "id");
+                assert_eq!(delta.field().native_aspect_key(), &aspect_key("identity"));
+                assert_eq!(delta.field().native_field_key(), &field_key("id"));
                 assert_eq!(delta.old_value(), Some("user-1"));
                 assert_eq!(delta.new_value(), Some("user-2"));
                 assert!(!patch.digest().as_str().is_empty());
@@ -4951,8 +4991,10 @@ mod tests {
                     OrderedCollectionPatchKind::Reordered(ordering) => {
                         assert_eq!(ordering.ordering_field_deltas().len(), 1);
                         assert_eq!(
-                            ordering.ordering_field_deltas()[0].field().field(),
-                            "display_name"
+                            ordering.ordering_field_deltas()[0]
+                                .field()
+                                .native_field_key(),
+                            &field_key("display_name")
                         );
                     }
                     other => panic!("expected reorder patch, got {other:?}"),

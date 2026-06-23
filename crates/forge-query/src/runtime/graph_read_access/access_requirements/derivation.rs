@@ -326,8 +326,11 @@ fn relation_row(
         memory_estimate_basis,
     )
     .with_relation(
-        relation.relation(),
-        relation_authority(schema_basis_digest, relation.relation()),
+        relation.terminal_relation_projection_for_boundary(),
+        relation_authority(
+            schema_basis_digest,
+            relation.terminal_relation_projection_for_boundary(),
+        ),
         relation.direction().clone(),
         relation.depth(),
     )

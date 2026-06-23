@@ -1,6 +1,7 @@
-use std::collections::{BTreeMap, BTreeSet};
+#[path = "routing_aspects.rs"]
+mod routing_aspects;
 
-use serde_json::{json, Value};
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::memory_workspace::ForgeQueryMutationReceipt;
 
@@ -13,12 +14,15 @@ use super::declaration::{
     ForgeQueryEffectExpressionFailurePosture, ForgeQueryEffectSuppressionPolicy,
     ForgeQueryEffectTriggerSource, ForgeQueryEffectTriggerSourceKind,
 };
-use super::delivery::ForgeQueryEffectDelivery;
-use super::registry::{ForgeQueryEffectIndex, ForgeQueryEffectRuntime};
+use super::delivery::{ForgeQueryEffectDelivery, ForgeQueryEffectPayload};
+use super::registry::{ForgeQueryEffectIndex, ForgeQueryEffectRuntime, ForgeQueryEffectTarget};
+use crate::runtime::{ForgeQueryAspectTouch, ForgeQueryMutationTargetCollectionIdentity};
+use crate::runtime::{ForgeQueryDerivedMaterializationTarget, ForgeQueryLiveArtifactTarget};
+use routing_aspects::{aspects_match, insert_declared_aspects};
 
 pub(in crate::runtime) fn admit_effect_declaration(
-    live_view_names: &BTreeSet<String>,
-    computed_view_names: &BTreeSet<String>,
+    live_view_targets: &BTreeSet<ForgeQueryLiveArtifactTarget>,
+    computed_view_targets: &BTreeSet<ForgeQueryDerivedMaterializationTarget>,
     declaration: &ForgeQueryEffectDeclaration,
 ) -> Result<(), ForgeQueryRuntimeError> {
     if declaration.name().is_empty() {
@@ -50,7 +54,7 @@ pub(in crate::runtime) fn admit_effect_declaration(
             ));
         }
     }
-    if declaration.trigger().aspects().is_empty() {
+    if declaration.trigger().aspect_touches().is_empty() {
         return Err(effect_declaration_error(
             declaration.name(),
             "trigger-admission",
@@ -59,7 +63,8 @@ pub(in crate::runtime) fn admit_effect_declaration(
     }
     match &declaration.trigger().source {
         ForgeQueryEffectTriggerSource::LiveView { view_name } => {
-            if !live_view_names.contains(view_name) {
+            let target = ForgeQueryLiveArtifactTarget::from_view_name(view_name.clone());
+            if !live_view_targets.contains(&target) {
                 return Err(effect_declaration_error(
                     declaration.name(),
                     "trigger-admission",
@@ -68,7 +73,8 @@ pub(in crate::runtime) fn admit_effect_declaration(
             }
         }
         ForgeQueryEffectTriggerSource::ComputedView { view_name } => {
-            if !computed_view_names.contains(view_name) {
+            let target = ForgeQueryDerivedMaterializationTarget::new(view_name.clone());
+            if !computed_view_targets.contains(&target) {
                 return Err(effect_declaration_error(
                     declaration.name(),
                     "trigger-admission",
@@ -85,7 +91,9 @@ pub(in crate::runtime) fn admit_effect_declaration(
                 "expression descriptor may not be empty",
             ));
         }
-        if expression.input_aspects().is_empty() || expression.output_aspects().is_empty() {
+        if expression.input_aspect_touches().is_empty()
+            || expression.output_aspect_touches().is_empty()
+        {
             return Err(effect_declaration_error(
                 declaration.name(),
                 "condition-admission",
@@ -137,17 +145,20 @@ impl ForgeQueryEffectRouteResult {
     }
 }
 pub(in crate::runtime) fn route_effect_deliveries(
-    effects: &mut BTreeMap<String, ForgeQueryEffectRuntime>,
+    effects: &mut BTreeMap<ForgeQueryEffectTarget, ForgeQueryEffectRuntime>,
     effect_index: &ForgeQueryEffectIndex,
-    derived_views: &BTreeMap<String, ForgeQueryDerivedViewRuntime>,
-    live_view_targets: &BTreeMap<String, String>,
+    derived_views: &BTreeMap<ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewRuntime>,
+    live_artifact_target_collections: &BTreeMap<
+        ForgeQueryLiveArtifactTarget,
+        ForgeQueryMutationTargetCollectionIdentity,
+    >,
     receipt: &ForgeQueryMutationReceipt,
-    affected_live_view_ids: &[String],
-    affected_derived_view_ids: &[String],
+    affected_live_view_targets: &[ForgeQueryLiveArtifactTarget],
+    affected_derived_view_targets: &[ForgeQueryDerivedMaterializationTarget],
 ) -> ForgeQueryEffectRouteResult {
-    let mut candidates: BTreeSet<String> = BTreeSet::new();
-    candidates.extend(effect_index.live_candidates(affected_live_view_ids.iter()));
-    candidates.extend(effect_index.computed_candidates(affected_derived_view_ids.iter()));
+    let mut candidates: BTreeSet<ForgeQueryEffectTarget> = BTreeSet::new();
+    candidates.extend(effect_index.live_candidates(affected_live_view_targets.iter()));
+    candidates.extend(effect_index.computed_candidates(affected_derived_view_targets.iter()));
     let mut result = ForgeQueryEffectRouteResult::default();
     for effect_name in candidates {
         let Some(effect) = effects.get_mut(&effect_name) else {
@@ -158,7 +169,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
         let trigger = collect_trigger_change(
             &effect.declaration,
             derived_views,
-            live_view_targets,
+            live_artifact_target_collections,
             receipt,
         );
         let Some(trigger) = trigger else {
@@ -188,7 +199,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
             }
             continue;
         };
-        match evaluate_condition(effect.declaration.condition(), &trigger.aspect_paths) {
+        match evaluate_condition(effect.declaration.condition(), &trigger.aspect_touches) {
             EffectConditionOutcome::Delivered(payload) => match effect.declaration.action() {
                 ForgeQueryEffectAction::Deliver => {
                     let delivery = ForgeQueryEffectDelivery::delivered(
@@ -196,7 +207,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
                         receipt.commit_identity.clone(),
                         trigger.source,
                         trigger.source_kind,
-                        trigger.aspect_paths,
+                        trigger.aspect_touches,
                         payload,
                     );
                     effect.record_delivery(delivery);
@@ -209,7 +220,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
                         receipt.commit_identity.clone(),
                         trigger.source,
                         trigger.source_kind,
-                        trigger.aspect_paths,
+                        trigger.aspect_touches,
                         payload,
                     );
                     effect.record_delivery(delivery);
@@ -247,7 +258,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
                     receipt.commit_identity.clone(),
                     trigger.source,
                     trigger.source_kind,
-                    trigger.aspect_paths,
+                    trigger.aspect_touches,
                     reason,
                 );
                 effect.record_delivery(delivery);
@@ -261,90 +272,90 @@ pub(in crate::runtime) fn route_effect_deliveries(
 struct TriggerChange {
     source: String,
     source_kind: ForgeQueryEffectTriggerSourceKind,
-    aspect_paths: Vec<String>,
+    aspect_touches: Vec<ForgeQueryAspectTouch>,
 }
 fn collect_trigger_change(
     declaration: &ForgeQueryEffectDeclaration,
-    derived_views: &BTreeMap<String, ForgeQueryDerivedViewRuntime>,
-    live_view_targets: &BTreeMap<String, String>,
+    derived_views: &BTreeMap<ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewRuntime>,
+    live_artifact_target_collections: &BTreeMap<
+        ForgeQueryLiveArtifactTarget,
+        ForgeQueryMutationTargetCollectionIdentity,
+    >,
     receipt: &ForgeQueryMutationReceipt,
 ) -> Option<TriggerChange> {
     match &declaration.trigger().source {
         ForgeQueryEffectTriggerSource::LiveView { view_name } => {
-            let aspects = declaration.trigger().aspects();
-            let target = live_view_targets.get(view_name)?;
+            let aspects = declaration.trigger().aspect_touches();
+            let live_target = ForgeQueryLiveArtifactTarget::from_view_name(view_name.clone());
+            let collection = live_artifact_target_collections.get(&live_target)?;
             let mut changed_aspects = BTreeSet::new();
             for delta in &receipt.deltas {
-                if &delta.collection != target {
+                if !delta
+                    .target_collection_identity()
+                    .same_target_collection_as(collection)
+                {
                     continue;
                 }
-                if delta.aspect_paths.is_empty() {
-                    changed_aspects.extend(aspects.iter().cloned());
+                if delta.admitted_touched_aspects().is_empty() {
+                    insert_declared_aspects(&mut changed_aspects, aspects);
                 } else {
-                    changed_aspects.extend(
-                        delta
-                            .aspect_paths
-                            .iter()
-                            .filter(|aspect| aspects_match(aspects, aspect))
-                            .cloned(),
-                    );
+                    for touch in delta
+                        .admitted_touched_aspects()
+                        .iter()
+                        .filter(|touch| aspects_match(aspects, touch))
+                    {
+                        changed_aspects.insert(touch.clone());
+                    }
                 }
             }
             (!changed_aspects.is_empty()).then(|| TriggerChange {
                 source: view_name.clone(),
                 source_kind: ForgeQueryEffectTriggerSourceKind::LiveView,
-                aspect_paths: changed_aspects.into_iter().collect(),
+                aspect_touches: changed_aspects.into_iter().collect(),
             })
         }
         ForgeQueryEffectTriggerSource::ComputedView { view_name } => {
-            let aspects = declaration.trigger().aspects();
-            let view = derived_views.get(view_name)?;
+            let aspects = declaration.trigger().aspect_touches();
+            let view =
+                derived_views.get(&ForgeQueryDerivedMaterializationTarget::new(view_name))?;
             let mut changed_aspects = BTreeSet::new();
             for patch in &view.patches {
                 if patch.commit_identity() != &receipt.commit_identity {
                     continue;
                 }
-                if patch.aspect_paths().is_empty() {
-                    changed_aspects.extend(aspects.iter().cloned());
+                if patch.aspect_touches().is_empty() {
+                    insert_declared_aspects(&mut changed_aspects, aspects);
                 } else {
-                    changed_aspects.extend(
-                        patch
-                            .aspect_paths()
-                            .iter()
-                            .filter(|aspect| aspects_match(aspects, aspect))
-                            .cloned(),
-                    );
+                    for aspect in patch
+                        .aspect_touches()
+                        .iter()
+                        .filter(|touch| aspects_match(aspects, touch))
+                    {
+                        changed_aspects.insert(aspect.clone());
+                    }
                 }
             }
             (!changed_aspects.is_empty()).then(|| TriggerChange {
                 source: view_name.clone(),
                 source_kind: ForgeQueryEffectTriggerSourceKind::ComputedView,
-                aspect_paths: changed_aspects.into_iter().collect(),
+                aspect_touches: changed_aspects.into_iter().collect(),
             })
         }
     }
 }
-fn aspects_match(declared_aspects: &[String], changed_aspect: &str) -> bool {
-    declared_aspects.iter().any(|declared| {
-        changed_aspect == declared
-            || changed_aspect.starts_with(&format!("{declared}."))
-            || declared.starts_with(&format!("{changed_aspect}."))
-    })
-}
 enum EffectConditionOutcome {
-    Delivered(Value),
+    Delivered(ForgeQueryEffectPayload),
     Suppressed(String),
     Failed(String),
 }
 fn evaluate_condition(
     condition: &ForgeQueryEffectCondition,
-    changed_aspects: &[String],
+    changed_aspects: &[ForgeQueryAspectTouch],
 ) -> EffectConditionOutcome {
     match condition {
-        ForgeQueryEffectCondition::Always => EffectConditionOutcome::Delivered(json!({
-            "condition": "always",
-            "changed_aspects": changed_aspects,
-        })),
+        ForgeQueryEffectCondition::Always => {
+            EffectConditionOutcome::Delivered(ForgeQueryEffectPayload::always(changed_aspects))
+        }
         ForgeQueryEffectCondition::Expression(expression) => {
             if expression.failure_posture()
                 == ForgeQueryEffectExpressionFailurePosture::DeterministicFailure
@@ -356,19 +367,19 @@ fn evaluate_condition(
             }
             let input_hits = changed_aspects
                 .iter()
-                .any(|aspect| aspects_match(expression.input_aspects(), aspect));
+                .any(|aspect| aspects_match(expression.input_aspect_touches(), aspect));
             if !input_hits {
                 return EffectConditionOutcome::Suppressed(format!(
                     "expression `{}` inputs were not changed",
                     expression.descriptor()
                 ));
             }
-            EffectConditionOutcome::Delivered(json!({
-                "condition": expression.descriptor(),
-                "input_aspects": expression.input_aspects(),
-                "output_aspects": expression.output_aspects(),
-                "changed_aspects": changed_aspects,
-            }))
+            EffectConditionOutcome::Delivered(ForgeQueryEffectPayload::expression(
+                expression.descriptor(),
+                expression.input_aspect_touches(),
+                expression.output_aspect_touches(),
+                changed_aspects,
+            ))
         }
     }
 }

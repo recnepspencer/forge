@@ -1,3 +1,4 @@
+use crate::application::assert_declaration_aspect_projections;
 use crate::contribution_composed_orchestration::{
     ForgeQueryContributionComposedClassification, ForgeQueryContributionComposedOrchestrationInput,
     ForgeQueryContributionIntent,
@@ -218,15 +219,12 @@ fn proof_transcript_explains_partial_run() {
         proof.intent_results()[0].detail(),
         "proof-visible contribution"
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         proof.intent_results()[0]
             .aspect_record()
             .declaration_contract()
             .required(),
-        &[
-            "selection.active_face".to_string(),
-            "selection.face".to_string()
-        ]
+        &["selection.active_face", "selection.face"],
     );
     assert_eq!(
         proof.intent_results()[0]

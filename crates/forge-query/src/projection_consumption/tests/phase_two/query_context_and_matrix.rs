@@ -14,10 +14,7 @@ fn test_binding(visible_fields: &[&str]) -> ProjectionConsumptionBindingContext 
     ProjectionConsumptionBindingContext::test_only(
         "result-shape:test",
         "authorized-projection:test",
-        visible_fields
-            .iter()
-            .map(|field| field.to_string())
-            .collect(),
+        crate::projection_consumption::test_authorized_field_paths(visible_fields),
     )
 }
 
@@ -73,12 +70,23 @@ fn request_for_kind(kind: ProjectionFactKind) -> ProjectMaterializedFacts {
         ProjectionFactKind::RelationEndpoint => {
             ProjectMaterializedFacts::declare().relation_endpoints()
         }
-        ProjectionFactKind::DisplayField => {
-            ProjectMaterializedFacts::declare().display_field("profile.display_name")
-        }
-        ProjectionFactKind::DerivedScalarField => {
-            ProjectMaterializedFacts::declare().derived_scalar_field("profile.display_name")
-        }
+        ProjectionFactKind::DisplayField => ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
+            ]),
+        ),
+        ProjectionFactKind::DerivedScalarField => ProjectMaterializedFacts::declare()
+            .derived_scalar_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            ),
     }
 }
 
@@ -130,7 +138,14 @@ fn non_preview_query_context_display_fields_warn_as_row_bound_not_preview_derive
             },
         ),
         test_binding(&["profile.display_name"]),
-        ProjectMaterializedFacts::declare().display_field("profile.display_name"),
+        ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
+            ]),
+        ),
     )
     .expect("historical query-context display declaration should be valid");
 

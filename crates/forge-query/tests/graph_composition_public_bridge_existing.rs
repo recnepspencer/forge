@@ -1,3 +1,4 @@
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
     ForgeQueryContinuityMutationFamily, ForgeQueryContinuityPriorAuthorityLabel,
     ForgeQueryContinuitySuccessorAuthorityLabel, ForgeQueryExistingRelationTarget,
@@ -6,13 +7,12 @@ use forge_query::facade::{
     ForgeQueryGraphCompositionLifecycleOutcomeKind, ForgeQueryGraphCompositionProgramStepKind,
     ForgeQueryInspection, ForgeQueryLiveView, ForgeQueryMutationAuthorityIdentity,
     ForgeQueryNamingAttachmentAuthorityLabel, ForgeQueryNamingMutationFamily,
-    ForgeQueryNamingPriorAuthorityLabel, ForgeQueryNamingTargetAuthorityLabel,
+    ForgeQueryNamingPriorAuthorityLabel, ForgeQueryNamingTargetAuthorityLabel, ForgeQueryNativeRow,
     ForgeQueryRuntimeError,
 };
-use serde_json::{json, Value};
-
 mod support;
 
+use support::aspect_touch as touch;
 use support::public_bridge_runtime::{public_graph_support_profile, PublicBridgeRuntimeHarness};
 
 fn public_multi_verified_relation_profile() -> forge_query::facade::ForgeQueryRuntimeSupportProfile
@@ -84,13 +84,25 @@ fn graph_composition_public_bridge_supports_existing_target_retarget_lifecycle()
     let mut workspace = runtime
         .workspace("public.graph-composition-existing-retarget")
         .expect("runtime should open a named workspace");
-    let relations: ForgeQueryLiveView<Value> = workspace
+    let relations: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view(
             "public.graph-composition-existing-retarget-relations",
             |q| {
                 q.from("TaskRelation")
-                    .select(["identity.id", "kind.value", "source.id", "target.id"])
-                    .order_by("identity.id")
+                    .select([
+                        forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                        forge_query::facade::AspectFieldKey::from_authoring_parts("kind", "value")
+                            .unwrap(),
+                        forge_query::facade::AspectFieldKey::from_authoring_parts("source", "id")
+                            .unwrap(),
+                        forge_query::facade::AspectFieldKey::from_authoring_parts("target", "id")
+                            .unwrap(),
+                    ])
+                    .order_by(
+                        forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                    )
                     .schema_basis("public-graph-composition-existing-retarget-relations")
             },
         )
@@ -98,10 +110,10 @@ fn graph_composition_public_bridge_supports_existing_target_retarget_lifecycle()
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect("identity.id", "rel-next")
-                .aspect("kind.value", "loop_successor")
-                .aspect("source.id", "loop-a")
-                .aspect("target.id", "loop-b")
+                .set_aspect(touch("identity.id"), authored_text("rel-next"))
+                .set_aspect(touch("kind.value"), authored_text("loop_successor"))
+                .set_aspect(touch("source.id"), authored_text("loop-a"))
+                .set_aspect(touch("target.id"), authored_text("loop-b"))
         })
         .expect("seed insert should execute");
     let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(
@@ -118,8 +130,8 @@ fn graph_composition_public_bridge_supports_existing_target_retarget_lifecycle()
     let receipt = workspace
         .compose_graph(|graph| {
             let _ = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-loop-c")
-                    .aspect("title.value", "Loop successor target")
+                task.set_aspect(touch("identity.id"), authored_text("task-loop-c"))
+                    .set_aspect(touch("title.value"), authored_text("Loop successor target"))
             })?;
             graph.retarget_existing(binding, |relation| {
                 relation
@@ -132,7 +144,7 @@ fn graph_composition_public_bridge_supports_existing_target_retarget_lifecycle()
                         continuity_prior("authority:rel-next"),
                         continuity_successor("authority:rel-next-successor"),
                     )
-                    .aspect("target.id", "loop-c")
+                    .set_aspect(touch("target.id"), authored_text("loop-c"))
             })?;
             Ok(())
         })
@@ -155,8 +167,8 @@ fn graph_composition_public_bridge_supports_existing_target_retarget_lifecycle()
         ForgeQueryGraphCompositionLifecycleOutcomeKind::RetargetedIdentityPreserved
     );
     assert_eq!(
-        workspace.read(&relations)[0].external_row()["target"]["id"].as_str(),
-        Some("loop-c")
+        workspace.read(&relations)[0].scalar_value_at(&field_path("target.id")),
+        Some(&text("loop-c"))
     );
 
     match workspace.inspect(&receipt).expect("receipt should inspect") {
@@ -194,15 +206,15 @@ fn graph_composition_public_bridge_supports_verified_existing_followup_and_retir
     let update_seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect("identity.id", "rel-1")
-                .aspect("status.value", "active")
+                .set_aspect(touch("identity.id"), authored_text("rel-1"))
+                .set_aspect(touch("status.value"), authored_text("active"))
         })
         .expect("update seed should execute");
     let delete_seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect("identity.id", "rel-2")
-                .aspect("kind.value", "depends_on")
+                .set_aspect(touch("identity.id"), authored_text("rel-2"))
+                .set_aspect(touch("kind.value"), authored_text("depends_on"))
         })
         .expect("delete seed should execute");
     let update_binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(
@@ -225,24 +237,38 @@ fn graph_composition_public_bridge_supports_verified_existing_followup_and_retir
         .expect("existing relation target collection should build"),
     )
     .expect("delete relation binding should build");
-    harness.seed_backend_authoritative_truth(&update_binding, "status.value", json!("active"));
-    harness.seed_backend_authoritative_truth(&delete_binding, "kind.value", json!("depends_on"));
+    harness.seed_backend_authoritative_truth(
+        &update_binding,
+        touch("status.value"),
+        text("active"),
+    );
+    harness.seed_backend_authoritative_truth(
+        &delete_binding,
+        touch("kind.value"),
+        text("depends_on"),
+    );
 
     let receipt = workspace
         .compose_graph(|graph| {
             let _ = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-verified-existing")
-                    .aspect("title.value", "Verified existing task")
+                task.set_aspect(
+                    touch("identity.id"),
+                    authored_text("task-verified-existing"),
+                )
+                .set_aspect(
+                    touch("title.value"),
+                    authored_text("Verified existing task"),
+                )
             })?;
             graph.update_existing_verified(
                 update_binding,
-                |verify| verify.aspect("status.value", "active"),
-                |update| update.aspect("status.value", "retired"),
+                |verify| verify.set_aspect(touch("status.value"), authored_text("active")),
+                |update| update.set_aspect(touch("status.value"), authored_text("retired")),
             )?;
             graph.delete_existing_verified(
                 delete_binding,
-                |verify| verify.aspect("kind.value", "depends_on"),
-                |delete| delete.touch("kind.value"),
+                |verify| verify.set_aspect(touch("kind.value"), authored_text("depends_on")),
+                |delete| delete.touch(touch("kind.value")),
             )?;
             Ok(())
         })
@@ -302,8 +328,8 @@ fn graph_composition_public_bridge_denies_verified_existing_mismatch() {
     let update_seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect("identity.id", "rel-mismatch")
-                .aspect("status.value", "active")
+                .set_aspect(touch("identity.id"), authored_text("rel-mismatch"))
+                .set_aspect(touch("status.value"), authored_text("active"))
         })
         .expect("update seed should execute");
     let update_binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(
@@ -316,15 +342,18 @@ fn graph_composition_public_bridge_denies_verified_existing_mismatch() {
         .expect("existing relation target collection should build"),
     )
     .expect("update relation binding should build");
-    let seed =
-        harness.seed_backend_authoritative_truth(&update_binding, "status.value", json!("active"));
+    let seed = harness.seed_backend_authoritative_truth(
+        &update_binding,
+        touch("status.value"),
+        text("active"),
+    );
 
     let error = workspace
         .compose_graph(|graph| {
             graph.update_existing_verified(
                 update_binding,
-                |verify| verify.aspect("status.value", "stale"),
-                |update| update.aspect("status.value", "retired"),
+                |verify| verify.set_aspect(touch("status.value"), authored_text("stale")),
+                |update| update.set_aspect(touch("status.value"), authored_text("retired")),
             )?;
             Ok(())
         })
@@ -341,4 +370,21 @@ fn graph_composition_public_bridge_denies_verified_existing_mismatch() {
         }
         other => panic!("expected graph composition denial, got {other:?}"),
     }
+}
+
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
+}
+
+fn text(value: impl Into<String>) -> forge_foundational::facade::AspectValue {
+    forge_foundational::facade::AspectValue::String(value.into().into())
+}
+
+fn field_path(path: &str) -> CanonicalFieldPath {
+    CanonicalFieldPath::new(
+        path.split('.').map(|segment| {
+            FieldKey::new(segment).expect("test field path segment should be valid")
+        }),
+    )
+    .expect("test field path should be non-empty")
 }

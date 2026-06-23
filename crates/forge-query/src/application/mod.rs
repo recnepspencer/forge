@@ -2,6 +2,8 @@ mod capability;
 mod config;
 mod declaration;
 mod declaration_aspect;
+#[cfg(test)]
+mod declaration_aspect_test_support;
 mod declaration_authority_summary;
 mod declaration_bridge_routing;
 mod declaration_capability;
@@ -326,6 +328,11 @@ pub(crate) use declaration_aspect::{
     aspect_coverage_from_publication, authority_mismatch_from_fit,
     authority_scoped_envelope_aspect_contract, merged_authority_aspect_contract,
     route_scoped_declaration_aspect_contract,
+};
+#[cfg(test)]
+pub(crate) use declaration_aspect_test_support::{
+    assert_declaration_aspect_projections, test_declaration_aspect_key,
+    test_declaration_aspect_keys,
 };
 pub(crate) use declaration_authority_summary::{
     bridge_authority_summary_from_coverage, bridge_authority_summary_from_publication,

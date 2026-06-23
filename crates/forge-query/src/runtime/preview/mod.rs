@@ -1,20 +1,19 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde_json::Value;
-
 use super::{
     admit_authority_requirements, validate_inputs, ForgeQueryAspectMutationBuilder,
-    ForgeQueryAuthorityLane, ForgeQueryBatchWriteReceipt, ForgeQueryDeleteMutationBuilder,
-    ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewRuntime, ForgeQueryEffectAction,
-    ForgeQueryEffectAdmission, ForgeQueryEffectHandle, ForgeQueryEffectInspectionEvidence,
-    ForgeQueryEffectPolicy, ForgeQueryEffectTriggerSourceKind,
+    ForgeQueryAspectTouch, ForgeQueryAuthorityLane, ForgeQueryBatchWriteReceipt,
+    ForgeQueryDeleteMutationBuilder, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewRuntime,
+    ForgeQueryEffectAction, ForgeQueryEffectAdmission, ForgeQueryEffectHandle,
+    ForgeQueryEffectInspectionEvidence, ForgeQueryEffectPolicy, ForgeQueryEffectTriggerSourceKind,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryInstalledOperation,
     ForgeQueryIntentDeclaration, ForgeQueryIntentDenialEvidence, ForgeQueryIntentSourceLane,
     ForgeQueryLiveView, ForgeQueryMutationBatchBuilder, ForgeQueryMutationMetadata,
     ForgeQueryOperationInput, ForgeQueryOperationOutput, ForgeQueryPatchBatch,
     ForgeQueryPreviewBasisAdmission, ForgeQueryPreviewIntentReceipt, ForgeQueryProgramEffect,
     ForgeQueryProgramTrace, ForgeQueryRunReceipt, ForgeQueryRuntime, ForgeQueryRuntimeError,
-    ForgeQueryRuntimeFacadeFamily, ForgeQuerySymbolicTargetReference,
+    ForgeQueryRuntimeFacadeFamily, ForgeQuerySameBatchSymbolicTarget,
+    ForgeQuerySameBatchSymbolicTargetKey, ForgeQuerySymbolicTargetReference,
     ForgeQuerySymbolicTargetReferenceDenial, ForgeQuerySymbolicTargetReferenceDenialKind,
     ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };

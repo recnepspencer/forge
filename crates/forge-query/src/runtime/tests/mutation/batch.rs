@@ -5,21 +5,29 @@ fn workspace_batch_aggregates_touched_surfaces_and_remains_inspectable() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-batch")
         .expect("task runtime should open a named workspace");
-    let live: ForgeQueryLiveView<Value> = workspace
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.batch-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-batch-table")
         })
         .expect("live view should declare");
-    let computed: ForgeQueryDerivedViewHandle<Value> = workspace
+    let computed: ForgeQueryDerivedViewHandle<ForgeQueryNativeRow> = workspace
         .computed(
             "tasks.batch-summary",
             |c| {
                 c.depends_on_live(&live)
-                    .reads(["title.value"])
-                    .produces(["ui.batch_summary"])
+                    .reads(test_aspect_touches(["title.value"]))
+                    .produces(test_aspect_touches(["ui.batch_summary"]))
             },
             TitleListMaintainer,
         )
@@ -29,17 +37,31 @@ fn workspace_batch_aggregates_touched_surfaces_and_remains_inspectable() {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "task-1")
-                        .aspect("title.value", "Buy milk")
+                    task.set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value("task-1"),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("title.value"),
+                        test_authored_string_aspect_value("Buy milk"),
+                    )
                 })
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "task-2")
-                        .aspect("title.value", "Buy bread")
+                    task.set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value("task-2"),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("title.value"),
+                        test_authored_string_aspect_value("Buy bread"),
+                    )
                 })
         })
         .expect("aspect-native batch should execute");
     let patches = workspace.observe(&live);
-    let materialized = workspace.materialize(&computed);
+    let materialized = workspace
+        .materialize_result(&computed)
+        .expect("computed materialization should execute");
     let inspection = workspace
         .inspect(&receipt)
         .expect("batch receipt should inspect");
@@ -95,33 +117,33 @@ fn workspace_batch_aggregates_touched_surfaces_and_remains_inspectable() {
         .aggregate_provenance_digest()
         .is_some());
     assert_eq!(
-        receipt.touched_aspect_paths(),
-        &["identity.id".to_string(), "title.value".to_string()]
+        receipt.admitted_touched_aspects(),
+        test_aspect_touches(["identity.id", "title.value"]).as_slice()
     );
     assert_eq!(
-        receipt.affected_live_view_ids(),
+        receipt.terminal_affected_live_view_ids_projection(),
         &["tasks.batch-table".to_string()]
     );
     assert_eq!(
-        receipt.affected_derived_view_ids(),
+        receipt.terminal_affected_derived_view_ids_projection(),
         &["tasks.batch-summary".to_string()]
     );
     assert_eq!(patches.query_delivery_batches.len(), 2);
-    assert_eq!(materialized.len(), 2);
+    assert_eq!(materialized.row_count(), 2);
 
     match inspection {
         ForgeQueryInspection::BatchWriteReceipt(inspection) => {
             assert_eq!(inspection.write_receipt_count(), 2);
             assert_eq!(
-                inspection.touched_aspect_paths(),
-                &["identity.id".to_string(), "title.value".to_string()]
+                inspection.admitted_touched_aspects(),
+                test_aspect_touches(["identity.id", "title.value"]).as_slice()
             );
             assert_eq!(
-                inspection.affected_live_view_ids(),
+                inspection.terminal_affected_live_view_ids_projection(),
                 &["tasks.batch-table".to_string()]
             );
             assert_eq!(
-                inspection.affected_derived_view_ids(),
+                inspection.terminal_affected_derived_view_ids_projection(),
                 &["tasks.batch-summary".to_string()]
             );
             assert_eq!(inspection.commit_identities().len(), 2);
@@ -156,9 +178,15 @@ fn workspace_batch_aggregates_touched_surfaces_and_remains_inspectable() {
                 inspection.component_operations()[0]
                     .declared_aspect_operations()
                     .iter()
-                    .map(|operation| format!("{}:{}", operation.kind(), operation.aspect_path()))
+                    .map(|operation| {
+                        format!(
+                            "{}:{}",
+                            operation.kind(),
+                            operation.aspect_touch().admitted_touch_digest_part()
+                        )
+                    })
                     .collect::<Vec<_>>(),
-                vec!["set:identity.id".to_string(), "set:title.value".to_string()]
+                vec!["set:identity:id".to_string(), "set:title:value".to_string()]
             );
             assert_eq!(
                 inspection.basis_lane(),
@@ -235,12 +263,24 @@ fn preview_batch_stages_multiple_aspect_native_writes_in_preview_lane() {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "preview-task-1")
-                        .aspect("title.value", "Preview title one")
+                    task.set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value("preview-task-1"),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("title.value"),
+                        test_authored_string_aspect_value("Preview title one"),
+                    )
                 })
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "preview-task-2")
-                        .aspect("title.value", "Preview title two")
+                    task.set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value("preview-task-2"),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("title.value"),
+                        test_authored_string_aspect_value("Preview title two"),
+                    )
                 })
         })
         .expect("preview batch should stage");
@@ -254,8 +294,8 @@ fn preview_batch_stages_multiple_aspect_native_writes_in_preview_lane() {
     assert_eq!(receipt.write_count(), 2);
     assert_eq!(receipt.considered_computed_view_count(), 0);
     assert_eq!(
-        receipt.touched_aspect_paths(),
-        &["identity.id".to_string(), "title.value".to_string()]
+        receipt.admitted_touched_aspects(),
+        test_aspect_touches(["identity.id", "title.value"]).as_slice()
     );
     assert_eq!(outcome.authoritative_residue_count(), 0);
 }
@@ -276,12 +316,24 @@ fn preview_batch_uses_batch_target_evidence_without_authority_bundles() {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "preview-task-1")
-                        .aspect("title.value", "Preview title one")
+                    task.set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value("preview-task-1"),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("title.value"),
+                        test_authored_string_aspect_value("Preview title one"),
+                    )
                 })
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "preview-task-2")
-                        .aspect("title.value", "Preview title two")
+                    task.set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value("preview-task-2"),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("title.value"),
+                        test_authored_string_aspect_value("Preview title two"),
+                    )
                 })
         })
         .expect("preview batch should stage");

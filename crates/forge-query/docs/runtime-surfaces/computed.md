@@ -19,7 +19,7 @@ whole-refresh posture.
 - `workspace.computed(...)`
 - `workspace.computed_view(...)`
 - `workspace.computed_definition(...)`
-- `workspace.materialize(...)`
+- `workspace.materialize_result(...)`
 - `workspace.inspect(...)`
 - `workspace.state(...)`
 
@@ -82,7 +82,7 @@ pretending a local incremental update was sufficient.
    the rebuild came from a mutation or from declaration-time initialization,
    plus the snapshot token, touched aspect paths, and any runtime-owned refresh
    metadata the basis or write path attached.
-7. `workspace.materialize(...)` returns current derived rows.
+7. `workspace.materialize_result(...)` returns current derived rows through the explicit runtime result boundary.
 8. `workspace.inspect(...)` explains dependencies, produced aspects, and patch
    posture.
 
@@ -91,8 +91,8 @@ archaeology, the admitted materialization lane is the stronger floor:
 
 - `workspace.materialize_intent(&derived).execute()` returns one retained
   derived materialization result artifact
-- that artifact can decode its single retained row directly through
-  `decode_single_row::<T>()`
+- that artifact can decode its single retained row through the explicit
+  terminal export helper `terminal_json_decode_single_row::<T>()`
 - when one downstream step needs a coherent retained artifact across multiple
   computed surfaces, `workspace.materialize_derived_artifact_bundle(...)`
   retains that multi-surface materialization as one Query-owned bundle instead
@@ -153,7 +153,7 @@ let titles: ForgeQueryDerivedViewHandle<Value> = workspace
     )
     .unwrap();
 
-let rows = workspace.materialize(&titles);
+let rows = workspace.materialize_result(&titles)?;
 ```
 
 This is the smallest honest example because it shows the core pieces:
@@ -207,7 +207,7 @@ workspace
     })
     .unwrap();
 
-let rows = workspace.materialize(&summary);
+let rows = workspace.materialize_result(&summary)?;
 let inspection = workspace.inspect(&summary).unwrap();
 
 match inspection {
@@ -237,7 +237,8 @@ What gets retained:
 - retained refresh context for whole-refresh rebuilds, including declaration-
   initialization posture when the runtime seeds from already-retained truth
 - retained derived materialization artifacts that can decode one typed row
-  through the runtime-owned `decode_single_row::<T>()` seam
+  through the runtime-owned `terminal_json_decode_single_row::<T>()` terminal
+  export seam
 - retained derived materialization bundles that preserve one snapshot token and
   one bundle digest across multiple typed computed rows when the next step
   needs a coherent retained artifact instead of three separate local calls

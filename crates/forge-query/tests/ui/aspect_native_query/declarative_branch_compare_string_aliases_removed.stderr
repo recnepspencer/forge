@@ -1,0 +1,23 @@
+error[E0599]: no method named `aspect` found for struct `DeclarativeBranchCompareValue` in the current scope
+ --> tests/ui/aspect_native_query/declarative_branch_compare_string_aliases_removed.rs:7:19
+  |
+7 |     let _ = value.aspect();
+  |                   ^^^^^^ method not found in `DeclarativeBranchCompareValue`
+
+error[E0599]: no method named `field` found for struct `DeclarativeBranchCompareValue` in the current scope
+ --> tests/ui/aspect_native_query/declarative_branch_compare_string_aliases_removed.rs:8:19
+  |
+8 |     let _ = value.field();
+  |                   ^^^^^ method not found in `DeclarativeBranchCompareValue`
+
+error[E0599]: no method named `aspect` found for struct `DeclarativeBranchCompareFieldDelta` in the current scope
+  --> tests/ui/aspect_native_query/declarative_branch_compare_string_aliases_removed.rs:11:19
+   |
+11 |     let _ = delta.aspect();
+   |                   ^^^^^^ method not found in `DeclarativeBranchCompareFieldDelta`
+
+error[E0599]: no method named `field` found for struct `DeclarativeBranchCompareFieldDelta` in the current scope
+  --> tests/ui/aspect_native_query/declarative_branch_compare_string_aliases_removed.rs:12:19
+   |
+12 |     let _ = delta.field();
+   |                   ^^^^^ method not found in `DeclarativeBranchCompareFieldDelta`

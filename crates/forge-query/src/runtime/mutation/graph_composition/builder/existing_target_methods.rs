@@ -30,7 +30,7 @@ impl ForgeQueryGraphCompositionBuilder {
         let declared_collection = existing_truth_declared_collection(&binding);
         let command =
             declaration(ForgeQueryAspectMutationBuilder::new()).build_update_existing(binding)?;
-        require_retarget_intent(&command, &declared_collection)?;
+        require_retarget_intent(&command, declared_collection.as_ref())?;
         self.push_existing_target_step(
             command,
             ForgeQueryGraphCompositionProgramStepKind::ExistingTargetRetarget,
@@ -48,7 +48,7 @@ impl ForgeQueryGraphCompositionBuilder {
         let declared_collection = existing_truth_declared_collection(&binding);
         let command =
             declaration(ForgeQueryAspectMutationBuilder::new()).build_update_existing(binding)?;
-        require_supersession_intent(&command, &declared_collection)?;
+        require_supersession_intent(&command, declared_collection.as_ref())?;
         self.push_existing_target_step(
             command,
             ForgeQueryGraphCompositionProgramStepKind::ExistingTargetSupersession,
@@ -93,7 +93,7 @@ impl ForgeQueryGraphCompositionBuilder {
             update,
             "backend-verified existing-truth retarget",
         )?;
-        require_retarget_intent(&command, &declared_collection)?;
+        require_retarget_intent(&command, declared_collection.as_ref())?;
         self.push_existing_target_step(
             command,
             ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget,
@@ -116,7 +116,7 @@ impl ForgeQueryGraphCompositionBuilder {
             update,
             "backend-verified existing-truth supersession",
         )?;
-        require_supersession_intent(&command, &declared_collection)?;
+        require_supersession_intent(&command, declared_collection.as_ref())?;
         self.push_existing_target_step(
             command,
             ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedSupersession,
@@ -163,8 +163,10 @@ impl ForgeQueryGraphCompositionBuilder {
     }
 }
 
-fn existing_truth_declared_collection(binding: &ForgeQueryExistingTruthTargetBinding) -> String {
-    binding.target_collection().unwrap_or("").to_string()
+fn existing_truth_declared_collection(
+    binding: &ForgeQueryExistingTruthTargetBinding,
+) -> Option<ForgeQueryMutationTargetCollectionIdentity> {
+    binding.target_collection_identity().cloned()
 }
 
 fn build_verified_existing_update_command(

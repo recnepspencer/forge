@@ -140,7 +140,9 @@ pub(super) fn planned_focused_inspector_view(
             detail_schema_view(),
             admit_view_shape(
                 composed.canonical(),
-                ViewShapeDescriptor::inspector_detail_focused("profile"),
+                ViewShapeDescriptor::inspector_detail_focused(
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
+                ),
             )
             .unwrap(),
         )

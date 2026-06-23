@@ -82,7 +82,10 @@ pub(super) fn intent_declaration(label: &str) -> ForgeQueryIntentDeclaration {
         format!("forge.domain_capability.{label}"),
         "1",
         "forge.domain-capability.fixture",
-        serde_json::json!({ "fixture": label }),
+        crate::runtime::ForgeQueryIntentInput::object([(
+            "fixture",
+            crate::runtime::ForgeQueryIntentInput::string(label),
+        )]),
     )
 }
 

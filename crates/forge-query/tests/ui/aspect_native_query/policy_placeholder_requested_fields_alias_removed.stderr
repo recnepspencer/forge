@@ -1,0 +1,21 @@
+error[E0599]: no method named `requested_placeholder_fields` found for struct `PolicyPlaceholderMaskingRequest` in the current scope
+ --> tests/ui/aspect_native_query/policy_placeholder_requested_fields_alias_removed.rs:5:21
+  |
+5 |     let _ = request.requested_placeholder_fields();
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field, not a method
+  |
+help: there is a method `requested_placeholder_field_paths` with a similar name
+  |
+5 |     let _ = request.requested_placeholder_field_paths();
+  |                                                +++++
+
+error[E0599]: no method named `requested_placeholder_fields` found for struct `PolicyPlaceholderMaskingDenial` in the current scope
+ --> tests/ui/aspect_native_query/policy_placeholder_requested_fields_alias_removed.rs:8:20
+  |
+8 |     let _ = denial.requested_placeholder_fields();
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field, not a method
+  |
+help: there is a method `requested_placeholder_field_paths` with a similar name
+  |
+8 |     let _ = denial.requested_placeholder_field_paths();
+  |                                               +++++

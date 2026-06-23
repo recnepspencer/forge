@@ -2,11 +2,11 @@ use crate::harness::certification::{
     CanonicalCertificationRow, HostileExpectation, ParityAnchor, RejectionCertificationRow,
 };
 use crate::runtime::{
-    ForgeQueryAuthorityLane, ForgeQueryLiveView, ForgeQueryPreviewOptions, ForgeQueryWriteReceipt,
+    ForgeQueryAspectTouch, ForgeQueryAuthorityLane, ForgeQueryLiveView, ForgeQueryNativeRow,
+    ForgeQueryPreviewOptions, ForgeQueryWriteReceipt,
 };
 use crate::ForgeQuerySessionLabel;
 use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
-use serde_json::Value;
 
 use super::digests::{inspection_digest, touched_aspect_digest};
 use super::fixture::{
@@ -14,6 +14,7 @@ use super::fixture::{
 };
 use super::rejections::{duplicate_aspect_authoring_rejection, unsupported_intent_rejection};
 use super::{
+    description_value_touch, identity_id_touch, title_value_touch, ui_batch_summary_touch,
     AspectApiFinalizationCertificationBundle, AspectApiFinalizationPerturbationClass,
     AspectApiFinalizationRejectionBundle,
 };
@@ -39,9 +40,9 @@ pub(super) fn canonical_rows() -> Vec<
             perturbation_class: AspectApiFinalizationPerturbationClass::TypedClearNarrowing,
             hostile_expectation: HostileExpectation::DistinctFromControl,
             parity_anchor: ParityAnchor::Hostile,
-            control_lane: clear_lane("description.value"),
-            hostile_lane: clear_lane("title.value"),
-            parity_lane: clear_lane("title.value"),
+            control_lane: clear_lane(description_value_touch()),
+            hostile_lane: clear_lane(title_value_touch()),
+            parity_lane: clear_lane(title_value_touch()),
         },
         CanonicalCertificationRow {
             row_name: "preview-batch-lane-isolation",
@@ -99,23 +100,26 @@ fn authoritative_crud_lane(
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.crud")
         .expect("workspace should open");
-    let live: ForgeQueryLiveView<Value> = task_live_view(&mut workspace, "tasks.cert-crud");
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> =
+        task_live_view(&mut workspace, "tasks.cert-crud");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", entity_id)
-                .aspect("title.value", initial_title)
+            task.set_aspect(identity_id_touch(), string_aspect_value(entity_id))
+                .set_aspect(title_value_touch(), string_aspect_value(initial_title))
         })
         .expect("seed insert should execute");
     let _ = workspace.observe(&live);
     let update = workspace
         .update(seed.deltas()[0].entity_identity.clone(), |task| {
-            task.aspect("title.value", renamed_title)
+            task.set_aspect(title_value_touch(), string_aspect_value(renamed_title))
         })
         .expect("rename should execute");
     let _patches = workspace.observe(&live);
     let delete = workspace
-        .delete(seed.deltas()[0].entity_identity.clone())
+        .delete_with(seed.deltas()[0].entity_identity.clone(), |task| {
+            task.touch(identity_id_touch()).touch(title_value_touch())
+        })
         .expect("delete should execute");
     let state = workspace.state(&delete).expect("state should resolve");
     let inspection = workspace
@@ -145,32 +149,33 @@ fn authoritative_crud_lane(
             .terminal_projection_for_reporting()
             .to_string(),
         inspection_digest: inspection_digest(&inspection),
-        touched_aspect_digest: touched_aspect_digest(&update.deltas()[0].aspect_paths),
-        affected_live_view_count: delete.affected_live_view_ids().len(),
-        affected_derived_view_count: delete.affected_derived_view_ids().len(),
+        touched_aspect_digest: touched_aspect_digest(update.deltas()[0].admitted_touched_aspects()),
+        affected_live_view_count: delete.affected_live_view_targets().len(),
+        affected_derived_view_count: delete.affected_derived_view_targets().len(),
         routed_patch_count: 1,
         materialized_row_count: 0,
         preview_residue_count: 0,
     }
 }
 
-fn clear_lane(aspect_path: &str) -> AspectApiFinalizationCertificationBundle {
+fn clear_lane(aspect_touch: ForgeQueryAspectTouch) -> AspectApiFinalizationCertificationBundle {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.clear")
         .expect("workspace should open");
-    let live: ForgeQueryLiveView<Value> = task_live_view(&mut workspace, "tasks.cert-clear");
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> =
+        task_live_view(&mut workspace, "tasks.cert-clear");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Buy milk")
-                .aspect("description.value", "whole milk")
+            task.set_aspect(identity_id_touch(), string_aspect_value("task-1"))
+                .set_aspect(title_value_touch(), string_aspect_value("Buy milk"))
+                .set_aspect(description_value_touch(), string_aspect_value("whole milk"))
         })
         .expect("seed insert should execute");
     let _ = workspace.observe(&live);
 
     let receipt = workspace
         .update(seed.deltas()[0].entity_identity.clone(), |task| {
-            task.clear(aspect_path)
+            task.clear(aspect_touch)
         })
         .expect("clear should execute");
     let patches = workspace.observe(&live);
@@ -202,9 +207,11 @@ fn clear_lane(aspect_path: &str) -> AspectApiFinalizationCertificationBundle {
             .terminal_projection_for_reporting()
             .to_string(),
         inspection_digest: inspection_digest(&inspection),
-        touched_aspect_digest: touched_aspect_digest(&receipt.deltas()[0].aspect_paths),
-        affected_live_view_count: receipt.affected_live_view_ids().len(),
-        affected_derived_view_count: receipt.affected_derived_view_ids().len(),
+        touched_aspect_digest: touched_aspect_digest(
+            receipt.deltas()[0].admitted_touched_aspects(),
+        ),
+        affected_live_view_count: receipt.affected_live_view_targets().len(),
+        affected_derived_view_count: receipt.affected_derived_view_targets().len(),
         routed_patch_count: patches.query_delivery_batches.len(),
         materialized_row_count: workspace.read(&live).len(),
         preview_residue_count: 0,
@@ -215,14 +222,15 @@ fn authoritative_batch_lane() -> AspectApiFinalizationCertificationBundle {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.batch")
         .expect("workspace should open");
-    let live: ForgeQueryLiveView<Value> = task_live_view(&mut workspace, "tasks.cert-batch");
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> =
+        task_live_view(&mut workspace, "tasks.cert-batch");
     let computed = workspace
-        .computed::<Value>(
+        .computed::<ForgeQueryNativeRow>(
             "tasks.cert-batch-summary",
             |c| {
                 c.depends_on_live(&live)
-                    .reads(["title.value"])
-                    .produces(["ui.batch_summary"])
+                    .reads([title_value_touch()])
+                    .produces([ui_batch_summary_touch()])
             },
             CertificationTitleListMaintainer,
         )
@@ -231,17 +239,19 @@ fn authoritative_batch_lane() -> AspectApiFinalizationCertificationBundle {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "task-1")
-                        .aspect("title.value", "Buy milk")
+                    task.set_aspect(identity_id_touch(), string_aspect_value("task-1"))
+                        .set_aspect(title_value_touch(), string_aspect_value("Buy milk"))
                 })
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "task-2")
-                        .aspect("title.value", "Buy bread")
+                    task.set_aspect(identity_id_touch(), string_aspect_value("task-2"))
+                        .set_aspect(title_value_touch(), string_aspect_value("Buy bread"))
                 })
         })
         .expect("batch should execute");
     let patches = workspace.observe(&live);
-    let rows = workspace.materialize(&computed);
+    let materialization = workspace
+        .materialize_result(&computed)
+        .expect("aspect API certification materialization should execute");
     let state = workspace.state(&receipt).expect("state should resolve");
     let inspection = workspace
         .inspect(&receipt)
@@ -270,13 +280,17 @@ fn authoritative_batch_lane() -> AspectApiFinalizationCertificationBundle {
             .terminal_projection_for_reporting()
             .to_string(),
         inspection_digest: inspection_digest(&inspection),
-        touched_aspect_digest: touched_aspect_digest(receipt.touched_aspect_paths()),
-        affected_live_view_count: receipt.affected_live_view_ids().len(),
-        affected_derived_view_count: receipt.affected_derived_view_ids().len(),
+        touched_aspect_digest: touched_aspect_digest(receipt.admitted_touched_aspects()),
+        affected_live_view_count: receipt.affected_live_view_targets().len(),
+        affected_derived_view_count: receipt.affected_derived_view_targets().len(),
         routed_patch_count: patches.query_delivery_batches.len(),
-        materialized_row_count: rows.len(),
+        materialized_row_count: materialization.row_count(),
         preview_residue_count: 0,
     }
+}
+
+fn string_aspect_value(value: impl Into<String>) -> crate::runtime::ForgeQueryAuthoredAspectValue {
+    crate::runtime::ForgeQueryAuthoredAspectValue::string(value)
 }
 
 fn preview_batch_lane() -> AspectApiFinalizationCertificationBundle {
@@ -297,12 +311,18 @@ fn preview_batch_lane() -> AspectApiFinalizationCertificationBundle {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "preview-task-1")
-                        .aspect("title.value", "Preview title one")
+                    task.set_aspect(identity_id_touch(), string_aspect_value("preview-task-1"))
+                        .set_aspect(
+                            title_value_touch(),
+                            string_aspect_value("Preview title one"),
+                        )
                 })
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "preview-task-2")
-                        .aspect("title.value", "Preview title two")
+                    task.set_aspect(identity_id_touch(), string_aspect_value("preview-task-2"))
+                        .set_aspect(
+                            title_value_touch(),
+                            string_aspect_value("Preview title two"),
+                        )
                 })
         })
         .expect("preview batch should stage");
@@ -335,9 +355,9 @@ fn preview_batch_lane() -> AspectApiFinalizationCertificationBundle {
             .terminal_projection_for_reporting()
             .to_string(),
         inspection_digest: inspection_digest(&inspection),
-        touched_aspect_digest: touched_aspect_digest(receipt.touched_aspect_paths()),
-        affected_live_view_count: receipt.affected_live_view_ids().len(),
-        affected_derived_view_count: receipt.affected_derived_view_ids().len(),
+        touched_aspect_digest: touched_aspect_digest(receipt.admitted_touched_aspects()),
+        affected_live_view_count: receipt.affected_live_view_targets().len(),
+        affected_derived_view_count: receipt.affected_derived_view_targets().len(),
         routed_patch_count: 0,
         materialized_row_count: 0,
         preview_residue_count: outcome.pending_write_intent_residue_count(),

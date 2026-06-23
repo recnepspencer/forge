@@ -33,9 +33,13 @@ pub(super) fn preview_mutation_rebind_row(
             ),
             input: MutationLoweringInput::IntentReconciliation {
                 entity_id: EntityId::new(PartitionId(1), 100 + index as u64, 0),
-                desired_aspect_fields_external_json: serde_json::json!({
-                    "name": seeded_label("preview-mutation", stepper, index)
-                }),
+                desired_aspect_fields:
+                    crate::aspect_field_authoring::single_native_string_aspect_field_patch(
+                        "name",
+                        "name",
+                        seeded_label("preview-mutation", stepper, index),
+                    )
+                    .expect("name patch should be native"),
             },
         },
     )

@@ -11,7 +11,7 @@ fn denied_intent_stops_before_backend_execution() {
         "strategy.intent.reconcile",
         "1.0",
         "intent.reconcile.input.v1",
-        json!({"entity": "task-1"}),
+        test_intent_input([("entity", "task-1")]),
     )
     .with_source_lane(ForgeQueryIntentSourceLane::EffectTriggered);
 
@@ -74,7 +74,7 @@ fn execution_denial_keeps_admission_and_execution_provenance_in_trace() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({"entity": "task-1", "dependency": "cycle"}),
+            test_intent_input([("entity", "task-1"), ("dependency", "cycle")]),
         ))
         .expect_err("invariant violation must deny");
 

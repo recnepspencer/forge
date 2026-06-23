@@ -1,7 +1,7 @@
 use super::{ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationInput};
 use crate::application::{
-    ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfig,
-    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    assert_declaration_aspect_projections, ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily,
+    ForgeQueryConfig, ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
     ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationAspectFit,
     ForgeQueryDeclarationCapabilityStatus, ForgeQueryDeclarationFamilyMarker,
     ForgeQueryDeclarationLegalityContract, ForgeQueryDeclaredFamilyChecked,
@@ -228,13 +228,13 @@ fn family_support_report_exposes_aspect_contract_alongside_family_admission() {
     let handle = admitted_query_only_handle(ForgeQueryConfig::runtime_backed_default());
     let support = handle.family_support::<DurableFamily>();
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         support.aspect_contract().required(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         support.aspect_contract().incompatible(),
-        &["selection.material_edit".to_string()]
+        &["selection.material_edit"],
     );
     assert_eq!(
         support
@@ -254,9 +254,9 @@ fn family_support_report_can_expose_masked_semantic_slices_without_losing_family
         support.declare_status(),
         ForgeQueryDeclarationCapabilityStatus::Admitted
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         support.aspect_coverage().masked(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
     assert_eq!(
         support

@@ -1,3 +1,4 @@
+use crate::aspect_field_authoring::single_native_string_aspect_field_patch;
 use crate::basis_lifecycle::{
     admit_basis_capability, evaluate_basis_inspection_advisory_eligibility,
     evaluate_basis_mutation_preparation_eligibility, evaluate_basis_preview_closeout_eligibility,
@@ -19,6 +20,7 @@ use crate::workflow::{
 };
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::{EntityId, PartitionId};
+use forge_relational::facade::transactions::AspectFieldPatch;
 
 use crate::effect_lifecycle::{
     admit_effect_intent, evaluate_effect_eligibility, normalize_raw_effect_intent,
@@ -179,7 +181,7 @@ pub(super) fn admitted_mutation_effect() -> AdmittedEffectIntent {
         &EffectAuthoringBasis::from(branch_mutation_basis()),
         raw_mutation_effect(
             EntityId::new(PartitionId(1), 8, 0),
-            serde_json::json!({ "name": "authority-plan" }),
+            native_name_patch("authority-plan"),
         ),
     )
     .expect("mutation effect should normalize");
@@ -189,19 +191,15 @@ pub(super) fn admitted_mutation_effect() -> AdmittedEffectIntent {
 
 pub(super) fn raw_mutation_effect(
     entity_id: EntityId,
-    desired_aspect_fields_external_json: serde_json::Value,
+    desired_aspect_fields: AspectFieldPatch,
 ) -> RawEffectIntent {
-    raw_mutation_effect_with_binding(
-        runtime_workflow_binding(),
-        entity_id,
-        desired_aspect_fields_external_json,
-    )
+    raw_mutation_effect_with_binding(runtime_workflow_binding(), entity_id, desired_aspect_fields)
 }
 
 pub(super) fn raw_mutation_effect_with_binding(
     binding: WorkflowContextBinding,
     entity_id: EntityId,
-    desired_aspect_fields_external_json: serde_json::Value,
+    desired_aspect_fields: AspectFieldPatch,
 ) -> RawEffectIntent {
     RawEffectIntent::Mutation {
         binding,
@@ -212,7 +210,7 @@ pub(super) fn raw_mutation_effect_with_binding(
         ),
         input: MutationLoweringInput::IntentReconciliation {
             entity_id,
-            desired_aspect_fields_external_json,
+            desired_aspect_fields,
         },
     }
 }
@@ -243,7 +241,7 @@ pub(super) fn admitted_tenant_mutation_effect() -> AdmittedEffectIntent {
         &EffectAuthoringBasis::from(tenant_mutation_basis()),
         raw_mutation_effect(
             EntityId::new(PartitionId(1), 9, 0),
-            serde_json::json!({ "name": "tenant-authority-plan" }),
+            native_name_patch("tenant-authority-plan"),
         ),
     )
     .expect("tenant mutation effect should normalize");
@@ -254,15 +252,20 @@ pub(super) fn admitted_tenant_mutation_effect() -> AdmittedEffectIntent {
 pub(super) fn admitted_mutation_effect_for_entity_with_binding(
     binding: WorkflowContextBinding,
     entity_id: EntityId,
-    desired_aspect_fields_external_json: serde_json::Value,
+    desired_aspect_fields: AspectFieldPatch,
 ) -> AdmittedEffectIntent {
     let normalized = normalize_raw_effect_intent(
         &EffectAuthoringBasis::from(branch_mutation_basis()),
-        raw_mutation_effect_with_binding(binding, entity_id, desired_aspect_fields_external_json),
+        raw_mutation_effect_with_binding(binding, entity_id, desired_aspect_fields),
     )
     .expect("mutation effect should normalize");
 
     admit_from_normalized(normalized)
+}
+
+pub(super) fn native_name_patch(name: impl Into<String>) -> AspectFieldPatch {
+    single_native_string_aspect_field_patch("name", "name", name)
+        .expect("name patch should be native")
 }
 
 pub(super) fn admitted_alternate_branch_mutation_effect() -> AdmittedEffectIntent {
@@ -270,7 +273,7 @@ pub(super) fn admitted_alternate_branch_mutation_effect() -> AdmittedEffectInten
         &EffectAuthoringBasis::from(alternate_branch_mutation_basis()),
         raw_mutation_effect(
             EntityId::new(PartitionId(1), 10, 0),
-            serde_json::json!({ "name": "alternate-branch-authority-plan" }),
+            native_name_patch("alternate-branch-authority-plan"),
         ),
     )
     .expect("alternate branch mutation effect should normalize");

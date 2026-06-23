@@ -1,8 +1,8 @@
-use serde::Serialize;
-
 use super::symbols::ForgeQueryGraphEntitySymbol;
 use crate::memory_workspace::ForgeQueryEntityIdentity;
-use crate::runtime::mutation::ForgeQueryAspectMutationBuilder;
+use crate::runtime::mutation::{
+    ForgeQueryAspectMutationBuilder, ForgeQueryAspectTouch, ForgeQueryAuthoredAspectValue,
+};
 use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
 
 #[derive(Clone, Debug, Default)]
@@ -15,30 +15,35 @@ impl ForgeQueryGraphRelationMutationBuilder {
         Self::default()
     }
 
-    pub fn aspect<T: Serialize>(mut self, path: impl Into<String>, value: T) -> Self {
-        self.inner = self.inner.aspect(path, value);
+    pub fn set_aspect(
+        mut self,
+        aspect_touch: ForgeQueryAspectTouch,
+        value: ForgeQueryAuthoredAspectValue,
+    ) -> Self {
+        self.inner = self.inner.set_aspect(aspect_touch, value);
         self
     }
 
     pub fn existing_entity_identity(
         mut self,
-        path: impl Into<String>,
+        aspect_touch: ForgeQueryAspectTouch,
         entity_identity: ForgeQueryEntityIdentity,
     ) -> Self {
-        self.inner = self
-            .inner
-            .aspect(path, endpoint_identity_label(&entity_identity));
+        self.inner = self.inner.set_aspect(
+            aspect_touch,
+            ForgeQueryAuthoredAspectValue::string(endpoint_identity_label(&entity_identity)),
+        );
         self
     }
 
     pub fn symbolic_entity_identity(
         mut self,
-        path: impl Into<String>,
+        aspect_touch: ForgeQueryAspectTouch,
         symbol: &ForgeQueryGraphEntitySymbol,
     ) -> Self {
         self.inner = self
             .inner
-            .symbolic_entity_identity(path, symbol.reference());
+            .symbolic_entity_identity(aspect_touch, symbol.reference());
         self
     }
 

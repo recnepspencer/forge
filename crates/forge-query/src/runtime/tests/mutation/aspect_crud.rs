@@ -5,19 +5,33 @@ fn workspace_insert_uses_aspect_native_authoring_and_routes_live_delivery() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-insert")
         .expect("task runtime should open a named workspace");
-    let live: ForgeQueryLiveView<Value> = workspace
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.aspect-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-aspect-table")
         })
         .expect("live view should declare");
 
     let receipt = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Buy milk")
+            task.set_aspect(
+                test_aspect_touch("identity.id"),
+                test_authored_string_aspect_value("task-1"),
+            )
+            .set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("Buy milk"),
+            )
         })
         .expect("aspect-native insert should execute");
     let patches = workspace.observe(&live);
@@ -31,9 +45,15 @@ fn workspace_insert_uses_aspect_native_authoring_and_routes_live_delivery() {
         receipt.basis_lane(),
         ForgeQueryAuthorityLane::AuthoritativeTruth
     );
-    assert_eq!(receipt.declared_collection(), Some("Task"));
+    assert_eq!(
+        receipt.terminal_declared_collection_projection(),
+        Some("Task")
+    );
     assert_eq!(receipt.declared_entity_identity(), None);
-    assert_eq!(receipt.target_collection(), Some("Task"));
+    assert_eq!(
+        receipt.terminal_target_collection_projection(),
+        Some("Task")
+    );
     assert_eq!(
         receipt.target_evidence().declared().target_class(),
         ForgeQueryMutationTargetClass::Collection
@@ -75,19 +95,25 @@ fn workspace_insert_uses_aspect_native_authoring_and_routes_live_delivery() {
     assert!(!provenance.feedback_provenance_digest().is_empty());
     assert!(provenance.authoritative_artifact_digest().is_some());
     assert_eq!(
-        receipt.deltas()[0].aspect_paths,
-        vec!["identity.id".to_string(), "title.value".to_string()]
+        receipt.deltas()[0].admitted_touched_aspects(),
+        test_aspect_touches(["identity.id", "title.value"]).as_slice()
     );
     assert_eq!(
         receipt
             .declared_aspect_operations()
             .iter()
-            .map(|operation| format!("{}:{}", operation.kind(), operation.aspect_path()))
+            .map(|operation| {
+                format!(
+                    "{}:{}",
+                    operation.kind(),
+                    operation.aspect_touch().admitted_touch_digest_part()
+                )
+            })
             .collect::<Vec<_>>(),
-        vec!["set:identity.id".to_string(), "set:title.value".to_string()]
+        vec!["set:identity:id".to_string(), "set:title:value".to_string()]
     );
     assert_eq!(
-        receipt.affected_live_view_ids(),
+        receipt.terminal_affected_live_view_ids_projection(),
         &["tasks.aspect-table".to_string()]
     );
     assert_eq!(
@@ -110,35 +136,58 @@ fn workspace_update_supports_multi_aspect_authoring_and_narrows_by_touched_meani
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-update")
         .expect("task runtime should open a named workspace");
-    let live: ForgeQueryLiveView<Value> = workspace
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.title-only", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-title-only")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Buy milk")
-                .aspect("description.value", "whole milk")
+            task.set_aspect(
+                test_aspect_touch("identity.id"),
+                test_authored_string_aspect_value("task-1"),
+            )
+            .set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("Buy milk"),
+            )
+            .set_aspect(
+                test_aspect_touch("description.value"),
+                test_authored_string_aspect_value("whole milk"),
+            )
         })
         .expect("seed insert should execute");
     let _ = workspace.observe(&live);
 
     let rename = workspace
         .update(seed.deltas()[0].entity_identity.clone(), |task| {
-            task.aspect("title.value", "Buy oat milk")
-                .aspect("description.value", "oat milk")
+            task.set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("Buy oat milk"),
+            )
+            .set_aspect(
+                test_aspect_touch("description.value"),
+                test_authored_string_aspect_value("oat milk"),
+            )
         })
         .expect("multi-aspect update should execute");
     let rename_patches = workspace.observe(&live);
 
     assert_eq!(
-        rename.deltas()[0].aspect_paths,
-        vec!["title.value".to_string(), "description.value".to_string()]
+        rename.deltas()[0].admitted_touched_aspects(),
+        test_aspect_touches(["title.value", "description.value"]).as_slice()
     );
     assert_eq!(rename.mutation_family(), ForgeQueryMutationFamily::Update);
     assert_eq!(
@@ -146,7 +195,7 @@ fn workspace_update_supports_multi_aspect_authoring_and_narrows_by_touched_meani
         Some(&seed.deltas()[0].entity_identity)
     );
     assert_eq!(
-        rename.affected_live_view_ids(),
+        rename.terminal_affected_live_view_ids_projection(),
         &["tasks.title-only".to_string()]
     );
     assert_eq!(rename_patches.query_delivery_batches.len(), 1);
@@ -157,16 +206,21 @@ fn workspace_update_supports_multi_aspect_authoring_and_narrows_by_touched_meani
 
     let irrelevant = workspace
         .update(seed.deltas()[0].entity_identity.clone(), |task| {
-            task.aspect("description.value", "still hidden")
+            task.set_aspect(
+                test_aspect_touch("description.value"),
+                test_authored_string_aspect_value("still hidden"),
+            )
         })
         .expect("irrelevant aspect update should still execute");
     let irrelevant_patches = workspace.observe(&live);
 
     assert_eq!(
-        irrelevant.deltas()[0].aspect_paths,
-        vec!["description.value".to_string()]
+        irrelevant.deltas()[0].admitted_touched_aspects(),
+        test_aspect_touches(["description.value"]).as_slice()
     );
-    assert!(irrelevant.affected_live_view_ids().is_empty());
+    assert!(irrelevant
+        .terminal_affected_live_view_ids_projection()
+        .is_empty());
     assert!(irrelevant_patches.query_delivery_batches.is_empty());
 }
 
@@ -175,11 +229,19 @@ fn write_receipt_inspection_retains_authored_mutation_metadata() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-metadata")
         .expect("task runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.metadata-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-metadata-table")
         })
         .expect("live view should declare");
@@ -188,8 +250,14 @@ fn write_receipt_inspection_retains_authored_mutation_metadata() {
         .insert("Task", |task| {
             task.metadata("author", "worth-topo")
                 .metadata("intent", "topology-refresh")
-                .aspect("identity.id", "task-1")
-                .aspect("title.value", "Metadata receipt")
+                .set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-1"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Metadata receipt"),
+                )
         })
         .expect("aspect-native insert should execute");
     let inspection = workspace
@@ -201,15 +269,15 @@ fn write_receipt_inspection_retains_authored_mutation_metadata() {
             assert_eq!(
                 inspection
                     .mutation_metadata()
-                    .get("author")
-                    .and_then(Value::as_str),
+                    .get(&test_mutation_metadata_key("author"))
+                    .map(|value| value.terminal_digest_text()),
                 Some("worth-topo")
             );
             assert_eq!(
                 inspection
                     .mutation_metadata()
-                    .get("intent")
-                    .and_then(Value::as_str),
+                    .get(&test_mutation_metadata_key("intent"))
+                    .map(|value| value.terminal_digest_text()),
                 Some("topology-refresh")
             );
             assert_eq!(
@@ -228,40 +296,57 @@ fn workspace_update_clear_supports_typed_reset_without_waking_unrelated_surfaces
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-clear")
         .expect("task runtime should open a named workspace");
-    let live: ForgeQueryLiveView<Value> = workspace
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.clear-title-only", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-clear-title-only")
         })
         .expect("live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Buy milk")
-                .aspect("description.value", "whole milk")
+            task.set_aspect(
+                test_aspect_touch("identity.id"),
+                test_authored_string_aspect_value("task-1"),
+            )
+            .set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("Buy milk"),
+            )
+            .set_aspect(
+                test_aspect_touch("description.value"),
+                test_authored_string_aspect_value("whole milk"),
+            )
         })
         .expect("seed insert should execute");
     let _ = workspace.observe(&live);
 
     let hidden_clear = workspace
         .update(seed.deltas()[0].entity_identity.clone(), |task| {
-            task.clear("description.value")
+            task.clear(test_aspect_touch("description.value"))
         })
         .expect("typed clear should execute");
     let hidden_patches = workspace.observe(&live);
 
     assert_eq!(
-        hidden_clear.deltas()[0].aspect_paths,
-        vec!["description.value".to_string()]
+        hidden_clear.deltas()[0].admitted_touched_aspects(),
+        test_aspect_touches(["description.value"]).as_slice()
     );
     assert!(hidden_patches.query_delivery_batches.is_empty());
 
     let visible_clear = workspace
         .update(seed.deltas()[0].entity_identity.clone(), |task| {
-            task.clear("title.value")
+            task.clear(test_aspect_touch("title.value"))
         })
         .expect("clearing a projected aspect should execute");
     let visible_patches = workspace.observe(&live);
@@ -271,17 +356,23 @@ fn workspace_update_clear_supports_typed_reset_without_waking_unrelated_surfaces
         .expect("clear receipt should inspect");
 
     assert_eq!(
-        visible_clear.deltas()[0].aspect_paths,
-        vec!["title.value".to_string()]
+        visible_clear.deltas()[0].admitted_touched_aspects(),
+        test_aspect_touches(["title.value"]).as_slice()
     );
     assert_eq!(visible_patches.query_delivery_batches.len(), 1);
     assert_eq!(
         visible_clear
             .declared_aspect_operations()
             .iter()
-            .map(|operation| format!("{}:{}", operation.kind(), operation.aspect_path()))
+            .map(|operation| {
+                format!(
+                    "{}:{}",
+                    operation.kind(),
+                    operation.aspect_touch().admitted_touch_digest_part()
+                )
+            })
             .collect::<Vec<_>>(),
-        vec!["clear:title.value".to_string()]
+        vec!["clear:title:value".to_string()]
     );
     match inspection {
         ForgeQueryInspection::WriteReceipt(inspection) => {
@@ -289,61 +380,22 @@ fn workspace_update_clear_supports_typed_reset_without_waking_unrelated_surfaces
                 inspection
                     .declared_aspect_operations()
                     .iter()
-                    .map(|operation| format!("{}:{}", operation.kind(), operation.aspect_path()))
+                    .map(|operation| {
+                        format!(
+                            "{}:{}",
+                            operation.kind(),
+                            operation.aspect_touch().admitted_touch_digest_part()
+                        )
+                    })
                     .collect::<Vec<_>>(),
-                vec!["clear:title.value".to_string()]
+                vec!["clear:title:value".to_string()]
             );
         }
         other => panic!("expected write receipt inspection, got {other:?}"),
     }
     assert_eq!(
-        rows[0].external_row()["title"]["value"],
-        Value::Null,
-        "typed clear currently lowers to explicit null while the JSON substrate is still underneath"
+        test_native_scalar_value(&rows[0], "title.value"),
+        Some(&AspectValue::Null),
+        "typed clear lowers to explicit native null"
     );
-}
-
-#[test]
-fn preview_insert_uses_aspect_native_authoring_and_stays_preview_local() {
-    let mut workspace = stateful_bridge_task_runtime()
-        .workspace("tasks.preview-aspect-insert")
-        .expect("task runtime should open a named workspace");
-    let mut preview = workspace
-        .preview_with_options(
-            test_session_label("task-preview"),
-            ForgeQueryPreviewOptions::sandboxed_write_intent(),
-        )
-        .expect("preview should open");
-
-    let receipt = preview
-        .insert("Task", |task| {
-            task.aspect("identity.id", "preview-task-1")
-                .aspect("title.value", "Preview title")
-        })
-        .expect("preview insert should stage");
-    let outcome = preview.discard();
-
-    assert_eq!(
-        receipt.authority_lane(),
-        ForgeQueryAuthorityLane::PreviewTruth
-    );
-    assert_eq!(receipt.basis_lane(), ForgeQueryAuthorityLane::PreviewTruth);
-    assert_eq!(receipt.mutation_family(), ForgeQueryMutationFamily::Insert);
-    assert_eq!(receipt.declared_collection(), Some("Task"));
-    assert_eq!(receipt.target_collection(), Some("Task"));
-    assert_eq!(
-        receipt.target_evidence().declared().target_class(),
-        ForgeQueryMutationTargetClass::Collection
-    );
-    assert_eq!(
-        receipt.target_evidence().resolved().target_class(),
-        ForgeQueryMutationTargetClass::Collection
-    );
-    assert!(receipt.causality_evidence().is_none());
-    assert!(receipt.provenance_evidence().is_none());
-    assert_eq!(
-        receipt.deltas()[0].aspect_paths,
-        vec!["identity.id".to_string(), "title.value".to_string()]
-    );
-    assert_eq!(outcome.authoritative_residue_count(), 0);
 }

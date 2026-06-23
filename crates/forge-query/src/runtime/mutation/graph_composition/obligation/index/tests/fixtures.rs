@@ -1,12 +1,15 @@
 use crate::runtime::{
-    ForgeQueryAspectValue, ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram,
+    ForgeQueryAdmittedAspectValue, ForgeQueryAspectMutationOperation,
+    ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram,
     ForgeQueryGraphCompositionProgramStep, ForgeQueryGraphCompositionProgramStepKind,
     ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphObligationRegistration,
     ForgeQueryGraphObligationRegistrationCatalog, ForgeQueryGraphObligationRuleIdentity,
     ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchLifecycleFamily,
-    ForgeQueryGraphTouchSelector, ForgeQueryMutationMetadata, ForgeQuerySymbolicTargetReference,
+    ForgeQueryGraphTouchSelector, ForgeQueryMutationMetadata,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQuerySymbolicTargetReference,
     ForgeQueryWriteCommand,
 };
+use forge_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
 use forge_relational::facade::identity::KindId;
 
 pub(super) fn symbolic_relation_retirement_descriptor() -> ForgeQueryGraphTouchDescriptor {
@@ -15,7 +18,7 @@ pub(super) fn symbolic_relation_retirement_descriptor() -> ForgeQueryGraphTouchD
             .unwrap()
             .in_target_collection("topology.edge")
             .unwrap(),
-        touched_aspect_paths: vec!["weight".to_string()],
+        touched_aspects: vec![touch("weight")],
         metadata: ForgeQueryMutationMetadata::new(),
         naming_intent: None,
     };
@@ -23,7 +26,7 @@ pub(super) fn symbolic_relation_retirement_descriptor() -> ForgeQueryGraphTouchD
     let step = ForgeQueryGraphCompositionProgramStep::new(
         0,
         ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationRetirement,
-        "topology.edge",
+        Some(target_collection("topology.edge")),
         Some("edge".to_string()),
     )
     .with_relation_kind_id(KindId(77));
@@ -43,7 +46,9 @@ pub(super) fn multi_component_descriptor() -> ForgeQueryGraphTouchDescriptor {
                 .unwrap()
                 .in_target_collection("topology.edge")
                 .unwrap(),
-            aspects: vec![ForgeQueryAspectValue::new("capacity", 1).unwrap()],
+            aspects: vec![
+                ForgeQueryAdmittedAspectValue::new(touch("capacity"), int_value(1)).unwrap(),
+            ],
             metadata: ForgeQueryMutationMetadata::new(),
             naming_intent: None,
             continuity_intent: None,
@@ -53,7 +58,7 @@ pub(super) fn multi_component_descriptor() -> ForgeQueryGraphTouchDescriptor {
                 .unwrap()
                 .in_target_collection("topology.face")
                 .unwrap(),
-            touched_aspect_paths: vec!["boundary".to_string()],
+            touched_aspects: vec![touch("boundary")],
             metadata: ForgeQueryMutationMetadata::new(),
             naming_intent: None,
         },
@@ -63,14 +68,14 @@ pub(super) fn multi_component_descriptor() -> ForgeQueryGraphTouchDescriptor {
         ForgeQueryGraphCompositionProgramStep::new(
             0,
             ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationFollowupMutation,
-            "topology.edge",
+            Some(target_collection("topology.edge")),
             Some("edge".to_string()),
         )
         .with_relation_kind_id(KindId(77)),
         ForgeQueryGraphCompositionProgramStep::new(
             1,
             ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationRetirement,
-            "topology.face",
+            Some(target_collection("topology.face")),
             Some("face".to_string()),
         )
         .with_relation_kind_id(KindId(88)),
@@ -78,6 +83,43 @@ pub(super) fn multi_component_descriptor() -> ForgeQueryGraphTouchDescriptor {
     let program = ForgeQueryGraphCompositionProgram::new(steps, &breadth);
     ForgeQueryGraphTouchDescriptor::from_authoritative_mutation_batch(&program, &breadth, &commands)
         .unwrap()
+}
+
+pub(super) fn touch(touch_fixture: &str) -> crate::runtime::ForgeQueryAspectTouch {
+    native_touch(touch_fixture)
+}
+
+pub(super) fn set_operation(touch_fixture: &str) -> ForgeQueryAspectMutationOperation {
+    ForgeQueryAspectMutationOperation::set(touch(touch_fixture))
+}
+
+fn int_value(value: i64) -> AspectValue {
+    AspectValue::Int64(value)
+}
+
+fn target_collection(collection: &str) -> ForgeQueryMutationTargetCollectionIdentity {
+    ForgeQueryMutationTargetCollectionIdentity::new("graph-composition-test", collection)
+}
+
+fn native_touch(aspect_fixture: &str) -> crate::runtime::ForgeQueryAspectTouch {
+    let mut segments = aspect_fixture.split('.');
+    let aspect_key = AspectKey::new(
+        segments
+            .next()
+            .expect("test touch fixture should name an aspect"),
+    )
+    .expect("test aspect key should admit");
+    let field_segments = segments
+        .map(|segment| FieldKey::new(segment).expect("test field key should admit"))
+        .collect::<Vec<_>>();
+    if field_segments.is_empty() {
+        crate::runtime::ForgeQueryAspectTouch::whole_aspect(aspect_key)
+    } else {
+        crate::runtime::ForgeQueryAspectTouch::aspect_field_path(
+            aspect_key,
+            CanonicalFieldPath::new(field_segments).expect("test field path should admit"),
+        )
+    }
 }
 
 pub(super) fn catalog(

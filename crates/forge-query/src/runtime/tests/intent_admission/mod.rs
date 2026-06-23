@@ -73,10 +73,25 @@ fn manager_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "runtime-read-composition",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
-        [SchemaRelationView::new("manager", 1)],
+        [SchemaRelationView::new(
+            crate::authoring::RelationName::new("manager")
+                .expect("schema relation literal must be valid"),
+            1,
+        )],
     )
 }
 

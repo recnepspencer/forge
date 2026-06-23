@@ -24,7 +24,7 @@ impl TraversalSelector {
         Ok(Self { relation, depth })
     }
 
-    pub fn relation(&self) -> &str {
+    pub(crate) fn terminal_relation_projection_for_boundary(&self) -> &str {
         self.relation.as_str()
     }
 

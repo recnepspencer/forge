@@ -5,7 +5,8 @@ use crate::evidence_identity::{
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 
-use super::super::ForgeQueryAspectValue;
+use super::super::{ForgeQueryAdmittedAspectValue, ForgeQueryAspectTouch};
+use super::denied_aspect_touch::ForgeQueryDeniedAspectTouch;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ForgeQueryExistingTruthAssertionMode {
@@ -57,9 +58,9 @@ impl std::fmt::Display for ForgeQueryExistingTruthAssertionDenialKind {
 pub struct ForgeQueryExistingTruthAssertionDenial {
     binding: crate::runtime::ForgeQueryExistingTruthTargetBinding,
     kind: ForgeQueryExistingTruthAssertionDenialKind,
-    asserted_aspect_path: Option<String>,
-    expected_external_value_json: Option<String>,
-    found_external_value_json: Option<String>,
+    asserted_aspect_touch: Option<ForgeQueryDeniedAspectTouch>,
+    expected_terminal_value_digest: Option<String>,
+    found_terminal_value_digest: Option<String>,
     message: String,
     denial_digest: String,
 }
@@ -68,12 +69,35 @@ impl ForgeQueryExistingTruthAssertionDenial {
     pub fn new(
         binding: &crate::runtime::ForgeQueryExistingTruthTargetBinding,
         kind: ForgeQueryExistingTruthAssertionDenialKind,
-        asserted_aspect_path: Option<String>,
-        expected_external_value_json: Option<String>,
-        found_external_value_json: Option<String>,
+        asserted_aspect_touch: Option<ForgeQueryAspectTouch>,
+        expected_terminal_value_digest: Option<String>,
+        found_terminal_value_digest: Option<String>,
+        message: impl Into<String>,
+    ) -> Self {
+        let asserted_aspect_touch =
+            asserted_aspect_touch.map(ForgeQueryDeniedAspectTouch::Admitted);
+        Self::from_denied_aspect_touch(
+            binding,
+            kind,
+            asserted_aspect_touch,
+            expected_terminal_value_digest,
+            found_terminal_value_digest,
+            message,
+        )
+    }
+
+    fn from_denied_aspect_touch(
+        binding: &crate::runtime::ForgeQueryExistingTruthTargetBinding,
+        kind: ForgeQueryExistingTruthAssertionDenialKind,
+        asserted_aspect_touch: Option<ForgeQueryDeniedAspectTouch>,
+        expected_terminal_value_digest: Option<String>,
+        found_terminal_value_digest: Option<String>,
         message: impl Into<String>,
     ) -> Self {
         let message = message.into();
+        let asserted_aspect_touch_digest = asserted_aspect_touch
+            .as_ref()
+            .map(ForgeQueryDeniedAspectTouch::admitted_touch_digest_part);
         let denial_digest =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
                 .field_shape(
@@ -94,20 +118,20 @@ impl ForgeQueryExistingTruthAssertionDenial {
                 )
                 .optional_value(
                     ForgeQueryEvidenceTag::new("collection"),
-                    binding.target_collection(),
+                    binding.terminal_target_collection_projection(),
                 )
                 .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
                 .optional_value(
-                    ForgeQueryEvidenceTag::new("aspect"),
-                    asserted_aspect_path.as_deref(),
+                    ForgeQueryEvidenceTag::new("aspect_touch"),
+                    asserted_aspect_touch_digest.as_deref(),
                 )
                 .optional_value(
-                    ForgeQueryEvidenceTag::new("expected"),
-                    expected_external_value_json.as_deref(),
+                    ForgeQueryEvidenceTag::new("expected_terminal_value"),
+                    expected_terminal_value_digest.as_deref(),
                 )
                 .optional_value(
-                    ForgeQueryEvidenceTag::new("found"),
-                    found_external_value_json.as_deref(),
+                    ForgeQueryEvidenceTag::new("found_terminal_value"),
+                    found_terminal_value_digest.as_deref(),
                 )
                 .field_value(ForgeQueryEvidenceTag::new("message"), &message)
                 .seal()
@@ -116,9 +140,9 @@ impl ForgeQueryExistingTruthAssertionDenial {
         Self {
             binding: binding.clone(),
             kind,
-            asserted_aspect_path,
-            expected_external_value_json,
-            found_external_value_json,
+            asserted_aspect_touch,
+            expected_terminal_value_digest,
+            found_terminal_value_digest,
             message,
             denial_digest,
         }
@@ -132,16 +156,18 @@ impl ForgeQueryExistingTruthAssertionDenial {
         self.kind
     }
 
-    pub fn asserted_aspect_path(&self) -> Option<&str> {
-        self.asserted_aspect_path.as_deref()
+    pub fn asserted_aspect_touch(&self) -> Option<&ForgeQueryAspectTouch> {
+        self.asserted_aspect_touch
+            .as_ref()
+            .and_then(ForgeQueryDeniedAspectTouch::admitted_touch)
     }
 
-    pub fn expected_external_value_json(&self) -> Option<&str> {
-        self.expected_external_value_json.as_deref()
+    pub fn expected_terminal_value_digest(&self) -> Option<&str> {
+        self.expected_terminal_value_digest.as_deref()
     }
 
-    pub fn found_external_value_json(&self) -> Option<&str> {
-        self.found_external_value_json.as_deref()
+    pub fn found_terminal_value_digest(&self) -> Option<&str> {
+        self.found_terminal_value_digest.as_deref()
     }
 
     pub fn message(&self) -> &str {
@@ -175,9 +201,9 @@ pub struct ForgeQueryVerifiedExistingTruthAssertion {
 }
 
 impl ForgeQueryVerifiedExistingTruthAssertion {
-    pub fn from_snapshot_identity(
+    pub(in crate::runtime) fn from_snapshot_identity(
         binding: &crate::runtime::ForgeQueryExistingTruthTargetBinding,
-        aspects: &[ForgeQueryAspectValue],
+        aspects: &[ForgeQueryAdmittedAspectValue],
         snapshot_identity: &ForgeQuerySnapshotIdentity,
     ) -> Result<Self, ForgeQueryWorkspaceError> {
         Self::new(binding, aspects, snapshot_identity.clone())
@@ -185,13 +211,13 @@ impl ForgeQueryVerifiedExistingTruthAssertion {
 
     pub(crate) fn new(
         binding: &crate::runtime::ForgeQueryExistingTruthTargetBinding,
-        aspects: &[ForgeQueryAspectValue],
+        aspects: &[ForgeQueryAdmittedAspectValue],
         snapshot_identity: ForgeQuerySnapshotIdentity,
     ) -> Result<Self, ForgeQueryWorkspaceError> {
         let asserted_aspect_count = aspects.len();
-        let asserted_aspect_paths = aspects
+        let asserted_aspects = aspects
             .iter()
-            .map(|aspect| aspect.aspect_path().to_string())
+            .map(|aspect| ForgeQueryAspectTouch::from_parsed_target(aspect.parsed_target().clone()))
             .collect::<Vec<_>>();
         let cleared_assertion_count = aspects
             .iter()
@@ -203,7 +229,7 @@ impl ForgeQueryVerifiedExistingTruthAssertion {
             .collect::<Vec<_>>();
         let verified_assumption_set = crate::runtime::ForgeQueryVerifiedAssumptionSet::new(
             binding.binding_evidence_identity().clone(),
-            asserted_aspect_paths,
+            asserted_aspects,
             aspect_evidence_rows.clone(),
             cleared_assertion_count,
             snapshot_identity,
@@ -266,23 +292,24 @@ impl ForgeQueryVerifiedExistingTruthAssertion {
 }
 
 fn existing_truth_assertion_aspect_evidence(
-    aspect: &ForgeQueryAspectValue,
+    aspect: &ForgeQueryAdmittedAspectValue,
 ) -> ForgeQueryEvidenceIdentity {
-    let value_json =
-        serde_json::to_string(aspect.value()).unwrap_or_else(|_| aspect.value().to_string());
     forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
         .field_shape(
             ForgeQueryEvidenceTag::new("role"),
             "existing-truth-assertion-aspect",
         )
         .field_value(
-            ForgeQueryEvidenceTag::new("aspect_path"),
-            aspect.aspect_path(),
+            ForgeQueryEvidenceTag::new("aspect_touch"),
+            aspect.aspect_touch().admitted_touch_digest_part(),
         )
         .field_bool(
             ForgeQueryEvidenceTag::new("clears_existing_value"),
             aspect.clears_existing_value(),
         )
-        .field_value(ForgeQueryEvidenceTag::new("value"), value_json)
+        .field_value(
+            ForgeQueryEvidenceTag::new("value"),
+            aspect.terminal_digest_material(),
+        )
         .seal()
 }

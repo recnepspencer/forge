@@ -11,7 +11,8 @@ pub(super) fn enforce_admitted_authored_boundary(
     }
 
     for projection in query.projection() {
-        if projection.aspect().trim().is_empty() || projection.field().trim().is_empty() {
+        let source = projection.source_field_key();
+        if source.aspect().as_str().trim().is_empty() || source.field().as_str().trim().is_empty() {
             return Err(QueryCanonicalizationError::EmptyProjectionSelector);
         }
     }
@@ -20,31 +21,40 @@ pub(super) fn enforce_admitted_authored_boundary(
     }
 
     for predicate in query.predicates() {
-        if predicate.aspect().trim().is_empty() || predicate.field().trim().is_empty() {
+        let target = predicate.target_field_key();
+        if target.aspect().as_str().trim().is_empty() || target.field().as_str().trim().is_empty() {
             return Err(QueryCanonicalizationError::EmptyProjectionSelector);
         }
     }
 
     for ordering in query.ordering() {
-        if ordering.aspect().trim().is_empty() || ordering.field().trim().is_empty() {
+        let source = ordering.source_field_key();
+        if source.aspect().as_str().trim().is_empty() || source.field().as_str().trim().is_empty() {
             return Err(QueryCanonicalizationError::EmptyOrderingSelector);
         }
     }
 
     for traversal in query.traversal() {
-        if traversal.relation().trim().is_empty() {
+        if traversal
+            .terminal_relation_projection_for_boundary()
+            .trim()
+            .is_empty()
+        {
             return Err(QueryCanonicalizationError::EmptyTraversalRelation);
         }
         if traversal.depth() == 0 {
             return Err(QueryCanonicalizationError::UnsupportedTraversalDepth {
-                relation: traversal.relation().to_string(),
+                relation: traversal
+                    .terminal_relation_projection_for_boundary()
+                    .to_string(),
                 depth: traversal.depth(),
             });
         }
     }
 
     for field in result_shape.fields() {
-        if field.source_aspect().trim().is_empty() || field.source_field().trim().is_empty() {
+        let source = field.source_field_key();
+        if source.aspect().as_str().trim().is_empty() || source.field().as_str().trim().is_empty() {
             return Err(QueryCanonicalizationError::EmptyResultFieldSource);
         }
         if field.delivered_name().trim().is_empty() {

@@ -1,6 +1,6 @@
 use super::*;
-use crate::runtime::ForgeQueryAspectValue;
-use serde_json::json;
+use crate::runtime::ForgeQueryAdmittedAspectValue;
+use forge_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
 
 #[test]
 fn memory_workspace_insert_aspects_tracks_changed_paths() {
@@ -15,16 +15,18 @@ fn memory_workspace_insert_aspects_tracks_changed_paths() {
 
     let receipt = workspace
         .insert_aspects(vec![
-            ForgeQueryAspectValue::new("identity.id", json!("task-1")).expect("identity aspect"),
-            ForgeQueryAspectValue::new("title.value", json!("First task")).expect("title aspect"),
+            ForgeQueryAdmittedAspectValue::new(touch("identity.id"), text("task-1"))
+                .expect("identity aspect"),
+            ForgeQueryAdmittedAspectValue::new(touch("title.value"), text("First task"))
+                .expect("title aspect"),
         ])
         .expect("insert should succeed");
 
     assert_eq!(receipt.deltas.len(), 1);
     assert_eq!(receipt.deltas[0].kind, ForgeQueryMutationKind::Created);
     assert_eq!(
-        receipt.deltas[0].aspect_paths,
-        ["identity.id", "title.value"]
+        receipt.deltas[0].admitted_touched_aspects(),
+        &[touch("identity.id"), touch("title.value")]
     );
     assert_eq!(workspace.entities().len(), 1);
 }
@@ -42,8 +44,10 @@ fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
 
     let insert = workspace
         .insert_aspects(vec![
-            ForgeQueryAspectValue::new("identity.id", json!("task-1")).expect("identity aspect"),
-            ForgeQueryAspectValue::new("title.value", json!("First task")).expect("title aspect"),
+            ForgeQueryAdmittedAspectValue::new(touch("identity.id"), text("task-1"))
+                .expect("identity aspect"),
+            ForgeQueryAdmittedAspectValue::new(touch("title.value"), text("First task"))
+                .expect("title aspect"),
         ])
         .expect("seed insert should succeed");
     let entity_identity = insert.deltas[0].entity_identity.clone();
@@ -52,22 +56,26 @@ fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
         .update_aspects(
             entity_identity.clone(),
             vec![
-                ForgeQueryAspectValue::new("title.value", json!("Updated task"))
+                ForgeQueryAdmittedAspectValue::new(touch("title.value"), text("Updated task"))
                     .expect("title aspect"),
             ],
         )
         .expect("update should succeed");
     assert_eq!(update.deltas[0].kind, ForgeQueryMutationKind::Updated);
-    assert_eq!(update.deltas[0].aspect_paths, ["title.value"]);
     assert_eq!(
-        workspace.entities()[0].external_row()["title"]["value"],
-        json!("Updated task")
+        update.deltas[0].admitted_touched_aspects(),
+        &[touch("title.value")]
     );
     assert_eq!(
-        workspace.entities()[0]
-            .aspect_value("title.value")
-            .map(crate::aspect_field_authoring::project_aspect_value_to_workspace_json),
-        Some(json!("Updated task"))
+        workspace.entities()[0].scalar_value_at(&field_path("title.value")),
+        Some(&text("Updated task"))
+    );
+    assert_eq!(
+        workspace.entities()[0].aspect_value(
+            &forge_foundational::facade::AspectKey::new("title")
+                .expect("title should be an aspect key"),
+        ),
+        Some(&text("Updated task"))
     );
 
     let delete = workspace
@@ -77,9 +85,82 @@ fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
     assert!(workspace.entities().is_empty());
 }
 
-fn aspect(
-    label: &str,
-    external_projection_path: &str,
-) -> crate::memory_workspace::ForgeQueryAspect {
-    crate::memory_workspace::ForgeQueryAspect::new(label, external_projection_path)
+#[test]
+fn memory_workspace_matches_declared_aspects_with_native_touches() {
+    let mut workspace =
+        ForgeQueryMemoryWorkspace::collection("Task", [aspect("title", "title.value")])
+            .expect("memory workspace should build");
+
+    workspace
+        .insert_aspects(vec![ForgeQueryAdmittedAspectValue::new(
+            touch("title.value"),
+            text("Native match"),
+        )
+        .expect("title field touch")])
+        .expect("field touch should match whole-aspect declaration natively");
+
+    assert_eq!(
+        workspace.entities()[0].scalar_value_at(&field_path("title.value")),
+        Some(&text("Native match"))
+    );
+    assert_eq!(
+        workspace.entities()[0].aspect_value(
+            &forge_foundational::facade::AspectKey::new("title")
+                .expect("title should be an aspect key"),
+        ),
+        Some(&text("Native match"))
+    );
+}
+
+#[test]
+fn memory_workspace_aspect_rejects_mismatched_native_field_path() {
+    let denial = crate::memory_workspace::ForgeQueryAspect::new(
+        touch("title.value"),
+        field_path("identity.id"),
+    )
+    .expect_err("mismatched aspect touch and native field path should be denied");
+
+    assert!(denial
+        .message()
+        .contains("must use native field path rooted at `title`"));
+}
+
+fn aspect(label: &str, native_field_path: &str) -> crate::memory_workspace::ForgeQueryAspect {
+    crate::memory_workspace::ForgeQueryAspect::new(touch(label), field_path(native_field_path))
+        .expect("test aspect should admit")
+}
+
+fn field_path(path: &str) -> CanonicalFieldPath {
+    CanonicalFieldPath::new(
+        path.split('.')
+            .map(FieldKey::new)
+            .collect::<Option<Vec<_>>>()
+            .expect("test field path segments should be valid"),
+    )
+    .expect("test field path should not be empty")
+}
+
+fn touch(touch_fixture: &str) -> crate::runtime::ForgeQueryAspectTouch {
+    let mut segments = touch_fixture.split('.');
+    let aspect_key = AspectKey::new(
+        segments
+            .next()
+            .expect("test touch fixture should name an aspect"),
+    )
+    .expect("test aspect key should admit");
+    let field_segments = segments
+        .map(|field| FieldKey::new(field).expect("test field key should admit"))
+        .collect::<Vec<_>>();
+    if field_segments.is_empty() {
+        crate::runtime::ForgeQueryAspectTouch::whole_aspect(aspect_key)
+    } else {
+        crate::runtime::ForgeQueryAspectTouch::aspect_field_path(
+            aspect_key,
+            CanonicalFieldPath::new(field_segments).expect("test field path should admit"),
+        )
+    }
+}
+
+fn text(value: impl Into<String>) -> AspectValue {
+    crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value)
 }

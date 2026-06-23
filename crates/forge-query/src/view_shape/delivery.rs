@@ -46,7 +46,7 @@ impl ViewShapePatchPosture {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ViewShapeDeliveryMetadata {
-    focus_aspect: Option<String>,
+    focus_aspect: Option<AspectKey>,
     grouping_aspect: Option<AspectKey>,
     identity_consumption: ViewShapeIdentityConsumption,
     projection_legality_matches_detail: bool,
@@ -56,7 +56,7 @@ pub struct ViewShapeDeliveryMetadata {
 
 impl ViewShapeDeliveryMetadata {
     pub(crate) fn new(
-        focus_aspect: Option<String>,
+        focus_aspect: Option<AspectKey>,
         grouping_aspect: Option<AspectKey>,
         identity_consumption: ViewShapeIdentityConsumption,
         projection_legality_matches_detail: bool,
@@ -73,12 +73,8 @@ impl ViewShapeDeliveryMetadata {
         }
     }
 
-    pub fn focus_aspect(&self) -> Option<&str> {
-        self.focus_aspect.as_deref()
-    }
-
-    pub fn grouping_aspect(&self) -> Option<&str> {
-        self.grouping_aspect.as_ref().map(AspectKey::as_str)
+    pub fn native_focus_aspect_key(&self) -> Option<&AspectKey> {
+        self.focus_aspect.as_ref()
     }
 
     pub fn native_grouping_aspect_key(&self) -> Option<&AspectKey> {

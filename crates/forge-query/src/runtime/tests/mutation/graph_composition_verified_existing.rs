@@ -47,8 +47,12 @@ fn compose_graph_supports_verified_existing_target_lifecycle() {
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
         admitted_primary_profile("direct_relation_identity"),
         TestExistingTruthVerificationAdapter::default()
-            .with_value(&binding, "status.value", json!("active"))
-            .with_value(&binding, "kind.value", json!("depends_on")),
+            .with_value(&binding, "status.value", test_string_aspect_value("active"))
+            .with_value(
+                &binding,
+                "kind.value",
+                test_string_aspect_value("depends_on"),
+            ),
     );
     let mut workspace = runtime
         .workspace("tasks.graph-composition-verified-existing")
@@ -57,18 +61,39 @@ fn compose_graph_supports_verified_existing_target_lifecycle() {
     let receipt = workspace
         .compose_graph(|graph| {
             let _ = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-verified-existing")
-                    .aspect("title.value", "Verified existing task")
+                task.set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-verified-existing"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Verified existing task"),
+                )
             })?;
             graph.update_existing_verified(
                 binding.clone(),
-                |verify| verify.aspect("status.value", "active"),
-                |update| update.aspect("status.value", "retired"),
+                |verify| {
+                    verify.set_aspect(
+                        test_aspect_touch("status.value"),
+                        test_authored_string_aspect_value("active"),
+                    )
+                },
+                |update| {
+                    update.set_aspect(
+                        test_aspect_touch("status.value"),
+                        test_authored_string_aspect_value("retired"),
+                    )
+                },
             )?;
             graph.delete_existing_verified(
                 binding,
-                |verify| verify.aspect("kind.value", "depends_on"),
-                |delete| delete.touch("kind.value"),
+                |verify| {
+                    verify.set_aspect(
+                        test_aspect_touch("kind.value"),
+                        test_authored_string_aspect_value("depends_on"),
+                    )
+                },
+                |delete| delete.touch(test_aspect_touch("kind.value")),
             )?;
             Ok(())
         })
@@ -106,7 +131,7 @@ fn compose_graph_supports_verified_existing_target_lifecycle() {
     );
     assert_eq!(
         assumptions.counter_snapshot(),
-        "verified_steps=2;target_bindings=2;asserted_aspects=2;distinct_asserted_aspect_paths=2;cleared_assertions=0"
+        "verified_steps=2;target_bindings=2;asserted_aspects=2;distinct_asserted_aspect_touches=2;cleared_assertions=0"
     );
     assert_eq!(assumptions.verified_step_count(), 2);
     assert_eq!(assumptions.assumption_snapshot_digests().len(), 2);
@@ -165,7 +190,7 @@ fn compose_graph_supports_verified_existing_target_lifecycle() {
                     .verification_read_set_breadth()
                     .expect("verified update should retain read-set breadth")
                     .counter_snapshot(),
-                "target_bindings=1;asserted_aspects=1;distinct_asserted_aspect_paths=1;cleared_assertions=0"
+                "target_bindings=1;asserted_aspects=1;distinct_asserted_aspect_touches=1;cleared_assertions=0"
             );
             assert_eq!(
                 delete
@@ -181,7 +206,7 @@ fn compose_graph_supports_verified_existing_target_lifecycle() {
                     .verification_read_set_breadth()
                     .expect("verified delete should retain read-set breadth")
                     .counter_snapshot(),
-                "target_bindings=1;asserted_aspects=1;distinct_asserted_aspect_paths=1;cleared_assertions=0"
+                "target_bindings=1;asserted_aspects=1;distinct_asserted_aspect_touches=1;cleared_assertions=0"
             );
         }
         other => panic!("expected batch receipt inspection, got {other:?}"),
@@ -217,8 +242,18 @@ fn compose_graph_denies_verified_existing_target_when_backend_verification_is_un
         .compose_graph(|graph| {
             graph.update_existing_verified(
                 binding,
-                |verify| verify.aspect("status.value", "active"),
-                |update| update.aspect("status.value", "retired"),
+                |verify| {
+                    verify.set_aspect(
+                        test_aspect_touch("status.value"),
+                        test_authored_string_aspect_value("active"),
+                    )
+                },
+                |update| {
+                    update.set_aspect(
+                        test_aspect_touch("status.value"),
+                        test_authored_string_aspect_value("retired"),
+                    )
+                },
             )?;
             Ok(())
         })

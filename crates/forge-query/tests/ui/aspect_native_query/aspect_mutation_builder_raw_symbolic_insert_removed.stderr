@@ -1,0 +1,17 @@
+error[E0599]: no method named `build_insert_symbolic` found for struct `ForgeQueryAspectMutationBuilder` in the current scope
+  --> tests/ui/aspect_native_query/aspect_mutation_builder_raw_symbolic_insert_removed.rs:13:10
+   |
+11 |       let _ = ForgeQueryAspectMutationBuilder::new()
+   |  _____________-
+12 | |         .set_aspect(title, ForgeQueryAuthoredAspectValue::string("Draft"))
+13 | |         .build_insert_symbolic("draft-task", "Task");
+   | |_________-^^^^^^^^^^^^^^^^^^^^^
+   |
+help: there is a method `build_insert` with a similar name, but with different arguments
+  --> src/runtime/mutation/aspect.rs
+   |
+   | /     pub fn build_insert(
+   | |         self,
+   | |         collection: impl Into<String>,
+   | |     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
+   | |_______________________________________________________________^

@@ -7,7 +7,7 @@ use crate::memory_workspace::{
 };
 use crate::runtime::{
     ForgeQueryAuthorityLane, ForgeQueryExistingTruthBindingEvidence, ForgeQueryJournalPosition,
-    ForgeQueryMutationFamily, ForgeQueryWriteReceipt,
+    ForgeQueryMutationFamily, ForgeQueryMutationTargetCollectionIdentity, ForgeQueryWriteReceipt,
 };
 use crate::session_label::ForgeQuerySessionLabel;
 
@@ -43,14 +43,20 @@ impl ForgeQueryWriteReceipt {
         };
         let committed_truth_identity = super::write_receipt_committed_truth_identity(&inner);
         let target_entity_identity = preview_target_entity_identity(command, &delta);
-        let target_collection = command.declared_collection();
+        let declared_collection_identity = command.declared_collection_identity();
+        let target_collection_identity = declared_collection_identity.as_ref().map(|collection| {
+            ForgeQueryMutationTargetCollectionIdentity::new(
+                "write-receipt-preview-target",
+                collection.as_str(),
+            )
+        });
         let naming_mutation_evidence = naming_mutation_evidence(
             None,
             command.naming_intent(),
             target_entity_identity
                 .as_ref()
                 .or(Some(&delta.entity_identity)),
-            target_collection.as_deref(),
+            target_collection_identity.as_ref(),
         );
         let continuity_mutation_evidence = continuity_mutation_evidence(
             None,
@@ -59,7 +65,7 @@ impl ForgeQueryWriteReceipt {
             target_entity_identity
                 .as_ref()
                 .or(Some(&delta.entity_identity)),
-            target_collection.as_deref(),
+            target_collection_identity.as_ref(),
         );
         Self {
             inner,
@@ -72,9 +78,9 @@ impl ForgeQueryWriteReceipt {
             basis_lane: ForgeQueryAuthorityLane::PreviewTruth,
             target_evidence: target_evidence_from_receipt(
                 command.mutation_family(),
-                command.declared_collection(),
+                declared_collection_identity.clone(),
                 command.declared_entity_identity(),
-                command.declared_collection(),
+                target_collection_identity.clone(),
                 command.declared_entity_identity(),
             ),
             existing_truth_assertion_evidence: None,
@@ -92,17 +98,17 @@ impl ForgeQueryWriteReceipt {
             continuity_mutation_evidence,
             causality_evidence: None,
             provenance_evidence: None,
-            declared_collection: command.declared_collection(),
+            declared_collection_identity,
             declared_entity_identity: command.declared_entity_identity(),
-            target_collection,
+            target_collection_identity,
             target_entity_identity,
             declared_aspect_operations: command.declared_aspect_operations(),
             declared_aspect_value_digest: crate::runtime::command_declared_aspect_value_identity(
                 command,
             ),
             mutation_metadata: command.mutation_metadata(),
-            affected_live_view_ids: Vec::new(),
-            affected_derived_view_ids: Vec::new(),
+            affected_live_view_targets: Vec::new(),
+            affected_derived_view_targets: Vec::new(),
             considered_computed_view_count: 0,
             considered_effect_count: 0,
             delivered_effect_count: 0,
@@ -124,135 +130,137 @@ pub(super) fn preview_receipt_delta(
 ) -> crate::memory_workspace::ForgeQueryMutationDelta {
     match command {
         ForgeQueryWriteCommand::InsertAspects { collection, .. } => {
-            crate::memory_workspace::ForgeQueryMutationDelta {
-                collection: collection.clone(),
-                entity_identity: ForgeQueryEntityIdentity::preview(preview_identity.clone()),
-                kind: crate::memory_workspace::ForgeQueryMutationKind::Created,
-                aspect_paths: command.declared_aspect_paths(),
-            }
+            crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
+                collection.as_str(),
+                ForgeQueryEntityIdentity::preview(preview_identity.clone()),
+                crate::memory_workspace::ForgeQueryMutationKind::Created,
+                command.declared_aspect_touches(),
+            )
         }
         ForgeQueryWriteCommand::UpdateAspect {
             entity_identity,
-            aspect_path,
-            value: _,
-        } => crate::memory_workspace::ForgeQueryMutationDelta {
-            collection: "preview".to_string(),
-            entity_identity: entity_identity.clone(),
-            kind: crate::memory_workspace::ForgeQueryMutationKind::Updated,
-            aspect_paths: vec![aspect_path.clone()],
-        },
+            aspect,
+        } => crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
+            "preview",
+            entity_identity.clone(),
+            crate::memory_workspace::ForgeQueryMutationKind::Updated,
+            vec![crate::runtime::ForgeQueryAspectTouch::from_parsed_target(
+                aspect.parsed_target().clone(),
+            )],
+        ),
         ForgeQueryWriteCommand::UpdateAspects {
             entity_identity, ..
-        } => crate::memory_workspace::ForgeQueryMutationDelta {
-            collection: "preview".to_string(),
-            entity_identity: entity_identity.clone(),
-            kind: crate::memory_workspace::ForgeQueryMutationKind::Updated,
-            aspect_paths: command.declared_aspect_paths(),
-        },
+        } => crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
+            "preview",
+            entity_identity.clone(),
+            crate::memory_workspace::ForgeQueryMutationKind::Updated,
+            command.declared_aspect_touches(),
+        ),
         ForgeQueryWriteCommand::UpdateExistingAspects { binding, .. } => {
-            crate::memory_workspace::ForgeQueryMutationDelta {
-                collection: binding
-                    .target_collection()
+            crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
+                binding
+                    .terminal_target_collection_projection()
                     .map(str::to_string)
                     .unwrap_or_else(|| "preview".to_string()),
-                entity_identity: binding.resolved_entity_artifact_identity(),
-                kind: crate::memory_workspace::ForgeQueryMutationKind::Updated,
-                aspect_paths: command.declared_aspect_paths(),
-            }
+                binding.resolved_entity_artifact_identity(),
+                crate::memory_workspace::ForgeQueryMutationKind::Updated,
+                command.declared_aspect_touches(),
+            )
         }
         ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects { binding, .. } => {
-            crate::memory_workspace::ForgeQueryMutationDelta {
-                collection: binding
-                    .target_collection()
+            crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
+                binding
+                    .terminal_target_collection_projection()
                     .map(str::to_string)
                     .unwrap_or_else(|| "preview".to_string()),
-                entity_identity: binding.resolved_entity_artifact_identity(),
-                kind: crate::memory_workspace::ForgeQueryMutationKind::Updated,
-                aspect_paths: command.declared_aspect_paths(),
-            }
+                binding.resolved_entity_artifact_identity(),
+                crate::memory_workspace::ForgeQueryMutationKind::Updated,
+                command.declared_aspect_touches(),
+            )
         }
         ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects {
             binding,
-            touched_aspect_paths,
+            touched_aspects,
             ..
-        } => crate::memory_workspace::ForgeQueryMutationDelta {
-            collection: binding
-                .target_collection()
+        } => crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
+            binding
+                .terminal_target_collection_projection()
                 .map(str::to_string)
                 .unwrap_or_else(|| "preview".to_string()),
-            entity_identity: binding.resolved_entity_artifact_identity(),
-            kind: crate::memory_workspace::ForgeQueryMutationKind::Deleted,
-            aspect_paths: touched_aspect_paths.clone(),
-        },
+            binding.resolved_entity_artifact_identity(),
+            crate::memory_workspace::ForgeQueryMutationKind::Deleted,
+            touched_aspects.to_vec(),
+        ),
         ForgeQueryWriteCommand::AssertExistingAspects { binding, .. }
         | ForgeQueryWriteCommand::VerifyExistingAspects { binding, .. } => {
-            crate::memory_workspace::ForgeQueryMutationDelta {
-                collection: binding
-                    .target_collection()
+            crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
+                binding
+                    .terminal_target_collection_projection()
                     .map(str::to_string)
                     .unwrap_or_else(|| "preview".to_string()),
-                entity_identity: binding.resolved_entity_artifact_identity(),
-                kind: crate::memory_workspace::ForgeQueryMutationKind::Updated,
-                aspect_paths: command.declared_aspect_paths(),
-            }
+                binding.resolved_entity_artifact_identity(),
+                crate::memory_workspace::ForgeQueryMutationKind::Updated,
+                command.declared_aspect_touches(),
+            )
         }
         ForgeQueryWriteCommand::UpdateSymbolicAspects { reference, .. } => {
-            crate::memory_workspace::ForgeQueryMutationDelta {
-                collection: reference
+            crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
+                reference
                     .target_collection()
                     .map(str::to_string)
                     .unwrap_or_else(|| "preview".to_string()),
-                entity_identity: preview_symbolic_entity_identity(reference),
-                kind: crate::memory_workspace::ForgeQueryMutationKind::Updated,
-                aspect_paths: command.declared_aspect_paths(),
-            }
+                preview_symbolic_entity_identity(reference),
+                crate::memory_workspace::ForgeQueryMutationKind::Updated,
+                command.declared_aspect_touches(),
+            )
         }
         ForgeQueryWriteCommand::DeleteAspects {
             entity_identity,
             declared_collection,
-            touched_aspect_paths,
+            touched_aspects,
             ..
-        } => crate::memory_workspace::ForgeQueryMutationDelta {
-            collection: declared_collection
-                .clone()
-                .unwrap_or_else(|| "preview".to_string()),
-            entity_identity: entity_identity.clone(),
-            kind: crate::memory_workspace::ForgeQueryMutationKind::Deleted,
-            aspect_paths: touched_aspect_paths.clone(),
-        },
+        } => crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
+            declared_collection
+                .as_ref()
+                .map(|collection| collection.as_str())
+                .unwrap_or("preview"),
+            entity_identity.clone(),
+            crate::memory_workspace::ForgeQueryMutationKind::Deleted,
+            touched_aspects.to_vec(),
+        ),
         ForgeQueryWriteCommand::DeleteExistingAspects {
             binding,
-            touched_aspect_paths,
+            touched_aspects,
             ..
-        } => crate::memory_workspace::ForgeQueryMutationDelta {
-            collection: binding
-                .target_collection()
+        } => crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
+            binding
+                .terminal_target_collection_projection()
                 .map(str::to_string)
                 .unwrap_or_else(|| "preview".to_string()),
-            entity_identity: binding.resolved_entity_artifact_identity(),
-            kind: crate::memory_workspace::ForgeQueryMutationKind::Deleted,
-            aspect_paths: touched_aspect_paths.clone(),
-        },
+            binding.resolved_entity_artifact_identity(),
+            crate::memory_workspace::ForgeQueryMutationKind::Deleted,
+            touched_aspects.to_vec(),
+        ),
         ForgeQueryWriteCommand::DeleteSymbolicAspects {
             reference,
-            touched_aspect_paths,
+            touched_aspects,
             ..
-        } => crate::memory_workspace::ForgeQueryMutationDelta {
-            collection: reference
+        } => crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
+            reference
                 .target_collection()
                 .map(str::to_string)
                 .unwrap_or_else(|| "preview".to_string()),
-            entity_identity: preview_symbolic_entity_identity(reference),
-            kind: crate::memory_workspace::ForgeQueryMutationKind::Deleted,
-            aspect_paths: touched_aspect_paths.clone(),
-        },
+            preview_symbolic_entity_identity(reference),
+            crate::memory_workspace::ForgeQueryMutationKind::Deleted,
+            touched_aspects.to_vec(),
+        ),
         ForgeQueryWriteCommand::Delete { entity_identity } => {
-            crate::memory_workspace::ForgeQueryMutationDelta {
-                collection: "preview".to_string(),
-                entity_identity: entity_identity.clone(),
-                kind: crate::memory_workspace::ForgeQueryMutationKind::Deleted,
-                aspect_paths: Vec::new(),
-            }
+            crate::memory_workspace::ForgeQueryMutationDelta::from_touched_aspects(
+                "preview",
+                entity_identity.clone(),
+                crate::memory_workspace::ForgeQueryMutationKind::Deleted,
+                Vec::new(),
+            )
         }
     }
 }
@@ -286,9 +294,11 @@ fn preview_symbolic_entity_identity(
     ForgeQueryEntityIdentity::preview(
         forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewWriteReceiptIdentity)
             .field_value(ForgeQueryEvidenceTag::new("symbol"), reference.symbol())
-            .optional_shape(
+            .optional_evidence_identity(
                 ForgeQueryEvidenceTag::new("target_collection"),
-                reference.target_collection(),
+                reference
+                    .target_collection_identity()
+                    .map(|collection| collection.evidence_identity()),
             )
             .seal(),
     )

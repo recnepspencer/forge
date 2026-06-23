@@ -1,84 +1,67 @@
-use forge_query::facade::{ForgeQueryAspectValue, ForgeQueryWorkspaceError};
-use serde_json::{Map, Value};
+use super::state::NativeExternalRow;
+use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
+use forge_query::facade::{
+    ForgeQueryAdmittedAspectValue, ForgeQueryAspectTouch, ForgeQueryWorkspaceError,
+};
 
 pub(super) fn external_row_from_aspects(
-    aspects: &[ForgeQueryAspectValue],
-) -> Result<Value, ForgeQueryWorkspaceError> {
-    let mut external_row = Value::Object(Map::new());
+    aspects: &[ForgeQueryAdmittedAspectValue],
+) -> Result<NativeExternalRow, ForgeQueryWorkspaceError> {
+    let mut external_row = NativeExternalRow::new();
     apply_aspects_to_external_row(&mut external_row, aspects)?;
     Ok(external_row)
 }
 
 pub(super) fn apply_aspects_to_external_row(
-    external_row: &mut Value,
-    aspects: &[ForgeQueryAspectValue],
+    external_row: &mut NativeExternalRow,
+    aspects: &[ForgeQueryAdmittedAspectValue],
 ) -> Result<(), ForgeQueryWorkspaceError> {
     for aspect in aspects {
+        let aspect_touch = aspect.aspect_touch();
         if aspect.clears_existing_value() {
-            clear_external_row_path(external_row, aspect.aspect_path())?;
-        } else {
-            set_external_row_path(external_row, aspect.aspect_path(), aspect.value().clone())?;
+            clear_external_row_touch(external_row, &aspect_touch)?;
+        } else if let Some(value) = aspect.foundational_value() {
+            set_external_row_touch(external_row, &aspect_touch, value.clone())?;
         }
     }
     Ok(())
 }
 
-fn set_external_row_path(
-    external_row: &mut Value,
-    dotted_path: &str,
-    value: Value,
+fn set_external_row_touch(
+    external_row: &mut NativeExternalRow,
+    aspect_touch: &ForgeQueryAspectTouch,
+    value: AspectValue,
 ) -> Result<(), ForgeQueryWorkspaceError> {
-    let mut current = external_row;
-    let mut parts = dotted_path.split('.').peekable();
-    while let Some(part) = parts.next() {
-        if parts.peek().is_none() {
-            return match current {
-                Value::Object(object) => {
-                    object.insert(part.to_string(), value);
-                    Ok(())
-                }
-                _ => Err(non_object_boundary_error(dotted_path)),
-            };
-        }
-        current = match current {
-            Value::Object(object) => object
-                .entry(part.to_string())
-                .or_insert_with(|| Value::Object(Map::new())),
-            _ => return Err(non_object_boundary_error(dotted_path)),
-        };
-    }
+    external_row.insert(native_external_field_path_for_touch(aspect_touch)?, value);
     Ok(())
 }
 
-fn clear_external_row_path(
-    external_row: &mut Value,
-    dotted_path: &str,
+fn clear_external_row_touch(
+    external_row: &mut NativeExternalRow,
+    aspect_touch: &ForgeQueryAspectTouch,
 ) -> Result<(), ForgeQueryWorkspaceError> {
-    let mut current = external_row;
-    let mut parts = dotted_path.split('.').peekable();
-    while let Some(part) = parts.next() {
-        if parts.peek().is_none() {
-            return match current {
-                Value::Object(object) => {
-                    object.remove(part);
-                    Ok(())
-                }
-                _ => Ok(()),
-            };
-        }
-        current = match current {
-            Value::Object(object) => match object.get_mut(part) {
-                Some(next) => next,
-                None => return Ok(()),
-            },
-            _ => return Ok(()),
-        };
-    }
+    external_row.remove(&native_external_field_path_for_touch(aspect_touch)?);
     Ok(())
 }
 
-fn non_object_boundary_error(dotted_path: &str) -> ForgeQueryWorkspaceError {
-    ForgeQueryWorkspaceError::new(format!(
-        "public bridge external row path `{dotted_path}` crossed a non-object boundary"
-    ))
+fn native_external_field_path_for_touch(
+    aspect_touch: &ForgeQueryAspectTouch,
+) -> Result<CanonicalFieldPath, ForgeQueryWorkspaceError> {
+    let mut fields = vec![
+        FieldKey::new(aspect_touch.native_aspect_key().as_str()).ok_or_else(|| {
+            ForgeQueryWorkspaceError::new(format!(
+                "public bridge could not use native aspect `{}` as an external field",
+                aspect_touch.native_aspect_key().as_str()
+            ))
+        })?,
+    ];
+    if let Some(field_path) = aspect_touch.native_field_path() {
+        fields.extend(field_path.fields().iter().cloned());
+    }
+    CanonicalFieldPath::new(fields).ok_or_else(|| {
+        ForgeQueryWorkspaceError::new(format!(
+            "public bridge could not derive external field path for native aspect `{}`",
+            aspect_touch.native_aspect_key().as_str()
+        ))
+    })
 }

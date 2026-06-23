@@ -67,9 +67,7 @@ impl ForgeQuerySymbolicTargetReferenceEvidence {
                 reference.symbol(),
             ),
             resolved_entity_identity: resolved_entity_identity.clone(),
-            target_collection: reference.target_collection().map(|collection| {
-                ForgeQueryMutationTargetCollectionIdentity::new("symbolic-target", collection)
-            }),
+            target_collection: reference.target_collection_identity().cloned(),
         }
     }
 

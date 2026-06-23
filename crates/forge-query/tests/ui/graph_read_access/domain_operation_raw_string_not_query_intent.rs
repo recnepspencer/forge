@@ -7,7 +7,7 @@ fn main() {
             "user",
             QuerySchemaView::new(
                 "raw-domain-op",
-                [SchemaFieldView::new("identity", "id", SchemaFieldKind::String)],
+                [SchemaFieldView::new(forge_query::facade::AspectName::new("identity").expect("schema aspect literal must be valid"), forge_query::facade::FieldName::new("id").expect("schema field literal must be valid"), SchemaFieldKind::String)],
                 [],
             ),
             |query| {

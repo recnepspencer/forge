@@ -7,7 +7,7 @@ use super::read_declarations::{profile_read_declaration, traversal_read_family};
 fn read_descriptor_matches_declared_aspect_and_read_shape_verbs() {
     let mut aspect_workspace = workspace_with_selector_obligation(
         "read-aspect-selector",
-        ForgeQueryGraphTouchSelector::aspect_path("profile.display_name").unwrap(),
+        ForgeQueryGraphTouchSelector::aspect_touch(test_aspect_touch("profile.display_name")),
         ForgeQueryGraphObligationSupportLane::ReadFamily,
         ForgeQueryGraphObligationOperatingWorldSelector::any_committed_authority(),
     );
@@ -29,7 +29,7 @@ fn read_descriptor_matches_declared_aspect_and_read_shape_verbs() {
 
     let mut verb_workspace = workspace_with_selector_obligation(
         "read-verb-selector",
-        ForgeQueryGraphTouchSelector::read_verb(ForgeQueryGraphTouchReadVerb::ObservesAspectPath),
+        ForgeQueryGraphTouchSelector::read_verb(ForgeQueryGraphTouchReadVerb::ObservesAspect),
         ForgeQueryGraphObligationSupportLane::ReadFamily,
         ForgeQueryGraphObligationOperatingWorldSelector::any_committed_authority(),
     );

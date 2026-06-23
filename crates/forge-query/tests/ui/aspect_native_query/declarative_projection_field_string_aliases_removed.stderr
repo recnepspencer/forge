@@ -1,0 +1,11 @@
+error[E0599]: no method named `aspect` found for struct `DeclarativeProjectionField` in the current scope
+ --> tests/ui/aspect_native_query/declarative_projection_field_string_aliases_removed.rs:5:19
+  |
+5 |     let _ = field.aspect();
+  |                   ^^^^^^ method not found in `DeclarativeProjectionField`
+
+error[E0599]: no method named `field` found for struct `DeclarativeProjectionField` in the current scope
+ --> tests/ui/aspect_native_query/declarative_projection_field_string_aliases_removed.rs:6:19
+  |
+6 |     let _ = field.field();
+  |                   ^^^^^ method not found in `DeclarativeProjectionField`

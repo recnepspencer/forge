@@ -1,0 +1,11 @@
+error[E0599]: no method named `includes_view_name` found for struct `ForgeQueryDerivedMaterializationBundle` in the current scope
+ --> tests/ui/aspect_native_query/artifact_bundle_includes_view_name_alias_removed.rs:5:21
+  |
+5 |     let _ = derived.includes_view_name("derived.example");
+  |                     ^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryDerivedMaterializationBundle`
+
+error[E0599]: no method named `includes_view_name` found for struct `ForgeQueryLiveArtifactBundle` in the current scope
+ --> tests/ui/aspect_native_query/artifact_bundle_includes_view_name_alias_removed.rs:8:18
+  |
+8 |     let _ = live.includes_view_name("live.example");
+  |                  ^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryLiveArtifactBundle`

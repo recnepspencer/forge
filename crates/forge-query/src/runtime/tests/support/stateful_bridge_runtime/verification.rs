@@ -1,11 +1,14 @@
 use super::super::*;
-use super::state::StatefulBridgeState;
+use super::state::{NativeExternalRow, StatefulBridgeState};
+use super::writes::native_external_field_path_for_touch;
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
+use crate::runtime::mutation::terminal_aspect_value_digest_text;
+use forge_foundational::facade::AspectValue;
 
 pub(super) fn verify_existing_truth_assertion(
     state: &StatefulBridgeState,
     binding: &ForgeQueryExistingTruthTargetBinding,
-    aspects: &[ForgeQueryAspectValue],
+    aspects: &[ForgeQueryAdmittedAspectValue],
     snapshot_identity: ForgeQuerySnapshotIdentity,
 ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial> {
     let row = authoritative_row(state, binding).map_err(|message| {
@@ -19,33 +22,44 @@ pub(super) fn verify_existing_truth_assertion(
         )
     })?;
     for aspect in aspects {
+        let aspect_touch = aspect.aspect_touch();
         if aspect.clears_existing_value() {
             return Err(ForgeQueryExistingTruthAssertionDenial::new(
                 binding,
                 ForgeQueryExistingTruthAssertionDenialKind::ClearAssertionUnsupported,
-                Some(aspect.aspect_path().to_string()),
+                Some(aspect_touch.clone()),
                 None,
                 None,
                 "backend-verified assertions cannot clear authoritative truth",
             ));
         }
-        let Some(found) = get_json_path(row, aspect.aspect_path()) else {
+        let Some(found) = get_native_touch(row, &aspect_touch) else {
             return Err(ForgeQueryExistingTruthAssertionDenial::new(
                 binding,
                 ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
-                Some(aspect.aspect_path().to_string()),
-                Some(external_value_json(aspect.value())),
+                Some(aspect_touch.clone()),
+                Some(aspect.terminal_digest_material()),
                 None,
                 "authoritative truth did not contain the asserted aspect",
             ));
         };
-        if found != aspect.value() {
+        let Some(expected) = aspect.foundational_value() else {
+            return Err(ForgeQueryExistingTruthAssertionDenial::new(
+                binding,
+                ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
+                Some(aspect_touch.clone()),
+                Some(aspect.terminal_digest_material()),
+                None,
+                "asserted aspect did not retain a native value",
+            ));
+        };
+        if found != expected {
             return Err(ForgeQueryExistingTruthAssertionDenial::new(
                 binding,
                 ForgeQueryExistingTruthAssertionDenialKind::AssertedValueMismatch,
-                Some(aspect.aspect_path().to_string()),
-                Some(external_value_json(aspect.value())),
-                Some(external_value_json(found)),
+                Some(aspect_touch.clone()),
+                Some(aspect.terminal_digest_material()),
+                Some(terminal_digest_from_aspect_value(found)),
                 "authoritative truth did not match the asserted value",
             ));
         }
@@ -64,6 +78,10 @@ pub(super) fn verify_existing_truth_assertion(
     )
 }
 
+fn terminal_digest_from_aspect_value(value: &AspectValue) -> String {
+    terminal_aspect_value_digest_text(value)
+}
+
 pub(super) fn probe_existing_truth(
     state: &StatefulBridgeState,
     request: &ForgeQueryExistingTruthProbeRequest,
@@ -76,27 +94,31 @@ pub(super) fn probe_existing_truth(
             message,
         )
     })?;
-    let mut fields = Vec::with_capacity(request.aspect_paths().len());
-    for aspect_path in request.aspect_paths() {
-        let Some(value) = get_json_path(row, aspect_path) else {
+    let mut fields = Vec::with_capacity(request.aspect_touches().len());
+    for aspect_touch in request.aspect_touches() {
+        let Some(value) = get_native_touch(row, aspect_touch) else {
             return Err(ForgeQueryExistingTruthProbeDenial::new(
                 request.binding(),
                 ForgeQueryExistingTruthProbeDenialKind::MissingProbedAspect,
-                Some(aspect_path.clone()),
+                Some(aspect_touch.clone()),
                 "authoritative truth did not contain the probed aspect",
             ));
         };
-        fields.push((aspect_path.clone(), value.clone()));
+        let field = ForgeQueryExistingTruthProbeField::from_admitted_aspect_touch(
+            aspect_touch.clone(),
+            value.clone(),
+        );
+        fields.push(field);
     }
     Ok(ForgeQueryExistingTruthProbe::backend_verified(
         request, fields,
-    ))
+    )?)
 }
 
 fn authoritative_row<'a>(
     state: &'a StatefulBridgeState,
     binding: &ForgeQueryExistingTruthTargetBinding,
-) -> Result<&'a Value, String> {
+) -> Result<&'a NativeExternalRow, String> {
     let resolved_target_identity = binding
         .resolved_target_identity()
         .terminal_projection_for_reporting();
@@ -118,14 +140,10 @@ fn authoritative_row<'a>(
         })
 }
 
-fn get_json_path<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
-    let mut current = value;
-    for part in path.split('.') {
-        current = current.as_object()?.get(part)?;
-    }
-    Some(current)
-}
-
-fn external_value_json(value: &Value) -> String {
-    serde_json::to_string(value).unwrap_or_else(|_| value.to_string())
+fn get_native_touch<'a>(
+    row: &'a NativeExternalRow,
+    aspect_touch: &ForgeQueryAspectTouch,
+) -> Option<&'a AspectValue> {
+    let field_path = native_external_field_path_for_touch(aspect_touch).ok()?;
+    row.get(&field_path)
 }

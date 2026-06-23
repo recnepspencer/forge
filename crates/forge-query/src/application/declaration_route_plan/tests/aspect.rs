@@ -1,4 +1,5 @@
 use crate::application::{
+    assert_declaration_aspect_projections, test_declaration_aspect_key,
     ForgeQueryDeclarationAspectFit, ForgeQueryDeclarationRoutePlanChecked,
     ForgeQueryDeclarationRoutePlanDenialCause,
 };
@@ -20,23 +21,23 @@ fn route_plans_expose_route_scoped_aspect_contract_fit_and_publication() {
         plan.aspect_fit(),
         ForgeQueryDeclarationAspectFit::CompatibleSuperset
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         plan.aspect_contract().required(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         plan.aspect_contract().preserved(),
-        &["selection.local_topology".to_string()]
+        &["selection.local_topology"],
     );
     assert!(plan.aspect_contract().published().is_empty());
     assert!(!plan
         .aspect_publication()
         .present()
-        .contains(&"selection.material_edit".to_string()));
+        .contains(&test_declaration_aspect_key("selection.material_edit")));
     assert!(plan
         .aspect_publication()
         .masked()
-        .contains(&"selection.private_authority".to_string()));
+        .contains(&test_declaration_aspect_key("selection.private_authority")));
 }
 
 #[test]

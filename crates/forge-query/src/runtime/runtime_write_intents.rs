@@ -155,8 +155,8 @@ fn review_request_detail(command: &ForgeQueryWriteCommand) -> String {
             .reporting_projection()
             .to_string(),
         None => command
-            .declared_collection_ref()
-            .unwrap_or("scalar-write")
-            .to_string(),
+            .declared_collection_identity()
+            .map(|collection| collection.as_str().to_string())
+            .unwrap_or_else(|| "scalar-write".to_string()),
     }
 }

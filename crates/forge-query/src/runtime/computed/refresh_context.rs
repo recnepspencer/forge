@@ -1,5 +1,7 @@
 use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQuerySnapshotIdentity};
 use crate::runtime::mutation::ForgeQueryMutationMetadata;
+use crate::runtime::ForgeQueryAspectTouch;
+use std::collections::BTreeSet;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryRetainedRefreshOrigin {
@@ -12,7 +14,7 @@ pub struct ForgeQueryRetainedRefreshContext {
     origin: ForgeQueryRetainedRefreshOrigin,
     refresh_identity: ForgeQueryCommitIdentity,
     snapshot_identity: ForgeQuerySnapshotIdentity,
-    touched_aspect_paths: Vec<String>,
+    touched_aspects: Vec<ForgeQueryAspectTouch>,
     refresh_metadata: ForgeQueryMutationMetadata,
 }
 
@@ -20,17 +22,19 @@ impl ForgeQueryRetainedRefreshContext {
     pub(in crate::runtime) fn from_mutation(
         refresh_identity: ForgeQueryCommitIdentity,
         snapshot_identity: ForgeQuerySnapshotIdentity,
-        touched_aspect_paths: impl IntoIterator<Item = String>,
+        touched_aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
         refresh_metadata: ForgeQueryMutationMetadata,
     ) -> Self {
-        let mut touched_aspect_paths = touched_aspect_paths.into_iter().collect::<Vec<_>>();
-        touched_aspect_paths.sort();
-        touched_aspect_paths.dedup();
+        let touched_aspects = touched_aspects
+            .into_iter()
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
         Self {
             origin: ForgeQueryRetainedRefreshOrigin::Mutation,
             refresh_identity,
             snapshot_identity,
-            touched_aspect_paths,
+            touched_aspects,
             refresh_metadata,
         }
     }
@@ -44,7 +48,7 @@ impl ForgeQueryRetainedRefreshContext {
             origin: ForgeQueryRetainedRefreshOrigin::DeclarationInitialization,
             refresh_identity,
             snapshot_identity,
-            touched_aspect_paths: Vec::new(),
+            touched_aspects: Vec::new(),
             refresh_metadata,
         }
     }
@@ -61,8 +65,8 @@ impl ForgeQueryRetainedRefreshContext {
         &self.snapshot_identity
     }
 
-    pub fn touched_aspect_paths(&self) -> &[String] {
-        &self.touched_aspect_paths
+    pub fn admitted_touched_aspects(&self) -> &[ForgeQueryAspectTouch] {
+        &self.touched_aspects
     }
 
     pub fn refresh_metadata(&self) -> &ForgeQueryMutationMetadata {

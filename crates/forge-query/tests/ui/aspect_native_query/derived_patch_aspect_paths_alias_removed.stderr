@@ -1,0 +1,11 @@
+error[E0599]: no method named `aspect_paths` found for reference `&ForgeQueryDerivedPatch` in the current scope
+ --> tests/ui/aspect_native_query/derived_patch_aspect_paths_alias_removed.rs:4:19
+  |
+4 |     let _ = patch.aspect_paths();
+  |                   ^^^^^^^^^^^^
+  |
+help: there is a method `aspect_touches` with a similar name
+  |
+4 -     let _ = patch.aspect_paths();
+4 +     let _ = patch.aspect_touches();
+  |

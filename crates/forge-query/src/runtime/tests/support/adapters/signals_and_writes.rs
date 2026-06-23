@@ -2,10 +2,11 @@ use super::*;
 use crate::runtime::backend::build_bridge_authority_bundle;
 use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
-fn command_collection(command: &ForgeQueryWriteCommand) -> String {
-    command
-        .declared_collection()
-        .unwrap_or_else(|| match command.mutation_family() {
+fn mutation_collection(mutation: &ForgeQueryBackendAdmissibleMutation) -> String {
+    mutation
+        .declared_collection_identity()
+        .map(|collection| collection.as_str().to_string())
+        .unwrap_or_else(|| match mutation.mutation_family() {
             ForgeQueryMutationFamily::Insert
             | ForgeQueryMutationFamily::Update
             | ForgeQueryMutationFamily::Delete
@@ -20,10 +21,10 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
         &mut self,
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
-        let aspect_paths = command.declared_aspect_paths();
-        let collection = command_collection(&command);
+        let aspect_touches = mutation.declared_aspect_touches();
+        let collection = mutation_collection(&mutation);
         let entity_identity =
             crate::memory_workspace::admit_authored_entity_label("external-entity-1");
         let snapshot_identity =
@@ -33,7 +34,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
         let bridge_authority = build_bridge_authority_bundle(
             _bridge,
             &snapshot_identity,
-            &command,
+            &mutation,
             &collection,
             &entity_identity,
             ForgeQueryMutationKind::Created,
@@ -44,10 +45,10 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
             collection,
             entity_identity,
             ForgeQueryMutationKind::Created,
-            aspect_paths,
+            aspect_touches,
             bridge_authority,
         );
-        Ok(self.build_write_authority_execution_receipt(&command, receipt))
+        Ok(self.build_write_authority_execution_receipt(&mutation, receipt))
     }
 }
 
@@ -58,7 +59,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for DenyingWriteAuthority {
         &mut self,
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
-        _command: ForgeQueryWriteCommand,
+        _mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
         Err(ForgeQueryWorkspaceError::new(
             "write authority denied by test",
@@ -73,18 +74,18 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for AuthorityLessWriteAuthority {
         &mut self,
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
-        let collection = command_collection(&command);
+        let collection = mutation_collection(&mutation);
         let receipt = test_mutation_receipt(
             crate::memory_workspace::admit_external_commit_label("authority-less-commit"),
             crate::memory_workspace::admit_external_snapshot_label("authority-less-snapshot"),
             collection,
             crate::memory_workspace::admit_authored_entity_label("authority-less-entity"),
             ForgeQueryMutationKind::Created,
-            command.declared_aspect_paths(),
+            mutation.declared_aspect_touches(),
         );
-        Ok(self.build_write_authority_execution_receipt(&command, receipt))
+        Ok(self.build_write_authority_execution_receipt(&mutation, receipt))
     }
 }
 
@@ -97,12 +98,12 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for CountingWriteAuthority {
         &mut self,
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
         self.attempted_writes
             .set(self.attempted_writes.get().saturating_add(1));
         let mut authority = TestWriteAuthority;
-        authority.write(_bridge, _relational_runtime, command)
+        authority.write(_bridge, _relational_runtime, mutation)
     }
 }
 
@@ -116,26 +117,26 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for AtomicBatchCountingWriteAuthorit
         &mut self,
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
         self.attempted_writes
             .set(self.attempted_writes.get().saturating_add(1));
         let mut authority = TestWriteAuthority;
-        authority.write(_bridge, _relational_runtime, command)
+        authority.write(_bridge, _relational_runtime, mutation)
     }
 
     fn write_batch(
         &mut self,
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
-        commands: Vec<ForgeQueryWriteCommand>,
+        mutations: Vec<ForgeQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<WriteAuthorityExecutionReceipt>, ForgeQueryWorkspaceError> {
         self.attempted_batches
             .set(self.attempted_batches.get().saturating_add(1));
-        let mut receipts = Vec::with_capacity(commands.len());
-        for (index, command) in commands.into_iter().enumerate() {
-            let aspect_paths = command.declared_aspect_paths();
-            let collection = command_collection(&command);
+        let mut receipts = Vec::with_capacity(mutations.len());
+        for (index, mutation) in mutations.into_iter().enumerate() {
+            let aspect_touches = mutation.declared_aspect_touches();
+            let collection = mutation_collection(&mutation);
             let entity_identity_text = format!("external-entity-{}", index + 1);
             let entity_identity =
                 crate::memory_workspace::admit_authored_entity_label(&entity_identity_text);
@@ -146,7 +147,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for AtomicBatchCountingWriteAuthorit
             let bridge_authority = build_bridge_authority_bundle(
                 _bridge,
                 &snapshot_identity,
-                &command,
+                &mutation,
                 &collection,
                 &entity_identity,
                 ForgeQueryMutationKind::Created,
@@ -159,10 +160,10 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for AtomicBatchCountingWriteAuthorit
                 collection,
                 entity_identity,
                 ForgeQueryMutationKind::Created,
-                aspect_paths,
+                aspect_touches,
                 bridge_authority,
             );
-            receipts.push(self.build_write_authority_execution_receipt(&command, receipt));
+            receipts.push(self.build_write_authority_execution_receipt(&mutation, receipt));
         }
         Ok(receipts)
     }

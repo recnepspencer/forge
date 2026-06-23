@@ -1,11 +1,11 @@
 error[E0599]: no method named `materialize` found for struct `ForgeQueryIntentInvariantRegistrationDraft` in the current scope
-  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_invariant_registration_requires_because.rs:18:10
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_invariant_registration_requires_because.rs:17:10
    |
-15 |       let _ = forge_query_domain("worth.spatial")
+14 |       let _ = forge_query_domain("worth.spatial")
    |  _____________-
-16 | |         .for_intent(&declaration)
-17 | |         .register_invariant_catalog("spatial.non_manifold_edge_split", InvariantCatalog::default())
-18 | |         .materialize();
+15 | |         .for_intent(&declaration)
+16 | |         .register_invariant_catalog("spatial.non_manifold_edge_split", InvariantCatalog::default())
+17 | |         .materialize();
    | |         -^^^^^^^^^^^ method not found in `ForgeQueryIntentInvariantRegistrationDraft`
    | |_________|
    |

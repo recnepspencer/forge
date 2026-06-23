@@ -1,0 +1,21 @@
+error[E0308]: mismatched types
+ --> tests/ui/aspect_native_query/mutation_metadata_entries_raw_map_removed.rs:7:65
+  |
+7 |       let _: &BTreeMap<String, ForgeQueryMutationMetadataValue> = metadata.entries();
+  |              --------------------------------------------------   ^^^^^^^^^^^^^^^^^^ expected `&BTreeMap<String, ...>`, found opaque type
+  |              |
+  |              expected due to this
+  |
+ ::: src/runtime/mutation/metadata.rs
+  |
+  |       ) -> impl Iterator<
+  |  __________-
+  | |         Item = (
+  | |             ForgeQueryMutationMetadataKey,
+  | |             &ForgeQueryMutationMetadataValue,
+  | |         ),
+  | |     > + '_ {
+  | |__________- the found opaque type
+  |
+  = note: expected reference `&BTreeMap<std::string::String, ForgeQueryMutationMetadataValue>`
+           found opaque type `impl Iterator<Item = (ForgeQueryMutationMetadataKey, &ForgeQueryMutationMetadataValue)> + '_`

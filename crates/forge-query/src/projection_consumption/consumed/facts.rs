@@ -36,8 +36,9 @@ use crate::runtime::{
     ForgeQueryContinuityMutationFamily, ForgeQueryContinuityOutcomeClass,
     ForgeQueryMutationTargetClass,
 };
-use forge_foundational::facade::AspectKey;
-use serde_json::Value;
+use forge_foundational::facade::{AspectKey, AspectValue};
+
+use super::super::facts::ProjectionFactFieldPath;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConsumedEntityIdentityFact {
@@ -94,9 +95,9 @@ impl ConsumedViewLocalIdentityFact {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ConsumedMembershipFact {
     source_row_identity: String,
-    member_identity: Value,
+    member_identity: AspectValue,
     grouping_aspect: AspectKey,
-    grouping_value: Value,
+    grouping_value: AspectValue,
 }
 
 impl ConsumedMembershipFact {
@@ -104,27 +105,23 @@ impl ConsumedMembershipFact {
         &self.source_row_identity
     }
 
-    pub fn member_identity(&self) -> &Value {
+    pub fn member_identity(&self) -> &AspectValue {
         &self.member_identity
-    }
-
-    pub fn grouping_aspect(&self) -> &str {
-        self.grouping_aspect.as_str()
     }
 
     pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
 
-    pub fn grouping_value(&self) -> &Value {
+    pub fn grouping_value(&self) -> &AspectValue {
         &self.grouping_value
     }
 
     pub(crate) fn new(
         source_row_identity: impl Into<String>,
-        member_identity: Value,
+        member_identity: AspectValue,
         grouping_aspect: AspectKey,
-        grouping_value: Value,
+        grouping_value: AspectValue,
     ) -> Self {
         Self {
             source_row_identity: source_row_identity.into(),
@@ -138,8 +135,8 @@ impl ConsumedMembershipFact {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ConsumedFieldValueFact {
     source_row_identity: String,
-    field_key: String,
-    value: Value,
+    field_path: ProjectionFactFieldPath,
+    value: AspectValue,
 }
 
 impl ConsumedFieldValueFact {
@@ -147,22 +144,22 @@ impl ConsumedFieldValueFact {
         &self.source_row_identity
     }
 
-    pub fn field_key(&self) -> &str {
-        &self.field_key
+    pub fn field_path(&self) -> &ProjectionFactFieldPath {
+        &self.field_path
     }
 
-    pub fn value(&self) -> &Value {
+    pub fn value(&self) -> &AspectValue {
         &self.value
     }
 
     pub(crate) fn new(
         source_row_identity: impl Into<String>,
-        field_key: impl Into<String>,
-        value: Value,
+        field_path: ProjectionFactFieldPath,
+        value: AspectValue,
     ) -> Self {
         Self {
             source_row_identity: source_row_identity.into(),
-            field_key: field_key.into(),
+            field_path,
             value,
         }
     }
@@ -287,9 +284,9 @@ pub enum ConsumedRelationEndpointFact {
     },
     GroupedProjection {
         source_row_identity: String,
-        member_identity: Value,
+        member_identity: AspectValue,
         grouping_aspect: AspectKey,
-        grouping_value: Value,
+        grouping_value: AspectValue,
     },
 }
 
@@ -327,20 +324,11 @@ impl ConsumedRelationEndpointFact {
         }
     }
 
-    pub fn member_identity(&self) -> Option<&Value> {
+    pub fn member_identity(&self) -> Option<&AspectValue> {
         match self {
             Self::GroupedProjection {
                 member_identity, ..
             } => Some(member_identity),
-            Self::MutationTarget { .. } => None,
-        }
-    }
-
-    pub fn grouping_aspect(&self) -> Option<&str> {
-        match self {
-            Self::GroupedProjection {
-                grouping_aspect, ..
-            } => Some(grouping_aspect.as_str()),
             Self::MutationTarget { .. } => None,
         }
     }
@@ -354,7 +342,7 @@ impl ConsumedRelationEndpointFact {
         }
     }
 
-    pub fn grouping_value(&self) -> Option<&Value> {
+    pub fn grouping_value(&self) -> Option<&AspectValue> {
         match self {
             Self::GroupedProjection { grouping_value, .. } => Some(grouping_value),
             Self::MutationTarget { .. } => None,
@@ -375,9 +363,9 @@ impl ConsumedRelationEndpointFact {
 
     pub(crate) fn grouped(
         source_row_identity: impl Into<String>,
-        member_identity: Value,
+        member_identity: AspectValue,
         grouping_aspect: AspectKey,
-        grouping_value: Value,
+        grouping_value: AspectValue,
     ) -> Self {
         Self::GroupedProjection {
             source_row_identity: source_row_identity.into(),

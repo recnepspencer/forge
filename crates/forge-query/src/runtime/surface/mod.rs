@@ -44,8 +44,10 @@ mod read_receipt_construction;
 mod read_receipt_support;
 mod read_relationship_proof_denial;
 mod read_result;
+mod retained_materialized_row;
 mod retained_scalar_alignment;
 mod retained_scalar_facts;
+mod retained_scalar_values;
 mod symbolic_aspect_resolution_evidence;
 mod symbolic_target_reference_evidence;
 mod unified_inspection_receipt;
@@ -90,7 +92,7 @@ pub use graph_composition_resolution_map::{
     ForgeQueryGraphCompositionResolutionEntry, ForgeQueryGraphCompositionResolutionMap,
 };
 pub use inspection_artifact::{ForgeQueryArtifactInspector, ForgeQueryInspectedArtifact};
-pub use live::{ForgeQueryLiveView, ForgeQueryPatchBatch};
+pub use live::{ForgeQueryLiveView, ForgeQueryNativeRow, ForgeQueryPatchBatch};
 pub use live_artifact_binding::ForgeQueryLiveArtifactBinding;
 pub use live_artifact_bundle::{ForgeQueryLiveArtifactBundle, ForgeQueryLiveArtifactTarget};
 pub use live_read_receipt::ForgeQueryLiveReadReceipt;
@@ -108,7 +110,10 @@ pub use mutation_evidence::{
 pub use naming_mutation_evidence::{
     ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationOutcome,
 };
-pub use program::{ForgeQueryInstalledOperation, ForgeQueryInstalledProgram, ForgeQueryRunReceipt};
+pub use program::{
+    ForgeQueryInstalledOperation, ForgeQueryInstalledProgram,
+    ForgeQueryProgramInstallationIdentity, ForgeQueryProgramRunIdentity, ForgeQueryRunReceipt,
+};
 pub use read_access_counters::ForgeQueryGraphReadAccessComplexityCounters;
 pub use read_access_summary::ForgeQueryGraphReadAccessReceiptSummary;
 pub use read_breadth::ForgeQueryReadBreadth;
@@ -138,6 +143,9 @@ pub use read_relationship_proof_denial::{
     ForgeQueryReadRelationshipProofDenial, ForgeQueryReadRelationshipProofDenialStage,
 };
 pub use read_result::ForgeQueryReadResult;
+pub use retained_materialized_row::{
+    ForgeQueryRetainedFieldPath, ForgeQueryRetainedMaterializedRow,
+};
 pub use retained_scalar_alignment::{
     ForgeQueryRetainedScalarAlignment, ForgeQueryRetainedScalarAlignmentFact,
 };

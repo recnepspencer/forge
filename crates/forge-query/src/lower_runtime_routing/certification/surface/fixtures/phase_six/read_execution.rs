@@ -229,8 +229,20 @@ fn read_declaration() -> impl FnOnce(
             QuerySchemaView::new(
                 "lower-runtime-read-fixture",
                 [
-                    SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-                    SchemaFieldView::new("title", "value", SchemaFieldKind::String),
+                    SchemaFieldView::new(
+                        crate::authoring::AspectName::new("identity")
+                            .expect("schema aspect literal must be valid"),
+                        crate::authoring::FieldName::new("id")
+                            .expect("schema field literal must be valid"),
+                        SchemaFieldKind::String,
+                    ),
+                    SchemaFieldView::new(
+                        crate::authoring::AspectName::new("title")
+                            .expect("schema aspect literal must be valid"),
+                        crate::authoring::FieldName::new("value")
+                            .expect("schema field literal must be valid"),
+                        SchemaFieldKind::String,
+                    ),
                 ],
                 [],
             ),

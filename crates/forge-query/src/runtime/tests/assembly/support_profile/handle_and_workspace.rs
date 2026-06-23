@@ -95,7 +95,7 @@ fn runtime_workspace_declares_and_inspects_with_preferred_names() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("task.workspace")
         .expect("task runtime should open a named workspace");
-    let view: ForgeQueryLiveView<Value> = workspace
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view_request("tasks.workspace-table", task_live_request(), task_schema())
         .expect("workspace live view should declare");
     let inspection = workspace.inspect(&view).expect("inspect should succeed");
@@ -114,33 +114,41 @@ fn runtime_workspace_closure_builders_cover_live_computed_effect_dx() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("task.builder-workspace")
         .expect("task runtime should open a named workspace");
-    let view: ForgeQueryLiveView<Value> = workspace
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.builder-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("runtime-task-builder")
                 .as_surface("tasks.builder-table")
         })
         .expect("workspace live builder should lower to a live view");
     let titles = workspace
-        .computed::<Value>(
+        .computed::<ForgeQueryNativeRow>(
             "tasks.builder-title-list",
             |c| {
                 c.depends_on_live(&view)
-                    .reads(["title.value"])
-                    .produces(["runtime.title_list"])
+                    .reads([test_aspect_touch("title.value")])
+                    .produces([test_aspect_touch("runtime.title_list")])
             },
             TitleListMaintainer,
         )
         .expect("workspace computed builder should lower to a derived view");
     let effect = workspace
-        .effect::<Value>("tasks.builder-title-delivery", |e| {
-            e.when_computed(&titles, ["runtime.title_list"])
+        .effect::<ForgeQueryNativeRow>("tasks.builder-title-delivery", |e| {
+            e.when_computed(&titles, [test_aspect_touch("runtime.title_list")])
                 .condition_expression(
                     "expr.title-list-visible",
-                    ["runtime.title_list"],
-                    ["ui.title_list"],
+                    [test_aspect_touch("runtime.title_list")],
+                    [test_aspect_touch("ui.title_list")],
                 )
                 .deliver("ui.title-list")
                 .meaningful_change_suppression()
@@ -149,11 +157,17 @@ fn runtime_workspace_closure_builders_cover_live_computed_effect_dx() {
 
     workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Builder DX")
+            task.set_aspect(
+                test_aspect_touch("identity.id"),
+                test_authored_string_aspect_value("task-1"),
+            )
+            .set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("Builder DX"),
+            )
         })
         .expect("builder workspace write should route through declared surfaces");
-    let computed_patches = workspace.observe_computed("tasks.builder-title-list");
+    let computed_patches = workspace.observe_computed(&titles);
     let effect_inspection = workspace.inspect(&effect).expect("inspect should succeed");
 
     assert_eq!(computed_patches.derived_patches.len(), 1);
@@ -169,22 +183,28 @@ fn runtime_workspace_closure_builders_cover_live_computed_effect_dx() {
 fn runtime_public_declaration_builders_support_downstream_vocab_layers() {
     let live = ForgeQueryLiveViewBuilder::surface("tasks.external-table")
         .from("Task")
-        .select(["identity.id", "title.value"])
-        .order_by("title.value")
+        .select([
+            crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id").unwrap(),
+            crate::authoring::AspectFieldKey::from_authoring_parts("title", "value").unwrap(),
+        ])
+        .order_by(crate::authoring::AspectFieldKey::from_authoring_parts("title", "value").unwrap())
         .allow_traversal_relation("manager", 2)
         .schema_basis("external-task-table")
         .build()
         .expect("public live declaration builder should lower without a workspace");
     let computed = ForgeQueryComputedBuilder::surface("tasks.external-summary")
-        .reads(["title.value"])
-        .produces(["summary.value"])
+        .reads([test_aspect_touch("title.value")])
+        .produces([test_aspect_touch("summary.value")])
         .whole_refresh_fallback()
         .build()
         .expect("public computed declaration builder should lower without a workspace");
 
     assert_eq!(live.request().target(), "Task");
     assert_eq!(live.request().traversal().len(), 1);
-    assert_eq!(live.request().traversal()[0].relation(), "manager");
+    assert_eq!(
+        live.request().traversal()[0].relation_name().as_str(),
+        "manager"
+    );
     assert_eq!(live.request().traversal()[0].depth(), 2);
     assert_eq!(computed.name(), "tasks.external-summary");
     assert!(!computed.incremental());
@@ -195,20 +215,25 @@ fn runtime_workspace_state_snapshots_are_async_safe_and_support_gated() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("task.state-workspace")
         .expect("task runtime should open a named workspace");
-    let view: ForgeQueryLiveView<Value> = workspace
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.state-table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
                 .schema_basis("runtime-task-state")
         })
         .expect("workspace live builder should lower to a live view");
     let titles = workspace
-        .computed::<Value>(
+        .computed::<ForgeQueryNativeRow>(
             "tasks.state-title-list",
             |c| {
                 c.depends_on_live(&view)
-                    .reads(["title.value"])
-                    .produces(["runtime.title_list"])
+                    .reads([test_aspect_touch("title.value")])
+                    .produces([test_aspect_touch("runtime.title_list")])
             },
             TitleListMaintainer,
         )
@@ -216,8 +241,14 @@ fn runtime_workspace_state_snapshots_are_async_safe_and_support_gated() {
 
     workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "State DX")
+            task.set_aspect(
+                test_aspect_touch("identity.id"),
+                test_authored_string_aspect_value("task-1"),
+            )
+            .set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("State DX"),
+            )
         })
         .expect("write should route through state surfaces");
 

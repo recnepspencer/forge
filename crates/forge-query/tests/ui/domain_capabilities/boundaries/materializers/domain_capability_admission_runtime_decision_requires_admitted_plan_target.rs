@@ -1,7 +1,7 @@
 use forge_query::facade::{
     admit_eligible_domain_capability_contribution, evaluate_requested_domain_capability_contribution,
     materialize_runtime_admission_decision, prepare_admitted_domain_capability_contribution_for_materialization,
-    ForgeQueryAdmissionContributionAuthoring, ForgeQueryIntentDeclaration,
+    ForgeQueryAdmissionContributionAuthoring, ForgeQueryIntentDeclaration, ForgeQueryIntentInput,
 };
 
 fn main() {
@@ -10,7 +10,7 @@ fn main() {
         "test.strategy",
         "1",
         "test.contract",
-        serde_json::json!({ "entity": "edge:42" }),
+        ForgeQueryIntentInput::object([("entity", ForgeQueryIntentInput::string("edge:42"))]),
     );
     let requested = ForgeQueryAdmissionContributionAuthoring::advisory(
         "spatial.arbitration.requires_clarification",

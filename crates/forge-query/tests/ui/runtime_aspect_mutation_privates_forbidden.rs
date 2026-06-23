@@ -1,9 +1,7 @@
-use forge_query::facade::ForgeQueryAspectValue;
-use serde_json::Value;
+use forge_query::facade::ForgeQueryAdmittedAspectValue;
 
 fn main() {
-    let _aspect = ForgeQueryAspectValue {
-        aspect_path: "title.value".to_string(),
-        value: Value::String("Buy milk".to_string()),
+    let _aspect = ForgeQueryAdmittedAspectValue {
+        parsed: todo!(),
     };
 }

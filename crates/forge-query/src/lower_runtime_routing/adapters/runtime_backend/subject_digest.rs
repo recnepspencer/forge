@@ -2,7 +2,8 @@ use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::evidence_identity::ForgeQueryEvidenceTag;
 use crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity;
 use crate::runtime::{
-    ForgeQueryWriteCommand, SignalInvalidationRoutingReceipt, SubscriptionActivationReceipt,
+    ForgeQueryBackendAdmissibleMutation, ForgeQueryWriteCommand, SignalInvalidationRoutingReceipt,
+    SubscriptionActivationReceipt,
 };
 use crate::subscription::SubscriptionActivationInput;
 
@@ -42,12 +43,45 @@ pub(super) fn write_command_subject_identity(
         )
         .field_usize(
             ForgeQueryEvidenceTag::new("touched_aspects"),
-            command.declared_aspect_paths().len(),
+            command.declared_aspect_touches().len(),
         );
-    if let Some(collection) = command.declared_collection_ref() {
-        encoder = encoder.field_value(ForgeQueryEvidenceTag::new("collection"), collection);
+    if let Some(collection) = command.declared_collection_identity() {
+        encoder = encoder.field_evidence_identity(
+            ForgeQueryEvidenceTag::new("collection"),
+            collection.evidence_identity(),
+        );
     }
     if let Some(identity) = command.declared_entity_identity_ref() {
+        let entity_identity = identity.evidence_identity();
+        encoder =
+            encoder.field_evidence_identity(ForgeQueryEvidenceTag::new("entity"), &entity_identity);
+    }
+    encoder.seal()
+}
+
+pub(super) fn backend_admissible_mutation_subject_identity(
+    mutation: &ForgeQueryBackendAdmissibleMutation,
+) -> ForgeQueryLowerRuntimeSubjectIdentity {
+    let mut encoder = ForgeQueryLowerRuntimeSubjectIdentity::compose("write-command-route-subject")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            mutation.mutation_family().as_str(),
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("aspect_operations"),
+            mutation.declared_aspect_operations().len(),
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("touched_aspects"),
+            mutation.declared_aspect_touches().len(),
+        );
+    if let Some(collection) = mutation.declared_collection_identity() {
+        encoder = encoder.field_evidence_identity(
+            ForgeQueryEvidenceTag::new("collection"),
+            collection.evidence_identity(),
+        );
+    }
+    if let Some(identity) = mutation.declared_entity_identity_ref() {
         let entity_identity = identity.evidence_identity();
         encoder =
             encoder.field_evidence_identity(ForgeQueryEvidenceTag::new("entity"), &entity_identity);

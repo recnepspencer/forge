@@ -9,7 +9,7 @@ fn authoritative_admitted_handoff_materializes_execution_binding() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({"entity": "task-1"}),
+            test_intent_input([("entity", "task-1")]),
         ))
         .expect("authoritative handoff should admit");
 
@@ -26,25 +26,25 @@ fn authoritative_admitted_handoff_materializes_execution_binding() {
 fn effect_admitted_handoff_materializes_self_contained_execution_binding() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
     let live = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.phase-four-effect",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.phase-four-binding",
-            ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",
         ))
         .expect("write-intent effect should declare");
     runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from binding"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title from binding",
+        ))
         .expect("write should queue pending effect intent");
 
     let (pending_delivery, handoff) = runtime
@@ -74,25 +74,25 @@ fn effect_admitted_handoff_materializes_self_contained_execution_binding() {
 fn effect_receipt_surfaces_provenance_without_nested_receipt_spelunking() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
     let live = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.phase-four-effect-surface",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.phase-four-surface",
-            ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",
         ))
         .expect("write-intent effect should declare");
     runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from outer receipt"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title from outer receipt",
+        ))
         .expect("write should queue pending effect intent");
 
     let receipt = runtime
@@ -129,7 +129,7 @@ fn execution_denial_evidence_retains_execution_provenance_artifact() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({"entity": "task-1", "dependency": "cycle"}),
+            test_intent_input([("entity", "task-1"), ("dependency", "cycle")]),
         ))
         .expect_err("invariant violation must deny");
 
@@ -159,7 +159,7 @@ fn post_execution_routing_failure_preserves_proof_chain() {
         "strategy.intent.reconcile",
         "1.0",
         "intent.reconcile.input.v1",
-        json!({"entity": "task-1"}),
+        test_intent_input([("entity", "task-1")]),
     );
     let handoff = runtime
         .admit_authoritative_intent_for_execution(declaration.clone())
@@ -231,25 +231,25 @@ fn post_execution_routing_failure_preserves_proof_chain() {
 fn stale_effect_execution_binding_fails_as_typed_handoff_violation() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
     let live = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.phase-four-stale-effect",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.phase-four-stale",
-            ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",
         ))
         .expect("write-intent effect should declare");
     runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title before stale execution"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title before stale execution",
+        ))
         .expect("write should queue pending effect intent");
 
     let (pending_delivery, handoff) = runtime
@@ -260,7 +260,8 @@ fn stale_effect_execution_binding_fails_as_typed_handoff_violation() {
         )
         .expect("effect handoff should admit");
     let binding = runtime.prepare_effect_intent_execution_binding(handoff, &pending_delivery);
-    runtime.remove_pending_effect_delivery(effect.name(), 0, &pending_delivery);
+    let effect_target = ForgeQueryEffectTarget::from_name(effect.name());
+    runtime.remove_pending_effect_delivery(&effect_target, 0, &pending_delivery);
 
     let error = runtime
         .execute_effect_intent_execution_binding(binding)

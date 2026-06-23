@@ -4,7 +4,7 @@ use super::schema_reference_evidence::{
     ForgeQueryAdmittedGraphReadRelationDirection, ForgeQueryAdmittedQuerySchemaReferences,
     ForgeQueryGraphReadAdmittedSchemaFieldKind, ForgeQueryGraphReadSchemaReferenceAdmissionError,
 };
-use crate::authoring::OrderingDirection;
+use crate::authoring::{AspectFieldKey, OrderingDirection};
 use crate::declarative_live::DeclarativePredicateFilter;
 use crate::runtime::{ForgeQueryReadBuiltInOperator, ForgeQueryReadGraph};
 
@@ -18,7 +18,7 @@ pub(crate) fn admit_query_schema_references_for_read_graph(
         .iter()
         .map(|traversal| {
             ForgeQueryAdmittedGraphReadRelation::new(
-                traversal.relation(),
+                traversal.relation_name().clone(),
                 relation_direction(read_graph),
                 usize::from(traversal.depth()),
             )
@@ -29,11 +29,12 @@ pub(crate) fn admit_query_schema_references_for_read_graph(
         .result_fields()
         .iter()
         .map(|field| {
+            let source = field.source_field_key();
             Ok(ForgeQueryAdmittedGraphReadProjectionField::new(
-                field.aspect(),
-                field.field(),
+                source.native_aspect_key(),
+                source.native_field_key(),
                 field.delivered_name(),
-                admitted_schema_field_kind(read_graph, field.aspect(), field.field())?,
+                admitted_schema_field_kind(read_graph, source)?,
             ))
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -42,12 +43,12 @@ pub(crate) fn admit_query_schema_references_for_read_graph(
         .predicate_filters()
         .iter()
         .map(|filter| {
-            let (aspect, field, family) = predicate_parts(filter);
+            let (source, family) = predicate_parts(filter);
             Ok(ForgeQueryAdmittedGraphReadPredicateField::new(
-                aspect,
-                field,
+                source.native_aspect_key(),
+                source.native_field_key(),
                 family,
-                admitted_schema_field_kind(read_graph, aspect, field)?,
+                admitted_schema_field_kind(read_graph, source)?,
             ))
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -56,11 +57,12 @@ pub(crate) fn admit_query_schema_references_for_read_graph(
         .ordering()
         .iter()
         .map(|ordering| {
+            let source = ordering.source_field_key();
             Ok(ForgeQueryAdmittedGraphReadOrderingField::new(
-                ordering.aspect(),
-                ordering.field(),
+                source.native_aspect_key(),
+                source.native_field_key(),
                 ordering_direction_label(ordering.direction()),
-                admitted_schema_field_kind(read_graph, ordering.aspect(), ordering.field())?,
+                admitted_schema_field_kind(read_graph, source)?,
             ))
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -78,21 +80,22 @@ pub(crate) fn admit_query_schema_references_for_read_graph(
 
 fn admitted_schema_field_kind(
     read_graph: &ForgeQueryReadGraph,
-    aspect: &str,
-    field: &str,
+    source: &AspectFieldKey,
 ) -> Result<
     ForgeQueryGraphReadAdmittedSchemaFieldKind,
     ForgeQueryGraphReadSchemaReferenceAdmissionError,
 > {
     read_graph
         .schema_view()
-        .field(aspect, field)
+        .field(source.aspect(), source.field())
         .map(|field| {
             ForgeQueryGraphReadAdmittedSchemaFieldKind::from_schema_field_kind(field.kind())
         })
         .ok_or_else(|| {
             ForgeQueryGraphReadSchemaReferenceAdmissionError::missing_field(
-                read_graph, aspect, field,
+                read_graph,
+                source.aspect().as_str(),
+                source.field().as_str(),
             )
         })
 }
@@ -122,22 +125,18 @@ fn relation_direction(
     }
 }
 
-fn predicate_parts(filter: &DeclarativePredicateFilter) -> (&str, &str, &'static str) {
+fn predicate_parts(filter: &DeclarativePredicateFilter) -> (&AspectFieldKey, &'static str) {
     match filter {
-        DeclarativePredicateFilter::Equality(filter) => {
-            (filter.aspect(), filter.field(), "equality")
-        }
+        DeclarativePredicateFilter::Equality(filter) => (filter.source_field_key(), "equality"),
         DeclarativePredicateFilter::IntegerComparison(filter) => {
-            (filter.aspect(), filter.field(), "integer-comparison")
+            (filter.source_field_key(), "integer-comparison")
         }
         DeclarativePredicateFilter::StringContains(filter) => {
-            (filter.aspect(), filter.field(), "string-contains")
+            (filter.source_field_key(), "string-contains")
         }
         DeclarativePredicateFilter::SetMembership(filter) => {
-            (filter.aspect(), filter.field(), "set-membership")
+            (filter.source_field_key(), "set-membership")
         }
-        DeclarativePredicateFilter::Presence(filter) => {
-            (filter.aspect(), filter.field(), "presence")
-        }
+        DeclarativePredicateFilter::Presence(filter) => (filter.source_field_key(), "presence"),
     }
 }

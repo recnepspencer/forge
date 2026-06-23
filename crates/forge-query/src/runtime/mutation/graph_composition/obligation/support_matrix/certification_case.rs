@@ -1,4 +1,5 @@
 use crate::runtime::{
+    ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch,
     ForgeQueryGraphObligationExecutionStatus, ForgeQueryGraphObligationKind,
     ForgeQueryGraphObligationOperatingWorldDescriptor,
     ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphObligationRegistration,
@@ -6,7 +7,9 @@ use crate::runtime::{
     ForgeQueryGraphObligationSupportMatrix, ForgeQueryGraphObligationSupportMatrixRow,
     ForgeQueryGraphObligationSupportPosture, ForgeQueryGraphObligationSupportStatus,
     ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchReadVerb, ForgeQueryGraphTouchSelector,
+    ForgeQueryMutationFamily,
 };
+use forge_foundational::facade::AspectKey;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGraphObligationMatrixCertificationCase {
@@ -106,13 +109,21 @@ fn representative_touch_for_lane(
         }
         _ => ForgeQueryGraphTouchDescriptor::declared_mutation_collection(
             "topology.edge",
-            crate::runtime::ForgeQueryMutationFamily::Update,
+            ForgeQueryMutationFamily::Update,
             None,
-            ["set:capacity"],
-            ["capacity"],
+            [ForgeQueryAspectMutationOperation::set(
+                capacity_aspect_touch(),
+            )],
+            [capacity_aspect_touch()],
         )
         .expect("static mutation certification touch is valid"),
     }
+}
+
+fn capacity_aspect_touch() -> ForgeQueryAspectTouch {
+    ForgeQueryAspectTouch::whole_aspect(
+        AspectKey::new("capacity").expect("static support matrix aspect key should admit"),
+    )
 }
 
 fn expected_execution_status_for_row(

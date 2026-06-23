@@ -15,7 +15,7 @@ impl ForgeQueryIntentAuthorityAdapter for TestIntentAuthority {
             "Task",
             crate::memory_workspace::admit_authored_entity_label("intent-task-1"),
             ForgeQueryMutationKind::Updated,
-            vec!["title.value".to_string()],
+            test_aspect_touches(["title.value"]).to_vec(),
         );
         Ok(ForgeQueryIntentExecution::admitted(
             declaration.strategy_name(),
@@ -170,7 +170,7 @@ impl ForgeQueryIntentAuthorityAdapter for DriftingIntentAuthority {
             "Task",
             crate::memory_workspace::admit_authored_entity_label("intent-task-1"),
             ForgeQueryMutationKind::Updated,
-            vec!["title.value".to_string()],
+            test_aspect_touches(["title.value"]).to_vec(),
         );
         Ok(ForgeQueryIntentExecution::admitted(
             "strategy.intent.other",

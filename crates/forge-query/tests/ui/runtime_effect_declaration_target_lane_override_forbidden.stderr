@@ -1,7 +1,15 @@
+warning: unused imports: `CanonicalFieldPath` and `FieldKey`
+ --> tests/ui/runtime_effect_declaration_target_lane_override_forbidden.rs:1:45
+  |
+1 | use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
+  |                                             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
 error[E0599]: no method named `with_target_lane` found for struct `ForgeQueryEffectDeclaration` in the current scope
-  --> tests/ui/runtime_effect_declaration_target_lane_override_forbidden.rs:15:25
+  --> tests/ui/runtime_effect_declaration_target_lane_override_forbidden.rs:16:25
    |
-15 |     let _ = declaration.with_target_lane(ForgeQueryAuthorityLane::AuthoritativeTruth);
+16 |     let _ = declaration.with_target_lane(ForgeQueryAuthorityLane::AuthoritativeTruth);
    |                         ^^^^^^^^^^^^^^^^
    |
 help: there is a method `target_lane` with a similar name, but with different arguments

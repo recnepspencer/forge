@@ -24,7 +24,14 @@ fn common_aftermath_contract_lane_matches_proof_lane_materialization() {
             ForgeQueryProjectionContractRequest::new(
                 admitted_projection_source(),
                 admitted_projection_binding(),
-                ProjectMaterializedFacts::declare().display_field("field.visible"),
+                ProjectMaterializedFacts::declare().display_field_path(
+                    crate::projection_consumption::projection_fact_field_path_from_segments([
+                        forge_foundational::facade::FieldKey::new("field")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("visible")
+                            .expect("projection fact field segment should admit"),
+                    ]),
+                ),
             ),
         )
         .because("admitted plan aftermath should bind a stable projection contract")
@@ -70,7 +77,14 @@ fn common_aftermath_support_and_eligibility_lanes_preserve_warning_truth() {
             ForgeQueryProjectionContractRequest::new(
                 warning_projection_source(),
                 warning_projection_binding(),
-                ProjectMaterializedFacts::declare().display_field("field.visible"),
+                ProjectMaterializedFacts::declare().display_field_path(
+                    crate::projection_consumption::projection_fact_field_path_from_segments([
+                        forge_foundational::facade::FieldKey::new("field")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("visible")
+                            .expect("projection fact field segment should admit"),
+                    ]),
+                ),
             ),
         )
         .because("query-context display aftermath should keep warning-bearing support truth")
@@ -84,7 +98,14 @@ fn common_aftermath_support_and_eligibility_lanes_preserve_warning_truth() {
             ForgeQueryProjectionContractRequest::new(
                 warning_projection_source(),
                 warning_projection_binding(),
-                ProjectMaterializedFacts::declare().display_field("field.visible"),
+                ProjectMaterializedFacts::declare().display_field_path(
+                    crate::projection_consumption::projection_fact_field_path_from_segments([
+                        forge_foundational::facade::FieldKey::new("field")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("visible")
+                            .expect("projection fact field segment should admit"),
+                    ]),
+                ),
             ),
         )
         .because("query-context display aftermath should keep warning-bearing support truth")
@@ -119,7 +140,14 @@ fn checked_aftermath_lane_preserves_denied_metadata() {
             ForgeQueryProjectionContractRequest::new(
                 admitted_projection_source(),
                 admitted_projection_binding(),
-                ProjectMaterializedFacts::declare().display_field("field.visible"),
+                ProjectMaterializedFacts::declare().display_field_path(
+                    crate::projection_consumption::projection_fact_field_path_from_segments([
+                        forge_foundational::facade::FieldKey::new("field")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("visible")
+                            .expect("projection fact field segment should admit"),
+                    ]),
+                ),
             ),
         )
         .because("")
@@ -146,7 +174,14 @@ fn proof_contract(
         "admitted plan aftermath should bind a stable projection contract",
         admitted_projection_source(),
         admitted_projection_binding(),
-        ProjectMaterializedFacts::declare().display_field("field.visible"),
+        ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                forge_foundational::facade::FieldKey::new("field")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("visible")
+                    .expect("projection fact field segment should admit"),
+            ]),
+        ),
     )
     .for_admitted_intent_plan(plan);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
@@ -200,7 +235,14 @@ fn admitted_projection_consumption_plan() -> ForgeQueryAdmittedIntentPlan {
     let declaration = crate::projection_consumption::declare_projection_consumption(
         admitted_projection_source(),
         admitted_projection_binding(),
-        ProjectMaterializedFacts::declare().display_field("field.visible"),
+        ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                forge_foundational::facade::FieldKey::new("field")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("visible")
+                    .expect("projection fact field segment should admit"),
+            ]),
+        ),
     )
     .expect("projection declaration should build");
     let request =
@@ -257,7 +299,7 @@ fn admitted_projection_binding() -> ProjectionConsumptionBindingContext {
         "narrowed-shape-digest:domain-capability",
         "policy-digest:domain-capability",
         "tenant-schema-digest:domain-capability",
-        vec!["field.visible".to_string()],
+        crate::projection_consumption::test_authorized_field_paths(&["field.visible"]),
     )
 }
 
@@ -269,6 +311,6 @@ fn deferred_projection_binding() -> ProjectionConsumptionBindingContext {
     ProjectionConsumptionBindingContext::test_only(
         "result-shape:test",
         "authorized-projection:domain-capability",
-        vec!["identity.id".to_string()],
+        crate::projection_consumption::test_authorized_field_paths(&["identity.id"]),
     )
 }

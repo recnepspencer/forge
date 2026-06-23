@@ -23,7 +23,14 @@ fn aftermath_runtime_materializer_builds_projection_consumption() {
                 admitted_projection_source(),
                 admitted_projection_binding(),
                 crate::projection_consumption::ProjectMaterializedFacts::declare()
-                    .display_field("field.visible"),
+                    .display_field_path(
+                        crate::projection_consumption::projection_fact_field_path_from_segments([
+                            forge_foundational::facade::FieldKey::new("field")
+                                .expect("projection fact field segment should admit"),
+                            forge_foundational::facade::FieldKey::new("visible")
+                                .expect("projection fact field segment should admit"),
+                        ]),
+                    ),
             ),
         ),
     ));
@@ -36,7 +43,14 @@ fn aftermath_runtime_materializer_builds_projection_consumption() {
                 admitted_projection_source(),
                 admitted_projection_binding(),
                 crate::projection_consumption::ProjectMaterializedFacts::declare()
-                    .display_field("field.visible"),
+                    .display_field_path(
+                        crate::projection_consumption::projection_fact_field_path_from_segments([
+                            forge_foundational::facade::FieldKey::new("field")
+                                .expect("projection fact field segment should admit"),
+                            forge_foundational::facade::FieldKey::new("visible")
+                                .expect("projection fact field segment should admit"),
+                        ]),
+                    ),
             ),
         ),
     ));
@@ -75,8 +89,14 @@ fn aftermath_runtime_materializer_denies_invalid_projection_declaration() {
             "invalid declaration inputs should deny before eligibility materialization",
             admitted_projection_source(),
             invalid_projection_binding(),
-            crate::projection_consumption::ProjectMaterializedFacts::declare()
-                .display_field("field.visible"),
+            crate::projection_consumption::ProjectMaterializedFacts::declare().display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("field")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("visible")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            ),
         ),
     ));
 
@@ -98,7 +118,14 @@ fn aftermath_runtime_materializer_preserves_warning_bearing_eligibility() {
                 warning_projection_source(),
                 warning_projection_binding(),
                 crate::projection_consumption::ProjectMaterializedFacts::declare()
-                    .display_field("field.visible"),
+                    .display_field_path(
+                        crate::projection_consumption::projection_fact_field_path_from_segments([
+                            forge_foundational::facade::FieldKey::new("field")
+                                .expect("projection fact field segment should admit"),
+                            forge_foundational::facade::FieldKey::new("visible")
+                                .expect("projection fact field segment should admit"),
+                        ]),
+                    ),
             ),
         ),
     ));
@@ -264,7 +291,7 @@ fn admitted_projection_binding() -> ProjectionConsumptionBindingContext {
         "narrowed-shape-digest:domain-capability",
         "policy-digest:domain-capability",
         "tenant-schema-digest:domain-capability",
-        vec!["field.visible".to_string()],
+        crate::projection_consumption::test_authorized_field_paths(&["field.visible"]),
     )
 }
 
@@ -276,7 +303,7 @@ fn deferred_projection_binding() -> ProjectionConsumptionBindingContext {
     ProjectionConsumptionBindingContext::test_only(
         "result-shape:test",
         "authorized-projection:domain-capability",
-        vec!["identity.id".to_string()],
+        crate::projection_consumption::test_authorized_field_paths(&["identity.id"]),
     )
 }
 
@@ -284,6 +311,6 @@ fn invalid_projection_binding() -> ProjectionConsumptionBindingContext {
     ProjectionConsumptionBindingContext::test_only(
         "shape-drift:domain-capability",
         "authorized-projection:domain-capability",
-        vec!["field.visible".to_string()],
+        crate::projection_consumption::test_authorized_field_paths(&["field.visible"]),
     )
 }
