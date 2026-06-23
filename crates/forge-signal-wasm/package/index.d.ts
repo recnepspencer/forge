@@ -1,5 +1,6 @@
-export { default } from "./raw_surface.js";
-export * from "./raw_surface.js";
+declare function init(...args: unknown[]): Promise<undefined>;
+
+export default init;
 export * from "./types/model.js";
 export * from "./types/diagnostics.js";
 export * from "./types/controller_surface.js";

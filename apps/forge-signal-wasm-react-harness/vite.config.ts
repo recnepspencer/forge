@@ -20,6 +20,11 @@ export default defineConfig({
       ),
     },
   },
+  server: {
+    fs: {
+      allow: [fileURLToPath(new URL("../..", import.meta.url))],
+    },
+  },
   test: {
     environment: "jsdom",
     globals: true,

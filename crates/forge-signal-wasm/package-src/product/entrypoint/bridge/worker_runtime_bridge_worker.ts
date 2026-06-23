@@ -1,6 +1,19 @@
 import init, { SignalWorkerRuntime } from "../../../raw_surface.js";
 import { createWorkerRuntimeMirror } from "./worker_runtime_bridge_worker_mirror.js";
 
+const earlyBrowserMessages = [];
+let browserMessageHandler = null;
+
+if (typeof globalThis.addEventListener === "function") {
+  globalThis.addEventListener("message", (event) => {
+    if (browserMessageHandler) {
+      browserMessageHandler(event.data);
+      return;
+    }
+    earlyBrowserMessages.push(event.data);
+  });
+}
+
 await init();
 
 const runtime = new SignalWorkerRuntime();
@@ -221,9 +234,10 @@ async function resolveWorkerPort() {
   }
   return {
     listen(handler) {
-      globalThis.onmessage = (event) => {
-        handler(event.data);
-      };
+      browserMessageHandler = handler;
+      for (const message of earlyBrowserMessages.splice(0)) {
+        handler(message);
+      }
     },
     postMessage(message) {
       globalThis.postMessage(message);
@@ -232,6 +246,9 @@ async function resolveWorkerPort() {
 }
 
 async function resolveNodeWorkerPort() {
+  if (typeof globalThis.process !== "object") {
+    return null;
+  }
   try {
     const workerThreads = await import("node:worker_threads");
     if (!workerThreads.parentPort) {

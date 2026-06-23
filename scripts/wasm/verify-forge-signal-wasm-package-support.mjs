@@ -47,6 +47,9 @@ export async function installSmokeDependencies(tempDir, tarballPath) {
 }
 
 export async function assertDocsStayOnCurrentPackageStory(pkgDir, packageName) {
+  const publicPackageName = packageName.includes("/")
+    ? packageName.slice(packageName.lastIndexOf("/") + 1)
+    : packageName;
   const docsDir = path.join(pkgDir, "docs");
   const docNames = await readdir(docsDir);
   const docTexts = await Promise.all(
@@ -73,7 +76,7 @@ export async function assertDocsStayOnCurrentPackageStory(pkgDir, packageName) {
     "package README should teach the public install command",
   );
   assert.equal(
-    joinedDocs.includes(packageName),
+    joinedDocs.includes(publicPackageName),
     true,
     "prepared docs should mention the package lane they are proving",
   );
