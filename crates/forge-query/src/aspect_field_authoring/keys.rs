@@ -14,16 +14,12 @@ pub(crate) fn planned_single_field_locator(
     aspect_key: AspectKey,
     field_key: FieldKey,
 ) -> AspectFieldLocator {
-    AspectFieldLocator::new(
-        LocatorAuthority::Planned,
-        aspect_key,
-        CanonicalFieldPath::single(field_key),
-    )
+    planned_field_path_locator(aspect_key, CanonicalFieldPath::single(field_key))
 }
 
-pub(crate) fn terminal_field_label(path: &str) -> Result<&str, String> {
-    path.split('.')
-        .next_back()
-        .filter(|segment| !segment.trim().is_empty())
-        .ok_or_else(|| format!("`{path}` does not contain a field segment"))
+pub(crate) fn planned_field_path_locator(
+    aspect_key: AspectKey,
+    field_path: CanonicalFieldPath,
+) -> AspectFieldLocator {
+    AspectFieldLocator::new(LocatorAuthority::Planned, aspect_key, field_path)
 }

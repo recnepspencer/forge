@@ -4,12 +4,13 @@ use crate::memory_workspace::{
     ForgeQueryWorkspaceError,
 };
 use crate::runtime::{
-    ForgeQueryEffectPolicy, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime, ForgeQueryRuntimeBackend,
-    ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryBackendAdmissibleMutation, ForgeQueryEffectPolicy, ForgeQueryIntentDeclaration,
+    ForgeQueryIntentExecution, ForgeQueryLiveArtifactTarget, ForgeQueryPreviewBasisAdmission,
+    ForgeQueryRuntime, ForgeQueryRuntimeBackend, ForgeQueryRuntimeBackendPosture,
+    ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimePublicApiContract,
     ForgeQueryRuntimePublicSupportMatrix, ForgeQueryRuntimeSupportProfile, ForgeQueryWorkspace,
-    ForgeQueryWriteCommand, ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt,
+    ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt,
     SubscriptionActivationReceipt,
 };
 use crate::schema_view::QuerySchemaView;
@@ -77,14 +78,14 @@ impl ForgeQueryRuntimeBackend for SupportSnapshotRuntimeBackend {
 
     fn write(
         &mut self,
-        _command: ForgeQueryWriteCommand,
+        _mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
         panic!("support snapshot tests only exercise workspace support matrix projection")
     }
 
     fn write_batch(
         &mut self,
-        _commands: Vec<ForgeQueryWriteCommand>,
+        _mutations: Vec<ForgeQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
         panic!("support snapshot tests only exercise workspace support matrix projection")
     }
@@ -96,15 +97,24 @@ impl ForgeQueryRuntimeBackend for SupportSnapshotRuntimeBackend {
         panic!("support snapshot tests only exercise workspace support matrix projection")
     }
 
-    fn live_entities(&self, _view_name: &str) -> Vec<ForgeQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity> {
         panic!("support snapshot tests only exercise workspace support matrix projection")
     }
 
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
+    fn drain_live_patches_for_target(
+        &mut self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch> {
         panic!("support snapshot tests only exercise workspace support matrix projection")
     }
 
-    fn affected_live_view_ids(&self, _receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+    fn affected_live_view_targets(
+        &self,
+        _receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget> {
         panic!("support snapshot tests only exercise workspace support matrix projection")
     }
 

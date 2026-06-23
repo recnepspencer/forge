@@ -1,6 +1,5 @@
 use forge_relational::facade::history::BranchId;
 use forge_runtime_bridge::facade::BridgeWritebackOutcomeClass;
-use serde_json::json;
 
 use super::execution_support::{
     create_entity, relational_runtime_with_intent_strategy, test_bridge,
@@ -8,7 +7,7 @@ use super::execution_support::{
 };
 use super::support::{
     admitted_branch_merge_effect, admitted_mutation_effect_for_entity_with_binding,
-    admitted_tenant_writeback_effect, runtime_workflow_binding_for_branch,
+    admitted_tenant_writeback_effect, native_name_patch, runtime_workflow_binding_for_branch,
     runtime_workflow_binding_with_snapshot,
 };
 use crate::aspect_field_authoring::aspect_key;
@@ -33,7 +32,7 @@ fn lowered_mutation_execution_runs_through_relational_strategy_authority() {
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
         runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime)),
         entity_id,
-        json!({ "name": "authority-plan" }),
+        native_name_patch("authority-plan"),
     ))
     .lower()
     .expect("mutation should lower");
@@ -139,7 +138,7 @@ fn lowered_mutation_execution_rejects_bridge_host_override() {
             "branch-a",
         ),
         entity_id,
-        json!({ "name": "authority-plan" }),
+        native_name_patch("authority-plan"),
     ))
     .lower()
     .expect("mutation should lower");

@@ -1,13 +1,58 @@
 use std::collections::BTreeMap;
 
-use serde::Serialize;
-use serde_json::Value;
-
 use crate::memory_workspace::ForgeQueryWorkspaceError;
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct ForgeQueryMutationMetadataKey {
+    text: String,
+}
+
+impl ForgeQueryMutationMetadataKey {
+    pub fn new(key: impl Into<String>) -> Result<Self, ForgeQueryWorkspaceError> {
+        let text = key.into();
+        if text.trim().is_empty() {
+            return Err(ForgeQueryWorkspaceError::new(
+                "mutation metadata key may not be empty",
+            ));
+        }
+        Ok(Self { text })
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.text
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ForgeQueryMutationMetadataValue {
+    text: String,
+}
+
+impl ForgeQueryMutationMetadataValue {
+    fn from_text(value: impl Into<String>) -> Result<Self, ForgeQueryWorkspaceError> {
+        let text = value.into();
+        if text.trim().is_empty() {
+            return Err(ForgeQueryWorkspaceError::new(
+                "mutation metadata value may not be empty",
+            ));
+        }
+        Ok(Self { text })
+    }
+
+    pub fn terminal_digest_text(&self) -> &str {
+        &self.text
+    }
+}
+
+impl std::fmt::Display for ForgeQueryMutationMetadataValue {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.terminal_digest_text())
+    }
+}
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ForgeQueryMutationMetadata {
-    entries: BTreeMap<String, Value>,
+    entries: BTreeMap<ForgeQueryMutationMetadataKey, ForgeQueryMutationMetadataValue>,
 }
 
 impl ForgeQueryMutationMetadata {
@@ -19,43 +64,45 @@ impl ForgeQueryMutationMetadata {
         self.entries.is_empty()
     }
 
-    pub fn get(&self, key: &str) -> Option<&Value> {
+    pub fn get(
+        &self,
+        key: &ForgeQueryMutationMetadataKey,
+    ) -> Option<&ForgeQueryMutationMetadataValue> {
         self.entries.get(key)
     }
 
-    pub fn entries(&self) -> &BTreeMap<String, Value> {
-        &self.entries
+    pub fn entries(
+        &self,
+    ) -> impl Iterator<
+        Item = (
+            ForgeQueryMutationMetadataKey,
+            &ForgeQueryMutationMetadataValue,
+        ),
+    > + '_ {
+        self.entries.iter().map(|(key, value)| (key.clone(), value))
     }
 
-    pub fn insert<T: Serialize>(
+    pub fn insert(
         &mut self,
         key: impl Into<String>,
-        value: T,
+        value: impl Into<String>,
     ) -> Result<(), ForgeQueryWorkspaceError> {
-        self.insert_serialized(key, value)
+        self.insert_text(key, value)
     }
 
-    pub(crate) fn insert_serialized<T: Serialize>(
+    pub(crate) fn insert_text(
         &mut self,
         key: impl Into<String>,
-        value: T,
+        value: impl Into<String>,
     ) -> Result<(), ForgeQueryWorkspaceError> {
-        let key = key.into();
-        if key.trim().is_empty() {
-            return Err(ForgeQueryWorkspaceError::new(
-                "mutation metadata key may not be empty",
-            ));
-        }
+        let key = ForgeQueryMutationMetadataKey::new(key)?;
         if self.entries.contains_key(&key) {
             return Err(ForgeQueryWorkspaceError::new(format!(
-                "mutation metadata `{key}` may only be declared once per mutation"
+                "mutation metadata `{}` may only be declared once per mutation",
+                key.as_str()
             )));
         }
-        let value = serde_json::to_value(value).map_err(|error| {
-            ForgeQueryWorkspaceError::new(format!(
-                "mutation metadata `{key}` could not serialize into retained evidence: {error}"
-            ))
-        })?;
+        let value = ForgeQueryMutationMetadataValue::from_text(value)?;
         self.entries.insert(key, value);
         Ok(())
     }

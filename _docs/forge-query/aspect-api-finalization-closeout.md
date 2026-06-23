@@ -1,8 +1,8 @@
 # Forge Query Aspect API Finalization Closeout
 
 This closeout is the dependency contract for downstream runtime work that wants
-to build on Forge Query's mutation surface before we rip JSON out of the lower
-crates.
+to build on Forge Query's mutation surface without depending on JSON-shaped
+authority.
 
 ## Closed Scope
 
@@ -56,15 +56,16 @@ family.
 
 ## Must Not Assume Yet
 
-- JSON has already been removed from forge-query, forge-relational, forge-store, or the runtime bridge internally
+- terminal document JSON or external reference artifacts are native authority carriers
 - lower-level write commands are the preferred ordinary public story
 - intent authority, effect-intent consumption, temporal execution, async/resource execution, or mixed-cause delivery are admitted stable mutation families
 - store-backed parity, durable restart/reload, or cross-process replay semantics are closed and certified
 - downstream runtimes may reach into lower-crate mutation/storage internals instead of staying on the Forge Query facade
 
-JSON may still exist as an internal lowering adapter while the substrate
-rewrite is still ahead of us. That is allowed internally. It is not the public
-semantic model and it is not what downstream code should learn from.
+Terminal JSON documents are external import/export artifacts only. They are not
+native authority carriers. Runtime mutation, read, retained-row, effect,
+inspection, and certification authority must stay in aspect-native proof
+carriers.
 
 ## Migration Guidance
 
@@ -74,7 +75,7 @@ semantic model and it is not what downstream code should learn from.
 - keep direct workspace write and batch helpers sealed; publish command-shaped mutation through workspace.write_intent(...) or workspace.submissions()
 - keep mutation receipts, state snapshots, and inspect output as the downstream explanation contract
 - gate intent-shaped authority crossings through support admission until that family is explicitly stabilized
-- move JSON removal work underneath this facade instead of teaching new code to depend on payload lowering
+- treat terminal JSON documents as external import/export only; keep runtime mutation and read authority in aspect-native proof carriers
 
 ## Closeout Evidence
 
@@ -89,7 +90,7 @@ Its self-check answers are:
 - support-gated mutation neighbors stay fail-closed
 - write-family support remains synchronized with the public matrix
 - lower-level seams stay explicit rather than co-equal
-- downstream runtimes may build on the facade now, while lower-crate JSON removal remains an internal rewrite
+- downstream runtimes may build on the facade now, while JSON-shaped authority remains forbidden
 
 Required verification commands:
 

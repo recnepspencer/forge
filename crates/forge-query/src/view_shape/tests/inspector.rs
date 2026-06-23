@@ -51,7 +51,9 @@ fn observed_and_focused_inspector_produce_distinct_plan_metadata() {
             detail_schema_view(),
             admit_view_shape(
                 &canonical,
-                ViewShapeDescriptor::inspector_detail_focused("profile"),
+                ViewShapeDescriptor::inspector_detail_focused(
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
+                ),
             )
             .unwrap(),
         )
@@ -100,7 +102,9 @@ fn identity_aware_focused_inspector_mints_distinct_digest_and_binding() {
             detail_schema_view(),
             admit_view_shape(
                 &canonical,
-                ViewShapeDescriptor::inspector_detail_focused("profile"),
+                ViewShapeDescriptor::inspector_detail_focused(
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
+                ),
             )
             .unwrap(),
         )
@@ -115,7 +119,7 @@ fn identity_aware_focused_inspector_mints_distinct_digest_and_binding() {
             admit_view_shape(
                 &canonical,
                 ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-                    "profile",
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
                     InspectorIdentityClassification::AuthoritativeContinuity,
                 ),
             )
@@ -190,7 +194,7 @@ fn identity_aware_observed_inspector_mints_summary_consumption_without_focus() {
             .digest()
     );
     assert_eq!(
-        identity_aware.delivery_metadata().focus_aspect(),
+        identity_aware.delivery_metadata().native_focus_aspect_key(),
         None,
         "observed inspector summary should not silently become focused delivery"
     );

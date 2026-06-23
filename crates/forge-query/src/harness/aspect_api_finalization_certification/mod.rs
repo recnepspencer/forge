@@ -5,6 +5,8 @@ mod rows;
 mod tests;
 
 use crate::harness::certification::{digest_parts, CertificationMatrix};
+use crate::runtime::ForgeQueryAspectTouch;
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 
 pub const ASPECT_API_FINALIZATION_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "authoritative-insert-update-delete-surface",
@@ -131,4 +133,33 @@ impl AspectApiFinalizationCertificationAdapter {
             rejection_rows: rows::rejection_rows(),
         }
     }
+}
+
+pub(super) fn identity_id_touch() -> ForgeQueryAspectTouch {
+    aspect_api_certification_touch("identity", "id")
+}
+
+pub(super) fn title_value_touch() -> ForgeQueryAspectTouch {
+    aspect_api_certification_touch("title", "value")
+}
+
+pub(super) fn description_value_touch() -> ForgeQueryAspectTouch {
+    aspect_api_certification_touch("description", "value")
+}
+
+pub(super) fn ui_batch_summary_touch() -> ForgeQueryAspectTouch {
+    aspect_api_certification_touch("ui", "batch_summary")
+}
+
+fn aspect_api_certification_touch(
+    aspect_label: &'static str,
+    field_label: &'static str,
+) -> ForgeQueryAspectTouch {
+    let aspect_key =
+        AspectKey::new(aspect_label).expect("aspect API certification aspect key should admit");
+    let field_key =
+        FieldKey::new(field_label).expect("aspect API certification field key should admit");
+    let field_path = CanonicalFieldPath::new([field_key])
+        .expect("aspect API certification field path should admit");
+    ForgeQueryAspectTouch::aspect_field_path(aspect_key, field_path)
 }

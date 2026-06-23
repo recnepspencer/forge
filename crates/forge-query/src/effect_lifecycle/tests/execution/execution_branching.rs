@@ -12,11 +12,10 @@ use forge_relational::facade::transactions::{
     UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 use forge_relational::facade::{identity::KindId, identity::PartitionId, symbols::ClientKey};
-use serde_json::json;
 
 use crate::aspect_field_authoring::{
     aspect_key, entity_string_field_aspect, lifecycle_string_aspect,
-    single_aspect_field_patch_from_external_json,
+    single_native_string_aspect_field_patch,
 };
 use crate::effect_lifecycle::{
     scope_admitted_effect_plan, EffectExecutionAuthority, EffectExecutionDenialKind,
@@ -24,7 +23,8 @@ use crate::effect_lifecycle::{
 
 use super::execution::branch_snapshot_identity;
 use super::support::{
-    admitted_mutation_effect_for_entity_with_binding, runtime_workflow_binding_for_branch,
+    admitted_mutation_effect_for_entity_with_binding, native_name_patch,
+    runtime_workflow_binding_for_branch,
 };
 
 #[test]
@@ -55,7 +55,7 @@ fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
             "branch-a",
         ),
         entity_id,
-        json!({ "name": "authority-plan" }),
+        native_name_patch("authority-plan"),
     ))
     .lower()
     .expect("mutation should lower");
@@ -115,7 +115,7 @@ fn retained_lowered_mutation_denies_after_intervening_truth_change() {
             "branch-a",
         ),
         entity_id,
-        json!({ "name": "authority-plan" }),
+        native_name_patch("authority-plan"),
     ))
     .lower()
     .expect("mutation should lower");
@@ -187,7 +187,7 @@ fn lowered_branch_mutation_does_not_deny_when_only_another_branch_moves() {
             "branch-a",
         ),
         entity_id,
-        json!({ "name": "authority-plan" }),
+        native_name_patch("authority-plan"),
     ))
     .lower()
     .expect("mutation should lower");
@@ -246,7 +246,7 @@ fn create_entity(
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: ClientKey::raw(name),
-                fields: single_aspect_field_patch_from_external_json("name", "name", json!(name))
+                fields: single_native_string_aspect_field_patch("name", "name", name)
                     .expect("entity name aspect patch"),
             }),
         )),
@@ -276,7 +276,7 @@ fn update_entity_name(
         WorkerIntentBatch::new(format!("update-{name}")).push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                fields: single_aspect_field_patch_from_external_json("name", "name", json!(name))
+                fields: single_native_string_aspect_field_patch("name", "name", name)
                     .expect("entity name aspect patch"),
             }),
         )),

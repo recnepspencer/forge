@@ -68,8 +68,11 @@ impl ForgeQueryGraphObligationSelectorCoverageRow {
             "graph-obligation-selector-coverage-row",
             [
                 label.as_str(),
-                selector.selector_kind(),
-                selector.selector_value().as_deref().unwrap_or("<any>"),
+                selector.terminal_selector_kind_for_boundary(),
+                selector
+                    .terminal_selector_value_for_boundary()
+                    .as_deref()
+                    .unwrap_or("<any>"),
                 selector.selector_digest(),
             ],
         );

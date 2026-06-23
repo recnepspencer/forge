@@ -1,4 +1,5 @@
 use super::*;
+use crate::runtime::{ForgeQueryDerivedMaterializationTarget, ForgeQueryLiveArtifactTarget};
 
 impl<'a> ForgeQueryPreviewSession<'a> {
     pub(super) fn admit_preview_write_intent(&self) -> Result<(), ForgeQueryRuntimeError> {
@@ -33,24 +34,29 @@ impl<'a> ForgeQueryPreviewSession<'a> {
     }
 
     pub(super) fn route_preview_execution(&mut self, receipt: &ForgeQueryWriteReceipt) {
-        let mut live_affected: BTreeMap<String, Vec<String>> = BTreeMap::new();
-        let mut computed_affected: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        let mut live_affected: BTreeMap<ForgeQueryLiveArtifactTarget, Vec<ForgeQueryAspectTouch>> =
+            BTreeMap::new();
+        let mut computed_affected: BTreeMap<
+            ForgeQueryDerivedMaterializationTarget,
+            Vec<ForgeQueryAspectTouch>,
+        > = BTreeMap::new();
 
         for binding in self
             .handle_bindings
             .iter()
             .filter(|binding| binding.family == ForgeQueryPreviewHandleBindingFamily::LiveView)
         {
-            let Some(state) = self.runtime.live_subscriptions.get(binding.handle_name()) else {
+            let target = ForgeQueryLiveArtifactTarget::from_view_name(binding.handle_name());
+            let Some(state) = self.runtime.live_subscriptions.get(&target) else {
                 continue;
             };
             let affected_aspects = relevant_live_aspects(&state.request, receipt.deltas());
             if affected_aspects.is_empty() {
                 continue;
             }
-            live_affected.insert(binding.handle_name().to_string(), affected_aspects.clone());
+            live_affected.insert(target, affected_aspects.clone());
             self.execution_evidence
-                .push(ForgeQueryPreviewExecutionEvidence::new(
+                .push(ForgeQueryPreviewExecutionEvidence::for_aspect_touches(
                     &self.basis_admission,
                     ForgeQueryPreviewExecutionKind::LivePatch,
                     binding.handle_name(),
@@ -66,7 +72,8 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             .iter()
             .filter(|binding| binding.family == ForgeQueryPreviewHandleBindingFamily::ComputedView)
         {
-            let Some(runtime) = self.runtime.derived_views.get(binding.handle_name()) else {
+            let target = ForgeQueryDerivedMaterializationTarget::new(binding.handle_name());
+            let Some(runtime) = self.runtime.derived_views.get(&target) else {
                 continue;
             };
             let affected_aspects =
@@ -74,9 +81,12 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             if affected_aspects.is_empty() {
                 continue;
             }
-            computed_affected.insert(binding.handle_name().to_string(), affected_aspects.clone());
+            computed_affected.insert(
+                ForgeQueryDerivedMaterializationTarget::new(binding.handle_name().to_string()),
+                affected_aspects.clone(),
+            );
             self.execution_evidence
-                .push(ForgeQueryPreviewExecutionEvidence::new(
+                .push(ForgeQueryPreviewExecutionEvidence::for_aspect_touches(
                     &self.basis_admission,
                     ForgeQueryPreviewExecutionKind::ComputedPatch,
                     binding.handle_name(),
@@ -117,7 +127,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     ForgeQueryPreviewExecutionKind::MutedEffect
                 }
             };
-            pending_effect_evidence.push(ForgeQueryPreviewExecutionEvidence::new(
+            pending_effect_evidence.push(ForgeQueryPreviewExecutionEvidence::for_aspect_touches(
                 &self.basis_admission,
                 kind,
                 binding.handle_name(),

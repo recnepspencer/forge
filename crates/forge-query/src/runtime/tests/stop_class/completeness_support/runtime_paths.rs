@@ -85,7 +85,7 @@ pub(in super::super) fn intent_commit_denied_error() -> ForgeQueryRuntimeError {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task-1" }),
+            test_intent_input([("entity", "task-1")]),
         ))
         .expect_err("derive-only branch must deny write intents")
 }
@@ -100,7 +100,7 @@ pub(in super::super) fn intent_execution_routing_failed_error() -> ForgeQueryRun
         "strategy.intent.reconcile",
         "1.0",
         "intent.reconcile.input.v1",
-        json!({"entity": "task-1"}),
+        test_intent_input([("entity", "task-1")]),
     );
     let handoff = runtime
         .admit_authoritative_intent_for_execution(declaration.clone())
@@ -166,8 +166,11 @@ pub(in super::super) fn preview_promotion_write_failed_error() -> ForgeQueryRunt
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("denied-preview")),
-                ("title.value", json!("Denied preview write")),
+                ("identity.id", test_string_aspect_value("denied-preview")),
+                (
+                    "title.value",
+                    test_string_aspect_value("Denied preview write"),
+                ),
             ],
         ))
         .expect("preview write should stage");
@@ -195,8 +198,14 @@ pub(in super::super) fn preview_promotion_stale_basis_error() -> ForgeQueryRunti
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("stale-preview-stop-class")),
-                ("title.value", json!("Should not promote")),
+                (
+                    "identity.id",
+                    test_string_aspect_value("stale-preview-stop-class"),
+                ),
+                (
+                    "title.value",
+                    test_string_aspect_value("Should not promote"),
+                ),
             ],
         ))
         .expect("preview write should stage");
@@ -230,8 +239,14 @@ pub(in super::super) fn preview_promotion_atomic_batch_unsupported_error() -> Fo
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("preview-batch-stop-class-1")),
-                ("title.value", json!("First staged write")),
+                (
+                    "identity.id",
+                    test_string_aspect_value("preview-batch-stop-class-1"),
+                ),
+                (
+                    "title.value",
+                    test_string_aspect_value("First staged write"),
+                ),
             ],
         ))
         .expect("first preview write should stage");
@@ -239,8 +254,14 @@ pub(in super::super) fn preview_promotion_atomic_batch_unsupported_error() -> Fo
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("preview-batch-stop-class-2")),
-                ("title.value", json!("Second staged write")),
+                (
+                    "identity.id",
+                    test_string_aspect_value("preview-batch-stop-class-2"),
+                ),
+                (
+                    "title.value",
+                    test_string_aspect_value("Second staged write"),
+                ),
             ],
         ))
         .expect("second preview write should stage");
@@ -253,7 +274,7 @@ pub(in super::super) fn preview_promotion_atomic_batch_unsupported_error() -> Fo
 
 pub(in super::super) fn preview_promotion_rebinding_required_error() -> ForgeQueryRuntimeError {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.preview-promotion-stop-class-mismatch",
             task_live_request(),
@@ -287,9 +308,12 @@ pub(in super::super) fn preview_promotion_rebinding_required_error() -> ForgeQue
             [
                 (
                     "identity.id",
-                    json!("preview-promotion-stop-class-mismatch"),
+                    test_string_aspect_value("preview-promotion-stop-class-mismatch"),
                 ),
-                ("title.value", json!("Should require rebinding")),
+                (
+                    "title.value",
+                    test_string_aspect_value("Should require rebinding"),
+                ),
             ],
         ))
         .expect("preview write should stage");
@@ -302,9 +326,24 @@ fn expanded_manager_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "runtime-read-composition-expanded",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
-        [SchemaRelationView::new("manager", 2)],
+        [SchemaRelationView::new(
+            crate::authoring::RelationName::new("manager")
+                .expect("schema relation literal must be valid"),
+            2,
+        )],
     )
 }

@@ -1,5 +1,3 @@
-use serde_json::json;
-
 use super::{
     forge_query_domain, ForgeQueryDomainCapabilityMaterializationError,
     ForgeQueryDomainCapabilityOutcomeKind,
@@ -334,7 +332,10 @@ fn intent_declaration(name: &str) -> ForgeQueryIntentDeclaration {
         "spatial.commit",
         "1",
         "geometry.patch",
-        json!({"edge":"e-1"}),
+        crate::runtime::ForgeQueryIntentInput::object([(
+            "edge",
+            crate::runtime::ForgeQueryIntentInput::string("e-1"),
+        )]),
     )
 }
 

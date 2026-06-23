@@ -1,4 +1,4 @@
-use forge_foundational::facade::{AspectKey, AspectValue};
+use forge_foundational::facade::AspectKey;
 use forge_runtime_bridge::facade::{
     BridgeIdentityEvidence, BridgePolicyDeclaration, BridgePolicyDeclarationIdentity,
     BridgeRouteIdentity, BridgeWritebackCausalityIdentity, BridgeWritebackEffectIdentity,
@@ -135,7 +135,9 @@ fn query_writeback_effect_intent(
         declaration.bridge_declaration().effect_class(),
         AspectKey::new("query.writeback.effect")
             .expect("static query writeback effect aspect key is valid"),
-        AspectValue::String(declaration.lowering_for_reporting().to_string().into()),
+        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+            declaration.lowering_for_reporting().to_string(),
+        ),
     )
     .map_err(|error| {
         (

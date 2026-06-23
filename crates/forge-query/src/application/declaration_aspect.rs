@@ -1,31 +1,27 @@
 use std::collections::BTreeSet;
 
+use crate::authoring::AspectFieldKey;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDeclarationAspectContract {
-    required: Vec<String>,
-    preserved: Vec<String>,
-    published: Vec<String>,
-    masked: Vec<String>,
-    incompatible: Vec<String>,
+    required: Vec<AspectFieldKey>,
+    preserved: Vec<AspectFieldKey>,
+    published: Vec<AspectFieldKey>,
+    masked: Vec<AspectFieldKey>,
+    incompatible: Vec<AspectFieldKey>,
 }
 
 impl ForgeQueryDeclarationAspectContract {
     pub fn empty() -> Self {
-        Self::new(
-            Vec::<String>::new(),
-            Vec::<String>::new(),
-            Vec::<String>::new(),
-            Vec::<String>::new(),
-            Vec::<String>::new(),
-        )
+        Self::new([], [], [], [], [])
     }
 
     pub fn new(
-        required: impl IntoIterator<Item = impl Into<String>>,
-        preserved: impl IntoIterator<Item = impl Into<String>>,
-        published: impl IntoIterator<Item = impl Into<String>>,
-        masked: impl IntoIterator<Item = impl Into<String>>,
-        incompatible: impl IntoIterator<Item = impl Into<String>>,
+        required: impl IntoIterator<Item = AspectFieldKey>,
+        preserved: impl IntoIterator<Item = AspectFieldKey>,
+        published: impl IntoIterator<Item = AspectFieldKey>,
+        masked: impl IntoIterator<Item = AspectFieldKey>,
+        incompatible: impl IntoIterator<Item = AspectFieldKey>,
     ) -> Self {
         Self {
             required: sorted_unique(required),
@@ -36,6 +32,7 @@ impl ForgeQueryDeclarationAspectContract {
         }
     }
 
+    #[cfg(test)]
     pub fn from_slices(
         required: &[&str],
         preserved: &[&str],
@@ -44,35 +41,35 @@ impl ForgeQueryDeclarationAspectContract {
         incompatible: &[&str],
     ) -> Self {
         Self::new(
-            required.iter().copied(),
-            preserved.iter().copied(),
-            published.iter().copied(),
-            masked.iter().copied(),
-            incompatible.iter().copied(),
+            crate::application::test_declaration_aspect_keys(required),
+            crate::application::test_declaration_aspect_keys(preserved),
+            crate::application::test_declaration_aspect_keys(published),
+            crate::application::test_declaration_aspect_keys(masked),
+            crate::application::test_declaration_aspect_keys(incompatible),
         )
     }
 
-    pub fn required(&self) -> &[String] {
+    pub fn required(&self) -> &[AspectFieldKey] {
         &self.required
     }
 
-    pub fn preserved(&self) -> &[String] {
+    pub fn preserved(&self) -> &[AspectFieldKey] {
         &self.preserved
     }
 
-    pub fn published(&self) -> &[String] {
+    pub fn published(&self) -> &[AspectFieldKey] {
         &self.published
     }
 
-    pub fn masked(&self) -> &[String] {
+    pub fn masked(&self) -> &[AspectFieldKey] {
         &self.masked
     }
 
-    pub fn incompatible(&self) -> &[String] {
+    pub fn incompatible(&self) -> &[AspectFieldKey] {
         &self.incompatible
     }
 
-    pub fn semantic_interest_paths(&self) -> Vec<String> {
+    pub fn semantic_interest_keys(&self) -> Vec<AspectFieldKey> {
         sorted_unique(
             self.required
                 .iter()
@@ -83,7 +80,7 @@ impl ForgeQueryDeclarationAspectContract {
     }
 
     pub fn default_coverage(&self) -> ForgeQueryDeclarationAspectCoverage {
-        ForgeQueryDeclarationAspectCoverage::from_present(self.semantic_interest_paths())
+        ForgeQueryDeclarationAspectCoverage::from_present(self.semantic_interest_keys())
     }
 }
 
@@ -93,7 +90,7 @@ pub(crate) fn route_scoped_declaration_aspect_contract(
     ForgeQueryDeclarationAspectContract::new(
         declaration_contract.required().iter().cloned(),
         declaration_contract.preserved().iter().cloned(),
-        std::iter::empty::<String>(),
+        [],
         declaration_contract.masked().iter().cloned(),
         declaration_contract.incompatible().iter().cloned(),
     )
@@ -146,9 +143,9 @@ pub(crate) fn merged_authority_aspect_contract(
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDeclarationAspectCoverage {
-    present: Vec<String>,
-    masked: Vec<String>,
-    conflicting: Vec<String>,
+    present: Vec<AspectFieldKey>,
+    masked: Vec<AspectFieldKey>,
+    conflicting: Vec<AspectFieldKey>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -175,16 +172,16 @@ impl ForgeQueryDeclarationAspectCoverageBasis {
 impl ForgeQueryDeclarationAspectCoverage {
     pub fn empty() -> Self {
         Self::new(
-            Vec::<String>::new(),
-            Vec::<String>::new(),
-            Vec::<String>::new(),
+            Vec::<AspectFieldKey>::new(),
+            Vec::<AspectFieldKey>::new(),
+            Vec::<AspectFieldKey>::new(),
         )
     }
 
     pub fn new(
-        present: impl IntoIterator<Item = impl Into<String>>,
-        masked: impl IntoIterator<Item = impl Into<String>>,
-        conflicting: impl IntoIterator<Item = impl Into<String>>,
+        present: impl IntoIterator<Item = AspectFieldKey>,
+        masked: impl IntoIterator<Item = AspectFieldKey>,
+        conflicting: impl IntoIterator<Item = AspectFieldKey>,
     ) -> Self {
         Self {
             present: sorted_unique(present),
@@ -193,31 +190,32 @@ impl ForgeQueryDeclarationAspectCoverage {
         }
     }
 
-    pub fn from_present(present: impl IntoIterator<Item = impl Into<String>>) -> Self {
+    pub fn from_present(present: impl IntoIterator<Item = AspectFieldKey>) -> Self {
         Self::new(
             present,
-            std::iter::empty::<String>(),
-            std::iter::empty::<String>(),
+            std::iter::empty::<AspectFieldKey>(),
+            std::iter::empty::<AspectFieldKey>(),
         )
     }
 
+    #[cfg(test)]
     pub fn from_slices(present: &[&str], masked: &[&str], conflicting: &[&str]) -> Self {
         Self::new(
-            present.iter().copied(),
-            masked.iter().copied(),
-            conflicting.iter().copied(),
+            crate::application::test_declaration_aspect_keys(present),
+            crate::application::test_declaration_aspect_keys(masked),
+            crate::application::test_declaration_aspect_keys(conflicting),
         )
     }
 
-    pub fn present(&self) -> &[String] {
+    pub fn present(&self) -> &[AspectFieldKey] {
         &self.present
     }
 
-    pub fn masked(&self) -> &[String] {
+    pub fn masked(&self) -> &[AspectFieldKey] {
         &self.masked
     }
 
-    pub fn conflicting(&self) -> &[String] {
+    pub fn conflicting(&self) -> &[AspectFieldKey] {
         &self.conflicting
     }
 
@@ -236,7 +234,7 @@ impl ForgeQueryDeclarationAspectCoverage {
         let required: BTreeSet<_> = contract.required.iter().cloned().collect();
         let incompatible: BTreeSet<_> = contract.incompatible.iter().cloned().collect();
         let semantic_interest: BTreeSet<_> =
-            contract.semantic_interest_paths().into_iter().collect();
+            contract.semantic_interest_keys().into_iter().collect();
 
         if !conflicting.is_disjoint(&required) || !visible_present.is_disjoint(&incompatible) {
             return ForgeQueryDeclarationAspectFit::Conflict;
@@ -278,7 +276,7 @@ impl ForgeQueryDeclarationAspectCoverage {
         contract: &ForgeQueryDeclarationAspectContract,
     ) -> ForgeQueryDeclarationAspectCoverage {
         let semantic_interest: BTreeSet<_> =
-            contract.semantic_interest_paths().into_iter().collect();
+            contract.semantic_interest_keys().into_iter().collect();
         ForgeQueryDeclarationAspectCoverage::new(
             self.present
                 .iter()
@@ -358,7 +356,7 @@ pub(crate) fn aspect_coverage_from_publication(
             .iter()
             .chain(publication.elided().iter())
             .cloned(),
-        std::iter::empty::<String>(),
+        std::iter::empty::<AspectFieldKey>(),
     )
 }
 
@@ -380,8 +378,14 @@ pub(crate) fn authority_mismatch_from_fit(
     }
 }
 
-fn sorted_unique(values: impl IntoIterator<Item = impl Into<String>>) -> Vec<String> {
-    let mut values = values.into_iter().map(Into::into).collect::<Vec<_>>();
+pub(in crate::application) fn terminal_declaration_aspect_projection(
+    key: &AspectFieldKey,
+) -> String {
+    format!("{}.{}", key.aspect().as_str(), key.field().as_str())
+}
+
+fn sorted_unique(values: impl IntoIterator<Item = AspectFieldKey>) -> Vec<AspectFieldKey> {
+    let mut values = values.into_iter().collect::<Vec<_>>();
     values.sort();
     values.dedup();
     values

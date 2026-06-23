@@ -4,11 +4,15 @@ use super::super::support::*;
 fn runtime_surfaces_authority_lanes_on_public_handles_and_receipts() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>("tasks.authority", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.authority",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare");
     let derived = runtime
-        .declare_maintained_derived_view::<Value>(
-            ForgeQueryDerivedView::new("task_titles.authority", ["title".to_string()]),
+        .declare_maintained_derived_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new("task_titles.authority", test_aspect_touches(["title"])),
             TitleListMaintainer,
         )
         .expect("derived view should declare");
@@ -17,12 +21,15 @@ fn runtime_surfaces_authority_lanes_on_public_handles_and_receipts() {
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("")),
-                ("title.value", json!("Authority lane task")),
+                ("identity.id", test_string_aspect_value("")),
+                (
+                    "title.value",
+                    test_string_aspect_value("Authority lane task"),
+                ),
             ],
         ))
         .expect("insert should write");
-    let patches = runtime.drain_derived_patches(derived.name());
+    let patches = runtime.drain_derived_patches(&derived);
     let inspector = runtime.inspect_receipt(&receipt);
 
     assert_eq!(
@@ -88,8 +95,11 @@ fn preview_defaults_to_derive_only_effect_policy_but_keeps_explicit_writes_previ
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("")),
-                ("title.value", json!("Preview-local task")),
+                ("identity.id", test_string_aspect_value("")),
+                (
+                    "title.value",
+                    test_string_aspect_value("Preview-local task"),
+                ),
             ],
         ))
         .expect("explicit preview write should stage");
@@ -146,7 +156,7 @@ fn sandboxed_preview_policy_admits_only_sandboxed_write_intents() {
 fn derive_only_preview_denies_operation_write_effects() {
     let mut runtime = stateful_bridge_task_runtime();
     runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare before preview-safe operation runs");
     let program = preview_safe_program();
     let installed = runtime
@@ -164,7 +174,7 @@ fn derive_only_preview_denies_operation_write_effects() {
             operation,
             vec![ForgeQueryOperationInput::new(
                 "title",
-                Value::String("Should not stage".to_string()),
+                ForgeQueryProgramValue::string("Should not stage"),
             )],
         )
         .expect_err("derive-only preview should deny write-effect operations");

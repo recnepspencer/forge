@@ -1,5 +1,6 @@
 use crate::consumer_kit::{
     query_consumer_residue_audit, ForgeQueryConsumerResidueClass, ForgeQueryConsumerResidueReport,
+    ForgeQueryExternalSupportPinContractTerminalJsonDocument,
 };
 use crate::ForgeQueryEvidenceIdentity;
 
@@ -12,8 +13,11 @@ const WORTH_AUTHORING_RS: &str =
     include_str!("../../../../../worth-kernel/src/construction/authoring.rs");
 const WORTH_QUERY_SUPPORT_PINS_RS: &str =
     include_str!("../../../../../worth-kernel/src/construction/query_support_pins.rs");
-const WORTH_QUERY_SUPPORT_PINS_JSON: &str =
-    include_str!("../../../../../worth-kernel/src/construction/query_support_pins.json");
+static WORTH_QUERY_SUPPORT_PINS_TERMINAL_JSON_DOCUMENT:
+    ForgeQueryExternalSupportPinContractTerminalJsonDocument =
+    ForgeQueryExternalSupportPinContractTerminalJsonDocument::from_static_external_terminal_json_document(
+        include_str!("../../../../../worth-kernel/src/construction/query_support_pins.json"),
+    );
 const WORTH_PHASE_FIVE_CLOSEOUT_RS: &str = include_str!(
     "../../../../../worth-kernel/src/construction/certification/phase_five_boundary_closeout_tests.rs"
 );
@@ -364,7 +368,7 @@ fn residue_source_digest() -> String {
         [
             WORTH_AUTHORING_RS,
             WORTH_QUERY_SUPPORT_PINS_RS,
-            WORTH_QUERY_SUPPORT_PINS_JSON,
+            WORTH_QUERY_SUPPORT_PINS_TERMINAL_JSON_DOCUMENT.as_str(),
             WORTH_PHASE_FIVE_CLOSEOUT_RS,
             WORTH_ADOPTION_INVENTORY_RS,
             WORTH_RESIDUE_ASSERTIONS_RS,

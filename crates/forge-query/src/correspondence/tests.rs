@@ -94,7 +94,9 @@ mod tests {
                     .map(|read| {
                         SnapshotReadRecord::for_request(
                             read,
-                            forge_foundational::facade::AspectValue::String("fixture".into()),
+                            crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                                "fixture",
+                            ),
                         )
                     })
                     .collect(),
@@ -232,7 +234,7 @@ mod tests {
         let ambiguous =
             CorrespondenceOutcome::advisory_structural_ambiguous(AdvisoryStructuralAmbiguous::new(
                 super::super::candidate_set::CorrespondenceCandidateSet::new(
-                    vec!["b".into(), "c".into()],
+                    vec!["b".to_string(), "c".to_string()],
                     StructuralCandidateDiscoveryPlan::FingerprintBucketBounded,
                     StructuralCandidateBudget::new(2),
                     StructuralCandidateOrderingContract::StableFingerprintOrder,
@@ -315,7 +317,7 @@ mod tests {
     fn structural_only_one_candidate_lowers_to_unique() {
         let resolved =
             resolve_correspondence_evidence(CorrespondenceEvaluationRequest::structural_only(
-                vec!["record:a".into()],
+                vec!["record:a".to_string()],
                 StructuralCandidateDiscoveryPlan::FingerprintBucketBounded,
                 1,
                 StructuralCandidateOrderingContract::StableFingerprintOrder,
@@ -341,7 +343,7 @@ mod tests {
     fn structural_only_multiple_candidates_lowers_to_ambiguity() {
         let resolved =
             resolve_correspondence_evidence(CorrespondenceEvaluationRequest::structural_only(
-                vec!["record:a".into(), "record:b".into()],
+                vec!["record:a".to_string(), "record:b".to_string()],
                 StructuralCandidateDiscoveryPlan::FingerprintBucketBounded,
                 2,
                 StructuralCandidateOrderingContract::StableFingerprintOrder,
@@ -370,7 +372,7 @@ mod tests {
         let resolved = resolve_correspondence_evidence(CorrespondenceEvaluationRequest::mixed(
             "subject:a",
             "record:lineage",
-            vec!["record:structural".into()],
+            vec!["record:structural".to_string()],
             StructuralCandidateDiscoveryPlan::FingerprintBucketBounded,
             1,
             StructuralCandidateOrderingContract::StableFingerprintThenLineageHintOrder,
@@ -395,7 +397,7 @@ mod tests {
     fn structural_breadth_overflow_lowers_to_denied() {
         let resolved =
             resolve_correspondence_evidence(CorrespondenceEvaluationRequest::structural_only(
-                vec!["record:a".into(), "record:b".into()],
+                vec!["record:a".to_string(), "record:b".to_string()],
                 StructuralCandidateDiscoveryPlan::FingerprintBucketBounded,
                 1,
                 StructuralCandidateOrderingContract::StableFingerprintOrder,

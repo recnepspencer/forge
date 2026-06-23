@@ -14,7 +14,8 @@ use crate::effect_lifecycle::{
 };
 
 use super::support::{
-    preview_derived_inspection_advisory, runtime_workflow_binding, workflow_request,
+    native_name_patch, preview_derived_inspection_advisory, runtime_workflow_binding,
+    workflow_request,
 };
 
 #[test]
@@ -154,7 +155,7 @@ fn preview_derived_mutation_returns_real_advisory_effect_posture() {
             ),
             input: MutationLoweringInput::IntentReconciliation {
                 entity_id: EntityId::new(PartitionId(1), 41, 0),
-                desired_aspect_fields_external_json: serde_json::json!({ "name": "advisory-preview-derived" }),
+                desired_aspect_fields: native_name_patch("advisory-preview-derived"),
             },
         },
     )

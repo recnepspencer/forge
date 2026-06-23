@@ -1,21 +1,197 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde_json::Value;
+use forge_foundational::facade::{AspectValue, CanonicalF64, CanonicalFieldPath, InternedString};
 
 use crate::declarative_live::DeclarativeLiveQueryRequest;
-use crate::memory_workspace::ForgeQueryCommitIdentity;
+use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQueryEntity};
+use crate::runtime::ForgeQueryAspectTouch;
 use crate::schema_view::QuerySchemaView;
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct ForgeQueryProgramOperationIdentity {
+    value: String,
+}
+
+impl ForgeQueryProgramOperationIdentity {
+    pub(crate) fn from_operation_id(operation_id: impl Into<String>) -> Self {
+        Self {
+            value: operation_id.into(),
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.value
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ForgeQueryProgramValue {
+    value: ForgeQueryProgramValueTree,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+enum ForgeQueryProgramValueTree {
+    Null,
+    Bool(bool),
+    Number(String),
+    String(String),
+    Array(Vec<ForgeQueryProgramValueTree>),
+    Object(BTreeMap<String, ForgeQueryProgramValueTree>),
+}
+
+impl ForgeQueryProgramValue {
+    pub fn null() -> Self {
+        Self {
+            value: ForgeQueryProgramValueTree::Null,
+        }
+    }
+
+    pub fn bool(value: bool) -> Self {
+        Self {
+            value: ForgeQueryProgramValueTree::Bool(value),
+        }
+    }
+
+    pub fn string(value: impl Into<String>) -> Self {
+        Self {
+            value: ForgeQueryProgramValueTree::String(value.into()),
+        }
+    }
+
+    pub fn integer(value: i64) -> Self {
+        Self {
+            value: ForgeQueryProgramValueTree::Number(value.to_string()),
+        }
+    }
+
+    pub fn unsigned_integer(value: u64) -> Self {
+        Self {
+            value: ForgeQueryProgramValueTree::Number(value.to_string()),
+        }
+    }
+
+    pub fn decimal_text(value: impl Into<String>) -> Result<Self, String> {
+        let value = value.into();
+        if !is_canonical_number_text(&value) {
+            return Err(format!(
+                "program value number `{value}` is not valid canonical number text"
+            ));
+        }
+        Ok(Self {
+            value: ForgeQueryProgramValueTree::Number(value),
+        })
+    }
+
+    pub fn array(values: impl IntoIterator<Item = ForgeQueryProgramValue>) -> Self {
+        Self {
+            value: ForgeQueryProgramValueTree::Array(
+                values.into_iter().map(|value| value.value).collect(),
+            ),
+        }
+    }
+
+    pub fn object(
+        fields: impl IntoIterator<Item = (impl Into<String>, ForgeQueryProgramValue)>,
+    ) -> Self {
+        Self {
+            value: ForgeQueryProgramValueTree::Object(
+                fields
+                    .into_iter()
+                    .map(|(key, value)| (key.into(), value.value))
+                    .collect(),
+            ),
+        }
+    }
+
+    fn from_live_read_entities(rows: impl IntoIterator<Item = ForgeQueryEntity>) -> Self {
+        Self {
+            value: ForgeQueryProgramValueTree::Array(
+                rows.into_iter()
+                    .map(|row| program_value_tree_from_live_read_entity(&row))
+                    .collect(),
+            ),
+        }
+    }
+
+    pub(crate) fn foundational_scalar_value(&self) -> Result<AspectValue, ForgeQueryProgramError> {
+        foundational_scalar_value_from_program_value_tree(&self.value)
+    }
+
+    pub fn array_len(&self) -> Option<usize> {
+        let ForgeQueryProgramValueTree::Array(values) = &self.value else {
+            return None;
+        };
+        Some(values.len())
+    }
+
+    pub fn field_path_value(
+        &self,
+        field_path: &CanonicalFieldPath,
+    ) -> Option<ForgeQueryProgramValueField<'_>> {
+        let value = program_value_tree_at_field_path(&self.value, field_path)?;
+        Some(ForgeQueryProgramValueField { value })
+    }
+
+    pub fn field_path_string_value(&self, field_path: &CanonicalFieldPath) -> Option<&str> {
+        let ForgeQueryProgramValueTree::String(value) =
+            program_value_tree_at_field_path(&self.value, field_path)?
+        else {
+            return None;
+        };
+        Some(value)
+    }
+
+    pub fn array_field_path_string_value(
+        &self,
+        index: usize,
+        field_path: &CanonicalFieldPath,
+    ) -> Option<&str> {
+        let ForgeQueryProgramValueTree::Array(values) = &self.value else {
+            return None;
+        };
+        let ForgeQueryProgramValueTree::String(value) =
+            program_value_tree_at_field_path(values.get(index)?, field_path)?
+        else {
+            return None;
+        };
+        Some(value)
+    }
+
+    pub fn string_value(&self) -> Option<&str> {
+        let ForgeQueryProgramValueTree::String(value) = &self.value else {
+            return None;
+        };
+        Some(value)
+    }
+
+    pub fn is_string(&self) -> bool {
+        matches!(self.value, ForgeQueryProgramValueTree::String(_))
+    }
+
+    pub fn is_integer(&self) -> bool {
+        match &self.value {
+            ForgeQueryProgramValueTree::Number(value) => {
+                value.parse::<i64>().is_ok() || value.parse::<u64>().is_ok()
+            }
+            _ => false,
+        }
+    }
+
+    pub fn is_boolean(&self) -> bool {
+        matches!(self.value, ForgeQueryProgramValueTree::Bool(_))
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ForgeQueryValueExpr {
-    Literal(Value),
+    Literal(ForgeQueryProgramValue),
     Input(String),
     Object(BTreeMap<String, ForgeQueryValueExpr>),
     Array(Vec<ForgeQueryValueExpr>),
 }
 
 impl ForgeQueryValueExpr {
-    pub fn literal(value: Value) -> Self {
+    pub fn literal(value: ForgeQueryProgramValue) -> Self {
         Self::Literal(value)
     }
 
@@ -33,8 +209,8 @@ impl ForgeQueryValueExpr {
 
     pub(crate) fn evaluate(
         &self,
-        inputs: &BTreeMap<String, Value>,
-    ) -> Result<Value, ForgeQueryProgramError> {
+        inputs: &BTreeMap<String, ForgeQueryProgramValue>,
+    ) -> Result<ForgeQueryProgramValue, ForgeQueryProgramError> {
         match self {
             Self::Literal(value) => Ok(value.clone()),
             Self::Input(name) => inputs.get(name).cloned().ok_or_else(|| {
@@ -43,27 +219,27 @@ impl ForgeQueryValueExpr {
             Self::Object(fields) => fields
                 .iter()
                 .map(|(key, value)| Ok((key.clone(), value.evaluate(inputs)?)))
-                .collect::<Result<serde_json::Map<_, _>, _>>()
-                .map(Value::Object),
+                .collect::<Result<Vec<_>, _>>()
+                .map(ForgeQueryProgramValue::object),
             Self::Array(items) => items
                 .iter()
                 .map(|item| item.evaluate(inputs))
                 .collect::<Result<Vec<_>, _>>()
-                .map(Value::Array),
+                .map(ForgeQueryProgramValue::array),
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct ForgeQueryAspectValueTemplate {
-    aspect_path: String,
+pub struct ForgeQueryAdmittedAspectValueTemplate {
+    aspect_touch: ForgeQueryAspectTouch,
     value: ForgeQueryValueExpr,
 }
 
-impl ForgeQueryAspectValueTemplate {
-    pub fn new(aspect_path: impl Into<String>, value: ForgeQueryValueExpr) -> Self {
+impl ForgeQueryAdmittedAspectValueTemplate {
+    pub fn new(aspect_touch: ForgeQueryAspectTouch, value: ForgeQueryValueExpr) -> Self {
         Self {
-            aspect_path: aspect_path.into(),
+            aspect_touch,
             value,
         }
     }
@@ -73,11 +249,11 @@ impl ForgeQueryAspectValueTemplate {
 pub enum ForgeQueryWriteCommandTemplate {
     InsertAspects {
         collection: String,
-        aspects: Vec<ForgeQueryAspectValueTemplate>,
+        aspects: Vec<ForgeQueryAdmittedAspectValueTemplate>,
     },
     UpdateAspect {
         entity_identity: ForgeQueryValueExpr,
-        aspect_path: String,
+        aspect_touch: ForgeQueryAspectTouch,
         value: ForgeQueryValueExpr,
     },
     Delete {
@@ -88,20 +264,23 @@ pub enum ForgeQueryWriteCommandTemplate {
 impl ForgeQueryWriteCommandTemplate {
     pub(crate) fn bind(
         &self,
-        inputs: &BTreeMap<String, Value>,
+        inputs: &BTreeMap<String, ForgeQueryProgramValue>,
     ) -> Result<crate::runtime::ForgeQueryWriteCommand, ForgeQueryProgramError> {
         match self {
             Self::InsertAspects {
                 collection,
                 aspects,
             } => Ok(crate::runtime::ForgeQueryWriteCommand::InsertAspects {
-                collection: collection.clone(),
+                collection: crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+                    "write-command-declared",
+                    collection,
+                ),
                 aspects: aspects
                     .iter()
                     .map(|aspect| {
-                        crate::runtime::ForgeQueryAspectValue::new_set(
-                            aspect.aspect_path.clone(),
-                            aspect.value.evaluate(inputs)?,
+                        crate::runtime::ForgeQueryAdmittedAspectValue::new_set(
+                            aspect.aspect_touch.clone(),
+                            aspect.value.evaluate(inputs)?.foundational_scalar_value()?,
                         )
                         .map_err(|error| ForgeQueryProgramError::new(error.to_string()))
                     })
@@ -114,14 +293,17 @@ impl ForgeQueryWriteCommandTemplate {
             }),
             Self::UpdateAspect {
                 entity_identity,
-                aspect_path,
+                aspect_touch,
                 value,
             } => Ok(crate::runtime::ForgeQueryWriteCommand::UpdateAspect {
                 entity_identity: crate::memory_workspace::admit_authored_entity_label(
                     expect_string(entity_identity.evaluate(inputs)?, "entity_identity")?,
                 ),
-                aspect_path: aspect_path.clone(),
-                value: value.evaluate(inputs)?,
+                aspect: crate::runtime::ForgeQueryAdmittedAspectValue::new_set(
+                    aspect_touch.clone(),
+                    value.evaluate(inputs)?.foundational_scalar_value()?,
+                )
+                .map_err(|error| ForgeQueryProgramError::new(error.to_string()))?,
             }),
             Self::Delete { entity_identity } => {
                 Ok(crate::runtime::ForgeQueryWriteCommand::Delete {
@@ -139,7 +321,7 @@ pub enum ForgeQueryPortType {
     String,
     Integer,
     Boolean,
-    Json,
+    ProgramValue,
     EntityIdentity,
 }
 
@@ -148,7 +330,7 @@ pub struct ForgeQueryTypedPort {
     name: String,
     port_type: ForgeQueryPortType,
     optional: bool,
-    required_aspects: Vec<String>,
+    required_aspects: Vec<ForgeQueryAspectTouch>,
     binding_slot: Option<String>,
     result_shape: Option<String>,
 }
@@ -170,8 +352,8 @@ impl ForgeQueryTypedPort {
         self
     }
 
-    pub fn with_required_aspect(mut self, aspect: impl Into<String>) -> Self {
-        self.required_aspects.push(aspect.into());
+    pub fn with_required_aspect(mut self, aspect: ForgeQueryAspectTouch) -> Self {
+        self.required_aspects.push(aspect);
         self
     }
 
@@ -201,11 +383,15 @@ impl ForgeQueryTypedPort {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryOperationInput {
     name: String,
-    value: Value,
+    value: ForgeQueryProgramValue,
 }
 
 impl ForgeQueryOperationInput {
-    pub fn new(name: impl Into<String>, value: Value) -> Self {
+    pub fn new(name: impl Into<String>, value: ForgeQueryProgramValue) -> Self {
+        Self::from_program_value(name, value)
+    }
+
+    pub fn from_program_value(name: impl Into<String>, value: ForgeQueryProgramValue) -> Self {
         Self {
             name: name.into(),
             value,
@@ -216,7 +402,7 @@ impl ForgeQueryOperationInput {
         &self.name
     }
 
-    pub fn value(&self) -> &Value {
+    pub fn value(&self) -> &ForgeQueryProgramValue {
         &self.value
     }
 }
@@ -224,23 +410,52 @@ impl ForgeQueryOperationInput {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryOperationOutput {
     name: String,
-    value: Value,
+    value: ForgeQueryProgramValue,
 }
 
 impl ForgeQueryOperationOutput {
-    pub fn new(name: impl Into<String>, value: Value) -> Self {
+    pub fn new(name: impl Into<String>, value: ForgeQueryProgramValue) -> Self {
+        Self::from_program_value(name, value)
+    }
+
+    pub fn from_program_value(name: impl Into<String>, value: ForgeQueryProgramValue) -> Self {
         Self {
             name: name.into(),
             value,
         }
     }
 
+    pub(crate) fn from_live_read_entities(
+        name: impl Into<String>,
+        rows: impl IntoIterator<Item = ForgeQueryEntity>,
+    ) -> Self {
+        Self::from_program_value(name, ForgeQueryProgramValue::from_live_read_entities(rows))
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    pub fn value(&self) -> &Value {
+    pub fn value(&self) -> &ForgeQueryProgramValue {
         &self.value
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ForgeQueryProgramValueField<'a> {
+    value: &'a ForgeQueryProgramValueTree,
+}
+
+impl ForgeQueryProgramValueField<'_> {
+    pub fn string_value(&self) -> Option<&str> {
+        let ForgeQueryProgramValueTree::String(value) = self.value else {
+            return None;
+        };
+        Some(value)
+    }
+
+    pub fn foundational_scalar_value(&self) -> Result<AspectValue, ForgeQueryProgramError> {
+        foundational_scalar_value_from_program_value_tree(self.value)
     }
 }
 
@@ -274,8 +489,8 @@ impl ForgeQueryAuthorityRequirement {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDerivedView {
     name: String,
-    dependency_aspects: Vec<String>,
-    produced_aspects: Vec<String>,
+    dependency_aspects: Vec<ForgeQueryAspectTouch>,
+    produced_aspects: Vec<ForgeQueryAspectTouch>,
     upstream_live_views: Vec<String>,
     upstream_derived_views: Vec<String>,
     incremental: bool,
@@ -284,11 +499,11 @@ pub struct ForgeQueryDerivedView {
 impl ForgeQueryDerivedView {
     pub fn new(
         name: impl Into<String>,
-        dependency_aspects: impl IntoIterator<Item = String>,
+        dependency_aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
     ) -> Self {
         Self {
             name: name.into(),
-            dependency_aspects: dependency_aspects.into_iter().collect(),
+            dependency_aspects: unique_derived_view_aspects(dependency_aspects),
             produced_aspects: Vec::new(),
             upstream_live_views: Vec::new(),
             upstream_derived_views: Vec::new(),
@@ -296,8 +511,8 @@ impl ForgeQueryDerivedView {
         }
     }
 
-    pub fn produces(mut self, aspects: impl IntoIterator<Item = String>) -> Self {
-        self.produced_aspects = aspects.into_iter().collect();
+    pub fn produces(mut self, aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>) -> Self {
+        self.produced_aspects = unique_derived_view_aspects(aspects);
         self
     }
 
@@ -314,12 +529,18 @@ impl ForgeQueryDerivedView {
         self
     }
 
-    pub fn depends_on_live_name(mut self, name: impl Into<String>) -> Self {
+    pub(crate) fn depends_on_live_name_from_workspace_declaration(
+        mut self,
+        name: impl Into<String>,
+    ) -> Self {
         self.upstream_live_views.push(name.into());
         self
     }
 
-    pub fn depends_on_derived_name(mut self, name: impl Into<String>) -> Self {
+    pub(crate) fn depends_on_derived_name_from_workspace_declaration(
+        mut self,
+        name: impl Into<String>,
+    ) -> Self {
         self.upstream_derived_views.push(name.into());
         self
     }
@@ -333,11 +554,11 @@ impl ForgeQueryDerivedView {
         &self.name
     }
 
-    pub fn dependency_aspects(&self) -> &[String] {
+    pub fn dependency_aspect_touches(&self) -> &[ForgeQueryAspectTouch] {
         &self.dependency_aspects
     }
 
-    pub fn produced_aspects(&self) -> &[String] {
+    pub fn produced_aspect_touches(&self) -> &[ForgeQueryAspectTouch] {
         &self.produced_aspects
     }
 
@@ -352,6 +573,16 @@ impl ForgeQueryDerivedView {
     pub fn incremental(&self) -> bool {
         self.incremental
     }
+}
+
+fn unique_derived_view_aspects(
+    aspects: impl IntoIterator<Item = ForgeQueryAspectTouch>,
+) -> Vec<ForgeQueryAspectTouch> {
+    let mut touches = BTreeSet::new();
+    for touch in aspects {
+        touches.insert(touch);
+    }
+    touches.into_iter().collect()
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -453,7 +684,7 @@ impl ForgeQueryOperation {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryProgram {
     id: String,
-    operations: BTreeMap<String, ForgeQueryOperation>,
+    operations: BTreeMap<ForgeQueryProgramOperationIdentity, ForgeQueryOperation>,
     workflow_graph: ForgeQueryWorkflowGraph,
 }
 
@@ -464,14 +695,20 @@ impl ForgeQueryProgram {
     ) -> Result<Self, ForgeQueryProgramError> {
         let operations = operations
             .into_iter()
-            .map(|operation| (operation.id.clone(), operation))
+            .map(|operation| {
+                (
+                    ForgeQueryProgramOperationIdentity::from_operation_id(operation.id.clone()),
+                    operation,
+                )
+            })
             .collect::<BTreeMap<_, _>>();
         if operations.is_empty() {
             return Err(ForgeQueryProgramError::new(
                 "program must declare at least one operation",
             ));
         }
-        let workflow_graph = ForgeQueryWorkflowGraph::linear(operations.keys().cloned());
+        let workflow_graph =
+            ForgeQueryWorkflowGraph::linear(operations.keys().map(|key| key.as_str().to_string()));
         Ok(Self {
             id: id.into(),
             operations,
@@ -492,7 +729,8 @@ impl ForgeQueryProgram {
     }
 
     pub fn operation(&self, id: &str) -> Option<&ForgeQueryOperation> {
-        self.operations.get(id)
+        self.operations
+            .get(&ForgeQueryProgramOperationIdentity::from_operation_id(id))
     }
 
     pub fn operations(&self) -> impl Iterator<Item = &ForgeQueryOperation> {
@@ -533,7 +771,7 @@ impl ForgeQueryProgramTrace {
     pub(crate) fn new(
         program_id: impl Into<String>,
         operation_id: impl Into<String>,
-        bound_inputs: &BTreeMap<String, Value>,
+        bound_inputs: &BTreeMap<String, ForgeQueryProgramValue>,
         authority_requirements: Vec<ForgeQueryAuthorityRequirement>,
     ) -> Self {
         Self {
@@ -609,7 +847,7 @@ impl std::error::Error for ForgeQueryProgramError {}
 pub(crate) fn validate_inputs(
     operation: &ForgeQueryOperation,
     inputs: &[ForgeQueryOperationInput],
-) -> Result<BTreeMap<String, Value>, ForgeQueryProgramError> {
+) -> Result<BTreeMap<String, ForgeQueryProgramValue>, ForgeQueryProgramError> {
     let provided = inputs
         .iter()
         .map(|input| (input.name(), input.value()))
@@ -637,17 +875,211 @@ pub(crate) fn validate_inputs(
     Ok(bound)
 }
 
-fn expect_string(value: Value, label: &str) -> Result<String, ForgeQueryProgramError> {
-    value.as_str().map(ToOwned::to_owned).ok_or_else(|| {
+fn expect_string(
+    value: ForgeQueryProgramValue,
+    label: &str,
+) -> Result<String, ForgeQueryProgramError> {
+    value.string_value().map(ToOwned::to_owned).ok_or_else(|| {
         ForgeQueryProgramError::new(format!("bound `{label}` must evaluate to a string"))
     })
 }
 
-fn value_matches_port(value: &Value, port_type: &ForgeQueryPortType) -> bool {
+fn value_matches_port(value: &ForgeQueryProgramValue, port_type: &ForgeQueryPortType) -> bool {
     match port_type {
         ForgeQueryPortType::String | ForgeQueryPortType::EntityIdentity => value.is_string(),
-        ForgeQueryPortType::Integer => value.is_i64() || value.is_u64(),
+        ForgeQueryPortType::Integer => value.is_integer(),
         ForgeQueryPortType::Boolean => value.is_boolean(),
-        ForgeQueryPortType::Json => true,
+        ForgeQueryPortType::ProgramValue => true,
+    }
+}
+
+fn program_value_tree_from_live_read_entity(row: &ForgeQueryEntity) -> ForgeQueryProgramValueTree {
+    let mut fields = BTreeMap::new();
+    for (field_path, value) in row.native_field_values() {
+        insert_program_field_path(
+            &mut fields,
+            field_path,
+            program_value_tree_from_aspect_value(value),
+        );
+    }
+    ForgeQueryProgramValueTree::Object(fields)
+}
+
+fn insert_program_field_path(
+    target: &mut BTreeMap<String, ForgeQueryProgramValueTree>,
+    field_path: &CanonicalFieldPath,
+    value: ForgeQueryProgramValueTree,
+) {
+    let segments = field_path
+        .fields()
+        .iter()
+        .map(|field| field.as_str().to_owned())
+        .collect::<Vec<_>>();
+    insert_program_path_segments(target, &segments, value);
+}
+
+fn insert_program_path_segments(
+    target: &mut BTreeMap<String, ForgeQueryProgramValueTree>,
+    segments: &[String],
+    value: ForgeQueryProgramValueTree,
+) {
+    let Some((head, tail)) = segments.split_first() else {
+        return;
+    };
+    if tail.is_empty() {
+        target.insert(head.clone(), value);
+        return;
+    }
+
+    let entry = target
+        .entry(head.clone())
+        .or_insert_with(|| ForgeQueryProgramValueTree::Object(BTreeMap::new()));
+    let ForgeQueryProgramValueTree::Object(fields) = entry else {
+        *entry = ForgeQueryProgramValueTree::Object(BTreeMap::new());
+        let ForgeQueryProgramValueTree::Object(fields) = entry else {
+            unreachable!("program path segment was just replaced with an object");
+        };
+        insert_program_path_segments(fields, tail, value);
+        return;
+    };
+    insert_program_path_segments(fields, tail, value);
+}
+
+fn program_value_tree_at_field_path<'a>(
+    value: &'a ForgeQueryProgramValueTree,
+    field_path: &CanonicalFieldPath,
+) -> Option<&'a ForgeQueryProgramValueTree> {
+    let mut current = value;
+    for field in field_path.fields() {
+        let ForgeQueryProgramValueTree::Object(fields) = current else {
+            return None;
+        };
+        current = fields.get(field.as_str())?;
+    }
+    Some(current)
+}
+
+fn program_value_tree_from_aspect_value(value: &AspectValue) -> ForgeQueryProgramValueTree {
+    match value {
+        AspectValue::Null => ForgeQueryProgramValueTree::Null,
+        AspectValue::Bool(value) => ForgeQueryProgramValueTree::Bool(*value),
+        AspectValue::Int8(value) => ForgeQueryProgramValueTree::Number(value.to_string()),
+        AspectValue::Int16(value) => ForgeQueryProgramValueTree::Number(value.to_string()),
+        AspectValue::Int32(value) => ForgeQueryProgramValueTree::Number(value.to_string()),
+        AspectValue::Int64(value) => ForgeQueryProgramValueTree::Number(value.to_string()),
+        AspectValue::UInt8(value) => ForgeQueryProgramValueTree::Number(value.to_string()),
+        AspectValue::UInt16(value) => ForgeQueryProgramValueTree::Number(value.to_string()),
+        AspectValue::UInt32(value) => ForgeQueryProgramValueTree::Number(value.to_string()),
+        AspectValue::UInt64(value) => ForgeQueryProgramValueTree::Number(value.to_string()),
+        AspectValue::Float32(value) => {
+            program_number_tree_from_float(f32::from_bits(value.bits()) as f64)
+        }
+        AspectValue::Float64(value) => program_number_tree_from_float(f64::from_bits(value.bits())),
+        AspectValue::String(value) => {
+            ForgeQueryProgramValueTree::String(interned_string_text(value))
+        }
+        other => ForgeQueryProgramValueTree::String(format!("{other:?}")),
+    }
+}
+
+fn program_number_tree_from_float(value: f64) -> ForgeQueryProgramValueTree {
+    if value.is_finite() {
+        ForgeQueryProgramValueTree::Number(value.to_string())
+    } else {
+        ForgeQueryProgramValueTree::Null
+    }
+}
+
+fn interned_string_text(value: &InternedString) -> String {
+    match value {
+        InternedString::Raw(value) => value.clone(),
+        InternedString::Symbol(symbol) => format!("symbol:{}", symbol.0),
+    }
+}
+
+fn is_canonical_number_text(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    let mut index = 0;
+    if bytes.is_empty() {
+        return false;
+    }
+    if bytes[index] == b'-' {
+        index += 1;
+        if index == bytes.len() {
+            return false;
+        }
+    }
+    match bytes[index] {
+        b'0' => {
+            index += 1;
+            if index < bytes.len() && bytes[index].is_ascii_digit() {
+                return false;
+            }
+        }
+        b'1'..=b'9' => {
+            index += 1;
+            while index < bytes.len() && bytes[index].is_ascii_digit() {
+                index += 1;
+            }
+        }
+        _ => return false,
+    }
+    if index < bytes.len() && bytes[index] == b'.' {
+        index += 1;
+        if index == bytes.len() || !bytes[index].is_ascii_digit() {
+            return false;
+        }
+        while index < bytes.len() && bytes[index].is_ascii_digit() {
+            index += 1;
+        }
+    }
+    if index < bytes.len() && matches!(bytes[index], b'e' | b'E') {
+        index += 1;
+        if index < bytes.len() && matches!(bytes[index], b'+' | b'-') {
+            index += 1;
+        }
+        if index == bytes.len() || !bytes[index].is_ascii_digit() {
+            return false;
+        }
+        while index < bytes.len() && bytes[index].is_ascii_digit() {
+            index += 1;
+        }
+    }
+    index == bytes.len()
+}
+
+fn foundational_scalar_value_from_program_value_tree(
+    value: &ForgeQueryProgramValueTree,
+) -> Result<AspectValue, ForgeQueryProgramError> {
+    match value {
+        ForgeQueryProgramValueTree::Null => Ok(AspectValue::Null),
+        ForgeQueryProgramValueTree::Bool(value) => Ok(AspectValue::Bool(*value)),
+        ForgeQueryProgramValueTree::Number(value) => {
+            if let Ok(value) = value.parse::<i64>() {
+                Ok(AspectValue::Int64(value))
+            } else if let Ok(value) = value.parse::<u64>() {
+                Ok(AspectValue::UInt64(value))
+            } else if let Ok(value) = value.parse::<f64>() {
+                if !value.is_finite() {
+                    return Err(ForgeQueryProgramError::new(
+                        "program scalar aspect value number must be finite",
+                    ));
+                }
+                Ok(AspectValue::Float64(CanonicalF64::from_f64(value)))
+            } else {
+                Err(ForgeQueryProgramError::new(format!(
+                    "program scalar aspect value number `{value}` is invalid"
+                )))
+            }
+        }
+        ForgeQueryProgramValueTree::String(value) => {
+            Ok(crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value.clone()))
+        }
+        ForgeQueryProgramValueTree::Array(_) => Err(ForgeQueryProgramError::new(
+            "program scalar aspect value cannot be an array",
+        )),
+        ForgeQueryProgramValueTree::Object(_) => Err(ForgeQueryProgramError::new(
+            "program scalar aspect value cannot be an object",
+        )),
     }
 }

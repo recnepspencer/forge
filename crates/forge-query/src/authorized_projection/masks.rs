@@ -24,7 +24,7 @@ impl ProjectionVisibility {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PolicyAspectMask {
-    entries: BTreeMap<String, ProjectionVisibility>,
+    entries: BTreeMap<AspectFieldKey, ProjectionVisibility>,
 }
 
 impl PolicyAspectMask {
@@ -34,36 +34,20 @@ impl PolicyAspectMask {
         }
     }
 
-    pub fn with_masked(mut self, aspect: impl AsRef<str>, field: impl AsRef<str>) -> Self {
-        self.entries.insert(
-            key_from_parts(aspect.as_ref(), field.as_ref()),
-            ProjectionVisibility::Masked,
-        );
+    pub fn with_masked(mut self, field: AspectFieldKey) -> Self {
+        self.entries.insert(field, ProjectionVisibility::Masked);
         self
     }
 
-    pub fn with_non_disclosing_use_only(
-        mut self,
-        aspect: impl AsRef<str>,
-        field: impl AsRef<str>,
-    ) -> Self {
-        self.entries.insert(
-            key_from_parts(aspect.as_ref(), field.as_ref()),
-            ProjectionVisibility::NonDisclosingUseOnly,
-        );
+    pub fn with_non_disclosing_use_only(mut self, field: AspectFieldKey) -> Self {
+        self.entries
+            .insert(field, ProjectionVisibility::NonDisclosingUseOnly);
         self
     }
 
     pub fn visibility_for(&self, key: &AspectFieldKey) -> ProjectionVisibility {
         self.entries
-            .get(&key_from_parts(key.aspect().as_str(), key.field().as_str()))
-            .copied()
-            .unwrap_or(ProjectionVisibility::Visible)
-    }
-
-    pub(crate) fn visibility_for_parts(&self, aspect: &str, field: &str) -> ProjectionVisibility {
-        self.entries
-            .get(&key_from_parts(aspect, field))
+            .get(key)
             .copied()
             .unwrap_or(ProjectionVisibility::Visible)
     }
@@ -84,11 +68,14 @@ impl PolicyAspectMask {
 
     pub(crate) fn digest_parts(&self) -> Vec<String> {
         let mut parts = vec!["policy_aspect_mask".to_string()];
-        parts.extend(
-            self.entries
-                .iter()
-                .map(|(field, visibility)| format!("{field}:{}", visibility.as_str())),
-        );
+        parts.extend(self.entries.iter().map(|(field, visibility)| {
+            format!(
+                "{}.{}:{}",
+                field.aspect().as_str(),
+                field.field().as_str(),
+                visibility.as_str()
+            )
+        }));
         parts
     }
 }
@@ -126,8 +113,4 @@ impl PolicyMaskSnapshot {
     pub(crate) fn mask(&self) -> &PolicyAspectMask {
         &self.mask
     }
-}
-
-fn key_from_parts(aspect: &str, field: &str) -> String {
-    format!("{aspect}.{field}")
 }

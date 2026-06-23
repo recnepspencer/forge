@@ -1,3 +1,4 @@
+use forge_foundational::facade::{AspectKey, FieldKey};
 use forge_query::facade::runtime::{
     derive_graph_read_access_requirements, explain_boolean_selectivity_shape_for_family,
     explain_graph_read_access_requirement_outcome_for_family_with_operation_registry,
@@ -18,6 +19,14 @@ use forge_query::facade::{
 mod support;
 
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
+
+fn aspect_key(value: &str) -> AspectKey {
+    AspectKey::new(value).expect("test aspect key should be valid")
+}
+
+fn field_key(value: &str) -> FieldKey {
+    FieldKey::new(value).expect("test field key should be valid")
+}
 
 #[test]
 fn checked_requirement_derivation_rejects_mismatched_proof_artifacts() {
@@ -104,13 +113,13 @@ fn predicate_and_ordering_authorities_name_exact_schema_fields() {
         .ordering_field_authorities();
 
     assert_eq!(predicate.len(), 1);
-    assert_eq!(predicate[0].aspect(), "status");
-    assert_eq!(predicate[0].field(), "value");
+    assert_eq!(predicate[0].native_aspect_key(), &aspect_key("status"));
+    assert_eq!(predicate[0].native_field_key(), &field_key("value"));
     assert_eq!(predicate[0].field_kind(), "string");
     assert!(!predicate[0].schema_basis_digest().is_empty());
     assert_eq!(ordering.len(), 1);
-    assert_eq!(ordering[0].aspect(), "profile");
-    assert_eq!(ordering[0].field(), "display_name");
+    assert_eq!(ordering[0].native_aspect_key(), &aspect_key("profile"));
+    assert_eq!(ordering[0].native_field_key(), &field_key("display_name"));
     assert_eq!(ordering[0].direction(), "ascending");
     assert_eq!(ordering[0].field_kind(), "string");
     assert!(!ordering[0].schema_basis_digest().is_empty());
@@ -290,11 +299,16 @@ fn relation_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "graph-read-access-phase-four-relation",
         [SchemaFieldView::new(
-            "identity",
-            "id",
+            forge_query::facade::AspectName::new("identity")
+                .expect("schema aspect literal must be valid"),
+            forge_query::facade::FieldName::new("id").expect("schema field literal must be valid"),
             SchemaFieldKind::String,
         )],
-        [SchemaRelationView::new("manager", 2)],
+        [SchemaRelationView::new(
+            forge_query::facade::RelationName::new("manager")
+                .expect("schema relation literal must be valid"),
+            2,
+        )],
     )
 }
 
@@ -302,13 +316,39 @@ fn two_relation_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "graph-read-access-phase-four-two-relation",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
-            SchemaFieldView::new("status", "value", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("id")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("status")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("value")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
         [
-            SchemaRelationView::new("manager", 2),
-            SchemaRelationView::new("mentor", 2),
+            SchemaRelationView::new(
+                forge_query::facade::RelationName::new("manager")
+                    .expect("schema relation literal must be valid"),
+                2,
+            ),
+            SchemaRelationView::new(
+                forge_query::facade::RelationName::new("mentor")
+                    .expect("schema relation literal must be valid"),
+                2,
+            ),
         ],
     )
 }

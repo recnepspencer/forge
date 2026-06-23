@@ -29,8 +29,10 @@ mod journal_replay;
 #[allow(deprecated)]
 mod live;
 mod live_artifacts;
+mod live_grouped_inspection;
 #[allow(deprecated)]
 mod live_receipts;
+mod live_redeclaration;
 mod live_state;
 #[allow(deprecated)]
 mod lower_runtime_routes;

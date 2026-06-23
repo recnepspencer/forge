@@ -84,13 +84,21 @@ fn bridge_backed_entity_verification_rows_match_runtime_behavior() {
         .workspace("tasks.bridge-backed-entity-verification-support")
         .expect("workspace should open");
     let support = workspace.public_authoritative_mutation_evidence_support();
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view(
             "tasks.bridge-backed-entity-verification-support-table",
             |q| {
                 q.from("Task")
-                    .select(["identity.id", "status.value"])
-                    .order_by("identity.id")
+                    .select([
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("status", "value")
+                            .unwrap(),
+                    ])
+                    .order_by(
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                    )
                     .schema_basis("tasks-bridge-backed-entity-verification-support-table")
             },
         )
@@ -98,9 +106,18 @@ fn bridge_backed_entity_verification_rows_match_runtime_behavior() {
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Task one")
-                .aspect("status.value", "open")
+            task.set_aspect(
+                test_aspect_touch("identity.id"),
+                test_authored_string_aspect_value("task-1"),
+            )
+            .set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("Task one"),
+            )
+            .set_aspect(
+                test_aspect_touch("status.value"),
+                test_authored_string_aspect_value("open"),
+            )
         })
         .expect("seed insert should execute");
     let binding = workspace
@@ -129,23 +146,43 @@ fn bridge_backed_entity_verification_rows_match_runtime_behavior() {
     }
 
     workspace
-        .verify_existing(binding.clone(), |task| task.aspect("status.value", "open"))
+        .verify_existing(binding.clone(), |task| {
+            task.set_aspect(
+                test_aspect_touch("status.value"),
+                test_authored_string_aspect_value("open"),
+            )
+        })
         .expect("entity verify_existing should execute");
     workspace
-        .probe_existing(binding.clone(), ["status.value"])
+        .probe_existing(binding.clone(), test_aspect_touches(["status.value"]))
         .expect("entity probe_existing should execute");
     workspace
         .update_existing_verified(
             binding.clone(),
-            |verify| verify.aspect("status.value", "open"),
-            |update| update.aspect("status.value", "closed"),
+            |verify| {
+                verify.set_aspect(
+                    test_aspect_touch("status.value"),
+                    test_authored_string_aspect_value("open"),
+                )
+            },
+            |update| {
+                update.set_aspect(
+                    test_aspect_touch("status.value"),
+                    test_authored_string_aspect_value("closed"),
+                )
+            },
         )
         .expect("entity update_existing_verified should execute");
     workspace
         .delete_existing_verified(
             binding,
-            |verify| verify.aspect("status.value", "closed"),
-            |delete| delete.touch("status.value"),
+            |verify| {
+                verify.set_aspect(
+                    test_aspect_touch("status.value"),
+                    test_authored_string_aspect_value("closed"),
+                )
+            },
+            |delete| delete.touch(test_aspect_touch("status.value")),
         )
         .expect("entity delete_existing_verified should execute");
 }
@@ -156,13 +193,21 @@ fn bridge_backed_relation_verification_rows_match_runtime_behavior() {
         .workspace("tasks.bridge-backed-relation-verification-support")
         .expect("workspace should open");
     let support = workspace.public_authoritative_mutation_evidence_support();
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view(
             "tasks.bridge-backed-relation-verification-support-table",
             |q| {
                 q.from("TaskRelation")
-                    .select(["identity.id", "status.value"])
-                    .order_by("identity.id")
+                    .select([
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("status", "value")
+                            .unwrap(),
+                    ])
+                    .order_by(
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                    )
                     .schema_basis("tasks-bridge-backed-relation-verification-support-table")
             },
         )
@@ -171,9 +216,18 @@ fn bridge_backed_relation_verification_rows_match_runtime_behavior() {
     let seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect("identity.id", "rel-1")
-                .aspect("kind.value", "depends_on")
-                .aspect("status.value", "active")
+                .set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("rel-1"),
+                )
+                .set_aspect(
+                    test_aspect_touch("kind.value"),
+                    test_authored_string_aspect_value("depends_on"),
+                )
+                .set_aspect(
+                    test_aspect_touch("status.value"),
+                    test_authored_string_aspect_value("active"),
+                )
         })
         .expect("seed insert should execute");
     let binding = workspace
@@ -203,24 +257,42 @@ fn bridge_backed_relation_verification_rows_match_runtime_behavior() {
 
     workspace
         .verify_existing(binding.clone(), |relation| {
-            relation.aspect("status.value", "active")
+            relation.set_aspect(
+                test_aspect_touch("status.value"),
+                test_authored_string_aspect_value("active"),
+            )
         })
         .expect("relation verify_existing should execute");
     workspace
-        .probe_existing(binding.clone(), ["status.value"])
+        .probe_existing(binding.clone(), test_aspect_touches(["status.value"]))
         .expect("relation probe_existing should execute");
     workspace
         .update_existing_verified(
             binding.clone(),
-            |verify| verify.aspect("status.value", "active"),
-            |update| update.aspect("status.value", "retired"),
+            |verify| {
+                verify.set_aspect(
+                    test_aspect_touch("status.value"),
+                    test_authored_string_aspect_value("active"),
+                )
+            },
+            |update| {
+                update.set_aspect(
+                    test_aspect_touch("status.value"),
+                    test_authored_string_aspect_value("retired"),
+                )
+            },
         )
         .expect("relation update_existing_verified should execute");
     workspace
         .delete_existing_verified(
             binding,
-            |verify| verify.aspect("status.value", "retired"),
-            |delete| delete.touch("status.value"),
+            |verify| {
+                verify.set_aspect(
+                    test_aspect_touch("status.value"),
+                    test_authored_string_aspect_value("retired"),
+                )
+            },
+            |delete| delete.touch(test_aspect_touch("status.value")),
         )
         .expect("relation delete_existing_verified should execute");
 }
@@ -257,20 +329,20 @@ fn primary_entity_bridge_backed_verification_rows_match_runtime_denials() {
     );
 
     assert!(matches!(
-        workspace.verify_existing(binding.clone(), |task| task.aspect("status.value", "open")),
+        workspace.verify_existing(binding.clone(), |task| task.set_aspect(test_aspect_touch("status.value"), test_authored_string_aspect_value("open"))),
         Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial))
             if denial.kind() == ForgeQueryExistingTruthAssertionDenialKind::BackendVerificationUnsupported
     ));
     assert!(matches!(
-        workspace.probe_existing(binding.clone(), ["status.value"]),
+        workspace.probe_existing(binding.clone(), test_aspect_touches(["status.value"])),
         Err(ForgeQueryRuntimeError::ExistingTruthProbeDenied(denial))
             if denial.kind() == ForgeQueryExistingTruthProbeDenialKind::BackendProbeUnsupported
     ));
     assert!(matches!(
         workspace.update_existing_verified(
             binding.clone(),
-            |verify| verify.aspect("status.value", "open"),
-            |update| update.aspect("status.value", "closed"),
+            |verify| verify.set_aspect(test_aspect_touch("status.value"), test_authored_string_aspect_value("open")),
+            |update| update.set_aspect(test_aspect_touch("status.value"), test_authored_string_aspect_value("closed")),
         ),
         Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial))
             if denial.kind() == ForgeQueryExistingTruthAssertionDenialKind::BackendVerificationUnsupported
@@ -278,8 +350,8 @@ fn primary_entity_bridge_backed_verification_rows_match_runtime_denials() {
     assert!(matches!(
         workspace.delete_existing_verified(
             binding,
-            |verify| verify.aspect("status.value", "closed"),
-            |delete| delete.touch("status.value"),
+            |verify| verify.set_aspect(test_aspect_touch("status.value"), test_authored_string_aspect_value("closed")),
+            |delete| delete.touch(test_aspect_touch("status.value")),
         ),
         Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial))
             if denial.kind() == ForgeQueryExistingTruthAssertionDenialKind::BackendVerificationUnsupported
@@ -321,20 +393,20 @@ fn primary_relation_bridge_backed_verification_rows_match_runtime_denials() {
     );
 
     assert!(matches!(
-        workspace.verify_existing(binding.clone(), |relation| relation.aspect("kind.value", "depends_on")),
+        workspace.verify_existing(binding.clone(), |relation| relation.set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("depends_on"))),
         Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial))
             if denial.kind() == ForgeQueryExistingTruthAssertionDenialKind::BackendVerificationUnsupported
     ));
     assert!(matches!(
-        workspace.probe_existing(binding.clone(), ["kind.value"]),
+        workspace.probe_existing(binding.clone(), test_aspect_touches(["kind.value"])),
         Err(ForgeQueryRuntimeError::ExistingTruthProbeDenied(denial))
             if denial.kind() == ForgeQueryExistingTruthProbeDenialKind::BackendProbeUnsupported
     ));
     assert!(matches!(
         workspace.update_existing_verified(
             binding.clone(),
-            |verify| verify.aspect("kind.value", "depends_on"),
-            |update| update.aspect("kind.value", "blocked_by"),
+            |verify| verify.set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("depends_on")),
+            |update| update.set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("blocked_by")),
         ),
         Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial))
             if denial.kind() == ForgeQueryExistingTruthAssertionDenialKind::BackendVerificationUnsupported
@@ -342,8 +414,8 @@ fn primary_relation_bridge_backed_verification_rows_match_runtime_denials() {
     assert!(matches!(
         workspace.delete_existing_verified(
             binding,
-            |verify| verify.aspect("kind.value", "depends_on"),
-            |delete| delete.touch("kind.value"),
+            |verify| verify.set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("depends_on")),
+            |delete| delete.touch(test_aspect_touch("kind.value")),
         ),
         Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial))
             if denial.kind() == ForgeQueryExistingTruthAssertionDenialKind::BackendVerificationUnsupported

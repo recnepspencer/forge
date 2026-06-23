@@ -9,13 +9,17 @@ fn compose_graph_denies_existing_target_collection_mismatch_typed_and_early() {
     let mut workspace = task_relation_runtime()
         .workspace("tasks.graph-composition-existing-target-collection-mismatch")
         .expect("runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view(
             "tasks.graph-composition-existing-target-collection-mismatch-relations",
             |q| {
                 q.from("TaskRelation")
-                    .select(["identity.id", "kind.value", "status.value"])
-                    .order_by("identity.id")
+                    .select([
+                        identity_id_field_key(),
+                        kind_value_field_key(),
+                        status_value_field_key(),
+                    ])
+                    .order_by(identity_id_field_key())
                     .schema_basis(
                         "tasks-graph-composition-existing-target-collection-mismatch-relations",
                     )
@@ -25,9 +29,18 @@ fn compose_graph_denies_existing_target_collection_mismatch_typed_and_early() {
     let relation_seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect("identity.id", "rel-update")
-                .aspect("kind.value", "depends_on")
-                .aspect("status.value", "open")
+                .set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("rel-update"),
+                )
+                .set_aspect(
+                    test_aspect_touch("kind.value"),
+                    test_authored_string_aspect_value("depends_on"),
+                )
+                .set_aspect(
+                    test_aspect_touch("status.value"),
+                    test_authored_string_aspect_value("open"),
+                )
         })
         .expect("relation seed should execute");
     let binding = workspace
@@ -45,7 +58,10 @@ fn compose_graph_denies_existing_target_collection_mismatch_typed_and_early() {
     let error = workspace
         .compose_graph(|graph| {
             graph.update_existing(binding, |relation| {
-                relation.aspect("status.value", "closed")
+                relation.set_aspect(
+                    test_aspect_touch("status.value"),
+                    test_authored_string_aspect_value("closed"),
+                )
             })?;
             Ok(())
         })
@@ -100,7 +116,7 @@ fn compose_graph_denies_existing_target_missing_row_typed_and_early() {
     let error = workspace
         .compose_graph(|graph| {
             graph.delete_existing(binding, |delete| {
-                delete.touches(["kind.value", "status.value"])
+                delete.touches(test_aspect_touches(["kind.value", "status.value"]))
             })?;
             Ok(())
         })

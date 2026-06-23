@@ -5,7 +5,7 @@ use forge_foundational::facade::AspectKey;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ViewShapeDescriptor {
     family: ViewShapeFamily,
-    focused_aspect: Option<String>,
+    focused_aspect: Option<AspectKey>,
     grouping_aspect: Option<AspectKey>,
     identity_consumption: ViewShapeIdentityConsumption,
 }
@@ -38,10 +38,10 @@ impl ViewShapeDescriptor {
         }
     }
 
-    pub fn inspector_detail_focused(focused_aspect: impl Into<String>) -> Self {
+    pub fn inspector_detail_focused(focused_aspect: AspectKey) -> Self {
         Self {
             family: ViewShapeFamily::InspectorDetailFocused,
-            focused_aspect: Some(focused_aspect.into()),
+            focused_aspect: Some(focused_aspect),
             grouping_aspect: None,
             identity_consumption: ViewShapeIdentityConsumption::none(),
         }
@@ -57,12 +57,12 @@ impl ViewShapeDescriptor {
     }
 
     pub fn identity_aware_inspector_detail_focused(
-        focused_aspect: impl Into<String>,
+        focused_aspect: AspectKey,
         classification: crate::identity_evolution::InspectorIdentityClassification,
     ) -> Self {
         Self {
             family: ViewShapeFamily::InspectorDetailFocused,
-            focused_aspect: Some(focused_aspect.into()),
+            focused_aspect: Some(focused_aspect),
             grouping_aspect: None,
             identity_consumption:
                 ViewShapeIdentityConsumption::focused_inspector_identity_classification(
@@ -84,12 +84,8 @@ impl ViewShapeDescriptor {
         self.family
     }
 
-    pub fn focused_aspect(&self) -> Option<&str> {
-        self.focused_aspect.as_deref()
-    }
-
-    pub fn grouping_aspect(&self) -> Option<&str> {
-        self.grouping_aspect.as_ref().map(AspectKey::as_str)
+    pub fn native_focused_aspect_key(&self) -> Option<&AspectKey> {
+        self.focused_aspect.as_ref()
     }
 
     pub fn native_grouping_aspect_key(&self) -> Option<&AspectKey> {

@@ -5,13 +5,13 @@ mod support;
 
 use forge_query::facade::runtime::{
     plan_admitted_graph_read_access_for_family, ForgeQueryLiveGraphReadAccessPosture,
-    ForgeQueryLiveGraphReadMaintenanceBudget, QueryPatchGroupKind,
+    ForgeQueryLiveGraphReadMaintenanceBudget, ForgeQueryNativeRow, QueryPatchGroupKind,
 };
-use serde_json::Value;
 
 use graph_read_access_cost_model_support::{
     dense_traversal_family, simple_traversal_family, workspace,
 };
+use support::aspect_touch as touch;
 
 #[test]
 fn live_plan_preserves_one_shot_access_shape_and_required_index_digests() {
@@ -95,11 +95,19 @@ fn dense_live_planning_denial_still_returns_live_specific_support_posture() {
 fn live_read_receipt_exposes_live_graph_access_counters() {
     let mut workspace = workspace("phase-thirteen-live-receipt");
     let live_view = workspace
-        .live_view::<Value>("tasks.table", |query| {
+        .live_view::<ForgeQueryNativeRow>("tasks.table", |query| {
             query
                 .from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("phase-thirteen-live-receipt")
         })
         .expect("live view should declare");
@@ -130,19 +138,27 @@ fn live_read_receipt_exposes_live_graph_access_counters() {
 fn live_mutation_delivery_carries_graph_read_maintenance_receipt() {
     let mut workspace = workspace("phase-thirteen-live-mutation-maintenance");
     let live_view = workspace
-        .live_view::<Value>("tasks.table", |query| {
+        .live_view::<ForgeQueryNativeRow>("tasks.table", |query| {
             query
                 .from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("phase-thirteen-live-mutation-maintenance")
         })
         .expect("live view should declare");
 
     workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-maintained")
-                .aspect("title.value", "Maintained task")
+            task.set_aspect(touch("identity.id"), authored_text("task-maintained"))
+                .set_aspect(touch("title.value"), authored_text("Maintained task"))
         })
         .expect("insert should execute through the public runtime");
 
@@ -182,19 +198,27 @@ fn live_mutation_delivery_carries_graph_read_maintenance_receipt() {
 fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery() {
     let mut workspace = workspace("phase-thirteen-live-update-maintenance");
     let live_view = workspace
-        .live_view::<Value>("tasks.update.table", |query| {
+        .live_view::<ForgeQueryNativeRow>("tasks.update.table", |query| {
             query
                 .from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("phase-thirteen-live-update-maintenance")
         })
         .expect("live view should declare");
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-updated")
-                .aspect("title.value", "Original title")
-                .aspect("description.value", "hidden")
+            task.set_aspect(touch("identity.id"), authored_text("task-updated"))
+                .set_aspect(touch("title.value"), authored_text("Original title"))
+                .set_aspect(touch("description.value"), authored_text("hidden"))
         })
         .expect("seed insert should execute");
     let entity_identity = seed.deltas()[0].entity_identity().clone();
@@ -202,7 +226,7 @@ fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery
 
     workspace
         .update(entity_identity.clone(), |task| {
-            task.aspect("title.value", "Updated title")
+            task.set_aspect(touch("title.value"), authored_text("Updated title"))
         })
         .expect("projected update should execute");
     let projected = workspace.observe(&live_view);
@@ -213,7 +237,7 @@ fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery
 
     workspace
         .update(entity_identity, |task| {
-            task.aspect("description.value", "hidden again")
+            task.set_aspect(touch("description.value"), authored_text("hidden again"))
         })
         .expect("hidden update should execute");
     let hidden_only = workspace.observe(&live_view);
@@ -238,4 +262,8 @@ fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery
     assert_eq!(projected_counters.strategy_recompute_count(), 0);
     assert_eq!(projected_counters.background_index_build_count(), 0);
     assert!(hidden_only.query_delivery_batches.is_empty());
+}
+
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
 }

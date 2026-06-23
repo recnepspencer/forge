@@ -1,0 +1,5 @@
+error[E0599]: no method named `terminal_asserted_aspect_paths_projection` found for reference `&ForgeQueryVerifiedAssumptionSet` in the current scope
+ --> tests/ui/aspect_native_query/verified_assumption_terminal_asserted_aspect_paths_projection_removed.rs:4:25
+  |
+4 |     let _ = assumptions.terminal_asserted_aspect_paths_projection();
+  |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryVerifiedAssumptionSet`

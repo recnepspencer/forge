@@ -51,10 +51,26 @@ fn relation_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "graph-index-inventory-test-schema",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("status", "value", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("id")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("status")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("value")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
-        [SchemaRelationView::new("manager", 2)],
+        [SchemaRelationView::new(
+            forge_query::facade::RelationName::new("manager")
+                .expect("schema relation literal must be valid"),
+            2,
+        )],
     )
 }
 

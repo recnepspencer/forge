@@ -5,6 +5,7 @@ use std::sync::{
 
 use crate::projection_consumption::ProjectionFactConsumptionAttempt;
 use crate::runtime::tests::support::*;
+use forge_foundational::facade::InternedString;
 
 #[derive(Clone)]
 struct HostileCertificationMaintainer {
@@ -25,15 +26,16 @@ impl ForgeQueryDerivedViewMaintainer for HostileCertificationMaintainer {
             .get(next)
             .copied()
             .unwrap_or(self.titles[self.titles.len() - 1]);
-        materialization.replace_rows([json!({ "title": { "value": title } })]);
+        let retained_row = retained_string_test_row("title.value", title);
+        materialization.replace_retained_rows([retained_row.clone()]);
         ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
             crate::memory_workspace::admit_external_commit_label(format!(
                 "hostile-certification-refresh-{}",
                 next + 1
             )),
-            ["title.value".to_string()],
-            json!({ "published": true, "title": title }),
+            [test_aspect_touch("title.value")],
+            ForgeQueryDerivedPatchPayload::from_retained_row(retained_row),
             format!("hostile-certification-publication-{}", next + 1),
         )
     }
@@ -78,7 +80,7 @@ enum PublishedArtifactSlot {
 
 struct HostileExecutionState {
     workspace: ForgeQueryWorkspace,
-    derived: ForgeQueryDerivedViewHandle<Value>,
+    derived: ForgeQueryDerivedViewHandle<ForgeQueryNativeRow>,
     invocations: Arc<AtomicUsize>,
     receipt_summaries: Vec<String>,
     reader_results: Vec<String>,
@@ -160,7 +162,7 @@ impl HostileExecutionState {
         let mut workspace = stateful_bridge_task_runtime()
             .workspace("runtime.tests.hostile-certification")
             .expect("workspace should build");
-        let live: ForgeQueryLiveView<Value> = workspace
+        let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
             .live_view_request(
                 "tasks.hostile-certification",
                 task_live_request(),
@@ -172,7 +174,7 @@ impl HostileExecutionState {
             .computed_view(
                 crate::program::ForgeQueryDerivedView::new(
                     "derived.hostile-certification",
-                    ["title.value".to_string()],
+                    [test_aspect_touch("title.value")],
                 )
                 .depends_on_live(&live),
                 HostileCertificationMaintainer {
@@ -283,8 +285,14 @@ impl HostileExecutionState {
                 .expect("preview churn should admit");
             preview
                 .insert("Task", |task| {
-                    task.aspect("identity.id", identity)
-                        .aspect("title.value", title)
+                    task.set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value(identity),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("title.value"),
+                        test_authored_string_aspect_value(title),
+                    )
                 })
                 .expect("preview staging should succeed");
             preview.discard()
@@ -359,8 +367,14 @@ impl HostileExecutionState {
                 .expect("preview churn should admit");
             preview
                 .insert("Task", |task| {
-                    task.aspect("identity.id", identity)
-                        .aspect("title.value", title)
+                    task.set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value(identity),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("title.value"),
+                        test_authored_string_aspect_value(title),
+                    )
                 })
                 .expect("preview promotion staging should succeed");
             preview.promote().expect("preview promotion should succeed")
@@ -413,7 +427,11 @@ impl HostileExecutionState {
                 .facts()
                 .display_fields()
                 .first()
-                .and_then(|fact| fact.value().as_str())
+                .and_then(|fact| match fact.value() {
+                    AspectValue::String(InternedString::Raw(value)) => Some(value.as_str()),
+                    AspectValue::String(InternedString::Symbol(_)) => None,
+                    _ => None,
+                })
                 .expect("display title should be present")
                 .to_string(),
             other => panic!("expected admitted published fact consumption, got {other:?}"),

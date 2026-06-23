@@ -55,7 +55,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for InspectingInvariantWriteAuthorit
         &mut self,
         bridge: &RuntimeBridge,
         relational_runtime: Option<&mut RelationalRuntime>,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
         let relational_runtime = relational_runtime
             .expect("query-owned invariant registration should lower a relational runtime");
@@ -80,7 +80,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for InspectingInvariantWriteAuthorit
         assert!(format!("{:?}", result.verdict).contains("Violation"));
 
         let mut authority = TestWriteAuthority;
-        authority.write(bridge, Some(relational_runtime), command)
+        authority.write(bridge, Some(relational_runtime), mutation)
     }
 }
 
@@ -93,7 +93,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for InspectingCatalogWriteAuthority 
         &mut self,
         bridge: &RuntimeBridge,
         relational_runtime: Option<&mut RelationalRuntime>,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
         let relational_runtime = relational_runtime
             .expect("query-owned invariant catalog should lower a relational runtime");
@@ -103,7 +103,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for InspectingCatalogWriteAuthority 
         );
 
         let mut authority = TestWriteAuthority;
-        authority.write(bridge, Some(relational_runtime), command)
+        authority.write(bridge, Some(relational_runtime), mutation)
     }
 }
 
@@ -121,8 +121,11 @@ fn query_builder_register_invariant_lowers_custom_rule_into_relational_runtime()
         .write(insert_command(
             "Task",
             [
-                ("identity.id", serde_json::json!("query-invariant-1")),
-                ("title.value", serde_json::json!("Invariant test task")),
+                ("identity.id", test_string_aspect_value("query-invariant-1")),
+                (
+                    "title.value",
+                    test_string_aspect_value("Invariant test task"),
+                ),
             ],
         ))
         .expect("write should exercise invariant-aware relational runtime");
@@ -149,8 +152,8 @@ fn query_builder_invariant_catalog_lowers_into_relational_runtime_config() {
         .write(insert_command(
             "Task",
             [
-                ("identity.id", serde_json::json!("query-catalog-1")),
-                ("title.value", serde_json::json!("Catalog test task")),
+                ("identity.id", test_string_aspect_value("query-catalog-1")),
+                ("title.value", test_string_aspect_value("Catalog test task")),
             ],
         ))
         .expect("write should expose lowered invariant catalog");
@@ -255,8 +258,11 @@ fn query_builder_accepts_proof_lane_invariant_registration_artifact() {
         .write(insert_command(
             "Task",
             [
-                ("identity.id", serde_json::json!("query-artifact-1")),
-                ("title.value", serde_json::json!("Artifact-backed task")),
+                ("identity.id", test_string_aspect_value("query-artifact-1")),
+                (
+                    "title.value",
+                    test_string_aspect_value("Artifact-backed task"),
+                ),
             ],
         ))
         .expect("artifact-backed invariant registration should lower into runtime config");
@@ -311,8 +317,14 @@ fn query_builder_canonicalizes_and_deduplicates_merged_invariant_catalog_sources
         .write(insert_command(
             "Task",
             [
-                ("identity.id", serde_json::json!("query-canonical-merge-1")),
-                ("title.value", serde_json::json!("Canonical merge task")),
+                (
+                    "identity.id",
+                    test_string_aspect_value("query-canonical-merge-1"),
+                ),
+                (
+                    "title.value",
+                    test_string_aspect_value("Canonical merge task"),
+                ),
             ],
         ))
         .expect("merged invariant catalogs should stay executable");
@@ -324,7 +336,10 @@ fn sample_declaration(name: &str) -> ForgeQueryIntentDeclaration {
         format!("worth.spatial.{name}"),
         "1",
         "worth.spatial.intent",
-        serde_json::json!({ "entity": format!("edge:{name}") }),
+        ForgeQueryIntentInput::object([(
+            "entity",
+            ForgeQueryIntentInput::string(format!("edge:{name}")),
+        )]),
     )
 }
 

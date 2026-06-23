@@ -31,13 +31,13 @@ fn graph_touch_descriptor_is_derived_from_real_graph_builder_and_admission() {
     assert_eq!(descriptor.update_command_count(), 1);
     assert_eq!(descriptor.delete_command_count(), 1);
     assert_eq!(descriptor.declared_collection_count(), 2);
-    assert_eq!(descriptor.declared_aspect_path_count(), 5);
+    assert_eq!(descriptor.declared_aspect_touch_count(), 5);
     assert_eq!(descriptor.touched_aspect_count(), 3);
-    assert!(descriptor.touches_collection("Task"));
-    assert!(descriptor.touches_collection("TaskEdge"));
-    assert!(descriptor.touches_aspect_path("edge.kind"));
-    assert!(descriptor.touches_aspect_path("edge.source_identity"));
-    assert!(descriptor.touches_aspect_path("edge.target_identity"));
+    assert!(descriptor.touches_target_collection(&target_collection("Task")));
+    assert!(descriptor.touches_target_collection(&target_collection("TaskEdge")));
+    assert!(descriptor.touches_aspect(&test_aspect_touch("edge.kind")));
+    assert!(descriptor.touches_aspect(&test_aspect_touch("edge.source_identity")));
+    assert!(descriptor.touches_aspect(&test_aspect_touch("edge.target_identity")));
     assert_eq!(
         descriptor.rows()[3].lifecycle_family(),
         Some(ForgeQueryGraphTouchLifecycleFamily::SameBatchSymbolicRelationRetirement)
@@ -57,10 +57,21 @@ fn graph_touch_descriptor_replay_is_stable_for_equivalent_real_graph_programs() 
 fn ordinary_batch_reuses_touch_vocabulary_without_graph_lifecycle_overclaim() {
     let runtime = stateful_bridge_task_runtime();
     let command = ForgeQueryWriteCommand::InsertAspects {
-        collection: "Task".to_string(),
+        collection: crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+            "write-command-declared",
+            "Task",
+        ),
         aspects: vec![
-            ForgeQueryAspectValue::new("identity.id", "task-ordinary").unwrap(),
-            ForgeQueryAspectValue::new("title.value", "Ordinary task").unwrap(),
+            ForgeQueryAdmittedAspectValue::new(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value("task-ordinary"),
+            )
+            .unwrap(),
+            ForgeQueryAdmittedAspectValue::new(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Ordinary task"),
+            )
+            .unwrap(),
         ],
         symbolic_aspect_references: Vec::new(),
         metadata: ForgeQueryMutationMetadata::new(),
@@ -83,9 +94,9 @@ fn ordinary_batch_reuses_touch_vocabulary_without_graph_lifecycle_overclaim() {
     assert_eq!(descriptor.delete_command_count(), 0);
     assert_eq!(descriptor.rows()[0].program_step_kind(), None);
     assert_eq!(descriptor.rows()[0].lifecycle_family(), None);
-    assert!(descriptor.touches_collection("Task"));
-    assert!(descriptor.touches_aspect_path("identity.id"));
-    assert!(descriptor.touches_aspect_path("title.value"));
+    assert!(descriptor.touches_target_collection(&target_collection("Task")));
+    assert!(descriptor.touches_aspect(&test_aspect_touch("identity.id")));
+    assert!(descriptor.touches_aspect(&test_aspect_touch("title.value")));
 }
 
 fn review_descriptor(
@@ -114,6 +125,10 @@ fn admitted_batch_plan(
     }
 }
 
+fn target_collection(value: &str) -> ForgeQueryMutationTargetCollectionIdentity {
+    ForgeQueryMutationTargetCollectionIdentity::new("graph-touch-descriptor-test", value)
+}
+
 fn mixed_graph_program() -> (
     Vec<ForgeQueryWriteCommand>,
     ForgeQueryGraphCompositionBreadth,
@@ -123,27 +138,45 @@ fn mixed_graph_program() -> (
     let task = graph
         .insert_entity("task", "Task", |entity| {
             entity
-                .aspect("identity.id", "task-touch")
-                .aspect("title.value", "Draft")
+                .set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-touch"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Draft"),
+                )
         })
         .unwrap();
     let edge = graph
         .insert_symbolic_relation("edge", "TaskEdge", |relation| {
             relation
-                .aspect("edge.kind", "depends_on")
-                .symbolic_entity_identity("edge.source_identity", &task)
+                .set_aspect(
+                    test_aspect_touch("edge.kind"),
+                    test_authored_string_aspect_value("depends_on"),
+                )
+                .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &task)
                 .existing_entity_identity(
-                    "edge.target_identity",
+                    test_aspect_touch("edge.target_identity"),
                     test_entity_identity("task-existing"),
                 )
         })
         .unwrap();
     graph
-        .update_entity(&task, |entity| entity.aspect("title.value", "Published"))
+        .update_entity(&task, |entity| {
+            entity.set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("Published"),
+            )
+        })
         .unwrap();
     graph
         .delete_relation(&edge, |delete| {
-            delete.touches(["edge.kind", "edge.source_identity", "edge.target_identity"])
+            delete.touches(test_aspect_touches([
+                "edge.kind",
+                "edge.source_identity",
+                "edge.target_identity",
+            ]))
         })
         .unwrap();
     graph.finish().unwrap()

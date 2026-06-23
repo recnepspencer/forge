@@ -1,3 +1,4 @@
+use crate::support::aspect_touch as touch;
 use forge_query::facade::runtime::ForgeQueryWorkspace;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -55,18 +56,24 @@ pub fn seed_hostile_frontier_graph(
     for index in 0..spec.active_user_count {
         workspace
             .insert("user", |user| {
-                user.aspect("identity.id", user_id(prefix, index))
-                    .aspect("status.value", "active")
-                    .aspect("profile.display_name", format!("User {index:03}"))
+                user.set_aspect(touch("identity.id"), authored_text(user_id(prefix, index)))
+                    .set_aspect(touch("status.value"), authored_text("active"))
+                    .set_aspect(
+                        touch("profile.display_name"),
+                        authored_text(format!("User {index:03}")),
+                    )
             })
             .expect("hostile active user should insert");
     }
     for index in spec.active_user_count..spec.total_user_count() {
         workspace
             .insert("user", |user| {
-                user.aspect("identity.id", user_id(prefix, index))
-                    .aspect("status.value", "inactive")
-                    .aspect("profile.display_name", format!("Decoy {index:03}"))
+                user.set_aspect(touch("identity.id"), authored_text(user_id(prefix, index)))
+                    .set_aspect(touch("status.value"), authored_text("inactive"))
+                    .set_aspect(
+                        touch("profile.display_name"),
+                        authored_text(format!("Decoy {index:03}")),
+                    )
             })
             .expect("hostile decoy user should insert");
     }
@@ -104,12 +111,18 @@ fn seed_relation_edges(
             let target_index = (source_index + branch) % active_user_count;
             workspace
                 .insert(relation, |edge| {
-                    edge.aspect(
-                        "identity.id",
-                        format!("{prefix}-{relation}-{source_index}-{target_index}"),
+                    edge.set_aspect(
+                        touch("identity.id"),
+                        authored_text(format!("{prefix}-{relation}-{source_index}-{target_index}")),
                     )
-                    .aspect("source.id", user_id(prefix, source_index))
-                    .aspect("target.id", user_id(prefix, target_index))
+                    .set_aspect(
+                        touch("source.id"),
+                        authored_text(user_id(prefix, source_index)),
+                    )
+                    .set_aspect(
+                        touch("target.id"),
+                        authored_text(user_id(prefix, target_index)),
+                    )
                 })
                 .expect("hostile relation edge should insert");
             edge_count += 1;
@@ -120,4 +133,8 @@ fn seed_relation_edges(
 
 fn user_id(prefix: &str, index: usize) -> String {
     format!("{prefix}-{index}")
+}
+
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
 }

@@ -21,8 +21,8 @@ pub struct ForgeQueryIntentInspectionDeliveryCounters {
 
 impl ForgeQueryIntentInspectionDeliveryCounters {
     pub(in crate::runtime) fn from_receipt(receipt: &ForgeQueryIntentReceipt) -> Self {
-        let affected_live_view_count = receipt.affected_live_view_ids().len();
-        let affected_derived_view_count = receipt.affected_derived_view_ids().len();
+        let affected_live_view_count = receipt.affected_live_view_targets().len();
+        let affected_derived_view_count = receipt.affected_derived_view_targets().len();
         let considered_computed_view_count = receipt.considered_computed_view_count();
         let considered_effect_count = receipt.considered_effect_count();
         let delivered_effect_count = receipt.delivered_effect_count();

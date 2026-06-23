@@ -1,9 +1,11 @@
-mod aspect_value_projection;
+mod consumed_scalar_value;
 mod grouped;
 mod live_binding;
 mod query_context;
 mod retained_binding;
 mod row_like;
+mod row_like_field_paths;
+mod row_like_values;
 mod write_receipt;
 
 use super::consumed::{ConsumedProjectionFactSet, ConsumedSourceReferenceFact};

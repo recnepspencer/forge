@@ -1,5 +1,7 @@
 use super::super::support::*;
-use super::completeness_support::{existing_binding, representative_runtime_stop_errors};
+use super::completeness_support::{
+    existing_binding, representative_runtime_stop_errors, status_value_touch,
+};
 
 #[test]
 fn runtime_stop_class_taxonomy_covers_representative_runtime_error_variants() {
@@ -75,12 +77,13 @@ fn runtime_stop_class_ignores_runtime_declaration_message_wording() {
 #[test]
 fn runtime_stop_class_preserves_multiple_denial_kinds_within_the_same_family() {
     let binding = existing_binding();
+    let status_touch = status_value_touch();
 
     let assertion_denials = [
         ForgeQueryExistingTruthAssertionDenial::new(
             &binding,
             ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
-            Some("status.value".to_string()),
+            Some(status_touch.clone()),
             Some("\"open\"".to_string()),
             None,
             "missing asserted aspect",
@@ -88,7 +91,7 @@ fn runtime_stop_class_preserves_multiple_denial_kinds_within_the_same_family() {
         ForgeQueryExistingTruthAssertionDenial::new(
             &binding,
             ForgeQueryExistingTruthAssertionDenialKind::AssertedValueMismatch,
-            Some("status.value".to_string()),
+            Some(status_touch),
             Some("\"open\"".to_string()),
             Some("\"closed\"".to_string()),
             "asserted value mismatch",

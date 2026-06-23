@@ -1,11 +1,14 @@
 use crate::consumer_kit::support_pinning::{
-    load_support_pin_contract_document, support_pinning_contract, ForgeQueryPinnedSupportStatus,
-    ForgeQueryPinnedTeachingPosture, ForgeQuerySupportPinContractSchemaVersion,
-    ForgeQuerySupportPinningErrorKind,
+    load_support_pin_contract_terminal_json_document, support_pinning_contract,
+    ForgeQueryPinnedSupportStatus, ForgeQueryPinnedTeachingPosture,
+    ForgeQuerySupportPinContractSchemaVersion, ForgeQuerySupportPinningErrorKind,
 };
 use crate::runtime::ForgeQueryRuntimeFacadeFamily;
 
-use super::{empty_family_snapshot, scaffold_snapshot, write_deferred_snapshot};
+use super::{
+    empty_family_snapshot, hostile_terminal_document::HostileSupportPinContractTerminalDocument,
+    scaffold_snapshot, write_deferred_snapshot,
+};
 
 #[test]
 fn assert_satisfied_returns_typed_error_for_blocking_findings() {
@@ -84,13 +87,12 @@ fn stale_vocabulary_document_fails_typed_at_load() {
         .unwrap()
         .seal()
         .unwrap();
-    let mut document: serde_json::Value =
-        serde_json::from_str(&contract.to_canonical_json().unwrap()).unwrap();
-    document["pinned_vocabulary_identity"] = serde_json::Value::String("stale".to_string());
-    let json = serde_json::to_string_pretty(&document).unwrap();
+    let mut terminal_json_document =
+        HostileSupportPinContractTerminalDocument::from_contract(&contract);
+    terminal_json_document.replace_top_level_string("pinned_vocabulary_identity", "stale");
 
-    let error = load_support_pin_contract_document(
-        &json,
+    let error = load_support_pin_contract_terminal_json_document(
+        &terminal_json_document.into_external_terminal_json_document(),
         ForgeQuerySupportPinContractSchemaVersion::current(),
     )
     .unwrap_err();
@@ -116,14 +118,12 @@ fn tampered_contract_document_fails_digest_validation() {
         .unwrap()
         .seal()
         .unwrap();
-    let mut document: serde_json::Value =
-        serde_json::from_str(&contract.to_canonical_json().unwrap()).unwrap();
-    document["requirements"][0]["required_status"] =
-        serde_json::Value::String("unsupported".to_string());
-    let json = serde_json::to_string_pretty(&document).unwrap();
+    let mut terminal_json_document =
+        HostileSupportPinContractTerminalDocument::from_contract(&contract);
+    terminal_json_document.replace_first_requirement_string("required_status", "unsupported");
 
-    let error = load_support_pin_contract_document(
-        &json,
+    let error = load_support_pin_contract_terminal_json_document(
+        &terminal_json_document.into_external_terminal_json_document(),
         ForgeQuerySupportPinContractSchemaVersion::current(),
     )
     .unwrap_err();
@@ -150,13 +150,12 @@ fn invalid_document_family_fails_typed_at_load() {
         .unwrap()
         .seal()
         .unwrap();
-    let mut document: serde_json::Value =
-        serde_json::from_str(&contract.to_canonical_json().unwrap()).unwrap();
-    document["requirements"][0]["family"] = serde_json::Value::String("made-up".to_string());
-    let json = serde_json::to_string_pretty(&document).unwrap();
+    let mut terminal_json_document =
+        HostileSupportPinContractTerminalDocument::from_contract(&contract);
+    terminal_json_document.replace_first_requirement_string("family", "made-up");
 
-    let error = load_support_pin_contract_document(
-        &json,
+    let error = load_support_pin_contract_terminal_json_document(
+        &terminal_json_document.into_external_terminal_json_document(),
         ForgeQuerySupportPinContractSchemaVersion::current(),
     )
     .unwrap_err();

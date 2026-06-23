@@ -12,10 +12,7 @@ fn test_binding(visible_fields: &[&str]) -> ProjectionConsumptionBindingContext 
     ProjectionConsumptionBindingContext::test_only(
         "result-shape:test",
         "authorized-projection:test",
-        visible_fields
-            .iter()
-            .map(|field| field.to_string())
-            .collect(),
+        crate::projection_consumption::test_authorized_field_paths(visible_fields),
     )
 }
 
@@ -135,8 +132,22 @@ fn relational_row_set_admits_identity_and_field_backed_fact_families() {
         ProjectMaterializedFacts::declare()
             .entity_identities()
             .view_local_identities()
-            .display_field("profile.display_name")
-            .derived_scalar_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            )
+            .derived_scalar_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            ),
     )
     .expect("relational row set declaration should be valid");
 
@@ -214,8 +225,22 @@ fn bridge_truth_view_row_set_matches_relational_row_set_admission_surface() {
         ProjectMaterializedFacts::declare()
             .entity_identities()
             .view_local_identities()
-            .display_field("profile.display_name")
-            .derived_scalar_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            )
+            .derived_scalar_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            ),
     )
     .expect("bridge row set declaration should be valid");
 

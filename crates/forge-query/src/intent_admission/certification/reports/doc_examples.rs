@@ -33,7 +33,7 @@ const LIVE_READ_CONVENIENCE_SNIPPET: &str = "let live_rows = workspace.read(&vie
 const INSPECTION_COMMON_PATH_SNIPPET: &str =
     "let inspection_result = workspace.inspect_intent(&view).execute()?;";
 const MATERIALIZATION_CONVENIENCE_SNIPPET: &str =
-    "let materialized_rows = workspace.materialize(&view);";
+    "let materialization = workspace.materialize_result(&view)?;";
 const INSPECTION_CONVENIENCE_SNIPPET: &str = "let inspection = workspace.inspect(&view)?;";
 const ROUTING_COMMON_PATH_SNIPPET: &str =
     "let probe_result = runtime.probe_existing_intent(request).execute()?;";

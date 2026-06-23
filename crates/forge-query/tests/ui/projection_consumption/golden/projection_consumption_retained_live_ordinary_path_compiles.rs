@@ -1,7 +1,8 @@
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
     AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ForgeQueryDerivedArtifactBinding,
     ForgeQueryEvidenceIdentity, ForgeQueryLiveArtifactBinding, ProjectMaterializedFacts,
-    ProjectionFactConsumptionPathError,
+    ProjectionFactConsumptionPathError, ProjectionFactFieldPath,
 };
 
 fn retained_live_ordinary_path(
@@ -16,7 +17,7 @@ fn retained_live_ordinary_path(
         authorized_projection,
         ProjectMaterializedFacts::declare()
             .view_local_identities()
-            .display_field("profile.display_name")
+            .display_field_path(profile_display_name_field_path())
             .source_references(),
     )?;
     let live_attempt = live.consume_projection_facts(
@@ -25,7 +26,7 @@ fn retained_live_ordinary_path(
         ProjectMaterializedFacts::declare()
             .entity_identities()
             .view_local_identities()
-            .display_field("profile.display_name")
+            .display_field_path(profile_display_name_field_path())
             .source_references(),
     )?;
 
@@ -39,6 +40,16 @@ fn retained_live_ordinary_path(
             .map(|completed| completed.extracted_fact_count())
             .unwrap_or(0),
     ))
+}
+
+fn profile_display_name_field_path() -> ProjectionFactFieldPath {
+    ProjectionFactFieldPath::from_canonical_field_path(
+        CanonicalFieldPath::new(vec![
+            FieldKey::new("profile").expect("test field segment must be valid"),
+            FieldKey::new("display_name").expect("test field segment must be valid"),
+        ])
+        .expect("test field path must be valid"),
+    )
 }
 
 fn main() {

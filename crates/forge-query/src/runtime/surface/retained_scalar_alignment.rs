@@ -1,28 +1,31 @@
 use crate::identity::hash_parts;
 use crate::runtime::computed::ForgeQueryDerivedViewHandle;
 use crate::runtime::ForgeQueryRuntimeError;
-#[cfg(test)]
-use crate::runtime::{record_forbidden_fallback_seam_invocation, ForgeQueryForbiddenFallbackSeam};
+use forge_foundational::facade::AspectValue;
 
-use super::{ForgeQueryDerivedArtifactBinding, ForgeQueryRetainedScalarFactSet};
+use super::retained_scalar_values::retained_scalar_value_digest_text;
+use super::{
+    ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedMaterializationTarget,
+    ForgeQueryRetainedFieldPath, ForgeQueryRetainedScalarFactSet,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryRetainedScalarAlignmentFact {
-    left_field_key: String,
-    right_field_key: String,
-    value: serde_json::Value,
+    left_field_path: ForgeQueryRetainedFieldPath,
+    right_field_path: ForgeQueryRetainedFieldPath,
+    value: AspectValue,
 }
 
 impl ForgeQueryRetainedScalarAlignmentFact {
-    pub fn left_field_key(&self) -> &str {
-        &self.left_field_key
+    pub fn left_field_path(&self) -> &ForgeQueryRetainedFieldPath {
+        &self.left_field_path
     }
 
-    pub fn right_field_key(&self) -> &str {
-        &self.right_field_key
+    pub fn right_field_path(&self) -> &ForgeQueryRetainedFieldPath {
+        &self.right_field_path
     }
 
-    pub fn value(&self) -> &serde_json::Value {
+    pub fn value(&self) -> &AspectValue {
         &self.value
     }
 }
@@ -31,8 +34,8 @@ impl ForgeQueryRetainedScalarAlignmentFact {
 pub struct ForgeQueryRetainedScalarAlignment {
     artifact_name: String,
     binding_digest: String,
-    left_view_name: String,
-    right_view_name: String,
+    left_target: ForgeQueryDerivedMaterializationTarget,
+    right_target: ForgeQueryDerivedMaterializationTarget,
     alignment_digest: String,
     aligned_facts: Vec<ForgeQueryRetainedScalarAlignmentFact>,
 }
@@ -46,12 +49,12 @@ impl ForgeQueryRetainedScalarAlignment {
         &self.binding_digest
     }
 
-    pub fn left_view_name(&self) -> &str {
-        &self.left_view_name
+    pub fn left_target(&self) -> &ForgeQueryDerivedMaterializationTarget {
+        &self.left_target
     }
 
-    pub fn right_view_name(&self) -> &str {
-        &self.right_view_name
+    pub fn right_target(&self) -> &ForgeQueryDerivedMaterializationTarget {
+        &self.right_target
     }
 
     pub fn alignment_digest(&self) -> &str {
@@ -68,51 +71,36 @@ impl ForgeQueryRetainedScalarAlignment {
 }
 
 impl ForgeQueryDerivedArtifactBinding {
-    pub fn verify_scalar_alignment<V1, V2, I, S1, S2>(
+    pub fn verify_scalar_alignment<V1, V2, I>(
         &self,
         left_view: &ForgeQueryDerivedViewHandle<V1>,
         right_view: &ForgeQueryDerivedViewHandle<V2>,
         field_pairs: I,
     ) -> Result<ForgeQueryRetainedScalarAlignment, ForgeQueryRuntimeError>
     where
-        I: IntoIterator<Item = (S1, S2)>,
-        S1: AsRef<str>,
-        S2: AsRef<str>,
+        I: IntoIterator<Item = (ForgeQueryRetainedFieldPath, ForgeQueryRetainedFieldPath)>,
     {
-        self.verify_scalar_alignment_by_name(left_view.name(), right_view.name(), field_pairs)
-    }
-
-    pub fn verify_scalar_alignment_by_name<I, S1, S2>(
-        &self,
-        left_view_name: &str,
-        right_view_name: &str,
-        field_pairs: I,
-    ) -> Result<ForgeQueryRetainedScalarAlignment, ForgeQueryRuntimeError>
-    where
-        I: IntoIterator<Item = (S1, S2)>,
-        S1: AsRef<str>,
-        S2: AsRef<str>,
-    {
-        #[cfg(test)]
-        record_forbidden_fallback_seam_invocation(
-            ForgeQueryForbiddenFallbackSeam::VerifyScalarAlignment,
-        );
-        let normalized_pairs = field_pairs
-            .into_iter()
-            .map(|(left, right)| (left.as_ref().to_string(), right.as_ref().to_string()))
-            .collect::<Vec<_>>();
-        let left_facts = self.consume_scalar_fields_by_name(
-            left_view_name,
-            normalized_pairs.iter().map(|(left, _)| left.as_str()),
+        let normalized_pairs = field_pairs.into_iter().collect::<Vec<_>>();
+        let left_target = ForgeQueryDerivedMaterializationTarget::from(left_view);
+        let right_target = ForgeQueryDerivedMaterializationTarget::from(right_view);
+        let left_facts = self.consume_scalar_field_paths_for_target(
+            &left_target,
+            normalized_pairs
+                .iter()
+                .map(|(left_path, _)| left_path.clone())
+                .collect(),
         )?;
-        let right_facts = self.consume_scalar_fields_by_name(
-            right_view_name,
-            normalized_pairs.iter().map(|(_, right)| right.as_str()),
+        let right_facts = self.consume_scalar_field_paths_for_target(
+            &right_target,
+            normalized_pairs
+                .iter()
+                .map(|(_, right_path)| right_path.clone())
+                .collect(),
         )?;
         verify_scalar_alignment_between_fact_sets(
             self,
-            left_view_name,
-            right_view_name,
+            left_target,
+            right_target,
             &left_facts,
             &right_facts,
             &normalized_pairs,
@@ -122,18 +110,22 @@ impl ForgeQueryDerivedArtifactBinding {
 
 fn verify_scalar_alignment_between_fact_sets(
     binding: &ForgeQueryDerivedArtifactBinding,
-    left_view_name: &str,
-    right_view_name: &str,
+    left_target: ForgeQueryDerivedMaterializationTarget,
+    right_target: ForgeQueryDerivedMaterializationTarget,
     left_facts: &ForgeQueryRetainedScalarFactSet,
     right_facts: &ForgeQueryRetainedScalarFactSet,
-    field_pairs: &[(String, String)],
+    field_pairs: &[(ForgeQueryRetainedFieldPath, ForgeQueryRetainedFieldPath)],
 ) -> Result<ForgeQueryRetainedScalarAlignment, ForgeQueryRuntimeError> {
+    let left_view_name = left_target.view_name();
+    let right_view_name = right_target.view_name();
     let aligned_facts = field_pairs
         .iter()
-        .map(|(left_field_key, right_field_key)| {
+        .map(|(left_field_path, right_field_path)| {
+            let left_field_key = left_field_path.terminal_projection_for_boundary();
+            let right_field_key = right_field_path.terminal_projection_for_boundary();
             let left_value =
                 left_facts
-                    .field_value(left_field_key)
+                    .field_value_at(left_field_path)
                     .ok_or_else(|| ForgeQueryRuntimeError::RetainedRowDecode {
                         view_name: left_view_name.to_string(),
                         stage: "retained-scalar-alignment",
@@ -143,7 +135,7 @@ fn verify_scalar_alignment_between_fact_sets(
                     })?;
             let right_value =
                 right_facts
-                    .field_value(right_field_key)
+                    .field_value_at(right_field_path)
                     .ok_or_else(|| ForgeQueryRuntimeError::RetainedRowDecode {
                         view_name: right_view_name.to_string(),
                         stage: "retained-scalar-alignment",
@@ -161,8 +153,8 @@ fn verify_scalar_alignment_between_fact_sets(
                 });
             }
             Ok(ForgeQueryRetainedScalarAlignmentFact {
-                left_field_key: left_field_key.clone(),
-                right_field_key: right_field_key.clone(),
+                left_field_path: left_field_path.clone(),
+                right_field_path: right_field_path.clone(),
                 value: left_value.clone(),
             })
         })
@@ -183,10 +175,9 @@ fn verify_scalar_alignment_between_fact_sets(
             .chain(aligned_facts.iter().map(|fact| {
                 format!(
                     "pair:{}={}:{}",
-                    fact.left_field_key(),
-                    fact.right_field_key(),
-                    serde_json::to_string(fact.value())
-                        .expect("aligned scalar fact value must encode")
+                    fact.left_field_path().terminal_projection_for_boundary(),
+                    fact.right_field_path().terminal_projection_for_boundary(),
+                    retained_scalar_value_digest_text(fact.value())
                 )
             }))
             .collect::<Vec<_>>(),
@@ -195,8 +186,8 @@ fn verify_scalar_alignment_between_fact_sets(
     Ok(ForgeQueryRetainedScalarAlignment {
         artifact_name: binding.artifact_name().to_string(),
         binding_digest: binding.binding_for_reporting().to_string(),
-        left_view_name: left_view_name.to_string(),
-        right_view_name: right_view_name.to_string(),
+        left_target,
+        right_target,
         alignment_digest,
         aligned_facts,
     })
@@ -206,18 +197,36 @@ fn verify_scalar_alignment_between_fact_sets(
 mod tests {
     use std::collections::BTreeMap;
 
-    use serde_json::json;
+    use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 
     use crate::runtime::surface::{
         ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedMaterializationBundle,
         ForgeQueryDerivedMaterializationReceipt, ForgeQueryDerivedMaterializationResult,
-        ForgeQueryDerivedMaterializationTarget,
+        ForgeQueryDerivedMaterializationTarget, ForgeQueryRetainedFieldPath,
+        ForgeQueryRetainedMaterializedRow,
     };
+    use crate::runtime::ForgeQueryDerivedViewHandle;
 
-    fn binding(row: serde_json::Value) -> ForgeQueryDerivedArtifactBinding {
+    fn retained_row(
+        fields: impl IntoIterator<Item = (&'static str, AspectValue)>,
+    ) -> ForgeQueryRetainedMaterializedRow {
+        let fields = fields
+            .into_iter()
+            .map(|(path, value)| {
+                (
+                    retained_field_path(path).expect("retained field path admits"),
+                    value,
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        ForgeQueryRetainedMaterializedRow::from_scalar_values(fields)
+            .expect("retained row should build")
+    }
+
+    fn binding(row: ForgeQueryRetainedMaterializedRow) -> ForgeQueryDerivedArtifactBinding {
         let snapshot_identity =
             crate::memory_workspace::admit_external_snapshot_label("snapshot:test");
-        let materialization = ForgeQueryDerivedMaterializationResult::new(
+        let materialization = ForgeQueryDerivedMaterializationResult::from_retained_rows(
             vec![row],
             ForgeQueryDerivedMaterializationReceipt::test_only(
                 "surface:test",
@@ -225,32 +234,42 @@ mod tests {
                 "result:test",
             ),
         );
+        let target = ForgeQueryDerivedMaterializationTarget::new("surface:test");
         let bundle = ForgeQueryDerivedMaterializationBundle::new(
             snapshot_identity,
-            BTreeMap::from([("surface:test".to_string(), materialization)]),
+            BTreeMap::from([(target.clone(), materialization)]),
         );
-        ForgeQueryDerivedArtifactBinding::bind(
-            bundle,
-            "artifact:test",
-            [ForgeQueryDerivedMaterializationTarget::new("surface:test")],
-        )
-        .expect("binding should build")
+        ForgeQueryDerivedArtifactBinding::bind(bundle, "artifact:test", [target])
+            .expect("binding should build")
+    }
+
+    fn view_handle() -> ForgeQueryDerivedViewHandle<crate::runtime::ForgeQueryNativeRow> {
+        ForgeQueryDerivedViewHandle::new("surface:test")
     }
 
     #[test]
     fn retained_scalar_alignment_verifies_mapped_fields() {
-        let alignment = binding(json!({
-            "authority_snapshot_id": 7,
-            "nested": { "truth_basis_digest_hex": "basis:test" },
-        }))
-        .verify_scalar_alignment_by_name(
-            "surface:test",
-            "surface:test",
+        let left_view = view_handle();
+        let right_view = view_handle();
+        let alignment = binding(retained_row([
+            ("authority_snapshot_id", AspectValue::Int64(7)),
+            (
+                "nested.truth_basis_digest_hex",
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("basis:test"),
+            ),
+        ]))
+        .verify_scalar_alignment(
+            &left_view,
+            &right_view,
             [
-                ("authority_snapshot_id", "authority_snapshot_id"),
                 (
-                    "nested.truth_basis_digest_hex",
-                    "nested.truth_basis_digest_hex",
+                    retained_field_path("authority_snapshot_id").expect("left path admits"),
+                    retained_field_path("authority_snapshot_id").expect("right path admits"),
+                ),
+                (
+                    retained_field_path("nested.truth_basis_digest_hex").expect("left path admits"),
+                    retained_field_path("nested.truth_basis_digest_hex")
+                        .expect("right path admits"),
                 ),
             ],
         )
@@ -263,13 +282,38 @@ mod tests {
 
     #[test]
     fn retained_scalar_alignment_rejects_divergent_value() {
-        let error = binding(json!({"left": 1, "right": 2}))
-            .verify_scalar_alignment_by_name("surface:test", "surface:test", [("left", "right")])
-            .expect_err("divergent scalar fields should fail");
+        let left_view = view_handle();
+        let right_view = view_handle();
+        let error = binding(retained_row([
+            ("left", AspectValue::Int64(1)),
+            ("right", AspectValue::Int64(2)),
+        ]))
+        .verify_scalar_alignment(
+            &left_view,
+            &right_view,
+            [(
+                retained_field_path("left").expect("left path admits"),
+                retained_field_path("right").expect("right path admits"),
+            )],
+        )
+        .expect_err("divergent scalar fields should fail");
 
         assert!(matches!(
             error,
             crate::runtime::ForgeQueryRuntimeError::RetainedRowDecode { .. }
         ));
+    }
+
+    fn retained_field_path(path: &str) -> Result<ForgeQueryRetainedFieldPath, String> {
+        let fields = path
+            .split('.')
+            .map(|segment| {
+                FieldKey::new(segment.to_string())
+                    .ok_or_else(|| format!("`{path}` is not a retained scalar field path"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let path = CanonicalFieldPath::new(fields)
+            .ok_or_else(|| format!("`{path}` is not a retained scalar field path"))?;
+        Ok(ForgeQueryRetainedFieldPath::from_canonical_field_path(path))
     }
 }

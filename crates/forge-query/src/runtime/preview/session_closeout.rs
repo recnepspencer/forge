@@ -3,6 +3,7 @@ use super::super::delivery::{
     ForgeQueryRuntimeLiveSubscriptionState, ForgeQueryRuntimeRetainedDelivery,
 };
 use super::*;
+use crate::runtime::ForgeQueryLiveArtifactTarget;
 use crate::runtime::ForgeQueryRuntimeMixedCauseMemberKind;
 use crate::subscription::QuerySubscriptionDeliveryCauseKind;
 
@@ -123,7 +124,13 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         self.handle_bindings
             .iter()
             .filter(|binding| binding.family == ForgeQueryPreviewHandleBindingFamily::LiveView)
-            .filter_map(|binding| self.runtime.live_subscriptions.get(binding.handle_name()))
+            .filter_map(|binding| {
+                self.runtime
+                    .live_subscriptions
+                    .get(&ForgeQueryLiveArtifactTarget::from_view_name(
+                        binding.handle_name(),
+                    ))
+            })
     }
 
     pub(super) fn residue_snapshot(&self) -> PreviewLifecycleResidueSnapshot {

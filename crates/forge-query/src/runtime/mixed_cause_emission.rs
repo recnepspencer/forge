@@ -16,17 +16,24 @@ use super::delivery::{
     ForgeQueryRuntimeDeliveryBatch, ForgeQueryRuntimeLiveSubscriptionState,
     ForgeQueryRuntimeRetainedDelivery,
 };
-use super::{ForgeQueryRuntime, ForgeQueryRuntimeError, ForgeQueryRuntimeMixedCauseDelivery};
+use super::{
+    ForgeQueryLiveArtifactTarget, ForgeQueryRuntime, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeMixedCauseDelivery,
+};
 
 pub(crate) fn emit_mixed_cause_live_subscription_delivery(
     active_subscriptions: &mut ActiveSubscriptionRuntime,
-    live_subscriptions: &mut BTreeMap<String, ForgeQueryRuntimeLiveSubscriptionState>,
+    live_subscriptions: &mut BTreeMap<
+        ForgeQueryLiveArtifactTarget,
+        ForgeQueryRuntimeLiveSubscriptionState,
+    >,
     view_name: &str,
     ordering: &BridgeMixedCauseOrdering,
     delivery_window: &BridgeMixedCauseDeliveryWindowPlan,
 ) -> Result<ForgeQueryRuntimeDeliveryBatch, ForgeQueryRuntimeError> {
+    let target = ForgeQueryLiveArtifactTarget::from_view_name(view_name);
     let state = live_subscriptions
-        .get_mut(view_name)
+        .get_mut(&target)
         .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveSubscription(view_name.to_string()))?;
     let mixed_cause_delivery =
         ForgeQueryRuntimeMixedCauseDelivery::from_bridge(ordering, delivery_window);

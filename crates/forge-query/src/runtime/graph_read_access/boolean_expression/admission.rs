@@ -13,6 +13,7 @@ use crate::runtime::graph_read_access::{
     ForgeQueryPredicateOperandOperator, ForgeQueryPredicateSelectivityClass,
 };
 use crate::runtime::ForgeQueryReadGraph;
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 pub(crate) fn admit_boolean_predicate_expression_for_read_graph(
     read_graph: &ForgeQueryReadGraph,
@@ -46,28 +47,41 @@ pub(crate) fn admit_boolean_predicate_expression_for_read_graph(
 
 fn admitted_predicate_index<'a>(
     admitted_predicates: &'a [ForgeQueryAdmittedGraphReadPredicateField],
-) -> BTreeMap<(String, String, String), &'a ForgeQueryAdmittedGraphReadPredicateField> {
+) -> BTreeMap<AdmittedPredicateKey, &'a ForgeQueryAdmittedGraphReadPredicateField> {
     admitted_predicates
         .iter()
-        .map(|field| {
-            (
-                (
-                    field.aspect().to_string(),
-                    field.field().to_string(),
-                    field.family().to_string(),
-                ),
-                field,
-            )
-        })
+        .map(|field| (AdmittedPredicateKey::from_admitted_field(field), field))
         .collect()
 }
 
-fn predicate_key(filter: &DeclarativePredicateFilter, family: &str) -> (String, String, String) {
-    (
-        filter.aspect().to_string(),
-        filter.field().to_string(),
-        family.to_string(),
-    )
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct AdmittedPredicateKey {
+    aspect: AspectKey,
+    field: FieldKey,
+    family: String,
+}
+
+impl AdmittedPredicateKey {
+    fn from_admitted_field(field: &ForgeQueryAdmittedGraphReadPredicateField) -> Self {
+        Self {
+            aspect: field.native_aspect_key().clone(),
+            field: field.native_field_key().clone(),
+            family: field.family().to_string(),
+        }
+    }
+
+    fn from_filter(filter: &DeclarativePredicateFilter, family: &str) -> Self {
+        let field = filter.source_field_key();
+        Self {
+            aspect: field.native_aspect_key(),
+            field: field.native_field_key(),
+            family: family.to_string(),
+        }
+    }
+}
+
+fn predicate_key(filter: &DeclarativePredicateFilter, family: &str) -> AdmittedPredicateKey {
+    AdmittedPredicateKey::from_filter(filter, family)
 }
 
 fn predicate_leaf(
@@ -77,8 +91,8 @@ fn predicate_leaf(
 ) -> ForgeQueryAdmittedBooleanPredicateLeaf {
     let (operator, normalized_operand_values) = predicate_operand(filter);
     ForgeQueryAdmittedBooleanPredicateLeaf::admitted(
-        filter.aspect(),
-        filter.field(),
+        admitted_field.native_aspect_key().clone(),
+        admitted_field.native_field_key().clone(),
         family,
         operator,
         normalized_operand_values,

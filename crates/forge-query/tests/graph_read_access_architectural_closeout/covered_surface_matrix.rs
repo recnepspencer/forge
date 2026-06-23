@@ -5,9 +5,8 @@ use forge_query::facade::policy::{
 use forge_query::facade::runtime::{
     ForgeQueryGraphReadAccessAdmissionPosture, ForgeQueryGraphReadAccessAuthorityRequest,
     ForgeQueryGraphReadAccessBasisScopeKind, ForgeQueryGraphReadAccessRequirementKind,
-    ForgeQueryReadFamily, ForgeQueryReadResult, ForgeQueryWorkspace,
+    ForgeQueryNativeRow, ForgeQueryReadFamily, ForgeQueryReadResult, ForgeQueryWorkspace,
 };
-use serde_json::Value;
 
 use crate::graph_read_access_cost_model_support::{
     dense_traversal_family, frontier_search_family, projection_only_family, workspace,
@@ -290,11 +289,19 @@ struct CloseoutAccessReceiptDigestReadout {
 fn assert_live_read_receipt_proves_no_caller_owned_n_plus_one() {
     let mut workspace = workspace("graph-read-access.closeout.surface.live");
     let live_view = workspace
-        .live_view::<Value>("tasks.closeout.table", |query| {
+        .live_view::<ForgeQueryNativeRow>("tasks.closeout.table", |query| {
             query
                 .from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("graph-read-access-closeout-live")
         })
         .expect("live view should declare");

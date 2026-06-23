@@ -105,7 +105,10 @@ pub(super) fn grouped_baseline_members_or_error(
     backend: &dyn ForgeQueryRuntimeBackend,
     view_name: &str,
     request: &DeclarativeLiveQueryRequest,
-) -> Result<Option<Vec<(String, String)>>, ForgeQueryRuntimeError> {
+) -> Result<
+    Option<Vec<crate::view_shape_live::ForgeQueryGroupedBaselineMember>>,
+    ForgeQueryRuntimeError,
+> {
     backend.grouped_baseline_members(request).map_err(|error| {
         ForgeQueryRuntimeError::LiveSubscriptionInstallation {
             view_name: view_name.to_string(),

@@ -1,6 +1,7 @@
 mod declaration_dx;
 mod drift_localization;
 mod evaluation_success;
+mod hostile_terminal_document;
 mod rejection;
 
 use crate::consumer_kit::support_snapshot::{project_support_snapshot, ForgeQuerySupportSnapshot};

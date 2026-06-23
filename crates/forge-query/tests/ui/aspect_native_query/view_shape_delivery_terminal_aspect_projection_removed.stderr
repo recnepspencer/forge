@@ -1,0 +1,11 @@
+error[E0599]: no method named `terminal_focus_aspect_projection` found for reference `&ViewShapeDeliveryMetadata` in the current scope
+ --> tests/ui/aspect_native_query/view_shape_delivery_terminal_aspect_projection_removed.rs:4:22
+  |
+4 |     let _ = metadata.terminal_focus_aspect_projection();
+  |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ViewShapeDeliveryMetadata`
+
+error[E0599]: no method named `terminal_grouping_aspect_projection` found for reference `&ViewShapeDeliveryMetadata` in the current scope
+ --> tests/ui/aspect_native_query/view_shape_delivery_terminal_aspect_projection_removed.rs:5:22
+  |
+5 |     let _ = metadata.terminal_grouping_aspect_projection();
+  |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ViewShapeDeliveryMetadata`

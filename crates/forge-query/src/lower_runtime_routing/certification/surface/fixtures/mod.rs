@@ -8,6 +8,8 @@ use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeCapabilityEligibility, ForgeQueryLowerRuntimeCapabilityRequest,
     ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeSeamKey,
 };
+use crate::runtime::ForgeQueryAspectTouch;
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 
 #[derive(Clone)]
 pub(super) struct RepresentativeArtifacts {
@@ -46,3 +48,28 @@ pub(super) use phase_six::{
     representative_subscription_activation_row, representative_subscription_continuity_row,
 };
 pub(super) use source_adapter::RepresentativeSourceAdapter;
+
+pub(super) fn title_value_touch() -> ForgeQueryAspectTouch {
+    representative_aspect_field_touch("title", "value")
+}
+
+pub(super) fn status_value_touch() -> ForgeQueryAspectTouch {
+    representative_aspect_field_touch("status", "value")
+}
+
+pub(super) fn priority_value_touch() -> ForgeQueryAspectTouch {
+    representative_aspect_field_touch("priority", "value")
+}
+
+fn representative_aspect_field_touch(
+    aspect_label: &'static str,
+    field_label: &'static str,
+) -> ForgeQueryAspectTouch {
+    let aspect_key =
+        AspectKey::new(aspect_label).expect("representative static aspect key should admit");
+    let field_key =
+        FieldKey::new(field_label).expect("representative static field key should admit");
+    let field_path = CanonicalFieldPath::new([field_key])
+        .expect("representative static field path should admit");
+    ForgeQueryAspectTouch::aspect_field_path(aspect_key, field_path)
+}

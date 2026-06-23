@@ -78,7 +78,7 @@ pub(super) fn build_write_receipt_inspection_digest(
             )
             .optional_value(
                 ForgeQueryEvidenceTag::new("declared_collection"),
-                receipt.declared_collection(),
+                receipt.terminal_declared_collection_projection(),
             )
             .optional_evidence_identity(
                 ForgeQueryEvidenceTag::new("declared_entity_identity"),
@@ -86,7 +86,7 @@ pub(super) fn build_write_receipt_inspection_digest(
             )
             .optional_value(
                 ForgeQueryEvidenceTag::new("target_collection"),
-                receipt.target_collection(),
+                receipt.terminal_target_collection_projection(),
             )
             .optional_evidence_identity(
                 ForgeQueryEvidenceTag::new("target_entity_identity"),

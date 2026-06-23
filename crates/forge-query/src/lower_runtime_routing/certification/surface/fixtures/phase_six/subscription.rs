@@ -25,13 +25,28 @@ use super::super::{ForgeQueryLowerRuntimeRepresentativeEvidenceSource, Represent
 
 pub(crate) fn representative_subscription_activation_row() -> RepresentativeArtifacts {
     let request = DeclarativeLiveQueryRequest::new("Task", DeclarativeLiveViewShape::table())
-        .project(DeclarativeProjectionField::new("identity", "id"))
-        .project(DeclarativeProjectionField::new("status", "value"));
+        .project(DeclarativeProjectionField::from_authoring_parts(
+            "identity", "id",
+        ))
+        .project(DeclarativeProjectionField::from_authoring_parts(
+            "status", "value",
+        ));
     let schema_view = QuerySchemaView::new(
         "certification-subscription-activation",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("status", "value", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("status")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("value")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
         [],
     );
@@ -39,7 +54,7 @@ pub(crate) fn representative_subscription_activation_row() -> RepresentativeArti
         request.clone(),
         schema_view,
         phase_six_snapshot_identity("subscription-snapshot"),
-        None::<Vec<(String, String)>>,
+        None::<Vec<crate::view_shape_live::ForgeQueryGroupedBaselineMember>>,
     )
     .expect("subscription activation fixture should declare live session");
     let live = LiveQueryAdmissionArtifact::from_live_promotion_with_view(

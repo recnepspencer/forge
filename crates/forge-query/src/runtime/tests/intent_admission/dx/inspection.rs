@@ -3,20 +3,20 @@ use super::*;
 fn derived_summary_view(
     workspace: &mut ForgeQueryWorkspace,
     view_name: &str,
-) -> ForgeQueryDerivedViewHandle<Value> {
-    let live: ForgeQueryLiveView<Value> = workspace
+) -> ForgeQueryDerivedViewHandle<ForgeQueryNativeRow> {
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([identity_id_field_key(), title_value_field_key()])
+                .order_by(title_value_field_key())
                 .schema_basis("intent-admission-derived-inspection")
         })
         .expect("live view should declare");
     workspace
-        .computed_view::<Value>(
-            ForgeQueryDerivedView::new(view_name, ["title".to_string()])
+        .computed_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new(view_name, test_aspect_touches(["title"]))
                 .depends_on_live(&live)
-                .produces(["title.summary".to_string()]),
+                .produces(test_aspect_touches(["title.summary"])),
             TitleListMaintainer,
         )
         .expect("derived view should declare")
@@ -32,8 +32,8 @@ fn materialize_intent_common_path_helper_executes_through_canonical_handoff() {
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("derived-common-1")),
-                ("title.value", json!("Derived common")),
+                ("identity.id", test_string_aspect_value("derived-common-1")),
+                ("title.value", test_string_aspect_value("Derived common")),
             ],
         ))
         .expect("write should materialize derived output");
@@ -43,14 +43,16 @@ fn materialize_intent_common_path_helper_executes_through_canonical_handoff() {
         .execute()
         .expect("materialize common path should execute");
 
-    assert_eq!(result.rows().len(), 1);
-    let decoded: String = result
-        .decode_single_row()
-        .expect("single materialized row should decode");
-    assert_eq!(
-        decoded,
-        serde_json::from_value::<String>(result.rows()[0].clone())
-            .expect("materialized row should decode through serde as the same payload"),
+    assert_eq!(result.row_count(), 1);
+    let value_path = retained_test_field_path("value").expect("value path should admit");
+    let retained_value = result
+        .single_retained_row()
+        .expect("single materialized row should be retained")
+        .field_value_at(&value_path)
+        .expect("materialized row should retain value field");
+    assert!(
+        matches!(retained_value, AspectValue::String(_)),
+        "materialized retained value should be a native string scalar, got {retained_value:?}"
     );
     assert_eq!(
         result
@@ -100,11 +102,11 @@ fn inspect_intent_common_path_helper_executes_through_canonical_handoff() {
     let runtime = read_runtime();
     let mut workspace = ForgeQueryWorkspace::new("generic-inspect-common", runtime)
         .expect("workspace should build");
-    let live: ForgeQueryLiveView<Value> = workspace
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([identity_id_field_key(), title_value_field_key()])
+                .order_by(title_value_field_key())
                 .schema_basis("intent-admission-generic-inspection-common")
         })
         .expect("live view should declare");
@@ -133,11 +135,11 @@ fn inspect_intent_advanced_path_helper_exposes_request_eligibility_decision_and_
     let runtime = read_runtime();
     let mut workspace = ForgeQueryWorkspace::new("generic-inspect-advanced", runtime)
         .expect("workspace should build");
-    let live: ForgeQueryLiveView<Value> = workspace
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([identity_id_field_key(), title_value_field_key()])
+                .order_by(title_value_field_key())
                 .schema_basis("intent-admission-generic-inspection-advanced")
         })
         .expect("live view should declare");

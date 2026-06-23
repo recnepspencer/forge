@@ -22,7 +22,7 @@ pub fn lower_policy_aware_current_plan(
             artifact,
             PolicyAwareExecutionMode::CurrentRead,
             PolicyAwarePlanCostPosture::RuntimeCurrentBounded,
-            artifact.authorized_projection().visible_fields().len(),
+            artifact.authorized_projection().visible_field_paths().len(),
             0,
         ),
     }

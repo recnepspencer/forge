@@ -114,13 +114,13 @@ impl ForgeQueryRuntime {
             },
             ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects {
                 binding,
-                touched_aspect_paths,
+                touched_aspects,
                 metadata,
                 naming_intent,
                 ..
             } => ForgeQueryWriteCommand::DeleteExistingAspects {
                 binding,
-                touched_aspect_paths,
+                touched_aspects,
                 metadata,
                 naming_intent,
             },
@@ -146,7 +146,7 @@ impl ForgeQueryRuntime {
         shared_admission: Option<ForgeQueryWriteAdmissionExecutionRecord>,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         let mutation_family = command.mutation_family();
-        let declared_collection = command.declared_collection();
+        let declared_collection_identity = command.declared_collection_identity();
         let declared_entity_identity = command.declared_entity_identity();
         let existing_truth_binding = command.existing_truth_binding().cloned();
         let symbolic_target_reference = None;
@@ -174,7 +174,7 @@ impl ForgeQueryRuntime {
         let receipt = self.route_authoritative_mutation_receipt(
             receipt,
             mutation_family,
-            declared_collection,
+            declared_collection_identity,
             declared_entity_identity,
             existing_truth_binding,
             verified_existing_truth_assertion,
@@ -209,7 +209,9 @@ impl ForgeQueryRuntime {
             }
             _ => self
                 .backend
-                .write(Self::lower_backend_write_command(command))
+                .write(ForgeQueryBackendAdmissibleMutation::from_admitted_command(
+                    Self::lower_backend_write_command(command),
+                ))
                 .map_err(Into::into),
         }
     }
@@ -245,7 +247,7 @@ impl ForgeQueryRuntime {
             intent,
             basis_binding_digest.as_deref(),
             target_entity_identity.as_ref(),
-            target_collection.as_deref(),
+            target_collection.as_ref(),
         ) {
             Some(bundle) => attach_continuity_mutation_to_receipt(receipt, bundle),
             None => receipt,
@@ -264,13 +266,13 @@ impl ForgeQueryRuntime {
         let (_, mut target_collection, mut target_entity_identity) =
             classify_receipt_mutation_summary(&receipt);
         if let Some(binding) = existing_truth_binding {
-            target_collection = binding.target_collection().map(str::to_string);
+            target_collection = binding.target_collection_identity().cloned();
             target_entity_identity = Some(binding.resolved_entity_artifact_identity());
         }
         match bridge_naming_mutation_bundle(
             intent,
             target_entity_identity.as_ref(),
-            target_collection.as_deref(),
+            target_collection.as_ref(),
         ) {
             Some(bundle) => attach_naming_mutation_to_receipt(receipt, bundle),
             None => receipt,

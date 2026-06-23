@@ -11,7 +11,8 @@ use crate::runtime::mutation::{ForgeQueryAspectMutationBuilder, ForgeQueryDelete
 use crate::runtime::{
     ForgeQueryExistingTruthTargetBinding, ForgeQueryGraphCompositionBreadth,
     ForgeQueryGraphCompositionProgram, ForgeQueryGraphCompositionProgramStep,
-    ForgeQueryGraphCompositionProgramStepKind, ForgeQueryRuntimeError,
+    ForgeQueryGraphCompositionProgramStepKind, ForgeQueryMutationSymbolIdentity,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryRuntimeError,
     ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
 };
 use forge_relational::facade::identity::KindId;
@@ -20,7 +21,7 @@ use forge_relational::facade::identity::KindId;
 pub struct ForgeQueryGraphCompositionBuilder {
     commands: Vec<ForgeQueryWriteCommand>,
     program_steps: Vec<ForgeQueryGraphCompositionProgramStep>,
-    declared_symbols: BTreeSet<String>,
+    declared_symbols: BTreeSet<ForgeQueryMutationSymbolIdentity>,
     symbolic_entity_declaration_count: usize,
     symbolic_relation_declaration_count: usize,
     error: Option<ForgeQueryGraphCompositionDenial>,
@@ -41,13 +42,13 @@ impl ForgeQueryGraphCompositionBuilder {
         let reference = self.declare_symbol(symbol, &collection)?;
         let component_index = self.commands.len();
         let command = declaration(ForgeQueryAspectMutationBuilder::new())
-            .build_insert_symbolic(reference.symbol().to_string(), collection)?;
+            .build_insert_symbolic_reference(reference.clone(), collection)?;
         self.commands.push(command);
         self.program_steps
             .push(ForgeQueryGraphCompositionProgramStep::new(
                 component_index,
                 ForgeQueryGraphCompositionProgramStepKind::SymbolicEntityDeclaration,
-                reference.target_collection().unwrap_or(""),
+                reference.target_collection_identity().cloned(),
                 Some(reference.symbol().to_string()),
             ));
         self.symbolic_entity_declaration_count += 1;
@@ -82,7 +83,7 @@ impl ForgeQueryGraphCompositionBuilder {
         self.program_steps.push(graph_program_step(
             component_index,
             ForgeQueryGraphCompositionProgramStepKind::RelationDeclaration,
-            collection,
+            Some(graph_program_declared_collection(collection)),
             None,
             relation_kind_id,
         ));
@@ -103,7 +104,7 @@ impl ForgeQueryGraphCompositionBuilder {
             .push(ForgeQueryGraphCompositionProgramStep::new(
                 component_index,
                 ForgeQueryGraphCompositionProgramStepKind::SymbolicEntityFollowupMutation,
-                symbol.reference().target_collection().unwrap_or(""),
+                symbol.reference().target_collection_identity().cloned(),
                 Some(symbol.symbol().to_string()),
             ));
         Ok(())
@@ -135,12 +136,12 @@ impl ForgeQueryGraphCompositionBuilder {
         let component_index = self.commands.len();
         let command = declaration(ForgeQueryGraphRelationMutationBuilder::new())
             .into_inner()
-            .build_insert_symbolic(reference.symbol().to_string(), collection)?;
+            .build_insert_symbolic_reference(reference.clone(), collection)?;
         self.commands.push(command);
         self.program_steps.push(graph_program_step(
             component_index,
             ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationDeclaration,
-            reference.target_collection().unwrap_or(""),
+            reference.target_collection_identity().cloned(),
             Some(reference.symbol().to_string()),
             relation_kind_id,
         ));
@@ -166,7 +167,7 @@ impl ForgeQueryGraphCompositionBuilder {
         self.program_steps.push(graph_program_step(
             component_index,
             ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationFollowupMutation,
-            symbol.reference().target_collection().unwrap_or(""),
+            symbol.reference().target_collection_identity().cloned(),
             Some(symbol.symbol().to_string()),
             symbol.relation_kind_id(),
         ));
@@ -185,7 +186,7 @@ impl ForgeQueryGraphCompositionBuilder {
         self.program_steps.push(graph_program_step(
             component_index,
             ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationRetirement,
-            symbol.reference().target_collection().unwrap_or(""),
+            symbol.reference().target_collection_identity().cloned(),
             Some(symbol.symbol().to_string()),
             symbol.relation_kind_id(),
         ));
@@ -233,20 +234,23 @@ impl ForgeQueryGraphCompositionBuilder {
         symbol: impl Into<String>,
         collection: &str,
     ) -> Result<ForgeQuerySymbolicTargetReference, ForgeQueryRuntimeError> {
-        let symbol = symbol.into();
-        if !self.declared_symbols.insert(symbol.clone()) {
+        let reference =
+            ForgeQuerySymbolicTargetReference::new(symbol).map_err(ForgeQueryRuntimeError::from)?;
+        let symbol_identity = reference.symbol_identity().clone();
+        if !self.declared_symbols.insert(symbol_identity) {
+            let symbol = reference.symbol().to_string();
             let message =
                 format!("graph composition symbol `{symbol}` was declared more than once");
             let denial = ForgeQueryGraphCompositionDenial::new(
                 ForgeQueryGraphCompositionDenialKind::DuplicateSymbolDeclaration,
                 Some(symbol),
-                Some(collection.to_string()),
+                Some(graph_program_declared_collection(collection)),
                 message,
             );
             self.error = Some(denial.clone());
             return Err(ForgeQueryRuntimeError::GraphCompositionDenied(denial));
         }
-        ForgeQuerySymbolicTargetReference::new(symbol)?
+        reference
             .in_target_collection(collection)
             .map_err(ForgeQueryRuntimeError::from)
     }
@@ -254,7 +258,7 @@ impl ForgeQueryGraphCompositionBuilder {
         &mut self,
         command: ForgeQueryWriteCommand,
         kind: ForgeQueryGraphCompositionProgramStepKind,
-        declared_collection: String,
+        declared_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
     ) {
         let component_index = self.commands.len();
         self.commands.push(command);
@@ -271,7 +275,7 @@ impl ForgeQueryGraphCompositionBuilder {
 fn graph_program_step(
     component_index: usize,
     kind: ForgeQueryGraphCompositionProgramStepKind,
-    declared_collection: impl Into<String>,
+    declared_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
     declared_symbol: Option<String>,
     relation_kind_id: Option<KindId>,
 ) -> ForgeQueryGraphCompositionProgramStep {
@@ -285,4 +289,10 @@ fn graph_program_step(
         Some(relation_kind_id) => step.with_relation_kind_id(relation_kind_id),
         None => step,
     }
+}
+
+fn graph_program_declared_collection(
+    collection: impl Into<String>,
+) -> ForgeQueryMutationTargetCollectionIdentity {
+    ForgeQueryMutationTargetCollectionIdentity::new("graph-composition-program", collection)
 }

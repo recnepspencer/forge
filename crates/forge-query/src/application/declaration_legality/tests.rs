@@ -1,8 +1,8 @@
 use crate::application::{
-    ForgeQueryAsyncLegalityDenialKind, ForgeQueryDeclarationAdmissionOrLegalityError,
-    ForgeQueryDeclarationCapabilityStatus, ForgeQueryDeclarationLegalityChecked,
-    ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationLegalityDenial,
-    ForgeQueryTemporalLegalityDenialKind,
+    assert_declaration_aspect_projections, ForgeQueryAsyncLegalityDenialKind,
+    ForgeQueryDeclarationAdmissionOrLegalityError, ForgeQueryDeclarationCapabilityStatus,
+    ForgeQueryDeclarationLegalityChecked, ForgeQueryDeclarationLegalityContract,
+    ForgeQueryDeclarationLegalityDenial, ForgeQueryTemporalLegalityDenialKind,
 };
 
 mod async_fixtures;
@@ -47,13 +47,13 @@ fn legal_declaration_review_yields_legality_evidence() {
         legal.canonical_declaration().handle_identity_digest(),
         world_basis.handle_identity_for_reporting()
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         legal.aspect_contract().required(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         legal.reviewed_aspect_coverage().present(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
 }
 
@@ -162,13 +162,13 @@ fn legality_evidence_preserves_masked_aspect_coverage_without_promoting_it_to_re
         .review_legality(declaration)
         .expect("legality review should pass");
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         legal.reviewed_aspect_coverage().present(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         legal.reviewed_aspect_coverage().masked(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
 }
 

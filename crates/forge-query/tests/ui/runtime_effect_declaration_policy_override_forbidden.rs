@@ -1,16 +1,17 @@
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
-    ForgeQueryEffectDeclaration, ForgeQueryEffectPolicy, ForgeQueryEffectTrigger,
-    ForgeQueryLiveView,
+    ForgeQueryAspectTouch, ForgeQueryEffectDeclaration, ForgeQueryEffectPolicy, ForgeQueryEffectTrigger,
+    ForgeQueryLiveView, ForgeQueryNativeRow,
 };
-use serde_json::Value;
 
-fn sample_live_view() -> ForgeQueryLiveView<Value> {
+fn sample_live_view() -> ForgeQueryLiveView<ForgeQueryNativeRow> {
     todo!()
 }
 
 fn main() {
     let live = sample_live_view();
+    let title = ForgeQueryAspectTouch::whole_aspect(AspectKey::new("title").unwrap());
     let declaration =
-        ForgeQueryEffectDeclaration::deliver("effect", ForgeQueryEffectTrigger::live_view(&live, ["title"]), "target");
+        ForgeQueryEffectDeclaration::deliver("effect", ForgeQueryEffectTrigger::live_view(&live, [title]), "target");
     let _ = declaration.with_effect_policy(ForgeQueryEffectPolicy::Muted);
 }

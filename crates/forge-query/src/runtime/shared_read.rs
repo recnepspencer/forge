@@ -13,8 +13,9 @@ use super::published_artifacts::{
     ForgeQueryPublishedArtifactRegistry, ForgeQueryPublishedArtifactResolution,
 };
 use super::{
-    ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedViewHandle, ForgeQueryRuntime,
-    ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeError, ForgeQuerySharedReadGenerationLease,
+    ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedMaterializationTarget,
+    ForgeQueryDerivedViewHandle, ForgeQueryRuntime, ForgeQueryRuntimeAsyncResultState,
+    ForgeQueryRuntimeError, ForgeQuerySharedReadGenerationLease,
     ForgeQuerySharedReadPinningDiagnostics,
 };
 
@@ -172,23 +173,24 @@ impl ForgeQuerySharedReadContext {
                 self.snapshot_identity().clone(),
             ));
         }
+        let target = ForgeQueryDerivedMaterializationTarget::from(view);
         match self
             .published_artifacts
-            .resolve(self.lease.generation(), view.name())
+            .resolve(self.lease.generation(), &target)
         {
             ForgeQueryPublishedArtifactResolution::Published {
                 binding,
                 async_result_state,
             } => Ok(ForgeQueryPublishedDerivedArtifactHandle {
                 lease: self.lease.clone(),
-                view_name: view.name().to_string(),
+                view_name: target.terminal_view_name_projection().to_string(),
                 published_binding: Some(binding),
                 async_result_state,
             }),
             ForgeQueryPublishedArtifactResolution::Unpublished { async_result_state } => {
                 Ok(ForgeQueryPublishedDerivedArtifactHandle {
                     lease: self.lease.clone(),
-                    view_name: view.name().to_string(),
+                    view_name: target.terminal_view_name_projection().to_string(),
                     published_binding: None,
                     async_result_state: Some(async_result_state),
                 })
@@ -285,14 +287,14 @@ impl ForgeQueryRuntime {
         let entries = self
             .derived_views
             .iter()
-            .map(|(view_name, runtime_view)| {
+            .map(|(target, runtime_view)| {
                 let entry = ForgeQueryPublishedArtifactEntry::from_runtime_view(
                     &snapshot_identity,
-                    view_name,
+                    target.terminal_view_name_projection(),
                     runtime_view,
                 )
                 .expect("published artifact entry should package runtime view");
-                (view_name.clone(), entry)
+                (target.clone(), entry)
             })
             .collect();
         self.published_artifacts

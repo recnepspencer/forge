@@ -10,6 +10,7 @@ mod support;
 use graph_read_access_cost_model_support::{
     dense_traversal_family, frontier_search_family, projection_only_family, workspace,
 };
+use support::aspect_touch as touch;
 
 #[test]
 fn frontier_read_admits_streaming_plan_before_execution() {
@@ -217,9 +218,15 @@ fn seed_active_users(
     for index in 0..count {
         workspace
             .insert("user", |user| {
-                user.aspect("identity.id", format!("{prefix}-{index}"))
-                    .aspect("status.value", "active")
-                    .aspect("profile.display_name", format!("User {index}"))
+                user.set_aspect(
+                    touch("identity.id"),
+                    authored_text(format!("{prefix}-{index}")),
+                )
+                .set_aspect(touch("status.value"), authored_text("active"))
+                .set_aspect(
+                    touch("profile.display_name"),
+                    authored_text(format!("User {index}")),
+                )
             })
             .expect("seed user should insert through runtime");
     }
@@ -233,11 +240,24 @@ fn seed_frontier_edges(
         for index in 0..2 {
             workspace
                 .insert(relation, |edge| {
-                    edge.aspect("identity.id", format!("{prefix}-{relation}-{index}"))
-                        .aspect("source.id", format!("{prefix}-{index}"))
-                        .aspect("target.id", format!("{prefix}-{}", index + 1))
+                    edge.set_aspect(
+                        touch("identity.id"),
+                        authored_text(format!("{prefix}-{relation}-{index}")),
+                    )
+                    .set_aspect(
+                        touch("source.id"),
+                        authored_text(format!("{prefix}-{index}")),
+                    )
+                    .set_aspect(
+                        touch("target.id"),
+                        authored_text(format!("{prefix}-{}", index + 1)),
+                    )
                 })
                 .expect("seed frontier relation should insert through runtime");
         }
     }
+}
+
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
 }

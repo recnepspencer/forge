@@ -15,7 +15,8 @@ use crate::evidence_identity::{
 };
 
 use super::{
-    ForgeQueryRuntimeError, ForgeQueryRuntimeLiveSubscriptionState, ForgeQueryRuntimeStateKind,
+    ForgeQueryLiveArtifactTarget, ForgeQueryRuntimeError, ForgeQueryRuntimeLiveSubscriptionState,
+    ForgeQueryRuntimeStateKind,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -377,14 +378,18 @@ pub(crate) fn runtime_async_checkpoint_label_identity(label: &str) -> ForgeQuery
 }
 
 pub(crate) fn project_live_async_result_state(
-    live_subscriptions: &mut BTreeMap<String, ForgeQueryRuntimeLiveSubscriptionState>,
+    live_subscriptions: &mut BTreeMap<
+        ForgeQueryLiveArtifactTarget,
+        ForgeQueryRuntimeLiveSubscriptionState,
+    >,
     view_name: &str,
     projection: &ForgeQueryRuntimeAsyncResultProjection,
     basis_identity: &ForgeQueryEvidenceIdentity,
     checkpoint_identity: &ForgeQueryEvidenceIdentity,
 ) -> Result<ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeError> {
+    let target = ForgeQueryLiveArtifactTarget::from_view_name(view_name);
     let state = live_subscriptions
-        .get_mut(view_name)
+        .get_mut(&target)
         .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveSubscription(view_name.to_string()))?;
     let expected_basis = state.installation.basis_binding_identity();
     let expected_checkpoint = state.active_lane_handle.checkpoint_identity();

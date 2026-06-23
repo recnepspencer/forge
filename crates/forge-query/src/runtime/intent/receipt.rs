@@ -5,7 +5,10 @@ use crate::intent_admission::{
     ForgeQueryEffectTriggeredIntentExecutionBinding, ForgeQueryIntentDecisionTraceEnvelope,
 };
 use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQuerySnapshotIdentity};
-use crate::runtime::ForgeQueryIntentConsumerInspection;
+use crate::runtime::{
+    ForgeQueryDerivedMaterializationTarget, ForgeQueryIntentConsumerInspection,
+    ForgeQueryLiveArtifactTarget,
+};
 
 use super::receipt_identity::authoritative_intent_receipt_identity;
 
@@ -25,8 +28,8 @@ pub struct ForgeQueryIntentReceipt {
     commit_evidence_identity: ForgeQueryEvidenceIdentity,
     snapshot_identity: ForgeQuerySnapshotIdentity,
     snapshot_evidence_identity: ForgeQueryEvidenceIdentity,
-    affected_live_view_ids: Vec<String>,
-    affected_derived_view_ids: Vec<String>,
+    affected_live_view_targets: Vec<ForgeQueryLiveArtifactTarget>,
+    affected_derived_view_targets: Vec<ForgeQueryDerivedMaterializationTarget>,
     considered_computed_view_count: usize,
     considered_effect_count: usize,
     delivered_effect_count: usize,
@@ -94,8 +97,8 @@ impl ForgeQueryIntentReceipt {
         execution_provenance: ForgeQueryIntentExecutionProvenance,
         decision_trace_envelope: ForgeQueryIntentDecisionTraceEnvelope,
     ) -> Self {
-        let affected_live_view_ids = write_receipt.affected_live_view_ids().to_vec();
-        let affected_derived_view_ids = write_receipt.affected_derived_view_ids().to_vec();
+        let affected_live_view_targets = write_receipt.affected_live_view_targets().to_vec();
+        let affected_derived_view_targets = write_receipt.affected_derived_view_targets().to_vec();
         let commit_identity = write_receipt.commit_identity().clone();
         let commit_evidence_identity = write_receipt.commit_evidence_identity().clone();
         let snapshot_identity = write_receipt.snapshot_identity().clone();
@@ -131,8 +134,8 @@ impl ForgeQueryIntentReceipt {
             commit_evidence_identity,
             snapshot_identity,
             snapshot_evidence_identity,
-            affected_live_view_ids,
-            affected_derived_view_ids,
+            affected_live_view_targets,
+            affected_derived_view_targets,
             considered_computed_view_count,
             considered_effect_count,
             delivered_effect_count,
@@ -212,12 +215,26 @@ impl ForgeQueryIntentReceipt {
         &self.snapshot_evidence_identity
     }
 
-    pub fn affected_live_view_ids(&self) -> &[String] {
-        &self.affected_live_view_ids
+    pub fn affected_live_view_targets(&self) -> &[ForgeQueryLiveArtifactTarget] {
+        &self.affected_live_view_targets
     }
 
-    pub fn affected_derived_view_ids(&self) -> &[String] {
-        &self.affected_derived_view_ids
+    pub fn affected_derived_view_targets(&self) -> &[ForgeQueryDerivedMaterializationTarget] {
+        &self.affected_derived_view_targets
+    }
+
+    pub fn terminal_affected_live_view_ids_projection(&self) -> Vec<String> {
+        self.affected_live_view_targets
+            .iter()
+            .map(|target| target.view_name().to_string())
+            .collect()
+    }
+
+    pub fn terminal_affected_derived_view_ids_projection(&self) -> Vec<String> {
+        self.affected_derived_view_targets
+            .iter()
+            .map(|target| target.view_name().to_string())
+            .collect()
     }
 
     pub fn considered_computed_view_count(&self) -> usize {

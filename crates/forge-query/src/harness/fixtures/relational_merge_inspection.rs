@@ -20,11 +20,10 @@ use forge_relational::facade::transactions::{
     EntityReference, EntitySpec, MutationIntent, RecordRef, RelationMutationIntent, RelationSpec,
     TransactionOptions, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
-use serde_json::json;
 
 use crate::aspect_field_authoring::{
     entity_string_field_aspect, relation_source_endpoint_aspect, relation_string_field_aspect,
-    relation_target_endpoint_aspect, single_aspect_field_patch_from_external_json,
+    relation_target_endpoint_aspect, single_native_string_aspect_field_patch,
 };
 
 const TARGET_BRANCH: &str = "main";
@@ -264,7 +263,7 @@ fn commit_entity_create(
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: ClientKey::raw(name),
-                fields: single_aspect_field_patch_from_external_json("name", "name", json!(name))
+                fields: single_native_string_aspect_field_patch("name", "name", name)
                     .expect("entity name aspect patch"),
             }),
         )),
@@ -286,7 +285,7 @@ fn update_entity_on_branch(
         WorkerIntentBatch::new("update-entity").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                fields: single_aspect_field_patch_from_external_json("name", "name", json!(name))
+                fields: single_native_string_aspect_field_patch("name", "name", name)
                     .expect("entity name aspect patch"),
             }),
         )),
@@ -331,12 +330,8 @@ fn create_relation_on_branch(
                 client_key: ClientKey::raw(client_key),
                 source: EntityReference::Existing(source),
                 target: EntityReference::Existing(target),
-                fields: single_aspect_field_patch_from_external_json(
-                    "label",
-                    "label",
-                    json!(label),
-                )
-                .expect("relation label aspect patch"),
+                fields: single_native_string_aspect_field_patch("label", "label", label)
+                    .expect("relation label aspect patch"),
             }),
         )),
     );

@@ -16,10 +16,10 @@ use crate::runtime::{
     ForgeQueryDerivedMaterializationBundle, ForgeQueryDerivedMaterializationReceipt,
     ForgeQueryDerivedMaterializationResult, ForgeQueryDerivedMaterializationTarget,
     ForgeQueryLiveArtifactBundle, ForgeQueryLiveArtifactTarget, ForgeQueryLiveReadReceipt,
-    ForgeQueryLiveReadResult,
+    ForgeQueryLiveReadResult, ForgeQueryRetainedFieldPath, ForgeQueryRetainedMaterializedRow,
 };
+use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
-use serde_json::json;
 
 pub(super) struct SharedTestResultShape {
     pub identity: ForgeQueryEvidenceIdentity,
@@ -86,10 +86,7 @@ pub(super) fn authorized_projection(
         result_shape_digest,
         "policy:test",
         "tenant-schema:test",
-        visible_fields
-            .iter()
-            .map(|field| field.to_string())
-            .collect(),
+        crate::projection_consumption::test_authorized_field_paths(visible_fields),
         MaskedProjectionArtifact::new(Vec::new(), Vec::new()),
         "narrowed-result-shape:test".to_string(),
         PolicyFieldInfluenceSet::new(&["influence:test".to_string()], 1),
@@ -99,17 +96,23 @@ pub(super) fn authorized_projection(
 
 pub(super) fn retained_binding() -> crate::runtime::ForgeQueryDerivedArtifactBinding {
     let retained_snapshot = retained_live_snapshot_identity("snapshot-retained");
-    let first = ForgeQueryDerivedMaterializationTarget::new("derived.first");
-    let second = ForgeQueryDerivedMaterializationTarget::new("derived.second");
+    let first = ForgeQueryDerivedMaterializationTarget::test_only("derived.first");
+    let second = ForgeQueryDerivedMaterializationTarget::test_only("derived.second");
     let bundle = ForgeQueryDerivedMaterializationBundle::test_only(
         retained_snapshot.clone(),
         BTreeMap::from([
             (
-                first.view_name().to_string(),
-                ForgeQueryDerivedMaterializationResult::test_only(
+                first.clone(),
+                ForgeQueryDerivedMaterializationResult::test_only_retained_rows(
                     vec![
-                        json!({"profile": {"display_name": "First"}, "metrics": {"priority": 1}}),
-                        json!({"profile": {"display_name": "Second"}, "metrics": {"priority": 2}}),
+                        retained_materialized_row([
+                            ("profile.display_name", text_value("First")),
+                            ("metrics.priority", AspectValue::Int64(1)),
+                        ]),
+                        retained_materialized_row([
+                            ("profile.display_name", text_value("Second")),
+                            ("metrics.priority", AspectValue::Int64(2)),
+                        ]),
                     ],
                     ForgeQueryDerivedMaterializationReceipt::test_only(
                         first.view_name(),
@@ -119,9 +122,12 @@ pub(super) fn retained_binding() -> crate::runtime::ForgeQueryDerivedArtifactBin
                 ),
             ),
             (
-                second.view_name().to_string(),
-                ForgeQueryDerivedMaterializationResult::test_only(
-                    vec![json!({"profile": {"display_name": "Third"}})],
+                second.clone(),
+                ForgeQueryDerivedMaterializationResult::test_only_retained_rows(
+                    vec![retained_materialized_row([(
+                        "profile.display_name",
+                        text_value("Third"),
+                    )])],
                     ForgeQueryDerivedMaterializationReceipt::test_only(
                         second.view_name(),
                         retained_snapshot.clone(),
@@ -139,22 +145,22 @@ pub(super) fn retained_binding() -> crate::runtime::ForgeQueryDerivedArtifactBin
 
 pub(super) fn live_binding() -> crate::runtime::ForgeQueryLiveArtifactBinding {
     let live_snapshot = retained_live_snapshot_identity("snapshot-live");
-    let first = ForgeQueryLiveArtifactTarget::new("live.first");
-    let second = ForgeQueryLiveArtifactTarget::new("live.second");
+    let first = ForgeQueryLiveArtifactTarget::test_only("live.first");
+    let second = ForgeQueryLiveArtifactTarget::test_only("live.second");
     let bundle = ForgeQueryLiveArtifactBundle::test_only(
         live_snapshot.clone(),
         BTreeMap::from([
             (
-                first.view_name().to_string(),
+                first.clone(),
                 ForgeQueryLiveReadResult::test_only(
                     vec![
-                        ForgeQueryEntity::from_external_projection(
+                        ForgeQueryEntity::from_native_field_values(
                             crate::memory_workspace::admit_authored_entity_label("entity-1"),
-                            json!({"profile": {"display_name": "First"}}),
+                            projection_values([("profile.display_name", text_value("First"))]),
                         ),
-                        ForgeQueryEntity::from_external_projection(
+                        ForgeQueryEntity::from_native_field_values(
                             crate::memory_workspace::admit_authored_entity_label("entity-2"),
-                            json!({"profile": {"display_name": "Second"}}),
+                            projection_values([("profile.display_name", text_value("Second"))]),
                         ),
                     ],
                     ForgeQueryLiveReadReceipt::test_only(
@@ -170,11 +176,11 @@ pub(super) fn live_binding() -> crate::runtime::ForgeQueryLiveArtifactBinding {
                 ),
             ),
             (
-                second.view_name().to_string(),
+                second.clone(),
                 ForgeQueryLiveReadResult::test_only(
-                    vec![ForgeQueryEntity::from_external_projection(
+                    vec![ForgeQueryEntity::from_native_field_values(
                         crate::memory_workspace::admit_authored_entity_label("entity-3"),
-                        json!({"profile": {"display_name": "Third"}}),
+                        projection_values([("profile.display_name", text_value("Third"))]),
                     )],
                     ForgeQueryLiveReadReceipt::test_only(
                         second.view_name(),
@@ -205,6 +211,44 @@ fn retained_live_snapshot_identity(label: &str) -> ForgeQuerySnapshotIdentity {
     )
 }
 
+fn projection_values(
+    values: impl IntoIterator<Item = (&'static str, AspectValue)>,
+) -> BTreeMap<CanonicalFieldPath, AspectValue> {
+    values
+        .into_iter()
+        .map(|(path, value)| (canonical_field_path(path), value))
+        .collect()
+}
+
+fn retained_materialized_row(
+    values: impl IntoIterator<Item = (&'static str, AspectValue)>,
+) -> ForgeQueryRetainedMaterializedRow {
+    let values = values
+        .into_iter()
+        .map(|(path, value)| (retained_field_path(path), value))
+        .collect();
+    ForgeQueryRetainedMaterializedRow::from_scalar_values(values)
+        .expect("test retained materialized row should admit")
+}
+
+fn text_value(value: impl Into<String>) -> AspectValue {
+    crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value)
+}
+
+fn retained_field_path(path: &str) -> ForgeQueryRetainedFieldPath {
+    ForgeQueryRetainedFieldPath::from_canonical_field_path(canonical_field_path(path))
+}
+
+fn canonical_field_path(path: &str) -> CanonicalFieldPath {
+    CanonicalFieldPath::new(
+        path.split('.')
+            .map(|segment| FieldKey::new(segment.to_string()))
+            .collect::<Option<Vec<_>>>()
+            .expect("test field path should be canonical"),
+    )
+    .expect("test field path should not be empty")
+}
+
 fn retained_live_fixture_position(namespace: &str, evidence: &str) -> u64 {
     let mut acc = 14_695_981_039_346_656_037_u64;
     for byte in namespace.bytes().chain(evidence.bytes()) {
@@ -233,12 +277,23 @@ pub(super) fn request_for_kind(kind: ProjectionFactKind) -> ProjectMaterializedF
         ProjectionFactKind::RelationEndpoint => {
             ProjectMaterializedFacts::declare().relation_endpoints()
         }
-        ProjectionFactKind::DisplayField => {
-            ProjectMaterializedFacts::declare().display_field("profile.display_name")
-        }
-        ProjectionFactKind::DerivedScalarField => {
-            ProjectMaterializedFacts::declare().derived_scalar_field("profile.display_name")
-        }
+        ProjectionFactKind::DisplayField => ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
+            ]),
+        ),
+        ProjectionFactKind::DerivedScalarField => ProjectMaterializedFacts::declare()
+            .derived_scalar_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            ),
     }
 }
 

@@ -8,6 +8,7 @@ use super::declaration::ForgeQueryEffectExpressionFailurePosture;
 use super::delivery::{ForgeQueryEffectDelivery, ForgeQueryEffectDeliveryFamily};
 use super::phase::ForgeQueryEffectPhaseEvidence;
 use super::registry::ForgeQueryEffectRuntime;
+use crate::runtime::ForgeQueryAspectTouch;
 
 pub(super) struct EffectInspectionDigestSet {
     pub(super) trigger_digest: String,
@@ -21,8 +22,8 @@ pub(super) struct EffectInspectionDigestSet {
 pub(super) fn effect_inspection_digests(
     effect: &ForgeQueryEffectRuntime,
     condition_descriptor: &str,
-    condition_inputs: &[String],
-    condition_outputs: &[String],
+    condition_inputs: &[ForgeQueryAspectTouch],
+    condition_outputs: &[ForgeQueryAspectTouch],
     condition_failure_posture: Option<ForgeQueryEffectExpressionFailurePosture>,
     pending_delivery_count: usize,
     pending_delivered_count: usize,
@@ -99,9 +100,9 @@ fn trigger_inspection_identity(effect: &ForgeQueryEffectRuntime) -> ForgeQueryEv
             effect
                 .declaration
                 .trigger()
-                .aspects()
+                .aspect_touches()
                 .iter()
-                .map(String::as_str),
+                .map(ForgeQueryAspectTouch::admitted_touch_digest_part),
         )
         .seal()
 }
@@ -109,8 +110,8 @@ fn trigger_inspection_identity(effect: &ForgeQueryEffectRuntime) -> ForgeQueryEv
 fn condition_inspection_identity(
     effect: &ForgeQueryEffectRuntime,
     condition_descriptor: &str,
-    condition_inputs: &[String],
-    condition_outputs: &[String],
+    condition_inputs: &[ForgeQueryAspectTouch],
+    condition_outputs: &[ForgeQueryAspectTouch],
     condition_failure_posture: Option<ForgeQueryEffectExpressionFailurePosture>,
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::EffectIntentReceiptInspection)
@@ -128,11 +129,15 @@ fn condition_inspection_identity(
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("inputs"),
-            condition_inputs.iter().map(String::as_str),
+            condition_inputs
+                .iter()
+                .map(ForgeQueryAspectTouch::admitted_touch_digest_part),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("outputs"),
-            condition_outputs.iter().map(String::as_str),
+            condition_outputs
+                .iter()
+                .map(ForgeQueryAspectTouch::admitted_touch_digest_part),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("failure_posture"),
@@ -201,8 +206,11 @@ fn pending_delivery_row_identity(
             effect_delivery_family_label(delivery.family()),
         )
         .field_value_sequence(
-            ForgeQueryEvidenceTag::new("aspect_path"),
-            delivery.aspect_paths().iter().map(String::as_str),
+            ForgeQueryEvidenceTag::new("admitted_aspect_touch"),
+            delivery
+                .aspect_touches()
+                .iter()
+                .map(ForgeQueryAspectTouch::admitted_touch_digest_part),
         )
         .seal()
 }

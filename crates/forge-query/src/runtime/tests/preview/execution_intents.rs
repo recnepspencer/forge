@@ -35,7 +35,7 @@ fn preview_local_intent_is_policy_admitted_without_authoritative_execution() {
                 "strategy.intent.reconcile",
                 "1.0",
                 "intent.reconcile.input.v1",
-                json!({ "entity": "task-1", "title": "preview title" }),
+                test_intent_input([("entity", "task-1"), ("title", "preview title")]),
             ))
             .expect("sandboxed preview intent should be admitted");
 
@@ -61,7 +61,8 @@ fn preview_local_intent_is_policy_admitted_without_authoritative_execution() {
                 && evidence.source_lane() == ForgeQueryAuthorityLane::PendingWriteIntent
                 && evidence.preview_lane() == ForgeQueryAuthorityLane::PreviewTruth
                 && evidence.source_evidence_identity() == receipt.receipt_identity()
-                && evidence.aspect_paths() == ["strategy.intent.reconcile"]
+                && evidence.aspect_touches().is_empty()
+                && evidence.intent_strategy_name() == Some("strategy.intent.reconcile")
         }));
         (receipt, preview.discard())
     };
@@ -165,7 +166,7 @@ fn derive_only_preview_intent_denies_before_authoritative_execution() {
                 "strategy.intent.reconcile",
                 "1.0",
                 "intent.reconcile.input.v1",
-                json!({ "entity": "task-1" }),
+                test_intent_input([("entity", "task-1")]),
             ))
             .expect_err("derive-only preview must deny write intents")
     };
@@ -237,7 +238,7 @@ fn preview_local_intent_requires_intent_support_for_preview_lane() {
                 "strategy.intent.reconcile",
                 "1.0",
                 "intent.reconcile.input.v1",
-                json!({ "entity": "task-1" }),
+                test_intent_input([("entity", "task-1")]),
             ))
             .expect_err("preview-local intent requires preview support metadata")
     };

@@ -1,0 +1,15 @@
+warning: unreachable statement
+ --> tests/ui/aspect_native_query/retained_scalar_fact_terminal_projection_removed.rs:5:5
+  |
+4 |     let fact: ForgeQueryRetainedScalarFieldFact = unreachable!();
+  |                                                   -------------- any code following this expression is unreachable
+5 |     let _ = fact.terminal_json_projection();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `terminal_json_projection` found for struct `ForgeQueryRetainedScalarFieldFact` in the current scope
+ --> tests/ui/aspect_native_query/retained_scalar_fact_terminal_projection_removed.rs:5:18
+  |
+5 |     let _ = fact.terminal_json_projection();
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryRetainedScalarFieldFact`

@@ -1,19 +1,18 @@
 use std::collections::BTreeSet;
 
-use serde::Serialize;
-
-use super::ForgeQueryMutationMetadata;
+use super::{ForgeQueryAspectTouch, ForgeQueryMutationMetadata};
 use crate::memory_workspace::{ForgeQueryEntityIdentity, ForgeQueryWorkspaceError};
 use crate::runtime::{
-    ForgeQueryAspectValue, ForgeQueryExistingTruthTargetBinding, ForgeQueryNamingMutationIntent,
+    ForgeQueryAdmittedAspectValue, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryNamingMutationIntent,
     ForgeQueryRuntimeError, ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
 };
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ForgeQueryDeleteMutationBuilder {
-    declared_collection: Option<String>,
-    touched_aspect_paths: Vec<String>,
-    seen_aspects: BTreeSet<String>,
+    declared_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
+    touched_aspects: Vec<ForgeQueryAspectTouch>,
+    seen_aspects: BTreeSet<ForgeQueryAspectTouch>,
     metadata: ForgeQueryMutationMetadata,
     naming_intent: Option<ForgeQueryNamingMutationIntent>,
     error: Option<String>,
@@ -33,32 +32,31 @@ impl ForgeQueryDeleteMutationBuilder {
             self.error = Some("delete target collection may not be empty".to_string());
             return self;
         }
-        self.declared_collection = Some(collection);
+        self.declared_collection = Some(ForgeQueryMutationTargetCollectionIdentity::new(
+            "write-command-declared",
+            collection,
+        ));
         self
     }
 
-    pub fn touch(mut self, aspect_path: impl Into<String>) -> Self {
+    pub fn touch(mut self, touch: ForgeQueryAspectTouch) -> Self {
         if self.error.is_some() {
             return self;
         }
-        let aspect_path = aspect_path.into();
-        if aspect_path.trim().is_empty() {
-            self.error = Some("delete touch aspect path may not be empty".to_string());
-            return self;
-        }
-        if !self.seen_aspects.insert(aspect_path.clone()) {
+        if !self.seen_aspects.insert(touch.clone()) {
+            let aspect_touch_digest = touch.admitted_touch_digest_part();
             self.error = Some(format!(
-                "delete touch aspect `{aspect_path}` may only be declared once per mutation"
+                "delete touch aspect `{aspect_touch_digest}` may only be declared once per mutation"
             ));
             return self;
         }
-        self.touched_aspect_paths.push(aspect_path);
+        self.touched_aspects.push(touch);
         self
     }
 
-    pub fn touches(mut self, aspect_paths: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        for aspect_path in aspect_paths {
-            self = self.touch(aspect_path);
+    pub fn touches(mut self, touches: impl IntoIterator<Item = ForgeQueryAspectTouch>) -> Self {
+        for touch in touches {
+            self = self.touch(touch);
             if self.error.is_some() {
                 break;
             }
@@ -66,7 +64,7 @@ impl ForgeQueryDeleteMutationBuilder {
         self
     }
 
-    pub fn metadata<T: Serialize>(mut self, key: impl Into<String>, value: T) -> Self {
+    pub fn metadata(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         if self.error.is_some() {
             return self;
         }
@@ -111,7 +109,7 @@ impl ForgeQueryDeleteMutationBuilder {
         Ok(ForgeQueryWriteCommand::DeleteAspects {
             entity_identity,
             declared_collection: self.declared_collection,
-            touched_aspect_paths: self.touched_aspect_paths,
+            touched_aspects: self.touched_aspects,
             metadata: self.metadata,
             naming_intent: self.naming_intent,
         })
@@ -128,7 +126,7 @@ impl ForgeQueryDeleteMutationBuilder {
         }
         Ok(ForgeQueryWriteCommand::DeleteExistingAspects {
             binding,
-            touched_aspect_paths: self.touched_aspect_paths,
+            touched_aspects: self.touched_aspects,
             metadata: self.metadata,
             naming_intent: self.naming_intent,
         })
@@ -137,7 +135,7 @@ impl ForgeQueryDeleteMutationBuilder {
     pub(crate) fn build_delete_existing_verified(
         self,
         binding: ForgeQueryExistingTruthTargetBinding,
-        asserted_aspects: Vec<ForgeQueryAspectValue>,
+        asserted_aspects: Vec<ForgeQueryAdmittedAspectValue>,
     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
         if let Some(error) = self.error {
             return Err(ForgeQueryRuntimeError::Workspace(
@@ -147,7 +145,7 @@ impl ForgeQueryDeleteMutationBuilder {
         Ok(ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects {
             binding,
             asserted_aspects,
-            touched_aspect_paths: self.touched_aspect_paths,
+            touched_aspects: self.touched_aspects,
             metadata: self.metadata,
             naming_intent: self.naming_intent,
         })
@@ -164,7 +162,7 @@ impl ForgeQueryDeleteMutationBuilder {
         }
         Ok(ForgeQueryWriteCommand::DeleteSymbolicAspects {
             reference,
-            touched_aspect_paths: self.touched_aspect_paths,
+            touched_aspects: self.touched_aspects,
             metadata: self.metadata,
             naming_intent: self.naming_intent,
         })

@@ -1,6 +1,73 @@
 use std::collections::BTreeSet;
 
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
+
 use super::identity::compose_materialized_fact_posture_digest;
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ProjectionFactFieldPath {
+    path: CanonicalFieldPath,
+    terminal_projection: String,
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub(crate) struct ProjectionFactAspectFieldKey {
+    aspect_key: AspectKey,
+    field_key: FieldKey,
+}
+
+impl ProjectionFactAspectFieldKey {
+    pub(crate) fn native_aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
+    }
+
+    pub(crate) fn native_field_key(&self) -> &FieldKey {
+        &self.field_key
+    }
+}
+
+impl ProjectionFactFieldPath {
+    pub fn from_canonical_field_path(path: CanonicalFieldPath) -> Self {
+        let terminal_projection = path
+            .fields()
+            .iter()
+            .map(FieldKey::as_str)
+            .collect::<Vec<_>>()
+            .join(".");
+        Self {
+            path,
+            terminal_projection,
+        }
+    }
+
+    pub(crate) fn terminal_projection_for_boundary(&self) -> &str {
+        &self.terminal_projection
+    }
+
+    pub fn canonical_field_path(&self) -> &CanonicalFieldPath {
+        &self.path
+    }
+
+    pub(crate) fn native_aspect_field_key(&self) -> Option<ProjectionFactAspectFieldKey> {
+        let [aspect, field] = self.path.fields() else {
+            return None;
+        };
+        Some(ProjectionFactAspectFieldKey {
+            aspect_key: AspectKey::new(aspect.as_str())
+                .expect("canonical projection fact aspect segment should be non-empty"),
+            field_key: field.clone(),
+        })
+    }
+}
+
+pub(crate) fn projection_fact_field_path_from_segments(
+    segments: impl IntoIterator<Item = FieldKey>,
+) -> ProjectionFactFieldPath {
+    ProjectionFactFieldPath::from_canonical_field_path(
+        CanonicalFieldPath::new(segments.into_iter().collect::<Vec<_>>())
+            .expect("projection fact field paths must contain at least one field"),
+    )
+}
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ProjectionFactRequest {
@@ -11,8 +78,8 @@ pub enum ProjectionFactRequest {
     EffectContinuity,
     Membership,
     RelationEndpoint,
-    DisplayField(String),
-    DerivedScalarField(String),
+    DisplayField(ProjectionFactFieldPath),
+    DerivedScalarField(ProjectionFactFieldPath),
 }
 
 impl ProjectionFactRequest {
@@ -30,9 +97,9 @@ impl ProjectionFactRequest {
         }
     }
 
-    pub fn field_key(&self) -> Option<&str> {
+    pub fn field_path(&self) -> Option<&ProjectionFactFieldPath> {
         match self {
-            Self::DisplayField(field) | Self::DerivedScalarField(field) => Some(field.as_str()),
+            Self::DisplayField(field) | Self::DerivedScalarField(field) => Some(field),
             _ => None,
         }
     }
@@ -214,15 +281,15 @@ impl ProjectMaterializedFacts {
         self
     }
 
-    pub fn display_field(mut self, field: impl Into<String>) -> Self {
+    pub fn display_field_path(mut self, field: ProjectionFactFieldPath) -> Self {
         self.requested
-            .insert(ProjectionFactRequest::DisplayField(field.into()));
+            .insert(ProjectionFactRequest::DisplayField(field));
         self
     }
 
-    pub fn derived_scalar_field(mut self, field: impl Into<String>) -> Self {
+    pub fn derived_scalar_field_path(mut self, field: ProjectionFactFieldPath) -> Self {
         self.requested
-            .insert(ProjectionFactRequest::DerivedScalarField(field.into()));
+            .insert(ProjectionFactRequest::DerivedScalarField(field));
         self
     }
 

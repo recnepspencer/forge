@@ -15,8 +15,8 @@ error: cannot construct `ForgeQueryGraphTouchDescriptor` with struct literal syn
    |         -------------------------------------- private field
 12 |         declared_collection_count: 0,
    |         ---------------------------- private field
-13 |         declared_aspect_path_count: 0,
-   |         ----------------------------- private field
+13 |         declared_aspect_touch_count: 0,
+   |         ------------------------------ private field
 14 |         declared_aspect_operation_count: 0,
    |         ---------------------------------- private field
 15 |         touched_aspect_count: 0,

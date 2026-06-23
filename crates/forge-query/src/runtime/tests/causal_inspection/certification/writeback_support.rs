@@ -172,7 +172,9 @@ fn writeback_effect_intent(
         effect_class,
         forge_foundational::facade::AspectKey::new("forge.query.writeback")
             .expect("valid writeback effect aspect key"),
-        forge_foundational::facade::AspectValue::String(format!("query-effect:{suffix}").into()),
+        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(format!(
+            "query-effect:{suffix}"
+        )),
     )
     .expect("causal certification writeback effect intent should validate")
 }

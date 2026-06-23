@@ -9,7 +9,7 @@ fn intent_common_path_helper_executes_through_canonical_handoff() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({"entity": "task-1", "title": "Intent committed title"}),
+            test_intent_input([("entity", "task-1"), ("title", "Intent committed title")]),
         ))
         .execute()
         .expect("common-path helper should execute");
@@ -39,7 +39,7 @@ fn intent_advanced_path_helper_exposes_request_eligibility_decision_and_handoff(
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({"entity": "task-1"}),
+            test_intent_input([("entity", "task-1")]),
         ))
         .review()
         .expect("advanced path should review");
@@ -80,21 +80,25 @@ fn intent_advanced_path_helper_exposes_request_eligibility_decision_and_handoff(
 fn effect_write_intent_common_path_helper_executes_through_canonical_handoff() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
     let live = runtime
-        .declare_live_view::<Value>("tasks.effect-dx", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.effect-dx",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.reconcile-dx",
-            ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",
         ))
         .expect("write-intent effect should declare");
     runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from helper"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title from helper",
+        ))
         .expect("write should queue pending effect intent");
 
     let receipt = runtime
@@ -113,11 +117,11 @@ fn effect_write_intent_common_path_helper_executes_through_canonical_handoff() {
 fn write_intent_common_path_helper_executes_through_canonical_handoff() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
     let receipt = runtime
-        .write_intent(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from write helper"),
-        })
+        .write_intent(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title from write helper",
+        ))
         .execute()
         .expect("write common-path helper should execute");
 
@@ -144,11 +148,11 @@ fn write_intent_common_path_helper_executes_through_canonical_handoff() {
 fn write_intent_advanced_path_helper_exposes_request_eligibility_decision_and_handoff() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
     let review = runtime
-        .write_intent(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from advanced write helper"),
-        })
+        .write_intent(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title from advanced write helper",
+        ))
         .review()
         .expect("advanced write path should review");
 
@@ -188,7 +192,7 @@ fn canonical_admission_decision_round_trips_to_public_handoff_type() {
         "strategy.intent.reconcile",
         "1.0",
         "intent.reconcile.input.v1",
-        json!({"entity": "task-1"}),
+        test_intent_input([("entity", "task-1")]),
     );
     let request = crate::intent_admission::ForgeQueryRawIntentAdmissionRequest::authoritative_runtime_entrypoint(
         declaration,
@@ -218,7 +222,7 @@ fn advisory_review_data_preserves_non_panicking_trace_shape() {
         "strategy.intent.reconcile",
         "1.0",
         "intent.reconcile.input.v1",
-        json!({"entity": "task-1"}),
+        test_intent_input([("entity", "task-1")]),
     );
     let request =
         crate::intent_admission::ForgeQueryRawIntentAdmissionRequest::authoritative_runtime_entrypoint(
@@ -296,7 +300,7 @@ fn advisory_consumer_lane_stays_on_shared_lattice_surface() {
         "strategy.intent.reconcile",
         "1.0",
         "intent.reconcile.input.v1",
-        json!({"entity": "task-1"}),
+        test_intent_input([("entity", "task-1")]),
     );
     let request = crate::intent_admission::ForgeQueryRawIntentAdmissionRequest::authoritative_runtime_entrypoint(
         declaration,

@@ -1,0 +1,35 @@
+error[E0599]: no method named `terminal_aspect_key_projection` found for reference `&ForgeQueryAdmittedGraphReadProjectionField` in the current scope
+ --> tests/ui/aspect_native_query/graph_read_admitted_reference_rows_terminal_key_projection_removed.rs:9:17
+  |
+9 |     let _ = row.terminal_aspect_key_projection();
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryAdmittedGraphReadProjectionField`
+
+error[E0599]: no method named `terminal_field_key_projection` found for reference `&ForgeQueryAdmittedGraphReadProjectionField` in the current scope
+  --> tests/ui/aspect_native_query/graph_read_admitted_reference_rows_terminal_key_projection_removed.rs:10:17
+   |
+10 |     let _ = row.terminal_field_key_projection();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryAdmittedGraphReadProjectionField`
+
+error[E0599]: no method named `terminal_aspect_key_projection` found for reference `&ForgeQueryAdmittedGraphReadPredicateField` in the current scope
+  --> tests/ui/aspect_native_query/graph_read_admitted_reference_rows_terminal_key_projection_removed.rs:14:17
+   |
+14 |     let _ = row.terminal_aspect_key_projection();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryAdmittedGraphReadPredicateField`
+
+error[E0599]: no method named `terminal_field_key_projection` found for reference `&ForgeQueryAdmittedGraphReadPredicateField` in the current scope
+  --> tests/ui/aspect_native_query/graph_read_admitted_reference_rows_terminal_key_projection_removed.rs:15:17
+   |
+15 |     let _ = row.terminal_field_key_projection();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryAdmittedGraphReadPredicateField`
+
+error[E0599]: no method named `terminal_aspect_key_projection` found for reference `&ForgeQueryAdmittedGraphReadOrderingField` in the current scope
+  --> tests/ui/aspect_native_query/graph_read_admitted_reference_rows_terminal_key_projection_removed.rs:19:17
+   |
+19 |     let _ = row.terminal_aspect_key_projection();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryAdmittedGraphReadOrderingField`
+
+error[E0599]: no method named `terminal_field_key_projection` found for reference `&ForgeQueryAdmittedGraphReadOrderingField` in the current scope
+  --> tests/ui/aspect_native_query/graph_read_admitted_reference_rows_terminal_key_projection_removed.rs:20:17
+   |
+20 |     let _ = row.terminal_field_key_projection();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryAdmittedGraphReadOrderingField`

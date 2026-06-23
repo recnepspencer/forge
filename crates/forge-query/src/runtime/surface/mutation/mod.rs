@@ -1,5 +1,6 @@
 mod batch_receipt;
 mod batch_receipt_aggregates;
+mod batch_receipt_identity;
 mod command;
 mod command_family;
 mod write_receipt;

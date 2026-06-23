@@ -42,8 +42,11 @@ pub(crate) fn compose_certification_sequence_digest(
 pub(crate) fn compose_fact_request_entry_digest(request: &ProjectionFactRequest) -> String {
     let mut encoder = domain_capability_scope_encoder("projection_fact_request_entry_v1")
         .field_shape(ForgeQueryEvidenceTag::new("kind"), request.kind().as_str());
-    if let Some(field) = request.field_key() {
-        encoder = encoder.field_shape(ForgeQueryEvidenceTag::new("field"), field);
+    if let Some(field) = request.field_path() {
+        encoder = encoder.field_shape(
+            ForgeQueryEvidenceTag::new("field"),
+            field.terminal_projection_for_boundary(),
+        );
     }
     seal(encoder)
 }

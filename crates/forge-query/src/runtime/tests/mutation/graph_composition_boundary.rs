@@ -9,11 +9,11 @@ fn ordinary_batch_does_not_claim_graph_composition_evidence() {
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition-ordinary-batch")
         .expect("runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.graph-composition-ordinary-batch-tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([identity_id_field_key(), title_value_field_key()])
+                .order_by(title_value_field_key())
                 .schema_basis("tasks-graph-composition-ordinary-batch-tasks")
         })
         .expect("task live view should declare");
@@ -21,8 +21,14 @@ fn ordinary_batch_does_not_claim_graph_composition_evidence() {
     let receipt = workspace
         .batch(|batch| {
             batch.insert("Task", |task| {
-                task.aspect("identity.id", "task-ordinary")
-                    .aspect("title.value", "Ordinary task")
+                task.set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-ordinary"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Ordinary task"),
+                )
             })
         })
         .expect("ordinary batch should execute");
@@ -46,24 +52,36 @@ fn reconstructed_graph_composition_receipt_without_breadth_fails_closed() {
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition-reconstructed-boundary")
         .expect("runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view(
             "tasks.graph-composition-reconstructed-boundary-tasks",
             |q| {
                 q.from("Task")
-                    .select(["identity.id", "title.value"])
-                    .order_by("title.value")
+                    .select([identity_id_field_key(), title_value_field_key()])
+                    .order_by(title_value_field_key())
                     .schema_basis("tasks-graph-composition-reconstructed-boundary-tasks")
             },
         )
         .expect("task live view should declare");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view(
             "tasks.graph-composition-reconstructed-boundary-edges",
             |q| {
                 q.from("TaskEdge")
-                    .select(["edge.kind", "edge.source_identity", "edge.target_identity"])
-                    .order_by("edge.kind")
+                    .select([
+                        edge_kind_field_key(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts(
+                            "edge",
+                            "source_identity",
+                        )
+                        .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts(
+                            "edge",
+                            "target_identity",
+                        )
+                        .unwrap(),
+                    ])
+                    .order_by(edge_kind_field_key())
                     .schema_basis("tasks-graph-composition-reconstructed-boundary-edges")
             },
         )
@@ -72,16 +90,25 @@ fn reconstructed_graph_composition_receipt_without_breadth_fails_closed() {
     let composed = workspace
         .compose_graph(|graph| {
             let draft = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-reconstructed")
-                    .aspect("title.value", "Reconstructed task")
+                task.set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-reconstructed"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Reconstructed task"),
+                )
             })?;
             graph.insert_relation("TaskEdge", |edge| {
-                edge.aspect("edge.kind", "depends_on")
-                    .symbolic_entity_identity("edge.source_identity", &draft)
-                    .existing_entity_identity(
-                        "edge.target_identity",
-                        test_entity_identity("task-existing"),
-                    )
+                edge.set_aspect(
+                    test_aspect_touch("edge.kind"),
+                    test_authored_string_aspect_value("depends_on"),
+                )
+                .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &draft)
+                .existing_entity_identity(
+                    test_aspect_touch("edge.target_identity"),
+                    test_entity_identity("task-existing"),
+                )
             })?;
             Ok(())
         })

@@ -1,0 +1,5 @@
+error[E0599]: no method named `terminal_aspect_paths_projection` found for struct `ForgeQueryMutationDelta` in the current scope
+  --> tests/ui/aspect_native_query/mutation_delta_terminal_aspect_paths_projection_removed.rs:18:19
+   |
+18 |     let _ = delta.terminal_aspect_paths_projection();
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryMutationDelta`

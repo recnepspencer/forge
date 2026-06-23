@@ -7,8 +7,8 @@ error[E0624]: associated function `new` is private
  ::: src/runtime/graph_read_access/selectivity_shape/row.rs
   |
   | /     pub(crate) fn new(
-  | |         aspect: impl Into<String>,
-  | |         field: impl Into<String>,
+  | |         aspect: AspectKey,
+  | |         field: FieldKey,
   | |         family: impl Into<String>,
 ... |
   | |         selectivity_class: ForgeQueryPredicateSelectivityClass,

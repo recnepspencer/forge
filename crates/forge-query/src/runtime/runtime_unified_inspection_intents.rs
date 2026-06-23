@@ -115,7 +115,7 @@ impl ForgeQueryRuntime {
             } => {
                 let state = self
                     .live_subscriptions
-                    .get(view_name)
+                    .get(&ForgeQueryLiveArtifactTarget::from_view_name(view_name))
                     .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveSubscription(view_name.clone()))?;
                 Ok(ForgeQueryInspection::LiveView(
                     ForgeQueryLiveViewInspection::from_state(state),

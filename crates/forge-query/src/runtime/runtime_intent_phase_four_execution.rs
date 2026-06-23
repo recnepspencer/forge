@@ -220,11 +220,8 @@ impl ForgeQueryRuntime {
             execution,
             &write_receipt,
         );
-        self.remove_pending_effect_delivery(
-            pending_delivery.effect_name(),
-            pending_index,
-            &pending_delivery,
-        );
+        let effect_target = ForgeQueryEffectTarget::from_name(pending_delivery.effect_name());
+        self.remove_pending_effect_delivery(&effect_target, pending_index, &pending_delivery);
         Ok(ForgeQueryEffectIntentReceipt::new(
             &pending_delivery,
             intent_receipt,
@@ -235,7 +232,8 @@ impl ForgeQueryRuntime {
         &self,
         binding: &ForgeQueryEffectTriggeredIntentExecutionBinding,
     ) -> Result<(usize, ForgeQueryEffectDelivery), ForgeQueryRuntimeError> {
-        let runtime = self.effects.get(binding.effect_name()).ok_or_else(|| {
+        let effect_target = ForgeQueryEffectTarget::from_name(binding.effect_name());
+        let runtime = self.effects.get(&effect_target).ok_or_else(|| {
             ForgeQueryRuntimeError::MissingEffect(binding.effect_name().to_string())
         })?;
         runtime

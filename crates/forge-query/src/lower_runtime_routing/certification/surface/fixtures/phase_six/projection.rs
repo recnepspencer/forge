@@ -25,7 +25,10 @@ use forge_runtime_bridge::facade::{
     SourceDeclarationIdentity, TruthBranchIdentity, TruthSnapshotIdentity,
 };
 
-use super::super::{ForgeQueryLowerRuntimeRepresentativeEvidenceSource, RepresentativeArtifacts};
+use super::super::{
+    status_value_touch, title_value_touch, ForgeQueryLowerRuntimeRepresentativeEvidenceSource,
+    RepresentativeArtifacts,
+};
 use super::projection_bridge_runtime::projection_bridge_runtime;
 
 pub(crate) fn representative_projection_query_receipts_row() -> RepresentativeArtifacts {
@@ -55,10 +58,26 @@ pub(crate) fn representative_projection_relational_row() -> RepresentativeArtifa
             RelationalBridgeSnapshotIdentityParts::new(6, 1),
         ),
         vec![
-            read_record(&packet, 0, AspectValue::String("task-1".into())),
-            read_record(&packet, 1, AspectValue::String("todo".into())),
-            read_record(&packet, 2, AspectValue::String("task-2".into())),
-            read_record(&packet, 3, AspectValue::String("doing".into())),
+            read_record(
+                &packet,
+                0,
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("task-1"),
+            ),
+            read_record(
+                &packet,
+                1,
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("todo"),
+            ),
+            read_record(
+                &packet,
+                2,
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("task-2"),
+            ),
+            read_record(
+                &packet,
+                3,
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("doing"),
+            ),
         ],
     );
     let row_set = materialize_relational_authoritative_row_set(&packet, &result)
@@ -198,8 +217,14 @@ fn certification_query_write_receipt() -> ForgeQueryWriteReceipt {
         .expect("projection query receipt workspace should build");
     workspace
         .insert("Task", |task: ForgeQueryAspectMutationBuilder| {
-            task.aspect("title.value", "Projection fixture")
-                .aspect("status.value", "todo")
+            task.set_aspect(
+                title_value_touch(),
+                crate::runtime::ForgeQueryAuthoredAspectValue::string("Projection fixture"),
+            )
+            .set_aspect(
+                status_value_touch(),
+                crate::runtime::ForgeQueryAuthoredAspectValue::string("todo"),
+            )
         })
         .expect("projection query receipt write should execute")
 }
@@ -228,8 +253,12 @@ impl BridgeProjectionMember {
     ) -> Self {
         Self {
             row_identity: relational_row_identity(row_identity),
-            identity_value: AspectValue::String(identity_value.into()),
-            grouping_value: AspectValue::String(grouping_value.into()),
+            identity_value: crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                identity_value,
+            ),
+            grouping_value: crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                grouping_value,
+            ),
         }
     }
 }

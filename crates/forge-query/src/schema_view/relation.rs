@@ -7,13 +7,9 @@ pub struct SchemaRelationView {
 }
 
 impl SchemaRelationView {
-    pub fn new(relation: impl Into<String>, max_depth: u8) -> Self {
-        Self::try_from_relation_name(
-            RelationName::new(relation)
-                .expect("schema relation name must be non-empty at construction"),
-            max_depth,
-        )
-        .expect("schema relation max depth must be non-zero at construction")
+    pub fn new(relation: RelationName, max_depth: u8) -> Self {
+        Self::try_from_relation_name(relation, max_depth)
+            .expect("schema relation max depth must be non-zero at construction")
     }
 
     pub(crate) fn try_from_relation_name(
@@ -29,7 +25,7 @@ impl SchemaRelationView {
         })
     }
 
-    pub fn relation(&self) -> &str {
+    pub(crate) fn terminal_relation_projection_for_boundary(&self) -> &str {
         self.relation.as_str()
     }
 
@@ -54,7 +50,10 @@ mod tests {
             .expect("validated relation names with non-zero depth should lower directly");
 
         assert_eq!(view.relation_name(), &relation);
-        assert_eq!(view.relation(), "worth.half_edge_next");
+        assert_eq!(
+            view.terminal_relation_projection_for_boundary(),
+            "worth.half_edge_next"
+        );
         assert_eq!(view.max_depth(), 4);
     }
 

@@ -36,7 +36,9 @@ impl Error for ForgeQueryTestBackendError {}
 pub enum ForgeQueryTestBackendErrorKind {
     BlankCollectionName,
     BlankAspectLabel,
+    InvalidAspectLabel,
     BlankProjectionPath,
+    InvalidProjectionPath,
     DuplicateAspectLabel,
     DuplicateProjectionPath,
     EmptyAspectSet,

@@ -1,0 +1,11 @@
+error[E0599]: no function or associated item named `from_terminal_ingress` found for struct `ProjectionFactFieldPath` in the current scope
+ --> tests/ui/aspect_native_query/projection_fact_field_path_terminal_ingress_removed.rs:4:38
+  |
+4 |     let _ = ProjectionFactFieldPath::from_terminal_ingress("profile.display_name");
+  |                                      ^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `ProjectionFactFieldPath`
+  |
+note: if you're trying to build a new `ProjectionFactFieldPath`, consider using `ProjectionFactFieldPath::from_canonical_field_path` which returns `ProjectionFactFieldPath`
+ --> src/projection_consumption/facts.rs
+  |
+  |     pub fn from_canonical_field_path(path: CanonicalFieldPath) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -3,7 +3,7 @@ use forge_query::facade::{
     evaluate_requested_domain_capability_contribution, materialize_query_causal_inspection_artifact,
     prepare_admitted_domain_capability_contribution_for_materialization,
     ForgeQueryExplanationContributionAuthoring, ForgeQueryIntentAdmissionDecision,
-    ForgeQueryIntentDeclaration, ForgeQueryRawIntentAdmissionRequest,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentInput, ForgeQueryRawIntentAdmissionRequest,
 };
 
 fn main() {
@@ -12,7 +12,7 @@ fn main() {
         "test.strategy",
         "1",
         "test.contract",
-        serde_json::json!({ "entity": "edge:42" }),
+        ForgeQueryIntentInput::object([("entity", ForgeQueryIntentInput::string("edge:42"))]),
     );
     let request = ForgeQueryRawIntentAdmissionRequest::authoritative_runtime_entrypoint(
         declaration.clone(),

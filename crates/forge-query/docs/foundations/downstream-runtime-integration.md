@@ -54,7 +54,7 @@ Identity and denial contracts on the ordinary path are also explicit:
 - `workspace.read(...)`
 - `workspace.observe(...)`
 - `workspace.downstream_delivery(...)`
-- `workspace.materialize(...)`
+- `workspace.materialize_result(...)`
 - `workspace.inspect(...)`
 
 ### Downstream delivery contract

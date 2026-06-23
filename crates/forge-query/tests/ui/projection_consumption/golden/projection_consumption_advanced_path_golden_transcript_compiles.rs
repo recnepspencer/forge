@@ -1,8 +1,9 @@
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
     evaluate_projection_consumption_eligibility, AuthorizedProjectionArtifact,
     CanonicalResultShapeArtifact, ForgeQueryReadReceipt, ForgeQueryReadResult,
     ProjectMaterializedFacts, ProjectionConsumptionDeclarationError, ProjectionConsumptionEligibility,
-    ProjectionFactExtractionError,
+    ProjectionFactExtractionError, ProjectionFactFieldPath,
 };
 
 fn advanced_read_path(
@@ -17,7 +18,7 @@ fn advanced_read_path(
             authorized_projection,
             ProjectMaterializedFacts::declare()
                 .entity_identities()
-                .display_field("profile.display_name"),
+                .display_field_path(profile_display_name_field_path()),
         )
         .map_err(ProjectionFactExtractionOrDeclarationError::Declaration)?;
 
@@ -55,6 +56,16 @@ fn advanced_read_path(
             Ok(format!("{:?}", mismatch.source_family()))
         }
     }
+}
+
+fn profile_display_name_field_path() -> ProjectionFactFieldPath {
+    ProjectionFactFieldPath::from_canonical_field_path(
+        CanonicalFieldPath::new(vec![
+            FieldKey::new("profile").expect("test field segment must be valid"),
+            FieldKey::new("display_name").expect("test field segment must be valid"),
+        ])
+        .expect("test field path must be valid"),
+    )
 }
 
 #[derive(Debug)]

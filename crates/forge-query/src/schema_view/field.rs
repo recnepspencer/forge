@@ -23,12 +23,10 @@ pub struct SchemaFieldView {
 }
 
 impl SchemaFieldView {
-    pub fn new(aspect: impl Into<String>, field: impl Into<String>, kind: SchemaFieldKind) -> Self {
+    pub fn new(aspect: AspectName, field: FieldName, kind: SchemaFieldKind) -> Self {
         Self {
-            aspect: AspectName::new(aspect)
-                .expect("schema field aspect must be non-empty at construction"),
-            field: FieldName::new(field)
-                .expect("schema field name must be non-empty at construction"),
+            aspect,
+            field,
             kind,
             queryable: true,
             orderable: true,
@@ -74,14 +72,6 @@ impl SchemaFieldView {
     pub fn presence_predicate_queryable(mut self) -> Self {
         self.presence_predicate_queryable = true;
         self
-    }
-
-    pub fn aspect(&self) -> &str {
-        self.aspect.as_str()
-    }
-
-    pub fn field(&self) -> &str {
-        self.field.as_str()
     }
 
     pub fn aspect_name(&self) -> &AspectName {

@@ -1,0 +1,41 @@
+error[E0599]: no function or associated item named `aspect` found for struct `ForgeQueryAspectTouch` in the current scope
+ --> tests/ui/aspect_native_query/aspect_touch_neutral_constructors_removed.rs:5:36
+  |
+5 |     let _ = ForgeQueryAspectTouch::aspect(AspectKey::new("title").unwrap());
+  |                                    ^^^^^^ function or associated item not found in `ForgeQueryAspectTouch`
+  |
+note: if you're trying to build a new `ForgeQueryAspectTouch` consider using one of the following associated functions:
+      ForgeQueryAspectTouch::whole_aspect
+      ForgeQueryAspectTouch::aspect_field_path
+ --> src/runtime/mutation/touch.rs
+  |
+  |     pub fn whole_aspect(aspect_key: AspectKey) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn aspect_field_path(aspect_key: AspectKey, field_path: CanonicalFieldPath) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: there is an associated function `whole_aspect` with a similar name
+  |
+5 |     let _ = ForgeQueryAspectTouch::whole_aspect(AspectKey::new("title").unwrap());
+  |                                    ++++++
+
+error[E0599]: no function or associated item named `field_path` found for struct `ForgeQueryAspectTouch` in the current scope
+ --> tests/ui/aspect_native_query/aspect_touch_neutral_constructors_removed.rs:6:36
+  |
+6 |     let _ = ForgeQueryAspectTouch::field_path(
+  |                                    ^^^^^^^^^^ function or associated item not found in `ForgeQueryAspectTouch`
+  |
+note: if you're trying to build a new `ForgeQueryAspectTouch` consider using one of the following associated functions:
+      ForgeQueryAspectTouch::whole_aspect
+      ForgeQueryAspectTouch::aspect_field_path
+ --> src/runtime/mutation/touch.rs
+  |
+  |     pub fn whole_aspect(aspect_key: AspectKey) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn aspect_field_path(aspect_key: AspectKey, field_path: CanonicalFieldPath) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: there is an associated function `aspect_field_path` with a similar name
+  |
+6 |     let _ = ForgeQueryAspectTouch::aspect_field_path(
+  |                                    +++++++

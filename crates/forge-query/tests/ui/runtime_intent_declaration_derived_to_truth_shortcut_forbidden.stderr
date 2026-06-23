@@ -1,7 +1,7 @@
 error[E0624]: method `with_source_lane` is private
-  --> tests/ui/runtime_intent_declaration_derived_to_truth_shortcut_forbidden.rs:13:25
+  --> tests/ui/runtime_intent_declaration_derived_to_truth_shortcut_forbidden.rs:14:25
    |
-13 |       let _ = declaration.with_source_lane(ForgeQueryIntentSourceLane::DerivedRuntime);
+14 |       let _ = declaration.with_source_lane(ForgeQueryIntentSourceLane::DerivedRuntime);
    |                           ^^^^^^^^^^^^^^^^ private method
    |
   ::: src/runtime/intent/declaration.rs

@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use crate::runtime::tests::support::*;
-use crate::runtime::{ForgeQueryDerivedPatch, ForgeQueryDerivedViewMaintainer};
+use crate::runtime::{
+    ForgeQueryDerivedPatch, ForgeQueryDerivedPatchPayload, ForgeQueryDerivedViewMaintainer,
+};
 
 #[derive(Clone)]
 pub(super) struct ConcurrentMatrixMaintainer {
@@ -28,15 +30,16 @@ impl ForgeQueryDerivedViewMaintainer for ConcurrentMatrixMaintainer {
             .last()
             .cloned()
             .unwrap_or_else(|| "Unpublished".to_string());
-        materialization.replace_rows([json!({ "title": { "value": title } })]);
+        let retained_row = retained_string_test_row("title.value", title.clone());
+        materialization.replace_retained_rows([retained_row.clone()]);
         ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
             crate::memory_workspace::admit_external_commit_label(format!(
                 "phase16-publication-{}",
                 title
             )),
-            ["title.value".to_string()],
-            json!({ "published": true, "title": title }),
+            [test_aspect_touch("title.value")],
+            ForgeQueryDerivedPatchPayload::from_retained_row(retained_row),
             format!("phase16-publication-{}", title),
         )
     }

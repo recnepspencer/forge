@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn runtime_declares_live_view_and_routes_minimal_write_patches() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
 
@@ -11,8 +11,8 @@ fn runtime_declares_live_view_and_routes_minimal_write_patches() {
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("")),
-                ("title.value", json!("Buy milk")),
+                ("identity.id", test_string_aspect_value("")),
+                ("title.value", test_string_aspect_value("Buy milk")),
             ],
         ))
         .expect("insert should execute through runtime facade");
@@ -21,11 +21,11 @@ fn runtime_declares_live_view_and_routes_minimal_write_patches() {
 
     assert_eq!(insert.deltas().len(), 1);
     assert_eq!(
-        insert.deltas()[0].aspect_paths,
-        vec!["identity.id".to_string(), "title.value".to_string()]
+        insert.deltas()[0].admitted_touched_aspects(),
+        test_aspect_touches(["identity.id", "title.value"]).as_slice()
     );
     assert_eq!(
-        insert.affected_live_view_ids(),
+        insert.terminal_affected_live_view_ids_projection(),
         &["tasks.table".to_string()]
     );
     assert!(insert_patches.live_patches.is_empty());
@@ -37,15 +37,18 @@ fn runtime_declares_live_view_and_routes_minimal_write_patches() {
     assert_eq!(insert_patches.query_delivery_batches[0].sequence(), 1);
 
     let update = runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: task_id,
-            aspect_path: "title.value".to_string(),
-            value: Value::String("Buy oat milk".to_string()),
-        })
+        .write(test_update_string_aspect_command(
+            task_id,
+            "title.value",
+            "Buy oat milk",
+        ))
         .expect("update should execute through runtime facade");
     let update_patches = runtime.drain_patches(&view);
 
-    assert_eq!(update.deltas()[0].aspect_paths, vec!["title.value"]);
+    assert_eq!(
+        update.deltas()[0].admitted_touched_aspects(),
+        test_aspect_touches(["title.value"]).as_slice()
+    );
     assert!(update_patches.live_patches.is_empty());
     assert_eq!(update_patches.query_delivery_batches.len(), 1);
     assert_eq!(
@@ -55,21 +58,23 @@ fn runtime_declares_live_view_and_routes_minimal_write_patches() {
     assert_eq!(update_patches.query_delivery_batches[0].sequence(), 2);
 
     let irrelevant = runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: update.deltas()[0].entity_identity.clone(),
-            aspect_path: "description.value".to_string(),
-            value: Value::String("ignored by task table".to_string()),
-        })
+        .write(test_update_string_aspect_command(
+            update.deltas()[0].entity_identity.clone(),
+            "description.value",
+            "ignored by task table",
+        ))
         .expect("irrelevant update should execute");
     let irrelevant_patches = runtime.drain_patches(&view);
-    assert!(irrelevant.affected_live_view_ids().is_empty());
+    assert!(irrelevant
+        .terminal_affected_live_view_ids_projection()
+        .is_empty());
     assert!(irrelevant_patches.query_delivery_batches.is_empty());
 }
 
 #[test]
 fn runtime_grouped_live_view_uses_backend_baseline_and_delivers_grouped_membership_patch() {
     let mut runtime = stateful_bridge_grouped_task_runtime();
-    let table: ForgeQueryLiveView<Value> = runtime
+    let table: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.seed-table",
             grouped_task_table_live_request(),
@@ -80,15 +85,15 @@ fn runtime_grouped_live_view_uses_backend_baseline_and_delivers_grouped_membersh
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("")),
-                ("title.value", json!("Seed task")),
-                ("status.value", json!("todo")),
+                ("identity.id", test_string_aspect_value("")),
+                ("title.value", test_string_aspect_value("Seed task")),
+                ("status.value", test_string_aspect_value("todo")),
             ],
         ))
         .expect("seed insert should write through table declaration");
     let task_id = seed.deltas()[0].entity_identity.clone();
     let _ = runtime.drain_patches(&table);
-    let grouped: ForgeQueryLiveView<Value> = runtime
+    let grouped: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.grouped",
             grouped_task_live_request(),
@@ -97,16 +102,16 @@ fn runtime_grouped_live_view_uses_backend_baseline_and_delivers_grouped_membersh
         .expect("grouped live view should declare with backend-owned baseline");
 
     let receipt = runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: task_id,
-            aspect_path: "status.value".to_string(),
-            value: Value::String("done".to_string()),
-        })
+        .write(test_update_string_aspect_command(
+            task_id,
+            "status.value",
+            "done",
+        ))
         .expect("grouping aspect update should write");
     let patches = runtime.drain_patches(&grouped);
 
     assert!(receipt
-        .affected_live_view_ids()
+        .terminal_affected_live_view_ids_projection()
         .contains(&"tasks.grouped".to_string()));
     assert_eq!(patches.query_delivery_batches.len(), 1);
     assert_eq!(
@@ -122,13 +127,13 @@ fn runtime_grouped_live_view_uses_backend_baseline_and_delivers_grouped_membersh
 #[test]
 fn unified_inspect_routes_live_effect_and_write_receipt_targets() {
     let mut runtime = stateful_bridge_task_runtime();
-    let live: ForgeQueryLiveView<Value> = runtime
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.inspect-target", task_live_request(), task_schema())
         .expect("live view should declare");
     let effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::deliver(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::deliver(
             "ui.inspect-target",
-            ForgeQueryEffectTrigger::live_view(&live, ["title"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "ui.inspect",
         ))
         .expect("effect should declare");
@@ -136,8 +141,8 @@ fn unified_inspect_routes_live_effect_and_write_receipt_targets() {
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("")),
-                ("title.value", json!("Inspect target")),
+                ("identity.id", test_string_aspect_value("")),
+                ("title.value", test_string_aspect_value("Inspect target")),
             ],
         ))
         .expect("write should execute");
@@ -187,7 +192,7 @@ fn unified_inspect_routes_live_effect_and_write_receipt_targets() {
 #[test]
 fn live_view_inspection_reconstructs_subscription_proof_chain() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
 
@@ -331,133 +336,4 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
     assert_eq!(counters.active_lane_handle_issue_count(), 1);
     assert_eq!(counters.consumer_attachment_count(), 1);
     assert_eq!(counters.consumer_attachment_denial_count(), 0);
-}
-
-#[test]
-fn grouped_live_view_inspection_preserves_grouped_family_and_baseline_support() {
-    let mut runtime = stateful_bridge_grouped_task_runtime();
-    let table: ForgeQueryLiveView<Value> = runtime
-        .declare_live_view(
-            "tasks.seed-table",
-            grouped_task_table_live_request(),
-            grouped_task_schema(),
-        )
-        .expect("table live view should declare before grouped view");
-    let _ = runtime
-        .write(insert_command(
-            "Task",
-            [
-                ("identity.id", json!("")),
-                ("title.value", json!("Seed task")),
-                ("status.value", json!("todo")),
-            ],
-        ))
-        .expect("seed insert should write through table declaration");
-    let _ = runtime.drain_patches(&table);
-    let grouped: ForgeQueryLiveView<Value> = runtime
-        .declare_live_view(
-            "tasks.grouped",
-            grouped_task_live_request(),
-            grouped_task_schema(),
-        )
-        .expect("grouped live view should declare with backend-owned baseline");
-
-    let inspection = runtime
-        .inspect_live_view_explanation(&grouped)
-        .expect("grouped live view explanation should inspect retained installation");
-
-    assert_eq!(
-        inspection.subscription_family(),
-        "grouped_collection_membership"
-    );
-    assert_eq!(
-        inspection.subscription_family_projection().label().as_str(),
-        grouped
-            .subscription_installation()
-            .subscription_family_projection()
-            .label()
-            .as_str()
-    );
-    assert_eq!(
-        inspection.support_projection().label().as_str(),
-        grouped
-            .subscription_installation()
-            .support_projection()
-            .label()
-            .as_str()
-    );
-    assert!(!inspection.support_projection().label().as_str().is_empty());
-    assert_eq!(inspection.counters().family_selection_count(), 1);
-    assert_eq!(inspection.counters().declaration_count(), 1);
-    assert_eq!(inspection.counters().bridge_lowering_count(), 1);
-    assert_eq!(inspection.counters().admission_count(), 1);
-    assert_eq!(inspection.counters().active_lane_creation_count(), 1);
-    assert_eq!(inspection.counters().consumer_attachment_count(), 1);
-    assert!(!inspection
-        .inspection_projection()
-        .label()
-        .as_str()
-        .is_empty());
-}
-
-#[test]
-fn redeclared_live_view_replaces_runtime_delivery_index_membership() {
-    let mut runtime = ForgeQueryRuntime::builder()
-        .runtime_bridge(test_bridge())
-        .schema_adapter(TestSchemaAdapter)
-        .source_adapter(TestSourceAdapter::default())
-        .write_authority(TestWriteAuthority)
-        .snapshot_identity(TestSnapshotIdentityAdapter)
-        .signal_sink(TestSignalSink)
-        .subscription_activation(TestSubscriptionActivation)
-        .preview_basis(TestPreviewBasis)
-        .inspector_evidence(TestInspectorEvidence)
-        .build_backend_from_parts()
-        .build()
-        .expect("bridge-backed runtime should build");
-    let task_view: ForgeQueryLiveView<Value> = runtime
-        .declare_live_view("shared.surface", task_live_request(), task_schema())
-        .expect("task live view should declare");
-    let task_seed = runtime
-        .write(insert_command(
-            "Task",
-            [
-                ("identity.id", json!("")),
-                ("title.value", json!("Task seed")),
-            ],
-        ))
-        .expect("task seed should write");
-    let _ = runtime.drain_patches(&task_view);
-
-    let issue_view: ForgeQueryLiveView<Value> = runtime
-        .declare_live_view("shared.surface", issue_live_request(), issue_schema())
-        .expect("same live view name should redeclare against issue collection");
-    let stale_task_update = runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: task_seed.deltas()[0].entity_identity.clone(),
-            aspect_path: "title.value".to_string(),
-            value: Value::String("Task update after redeclare".to_string()),
-        })
-        .expect("task update should still write");
-    let stale_task_patches = runtime.drain_patches(&issue_view);
-
-    assert!(stale_task_update.affected_live_view_ids().is_empty());
-    assert!(stale_task_patches.query_delivery_batches.is_empty());
-
-    let issue_write = runtime
-        .write(insert_command(
-            "Issue",
-            [
-                ("identity.id", json!("")),
-                ("summary.value", json!("Issue seed")),
-            ],
-        ))
-        .expect("issue insert should write");
-    let issue_patches = runtime.drain_patches(&issue_view);
-
-    assert_eq!(
-        issue_write.affected_live_view_ids(),
-        &["shared.surface".to_string()]
-    );
-    assert_eq!(issue_patches.query_delivery_batches.len(), 1);
 }

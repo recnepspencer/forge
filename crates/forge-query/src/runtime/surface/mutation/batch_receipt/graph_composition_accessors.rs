@@ -15,8 +15,8 @@ impl ForgeQueryBatchWriteReceipt {
             &self.graph_composition_breadth,
             &lifecycle_outcomes,
             &self.graph_composition_resolution_map,
-            self.affected_live_view_ids.len(),
-            self.affected_derived_view_ids.len(),
+            self.affected_live_view_targets.len(),
+            self.affected_derived_view_targets.len(),
             self.considered_computed_view_count,
         )
     }

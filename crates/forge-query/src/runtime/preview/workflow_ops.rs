@@ -239,14 +239,11 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         );
         self.intent_receipts.push(receipt.clone());
         self.execution_evidence
-            .push(ForgeQueryPreviewExecutionEvidence::new(
+            .push(ForgeQueryPreviewExecutionEvidence::for_intent_strategy(
                 &self.basis_admission,
-                ForgeQueryPreviewExecutionKind::PendingWriteIntent,
                 declaration.name(),
-                ForgeQueryAuthorityLane::PendingWriteIntent,
-                ForgeQueryAuthorityLane::PreviewTruth,
                 receipt.receipt_identity(),
-                vec![declaration.strategy_name().to_string()],
+                declaration.strategy_name(),
             ));
         Ok(receipt)
     }

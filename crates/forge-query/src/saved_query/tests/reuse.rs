@@ -222,7 +222,9 @@ fn saved_query_reuse_requires_fresh_freeze_for_view_change() {
             detail_schema_view(),
             admit_view_shape(
                 &direct,
-                ViewShapeDescriptor::inspector_detail_focused("profile"),
+                ViewShapeDescriptor::inspector_detail_focused(
+                    forge_foundational::facade::AspectKey::new("profile").unwrap(),
+                ),
             )
             .unwrap(),
         )

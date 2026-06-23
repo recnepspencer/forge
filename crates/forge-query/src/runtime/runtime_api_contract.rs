@@ -121,7 +121,10 @@ impl ForgeQueryRuntime {
         &self,
         view: &ForgeQueryLiveView<T>,
     ) -> Result<Option<ForgeQueryRuntimeDownstreamDelivery>, ForgeQueryRuntimeError> {
-        let state = self.live_subscriptions.get(view.name()).ok_or_else(|| {
+        let target = ForgeQueryLiveArtifactTarget::from_subscription_installation(
+            view.subscription_installation(),
+        );
+        let state = self.live_subscriptions.get(&target).ok_or_else(|| {
             ForgeQueryRuntimeError::MissingLiveSubscription(view.name().to_string())
         })?;
         Ok(project_downstream_delivery(

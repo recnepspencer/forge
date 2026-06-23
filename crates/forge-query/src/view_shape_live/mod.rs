@@ -36,7 +36,8 @@ pub use grouped_execution::{
     GroupedExecutionMemberRow, GroupedExecutionSurfaceArtifact,
 };
 pub use grouped_state::{
-    GroupedDesiredStateArtifact, GroupedLaneIdentity, GroupedMemberState, GroupedViewResultArtifact,
+    ForgeQueryGroupedBaselineMember, GroupedDesiredStateArtifact, GroupedLaneIdentity,
+    GroupedMemberState, GroupedViewResultArtifact,
 };
 pub use promotion::lower_view_shape_plan_to_live;
 

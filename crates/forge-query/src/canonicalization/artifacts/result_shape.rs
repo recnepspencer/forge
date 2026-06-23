@@ -53,13 +53,11 @@ impl CanonicalResultShapeArtifact {
         source_field: impl Into<String>,
         delivered_name: impl Into<String>,
     ) {
-        use crate::authoring::{AspectName, DeliveredFieldName, FieldName};
+        use crate::authoring::{AspectFieldKey, DeliveredFieldName};
 
         if let Some(field) = self.fields.first_mut() {
-            field.source_aspect = AspectName::new(source_aspect)
-                .expect("test rewrite must keep non-empty source aspect");
-            field.source_field = FieldName::new(source_field)
-                .expect("test rewrite must keep non-empty source field");
+            field.source = AspectFieldKey::from_authoring_parts(source_aspect, source_field)
+                .expect("test rewrite must keep non-empty source field key");
             field.delivered_name = DeliveredFieldName::new(delivered_name)
                 .expect("test rewrite must keep non-empty delivered name");
         }

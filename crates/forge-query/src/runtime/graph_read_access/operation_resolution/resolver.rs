@@ -87,7 +87,11 @@ fn declared_operation_relation_names(
     let mut relation_names = declaration
         .admitted_references()
         .iter()
-        .map(|reference| reference.relation_name().to_string())
+        .map(|reference| {
+            reference
+                .terminal_relation_projection_for_boundary()
+                .to_string()
+        })
         .collect::<Vec<_>>();
     relation_names.sort();
     relation_names.dedup();

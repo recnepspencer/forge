@@ -3,7 +3,7 @@ use crate::evidence_identity::{
 };
 use crate::runtime::{
     ForgeQueryGraphCompositionAdmissionTrace, ForgeQueryGraphCompositionAdmissionTraceStage,
-    ForgeQueryRuntimeError,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryRuntimeError,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -63,7 +63,7 @@ impl std::fmt::Display for ForgeQueryGraphCompositionDenialKind {
 pub struct ForgeQueryGraphCompositionDenial {
     kind: ForgeQueryGraphCompositionDenialKind,
     symbol: Option<String>,
-    target_collection: Option<String>,
+    target_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
     admission_trace: ForgeQueryGraphCompositionAdmissionTrace,
     message: String,
     denial_digest: String,
@@ -73,7 +73,7 @@ impl ForgeQueryGraphCompositionDenial {
     pub(crate) fn new(
         kind: ForgeQueryGraphCompositionDenialKind,
         symbol: Option<String>,
-        target_collection: Option<String>,
+        target_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
         message: impl Into<String>,
     ) -> Self {
         let message = message.into();
@@ -88,7 +88,9 @@ impl ForgeQueryGraphCompositionDenial {
                 .optional_value(ForgeQueryEvidenceTag::new("symbol"), symbol.as_deref())
                 .optional_value(
                     ForgeQueryEvidenceTag::new("target_collection"),
-                    target_collection.as_deref(),
+                    target_collection
+                        .as_ref()
+                        .map(ForgeQueryMutationTargetCollectionIdentity::as_str),
                 )
                 .field_value(
                     ForgeQueryEvidenceTag::new("trace"),
@@ -117,7 +119,15 @@ impl ForgeQueryGraphCompositionDenial {
     }
 
     pub fn target_collection(&self) -> Option<&str> {
-        self.target_collection.as_deref()
+        self.target_collection
+            .as_ref()
+            .map(ForgeQueryMutationTargetCollectionIdentity::as_str)
+    }
+
+    pub fn target_collection_identity(
+        &self,
+    ) -> Option<&ForgeQueryMutationTargetCollectionIdentity> {
+        self.target_collection.as_ref()
     }
 
     pub fn admission_trace(&self) -> &ForgeQueryGraphCompositionAdmissionTrace {
@@ -157,7 +167,7 @@ impl std::fmt::Display for ForgeQueryGraphCompositionDenial {
 pub(crate) fn graph_composition_error(
     kind: ForgeQueryGraphCompositionDenialKind,
     symbol: Option<String>,
-    target_collection: Option<String>,
+    target_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
     message: impl Into<String>,
 ) -> ForgeQueryRuntimeError {
     ForgeQueryRuntimeError::GraphCompositionDenied(ForgeQueryGraphCompositionDenial::new(

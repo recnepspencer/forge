@@ -15,6 +15,7 @@ use super::{
     contract::ForgeQueryDeclarationBridgeContinuationFamily,
     request::ForgeQueryDeclarationBridgeContinuationRequest,
 };
+use crate::application::declaration_aspect::terminal_declaration_aspect_projection;
 
 pub(crate) fn derive_bridge_routing_digest<
     D: crate::application::ForgeQueryDomainEntryMarker,
@@ -85,35 +86,59 @@ pub(crate) fn derive_bridge_routing_digest<
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("aspect_contract_required"),
-            aspect_contract.required().iter().map(String::as_str),
+            aspect_contract
+                .required()
+                .iter()
+                .map(terminal_declaration_aspect_projection),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("aspect_contract_preserved"),
-            aspect_contract.preserved().iter().map(String::as_str),
+            aspect_contract
+                .preserved()
+                .iter()
+                .map(terminal_declaration_aspect_projection),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("aspect_contract_published"),
-            aspect_contract.published().iter().map(String::as_str),
+            aspect_contract
+                .published()
+                .iter()
+                .map(terminal_declaration_aspect_projection),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("aspect_contract_masked"),
-            aspect_contract.masked().iter().map(String::as_str),
+            aspect_contract
+                .masked()
+                .iter()
+                .map(terminal_declaration_aspect_projection),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("aspect_contract_incompatible"),
-            aspect_contract.incompatible().iter().map(String::as_str),
+            aspect_contract
+                .incompatible()
+                .iter()
+                .map(terminal_declaration_aspect_projection),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("aspect_coverage_present"),
-            aspect_coverage.present().iter().map(String::as_str),
+            aspect_coverage
+                .present()
+                .iter()
+                .map(terminal_declaration_aspect_projection),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("aspect_coverage_masked"),
-            aspect_coverage.masked().iter().map(String::as_str),
+            aspect_coverage
+                .masked()
+                .iter()
+                .map(terminal_declaration_aspect_projection),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("aspect_coverage_conflicting"),
-            aspect_coverage.conflicting().iter().map(String::as_str),
+            aspect_coverage
+                .conflicting()
+                .iter()
+                .map(terminal_declaration_aspect_projection),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("aspect_coverage_basis"),
@@ -125,15 +150,24 @@ pub(crate) fn derive_bridge_routing_digest<
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("mapped_aspect_present"),
-            mapped_aspects.present().iter().map(String::as_str),
+            mapped_aspects
+                .present()
+                .iter()
+                .map(terminal_declaration_aspect_projection),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("mapped_aspect_masked"),
-            mapped_aspects.masked().iter().map(String::as_str),
+            mapped_aspects
+                .masked()
+                .iter()
+                .map(terminal_declaration_aspect_projection),
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("mapped_aspect_conflicting"),
-            mapped_aspects.conflicting().iter().map(String::as_str),
+            mapped_aspects
+                .conflicting()
+                .iter()
+                .map(terminal_declaration_aspect_projection),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("mapping_fit"),

@@ -6,6 +6,7 @@ use crate::live::{
     SuppressionReason,
 };
 use crate::view_shape::{GroupedDeltaAdmissionPolicy, ViewShapePlanArtifact};
+use forge_foundational::facade::AspectKey;
 
 use super::counters::ViewShapeLiveCounters;
 use super::family::LiveViewShapeFamily;
@@ -156,7 +157,7 @@ impl ObservedInspectorPatchArtifact {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FocusedInspectorAspectPatchArtifact {
     digest: String,
-    focus_aspect: String,
+    focus_aspect: AspectKey,
     field_delta_count: usize,
     inspector_identity: Option<InspectorIdentityArtifact>,
 }
@@ -166,7 +167,7 @@ impl FocusedInspectorAspectPatchArtifact {
         &self.digest
     }
 
-    pub fn focus_aspect(&self) -> &str {
+    pub fn native_focus_aspect_key(&self) -> &AspectKey {
         &self.focus_aspect
     }
 
@@ -180,13 +181,13 @@ impl FocusedInspectorAspectPatchArtifact {
 
     pub(crate) fn new(
         digest: impl Into<String>,
-        focus_aspect: impl Into<String>,
+        focus_aspect: AspectKey,
         field_delta_count: usize,
         inspector_identity: Option<InspectorIdentityArtifact>,
     ) -> Self {
         Self {
             digest: digest.into(),
-            focus_aspect: focus_aspect.into(),
+            focus_aspect,
             field_delta_count,
             inspector_identity,
         }

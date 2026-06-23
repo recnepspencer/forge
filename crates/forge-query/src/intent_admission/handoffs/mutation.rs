@@ -273,12 +273,7 @@ fn command_handoff_fingerprint(command: &ForgeQueryWriteCommand) -> ForgeQueryEv
     let declared_entity_identity = command
         .declared_entity_identity_ref()
         .map(|identity| identity.evidence_identity());
-    let declared_collection_identity = command.declared_collection_ref().map(|collection| {
-        crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
-            "authoritative-mutation-handoff",
-            collection,
-        )
-    });
+    let declared_collection_identity = command.declared_collection_identity();
     forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeMutationExecutionHandoff)
         .field_shape(
             ForgeQueryEvidenceTag::new("family"),

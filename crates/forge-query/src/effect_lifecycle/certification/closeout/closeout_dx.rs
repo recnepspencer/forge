@@ -1,5 +1,3 @@
-use serde_json::json;
-
 use crate::basis_lifecycle::BasisFamily;
 use crate::effect_lifecycle::{
     admit_effect_intent, discover_effect_lifecycle_support, effect_lifecycle_support_matrix,
@@ -198,7 +196,13 @@ fn inspectable_lowered_story() -> DxStoryEvidence {
         ),
         input: MutationLoweringInput::IntentReconciliation {
             entity_id: entity,
-            desired_aspect_fields_external_json: json!({ "name": "lowered-dx" }),
+            desired_aspect_fields:
+                crate::aspect_field_authoring::single_native_string_aspect_field_patch(
+                    "name",
+                    "name",
+                    "lowered-dx",
+                )
+                .expect("name patch should be native"),
         },
     };
     let normalized = normalize_raw_effect_intent(&basis, raw).expect("dx lowered story normalizes");
@@ -275,7 +279,13 @@ fn denial_or_rebind_story() -> DxStoryEvidence {
                 55,
                 0,
             ),
-            desired_aspect_fields_external_json: json!({ "name": "preview-rebind" }),
+            desired_aspect_fields:
+                crate::aspect_field_authoring::single_native_string_aspect_field_patch(
+                    "name",
+                    "name",
+                    "preview-rebind",
+                )
+                .expect("name patch should be native"),
         },
     };
     let normalized = normalize_raw_effect_intent(&basis, raw).expect("dx rebind story normalizes");

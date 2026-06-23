@@ -367,7 +367,7 @@ fn runtime_api_stabilization_closeout_document_matches_certified_contract() {
         "`workspace.write(...)`",
         "`workspace.read(...)`",
         "`workspace.observe(...)`",
-        "`workspace.materialize(...)`",
+        "`workspace.materialize_result(...)`",
         "`workspace.state(...)`",
         "`workspace.inspect(...)`",
         "`workspace.public_api_contract()`",

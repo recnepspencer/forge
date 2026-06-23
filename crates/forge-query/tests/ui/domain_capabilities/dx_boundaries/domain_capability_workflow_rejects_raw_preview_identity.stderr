@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_workflow_rejects_raw_preview_identity.rs:15:62
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_workflow_rejects_raw_preview_identity.rs:14:62
    |
-15 |         .plans_preview_mutation("topology.preview_mutation", "preview-session:77");
+14 |         .plans_preview_mutation("topology.preview_mutation", "preview-session:77");
    |          ----------------------                              ^^^^^^^^^^^^^^^^^^^^ expected `BridgeIdentity<...>`, found `&str`
    |          |
    |          arguments to this method are incorrect

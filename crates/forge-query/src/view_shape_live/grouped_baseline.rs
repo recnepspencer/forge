@@ -6,7 +6,9 @@ use super::counters::ViewShapeLiveCounters;
 use super::error::{ViewShapeLiveError, ViewShapeLiveFailureClass};
 #[cfg(test)]
 use super::grouped_execution::GroupedExecutionSurfaceArtifact;
-use super::grouped_state::{desired_state_from_members, GroupedDesiredStateArtifact};
+use super::grouped_state::{
+    desired_state_from_members, ForgeQueryGroupedBaselineMember, GroupedDesiredStateArtifact,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AuthoritativeGroupedBaselineArtifact {
@@ -106,7 +108,10 @@ pub fn materialize_authoritative_grouped_baseline(
                 ViewShapeLiveFailureClass::GroupedBaselineMismatch,
                 format!(
                     "grouped execution surface grouping aspect '{}' does not match grouped baseline aspect '{}'",
-                    member_row.lane().grouping_aspect(),
+                    member_row
+                        .lane()
+                        .native_grouping_aspect_key()
+                        .as_str(),
                     native_grouping_aspect_key.as_str()
                 ),
                 ViewShapeLiveCounters::default(),
@@ -123,7 +128,7 @@ pub fn materialize_authoritative_grouped_baseline(
                 .member_rows()
                 .iter()
                 .map(|member_row| {
-                    (
+                    ForgeQueryGroupedBaselineMember::from_authoritative_member_lane_keys(
                         member_row.member_key().to_string(),
                         member_row.lane().lane_key().to_string(),
                     )
@@ -136,7 +141,7 @@ pub fn materialize_authoritative_grouped_baseline(
 pub fn materialize_authoritative_grouped_baseline_from_members(
     plan: &ViewShapePlanArtifact,
     basis: ResolvedSnapshotBasis,
-    members: impl IntoIterator<Item = (String, String)>,
+    members: impl IntoIterator<Item = ForgeQueryGroupedBaselineMember>,
 ) -> Result<AuthoritativeGroupedBaselineArtifact, ViewShapeLiveError> {
     if plan.family() != crate::view_shape::ViewShapeFamily::KanbanGrouped {
         return Err(ViewShapeLiveError::new(

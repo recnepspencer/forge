@@ -1,5 +1,6 @@
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::EntityId;
+use forge_relational::facade::transactions::AspectFieldPatch;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum MutationIntentFamily {
@@ -31,7 +32,7 @@ impl RelationalStrategyTarget {
 pub enum MutationLoweringInput {
     IntentReconciliation {
         entity_id: EntityId,
-        desired_aspect_fields_external_json: serde_json::Value,
+        desired_aspect_fields: AspectFieldPatch,
     },
 }
 

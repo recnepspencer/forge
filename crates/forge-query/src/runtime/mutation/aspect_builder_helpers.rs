@@ -1,6 +1,7 @@
 use super::{
-    ForgeQueryAspectMutationBuilder, ForgeQueryAspectValue, ForgeQueryContinuityMutationIntent,
-    ForgeQueryNamingMutationIntent, ForgeQueryRuntimeError, ForgeQuerySymbolicAspectReference,
+    ForgeQueryAdmittedAspectValue, ForgeQueryAspectMutationBuilder,
+    ForgeQueryContinuityMutationIntent, ForgeQueryNamingMutationIntent, ForgeQueryRuntimeError,
+    ForgeQuerySymbolicAspectReference,
 };
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 use crate::runtime::ForgeQueryMutationAuthorityIdentity;
@@ -106,9 +107,9 @@ impl ForgeQueryAspectMutationBuilder {
 }
 
 pub(super) fn finish_aspects(
-    aspects: Vec<ForgeQueryAspectValue>,
+    aspects: Vec<ForgeQueryAdmittedAspectValue>,
     error: Option<String>,
-) -> Result<Vec<ForgeQueryAspectValue>, ForgeQueryRuntimeError> {
+) -> Result<Vec<ForgeQueryAdmittedAspectValue>, ForgeQueryRuntimeError> {
     if let Some(error) = error {
         return Err(ForgeQueryRuntimeError::Workspace(
             ForgeQueryWorkspaceError::new(error),

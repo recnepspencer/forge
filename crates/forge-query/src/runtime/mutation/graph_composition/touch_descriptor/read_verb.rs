@@ -2,7 +2,7 @@
 pub enum ForgeQueryGraphTouchReadVerb {
     ObservesCollection,
     ObservesRelationKind,
-    ObservesAspectPath,
+    ObservesAspect,
     ExposesDerivedTopology,
     MaterializesDiagnostic,
     RequiresPolicyBasis,
@@ -16,7 +16,7 @@ impl ForgeQueryGraphTouchReadVerb {
         match self {
             Self::ObservesCollection => "observes-collection",
             Self::ObservesRelationKind => "observes-relation-kind",
-            Self::ObservesAspectPath => "observes-aspect-path",
+            Self::ObservesAspect => "observes-aspect",
             Self::ExposesDerivedTopology => "exposes-derived-topology",
             Self::MaterializesDiagnostic => "materializes-diagnostic",
             Self::RequiresPolicyBasis => "requires-policy-basis",

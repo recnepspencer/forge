@@ -2,16 +2,22 @@ use std::collections::BTreeMap;
 
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 
-use super::{ForgeQueryDerivedMaterializationResult, ForgeQueryRuntimeError};
+use super::{
+    ForgeQueryDerivedMaterializationResult, ForgeQueryDerivedMaterializationTarget,
+    ForgeQueryRuntimeError,
+};
 
 pub(super) fn bundle_snapshot_identity(
-    materializations: &BTreeMap<String, ForgeQueryDerivedMaterializationResult>,
+    materializations: &BTreeMap<
+        ForgeQueryDerivedMaterializationTarget,
+        ForgeQueryDerivedMaterializationResult,
+    >,
 ) -> Result<ForgeQuerySnapshotIdentity, ForgeQueryRuntimeError> {
     let snapshot_identities = materializations
         .iter()
-        .map(|(view_name, result)| {
+        .map(|(target, result)| {
             (
-                view_name.as_str(),
+                target.terminal_view_name_projection(),
                 result.receipt().snapshot_identity().clone(),
             )
         })
@@ -33,7 +39,7 @@ pub(super) fn bundle_snapshot_identity(
         _ => Err(ForgeQueryRuntimeError::RetainedRowDecode {
             view_name: materializations
                 .keys()
-                .cloned()
+                .map(|target| target.terminal_view_name_projection().to_string())
                 .collect::<Vec<_>>()
                 .join("|"),
             stage: "derived-materialization-bundle",

@@ -195,13 +195,15 @@ fn query_builder_auto_indexes_relational_schema_contract_obligations() {
         "endpoint-kind:loop-successor-endpoint-kind"
     );
     assert_eq!(
-        catalog.registrations()[0].touch_selector().selector_kind(),
+        catalog.registrations()[0]
+            .touch_selector()
+            .terminal_selector_kind_for_boundary(),
         "relation-kind-id"
     );
     assert_eq!(
         catalog.registrations()[0]
             .touch_selector()
-            .selector_value()
+            .terminal_selector_value_for_boundary()
             .as_deref(),
         Some("77")
     );

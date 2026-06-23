@@ -1,6 +1,7 @@
-use forge_query::facade::PolicyAspectMask;
+use forge_query::facade::{AspectFieldKey, PolicyAspectMask};
 
 fn main() {
-    let mut mask = PolicyAspectMask::allow_all().with_masked("secret", "salary");
+    let mut mask =
+        PolicyAspectMask::allow_all().with_masked(AspectFieldKey::from_authoring_parts("secret", "salary").unwrap());
     mask.entries.clear();
 }

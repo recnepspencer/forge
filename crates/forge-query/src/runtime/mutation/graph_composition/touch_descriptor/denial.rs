@@ -8,6 +8,7 @@ pub enum ForgeQueryGraphTouchDescriptorDenialKind {
     DuplicateProgramStepIndex,
     EmptyReadCollection,
     EmptyDeclaredMutationCollection,
+    InvalidAspectPath,
     ProgramCommandCollectionMismatch,
     ProgramCommandSymbolMismatch,
     ProgramCommandMutationFamilyMismatch,
@@ -30,6 +31,7 @@ impl ForgeQueryGraphTouchDescriptorDenialKind {
             Self::DuplicateProgramStepIndex => "duplicate-program-step-index",
             Self::EmptyReadCollection => "empty-read-collection",
             Self::EmptyDeclaredMutationCollection => "empty-declared-mutation-collection",
+            Self::InvalidAspectPath => "invalid-aspect-path",
             Self::ProgramCommandCollectionMismatch => "program-command-collection-mismatch",
             Self::ProgramCommandSymbolMismatch => "program-command-symbol-mismatch",
             Self::ProgramCommandMutationFamilyMismatch => {

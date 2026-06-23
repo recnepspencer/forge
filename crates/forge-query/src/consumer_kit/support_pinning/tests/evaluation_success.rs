@@ -1,6 +1,7 @@
 use crate::consumer_kit::support_pinning::{
-    load_support_pin_contract_document, support_pinning_contract, ForgeQueryPinnedSupportStatus,
-    ForgeQueryPinnedTeachingPosture, ForgeQuerySupportPinContractSchemaVersion,
+    load_support_pin_contract_terminal_json_document, support_pinning_contract,
+    ForgeQueryPinnedSupportStatus, ForgeQueryPinnedTeachingPosture,
+    ForgeQuerySupportPinContractSchemaVersion,
 };
 use crate::runtime::ForgeQueryRuntimeFacadeFamily;
 
@@ -62,10 +63,10 @@ fn durable_contract_document_round_trips_and_still_pins_snapshot() {
         .unwrap()
         .seal()
         .unwrap();
-    let json = contract.to_canonical_json().unwrap();
+    let terminal_json_document = contract.to_canonical_terminal_json_document().unwrap();
 
-    let loaded = load_support_pin_contract_document(
-        &json,
+    let loaded = load_support_pin_contract_terminal_json_document(
+        &terminal_json_document.to_external_terminal_json_document(),
         ForgeQuerySupportPinContractSchemaVersion::current(),
     )
     .unwrap();

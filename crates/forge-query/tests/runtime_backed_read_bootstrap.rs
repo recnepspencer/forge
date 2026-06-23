@@ -1,8 +1,9 @@
-use forge_query::facade::{ForgeQueryLiveView, QueryPatchGroupKind};
-use serde_json::Value;
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
+use forge_query::facade::{ForgeQueryLiveView, ForgeQueryNativeRow, QueryPatchGroupKind};
 
 mod support;
 
+use support::aspect_touch as touch;
 use support::public_bridge_runtime::{
     public_bridge_runtime_bootstrap_invocation_count,
     reset_public_bridge_runtime_bootstrap_invocations, PublicBridgeRuntimeBootstrapPath,
@@ -16,19 +17,27 @@ fn raw_runtime_read_bootstrap_simplicity_test() {
     let mut workspace = runtime
         .workspace("public.runtime-backed-read-bootstrap")
         .expect("runtime should open a named workspace");
-    let tasks: ForgeQueryLiveView<Value> = workspace
+    let tasks: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("public.runtime-backed-read-bootstrap.tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("public-runtime-backed-read-bootstrap-tasks")
         })
         .expect("task live view should declare");
 
     workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-bootstrap")
-                .aspect("title.value", "Bootstrap task")
+            task.set_aspect(touch("identity.id"), authored_text("task-bootstrap"))
+                .set_aspect(touch("title.value"), authored_text("Bootstrap task"))
         })
         .expect("insert should execute through the public bootstrap lane");
 
@@ -37,12 +46,12 @@ fn raw_runtime_read_bootstrap_simplicity_test() {
 
     assert_eq!(rows.len(), 1);
     assert_eq!(
-        rows[0].external_row()["identity"]["id"].as_str(),
-        Some("task-bootstrap")
+        rows[0].scalar_value_at(&field_path("identity.id")),
+        Some(&text("task-bootstrap"))
     );
     assert_eq!(
-        rows[0].external_row()["title"]["value"].as_str(),
-        Some("Bootstrap task")
+        rows[0].scalar_value_at(&field_path("title.value")),
+        Some(&text("Bootstrap task"))
     );
     assert_eq!(patches.query_delivery_batches.len(), 1);
     assert_eq!(
@@ -60,19 +69,27 @@ fn runtime_backed_read_bootstrap_observe_is_a_drain_not_a_snapshot() {
     let mut workspace = runtime
         .workspace("public.runtime-backed-read-bootstrap-drain")
         .expect("runtime should open a named workspace");
-    let tasks: ForgeQueryLiveView<Value> = workspace
+    let tasks: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("public.runtime-backed-read-bootstrap-drain.tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("public-runtime-backed-read-bootstrap-drain-tasks")
         })
         .expect("task live view should declare");
 
     workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-bootstrap-drain")
-                .aspect("title.value", "Drain bootstrap task")
+            task.set_aspect(touch("identity.id"), authored_text("task-bootstrap-drain"))
+                .set_aspect(touch("title.value"), authored_text("Drain bootstrap task"))
         })
         .expect("insert should execute through the public bootstrap lane");
 
@@ -90,13 +107,21 @@ fn runtime_backed_read_bootstrap_narrows_observation_to_touched_projection_meani
     let mut workspace = runtime
         .workspace("public.runtime-backed-read-bootstrap-narrowing")
         .expect("runtime should open a named workspace");
-    let tasks: ForgeQueryLiveView<Value> = workspace
+    let tasks: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view(
             "public.runtime-backed-read-bootstrap-narrowing.tasks",
             |q| {
                 q.from("Task")
-                    .select(["identity.id", "title.value"])
-                    .order_by("title.value")
+                    .select([
+                        forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                        forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                            .unwrap(),
+                    ])
+                    .order_by(
+                        forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                            .unwrap(),
+                    )
                     .schema_basis("public-runtime-backed-read-bootstrap-narrowing-tasks")
             },
         )
@@ -104,24 +129,33 @@ fn runtime_backed_read_bootstrap_narrows_observation_to_touched_projection_meani
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-bootstrap-narrowing")
-                .aspect("title.value", "Bootstrap title")
-                .aspect("description.value", "hidden description")
+            task.set_aspect(
+                touch("identity.id"),
+                authored_text("task-bootstrap-narrowing"),
+            )
+            .set_aspect(touch("title.value"), authored_text("Bootstrap title"))
+            .set_aspect(
+                touch("description.value"),
+                authored_text("hidden description"),
+            )
         })
         .expect("seed insert should execute through the public bootstrap lane");
     let _ = workspace.observe(&tasks);
 
     workspace
         .update(seed.deltas()[0].entity_identity().clone(), |task| {
-            task.aspect("title.value", "Bootstrap title updated")
-                .aspect("description.value", "still hidden")
+            task.set_aspect(
+                touch("title.value"),
+                authored_text("Bootstrap title updated"),
+            )
+            .set_aspect(touch("description.value"), authored_text("still hidden"))
         })
         .expect("projected update should execute through the public bootstrap lane");
     let projected = workspace.observe(&tasks);
 
     workspace
         .update(seed.deltas()[0].entity_identity().clone(), |task| {
-            task.aspect("description.value", "hidden again")
+            task.set_aspect(touch("description.value"), authored_text("hidden again"))
         })
         .expect("hidden-only update should execute through the public bootstrap lane");
     let hidden_only = workspace.observe(&tasks);
@@ -134,8 +168,8 @@ fn runtime_backed_read_bootstrap_narrows_observation_to_touched_projection_meani
     );
     assert!(hidden_only.query_delivery_batches.is_empty());
     assert_eq!(
-        rows[0].external_row()["title"]["value"].as_str(),
-        Some("Bootstrap title updated")
+        rows[0].scalar_value_at(&field_path("title.value")),
+        Some(&text("Bootstrap title updated"))
     );
 }
 
@@ -146,19 +180,27 @@ fn runtime_backed_read_bootstrap_removes_deleted_members_from_read_and_observe()
     let mut workspace = runtime
         .workspace("public.runtime-backed-read-bootstrap-delete")
         .expect("runtime should open a named workspace");
-    let tasks: ForgeQueryLiveView<Value> = workspace
+    let tasks: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("public.runtime-backed-read-bootstrap-delete.tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("public-runtime-backed-read-bootstrap-delete-tasks")
         })
         .expect("task live view should declare");
 
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-bootstrap-delete")
-                .aspect("title.value", "Delete bootstrap task")
+            task.set_aspect(touch("identity.id"), authored_text("task-bootstrap-delete"))
+                .set_aspect(touch("title.value"), authored_text("Delete bootstrap task"))
         })
         .expect("seed insert should execute through the public bootstrap lane");
     let _ = workspace.observe(&tasks);
@@ -193,4 +235,21 @@ fn ordinary_runtime_backed_read_bootstrap_stays_on_common_lane_without_builder_s
         public_bridge_runtime_bootstrap_invocation_count(PublicBridgeRuntimeBootstrapPath::Builder),
         0
     );
+}
+
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
+}
+
+fn text(value: impl Into<String>) -> forge_foundational::facade::AspectValue {
+    forge_foundational::facade::AspectValue::String(value.into().into())
+}
+
+fn field_path(path: &str) -> CanonicalFieldPath {
+    CanonicalFieldPath::new(
+        path.split('.').map(|segment| {
+            FieldKey::new(segment).expect("test field path segment should be valid")
+        }),
+    )
+    .expect("test field path should be non-empty")
 }

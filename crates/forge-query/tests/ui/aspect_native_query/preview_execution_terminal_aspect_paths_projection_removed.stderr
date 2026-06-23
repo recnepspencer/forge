@@ -1,0 +1,5 @@
+error[E0599]: no method named `terminal_aspect_paths_projection` found for reference `&ForgeQueryPreviewExecutionEvidence` in the current scope
+ --> tests/ui/aspect_native_query/preview_execution_terminal_aspect_paths_projection_removed.rs:4:22
+  |
+4 |     let _ = evidence.terminal_aspect_paths_projection();
+  |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryPreviewExecutionEvidence`

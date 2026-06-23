@@ -1,4 +1,6 @@
-use crate::application::ForgeQueryDeclarationRelationalRoutingChecked;
+use crate::application::{
+    assert_declaration_aspect_projections, ForgeQueryDeclarationRelationalRoutingChecked,
+};
 
 use super::support::{
     domain::{
@@ -16,12 +18,12 @@ fn routed_relational_artifacts_expose_authority_scoped_aspect_state() {
         )
         .unwrap_or_else(|_| panic!("relational routing should succeed"));
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         routing.aspect_contract().required(),
         &[
-            "selection.active_face".to_string(),
-            "selection.neighborhood.local_topology".to_string()
-        ]
+            "selection.active_face",
+            "selection.neighborhood.local_topology",
+        ],
     );
     assert_eq!(
         routing.aspect_coverage_basis(),

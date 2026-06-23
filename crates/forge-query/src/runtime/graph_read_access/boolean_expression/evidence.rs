@@ -4,6 +4,7 @@ use super::super::{
 };
 use crate::declarative_live::DeclarativePredicateFilter;
 use crate::runtime::ForgeQueryReadGraph;
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryBooleanExpressionAdmissionErrorKind {
@@ -22,8 +23,8 @@ impl ForgeQueryBooleanExpressionAdmissionErrorKind {
 pub struct ForgeQueryBooleanExpressionAdmissionError {
     kind: ForgeQueryBooleanExpressionAdmissionErrorKind,
     read_graph_digest: String,
-    aspect: String,
-    field: String,
+    aspect: AspectKey,
+    field: FieldKey,
     family: String,
 }
 
@@ -36,11 +37,11 @@ impl ForgeQueryBooleanExpressionAdmissionError {
         &self.read_graph_digest
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn native_aspect_key(&self) -> &AspectKey {
         &self.aspect
     }
 
-    pub fn field(&self) -> &str {
+    pub fn native_field_key(&self) -> &FieldKey {
         &self.field
     }
 
@@ -53,11 +54,12 @@ impl ForgeQueryBooleanExpressionAdmissionError {
         filter: &DeclarativePredicateFilter,
         family: &str,
     ) -> Self {
+        let field = filter.source_field_key();
         Self {
             kind: ForgeQueryBooleanExpressionAdmissionErrorKind::MissingAdmittedPredicateReference,
             read_graph_digest: read_graph.digest().to_string(),
-            aspect: filter.aspect().to_string(),
-            field: filter.field().to_string(),
+            aspect: field.native_aspect_key(),
+            field: field.native_field_key(),
             family: family.to_string(),
         }
     }
@@ -95,8 +97,8 @@ impl ForgeQueryAdmittedBooleanExpressionBranchKind {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryAdmittedBooleanPredicateLeaf {
-    aspect: String,
-    field: String,
+    aspect: AspectKey,
+    field: FieldKey,
     family: String,
     operator: ForgeQueryPredicateOperandOperator,
     normalized_operand_values: Vec<String>,
@@ -105,11 +107,11 @@ pub struct ForgeQueryAdmittedBooleanPredicateLeaf {
 }
 
 impl ForgeQueryAdmittedBooleanPredicateLeaf {
-    pub fn aspect(&self) -> &str {
+    pub fn native_aspect_key(&self) -> &AspectKey {
         &self.aspect
     }
 
-    pub fn field(&self) -> &str {
+    pub fn native_field_key(&self) -> &FieldKey {
         &self.field
     }
 
@@ -134,8 +136,8 @@ impl ForgeQueryAdmittedBooleanPredicateLeaf {
     }
 
     pub(super) fn admitted(
-        aspect: impl Into<String>,
-        field: impl Into<String>,
+        aspect: AspectKey,
+        field: FieldKey,
         family: impl Into<String>,
         operator: ForgeQueryPredicateOperandOperator,
         normalized_operand_values: Vec<String>,
@@ -143,8 +145,8 @@ impl ForgeQueryAdmittedBooleanPredicateLeaf {
         selectivity_class: ForgeQueryPredicateSelectivityClass,
     ) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            aspect,
+            field,
             family: family.into(),
             operator,
             normalized_operand_values,
@@ -156,8 +158,8 @@ impl ForgeQueryAdmittedBooleanPredicateLeaf {
     pub(crate) fn digest_part(&self) -> String {
         format!(
             "leaf:{}:{}:{}:{}:{}:{}:{}",
-            self.aspect,
-            self.field,
+            self.aspect.as_str(),
+            self.field.as_str(),
             self.family,
             self.operator.as_str(),
             self.normalized_operand_values.join("|"),

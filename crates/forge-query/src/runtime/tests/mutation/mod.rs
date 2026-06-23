@@ -1,4 +1,5 @@
 mod aspect_crud;
+mod aspect_preview;
 mod assert_existing;
 mod batch;
 mod bridge_backed_verification_execution;
@@ -39,3 +40,4 @@ mod symbolic_reference;
 mod verified_delete_existing;
 mod verified_update_existing;
 mod verify_existing;
+mod verify_existing_receipts;

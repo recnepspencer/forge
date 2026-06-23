@@ -7,7 +7,7 @@ fn authoritative_runtime_floor_eligibility_carries_closed_pre_execution_facts() 
         "strategy.intent.reconcile",
         "1.0",
         "intent.reconcile.input.v1",
-        json!({"entity": "task-1"}),
+        test_intent_input([("entity", "task-1")]),
     );
     let request =
         crate::intent_admission::ForgeQueryRawIntentAdmissionRequest::authoritative_runtime_entrypoint(
@@ -78,7 +78,7 @@ fn effect_runtime_floor_eligibility_carries_closed_pre_execution_facts() {
         "strategy.intent.reconcile",
         "1.0",
         "intent.reconcile.input.v1",
-        json!({"entity": "task-1"}),
+        test_intent_input([("entity", "task-1")]),
     )
     .with_source_lane(ForgeQueryIntentSourceLane::EffectTriggered);
     let request =
@@ -124,7 +124,7 @@ fn mismatched_runtime_floor_eligibility_stops_as_phase_two_violation() {
         "strategy.intent.reconcile",
         "1.0",
         "intent.reconcile.input.v1",
-        json!({"entity": "task-1"}),
+        test_intent_input([("entity", "task-1")]),
     )
     .with_source_lane(ForgeQueryIntentSourceLane::EffectTriggered);
     let request =
@@ -177,7 +177,7 @@ fn authority_lane_mismatch_stops_as_phase_two_violation() {
         "strategy.intent.reconcile",
         "1.0",
         "intent.reconcile.input.v1",
-        json!({"entity": "task-1"}),
+        test_intent_input([("entity", "task-1")]),
     )
     .with_target_lane(ForgeQueryAuthorityLane::PreviewTruth);
     let request =
@@ -232,7 +232,7 @@ fn eligibility_digest_changes_when_pre_decision_fact_meaning_changes() {
                 "strategy.intent.reconcile",
                 "1.0",
                 "intent.reconcile.input.v1",
-                json!({"entity": "task-1"}),
+                test_intent_input([("entity", "task-1")]),
             )
             .with_source_lane(ForgeQueryIntentSourceLane::EffectTriggered),
         )
@@ -245,7 +245,7 @@ fn eligibility_digest_changes_when_pre_decision_fact_meaning_changes() {
                 "strategy.intent.reconcile",
                 "1.0",
                 "intent.reconcile.input.v1",
-                json!({"entity": "task-1"}),
+                test_intent_input([("entity", "task-1")]),
             )
             .with_target_lane(ForgeQueryAuthorityLane::PreviewTruth),
         )

@@ -8,6 +8,7 @@ use super::identity::{
 };
 use super::source::ProjectionSourceFamily;
 use super::support::{support_for_kind, ProjectionConsumptionSupportPosture};
+use crate::authorized_projection::AuthorizedProjectionFieldPath;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ProjectionConsumptionDenialReason {
@@ -326,12 +327,13 @@ fn visibility_denial(
     declaration: &ProjectionConsumptionDeclaration,
     request: &ProjectionFactRequest,
 ) -> Option<ProjectionConsumptionDenialReason> {
-    let field_key = request.field_key()?;
+    let field_path = request.field_path()?;
+    let field_key = field_path.terminal_projection_for_boundary();
     let visible = declaration
         .binding()
-        .authorized_visible_fields()
+        .authorized_visible_field_paths()
         .iter()
-        .any(|candidate| candidate == field_key);
+        .any(|candidate| authorized_field_matches_projection_fact(candidate, field_path));
     if visible {
         None
     } else {
@@ -339,4 +341,15 @@ fn visibility_denial(
             field_key: field_key.to_string(),
         })
     }
+}
+
+fn authorized_field_matches_projection_fact(
+    authorized: &AuthorizedProjectionFieldPath,
+    field_path: &super::facts::ProjectionFactFieldPath,
+) -> bool {
+    let Some(requested) = field_path.native_aspect_field_key() else {
+        return false;
+    };
+    authorized.native_aspect_key() == requested.native_aspect_key()
+        && authorized.native_field_key() == requested.native_field_key()
 }

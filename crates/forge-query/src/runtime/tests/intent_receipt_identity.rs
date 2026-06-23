@@ -15,7 +15,7 @@ fn authoritative_intent_receipt_identity_keeps_typed_scope_under_delimiter_press
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task|1", "title": "alpha:beta" }),
+            test_intent_input([("entity", "task|1"), ("title", "alpha:beta")]),
         ))
         .expect("left intent should execute");
     let right = runtime
@@ -24,7 +24,7 @@ fn authoritative_intent_receipt_identity_keeps_typed_scope_under_delimiter_press
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "receipt|task", "title": "alpha:beta" }),
+            test_intent_input([("entity", "receipt|task"), ("title", "alpha:beta")]),
         ))
         .expect("right intent should execute");
 
@@ -98,22 +98,26 @@ fn authoritative_intent_receipt_identity_keeps_typed_scope_under_delimiter_press
 fn effect_triggered_intent_receipt_identity_keeps_nested_receipts_typed() {
     let mut runtime = bridge_backed_runtime_with_support(intent_support_profile());
     let live = runtime
-        .declare_live_view::<Value>("tasks.effect-identity", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.effect-identity",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.identity|receipt",
-            ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",
         ))
         .expect("write-intent effect should declare");
 
     runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task|identity"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title:identity"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task|identity"),
+            "title.value",
+            "title:identity",
+        ))
         .expect("write should route pending effect intent");
     let receipt = runtime
         .execute_next_effect_write_intent(&effect, "1.0", "effect.intent.input.v1")
@@ -185,11 +189,11 @@ fn effect_triggered_intent_receipt_identity_changes_with_nested_authoritative_re
         "effects.identity|receipt",
     );
     left_runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task|identity"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title:left"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task|identity"),
+            "title.value",
+            "title:left",
+        ))
         .expect("left write should route pending effect intent");
     let left = left_runtime
         .execute_next_effect_write_intent(&left_effect, "1.0", "effect.intent.input.v1")
@@ -202,11 +206,11 @@ fn effect_triggered_intent_receipt_identity_changes_with_nested_authoritative_re
         "effects.identity",
     );
     right_runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("identity|task"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title:right"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("identity|task"),
+            "title.value",
+            "title:right",
+        ))
         .expect("right write should route pending effect intent");
     let right = right_runtime
         .execute_next_effect_write_intent(&right_effect, "1.0", "effect.intent.input.v1")
@@ -274,7 +278,7 @@ fn preview_intent_receipt_inspection_identity_keeps_basis_and_receipt_typed() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task|preview", "title": "preview:identity" }),
+            test_intent_input([("entity", "task|preview"), ("title", "preview:identity")]),
         ))
         .expect("preview intent should be admitted");
     let inspection = runtime
@@ -317,12 +321,12 @@ fn preview_intent_receipt_inspection_basis_resists_delimiter_sequence_pressure()
     let left = preview_receipt_with_basis(
         ["alpha", "beta|gamma"],
         "preview|intent",
-        json!({ "entity": "preview|task", "title": "left" }),
+        test_intent_input([("entity", "preview|task"), ("title", "left")]),
     );
     let right = preview_receipt_with_basis(
         ["intent|alpha", "beta|gamma"],
         "preview",
-        json!({ "entity": "preview|task", "title": "right" }),
+        test_intent_input([("entity", "preview|task"), ("title", "right")]),
     );
 
     assert_ne!(

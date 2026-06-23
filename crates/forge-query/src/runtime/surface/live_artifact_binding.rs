@@ -10,7 +10,7 @@ pub struct ForgeQueryLiveArtifactBinding {
     artifact_name: String,
     binding_digest: String,
     bundle: ForgeQueryLiveArtifactBundle,
-    target_view_names: Vec<String>,
+    targets: Vec<ForgeQueryLiveArtifactTarget>,
 }
 
 impl ForgeQueryLiveArtifactBinding {
@@ -20,19 +20,17 @@ impl ForgeQueryLiveArtifactBinding {
         required_targets: impl IntoIterator<Item = ForgeQueryLiveArtifactTarget>,
     ) -> Result<Self, ForgeQueryRuntimeError> {
         let artifact_name = artifact_name.into();
-        let mut target_view_names = required_targets
-            .into_iter()
-            .map(|target| target.view_name().to_string())
-            .collect::<Vec<_>>();
-        target_view_names.sort();
-        target_view_names.dedup();
+        let mut targets = required_targets.into_iter().collect::<Vec<_>>();
+        targets.sort();
+        targets.dedup();
 
-        let bundle_view_names = bundle.target_view_names().collect::<Vec<_>>();
-        if bundle.target_count() != target_view_names.len()
-            || !target_view_names
-                .iter()
-                .all(|view_name| bundle.includes_view_name(view_name))
+        if bundle.target_count() != targets.len()
+            || !targets.iter().all(|target| bundle.includes_target(target))
         {
+            let target_view_names = terminal_target_view_names(&targets);
+            let bundle_view_names = bundle
+                .terminal_target_view_names_projection()
+                .collect::<Vec<_>>();
             return Err(ForgeQueryRuntimeError::ReadCompositionDenied(
                 crate::runtime::ForgeQueryReadDenial::new(
                     crate::runtime::ForgeQueryReadDenialKind::ExecutionDenied,
@@ -52,9 +50,9 @@ impl ForgeQueryLiveArtifactBinding {
                     bundle.bundle_digest()
                 )))
                 .chain(
-                    target_view_names
+                    targets
                         .iter()
-                        .map(|view_name| format!("target:{view_name}")),
+                        .map(|target| format!("target:{}", target.terminal_view_name_projection())),
                 )
                 .collect::<Vec<_>>(),
         );
@@ -63,7 +61,7 @@ impl ForgeQueryLiveArtifactBinding {
             artifact_name,
             binding_digest,
             bundle,
-            target_view_names,
+            targets,
         })
     }
 
@@ -80,11 +78,15 @@ impl ForgeQueryLiveArtifactBinding {
     }
 
     pub fn target_count(&self) -> usize {
-        self.target_view_names.len()
+        self.targets.len()
     }
 
-    pub fn target_view_names(&self) -> impl Iterator<Item = &str> {
-        self.target_view_names.iter().map(String::as_str)
+    pub fn targets(&self) -> &[ForgeQueryLiveArtifactTarget] {
+        &self.targets
+    }
+
+    pub fn terminal_target_view_names_projection(&self) -> impl Iterator<Item = &str> {
+        self.targets.iter().map(|target| target.view_name())
     }
 
     pub fn read<T>(
@@ -94,10 +96,17 @@ impl ForgeQueryLiveArtifactBinding {
         self.bundle.read(view)
     }
 
-    pub fn read_by_name(
+    pub(crate) fn read_for_target(
         &self,
-        view_name: &str,
+        target: &ForgeQueryLiveArtifactTarget,
     ) -> Result<&ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
-        self.bundle.read_by_name(view_name)
+        self.bundle.read_for_target(target)
     }
+}
+
+fn terminal_target_view_names(targets: &[ForgeQueryLiveArtifactTarget]) -> Vec<String> {
+    targets
+        .iter()
+        .map(|target| target.terminal_view_name_projection().to_string())
+        .collect()
 }

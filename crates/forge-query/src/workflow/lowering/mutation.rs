@@ -1,4 +1,3 @@
-use crate::aspect_field_authoring::aspect_field_patch_from_external_json_values;
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
@@ -164,13 +163,11 @@ fn intent_reconciliation_strategy_request(
 ) -> Result<NativeStrategyCommitRequest, WorkflowLoweringError> {
     let MutationLoweringInput::IntentReconciliation {
         entity_id,
-        desired_aspect_fields_external_json,
+        desired_aspect_fields,
     } = input;
     IntentReconciliationInput {
         entity_id,
-        desired_aspect_fields: intent_reconciliation_field_patch(
-            desired_aspect_fields_external_json,
-        )?,
+        desired_aspect_fields,
     }
     .into_native_canonical_request(StrategyCallerProvenance {
         request_origin: StrategyRequestOrigin::Api,
@@ -181,36 +178,6 @@ fn intent_reconciliation_strategy_request(
         WorkflowLoweringError::new(
             WorkflowLoweringFailureClass::LoweringSerializationFailed,
             "mutation lowering could not encode native intent reconciliation input",
-            WorkflowStalenessClass::ExactBasisPreserved,
-            lowering_denial_counters(1, LoweringDenialClass::General),
-        )
-    })
-}
-
-fn intent_reconciliation_field_patch(
-    desired_aspect_fields_external_json: serde_json::Value,
-) -> Result<forge_relational::facade::transactions::AspectFieldPatch, WorkflowLoweringError> {
-    let serde_json::Value::Object(fields) = desired_aspect_fields_external_json else {
-        return Err(WorkflowLoweringError::new(
-            WorkflowLoweringFailureClass::LoweringSerializationFailed,
-            "intent reconciliation desired aspect fields must be a flat object of aspect fields",
-            WorkflowStalenessClass::ExactBasisPreserved,
-            lowering_denial_counters(1, LoweringDenialClass::General),
-        ));
-    };
-    let flattened_fields = fields
-        .into_iter()
-        .map(|(field, value)| (field.clone(), field, value))
-        .collect::<Vec<_>>();
-    aspect_field_patch_from_external_json_values(
-        flattened_fields
-            .iter()
-            .map(|(aspect, field, value)| (aspect.as_str(), field.as_str(), value.clone())),
-    )
-    .map_err(|_| {
-        WorkflowLoweringError::new(
-            WorkflowLoweringFailureClass::LoweringSerializationFailed,
-            "intent reconciliation desired aspect fields could not lower into aspect field patches",
             WorkflowStalenessClass::ExactBasisPreserved,
             lowering_denial_counters(1, LoweringDenialClass::General),
         )

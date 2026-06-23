@@ -6,6 +6,7 @@ use crate::runtime::tests::support::*;
 use crate::runtime::{
     ForgeQueryConcurrentHostileMatrixCounterSnapshot, ForgeQueryConcurrentHostileMatrixTopology,
 };
+use forge_foundational::facade::{AspectValue, InternedString};
 
 pub(super) fn consume_artifact_title(
     artifact: &ForgeQueryPublishedDerivedArtifactHandle,
@@ -17,7 +18,11 @@ pub(super) fn consume_artifact_title(
             .facts()
             .display_fields()
             .first()
-            .and_then(|fact| fact.value().as_str())
+            .and_then(|fact| match fact.value() {
+                AspectValue::String(InternedString::Raw(value)) => Some(value.as_str()),
+                AspectValue::String(InternedString::Symbol(_)) => None,
+                _ => None,
+            })
             .unwrap_or("none")
             .to_string(),
         ForgeQueryPublishedProjectionConsumption::ResultState(state) => {

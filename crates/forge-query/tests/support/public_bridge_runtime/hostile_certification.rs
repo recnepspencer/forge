@@ -1,19 +1,20 @@
+use crate::support::aspect_touch as touch;
+use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
     compose_public_bridge_hostile_certification_digest,
     public_bridge_hostile_certification_evidence_label,
     public_bridge_hostile_published_artifact_component_digest, ForgeQueryAspectMutationBuilder,
-    ForgeQueryCommitIdentity, ForgeQueryDerivedPatch, ForgeQueryDerivedView,
-    ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
-    ForgeQueryDerivedViewMaterialization, ForgeQueryLiveView,
-    ForgeQueryPublishedDerivedArtifactHandle, ForgeQueryRuntime, ForgeQueryRuntimeSupportProfile,
-    ForgeQueryWorkspace, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
-    PublicBridgeHostileCertificationComposeInput,
+    ForgeQueryCommitIdentity, ForgeQueryDerivedPatch, ForgeQueryDerivedPatchPayload,
+    ForgeQueryDerivedView, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
+    ForgeQueryDerivedViewMaterialization, ForgeQueryLiveView, ForgeQueryNativeRow,
+    ForgeQueryPublishedDerivedArtifactHandle, ForgeQueryRetainedFieldPath, ForgeQueryRuntime,
+    ForgeQueryRuntimeSupportProfile, ForgeQueryWorkspace, ForgeQueryWriteCommand,
+    ForgeQueryWriteReceipt, PublicBridgeHostileCertificationComposeInput,
 };
 use forge_query::{
     ForgeQueryPublicBridgeProjectionConsumptionEvidence,
     ForgeQueryPublicBridgeReaderLaneCertification, ForgeQueryPublicBridgeReaderLanePosture,
 };
-use serde_json::{json, Value};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -43,12 +44,19 @@ impl ForgeQueryDerivedViewMaintainer for PublicHostileMaintainer {
             .get(next)
             .copied()
             .unwrap_or(self.titles[self.titles.len() - 1]);
-        materialization.replace_rows([json!({ "title": { "value": title } })]);
+        let retained_scalar = (
+            retained_field_path(["title", "value"]),
+            AspectValue::String(title.to_string().into()),
+        );
+        materialization
+            .replace_retained_scalar_row([retained_scalar.clone()])
+            .expect("title row should retain scalar values");
         ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
             ForgeQueryCommitIdentity::from_relational_commit_id((next + 1) as u64),
-            ["title.value".to_string()],
-            json!({ "published": true, "title": title }),
+            [touch("title.value")],
+            ForgeQueryDerivedPatchPayload::from_retained_scalar_values([retained_scalar])
+                .expect("title patch payload should retain scalar values"),
             format!("public-hostile-publication-{}", next + 1),
         )
     }
@@ -57,7 +65,7 @@ impl ForgeQueryDerivedViewMaintainer for PublicHostileMaintainer {
 pub type PublicBridgeHostileCertificationArtifact = PublicBridgeReaderLaneHonestyArtifact;
 
 struct PublicBridgeHostileProjectionViews {
-    derived: ForgeQueryDerivedViewHandle<Value>,
+    derived: ForgeQueryDerivedViewHandle<ForgeQueryNativeRow>,
     invocations: Arc<AtomicUsize>,
 }
 
@@ -139,11 +147,19 @@ pub fn certify_public_bridge_hostile_schedule(
 fn declare_public_bridge_hostile_projection(
     workspace: &mut ForgeQueryWorkspace,
 ) -> PublicBridgeHostileProjectionViews {
-    let live: ForgeQueryLiveView<Value> = workspace
+    let live: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("public.bridge.hostile-certification.tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    forge_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("public-bridge-hostile-certification-tasks")
         })
         .expect("task live view should declare");
@@ -152,7 +168,7 @@ fn declare_public_bridge_hostile_projection(
         .computed_view(
             ForgeQueryDerivedView::new(
                 "public.bridge.hostile-certification.derived",
-                ["title.value".to_string()],
+                [touch("title.value")],
             )
             .depends_on_live(&live),
             PublicHostileMaintainer {
@@ -169,7 +185,7 @@ fn declare_public_bridge_hostile_projection(
 
 fn mint_pending_public_bridge_artifact_digest(
     workspace: &mut ForgeQueryWorkspace,
-    derived: &ForgeQueryDerivedViewHandle<Value>,
+    derived: &ForgeQueryDerivedViewHandle<ForgeQueryNativeRow>,
 ) -> String {
     let pending = workspace
         .shared_read_context()
@@ -203,8 +219,8 @@ fn discard_public_bridge_preview_churn(workspace: &mut ForgeQueryWorkspace) -> S
         .expect("preview churn should admit");
     preview
         .insert("Task", |task| {
-            task.aspect("identity.id", "preview-discard")
-                .aspect("title.value", "Preview discard")
+            task.set_aspect(touch("identity.id"), authored_text("preview-discard"))
+                .set_aspect(touch("title.value"), authored_text("Preview discard"))
         })
         .expect("preview staging should succeed");
     preview
@@ -251,8 +267,8 @@ fn promote_preview_task_and_consume_published_title(
         .expect("preview churn should admit");
     preview
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-3")
-                .aspect("title.value", "Task Three")
+            task.set_aspect(touch("identity.id"), authored_text("task-3"))
+                .set_aspect(touch("title.value"), authored_text("Task Three"))
         })
         .expect("preview promotion staging should succeed");
     let promoted = preview.promote().expect("preview promotion should succeed");
@@ -306,8 +322,8 @@ fn runtime_for_bootstrap_path(
 
 fn insert_task_command(id: &str, title: &str) -> ForgeQueryWriteCommand {
     ForgeQueryAspectMutationBuilder::new()
-        .aspect("identity.id", id)
-        .aspect("title.value", title)
+        .set_aspect(touch("identity.id"), authored_text(id))
+        .set_aspect(touch("title.value"), authored_text(title))
         .build_insert("Task")
         .expect("insert command should build")
 }
@@ -339,4 +355,20 @@ fn session_label(label: &str) -> forge_query::facade::ForgeQuerySessionLabel {
         [label],
     )
     .expect("public bridge test session label should build")
+}
+
+fn retained_field_path(
+    fields: impl IntoIterator<Item = &'static str>,
+) -> ForgeQueryRetainedFieldPath {
+    let canonical = CanonicalFieldPath::new(
+        fields
+            .into_iter()
+            .map(|field| FieldKey::new(field.to_string()).expect("field key should admit")),
+    )
+    .expect("retained field path should admit");
+    ForgeQueryRetainedFieldPath::from_canonical_field_path(canonical)
+}
+
+fn authored_text(value: impl Into<String>) -> forge_query::facade::ForgeQueryAuthoredAspectValue {
+    forge_query::facade::ForgeQueryAuthoredAspectValue::string(value)
 }

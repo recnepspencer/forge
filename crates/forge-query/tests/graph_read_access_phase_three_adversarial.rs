@@ -235,12 +235,32 @@ fn two_relation_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "graph-read-access-phase-three-two-relation",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("id")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
         [
-            SchemaRelationView::new("manager", 2),
-            SchemaRelationView::new("mentor", 2),
+            SchemaRelationView::new(
+                forge_query::facade::RelationName::new("manager")
+                    .expect("schema relation literal must be valid"),
+                2,
+            ),
+            SchemaRelationView::new(
+                forge_query::facade::RelationName::new("mentor")
+                    .expect("schema relation literal must be valid"),
+                2,
+            ),
         ],
     )
 }

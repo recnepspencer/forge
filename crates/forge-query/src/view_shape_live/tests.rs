@@ -58,18 +58,23 @@ fn schema_view() -> crate::schema_view::QuerySchemaView {
         "view-shape-live",
         [
             crate::schema_view::SchemaFieldView::new(
-                "identity",
-                "id",
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             ),
             crate::schema_view::SchemaFieldView::new(
-                "profile",
-                "display_name",
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             ),
             crate::schema_view::SchemaFieldView::new(
-                "status",
-                "lane",
+                crate::authoring::AspectName::new("status")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("lane")
+                    .expect("schema field literal must be valid"),
                 crate::schema_view::SchemaFieldKind::String,
             ),
         ],
@@ -203,7 +208,39 @@ fn planned_view(
     .unwrap()
 }
 
-type GroupedRowFixture = (String, String, String);
+#[derive(Clone)]
+struct GroupedRowFixture {
+    member_key: String,
+    display_name: AspectValue,
+    lane: AspectValue,
+}
+
+impl GroupedRowFixture {
+    fn new(member_key: &str, display_name: &str, lane: &str) -> Self {
+        Self {
+            member_key: member_key.to_string(),
+            display_name: crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                display_name,
+            ),
+            lane: crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(lane),
+        }
+    }
+
+    fn value_for_snapshot_read(&self, aspect_key: &str) -> AspectValue {
+        match aspect_key {
+            "identity.id" => crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                self.member_key.as_str(),
+            ),
+            "profile.display_name" => self.display_name.clone(),
+            "status.lane" => self.lane.clone(),
+            _ => crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("unknown"),
+        }
+    }
+}
+
+fn grouped_row(member_key: &str, display_name: &str, lane: &str) -> GroupedRowFixture {
+    GroupedRowFixture::new(member_key, display_name, lane)
+}
 
 #[derive(Clone)]
 struct StaticSource {
@@ -248,19 +285,16 @@ impl TruthSnapshotReader for StaticSnapshotReader {
                         .rows
                         .iter()
                         .enumerate()
-                        .find_map(|(index, (member_key, display_name, lane))| {
+                        .find_map(|(index, row)| {
                             (read.relational_record_identity_parts()
                                 == Some(grouped_member_record_identity(index)))
-                            .then(|| match read.aspect_key().as_str() {
-                                "identity.id" => AspectValue::String(member_key.as_str().into()),
-                                "profile.display_name" => {
-                                    AspectValue::String(display_name.as_str().into())
-                                }
-                                "status.lane" => AspectValue::String(lane.as_str().into()),
-                                _ => AspectValue::String("unknown".into()),
-                            })
+                            .then(|| row.value_for_snapshot_read(read.aspect_key().as_str()))
                         })
-                        .unwrap_or_else(|| AspectValue::String("unknown".into()));
+                        .unwrap_or_else(|| {
+                            crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                                "unknown",
+                            )
+                        });
                     SnapshotReadRecord::for_request(read, payload)
                 })
                 .collect(),
@@ -358,7 +392,7 @@ fn grouped_rows_packet(rows: &[GroupedRowFixture]) -> SnapshotReadPacket {
     SnapshotReadPacket::new(
         rows.iter()
             .enumerate()
-            .flat_map(|(index, (_member_key, _, _))| {
+            .flat_map(|(index, _row)| {
                 let record_identity = grouped_member_record_identity(index);
                 [
                     relational_snapshot_read(record_identity, "identity.id"),
@@ -383,19 +417,16 @@ fn grouped_rows_result(
                 let value = rows
                     .iter()
                     .enumerate()
-                    .find_map(|(index, (member_key, display_name, lane))| {
+                    .find_map(|(index, row)| {
                         (read.relational_record_identity_parts()
                             == Some(grouped_member_record_identity(index)))
-                        .then(|| match read.aspect_key().as_str() {
-                            "identity.id" => AspectValue::String(member_key.as_str().into()),
-                            "profile.display_name" => {
-                                AspectValue::String(display_name.as_str().into())
-                            }
-                            "status.lane" => AspectValue::String(lane.as_str().into()),
-                            _ => AspectValue::String("unknown".into()),
-                        })
+                        .then(|| row.value_for_snapshot_read(read.aspect_key().as_str()))
                     })
-                    .unwrap_or_else(|| AspectValue::String("unknown".into()));
+                    .unwrap_or_else(|| {
+                        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                            "unknown",
+                        )
+                    });
                 SnapshotReadRecord::for_request(read, aspect_value(value))
             })
             .collect(),
@@ -446,8 +477,8 @@ fn grouped_truth_view(
     grouped_truth_view_with_rows(
         plan,
         &[
-            ("task-1".to_string(), "Ada".to_string(), "todo".to_string()),
-            ("task-2".to_string(), "Bea".to_string(), "doing".to_string()),
+            grouped_row("task-1", "Ada", "todo"),
+            grouped_row("task-2", "Bea", "doing"),
         ],
         "identity.id",
         None,
@@ -476,7 +507,8 @@ fn grouped_truth_view_with_rows(
     let grouping_field = match plan
         .grouped_planning_artifact()
         .expect("grouped plan should carry grouped planning")
-        .grouping_aspect()
+        .native_grouping_aspect_key()
+        .as_str()
     {
         "status" => "status.lane",
         "profile" => "profile.display_name",
@@ -487,7 +519,8 @@ fn grouped_truth_view_with_rows(
         relational_grouped_projection_contract(
             plan.grouped_planning_artifact()
                 .expect("grouped plan should carry grouped planning")
-                .grouping_aspect(),
+                .native_grouping_aspect_key()
+                .as_str(),
             identity_field,
             grouping_field_override.unwrap_or(grouping_field),
         ),
@@ -663,7 +696,9 @@ fn observed_and_focused_inspector_emit_distinct_live_patches() {
     .unwrap();
     let focused_plan = planned_view(
         &canonical,
-        ViewShapeDescriptor::inspector_detail_focused("profile"),
+        ViewShapeDescriptor::inspector_detail_focused(
+            forge_foundational::facade::AspectKey::new("profile").unwrap(),
+        ),
     );
     let focused_live = lower_view_shape_plan_to_live(
         &focused_plan,
@@ -709,7 +744,7 @@ fn identity_aware_focused_inspector_emits_explicit_identity_artifact() {
     let focused_plan = planned_view(
         &canonical,
         ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-            "profile",
+            forge_foundational::facade::AspectKey::new("profile").unwrap(),
             InspectorIdentityClassification::IdentityBreak,
         ),
     );
@@ -759,7 +794,7 @@ fn identity_aware_focused_inspector_requires_matching_identity_binding() {
     let focused_plan = planned_view(
         &canonical,
         ViewShapeDescriptor::identity_aware_inspector_detail_focused(
-            "profile",
+            forge_foundational::facade::AspectKey::new("profile").unwrap(),
             InspectorIdentityClassification::IdentityBreak,
         ),
     );
@@ -813,7 +848,9 @@ fn ordinary_detail_live_lowering_rejects_smuggled_identity_binding() {
 fn focused_inspector_widening_is_denied_and_counted() {
     let planned = planned_view(
         &detail_canonical(),
-        ViewShapeDescriptor::inspector_detail_focused("profile"),
+        ViewShapeDescriptor::inspector_detail_focused(
+            forge_foundational::facade::AspectKey::new("profile").unwrap(),
+        ),
     );
     let live = lower_view_shape_plan_to_live(
         &planned,
@@ -885,8 +922,8 @@ fn grouped_delta_is_explicit_and_deterministic() {
     let next_truth_view = grouped_truth_view_with_rows(
         &planned,
         &[
-            ("task-1".to_string(), "Ada".to_string(), "doing".to_string()),
-            ("task-2".to_string(), "Bea".to_string(), "doing".to_string()),
+            grouped_row("task-1", "Ada", "doing"),
+            grouped_row("task-2", "Bea", "doing"),
         ],
         "identity.id",
         None,
@@ -940,13 +977,17 @@ fn grouped_baseline_is_derived_from_authoritative_execution_bindings() {
         materialize_authoritative_grouped_baseline(&planned, basis, &grouped_execution).unwrap();
 
     assert_eq!(
-        grouped_execution.grouped_planning().grouping_aspect(),
-        "status"
+        grouped_execution
+            .grouped_planning()
+            .native_grouping_aspect_key(),
+        &aspect_key("status")
     );
     assert_eq!(grouped_execution.member_rows().len(), 2);
     assert_eq!(
-        grouped_execution.member_rows()[0].lane().grouping_aspect(),
-        "status"
+        grouped_execution.member_rows()[0]
+            .lane()
+            .native_grouping_aspect_key(),
+        &aspect_key("status")
     );
     assert_eq!(
         grouped_execution.truth_view_evidence_identity().as_str(),
@@ -1019,7 +1060,7 @@ fn grouped_execution_rejects_truth_view_with_mismatched_identity_binding() {
     let basis = runtime_basis(planned.validated().query().schema_basis().clone());
     let wrong_truth_view = grouped_truth_view_with_rows(
         &planned,
-        &[("task-1".to_string(), "Ada".to_string(), "todo".to_string())],
+        &[grouped_row("task-1", "Ada", "todo")],
         "profile.display_name",
         None,
     );
@@ -1091,8 +1132,8 @@ fn grouped_churn_overrun_stays_on_grouped_membership_delta() {
     let next_truth_view = grouped_truth_view_with_rows(
         &planned,
         &[
-            ("task-1".to_string(), "Ada".to_string(), "doing".to_string()),
-            ("task-2".to_string(), "Bea".to_string(), "done".to_string()),
+            grouped_row("task-1", "Ada", "doing"),
+            grouped_row("task-2", "Bea", "done"),
         ],
         "identity.id",
         None,
@@ -1232,8 +1273,8 @@ fn grouped_delta_mixed_member_churn_stays_incremental() {
     let next_truth_view = grouped_truth_view_with_rows(
         &planned,
         &[
-            ("task-1".to_string(), "Ada".to_string(), "doing".to_string()),
-            ("task-3".to_string(), "Cy".to_string(), "todo".to_string()),
+            grouped_row("task-1", "Ada", "doing"),
+            grouped_row("task-3", "Cy", "todo"),
         ],
         "identity.id",
         None,

@@ -2,7 +2,7 @@ use super::requirement::ForgeQueryGraphReadOperationCapabilityRequirementDeclara
 use super::ForgeQueryGraphReadRegistryAdmissionError;
 use crate::authoring::{
     ForgeQueryAdmittedGraphReadDomainOperationReference,
-    ForgeQueryGraphReadDomainOperationDeclaration, ForgeQueryGraphReadOperationKey,
+    ForgeQueryGraphReadDomainOperationDeclaration, ForgeQueryGraphReadOperationKey, RelationName,
 };
 use crate::runtime::ForgeQueryGraphReadTraversalOperator;
 
@@ -11,7 +11,7 @@ pub struct ForgeQueryDomainRegisteredGraphReadOperation {
     operation_name: String,
     operation_version: u32,
     domain_owner: String,
-    accepted_relations: Vec<String>,
+    accepted_relations: Vec<RelationName>,
     traversal_operator: ForgeQueryGraphReadTraversalOperator,
     capability_requirements: Vec<ForgeQueryGraphReadOperationCapabilityRequirementDeclaration>,
 }
@@ -29,7 +29,7 @@ impl ForgeQueryDomainRegisteredGraphReadOperation {
         &self.domain_owner
     }
 
-    pub fn accepted_relations(&self) -> &[String] {
+    pub fn accepted_relation_names(&self) -> &[RelationName] {
         &self.accepted_relations
     }
 
@@ -50,7 +50,11 @@ impl ForgeQueryDomainRegisteredGraphReadOperation {
             self.operation_name,
             self.operation_version,
             self.traversal_operator.as_str(),
-            self.accepted_relations.join(",")
+            self.accepted_relations
+                .iter()
+                .map(RelationName::as_str)
+                .collect::<Vec<_>>()
+                .join(",")
         )
     }
 }
@@ -60,7 +64,7 @@ pub struct ForgeQueryGraphReadOperationRegistration {
     operation_name: String,
     operation_version: u32,
     domain_owner: String,
-    accepted_relations: Vec<String>,
+    accepted_relations: Vec<RelationName>,
     traversal_operator: ForgeQueryGraphReadTraversalOperator,
     capability_requirements: Vec<ForgeQueryGraphReadOperationCapabilityRequirementDeclaration>,
 }
@@ -91,7 +95,7 @@ impl ForgeQueryGraphReadOperationRegistration {
             accepted_relations: declaration
                 .admitted_references()
                 .iter()
-                .map(|reference| reference.relation_name().to_string())
+                .map(|reference| reference.relation_name().clone())
                 .collect(),
             traversal_operator: ForgeQueryGraphReadTraversalOperator::DeclarationTraversal,
             capability_requirements: declaration
@@ -115,11 +119,18 @@ impl ForgeQueryGraphReadOperationRegistration {
         registration
     }
 
-    pub fn accepts_relation(mut self, relation: impl Into<String>) -> Self {
-        self.accepted_relations.push(relation.into());
+    pub fn accepts_relation(
+        mut self,
+        relation: impl Into<String>,
+    ) -> Result<Self, ForgeQueryGraphReadRegistryAdmissionError> {
+        self.accepted_relations.push(
+            RelationName::new(relation).map_err(|_| {
+                ForgeQueryGraphReadRegistryAdmissionError::MissingAdmittedReferences
+            })?,
+        );
         self.accepted_relations.sort();
         self.accepted_relations.dedup();
-        self
+        Ok(self)
     }
 
     pub fn lowers_to_traversal_operator(
@@ -153,7 +164,7 @@ impl ForgeQueryGraphReadOperationRegistration {
         &self.domain_owner
     }
 
-    pub fn accepted_relation_names(&self) -> &[String] {
+    pub fn accepted_relation_names(&self) -> &[RelationName] {
         &self.accepted_relations
     }
 
@@ -196,10 +207,10 @@ impl ForgeQueryGraphReadOperationRegistration {
 
 fn declared_relation_names(
     references: &[ForgeQueryAdmittedGraphReadDomainOperationReference],
-) -> Vec<String> {
+) -> Vec<RelationName> {
     let mut relation_names = references
         .iter()
-        .map(|reference| reference.relation_name().to_string())
+        .map(|reference| reference.relation_name().clone())
         .collect::<Vec<_>>();
     relation_names.sort();
     relation_names.dedup();

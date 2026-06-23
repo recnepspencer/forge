@@ -1,4 +1,6 @@
-use crate::application::ForgeQueryDeclarationSignalCompatibilityChecked;
+use crate::application::{
+    assert_declaration_aspect_projections, ForgeQueryDeclarationSignalCompatibilityChecked,
+};
 
 use super::support::domain::{
     handle, ConflictingAspectFamily, ExpandedAspectFamily, Input, MissingAspectFamily,
@@ -88,16 +90,13 @@ fn signal_support_rows_expose_dependency_and_produced_aspects() {
     let support = handle("primary").signal_compatibility_support::<Input<RuntimeFamily>>();
     let row = &support.rows()[0];
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         row.required_dependency_aspects().required(),
-        &[
-            "selection.active_face".to_string(),
-            "signal.dependency.runtime_inputs".to_string()
-        ]
+        &["selection.active_face", "signal.dependency.runtime_inputs"],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         row.produced_aspects().required(),
-        &["signal.produced.derived_face_preview".to_string()]
+        &["signal.produced.derived_face_preview"],
     );
 }
 

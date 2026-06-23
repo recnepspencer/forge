@@ -1,0 +1,5 @@
+error[E0599]: no method named `aspect_path` found for struct `ForgeQueryAspectMutationOperation` in the current scope
+ --> tests/ui/aspect_native_query/aspect_mutation_operation_aspect_path_alias_removed.rs:7:23
+  |
+7 |     let _ = operation.aspect_path();
+  |                       ^^^^^^^^^^^ method not found in `ForgeQueryAspectMutationOperation`
