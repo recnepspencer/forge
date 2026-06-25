@@ -31,13 +31,17 @@ fn certified_signed_area_family_is_query_native_and_retained() {
     );
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.signed_area_2d.winding_fact".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.signed_area_2d.winding_fact"
+        )));
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.signed_area_2d.precision_fact".to_string()));
-    assert!(aspect_contract
-        .preserved()
-        .contains(&"geometry.signed_area_2d.degeneracy".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.signed_area_2d.precision_fact"
+        )));
+    assert!(aspect_contract.preserved().contains(
+        &crate::query_contract_helpers::aspect_field_key("geometry.signed_area_2d.degeneracy")
+    ));
 }
 
 #[test]

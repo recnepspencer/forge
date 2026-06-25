@@ -4,7 +4,7 @@ use super::super::{
     WorthGraphReadAccessInventoryRowBuilder, WorthGraphReadAccessInventorySeed,
 };
 
-pub(super) fn assert_row_error(
+pub(crate) fn assert_row_error(
     builder: WorthGraphReadAccessInventoryRowBuilder,
     expected: WorthGraphReadAccessInventoryErrorKind,
 ) {
@@ -14,7 +14,7 @@ pub(super) fn assert_row_error(
     assert_eq!(error.kind(), expected);
 }
 
-pub(super) fn assert_residue_error(
+pub(crate) fn assert_residue_error(
     builder: WorthGraphReadAccessCappedResidueBuilder,
     expected: WorthGraphReadAccessInventoryErrorKind,
 ) {
@@ -24,7 +24,7 @@ pub(super) fn assert_residue_error(
     assert_eq!(error.kind(), expected);
 }
 
-pub(super) fn assert_seed_error(
+pub(crate) fn assert_seed_error(
     parts: WorthGraphReadAccessInventorySeedParts,
     expected: WorthGraphReadAccessInventoryErrorKind,
 ) {
@@ -33,7 +33,7 @@ pub(super) fn assert_seed_error(
     assert_eq!(error.kind(), expected);
 }
 
-pub(super) fn assert_no_empty_digest(digests: &[String]) {
+pub(crate) fn assert_no_empty_digest(digests: &[String]) {
     assert!(!digests.is_empty());
     assert!(digests.iter().all(|digest| !digest.is_empty()));
 }

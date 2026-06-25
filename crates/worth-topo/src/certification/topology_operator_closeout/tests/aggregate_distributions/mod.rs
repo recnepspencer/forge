@@ -1,16 +1,10 @@
 use crate::facade::{
-    certify_milestone_three_hostile_suite, MilestoneThreeHostileScenario,
-    TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
+    MilestoneThreeHostileScenario, TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
 };
-use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
 fn hostile_suite_aggregate_distribution_rows_bind_to_scenario_sets() {
-    let report = certify_milestone_three_hostile_suite(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.hostile_suite.aggregate_distributions",
-    )
-    .expect("milestone three hostile suite should certify");
+    let report = crate::certification::test_support::cached_milestone_three_hostile_suite_report();
 
     assert!(report.family_coverage_rows.iter().all(|row| {
         row.scenario_count() == row.scenarios().len()

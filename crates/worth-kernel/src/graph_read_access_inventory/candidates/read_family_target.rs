@@ -5,6 +5,7 @@ pub enum WorthGraphReadReadFamilyTarget {
     TopologyLoopCycleNeighborhood,
     TopologyLocalRewireNeighborhood,
     SpatialPlanarBooleanContinuationIndex,
+    BroadBooleanPredicateGraphRead,
 }
 
 impl WorthGraphReadReadFamilyTarget {
@@ -19,6 +20,7 @@ impl WorthGraphReadReadFamilyTarget {
             Self::SpatialPlanarBooleanContinuationIndex => {
                 "spatial_planar_boolean_continuation_index"
             }
+            Self::BroadBooleanPredicateGraphRead => "broad_boolean_predicate_graph_read",
         }
     }
 }

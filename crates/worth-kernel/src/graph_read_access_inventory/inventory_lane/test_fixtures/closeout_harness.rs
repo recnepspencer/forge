@@ -4,7 +4,7 @@ use super::super::{
     WorthGraphReadAccessInventoryRowBuilder, WorthGraphReadAccessInventorySeed,
 };
 
-pub(super) fn closeout_from_rows(
+pub(crate) fn closeout_from_rows(
     seed: WorthGraphReadAccessInventorySeed,
     rows: Vec<WorthGraphReadAccessInventoryRowBuilder>,
 ) -> Result<WorthGraphReadAccessInventoryCloseout, WorthGraphReadAccessInventoryError> {

@@ -4,6 +4,9 @@ use forge_query::facade::runtime::{
 
 use super::admission_test_support::split_request_subject;
 use super::SpatialGeometryEvidenceTouchRequest;
+use crate::query_aspect_contract::{
+    aspect_mutation_operations, aspect_touch_from_path, aspect_touches_from_paths,
+};
 use crate::workload_platform::planar_boolean_loop_reconstruction::test_support::LoopFixtureEntryOrder;
 
 #[test]
@@ -36,13 +39,14 @@ fn query_selector_precision_matches_only_spatial_product_declared_descriptor_sur
             .expect("relation-kind selector should admit")
             .matches_descriptor(descriptor)
     );
-    assert!(ForgeQueryGraphTouchSelector::aspect_path(first_aspect)
-        .expect("aspect-path selector should admit")
-        .matches_descriptor(descriptor));
-    assert!(ForgeQueryGraphTouchSelector::read_verb(
-        ForgeQueryGraphTouchReadVerb::ObservesAspectPath
-    )
-    .matches_descriptor(descriptor));
+    assert!(
+        ForgeQueryGraphTouchSelector::aspect_touch(aspect_touch_from_path(&first_aspect))
+            .matches_descriptor(descriptor)
+    );
+    assert!(
+        ForgeQueryGraphTouchSelector::read_verb(ForgeQueryGraphTouchReadVerb::ObservesAspect)
+            .matches_descriptor(descriptor)
+    );
 
     assert!(
         !ForgeQueryGraphTouchSelector::collection("worth.spatial.unrelated")
@@ -50,8 +54,7 @@ fn query_selector_precision_matches_only_spatial_product_declared_descriptor_sur
             .matches_descriptor(descriptor)
     );
     assert!(
-        !ForgeQueryGraphTouchSelector::aspect_path("unrelated.aspect")
-            .expect("unrelated aspect selector should admit")
+        !ForgeQueryGraphTouchSelector::aspect_touch(aspect_touch_from_path("unrelated.aspect"))
             .matches_descriptor(descriptor)
     );
     assert!(!ForgeQueryGraphTouchSelector::read_verb(
@@ -61,8 +64,8 @@ fn query_selector_precision_matches_only_spatial_product_declared_descriptor_sur
     assert!(!ForgeQueryGraphTouchSelector::declared_mutation_collection(
         lowered.collection(),
         ForgeQueryMutationFamily::Update,
-        ["spatial-touch:update"],
-        ["spatial_touch.digest"],
+        aspect_mutation_operations(["set:spatial_touch.update"]),
+        aspect_touches_from_paths(&["spatial_touch.digest".to_string()]),
     )
     .expect("declared mutation selector should construct as Query vocabulary")
     .matches_descriptor(descriptor));

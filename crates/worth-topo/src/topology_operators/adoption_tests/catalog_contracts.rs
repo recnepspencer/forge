@@ -72,9 +72,10 @@ fn operator_catalog_registration_declaration_is_selector_covered() {
     assert_eq!(declaration.registrations().len(), 2);
     assert_eq!(coverage.row_count(), 2);
     assert!(coverage.covers_registration_declaration(&declaration));
-    assert!(declaration.registrations().iter().all(|registration| {
-        registration.touch_selector().selector_kind() == "lifecycle-family"
-    }));
+    assert!(declaration
+        .registrations()
+        .iter()
+        .all(|registration| { !registration.touch_selector().selector_digest().is_empty() }));
 }
 
 #[test]

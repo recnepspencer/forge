@@ -8,7 +8,7 @@ pub struct QueryGraphReadAccessCapabilityReport {
 }
 
 impl QueryGraphReadAccessCapabilityReport {
-    pub(super) fn new(rows: &'static [QueryGraphReadAccessCapabilityRow]) -> Self {
+    pub(crate) fn new(rows: &'static [QueryGraphReadAccessCapabilityRow]) -> Self {
         Self { rows }
     }
 

@@ -68,11 +68,15 @@ fn current_head_runtime_executes_create_topology_entity_through_topology_mutatio
         .contains("allows explicit fallback"));
     assert!(execution
         .receipt()
-        .affected_derived_view_ids()
+        .terminal_affected_derived_view_ids_projection()
         .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
-        execution.inspection().affected_derived_view_ids(),
-        execution.receipt().affected_derived_view_ids()
+        execution
+            .inspection()
+            .terminal_affected_derived_view_ids_projection(),
+        execution
+            .receipt()
+            .terminal_affected_derived_view_ids_projection()
     );
     assert!(execution
         .materialized()
@@ -113,11 +117,15 @@ fn current_head_runtime_executes_retire_topology_entity_through_topology_mutatio
     );
     assert!(execution
         .receipt()
-        .affected_derived_view_ids()
+        .terminal_affected_derived_view_ids_projection()
         .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
-        execution.inspection().affected_derived_view_ids(),
-        execution.receipt().affected_derived_view_ids()
+        execution
+            .inspection()
+            .terminal_affected_derived_view_ids_projection(),
+        execution
+            .receipt()
+            .terminal_affected_derived_view_ids_projection()
     );
     assert_eq!(
         execution.inspection().component_operations()[0]
@@ -177,11 +185,15 @@ fn current_head_runtime_executes_detach_boundary_membership_through_topology_mut
     );
     assert!(execution
         .receipt()
-        .affected_derived_view_ids()
+        .terminal_affected_derived_view_ids_projection()
         .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
-        execution.inspection().affected_derived_view_ids(),
-        execution.receipt().affected_derived_view_ids()
+        execution
+            .inspection()
+            .terminal_affected_derived_view_ids_projection(),
+        execution
+            .receipt()
+            .terminal_affected_derived_view_ids_projection()
     );
     assert_eq!(
         execution.inspection().component_operations()[0]
@@ -254,7 +266,7 @@ fn current_head_runtime_executes_create_inner_loop_on_existing_face_program() {
     );
     assert!(execution
         .receipt()
-        .affected_derived_view_ids()
+        .terminal_affected_derived_view_ids_projection()
         .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
         execution
@@ -316,11 +328,15 @@ fn current_head_runtime_executes_detach_radial_adjacency_through_topology_mutati
     );
     assert!(execution
         .receipt()
-        .affected_derived_view_ids()
+        .terminal_affected_derived_view_ids_projection()
         .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
-        execution.inspection().affected_derived_view_ids(),
-        execution.receipt().affected_derived_view_ids()
+        execution
+            .inspection()
+            .terminal_affected_derived_view_ids_projection(),
+        execution
+            .receipt()
+            .terminal_affected_derived_view_ids_projection()
     );
     assert_eq!(
         execution.inspection().component_operations()[0]

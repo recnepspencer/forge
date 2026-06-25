@@ -331,7 +331,7 @@ fn spatial_graph_touch_descriptor(
         [
             ForgeQueryGraphTouchReadVerb::ObservesCollection,
             ForgeQueryGraphTouchReadVerb::ObservesRelationKind,
-            ForgeQueryGraphTouchReadVerb::ObservesAspectPath,
+            ForgeQueryGraphTouchReadVerb::ObservesAspect,
             ForgeQueryGraphTouchReadVerb::MaterializesDiagnostic,
             ForgeQueryGraphTouchReadVerb::CrossesOperatingWorld,
         ],

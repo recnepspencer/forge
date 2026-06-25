@@ -283,6 +283,8 @@ mod runtime_read_intents;
 mod runtime_read_obligation_dispatch;
 mod runtime_reads_programs;
 mod runtime_session_lowering;
+
+pub use read_composition_materialization::forge_query_materialized_relation_field_key;
 mod runtime_sessions;
 mod runtime_unified_inspection_intents;
 mod runtime_write_intents;

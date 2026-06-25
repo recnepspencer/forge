@@ -12,8 +12,11 @@
 extern crate self as worth_kernel;
 
 pub mod docs_closeout;
+pub mod graph_read_access_declarations;
 pub mod graph_read_access_inventory;
+pub mod graph_read_access_plan_adoption;
 pub mod query_adoption;
+mod query_authoring_helpers;
 pub mod query_graph_authority_gate;
 #[doc(hidden)]
 pub mod query_obligation_selection;

@@ -1,5 +1,7 @@
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_query::facade::consumer_kit::ForgeQueryGraphObligationInMemoryTestWorkspace;
 use forge_query::facade::runtime::{
+    ForgeQueryAspectMutationOperation, ForgeQueryAspectTouch,
     ForgeQueryGraphObligationOperatingWorldDescriptor,
     ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphTouchDescriptor,
     ForgeQueryGraphTouchReadVerb, ForgeQueryMutationFamily,
@@ -33,24 +35,24 @@ fn selector_precision_counters_scale_with_touched_descriptor_breadth() {
         TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
         ForgeQueryMutationFamily::Insert,
         None,
-        ["set:topology.kind"],
-        ["topology.kind"],
+        aspect_mutation_operations(["set:topology.kind"]),
+        aspect_touches(["topology.kind"]),
     )
     .expect("narrow descriptor");
     let broad = ForgeQueryGraphTouchDescriptor::declared_mutation_collection(
         TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
         ForgeQueryMutationFamily::Insert,
         None,
-        [
+        aspect_mutation_operations([
             "set:topology.kind",
             "set:topology.structure",
             "set:naming.persistent_name",
-        ],
-        [
+        ]),
+        aspect_touches([
             "topology.kind",
             "topology.structure",
             "naming.persistent_name",
-        ],
+        ]),
     )
     .expect("broad descriptor");
 
@@ -112,6 +114,37 @@ fn selected_obligation_closeout_exposes_precision_report_beside_proof() {
     assert_eq!(report.query_selector_gap_count(), 0);
     assert!(!report.counters_digest().is_empty());
     assert!(!report.report_digest().is_empty());
+}
+
+fn aspect_touches<const N: usize>(paths: [&str; N]) -> [ForgeQueryAspectTouch; N] {
+    paths.map(aspect_touch)
+}
+
+fn aspect_mutation_operations<const N: usize>(
+    operations: [&str; N],
+) -> [ForgeQueryAspectMutationOperation; N] {
+    operations.map(aspect_mutation_operation)
+}
+
+fn aspect_touch(path: &str) -> ForgeQueryAspectTouch {
+    let Some((aspect, field)) = path.rsplit_once('.') else {
+        let aspect_key = AspectKey::new(path.to_string()).expect("aspect should admit");
+        return ForgeQueryAspectTouch::whole_aspect(aspect_key);
+    };
+    let aspect_key = AspectKey::new(aspect.to_string()).expect("aspect should admit");
+    let field_key = FieldKey::new(field.to_string()).expect("field should admit");
+    ForgeQueryAspectTouch::aspect_field_path(aspect_key, CanonicalFieldPath::single(field_key))
+}
+
+fn aspect_mutation_operation(operation: &str) -> ForgeQueryAspectMutationOperation {
+    let Some((operation_kind, path)) = operation.split_once(':') else {
+        panic!("selector precision operation `{operation}` must name operation kind");
+    };
+    match operation_kind {
+        "insert" | "set" => ForgeQueryAspectMutationOperation::set(aspect_touch(path)),
+        "delete" | "remove" => ForgeQueryAspectMutationOperation::clear(aspect_touch(path)),
+        _ => panic!("selector precision operation `{operation}` has unknown kind"),
+    }
 }
 
 #[test]

@@ -6,7 +6,7 @@ use super::super::super::row::{
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) struct WorthGraphReadAccessCoveredSource {
+pub(crate) struct WorthGraphReadAccessCoveredSource {
     source_path: &'static str,
     owner: WorthGraphReadAccessOwner,
     current_caller: &'static str,
@@ -17,7 +17,7 @@ pub(super) struct WorthGraphReadAccessCoveredSource {
 }
 
 impl WorthGraphReadAccessCoveredSource {
-    pub(super) const fn declaration_candidate(
+    pub(crate) const fn declaration_candidate(
         source_path: &'static str,
         owner: WorthGraphReadAccessOwner,
         current_caller: &'static str,
@@ -34,7 +34,7 @@ impl WorthGraphReadAccessCoveredSource {
         }
     }
 
-    pub(super) const fn deletion_target(
+    pub(crate) const fn deletion_target(
         source_path: &'static str,
         owner: WorthGraphReadAccessOwner,
         current_caller: &'static str,
@@ -51,7 +51,7 @@ impl WorthGraphReadAccessCoveredSource {
         }
     }
 
-    pub(super) const fn certification_only(
+    pub(crate) const fn certification_only(
         source_path: &'static str,
         owner: WorthGraphReadAccessOwner,
         current_caller: &'static str,
@@ -68,7 +68,7 @@ impl WorthGraphReadAccessCoveredSource {
         }
     }
 
-    pub(super) const fn access_capability_gap(
+    pub(crate) const fn access_capability_gap(
         source_path: &'static str,
         owner: WorthGraphReadAccessOwner,
         current_caller: &'static str,
@@ -85,21 +85,21 @@ impl WorthGraphReadAccessCoveredSource {
         }
     }
 
-    pub(super) const fn source_path(&self) -> &'static str {
+    pub(crate) const fn source_path(&self) -> &'static str {
         self.source_path
     }
 
     #[cfg(test)]
-    pub(super) const fn owner(&self) -> WorthGraphReadAccessOwner {
+    pub(crate) const fn owner(&self) -> WorthGraphReadAccessOwner {
         self.owner
     }
 
     #[cfg(test)]
-    pub(super) const fn classification(&self) -> WorthGraphReadAccessClassification {
+    pub(crate) const fn classification(&self) -> WorthGraphReadAccessClassification {
         self.classification
     }
 
-    pub(super) fn into_row_builder(self) -> WorthGraphReadAccessInventoryRowBuilder {
+    pub(crate) fn into_row_builder(self) -> WorthGraphReadAccessInventoryRowBuilder {
         WorthGraphReadAccessInventoryRow::builder()
             .source_path(self.source_path)
             .owner(self.owner)

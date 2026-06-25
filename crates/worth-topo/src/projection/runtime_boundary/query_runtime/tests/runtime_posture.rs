@@ -6,7 +6,6 @@ use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::{
     ForgeQueryBranchOptions, ForgeQueryIntentDeclaration, ForgeQuerySessionLabel,
 };
-use serde_json::json;
 
 #[test]
 fn current_head_runtime_posture_rows_freeze_admitted_and_denied_capabilities() {
@@ -118,7 +117,10 @@ fn current_head_runtime_admits_branch_sessions_but_denies_branch_local_intent_st
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "topology-branch-stage" }),
+            forge_query::facade::ForgeQueryIntentInput::object([(
+                "entity",
+                forge_query::facade::ForgeQueryIntentInput::string("topology-branch-stage"),
+            )]),
         ))
         .expect_err("branch-local intent staging should remain denied");
     assert!(error

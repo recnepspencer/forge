@@ -1,0 +1,14 @@
+error[E0624]: associated function `from_topology_view_with_selected_prefix` is private
+ --> src/certification/public_facade_contracts/compile_fail/public_materialized_graph_topology_prefix_read_source_not_exported.rs:6:46
+  |
+6 |           let _ = MaterializedGraphReadSource::from_topology_view_with_selected_prefix(topology, 0, 0);
+  |                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private associated function
+  |
+ ::: src/derived_topology/invalidation_plan/migrated_products/materialized_graph/read_stage/source.rs
+  |
+  | /     pub(crate) fn from_topology_view_with_selected_prefix(
+  | |         topology: &TopologyView,
+  | |         selected_entity_count: usize,
+  | |         selected_relation_count: usize,
+  | |     ) -> Result<Self, MaterializedGraphMigrationError> {
+  | |______________________________________________________- private associated function defined here

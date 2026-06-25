@@ -3,7 +3,7 @@ use super::super::{
     WorthGraphReadAccessOwner,
 };
 
-pub(super) fn capped_residue_row() -> WorthGraphReadAccessCappedResidueBuilder {
+pub(crate) fn capped_residue_row() -> WorthGraphReadAccessCappedResidueBuilder {
     WorthGraphReadAccessCappedResidueRow::builder()
         .source_path("crates/worth-kernel/src/query_adoption/graph_read_access")
         .owner(WorthGraphReadAccessOwner::WorthKernel)

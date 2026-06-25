@@ -125,21 +125,6 @@ pub(crate) fn primitive_construction_graph_obligation_replay_pair(
     )
 }
 
-pub(crate) fn primitive_construction_graph_obligation_execution_closeout_passes() -> bool {
-    let rows = primitive_construction_graph_obligation_execution_matrix();
-    rows.len() == PRIMITIVE_CONSTRUCTION_FAMILIES.len()
-        && rows.iter().all(|row| {
-            row.selected_count() == 1
-                && !row.result_digest().is_empty()
-                && !row.outcome_digest().is_empty()
-                && !row.evidence_digest().is_empty()
-                && !row.envelope_digest().is_empty()
-                && row.execution_status()
-                    == Some(ForgeQueryGraphObligationExecutionStatus::Executed)
-                && row.has_authoritative_dispatch_identity()
-        })
-}
-
 fn execute_primitive_family_graph_obligation_case(
     family: PrimitiveConstructionFamily,
     label: &str,

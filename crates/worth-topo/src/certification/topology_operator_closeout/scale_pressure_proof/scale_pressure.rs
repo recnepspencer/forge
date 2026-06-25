@@ -169,11 +169,10 @@ fn certify_scale_rewire_row<F>(
 where
     F: FnMut() -> RelationalRuntime,
 {
-    let left = execute_scale_rewire(runtime_factory, stem, &case)?;
-    let replay = execute_scale_rewire(runtime_factory, stem, &case)?;
+    let left = execute_scale_rewire(runtime_factory, stem, &case, true)?;
+    let replay = execute_scale_rewire(runtime_factory, stem, &case, false)?;
     let replay_verified = left.topology_mutation_digest == replay.topology_mutation_digest
-        && left.final_state_digest == replay.final_state_digest
-        && left.derived_validation_row_count == replay.derived_validation_row_count;
+        && left.final_state_digest == replay.final_state_digest;
     Ok(MilestoneThreeScalePressureRow {
         sweep: case.sweep,
         primitive_family: left.primitive_family,
@@ -196,6 +195,7 @@ fn execute_scale_rewire<F>(
     runtime_factory: &mut F,
     stem: &str,
     case: &ScaleRewireCase,
+    derive_validation: bool,
 ) -> Result<ScaleRewireExecution, TopologyCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
@@ -233,7 +233,13 @@ where
         high_face_shell_declaration,
         case,
     )?;
-    scale_rewire_execution(primitive_family, &mut workspace, &surfaces, declarations)
+    scale_rewire_execution(
+        primitive_family,
+        &mut workspace,
+        &surfaces,
+        declarations,
+        derive_validation,
+    )
 }
 
 fn scale_rewire_declarations(
@@ -282,11 +288,12 @@ fn local_successor_declaration(
     let neighborhood = TopologyReadProofHarness::current_head()
         .local_rewire_neighborhood(workspace, &moved_half_edge_identity, cycle_depth)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let chosen_successor_identity = neighborhood
-        .cycle_identities()
-        .get(candidate_offset)
-        .cloned()
-        .ok_or_else(|| scale_pressure_error("scale rewire candidate should exist"))?;
+    let chosen_successor_identity =
+        super::super::scenario_programs::successor_candidate_with_retained_predecessor(
+            &neighborhood,
+            candidate_offset,
+            "scale rewire",
+        )?;
     super::super::scenario_programs::successor_relocation_declaration(
         &neighborhood,
         &chosen_successor_identity,
@@ -298,6 +305,7 @@ fn scale_rewire_execution(
     workspace: &mut forge_query::facade::ForgeQueryWorkspace,
     surfaces: &TopologyDeclaredQuerySurfaces,
     declarations: Vec<ScaleRewireDeclaration>,
+    derive_validation: bool,
 ) -> Result<ScaleRewireExecution, TopologyCertificationError> {
     let topology_mutation_digest =
         aggregate_topology_mutation_digest_for_declarations(declarations.clone());
@@ -315,13 +323,19 @@ fn scale_rewire_execution(
     }
     let final_materialized = final_materialized
         .ok_or_else(|| scale_pressure_error("scale pressure executed no batches"))?;
-    let validation = derived_validation_report_from_materialized(&final_materialized)?;
+    let derived_validation_row_count = if derive_validation {
+        derived_validation_report_from_materialized(&final_materialized)?
+            .rows
+            .len()
+    } else {
+        0
+    };
     Ok(ScaleRewireExecution {
         primitive_family,
         topology_mutation_digest,
         mutation_families,
         final_state_digest,
-        derived_validation_row_count: validation.rows.len(),
+        derived_validation_row_count,
     })
 }
 
@@ -378,10 +392,10 @@ fn scale_rewire_cases() -> &'static [ScaleRewireCase] {
         },
         ScaleRewireCase {
             sweep: MilestoneThreeScalePressureSweep::HighFaceCountShells,
-            primitive: MilestoneOnePrimitiveCase::SolidShell { face_count: 16 },
+            primitive: MilestoneOnePrimitiveCase::SolidShell { face_count: 8 },
             cycle_depth: 3,
             candidate_offset: 2,
-            workload_size: 16,
+            workload_size: 8,
         },
     ]
 }

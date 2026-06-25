@@ -1,0 +1,26 @@
+error[E0624]: associated function `from_registered_rule` is private
+ --> tests/ui/validator_invariant_catalog/validator_identity_from_raw_string.rs:4:51
+  |
+4 |       let _ = WorthTopologyValidatorFamilyIdentity::from_registered_rule("ownership");
+  |                                                     ^^^^^^^^^^^^^^^^^^^^ private associated function
+  |
+ ::: src/validator_invariant_catalog/family_identity/validator_family_identity.rs
+  |
+  | /     pub(in crate::validator_invariant_catalog) fn from_registered_rule(
+  | |         rule_identity: TopologyValidationRuleIdentity,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+ --> tests/ui/validator_invariant_catalog/validator_identity_from_raw_string.rs:4:72
+  |
+4 |     let _ = WorthTopologyValidatorFamilyIdentity::from_registered_rule("ownership");
+  |             ---------------------------------------------------------- ^^^^^^^^^^^ expected `TopologyValidationRuleIdentity`, found `&str`
+  |             |
+  |             arguments to this function are incorrect
+  |
+note: associated function defined here
+ --> src/validator_invariant_catalog/family_identity/validator_family_identity.rs
+  |
+  |     pub(in crate::validator_invariant_catalog) fn from_registered_rule(
+  |                                                   ^^^^^^^^^^^^^^^^^^^^

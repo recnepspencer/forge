@@ -6,6 +6,42 @@ use crate::topology_operators::{
     TopologyRewireLoopSuccessorProgramDeclaration,
 };
 
+pub(in crate::certification::topology_operator_closeout) fn successor_candidate_with_retained_predecessor(
+    neighborhood: &TopologyLocalRewireNeighborhoodView,
+    preferred_offset: usize,
+    context: &str,
+) -> Result<String, TopologyCertificationError> {
+    candidate_at_offset(neighborhood, preferred_offset)
+        .filter(|candidate| candidate_has_complete_relocation_evidence(neighborhood, candidate))
+        .or_else(|| {
+            neighborhood
+                .cycle_identities()
+                .iter()
+                .skip(1)
+                .find(|candidate| {
+                    candidate_has_complete_relocation_evidence(neighborhood, candidate)
+                })
+                .cloned()
+        })
+        .ok_or_else(|| {
+            let retained = neighborhood
+                .cycle_half_edges()
+                .iter()
+                .map(|evidence| {
+                    format!(
+                        "{}<-{}",
+                        evidence.half_edge_identity(),
+                        evidence.previous_half_edge_identity()
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            TopologyCertificationError::Query(format!(
+                "{context} should expose a successor candidate with retained predecessor evidence; retained predecessor map: [{retained}]"
+            ))
+        })
+}
+
 pub(in crate::certification::topology_operator_closeout) fn successor_relocation_declaration(
     neighborhood: &TopologyLocalRewireNeighborhoodView,
     new_successor_identity: &str,
@@ -65,6 +101,20 @@ pub(in crate::certification::topology_operator_closeout) fn successor_relocation
     ]))
 }
 
+fn candidate_at_offset(
+    neighborhood: &TopologyLocalRewireNeighborhoodView,
+    offset: usize,
+) -> Option<String> {
+    neighborhood.cycle_identities().get(offset).cloned()
+}
+
+fn candidate_has_complete_relocation_evidence(
+    neighborhood: &TopologyLocalRewireNeighborhoodView,
+    candidate: &str,
+) -> bool {
+    successor_relocation_declaration(neighborhood, candidate).is_ok()
+}
+
 fn loop_neighbor_evidence<'a>(
     neighborhood: &'a TopologyLocalRewireNeighborhoodView,
     half_edge_identity: &str,
@@ -74,8 +124,14 @@ fn loop_neighbor_evidence<'a>(
         .iter()
         .find(|evidence| evidence.half_edge_identity() == half_edge_identity)
         .ok_or_else(|| {
+            let retained = neighborhood
+                .cycle_half_edges()
+                .iter()
+                .map(|evidence| evidence.half_edge_identity())
+                .collect::<Vec<_>>()
+                .join(", ");
             TopologyCertificationError::Query(format!(
-                "local rewire neighborhood should expose cycle evidence for `{half_edge_identity}`"
+                "local rewire neighborhood should expose cycle evidence for `{half_edge_identity}`; retained evidence identities: [{retained}]"
             ))
         })
 }

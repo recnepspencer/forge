@@ -1,0 +1,22 @@
+warning: unreachable expression
+ --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_inventory_closeout_not_forgeable.rs:6:22
+  |
+5 |         inventory: todo!(),
+  |                    ------- any code following this expression is unreachable
+6 |         source_scan: todo!(),
+  |                      ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `inventory`, `source_scan` and `phase_two_seed` of struct `DerivedInvalidationAuthorityInventoryCloseout` are private
+ --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_inventory_closeout_not_forgeable.rs:5:9
+  |
+4 |     let _ = DerivedInvalidationAuthorityInventoryCloseout {
+  |             --------------------------------------------- in this type
+5 |         inventory: todo!(),
+  |         ^^^^^^^^^ private field
+6 |         source_scan: todo!(),
+  |         ^^^^^^^^^^^ private field
+7 |         phase_two_seed: todo!(),
+  |         ^^^^^^^^^^^^^^ private field

@@ -42,12 +42,24 @@ fn historical_query_snapshot_uses_retained_query_rows_after_runtime_declaration(
     let surfaces =
         declare_topology_query_surfaces(&mut workspace).expect("query surfaces should declare");
 
-    assert_eq!(workspace.materialize(surfaces.materialized()).len(), 1);
-    assert_eq!(workspace.materialize(surfaces.interpreted()).len(), 1);
-    assert_eq!(workspace.materialize(surfaces.validation()).len(), 1);
-    assert_eq!(workspace.materialize(surfaces.diagnostics()).len(), 1);
     assert_eq!(
-        workspace.materialize(surfaces.equivalence_contract()).len(),
+        materialized_row_count(&mut workspace, surfaces.materialized()),
+        1
+    );
+    assert_eq!(
+        materialized_row_count(&mut workspace, surfaces.interpreted()),
+        1
+    );
+    assert_eq!(
+        materialized_row_count(&mut workspace, surfaces.validation()),
+        1
+    );
+    assert_eq!(
+        materialized_row_count(&mut workspace, surfaces.diagnostics()),
+        1
+    );
+    assert_eq!(
+        materialized_row_count(&mut workspace, surfaces.equivalence_contract()),
         1
     );
 
@@ -141,7 +153,7 @@ fn historical_derived_snapshot_reads_retained_diagnostics_and_equivalence_only()
     );
     assert!(
         source.contains("runtime.historical_equivalence_read_basis_facts()"),
-        "historical derived snapshot should consume Query-owned retained scalar read-basis evidence instead of reopening or spelunking decoded rows",
+        "historical derived snapshot should consume Query-owned retained payload read-basis evidence instead of reopening local rows",
     );
     assert!(
         !source.contains("materialize_derived_artifact_bundle("),
@@ -150,7 +162,7 @@ fn historical_derived_snapshot_reads_retained_diagnostics_and_equivalence_only()
 }
 
 #[test]
-fn historical_snapshot_read_basis_proof_uses_retained_scalar_field_evidence() {
+fn historical_snapshot_read_basis_proof_uses_retained_payload_report_evidence() {
     let source = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("src/certification/support/historical_query_snapshot/mod.rs"),
@@ -158,12 +170,19 @@ fn historical_snapshot_read_basis_proof_uses_retained_scalar_field_evidence() {
     .expect("historical snapshot proof source should remain readable");
 
     assert!(
-        source.contains("field_value(\"authority_snapshot_id\")"),
-        "historical snapshot read-basis proof should read authority snapshot id through retained scalar evidence",
+        source.contains("DerivedEquivalenceContractReport"),
+        "historical snapshot read-basis proof should consume the decoded Query-owned retained payload report",
     );
     assert!(
-        !source.contains("equivalence.authority_snapshot_id"),
-        "historical snapshot read-basis proof should not spelunk decoded equivalence contract fields directly anymore",
+        source.contains("equivalence.authority_snapshot_id")
+            && source.contains("equivalence.touched_aspect_count"),
+        "historical snapshot read-basis proof should compare semantic equivalence fields from the retained payload report",
+    );
+    assert!(
+        !source.contains("ForgeQueryRetainedScalarFactSet")
+            && !source.contains("ReadBasisEquivalenceField")
+            && !source.contains("field_value_at(&path)"),
+        "historical snapshot read-basis proof should not revive retained scalar fact plumbing",
     );
 }
 
@@ -286,8 +305,8 @@ fn historical_truth_artifact_uses_declared_surface_materialization_boundary() {
         "materialize_declared_query_surface_binding(",
         "ForgeQueryDerivedArtifactBinding",
         "topology.historical.truth",
-        "decode_row_triple(",
-        "verify_scalar_alignment(",
+        "decode_bundle_row(",
+        "retained_payload::decode_retained_payload_row(",
     ] {
         assert!(
             source.contains(required),
@@ -302,6 +321,17 @@ fn historical_truth_artifact_uses_declared_surface_materialization_boundary() {
         !source.contains("ForgeQueryDerivedMaterializationBundle"),
         "declared-query-surfaces retained artifact should not treat the naked Query bundle as the final retained artifact boundary",
     );
+}
+
+fn materialized_row_count(
+    workspace: &mut forge_query::facade::ForgeQueryWorkspace,
+    view: &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
+) -> usize {
+    workspace
+        .materialize_intent(view)
+        .execute()
+        .expect("declared surface should materialize")
+        .row_count()
 }
 
 #[test]

@@ -30,6 +30,7 @@ use super::{
     SpatialEvidenceLookupProduct, SpatialEvidenceLookupProductDigest,
     SpatialGeometryEvidenceTouchAuthority, SpatialGeometryEvidenceTouchDigest,
 };
+use crate::query_aspect_contract::aspect_touches_from_paths;
 use crate::workload_platform::evidence_ledger::WorkloadEvidenceStage;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -77,7 +78,7 @@ impl SpatialEvidenceQueryTouchDescriptor {
         let touch_descriptor = ForgeQueryGraphTouchDescriptor::read_family_shape(
             collection.clone(),
             read_verbs.iter().copied(),
-            ForgeQueryGraphReadTouchShape::new(aspect_paths.clone()),
+            ForgeQueryGraphReadTouchShape::new(aspect_touches_from_paths(&aspect_paths)),
         )
         .map_err(|denial| {
             SpatialEvidenceQueryLoweringDenial::query_descriptor_substitution(

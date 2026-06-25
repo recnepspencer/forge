@@ -20,7 +20,8 @@ pub use crate::projection::read_views::domain::{
     TopologyReadParityAggregateRow, TopologyReadParityKind, TopologyReadPhaseThreeBlocker,
     TopologyReadPhaseThreeBlockerRow, TopologyReadPhaseThreeBlockerStatus, TopologyReadProofReport,
     TopologyReadRelationshipProofPosture, TopologyReadRequestFamily, TopologyReadRequestReport,
-    TopologySnapshotReadOnlyReadHandleExt, TopologySnapshotReadOnlyReadSession,
+    TopologyShellBoundaryNeighborhoodView, TopologySnapshotReadOnlyReadHandleExt,
+    TopologySnapshotReadOnlyReadSession,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

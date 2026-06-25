@@ -63,7 +63,7 @@ pub(super) fn domain_structure_closeout_violations(workspace_root: &Path) -> Vec
             &[
                 "`Worth Topology Domain Structure Gate`: Closed",
                 "`Milestone 3`: Complete",
-                "`Milestone 4`: Active",
+                "`Milestone 4`: Implemented",
             ][..],
         ),
         (

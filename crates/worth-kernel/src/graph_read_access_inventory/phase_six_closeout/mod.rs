@@ -11,10 +11,12 @@ mod row_identity;
 mod tests;
 
 pub use closeout::WorthGraphReadAccessPhaseSixCloseout;
-pub use collector::{
-    reject_keep_local_graph_read_disposition, WorthGraphReadAccessPhaseSixCollector,
-};
-pub use counters::WorthGraphReadAccessPhaseSixCounters;
+#[cfg(test)]
+pub use collector::reject_keep_local_graph_read_disposition;
+#[cfg(test)]
+pub use collector::WorthGraphReadAccessPhaseSixCollector;
+#[cfg(test)]
+pub(crate) use counters::WorthGraphReadAccessPhaseSixCounters;
 pub use errors::{WorthGraphReadAccessPhaseSixError, WorthGraphReadAccessPhaseSixErrorKind};
 pub use milestone_seven_seed::WorthGraphReadAccessMilestoneSevenSeed;
 pub use row_context::WorthGraphReadAccessInventoryRowContext;

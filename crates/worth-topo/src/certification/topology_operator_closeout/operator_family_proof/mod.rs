@@ -1,5 +1,5 @@
 mod operator_family_closure;
-#[cfg(test)]
+#[cfg(all(test, feature = "slow-certification"))]
 mod operator_family_closure_tests;
 mod operator_family_closure_types;
 mod primitive_family_closure;

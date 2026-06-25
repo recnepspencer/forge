@@ -266,7 +266,7 @@ mod tests {
     use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
     use crate::derived_topology::materialized_graph::TopologyMaterializer;
-    use crate::derived_topology::traversal_views::interpret_topology_view;
+    use crate::derived_topology::traversal_views::bootstrap_topology_interpretation;
     use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
     use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
@@ -289,7 +289,7 @@ mod tests {
             .expect("snapshot read");
         let materialized =
             TopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
-        let interpreted = interpret_topology_view(&materialized);
+        let interpreted = bootstrap_topology_interpretation(&materialized);
         let validation =
             derive_topology_validation_report(&materialized, &interpreted).expect("validation");
 

@@ -1,9 +1,7 @@
 use super::super::candidates::WorthGraphReadDeclarationCandidate;
 use super::super::capability_gaps::WorthGraphReadQueryAccessCapabilityGap;
 use super::super::deletion_ledger::WorthGraphReadDeletionLedgerItem;
-use super::super::inventory_lane::{
-    WorthGraphReadAccessClassification, WorthGraphReadAccessInventoryCloseout,
-};
+use super::super::inventory_lane::WorthGraphReadAccessInventoryCloseout;
 use super::collector::WorthGraphReadAccessPhaseSixCollector;
 use super::counters::WorthGraphReadAccessPhaseSixCounters;
 use super::errors::WorthGraphReadAccessPhaseSixError;
@@ -56,14 +54,17 @@ impl WorthGraphReadAccessPhaseSixCloseout {
         }
     }
 
+    #[cfg(test)]
     pub fn declaration_candidates(&self) -> &[WorthGraphReadDeclarationCandidate] {
         &self.declaration_candidates
     }
 
+    #[cfg(test)]
     pub fn capability_gaps(&self) -> &[WorthGraphReadQueryAccessCapabilityGap] {
         &self.capability_gaps
     }
 
+    #[cfg(test)]
     pub fn deletion_items(&self) -> &[WorthGraphReadDeletionLedgerItem] {
         &self.deletion_items
     }
@@ -76,7 +77,10 @@ impl WorthGraphReadAccessPhaseSixCloseout {
         false
     }
 
+    #[cfg(test)]
     pub fn contains_uncapped_old_graph_read_folklore_as_declaration_or_gap(&self) -> bool {
+        use super::super::inventory_lane::WorthGraphReadAccessClassification;
+
         self.declaration_candidates.iter().any(|candidate| {
             candidate
                 .inventory_row_context()

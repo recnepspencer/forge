@@ -3,6 +3,10 @@ use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 #[cfg(test)]
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
+use crate::derived_topology::invalidation_plan::operator_cutover::{
+    DerivedInvalidationOperatorCutoverError, DerivedInvalidationOperatorCutoverReceipt,
+    DerivedInvalidationProjectionReadStageReceipt, ProjectionReadStageConsumptionScope,
+};
 #[cfg(not(test))]
 use crate::derived_topology::materialized_graph::TopologyMaterializationError;
 #[cfg(test)]
@@ -10,7 +14,9 @@ use crate::derived_topology::materialized_graph::{
     MaterializedTopologyView, TopologyMaterializationError, TopologyMaterializer,
 };
 #[cfg(test)]
-use crate::derived_topology::traversal_views::{interpret_topology_view, InterpretedTopologyView};
+use crate::derived_topology::traversal_views::{
+    bootstrap_topology_interpretation, InterpretedTopologyView,
+};
 #[cfg(test)]
 use crate::projection::diagnostic_surfaces::derived_read_diagnostics::derive_topology_validation_report;
 #[cfg(not(test))]
@@ -49,6 +55,18 @@ impl From<TopologyValidationError> for TopologyReadStageError {
     fn from(value: TopologyValidationError) -> Self {
         Self::Validation(value)
     }
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) fn consume_derived_invalidation_for_projection_read_stage(
+    operator_cutover: &DerivedInvalidationOperatorCutoverReceipt,
+) -> Result<DerivedInvalidationProjectionReadStageReceipt, DerivedInvalidationOperatorCutoverError>
+{
+    DerivedInvalidationProjectionReadStageReceipt::consume_operator_cutover(
+        operator_cutover,
+        ProjectionReadStageConsumptionScope::CommittedRead,
+        0,
+    )
 }
 
 #[cfg(test)]
@@ -95,7 +113,7 @@ pub(crate) fn stage_topology_read_from_view(
     read_view: &RelationalReadView,
 ) -> Result<StagedTopologyRead, TopologyReadStageError> {
     let materialized = TopologyMaterializer::materialize_from_truth(read_view)?;
-    let interpreted = interpret_topology_view(&materialized);
+    let interpreted = bootstrap_topology_interpretation(&materialized);
     let validation = derive_topology_validation_report(&materialized, &interpreted)?;
     Ok(StagedTopologyRead {
         materialized,

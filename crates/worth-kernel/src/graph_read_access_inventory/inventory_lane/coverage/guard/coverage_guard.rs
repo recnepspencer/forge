@@ -8,14 +8,15 @@ use super::super::discovery::{
 };
 use super::guard_report::WorthGraphReadAccessCoverageGuardReport;
 
-pub(super) fn validate_current_graph_read_surfaces(
+pub(crate) fn validate_current_graph_read_surfaces(
     covered_sources: &[WorthGraphReadAccessCoveredSource],
 ) -> Result<WorthGraphReadAccessCoverageGuardReport, WorthGraphReadAccessInventoryError> {
     let discovered_report = current_worth_graph_read_access_discovered_surface_report();
     validate_discovered_graph_read_surface_report(discovered_report, covered_sources)
 }
 
-pub(super) fn validate_discovered_graph_read_surfaces(
+#[cfg(test)]
+pub(crate) fn validate_discovered_graph_read_surfaces(
     discovered_surfaces: &[WorthGraphReadAccessDiscoveredSurface],
     covered_sources: &[WorthGraphReadAccessCoveredSource],
 ) -> Result<WorthGraphReadAccessCoverageGuardReport, WorthGraphReadAccessInventoryError> {

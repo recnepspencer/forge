@@ -3,9 +3,11 @@ use forge_foundational::facade::{
     ScalarAspectType,
 };
 use forge_query::facade::{
-    DeclarativeLiveQueryRequest, ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryCommitIdentity,
-    ForgeQueryEffectPolicy, ForgeQueryEntity, ForgeQueryEntityIdentity, ForgeQueryEvidenceIdentity,
-    ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMutationDelta, ForgeQueryMutationKind,
+    DeclarativeLiveQueryRequest, ForgeQueryBackendAdmissibleMutation,
+    ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryCommitIdentity, ForgeQueryEffectPolicy,
+    ForgeQueryEntity, ForgeQueryEntityIdentity, ForgeQueryEvidenceIdentity,
+    ForgeQueryLiveArtifactTarget, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
+    ForgeQueryMutationDelta, ForgeQueryMutationFamily, ForgeQueryMutationKind,
     ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime,
     ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
     ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
@@ -13,7 +15,7 @@ use forge_query::facade::{
     ForgeQueryRuntimeSnapshotIdentityAdapter, ForgeQueryRuntimeSourceAdapter,
     ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
     ForgeQuerySessionLabel, ForgeQuerySnapshotIdentity, ForgeQueryWorkspaceError,
-    ForgeQueryWriteCommand, ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt,
+    ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt,
     SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
     SubscriptionActivationInput, WriteAuthorityExecutionReceipt,
 };
@@ -186,15 +188,24 @@ impl ForgeQueryRuntimeSourceAdapter for DiagnosticSourceAdapter {
         Ok(ForgeQueryLiveViewHandle::new(name))
     }
 
-    fn live_entities(&self, _view_name: &str) -> Vec<ForgeQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity> {
         Vec::new()
     }
 
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
+    fn drain_live_patches_for_target(
+        &mut self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch> {
         Vec::new()
     }
 
-    fn affected_live_view_ids(&self, _receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+    fn affected_live_view_targets(
+        &self,
+        _receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget> {
         Vec::new()
     }
 }
@@ -206,25 +217,34 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for DiagnosticWriteAuthority {
         &mut self,
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut forge_relational::facade::runtime::RelationalRuntime>,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
+        let collection = mutation
+            .declared_collection_identity()
+            .map(|collection| collection.as_str().to_string())
+            .unwrap_or_else(|| "planar-diagnostic".to_string());
+        let mutation_kind = match mutation.mutation_family() {
+            ForgeQueryMutationFamily::Insert => ForgeQueryMutationKind::Created,
+            ForgeQueryMutationFamily::Delete => ForgeQueryMutationKind::Deleted,
+            ForgeQueryMutationFamily::Update | ForgeQueryMutationFamily::Assertion => {
+                ForgeQueryMutationKind::Updated
+            }
+        };
         let receipt = ForgeQueryMutationReceipt::from_authoritative_parts(
             ForgeQueryCommitIdentity::from_relational_commit_id(1),
             ForgeQuerySnapshotIdentity::from_relational_snapshot(
                 RelationalBridgeSnapshotIdentityParts::new(1, 1),
             ),
-            vec![ForgeQueryMutationDelta::new(
-                command
-                    .declared_collection()
-                    .unwrap_or_else(|| "planar-diagnostic".to_string()),
+            vec![ForgeQueryMutationDelta::from_touched_aspects(
+                collection,
                 ForgeQueryEntityIdentity::from_relational_record(
                     RelationalBridgeRecordIdentityParts::entity(1, 1, 0),
                 ),
-                ForgeQueryMutationKind::Updated,
-                command.declared_aspect_paths(),
+                mutation_kind,
+                mutation.declared_aspect_touches(),
             )],
         );
-        Ok(self.build_write_authority_execution_receipt(&command, receipt))
+        Ok(self.build_write_authority_execution_receipt(&mutation, receipt))
     }
 }
 

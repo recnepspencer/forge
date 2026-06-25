@@ -33,7 +33,7 @@ fn current_worth_graph_read_access_surface_inventory_from_seed(
 }
 
 #[cfg(test)]
-pub(super) fn current_worth_graph_read_access_surface_inventory_for_tests(
+pub(crate) fn current_worth_graph_read_access_surface_inventory_for_tests(
     seed: WorthGraphReadAccessInventorySeed,
 ) -> Result<WorthGraphReadAccessInventoryCloseout, WorthGraphReadAccessInventoryError> {
     current_worth_graph_read_access_surface_inventory_from_seed(seed)

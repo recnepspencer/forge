@@ -1,0 +1,36 @@
+warning: unreachable expression
+ --> tests/ui/validator_invariant_catalog/relational_invariant_closeout_struct_literal.rs:9:27
+  |
+8 |         query_registration_artifact: todo!(),
+  |                                      ------- any code following this expression is unreachable
+9 |         old_pack_residue: todo!(),
+  |                           ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: cannot construct `WorthTopologyRelationalInvariantCatalogCloseout` with struct literal syntax due to private fields
+  --> tests/ui/validator_invariant_catalog/relational_invariant_closeout_struct_literal.rs:4:23
+   |
+ 4 |     let _fabricated = WorthTopologyRelationalInvariantCatalogCloseout {
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         catalog_digest: String::new(),
+   |         ----------------------------- private field
+ 6 |         selected_plan_digest: String::new(),
+   |         ----------------------------------- private field
+ 7 |         selected_invariant_family_rows: Vec::new(),
+   |         ------------------------------------------ private field
+ 8 |         query_registration_artifact: todo!(),
+   |         ------------------------------------ private field
+ 9 |         old_pack_residue: todo!(),
+   |         ------------------------- private field
+10 |         source_firewall: todo!(),
+   |         ------------------------ private field
+11 |         counters: todo!(),
+   |         ----------------- private field
+12 |         phase_six_seed: todo!(),
+   |         ----------------------- private field
+13 |         closeout_digest: String::new(),
+   |         ------------------------------ private field
+   |
+   = note: ...and other private fields `selected_validator_family_rows`, `ordinary_authority_admission` and `query_registration_bundle` that were not provided

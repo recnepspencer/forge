@@ -1,19 +1,14 @@
 use crate::facade::{
-    certify_milestone_three_hostile_suite, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileScenario, TopologyBranchAuthoringBoundary,
-    TopologyMutationDerivedFallbackPolicy, TopologyMutationRejectionClass,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario,
+    TopologyBranchAuthoringBoundary, TopologyMutationDerivedFallbackPolicy,
+    TopologyMutationRejectionClass,
 };
-use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 const SCHEMA_BRANCH_AUTHORITY_PROJECTION_MARKER: &str = "schema_branch_authority_projection";
 
 #[test]
 fn milestone_three_hostile_suite_exposes_branch_local_mutation_parity_row() {
-    let report = certify_milestone_three_hostile_suite(
-        || build_milestone_one_runtime().expect("milestone one runtime builder"),
-        "m3.branch_local_parity",
-    )
-    .expect("milestone three hostile suite should certify");
+    let report = crate::certification::test_support::cached_milestone_three_hostile_suite_report();
 
     assert_eq!(report.mutation_branch_local_parity_rows.len(), 5);
     for scenario in [
@@ -36,7 +31,7 @@ fn milestone_three_hostile_suite_exposes_branch_local_mutation_parity_row() {
             row.branch_authoring_boundary(),
             TopologyBranchAuthoringBoundary::SchemaTopologyAuthoring
         );
-        assert!(row.branch_label().contains("m3.branch_local_parity"));
+        assert!(row.branch_label().contains("m3.cached_closeout"));
         assert_eq!(row.branch_id(), row.branch_label());
         assert_eq!(
             row.outcome_class(),

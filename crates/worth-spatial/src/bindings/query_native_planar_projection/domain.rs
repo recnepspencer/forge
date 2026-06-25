@@ -80,7 +80,7 @@ impl ForgeQueryDeclarationFamilyMarker<ProjectPointToCertifiedPlane2DQueryDomain
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.planar_projection.source_point_identity",
                 "geometry.planar_projection.source_point",

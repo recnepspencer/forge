@@ -1,32 +1,40 @@
+#[cfg(test)]
 mod entity_catalog;
+#[cfg(test)]
 mod entity_labels;
 mod errors;
+#[cfg(test)]
 mod input_rows;
-mod query_input;
 pub(crate) mod query_input_decode;
+#[cfg(test)]
 mod relation_wiring;
+#[cfg(test)]
 mod relation_wiring_support;
+#[cfg(test)]
 mod traits;
 mod types;
+#[cfg(test)]
 mod view_builder;
 
 #[cfg(test)]
 mod tests;
 
 pub use errors::TopologyMaterializationError;
-pub(crate) use query_input::TopologyQueryMaterializationInput;
-pub use types::{
-    MaterializationBreadthReport, MaterializationFallbackClass, MaterializationReport,
-    MaterializedTopologyView,
-};
+#[cfg(test)]
+pub(crate) use types::MaterializationBreadthReport;
+pub use types::{MaterializationFallbackClass, MaterializationReport, MaterializedTopologyView};
 
+#[cfg(test)]
 use crate::derived_topology::materialized_graph::entity_catalog::collect_entity_kinds;
+#[cfg(test)]
 use crate::derived_topology::materialized_graph::input_rows::{
     MaterializationEntityRow, MaterializationRelationRow,
 };
+#[cfg(test)]
 use crate::derived_topology::materialized_graph::relation_wiring::{
     apply_relation, finalize_topology_membership,
 };
+#[cfg(test)]
 use crate::derived_topology::materialized_graph::view_builder::{
     has_topology_content, push_entity_row,
 };
@@ -34,10 +42,11 @@ use crate::derived_topology::materialized_graph::view_builder::{
 use forge_relational::facade::runtime::RelationalReadView;
 
 #[derive(Debug, Default, Clone, Copy)]
+#[cfg(test)]
 pub struct TopologyMaterializer;
 
+#[cfg(test)]
 impl TopologyMaterializer {
-    #[cfg(test)]
     pub fn materialize_from_truth(
         read_view: &RelationalReadView,
     ) -> Result<MaterializedTopologyView, TopologyMaterializationError> {
@@ -56,17 +65,6 @@ impl TopologyMaterializer {
             &relations,
             read_view.entities().len(),
             read_view.relations().len(),
-        )
-    }
-
-    pub(crate) fn materialize_query_input(
-        input: &TopologyQueryMaterializationInput,
-    ) -> Result<MaterializedTopologyView, TopologyMaterializationError> {
-        Self::materialize_from_rows(
-            input.entities(),
-            input.relations(),
-            input.entity_count(),
-            input.relation_count(),
         )
     }
 

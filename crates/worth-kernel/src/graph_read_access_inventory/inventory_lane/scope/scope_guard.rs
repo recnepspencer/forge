@@ -5,7 +5,7 @@ use super::super::seed::WorthGraphReadAccessInventorySeed;
 use super::scope_binding::WorthGraphReadAccessScopeBinding;
 use super::scope_family::WorthGraphReadAccessScopeFamily;
 
-pub(in crate::graph_read_access_inventory::inventory_lane) fn graph_read_scope_binding_for_covered_source(
+pub(crate) fn graph_read_scope_binding_for_covered_source(
     source_path: &str,
     seed: &WorthGraphReadAccessInventorySeed,
 ) -> Result<WorthGraphReadAccessScopeBinding, WorthGraphReadAccessInventoryError> {
@@ -13,7 +13,7 @@ pub(in crate::graph_read_access_inventory::inventory_lane) fn graph_read_scope_b
     scope_plan.bind(source_path, seed)
 }
 
-enum WorthGraphReadAccessCoveredSourceScopePlan {
+pub(crate) enum WorthGraphReadAccessCoveredSourceScopePlan {
     TopologyReadProof {
         selected_obligation_index: usize,
     },
@@ -55,7 +55,7 @@ impl WorthGraphReadAccessCoveredSourceScopePlan {
             Self::TouchedAuthority {
                 selected_obligation_index,
                 scope_family,
-            } => WorthGraphReadAccessScopeBinding::touched_authority_digest(
+            } => WorthGraphReadAccessScopeBinding::declaration_touched_authority_digest(
                 source_path,
                 selected_obligation_index,
                 scope_family,
@@ -66,7 +66,7 @@ impl WorthGraphReadAccessCoveredSourceScopePlan {
             Self::TouchDescriptor {
                 selected_obligation_index,
                 scope_family,
-            } => WorthGraphReadAccessScopeBinding::touch_descriptor_digest(
+            } => WorthGraphReadAccessScopeBinding::from_touch_descriptor_digest(
                 source_path,
                 selected_obligation_index,
                 scope_family,
@@ -105,7 +105,7 @@ impl WorthGraphReadAccessCoveredSourceScopePlan {
                 )
             }
             Self::CertificationBoundary => {
-                WorthGraphReadAccessScopeBinding::certification_boundary(
+                WorthGraphReadAccessScopeBinding::from_certification_boundary(
                     source_path,
                     format!("certification-boundary:{source_path}"),
                 )
@@ -181,6 +181,7 @@ fn selected_obligation_scope_family_for_source(
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthGraphReadAccessScopeSubstitutionRole {
     SelectedObligationScope,
@@ -190,7 +191,8 @@ pub enum WorthGraphReadAccessScopeSubstitutionRole {
     NoNPlusOneExecutionProof,
 }
 
-pub(in crate::graph_read_access_inventory::inventory_lane) fn reject_read_access_plan_scope_substitution(
+#[cfg(test)]
+pub(crate) fn reject_read_access_plan_scope_substitution(
     claimed_surface: WorthGraphReadAccessScopeSubstitutionRole,
 ) -> Result<(), WorthGraphReadAccessInventoryError> {
     match claimed_surface {

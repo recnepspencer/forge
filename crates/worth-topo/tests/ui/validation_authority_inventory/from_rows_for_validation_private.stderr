@@ -1,0 +1,18 @@
+error[E0599]: no function or associated item named `from_rows_for_validation` found for struct `WorthValidationAuthorityInventory` in the current scope
+ --> tests/ui/validation_authority_inventory/from_rows_for_validation_private.rs:4:57
+  |
+4 |     let _inventory = WorthValidationAuthorityInventory::from_rows_for_validation(Vec::new());
+  |                                                         ^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthValidationAuthorityInventory`
+  |
+note: if you're trying to build a new `WorthValidationAuthorityInventory` consider using one of the following associated functions:
+      WorthValidationAuthorityInventory::from_current_sources
+      WorthValidationAuthorityInventory::from_current_sources_with_input
+ --> src/validation_authority_inventory/inventory.rs
+  |
+  |       pub fn from_current_sources() -> Result<Self, WorthValidationAuthorityInventoryError> {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  | /     pub fn from_current_sources_with_input(
+  | |         input: WorthValidationAuthorityInventoryInput,
+  | |     ) -> Result<Self, WorthValidationAuthorityInventoryError> {
+  | |_____________________________________________________________^

@@ -18,11 +18,20 @@ pub(super) fn spatial_query_aspect_paths(
     let mut paths = vec![
         format!(
             "boolean_stage.{}",
-            boolean_stage_selector_value(authority.boolean_stage())
+            query_field_segment(boolean_stage_selector_value(authority.boolean_stage()))
         ),
-        format!("evidence_stage.{}", authority.evidence_stage().human_name()),
-        format!("evidence_identity.{}", lookup.evidence_identity()),
-        format!("support.{:?}", lookup.support()),
+        format!(
+            "evidence_stage.{}",
+            query_field_segment(authority.evidence_stage().human_name())
+        ),
+        format!(
+            "evidence_identity.{}",
+            query_field_segment(lookup.evidence_identity())
+        ),
+        format!(
+            "support.{}",
+            query_field_segment(&format!("{:?}", lookup.support()))
+        ),
         "spatial_touch.digest".to_string(),
         "spatial_lookup.digest".to_string(),
     ];
@@ -31,13 +40,30 @@ pub(super) fn spatial_query_aspect_paths(
     paths
 }
 
+fn query_field_segment(value: &str) -> String {
+    let mut segment = value
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>();
+    if segment.trim().is_empty() {
+        segment = "unknown".to_string();
+    }
+    segment
+}
+
 pub(super) fn spatial_query_read_verbs(
     authority: &SpatialGeometryEvidenceTouchAuthority,
 ) -> Vec<ForgeQueryGraphTouchReadVerb> {
     let mut verbs = vec![
         ForgeQueryGraphTouchReadVerb::ObservesCollection,
         ForgeQueryGraphTouchReadVerb::ObservesRelationKind,
-        ForgeQueryGraphTouchReadVerb::ObservesAspectPath,
+        ForgeQueryGraphTouchReadVerb::ObservesAspect,
         ForgeQueryGraphTouchReadVerb::MaterializesDiagnostic,
     ];
     if authority.operating_world() == SpatialGeometryEvidenceTouchOperatingWorld::CurrentHead {

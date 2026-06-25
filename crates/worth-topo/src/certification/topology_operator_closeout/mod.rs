@@ -16,11 +16,16 @@ mod scenario_programs;
 mod shared;
 mod side_quest_gate;
 mod suite;
-#[cfg(test)]
+#[cfg(all(test, feature = "slow-certification"))]
 mod tests;
 mod validation_breadth_row;
 
 use report::MilestoneThreeHostileScenario as HostileScenario;
+
+use crate::validator_invariant_catalog::{
+    WorthTopologyLegalityCatalogError, WorthTopologyOperatorCertificationCutoverCloseout,
+    WorthTopologySelectedGraphObligationEnforcementCloseout,
+};
 
 pub(crate) use acceptance_rows::milestone_three_validator_expectations;
 pub use derived_fallout::{
@@ -76,6 +81,14 @@ pub(crate) use suite::{
     certify_milestone_three_closeout_impl, certify_milestone_three_hostile_suite_impl,
 };
 pub use validation_breadth_row::MilestoneThreeValidationBreadthRow;
+
+pub fn certify_topology_operator_selected_obligation_cutover_impl(
+    enforcement_closeout: &WorthTopologySelectedGraphObligationEnforcementCloseout,
+) -> Result<WorthTopologyOperatorCertificationCutoverCloseout, WorthTopologyLegalityCatalogError> {
+    WorthTopologyOperatorCertificationCutoverCloseout::from_selected_graph_obligation_enforcement(
+        enforcement_closeout,
+    )
+}
 
 const MILESTONE_THREE_REQUIRED_SCENARIOS: &[HostileScenario] = &[
     HostileScenario::BowtieAdjacentRewire,

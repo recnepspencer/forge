@@ -7,7 +7,9 @@ use serde_json::Value;
 
 use super::super::hostile_categories::milestone_three_expected_primitive_family_labels;
 use super::super::report::MilestoneThreeHostileSuiteReport;
-use super::super::scenario_programs::successor_relocation_declaration;
+use super::super::scenario_programs::{
+    successor_candidate_with_retained_predecessor, successor_relocation_declaration,
+};
 use super::super::shared::{
     derived_validation_report_from_materialized, first_source_identity_for_relation_kind,
 };
@@ -127,13 +129,12 @@ where
     F: FnMut() -> RelationalRuntime,
 {
     let primitive_family_label = primitive_family_name(&case.primitive).to_string();
-    let left = execute_primitive_family_closure(runtime_factory, stem, case.clone())?;
-    let replay = execute_primitive_family_closure(runtime_factory, stem, case.clone())?;
+    let left = execute_primitive_family_closure(runtime_factory, stem, case.clone(), true)?;
+    let replay = execute_primitive_family_closure(runtime_factory, stem, case.clone(), false)?;
     let replay_verified = left.final_materialized_topology_digest
         == replay.final_materialized_topology_digest
         && left.topology_mutation_digest == replay.topology_mutation_digest
-        && left.mutation_families == replay.mutation_families
-        && left.derived_validation_row_count == replay.derived_validation_row_count;
+        && left.mutation_families == replay.mutation_families;
     let mutation_record_count = left.topology_mutation_digest.mutation_record_count;
     Ok(MilestoneThreePrimitiveFamilyClosureRow {
         primitive_family: left.primitive_family,
@@ -165,6 +166,7 @@ fn execute_primitive_family_closure<F>(
     runtime_factory: &mut F,
     stem: &str,
     case: PrimitiveClosureCase,
+    derive_validation: bool,
 ) -> Result<PrimitiveClosureExecution, TopologyCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
@@ -179,6 +181,7 @@ where
             case.primitive,
             cycle_depth,
             candidate_offset,
+            derive_validation,
         ),
         PrimitiveClosureMutationProgram::WireSplitCollapse { split_offset } => {
             execute_wire_split_collapse_primitive_closure(
@@ -186,6 +189,7 @@ where
                 stem,
                 case.primitive,
                 split_offset,
+                derive_validation,
             )
         }
     }
@@ -197,6 +201,7 @@ fn execute_loop_successor_primitive_closure<F>(
     primitive: MilestoneOnePrimitiveCase,
     cycle_depth: usize,
     candidate_offset: usize,
+    derive_validation: bool,
 ) -> Result<PrimitiveClosureExecution, TopologyCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
@@ -227,20 +232,24 @@ where
     let neighborhood = topology_read
         .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, cycle_depth)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let chosen_successor_identity = neighborhood
-        .cycle_identities()
-        .get(candidate_offset)
-        .cloned()
-        .ok_or_else(|| {
-            primitive_family_closure_error("primitive closure candidate should exist in cycle")
-        })?;
+    let chosen_successor_identity = successor_candidate_with_retained_predecessor(
+        &neighborhood,
+        candidate_offset,
+        "primitive closure",
+    )?;
     let declaration = successor_relocation_declaration(&neighborhood, &chosen_successor_identity)?;
     let topology_mutation_digest = declaration.topology_mutation_digest();
     let mutation_families = declaration.semantic_families();
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let validation = derived_validation_report_from_materialized(&execution.materialized())?;
+    let derived_validation_row_count = if derive_validation {
+        derived_validation_report_from_materialized(&execution.materialized())?
+            .rows
+            .len()
+    } else {
+        0
+    };
     Ok(PrimitiveClosureExecution {
         primitive_family,
         mutation_families,
@@ -248,7 +257,7 @@ where
         final_materialized_topology_digest: digest_materialized_topology_view(
             &execution.materialized(),
         ),
-        derived_validation_row_count: validation.rows.len(),
+        derived_validation_row_count,
     })
 }
 

@@ -74,6 +74,7 @@ impl WorthGraphReadAccessInventoryRow {
         self.capped_residue.as_ref()
     }
 
+    #[cfg(test)]
     pub const fn out_of_scope_reason(&self) -> Option<WorthGraphReadAccessOutOfScopeReason> {
         self.out_of_scope_reason
     }
@@ -84,8 +85,7 @@ impl WorthGraphReadAccessInventoryRow {
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub(in crate::graph_read_access_inventory::inventory_lane) struct WorthGraphReadAccessInventoryRowBuilder
-{
+pub(crate) struct WorthGraphReadAccessInventoryRowBuilder {
     source_path: Option<String>,
     owner: Option<WorthGraphReadAccessOwner>,
     current_caller: Option<String>,
@@ -148,6 +148,7 @@ impl WorthGraphReadAccessInventoryRowBuilder {
         self
     }
 
+    #[cfg(test)]
     pub const fn out_of_scope_reason(
         mut self,
         reason: WorthGraphReadAccessOutOfScopeReason,
@@ -156,6 +157,7 @@ impl WorthGraphReadAccessInventoryRowBuilder {
         self
     }
 
+    #[cfg(test)]
     pub fn capped_residue(mut self, residue: WorthGraphReadAccessCappedResidueRow) -> Self {
         self.capped_residue = Some(residue);
         self

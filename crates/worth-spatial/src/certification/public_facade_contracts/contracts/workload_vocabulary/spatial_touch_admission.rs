@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use crate::query_contract_helpers::aspect_touch;
 use forge_query::facade::ForgeQueryGraphTouchDescriptor;
 use topology::facade::{TopologyDeclaredTouchedGraphBasisProof, TopologyTouchedGraphBasis};
 use worth_kernel::workload_composition::{
@@ -336,7 +337,7 @@ fn spatial_touch_public_denials_name_non_authority_source_families() {
     let query_descriptor = ForgeQueryGraphTouchDescriptor::read_family_shape(
         "spatial-evidence-touch",
         [forge_query::facade::runtime::ForgeQueryGraphTouchReadVerb::ObservesCollection],
-        forge_query::facade::runtime::ForgeQueryGraphReadTouchShape::new([String::from(
+        forge_query::facade::runtime::ForgeQueryGraphReadTouchShape::new([aspect_touch(
             "workload.evidence.boolean.segment_pair_enumeration",
         )]),
     )

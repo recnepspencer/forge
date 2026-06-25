@@ -96,7 +96,7 @@ impl QueryGraphReadCostCounterField {
     }
 }
 
-pub(super) fn anchor_query_graph_read_cost_counter_accessors() {
+pub(crate) fn anchor_query_graph_read_cost_counter_accessors() {
     let _: fn(&ForgeQueryGraphReadAccessRequirementCounters) -> usize =
         ForgeQueryGraphReadAccessRequirementCounters::row_count;
     let _: fn(&ForgeQueryGraphReadAccessRequirementCounters) -> usize =

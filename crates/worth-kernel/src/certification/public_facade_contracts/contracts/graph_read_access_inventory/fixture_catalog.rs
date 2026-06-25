@@ -1,81 +1,12 @@
-pub(super) const fn graph_read_access_inventory_expected_compile_fail_fixtures(
-) -> &'static [(&'static str, &'static str)] {
-    &[
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/inventory_lane/public_inventory_row_builder_private.rs",
-            "private",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/inventory_lane/public_inventory_closeout_from_rows_removed.rs",
-            "no function or associated item named",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/inventory_lane/public_discovered_surface_not_exported.rs",
-            "private",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/inventory_lane/public_coverage_guard_report_fields_private.rs",
-            "private",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/inventory_lane/public_scope_binding_constructor_private.rs",
-            "private",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/inventory_lane/public_scope_binding_fields_private.rs",
-            "private",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/inventory_lane/public_scope_plan_report_fields_private.rs",
-            "private",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/inventory_lane/public_scope_report_fields_private.rs",
-            "private",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/phase_six_closeout/public_phase_six_module_private.rs",
-            "private",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/phase_six_closeout/public_phase_six_closeout_constructor_private.rs",
-            "WorthGraphReadAccessPhaseSixCloseout",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/phase_six_closeout/public_milestone_seven_seed_constructor_private.rs",
-            "private",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/phase_six_closeout/public_phase_six_row_context_fields_private.rs",
-            "private",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/deleted_source/public_deleted_graph_read_source_module_path_removed.rs",
-            "could not find `graph_read_access` in `query_adoption`",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/deleted_source/public_deleted_graph_read_source_function_removed.rs",
-            "current_worth_kernel_construction_graph_read_access_adoption",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/deleted_source/public_deleted_graph_read_source_report_removed.rs",
-            "WorthKernelGraphReadAccessAdoptionReport",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/deleted_source/public_deleted_graph_read_source_compatibility_bridge_removed.rs",
-            "From<&str>",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/milestone_seven_seed/public_seed_candidate_cannot_be_read_receipt.rs",
-            "ForgeQueryReadReceipt",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/milestone_seven_seed/public_seed_candidate_cannot_be_admitted_access_plan.rs",
-            "ForgeQueryAdmittedGraphReadAccessPlan",
-        ),
-        (
-            "src/certification/public_facade_contracts/compile_fail/graph_read_access_inventory/milestone_seven_seed/public_seed_cannot_be_read_receipt.rs",
-            "ForgeQueryReadReceipt",
-        ),
-    ]
+mod adoption_fixtures;
+mod declaration_fixtures;
+mod inventory_fixtures;
+
+pub(super) fn graph_read_access_inventory_expected_compile_fail_fixtures(
+) -> Vec<(&'static str, &'static str)> {
+    let mut fixtures = Vec::new();
+    fixtures.extend_from_slice(inventory_fixtures::GRAPH_READ_ACCESS_INVENTORY_FIXTURES);
+    fixtures.extend_from_slice(declaration_fixtures::GRAPH_READ_ACCESS_DECLARATION_FIXTURES);
+    fixtures.extend_from_slice(adoption_fixtures::GRAPH_READ_ACCESS_PLAN_ADOPTION_FIXTURES);
+    fixtures
 }

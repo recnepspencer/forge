@@ -19,6 +19,7 @@ enum WorthGraphReadAccessPhaseSixDispositionKind {
     DeletionItem,
 }
 
+#[derive(Debug)]
 pub struct WorthGraphReadAccessPhaseSixCollector<'a> {
     inventory: &'a WorthGraphReadAccessInventoryCloseout,
     inventory_row_requirements: BTreeMap<
@@ -199,6 +200,7 @@ impl WorthGraphReadAccessPhaseSixRowRequirement {
     }
 }
 
+#[cfg(test)]
 pub fn reject_keep_local_graph_read_disposition(
     _reason: &str,
 ) -> Result<(), WorthGraphReadAccessPhaseSixError> {
@@ -207,7 +209,7 @@ pub fn reject_keep_local_graph_read_disposition(
     ))
 }
 
-fn classification_accepts_disposition(
+const fn classification_accepts_disposition(
     classification: WorthGraphReadAccessClassification,
     disposition: WorthGraphReadAccessPhaseSixDispositionKind,
 ) -> bool {

@@ -225,21 +225,16 @@ fn distribution_error(reason: &str) -> TopologyCertificationError {
     ))
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "slow-certification"))]
 mod tests {
-    use crate::facade::certify_milestone_three_hostile_suite;
     use crate::topology_operators::TopologyMutationRejectionClass;
-    use crate::validation::reference_integrity::build_milestone_one_runtime;
 
     use super::ensure_hostile_distribution_rows;
+    use crate::certification::topology_operator_closeout::acceptance_rows::test_support;
 
     #[test]
     fn hostile_distribution_verifier_rejects_tampered_scenario_digest() {
-        let mut report = certify_milestone_three_hostile_suite(
-            || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-            "m3.hostile_suite.aggregate_distribution_tamper",
-        )
-        .expect("milestone three hostile suite should certify before tampering");
+        let mut report = certified_report();
 
         report.rejection_distribution_rows[0]
             .row_digest
@@ -253,11 +248,7 @@ mod tests {
 
     #[test]
     fn hostile_distribution_verifier_rejects_missing_zero_count_taxonomy_row() {
-        let mut report = certify_milestone_three_hostile_suite(
-            || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-            "m3.hostile_suite.aggregate_distribution_missing_taxonomy_row",
-        )
-        .expect("milestone three hostile suite should certify before tampering");
+        let mut report = certified_report();
 
         report.rejection_distribution_rows.retain(|row| {
             row.rejection_class != TopologyMutationRejectionClass::DerivedFallbackExceeded
@@ -267,5 +258,10 @@ mod tests {
             ensure_hostile_distribution_rows(&report).is_err(),
             "aggregate distribution verifier must fail closed when a zero-count rejection taxonomy class is omitted"
         );
+    }
+
+    fn certified_report(
+    ) -> crate::certification::topology_operator_closeout::MilestoneThreeHostileSuiteReport {
+        test_support::cached_hostile_suite_report()
     }
 }

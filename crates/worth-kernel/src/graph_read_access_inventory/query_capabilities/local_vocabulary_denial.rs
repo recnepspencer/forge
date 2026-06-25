@@ -17,14 +17,14 @@ pub struct WorthLocalGraphReadAccessVocabularyDenial {
 }
 
 impl WorthLocalGraphReadAccessVocabularyDenial {
-    pub(super) fn unknown(rejected_label: &str) -> Self {
+    pub(crate) fn unknown(rejected_label: &str) -> Self {
         Self {
             rejected_label: rejected_label.to_string(),
             kind: WorthLocalGraphReadAccessVocabularyDenialKind::UnknownQueryGraphReadAccessLabel,
         }
     }
 
-    pub(super) fn wrong_capability_kind(
+    pub(crate) fn wrong_capability_kind(
         rejected_label: &str,
         expected: QueryGraphReadAccessCapabilityKind,
         actual: QueryGraphReadAccessCapabilityKind,
@@ -38,7 +38,7 @@ impl WorthLocalGraphReadAccessVocabularyDenial {
         }
     }
 
-    pub(super) fn wrong_authority_family(rejected_label: &str) -> Self {
+    pub(crate) fn wrong_authority_family(rejected_label: &str) -> Self {
         Self {
             rejected_label: rejected_label.to_string(),
             kind: WorthLocalGraphReadAccessVocabularyDenialKind::WrongAuthorityFamily,
@@ -65,7 +65,7 @@ pub struct QueryGraphReadAccessLabelAdmission {
 }
 
 impl QueryGraphReadAccessLabelAdmission {
-    pub(super) fn new(label: &'static str, kind: QueryGraphReadAccessCapabilityKind) -> Self {
+    pub(crate) fn new(label: &'static str, kind: QueryGraphReadAccessCapabilityKind) -> Self {
         Self { label, kind }
     }
 

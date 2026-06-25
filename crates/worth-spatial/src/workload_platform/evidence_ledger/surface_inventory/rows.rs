@@ -58,7 +58,7 @@ pub fn spatial_evidence_surface_deletion_ledger() -> Vec<SpatialEvidenceSurfaceD
     rows.extend(ledger_constructors());
     rows.extend(boolean_receipt_implementations());
     rows.extend(spatial_query_adoption_rows());
-    rows.extend(kernel_consumption_paths());
+    rows.extend(downstream_workload_consumption_paths());
     rows.extend(migrated_downstream_consumer_paths());
     rows.extend(topology_substitution_boundaries());
     rows.extend(deleted_legacy_surfaces());
@@ -166,7 +166,7 @@ fn ledger_constructors() -> Vec<SpatialEvidenceSurfaceDeletionLedgerRow> {
             source,
             FACADE,
             Category::LedgerConstructor,
-            "worth-kernel workload composition and public facade certification contracts.",
+            "downstream workload composition and public facade certification contracts.",
             action,
             Owner::WorthSpatial,
             "Manual rows remain generic workload evidence only; boundary denial prevents spatial touch authority substitution.",
@@ -192,7 +192,7 @@ fn boolean_receipt_implementations() -> Vec<SpatialEvidenceSurfaceDeletionLedger
             source,
             FACADE,
             Category::BooleanReceiptImplementation,
-            "WorkloadEvidenceRow::from_boolean_evidence_receipt and kernel boolean evidence gates.",
+            "WorkloadEvidenceRow::from_boolean_evidence_receipt and downstream boolean evidence gates.",
             Action::CollapseToSpatialTouchAuthority,
             Owner::WorthSpatial,
             "Receipts are sealed boolean evidence only until spatial touch authority admits them.",
@@ -205,7 +205,7 @@ fn boolean_receipt_implementations() -> Vec<SpatialEvidenceSurfaceDeletionLedger
 }
 
 fn spatial_query_adoption_rows() -> Vec<SpatialEvidenceSurfaceDeletionLedgerRow> {
-    const KERNEL_CALLER: &str = "worth-kernel query adoption inventory report";
+    const DOWNSTREAM_CALLER: &str = "downstream workload query adoption inventory report";
     const INVENTORY_CAP: &str =
         "Query adoption inventory rows cannot construct or satisfy spatial evidence authority.";
 
@@ -253,7 +253,7 @@ fn spatial_query_adoption_rows() -> Vec<SpatialEvidenceSurfaceDeletionLedgerRow>
             source,
             QUERY_FACADE,
             Category::SpatialQueryAdoptionRow,
-            KERNEL_CALLER,
+            DOWNSTREAM_CALLER,
             action,
             Owner::WorthSpatial,
             cap,
@@ -281,7 +281,7 @@ const fn query_row(
     (name, source, action, cap, removal_trigger)
 }
 
-fn kernel_consumption_paths() -> Vec<SpatialEvidenceSurfaceDeletionLedgerRow> {
+fn downstream_workload_consumption_paths() -> Vec<SpatialEvidenceSurfaceDeletionLedgerRow> {
     [
         "WorthWorkload::require_boolean_declaration_entry",
         "WorthWorkload::require_boolean_route_plan",
@@ -308,13 +308,13 @@ fn kernel_consumption_paths() -> Vec<SpatialEvidenceSurfaceDeletionLedgerRow> {
     .map(|name| {
         row(
             name,
-            "crates/worth-kernel/src/workload_composition/worth_workload/boolean_stage_requirements.rs",
-            "worth_kernel::workload_composition::WorthWorkload",
+            "downstream-workload-composition/boolean_stage_requirements.rs",
+            "downstream_workload::workload_composition::WorthWorkload",
             Category::KernelWorkloadEvidenceConsumption,
             "Planar boolean workload composition.",
             Action::CollapseToSpatialTouchAuthority,
             Owner::WorthKernel,
-            "Kernel consumption must continue through sealed receipt lookup products, not manual rows.",
+            "Downstream workload consumption must continue through sealed receipt lookup products, not manual rows.",
             SPATIAL_LEDGER_TRIGGER,
             true,
             false,

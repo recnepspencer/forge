@@ -12,7 +12,7 @@ fn main() {
         ForgeQuerySnapshotIdentity::from_relational_snapshot(
             RelationalBridgeSnapshotIdentityParts::new(1, 1),
         ),
-        vec![ForgeQueryMutationDelta::new(
+        vec![ForgeQueryMutationDelta::from_touched_aspects(
             "TopologyEntity",
             ForgeQueryEntityIdentity::from_relational_record(
                 RelationalBridgeRecordIdentityParts::entity(1, 1, 1),

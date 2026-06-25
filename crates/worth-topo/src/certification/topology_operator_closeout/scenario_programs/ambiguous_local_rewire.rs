@@ -13,7 +13,9 @@ use super::super::shared::{
     derived_validation_report_from_materialized, first_source_identity_for_relation_kind,
     replay_checked,
 };
-use super::local_successor_rewire::successor_relocation_declaration;
+use super::local_successor_rewire::{
+    successor_candidate_with_retained_predecessor, successor_relocation_declaration,
+};
 use super::scenario_mutation_report_lowering::{
     accepted_mutation_synopsis_from_step_rows, accepted_semantic_summary_from_step_rows,
 };
@@ -139,14 +141,14 @@ where
         TopologyRelationKind::HalfEdgeNext,
     )?;
     let neighborhood = topology_read
-        .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 4)
+        .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 6)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let old_successor_identity = neighborhood.old_successor_identity.clone();
-    let chosen_successor_identity = neighborhood
-        .cycle_identities
-        .get(candidate_offset)
-        .cloned()
-        .ok_or_else(|| cycle_query_error("requested successor candidate should exist in cycle"))?;
+    let chosen_successor_identity = successor_candidate_with_retained_predecessor(
+        &neighborhood,
+        candidate_offset,
+        "requested ambiguous successor candidate",
+    )?;
     let declaration = successor_relocation_declaration(&neighborhood, &chosen_successor_identity)?;
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration.clone())
@@ -173,8 +175,4 @@ where
         old_successor_identity,
         chosen_successor_identity,
     })
-}
-
-fn cycle_query_error(detail: &str) -> TopologyCertificationError {
-    TopologyCertificationError::Query(detail.to_string())
 }

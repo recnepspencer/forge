@@ -3,7 +3,7 @@ use super::errors::{
     WorthGraphReadAccessMilestoneSixError, WorthGraphReadAccessMilestoneSixErrorKind,
 };
 
-pub(super) fn audit_milestone_seven_seed(
+pub(crate) fn audit_milestone_seven_seed(
     seed: &WorthGraphReadAccessMilestoneSevenSeed,
 ) -> Result<(), WorthGraphReadAccessMilestoneSixError> {
     if seed.claims_execution_authority()

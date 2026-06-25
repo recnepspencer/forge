@@ -1,3 +1,4 @@
+#[cfg(test)]
 use super::super::inventory_error::{
     WorthGraphReadAccessInventoryError, WorthGraphReadAccessInventoryErrorKind,
 };
@@ -14,7 +15,8 @@ pub struct WorthGraphReadAccessCappedResidueRow {
 }
 
 impl WorthGraphReadAccessCappedResidueRow {
-    pub(super) fn builder() -> WorthGraphReadAccessCappedResidueBuilder {
+    #[cfg(test)]
+    pub(crate) fn builder() -> WorthGraphReadAccessCappedResidueBuilder {
         WorthGraphReadAccessCappedResidueBuilder::default()
     }
 
@@ -43,8 +45,9 @@ impl WorthGraphReadAccessCappedResidueRow {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub(super) struct WorthGraphReadAccessCappedResidueBuilder {
+pub(crate) struct WorthGraphReadAccessCappedResidueBuilder {
     source_path: Option<String>,
     owner: Option<WorthGraphReadAccessOwner>,
     current_count: Option<usize>,
@@ -53,6 +56,7 @@ pub(super) struct WorthGraphReadAccessCappedResidueBuilder {
     removal_trigger: Option<String>,
 }
 
+#[cfg(test)]
 impl WorthGraphReadAccessCappedResidueBuilder {
     pub fn source_path(mut self, source_path: impl Into<String>) -> Self {
         self.source_path = Some(source_path.into());
@@ -125,6 +129,7 @@ impl WorthGraphReadAccessCappedResidueBuilder {
     }
 }
 
+#[cfg(test)]
 fn require_non_empty_string(
     value: Option<String>,
     error_kind: WorthGraphReadAccessInventoryErrorKind,
@@ -136,6 +141,7 @@ fn require_non_empty_string(
     Ok(value)
 }
 
+#[cfg(test)]
 const fn error(kind: WorthGraphReadAccessInventoryErrorKind) -> WorthGraphReadAccessInventoryError {
     WorthGraphReadAccessInventoryError::new(kind)
 }

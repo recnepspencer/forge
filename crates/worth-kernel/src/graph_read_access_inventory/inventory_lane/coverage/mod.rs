@@ -12,12 +12,13 @@ pub use current_inventory::current_worth_graph_read_access_surface_inventory;
 pub use guard::WorthGraphReadAccessCoverageGuardReport;
 
 #[cfg(test)]
-pub(super) use catalog::covered_graph_read_sources;
+pub(crate) use catalog::covered_graph_read_sources;
 #[cfg(test)]
-pub(super) use current_inventory::current_worth_graph_read_access_surface_inventory_for_tests;
+pub(crate) use current_inventory::current_worth_graph_read_access_surface_inventory_for_tests;
 #[cfg(test)]
-pub(super) use discovery::WorthGraphReadAccessDiscoveredSurface;
+pub(crate) use discovery::WorthGraphReadAccessDiscoveredSurface;
 #[cfg(test)]
-pub(super) use guard::validate_discovered_graph_read_surfaces;
 #[cfg(test)]
-pub(super) use scope_plan_assertions::assert_exact_scope_plan;
+pub(crate) use guard::validate_discovered_graph_read_surfaces;
+#[cfg(test)]
+pub(crate) use scope_plan_assertions::assert_exact_scope_plan;

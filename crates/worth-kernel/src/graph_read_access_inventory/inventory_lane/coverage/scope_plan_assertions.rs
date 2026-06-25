@@ -3,7 +3,7 @@ use super::super::{
     WorthGraphReadAccessScopeKind, WorthGraphReadAccessScopePlanReport,
 };
 
-pub(super) fn assert_exact_scope_plan(scope_plan: &WorthGraphReadAccessScopePlanReport) {
+pub(crate) fn assert_exact_scope_plan(scope_plan: &WorthGraphReadAccessScopePlanReport) {
     let expected = expected_scope_plan();
     assert_eq!(scope_plan.entries().len(), expected.len());
     for expected_scope in expected {
@@ -111,7 +111,7 @@ fn touched_authority(source_path: &'static str) -> ExpectedScopePlanEntry {
         source_path,
         WorthGraphReadAccessScopeKind::TouchedAuthorityDigest,
         WorthGraphReadAccessScopeFamily::TopologyRuntimeReadExecution,
-        WorthGraphReadAccessScopeExpectation::FutureExecutionReceiptExpectation,
+        WorthGraphReadAccessScopeExpectation::MilestoneSevenDeclarationCandidateInput,
         0,
         None,
     )

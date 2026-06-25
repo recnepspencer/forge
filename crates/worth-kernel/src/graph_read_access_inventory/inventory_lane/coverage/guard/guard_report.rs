@@ -8,7 +8,7 @@ pub struct WorthGraphReadAccessCoverageGuardReport {
 }
 
 impl WorthGraphReadAccessCoverageGuardReport {
-    pub(super) const fn clean(
+    pub(crate) const fn clean(
         discovered_surface_count: usize,
         covered_source_count: usize,
         admitted_surface_count: usize,

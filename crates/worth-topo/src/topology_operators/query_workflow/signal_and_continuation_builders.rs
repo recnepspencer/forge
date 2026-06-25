@@ -1,20 +1,16 @@
-#[cfg(test)]
 use forge_query::facade::{
     ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationSignalCompatibilityInput, ForgeQueryResolveContinuationFromTargetRequest,
     ForgeQuerySignalCompatibilityOrchestrationInput,
 };
 
-#[cfg(test)]
 use crate::query_domain::TopologyQueryDomain;
 
-#[cfg(test)]
 use super::{
     TopologyOperatorContinuationTarget, TopologyOperatorEnvelope,
     TopologyOperatorSignalCompatibilityInput,
 };
 
-#[cfg(test)]
 pub fn topology_operator_signal_workflow<I>(
     envelope: TopologyOperatorEnvelope<I>,
 ) -> TopologyOperatorSignalCompatibilityInput<I>
@@ -26,7 +22,6 @@ where
     )
 }
 
-#[cfg(test)]
 pub fn topology_operator_continuation_target<I>(
     envelope: TopologyOperatorEnvelope<I>,
 ) -> TopologyOperatorContinuationTarget<I>

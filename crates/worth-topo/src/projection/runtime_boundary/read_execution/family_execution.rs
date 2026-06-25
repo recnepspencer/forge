@@ -1,7 +1,6 @@
 use forge_query::facade::{
-    CollectionQueryBuilder, CollectionReadOperatorQueryBuilder, CollectionResultShapeBuilder,
-    ForgeQueryReadResult, ForgeQueryRuntimeError, ForgeQueryWorkspace, RelationName,
-    TraversalSelector,
+    CollectionReadOperatorQueryBuilder, CollectionResultShapeBuilder, ForgeQueryReadResult,
+    ForgeQueryRuntimeError, ForgeQueryWorkspace, RelationName,
 };
 
 use super::access_planned_execution::execute_access_planned_topology_read_family;
@@ -142,25 +141,16 @@ pub(crate) fn execute_local_rewire_read(
         TopologyReadRequestFamily::LocalRewireNeighborhood,
         "local rewire neighborhood",
     )?;
-    let successor_traversal = admitted_bounded_relation_traversal(
-        successor_relation_name(),
-        admitted_cycle_depth,
-        "successor",
-    )?;
-    let predecessor_traversal =
-        admitted_bounded_relation_traversal(prev_relation_name(), 1, "predecessor")?;
     let family = workspace
         .define_read_family(
             format!("topology.local_rewire_neighborhood:{moved_identity}:{cycle_depth}"),
             |read| {
-                read.anchored_collection(
+                read.explicit_broad_search_frontier_collection(
                     TOPOLOGY_ENTITY_ROOT,
                     schema_view,
-                    |query| {
-                        authored_identity_topology_query(query, &query_parts)
-                            .traverse(successor_traversal)
-                            .traverse(predecessor_traversal)
-                    },
+                    [successor_relation_name()],
+                    admitted_cycle_depth,
+                    |query| identity_topology_query(query, &query_parts),
                     |shape| identity_topology_result_shape(shape, &result_shape),
                 )
             },
@@ -212,17 +202,6 @@ fn identity_topology_query(
     query: CollectionReadOperatorQueryBuilder,
     parts: &IdentityTopologyQueryParts,
 ) -> CollectionReadOperatorQueryBuilder {
-    query
-        .project(parts.identity_selector.clone())
-        .project(parts.topology_kind_selector.clone())
-        .where_equal(parts.identity_anchor_predicate.clone())
-        .order_by(parts.identity_ordering.clone())
-}
-
-fn authored_identity_topology_query(
-    query: CollectionQueryBuilder,
-    parts: &IdentityTopologyQueryParts,
-) -> CollectionQueryBuilder {
     query
         .project(parts.identity_selector.clone())
         .project(parts.topology_kind_selector.clone())
@@ -308,19 +287,9 @@ fn request_lowered_traversal_depth(request: &TopologyReadRequest) -> u8 {
     match request {
         TopologyReadRequest::LoopCycleNeighborhood { depth, .. } => *depth,
         TopologyReadRequest::LocalRewireNeighborhood { cycle_depth, .. } => *cycle_depth,
+        TopologyReadRequest::WireNeighborhood { wire_depth, .. } => *wire_depth,
         TopologyReadRequest::HalfEdgeSharedVertexNeighborhood { .. }
-        | TopologyReadRequest::HalfEdgeRadialNeighborhood { .. } => 1,
+        | TopologyReadRequest::HalfEdgeRadialNeighborhood { .. }
+        | TopologyReadRequest::ShellBoundaryNeighborhood { .. } => 1,
     }
-}
-
-fn admitted_bounded_relation_traversal(
-    relation: RelationName,
-    depth: u8,
-    label: &str,
-) -> Result<TraversalSelector, TopologyReadError> {
-    TraversalSelector::bounded_relation_name(relation, depth).map_err(|error| {
-        TopologyReadError::canonical_lowering_resolution(format!(
-            "{label} traversal selector denied: {error:?}"
-        ))
-    })
 }

@@ -6,11 +6,13 @@ use super::super::{
 };
 use super::residue_rows::capped_residue_row;
 use super::scope_bindings::{
-    certification_scope, declaration_scope, deleted_source_scope, out_of_scope_binding,
+    branch_declaration_scope_for_tests, certification_scope, declaration_scope,
+    declaration_scope_for_tests, deleted_source_scope, future_receipt_scope_for_tests,
+    out_of_scope_binding, preview_declaration_scope_for_tests, spatial_declaration_scope_for_tests,
     spatial_scope,
 };
 
-pub(super) fn declaration_candidate_row() -> WorthGraphReadAccessInventoryRowBuilder {
+pub(crate) fn declaration_candidate_row() -> WorthGraphReadAccessInventoryRowBuilder {
     WorthGraphReadAccessInventoryRow::builder()
         .source_path("crates/worth-topo/src/projection/read_views/domain")
         .owner(WorthGraphReadAccessOwner::WorthTopo)
@@ -24,7 +26,119 @@ pub(super) fn declaration_candidate_row() -> WorthGraphReadAccessInventoryRowBui
         .scope_binding(declaration_scope())
 }
 
-pub(super) fn declaration_candidate_row_without_owner() -> WorthGraphReadAccessInventoryRowBuilder {
+pub(crate) fn declaration_candidate_row_with_scope_for_tests(
+    source_path: &str,
+    current_caller: &str,
+    authority_digest: &str,
+) -> WorthGraphReadAccessInventoryRow {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path(source_path)
+        .owner(WorthGraphReadAccessOwner::WorthTopo)
+        .current_caller(current_caller)
+        .classification(WorthGraphReadAccessClassification::QueryDeclarationCandidate)
+        .cost_posture(WorthGraphReadAccessCostPosture::PerResultNeighborLookup)
+        .deletion_action(WorthGraphReadAccessDeletionAction::MigrateToQueryDeclaration)
+        .milestone_seven_disposition(
+            WorthGraphReadAccessMilestoneSevenDisposition::DeclarationCandidate,
+        )
+        .scope_binding(declaration_scope_for_tests(source_path, authority_digest))
+        .build()
+        .expect("test declaration candidate row should satisfy inventory contract")
+}
+
+pub(crate) fn spatial_declaration_candidate_row_for_tests(
+    source_path: &str,
+    current_caller: &str,
+    authority_digest: &str,
+) -> WorthGraphReadAccessInventoryRow {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path(source_path)
+        .owner(WorthGraphReadAccessOwner::WorthSpatial)
+        .current_caller(current_caller)
+        .classification(WorthGraphReadAccessClassification::QueryDeclarationCandidate)
+        .cost_posture(WorthGraphReadAccessCostPosture::FrontierOrVisitedSet)
+        .deletion_action(WorthGraphReadAccessDeletionAction::MigrateToQueryDeclaration)
+        .milestone_seven_disposition(
+            WorthGraphReadAccessMilestoneSevenDisposition::DeclarationCandidate,
+        )
+        .scope_binding(spatial_declaration_scope_for_tests(
+            source_path,
+            authority_digest,
+        ))
+        .build()
+        .expect("test spatial declaration candidate row should satisfy inventory contract")
+}
+
+pub(crate) fn preview_declaration_candidate_row_for_tests(
+    source_path: &str,
+    current_caller: &str,
+    authority_digest: &str,
+) -> WorthGraphReadAccessInventoryRow {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path(source_path)
+        .owner(WorthGraphReadAccessOwner::WorthTopo)
+        .current_caller(current_caller)
+        .classification(WorthGraphReadAccessClassification::QueryDeclarationCandidate)
+        .cost_posture(WorthGraphReadAccessCostPosture::PerResultNeighborLookup)
+        .deletion_action(WorthGraphReadAccessDeletionAction::MigrateToQueryDeclaration)
+        .milestone_seven_disposition(
+            WorthGraphReadAccessMilestoneSevenDisposition::DeclarationCandidate,
+        )
+        .scope_binding(preview_declaration_scope_for_tests(
+            source_path,
+            authority_digest,
+        ))
+        .build()
+        .expect("test preview declaration candidate row should satisfy inventory contract")
+}
+
+pub(crate) fn branch_declaration_candidate_row_for_tests(
+    source_path: &str,
+    current_caller: &str,
+    authority_digest: &str,
+) -> WorthGraphReadAccessInventoryRow {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path(source_path)
+        .owner(WorthGraphReadAccessOwner::WorthTopo)
+        .current_caller(current_caller)
+        .classification(WorthGraphReadAccessClassification::QueryDeclarationCandidate)
+        .cost_posture(WorthGraphReadAccessCostPosture::PerResultNeighborLookup)
+        .deletion_action(WorthGraphReadAccessDeletionAction::MigrateToQueryDeclaration)
+        .milestone_seven_disposition(
+            WorthGraphReadAccessMilestoneSevenDisposition::DeclarationCandidate,
+        )
+        .scope_binding(branch_declaration_scope_for_tests(
+            source_path,
+            authority_digest,
+        ))
+        .build()
+        .expect("test branch declaration candidate row should satisfy inventory contract")
+}
+
+pub(crate) fn future_receipt_declaration_candidate_row_for_tests(
+    source_path: &str,
+    current_caller: &str,
+    authority_digest: &str,
+) -> WorthGraphReadAccessInventoryRow {
+    WorthGraphReadAccessInventoryRow::builder()
+        .source_path(source_path)
+        .owner(WorthGraphReadAccessOwner::WorthTopo)
+        .current_caller(current_caller)
+        .classification(WorthGraphReadAccessClassification::QueryDeclarationCandidate)
+        .cost_posture(WorthGraphReadAccessCostPosture::PerResultNeighborLookup)
+        .deletion_action(WorthGraphReadAccessDeletionAction::MigrateToQueryDeclaration)
+        .milestone_seven_disposition(
+            WorthGraphReadAccessMilestoneSevenDisposition::DeclarationCandidate,
+        )
+        .scope_binding(future_receipt_scope_for_tests(
+            source_path,
+            authority_digest,
+        ))
+        .build()
+        .expect("test future receipt declaration row should satisfy inventory contract")
+}
+
+pub(crate) fn declaration_candidate_row_without_owner() -> WorthGraphReadAccessInventoryRowBuilder {
     WorthGraphReadAccessInventoryRow::builder()
         .source_path("crates/worth-topo/src/projection/read_views/domain")
         .current_caller("TopologyReadGraphAccessProof")
@@ -37,7 +151,7 @@ pub(super) fn declaration_candidate_row_without_owner() -> WorthGraphReadAccessI
         .scope_binding(declaration_scope())
 }
 
-pub(super) fn declaration_candidate_row_without_cost_posture(
+pub(crate) fn declaration_candidate_row_without_cost_posture(
 ) -> WorthGraphReadAccessInventoryRowBuilder {
     WorthGraphReadAccessInventoryRow::builder()
         .source_path("crates/worth-topo/src/projection/read_views/domain")
@@ -51,7 +165,7 @@ pub(super) fn declaration_candidate_row_without_cost_posture(
         .scope_binding(declaration_scope())
 }
 
-pub(super) fn declaration_candidate_row_without_deletion_action(
+pub(crate) fn declaration_candidate_row_without_deletion_action(
 ) -> WorthGraphReadAccessInventoryRowBuilder {
     WorthGraphReadAccessInventoryRow::builder()
         .source_path("crates/worth-topo/src/projection/read_views/domain")
@@ -65,7 +179,7 @@ pub(super) fn declaration_candidate_row_without_deletion_action(
         .scope_binding(declaration_scope())
 }
 
-pub(super) fn declaration_candidate_row_without_disposition(
+pub(crate) fn declaration_candidate_row_without_disposition(
 ) -> WorthGraphReadAccessInventoryRowBuilder {
     WorthGraphReadAccessInventoryRow::builder()
         .source_path("crates/worth-topo/src/projection/read_views/domain")
@@ -77,7 +191,7 @@ pub(super) fn declaration_candidate_row_without_disposition(
         .scope_binding(declaration_scope())
 }
 
-pub(super) fn deletion_target_row() -> WorthGraphReadAccessInventoryRowBuilder {
+pub(crate) fn deletion_target_row() -> WorthGraphReadAccessInventoryRowBuilder {
     WorthGraphReadAccessInventoryRow::builder()
         .source_path("crates/worth-kernel/src/query_adoption/graph_read_access")
         .owner(WorthGraphReadAccessOwner::WorthKernel)
@@ -91,7 +205,7 @@ pub(super) fn deletion_target_row() -> WorthGraphReadAccessInventoryRowBuilder {
         ))
 }
 
-pub(super) fn capped_residue_inventory_row() -> WorthGraphReadAccessInventoryRowBuilder {
+pub(crate) fn capped_residue_inventory_row() -> WorthGraphReadAccessInventoryRowBuilder {
     WorthGraphReadAccessInventoryRow::builder()
         .source_path("crates/worth-kernel/src/query_adoption/graph_read_access")
         .owner(WorthGraphReadAccessOwner::WorthKernel)
@@ -106,7 +220,7 @@ pub(super) fn capped_residue_inventory_row() -> WorthGraphReadAccessInventoryRow
         .capped_residue(capped_residue_row().build().unwrap())
 }
 
-pub(super) fn certification_only_row() -> WorthGraphReadAccessInventoryRowBuilder {
+pub(crate) fn certification_only_row() -> WorthGraphReadAccessInventoryRowBuilder {
     WorthGraphReadAccessInventoryRow::builder()
         .source_path("crates/worth-topo/src/projection/read_views/domain/read_proof")
         .owner(WorthGraphReadAccessOwner::WorthTopo)
@@ -122,7 +236,7 @@ pub(super) fn certification_only_row() -> WorthGraphReadAccessInventoryRowBuilde
         ))
 }
 
-pub(super) fn capability_gap_row() -> WorthGraphReadAccessInventoryRowBuilder {
+pub(crate) fn capability_gap_row() -> WorthGraphReadAccessInventoryRowBuilder {
     WorthGraphReadAccessInventoryRow::builder()
         .source_path("crates/worth-spatial/src/workload_platform/planar_boolean_events")
         .owner(WorthGraphReadAccessOwner::WorthSpatial)
@@ -136,7 +250,7 @@ pub(super) fn capability_gap_row() -> WorthGraphReadAccessInventoryRowBuilder {
         ))
 }
 
-pub(super) fn out_of_scope_row() -> WorthGraphReadAccessInventoryRowBuilder {
+pub(crate) fn out_of_scope_row() -> WorthGraphReadAccessInventoryRowBuilder {
     WorthGraphReadAccessInventoryRow::builder()
         .source_path("crates/worth-kernel/src/docs_closeout")
         .owner(WorthGraphReadAccessOwner::WorthKernel)

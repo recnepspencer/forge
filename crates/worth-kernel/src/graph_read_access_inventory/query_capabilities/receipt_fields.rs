@@ -40,7 +40,7 @@ impl QueryGraphReadReceiptField {
     }
 }
 
-pub(super) fn anchor_query_read_receipt_accessors() {
+pub(crate) fn anchor_query_read_receipt_accessors() {
     let _: fn(&ForgeQueryReadReceipt) -> Option<&ForgeQueryAdmittedGraphReadAccessPlan> =
         ForgeQueryReadReceipt::graph_read_access_plan;
     let _: fn(&ForgeQueryReadReceipt) -> Option<&ForgeQueryGraphReadAccessAdmission> =

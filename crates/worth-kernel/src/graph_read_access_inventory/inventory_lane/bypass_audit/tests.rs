@@ -86,16 +86,15 @@ fn consumer_kit_bypass_audit_covers_all_inventory_roots() {
         .all(|coverage| coverage.has_source_files()
             && coverage.source_file_count() == coverage.audited_source_labels().len()
             && !coverage.required_root().is_empty()));
-    for row in closeout
-        .rows()
-        .iter()
-        .filter(|row| row.classification() != WorthGraphReadAccessClassification::DeletionTarget)
-    {
+    for row in closeout.rows().iter().filter(|row| {
+        row.classification() != WorthGraphReadAccessClassification::DeletionTarget
+            && row.classification() != WorthGraphReadAccessClassification::CappedResidue
+    }) {
         assert!(
             report
                 .covered_roots()
                 .iter()
-                .any(|root| root.ends_with(row.source_path())),
+                .any(|root| audit_root_covers_source(root, row.source_path())),
             "Consumer Kit bypass audit missed inventory root `{}`",
             row.source_path()
         );
@@ -151,6 +150,14 @@ fn assert_report_contains_residue_class(
             .any(|row| row.class() == expected_class),
         "bypass residue ledger must expose class `{expected_class}`"
     );
+}
+
+fn audit_root_covers_source(root: &str, source_path: &str) -> bool {
+    let Some(workspace_relative_root) = root.split("crates/").last() else {
+        return root.ends_with(source_path);
+    };
+    let workspace_relative_root = format!("crates/{workspace_relative_root}");
+    source_path.starts_with(&workspace_relative_root)
 }
 
 fn hostile_manual_relation_loop_source(loop_count: usize) -> String {

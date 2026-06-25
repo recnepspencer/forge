@@ -12,9 +12,10 @@ mod scope_tests;
 pub use scope_binding::WorthGraphReadAccessScopeBinding;
 pub use scope_expectation::WorthGraphReadAccessScopeExpectation;
 pub use scope_family::WorthGraphReadAccessScopeFamily;
-pub(in crate::graph_read_access_inventory::inventory_lane) use scope_guard::{
-    graph_read_scope_binding_for_covered_source, reject_read_access_plan_scope_substitution,
-    WorthGraphReadAccessScopeSubstitutionRole,
+pub(crate) use scope_guard::graph_read_scope_binding_for_covered_source;
+#[cfg(test)]
+pub(crate) use scope_guard::{
+    reject_read_access_plan_scope_substitution, WorthGraphReadAccessScopeSubstitutionRole,
 };
 pub use scope_kind::WorthGraphReadAccessScopeKind;
 pub use scope_plan::{WorthGraphReadAccessScopePlanEntry, WorthGraphReadAccessScopePlanReport};

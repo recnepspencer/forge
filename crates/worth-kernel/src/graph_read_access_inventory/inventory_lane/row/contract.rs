@@ -9,7 +9,7 @@ use super::deletion_action::WorthGraphReadAccessDeletionAction;
 use super::disposition::WorthGraphReadAccessMilestoneSevenDisposition;
 use super::out_of_scope_reason::WorthGraphReadAccessOutOfScopeReason;
 
-pub(super) fn validate_classification_contract(
+pub(crate) fn validate_classification_contract(
     classification: WorthGraphReadAccessClassification,
     cost_posture: WorthGraphReadAccessCostPosture,
     deletion_action: WorthGraphReadAccessDeletionAction,
@@ -91,6 +91,8 @@ fn validate_scope_expectation_contract(
         WorthGraphReadAccessClassification::QueryDeclarationCandidate => matches!(
             scope_expectation,
             WorthGraphReadAccessScopeExpectation::MilestoneSevenDeclarationCandidateInput
+                | WorthGraphReadAccessScopeExpectation::PreviewDeclarationCandidateInput
+                | WorthGraphReadAccessScopeExpectation::BranchDeclarationCandidateInput
                 | WorthGraphReadAccessScopeExpectation::FutureExecutionReceiptExpectation
         ),
         WorthGraphReadAccessClassification::QueryAccessCapabilityGap => {

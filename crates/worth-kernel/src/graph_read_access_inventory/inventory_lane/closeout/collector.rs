@@ -12,8 +12,7 @@ use super::super::seed::WorthGraphReadAccessInventorySeed;
 use super::summary::WorthGraphReadAccessInventoryCloseout;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::graph_read_access_inventory::inventory_lane) struct WorthGraphReadAccessInventoryCollector
-{
+pub(crate) struct WorthGraphReadAccessInventoryCollector {
     seed: WorthGraphReadAccessInventorySeed,
     guard_report: Option<WorthGraphReadAccessCoverageGuardReport>,
     rows: Vec<WorthGraphReadAccessInventoryRow>,

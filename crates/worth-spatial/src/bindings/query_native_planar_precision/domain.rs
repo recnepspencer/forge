@@ -80,7 +80,7 @@ impl ForgeQueryDeclarationFamilyMarker<PlanarPrecisionCertificationQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.planar_precision.predicate_fact",
                 "geometry.planar_precision.local_frame",

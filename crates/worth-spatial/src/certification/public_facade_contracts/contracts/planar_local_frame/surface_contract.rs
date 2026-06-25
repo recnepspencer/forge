@@ -47,19 +47,27 @@ fn planar_local_frame_certificate_family_is_query_native_and_relational() {
     );
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.planar_local_frame.precision_fact".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.planar_local_frame.precision_fact"
+        )));
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.planar_local_frame.precision_declaration".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.planar_local_frame.precision_declaration"
+        )));
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.planar_local_frame.precision_envelope".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.planar_local_frame.precision_envelope"
+        )));
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.planar_local_frame.transform_chain".to_string()));
-    assert!(aspect_contract
-        .preserved()
-        .contains(&"geometry.planar_local_frame.axes".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.planar_local_frame.transform_chain"
+        )));
+    assert!(aspect_contract.preserved().contains(
+        &crate::query_contract_helpers::aspect_field_key("geometry.planar_local_frame.axes")
+    ));
 }
 
 #[test]

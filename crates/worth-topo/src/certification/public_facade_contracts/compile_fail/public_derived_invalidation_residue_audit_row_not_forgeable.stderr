@@ -1,0 +1,29 @@
+error[E0451]: fields `source_path`, `surface`, `product_category`, `authority_kind`, `owner`, `capped_count`, `blocker`, `removal_trigger`, `certification_or_bootstrap_only`, `ordinary_invalidation_admissible`, `inventory_row_digest` and `row_digest` of struct `DerivedInvalidationResidueAuditRow` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_residue_audit_row_not_forgeable.rs:9:9
+   |
+ 8 |     let _ = DerivedInvalidationResidueAuditRow {
+   |             ---------------------------------- in this type
+ 9 |         source_path: String::new(),
+   |         ^^^^^^^^^^^ private field
+10 |         surface: String::new(),
+   |         ^^^^^^^ private field
+11 |         product_category: DerivedInvalidationProductCategory::CertificationBootstrap,
+   |         ^^^^^^^^^^^^^^^^ private field
+12 |         authority_kind: DerivedInvalidationOldAuthorityKind::CertificationBootstrapMaterialization,
+   |         ^^^^^^^^^^^^^^ private field
+13 |         owner: DerivedInvalidationAuthorityOwner::WorthTopoCertification,
+   |         ^^^^^ private field
+14 |         capped_count: 1,
+   |         ^^^^^^^^^^^^ private field
+15 |         blocker: String::new(),
+   |         ^^^^^^^ private field
+16 |         removal_trigger: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+17 |         certification_or_bootstrap_only: true,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         ordinary_invalidation_admissible: false,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         inventory_row_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+20 |         row_digest: String::new(),
+   |         ^^^^^^^^^^ private field

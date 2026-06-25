@@ -1,5 +1,6 @@
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
-    ForgeQueryApplicationFacade, ForgeQueryComputedBuilder,
+    AspectFieldKey, ForgeQueryApplicationFacade, ForgeQueryAspectTouch, ForgeQueryComputedBuilder,
     ForgeQueryContributionComposedClassification, ForgeQueryLiveViewBuilder,
     ForgeQuerySupportContributionAuthoring,
 };
@@ -198,11 +199,26 @@ fn _configure_milestone_one_runtime_builder_contract(
     configure_milestone_one_runtime_builder(builder)
 }
 
+fn _public_query_aspect_field_key(path: QueryAspectPath) -> AspectFieldKey {
+    AspectFieldKey::from_authoring_parts(path.section(), path.field())
+        .expect("schema query aspect paths must admit as public Forge query field keys")
+}
+
+fn _public_query_aspect_touch(path: QueryAspectPath) -> ForgeQueryAspectTouch {
+    let aspect = AspectKey::new(path.section())
+        .expect("schema query aspect sections must admit as public native aspect keys");
+    let field = FieldKey::new(path.field())
+        .expect("schema query aspect fields must admit as public native field keys");
+    let field_path = CanonicalFieldPath::new([field])
+        .expect("schema query aspect fields must build public canonical field paths");
+    ForgeQueryAspectTouch::aspect_field_path(aspect, field_path)
+}
+
 fn _vocab_live_query_declaration_contract() {
     let _ = ForgeQueryLiveViewBuilder::surface(".topo.query.entities")
         .select([
-            QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
-            QueryAspectPath::NAMING_PERSISTENT_NAME.as_str(),
+            _public_query_aspect_field_key(QueryAspectPath::TOPOLOGY_STRUCTURE),
+            _public_query_aspect_field_key(QueryAspectPath::NAMING_PERSISTENT_NAME),
         ])
         .from(QueryCollection::TopologyEntity.as_str())
         .schema_basis(QuerySchemaBasis::TopologyEntityLiveView.as_str())
@@ -212,8 +228,12 @@ fn _vocab_live_query_declaration_contract() {
 
 fn _vocab_computed_query_declaration_contract() {
     let _ = ForgeQueryComputedBuilder::surface(".topo.query.validation")
-        .reads([QueryAspectPath::TOPOLOGY_STRUCTURE.as_str()])
-        .produces([QueryAspectPath::DIAGNOSTICS_DECISIONS.as_str()])
+        .reads([_public_query_aspect_touch(
+            QueryAspectPath::TOPOLOGY_STRUCTURE,
+        )])
+        .produces([_public_query_aspect_touch(
+            QueryAspectPath::DIAGNOSTICS_DECISIONS,
+        )])
         .build()
         .unwrap();
 }
@@ -293,7 +313,14 @@ include!("public_api_topology_operator_successor_surface.rs");
 include!("public_api_topology_operator_split_surface.rs");
 include!("public_api_edge_split_blueprint.rs");
 include!("public_api_edge_split_persistent_naming_blueprint.rs");
-
+include!("public_api_derived_invalidation_authority_inventory.rs");
+include!("public_api_derived_invalidation_family_catalog.rs");
+include!("public_api_derived_invalidation_selected_plan.rs");
+include!("public_api_derived_invalidation_execution.rs");
+include!("public_api_derived_invalidation_migrated_products.rs");
+include!("public_api_derived_invalidation_operator_cutover.rs");
+include!("public_api_derived_invalidation_deletion_closeout.rs");
+include!("public_api_derived_invalidation_milestone_ten_closeout.rs");
 
 fn _topology_projection_cleanup_closeout_contracts() {
     let _: fn() -> Result<TopologyQueryBoundaryCleanupCloseoutReport, TopologyCertificationError> =
@@ -381,4 +408,14 @@ fn topo_public_traced_boundaries_compile_with_envelope_contracts() {
     let _ = _build_milestone_one_runtime_contract;
     let _ = _configure_milestone_one_runtime_builder_contract;
     let _ = _topology_projection_cleanup_closeout_contracts;
+    _derived_invalidation_authority_inventory_contract()
+        .expect("derived invalidation authority inventory public contract");
+    _derived_invalidation_family_catalog_contract()
+        .expect("derived invalidation family catalog public contract");
+    _derived_invalidation_selected_plan_contract();
+    _derived_invalidation_execution_contract();
+    _derived_invalidation_migrated_products_contract();
+    _derived_invalidation_operator_cutover_contract();
+    _derived_invalidation_deletion_closeout_contract();
+    _derived_invalidation_milestone_ten_closeout_contract();
 }

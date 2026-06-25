@@ -34,10 +34,14 @@ fn certified_polygon_winding_family_is_query_native_and_retained() {
     );
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.polygon_winding_2d.vertex.projection_fact".to_string()));
-    assert!(aspect_contract
-        .preserved()
-        .contains(&"geometry.polygon_winding_2d.loop.containment".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.polygon_winding_2d.vertex.projection_fact"
+        )));
+    assert!(aspect_contract.preserved().contains(
+        &crate::query_contract_helpers::aspect_field_key(
+            "geometry.polygon_winding_2d.loop.containment"
+        )
+    ));
 }
 
 #[test]

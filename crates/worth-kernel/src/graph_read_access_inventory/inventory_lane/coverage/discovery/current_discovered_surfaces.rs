@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use super::{WorthGraphReadAccessDiscoveredSurface, WorthGraphReadAccessDiscoveredSurfaceReport};
 
-pub(super) fn current_worth_graph_read_access_discovered_surface_report(
+pub(crate) fn current_worth_graph_read_access_discovered_surface_report(
 ) -> WorthGraphReadAccessDiscoveredSurfaceReport {
     WorthGraphReadAccessDiscoveredSurfaceReport::new(discover_graph_read_surfaces_from_source())
 }

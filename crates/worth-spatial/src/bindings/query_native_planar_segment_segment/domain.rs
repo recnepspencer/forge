@@ -80,7 +80,7 @@ impl ForgeQueryDeclarationFamilyMarker<CertifiedSegmentSegment2DQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.segment_segment_2d.first_segment_identity",
                 "geometry.segment_segment_2d.second_segment_identity",

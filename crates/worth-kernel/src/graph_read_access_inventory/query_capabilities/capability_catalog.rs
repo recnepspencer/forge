@@ -23,13 +23,13 @@ use super::capability_row::{
 use super::cost_counters::QueryGraphReadCostCounterField;
 use super::receipt_fields::QueryGraphReadReceiptField;
 
-pub(super) fn query_graph_read_access_capability_rows(
+pub(crate) fn query_graph_read_access_capability_rows(
 ) -> &'static [QueryGraphReadAccessCapabilityRow] {
     static CAPABILITY_ROWS: OnceLock<Vec<QueryGraphReadAccessCapabilityRow>> = OnceLock::new();
     CAPABILITY_ROWS.get_or_init(build_query_graph_read_access_capability_rows)
 }
 
-pub(super) fn anchor_query_graph_read_access_symbols() {
+pub(crate) fn anchor_query_graph_read_access_symbols() {
     let _ = derive_graph_read_access_requirements;
     let _ = try_derive_graph_read_access_requirements;
     let _ = admit_graph_read_access_for_family;

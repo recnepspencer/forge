@@ -2,6 +2,7 @@ mod contract_bundle_support;
 mod local_rebuild_fixture;
 mod readiness_workload_fixture;
 
+#[allow(unused_imports)]
 pub(crate) use readiness_workload_fixture::{
     certified_boolean_readiness_workload_receipt,
     certified_boolean_readiness_workload_receipt_from_ledger,

@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `from_topology_view_with_selected_prefix` found for struct `TraversalViewsReadSource` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/public_traversal_views_topology_prefix_read_source_not_exported.rs:6:43
+  |
+6 |         let _ = TraversalViewsReadSource::from_topology_view_with_selected_prefix(topology, 0);
+  |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `TraversalViewsReadSource`

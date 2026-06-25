@@ -79,7 +79,7 @@ impl ForgeQueryDeclarationFamilyMarker<WorkloadCatalogQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_authoring_helpers::declaration_aspect_contract_from_slices(
             &["workload_catalog.recipe", "workload_catalog.declaration"],
             &[
                 "workload_catalog.recipe_declaration",
@@ -116,7 +116,7 @@ impl ForgeQueryDeclarationFamilyMarker<WorkloadCatalogQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_authoring_helpers::declaration_aspect_contract_from_slices(
             &[
                 "workload_catalog.recipe",
                 "workload_catalog.support_posture",

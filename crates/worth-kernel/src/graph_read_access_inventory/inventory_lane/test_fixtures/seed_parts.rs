@@ -1,6 +1,6 @@
 use super::super::seed::WorthGraphReadAccessInventorySeedParts;
 
-pub(super) fn seed_parts_with_authority_digests(
+pub(crate) fn seed_parts_with_authority_digests(
     authority_digests: Vec<String>,
 ) -> WorthGraphReadAccessInventorySeedParts {
     WorthGraphReadAccessInventorySeedParts {
@@ -9,7 +9,7 @@ pub(super) fn seed_parts_with_authority_digests(
     }
 }
 
-pub(super) fn seed_parts_with_selected_obligation_count(
+pub(crate) fn seed_parts_with_selected_obligation_count(
     selected_obligation_count: usize,
 ) -> WorthGraphReadAccessInventorySeedParts {
     WorthGraphReadAccessInventorySeedParts {
@@ -18,7 +18,7 @@ pub(super) fn seed_parts_with_selected_obligation_count(
     }
 }
 
-pub(super) fn seed_parts_with_selected_registration_digests(
+pub(crate) fn seed_parts_with_selected_registration_digests(
     selected_registration_digests: Vec<String>,
 ) -> WorthGraphReadAccessInventorySeedParts {
     WorthGraphReadAccessInventorySeedParts {
@@ -27,7 +27,7 @@ pub(super) fn seed_parts_with_selected_registration_digests(
     }
 }
 
-pub(super) fn seed_parts_with_touch_descriptor_digests(
+pub(crate) fn seed_parts_with_touch_descriptor_digests(
     touch_descriptor_digests: Vec<String>,
 ) -> WorthGraphReadAccessInventorySeedParts {
     WorthGraphReadAccessInventorySeedParts {

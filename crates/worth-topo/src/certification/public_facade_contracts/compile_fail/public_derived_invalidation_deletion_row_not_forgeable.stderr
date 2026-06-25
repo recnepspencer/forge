@@ -1,0 +1,21 @@
+error[E0451]: fields `source_path`, `surface`, `product_category`, `authority_kind`, `owner`, `disposition`, `inventory_row_digest` and `row_digest` of struct `DerivedInvalidationDeletionRow` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_deletion_row_not_forgeable.rs:11:9
+   |
+10 |     let _ = DerivedInvalidationDeletionRow {
+   |             ------------------------------ in this type
+11 |         source_path: String::new(),
+   |         ^^^^^^^^^^^ private field
+12 |         surface: String::new(),
+   |         ^^^^^^^ private field
+13 |         product_category: DerivedInvalidationProductCategory::LoopCycles,
+   |         ^^^^^^^^^^^^^^^^ private field
+14 |         authority_kind: DerivedInvalidationOldAuthorityKind::WholeViewMaterialization,
+   |         ^^^^^^^^^^^^^^ private field
+15 |         owner: DerivedInvalidationAuthorityOwner::WorthTopoDerivedTopology,
+   |         ^^^^^ private field
+16 |         disposition: DerivedInvalidationDeletionDisposition::MigratedAuthorityDeleted,
+   |         ^^^^^^^^^^^ private field
+17 |         inventory_row_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+18 |         row_digest: String::new(),
+   |         ^^^^^^^^^^ private field

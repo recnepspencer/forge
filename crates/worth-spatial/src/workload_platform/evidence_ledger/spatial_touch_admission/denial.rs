@@ -150,7 +150,8 @@ impl SpatialGeometryEvidenceTouchDenialPrecedence {
         }
     }
 
-    pub fn with_source_substitution(
+    #[cfg(test)]
+    pub(crate) fn with_source_substitution(
         mut self,
         input: SpatialGeometryEvidenceTouchRejectedInputKind,
     ) -> Self {

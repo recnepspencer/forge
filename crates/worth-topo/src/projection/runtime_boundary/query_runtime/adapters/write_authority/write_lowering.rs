@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
+use forge_foundational::facade::AspectValue;
 use forge_query::facade::{
     ForgeQueryEntityIdentity, ForgeQuerySymbolicAspectReference, ForgeQueryWorkspaceError,
 };
@@ -13,11 +14,10 @@ use forge_relational::facade::transactions::{
 };
 use schema::facade::platform::entities::{EntityKind, NamingEntityKind};
 use schema::facade::platform::relations::{NamingRelationKind, RelationKind};
-use serde_json::Value;
 
 use super::super::write_support::{
-    ensure_live_entity_exists, live_entity_label_exists, optional_text, parse_entity_identity,
-    relation_id_from_query_identity, required_text,
+    aspect_touch_key, ensure_live_entity_exists, live_entity_label_exists, optional_text,
+    parse_entity_identity, relation_id_from_query_identity, required_text,
 };
 use crate::relational_aspect_boundary::{
     persistent_name_create_fields, topology_entity_create_fields,
@@ -25,7 +25,7 @@ use crate::relational_aspect_boundary::{
 
 pub(super) fn lower_topology_entity_insert(
     runtime: &Arc<RwLock<RelationalRuntime>>,
-    aspects: &BTreeMap<String, Value>,
+    aspects: &BTreeMap<String, AspectValue>,
 ) -> Result<(Vec<MutationIntent>, EntityReference), ForgeQueryWorkspaceError> {
     let kind_name = required_text(aspects, "topology.kind")?;
     let kind = EntityKind::ALL
@@ -85,7 +85,7 @@ pub(super) fn lower_topology_entity_insert(
 
 pub(super) fn lower_topology_relation_insert(
     runtime: &Arc<RwLock<RelationalRuntime>>,
-    aspects: &BTreeMap<String, Value>,
+    aspects: &BTreeMap<String, AspectValue>,
     symbolic_aspect_references: &[ForgeQuerySymbolicAspectReference],
     created_entities: &BTreeMap<String, EntityReference>,
 ) -> Result<RelationSpec, ForgeQueryWorkspaceError> {
@@ -134,7 +134,7 @@ pub(super) fn lower_topology_relation_insert(
 
 pub(super) fn lower_topology_relation_update(
     runtime: &Arc<RwLock<RelationalRuntime>>,
-    aspects: &BTreeMap<String, Value>,
+    aspects: &BTreeMap<String, AspectValue>,
     symbolic_aspect_references: &[ForgeQuerySymbolicAspectReference],
     created_entities: &BTreeMap<String, EntityReference>,
     resolved_target_identity: &ForgeQueryEntityIdentity,
@@ -174,7 +174,7 @@ pub(super) fn lower_topology_relation_update(
 
 fn lower_relation_endpoint(
     runtime: &Arc<RwLock<RelationalRuntime>>,
-    aspects: &BTreeMap<String, Value>,
+    aspects: &BTreeMap<String, AspectValue>,
     symbolic_aspect_references: &[ForgeQuerySymbolicAspectReference],
     created_entities: &BTreeMap<String, EntityReference>,
     aspect_path: &str,
@@ -182,7 +182,7 @@ fn lower_relation_endpoint(
 ) -> Result<EntityReference, ForgeQueryWorkspaceError> {
     if let Some(reference) = symbolic_aspect_references
         .iter()
-        .find(|reference| reference.aspect_path() == aspect_path)
+        .find(|reference| aspect_touch_key(reference.aspect_touch()) == aspect_path)
     {
         return created_entities
             .get(reference.reference().symbol())

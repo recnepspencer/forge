@@ -164,7 +164,7 @@ fn phase_two_inventory_closeout_counts_rows_by_disposition() {
     let rows = vec![
         declaration_candidate_row(),
         deletion_target_row(),
-        capped_residue_inventory_row(),
+        capped_residue_inventory_row().current_caller("capped graph-read adoption residue"),
         certification_only_row(),
         capability_gap_row(),
         out_of_scope_row(),

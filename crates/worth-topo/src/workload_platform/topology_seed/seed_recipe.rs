@@ -6,7 +6,7 @@ use super::{
 };
 use crate::brep::topology_graph::TopologyView;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
-use crate::derived_topology::traversal_views::interpret_topology_view;
+use crate::derived_topology::traversal_views::bootstrap_topology_interpretation;
 use crate::validation::TopologyValidator;
 use crate::workload_platform::topology_seed_recipes::TopologySeedRecipeOutput;
 
@@ -140,7 +140,7 @@ fn validate_view(
 ) -> Result<crate::validation::TopologyValidationReport, crate::validation::TopologyValidationError>
 {
     let materialized = MaterializedTopologyView::from_complete_topology_view(view.clone());
-    let interpreted = interpret_topology_view(&materialized);
+    let interpreted = bootstrap_topology_interpretation(&materialized);
     TopologyValidator::derived_validation_report(&materialized, &interpreted)
 }
 

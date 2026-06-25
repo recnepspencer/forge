@@ -46,23 +46,25 @@ pub use scope::{
 pub use seed::WorthGraphReadAccessInventorySeed;
 
 #[cfg(test)]
-pub(super) use bypass_audit::graph_read_bypass_source_inventory_from_rows;
+pub(crate) use closeout::WorthGraphReadAccessInventoryCollector;
 #[cfg(test)]
-pub(super) use closeout::WorthGraphReadAccessInventoryCollector;
-#[cfg(test)]
-pub(super) use coverage::{
+pub(crate) use coverage::{
     covered_graph_read_sources, current_worth_graph_read_access_surface_inventory_for_tests,
     validate_discovered_graph_read_surfaces, WorthGraphReadAccessDiscoveredSurface,
 };
 #[cfg(test)]
-pub(super) use residue::WorthGraphReadAccessCappedResidueBuilder;
+pub(crate) use residue::WorthGraphReadAccessCappedResidueBuilder;
 #[cfg(test)]
 pub(in crate::graph_read_access_inventory::inventory_lane) use residue::{
     graph_read_bypass_residue_cap_inventory, graph_read_bypass_residue_manifest_for_report,
 };
 #[cfg(test)]
-pub(super) use row::WorthGraphReadAccessInventoryRowBuilder;
+pub(crate) use row::WorthGraphReadAccessInventoryRowBuilder;
 #[cfg(test)]
-pub(super) use scope::{
-    reject_read_access_plan_scope_substitution, WorthGraphReadAccessScopeSubstitutionRole,
+pub(crate) use scope::WorthGraphReadAccessScopeSubstitutionRole;
+#[cfg(test)]
+pub(crate) use test_fixtures::{
+    branch_declaration_candidate_row_for_tests, declaration_candidate_row_with_scope_for_tests,
+    deletion_target_row, future_receipt_declaration_candidate_row_for_tests,
+    preview_declaration_candidate_row_for_tests, spatial_declaration_candidate_row_for_tests,
 };

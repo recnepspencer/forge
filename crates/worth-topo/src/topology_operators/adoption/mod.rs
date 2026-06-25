@@ -20,5 +20,9 @@ pub use catalog::{
     TOPOLOGY_OPERATOR_GRAPH_OBLIGATION_FAMILY, TOPOLOGY_OPERATOR_RELATION_COLLECTION,
     TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_OPERATION, TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_PATH,
 };
+#[cfg(test)]
+pub(crate) use catalog::{
+    topology_rewire_loop_successor_aspect_operation, topology_rewire_loop_successor_aspect_touch,
+};
 pub use proof::topology_operator_graph_obligation_adoption_proof;
 pub use residue::topology_operator_graph_obligation_residue_manifest;

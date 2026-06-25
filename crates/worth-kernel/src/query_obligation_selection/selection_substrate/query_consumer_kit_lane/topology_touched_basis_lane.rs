@@ -39,10 +39,9 @@ pub fn prove_topology_touched_basis_query_selection(
 fn classify_topology_touched_basis_selection_lane(
     input: &QueryObligationSelectionInput,
 ) -> TopologyTouchedBasisSelectionLane {
-    if input
-        .touch_descriptor()
-        .touches_collection(TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION)
-    {
+    if input.touch_descriptor().rows().iter().any(|row| {
+        row.declared_collection() == Some(TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION)
+    }) {
         return TopologyTouchedBasisSelectionLane::PrimitiveConstructionBirth;
     }
     TopologyTouchedBasisSelectionLane::TopologyOperator

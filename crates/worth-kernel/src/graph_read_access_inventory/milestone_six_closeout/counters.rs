@@ -19,7 +19,7 @@ pub struct WorthGraphReadAccessMilestoneSixCloseoutCounters {
 }
 
 impl WorthGraphReadAccessMilestoneSixCloseoutCounters {
-    pub(super) fn from_closeouts(
+    pub(crate) fn from_closeouts(
         inventory: &WorthGraphReadAccessInventoryCloseout,
         disposition: &WorthGraphReadAccessPhaseSixCloseout,
     ) -> Result<Self, WorthGraphReadAccessMilestoneSixError> {

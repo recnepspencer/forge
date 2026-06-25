@@ -4,7 +4,9 @@ use forge_query::facade::{
 };
 
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
-use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
+use crate::projection::runtime_boundary::declared_query_surfaces::{
+    retained_payload, TopologyDeclaredQuerySurfaces,
+};
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryMutationLaneExecutionShape;
 use crate::topology_operators::application::TopologyMutationApplicationError;
 
@@ -30,11 +32,17 @@ impl TopologyPostWriteQueryArtifact {
         )?;
         let materialized = retained_artifact
             .retained_artifact()
-            .decode_single_row(surfaces.materialized())
+            .materialization(surfaces.materialized())
+            .and_then(|materialization| materialization.single_retained_row())
             .map_err(|error| {
                 TopologyMutationApplicationError::MaterializedDecode(format!(
                     "query-derived `materialized topology` row failed to decode: {error}"
                 ))
+            })
+            .and_then(|row| {
+                retained_payload::decode_retained_payload_row(row, "materialized topology").map_err(
+                    |error| TopologyMutationApplicationError::MaterializedDecode(error.to_string()),
+                )
             })?;
         #[cfg(not(test))]
         let _ = execution_shape;

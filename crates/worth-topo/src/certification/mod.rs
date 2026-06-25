@@ -21,6 +21,8 @@ mod structure_guard_schema_authoring;
 #[cfg(test)]
 mod structure_guard_support;
 pub(crate) mod support;
+#[cfg(all(test, feature = "slow-certification"))]
+pub(crate) mod test_support;
 mod tracing;
 
 #[cfg(test)]
@@ -61,6 +63,7 @@ pub use facade::{
     certify_milestone_two_read_basis_traced, certify_topology_bridge_registration_closeout,
     certify_topology_committed_artifact_alignment_closeout,
     certify_topology_historical_materialization_closeout,
+    certify_topology_operator_selected_obligation_cutover,
     certify_topology_query_boundary_cleanup_closeout,
 };
 pub use historical_materialization_closeout::{

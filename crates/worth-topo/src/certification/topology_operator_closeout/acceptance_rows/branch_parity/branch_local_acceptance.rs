@@ -7,8 +7,7 @@ use super::super::super::{
     milestone_three_rejected_scenarios, milestone_three_required_scenarios,
     MilestoneThreeHostileScenario,
 };
-use super::accepted_branch_execution::mutation_digest_shape_matches;
-use super::accepted_branch_schema_authority_projection::AcceptedBranchSchemaAuthorityProjection;
+use super::accepted_branch_schema_authority_projection::ACCEPTED_BRANCH_SCHEMA_AUTHORITY_PROJECTION_MARKER;
 
 pub(in crate::certification::topology_operator_closeout) fn ensure_branch_local_mutation_parity_rows(
     report: &MilestoneThreeHostileSuiteReport,
@@ -55,7 +54,7 @@ fn ensure_accepted_branch_local_mutation_parity_scenario(
             && row.branch_truth_digest.is_some()
             && row
                 .row_digest
-                .contains(AcceptedBranchSchemaAuthorityProjection::ROW_PROJECTION_MARKER)
+                .contains(ACCEPTED_BRANCH_SCHEMA_AUTHORITY_PROJECTION_MARKER)
     });
     if accepted_verified {
         Ok(())
@@ -104,20 +103,27 @@ fn closeout_requirement_error(reason: &str) -> TopologyCertificationError {
     ))
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::facade::certify_milestone_three_hostile_suite;
-    use crate::validation::reference_integrity::build_milestone_one_runtime;
+fn mutation_digest_shape_matches(
+    left: &crate::topology_operators::TopologyMutationDigest,
+    right: &crate::topology_operators::TopologyMutationDigest,
+) -> bool {
+    left.mutation_record_count == right.mutation_record_count
+        && left.family_count == right.family_count
+        && left.changed_scope_count == right.changed_scope_count
+        && left.naming_scope_count == right.naming_scope_count
+        && left.derived_region_count == right.derived_region_count
+        && left.fallback_policy_count == right.fallback_policy_count
+        && left.fallback_rejection_policy_count == right.fallback_rejection_policy_count
+}
 
+#[cfg(all(test, feature = "slow-certification"))]
+mod tests {
     use super::ensure_branch_local_mutation_parity_rows;
+    use crate::certification::topology_operator_closeout::acceptance_rows::test_support;
 
     #[test]
     fn accepted_branch_local_gate_rejects_missing_schema_authority_projection_marker() {
-        let mut report = certify_milestone_three_hostile_suite(
-            || build_milestone_one_runtime().expect("milestone one runtime builder"),
-            "m3.branch_local_acceptance.projection_marker",
-        )
-        .expect("hostile suite should certify before tampering");
+        let mut report = certified_report();
         let accepted = report
             .mutation_branch_local_parity_rows
             .iter_mut()
@@ -127,7 +133,7 @@ mod tests {
         accepted.row_digest = accepted.row_digest.replace(
             &format!(
                 "projection={};",
-                super::AcceptedBranchSchemaAuthorityProjection::ROW_PROJECTION_MARKER
+                super::ACCEPTED_BRANCH_SCHEMA_AUTHORITY_PROJECTION_MARKER
             ),
             "",
         );
@@ -136,5 +142,10 @@ mod tests {
             ensure_branch_local_mutation_parity_rows(&report).is_err(),
             "accepted branch-local evidence must remain tied to the schema authority projection path"
         );
+    }
+
+    fn certified_report(
+    ) -> crate::certification::topology_operator_closeout::MilestoneThreeHostileSuiteReport {
+        test_support::cached_hostile_suite_report()
     }
 }

@@ -3,7 +3,7 @@ use crate::graph_read_access_inventory::inventory_lane::{
     WorthGraphReadAccessCostPosture, WorthGraphReadAccessOwner,
 };
 
-pub(super) const TOPOLOGY_READ_DOMAIN: WorthGraphReadAccessCoveredSource =
+pub(crate) const TOPOLOGY_READ_DOMAIN: WorthGraphReadAccessCoveredSource =
     WorthGraphReadAccessCoveredSource::declaration_candidate(
         "crates/worth-topo/src/projection/read_views/domain",
         WorthGraphReadAccessOwner::WorthTopo,
@@ -11,7 +11,7 @@ pub(super) const TOPOLOGY_READ_DOMAIN: WorthGraphReadAccessCoveredSource =
         WorthGraphReadAccessCostPosture::PerResultNeighborLookup,
     );
 
-pub(super) const TOPOLOGY_READ_EXECUTION: WorthGraphReadAccessCoveredSource =
+pub(crate) const TOPOLOGY_READ_EXECUTION: WorthGraphReadAccessCoveredSource =
     WorthGraphReadAccessCoveredSource::declaration_candidate(
         "crates/worth-topo/src/projection/runtime_boundary/read_execution",
         WorthGraphReadAccessOwner::WorthTopo,
@@ -19,7 +19,7 @@ pub(super) const TOPOLOGY_READ_EXECUTION: WorthGraphReadAccessCoveredSource =
         WorthGraphReadAccessCostPosture::BoundedTouchedRegion,
     );
 
-pub(super) const TOPOLOGY_READ_PROOF_SUPPORT: WorthGraphReadAccessCoveredSource =
+pub(crate) const TOPOLOGY_READ_PROOF_SUPPORT: WorthGraphReadAccessCoveredSource =
     WorthGraphReadAccessCoveredSource::certification_only(
         "crates/worth-topo/src/projection/read_views/domain/read_proof",
         WorthGraphReadAccessOwner::WorthTopo,

@@ -1,18 +1,9 @@
-use crate::facade::{certify_milestone_three_closeout, milestone_three_closeout_requirements};
-use crate::validation::reference_integrity::milestone_one_runtime_builder;
+use crate::facade::milestone_three_closeout_requirements;
 
 #[test]
 fn milestone_three_closeout_requires_derived_work_breadth_rows() {
     let requirements = milestone_three_closeout_requirements();
-    let report = certify_milestone_three_closeout(
-        || {
-            milestone_one_runtime_builder()
-                .expect(" milestone one runtime builder")
-                .build()
-        },
-        "milestone-three-derived-work-breadth",
-    )
-    .expect("milestone three closeout should certify");
+    let report = crate::certification::test_support::cached_milestone_three_closeout_report();
 
     assert_eq!(
         report.derived_work_breadth_rows.len(),

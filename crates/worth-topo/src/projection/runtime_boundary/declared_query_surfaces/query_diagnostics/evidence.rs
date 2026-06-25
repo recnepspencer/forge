@@ -1,4 +1,4 @@
-use forge_query::facade::ForgeQueryRetainedRefreshContext;
+use forge_query::facade::{ForgeQueryMutationMetadataKey, ForgeQueryRetainedRefreshContext};
 use schema::facade::platform::aspects::Aspect;
 use schema::facade::platform::authority::MutationOrigin;
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
@@ -48,13 +48,18 @@ impl TopologyQueryMutationEvidence {
     pub(super) fn from_refresh(
         refresh: &ForgeQueryRetainedRefreshContext,
     ) -> Result<Self, TopologyQuerySurfaceError> {
-        let Some(value) = refresh.refresh_metadata().get(Self::metadata_key()) else {
+        let key = ForgeQueryMutationMetadataKey::new(Self::metadata_key()).map_err(|error| {
+            TopologyQuerySurfaceError::new(format!(
+                "query-derived refresh metadata key failed to admit: {error}"
+            ))
+        })?;
+        let Some(value) = refresh.refresh_metadata().get(&key) else {
             return Err(TopologyQuerySurfaceError::new(format!(
                 "query-derived refresh context is missing `{}` metadata",
                 Self::metadata_key()
             )));
         };
-        serde_json::from_value(value.clone()).map_err(|error| {
+        serde_json::from_str(value.terminal_digest_text()).map_err(|error| {
             TopologyQuerySurfaceError::new(format!(
                 "query-derived refresh metadata `{}` failed to decode: {error}",
                 Self::metadata_key()

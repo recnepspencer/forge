@@ -3,7 +3,7 @@ use crate::graph_read_access_inventory::inventory_lane::{
     WorthGraphReadAccessCostPosture, WorthGraphReadAccessOwner,
 };
 
-pub(super) const TOPOLOGY_READ_TEST_SUPPORT: WorthGraphReadAccessCoveredSource =
+pub(crate) const TOPOLOGY_READ_TEST_SUPPORT: WorthGraphReadAccessCoveredSource =
     WorthGraphReadAccessCoveredSource::certification_only(
         "crates/worth-topo/src/certification/projection_closeout/tests/topology_reads",
         WorthGraphReadAccessOwner::WorthTopo,
@@ -11,7 +11,7 @@ pub(super) const TOPOLOGY_READ_TEST_SUPPORT: WorthGraphReadAccessCoveredSource =
         WorthGraphReadAccessCostPosture::FabricatedReceiptOrSupportRow,
     );
 
-pub(super) const SPATIAL_LOOP_RECONSTRUCTION_TEST_SUPPORT: WorthGraphReadAccessCoveredSource =
+pub(crate) const SPATIAL_LOOP_RECONSTRUCTION_TEST_SUPPORT: WorthGraphReadAccessCoveredSource =
     WorthGraphReadAccessCoveredSource::certification_only(
         "crates/worth-spatial/src/workload_platform/planar_boolean_loop_reconstruction/test_support",
         WorthGraphReadAccessOwner::WorthSpatial,
@@ -19,7 +19,7 @@ pub(super) const SPATIAL_LOOP_RECONSTRUCTION_TEST_SUPPORT: WorthGraphReadAccessC
         WorthGraphReadAccessCostPosture::FrontierOrVisitedSet,
     );
 
-pub(super) const KERNEL_BINDING_TEST_SUPPORT: WorthGraphReadAccessCoveredSource =
+pub(crate) const KERNEL_BINDING_TEST_SUPPORT: WorthGraphReadAccessCoveredSource =
     WorthGraphReadAccessCoveredSource::certification_only(
         "crates/worth-kernel/src/binding/tests",
         WorthGraphReadAccessOwner::WorthKernel,

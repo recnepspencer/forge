@@ -17,7 +17,6 @@ use super::seed_audit::audit_milestone_seven_seed;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthGraphReadAccessMilestoneSixCloseout {
     inventory_closeout: WorthGraphReadAccessInventoryCloseout,
-    disposition_closeout: WorthGraphReadAccessPhaseSixCloseout,
     milestone_seven_seed: WorthGraphReadAccessMilestoneSevenSeed,
     counters: WorthGraphReadAccessMilestoneSixCloseoutCounters,
     readiness: WorthGraphReadAccessMilestoneSixReadiness,
@@ -41,7 +40,7 @@ impl WorthGraphReadAccessMilestoneSixCloseout {
         )
     }
 
-    pub(super) fn from_inventory_closeout_with_later_milestone_claims(
+    pub(crate) fn from_inventory_closeout_with_later_milestone_claims(
         inventory_closeout: WorthGraphReadAccessInventoryCloseout,
         later_milestone_claims: WorthGraphReadAccessLaterMilestoneClaims,
     ) -> Result<Self, WorthGraphReadAccessMilestoneSixError> {
@@ -57,7 +56,6 @@ impl WorthGraphReadAccessMilestoneSixCloseout {
 
         Ok(Self {
             inventory_closeout,
-            disposition_closeout,
             milestone_seven_seed,
             counters,
             readiness: WorthGraphReadAccessMilestoneSixReadiness::ReadyForMilestoneSeven,
@@ -74,10 +72,6 @@ impl WorthGraphReadAccessMilestoneSixCloseout {
 
     pub const fn inventory_closeout(&self) -> &WorthGraphReadAccessInventoryCloseout {
         &self.inventory_closeout
-    }
-
-    pub(super) const fn disposition_closeout(&self) -> &WorthGraphReadAccessPhaseSixCloseout {
-        &self.disposition_closeout
     }
 
     pub const fn milestone_seven_seed(&self) -> &WorthGraphReadAccessMilestoneSevenSeed {

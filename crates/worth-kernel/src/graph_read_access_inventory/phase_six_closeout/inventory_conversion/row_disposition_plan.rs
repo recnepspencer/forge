@@ -19,14 +19,14 @@ use super::super::errors::{
     WorthGraphReadAccessPhaseSixError, WorthGraphReadAccessPhaseSixErrorKind,
 };
 
-pub(super) enum WorthGraphReadAccessPhaseSixPlannedDisposition {
+pub(crate) enum WorthGraphReadAccessPhaseSixPlannedDisposition {
     DeclarationCandidate(WorthGraphReadDeclarationCandidate),
     CapabilityGap(WorthGraphReadQueryAccessCapabilityGap),
     DeletionItem(WorthGraphReadDeletionLedgerItem),
     Excluded,
 }
 
-pub(super) fn plan_phase_six_disposition_for_row(
+pub(crate) fn plan_phase_six_disposition_for_row(
     row: &WorthGraphReadAccessInventoryRow,
 ) -> Result<WorthGraphReadAccessPhaseSixPlannedDisposition, WorthGraphReadAccessPhaseSixError> {
     match row.classification() {

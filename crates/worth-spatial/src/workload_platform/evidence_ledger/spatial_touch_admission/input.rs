@@ -1,11 +1,15 @@
+#[cfg(test)]
 use std::any::type_name;
 
+#[cfg(test)]
 use super::denial::SpatialGeometryEvidenceTouchDenial;
+#[cfg(test)]
 use crate::workload_platform::evidence_ledger::{
     WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceRow,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[allow(dead_code)]
 pub(crate) enum SpatialGeometryEvidenceTouchRejectedInputKind {
     RawId,
     RawString,
@@ -18,6 +22,7 @@ pub(crate) enum SpatialGeometryEvidenceTouchRejectedInputKind {
     CopiedReceiptFields,
 }
 
+#[cfg(test)]
 pub(crate) struct SpatialGeometryEvidenceTouchRejectedInput {
     kind: SpatialGeometryEvidenceTouchRejectedInputKind,
     type_name: &'static str,
@@ -39,6 +44,7 @@ impl SpatialGeometryEvidenceTouchRejectedInputKind {
     }
 }
 
+#[cfg(test)]
 impl SpatialGeometryEvidenceTouchRejectedInput {
     pub(crate) fn raw_id<T: 'static>(_: &T) -> Self {
         Self::new(

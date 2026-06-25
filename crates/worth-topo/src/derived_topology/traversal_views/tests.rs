@@ -6,7 +6,7 @@ mod interpretation_tests {
 
     use crate::derived_topology::materialized_graph::TopologyMaterializer;
     use crate::derived_topology::traversal_views::{
-        build_topology_read_artifact, certify_topology_view, interpret_topology_view,
+        bootstrap_topology_interpretation, build_topology_read_artifact, certify_topology_view,
     };
     use crate::test_support::hostile_neighborhoods::interpretation_neighborhoods::{
         closed_wire_cycle_of_size, closed_wire_cycle_view, connected_wire_branch_view,
@@ -31,7 +31,7 @@ mod interpretation_tests {
 
         let topology = TopologyMaterializer::materialize_from_truth(&read_view)
             .expect(" topology materialization");
-        let interpretation = interpret_topology_view(&topology);
+        let interpretation = bootstrap_topology_interpretation(&topology);
 
         assert_eq!(interpretation.report().interpreted_wire_count, 1);
         assert_eq!(interpretation.report().interpreted_shell_count, 1);
@@ -86,7 +86,7 @@ mod interpretation_tests {
 
         let topology = TopologyMaterializer::materialize_from_truth(&read_view)
             .expect(" topology materialization");
-        let interpreted = interpret_topology_view(&topology);
+        let interpreted = bootstrap_topology_interpretation(&topology);
         let read_artifact = build_topology_read_artifact(&seeded.read_basis(), &interpreted);
         let certified = certify_topology_view(seeded.read_basis().clone(), &interpreted);
 
@@ -100,7 +100,7 @@ mod interpretation_tests {
     #[test]
     fn closed_wire_cycle_interprets_as_closed_with_no_terminals() {
         let topology = closed_wire_cycle_view();
-        let interpretation = interpret_topology_view(
+        let interpretation = bootstrap_topology_interpretation(
             &crate::derived_topology::materialized_graph::MaterializedTopologyView::whole_view(
                 topology,
             ),
@@ -117,7 +117,7 @@ mod interpretation_tests {
     #[test]
     fn longer_open_wire_chain_interprets_as_open_chain_with_two_terminals() {
         let topology = open_wire_chain_view(4);
-        let interpretation = interpret_topology_view(
+        let interpretation = bootstrap_topology_interpretation(
             &crate::derived_topology::materialized_graph::MaterializedTopologyView::whole_view(
                 topology,
             ),
@@ -134,7 +134,7 @@ mod interpretation_tests {
     #[test]
     fn larger_closed_wire_cycle_interprets_as_closed_cycle() {
         let topology = closed_wire_cycle_of_size(4);
-        let interpretation = interpret_topology_view(
+        let interpretation = bootstrap_topology_interpretation(
             &crate::derived_topology::materialized_graph::MaterializedTopologyView::whole_view(
                 topology,
             ),
@@ -151,7 +151,7 @@ mod interpretation_tests {
     #[test]
     fn larger_connected_wire_branch_interprets_as_connected_branch() {
         let topology = connected_wire_branch_view(4);
-        let interpretation = interpret_topology_view(
+        let interpretation = bootstrap_topology_interpretation(
             &crate::derived_topology::materialized_graph::MaterializedTopologyView::whole_view(
                 topology,
             ),
@@ -168,7 +168,7 @@ mod interpretation_tests {
     #[test]
     fn open_shell_with_nmt_edge_fan_interprets_as_open_and_non_manifold() {
         let topology = open_shell_nmt_fan_view(3);
-        let interpretation = interpret_topology_view(
+        let interpretation = bootstrap_topology_interpretation(
             &crate::derived_topology::materialized_graph::MaterializedTopologyView::whole_view(
                 topology,
             ),
@@ -185,7 +185,7 @@ mod interpretation_tests {
     #[test]
     fn larger_open_shell_nmt_edge_fan_interprets_as_open_and_non_manifold() {
         let topology = open_shell_nmt_fan_view(4);
-        let interpretation = interpret_topology_view(
+        let interpretation = bootstrap_topology_interpretation(
             &crate::derived_topology::materialized_graph::MaterializedTopologyView::whole_view(
                 topology,
             ),
@@ -202,7 +202,7 @@ mod interpretation_tests {
     #[test]
     fn single_face_open_sheet_interprets_as_sheet_disk_member() {
         let topology = single_face_sheet_disk_view(5);
-        let interpretation = interpret_topology_view(
+        let interpretation = bootstrap_topology_interpretation(
             &crate::derived_topology::materialized_graph::MaterializedTopologyView::whole_view(
                 topology,
             ),
@@ -225,7 +225,7 @@ mod interpretation_tests {
     #[test]
     fn multi_face_open_shell_interprets_as_sheet_patch_member() {
         let topology = open_sheet_patch_view(3);
-        let interpretation = interpret_topology_view(
+        let interpretation = bootstrap_topology_interpretation(
             &crate::derived_topology::materialized_graph::MaterializedTopologyView::whole_view(
                 topology,
             ),

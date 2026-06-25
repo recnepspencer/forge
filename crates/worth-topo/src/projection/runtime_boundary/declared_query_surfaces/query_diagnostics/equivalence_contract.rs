@@ -5,25 +5,29 @@ use forge_query::facade::{
     ForgeQueryRetainedUpstreamInputs, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
 use schema::facade::QueryAspectPath;
-use serde_json::{json, Value};
+use serde_json::json;
 
-use crate::projection::diagnostic_surfaces::{
-    derived_read_diagnostics::DerivedReadDiagnostics, DerivedEquivalenceContractReport,
+use crate::projection::diagnostic_surfaces::derived_read_diagnostics::DerivedReadDiagnostics;
+#[cfg(test)]
+use crate::projection::diagnostic_surfaces::DerivedEquivalenceContractReport;
+use crate::query_native_runtime_boundary::query_aspect_touch;
+
+#[cfg(test)]
+use super::super::derived_surfaces::decode_query_surface_row;
+use super::super::retained_payload::{
+    decode_single_retained_payload_row, incremental_patch_touches, publish_retained_payload,
+    refresh_patch_touches,
 };
-
-use super::super::derived_surfaces::{decode_query_surface_row, TopologyQuerySurfaceError};
+#[cfg(test)]
+use super::super::TopologyQuerySurfaceError;
 use super::super::QUERY_SURFACE_FAILURE_ROW_KEY;
 
 #[derive(Debug, Clone)]
-pub(crate) struct TopologyEquivalenceContractMaintainer {
-    diagnostics_view_name: String,
-}
+pub(crate) struct TopologyEquivalenceContractMaintainer;
 
 impl TopologyEquivalenceContractMaintainer {
-    pub(crate) fn new(diagnostics_view_name: impl Into<String>) -> Self {
-        Self {
-            diagnostics_view_name: diagnostics_view_name.into(),
-        }
+    pub(crate) fn new() -> Self {
+        Self
     }
 }
 
@@ -41,19 +45,15 @@ impl ForgeQueryDerivedViewMaintainer for TopologyEquivalenceContractMaintainer {
                 view.name(),
             ),
         });
-        materialization.replace_rows([payload.clone()]);
+        let patch_payload = publish_retained_payload(view.name(), materialization, &payload);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
             crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
                 "topology-equivalence-incremental-unexpected",
             ),
             delta.entity_identity().clone(),
-            if view.produced_aspects().is_empty() {
-                delta.aspect_paths().to_vec()
-            } else {
-                view.produced_aspects().to_vec()
-            },
-            payload,
+            incremental_patch_touches(view, delta),
+            patch_payload,
         )
     }
 
@@ -64,42 +64,28 @@ impl ForgeQueryDerivedViewMaintainer for TopologyEquivalenceContractMaintainer {
         upstreams: &ForgeQueryRetainedUpstreamInputs,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> Option<ForgeQueryDerivedPatch> {
-        let payload = match equivalence_contract_from_diagnostics_rows(
-            upstreams
-                .computed_rows(&self.diagnostics_view_name)
-                .unwrap_or(&[]),
-        ) {
+        let mut upstream_rows = upstreams.declared_retained_computed_row_sets(view);
+        let payload = match decode_single_retained_payload_row::<DerivedReadDiagnostics>(
+            upstream_rows.next().unwrap_or_default(),
+            "derived read diagnostics",
+        )
+        .map(|diagnostics| diagnostics.equivalence_contract_report)
+        {
             Ok(report) => serde_json::to_value(report)
                 .expect("derived equivalence contract report must serialize"),
             Err(error) => json!({ QUERY_SURFACE_FAILURE_ROW_KEY: error.to_string() }),
         };
-        materialization.replace_rows([payload.clone()]);
+        let patch_payload = publish_retained_payload(view.name(), materialization, &payload);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
             crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
                 "topology-equivalence-contract",
             ),
-            if view.produced_aspects().is_empty() {
-                view.dependency_aspects().to_vec()
-            } else {
-                view.produced_aspects().to_vec()
-            },
-            payload,
+            refresh_patch_touches(view),
+            patch_payload,
             "topology-derived-equivalence-contract",
         ))
     }
-}
-
-pub(crate) fn topology_equivalence_contract_computed_declaration(
-    surface_name: impl Into<String>,
-) -> Result<ForgeQueryDerivedView, ForgeQueryRuntimeError> {
-    ForgeQueryComputedBuilder::surface(surface_name)
-        .reads([
-            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS.as_str(),
-            QueryAspectPath::DIAGNOSTICS_DECISIONS.as_str(),
-        ])
-        .whole_refresh_fallback()
-        .build()
 }
 
 pub(crate) fn declare_topology_equivalence_contract_surface<T, D>(
@@ -108,16 +94,20 @@ pub(crate) fn declare_topology_equivalence_contract_surface<T, D>(
     diagnostics_view: &ForgeQueryDerivedViewHandle<D>,
 ) -> Result<ForgeQueryDerivedViewHandle<T>, ForgeQueryRuntimeError> {
     let surface_name = surface_name.into();
-    let view = topology_equivalence_contract_computed_declaration(surface_name)?
-        .depends_on_derived_name(diagnostics_view.name());
-    workspace.computed_view(
-        view,
-        TopologyEquivalenceContractMaintainer::new(diagnostics_view.name()),
-    )
+    let view = ForgeQueryComputedBuilder::surface(surface_name)
+        .reads([
+            query_aspect_touch(QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS),
+            query_aspect_touch(QueryAspectPath::DIAGNOSTICS_DECISIONS),
+        ])
+        .depends_on_computed(diagnostics_view)
+        .whole_refresh_fallback()
+        .build()?;
+    workspace.computed_view(view, TopologyEquivalenceContractMaintainer::new())
 }
 
+#[cfg(test)]
 pub(crate) fn equivalence_contract_from_diagnostics_rows(
-    diagnostics_rows: &[Value],
+    diagnostics_rows: &[serde_json::Value],
 ) -> Result<DerivedEquivalenceContractReport, TopologyQuerySurfaceError> {
     let diagnostics: DerivedReadDiagnostics =
         decode_query_surface_row(diagnostics_rows, "derived read diagnostics")?;

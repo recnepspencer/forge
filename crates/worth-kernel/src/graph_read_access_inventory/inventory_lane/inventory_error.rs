@@ -69,14 +69,14 @@ pub struct WorthGraphReadAccessInventoryError {
 }
 
 impl WorthGraphReadAccessInventoryError {
-    pub(super) const fn new(kind: WorthGraphReadAccessInventoryErrorKind) -> Self {
+    pub(crate) const fn new(kind: WorthGraphReadAccessInventoryErrorKind) -> Self {
         Self {
             kind,
             message: None,
         }
     }
 
-    pub(super) fn with_message(
+    pub(crate) fn with_message(
         kind: WorthGraphReadAccessInventoryErrorKind,
         message: impl Into<String>,
     ) -> Self {

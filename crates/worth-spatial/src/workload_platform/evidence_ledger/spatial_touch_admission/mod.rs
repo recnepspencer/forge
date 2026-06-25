@@ -53,9 +53,9 @@ pub use denial::{
     SpatialGeometryEvidenceTouchDenialPrecedence,
 };
 pub use digest::SpatialGeometryEvidenceTouchDigest;
-pub(crate) use input::{
-    SpatialGeometryEvidenceTouchRejectedInput, SpatialGeometryEvidenceTouchRejectedInputKind,
-};
+#[cfg(test)]
+pub(crate) use input::SpatialGeometryEvidenceTouchRejectedInput;
+pub(crate) use input::SpatialGeometryEvidenceTouchRejectedInputKind;
 pub use lookup::{
     deny_query_descriptor_digest_as_spatial_evidence_lookup_authority, SpatialEvidenceLookupDenial,
     SpatialEvidenceLookupDenialKind, SpatialEvidenceLookupExpectation, SpatialEvidenceLookupKey,

@@ -71,7 +71,7 @@ impl ForgeQueryDeclarationFamilyMarker<M6PlanarCloseoutQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.planar_m6_closeout.m7_readiness",
                 "geometry.planar_m6_closeout.premetaboss",

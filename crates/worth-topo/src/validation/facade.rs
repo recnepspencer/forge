@@ -121,7 +121,7 @@ pub fn validate_topology_view(
 ) -> Result<(), TopologyValidationError> {
     let materialized = MaterializedTopologyView::whole_view(view.clone());
     let interpreted =
-        crate::derived_topology::traversal_views::interpret_topology_view(&materialized);
+        crate::derived_topology::traversal_views::bootstrap_topology_interpretation(&materialized);
     TopologyValidator::derived_validation_report(&materialized, &interpreted).map(|_| ())
 }
 

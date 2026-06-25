@@ -181,7 +181,7 @@ pub fn spatial_query_adoption_inventory() -> Vec<WorthSpatialQueryAdoptionInvent
     };
 
     const FACADE_PATH: &str = "worth_spatial::facade::query_adoption";
-    const KERNEL_CALLER: &str = "worth-kernel query adoption inventory report";
+    const DOWNSTREAM_CALLER: &str = "downstream workload query adoption inventory report";
     const QUERY_TRIGGER: &str =
         "Phase 8 Query consumer-kit adoption replaces local query adoption inventory rows.";
     const INVENTORY_CAP: &str =
@@ -197,7 +197,7 @@ pub fn spatial_query_adoption_inventory() -> Vec<WorthSpatialQueryAdoptionInvent
             SpatialEvidence,
             Some(ForgedEvidenceRow),
             "crates/worth-spatial/src/query_adoption/consumer_kit.rs::spatial_query_graph_obligation_adoption_proof",
-            KERNEL_CALLER,
+            DOWNSTREAM_CALLER,
             CollapseToQueryConsumerKitProof,
             WorthSpatial,
             INVENTORY_CAP,
@@ -212,7 +212,7 @@ pub fn spatial_query_adoption_inventory() -> Vec<WorthSpatialQueryAdoptionInvent
             SpatialWitnessTruth,
             Some(TestFixtureTruthPromotion),
             "crates/worth-spatial/src/query_adoption/consumer_kit.rs::spatial_query_graph_obligation_adoption_proof",
-            KERNEL_CALLER,
+            DOWNSTREAM_CALLER,
             CollapseToQueryConsumerKitProof,
             WorthSpatial,
             INVENTORY_CAP,
@@ -227,7 +227,7 @@ pub fn spatial_query_adoption_inventory() -> Vec<WorthSpatialQueryAdoptionInvent
             CertificationProof,
             Some(TestFixtureTruthPromotion),
             SPATIAL_QUERY_ADOPTION_RESIDUE_SURFACE,
-            KERNEL_CALLER,
+            DOWNSTREAM_CALLER,
             CertificationOnlyAction,
             WorthSpatial,
             "Certification contracts cannot construct ordinary spatial evidence authority.",
@@ -242,7 +242,7 @@ pub fn spatial_query_adoption_inventory() -> Vec<WorthSpatialQueryAdoptionInvent
             TestSupportDomain,
             Some(DirectSupportPostureAssumption),
             SPATIAL_QUERY_ADOPTION_RESIDUE_SURFACE,
-            KERNEL_CALLER,
+            DOWNSTREAM_CALLER,
             CappedResidue,
             WorthSpatial,
             "Test support is crate-local residue and cannot satisfy public authority APIs.",
@@ -257,7 +257,7 @@ pub fn spatial_query_adoption_inventory() -> Vec<WorthSpatialQueryAdoptionInvent
             DiagnosticResidue,
             Some(ForgedEvidenceRow),
             SPATIAL_QUERY_ADOPTION_RESIDUE_SURFACE,
-            KERNEL_CALLER,
+            DOWNSTREAM_CALLER,
             CappedResidue,
             WorthSpatial,
             "Diagnostic vocabulary residue is capped to reports and cannot mint authority.",

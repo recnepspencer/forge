@@ -80,7 +80,7 @@ impl ForgeQueryDeclarationFamilyMarker<ProjectionConsumedPlanarFactsQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.planar_projection_consumption.retained_source",
                 "geometry.planar_projection_consumption.structural_identity",

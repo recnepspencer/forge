@@ -7,7 +7,7 @@ error[E0308]: mismatched types
    |     arguments to this function are incorrect
    |
    = note: expected struct `WorkloadEvidenceBooleanReceiptLookupProduct`
-              found struct `Vec<worth_spatial::facade::workload_vocabulary::WorkloadEvidenceRow>`
+              found struct `Vec<WorkloadEvidenceRow>`
 note: function defined here
   --> src/certification/public_facade_contracts/compile_fail/workload_vocabulary/raw_evidence_rows_are_not_boolean_receipt_lookup_product.rs:5:4
    |

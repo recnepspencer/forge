@@ -12,7 +12,7 @@ pub struct WorthGraphReadDeletedSourceReport {
 }
 
 impl WorthGraphReadDeletedSourceReport {
-    pub(super) fn from_rows(
+    pub(crate) fn from_rows(
         rows: &[WorthGraphReadAccessInventoryRow],
     ) -> Result<Self, WorthGraphReadAccessInventoryError> {
         let deleted_source_paths = rows

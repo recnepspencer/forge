@@ -5,6 +5,7 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use super::super::shared::{entity_id_from_query_identity, relation_id_from_query_identity};
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
+use crate::query_native_runtime_boundary::{row_text_at, TopologyNativeQueryRowField};
 use crate::topology_operators::{
     LoopSuccessorKind, TopologyLoopSuccessorRewireMember,
     TopologyRewireLoopSuccessorProgramDeclaration,
@@ -136,11 +137,11 @@ fn relation_target_identity_for_source_kind(
         .iter()
         .find(|row| row_matches_source_kind(row, source_identity, relation_kind))
         .and_then(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("target_identity"))
-                .and_then(|value| value.as_str())
-                .map(str::to_string)
+            row_text_at(
+                row,
+                TopologyNativeQueryRowField::TopologyTargetIdentity.row_segments(),
+            )
+            .map(str::to_string)
         })
         .ok_or_else(|| scale_pressure_span_error("span rewire target identity should resolve"))
 }
@@ -150,17 +151,14 @@ fn row_matches_source_kind(
     source_identity: &str,
     relation_kind: TopologyRelationKind,
 ) -> bool {
-    row.external_row()
-        .get("topology")
-        .and_then(|value| value.get("kind"))
-        .and_then(|value| value.as_str())
-        == Some(relation_kind.kind_name())
-        && row
-            .external_row()
-            .get("topology")
-            .and_then(|value| value.get("source_identity"))
-            .and_then(|value| value.as_str())
-            == Some(source_identity)
+    row_text_at(
+        row,
+        TopologyNativeQueryRowField::TopologyKind.row_segments(),
+    ) == Some(relation_kind.kind_name())
+        && row_text_at(
+            row,
+            TopologyNativeQueryRowField::TopologySourceIdentity.row_segments(),
+        ) == Some(source_identity)
 }
 
 fn scale_pressure_span_error(reason: &str) -> TopologyCertificationError {

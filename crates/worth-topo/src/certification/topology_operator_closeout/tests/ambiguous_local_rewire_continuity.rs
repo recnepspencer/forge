@@ -1,18 +1,16 @@
 use crate::facade::{
-    certify_milestone_three_ambiguous_local_rewire_continuity, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileScenario, ReplayParityStatus, TopologyMutationDerivedFallbackPolicy,
-    TopologyMutationFamily, TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario, ReplayParityStatus,
+    TopologyMutationDerivedFallbackPolicy, TopologyMutationFamily, TopologyMutationNamingOutcome,
+    TopologyMutationRejectionClass,
 };
-use crate::validation::reference_integrity::build_milestone_one_runtime;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
+
+use super::cached_scenario_report;
 
 #[test]
 fn milestone_three_ambiguous_local_rewire_continuity_certifies_accepted_ambiguity_with_witness() {
-    let report = certify_milestone_three_ambiguous_local_rewire_continuity(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.ambiguous_local_rewire",
-    )
-    .expect("milestone three ambiguous local rewire certification should succeed");
+    let report =
+        cached_scenario_report(MilestoneThreeHostileScenario::AmbiguousLocalRewireContinuity);
 
     assert_eq!(
         report.scenario,
@@ -104,16 +102,10 @@ fn milestone_three_ambiguous_local_rewire_continuity_certifies_accepted_ambiguit
 
 #[test]
 fn milestone_three_ambiguous_local_rewire_report_is_deterministic_for_same_seeded_history() {
-    let left = certify_milestone_three_ambiguous_local_rewire_continuity(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.ambiguous_local_rewire.deterministic",
-    )
-    .expect("left ambiguous local rewire certification should succeed");
-    let right = certify_milestone_three_ambiguous_local_rewire_continuity(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.ambiguous_local_rewire.deterministic",
-    )
-    .expect("right ambiguous local rewire certification should succeed");
+    let left =
+        cached_scenario_report(MilestoneThreeHostileScenario::AmbiguousLocalRewireContinuity);
+    let right =
+        cached_scenario_report(MilestoneThreeHostileScenario::AmbiguousLocalRewireContinuity);
 
     assert_eq!(left.outcome_class, right.outcome_class);
     assert_eq!(

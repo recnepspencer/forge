@@ -42,9 +42,6 @@ pub use spatial_touch_admission::{
     SpatialGeometryEvidenceTouchReceiptOnlyPreview, SpatialGeometryEvidenceTouchRequest,
     SPATIAL_TOUCH_BOOLEAN_EVIDENCE_STAGE_KINDS,
 };
-pub(crate) use spatial_touch_admission::{
-    SpatialGeometryEvidenceTouchRejectedInput, SpatialGeometryEvidenceTouchRejectedInputKind,
-};
 pub use stage::{BooleanEvidenceStageKind, WorkloadEvidenceStage};
 pub use stage_counters::WorkloadEvidenceStageCounters;
 pub use stage_index::{

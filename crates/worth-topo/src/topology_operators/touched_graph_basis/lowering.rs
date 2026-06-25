@@ -1,6 +1,7 @@
 use forge_query::facade::{
-    ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchDescriptorDenial,
-    ForgeQueryGraphTouchLifecycleFamily, ForgeQueryMutationFamily,
+    ForgeQueryAspectMutationOperation, ForgeQueryGraphTouchDescriptor,
+    ForgeQueryGraphTouchDescriptorDenial, ForgeQueryGraphTouchLifecycleFamily,
+    ForgeQueryMutationFamily,
 };
 use schema::facade::platform::authority::{EntityReference, TopologyMutation};
 use schema::facade::platform::relations::TopologyRelationKind;
@@ -15,6 +16,7 @@ use crate::topology_operators::{
     TopologySpliceRadialAdjacencyDeclaration,
 };
 
+use super::aspect_touch_lowering::query_aspect_touch;
 use super::basis::TopologyTouchedGraphBasisInput;
 use super::{
     topology_lifecycle_posture_from_mutation_family, topology_touched_aspect_from_schema_aspect,
@@ -126,14 +128,12 @@ pub fn topology_operator_touch_descriptor_from_touched_graph_basis(
         TOPOLOGY_OPERATOR_RELATION_COLLECTION,
         mutation_family_for_lifecycle(basis.lifecycle_posture()),
         Some(lifecycle_family_for_lifecycle(basis.lifecycle_posture())),
-        basis.aspects().iter().map(|aspect| {
-            format!(
-                "{}:{}",
-                mutation_family_for_lifecycle(basis.lifecycle_posture()),
-                aspect.as_str()
-            )
-        }),
-        basis.aspects().iter().map(|aspect| aspect.as_str()),
+        basis
+            .aspects()
+            .iter()
+            .copied()
+            .map(|aspect| ForgeQueryAspectMutationOperation::set(query_aspect_touch(aspect))),
+        basis.aspects().iter().copied().map(query_aspect_touch),
     )
 }
 

@@ -175,7 +175,7 @@ impl WorthGraphReadAccessInventorySeed {
     }
 
     #[cfg(test)]
-    pub(super) fn for_tests() -> Self {
+    pub(crate) fn for_tests() -> Self {
         Self::from_validated_parts(WorthGraphReadAccessInventorySeedParts {
             selected_obligation_count: 2,
             selected_registration_count: 2,
@@ -192,7 +192,7 @@ impl WorthGraphReadAccessInventorySeed {
     }
 
     #[cfg(test)]
-    pub(super) fn from_parts_for_tests(
+    pub(crate) fn from_parts_for_tests(
         parts: WorthGraphReadAccessInventorySeedParts,
     ) -> Result<Self, WorthGraphReadAccessInventoryError> {
         Self::from_validated_parts(parts)
@@ -200,7 +200,7 @@ impl WorthGraphReadAccessInventorySeed {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct WorthGraphReadAccessInventorySeedParts {
+pub(crate) struct WorthGraphReadAccessInventorySeedParts {
     pub selected_obligation_count: usize,
     pub selected_registration_count: usize,
     pub execution_row_count: usize,

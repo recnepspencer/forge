@@ -16,4 +16,4 @@ pub use follow_on_work::WorthGraphReadAccessFollowOnWork;
 pub use out_of_scope_reason::WorthGraphReadAccessOutOfScopeReason;
 pub use owner::WorthGraphReadAccessOwner;
 pub use row::WorthGraphReadAccessInventoryRow;
-pub(in crate::graph_read_access_inventory::inventory_lane) use row::WorthGraphReadAccessInventoryRowBuilder;
+pub(crate) use row::WorthGraphReadAccessInventoryRowBuilder;

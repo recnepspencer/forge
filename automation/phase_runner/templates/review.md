@@ -8,7 +8,8 @@ Phase: {phase.id} - {phase.title}
 Phase scope:
 {phase.scope}
 
-Acceptance evidence (re-run these; do not trust the prior turn's word):
+Acceptance evidence (re-run focused proof for this phase; broad closeout suites
+are opt-in only when explicitly named):
 {phase.acceptance}
 
 Laws and context to hold as the standard:

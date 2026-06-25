@@ -17,6 +17,22 @@ pub(crate) struct TopologyMutationApplicationEvidence {
 
 #[cfg_attr(not(test), allow(dead_code))]
 impl TopologyMutationApplicationEvidence {
+    #[cfg(test)]
+    pub(crate) fn from_cutover_test_parts(
+        graph_obligation_envelope_digest: Option<String>,
+        graph_obligation_dispatch_digest: Option<String>,
+        graph_obligation_selected_count: usize,
+    ) -> Self {
+        Self {
+            backend_verified_update_count: 0,
+            backend_verified_delete_count: 0,
+            graph_obligation_envelope_digest,
+            graph_obligation_dispatch_digest,
+            graph_obligation_execution_point: None,
+            graph_obligation_selected_count,
+        }
+    }
+
     pub(crate) fn from_inspection_and_graph_obligation_projection(
         inspection: &ForgeQueryBatchWriteReceiptInspection,
         graph_obligation_projection: Option<

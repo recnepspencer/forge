@@ -110,10 +110,14 @@ fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
         sorted_naming_attachments(&certified_runtime_report.naming_attachment_report)
     );
     assert!(persistent_name_rows.iter().all(|row| {
-        row.external_row()
-            .get("lineage")
-            .and_then(|value| value.get("provenance"))
-            .is_some()
+        row.scalar_value_at(
+            &crate::query_native_runtime_boundary::native_field_path([
+                "lineage",
+                "provenance_partition",
+            ])
+            .expect("lineage provenance partition field path should build"),
+        )
+        .is_some()
     }));
     assert_eq!(
         snapshot.materialized().topology(),

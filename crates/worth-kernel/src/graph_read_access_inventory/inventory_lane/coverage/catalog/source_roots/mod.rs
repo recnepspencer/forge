@@ -5,7 +5,7 @@ mod topology;
 
 use super::WorthGraphReadAccessCoveredSource;
 
-pub(super) const COVERED_GRAPH_READ_SOURCES: &[WorthGraphReadAccessCoveredSource] = &[
+pub(crate) const COVERED_GRAPH_READ_SOURCES: &[WorthGraphReadAccessCoveredSource] = &[
     topology::TOPOLOGY_READ_DOMAIN,
     topology::TOPOLOGY_READ_EXECUTION,
     topology::TOPOLOGY_READ_PROOF_SUPPORT,

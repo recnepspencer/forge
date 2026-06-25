@@ -1,12 +1,12 @@
 use forge_query::facade::consumer_kit::ForgeQueryGraphReadBypassClass;
 
-pub(in crate::graph_read_access_inventory::inventory_lane) fn graph_read_bypass_residue_cap_inventory(
-) -> &'static [WorthGraphReadBypassResidueCap] {
+pub(crate) fn graph_read_bypass_residue_cap_inventory() -> &'static [WorthGraphReadBypassResidueCap]
+{
     GRAPH_READ_BYPASS_RESIDUE_CAPS
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::graph_read_access_inventory::inventory_lane) struct WorthGraphReadBypassResidueCap {
+pub(crate) struct WorthGraphReadBypassResidueCap {
     class: ForgeQueryGraphReadBypassClass,
     owner: &'static str,
     introduced_in: &'static str,

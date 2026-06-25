@@ -7,7 +7,7 @@ use forge_query::facade::consumer_kit::{
     ForgeQueryGraphObligationResidueRow,
 };
 
-use crate::construction::request::PRIMITIVE_CONSTRUCTION_FAMILIES;
+use crate::construction::family::PRIMITIVE_CONSTRUCTION_FAMILIES;
 
 pub(crate) const PHASE_EIGHTEEN_SPEC_PRIMITIVE_FAMILY_COUNT: usize = 7;
 const PRIMITIVE_RESIDUE_INTRODUCED_IN: &str = "forge-query-9.9-phase-18";

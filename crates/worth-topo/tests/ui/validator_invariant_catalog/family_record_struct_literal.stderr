@@ -1,0 +1,33 @@
+warning: unreachable expression
+ --> tests/ui/validator_invariant_catalog/family_record_struct_literal.rs:6:32
+  |
+5 |         identity: panic!("private identity unavailable"),
+  |                   -------------------------------------- any code following this expression is unreachable
+6 |         query_obligation_kind: panic!("private Query kind unavailable"),
+  |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `identity`, `query_obligation_kind`, `touched_applicability`, `required_access_posture`, `enforcement_phase`, `witness_posture`, `diagnostic_projection`, `query_support_posture` and `family_digest` of struct `WorthTopologyValidatorFamilyRecord` are private
+  --> tests/ui/validator_invariant_catalog/family_record_struct_literal.rs:5:9
+   |
+ 4 |     let _ = WorthTopologyValidatorFamilyRecord {
+   |             ---------------------------------- in this type
+ 5 |         identity: panic!("private identity unavailable"),
+   |         ^^^^^^^^ private field
+ 6 |         query_obligation_kind: panic!("private Query kind unavailable"),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         touched_applicability: panic!("private applicability unavailable"),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         required_access_posture: panic!("private access posture unavailable"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         enforcement_phase: panic!("private enforcement phase unavailable"),
+   |         ^^^^^^^^^^^^^^^^^ private field
+10 |         witness_posture: panic!("private witness posture unavailable"),
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         diagnostic_projection: panic!("private diagnostic projection unavailable"),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         query_support_posture: panic!("private support posture unavailable"),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         family_digest: String::new(),
+   |         ^^^^^^^^^^^^^ private field

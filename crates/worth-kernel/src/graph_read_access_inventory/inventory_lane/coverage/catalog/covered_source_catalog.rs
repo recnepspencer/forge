@@ -6,7 +6,7 @@ use super::super::super::inventory_error::{
 use super::source_roots::COVERED_GRAPH_READ_SOURCES;
 use super::WorthGraphReadAccessCoveredSource;
 
-pub(super) fn covered_graph_read_sources(
+pub(crate) fn covered_graph_read_sources(
 ) -> Result<&'static [WorthGraphReadAccessCoveredSource], WorthGraphReadAccessInventoryError> {
     validate_catalog(COVERED_GRAPH_READ_SOURCES)?;
     Ok(COVERED_GRAPH_READ_SOURCES)

@@ -3,7 +3,7 @@ use crate::graph_read_access_inventory::inventory_lane::{
     WorthGraphReadAccessCostPosture, WorthGraphReadAccessOwner,
 };
 
-pub(super) const KERNEL_GRAPH_READ_ADOPTION: WorthGraphReadAccessCoveredSource =
+pub(crate) const KERNEL_GRAPH_READ_ADOPTION: WorthGraphReadAccessCoveredSource =
     WorthGraphReadAccessCoveredSource::deletion_target(
         "crates/worth-kernel/src/query_adoption/graph_read_access",
         WorthGraphReadAccessOwner::WorthKernel,
@@ -11,7 +11,7 @@ pub(super) const KERNEL_GRAPH_READ_ADOPTION: WorthGraphReadAccessCoveredSource =
         WorthGraphReadAccessCostPosture::FabricatedReceiptOrSupportRow,
     );
 
-pub(super) const KERNEL_WORKLOAD_COMPOSITION: WorthGraphReadAccessCoveredSource =
+pub(crate) const KERNEL_WORKLOAD_COMPOSITION: WorthGraphReadAccessCoveredSource =
     WorthGraphReadAccessCoveredSource::declaration_candidate(
         "crates/worth-kernel/src/workload_composition",
         WorthGraphReadAccessOwner::WorthKernel,
@@ -19,7 +19,7 @@ pub(super) const KERNEL_WORKLOAD_COMPOSITION: WorthGraphReadAccessCoveredSource 
         WorthGraphReadAccessCostPosture::BoundedTouchedRegion,
     );
 
-pub(super) const KERNEL_BINDING_ROOT: WorthGraphReadAccessCoveredSource =
+pub(crate) const KERNEL_BINDING_ROOT: WorthGraphReadAccessCoveredSource =
     WorthGraphReadAccessCoveredSource::declaration_candidate(
         "crates/worth-kernel/src/binding",
         WorthGraphReadAccessOwner::WorthKernel,

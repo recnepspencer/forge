@@ -28,8 +28,10 @@ impl TopologyReadRequestFamily {
         match self {
             Self::HalfEdgeSharedVertexNeighborhood => "half_edge_shared_vertex_neighborhood",
             Self::HalfEdgeRadialNeighborhood => "half_edge_radial_neighborhood",
+            Self::ShellBoundaryNeighborhood => "shell_boundary_neighborhood",
             Self::LoopCycleNeighborhood => "loop_cycle_neighborhood",
             Self::LocalRewireNeighborhood => "local_rewire_neighborhood",
+            Self::WireNeighborhood => "wire_neighborhood",
         }
     }
 }

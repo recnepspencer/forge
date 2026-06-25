@@ -41,14 +41,17 @@ struct PrimitiveConstructionGraphObligationSelectorPrecisionCase {
 }
 
 impl PrimitiveConstructionGraphObligationSelectorPrecisionRow {
+    #[cfg(test)]
     pub(crate) fn label(&self) -> &'static str {
         self.label
     }
 
+    #[cfg(test)]
     pub(crate) fn descriptor_digest(&self) -> &str {
         &self.descriptor_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn expected_selected_count(&self) -> usize {
         self.expected_selected_count
     }
@@ -57,10 +60,12 @@ impl PrimitiveConstructionGraphObligationSelectorPrecisionRow {
         self.selected_count
     }
 
+    #[cfg(test)]
     pub(crate) fn touch_lookup_key_count(&self) -> usize {
         self.touch_lookup_key_count
     }
 
+    #[cfg(test)]
     pub(crate) fn operating_world_lookup_key_count(&self) -> usize {
         self.operating_world_lookup_key_count
     }
@@ -69,14 +74,17 @@ impl PrimitiveConstructionGraphObligationSelectorPrecisionRow {
         self.attempted_bucket_lookup_count
     }
 
+    #[cfg(test)]
     pub(crate) fn matched_bucket_count(&self) -> usize {
         self.matched_bucket_count
     }
 
+    #[cfg(test)]
     pub(crate) fn candidate_registration_count(&self) -> usize {
         self.candidate_registration_count
     }
 
+    #[cfg(test)]
     pub(crate) fn deduplicated_candidate_count(&self) -> usize {
         self.deduplicated_candidate_count
     }
@@ -85,6 +93,7 @@ impl PrimitiveConstructionGraphObligationSelectorPrecisionRow {
         self.denied_row_count
     }
 
+    #[cfg(test)]
     pub(crate) fn residue_row_count(&self) -> usize {
         self.residue_row_count
     }
@@ -93,14 +102,17 @@ impl PrimitiveConstructionGraphObligationSelectorPrecisionRow {
         self.registration_full_scan_count
     }
 
+    #[cfg(test)]
     pub(crate) fn precision_posture(&self) -> QuerySelectorPrecisionPosture {
         self.precision_posture
     }
 
+    #[cfg(test)]
     pub(crate) fn precision_report_digest(&self) -> &str {
         &self.precision_report_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn precision_counters_digest(&self) -> &str {
         &self.precision_counters_digest
     }
@@ -163,8 +175,8 @@ fn selector_precision_descriptors() -> Result<
                 "unrelated.kernel.collection",
                 ForgeQueryMutationFamily::Insert,
                 None,
-                ["insert:unrelated"],
-                ["unrelated.path"],
+                crate::query_authoring_helpers::aspect_mutation_operations(["insert:unrelated"]),
+                crate::query_authoring_helpers::aspect_touches(["unrelated.path"]),
             )?,
         },
         PrimitiveConstructionGraphObligationSelectorPrecisionCase {
@@ -174,8 +186,12 @@ fn selector_precision_descriptors() -> Result<
                 TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
                 ForgeQueryMutationFamily::Update,
                 None,
-                [PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_OPERATION],
-                [PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_PATH],
+                crate::query_authoring_helpers::aspect_mutation_operations([
+                    PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_OPERATION,
+                ]),
+                crate::query_authoring_helpers::aspect_touches([
+                    PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_PATH,
+                ]),
             )?,
         },
         PrimitiveConstructionGraphObligationSelectorPrecisionCase {
@@ -185,8 +201,12 @@ fn selector_precision_descriptors() -> Result<
                 TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
                 ForgeQueryMutationFamily::Insert,
                 None,
-                ["insert:primitive-construction.unrelated"],
-                [PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_PATH],
+                crate::query_authoring_helpers::aspect_mutation_operations([
+                    "insert:primitive-construction.unrelated",
+                ]),
+                crate::query_authoring_helpers::aspect_touches([
+                    PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_PATH,
+                ]),
             )?,
         },
         PrimitiveConstructionGraphObligationSelectorPrecisionCase {
@@ -196,8 +216,12 @@ fn selector_precision_descriptors() -> Result<
                 TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
                 ForgeQueryMutationFamily::Insert,
                 None,
-                [PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_OPERATION],
-                ["primitive-construction.unrelated"],
+                crate::query_authoring_helpers::aspect_mutation_operations([
+                    PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_OPERATION,
+                ]),
+                crate::query_authoring_helpers::aspect_touches([
+                    "primitive-construction.unrelated",
+                ]),
             )?,
         },
         PrimitiveConstructionGraphObligationSelectorPrecisionCase {

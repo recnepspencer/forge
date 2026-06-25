@@ -71,7 +71,7 @@ impl ForgeQueryDeclarationFamilyMarker<PrimitiveBindingQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &["binding.kind", "binding.site", "binding.geometry"],
             &["binding.topology_contract"],
             &[],
@@ -156,7 +156,7 @@ impl ForgeQueryDeclarationFamilyMarker<PrimitiveAnchorBindingQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &["binding.kind", "binding.site", "binding.geometry"],
             &["binding.topology_contract"],
             &[

@@ -1,0 +1,13 @@
+error[E0451]: fields `selected_obligation_digest`, `loop_rows`, `half_edge_rows` and `input_digest` of struct `WorthTopologyLoopWiringWitnessInput` are private
+ --> tests/ui/validator_invariant_catalog/selected_validator_loop_wiring_witness_input_struct_literal.rs:5:9
+  |
+4 |     let _ = WorthTopologyLoopWiringWitnessInput {
+  |             ----------------------------------- in this type
+5 |         selected_obligation_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+6 |         loop_rows: Vec::new(),
+  |         ^^^^^^^^^ private field
+7 |         half_edge_rows: Vec::new(),
+  |         ^^^^^^^^^^^^^^ private field
+8 |         input_digest: String::new(),
+  |         ^^^^^^^^^^^^ private field

@@ -32,7 +32,7 @@ pub struct QueryGraphReadAccessCapabilityRow {
 }
 
 impl QueryGraphReadAccessCapabilityRow {
-    pub(super) const fn from_query_owned_surface(
+    pub(crate) const fn from_query_owned_surface(
         kind: QueryGraphReadAccessCapabilityKind,
         query_label: &'static str,
         surface: QueryGraphReadAccessCapabilitySurface,

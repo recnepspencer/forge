@@ -1,0 +1,31 @@
+error[E0451]: fields `source_path`, `surface`, `product_category`, `authority_kind`, `disposition`, `owner`, `blocker`, `removal_trigger`, `replacement_phase`, `ordinary_path`, `certification_or_bootstrap_only`, `cap` and `row_digest` of struct `DerivedInvalidationAuthorityInventoryRow` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_inventory_row_not_forgeable.rs:9:9
+   |
+ 8 |     let _ = DerivedInvalidationAuthorityInventoryRow {
+   |             ---------------------------------------- in this type
+ 9 |         source_path: "crates/worth-topo/src/derived_topology/materialized_graph/mod.rs",
+   |         ^^^^^^^^^^^ private field
+10 |         surface: "TopologyMaterializer::materialize_from_truth",
+   |         ^^^^^^^ private field
+11 |         product_category: DerivedInvalidationProductCategory::MaterializedGraph,
+   |         ^^^^^^^^^^^^^^^^ private field
+12 |         authority_kind: DerivedInvalidationOldAuthorityKind::WholeViewMaterialization,
+   |         ^^^^^^^^^^^^^^ private field
+13 |         disposition: DerivedInvalidationAuthorityDisposition::Migrate,
+   |         ^^^^^^^^^^^ private field
+14 |         owner: DerivedInvalidationAuthorityOwner::WorthTopoDerivedTopology,
+   |         ^^^^^ private field
+15 |         blocker: "blocked",
+   |         ^^^^^^^ private field
+16 |         removal_trigger: "trigger",
+   |         ^^^^^^^^^^^^^^^ private field
+17 |         replacement_phase: DerivedInvalidationReplacementPhase::PhaseSixProductMigrationSweep,
+   |         ^^^^^^^^^^^^^^^^^ private field
+18 |         ordinary_path: true,
+   |         ^^^^^^^^^^^^^ private field
+19 |         certification_or_bootstrap_only: false,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         cap: None,
+   |         ^^^ private field
+21 |         row_digest: String::new(),
+   |         ^^^^^^^^^^ private field

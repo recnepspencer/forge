@@ -1,14 +1,14 @@
 use forge_query::facade::{
-    ForgeQueryAspectValue, ForgeQueryExistingTruthAssertionDenial,
+    ForgeQueryAdmittedAspectValue, ForgeQueryEntity, ForgeQueryExistingTruthAssertionDenial,
     ForgeQueryExistingTruthAssertionDenialKind, ForgeQueryExistingTruthProbeDenial,
-    ForgeQueryExistingTruthProbeDenialKind, ForgeQueryExistingTruthProbeRequest,
-    ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeExistingTruthVerificationAdapter,
-    ForgeQueryVerifiedExistingTruthAssertion,
+    ForgeQueryExistingTruthProbeDenialKind, ForgeQueryExistingTruthProbeField,
+    ForgeQueryExistingTruthProbeRequest, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryRuntimeExistingTruthVerificationAdapter,
 };
-use serde_json::Value;
 
 use super::binding::TopologyRuntimeBinding;
 use super::query_rows::{topology_entity_rows, topology_relation_rows};
+use crate::query_native_runtime_boundary::native_row_value_for_touch;
 
 pub(crate) struct TopologyExistingTruthVerificationAdapter {
     binding: TopologyRuntimeBinding,
@@ -19,16 +19,20 @@ impl TopologyExistingTruthVerificationAdapter {
         Self { binding }
     }
 
-    fn target_row(&self, binding: &ForgeQueryExistingTruthTargetBinding) -> Option<Value> {
-        match binding.target_collection() {
+    fn target_row(
+        &self,
+        binding: &ForgeQueryExistingTruthTargetBinding,
+    ) -> Option<ForgeQueryEntity> {
+        match binding
+            .target_collection_identity()
+            .map(|collection| collection.as_str())
+        {
             Some("TopologyEntity") => topology_entity_rows(&self.binding)
                 .into_iter()
-                .find(|row| row.identity() == binding.resolved_target_identity())
-                .map(|row| row.into_external_row()),
+                .find(|row| row.identity() == binding.resolved_target_identity()),
             Some("TopologyRelation") => topology_relation_rows(&self.binding)
                 .into_iter()
-                .find(|row| row.identity() == binding.resolved_target_identity())
-                .map(|row| row.into_external_row()),
+                .find(|row| row.identity() == binding.resolved_target_identity()),
             _ => None,
         }
     }
@@ -40,10 +44,9 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter
     fn verify_existing_truth_assertion(
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
-        aspects: &[ForgeQueryAspectValue],
-    ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>
-    {
-        let Some(payload) = self.target_row(binding) else {
+        aspects: &[ForgeQueryAdmittedAspectValue],
+    ) -> Result<(), ForgeQueryExistingTruthAssertionDenial> {
+        let Some(row) = self.target_row(binding) else {
             return Err(ForgeQueryExistingTruthAssertionDenial::new(
                 binding,
                 ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
@@ -54,59 +57,56 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter
             ));
         };
         for aspect in aspects {
+            let aspect_touch = aspect.aspect_touch();
             if aspect.clears_existing_value() {
                 return Err(ForgeQueryExistingTruthAssertionDenial::new(
                     binding,
                     ForgeQueryExistingTruthAssertionDenialKind::ClearAssertionUnsupported,
-                    Some(aspect.aspect_path().to_string()),
+                    Some(aspect_touch),
                     None,
                     None,
                     "topology bridge-backed verification does not admit clear assertions",
                 ));
             }
-            let Some(found) = nested_value(&payload, aspect.aspect_path()) else {
+            let Some(expected) = aspect.foundational_value() else {
                 return Err(ForgeQueryExistingTruthAssertionDenial::new(
                     binding,
                     ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
-                    Some(aspect.aspect_path().to_string()),
-                    Some(aspect.value().to_string()),
+                    Some(aspect_touch),
+                    None,
+                    None,
+                    "topology authoritative truth verification requires a native set value",
+                ));
+            };
+            let Some(found) = native_row_value_for_touch(&row, &aspect_touch) else {
+                return Err(ForgeQueryExistingTruthAssertionDenial::new(
+                    binding,
+                    ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
+                    Some(aspect_touch),
+                    Some(aspect_value_digest_for_boundary(expected)),
                     None,
                     "topology authoritative truth did not contain the asserted aspect",
                 ));
             };
-            if found != aspect.value() {
+            if found != expected {
                 return Err(ForgeQueryExistingTruthAssertionDenial::new(
                     binding,
                     ForgeQueryExistingTruthAssertionDenialKind::AssertedValueMismatch,
-                    Some(aspect.aspect_path().to_string()),
-                    Some(aspect.value().to_string()),
-                    Some(found.to_string()),
+                    Some(aspect_touch),
+                    Some(aspect_value_digest_for_boundary(expected)),
+                    Some(aspect_value_digest_for_boundary(found)),
                     "topology authoritative truth did not match the asserted value",
                 ));
             }
         }
-        ForgeQueryVerifiedExistingTruthAssertion::from_snapshot_identity(
-            binding,
-            aspects,
-            &self.binding.current_snapshot_identity(),
-        )
-        .map_err(|error| {
-            ForgeQueryExistingTruthAssertionDenial::new(
-                binding,
-                ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
-                None,
-                None,
-                None,
-                format!("topology authoritative truth verification failed: {error}"),
-            )
-        })
+        Ok(())
     }
 
     fn probe_existing_truth(
         &self,
         request: &ForgeQueryExistingTruthProbeRequest,
-    ) -> Result<Vec<(String, Value)>, ForgeQueryExistingTruthProbeDenial> {
-        let Some(payload) = self.target_row(request.binding()) else {
+    ) -> Result<Vec<ForgeQueryExistingTruthProbeField>, ForgeQueryExistingTruthProbeDenial> {
+        let Some(row) = self.target_row(request.binding()) else {
             return Err(ForgeQueryExistingTruthProbeDenial::new(
                 request.binding(),
                 ForgeQueryExistingTruthProbeDenialKind::ResolvedTargetUnavailable,
@@ -114,26 +114,27 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter
                 "topology authoritative truth did not resolve the bound target",
             ));
         };
-        let mut fields = Vec::with_capacity(request.aspect_paths().len());
-        for aspect_path in request.aspect_paths() {
-            let Some(value) = nested_value(&payload, aspect_path).cloned() else {
+        let mut fields = Vec::with_capacity(request.aspect_touches().len());
+        for aspect_touch in request.aspect_touches() {
+            let Some(value) = native_row_value_for_touch(&row, aspect_touch).cloned() else {
                 return Err(ForgeQueryExistingTruthProbeDenial::new(
                     request.binding(),
                     ForgeQueryExistingTruthProbeDenialKind::MissingProbedAspect,
-                    Some(aspect_path.to_string()),
+                    Some(aspect_touch.clone()),
                     "topology authoritative truth did not contain the probed aspect",
                 ));
             };
-            fields.push((aspect_path.to_string(), value));
+            fields.push(
+                ForgeQueryExistingTruthProbeField::from_admitted_aspect_touch(
+                    aspect_touch.clone(),
+                    value,
+                ),
+            );
         }
         Ok(fields)
     }
 }
 
-fn nested_value<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
-    let mut current = value;
-    for segment in path.split('.') {
-        current = current.get(segment)?;
-    }
-    Some(current)
+fn aspect_value_digest_for_boundary(value: &forge_foundational::facade::AspectValue) -> String {
+    format!("{value:?}")
 }

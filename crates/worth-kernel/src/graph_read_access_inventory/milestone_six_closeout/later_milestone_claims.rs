@@ -4,7 +4,7 @@ use super::errors::{
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) struct WorthGraphReadAccessLaterMilestoneClaims {
+pub(crate) struct WorthGraphReadAccessLaterMilestoneClaims {
     query_declarations_complete: bool,
     admitted_access_plans_complete: bool,
     graph_read_receipts_complete: bool,
@@ -17,7 +17,7 @@ pub(super) struct WorthGraphReadAccessLaterMilestoneClaims {
 }
 
 impl WorthGraphReadAccessLaterMilestoneClaims {
-    pub(super) const fn absent() -> Self {
+    pub(crate) const fn absent() -> Self {
         Self {
             query_declarations_complete: false,
             admitted_access_plans_complete: false,
@@ -32,14 +32,14 @@ impl WorthGraphReadAccessLaterMilestoneClaims {
     }
 
     #[cfg(test)]
-    pub(super) const fn with_query_declarations_complete() -> Self {
+    pub(crate) const fn with_query_declarations_complete() -> Self {
         Self {
             query_declarations_complete: true,
             ..Self::absent()
         }
     }
 
-    pub(super) const fn rejects_later_milestone_completion(&self) -> bool {
+    pub(crate) const fn rejects_later_milestone_completion(&self) -> bool {
         self.query_declarations_complete
             || self.admitted_access_plans_complete
             || self.graph_read_receipts_complete
@@ -52,7 +52,7 @@ impl WorthGraphReadAccessLaterMilestoneClaims {
     }
 }
 
-pub(super) fn reject_later_milestone_claims(
+pub(crate) fn reject_later_milestone_claims(
     disposition: &WorthGraphReadAccessPhaseSixCloseout,
     claims: WorthGraphReadAccessLaterMilestoneClaims,
 ) -> Result<(), WorthGraphReadAccessMilestoneSixError> {

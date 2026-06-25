@@ -291,15 +291,34 @@ fn relation_target(
         .map(ForgeQueryReadMaterializedRowIdentity::from_label)
 }
 
+pub fn forge_query_materialized_relation_field_key(relation: &RelationName) -> FieldKey {
+    let encoded = relation
+        .as_str()
+        .chars()
+        .map(materialized_relation_slot_fragment)
+        .collect::<String>();
+    FieldKey::new(encoded).expect("encoded relation slot must be a foundational field key")
+}
+
 fn relation_target_field_path(relation: &RelationName) -> CanonicalFieldPath {
-    CanonicalFieldPath::new(
-        std::iter::once("relations")
-            .chain(relation.as_str().split('.'))
-            .map(FieldKey::new)
-            .collect::<Option<Vec<_>>>()
-            .expect("relation target path segments must be foundational field keys"),
-    )
+    CanonicalFieldPath::new([
+        FieldKey::new("relations").expect("relations slot must be foundational"),
+        forge_query_materialized_relation_field_key(relation),
+    ])
     .expect("relation target field path must not be empty")
+}
+
+fn materialized_relation_slot_fragment(value: char) -> String {
+    match value {
+        'a'..='z' | 'A'..='Z' | '0'..='9' | '_' => value.to_string(),
+        '.' => "_dot_".to_string(),
+        '-' => "_dash_".to_string(),
+        ':' => "_colon_".to_string(),
+        '/' => "_slash_".to_string(),
+        '\\' => "_backslash_".to_string(),
+        value if value.is_whitespace() => "_space_".to_string(),
+        value => format!("_u{:x}_", value as u32),
+    }
 }
 
 fn row_index(

@@ -17,5 +17,6 @@ pub(crate) use covered_surface::PrimitiveConstructionQueryAccessSurface;
 pub(crate) use planned_access_execution::execute_planned_construction_query_access;
 pub(crate) use planned_phase_chain_check::plan_phase_chain_topology_check;
 pub(crate) use planned_topology_birth::{
-    execute_planned_topology_birth, plan_topology_birth, plan_topology_birth_broad_scan,
+    execute_planned_topology_birth, execute_topology_birth_query_access_for_request,
+    plan_topology_birth, plan_topology_birth_broad_scan,
 };

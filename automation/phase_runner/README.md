@@ -13,6 +13,21 @@ python automation/phase_runner/runner.py `
   --validate
 ```
 
+## Fast Verification
+
+Use the fast Worth lane during implementation and review turns:
+
+```powershell
+.\scripts\ci\check_worth_fast_iteration.ps1
+```
+
+This lane compiles the `forge-query` and `worth-spatial` test surfaces, runs
+their fast unit gates, and runs the `worth-spatial` compile-fail boundary target.
+It intentionally does not execute whole-crate suites such as
+`cargo test -p forge-query --tests`, `cargo test -p worth-spatial --tests`, or
+the `worth-spatial` `public_api_contract` umbrella. Those are closeout lanes and
+must be requested explicitly by a phase acceptance item.
+
 ## Dry Run
 
 ```powershell

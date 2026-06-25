@@ -1,4 +1,8 @@
 use super::*;
+use crate::query_native_runtime_boundary::{
+    query_entity_id_from_identity, query_relation_id_from_identity, row_text_at,
+    TopologyNativeQueryRowField,
+};
 
 pub(super) fn build_topology_localization_report_from_query_rows(
     entity_rows: &[ForgeQueryEntity],
@@ -8,16 +12,13 @@ pub(super) fn build_topology_localization_report_from_query_rows(
         .iter()
         .map(|row| {
             Ok(TopologyLocalizationEntityRow {
-                entity_id: serde_json::from_value(required_payload_value(
-                    &row.external_row(),
-                    "lineage.provenance",
-                )?)
-                .map_err(|error| {
+                entity_id: query_entity_id_from_identity(row.identity()).map_err(|error| {
                     MilestoneOneCertificationError::Query(format!(
-                        "query certification entity lineage provenance failed to decode: {error}"
+                        "query certification entity identity failed to decode: {error}"
                     ))
                 })?,
-                kind_name: required_payload_text(&row.external_row(), "topology.kind")?.to_string(),
+                kind_name: required_row_text(row, TopologyNativeQueryRowField::TopologyKind)?
+                    .to_string(),
             })
         })
         .collect::<Result<Vec<_>, MilestoneOneCertificationError>>()?;
@@ -25,16 +26,13 @@ pub(super) fn build_topology_localization_report_from_query_rows(
         .iter()
         .map(|row| {
             Ok(TopologyLocalizationRelationRow {
-                relation_id: serde_json::from_value(required_payload_value(
-                    &row.external_row(),
-                    "lineage.provenance",
-                )?)
-                .map_err(|error| {
+                relation_id: query_relation_id_from_identity(row.identity()).map_err(|error| {
                     MilestoneOneCertificationError::Query(format!(
-                        "query certification relation lineage provenance failed to decode: {error}"
+                        "query certification relation identity failed to decode: {error}"
                     ))
                 })?,
-                kind_name: required_payload_text(&row.external_row(), "topology.kind")?.to_string(),
+                kind_name: required_row_text(row, TopologyNativeQueryRowField::TopologyKind)?
+                    .to_string(),
             })
         })
         .collect::<Result<Vec<_>, MilestoneOneCertificationError>>()?;
@@ -45,36 +43,15 @@ pub(super) fn build_topology_localization_report_from_query_rows(
     })
 }
 
-fn required_payload_value(
-    payload: &serde_json::Value,
-    dotted_path: &str,
-) -> Result<serde_json::Value, MilestoneOneCertificationError> {
-    let mut current = payload;
-    for segment in dotted_path.split('.') {
-        current = current.get(segment).ok_or_else(|| {
-            MilestoneOneCertificationError::Query(format!(
-                "query certification row is missing required field `{dotted_path}`"
-            ))
-        })?;
-    }
-    Ok(current.clone())
-}
-
-fn required_payload_text<'a>(
-    payload: &'a serde_json::Value,
-    dotted_path: &str,
-) -> Result<&'a str, MilestoneOneCertificationError> {
-    let mut current = payload;
-    for segment in dotted_path.split('.') {
-        current = current.get(segment).ok_or_else(|| {
-            MilestoneOneCertificationError::Query(format!(
-                "query certification row is missing required field `{dotted_path}`"
-            ))
-        })?;
-    }
-    current.as_str().ok_or_else(|| {
+fn required_row_text(
+    row: &ForgeQueryEntity,
+    field: TopologyNativeQueryRowField,
+) -> Result<&str, MilestoneOneCertificationError> {
+    row_text_at(row, field.row_segments()).ok_or_else(|| {
         MilestoneOneCertificationError::Query(format!(
-            "query certification field `{dotted_path}` must decode as text"
+            "query certification row is missing required text field `{}.{}`",
+            field.row_segments()[0],
+            field.row_segments()[1]
         ))
     })
 }

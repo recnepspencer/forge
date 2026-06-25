@@ -17,7 +17,7 @@ use crate::projection::runtime_boundary::bridge::{
     build_milestone_one_bridge, milestone_one_bridge_aspect_registrations,
     milestone_one_bridge_mapping_registrations,
 };
-use crate::projection::runtime_boundary::query_support::bridge_identity_projection;
+use crate::query_native_runtime_boundary::bridge_identity_projection;
 use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 
 #[derive(Clone)]

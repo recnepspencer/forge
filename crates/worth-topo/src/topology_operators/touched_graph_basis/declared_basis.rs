@@ -25,6 +25,14 @@ pub struct TopologyDeclaredTouchedGraphBasis<I> {
 }
 
 impl TopologyDeclaredTouchedGraphBasisProof {
+    #[cfg(test)]
+    pub(crate) fn from_basis_for_tests(
+        semantic_family_key: &'static str,
+        basis: TopologyTouchedGraphBasis,
+    ) -> Result<Self, ForgeQueryGraphTouchDescriptorDenial> {
+        Self::from_basis(semantic_family_key, basis)
+    }
+
     pub(crate) fn from_basis(
         semantic_family_key: &'static str,
         basis: TopologyTouchedGraphBasis,

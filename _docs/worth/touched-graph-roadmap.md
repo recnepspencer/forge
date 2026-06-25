@@ -182,6 +182,7 @@ The intended chain is:
 `Touched Graph Milestone 7` ->
 `Touched Graph Milestone 8` ->
 `Touched Graph Milestone 9` ->
+`Touched Graph Milestone 9.1` ->
 `Touched Graph Milestone 10` ->
 `Touched Graph Milestone 11` ->
 `Touched Graph Milestone 12` ->
@@ -245,7 +246,8 @@ proof ownership.
 | 7 | touched authority products plus graph-read inventory | covered Query graph-read declarations and required access rows | `worth-topo`, `worth-spatial`, `worth-kernel` through `forge-query` | declaration wrappers around local traversal, copied access rows, strings as support | local declaration shims and access requirement mirrors |
 | 8 | covered graph-read declarations and Query support rows | admitted Query graph-read access plans, postures, counters, and receipts | `forge-query` with Worth reference consumers | caller-owned execution proof, unbounded automatic indexes, fabricated receipts, helper loops | migrated local loops, caches, fabricated receipts, broad read helpers |
 | 9 | expanded topology closure | selected topology validators and relational invariants | `worth-topo` | global validator packs, expectation arrays | static invariant packs and operator-local global validation |
-| 10 | expanded topology closure | derived invalidation and dirty propagation plan | `worth-topo` | whole-view rebuild by default, hidden projection expansion | broad derived rebuild paths |
+| 9.1 | validator/invariant catalog plus stale terminal Query boundary | Query-native runtime boundary for rows, writes, probes, live targets, and certification | `worth-topo` consuming `forge-query` native carriers | compatibility shims, terminal JSON runtime rows, raw string aspect paths, caller-built write commands | stale terminal Query runtime boundary and certification helpers |
+| 10 | expanded topology closure plus Query-native runtime boundary | derived invalidation and dirty propagation plan | `worth-topo` | whole-view rebuild by default, hidden projection expansion | broad derived rebuild paths |
 | 11 | topology basis or spatial touch authority | evidence lookup plan and lookup product | `worth-spatial` | raw evidence vectors, broad receipt scans | raw public evidence scans |
 | 12 | topology/spatial proof products | replay, undo, and transaction scope | owning crate plus `worth-kernel` | global replay, re-query rollback authority | replay/undo paths without proof scope |
 | 13 | touched closures and spatial authority products | conflict, independence, batch-admission proof | `worth-topo`, `worth-spatial`, `forge-query` | speculative lock-first conflict discovery | batch shortcuts without structural proof |
@@ -406,6 +408,9 @@ Done when:
 
 ## Milestone 7: Touched Authority To Query Access Declarations
 
+Spec:
+[touched-graph-milestone-7-query-access-declarations.md](./touched-graph-milestone-7-query-access-declarations.md)
+
 Freeze the translation from touched graph authority products into real Query
 graph-read declarations, read families, access requirements, and required
 capability rows.
@@ -415,6 +420,8 @@ Closes:
   graph-read declarations before any covered read executes
 - graph-read families become a registered declaration catalog keyed by touched
   authority, not per-operator read-plan code
+- Milestone 6 graph-read access inventory seed is the only production start
+  point for covered declaration work
 - domain graph-read operations needed by Worth declare operation resolution,
   access shape, selectivity posture, requirement rows, basis, policy, tenant,
   and relationship-proof posture through Query-owned vocabulary
@@ -422,6 +429,8 @@ Closes:
   capability rows, required receipt posture, and Query-gap posture once
 - missing Query expressiveness becomes typed Query-gap or required-capability
   posture, not a local Worth traversal adapter
+- old local declaration shims, access requirement mirrors, fallback traversal
+  helpers, and fabricated support rows are deleted or mechanically capped
 - declaration construction is sealed so raw ids, strings, mutation rows, local
   support labels, and copied access rows cannot promote into executable read
   authority
@@ -439,8 +448,14 @@ Done when:
   admission instead of hidden local traversal
 - declaration tests prove touched authority is the input and admitted Query
   access artifacts are the next proof product
+- closeout produces a Milestone 8 seed with declaration catalog identity,
+  Query-derived requirement rows, capability-gap evidence, deletion proof, and
+  no access-plan execution or receipt-consumption claim
 
 ## Milestone 8: Worth Graph-Read Access Plan Adoption
+
+Spec:
+[touched-graph-milestone-8-query-access-plan-adoption.md](./touched-graph-milestone-8-query-access-plan-adoption.md)
 
 Freeze execution of covered Worth graph reads through admitted Query access
 plans, typed postures, counters, and receipts.
@@ -473,6 +488,9 @@ Done when:
 
 ## Milestone 9: Validator And Invariant Catalog Routing
 
+Spec:
+[touched-graph-milestone-9-validator-invariant-catalog-routing.md](./touched-graph-milestone-9-validator-invariant-catalog-routing.md)
+
 Freeze topology validator and invariant selection as registered catalogs routed
 by touched graph closure.
 
@@ -497,15 +515,64 @@ Done when:
 - operator-local validator arrays, expectation arrays, and "remember to run"
   invariant hooks fail certification or source-firewall tests
 
+## Milestone 9.1: Query-Native Runtime Boundary Rollover
+
+Spec:
+[touched-graph-milestone-9.1-query-native-runtime-boundary-rollover.md](./touched-graph-milestone-9.1-query-native-runtime-boundary-rollover.md)
+
+Freeze `worth-topo` against the current `forge-query` aspect-native runtime
+boundary before later touched-graph milestones consume runtime rows, writes,
+truth probes, live targets, receipts, validators, invalidation, replay,
+conflict, cache, or diagnostics.
+
+Closes:
+- inventory and deletion ledger for every stale terminal Query API occurrence
+  in production `worth-topo`
+- Worth topology vocabulary lowering into native Query/Foundation carriers
+  instead of strings or terminal JSON
+- native entity row production and read decode through `AspectValue`,
+  `CanonicalFieldPath`, and Query entity accessors
+- backend-admissible write authority consumption instead of caller-built Query
+  write commands
+- existing-truth probes and retained scalar facts through Query-native probe
+  and field-path carriers
+- live runtime source routing through `ForgeQueryLiveArtifactTarget`
+- certification and operator closeout cut over to the same native production
+  boundary
+- hard deletion or exact capped residue for old terminal runtime helpers
+
+Done when:
+- full `cargo check -p worth-topo --lib` passes
+- full `cargo check -p worth-topo --tests` passes or reaches only unrelated
+  explicitly recorded external blockers
+- ordinary production and certification paths no longer use `external_row`,
+  `from_external_projection`, `ForgeQueryAspectValue`, raw aspect-path mutation
+  helpers, caller-constructed Query write commands, local probe tuples, or raw
+  live-view names as authority
+- terminal JSON exists only in named report/document codecs
+- no compatibility shim can satisfy the Query-native runtime boundary
+- Milestone 10 can consume Milestone 9 validator/invariant catalog products
+  through native Query boundary proofs without reviving stale terminal APIs
+
 ## Milestone 10: Derived Invalidation And Dirty Propagation
 
+Spec:
+[touched-graph-milestone-10-derived-invalidation-dirty-propagation.md](./touched-graph-milestone-10-derived-invalidation-dirty-propagation.md)
+
 Freeze derived topology invalidation as registered derived-product contracts
-routed by touched graph closure.
+routed by touched graph closure and the Query-native runtime boundary.
 
 Closes:
 - direct versus closure-expanded touch propagation
 - derived product catalogs declaring consumed graph facts, consumed spatial
   evidence, invalidation predicate, rebuild/update posture, and diagnostics
+- full covered-product migration for materialized graph, traversal views, loop
+  cycles, radial rings, shell views, vertex disks, wire views, and every other
+  ordinary topology-derived product
+- selected invalidation plans derived from touched closure, Query-native
+  receipts, and Milestone 9 validator/invariant enforcement proof
+- execution receipts proving invalidated, updated, rebuilt, unaffected, denied,
+  and capped-residue products
 - counters proving invalidation breadth equals closure breadth
 - deletion of operator-authored dirty lists and hidden projection expansion
 
@@ -516,6 +583,12 @@ Done when:
 - derived products without invalidation contracts cannot be consumed
 - adding a derived product invalidation contract once makes every matching
   touched closure route to it without editing operators
+- every covered ordinary derived topology product is migrated through the new
+  invalidation lane, deleted, or proven certification/bootstrap-only residue
+- whole-view materialization survives only as certification/bootstrap residue
+  with owner, cap, blocker, and removal trigger
+- Milestone 11 can consume derived product receipt identity without rebuilding
+  derived topology or scanning raw evidence
 
 ## Milestone 11: Evidence Lookup And Boolean Stage Indexing
 

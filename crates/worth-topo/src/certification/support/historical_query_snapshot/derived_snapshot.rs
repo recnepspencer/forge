@@ -43,9 +43,9 @@ pub(crate) fn historical_derived_surface_snapshot_for_read_basis(
     runtime: &mut HistoricalReadBasisQueryRuntime,
 ) -> Result<HistoricalDerivedSurfaceSnapshot, TopologyQuerySurfaceError> {
     let read_basis = runtime.read_basis().clone();
-    let equivalence_read_basis_facts = runtime.historical_equivalence_read_basis_facts()?;
+    let equivalence_read_basis_report = runtime.historical_equivalence_read_basis_facts()?;
     let snapshot = runtime.historical_derived_surface_snapshot()?;
-    ensure_snapshot_matches_read_basis(&equivalence_read_basis_facts, &read_basis)?;
+    ensure_snapshot_matches_read_basis(&equivalence_read_basis_report, &read_basis)?;
 
     Ok(HistoricalDerivedSurfaceSnapshot {
         materialized: snapshot.materialized().clone(),
@@ -57,9 +57,9 @@ pub(crate) fn historical_derived_surface_snapshot_for_read_basis(
 }
 
 fn ensure_snapshot_matches_read_basis(
-    equivalence_read_basis_facts: &forge_query::facade::ForgeQueryRetainedScalarFactSet,
+    equivalence_read_basis_report: &DerivedEquivalenceContractReport,
     read_basis: &DerivedTopologyReadBasis,
 ) -> Result<(), TopologyQuerySurfaceError> {
-    super::ensure_snapshot_matches_read_basis(equivalence_read_basis_facts, read_basis)?;
+    super::ensure_snapshot_matches_read_basis(equivalence_read_basis_report, read_basis)?;
     Ok(())
 }

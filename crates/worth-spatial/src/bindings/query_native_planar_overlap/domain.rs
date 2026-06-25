@@ -77,7 +77,7 @@ impl ForgeQueryDeclarationFamilyMarker<CoplanarOverlapContractQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.coplanar_overlap.pair",
                 "geometry.coplanar_overlap.planar_neighborhood",

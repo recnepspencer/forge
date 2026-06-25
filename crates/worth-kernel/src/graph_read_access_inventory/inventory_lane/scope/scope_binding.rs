@@ -45,6 +45,7 @@ impl WorthGraphReadAccessScopeBinding {
         )
     }
 
+    #[cfg(test)]
     pub(in crate::graph_read_access_inventory::inventory_lane) fn touched_authority_digest(
         source_path: impl Into<String>,
         selected_obligation_index: usize,
@@ -68,7 +69,30 @@ impl WorthGraphReadAccessScopeBinding {
         )
     }
 
-    pub(in crate::graph_read_access_inventory::inventory_lane) fn touch_descriptor_digest(
+    pub(in crate::graph_read_access_inventory::inventory_lane) fn declaration_touched_authority_digest(
+        source_path: impl Into<String>,
+        selected_obligation_index: usize,
+        scope_family: WorthGraphReadAccessScopeFamily,
+        authority_digest: impl Into<String>,
+        touch_descriptor_digest: impl Into<String>,
+        execution_proof_digest: impl Into<String>,
+    ) -> Result<Self, WorthGraphReadAccessInventoryError> {
+        Self::with_required_evidence(
+            source_path,
+            WorthGraphReadAccessScopeKind::TouchedAuthorityDigest,
+            scope_family,
+            WorthGraphReadAccessScopeExpectation::MilestoneSevenDeclarationCandidateInput,
+            Some(selected_obligation_index),
+            Some(authority_digest.into()),
+            Some(touch_descriptor_digest.into()),
+            Some(execution_proof_digest.into()),
+            None,
+            None,
+            None,
+        )
+    }
+
+    pub(in crate::graph_read_access_inventory::inventory_lane) fn from_touch_descriptor_digest(
         source_path: impl Into<String>,
         selected_obligation_index: usize,
         scope_family: WorthGraphReadAccessScopeFamily,
@@ -102,6 +126,75 @@ impl WorthGraphReadAccessScopeBinding {
             source_path,
             WorthGraphReadAccessScopeKind::TopologyReadProof,
             WorthGraphReadAccessScopeFamily::TopologyReadLedger,
+            WorthGraphReadAccessScopeExpectation::MilestoneSevenDeclarationCandidateInput,
+            Some(selected_obligation_index),
+            Some(authority_digest.into()),
+            Some(touch_descriptor_digest.into()),
+            Some(execution_proof_digest.into()),
+            None,
+            None,
+            None,
+        )
+    }
+
+    #[cfg(test)]
+    pub(in crate::graph_read_access_inventory::inventory_lane) fn preview_declaration_candidate(
+        source_path: impl Into<String>,
+        selected_obligation_index: usize,
+        authority_digest: impl Into<String>,
+        touch_descriptor_digest: impl Into<String>,
+        execution_proof_digest: impl Into<String>,
+    ) -> Result<Self, WorthGraphReadAccessInventoryError> {
+        Self::with_required_evidence(
+            source_path,
+            WorthGraphReadAccessScopeKind::TouchDescriptorDigest,
+            WorthGraphReadAccessScopeFamily::TopologyReadLedger,
+            WorthGraphReadAccessScopeExpectation::PreviewDeclarationCandidateInput,
+            Some(selected_obligation_index),
+            Some(authority_digest.into()),
+            Some(touch_descriptor_digest.into()),
+            Some(execution_proof_digest.into()),
+            None,
+            None,
+            None,
+        )
+    }
+
+    #[cfg(test)]
+    pub(in crate::graph_read_access_inventory::inventory_lane) fn branch_declaration_candidate(
+        source_path: impl Into<String>,
+        selected_obligation_index: usize,
+        authority_digest: impl Into<String>,
+        touch_descriptor_digest: impl Into<String>,
+        execution_proof_digest: impl Into<String>,
+    ) -> Result<Self, WorthGraphReadAccessInventoryError> {
+        Self::with_required_evidence(
+            source_path,
+            WorthGraphReadAccessScopeKind::TouchDescriptorDigest,
+            WorthGraphReadAccessScopeFamily::TopologyReadLedger,
+            WorthGraphReadAccessScopeExpectation::BranchDeclarationCandidateInput,
+            Some(selected_obligation_index),
+            Some(authority_digest.into()),
+            Some(touch_descriptor_digest.into()),
+            Some(execution_proof_digest.into()),
+            None,
+            None,
+            None,
+        )
+    }
+
+    #[cfg(test)]
+    pub(in crate::graph_read_access_inventory::inventory_lane) fn spatial_declaration_authority(
+        source_path: impl Into<String>,
+        selected_obligation_index: usize,
+        authority_digest: impl Into<String>,
+        touch_descriptor_digest: impl Into<String>,
+        execution_proof_digest: impl Into<String>,
+    ) -> Result<Self, WorthGraphReadAccessInventoryError> {
+        Self::with_required_evidence(
+            source_path,
+            WorthGraphReadAccessScopeKind::SpatialContinuationProof,
+            WorthGraphReadAccessScopeFamily::PlanarBooleanContinuation,
             WorthGraphReadAccessScopeExpectation::MilestoneSevenDeclarationCandidateInput,
             Some(selected_obligation_index),
             Some(authority_digest.into()),
@@ -154,7 +247,7 @@ impl WorthGraphReadAccessScopeBinding {
         )
     }
 
-    pub(in crate::graph_read_access_inventory::inventory_lane) fn certification_boundary(
+    pub(in crate::graph_read_access_inventory::inventory_lane) fn from_certification_boundary(
         source_path: impl Into<String>,
         certification_boundary: impl Into<String>,
     ) -> Result<Self, WorthGraphReadAccessInventoryError> {
@@ -173,6 +266,7 @@ impl WorthGraphReadAccessScopeBinding {
         )
     }
 
+    #[cfg(test)]
     pub(in crate::graph_read_access_inventory::inventory_lane) fn out_of_scope_non_graph_read(
         source_path: impl Into<String>,
         boundary: impl Into<String>,

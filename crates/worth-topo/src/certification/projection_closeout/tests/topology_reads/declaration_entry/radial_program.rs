@@ -9,8 +9,8 @@ use crate::facade::{
     TopologyOperatorEnvelopeTerminalError, TopologyOperatorWorkflowHandleExt,
     TopologyRuntimeAdapters,
 };
-use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use crate::projection::{query_entity_id_from_row, query_relation_id_from_row};
+use crate::query_native_runtime_boundary::query_entity_identity_reporting_label;
 use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::{
     TopologyRadialSpliceMember, TopologySpliceRadialAdjacencyProgramDeclaration,
@@ -194,17 +194,11 @@ fn first_source_identity_for_relation_kind(
     relation_rows
         .iter()
         .find(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
+            crate::query_native_runtime_boundary::row_text_at(row, ["topology", "kind"])
                 == Some(relation_kind.kind_name())
         })
         .and_then(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("source_identity"))
-                .and_then(|value| value.as_str())
+            crate::query_native_runtime_boundary::row_text_at(row, ["topology", "source_identity"])
                 .map(str::to_string)
         })
         .expect("radial relation source should resolve")
@@ -241,10 +235,7 @@ fn relation_target_identity_for_source_kind(
         .iter()
         .find(|row| row_matches_source_kind(row, source_identity, relation_kind))
         .and_then(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("target_identity"))
-                .and_then(|value| value.as_str())
+            crate::query_native_runtime_boundary::row_text_at(row, ["topology", "target_identity"])
                 .map(str::to_string)
         })
         .expect("radial splice target identity should resolve")
@@ -272,16 +263,9 @@ fn row_matches_source_kind(
     source_identity: &str,
     relation_kind: TopologyRelationKind,
 ) -> bool {
-    row.external_row()
-        .get("topology")
-        .and_then(|value| value.get("kind"))
-        .and_then(|value| value.as_str())
+    crate::query_native_runtime_boundary::row_text_at(row, ["topology", "kind"])
         == Some(relation_kind.kind_name())
-        && row
-            .external_row()
-            .get("topology")
-            .and_then(|value| value.get("source_identity"))
-            .and_then(|value| value.as_str())
+        && crate::query_native_runtime_boundary::row_text_at(row, ["topology", "source_identity"])
             == Some(source_identity)
 }
 

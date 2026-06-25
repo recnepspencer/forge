@@ -9,6 +9,7 @@ use crate::construction::specs::{
 };
 mod request_invalidity;
 mod request_placement;
+#[cfg(test)]
 pub(crate) use request_invalidity::primitive_construction_invalid_request_reason;
 pub(crate) use request_placement::placement_of;
 pub(crate) use request_placement::PrimitiveConstructionPlacement;

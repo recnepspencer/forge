@@ -15,7 +15,7 @@ use topology::facade::{
     TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
 };
 
-use crate::construction::request::{PrimitiveConstructionFamily, PRIMITIVE_CONSTRUCTION_FAMILIES};
+use crate::construction::family::{PrimitiveConstructionFamily, PRIMITIVE_CONSTRUCTION_FAMILIES};
 
 pub(crate) const PRIMITIVE_CONSTRUCTION_GRAPH_OBLIGATION_FAMILY: &str =
     "worth-kernel.primitive-construction";
@@ -30,6 +30,7 @@ pub(crate) struct PrimitiveConstructionGraphObligationCatalog {
 #[derive(Clone, Debug)]
 pub(crate) struct PrimitiveConstructionGraphObligationCatalogRow {
     family: PrimitiveConstructionFamily,
+    #[cfg(test)]
     descriptor_source: &'static str,
     registration: ForgeQueryGraphObligationRegistration,
 }
@@ -60,6 +61,7 @@ impl PrimitiveConstructionGraphObligationCatalogRow {
     fn covered_compose_birth(family: PrimitiveConstructionFamily) -> Self {
         Self {
             family,
+            #[cfg(test)]
             descriptor_source: "worth-topo primitive construction birth compose execution",
             registration: topology_primitive_construction_birth_graph_obligation_registration(
                 ForgeQueryGraphObligationSupportLane::GraphComposition,
@@ -72,6 +74,7 @@ impl PrimitiveConstructionGraphObligationCatalogRow {
         self.family
     }
 
+    #[cfg(test)]
     pub(crate) fn descriptor_source(&self) -> &'static str {
         self.descriptor_source
     }
@@ -96,16 +99,16 @@ pub(crate) fn primitive_construction_birth_touch_descriptor(
         TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
         ForgeQueryMutationFamily::Insert,
         None,
-        [
+        crate::query_authoring_helpers::aspect_mutation_operations([
             PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_OPERATION,
             "set:topology.structure",
             "set:naming.persistent_name",
-        ],
-        [
+        ]),
+        crate::query_authoring_helpers::aspect_touches([
             PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_PATH,
             "topology.structure",
             "naming.persistent_name",
-        ],
+        ]),
     )
 }
 

@@ -21,7 +21,7 @@ pub struct WorthGraphReadAccessInventoryCloseout {
 }
 
 impl WorthGraphReadAccessInventoryCloseout {
-    pub(super) fn from_admitted_rows(
+    pub(crate) fn from_admitted_rows(
         seed: WorthGraphReadAccessInventorySeed,
         guard_report: WorthGraphReadAccessCoverageGuardReport,
         bypass_adoption_report: WorthGraphReadBypassAdoptionReport,
@@ -102,7 +102,7 @@ pub struct WorthGraphReadAccessInventoryCloseoutCounters {
 }
 
 impl WorthGraphReadAccessInventoryCloseoutCounters {
-    pub(super) fn from_rows(rows: &[WorthGraphReadAccessInventoryRow]) -> Self {
+    pub(crate) fn from_rows(rows: &[WorthGraphReadAccessInventoryRow]) -> Self {
         Self {
             total_row_count: rows.len(),
             declaration_candidate_count: count_classification(
