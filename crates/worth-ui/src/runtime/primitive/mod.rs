@@ -5,9 +5,9 @@ mod box_metrics;
 mod container;
 mod content;
 mod denial;
-mod dependency;
 mod event_geometry;
 mod flow_layout;
+mod graph;
 mod interaction;
 mod measurement;
 mod motion;
@@ -15,6 +15,8 @@ mod presentation;
 mod projection;
 mod receipt;
 mod resolver;
+mod resolver_digest;
+mod resolver_measurement;
 mod schema;
 
 pub use admission::{
@@ -25,34 +27,40 @@ pub use admission::{
     WorthUiValidatedPrimitivePropSet,
 };
 pub use appearance::{WorthUiPrimitiveAppearanceReceipt, WorthUiPrimitiveColor};
-pub(crate) use appearance_state::appearance_state_prop_schema;
+pub(crate) use appearance_state::{appearance_state_prop_schema, AuthoredAppearanceStateProp};
 pub use appearance_state::{
-    WorthUiAppearanceStateAdmissionCounters, WorthUiAppearanceStateAdmissionReceipt,
-    WorthUiAppearanceStateAdmissionReport, WorthUiAppearanceStateAdmissionStatus,
-    WorthUiAppearanceStateFieldSet, WorthUiAppearanceStateName, WorthUiAppearanceStatePosture,
+    WorthUiAppearanceEnabledPosture, WorthUiAppearanceStateAdmissionCounters,
+    WorthUiAppearanceStateAdmissionReceipt, WorthUiAppearanceStateAdmissionReport,
+    WorthUiAppearanceStateAdmissionStatus, WorthUiAppearanceStateFieldSet,
+    WorthUiAppearanceStateName, WorthUiAppearanceStatePosture,
     WorthUiAppearanceStateTokenDenialReason, WorthUiAppearanceStateValueDenialCode,
     WorthUiAppearanceStateValueDenialReceipt, WorthUiAppearanceStateValueDenialSet,
-    WorthUiAppearanceStateValueKind, WorthUiResolvedAppearanceStateReceipt,
+    WorthUiAppearanceStateValueKind, WorthUiPrimitiveHostAppearanceObservation,
+    WorthUiPrimitiveObservedPostureReceipt, WorthUiResolvedAppearanceStateReceipt,
     WorthUiStatefulAppearanceRecipeReceipt,
 };
 pub use box_metrics::WorthUiBoxEdges;
 pub use container::{WorthUiPrimitiveAlign, WorthUiPrimitiveContainerReceipt};
-pub(crate) use content::primitive_content_prop_schema;
+pub(crate) use content::{primitive_content_prop_schema, AuthoredPrimitiveContentProp};
 pub use content::{
-    WorthUiPrimitiveBadgeContentItem, WorthUiPrimitiveContentAdmissionCounters,
-    WorthUiPrimitiveContentAdmissionReceipt, WorthUiPrimitiveContentAdmissionReport,
-    WorthUiPrimitiveContentAdmissionStatus, WorthUiPrimitiveContentDenialPresentation,
-    WorthUiPrimitiveContentDenialPresentationRow, WorthUiPrimitiveContentIconPaintCommand,
-    WorthUiPrimitiveContentIconRenderPosture, WorthUiPrimitiveContentItem,
-    WorthUiPrimitiveContentItemKind, WorthUiPrimitiveContentKind, WorthUiPrimitiveContentReceipt,
-    WorthUiPrimitiveContentValueDenialCode, WorthUiPrimitiveContentValueDenialReceipt,
-    WorthUiPrimitiveContentValueDenialSet, WorthUiPrimitiveContentValueKind,
-    WorthUiPrimitiveDividerContentItem, WorthUiPrimitiveIconContentItem,
+    WorthUiPrimitiveBadgeContentItem, WorthUiPrimitiveContentAccessibilityParticipation,
+    WorthUiPrimitiveContentAdmissionCounters, WorthUiPrimitiveContentAdmissionReceipt,
+    WorthUiPrimitiveContentAdmissionReport, WorthUiPrimitiveContentAdmissionStatus,
+    WorthUiPrimitiveContentAnatomyItemReceipt, WorthUiPrimitiveContentAnatomyReceipt,
+    WorthUiPrimitiveContentDenialPresentation, WorthUiPrimitiveContentDenialPresentationRow,
+    WorthUiPrimitiveContentIconPaintCommand, WorthUiPrimitiveContentIconRenderPosture,
+    WorthUiPrimitiveContentItem, WorthUiPrimitiveContentItemKind, WorthUiPrimitiveContentKind,
+    WorthUiPrimitiveContentParticipationPosture, WorthUiPrimitiveContentReceipt,
+    WorthUiPrimitiveContentRole, WorthUiPrimitiveContentValueDenialCode,
+    WorthUiPrimitiveContentValueDenialReceipt, WorthUiPrimitiveContentValueDenialSet,
+    WorthUiPrimitiveContentValueKind, WorthUiPrimitiveDividerContentItem,
+    WorthUiPrimitiveIconContentItem, WorthUiPrimitiveImageAssetReceipt,
+    WorthUiPrimitiveImageContentItem, WorthUiPrimitiveProvedContentAnatomy,
     WorthUiPrimitiveSpacerContentItem, WorthUiPrimitiveTextContentItem,
     WorthUiValidatedPrimitiveContentPropSet,
 };
 pub use denial::WorthUiPrimitiveProofDenial;
-pub(crate) use event_geometry::event_geometry_prop_schema;
+pub(crate) use event_geometry::{event_geometry_prop_schema, AuthoredEventGeometryProp};
 pub use event_geometry::{
     WorthUiEventGeometryAdmissionCounters, WorthUiEventGeometryAdmissionReceipt,
     WorthUiEventGeometryAdmissionReport, WorthUiEventGeometryAdmissionStatus,
@@ -63,15 +71,15 @@ pub use event_geometry::{
     WorthUiPrimitiveEventDispatchCandidateReceipt, WorthUiPrimitiveEventDispatchCounters,
     WorthUiPrimitiveEventDispatchOutcome, WorthUiPrimitiveEventDispatchPlan,
     WorthUiPrimitiveEventDispatchReceipt, WorthUiPrimitiveEventGeometryReceipt,
-    WorthUiPrimitiveEventHitTestPoint, WorthUiPrimitiveEventRegionOrder,
-    WorthUiPrimitiveEventRegionReceipt, WorthUiPrimitiveHitArea,
+    WorthUiPrimitiveEventHitTestPoint, WorthUiPrimitiveEventRegionGraphBasis,
+    WorthUiPrimitiveEventRegionOrder, WorthUiPrimitiveEventRegionReceipt, WorthUiPrimitiveHitArea,
     WorthUiPrimitiveHitFrameDerivationBasis, WorthUiPrimitiveHitFrameDerivationReceipt,
     WorthUiPrimitivePointerCapture, WorthUiPrimitivePointerCaptureHostSupport,
     WorthUiPrimitivePointerCaptureState, WorthUiPrimitivePointerFrameInput,
     WorthUiPrimitivePointerFrameReceipt, WorthUiPrimitivePointerPhase,
     WorthUiValidatedEventGeometryPropSet,
 };
-pub(crate) use flow_layout::flow_layout_prop_schema;
+pub(crate) use flow_layout::{flow_layout_prop_schema, AuthoredFlowLayoutProp};
 pub use flow_layout::{
     WorthUiFlowLayoutAdmissionCounters, WorthUiFlowLayoutAdmissionReceipt,
     WorthUiFlowLayoutAdmissionReport, WorthUiFlowLayoutAdmissionStatus, WorthUiFlowLayoutAlign,
@@ -81,12 +89,19 @@ pub use flow_layout::{
     WorthUiFlowLayoutValueDenialReceipt, WorthUiFlowLayoutValueDenialSet,
     WorthUiFlowLayoutValueKind, WorthUiValidatedFlowLayoutPropSet,
 };
+pub(crate) use graph::prove_primitive_construction_graph;
+pub(crate) use graph::WorthUiPrimitiveFamilyAdmissionDigests;
+pub use graph::{
+    WorthUiPrimitiveConstructionGraphProof, WorthUiPrimitiveConstructionObligationKind,
+    WorthUiPrimitiveConstructionObligationPosture, WorthUiPrimitiveConstructionObligationRow,
+    WorthUiPrimitiveGraphCounters, WorthUiPrimitiveQueryPosture,
+};
 pub use interaction::{
-    WorthUiPrimitiveActivationAffordanceReceipt, WorthUiPrimitiveCursorPosture,
-    WorthUiPrimitiveFocusPosture, WorthUiPrimitiveInteractionKind,
+    WorthUiPrimitiveActivationAffordanceReceipt, WorthUiPrimitiveActivationPosture,
+    WorthUiPrimitiveCursorPosture, WorthUiPrimitiveFocusPosture, WorthUiPrimitiveInteractionKind,
     WorthUiPrimitiveInteractionReceipt, WorthUiPrimitiveOperabilityBasis,
     WorthUiPrimitiveOperabilityPosture, WorthUiPrimitiveOperabilityReceipt,
-    WorthUiPrimitiveResolvedCursorPosture,
+    WorthUiPrimitiveResolvedCursorPosture, WorthUiPrimitiveSelectionPosture,
 };
 pub use measurement::{
     WorthUiPrimitiveMeasurementReceipt, WorthUiPrimitiveResolvedInsets,
@@ -97,9 +112,10 @@ pub use motion::{
     WorthUiPrimitiveMotionTarget,
 };
 pub use presentation::{
-    WorthUiPrimitiveDrawPlan, WorthUiPrimitiveFlowItemFrame, WorthUiPrimitiveFlowItemKind,
-    WorthUiPrimitiveFrame, WorthUiPrimitiveLayoutExecutionCounters,
-    WorthUiPrimitiveObservedPostureReceipt, WorthUiPrimitivePaintPlan,
+    WorthUiPrimitiveActiveAppearancePlan, WorthUiPrimitiveDrawPlan,
+    WorthUiPrimitiveDrawPlanGraphBasis, WorthUiPrimitiveFlowItemFrame,
+    WorthUiPrimitiveFlowItemKind, WorthUiPrimitiveFrame, WorthUiPrimitiveLayoutExecutionCounters,
+    WorthUiPrimitivePaintPlan,
 };
 pub use projection::{
     WorthUiPrimitiveChangedFactEvidenceRow, WorthUiPrimitiveProjectionRebindPlan,

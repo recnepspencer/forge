@@ -31,7 +31,41 @@ const PRIMITIVE_PROOF_CONSUMERS: &[WorthUiProjectionFamily] =
     &[WorthUiProjectionFamily::PrimitiveProof];
 const QUERY_PROJECTION_CONSUMERS: &[WorthUiProjectionFamily] =
     &[WorthUiProjectionFamily::QueryProjectionConsumption];
+const LIVE_VIEW_EXPRESSION_CONSUMERS: &[WorthUiProjectionFamily] =
+    &[WorthUiProjectionFamily::LiveViewExpression];
 const NO_PROJECTION_CONSUMERS: &[WorthUiProjectionFamily] = &[];
+const VIEWPORT_BOUNDARY_FACTS: &[WorthUiRuntimeFactFamily] = &[
+    WorthUiRuntimeFactFamily::ViewportBoundary,
+    WorthUiRuntimeFactFamily::ClipBoundary,
+    WorthUiRuntimeFactFamily::ScrollRestoration,
+    WorthUiRuntimeFactFamily::ViewportEventParticipation,
+];
+
+macro_rules! query_exact_preservation_row {
+    ($slice:ident, $fact:ident) => {
+        row_with_preservation(
+            WorthUiSemanticSliceId::$slice,
+            WorthUiSemanticSliceOwner::QueryAuthority,
+            WorthUiSemanticMeaningClass::ProductMeaning,
+            WorthUiSemanticSliceFactMapping::Exact(WorthUiRuntimeFactFamily::$fact),
+            WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
+            true,
+        )
+    };
+}
+
+macro_rules! query_gap_preservation_row {
+    ($slice:ident) => {
+        row_with_preservation(
+            WorthUiSemanticSliceId::$slice,
+            WorthUiSemanticSliceOwner::QueryAuthority,
+            WorthUiSemanticMeaningClass::ProductMeaning,
+            WorthUiSemanticSliceFactMapping::Gap,
+            WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
+            true,
+        )
+    };
+}
 
 pub(super) static SEMANTIC_SLICE_INVENTORY: &[WorthUiSemanticSliceDescriptor] = &[
     row(
@@ -172,6 +206,13 @@ pub(super) static SEMANTIC_SLICE_INVENTORY: &[WorthUiSemanticSliceDescriptor] = 
         WorthUiSemanticSliceConsumers::new(PAGE_HOST_CONSUMERS),
     ),
     row(
+        WorthUiSemanticSliceId::PrimitiveConstruction,
+        WorthUiSemanticSliceOwner::CompiledPlatformAuthority,
+        WorthUiSemanticMeaningClass::ProductMeaning,
+        WorthUiSemanticSliceFactMapping::Exact(WorthUiRuntimeFactFamily::PrimitiveConstruction),
+        WorthUiSemanticSliceConsumers::new(PRIMITIVE_PROOF_CONSUMERS),
+    ),
+    row(
         WorthUiSemanticSliceId::PrimitiveContent,
         WorthUiSemanticSliceOwner::AuthoredSource,
         WorthUiSemanticMeaningClass::ProductMeaning,
@@ -235,6 +276,20 @@ pub(super) static SEMANTIC_SLICE_INVENTORY: &[WorthUiSemanticSliceDescriptor] = 
         WorthUiSemanticSliceConsumers::new(PRIMITIVE_PROOF_CONSUMERS),
     ),
     row(
+        WorthUiSemanticSliceId::ViewportBoundary,
+        WorthUiSemanticSliceOwner::AuthoredSource,
+        WorthUiSemanticMeaningClass::ProductMeaning,
+        WorthUiSemanticSliceFactMapping::Composite(VIEWPORT_BOUNDARY_FACTS),
+        WorthUiSemanticSliceConsumers::new(NO_PROJECTION_CONSUMERS),
+    ),
+    row(
+        WorthUiSemanticSliceId::UserIntentTargetBinding,
+        WorthUiSemanticSliceOwner::CompiledPlatformAuthority,
+        WorthUiSemanticMeaningClass::ProductMeaning,
+        WorthUiSemanticSliceFactMapping::Exact(WorthUiRuntimeFactFamily::UserIntentTargetBinding),
+        WorthUiSemanticSliceConsumers::new(PRIMITIVE_PROOF_CONSUMERS),
+    ),
+    row(
         WorthUiSemanticSliceId::ActionPosture,
         WorthUiSemanticSliceOwner::CapabilityAuthority,
         WorthUiSemanticMeaningClass::ProductMeaning,
@@ -255,93 +310,50 @@ pub(super) static SEMANTIC_SLICE_INVENTORY: &[WorthUiSemanticSliceDescriptor] = 
         WorthUiSemanticSliceFactMapping::Exact(WorthUiRuntimeFactFamily::AuthoredQueryBindingShape),
         WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
     ),
-    row_with_preservation(
-        WorthUiSemanticSliceId::QueryBindingIdentity,
-        WorthUiSemanticSliceOwner::QueryAuthority,
+    query_exact_preservation_row!(QueryBindingIdentity, QueryBinding),
+    query_exact_preservation_row!(QueryLiveViewBinding, LiveViewBinding),
+    query_gap_preservation_row!(QueryBindingPreservationPosture),
+    query_gap_preservation_row!(QueryBindingRebindPosture),
+    query_gap_preservation_row!(QueryBindingRetirementPosture),
+    query_exact_preservation_row!(QueryResultPosture, QueryResultPosture),
+    query_exact_preservation_row!(QueryProjectionFact, QueryProjectionFact),
+    query_exact_preservation_row!(QueryStateSnapshot, QueryStateSnapshot),
+    query_exact_preservation_row!(QueryEffectPosture, QueryEffectPosture),
+    query_exact_preservation_row!(QueryRecoveryPosture, QueryRecoveryPosture),
+    query_exact_preservation_row!(QueryInspectionTarget, QueryInspectionTarget),
+    row(
+        WorthUiSemanticSliceId::ExpressionDeclaration,
+        WorthUiSemanticSliceOwner::AuthoredSource,
         WorthUiSemanticMeaningClass::ProductMeaning,
-        WorthUiSemanticSliceFactMapping::Exact(WorthUiRuntimeFactFamily::QueryBinding),
-        WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
-        true,
+        WorthUiSemanticSliceFactMapping::Exact(
+            WorthUiRuntimeFactFamily::LiveViewExpressionDeclaration,
+        ),
+        WorthUiSemanticSliceConsumers::new(LIVE_VIEW_EXPRESSION_CONSUMERS),
     ),
-    row_with_preservation(
-        WorthUiSemanticSliceId::QueryLiveViewBinding,
-        WorthUiSemanticSliceOwner::QueryAuthority,
+    row(
+        WorthUiSemanticSliceId::ExpressionProjection,
+        WorthUiSemanticSliceOwner::RuntimeInteractionState,
         WorthUiSemanticMeaningClass::ProductMeaning,
-        WorthUiSemanticSliceFactMapping::Exact(WorthUiRuntimeFactFamily::LiveViewBinding),
-        WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
-        true,
+        WorthUiSemanticSliceFactMapping::Exact(
+            WorthUiRuntimeFactFamily::LiveViewExpressionProjection,
+        ),
+        WorthUiSemanticSliceConsumers::new(LIVE_VIEW_EXPRESSION_CONSUMERS),
     ),
-    row_with_preservation(
-        WorthUiSemanticSliceId::QueryBindingPreservationPosture,
-        WorthUiSemanticSliceOwner::QueryAuthority,
+    row(
+        WorthUiSemanticSliceId::ExpressionOutput,
+        WorthUiSemanticSliceOwner::RuntimeInteractionState,
         WorthUiSemanticMeaningClass::ProductMeaning,
-        WorthUiSemanticSliceFactMapping::Gap,
-        WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
-        true,
+        WorthUiSemanticSliceFactMapping::Exact(WorthUiRuntimeFactFamily::LiveViewExpressionOutput),
+        WorthUiSemanticSliceConsumers::new(LIVE_VIEW_EXPRESSION_CONSUMERS),
     ),
-    row_with_preservation(
-        WorthUiSemanticSliceId::QueryBindingRebindPosture,
-        WorthUiSemanticSliceOwner::QueryAuthority,
+    row(
+        WorthUiSemanticSliceId::HostMeasurementObservation,
+        WorthUiSemanticSliceOwner::RuntimeInteractionState,
         WorthUiSemanticMeaningClass::ProductMeaning,
-        WorthUiSemanticSliceFactMapping::Gap,
-        WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
-        true,
-    ),
-    row_with_preservation(
-        WorthUiSemanticSliceId::QueryBindingRetirementPosture,
-        WorthUiSemanticSliceOwner::QueryAuthority,
-        WorthUiSemanticMeaningClass::ProductMeaning,
-        WorthUiSemanticSliceFactMapping::Gap,
-        WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
-        true,
-    ),
-    row_with_preservation(
-        WorthUiSemanticSliceId::QueryResultPosture,
-        WorthUiSemanticSliceOwner::QueryAuthority,
-        WorthUiSemanticMeaningClass::ProductMeaning,
-        WorthUiSemanticSliceFactMapping::Exact(WorthUiRuntimeFactFamily::QueryResultPosture),
-        WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
-        true,
-    ),
-    row_with_preservation(
-        WorthUiSemanticSliceId::QueryProjectionFact,
-        WorthUiSemanticSliceOwner::QueryAuthority,
-        WorthUiSemanticMeaningClass::ProductMeaning,
-        WorthUiSemanticSliceFactMapping::Exact(WorthUiRuntimeFactFamily::QueryProjectionFact),
-        WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
-        true,
-    ),
-    row_with_preservation(
-        WorthUiSemanticSliceId::QueryStateSnapshot,
-        WorthUiSemanticSliceOwner::QueryAuthority,
-        WorthUiSemanticMeaningClass::ProductMeaning,
-        WorthUiSemanticSliceFactMapping::Exact(WorthUiRuntimeFactFamily::QueryStateSnapshot),
-        WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
-        true,
-    ),
-    row_with_preservation(
-        WorthUiSemanticSliceId::QueryEffectPosture,
-        WorthUiSemanticSliceOwner::QueryAuthority,
-        WorthUiSemanticMeaningClass::ProductMeaning,
-        WorthUiSemanticSliceFactMapping::Exact(WorthUiRuntimeFactFamily::QueryEffectPosture),
-        WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
-        true,
-    ),
-    row_with_preservation(
-        WorthUiSemanticSliceId::QueryRecoveryPosture,
-        WorthUiSemanticSliceOwner::QueryAuthority,
-        WorthUiSemanticMeaningClass::ProductMeaning,
-        WorthUiSemanticSliceFactMapping::Exact(WorthUiRuntimeFactFamily::QueryRecoveryPosture),
-        WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
-        true,
-    ),
-    row_with_preservation(
-        WorthUiSemanticSliceId::QueryInspectionTarget,
-        WorthUiSemanticSliceOwner::QueryAuthority,
-        WorthUiSemanticMeaningClass::ProductMeaning,
-        WorthUiSemanticSliceFactMapping::Exact(WorthUiRuntimeFactFamily::QueryInspectionTarget),
-        WorthUiSemanticSliceConsumers::new(QUERY_PROJECTION_CONSUMERS),
-        true,
+        WorthUiSemanticSliceFactMapping::Exact(
+            WorthUiRuntimeFactFamily::HostMeasurementObservation,
+        ),
+        WorthUiSemanticSliceConsumers::new(NO_PROJECTION_CONSUMERS),
     ),
     row_with_preservation(
         WorthUiSemanticSliceId::VirtualizedDataFrameTarget,

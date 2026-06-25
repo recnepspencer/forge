@@ -1,0 +1,30 @@
+warning: unreachable expression
+ --> tests/ui/runtime_authority/fail/composition_graph_access_receipt_fields_not_public.rs:6:24
+  |
+5 |         plan: todo!(),
+  |               ------- any code following this expression is unreachable
+6 |         root_children: todo!(),
+  |                        ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `plan`, `root_children`, `child_rows`, `ancestor_rows`, `participating_descendant_rows`, `affected_consumer_rows` and `access_digest` of struct `WorthUiCompositionGraphAccessReceipt` are private
+  --> tests/ui/runtime_authority/fail/composition_graph_access_receipt_fields_not_public.rs:5:9
+   |
+ 4 |     let _forged = WorthUiCompositionGraphAccessReceipt {
+   |                   ------------------------------------ in this type
+ 5 |         plan: todo!(),
+   |         ^^^^ private field
+ 6 |         root_children: todo!(),
+   |         ^^^^^^^^^^^^^ private field
+ 7 |         child_rows: todo!(),
+   |         ^^^^^^^^^^ private field
+ 8 |         ancestor_rows: todo!(),
+   |         ^^^^^^^^^^^^^ private field
+ 9 |         participating_descendant_rows: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         affected_consumer_rows: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         access_digest: 1,
+   |         ^^^^^^^^^^^^^ private field

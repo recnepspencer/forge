@@ -35,9 +35,6 @@ impl WorthUiRuntimeHost {
         surface_id: &SurfaceId,
     ) -> WorthUiEventGeometryAdmissionReport {
         let authored_props = event_geometry_authored_props(self, surface_id);
-        let mut defaults_applied = 0;
-        let mut denials = Vec::new();
-        let schemas = event_geometry_prop_schemas();
         let authored_digest = self
             .active_authoring_snapshot()
             .and_then(|snapshot| {
@@ -46,50 +43,62 @@ impl WorthUiRuntimeHost {
                     .surface_digest(surface_id.as_str())
             })
             .unwrap_or(0xcbf2_9ce4_8422_2325);
-        let cursor = admit_schema_prop(
+        self.admit_event_geometry_props_for_subject(
             surface_id.as_str(),
+            authored_props,
+            authored_digest,
+        )
+    }
+
+    pub(crate) fn admit_event_geometry_props_for_subject(
+        &self,
+        subject_id: &str,
+        authored_props: Vec<AuthoredEventGeometryProp>,
+        authored_digest: u64,
+    ) -> WorthUiEventGeometryAdmissionReport {
+        let mut defaults_applied = 0;
+        let mut denials = Vec::new();
+        let schemas = event_geometry_prop_schemas();
+        let cursor = admit_schema_prop(
+            subject_id,
             schema_for(EVENT_CURSOR_PROP),
             &authored_props,
             &mut defaults_applied,
             &mut denials,
         );
         let hit_area = admit_schema_prop(
-            surface_id.as_str(),
+            subject_id,
             schema_for(EVENT_HIT_AREA_PROP),
             &authored_props,
             &mut defaults_applied,
             &mut denials,
         );
         let hit_slop = admit_schema_prop(
-            surface_id.as_str(),
+            subject_id,
             schema_for(EVENT_HIT_SLOP_PROP),
             &authored_props,
             &mut defaults_applied,
             &mut denials,
         );
         let containment = admit_schema_prop(
-            surface_id.as_str(),
+            subject_id,
             schema_for(EVENT_CONTAINMENT_PROP),
             &authored_props,
             &mut defaults_applied,
             &mut denials,
         );
         let capture = admit_schema_prop(
-            surface_id.as_str(),
+            subject_id,
             schema_for(EVENT_CAPTURE_PROP),
             &authored_props,
             &mut defaults_applied,
             &mut denials,
         );
-        push_unknown_event_geometry_prop_denials(
-            surface_id.as_str(),
-            &authored_props,
-            &mut denials,
-        );
+        push_unknown_event_geometry_prop_denials(subject_id, &authored_props, &mut denials);
         let hit_slop_token = hit_slop.into_measurement_token();
         let hit_slop_edges = resolve_event_measurement_edges(
             self,
-            surface_id.as_str(),
+            subject_id,
             schema_for(EVENT_HIT_SLOP_PROP),
             &hit_slop_token,
             authored_span_for(EVENT_HIT_SLOP_PROP, &authored_props),
@@ -104,14 +113,10 @@ impl WorthUiRuntimeHost {
         );
         let schema_digest = event_geometry_schema_digest(schemas);
         if !denials.is_empty() {
-            let denial_set_digest = event_geometry_denial_set_digest(surface_id.as_str(), &denials);
+            let denial_set_digest = event_geometry_denial_set_digest(subject_id, &denials);
             return WorthUiEventGeometryAdmissionReport::rejected(
-                surface_id.as_str(),
-                WorthUiEventGeometryValueDenialSet::new(
-                    surface_id.as_str(),
-                    denials,
-                    denial_set_digest,
-                ),
+                subject_id,
+                WorthUiEventGeometryValueDenialSet::new(subject_id, denials, denial_set_digest),
                 counters,
                 schema_digest,
             );
@@ -125,11 +130,11 @@ impl WorthUiRuntimeHost {
             capture.into_capture(),
         );
         let admission_digest =
-            event_geometry_admission_digest(surface_id.as_str(), authored_digest, &prop_set);
+            event_geometry_admission_digest(subject_id, authored_digest, &prop_set);
         WorthUiEventGeometryAdmissionReport::accepted(
-            surface_id.as_str(),
+            subject_id,
             WorthUiEventGeometryAdmissionReceipt::new(
-                surface_id.as_str(),
+                subject_id,
                 prop_set,
                 authored_digest,
                 admission_digest,

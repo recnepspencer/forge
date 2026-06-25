@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use worth_ui_validation_app::reload::VALIDATION_SAMPLE_LIVE_VIEW_SOURCE;
 use worth_ui_validation_app::sample_source::{
     VALIDATION_SAMPLE_APPEARANCE_SOURCE, VALIDATION_SAMPLE_COMMAND_PROJECTION_SOURCE,
     VALIDATION_SAMPLE_COMMAND_SOURCE, VALIDATION_SAMPLE_COMPONENT_SOURCE,
@@ -17,6 +18,7 @@ use worth_ui_validation_app::{
 pub struct ValidationAppReloadFixture {
     root: PathBuf,
     pub source_path: PathBuf,
+    pub live_view_path: PathBuf,
     pub theme_path: PathBuf,
     pub command_path: PathBuf,
     pub command_projection_path: PathBuf,
@@ -37,6 +39,7 @@ impl ValidationAppReloadFixture {
         fs::create_dir_all(&theme_dir).expect("theme fixture dir should be created");
         let fixture = Self {
             source_path: source_dir.join("header.wui"),
+            live_view_path: source_dir.join("live_view.worth"),
             theme_path: theme_dir.join("header.theme"),
             command_path: theme_dir.join("header.commands"),
             command_projection_path: theme_dir.join("header.projections"),
@@ -61,7 +64,8 @@ impl ValidationAppReloadFixture {
                 .with_command_projection_path(&self.command_projection_path)
                 .with_component_path(&self.component_path)
                 .with_appearance_path(&self.appearance_path)
-                .with_density_path(&self.density_path);
+                .with_density_path(&self.density_path)
+                .with_live_view_path(&self.live_view_path);
         let app = ValidationWorkbenchApp::new_with_reload_loop_config(launch, reload_loop_config);
         app
     }
@@ -103,6 +107,8 @@ impl ValidationAppReloadFixture {
     fn seed_files(&self) {
         fs::write(&self.source_path, VALIDATION_SAMPLE_SOURCE)
             .expect("source fixture should be written");
+        fs::write(&self.live_view_path, VALIDATION_SAMPLE_LIVE_VIEW_SOURCE)
+            .expect("live view fixture should be written");
         fs::write(&self.theme_path, VALIDATION_SAMPLE_THEME_SOURCE)
             .expect("theme fixture should be written");
         fs::write(&self.command_path, VALIDATION_SAMPLE_COMMAND_SOURCE)

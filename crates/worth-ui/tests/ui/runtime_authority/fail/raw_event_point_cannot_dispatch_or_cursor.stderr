@@ -1,0 +1,27 @@
+error[E0624]: method `dispatch_primary_click` is private
+  --> tests/ui/runtime_authority/fail/raw_event_point_cannot_dispatch_or_cursor.rs:11:18
+   |
+11 |       let _ = plan.dispatch_primary_click(point);
+   |                    ^^^^^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/runtime/primitive/event_geometry/dispatch/hit_plan.rs
+   |
+   | /     pub(crate) fn dispatch_primary_click(
+   | |         &self,
+   | |         point: WorthUiPrimitiveEventHitTestPoint,
+   | |     ) -> WorthUiPrimitiveEventDispatchReceipt {
+   | |_____________________________________________- private method defined here
+
+error[E0624]: method `cursor_receipt_at` is private
+  --> tests/ui/runtime_authority/fail/raw_event_point_cannot_dispatch_or_cursor.rs:12:18
+   |
+12 |       let _ = plan.cursor_receipt_at(point);
+   |                    ^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/runtime/primitive/event_geometry/dispatch/hit_plan.rs
+   |
+   | /     pub(crate) fn cursor_receipt_at(
+   | |         &self,
+   | |         point: WorthUiPrimitiveEventHitTestPoint,
+   | |     ) -> WorthUiPrimitiveEventDispatchReceipt {
+   | |_____________________________________________- private method defined here

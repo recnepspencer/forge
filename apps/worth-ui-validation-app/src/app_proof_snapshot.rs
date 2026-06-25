@@ -1,6 +1,7 @@
 use worth_ui::facade::{
     CommandProjectionSelectionMode, WorthUiDropdownSelectionStateStatus, WorthUiHeaderFrame,
 };
+mod reload_entry_selectors;
 
 use crate::header::{applied_header_style_receipt, ValidationHeaderAppliedStyleReceipt};
 use crate::launch::ValidationObservedStartupEvidence;
@@ -11,8 +12,7 @@ use crate::pages::product_summary::{
     ValidationProductSummaryProjection, ValidationProductSummaryRenderPlan,
 };
 use crate::reload::{
-    ValidationAuthoredStructuralReloadEvidence, ValidationHeaderRebindEvidence,
-    ValidationPageHostRebindEvidence, ValidationPhaseExecutionEvidence,
+    ValidationHeaderRebindEvidence, ValidationPhaseExecutionEvidence,
     ValidationReloadEvidenceEntry, ValidationReloadEvidenceLog,
 };
 use crate::runtime_workbench::ValidationRuntimeWorkbench;
@@ -23,6 +23,10 @@ use crate::storm_proof::{
 use crate::{
     ValidationAuthoringTruthFinalBossVisibleSummary, ValidationMixedReloadStormVisibleSummary,
     ValidationReloadEvidencePanelSnapshot,
+};
+use reload_entry_selectors::{
+    latest_authored_structural, latest_header_rebind, latest_page_host_rebind,
+    latest_phase_execution,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -266,141 +270,5 @@ impl ValidationHeaderCommandProofSnapshot {
 
     pub fn label(&self) -> &str {
         &self.label
-    }
-}
-
-fn latest_header_rebind(
-    entry: &ValidationReloadEvidenceEntry,
-) -> Option<ValidationHeaderRebindEvidence> {
-    match entry {
-        ValidationReloadEvidenceEntry::RuntimeReload { header_rebind, .. }
-        | ValidationReloadEvidenceEntry::AuthoredBatchReload { header_rebind, .. }
-        | ValidationReloadEvidenceEntry::ThemeReload { header_rebind, .. }
-        | ValidationReloadEvidenceEntry::CommandReload { header_rebind, .. }
-        | ValidationReloadEvidenceEntry::ComponentReload { header_rebind, .. }
-        | ValidationReloadEvidenceEntry::CommandProjectionReload { header_rebind, .. }
-        | ValidationReloadEvidenceEntry::AppearanceReload { header_rebind, .. }
-        | ValidationReloadEvidenceEntry::DensityReload { header_rebind, .. } => {
-            header_rebind.clone()
-        }
-        ValidationReloadEvidenceEntry::ThemeDenied(_)
-        | ValidationReloadEvidenceEntry::SourceActivationDenied(_)
-        | ValidationReloadEvidenceEntry::ThemeActivationDenied(_)
-        | ValidationReloadEvidenceEntry::ComponentActivationDenied(_)
-        | ValidationReloadEvidenceEntry::CommandActivationDenied(_)
-        | ValidationReloadEvidenceEntry::CommandProjectionActivationDenied(_)
-        | ValidationReloadEvidenceEntry::AppearanceActivationDenied(_)
-        | ValidationReloadEvidenceEntry::DensityActivationDenied(_)
-        | ValidationReloadEvidenceEntry::InputUnreadable(_) => None,
-    }
-}
-
-fn latest_page_host_rebind(
-    entry: &ValidationReloadEvidenceEntry,
-) -> Option<ValidationPageHostRebindEvidence> {
-    match entry {
-        ValidationReloadEvidenceEntry::RuntimeReload {
-            page_host_rebind, ..
-        }
-        | ValidationReloadEvidenceEntry::AuthoredBatchReload {
-            page_host_rebind, ..
-        }
-        | ValidationReloadEvidenceEntry::ThemeReload {
-            page_host_rebind, ..
-        }
-        | ValidationReloadEvidenceEntry::CommandReload {
-            page_host_rebind, ..
-        }
-        | ValidationReloadEvidenceEntry::ComponentReload {
-            page_host_rebind, ..
-        }
-        | ValidationReloadEvidenceEntry::CommandProjectionReload {
-            page_host_rebind, ..
-        }
-        | ValidationReloadEvidenceEntry::AppearanceReload {
-            page_host_rebind, ..
-        }
-        | ValidationReloadEvidenceEntry::DensityReload {
-            page_host_rebind, ..
-        } => page_host_rebind.clone(),
-        ValidationReloadEvidenceEntry::ThemeDenied(_)
-        | ValidationReloadEvidenceEntry::SourceActivationDenied(_)
-        | ValidationReloadEvidenceEntry::ThemeActivationDenied(_)
-        | ValidationReloadEvidenceEntry::ComponentActivationDenied(_)
-        | ValidationReloadEvidenceEntry::CommandActivationDenied(_)
-        | ValidationReloadEvidenceEntry::CommandProjectionActivationDenied(_)
-        | ValidationReloadEvidenceEntry::AppearanceActivationDenied(_)
-        | ValidationReloadEvidenceEntry::DensityActivationDenied(_)
-        | ValidationReloadEvidenceEntry::InputUnreadable(_) => None,
-    }
-}
-
-fn latest_phase_execution(
-    entry: &ValidationReloadEvidenceEntry,
-) -> Option<ValidationPhaseExecutionEvidence> {
-    match entry {
-        ValidationReloadEvidenceEntry::RuntimeReload {
-            phase_execution, ..
-        }
-        | ValidationReloadEvidenceEntry::AuthoredBatchReload {
-            phase_execution, ..
-        }
-        | ValidationReloadEvidenceEntry::ThemeReload {
-            phase_execution, ..
-        }
-        | ValidationReloadEvidenceEntry::CommandReload {
-            phase_execution, ..
-        }
-        | ValidationReloadEvidenceEntry::ComponentReload {
-            phase_execution, ..
-        }
-        | ValidationReloadEvidenceEntry::CommandProjectionReload {
-            phase_execution, ..
-        }
-        | ValidationReloadEvidenceEntry::AppearanceReload {
-            phase_execution, ..
-        }
-        | ValidationReloadEvidenceEntry::DensityReload {
-            phase_execution, ..
-        } => phase_execution.clone(),
-        ValidationReloadEvidenceEntry::ThemeDenied(_)
-        | ValidationReloadEvidenceEntry::SourceActivationDenied(_)
-        | ValidationReloadEvidenceEntry::ThemeActivationDenied(_)
-        | ValidationReloadEvidenceEntry::ComponentActivationDenied(_)
-        | ValidationReloadEvidenceEntry::CommandActivationDenied(_)
-        | ValidationReloadEvidenceEntry::CommandProjectionActivationDenied(_)
-        | ValidationReloadEvidenceEntry::AppearanceActivationDenied(_)
-        | ValidationReloadEvidenceEntry::DensityActivationDenied(_)
-        | ValidationReloadEvidenceEntry::InputUnreadable(_) => None,
-    }
-}
-
-fn latest_authored_structural(
-    entry: &ValidationReloadEvidenceEntry,
-) -> Option<ValidationAuthoredStructuralReloadEvidence> {
-    match entry {
-        ValidationReloadEvidenceEntry::RuntimeReload {
-            authored_structural,
-            ..
-        }
-        | ValidationReloadEvidenceEntry::AuthoredBatchReload {
-            authored_structural,
-            ..
-        } => authored_structural.clone(),
-        ValidationReloadEvidenceEntry::ThemeDenied(_)
-        | ValidationReloadEvidenceEntry::ThemeReload { .. }
-        | ValidationReloadEvidenceEntry::CommandReload { .. }
-        | ValidationReloadEvidenceEntry::ComponentReload { .. }
-        | ValidationReloadEvidenceEntry::CommandProjectionReload { .. }
-        | ValidationReloadEvidenceEntry::AppearanceReload { .. }
-        | ValidationReloadEvidenceEntry::DensityReload { .. }
-        | ValidationReloadEvidenceEntry::SourceActivationDenied(_)
-        | ValidationReloadEvidenceEntry::ThemeActivationDenied(_)
-        | ValidationReloadEvidenceEntry::ComponentActivationDenied(_)
-        | ValidationReloadEvidenceEntry::CommandActivationDenied(_)
-        | ValidationReloadEvidenceEntry::CommandProjectionActivationDenied(_)
-        | ValidationReloadEvidenceEntry::AppearanceActivationDenied(_)
-        | ValidationReloadEvidenceEntry::DensityActivationDenied(_)
-        | ValidationReloadEvidenceEntry::InputUnreadable(_) => None,
     }
 }

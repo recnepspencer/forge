@@ -6,7 +6,7 @@ use worth_ui_validation_app::reload::ValidationAuthoredReloadEdit;
 
 use primitive_interaction_support::{
     launch_interaction_workbench, prepare_interaction_reload, primitive_surface_id,
-    PRIMITIVE_SURFACE,
+    try_primitive_proof_for_surface, PRIMITIVE_SURFACE,
 };
 
 #[test]
@@ -41,9 +41,7 @@ fn invalid_interaction_values_report_one_denial_set() {
         .activate_reload(prepared)
         .expect("invalid interaction declarations can activate before projection denial");
 
-    let denial = workbench
-        .runtime()
-        .resolve_primitive_proof(&primitive_surface_id())
+    let denial = try_primitive_proof_for_surface(&workbench, &primitive_surface_id())
         .expect_err("invalid interaction declarations reject the primitive projection");
     let WorthUiPrimitiveProofDenial::InvalidInteractionValues { report } = denial else {
         panic!("expected interaction admission report");
@@ -108,9 +106,7 @@ fn unknown_command_target_rejects_through_interaction_admission() {
         .activate_reload(prepared)
         .expect("invalid interaction target can activate before projection denial");
 
-    let denial = workbench
-        .runtime()
-        .resolve_primitive_proof(&primitive_surface_id())
+    let denial = try_primitive_proof_for_surface(&workbench, &primitive_surface_id())
         .expect_err("unknown command target rejects interaction admission");
     let WorthUiPrimitiveProofDenial::InvalidInteractionValues { report } = denial else {
         panic!("expected interaction admission report");

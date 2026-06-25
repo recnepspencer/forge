@@ -1,13 +1,18 @@
-mod primitive_content_rendering;
-mod primitive_denial_rendering;
+mod frame_update;
+mod live_view;
 mod primitive_event_testing;
 mod primitive_interaction;
-mod primitive_paint_colors;
-mod primitive_proof;
 mod reload_loop_config;
 mod reset;
 mod support;
 
+pub use live_view::{
+    collect_live_view_host_observations_from_input, ValidationHostFrameObservationOutcome,
+    ValidationHostFrameObservationUnavailable, ValidationHostObservationInput,
+    ValidationLiveViewCompositionRebindDecision, ValidationLiveViewCompositionRebindRow,
+    ValidationLiveViewCompositionReloadCounters, ValidationLiveViewCompositionReloadProof,
+    ValidationLiveViewFrameMeasurementProof, ValidationLiveViewProjectionProof,
+};
 pub use primitive_event_testing::{
     ValidationMountedPrimitiveEventFrameDenial, ValidationMountedPrimitiveEventFrameReceipt,
     ValidationMountedPrimitiveEventViewport,
@@ -18,7 +23,6 @@ pub use reload_loop_config::{
 };
 
 use crate::app_proof_snapshot::ValidationAppProofSnapshot;
-use crate::header::render_header_only;
 use crate::header::ValidationHeaderSelectionAction;
 use crate::launch::{PreparedValidationWorkbenchLaunch, ValidationObservedStartupEvidence};
 use crate::manual_flow::{actions_for_flow, ValidationManualAppAction, ValidationManualFlowId};
@@ -34,19 +38,16 @@ use crate::{
     ValidationHeaderAppliedStyleReceipt, ValidationManualFlowMatrixSnapshot,
     ValidationWorkbenchAuthoredInputs,
 };
-use eframe::{App, Frame};
-use egui::{CentralPanel, Context};
-use primitive_proof::render_centered_primitive_proof;
+use live_view::prepare_live_view_document;
 use std::fs;
-use std::time::Duration;
 use support::{
     default_header_appearance_path, default_header_command_path,
     default_header_command_projection_path, default_header_component_path,
     default_header_density_path, default_validation_source_path, write_manual_reload_edit,
 };
 use worth_ui::facade::{
-    CommandId, CommandProjectionId, SurfaceId, WorthUiComponentInteractionReceipt,
-    WorthUiHeaderMenuPlan, WorthUiHeaderThemePlan, WorthUiPageHostPlan,
+    CommandId, CommandProjectionId, WorthUiComponentInteractionReceipt, WorthUiHeaderMenuPlan,
+    WorthUiHeaderThemePlan, WorthUiPageHostPlan,
 };
 
 pub struct ValidationWorkbenchApp {
@@ -54,11 +55,19 @@ pub struct ValidationWorkbenchApp {
     reload_loop: ValidationReloadLoop,
     evidence_log: ValidationReloadEvidenceLog,
     baseline_authored_inputs: ValidationWorkbenchAuthoredInputs,
+    live_view_document: Result<worth_ui::facade::WorthUiAuthoredLiveViewDocument, String>,
     observed_startup: Option<ValidationObservedStartupEvidence>,
     reload_loop_config: ValidationReloadLoopConfig,
     last_executed_flow: Option<ValidationManualFlowId>,
     last_primitive_interaction: Option<WorthUiComponentInteractionReceipt>,
     last_primitive_interaction_denial: Option<String>,
+    last_live_view_edit: Option<worth_ui::facade::WorthUiLiveViewEditReceipt>,
+    last_live_view_edit_denial: Option<worth_ui::facade::WorthUiLiveViewStateEditDenial>,
+    last_live_view_submission:
+        Option<worth_ui::facade::WorthUiLiveViewInteractionSubmissionReceipt>,
+    last_live_view_submission_denial:
+        Option<worth_ui::facade::WorthUiLiveViewInteractionActivationDenial>,
+    last_live_view_source_denial: Option<String>,
     staged_manual_reload_edit: Option<ValidationManualReloadEdit>,
 }
 impl ValidationWorkbenchApp {
@@ -72,7 +81,8 @@ impl ValidationWorkbenchApp {
         launch: PreparedValidationWorkbenchLaunch,
         reload_loop_config: ValidationReloadLoopConfig,
     ) -> Self {
-        let baseline_authored_inputs = ValidationWorkbenchAuthoredInputs::sample();
+        let baseline_authored_inputs = launch.authored_inputs().clone();
+        let live_view_document = prepare_live_view_document(&baseline_authored_inputs);
         let observed_startup = launch.observed_startup().cloned();
         Self {
             workbench: launch.into_runtime_workbench(),
@@ -80,11 +90,17 @@ impl ValidationWorkbenchApp {
                 .expect("validation reload loop should observe the header theme file"),
             evidence_log: ValidationReloadEvidenceLog::default(),
             baseline_authored_inputs,
+            live_view_document,
             observed_startup,
             reload_loop_config,
             last_executed_flow: None,
             last_primitive_interaction: None,
             last_primitive_interaction_denial: None,
+            last_live_view_edit: None,
+            last_live_view_edit_denial: None,
+            last_live_view_submission: None,
+            last_live_view_submission_denial: None,
+            last_live_view_source_denial: None,
             staged_manual_reload_edit: None,
         }
     }
@@ -107,6 +123,14 @@ impl ValidationWorkbenchApp {
 
     pub fn page_host_plan(&self) -> &WorthUiPageHostPlan {
         self.workbench.page_host_plan()
+    }
+
+    pub fn workbench(&self) -> &ValidationRuntimeWorkbench {
+        &self.workbench
+    }
+
+    pub fn workbench_mut(&mut self) -> &mut ValidationRuntimeWorkbench {
+        &mut self.workbench
     }
 
     pub fn dispatch_manual_action(&mut self, action: ValidationManualAppAction) {
@@ -303,44 +327,6 @@ impl ValidationWorkbenchApp {
         .into_render_plan()
     }
 }
-impl App for ValidationWorkbenchApp {
-    fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
-        ctx.request_repaint_after(Duration::from_millis(250));
-        self.apply_next_reload_tick();
-        let frame = self.workbench.header_frame_plan().execute_frame();
-        let header_actions =
-            render_header_only(ctx, frame.menu(), frame.theme(), frame.appearance());
-        for action in header_actions {
-            self.apply_header_selection_action(action);
-        }
-
-        let primitive_surface_id =
-            SurfaceId::new("worth.surface.preview.primitive.proof").expect("valid surface id");
-        let inner_primitive_surface_id =
-            SurfaceId::new("worth.surface.preview.primitive.inner").expect("valid surface id");
-        let primitive_receipt = self
-            .workbench
-            .runtime()
-            .resolve_primitive_proof(&primitive_surface_id);
-        let inner_primitive_receipt = self
-            .workbench
-            .runtime()
-            .resolve_primitive_proof(&inner_primitive_surface_id);
-        let mut primitive_clicked_surface_ids = Vec::new();
-        CentralPanel::default().show(ctx, |ui| {
-            primitive_clicked_surface_ids = render_centered_primitive_proof(
-                ui,
-                primitive_receipt.as_ref(),
-                inner_primitive_receipt.as_ref(),
-                self.last_primitive_interaction.as_ref(),
-                self.last_primitive_interaction_denial.as_deref(),
-            );
-        });
-        for surface_id in primitive_clicked_surface_ids {
-            self.apply_mounted_primitive_primary_click(&surface_id);
-        }
-    }
-}
 impl ValidationWorkbenchApp {
     fn apply_header_selection_action(&mut self, action: ValidationHeaderSelectionAction) {
         self.apply_dropdown_command_selection(action.projection_id(), action.command_id());
@@ -355,24 +341,54 @@ impl ValidationWorkbenchApp {
     }
 
     fn apply_next_reload_tick(&mut self) {
-        let outcome = self
-            .workbench
-            .apply_reload_tick(self.reload_loop.poll_inputs());
+        let tick = self.reload_loop.poll_inputs();
+        let ValidationReloadTick::Changed(ValidationReloadInput::LiveViewSource(source)) = tick
+        else {
+            let outcome = self.workbench.apply_reload_tick(tick);
+            self.evidence_log
+                .record_runtime_reload_tick_outcome(outcome);
+            return;
+        };
+        match self.hot_reload_live_view_source(source.source_text().to_owned()) {
+            Ok(_) => {
+                self.last_live_view_edit_denial = None;
+                self.last_live_view_submission_denial = None;
+                self.last_live_view_source_denial = None;
+            }
+            Err(denial) => {
+                self.last_live_view_source_denial = Some(denial);
+            }
+        }
+    }
+
+    fn apply_runtime_reload_tick(&mut self, tick: ValidationReloadTick) {
+        let outcome = self.workbench.apply_reload_tick(tick);
         self.evidence_log
             .record_runtime_reload_tick_outcome(outcome);
     }
 
     fn apply_next_reload_tick_with_capture(&mut self) -> Option<ValidationCapturedAuthoredBatch> {
         let tick = self.reload_loop.poll_inputs();
+        if let ValidationReloadTick::Changed(ValidationReloadInput::LiveViewSource(source)) = tick {
+            match self.hot_reload_live_view_source(source.source_text().to_owned()) {
+                Ok(_) => {
+                    self.last_live_view_edit_denial = None;
+                    self.last_live_view_submission_denial = None;
+                    self.last_live_view_source_denial = None;
+                }
+                Err(denial) => {
+                    self.last_live_view_source_denial = Some(denial);
+                }
+            }
+            return None;
+        }
         let captured = match &tick {
             ValidationReloadTick::Changed(ValidationReloadInput::ObservedAuthoredBatch(batch)) => {
                 Some(ValidationCapturedAuthoredBatch::new(batch.clone()))
             }
             _ => None,
         };
-        let outcome = self.workbench.apply_reload_tick(tick);
-        self.evidence_log
-            .record_runtime_reload_tick_outcome(outcome);
+        self.apply_runtime_reload_tick(tick);
         captured
     }
 }

@@ -1,7 +1,14 @@
-use crate::capability::SurfaceId;
+mod activation;
+
 use crate::runtime::{
-    WorthUiInteractionActivationRequest, WorthUiInteractionKind, WorthUiInteractionPayload,
-    WorthUiInteractionReadiness, WorthUiInteractionReceipt, WorthUiMountedInteractionGesture,
+    WorthUiInteractionKind, WorthUiInteractionOperabilityReceipt, WorthUiInteractionPayload,
+    WorthUiInteractionReadiness, WorthUiInteractionReceipt,
+};
+
+pub use activation::{
+    WorthUiPrimitiveActivationAffordanceReceipt, WorthUiPrimitiveActivationPosture,
+    WorthUiPrimitiveOperabilityBasis, WorthUiPrimitiveOperabilityPosture,
+    WorthUiPrimitiveOperabilityReceipt, WorthUiPrimitiveSelectionPosture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -38,59 +45,29 @@ pub enum WorthUiPrimitiveFocusPosture {
     Focusable,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthUiPrimitiveOperabilityPosture {
-    Enabled,
-    Disabled,
-    Readonly,
-    Inert,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthUiPrimitiveOperabilityBasis {
-    Enabled,
-    PrimitiveDisabled,
-    InteractionReadinessDisabled,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct WorthUiPrimitiveOperabilityReceipt {
-    posture: WorthUiPrimitiveOperabilityPosture,
-    basis: WorthUiPrimitiveOperabilityBasis,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct WorthUiPrimitiveActivationAffordanceReceipt {
-    can_activate: bool,
-    cursor: WorthUiPrimitiveResolvedCursorPosture,
-    focus: WorthUiPrimitiveFocusPosture,
-    operability: WorthUiPrimitiveOperabilityReceipt,
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthUiPrimitiveInteractionReceipt {
     kind: WorthUiPrimitiveInteractionKind,
     cursor: WorthUiPrimitiveCursorPosture,
     focus: WorthUiPrimitiveFocusPosture,
-    disabled: bool,
-    selected: bool,
+    selection_posture: WorthUiPrimitiveSelectionPosture,
     operability: WorthUiPrimitiveOperabilityReceipt,
     affordance: WorthUiPrimitiveActivationAffordanceReceipt,
     interaction: WorthUiInteractionReceipt,
 }
 
 impl WorthUiPrimitiveInteractionReceipt {
-    pub(crate) fn new(
+    pub(crate) fn from_graph_operability(
         kind: WorthUiInteractionKind,
         cursor: WorthUiPrimitiveCursorPosture,
         focus: WorthUiPrimitiveFocusPosture,
-        disabled: bool,
         selected: bool,
         resolved_cursor: WorthUiPrimitiveResolvedCursorPosture,
         interaction: WorthUiInteractionReceipt,
+        graph_operability: &WorthUiInteractionOperabilityReceipt,
     ) -> Self {
         let operability =
-            WorthUiPrimitiveOperabilityReceipt::resolve(disabled, interaction.readiness());
+            WorthUiPrimitiveOperabilityReceipt::from_interaction_operability(graph_operability);
         let affordance = WorthUiPrimitiveActivationAffordanceReceipt::resolve(
             resolved_cursor,
             focus,
@@ -100,8 +77,7 @@ impl WorthUiPrimitiveInteractionReceipt {
             kind: primitive_kind(kind),
             cursor,
             focus,
-            disabled,
-            selected,
+            selection_posture: WorthUiPrimitiveSelectionPosture::from_selected(selected),
             operability,
             affordance,
             interaction,
@@ -120,12 +96,8 @@ impl WorthUiPrimitiveInteractionReceipt {
         self.focus
     }
 
-    pub fn disabled(&self) -> bool {
-        self.disabled
-    }
-
-    pub fn selected(&self) -> bool {
-        self.selected
+    pub fn selection_posture(&self) -> WorthUiPrimitiveSelectionPosture {
+        self.selection_posture
     }
 
     pub fn interaction_id(&self) -> &str {
@@ -150,105 +122,6 @@ impl WorthUiPrimitiveInteractionReceipt {
 
     pub fn lane_receipt(&self) -> &WorthUiInteractionReceipt {
         &self.interaction
-    }
-
-    pub fn activation_request(
-        &self,
-        surface_id: &SurfaceId,
-        gesture: WorthUiMountedInteractionGesture,
-    ) -> WorthUiInteractionActivationRequest {
-        WorthUiInteractionActivationRequest::new(
-            surface_id.clone(),
-            self.interaction_id(),
-            self.interaction.kind(),
-            gesture,
-        )
-    }
-}
-
-impl WorthUiPrimitiveOperabilityReceipt {
-    fn resolve(primitive_disabled: bool, readiness: WorthUiInteractionReadiness) -> Self {
-        if primitive_disabled {
-            return Self {
-                posture: WorthUiPrimitiveOperabilityPosture::Disabled,
-                basis: WorthUiPrimitiveOperabilityBasis::PrimitiveDisabled,
-            };
-        }
-        if readiness == WorthUiInteractionReadiness::Disabled {
-            return Self {
-                posture: WorthUiPrimitiveOperabilityPosture::Disabled,
-                basis: WorthUiPrimitiveOperabilityBasis::InteractionReadinessDisabled,
-            };
-        }
-        Self {
-            posture: WorthUiPrimitiveOperabilityPosture::Enabled,
-            basis: WorthUiPrimitiveOperabilityBasis::Enabled,
-        }
-    }
-
-    pub fn posture(&self) -> WorthUiPrimitiveOperabilityPosture {
-        self.posture
-    }
-
-    pub fn basis(&self) -> WorthUiPrimitiveOperabilityBasis {
-        self.basis
-    }
-
-    pub fn can_activate(&self) -> bool {
-        self.posture == WorthUiPrimitiveOperabilityPosture::Enabled
-    }
-
-    pub fn can_focus(&self) -> bool {
-        self.posture == WorthUiPrimitiveOperabilityPosture::Enabled
-    }
-
-    pub fn disabled_posture(&self) -> bool {
-        self.posture == WorthUiPrimitiveOperabilityPosture::Disabled
-    }
-}
-
-impl WorthUiPrimitiveActivationAffordanceReceipt {
-    fn resolve(
-        resolved_cursor: WorthUiPrimitiveResolvedCursorPosture,
-        authored_focus: WorthUiPrimitiveFocusPosture,
-        operability: WorthUiPrimitiveOperabilityReceipt,
-    ) -> Self {
-        let cursor = if !operability.can_activate() {
-            WorthUiPrimitiveResolvedCursorPosture::NotAllowed
-        } else {
-            resolved_cursor
-        };
-        let focus = if operability.can_focus() {
-            authored_focus
-        } else {
-            WorthUiPrimitiveFocusPosture::None
-        };
-        Self {
-            can_activate: operability.can_activate(),
-            cursor,
-            focus,
-            operability,
-        }
-    }
-
-    pub fn can_activate(&self) -> bool {
-        self.can_activate
-    }
-
-    pub fn cursor(&self) -> WorthUiPrimitiveResolvedCursorPosture {
-        self.cursor
-    }
-
-    pub fn focus(&self) -> WorthUiPrimitiveFocusPosture {
-        self.focus
-    }
-
-    pub fn disabled_posture(&self) -> bool {
-        self.operability.disabled_posture()
-    }
-
-    pub fn operability(&self) -> &WorthUiPrimitiveOperabilityReceipt {
-        &self.operability
     }
 }
 

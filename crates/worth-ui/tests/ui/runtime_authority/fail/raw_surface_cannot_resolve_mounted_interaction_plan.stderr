@@ -1,0 +1,13 @@
+error[E0624]: method `resolve_mounted_interaction_plan` is private
+  --> tests/ui/runtime_authority/fail/raw_surface_cannot_resolve_mounted_interaction_plan.rs:12:21
+   |
+12 |       let _ = runtime.resolve_mounted_interaction_plan(request);
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/runtime/host_interaction_lane.rs
+   |
+   | /     pub(crate) fn resolve_mounted_interaction_plan(
+   | |         &self,
+   | |         request: WorthUiMountedInteractionPlanRequest,
+   | |     ) -> Result<WorthUiMountedInteractionPlan, WorthUiInteractionSubmissionDenial> {
+   | |__________________________________________________________________________________- private method defined here

@@ -46,11 +46,20 @@ pub fn resolve_projection(
 ) -> Result<WorthUiPrimitiveProjectionReceipt, WorthUiPrimitiveProofDenial> {
     workbench
         .runtime()
-        .resolve_primitive_projection(&primitive_surface_id(), mapping)
+        .resolve_primitive_projection_for_target(&primitive_target(workbench), mapping)
 }
 
 fn primitive_surface_id() -> SurfaceId {
     SurfaceId::new(PRIMITIVE_SURFACE).expect("valid primitive surface id")
+}
+
+fn primitive_target(
+    workbench: &ValidationRuntimeWorkbench,
+) -> worth_ui::facade::WorthUiPrimitiveProofTargetBinding {
+    workbench
+        .runtime()
+        .bind_authored_primitive_proof_target(&primitive_surface_id())
+        .expect("appearance primitive projection target binds")
 }
 
 fn stable_appearance_state_inputs() -> ValidationWorkbenchAuthoredInputs {

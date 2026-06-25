@@ -10,7 +10,7 @@ impl CapabilitySnapshotDigest {
     #[allow(dead_code)]
     pub(crate) fn from_metrics(metrics: SnapshotMetrics) -> Self {
         Self::from_metrics_and_registry_bases(
-            metrics, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            metrics, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         )
     }
 
@@ -22,6 +22,7 @@ impl CapabilitySnapshotDigest {
         appearance_basis: u64,
         density_basis: u64,
         icon_basis: u64,
+        image_asset_basis: u64,
         surface_basis: u64,
         mosaic_region_basis: u64,
         mosaic_placement_basis: u64,
@@ -45,6 +46,7 @@ impl CapabilitySnapshotDigest {
                 ^ appearance_basis.rotate_left(2)
                 ^ density_basis.rotate_left(61)
                 ^ icon_basis.rotate_left(41)
+                ^ image_asset_basis.rotate_left(47)
                 ^ surface_basis.rotate_left(53)
                 ^ mosaic_region_basis.rotate_left(7)
                 ^ mosaic_placement_basis.rotate_left(19)

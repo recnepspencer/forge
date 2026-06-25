@@ -5,6 +5,7 @@ mod driver;
 mod driver_support;
 mod evidence;
 mod mapping_receipt;
+mod prepared_reload_activation;
 mod request;
 
 pub use driver::WorthUiValidationPreparedReload;

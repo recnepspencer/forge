@@ -1,0 +1,47 @@
+warning: unreachable expression
+  --> tests/ui/runtime_authority/fail/effective_viewport_participation_receipt_fields_not_public.rs:17:18
+   |
+16 |         visual_frame: panic!("field construction should be impossible"),
+   |                       ------------------------------------------------- any code following this expression is unreachable
+17 |         visible: true,
+   |                  ^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `rows`, `consumed_facts`, `counters` and `receipt_digest` of struct `WorthUiEffectiveViewportParticipationReceipt` are private
+  --> tests/ui/runtime_authority/fail/effective_viewport_participation_receipt_fields_not_public.rs:8:9
+   |
+ 7 |     let _receipt = WorthUiEffectiveViewportParticipationReceipt {
+   |                    -------------------------------------------- in this type
+ 8 |         rows: Vec::new(),
+   |         ^^^^ private field
+ 9 |         consumed_facts: Vec::new(),
+   |         ^^^^^^^^^^^^^^ private field
+10 |         counters: WorthUiEffectiveViewportParticipationCounters::default(),
+   |         ^^^^^^^^ private field
+11 |         receipt_digest: 0,
+   |         ^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `node_id`, `visual_frame`, `visible`, `hit_participates`, `focus_participates`, `accessibility_participates`, `measurement_participates`, `governing_boundary_count` and `receipt_digest` of struct `WorthUiEffectiveViewportParticipationRow` are private
+  --> tests/ui/runtime_authority/fail/effective_viewport_participation_receipt_fields_not_public.rs:15:9
+   |
+14 |     let _row = WorthUiEffectiveViewportParticipationRow {
+   |                ---------------------------------------- in this type
+15 |         node_id: "node".to_owned(),
+   |         ^^^^^^^ private field
+16 |         visual_frame: panic!("field construction should be impossible"),
+   |         ^^^^^^^^^^^^ private field
+17 |         visible: true,
+   |         ^^^^^^^ private field
+18 |         hit_participates: true,
+   |         ^^^^^^^^^^^^^^^^ private field
+19 |         focus_participates: true,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+20 |         accessibility_participates: true,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+21 |         measurement_participates: true,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+22 |         governing_boundary_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+23 |         receipt_digest: 0,
+   |         ^^^^^^^^^^^^^^ private field

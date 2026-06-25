@@ -17,12 +17,10 @@ use crate::runtime::plan_inspection::WorthUiExecutionPlanInspector;
 use crate::runtime::preservation::{WorthUiLastValidObservation, WorthUiLastValidRuntimeState};
 use crate::runtime::query_binding::WorthUiQueryBindingComparisonPlanner;
 use crate::runtime::query_live_rebind::WorthUiQueryLiveRebindPlanner;
-use crate::runtime::reconciliation::WorthUiDurableStateReconciliationPlanner;
 use crate::runtime::replacement::WorthUiNodeReplacementClassifier;
-use crate::runtime::source_ingress::WorthUiSourceWatcher;
-use crate::runtime::state_inventory::WorthUiDurableStateInventoryBuilder;
 #[cfg(test)]
 use crate::runtime::WorthUiComponentLoweringHook;
+use crate::runtime::WorthUiRuntimeGraphAuthority;
 use crate::runtime::{
     WorthUiActivationStagingDenial, WorthUiAdmittedReplacementCandidate,
     WorthUiAmbiguousReplacementDenial, WorthUiExecutionPlanInput, WorthUiIdentityMatchDenial,
@@ -41,7 +39,6 @@ use crate::runtime::{
     WorthUiRuntimeChangeFamilyRow, WorthUiRuntimeInstanceWitness, WorthUiValidationReloadEvidence,
 };
 use crate::runtime::{
-    WorthUiDurableStateInventory, WorthUiDurableStateReconciliationDenial,
     WorthUiDurableStateReconciliationPlan, WorthUiQueryBindingComparison,
     WorthUiQueryBindingComparisonDenial, WorthUiQueryLiveRebindPlan,
     WorthUiQueryLiveRebindPlanDenial,
@@ -58,6 +55,7 @@ pub struct WorthUiRuntimeHost {
     instance_id: WorthUiRuntimeInstanceId,
     active: WorthUiActiveRuntimeState,
     last_valid: WorthUiLastValidRuntimeState,
+    pub(crate) graph_authority: WorthUiRuntimeGraphAuthority,
 }
 
 impl WorthUiRuntimeHost {
@@ -91,6 +89,7 @@ impl WorthUiRuntimeHost {
             instance_id: WorthUiRuntimeInstanceId::next(),
             active,
             last_valid,
+            graph_authority: WorthUiRuntimeGraphAuthority::new(),
         })
     }
 
@@ -151,26 +150,6 @@ impl WorthUiRuntimeHost {
         identity_report: &WorthUiIdentityMatchReport,
     ) -> Result<WorthUiNodeReplacementPlan, WorthUiAmbiguousReplacementDenial> {
         WorthUiNodeReplacementClassifier::classify(impact, narrowing, identity_report)
-    }
-
-    pub fn durable_state_inventory(&self) -> WorthUiDurableStateInventoryBuilder {
-        WorthUiDurableStateInventoryBuilder::new()
-    }
-
-    pub fn source_ingress(
-        &self,
-        provider: crate::runtime::WorthUiSourceProvider,
-    ) -> WorthUiSourceWatcher {
-        WorthUiSourceWatcher::new(provider)
-    }
-
-    pub fn reconcile_durable_state(
-        &self,
-        node_plan: &WorthUiNodeReplacementPlan,
-        inventory: &WorthUiDurableStateInventory,
-    ) -> Result<WorthUiDurableStateReconciliationPlan, WorthUiDurableStateReconciliationDenial>
-    {
-        WorthUiDurableStateReconciliationPlanner::reconcile(node_plan, inventory)
     }
 
     pub fn compare_query_bindings(

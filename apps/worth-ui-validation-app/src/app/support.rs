@@ -32,6 +32,10 @@ pub(super) fn default_validation_source_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("source/header.wui")
 }
 
+pub(super) fn default_live_view_source_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("source/live_view.worth")
+}
+
 pub(super) fn resolve_manual_reload_edit(
     config: &ValidationReloadLoopConfig,
     edit: ValidationManualReloadEdit,
@@ -151,6 +155,11 @@ pub(super) fn restore_baseline_observed_files(
     if let Some(density_path) = config.density_path() {
         if let Some(density) = authored_inputs.density() {
             fs::write(density_path, density.source_text())?;
+        }
+    }
+    if let Some(live_view_path) = config.live_view_path() {
+        if let Some(live_view) = authored_inputs.live_view() {
+            fs::write(live_view_path, live_view.source_text())?;
         }
     }
     Ok(())

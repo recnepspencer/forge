@@ -1,6 +1,6 @@
 use worth_ui::facade::{
-    WorthUiPrimitiveEventContainment, WorthUiPrimitiveEventRegionOrder,
-    WorthUiPrimitiveEventRegionReceipt, WorthUiPrimitiveFrame,
+    WorthUiPrimitiveActivationPosture, WorthUiPrimitiveEventContainment,
+    WorthUiPrimitiveEventRegionOrder, WorthUiPrimitiveEventRegionReceipt, WorthUiPrimitiveFrame,
     WorthUiPrimitiveHitFrameDerivationReceipt, WorthUiPrimitivePointerCapture,
     WorthUiPrimitiveResolvedCursorPosture,
 };
@@ -15,7 +15,7 @@ fn main() {
         hit_frame: frame(),
         hit_frame_derivation: derivation(),
         cursor: WorthUiPrimitiveResolvedCursorPosture::Pointer,
-        can_activate: true,
+        activation_posture: activation_posture(),
         containment: WorthUiPrimitiveEventContainment::Contain,
         capture: WorthUiPrimitivePointerCapture::None,
         receipt_digest: 1,
@@ -27,5 +27,9 @@ fn frame() -> WorthUiPrimitiveFrame {
 }
 
 fn derivation() -> WorthUiPrimitiveHitFrameDerivationReceipt {
+    panic!("fixture only checks event region field privacy")
+}
+
+fn activation_posture() -> WorthUiPrimitiveActivationPosture {
     panic!("fixture only checks event region field privacy")
 }

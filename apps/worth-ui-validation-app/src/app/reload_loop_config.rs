@@ -4,7 +4,8 @@ use crate::ValidationWorkbenchAuthoredInputs;
 use super::support::{
     default_header_appearance_path, default_header_command_path,
     default_header_command_projection_path, default_header_component_path,
-    default_header_density_path, default_header_theme_path, default_validation_source_path,
+    default_header_density_path, default_header_theme_path, default_live_view_source_path,
+    default_validation_source_path,
 };
 
 pub fn default_reload_loop_config() -> ValidationReloadLoopConfig {
@@ -20,7 +21,8 @@ pub fn default_reload_loop_config_from_authored_inputs(
         .with_command_projection_path(default_header_command_projection_path())
         .with_component_path(default_header_component_path())
         .with_appearance_path(default_header_appearance_path())
-        .with_density_path(default_header_density_path());
+        .with_density_path(default_header_density_path())
+        .with_live_view_path(default_live_view_source_path());
     if let Some(authored_inputs) = authored_inputs {
         config = config.with_initial_source(authored_inputs.source().clone());
         if let Some(theme) = authored_inputs.theme() {
@@ -40,6 +42,9 @@ pub fn default_reload_loop_config_from_authored_inputs(
         }
         if let Some(density) = authored_inputs.density() {
             config = config.with_initial_density(density.clone());
+        }
+        if let Some(live_view) = authored_inputs.live_view() {
+            config = config.with_initial_live_view(live_view.clone());
         }
     }
     config

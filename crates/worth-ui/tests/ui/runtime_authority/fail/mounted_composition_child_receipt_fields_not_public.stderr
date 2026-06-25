@@ -1,0 +1,15 @@
+error[E0451]: fields `parent_id`, `order`, `composition_node`, `mounted_node` and `receipt_digest` of struct `WorthUiMountedCompositionChildReceipt` are private
+  --> tests/ui/runtime_authority/fail/mounted_composition_child_receipt_fields_not_public.rs:8:9
+   |
+ 7 |     let _forged = WorthUiMountedCompositionChildReceipt {
+   |                   ------------------------------------- in this type
+ 8 |         parent_id: String::new(),
+   |         ^^^^^^^^^ private field
+ 9 |         order: 0,
+   |         ^^^^^ private field
+10 |         composition_node: forged_composition_node(),
+   |         ^^^^^^^^^^^^^^^^ private field
+11 |         mounted_node: forged_mounted_node(),
+   |         ^^^^^^^^^^^^ private field
+12 |         receipt_digest: 0,
+   |         ^^^^^^^^^^^^^^ private field

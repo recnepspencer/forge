@@ -1,8 +1,10 @@
 mod changed_fact_evidence_row;
 mod rebind_plan;
 
-use crate::capability::SurfaceId;
-use crate::runtime::{WorthUiRuntimeHost, WorthUiValidationChangedFactMappingReceipt};
+use crate::runtime::{
+    WorthUiPrimitiveProofTargetBinding, WorthUiRuntimeHost,
+    WorthUiValidationChangedFactMappingReceipt,
+};
 
 pub use changed_fact_evidence_row::WorthUiPrimitiveChangedFactEvidenceRow;
 pub use rebind_plan::WorthUiPrimitiveProjectionRebindPlan;
@@ -24,12 +26,13 @@ pub struct WorthUiPrimitiveProjectionReceipt {
 }
 
 impl WorthUiRuntimeHost {
-    pub fn resolve_primitive_projection(
+    pub fn resolve_primitive_projection_for_target(
         &self,
-        surface_id: &SurfaceId,
+        target: &WorthUiPrimitiveProofTargetBinding,
         changed_fact_mapping: Option<&WorthUiValidationChangedFactMappingReceipt>,
     ) -> Result<WorthUiPrimitiveProjectionReceipt, WorthUiPrimitiveProofDenial> {
-        let primitive_receipt = self.resolve_primitive_proof(surface_id)?;
+        let surface_id = target.surface_id();
+        let primitive_receipt = self.resolve_primitive_proof_for_target(target)?;
         let changed_rows = changed_fact_mapping
             .map(|mapping| primitive_changed_rows(mapping, surface_id.as_str()))
             .unwrap_or_default();

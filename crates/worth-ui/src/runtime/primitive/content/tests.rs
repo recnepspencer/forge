@@ -4,6 +4,7 @@ mod capability_posture_tests;
 mod changed_fact_tests;
 mod consumer_contract_tests;
 mod diagnostics_tests;
+mod graph_consumption_tests;
 mod interaction_boundary_tests;
 mod metrics_tests;
 mod presentation_tests;

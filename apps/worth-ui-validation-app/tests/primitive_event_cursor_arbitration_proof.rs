@@ -1,7 +1,8 @@
 use worth_ui::facade::{
-    SurfaceId, WorthUiPrimitiveEventDispatchOutcome, WorthUiPrimitiveEventDispatchPlan,
-    WorthUiPrimitiveEventHitTestPoint, WorthUiPrimitiveEventRegionOrder,
-    WorthUiPrimitiveEventRegionReceipt, WorthUiPrimitiveResolvedCursorPosture,
+    SurfaceId, WorthUiPrimitiveEventDispatchCandidateReceipt, WorthUiPrimitiveEventDispatchOutcome,
+    WorthUiPrimitiveEventDispatchPlan, WorthUiPrimitiveEventHitTestPoint,
+    WorthUiPrimitiveEventRegionOrder, WorthUiPrimitiveEventRegionReceipt,
+    WorthUiPrimitiveProofReceipt, WorthUiPrimitiveResolvedCursorPosture,
 };
 use worth_ui_validation_app::reload::{ValidationAuthoredReloadEdit, ValidationReloadRequest};
 use worth_ui_validation_app::{
@@ -19,6 +20,8 @@ fn cursor_arbitration_explains_nested_region_winner_and_counters() {
         &[
             edit(OUTER_SURFACE, "event_cursor", "text"),
             edit(INNER_SURFACE, "event_cursor", "grab"),
+            edit(INNER_SURFACE, "primitive_disabled", "false"),
+            edit(INNER_SURFACE, "interaction_readiness", "enabled"),
         ],
     );
     let event_plan = nested_event_plan(&workbench);
@@ -27,16 +30,25 @@ fn cursor_arbitration_explains_nested_region_winner_and_counters() {
         .iter()
         .find(|region| region.surface_id() == INNER_SURFACE)
         .expect("inner event region exists");
-    let receipt = event_plan.cursor_receipt_at(center_of(inner_region.hit_frame()));
+    let inner_point = center_of(inner_region.hit_frame());
+    let target = workbench
+        .runtime()
+        .bind_primitive_event_dispatch_target(&event_plan, inner_point)
+        .expect("inner cursor target binds");
+    let receipt = event_plan.cursor_receipt_for_target(&target, inner_point);
 
     assert_eq!(receipt.primary_surface_id(), Some(INNER_SURFACE));
     assert_eq!(
         receipt.cursor(),
         WorthUiPrimitiveResolvedCursorPosture::Grab
     );
-    assert_eq!(
+    assert!(matches!(
         receipt.outcome(),
-        WorthUiPrimitiveEventDispatchOutcome::HitNoActivation
+        WorthUiPrimitiveEventDispatchOutcome::Denied(_)
+    ));
+    assert_eq!(
+        receipt.query_graph_execution().selected_obligation_count(),
+        6
     );
     assert_eq!(receipt.counters().region_count(), 2);
     assert_eq!(receipt.counters().cursor_candidate_count(), 2);
@@ -44,6 +56,38 @@ fn cursor_arbitration_explains_nested_region_winner_and_counters() {
         .candidates()
         .iter()
         .any(|candidate| candidate.surface_id() == INNER_SURFACE && candidate.selected()));
+}
+
+#[test]
+fn disabled_hover_is_diagnostic_disabled_hit_not_enabled_cursor_target() {
+    let workbench = launch_workbench();
+    let event_plan = nested_event_plan(&workbench);
+    let inner_region = event_plan
+        .regions()
+        .iter()
+        .find(|region| region.surface_id() == INNER_SURFACE)
+        .expect("inner event region exists");
+    let inner_point = center_of(inner_region.hit_frame());
+    let target = workbench
+        .runtime()
+        .bind_primitive_event_dispatch_target(&event_plan, inner_point)
+        .expect("inner cursor target binds");
+    let receipt = event_plan.cursor_receipt_for_target(&target, inner_point);
+
+    assert_eq!(
+        receipt.cursor(),
+        WorthUiPrimitiveResolvedCursorPosture::NotAllowed
+    );
+    assert!(matches!(
+        receipt.outcome(),
+        WorthUiPrimitiveEventDispatchOutcome::Denied(_)
+    ));
+    assert!(receipt.candidates().iter().any(|candidate| matches!(
+        candidate,
+        WorthUiPrimitiveEventDispatchCandidateReceipt::DisabledHit(_)
+            if candidate.surface_id() == INNER_SURFACE
+    )));
+    assert!(receipt.emitted_surface_ids().is_empty());
 }
 
 fn launch_workbench() -> ValidationRuntimeWorkbench {
@@ -74,14 +118,8 @@ fn activate_edits(
 }
 
 fn nested_event_plan(workbench: &ValidationRuntimeWorkbench) -> WorthUiPrimitiveEventDispatchPlan {
-    let outer = workbench
-        .runtime()
-        .resolve_primitive_proof(&surface_id(OUTER_SURFACE))
-        .expect("outer primitive resolves");
-    let inner = workbench
-        .runtime()
-        .resolve_primitive_proof(&surface_id(INNER_SURFACE))
-        .expect("inner primitive resolves");
+    let outer = workbench.primitive_proof_for_authored_surface(OUTER_SURFACE);
+    let inner = workbench.primitive_proof_for_authored_surface(INNER_SURFACE);
     let outer_plan = outer.draw_plan(900.0, 600.0);
     let outer_frame = outer_plan.frame();
     let inner_plan = inner.draw_plan(outer_frame.width(), outer_frame.height());
@@ -110,6 +148,29 @@ fn edit(surface_id: &str, prop_key: &str, value: &str) -> ValidationAuthoredRelo
 
 fn surface_id(surface_id: &str) -> SurfaceId {
     SurfaceId::new(surface_id).expect("valid surface id")
+}
+
+trait PrimitiveCursorProofSupport {
+    fn primitive_proof_for_authored_surface(
+        &self,
+        surface_id: &str,
+    ) -> WorthUiPrimitiveProofReceipt;
+}
+
+impl PrimitiveCursorProofSupport for ValidationRuntimeWorkbench {
+    fn primitive_proof_for_authored_surface(
+        &self,
+        surface_id_text: &str,
+    ) -> WorthUiPrimitiveProofReceipt {
+        let surface_id = surface_id(surface_id_text);
+        let target = self
+            .runtime()
+            .bind_authored_primitive_proof_target(&surface_id)
+            .expect("primitive target binds");
+        self.runtime()
+            .resolve_primitive_proof_for_target(&target)
+            .expect("primitive proof resolves")
+    }
 }
 
 fn center_of(frame: worth_ui::facade::WorthUiPrimitiveFrame) -> WorthUiPrimitiveEventHitTestPoint {

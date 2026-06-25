@@ -156,6 +156,26 @@ be compile-time errors wherever Rust can encode them.
   containment, projection consumers, event regions, or changed-fact dependents
   must consume a runtime-owned graph/index view rather than rebuilding the same
   lookup through surface-local traversal.
+- Query-owned proof surfaces are not optional when Worth UI consumes Query.
+  Query support posture, hard-prohibition checks, support pinning, in-memory
+  test workspaces, adoption/residue reports, and graph-obligation coverage must
+  come from Query's Consumer Kit where those proof jobs are in play. Worth UI
+  tests must not replace them with local report structs, source greps, local
+  support-row lists, fabricated receipts, or delimiter/debug-derived proof
+  strings.
+- Query projection consumption is the ordinary bridge for materialized Query
+  facts. Worth UI may project Query meaning into UI runtime facts, but it must
+  consume typed projection fact receipts from admitted Query bindings instead
+  of reading retained rows, bridge internals, raw binding ids, or local Query
+  state maps.
+- Graph-shaped legality and dispatch must use graph-touch obligation posture
+  rather than caller memory. When a Worth UI operation touches primitive
+  construction, component containment, event dispatch, portal ordering,
+  collection windows, adaptive alternatives, or cross-component reuse, the
+  touched graph shape must select the blocking invariants, schema validators,
+  advisory obligations, preflight gates, capability screens, and operating
+  context gates that apply. Manual "remember to run this validator" code is a
+  smell unless it is a thin adapter around the graph-owned contract.
 
 ## Phase Plan
 
@@ -3071,6 +3091,15 @@ The boundary for this phase is:
   family values lower into sealed receipts, receipts publish graph facts,
   projections declare consumed facts, changed facts select projection rebinds,
   and renderer plans consume only graph-derived receipts.
+- Treat primitive construction as a graph-touch obligation lane. Birth of a
+  primitive fact family must declare the touched primitive construction meaning
+  so schema contracts, capability-gap screens, support posture, and operating
+  context gates can be selected by the graph rather than by validation-app
+  memory.
+- Where primitive proof depends on Query support or Query materialized facts,
+  consume Query Consumer Kit support/adoption evidence and typed projection fact
+  receipts instead of local support-row scans, local proof structs, or raw Query
+  binding ids.
 - Render one centered surface whose visual result comes only from the lowered
   primitive receipts.
 - Hot reload text content, named padding measurement, background, alignment,
@@ -3118,6 +3147,9 @@ The boundary for this phase is:
   surface, admitted primitive fact families, projection dependency edges,
   selected changed facts, resolved primitive receipt, and renderer draw plan as
   separate graph products derived from one active truth basis.
+- The primitive graph proof must include support/admission posture for the
+  primitive construction lane and must record which graph-touch obligations
+  were selected or found not applicable.
 
 **Warnings**
 - Do not introduce a generic "style blob" that collapses layout, content,
@@ -3287,6 +3319,14 @@ motion receipts, collection windows, or typed component composition.
   runtime-owned graph/index view with counters. Surface-local recursion,
   renderer-local hit tables, and per-call registry scans are not acceptable
   proof boundaries.
+- Each phase that performs a user-initiated operation must bind user intent to
+  a runtime-minted target proof before it acts. A `SurfaceId`, authored
+  declaration id, page slot id, component id, interaction id, host rect, or
+  pointer coordinate is identity vocabulary, not authority to edit, click,
+  submit, focus, render evidence for, animate, anchor, or dispatch into an
+  active runtime object. The proof must bind the user's intended subject to the
+  current mounted topology, active artifact basis, component identity,
+  operation family, consumed graph facts, and binding posture.
 - Each phase that is tempted to expose a CSS-like property must name the
   Worth-native family that owns the meaning instead. The spec and public APIs
   must make clear whether the capability belongs to source truth, capability
@@ -3325,6 +3365,12 @@ motion receipts, collection windows, or typed component composition.
   authored keys.
 - Manual proof evidence must name graph facts and projection consumers, not
   renderer branches or component-local state names.
+- Manual proof evidence must name the bound user-intent target when a visible
+  operation was initiated by a pointer, keyboard, manual reload edit,
+  inspector selection, or proof-control action. If an authored edit targets an
+  unmounted surface, stale surface, ambiguous surface, or surface outside the
+  current proof slot, the evidence must classify that target posture instead
+  of making it look like the mounted proof changed.
 
 ### Phase 30: Flow Layout Primitives
 
@@ -3390,6 +3436,9 @@ family used by atoms, rows, cards, menus, and inspector sections.
 - Graph-consumption tests prove flow receipts feed draw-plan facts and
   event-region facts through declared dependency edges, with no renderer-local
   parsing or layout recomputation from authored `flow_*` props.
+- Graph-index tests prove local flow placement reads child/content order,
+  baseline inputs, and event-region consumers from graph-derived receipts rather
+  than recursive renderer traversal.
 - Invalid flow-layout values produce typed schema-referenced denials without
   renderer-local parsing or string matching.
 - A single save with multiple invalid flow-layout values produces one report
@@ -3544,6 +3593,10 @@ all lower into a generic interaction lane with sealed receipts.
   operability receipts. Enabled, disabled, readonly, inert, unsupported, and
   denied interaction paths must be distinct receipt variants or typestates, not
   a set of booleans callers interpret.
+- Interaction submission must declare the touched interaction graph meaning so
+  activation eligibility, command support, containment, capability gaps, and
+  operating-context gates are selected through graph-touch obligation posture
+  rather than renderer or component memory.
 - Admit interaction declarations through structured reports with denial sets for
   invalid kind, payload, target, command, toggle, open, focus, or readiness
   values.
@@ -3576,6 +3629,9 @@ all lower into a generic interaction lane with sealed receipts.
 - Operability typestate tests prove a disabled/readiness-disabled interaction
   cannot produce an enabled activation request and cannot emit a submit,
   command, toggle, open, or focus receipt through the mounted interaction API.
+- Graph-obligation tests prove command support, activation eligibility,
+  disabled posture, and containment obligations are selected from touched
+  interaction facts rather than a local validator list.
 - Invalid interaction declarations produce one batch report with typed denials,
   counters, stable digest, and receipt-derived presentation rows.
 - Compile-fail coverage proves app code cannot mint receipts or bypass the
@@ -3630,6 +3686,10 @@ and runtime-owned rather than component-local accident.
   dispatch receipts such as no hit, enabled hit, disabled hit, bubbled,
   captured, emitted, or denied. Renderer code must not assemble event state by
   combining hit, selected, emitted, disabled, and can-activate booleans.
+- Event dispatch must enter through a graph-touch obligation lane so nested
+  containment, disabled-hit behavior, capture, bubbling, and blocked-below
+  policy are selected from graph facts and operating context rather than from
+  component-name branches.
 - Cursor posture must be a graph-derived dispatch receipt. A disabled or inert
   region may still produce a diagnostic hit and `not_allowed` cursor receipt,
   but it must not produce an enabled hover, pressed, focus, capture, or
@@ -3666,6 +3726,9 @@ and runtime-owned rather than component-local accident.
 - Graph-index tests prove nested containment, region ordering, and bubbling are
   selected from event-region graph facts rather than renderer traversal or
   component-name branches.
+- Graph-obligation tests prove event containment, disabled hit, capture, and
+  propagation checks are selected from event graph touch meaning and produce
+  typed obligation receipts or denials.
 - Editing hit padding or cursor posture changes only interaction-geometry facts
   and consuming projections.
 - Invalid cursor names, hit-area values, containment policies, or capture
@@ -3695,10 +3758,15 @@ and runtime-owned rather than component-local accident.
 - Event dispatch is where the primitive graph pays for itself: mechanically
   impossible interaction states must be banned by graph-derived receipt variants
   before appearance or interaction emission consumes them.
+- Pointer capture is certified in this phase for every behavior the current
+  egui host adapter can neutrally observe: capture start, capture owner,
+  capture release, disabled/inert denial, cancellation, bubbling interaction,
+  and cursor posture. Lower native adapter behavior may add richer host
+  observations later, but it must not create a second semantic pointer-capture
+  authority.
 
 **Open questions**
-- How much pointer-capture behavior can be certified against the current egui
-  adapter without waiting for lower native adapter work.
+- None.
 
 ### Phase 34: Universal Content Primitives
 
@@ -3716,6 +3784,10 @@ consuming their resolved state where appropriate.
 - Keep icon references through registered icon IDs, not raw asset paths.
 - Support native vector icon rendering where the host adapter can provide it,
   while preserving fallback posture as explicit capability support.
+- Content capability support, including native SVG/vector icon posture, must
+  declare content graph touches so icon registration, fallback eligibility,
+  accessibility participation, and capability-gap obligations are selected by
+  the runtime graph rather than by renderer asset guesses.
 - Publish content anatomy as graph facts consumed by flow layout, baseline
   planning, accessibility projection, appearance-tone resolution, event-region
   derivation, and renderer draw plans. Content receivers must consume content
@@ -3757,6 +3829,9 @@ consuming their resolved state where appropriate.
 - Graph-consumption tests prove the same content receipt feeds multiple
   primitive/component draw plans and accessibility projections without
   component-local content parsing.
+- Graph-obligation tests prove icon capability support, fallback posture,
+  accessibility participation, and slot/content participation are selected from
+  content graph touch meaning rather than component-local content validators.
 - Invalid content declarations produce typed denial sets with schema/capability
   identity, counters, and receipt-derived presentation rows.
 
@@ -3775,508 +3850,447 @@ consuming their resolved state where appropriate.
 - Icons are capabilities and content references, not renderer literals.
 - Text measurement and baseline behavior are part of content/layout proof, not
   button polish.
+- Phase 34 admits plain text anatomy, icon/text measurement, badges, dividers,
+  image-ready content, groups, slots, and accessibility posture. Rich text and
+  code text wait for the later text/editor milestone because they require their
+  own syntax, selection, editing, measurement, accessibility, and host adapter
+  obligations.
 
 **Open questions**
-- Whether rich text/code text should enter here or wait for the text/editor
-  milestone.
+- None.
 
-### Phase 35: Motion and Transition Recipes
+### Phase 34.1: User Intent Target Binding
 
-This phase adds time as authored runtime meaning without allowing arbitrary
-per-frame script. Motion should be a recipe over admitted properties with
-deterministic interruption, reduced-motion posture, and reload behavior.
+This phase retrofits Phases 29-34 with the missing authority boundary: user
+intent must bind to the active runtime target before any visible operation can
+act. The problem is broader than primitive proof targeting. A human, host,
+manual proof flow, inspector, or authored reload edit may intend to act on "the
+visible proof," "the hovered region," "the selected surface," or "the submit
+button," but a raw surface id or host coordinate does not prove which mounted
+runtime object currently satisfies that intent.
+
+Mechanically, Worth UI must introduce a runtime-owned user-intent target
+binding lane. It resolves an intent source and intended subject against the
+current mounted topology, page/content slot, active artifact basis, component
+identity, operation family, and consumed graph facts. The result is a sealed
+target proof with a binding posture such as bound, unmounted, stale, ambiguous,
+out-of-scope, or denied. Active primitive operations consume that proof instead
+of accepting raw `SurfaceId`, authored declaration ids, page slot ids,
+interaction ids, host rectangles, or pointer coordinates as authority.
+
+**Scope**
+- This phase applies only to the primitive proof ladder already introduced in
+  Phases 29-34: primitive proof resolution, flow layout, appearance state,
+  mounted interaction planning/submission, event geometry/dispatch, and content
+  anatomy/evidence.
+- Later phases consume the same target-binding lane rather than introducing
+  family-local target resolvers.
+- This phase does not add a new visual widget. It makes the existing centered
+  proof, nested event proof, content proof, and manual hot-reload proof use one
+  runtime-minted target authority.
 
 **Requirements**
-- Add transition recipes over admitted appearance fields such as background,
-  foreground, border color, border width, radius, opacity, shadow, and
-  transform where supported.
-- Define easing, duration, delay, interruption, retarget, cancel, and
-  reduced-motion posture.
-- Lower motion recipes into runtime motion receipts consumed by renderers.
-- Publish active motion as graph facts derived from admitted motion receipts,
-  active observation receipts, reduced-motion policy, elapsed host time, and
-  prior motion continuity receipts. Renderer code may supply elapsed time and
-  draw interpolated plans, but it may not choose easing, interruption,
-  reduced-motion behavior, retarget policy, or active motion legality.
-- Admit motion recipes through batch reports with typed denials for invalid
-  easing, duration, delay, animated field, interruption, retarget, cancel, and
-  reduced-motion values.
-- Hot reload duration, easing, and animated field sets.
-- Prove hover/press/focus transitions on the centered primitive without
-  renderer-local animation policy.
+- Add a sealed user-intent target binding proof for active primitive operations.
+  The proof must bind:
+  - intent source: manual reload edit, proof-control action, host pointer,
+    keyboard/focus request, inspector selection, or authored operation request
+  - intended subject: proof slot, visible primitive, mounted region, selected
+    surface, interaction affordance, content anatomy, or event target
+  - resolved runtime target: page slot or content slot, mounted surface id,
+    component id, active artifact basis, relevant projection/runtime facts,
+    and operation family
+  - binding posture: bound, unmounted, stale, ambiguous, out-of-scope, denied,
+    or unsupported
+  - counters proving lookup happened through runtime graph/index views rather
+    than broad scans or validation-app string search
+- Replace active operation APIs in the 29-34 proof path so they consume
+  target-binding proof instead of raw surface identity:
+  - primitive proof resolution for the visible proof
+  - manual hot-reload edits that claim to target the visible proof
+  - flow-layout proof edits
+  - appearance-state and host-observation proof
+  - mounted interaction planning/submission
+  - event hit/cursor/dispatch planning
+  - content anatomy/evidence rendering
+- Preserve raw identifiers only as input intent descriptors or terminal
+  reporting fields. They must not be accepted by an API that claims to operate
+  on an active mounted runtime object.
+- Publish user-intent target binding as graph facts consumed by primitive
+  construction proof, draw-plan/evidence rendering, event dispatch, mounted
+  interaction activation, content anatomy proof, and reload evidence.
+- Binding must declare graph touches so mounted-topology, artifact-basis,
+  page-slot, component-identity, and operation-family obligations are selected
+  through Query/graph proof instead of Worth-side resolver tables.
+- Evidence panels must display the bound target identity and binding posture
+  whenever user intent initiated the proof operation. A mismatch must be visible
+  as target-binding evidence, not as a misleading enabled/disabled or
+  edited/rendered split.
+- Validation-app helper methods must obtain target proofs from the runtime.
+  They may not mint target proofs, compare raw surface strings to decide the
+  active proof target, or silently fall back to a default surface.
+- The target proof must remain family-specific enough to prevent illegal
+  operations: a content-anatomy target cannot submit an interaction; an
+  interaction-submit target cannot stand in for evidence rendering; an event-hit
+  target cannot authorize a manual authored edit unless the runtime widens it
+  through an explicit proof transition.
+- Existing primitive receipts may expose the target-binding digest and
+  read-only target fields, but constructors and fields must remain sealed.
 
 **Warnings**
-- Do not introduce arbitrary animation callbacks or script.
-- Do not make motion alter authoritative state.
-- Do not let reduced-motion policy be renderer folklore.
-- Do not animate fields whose layout or hit-testing implications have not been
-  admitted.
-- Do not let active motion become per-frame mutable renderer state. Motion
-  continuity, interruption, cancellation, and retargeting are graph-derived
-  receipts over active truth and host time observations.
+- Do not implement this as a validation-app "current surface" variable.
+- Do not add a proof-target string to evidence and call it enforcement.
+- Do not make a generic untyped `ResolvedTarget` bag that every operation can
+  use for every family. Operation family is part of the proof.
+- Do not let a resolver perform a string lookup over authored surfaces and
+  return authority. Binding must cross the active runtime topology/artifact
+  basis.
+- Do not treat unmounted authored surfaces as errors in every context. They
+  are legal authored data, but they are not valid active-operation targets
+  unless the user's intent explicitly names an unmounted-authoring operation
+  family.
+- Do not let evidence rendering, interaction planning, and event dispatch each
+  resolve their own target independently for the same user action.
 
 **Test requirements**
-- Editing transition duration, easing, and animated fields changes motion facts
-  and rebinds consuming projections.
-- Press interrupting hover and hover leaving pressed resolve deterministically.
-- Reduced-motion policy disables, shortens, or replaces motion according to
-  runtime policy receipts.
-- Hot reload during an active transition retargets or cancels through explicit
-  receipts.
-- Graph-contract tests prove motion consumes active observation facts,
-  appearance facts, reduced-motion facts, and time observations through declared
-  dependency edges rather than renderer-side policy.
-- Invalid motion recipes preserve prior active truth and expose one denial set
-  with stable digest, counters, and receipt-derived presentation rows.
+- A manual edit aimed at an unmounted authored surface does not change the
+  mounted proof evidence and produces a target-binding posture naming the
+  unmounted or out-of-scope target.
+- The exact bug class from this phase is covered: `button.proof` disabled while
+  `primitive.proof` is mounted must not present as "visible proof disabled but
+  interaction evidence enabled." Evidence must name which target is mounted and
+  which target was edited.
+- Evidence rendering and mounted interaction planning for the centered proof
+  consume the same target-binding digest for the same user intent.
+- Appearance disabled state and interaction disabled state cannot be observed
+  from different runtime targets. If they diverge because the author changed
+  different surfaces, target-binding evidence must classify the mismatch.
+- Event hit testing produces an event-operation target proof before dispatch.
+  A stale, unmounted, or out-of-scope event target cannot emit an interaction.
+- Content anatomy evidence consumes a content-capable target proof and cannot
+  be paired with interaction evidence from a different mounted target.
+- Flow-layout and appearance hot reloads rebind only the active proof target
+  when the user's intent is "edit visible proof"; edits to other authored
+  surfaces are classified as inactive/unmounted authoring changes unless they
+  are currently mounted.
+- Graph-obligation tests prove mounted-topology, artifact-basis, page-slot,
+  component-identity, and operation-family obligations are selected from target
+  binding graph touches rather than validation-app resolver tables.
+- Compile-fail coverage proves app/renderer code cannot construct target
+  proofs, cannot pass raw `SurfaceId` to active operation APIs once a target
+  proof is required, and cannot use a target proof for the wrong operation
+  family.
+- Counter tests prove target binding uses bounded graph/index lookup and does
+  not scan every authored surface, every page slot, or every runtime receipt on
+  steady-frame operations.
 
 **Manual verification**
-- Hover and press the proof primitive and observe admitted transitions.
-- Change duration and easing while the app is running.
-- Toggle reduced-motion policy where available and confirm behavior changes
-  through runtime receipts.
-- Enter multiple invalid motion values in one save and confirm the visible
-  report shows all motion denials from runtime receipts.
+- With the centered proof mounted, edit a different authored surface to disabled
+  and confirm the visible evidence says the edit target is unmounted or
+  out-of-scope relative to the current proof target.
+- Disable the mounted centered proof and confirm appearance, cursor,
+  interaction readiness, operability, and graph obligation evidence all name the
+  same bound target.
+- Click the disabled mounted proof and confirm no submit receipt emits; the
+  denial/evidence should name the same user-intent target digest used by the
+  visible proof.
+- Switch the page/content slot to a different surface and confirm the bound
+  target digest changes while stale operations against the prior target deny.
+- Hover/click nested event regions and confirm the event target proof names the
+  chosen mounted region before dispatch evidence appears.
+- Change content from text-only to icon/text and confirm content evidence and
+  draw-plan evidence name the same bound target.
 
 **Engineering decisions**
-- Motion is runtime-owned recipe execution, not component-local animation code.
-- Appearance motion comes before layout motion because it has narrower
-  geometry consequences.
-- Active motion must remain compatible with invalid reload preserving the
-  prior valid plan.
+- The correct abstraction is user-intent target binding, not a proof-page
+  helper. It covers manual reload edits, clicks, hover, focus, evidence
+  rendering, event dispatch, content proof, and later portal/overlay anchors.
+- `SurfaceId` remains identity vocabulary. It is not authority to act on an
+  active runtime object.
+- This phase deliberately lands before motion, portals, collections, adaptive
+  layout, and button atom reuse because those phases would otherwise build on
+  loose operation targeting.
 
 **Open questions**
-- Which easing vocabulary should be admitted now versus deferred to the design
-  system milestone.
+- Whether target binding should be represented as one phantom-typed generic
+  proof family or distinct sealed proof types per operation family.
+- Which target-binding postures should be public facade vocabulary versus
+  internal denial reasons.
 
-### Phase 36: Layout Motion and Geometry Reconciliation
+### Phase 34.2: Live View State Binding
 
-This phase admits motion over size and position only where the runtime can
-prove stable identity, deterministic hit testing, and safe geometry
-reconciliation. Layout animation is stronger than appearance animation because
-it changes where interactions land.
+This phase adds the foundation for stateful UI without inventing a form engine
+or component-local state. Worth UI views must be able to declare canonical live
+view identity, bind to runtime-owned state facts, and publish sealed
+state-binding receipts. Query/runtime admits the live-view declaration, selects
+graph obligations, and publishes receipts; renderers consume receipts.
+
+The first proof is intentionally narrow: author a live view with two controls
+bound to runtime-owned state facts and prove edits flow through runtime state,
+not widget memory. No conditional rendering, readiness gate, or payload shape
+work belongs in this phase.
+
+**Scope**
+- This phase builds on Phase 34.1 target binding. A live view operation must
+  bind to the active runtime target before it observes or mutates state.
+- This phase covers live-view declaration identity, state bindings, write
+  admission, state compatibility, and graph evidence only.
+- This phase does not introduce a general form library, validation framework,
+  conditional projection engine, readiness gate, or payload projection lane.
 
 **Requirements**
-- Add admitted layout-motion recipes for size, position, expansion, collapse,
-  and transform where the layout family can prove stable identity.
-- Define geometry reconciliation for hit testing during transitions.
-- Publish layout-motion geometry as graph facts consumed by draw-plan
-  interpolation, event-region derivation, scroll anchoring, focus preservation,
-  and diagnostics. Hit testing during motion consumes reconciled geometry
-  receipts, not stale draw frames or renderer-local interpolation choices.
-- Define scroll anchoring and focus preservation behavior when animated layout
-  changes affect visible geometry.
-- Prove a panel or card expansion/collapse that hot reloads size, radius,
-  position, and transition posture while preserving interaction state.
-- Admit layout-motion and geometry reconciliation declarations through batch
-  reports with typed denials and family counters.
-- Keep unsupported layout-motion requests denied with typed diagnostics rather
-  than silently falling back to renderer behavior.
+- Add a runtime-owned live-view declaration lane with canonical identity,
+  support/admission posture, graph facts, and receipt digests.
+- A live-view declaration must name view identity, active target binding,
+  consumed runtime state facts, writable runtime state facts, and state value
+  kinds.
+- State mutation from controls must enter the runtime through an admitted
+  intent/effect lane. Do not update local widget memory and later reconcile it
+  into truth.
+- Publish live-view state bindings as graph facts consumed by control
+  projection, layout, appearance, event geometry, interaction activation, and
+  evidence.
+- Live-view admission must declare graph touches so state-binding, projection
+  consumption, support posture, and effect-intent obligations are selected by
+  Query/graph proof rather than Worth-side tables.
+- Evidence must name the live-view declaration digest, target-binding digest,
+  consumed state facts, writable state facts, state value kinds, and
+  state-binding receipt digest.
 
 **Warnings**
-- Do not animate arbitrary layout changes whose identity or hit geometry is
-  ambiguous.
-- Do not let visual interpolation desync from hit testing.
-- Do not make scroll jumps acceptable side effects of layout motion.
-- Do not treat layout motion as a reason to bypass mosaic or flow layout facts.
-- Do not let renderer animation state become the authority for current
-  geometry. The graph must own the relationship between visual interpolation,
-  event regions, focus, and scroll anchoring.
+- Do not call the deep abstraction "form." Forms are product patterns over the
+  live-view lane.
+- Do not create component-local state for controls.
+- Do not invent a local live-view graph, local state registry, or local
+  callback/event emitter when Query/runtime already owns live views, state,
+  projection consumption, effects, and support admission.
+- Do not let raw authored field names become authority to mutate runtime state.
 
 **Test requirements**
-- Admitted expansion/collapse preserves eligible focus, hover, and press state
-  through explicit reconciliation receipts.
-- Hit testing during layout motion follows the declared geometry posture.
-- Graph-contract tests prove interpolated draw frames, event regions, focus
-  preservation, and scroll anchoring consume the same layout-motion geometry
+- A view with two state bindings admits through one live-view declaration
+  receipt with target-binding, state-binding, and graph-obligation evidence.
+- Editing a control changes the bound runtime state fact through the admitted
+  state mutation lane, not through renderer-local state.
+- A state-binding identity edit invalidates only the affected live-view
+  projection consumers.
+- Invalid state binding, unsupported value kind, stale target binding, and
+  unsupported write posture in one save produce one canonical live-view
+  admission report with all denials in declaration order.
+- Compile-fail coverage proves renderer/app code cannot construct live-view
+  state-binding receipts or mutate live-view state without the admitted target
+  binding and state-binding receipt.
+
+**Manual verification**
+- Start with a live view containing two visible controls bound to runtime-owned
+  state facts.
+- Edit both controls and confirm evidence names changed runtime state facts and
+  the same live-view declaration digest.
+- Hot reload one state-binding identity and confirm only the affected control
+  projection and evidence change.
+
+**Engineering decisions**
+- The canonical abstraction is live-view state binding, not form state.
+- Runtime owns state. Query/graph owns dependency, admission, support posture,
+  projection consumption, and effect obligation selection.
+- Controls are views over runtime facts; they are not state containers.
+
+**Open questions**
+- Whether live-view declarations should initially reuse existing Query live
+  view vocabulary directly or enter through a Worth-specific consumer adapter
+  that proves admitted Query usage.
+
+### Phase 34.3: Control Projection And Conditional Participation
+
+This phase composes controls and conditional visibility over the live-view
+state bindings introduced in Phase 34.2. A text input and dropdown/select are
+different control projections over a stable state binding, not different
+sources of state truth. Conditional rendering is a projection over live facts,
+not a renderer branch.
+
+The proof adds the next product-shaped step: hot reload one control from text
+input to dropdown/select, then show a third control only when the dropdown
+value is `yes`.
+
+**Scope**
+- This phase consumes Phase 34.2 live-view state-binding receipts.
+- This phase covers control projection kind, option sources, conditional
+  projection, visibility, and participation in layout/event/accessibility.
+- This phase does not add submit readiness, effect admission, or payload
+  projection.
+
+**Requirements**
+- Model controls as projections over runtime-owned state facts. A text input
+  and dropdown/select are different control projections over a stable state
+  binding.
+- Hot reload control projection kind, option source, label/content projection,
+  layout/content projection, and support posture independently from the
+  underlying state binding where compatibility admits it.
+- Add control-projection compatibility receipts. Dropdown/text input
+  replacement must preserve runtime state unless the admitted compatibility
+  receipt says the value binding cannot be preserved.
+- Add conditional projection receipts. Conditional visibility must depend on
+  declared runtime facts and produce typed visibility, layout participation,
+  event participation, accessibility participation, and retained-state posture.
+- Publish control projection and conditional projection as graph facts consumed
+  by flow layout, content anatomy, appearance, event geometry, accessibility,
+  and evidence.
+- Evidence must name the live-view declaration digest, state-binding digest,
+  control-projection digest, conditional-projection digest, participation
+  posture, and compatibility/reconciliation receipt where applicable.
+
+**Warnings**
+- Do not let renderer code inspect `control_kind`, raw field values, or
+  authored `view_*` keys to decide visibility or participation.
+- Do not treat conditional visibility as CSS `display` or `visibility`.
+  Visibility, layout participation, event participation, accessibility
+  participation, and retained state are separate receipt-backed meanings where
+  they differ.
+- Do not let dropdown/text input replacement destroy runtime state unless the
+  compatibility receipt says preservation is denied.
+- Do not make control projection a mini-DOM.
+
+**Test requirements**
+- Changing a control from text input to dropdown/select preserves the same
+  runtime state binding and changes only the consuming control projection facts
+  when the value kind remains compatible.
+- Changing the dropdown value to `yes` produces a conditional projection update
+  that makes the third control visible without renderer-local branching.
+- Changing the dropdown value away from `yes` removes the third control from
+  layout, event, and accessibility participation while preserving runtime state
+  according to the admitted participation receipt.
+- Editing control kind, option source, conditional expression, or participation
+  posture invalidates only the affected live-view projections and consumers.
+- Invalid control projection, unsupported option source, invalid condition, and
+  unsupported participation posture in one save produce one canonical admission
+  report with all denials in declaration order.
+- Compile-fail coverage proves renderer/app code cannot construct
+  control-projection receipts, conditional-projection receipts, or
+  participation receipts.
+
+**Manual verification**
+- Start with the Phase 34.2 two-control live view.
+- Hot reload the second control from text input to dropdown/select and confirm
+  the existing runtime value binding is preserved or explicitly reconciled by
   receipt.
-- Unsupported layout-motion requests fail before activation and preserve the
-  prior active plan.
-- Editing layout-motion parameters rebinds only projections that consume the
-  motion and geometry facts.
-- Invalid or unsupported layout-motion declarations expose denial sets whose
-  presentation rows come from receipts, not renderer warnings.
-
-**Manual verification**
-- Trigger the expansion/collapse proof and interact with it during motion.
-- Hot reload the size, position, and duration values.
-- Confirm hit testing and focus stay coherent and evidence names layout-motion
-  facts.
-- Enter one unsupported geometry field and one malformed duration in a single
-  save and confirm one layout-motion report shows both denials.
+- Select `yes` and confirm a third control appears live.
+- Select a non-`yes` value and confirm the third control leaves layout/event/
+  accessibility participation while state retention evidence remains explicit.
 
 **Engineering decisions**
-- Layout motion is admitted only where geometry proof exists.
-- The phase exists to prevent later panels, inspectors, accordions, and
-  adaptive shells from inventing their own animation rules.
-- Geometry reconciliation is runtime proof, not a renderer convenience.
+- Control projection is presentation over runtime state, not state ownership.
+- Conditional rendering is a projection over live facts; it is not a renderer
+  branch.
+- Participation is broader than paint. Layout, event, accessibility, and
+  retained-state posture must stay separable.
 
 **Open questions**
-- Whether route/page transitions should wait for the workspace-shell milestone
-  or share this layout-motion family now.
+- Which value-kind compatibility cases should preserve state versus produce an
+  explicit reconciliation/drop receipt in this phase.
 
-### Phase 37: Overlay and Anchored Layout
+### Phase 34.4: Readiness, Interaction Intent, And Payload Projection
 
-This phase adds the runtime portal host needed for dropdowns, menus, popovers,
-tooltips, command palettes, overlays, anchored inspectors, modals, and toasts.
-Overlay behavior must be authored/runtime-owned instead of accidental absolute
-positioning or numeric stacking in a renderer.
+This phase adds the action layer over live-view state bindings and control
+projections. Submit enabledness is readiness/effect admission, not button
+style. Payload shape is projection meaning, not interaction callback code.
+
+The combined proof completes the motivating scenario: disable submit until the
+visible required controls are filled, click to emit a submit interaction, then
+hot reload the emitted payload shape from `{ payload: ... }` to
+`{ data: { payload: ... } }`.
+
+**Scope**
+- This phase consumes Phase 34.2 state-binding receipts and Phase 34.3 control
+  and conditional projection receipts.
+- This phase covers readiness projections, interaction intents, effect
+  admission, and payload projection.
+- This phase does not add arbitrary validation scripting, async/resource
+  loading, or multi-step workflow orchestration.
 
 **Requirements**
-- Add overlay and anchored layout primitives for anchor target, side, alignment,
-  offset, collision, flip, clamp, portal kind, portal lane, modality, dismissal,
-  focus policy, event policy, and owner identity.
-- Model anchored placement through anchor and portal receipts, not CSS
-  `position: absolute`, `fixed`, or `sticky`. Sticky-like behavior belongs to
-  collection or scroll-anchor families when it is tied to scrolling; anchored
-  cross-surface behavior belongs to the portal host.
-- Add a runtime-owned portal host that lowers admitted overlay declarations into
-  an ordered pancake list of portal entries. The list is the single truth for
-  cross-surface overlay order; paint order, hit testing, focus routing, escape
-  handling, outside-click dismissal, accessibility posture, and diagnostics all
-  consume the same portal-host receipt.
-- Lower overlay declarations into runtime overlay layout facts, portal-host
-  graph facts, ordered portal-entry receipts, and projection dependencies.
-- Integrate overlay focus and dismissal with the generic interaction lane.
-- Prove an authored button-like primitive opens a popover/menu through runtime
-  receipts.
-- Admit overlay declarations through batch reports with typed denials for
-  anchor, side, alignment, offset, collision, flip, clamp, portal kind, portal
-  lane, modality, dismissal, focus policy, event policy, and owner identity
-  values.
-- Hot reload anchor side, offset, width, collision/flip policy, dismissal
-  posture, focus policy, event policy, and portal lane where the runtime can
-  prove a legal reorder.
+- Add readiness projection receipts. Submit readiness must derive from declared
+  requiredness, current value presence, conditional visibility, support posture,
+  and active target binding.
+- Appearance, cursor, event eligibility, and interaction submission must consume
+  the same readiness receipt.
+- Add interaction intent receipts for submit-like operations. The interaction
+  lane consumes the target binding and readiness receipt before emitting.
+- Add payload projection receipts. Payload shape is live-view projection
+  meaning, not button behavior. Changing `{ payload: values }` to
+  `{ data: { payload: values } }` must hot reload the payload projection without
+  recompiling or changing renderer code.
+- Publish readiness projection, interaction intent, and payload projection as
+  graph facts consumed by appearance, event geometry, interaction activation,
+  evidence, and submission.
+- Live-view admission must declare graph touches so readiness, support posture,
+  effect intent, and payload-shape obligations are selected by Query/graph
+  proof rather than Worth-side tables.
+- Evidence must name the live-view declaration digest, target-binding digest,
+  readiness digest, interaction-intent digest, payload-projection digest, and
+  consumed state/control/conditional projection facts.
 
 **Warnings**
-- Do not build DOM-style portals, CSS-style stacking, or a second overlay
-  runtime.
-- Do not expose absolute/fixed positioning as public overlay DX. Authors
-  declare anchor, owner, modality, lane, event policy, and collision behavior;
-  the runtime computes placement.
-- Do not let popover placement live in component code.
-- Do not allow overlays to bypass focus, accessibility, or interaction
-  containment.
-- Do not make z-order an app-local integer pile. Authors declare portal meaning;
-  the runtime portal host owns ordered portal entries.
-- Do not let paint order, focus order, hit order, or dismissal order diverge.
-  They are different consumers of the same portal-host pancake receipt, not
-  separate renderer conventions.
+- Do not let the submit button own requiredness, field lookup, payload shape,
+  or disabled logic.
+- Do not let renderer code inspect raw field values to decide enabled state,
+  effect legality, or payload shape.
+- Do not flatten readiness into a boolean. Preserve admitted, denied,
+  unsupported, stale, pending, and target-mismatch postures as typed receipts
+  where they matter.
+- Do not create a local form validator or submit callback layer when
+  Query/runtime already owns readiness, effects, support admission, and
+  projection consumption.
 
 **Test requirements**
-- Overlay anchor geometry remains stable under equivalent layout source.
-- Collision and flip behavior is deterministic and receipt-backed.
-- Dismissal and focus-trap posture are runtime-owned and hot reloadable.
-- Editing overlay placement facts rebinds only overlay-consuming projections.
-- Portal-host ordering tests prove opening nested popovers, menus, modals,
-  command palettes, and toasts appends or replaces entries according to runtime
-  portal policy, not authored numbers.
-- Shared-consumer tests prove paint order, hit testing, focus routing,
-  dismissal, and accessibility consume the same ordered portal-host receipt.
-- Reorder-denial tests prove an authored portal lane or modality edit that would
-  violate focus, containment, or owner identity rejects before activation and
-  preserves the prior portal list.
-- Invalid overlay declarations produce one denial report with counters and
-  receipt-derived presentation rows.
+- Submit readiness remains denied until all currently visible required state
+  bindings are present; appearance, cursor, event eligibility, and interaction
+  submission all consume the same readiness digest.
+- Clicking submit while readiness is denied produces no submit receipt and
+  emits typed readiness/interaction denial evidence.
+- Filling required visible controls changes readiness through graph-backed
+  state and conditional projection facts.
+- Hot reloading payload shape from `{ payload: values }` to
+  `{ data: { payload: values } }` changes the next emitted interaction payload
+  through a payload projection receipt, not button-specific data plumbing.
+- Invalid requiredness, unsupported effect intent, invalid payload projection,
+  and stale target binding in one save produce one canonical live-view
+  admission report with all denials in declaration order.
+- Compile-fail coverage proves renderer/app code cannot construct readiness
+  receipts, interaction-intent receipts, or payload projection receipts, and
+  cannot submit a live-view interaction without the admitted target binding and
+  readiness receipt.
 
 **Manual verification**
-- Open the authored popover/menu from the centered proof.
-- Open a nested menu/popover and confirm the newest portal appears above its
-  owner while outside-click, escape, and focus behavior follow the same ordered
-  portal list.
-- Change anchor side, offset, width, collision posture, dismissal behavior,
-  focus policy, event policy, and portal lane.
-- Confirm the overlay changes live and evidence names overlay-layout facts,
-  portal-host facts, and ordered portal-entry receipts.
-- Enter invalid anchor side and focus policy values together and confirm both
-  appear in one overlay admission report.
+- Start with the Phase 34.3 live view containing two visible required controls,
+  a conditional third control, and a disabled submit affordance.
+- Fill visible required controls and confirm submit becomes enabled with
+  matching appearance, cursor, event, and interaction evidence.
+- Select `yes`, leave the third required control empty, and confirm submit
+  returns to denied readiness.
+- Fill the third control, click submit, and confirm the emitted payload reflects
+  the current payload projection.
+- Hot reload the payload shape from `{ payload: ... }` to
+  `{ data: { payload: ... } }`, click again, and confirm the next emitted
+  payload changes without recompilation.
 
 **Engineering decisions**
-- Overlay layout is a layout family plus a runtime portal-host topology, not a
-  component branch and not a CSS `z-index` clone.
-- Anchored surfaces consume interaction, layout, appearance, and focus facts
-  together, so this phase should reuse prior primitive receipts.
-- The portal host is a pancake list because cross-surface overlay order is a
-  runtime topology fact. Local draw order inside one surface remains a draw-plan
-  concern; cross-surface portals belong to the portal host.
-- Overlay proof is required before dropdown/menu behavior can be considered
-  platform-owned.
+- Submit enabledness is readiness/effect admission; it is not a button style
+  prop.
+- Payload shape is projection meaning; it is not an interaction callback.
+- Readiness, event eligibility, cursor, appearance, and interaction submission
+  must share one upstream receipt.
 
 **Open questions**
-- Whether command palette and system toasts should be portal kinds in the same
-  host or separate portal lanes with stricter modality and focus policies.
+- Whether async/resource-backed readiness should enter here or wait for the
+  later async/live-result-state milestone.
 
-### Phase 38: Collection Layout and Virtualization
+## Milestone 4.1 Handoff
 
-This phase admits repeated content and large collections without turning them
-into full-materialized stacks. Lists, grids, table-like rows, timelines, and
-chat logs need stable item identity, visible-range windows, scroll ownership,
-scroll anchoring, and bounded frame evidence.
-
-**Requirements**
-- Add collection layout primitives for list, grid, table-like row windows, and
-  timeline/chat-log style windows where current runtime lanes can support them.
-- Lower iteration, item identity, visible range, estimated/known item sizing,
-  sticky region, and scroll-anchor facts into runtime receipts.
-- Lower clipping and scroll ownership into runtime receipts. Do not expose CSS
-  `overflow` as a local style; the collection or scroll container must own
-  whether content clips, scrolls, virtualizes, anchors, or participates in hit
-  testing outside the visible range.
-- Consume existing virtualized data lane posture where collection size or
-  invalidation breadth requires it.
-- Admit collection declarations through batch reports with typed denials for
-  iteration, identity, visible range, item sizing, sticky regions, scroll
-  anchors, and collection posture values.
-- Prove hot reload of row/card appearance, item gap, list/grid mode, and
-  visible-range posture without full collection materialization.
-- Preserve collection-level loading, empty, denied, partial, and stale posture
-  as typed runtime meaning rather than local placeholder branches.
-
-**Warnings**
-- Do not model large collections as ordinary stacks.
-- Do not materialize off-screen rows for friendly authoring.
-- Do not hide item identity in display text or index position.
-- Do not create a UI-local collection status model.
-- Do not use viewport/unit language as authoring truth for collection windows.
-  Visible ranges, scroll anchors, and sticky regions are runtime receipts with
-  counters.
-- Do not implement `overflow: auto` behavior as renderer convenience. Scroll
-  ownership and clipping are graph facts consumed by layout, hit testing,
-  accessibility, and virtualization.
-
-**Test requirements**
-- Visible range counters prove off-screen items are not rendered or measured
-  unless explicitly admitted.
-- Item identity is stable across reorder, filter, scroll, and partial
-  invalidation where runtime identity remains stable.
-- Editing collection layout or item appearance facts rebinds only the relevant
-  collection projections.
-- Query-bound collection posture preserves upstream Query-owned live and
-  async/result semantics.
-- Invalid collection declarations produce one denial report with counters,
-  stable digest, source-span readiness, and receipt-derived presentation rows.
-- Tests prove collection denial reports preserve Query-owned posture instead of
-  turning upstream status into local placeholder copy.
-
-**Manual verification**
-- Open the collection proof with enough items to require virtualization.
-- Change row/card appearance, item gap, and list/grid posture.
-- Scroll during and after edits and confirm scroll anchoring remains coherent.
-- Confirm evidence shows visible-range counters rather than full collection
-  materialization.
-- Enter invalid visible-range and item-sizing values together and confirm one
-  collection admission report shows both denials.
-
-**Engineering decisions**
-- Collection layout is its own family because ordinary flow layout cannot
-  honestly certify huge surfaces.
-- The phase is required before Shopify/Codex-style lists, chats, and project
-  rails can scale.
-- Collection posture consumes Query/runtime lanes where they already own
-  stronger truth.
-
-**Open questions**
-- Whether sticky headers and grouped collection sections are required in this
-  phase or can land as the first follow-up once basic virtualization is proven.
-
-### Phase 39: Adaptive Layout Alternatives
-
-This phase adds canonical adaptive alternatives for width, density, platform,
-and runtime posture. Adaptive behavior must lower into explicit alternative
-plans rather than renderer if-statements, CSS media queries, or arbitrary unit
-expressions.
-
-**Requirements**
-- Add authored adaptive layout alternatives for width ranges, density modes,
-  platform posture, and workspace/page posture.
-- Express ranges through named host/posture facts and admitted measurement
-  thresholds. Do not expose arbitrary `vh`, `vw`, percentage, or `calc(...)`
-  unit soup as public adaptive truth.
-- Lower alternatives into canonical layout facts with equivalence and impact
-  metadata.
-- Support common shell transformations such as rail expanded/collapsed,
-  inspector docked/overlay, toolbar inline/overflow, and panel hidden/shown.
-- Hot reload breakpoint or density rules and prove runtime swaps the affected
-  layout plan without recompiling.
-- Preserve stable identity and durable state across eligible adaptive
-  alternatives.
-- Admit adaptive alternatives through batch reports with typed denials for
-  invalid ranges, density modes, platform posture, runtime posture, and state
-  carry-forward eligibility.
-
-**Warnings**
-- Do not implement responsive behavior as renderer-local width checks.
-- Do not model adaptive behavior as CSS media queries. Conditions are admitted
-  runtime posture facts that choose between typed alternatives.
-- Do not let percent, viewport, or calculated strings smuggle layout authority
-  around measurement/adaptive schemas.
-- Do not let adaptive alternatives become arbitrary hidden page maps.
-- Do not preserve state across alternatives unless identity and eligibility
-  prove it.
-- Do not collapse density/theme changes into broad app rebuilds.
-
-**Test requirements**
-- Width/density/platform alternatives lower to deterministic canonical layout
-  facts.
-- Changing a breakpoint or density rule rebinds only consuming adaptive layout
-  projections.
-- Eligible focus, scroll, splitter, and selection state carries forward across
-  alternatives with receipts.
-- Ineligible state replacement/drop is explicit.
-- Invalid adaptive declarations produce one report with denial sets, counters,
-  digest, and receipt-derived presentation rows.
-
-**Manual verification**
-- Resize or otherwise trigger the adaptive proof.
-- Change a breakpoint or density rule while the app is running.
-- Confirm the rail, inspector, toolbar, or panel alternative changes live.
-- Confirm evidence names adaptive-layout changed facts and state carry-forward
-  receipts.
-- Enter invalid breakpoint and density values in one save and confirm one
-  adaptive admission report shows both denials.
-
-**Engineering decisions**
-- Adaptive layout is canonical authored meaning, not host-local layout code.
-- This phase protects desktop product shells from becoming compile-bound when
-  designers change responsive behavior.
-- Adaptive alternatives reuse mosaic, flow, overlay, appearance, interaction,
-  and motion facts.
-
-**Open questions**
-- Which platform postures can be honestly tested in the validation app before
-  native integration broadens.
-
-### Phase 40: Button Atom as Primitive Composition
-
-This phase reintroduces the button only after the primitive families exist. The
-button must be a composition of layout, content, appearance, interaction, and
-motion receipts, not a special case that grows its own props forever.
-
-**Requirements**
-- Define `worth.component.button` as a component capability that consumes the
-  shared primitive receipts.
-- Express the centered submit button proof through authored surface, flow
-  layout, content, appearance, interaction, and motion declarations.
-- Express button anatomy as typed primitive composition, not as HTML-like tag
-  structure, class bags, or generic child soup. A button consumes slots,
-  content receipts, flow receipts, appearance receipts, interaction receipts,
-  and motion receipts through declared contracts.
-- Preserve the generic submit/click receipt path from Phase 32.
-- Prove color, size, content, icon, payload, pressed state, cursor, and motion
-  hot reload through shared primitive facts.
-- Remove or quarantine any button-specific style plumbing that duplicates the
-  primitive families.
-- Button admission must aggregate the shared primitive family reports it
-  depends on. It may summarize layout, content, appearance, interaction, cursor,
-  hit-test, and motion denials, but it must not replace them with button-local
-  messages.
-
-**Warnings**
-- Do not make button the primitive architecture.
-- Do not reintroduce `button_*` prop explosions for appearance, content,
-  cursor, or motion.
-- Do not make button authoring look like `<button><span>...</span></button>`
-  with classes. Worth UI authoring names component capability, primitive
-  slots, content anatomy, recipes, and interactions directly.
-- Do not allow the button renderer to choose spacing, icon/text treatment,
-  cursor, or pressed styling.
-- Do not preserve legacy compatibility paths from the proof scaffolding once
-  the primitive composition path exists.
-
-**Test requirements**
-- Button proof consumes only shared primitive receipts for layout, content,
-  appearance, interaction, and motion.
-- Editing button color, size, content, icon, payload, pressed state, cursor,
-  and transition changes the corresponding primitive facts.
-- No button-specific renderer path interprets authored prop names.
-- Invalid button composition that touches multiple primitive families reports
-  all family denials through their original receipts and counters.
-- Compile-fail coverage prevents app code from minting button interaction
-  receipts directly.
-
-**Manual verification**
-- Render the centered submit button.
-- Hot reload background, width/height or padding, icon choice, icon size, text,
-  gap, pressed style, cursor, transition duration, and submit payload.
-- Click the button after payload edits and confirm the next receipt carries
-  active authored data.
-- Enter invalid icon, pressed appearance, and submit payload declarations in
-  one save and confirm the app shows structured family denials rather than a
-  button-specific error.
-
-**Engineering decisions**
-- Button is the first serious atom proof, not the source of the architecture.
-- This phase should delete temporary proof-only APIs that would otherwise
-  fossilize into public shape.
-- A new Rust button implementation still requires compile; authored
-  composition over registered capability does not.
-
-**Open questions**
-- Whether button anatomy should be fully author-authored or use a small
-  platform-default content slot recipe when authors only supply label and
-  action.
-
-### Phase 41: Cross-Component Reuse Proof
-
-This phase proves the primitive families are universal by building a second
-component family with the same receipts. A clickable row, card, or menu item
-should be able to reuse the same content, appearance, interaction, cursor, hit
-testing, and motion primitives without new local plumbing.
-
-**Requirements**
-- Build at least one second atom or small molecule, preferably a clickable row
-  or card, using the same primitive families as the button.
-- Reuse content declarations across button and the second component where
-  possible.
-- Reuse appearance recipes or state groups across button and the second
-  component where possible.
-- Prove nested interactions between the second component and an inner button or
-  action using Phase 33 containment rules.
-- Hot reload card/row background, radius, gap, cursor, nested icon, payload,
-  and motion without new component-specific style fields.
-- Cross-component proof surfaces must display shared primitive family admission
-  reports when reused recipes fail, preserving the original schema identity and
-  counters.
-
-**Warnings**
-- Do not declare success if the second component copies button-specific fields
-  under new names.
-- Do not let row/card behavior create a parallel interaction or event geometry
-  lane.
-- Do not make reuse only visual; interaction receipts and changed facts must
-  reuse the same families too.
-- Do not turn this into a broad component library milestone.
-
-**Test requirements**
-- The second component consumes the same primitive receipt types as the button.
-- Shared content and appearance edits affect all declared consumers through
-  dependency contracts.
-- Nested button-inside-card or action-inside-row containment emits the correct
-  receipts.
-- Projection rebuild breadth remains bounded when only one shared primitive
-  recipe changes.
-- One invalid shared recipe consumed by both components produces one
-  schema-owned denial basis with all affected consumers reported through
-  dependency/rebind evidence, not duplicate component-local messages.
-
-**Manual verification**
-- Render the button and second component in the validation app.
-- Hot reload one shared appearance recipe and confirm both consumers update.
-- Hot reload a component-specific layout or content change and confirm only the
-  intended consumer updates.
-- Click nested and parent interaction zones and confirm receipts are distinct.
-- Break a shared recipe and confirm both consumers preserve prior valid truth
-  while the evidence shows one shared denial report and bounded consumer rows.
-
-**Engineering decisions**
-- This is the phase that proves the primitive stack is not button-local.
-- Cross-component reuse replaces the old final-boss proof style with scalable
-  complexity built one phase at a time.
-- The milestone can broaden to Codex-style workspace slices only after this
-  proof shows primitives compose honestly.
-
-**Open questions**
-- Whether the second component should be a row/card for collection readiness or
-  a menu item for overlay/dropdown readiness.
+The former Phase 35-41 scope moved to
+[milestone-4.1-composition-graph.md](./milestone-4.1-composition-graph.md).
+Motion, layout motion, overlays, collections, adaptive layout, button
+composition, and cross-component reuse depend on arbitrary runtime-owned
+composition topology, graph/index access planning, host measurement
+observations, item allocation receipts, and mounted composition diagnostics.
+They are no longer tail phases of the hot-reload spine.
 
 ## Must Ship
 
@@ -4313,6 +4327,11 @@ testing, and motion primitives without new local plumbing.
 - authored-structural runtime fact families for shell, page, layout, content,
   mount, component-selection, primitive composition, and binding meaning where
   those belong to product authoring rather than compiled capability authority
+- runtime-owned user-intent target binding that turns pointer, keyboard,
+  manual reload, proof-control, inspector, and authored-operation intent into
+  sealed active-operation target proof before edit, click, submit, focus,
+  evidence render, event dispatch, content proof, motion, or portal anchoring
+  can act
 - shared primitive authoring and runtime receipt families for surface, layout,
   container, content, appearance, interaction, motion, cursor, hit testing,
   overlay layout, collection layout, and adaptive layout

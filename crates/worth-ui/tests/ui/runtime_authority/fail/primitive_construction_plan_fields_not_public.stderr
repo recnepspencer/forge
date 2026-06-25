@@ -1,0 +1,19 @@
+error[E0451]: fields `surface_id`, `family_selection`, `dependency_contract` and `query_graph_plan` of struct `WorthUiPrimitiveConstructionPlan` are private
+  --> tests/ui/runtime_authority/fail/primitive_construction_plan_fields_not_public.rs:8:9
+   |
+ 7 |     let _plan = WorthUiPrimitiveConstructionPlan {
+   |                 -------------------------------- in this type
+ 8 |         surface_id: SurfaceId::new("worth.surface.preview.primitive.proof").unwrap(),
+   |         ^^^^^^^^^^ private field
+ 9 |         family_selection: WorthUiPrimitiveConstructionFamilySelection { families: Vec::new() },
+   |         ^^^^^^^^^^^^^^^^ private field
+10 |         dependency_contract: dependency_contract(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+11 |         query_graph_plan: query_graph_plan(),
+   |         ^^^^^^^^^^^^^^^^ private field
+
+error[E0451]: field `families` of struct `WorthUiPrimitiveConstructionFamilySelection` is private
+ --> tests/ui/runtime_authority/fail/primitive_construction_plan_fields_not_public.rs:9:73
+  |
+9 |         family_selection: WorthUiPrimitiveConstructionFamilySelection { families: Vec::new() },
+  |                                                                         ^^^^^^^^ private field

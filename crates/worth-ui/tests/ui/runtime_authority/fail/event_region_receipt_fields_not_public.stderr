@@ -1,29 +1,31 @@
-error[E0451]: fields `surface_id`, `interaction_id`, `parent_surface_id`, `order`, `visual_frame`, `hit_frame`, `hit_frame_derivation`, `cursor`, `can_activate`, `containment`, `capture` and `receipt_digest` of struct `WorthUiPrimitiveEventRegionReceipt` are private
-  --> tests/ui/runtime_authority/fail/event_region_receipt_fields_not_public.rs:10:9
+error: cannot construct `WorthUiPrimitiveEventRegionReceipt` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/event_region_receipt_fields_not_public.rs:9:19
    |
  9 |     let _forged = WorthUiPrimitiveEventRegionReceipt {
-   |                   ---------------------------------- in this type
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 10 |         surface_id: "worth.surface.preview.primitive.inner".to_owned(),
-   |         ^^^^^^^^^^ private field
+   |         -------------------------------------------------------------- private field
 11 |         interaction_id: "worth.interaction.primitive.submit".to_owned(),
-   |         ^^^^^^^^^^^^^^ private field
+   |         --------------------------------------------------------------- private field
 12 |         parent_surface_id: Some("worth.surface.preview.primitive.proof".to_owned()),
-   |         ^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------------------------------------------------------- private field
 13 |         order: WorthUiPrimitiveEventRegionOrder::new(1, 0),
-   |         ^^^^^ private field
+   |         -------------------------------------------------- private field
 14 |         visual_frame: frame(),
-   |         ^^^^^^^^^^^^ private field
+   |         --------------------- private field
 15 |         hit_frame: frame(),
-   |         ^^^^^^^^^ private field
+   |         ------------------ private field
 16 |         hit_frame_derivation: derivation(),
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
+   |         ---------------------------------- private field
 17 |         cursor: WorthUiPrimitiveResolvedCursorPosture::Pointer,
-   |         ^^^^^^ private field
-18 |         can_activate: true,
-   |         ^^^^^^^^^^^^ private field
+   |         ------------------------------------------------------ private field
+18 |         activation_posture: activation_posture(),
+   |         ---------------------------------------- private field
 19 |         containment: WorthUiPrimitiveEventContainment::Contain,
-   |         ^^^^^^^^^^^ private field
+   |         ------------------------------------------------------ private field
 20 |         capture: WorthUiPrimitivePointerCapture::None,
-   |         ^^^^^^^ private field
+   |         --------------------------------------------- private field
 21 |         receipt_digest: 1,
-   |         ^^^^^^^^^^^^^^ private field
+   |         ----------------- private field
+   |
+   = note: ...and other private field `graph_basis` that was not provided

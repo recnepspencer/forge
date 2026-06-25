@@ -4,7 +4,9 @@ mod page_host_presentation;
 mod page_host_rebind;
 mod page_host_request;
 
-pub use page_host_frame_receipt::{WorthUiPageHostFrameReceipt, WorthUiPageHostSlotReceipt};
+pub use page_host_frame_receipt::{
+    WorthUiPageHostFrameReceipt, WorthUiPageHostSlotMountReceipt, WorthUiPageHostSlotReceipt,
+};
 pub use page_host_plan::{WorthUiPageHostPlan, WorthUiPageHostPlanDenial};
 pub use page_host_presentation::{
     WorthUiPageHostBoundaryPosture, WorthUiPageHostPresentation, WorthUiPageHostPresentationChild,

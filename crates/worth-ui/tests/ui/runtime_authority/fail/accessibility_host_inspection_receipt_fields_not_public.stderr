@@ -1,0 +1,28 @@
+error: cannot construct `WorthUiAccessibilityHostInspectionReceipt` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/accessibility_host_inspection_receipt_fields_not_public.rs:7:20
+   |
+ 7 |     let _receipt = WorthUiAccessibilityHostInspectionReceipt {
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 8 |         participation_digest: 0,
+   |         ----------------------- private field
+ 9 |         posture: WorthUiAccessibilityHostInspectionPosture::UnsupportedHostApi,
+   |         ---------------------------------------------------------------------- private field
+10 |         consumed_facts: Vec::new(),
+   |         -------------------------- private field
+11 |         counters: WorthUiAccessibilityHostInspectionCounters::default(),
+   |         --------------------------------------------------------------- private field
+12 |         receipt_digest: 0,
+   |         ----------------- private field
+   |
+   = note: ...and other private field `rows` that was not provided
+help: you might have meant to use the `from_participation` associated function
+   |
+ 7 -     let _receipt = WorthUiAccessibilityHostInspectionReceipt {
+ 8 -         participation_digest: 0,
+ 9 -         posture: WorthUiAccessibilityHostInspectionPosture::UnsupportedHostApi,
+10 -         consumed_facts: Vec::new(),
+11 -         counters: WorthUiAccessibilityHostInspectionCounters::default(),
+12 -         receipt_digest: 0,
+13 -     };
+ 7 +     let _receipt = WorthUiAccessibilityHostInspectionReceipt::from_participation(_);
+   |

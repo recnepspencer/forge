@@ -1,7 +1,7 @@
 use worth_ui::facade::{
-    SurfaceId, WorthUiPrimitiveEventDispatchPlan, WorthUiPrimitiveEventRegionOrder,
-    WorthUiPrimitiveEventRegionReceipt, WorthUiPrimitivePointerFrameInput,
+    SurfaceId, WorthUiPrimitiveEventDispatchPlan, WorthUiPrimitivePointerFrameInput,
     WorthUiPrimitivePointerFrameReceipt, WorthUiPrimitiveProofDenial, WorthUiPrimitiveProofReceipt,
+    WorthUiRuntimeHost,
 };
 
 use super::ValidationWorkbenchApp;
@@ -61,16 +61,13 @@ impl ValidationWorkbenchApp {
         ValidationMountedPrimitiveEventFrameDenial,
     > {
         let outer = self
-            .workbench
-            .runtime()
-            .resolve_primitive_proof(&surface_id(OUTER_SURFACE))
+            .authored_primitive_proof(&surface_id(OUTER_SURFACE))
             .map_err(ValidationMountedPrimitiveEventFrameDenial::OuterPrimitive)?;
         let inner = self
-            .workbench
-            .runtime()
-            .resolve_primitive_proof(&surface_id(INNER_SURFACE))
+            .authored_primitive_proof(&surface_id(INNER_SURFACE))
             .map_err(ValidationMountedPrimitiveEventFrameDenial::InnerPrimitive)?;
-        let event_plan = mounted_primitive_event_plan(&outer, &inner, viewport);
+        let event_plan =
+            mounted_primitive_event_plan(self.workbench.runtime(), &outer, &inner, viewport);
         let pointer_frame =
             WorthUiPrimitivePointerFrameReceipt::from_dispatch_plan(&event_plan, input);
         Ok(ValidationMountedPrimitiveEventFrameReceipt {
@@ -81,6 +78,7 @@ impl ValidationWorkbenchApp {
 }
 
 fn mounted_primitive_event_plan(
+    runtime: &WorthUiRuntimeHost,
     outer: &WorthUiPrimitiveProofReceipt,
     inner: &WorthUiPrimitiveProofReceipt,
     viewport: ValidationMountedPrimitiveEventViewport,
@@ -88,25 +86,16 @@ fn mounted_primitive_event_plan(
     let outer_plan = outer.draw_plan(viewport.width(), viewport.height());
     let outer_frame = outer_plan.frame();
     let inner_plan = inner.draw_plan(outer_frame.width(), outer_frame.height());
-    let mut regions = Vec::new();
-    if let Some(region) = WorthUiPrimitiveEventRegionReceipt::from_primitive_draw_plan(
+    runtime.plan_mounted_primitive_event_dispatch(
         outer,
         &outer_plan,
-        WorthUiPrimitiveEventRegionOrder::new(0, 0),
-    ) {
-        regions.push(region);
-    }
-    if let Some(region) = WorthUiPrimitiveEventRegionReceipt::from_child_primitive_draw_plan_at(
-        inner,
-        &inner_plan,
-        WorthUiPrimitiveEventRegionOrder::new(1, 0),
-        outer.surface_id(),
+        Some(inner),
+        Some(&inner_plan),
+        0.0,
+        0.0,
         outer_frame.x(),
         outer_frame.y(),
-    ) {
-        regions.push(region);
-    }
-    WorthUiPrimitiveEventDispatchPlan::from_regions(regions)
+    )
 }
 
 fn surface_id(surface_id: &str) -> SurfaceId {

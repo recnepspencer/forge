@@ -210,6 +210,51 @@ Read next:
 - `crates/worth-ui/src/runtime/primitive/presentation/`
 - `crates/worth-ui/src/capability/registry/mosaic_sizing/descriptor/measurement/`
 
+### Composition Graph
+
+Composition graph owns arbitrary local product anatomy inside already-admitted
+pages, surfaces, portal entries, diagnostic panels, collection items, reusable
+component instances, and nested containers.
+
+Use composition graph when the question is:
+
+- which content/control/interaction/diagnostic nodes belong inside this
+  container?
+- what is the parent, order, participation, and stable identity of each child?
+- which composition root is attached to this admitted page/content slot,
+  surface, portal entry, diagnostic panel, collection item, or component
+  instance?
+- how do reusable field, card, toolbar, menu, or row recipes lower into
+  ordinary graph nodes and slots?
+- which children participate in layout, hit testing, focus, accessibility, and
+  diagnostics?
+
+Composition graph is not mosaic and not flow layout. Mosaic owns shell and page
+region topology, surface placement, shell sizing, scroll ownership, clipping,
+hit-test posture, persistence, and focus scopes. Surfaces own product-facing
+placement identity. Flow layout owns a container's local arrangement policy.
+Composition graph owns the graph of local product nodes inside admitted mounted
+content and the facts that make flow layout, appearance, interaction,
+accessibility, diagnostics, collection, portal, and motion consumers agree
+about the same mounted structure.
+
+Composition roots must consume existing page/content slot, surface,
+component-instance, portal-entry, collection-item, or diagnostic mount receipts.
+They must not mount directly into mosaic regions or redefine mosaic placement,
+sizing, scroll, clipping, hit-test, persistence, or focus law.
+
+Do not solve new pages, forms, cards, toolbars, menus, inspectors, or collection
+rows by adding renderer branches, component-specific child lists, or page-local
+maps. Add or consume composition roots, node receipts, edge receipts, semantic
+context receipts, allocation receipts, and graph/index access receipts.
+
+Read next:
+
+- `_docs/worth-ui/milestone-4.1-composition-graph.md`
+- `_docs/worth-ui/milestone-4-hot-reloading.md`
+- Forge Query `docs/AI_README.md`, graph touch obligation authority and graph
+  read access planning sections
+
 ### Measurement, Sizing, Tokens, And Density
 
 Measurement authority is shared. Do not create a new number parser for every
@@ -324,6 +369,31 @@ Read next:
 - `_docs/worth-ui/milestone-4-hot-reloading.md`, Phase 29 and interaction phases
 - `crates/worth-ui/src/runtime/interaction_lane/`
 - `crates/worth-ui/src/runtime/component_interaction/`
+
+### Declarative Expressions
+
+Declarative expressions own derived UI meaning such as conditional
+participation, requiredness, validation posture, readiness, payload shape,
+normalization, and other computed runtime facts.
+
+Expressions are a capability system, not a closed enum and not a script
+escape hatch. Worth UI ships standard expression operators, but app authors
+must be able to register custom operators through typed capability descriptors
+that declare input facts, output type, dependency contracts, purity, cost
+posture, support posture, diagnostics, and evaluation authority.
+
+Do not solve expression needs with component-local predicates like
+`show_if_yes`, `disable_until_filled`, or `payload_data_wrapper`. Do not
+evaluate expression strings in renderers. Do not expose arbitrary script
+execution as the extension model.
+
+Read next:
+
+- `_docs/worth-ui/milestone-4.1-composition-graph.md`, expression phases
+- `_docs/worth-ui/milestone-4-hot-reloading.md`, live-view and interaction
+  phases
+- Forge Query `docs/AI_README.md`, projection fact and graph obligation
+  sections
 
 ### Motion
 
@@ -459,7 +529,15 @@ Need shell/page structure?
 
 Need local icon/text/card/menu/field arrangement?
 
-- Use flow layout and content primitives. Do not use mosaic.
+- Use composition graph for child membership and identity, then flow layout and
+  content primitives for arrangement and anatomy. Do not use mosaic.
+
+Need a new page, form, card, toolbar, menu, inspector, or collection row?
+
+- Use composition roots, node/edge receipts, semantic context, and reusable
+  composition recipes attached through existing surface/page/content-slot
+  authority. Do not add page-local renderer maps or component-local layout
+  child lists.
 
 Need gap, padding, radius, duration, width, or size?
 
@@ -486,6 +564,13 @@ Need hover, pressed, focus, cursor, submit, select, or activate behavior?
 
 - Use interaction state and sealed interaction receipts. Do not build local
   event emitters or callback maps.
+
+Need conditional visibility, requiredness, validation state, readiness,
+payload shape, or a custom computed UI fact?
+
+- Use declarative expression capabilities and projection receipts. Register
+  custom operators through capability descriptors when the standard algebra is
+  insufficient. Do not add local predicates or renderer callbacks.
 
 Need animation or transition?
 
@@ -524,9 +609,20 @@ Need to use Query meaning?
 - Do not infer changed facts in the renderer.
 - Do not parse authored prop names in renderers.
 - Do not parse raw authored values after an admission boundary exists.
+- Do not close expression semantics around only the built-in operators. Custom
+  expression operators must enter through typed capability registration, not
+  local renderer callbacks or scripts.
 - Do not let validation-app code become the production architecture.
 - Do not treat mosaic as flexbox or grid for local component internals.
 - Do not treat flow layout as shell topology.
+- Do not treat flow layout as composition topology. Flow arranges children;
+  composition graph proves which children exist, where they belong, and how
+  they participate.
+- Do not implement new pages, forms, cards, toolbars, menus, inspectors, or
+  collection rows as renderer branches or component-private child lists.
+- Do not mount composition roots directly into mosaic regions or let
+  composition override mosaic placement, sizing, scroll, clipping, hit-test,
+  persistence, or focus contracts.
 - Do not put raw layout numbers in public authored input when a named
   measurement, token, sizing, density, or style-value fact should own them.
 - Do not build component-specific props when a primitive family should own the

@@ -1,15 +1,17 @@
-use crate::capability::{DensityTokenId, SurfaceId, WorthUiDensityValue};
+use crate::capability::{CommandId, ComponentId};
 use crate::runtime::{
-    WorthUiPrimitiveInteractionReceipt, WorthUiPrimitiveMeasurementReceipt,
-    WorthUiPrimitiveMotionReceipt, WorthUiPrimitiveResolvedInsets,
-    WorthUiPrimitiveResolvedMeasurement, WorthUiProjectionDependencySet, WorthUiRuntimeHost,
+    WorthUiPrimitiveConstructionFamily, WorthUiPrimitiveConstructionRequest,
+    WorthUiPrimitiveInteractionReceipt, WorthUiPrimitiveMotionReceipt,
+    WorthUiPrimitiveProofTargetBinding, WorthUiRuntimeFactId, WorthUiRuntimeHost,
 };
 
 use super::{
-    dependency::primitive_dependency_contract, WorthUiBoxEdges, WorthUiFlowLayoutReceipt,
+    prove_primitive_construction_graph,
+    resolver_digest::primitive_receipt_digest,
+    resolver_measurement::{resolve_measurement, resolve_measurement_receipt},
     WorthUiPrimitiveAppearanceReceipt, WorthUiPrimitiveContainerReceipt,
-    WorthUiPrimitiveContentReceipt, WorthUiPrimitiveEventGeometryReceipt,
-    WorthUiPrimitiveProofDenial, WorthUiPrimitiveProofReceipt,
+    WorthUiPrimitiveFamilyAdmissionDigests, WorthUiPrimitiveProofDenial,
+    WorthUiPrimitiveProofReceipt,
 };
 
 const PRIMITIVE_PROOF_COMPONENT_ID: &str = "worth.component.primitive_proof";
@@ -17,10 +19,22 @@ const PRIMITIVE_ROW_PROOF_COMPONENT_ID: &str = "worth.component.primitive_row_pr
 const PRIMITIVE_CARD_PROOF_COMPONENT_ID: &str = "worth.component.primitive_card_proof";
 
 impl WorthUiRuntimeHost {
-    pub fn resolve_primitive_proof(
+    #[cfg(test)]
+    pub(crate) fn resolve_primitive_proof(
         &self,
-        surface_id: &SurfaceId,
+        surface_id: &crate::capability::SurfaceId,
     ) -> Result<WorthUiPrimitiveProofReceipt, WorthUiPrimitiveProofDenial> {
+        let target = self
+            .bind_authored_primitive_proof_target(surface_id)
+            .map_err(primitive_target_denial_to_proof_denial)?;
+        self.resolve_primitive_proof_for_target(&target)
+    }
+
+    pub fn resolve_primitive_proof_for_target(
+        &self,
+        target: &WorthUiPrimitiveProofTargetBinding,
+    ) -> Result<WorthUiPrimitiveProofReceipt, WorthUiPrimitiveProofDenial> {
+        let surface_id = target.surface_id();
         let component_id = self
             .inspect_active_authored_surface_component_id(surface_id)
             .or_else(|| {
@@ -37,6 +51,24 @@ impl WorthUiRuntimeHost {
                 actual_component_id: component_id.to_owned(),
             });
         }
+
+        let construction_plan = self
+            .graph_authority()
+            .plan_primitive_construction(WorthUiPrimitiveConstructionRequest::for_surface(
+                surface_id.clone(),
+            ))
+            .map_err(|_| WorthUiPrimitiveProofDenial::EmptyDependencyContract {
+                surface_id: surface_id.as_str().to_owned(),
+            })?;
+        let family_selection = construction_plan.family_selection();
+        debug_assert!(family_selection.requires(WorthUiPrimitiveConstructionFamily::BasePrimitive));
+        debug_assert!(family_selection.requires(WorthUiPrimitiveConstructionFamily::FlowLayout));
+        debug_assert!(family_selection.requires(WorthUiPrimitiveConstructionFamily::Content));
+        debug_assert!(
+            family_selection.requires(WorthUiPrimitiveConstructionFamily::AppearanceState)
+        );
+        debug_assert!(family_selection.requires(WorthUiPrimitiveConstructionFamily::Interaction));
+        debug_assert!(family_selection.requires(WorthUiPrimitiveConstructionFamily::EventGeometry));
 
         let admission_report = self.admit_primitive_props(surface_id);
         let admitted = admission_report
@@ -84,7 +116,7 @@ impl WorthUiRuntimeHost {
             .ok_or_else(|| WorthUiPrimitiveProofDenial::InvalidEventGeometryValues {
                 report: event_geometry_report.clone(),
             })?;
-        let dependency_contract = primitive_dependency_contract(surface_id)?;
+        let dependency_contract = construction_plan.dependency_contract().clone();
         let measurement = resolve_measurement_receipt(self, props)?;
         let container = WorthUiPrimitiveContainerReceipt::new(
             props.align(),
@@ -98,18 +130,36 @@ impl WorthUiRuntimeHost {
             props.foreground_color(),
         );
         let event_geometry = admitted_event_geometry.resolved_receipt();
-        let interaction = WorthUiPrimitiveInteractionReceipt::new(
+        let component_handle =
+            ComponentId::new(component_id).expect("primitive proof component id is valid");
+        let interaction_dependency_facts =
+            self.graph_authority().plan_mounted_interaction_operability(
+                surface_id,
+                admitted_interaction.prop_set().interaction_id(),
+                interaction_target_dependency_facts(admitted_interaction.prop_set().target()),
+            );
+        let interaction_lane_receipt =
+            admitted_interaction.emit_receipt(surface_id, &component_handle);
+        let mounted_interaction_plan =
+            crate::runtime::WorthUiMountedInteractionPlan::from_admitted_interaction(
+                self.graph_authority(),
+                crate::runtime::WorthUiMountedInteractionPlanRequest::primary_click(
+                    surface_id.clone(),
+                ),
+                component_handle,
+                &admitted_interaction,
+                props.disabled(),
+                props.focus(),
+                interaction_dependency_facts,
+            );
+        let interaction = WorthUiPrimitiveInteractionReceipt::from_graph_operability(
             admitted_interaction.prop_set().kind(),
             props.cursor(),
             props.focus(),
-            props.disabled(),
             props.selected(),
             event_geometry.resolved_cursor(),
-            admitted_interaction.emit_receipt(
-                surface_id,
-                &crate::capability::ComponentId::new(component_id)
-                    .expect("primitive proof component id is valid"),
-            ),
+            interaction_lane_receipt,
+            mounted_interaction_plan.operability(),
         );
         let motion = WorthUiPrimitiveMotionReceipt::new(
             props.motion_kind(),
@@ -118,7 +168,22 @@ impl WorthUiRuntimeHost {
             props.motion_easing(),
         );
         let flow_layout = admitted_flow.resolved_receipt();
+        let construction_graph_proof = prove_primitive_construction_graph(
+            surface_id.as_str(),
+            component_id,
+            construction_plan.dependency_contract().clone(),
+            construction_plan.query_graph_execution().clone(),
+            WorthUiPrimitiveFamilyAdmissionDigests {
+                primitive: admitted.admission_digest(),
+                flow: admitted_flow.admission_digest(),
+                content: admitted_content.admission_digest(),
+                appearance_state: admitted_appearance_state.admission_digest(),
+                interaction: admitted_interaction.admission_digest(),
+                event_geometry: admitted_event_geometry.admission_digest(),
+            },
+        );
         let receipt_digest = primitive_receipt_digest(
+            construction_graph_proof.graph_proof_digest(),
             admitted.admission_digest(),
             admitted_flow.admission_digest(),
             admitted_content.admission_digest(),
@@ -149,9 +214,51 @@ impl WorthUiRuntimeHost {
             event_geometry,
             motion,
             flow_layout,
-            dependency_contract,
+            target.clone(),
+            construction_graph_proof,
             receipt_digest,
         ))
+    }
+}
+
+#[cfg(test)]
+fn primitive_target_denial_to_proof_denial(
+    denial: crate::runtime::WorthUiUserIntentTargetDenial,
+) -> WorthUiPrimitiveProofDenial {
+    match denial {
+        crate::runtime::WorthUiUserIntentTargetDenial::MissingSlot {
+            page_name,
+            slot_name,
+            ..
+        } => WorthUiPrimitiveProofDenial::MissingSurface {
+            surface_id: format!("{page_name}.{slot_name}"),
+        },
+        crate::runtime::WorthUiUserIntentTargetDenial::MissingSurface { surface_id, .. }
+        | crate::runtime::WorthUiUserIntentTargetDenial::InvalidSurfaceId { surface_id, .. } => {
+            WorthUiPrimitiveProofDenial::MissingSurface { surface_id }
+        }
+        crate::runtime::WorthUiUserIntentTargetDenial::InvalidComponentId {
+            surface_id,
+            component_id,
+            ..
+        } => WorthUiPrimitiveProofDenial::ComponentMismatch {
+            surface_id,
+            expected_component_id: PRIMITIVE_PROOF_COMPONENT_ID.to_owned(),
+            actual_component_id: component_id,
+        },
+    }
+}
+
+fn interaction_target_dependency_facts(
+    target: &crate::runtime::WorthUiInteractionTarget,
+) -> Vec<WorthUiRuntimeFactId> {
+    match target {
+        crate::runtime::WorthUiInteractionTarget::Command(command_id) => CommandId::new(command_id)
+            .ok()
+            .map(|command_id| WorthUiRuntimeFactId::command(&command_id))
+            .into_iter()
+            .collect(),
+        _ => Vec::new(),
     }
 }
 
@@ -162,142 +269,4 @@ fn is_primitive_proof_component(component_id: &str) -> bool {
             | PRIMITIVE_ROW_PROOF_COMPONENT_ID
             | PRIMITIVE_CARD_PROOF_COMPONENT_ID
     )
-}
-
-fn primitive_receipt_digest(
-    authored_digest: u64,
-    flow_digest: u64,
-    content_digest: u64,
-    appearance_state_digest: u64,
-    interaction_digest: u64,
-    event_geometry_digest: u64,
-    dependencies: &WorthUiProjectionDependencySet,
-    container: &WorthUiPrimitiveContainerReceipt,
-    measurement: &WorthUiPrimitiveMeasurementReceipt,
-    content: &WorthUiPrimitiveContentReceipt,
-    appearance: &WorthUiPrimitiveAppearanceReceipt,
-    appearance_state: &crate::runtime::WorthUiStatefulAppearanceRecipeReceipt,
-    interaction: &WorthUiPrimitiveInteractionReceipt,
-    event_geometry: &WorthUiPrimitiveEventGeometryReceipt,
-    motion: &WorthUiPrimitiveMotionReceipt,
-    flow_layout: &WorthUiFlowLayoutReceipt,
-) -> u64 {
-    let content_item_count = content.items().len();
-    let basis = format!(
-        "primitive|authored:{authored_digest}|flow:{flow_digest}|content:{content_digest}|state:{appearance_state_digest}|interaction_admission:{interaction_digest}|event_geometry:{event_geometry_digest}|deps:{}|align:{:?}|padding:{}:{}|radius:{}:{}|text:{}|items:{}|content_receipt:{}|bg:{}|fg:{}|state_receipt:{}|interaction:{:?}:{:?}:{}:{}:{}:{}|operability:{:?}:{:?}|affordance:{:?}:{}|event_geometry_receipt:{}:{:?}:{:?}:{:?}:{:?}|motion:{:?}:{:?}:{}:{}:{:?}|flow_receipt:{}",
-        dependencies.digest().value(),
-        container.align(),
-        measurement.padding().token(),
-        measurement.padding().edges().digest_basis(),
-        measurement.radius().token(),
-        measurement.radius().points(),
-        content.text(),
-        content_item_count,
-        content.receipt_digest(),
-        appearance.background_color().hex_triplet(),
-        appearance.foreground_color().hex_triplet(),
-        appearance_state.receipt_digest(),
-        interaction.kind(),
-        interaction.focus(),
-        interaction.disabled(),
-        interaction.selected(),
-        interaction.interaction_id(),
-        interaction.submit_payload().digest(),
-        interaction.operability().posture(),
-        interaction.operability().basis(),
-        interaction.affordance().cursor(),
-        interaction.affordance().can_activate(),
-        event_geometry.receipt_digest(),
-        event_geometry.cursor(),
-        event_geometry.hit_area(),
-        event_geometry.containment(),
-        event_geometry.capture(),
-        motion.kind(),
-        motion.target(),
-        motion.duration().token(),
-        motion.duration().points(),
-        motion.easing(),
-        flow_layout.receipt_digest()
-    );
-    basis.bytes().fold(0xcbf2_9ce4_8422_2325, |mut acc, byte| {
-        acc ^= u64::from(byte);
-        acc.wrapping_mul(0x0000_0100_0000_01b3)
-    })
-}
-
-fn resolve_measurement_receipt(
-    runtime: &WorthUiRuntimeHost,
-    props: &crate::runtime::WorthUiValidatedPrimitivePropSet,
-) -> Result<WorthUiPrimitiveMeasurementReceipt, WorthUiPrimitiveProofDenial> {
-    Ok(WorthUiPrimitiveMeasurementReceipt::new(
-        resolve_padding(runtime, props.padding_token())?,
-        resolve_measurement(runtime, props.radius_token())?,
-    ))
-}
-
-fn resolve_padding(
-    runtime: &WorthUiRuntimeHost,
-    token_text: &str,
-) -> Result<WorthUiPrimitiveResolvedInsets, WorthUiPrimitiveProofDenial> {
-    let token = DensityTokenId::new(token_text).map_err(|_| {
-        WorthUiPrimitiveProofDenial::MissingPrimitiveMeasurementToken {
-            token: token_text.to_owned(),
-        }
-    })?;
-    let Some(descriptor) = runtime.inspect_active_density_token_descriptor(&token) else {
-        return Err(
-            WorthUiPrimitiveProofDenial::MissingPrimitiveMeasurementToken {
-                token: token_text.to_owned(),
-            },
-        );
-    };
-    let edges = match descriptor.value() {
-        WorthUiDensityValue::Padding(value) => WorthUiBoxEdges::new(
-            value.top().points(),
-            value.right().points(),
-            value.bottom().points(),
-            value.left().points(),
-        ),
-        WorthUiDensityValue::Spacing(value) => WorthUiBoxEdges::uniform(value.points()),
-        WorthUiDensityValue::HitTargetMinimum(value) => WorthUiBoxEdges::uniform(value.points()),
-        WorthUiDensityValue::Posture(_) => {
-            return Err(WorthUiPrimitiveProofDenial::WrongPrimitiveMeasurementKind {
-                token: token_text.to_owned(),
-                expected: "padding, spacing, or length".to_owned(),
-                actual: "posture".to_owned(),
-            });
-        }
-    };
-    Ok(WorthUiPrimitiveResolvedInsets::new(&token, edges))
-}
-
-fn resolve_measurement(
-    runtime: &WorthUiRuntimeHost,
-    token_text: &str,
-) -> Result<WorthUiPrimitiveResolvedMeasurement, WorthUiPrimitiveProofDenial> {
-    let token = DensityTokenId::new(token_text).map_err(|_| {
-        WorthUiPrimitiveProofDenial::MissingPrimitiveMeasurementToken {
-            token: token_text.to_owned(),
-        }
-    })?;
-    let Some(descriptor) = runtime.inspect_active_density_token_descriptor(&token) else {
-        return Err(
-            WorthUiPrimitiveProofDenial::MissingPrimitiveMeasurementToken {
-                token: token_text.to_owned(),
-            },
-        );
-    };
-    let points = match descriptor.value() {
-        WorthUiDensityValue::Padding(value) => value.horizontal_points(),
-        WorthUiDensityValue::Spacing(value) => value.points(),
-        WorthUiDensityValue::HitTargetMinimum(value) => value.points(),
-        WorthUiDensityValue::Posture(_) => {
-            return Err(WorthUiPrimitiveProofDenial::WrongPrimitiveMeasurementKind {
-                token: token_text.to_owned(),
-                expected: "padding, spacing, or length".to_owned(),
-                actual: "posture".to_owned(),
-            });
-        }
-    };
-    Ok(WorthUiPrimitiveResolvedMeasurement::new(&token, points))
 }

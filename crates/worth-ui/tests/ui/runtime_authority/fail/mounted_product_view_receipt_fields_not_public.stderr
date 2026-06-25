@@ -1,0 +1,41 @@
+warning: unreachable expression
+  --> tests/ui/runtime_authority/fail/mounted_product_view_receipt_fields_not_public.rs:10:25
+   |
+ 9 |         mounted_view: todo!(),
+   |                       ------- any code following this expression is unreachable
+10 |         consumed_facts: Vec::new(),
+   |                         ^^^^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error: cannot construct `WorthUiMountedProductViewReceipt` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/mounted_product_view_receipt_fields_not_public.rs:7:19
+   |
+ 7 |     let _forged = WorthUiMountedProductViewReceipt {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 8 |         semantic_slice: WorthUiMountedProductViewSemanticSlice::LiveView,
+   |         ---------------------------------------------------------------- private field
+ 9 |         mounted_view: todo!(),
+   |         --------------------- private field
+10 |         consumed_facts: Vec::new(),
+   |         -------------------------- private field
+11 |         graph_obligation_execution_digests: Vec::new(),
+   |         ---------------------------------------------- private field
+12 |         counters: WorthUiMountedProductViewCounters::default(),
+   |         ------------------------------------------------------ private field
+13 |         receipt_digest: 1,
+   |         ----------------- private field
+   |
+   = note: ...and other private fields `root_entries`, `composition_tree`, `composition_participation` and `composition_graph_digest` that were not provided
+help: you might have meant to use the `from_live_view_projection` associated function
+   |
+ 7 -     let _forged = WorthUiMountedProductViewReceipt {
+ 8 -         semantic_slice: WorthUiMountedProductViewSemanticSlice::LiveView,
+ 9 -         mounted_view: todo!(),
+10 -         consumed_facts: Vec::new(),
+11 -         graph_obligation_execution_digests: Vec::new(),
+12 -         counters: WorthUiMountedProductViewCounters::default(),
+13 -         receipt_digest: 1,
+14 -     };
+ 7 +     let _forged = WorthUiMountedProductViewReceipt::from_live_view_projection(_, _, _, _);
+   |

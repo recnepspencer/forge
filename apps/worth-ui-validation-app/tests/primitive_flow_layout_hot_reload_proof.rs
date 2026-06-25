@@ -9,7 +9,8 @@ use primitive_flow_layout_support::{
 use worth_ui::facade::{
     WorthUiAuthoredDeltaChangePosture, WorthUiFlowLayoutCrossAlign, WorthUiFlowLayoutKind,
     WorthUiPrimitiveContentItem, WorthUiPrimitiveFlowItemKind,
-    WorthUiPrimitiveProjectionRebindStatus, WorthUiRuntimeFactFamily, WorthUiSemanticSliceId,
+    WorthUiPrimitiveProjectionRebindStatus, WorthUiRuntimeFactFamily, WorthUiRuntimeFactId,
+    WorthUiSemanticSliceId,
 };
 use worth_ui_validation_app::reload::ValidationAuthoredReloadEdit;
 
@@ -48,7 +49,7 @@ fn flow_layout_edits_rebind_projection_with_exact_rows_and_receipt_changes() {
         |receipt| {
             assert_eq!(
                 receipt.dependency_facts().collect::<Vec<_>>().len(),
-                10,
+                13,
                 "flow layout participates in primitive dependency contract"
             );
         },
@@ -119,6 +120,29 @@ fn flow_draw_plan_comes_from_flow_receipt_not_renderer_constants() {
     assert!(draw_plan.item_frames()[0].frame().y() > 0.0);
     assert_eq!(counters.source_parse_count(), 0);
     assert_eq!(counters.artifact_scan_count(), 0);
+    assert_eq!(
+        draw_plan.graph_basis().produced_fact().family(),
+        WorthUiRuntimeFactFamily::PrimitiveDrawPlan
+    );
+    assert_eq!(
+        draw_plan.graph_basis().produced_fact(),
+        &WorthUiRuntimeFactId::primitive_draw_plan(PRIMITIVE_SURFACE)
+    );
+    assert_eq!(
+        draw_plan
+            .graph_basis()
+            .consumed_facts()
+            .iter()
+            .map(|fact| fact.family())
+            .collect::<Vec<_>>(),
+        vec![
+            WorthUiRuntimeFactFamily::PrimitiveFlowLayout,
+            WorthUiRuntimeFactFamily::PrimitiveContent,
+        ]
+    );
+    assert!(draw_plan.graph_basis().consumed_facts().contains(
+        &WorthUiRuntimeFactId::primitive_flow_layout(PRIMITIVE_SURFACE)
+    ));
 }
 
 #[test]

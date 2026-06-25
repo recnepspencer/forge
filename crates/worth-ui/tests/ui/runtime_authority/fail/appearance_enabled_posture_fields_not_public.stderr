@@ -1,0 +1,13 @@
+error[E0451]: fields `hovered`, `pressed`, `focused` and `selected` of struct `WorthUiAppearanceEnabledPosture` are private
+ --> tests/ui/runtime_authority/fail/appearance_enabled_posture_fields_not_public.rs:5:9
+  |
+4 |     let _posture = WorthUiAppearanceEnabledPosture {
+  |                    ------------------------------- in this type
+5 |         hovered: true,
+  |         ^^^^^^^ private field
+6 |         pressed: true,
+  |         ^^^^^^^ private field
+7 |         focused: true,
+  |         ^^^^^^^ private field
+8 |         selected: false,
+  |         ^^^^^^^^ private field

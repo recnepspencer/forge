@@ -5,7 +5,8 @@ use crate::capability::{
     CommandProjectionAcceptedRegistrationProof, CommandProjectionDescriptor,
     CommandProjectionRegistry, CommandRegistry, ComponentAcceptedRegistrationProof,
     ComponentDescriptor, ComponentRegistry, IconAcceptedRegistrationProof, IconDescriptor,
-    IconRegistry, MosaicPlacementAcceptedRegistrationProof, MosaicPlacementPolicyDescriptor,
+    IconRegistry, ImageAssetAcceptedRegistrationProof, ImageAssetDescriptor, ImageAssetRegistry,
+    MosaicPlacementAcceptedRegistrationProof, MosaicPlacementPolicyDescriptor,
     MosaicPlacementRegistry, MosaicRegionAcceptedRegistrationProof, MosaicRegionKindDescriptor,
     MosaicRegionRegistry, MosaicSizingAcceptedRegistrationProof, MosaicSizingContractDescriptor,
     MosaicSizingRegistry, MosaicStateSlotAcceptedRegistrationProof, MosaicStateSlotDescriptor,
@@ -34,6 +35,7 @@ pub struct WorthUiAppBuilder {
     appearance_registry: WorthUiAppearanceRegistry,
     density_registry: WorthUiDensityRegistry,
     icon_registry: IconRegistry,
+    image_asset_registry: ImageAssetRegistry,
     surface_registry: SurfaceRegistry,
     mosaic_region_registry: MosaicRegionRegistry,
     mosaic_placement_registry: MosaicPlacementRegistry,
@@ -59,6 +61,7 @@ impl WorthUiAppBuilder {
             appearance_registry: WorthUiAppearanceRegistry::empty(),
             density_registry: WorthUiDensityRegistry::empty(),
             icon_registry: IconRegistry::empty(),
+            image_asset_registry: ImageAssetRegistry::empty(),
             surface_registry: SurfaceRegistry::empty(),
             mosaic_region_registry: MosaicRegionRegistry::empty(),
             mosaic_placement_registry: MosaicPlacementRegistry::empty(),
@@ -123,6 +126,14 @@ impl WorthUiAppBuilder {
         self.registration_candidates
             .push(descriptor.registration_candidate());
         self.icon_registry.push(descriptor);
+        self
+    }
+
+    /// Register a local/static image asset capability for content anatomy.
+    pub fn register_image_asset(mut self, descriptor: ImageAssetDescriptor) -> Self {
+        self.registration_candidates
+            .push(descriptor.registration_candidate());
+        self.image_asset_registry.push(descriptor);
         self
     }
 
@@ -266,6 +277,10 @@ impl WorthUiAppBuilder {
         let accepted_icons = IconAcceptedRegistrationProof::from_identity_texts(
             validation_report.accepted_identity_texts_for_registry_family(RegistryFamily::Icon),
         );
+        let accepted_image_assets = ImageAssetAcceptedRegistrationProof::from_identity_texts(
+            validation_report
+                .accepted_identity_texts_for_registry_family(RegistryFamily::ImageAsset),
+        );
         let accepted_surfaces = SurfaceAcceptedRegistrationProof::from_identity_texts(
             validation_report.accepted_identity_texts_for_registry_family(RegistryFamily::Surface),
         );
@@ -330,6 +345,7 @@ impl WorthUiAppBuilder {
         let appearance_capabilities = self.appearance_registry.freeze(&accepted_appearance_tokens);
         let density_capabilities = self.density_registry.freeze(&accepted_density_tokens);
         let icon_capabilities = self.icon_registry.freeze(&accepted_icons);
+        let image_asset_capabilities = self.image_asset_registry.freeze(&accepted_image_assets);
         let surface_capabilities = self.surface_registry.freeze(&accepted_surfaces);
         let mosaic_region_capabilities =
             self.mosaic_region_registry.freeze(&accepted_mosaic_regions);
@@ -363,6 +379,7 @@ impl WorthUiAppBuilder {
                 appearance_tokens: appearance_capabilities,
                 density_tokens: density_capabilities,
                 icons: icon_capabilities,
+                image_assets: image_asset_capabilities,
                 surfaces: surface_capabilities,
                 mosaic_regions: mosaic_region_capabilities,
                 mosaic_placement_policies: mosaic_placement_capabilities,

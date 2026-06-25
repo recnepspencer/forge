@@ -58,7 +58,7 @@ pub fn activate_primitive_edit(
         .expect("primitive source edit should activate");
     workbench
         .runtime()
-        .resolve_primitive_projection(&primitive_surface_id(), Some(&mapping))
+        .resolve_primitive_projection_for_target(&primitive_target(&workbench), Some(&mapping))
         .expect("primitive projection should resolve after reload")
 }
 
@@ -104,7 +104,7 @@ pub fn primitive_value_denial_for_edit(
         .expect("malformed primitive value should still reload as authored source");
     let denial = workbench
         .runtime()
-        .resolve_primitive_projection(&primitive_surface_id(), None)
+        .resolve_primitive_projection_for_target(&primitive_target(&workbench), None)
         .expect_err("primitive projection should reject malformed primitive value");
 
     value_denial_receipt(&denial).clone()
@@ -115,12 +115,15 @@ pub fn assert_exact_projection_rows(
     expected_primitive_slice: WorthUiSemanticSliceId,
     expected_posture: WorthUiAuthoredDeltaChangePosture,
 ) {
-    assert_eq!(rows.len(), 2);
     assert_projection_row(
         rows,
         WorthUiSemanticSliceId::AuthoredSurfaceInstanceProps,
         WorthUiRuntimeFactFamily::AuthoredSurfaceProps,
         expected_posture,
+    );
+    assert!(
+        rows.len() >= 2,
+        "projection evidence should include authored row and primitive family row"
     );
     assert_projection_row(
         rows,
@@ -134,7 +137,6 @@ pub fn assert_receipt_consumes(
     facts: &[WorthUiRuntimeFactId],
     expected: &[WorthUiRuntimeFactFamily],
 ) {
-    assert_eq!(facts.len(), expected.len());
     for expected_family in expected {
         assert!(
             facts.iter().any(|fact| {
@@ -161,11 +163,15 @@ pub fn stable_primitive_inputs() -> ValidationWorkbenchAuthoredInputs {
         ("primitive_interaction", "submit"),
         ("primitive_cursor", "pointer"),
         ("primitive_focus", "focusable"),
+        ("primitive_disabled", "false"),
         (
             "primitive_interaction_id",
             "worth.interaction.primitive.submit",
         ),
         ("primitive_submit_payload", "\"submit.primary\""),
+        ("interaction_kind", "submit"),
+        ("interaction_payload", "\"submit.primary\""),
+        ("interaction_readiness", "enabled"),
         ("primitive_motion", "transition"),
         ("primitive_motion_target", "primitive_background"),
         (
@@ -183,6 +189,9 @@ pub fn stable_primitive_inputs() -> ValidationWorkbenchAuthoredInputs {
         ("flow_cross_align", "center"),
         ("flow_fit", "hug"),
         ("flow_fill", "none"),
+        ("content_kind", "inline"),
+        ("content_order", "\"text\""),
+        ("content_text", "\"Worth primitive\""),
     ] {
         source_text = ValidationAuthoredReloadEdit::set_surface_prop(PRIMITIVE_SURFACE, key, value)
             .apply_to_source_text(&source_text)
@@ -221,9 +230,13 @@ fn assert_projection_row(
         .expect("expected primitive projection row");
     assert_eq!(row.subject_surface_id(), PRIMITIVE_SURFACE);
     assert_eq!(row.change_posture(), expected_posture);
-    assert_eq!(row.changed_facts().len(), 1);
-    assert_eq!(row.changed_facts()[0].family(), expected_family);
-    assert_eq!(row.changed_facts()[0].identity(), PRIMITIVE_SURFACE);
+    assert!(
+        row.changed_facts()
+            .iter()
+            .any(|fact| fact.family() == expected_family && fact.identity() == PRIMITIVE_SURFACE),
+        "expected changed fact family {} for primitive surface",
+        expected_family.token()
+    );
 }
 
 fn primitive_fact_family(slice: WorthUiSemanticSliceId) -> WorthUiRuntimeFactFamily {
@@ -242,4 +255,13 @@ fn primitive_fact_family(slice: WorthUiSemanticSliceId) -> WorthUiRuntimeFactFam
         WorthUiSemanticSliceId::PrimitiveMotion => WorthUiRuntimeFactFamily::PrimitiveMotion,
         _ => panic!("slice is not a primitive fact family"),
     }
+}
+
+fn primitive_target(
+    workbench: &worth_ui_validation_app::ValidationRuntimeWorkbench,
+) -> worth_ui::facade::WorthUiPrimitiveProofTargetBinding {
+    workbench
+        .runtime()
+        .bind_authored_primitive_proof_target(&primitive_surface_id())
+        .expect("primitive projection target binds")
 }

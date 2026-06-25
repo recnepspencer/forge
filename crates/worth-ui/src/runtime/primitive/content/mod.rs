@@ -1,33 +1,33 @@
 mod admission;
-mod authored_props;
-mod denial_receipt;
-mod digest;
-mod prop_admission;
+mod anatomy;
+mod graph_consumption;
+mod participation;
 mod receipt;
-mod receipt_resolution;
-mod report;
-mod schema;
-mod value;
 
 #[cfg(test)]
 mod tests;
 
-pub use denial_receipt::{
+pub(crate) use admission::{primitive_content_prop_schema, AuthoredPrimitiveContentProp};
+pub use admission::{
+    WorthUiPrimitiveContentAdmissionCounters, WorthUiPrimitiveContentAdmissionReceipt,
+    WorthUiPrimitiveContentAdmissionReport, WorthUiPrimitiveContentAdmissionStatus,
     WorthUiPrimitiveContentDenialPresentation, WorthUiPrimitiveContentDenialPresentationRow,
-    WorthUiPrimitiveContentValueDenialReceipt,
+    WorthUiPrimitiveContentKind, WorthUiPrimitiveContentRole,
+    WorthUiPrimitiveContentValueDenialCode, WorthUiPrimitiveContentValueDenialReceipt,
+    WorthUiPrimitiveContentValueDenialSet, WorthUiPrimitiveContentValueKind,
+    WorthUiValidatedPrimitiveContentPropSet,
 };
+pub use anatomy::{
+    WorthUiPrimitiveContentAccessibilityParticipation, WorthUiPrimitiveContentAnatomyItemReceipt,
+    WorthUiPrimitiveContentAnatomyReceipt,
+};
+pub use graph_consumption::WorthUiPrimitiveProvedContentAnatomy;
+pub use participation::WorthUiPrimitiveContentParticipationPosture;
 pub use receipt::{
     WorthUiPrimitiveBadgeContentItem, WorthUiPrimitiveContentIconPaintCommand,
     WorthUiPrimitiveContentIconRenderPosture, WorthUiPrimitiveContentItem,
     WorthUiPrimitiveContentItemKind, WorthUiPrimitiveContentReceipt,
     WorthUiPrimitiveDividerContentItem, WorthUiPrimitiveIconContentItem,
+    WorthUiPrimitiveImageAssetReceipt, WorthUiPrimitiveImageContentItem,
     WorthUiPrimitiveSpacerContentItem, WorthUiPrimitiveTextContentItem,
 };
-pub use report::{
-    WorthUiPrimitiveContentAdmissionCounters, WorthUiPrimitiveContentAdmissionReceipt,
-    WorthUiPrimitiveContentAdmissionReport, WorthUiPrimitiveContentAdmissionStatus,
-    WorthUiPrimitiveContentValueDenialSet, WorthUiValidatedPrimitiveContentPropSet,
-};
-pub(crate) use schema::primitive_content_prop_schema;
-pub use schema::{WorthUiPrimitiveContentValueDenialCode, WorthUiPrimitiveContentValueKind};
-pub use value::WorthUiPrimitiveContentKind;

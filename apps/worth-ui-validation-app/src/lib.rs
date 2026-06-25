@@ -15,9 +15,14 @@ pub mod sample_source;
 pub mod storm_proof;
 
 pub use app::{
-    default_reload_loop_config, default_reload_loop_config_from_authored_inputs,
-    ValidationMountedPrimitiveEventFrameDenial, ValidationMountedPrimitiveEventFrameReceipt,
-    ValidationMountedPrimitiveEventViewport, ValidationWorkbenchApp,
+    collect_live_view_host_observations_from_input, default_reload_loop_config,
+    default_reload_loop_config_from_authored_inputs, ValidationHostFrameObservationOutcome,
+    ValidationHostFrameObservationUnavailable, ValidationHostObservationInput,
+    ValidationLiveViewCompositionRebindDecision, ValidationLiveViewCompositionRebindRow,
+    ValidationLiveViewCompositionReloadCounters, ValidationLiveViewCompositionReloadProof,
+    ValidationLiveViewFrameMeasurementProof, ValidationMountedPrimitiveEventFrameDenial,
+    ValidationMountedPrimitiveEventFrameReceipt, ValidationMountedPrimitiveEventViewport,
+    ValidationWorkbenchApp,
 };
 pub use app_capabilities::validation_worth_ui_app;
 pub use app_proof_snapshot::{
@@ -42,8 +47,7 @@ pub use manual_flow::{
 };
 pub use native_window::validation_native_options;
 pub use pages::manual_flow_matrix::{
-    render_manual_flow_matrix, ValidationManualFlowMatrixProjection,
-    ValidationManualFlowMatrixRenderPlan,
+    ValidationManualFlowMatrixProjection, ValidationManualFlowMatrixRenderPlan,
 };
 pub use reload::ValidationCapturedAuthoredBatch;
 pub use runtime_workbench::ValidationRuntimeWorkbench;

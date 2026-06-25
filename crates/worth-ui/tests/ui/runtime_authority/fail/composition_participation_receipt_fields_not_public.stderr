@@ -1,0 +1,47 @@
+warning: unreachable expression
+  --> tests/ui/runtime_authority/fail/composition_participation_receipt_fields_not_public.rs:13:19
+   |
+12 |         query_graph_execution: panic!("query graph execution is runtime-admitted"),
+   |                                --------------------------------------------------- any code following this expression is unreachable
+13 |         counters: WorthUiCompositionParticipationCounters::default(),
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error: cannot construct `WorthUiCompositionParticipationReceipt` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/composition_participation_receipt_fields_not_public.rs:6:20
+   |
+ 6 |     let _receipt = WorthUiCompositionParticipationReceipt {
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 7 |         root_id: "root".to_owned(),
+   |         -------------------------- private field
+ 8 |         accessibility_nodes: Vec::new(),
+   |         ------------------------------- private field
+ 9 |         focus_nodes: Vec::new(),
+   |         ----------------------- private field
+10 |         associations: Vec::new(),
+   |         ------------------------ private field
+11 |         consumed_facts: Vec::new(),
+   |         -------------------------- private field
+12 |         query_graph_execution: panic!("query graph execution is runtime-admitted"),
+   |         -------------------------------------------------------------------------- private field
+13 |         counters: WorthUiCompositionParticipationCounters::default(),
+   |         ------------------------------------------------------------ private field
+14 |         receipt_digest: 0,
+   |         ----------------- private field
+   |
+   = note: ...and other private fields `focus_scopes`, `relationships` and `traversal` that were not provided
+help: you might have meant to use the `new` associated function
+   |
+ 6 -     let _receipt = WorthUiCompositionParticipationReceipt {
+ 7 -         root_id: "root".to_owned(),
+ 8 -         accessibility_nodes: Vec::new(),
+ 9 -         focus_nodes: Vec::new(),
+10 -         associations: Vec::new(),
+11 -         consumed_facts: Vec::new(),
+12 -         query_graph_execution: panic!("query graph execution is runtime-admitted"),
+13 -         counters: WorthUiCompositionParticipationCounters::default(),
+14 -         receipt_digest: 0,
+15 -     };
+ 6 +     let _receipt = WorthUiCompositionParticipationReceipt::new(_, _, _, _, _, _, _, _, _);
+   |

@@ -1,4 +1,5 @@
 mod authored_inputs;
+mod default_files;
 mod observed_files;
 mod observed_startup_evidence;
 #[cfg(test)]
@@ -24,6 +25,7 @@ use crate::reload::{
 use crate::runtime_workbench::ValidationRuntimeWorkbench;
 
 pub use authored_inputs::ValidationWorkbenchAuthoredInputs;
+use default_files::default_observed_workbench_files;
 pub use observed_files::ValidationObservedWorkbenchFiles;
 pub use observed_startup_evidence::{
     ValidationObservedStartupEvidence, ValidationObservedStartupFileKind,
@@ -346,50 +348,6 @@ fn startup_outcome_is_acceptable(
         | worth_ui::facade::WorthUiCapabilityReloadStatus::ReadyForFrameBoundary => true,
         worth_ui::facade::WorthUiCapabilityReloadStatus::Denied(_) => false,
     }
-}
-
-fn default_observed_workbench_files() -> io::Result<ValidationObservedWorkbenchFiles> {
-    Ok(
-        ValidationObservedWorkbenchFiles::new(default_validation_source_path())
-            .with_theme_path(default_header_theme_path())
-            .with_command_path(default_header_command_path())
-            .with_command_projection_path(default_header_command_projection_path())
-            .with_component_path(default_header_component_path())
-            .with_appearance_path(default_header_appearance_path())
-            .with_density_path(default_header_density_path()),
-    )
-}
-
-fn manifest_dir() -> std::path::PathBuf {
-    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-}
-
-fn default_validation_source_path() -> std::path::PathBuf {
-    manifest_dir().join("source/header.wui")
-}
-
-fn default_header_theme_path() -> std::path::PathBuf {
-    manifest_dir().join("theme/header.theme")
-}
-
-fn default_header_command_path() -> std::path::PathBuf {
-    manifest_dir().join("theme/header.commands")
-}
-
-fn default_header_command_projection_path() -> std::path::PathBuf {
-    manifest_dir().join("theme/header.projections")
-}
-
-fn default_header_component_path() -> std::path::PathBuf {
-    manifest_dir().join("theme/header.components")
-}
-
-fn default_header_appearance_path() -> std::path::PathBuf {
-    manifest_dir().join("theme/header.appearance")
-}
-
-fn default_header_density_path() -> std::path::PathBuf {
-    manifest_dir().join("theme/header.density")
 }
 
 pub(crate) fn validation_page_host_request() -> WorthUiPageHostRequest {

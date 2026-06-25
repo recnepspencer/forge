@@ -1,0 +1,98 @@
+live_view validation.live_view.primitive_proof {
+    target button_proof
+    flow_kind row
+    flow_gap validation.density.primitive.flow.gap.default
+    flow_padding validation.density.primitive.flow.padding.default
+    flow_align end
+    appearance_rest_background "#ffffff"
+    appearance_rest_foreground "#344054"
+    appearance_rest_text_color "#344054"
+    appearance_rest_border_color "#e4e7ec"
+    appearance_rest_border_width validation.density.primitive.border.default
+    appearance_rest_radius validation.density.primitive.radius
+    state title {
+        fact validation.state.form.title
+        kind text
+        access read_write
+    }
+    state details {
+        fact validation.state.form.details
+        kind text
+        access read_write
+    }
+    state follow_up {
+        fact validation.state.form.follow_up
+        kind text
+        access read_write
+    }
+    control title_input {
+        binding title
+        projection text_input
+        label "Title"
+        flow_padding validation.density.primitive.flow.padding.compact
+        appearance_rest_background "#ffffff"
+        appearance_rest_foreground "#111827"
+        appearance_rest_text_color "#111827"
+        appearance_rest_border_color "#d0d5dd"
+        appearance_rest_border_width validation.density.primitive.border.default
+        appearance_rest_radius validation.density.primitive.radius
+        event_cursor text
+    }
+    control details_input {
+        binding details
+        projection select
+        label "Details"
+        options yes:Yes,no:No
+        flow_padding validation.density.primitive.flow.padding.compact
+        appearance_rest_background "#ffffff"
+        appearance_rest_foreground "#111827"
+        appearance_rest_text_color "#111827"
+        appearance_rest_border_color "#d0d5dd"
+        appearance_rest_border_width validation.density.primitive.border.default
+        appearance_rest_radius validation.density.primitive.radius
+        event_cursor text
+    }
+    control follow_up_input {
+        binding follow_up
+        projection text_input
+        label "Follow up"
+        flow_padding validation.density.primitive.flow.padding.compact
+        appearance_rest_background "#ffffff"
+        appearance_rest_foreground "#111827"
+        appearance_rest_text_color "#111827"
+        appearance_rest_border_color "#d0d5dd"
+        appearance_rest_border_width validation.density.primitive.border.default
+        appearance_rest_radius validation.density.primitive.radius
+        event_cursor text
+    }
+    condition follow_up_input {
+        when details equals "yes"
+        true present
+        false absent_retaining_state
+    }
+    readiness proof_submit_ready {
+        required title,details,follow_up
+    }
+    payload proof_submit_payload {
+        shape data_payload_values
+    }
+    interaction proof_submit {
+        kind submit
+        effect validation.effect.form.submit
+        readiness proof_submit_ready
+        payload proof_submit_payload
+        label "Submit"
+        flow_padding validation.density.primitive.flow.padding.compact
+        appearance_rest_background "#2563eb"
+        appearance_rest_foreground "#ffffff"
+        appearance_rest_text_color "#ffffff"
+        appearance_rest_border_color "#2563eb"
+        appearance_rest_border_width validation.density.primitive.border.default
+        appearance_rest_radius validation.density.primitive.radius
+        appearance_disabled_background "#eaecf0"
+        appearance_disabled_foreground "#667085"
+        appearance_disabled_text_color "#667085"
+        appearance_disabled_border_color "#eaecf0"
+        event_cursor pointer
+    }
+}

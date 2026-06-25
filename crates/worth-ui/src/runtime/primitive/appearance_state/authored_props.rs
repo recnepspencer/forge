@@ -4,10 +4,24 @@ use crate::runtime::{
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct AuthoredAppearanceStateProp {
-    pub(super) key: String,
-    pub(super) value: String,
-    pub(super) source_span: Option<WorthUiPrimitiveSourceSpan>,
+pub(crate) struct AuthoredAppearanceStateProp {
+    pub(crate) key: String,
+    pub(crate) value: String,
+    pub(crate) source_span: Option<WorthUiPrimitiveSourceSpan>,
+}
+
+impl AuthoredAppearanceStateProp {
+    pub(crate) fn new(
+        key: impl Into<String>,
+        value: impl Into<String>,
+        source_span: Option<WorthUiPrimitiveSourceSpan>,
+    ) -> Self {
+        Self {
+            key: key.into(),
+            value: value.into(),
+            source_span,
+        }
+    }
 }
 
 pub(super) fn appearance_state_authored_props(
@@ -16,14 +30,13 @@ pub(super) fn appearance_state_authored_props(
 ) -> Vec<AuthoredAppearanceStateProp> {
     host.inspect_active_authored_surface_props(surface_id)
         .filter(|entry| entry.key().starts_with("appearance_"))
-        .map(|entry| AuthoredAppearanceStateProp {
-            key: entry.key().to_owned(),
-            value: match entry.value() {
+        .map(|entry| {
+            let value = match entry.value() {
                 WorthUiAuthoredSurfacePropValue::Identifier(value)
                 | WorthUiAuthoredSurfacePropValue::StringLiteral(value) => value.clone(),
                 WorthUiAuthoredSurfacePropValue::NumberLiteral(value) => value.to_string(),
-            },
-            source_span: entry.source_span(),
+            };
+            AuthoredAppearanceStateProp::new(entry.key(), value, entry.source_span())
         })
         .collect()
 }

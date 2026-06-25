@@ -23,6 +23,18 @@ fn sample_startup_inputs_apply_appearance_and_density_through_launch_path() {
 }
 
 #[test]
+fn observed_startup_inputs_include_live_view_source() {
+    let prepared = ValidationWorkbenchLaunch::new()
+        .prepare()
+        .expect("observed validation workbench launch should include live-view source");
+
+    assert!(
+        prepared.authored_inputs().live_view().is_some(),
+        "normal launch must carry the observed live-view source into authored inputs"
+    );
+}
+
+#[test]
 fn invalid_startup_appearance_returns_typed_rejection_instead_of_panicking() {
     let result = ValidationWorkbenchLaunch::new().prepare_from_authored_inputs(
         ValidationWorkbenchAuthoredInputs::new(crate::reload::ValidationSourcePackage::sample())

@@ -1,28 +1,31 @@
 use crate::runtime::{
-    WorthUiFlowLayoutFill, WorthUiFlowLayoutFit, WorthUiFlowLayoutKind,
-    WorthUiPrimitiveProofReceipt,
+    WorthUiFlowLayoutFill, WorthUiFlowLayoutFit, WorthUiFlowLayoutKind, WorthUiFlowLayoutReceipt,
+    WorthUiPrimitiveProofReceipt, WorthUiPrimitiveProvedContentAnatomy,
 };
 
 use super::item_frame::{
     inline_content_height, inline_content_width, stacked_content_height, stacked_content_width,
 };
 
-pub(super) fn natural_flow_size(receipt: &WorthUiPrimitiveProofReceipt) -> (f32, f32) {
-    let inline_width = inline_content_width(receipt);
-    let inline_height = inline_content_height(receipt);
-    match receipt.flow_layout().kind() {
+pub(super) fn natural_flow_size(
+    flow_layout: &WorthUiFlowLayoutReceipt,
+    content: &WorthUiPrimitiveProvedContentAnatomy,
+) -> (f32, f32) {
+    let inline_width = inline_content_width(flow_layout, content);
+    let inline_height = inline_content_height(content);
+    match flow_layout.kind() {
         WorthUiFlowLayoutKind::Row | WorthUiFlowLayoutKind::Inline => {
             (inline_width.clamp(120.0, 360.0), inline_height.max(64.0))
         }
         WorthUiFlowLayoutKind::Column | WorthUiFlowLayoutKind::Stack => (
-            stacked_content_width(receipt).clamp(120.0, 360.0),
-            stacked_content_height(receipt).max(64.0),
+            stacked_content_width(content).clamp(120.0, 360.0),
+            stacked_content_height(flow_layout, content).max(64.0),
         ),
         WorthUiFlowLayoutKind::Grid => (
             inline_width.clamp(120.0, 360.0),
-            (inline_height * 2.0 + receipt.flow_layout().gap_points()).max(96.0),
+            (inline_height * 2.0 + flow_layout.gap_points()).max(96.0),
         ),
-        WorthUiFlowLayoutKind::Spacer => (receipt.flow_layout().gap_points().max(1.0), 1.0),
+        WorthUiFlowLayoutKind::Spacer => (flow_layout.gap_points().max(1.0), 1.0),
     }
 }
 

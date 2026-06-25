@@ -4,8 +4,10 @@
 mod validation_app_reload_fixture;
 
 use worth_ui::facade::{
-    SurfaceId, WorthUiInteractionKind, WorthUiInteractionTarget, WorthUiMountedInteractionGesture,
-    WorthUiRuntimeFactFamily, WorthUiSemanticSliceId,
+    SurfaceId, WorthUiInteractionKind, WorthUiInteractionTarget,
+    WorthUiMountedInteractionActivation, WorthUiMountedInteractionPlan,
+    WorthUiPrimitiveProofDenial, WorthUiPrimitiveProofReceipt, WorthUiRuntimeFactFamily,
+    WorthUiSemanticSliceId,
 };
 use worth_ui_validation_app::reload::{
     ValidationAuthoredReloadEdit, ValidationPreparedReload, ValidationReloadRequest,
@@ -65,17 +67,48 @@ pub fn submit_centered_primitive(
     workbench: &mut ValidationRuntimeWorkbench,
 ) -> worth_ui::facade::WorthUiInteractionReceipt {
     let surface_id = primitive_surface_id();
-    let proof = workbench
-        .runtime()
-        .resolve_primitive_proof(&surface_id)
-        .expect("primitive proof resolves");
-    let request = proof.interaction().activation_request(
-        &surface_id,
-        WorthUiMountedInteractionGesture::primary_click(),
-    );
+    let plan = mounted_interaction_plan_for_surface(workbench, &surface_id);
+    let WorthUiMountedInteractionActivation::Eligible(eligible) = plan.activation().clone() else {
+        panic!("centered primitive interaction should be eligible");
+    };
     workbench
-        .submit_surface_interaction(request)
+        .submit_mounted_interaction(eligible)
         .expect("generic interaction lane emits receipt")
+}
+
+pub fn primitive_proof_for_surface(
+    workbench: &ValidationRuntimeWorkbench,
+    surface_id: &SurfaceId,
+) -> WorthUiPrimitiveProofReceipt {
+    try_primitive_proof_for_surface(workbench, surface_id).expect("primitive proof resolves")
+}
+
+pub fn try_primitive_proof_for_surface(
+    workbench: &ValidationRuntimeWorkbench,
+    surface_id: &SurfaceId,
+) -> Result<WorthUiPrimitiveProofReceipt, WorthUiPrimitiveProofDenial> {
+    let target = workbench
+        .runtime()
+        .bind_authored_primitive_proof_target(surface_id)
+        .expect("primitive target binds");
+    workbench
+        .runtime()
+        .resolve_primitive_proof_for_target(&target)
+}
+
+pub fn mounted_interaction_plan_for_surface(
+    workbench: &ValidationRuntimeWorkbench,
+    surface_id: &SurfaceId,
+) -> WorthUiMountedInteractionPlan {
+    let proof = primitive_proof_for_surface(workbench, surface_id);
+    workbench
+        .runtime()
+        .resolve_mounted_interaction_plan_for_target(
+            proof
+                .target_binding()
+                .for_mounted_interaction(workbench.runtime().graph_authority()),
+        )
+        .expect("mounted interaction plan resolves")
 }
 
 pub fn assert_mounted_kind_target_emits(

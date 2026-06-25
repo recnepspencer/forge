@@ -194,6 +194,7 @@ fn commit_swap_payload(
     let (next_artifact, next_plan, next_snapshot) = payload.into_parts();
     let preserved_snapshot = active.capability_snapshot().clone();
     let preserved_dropdown_selection_authority = active.dropdown_selection_authority();
+    let preserved_live_view_state_store = active.live_view_state_store().clone();
     let preserved_authoring_snapshot = active.authoring_snapshot().cloned();
     let diagnostic_policy = active.diagnostic_policy();
     *active = WorthUiActiveRuntimeState::from_preserved_authority(
@@ -202,6 +203,7 @@ fn commit_swap_payload(
         preserved_snapshot,
         next_snapshot,
         preserved_dropdown_selection_authority,
+        preserved_live_view_state_store,
         preserved_authoring_snapshot,
         WorthUiRuntimeLifecycle::Active,
         WorthUiRuntimeActivationStatus::Active,

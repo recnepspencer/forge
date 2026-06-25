@@ -1,14 +1,16 @@
 use super::super::super::{
-    WorthUiBoxEdges, WorthUiPrimitiveDrawPlan, WorthUiPrimitiveFrame, WorthUiPrimitiveProofReceipt,
+    WorthUiBoxEdges, WorthUiPrimitiveActivationPosture, WorthUiPrimitiveDrawPlan,
+    WorthUiPrimitiveFrame, WorthUiPrimitiveOperabilityPosture, WorthUiPrimitiveProofReceipt,
     WorthUiPrimitiveResolvedCursorPosture,
 };
 use super::super::digest::event_region_digest;
 use super::super::receipt::{
     WorthUiPrimitiveEventContainment, WorthUiPrimitiveHitArea, WorthUiPrimitivePointerCapture,
 };
-use super::dispatch_receipt::{
+use super::hit_frame_receipt::{
     WorthUiPrimitiveHitFrameDerivationBasis, WorthUiPrimitiveHitFrameDerivationReceipt,
 };
+use crate::runtime::WorthUiRuntimeFactId;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct WorthUiPrimitiveEventHitTestPoint {
@@ -31,11 +33,21 @@ pub struct WorthUiPrimitiveEventRegionReceipt {
     visual_frame: WorthUiPrimitiveFrame,
     hit_frame: WorthUiPrimitiveFrame,
     hit_frame_derivation: WorthUiPrimitiveHitFrameDerivationReceipt,
+    graph_basis: WorthUiPrimitiveEventRegionGraphBasis,
     cursor: WorthUiPrimitiveResolvedCursorPosture,
-    can_activate: bool,
+    activation_posture: WorthUiPrimitiveActivationPosture,
     containment: WorthUiPrimitiveEventContainment,
     capture: WorthUiPrimitivePointerCapture,
     receipt_digest: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthUiPrimitiveEventRegionGraphBasis {
+    surface_id: String,
+    produced_fact: WorthUiRuntimeFactId,
+    consumed_facts: Vec<WorthUiRuntimeFactId>,
+    source_parse_count: usize,
+    artifact_scan_count: usize,
 }
 
 impl WorthUiPrimitiveEventHitTestPoint {
@@ -55,6 +67,46 @@ impl WorthUiPrimitiveEventRegionOrder {
 
     pub fn order(self) -> u16 {
         self.order
+    }
+}
+
+impl WorthUiPrimitiveEventRegionGraphBasis {
+    fn from_draw_plan(
+        primitive: &WorthUiPrimitiveProofReceipt,
+        draw_plan: &WorthUiPrimitiveDrawPlan,
+    ) -> Self {
+        let mut consumed_facts = draw_plan.graph_basis().consumed_facts().to_vec();
+        consumed_facts.push(draw_plan.graph_basis().produced_fact().clone());
+        consumed_facts.push(WorthUiRuntimeFactId::primitive_event_geometry(
+            primitive.surface_id(),
+        ));
+        Self {
+            surface_id: primitive.surface_id().to_owned(),
+            produced_fact: WorthUiRuntimeFactId::primitive_event_region(primitive.surface_id()),
+            consumed_facts,
+            source_parse_count: draw_plan.graph_basis().source_parse_count(),
+            artifact_scan_count: draw_plan.graph_basis().artifact_scan_count(),
+        }
+    }
+
+    pub fn surface_id(&self) -> &str {
+        &self.surface_id
+    }
+
+    pub fn produced_fact(&self) -> &WorthUiRuntimeFactId {
+        &self.produced_fact
+    }
+
+    pub fn consumed_facts(&self) -> &[WorthUiRuntimeFactId] {
+        &self.consumed_facts
+    }
+
+    pub fn source_parse_count(&self) -> usize {
+        self.source_parse_count
+    }
+
+    pub fn artifact_scan_count(&self) -> usize {
+        self.artifact_scan_count
     }
 }
 
@@ -109,10 +161,12 @@ impl WorthUiPrimitiveEventRegionReceipt {
         let affordance = primitive.interaction().affordance();
         let visual_frame = translated_frame(draw_plan.frame(), offset_x, offset_y);
         let Some((hit_frame, hit_frame_derivation)) =
-            hit_frame_for_primitive_event_contract(visual_frame, primitive)
+            hit_frame_for_primitive_event_contract(visual_frame, primitive, draw_plan)
         else {
             return None;
         };
+        let graph_basis =
+            WorthUiPrimitiveEventRegionGraphBasis::from_draw_plan(primitive, draw_plan);
         let cursor = affordance.cursor();
         let receipt_digest = event_region_digest(
             primitive.surface_id(),
@@ -122,7 +176,7 @@ impl WorthUiPrimitiveEventRegionReceipt {
             visual_frame,
             hit_frame,
             cursor,
-            affordance.can_activate(),
+            affordance.activation_posture(),
             event_geometry.containment(),
             event_geometry.capture(),
         );
@@ -134,8 +188,9 @@ impl WorthUiPrimitiveEventRegionReceipt {
             visual_frame,
             hit_frame,
             hit_frame_derivation,
+            graph_basis,
             cursor,
-            can_activate: affordance.can_activate(),
+            activation_posture: affordance.activation_posture(),
             containment: event_geometry.containment(),
             capture: event_geometry.capture(),
             receipt_digest,
@@ -170,12 +225,16 @@ impl WorthUiPrimitiveEventRegionReceipt {
         self.hit_frame_derivation
     }
 
+    pub fn graph_basis(&self) -> &WorthUiPrimitiveEventRegionGraphBasis {
+        &self.graph_basis
+    }
+
     pub fn cursor(&self) -> WorthUiPrimitiveResolvedCursorPosture {
         self.cursor
     }
 
-    pub fn can_activate(&self) -> bool {
-        self.can_activate
+    pub fn activation_posture(&self) -> WorthUiPrimitiveActivationPosture {
+        self.activation_posture
     }
 
     pub fn containment(&self) -> WorthUiPrimitiveEventContainment {
@@ -211,13 +270,14 @@ fn translated_frame(
 fn hit_frame_for_primitive_event_contract(
     visual_frame: WorthUiPrimitiveFrame,
     primitive: &WorthUiPrimitiveProofReceipt,
+    draw_plan: &WorthUiPrimitiveDrawPlan,
 ) -> Option<(
     WorthUiPrimitiveFrame,
     WorthUiPrimitiveHitFrameDerivationReceipt,
 )> {
     let event_geometry = primitive.event_geometry();
     let affordance = primitive.interaction().affordance();
-    if affordance.disabled_posture()
+    if affordance.operability().posture() == WorthUiPrimitiveOperabilityPosture::Disabled
         && event_geometry.hit_area() == WorthUiPrimitiveHitArea::DisabledNone
     {
         return None;
@@ -235,7 +295,7 @@ fn hit_frame_for_primitive_event_contract(
             ),
         )),
         WorthUiPrimitiveHitArea::PaddedBounds => {
-            let edges = primitive.flow_layout().padding_edges();
+            let edges = draw_plan.flow_padding_edges();
             Some((
                 expand_frame_by_edges(visual_frame, edges),
                 WorthUiPrimitiveHitFrameDerivationReceipt::new(

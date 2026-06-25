@@ -4,9 +4,10 @@ use crate::runtime::{
     WorthUiCapabilityReloadEvidence, WorthUiCapabilityReloadStatus, WorthUiChangedRuntimeFacts,
     WorthUiComponentCompatibility, WorthUiComponentInteractionReceipt,
     WorthUiComponentReloadReceipt, WorthUiDropdownSelectionInteractionReceipt,
-    WorthUiDropdownSelectionInteractionStatus, WorthUiQueryRuntimeFactLoweringReceipt,
-    WorthUiQueryRuntimeFactLoweringStatus, WorthUiRuntimeFactId, WorthUiRuntimeFactSet,
-    WorthUiValidationChangedFacts, WorthUiValidationReloadEvidence, WorthUiValidationReloadStatus,
+    WorthUiDropdownSelectionInteractionStatus, WorthUiLiveViewEditReceipt,
+    WorthUiQueryRuntimeFactLoweringReceipt, WorthUiQueryRuntimeFactLoweringStatus,
+    WorthUiRuntimeFactId, WorthUiRuntimeFactSet, WorthUiValidationChangedFacts,
+    WorthUiValidationReloadEvidence, WorthUiValidationReloadStatus,
 };
 
 use super::WorthUiRuntimeInstanceWitness;
@@ -131,6 +132,23 @@ impl WorthUiRuntimeChangeFamilyRow {
             family: WorthUiRuntimeChangeFamily::InteractionState,
             status: WorthUiRuntimeChangeFamilyStatus::Activated,
             changed_facts: component_interaction_changed_facts(receipt),
+            denial_detail: None,
+            payload_digest: receipt.receipt_digest(),
+            component_reload_receipt: None,
+        }
+    }
+
+    pub(crate) fn from_live_view_state_edit(
+        runtime_instance: WorthUiRuntimeInstanceWitness,
+        receipt: &WorthUiLiveViewEditReceipt,
+    ) -> Self {
+        Self {
+            runtime_instance,
+            family: WorthUiRuntimeChangeFamily::DurableState,
+            status: WorthUiRuntimeChangeFamilyStatus::Activated,
+            changed_facts: WorthUiChangedRuntimeFacts::from_runtime(WorthUiRuntimeFactSet::single(
+                receipt.changed_fact().clone(),
+            )),
             denial_detail: None,
             payload_digest: receipt.receipt_digest(),
             component_reload_receipt: None,

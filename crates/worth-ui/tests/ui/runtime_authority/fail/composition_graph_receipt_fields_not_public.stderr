@@ -1,0 +1,49 @@
+warning: unreachable expression
+  --> tests/ui/runtime_authority/fail/composition_graph_receipt_fields_not_public.rs:17:16
+   |
+16 |         root: todo!(),
+   |               ------- any code following this expression is unreachable
+17 |         nodes: Vec::new(),
+   |                ^^^^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `node_count`, `edge_count`, `policy_attachment_count`, `selected_graph_obligation_count`, `source_reparse_count` and `renderer_parse_count` of struct `WorthUiCompositionGraphCounters` are private
+  --> tests/ui/runtime_authority/fail/composition_graph_receipt_fields_not_public.rs:7:9
+   |
+ 6 |     let _counters = WorthUiCompositionGraphCounters {
+   |                     ------------------------------- in this type
+ 7 |         node_count: 0,
+   |         ^^^^^^^^^^ private field
+ 8 |         edge_count: 0,
+   |         ^^^^^^^^^^ private field
+ 9 |         policy_attachment_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         selected_graph_obligation_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         source_reparse_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+12 |         renderer_parse_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `root`, `nodes`, `edges`, `policy_attachments`, `consumed_facts`, `query_graph_execution`, `counters` and `receipt_digest` of struct `WorthUiAdmittedCompositionGraphReceipt` are private
+  --> tests/ui/runtime_authority/fail/composition_graph_receipt_fields_not_public.rs:16:9
+   |
+15 |     let _receipt = WorthUiAdmittedCompositionGraphReceipt {
+   |                    -------------------------------------- in this type
+16 |         root: todo!(),
+   |         ^^^^ private field
+17 |         nodes: Vec::new(),
+   |         ^^^^^ private field
+18 |         edges: Vec::new(),
+   |         ^^^^^ private field
+19 |         policy_attachments: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+20 |         consumed_facts: Vec::new(),
+   |         ^^^^^^^^^^^^^^ private field
+21 |         query_graph_execution: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+22 |         counters: _counters,
+   |         ^^^^^^^^ private field
+23 |         receipt_digest: 0,
+   |         ^^^^^^^^^^^^^^ private field

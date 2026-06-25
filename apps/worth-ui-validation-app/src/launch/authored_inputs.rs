@@ -1,7 +1,7 @@
 use crate::reload::{
     ValidationAppearanceSource, ValidationCommandProjectionSource, ValidationCommandSource,
-    ValidationComponentSource, ValidationDensitySource, ValidationSourcePackage,
-    ValidationThemeSource,
+    ValidationComponentSource, ValidationDensitySource, ValidationLiveViewSource,
+    ValidationSourcePackage, ValidationThemeSource,
 };
 use crate::sample_source::{
     VALIDATION_SAMPLE_APPEARANCE_SOURCE, VALIDATION_SAMPLE_COMMAND_PROJECTION_SOURCE,
@@ -18,6 +18,7 @@ pub struct ValidationWorkbenchAuthoredInputs {
     component: Option<ValidationComponentSource>,
     appearance: Option<ValidationAppearanceSource>,
     density: Option<ValidationDensitySource>,
+    live_view: Option<ValidationLiveViewSource>,
 }
 
 impl ValidationWorkbenchAuthoredInputs {
@@ -39,6 +40,7 @@ impl ValidationWorkbenchAuthoredInputs {
             .with_density(ValidationDensitySource::new(
                 VALIDATION_SAMPLE_DENSITY_SOURCE,
             ))
+            .with_live_view_source(ValidationLiveViewSource::sample())
     }
 
     pub fn new(source: ValidationSourcePackage) -> Self {
@@ -50,6 +52,7 @@ impl ValidationWorkbenchAuthoredInputs {
             component: None,
             appearance: None,
             density: None,
+            live_view: None,
         }
     }
 
@@ -79,6 +82,10 @@ impl ValidationWorkbenchAuthoredInputs {
 
     pub fn density(&self) -> Option<&ValidationDensitySource> {
         self.density.as_ref()
+    }
+
+    pub fn live_view(&self) -> Option<&ValidationLiveViewSource> {
+        self.live_view.as_ref()
     }
 
     pub fn with_theme(mut self, theme: ValidationThemeSource) -> Self {
@@ -116,6 +123,11 @@ impl ValidationWorkbenchAuthoredInputs {
 
     pub fn with_density(mut self, density: ValidationDensitySource) -> Self {
         self.density = Some(density);
+        self
+    }
+
+    pub fn with_live_view_source(mut self, live_view: ValidationLiveViewSource) -> Self {
+        self.live_view = Some(live_view);
         self
     }
 }

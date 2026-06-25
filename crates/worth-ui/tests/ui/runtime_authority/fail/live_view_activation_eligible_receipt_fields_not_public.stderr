@@ -1,0 +1,5 @@
+error[E0451]: field `interaction` of struct `WorthUiLiveViewInteractionActivationEligibleReceipt` is private
+ --> tests/ui/runtime_authority/fail/live_view_activation_eligible_receipt_fields_not_public.rs:8:73
+  |
+8 |     let _forged = WorthUiLiveViewInteractionActivationEligibleReceipt { interaction };
+  |                                                                         ^^^^^^^^^^^ private field

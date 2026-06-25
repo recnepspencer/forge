@@ -1,10 +1,11 @@
 use crate::runtime::{
-    WorthUiProjectionDependencyValidationProof, WorthUiRuntimeFactId,
-    WorthUiValidatedProjectionDependencyContract,
+    WorthUiPrimitiveProofTargetBinding, WorthUiProjectionDependencyValidationProof,
+    WorthUiRuntimeFactId,
 };
 
 use super::{
-    WorthUiFlowLayoutReceipt, WorthUiPrimitiveAppearanceReceipt, WorthUiPrimitiveContainerReceipt,
+    WorthUiFlowLayoutReceipt, WorthUiPrimitiveAppearanceReceipt,
+    WorthUiPrimitiveConstructionGraphProof, WorthUiPrimitiveContainerReceipt,
     WorthUiPrimitiveContentReceipt, WorthUiPrimitiveDrawPlan, WorthUiPrimitiveEventGeometryReceipt,
     WorthUiPrimitiveInteractionReceipt, WorthUiPrimitiveMeasurementReceipt,
     WorthUiPrimitiveMotionReceipt, WorthUiPrimitiveObservedPostureReceipt,
@@ -24,7 +25,8 @@ pub struct WorthUiPrimitiveProofReceipt {
     event_geometry: WorthUiPrimitiveEventGeometryReceipt,
     motion: WorthUiPrimitiveMotionReceipt,
     flow_layout: WorthUiFlowLayoutReceipt,
-    dependency_contract: WorthUiValidatedProjectionDependencyContract,
+    target_binding: WorthUiPrimitiveProofTargetBinding,
+    construction_graph_proof: WorthUiPrimitiveConstructionGraphProof,
     receipt_digest: u64,
 }
 
@@ -41,7 +43,8 @@ impl WorthUiPrimitiveProofReceipt {
         event_geometry: WorthUiPrimitiveEventGeometryReceipt,
         motion: WorthUiPrimitiveMotionReceipt,
         flow_layout: WorthUiFlowLayoutReceipt,
-        dependency_contract: WorthUiValidatedProjectionDependencyContract,
+        target_binding: WorthUiPrimitiveProofTargetBinding,
+        construction_graph_proof: WorthUiPrimitiveConstructionGraphProof,
         receipt_digest: u64,
     ) -> Self {
         Self {
@@ -56,7 +59,8 @@ impl WorthUiPrimitiveProofReceipt {
             event_geometry,
             motion,
             flow_layout,
-            dependency_contract,
+            target_binding,
+            construction_graph_proof,
             receipt_digest,
         }
     }
@@ -105,8 +109,13 @@ impl WorthUiPrimitiveProofReceipt {
         &self.flow_layout
     }
 
+    pub fn target_binding(&self) -> &WorthUiPrimitiveProofTargetBinding {
+        &self.target_binding
+    }
+
     pub fn dependency_fact(&self) -> &WorthUiRuntimeFactId {
-        self.dependency_contract
+        self.construction_graph_proof
+            .dependency_contract()
             .dependencies()
             .facts()
             .next()
@@ -114,11 +123,20 @@ impl WorthUiPrimitiveProofReceipt {
     }
 
     pub fn dependency_facts(&self) -> impl Iterator<Item = &WorthUiRuntimeFactId> {
-        self.dependency_contract.dependencies().facts()
+        self.construction_graph_proof
+            .dependency_contract()
+            .dependencies()
+            .facts()
     }
 
     pub fn dependency_proof(&self) -> WorthUiProjectionDependencyValidationProof {
-        self.dependency_contract.validation_proof()
+        self.construction_graph_proof
+            .dependency_contract()
+            .validation_proof()
+    }
+
+    pub fn construction_graph_proof(&self) -> &WorthUiPrimitiveConstructionGraphProof {
+        &self.construction_graph_proof
     }
 
     pub fn receipt_digest(&self) -> u64 {

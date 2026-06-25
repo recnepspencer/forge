@@ -7,7 +7,7 @@ use worth_ui_validation_app::reload::ValidationSourcePackage;
 use worth_ui_validation_app::{ValidationWorkbenchAuthoredInputs, ValidationWorkbenchLaunch};
 
 const PRIMITIVE_SURFACE: &str = "worth.surface.preview.primitive.proof";
-const STABLE_AUTHORED_PRIMITIVE_SURFACE_PROP_COUNT: usize = 52;
+const STABLE_AUTHORED_PRIMITIVE_SURFACE_PROP_COUNT: usize = 69;
 
 #[test]
 fn flow_layout_admission_accepts_valid_props_with_exact_counters() {

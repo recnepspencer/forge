@@ -7,7 +7,8 @@ mod family_id_types;
 pub use capability_id_error::CapabilityIdError;
 pub use family_id_types::{
     AppearanceTokenId, CommandId, CommandProjectionId, ComponentId, DensityTokenId, IconId,
-    MosaicPlacementPolicyId, MosaicRegionKindId, MosaicSizingContractId, MosaicStateOwnerScopeId,
-    MosaicStateSlotId, NativeCapabilityId, PluginSlotId, RuntimeOutcomeProjectionId, SettingId,
-    SurfaceId, TaskPresentationId, ThemeTokenId, ViewBindingId,
+    ImageAssetId, MosaicPlacementPolicyId, MosaicRegionKindId, MosaicSizingContractId,
+    MosaicStateOwnerScopeId, MosaicStateSlotId, NativeCapabilityId, PluginSlotId,
+    RuntimeOutcomeProjectionId, SettingId, SurfaceId, TaskPresentationId, ThemeTokenId,
+    ViewBindingId,
 };

@@ -1,7 +1,7 @@
 use crate::runtime::{
     WorthUiCapabilityReloadEvidence, WorthUiComponentInteractionReceipt,
-    WorthUiDropdownSelectionInteractionReceipt, WorthUiQueryRuntimeFactLoweringReceipt,
-    WorthUiValidationReloadEvidence,
+    WorthUiDropdownSelectionInteractionReceipt, WorthUiLiveViewEditReceipt,
+    WorthUiQueryRuntimeFactLoweringReceipt, WorthUiValidationReloadEvidence,
 };
 
 use super::{
@@ -63,6 +63,16 @@ impl WorthUiClassifiedRuntimeChange {
             WorthUiRuntimeChangeFamilyRow::from_component_interaction(runtime_instance, receipt),
         ])
         .expect("single component interaction evidence row is internally coherent")
+    }
+
+    pub(crate) fn from_live_view_state_edit(
+        runtime_instance: WorthUiRuntimeInstanceWitness,
+        receipt: &WorthUiLiveViewEditReceipt,
+    ) -> Self {
+        Self::from_rows(vec![
+            WorthUiRuntimeChangeFamilyRow::from_live_view_state_edit(runtime_instance, receipt),
+        ])
+        .expect("single live view state edit row is internally coherent")
     }
 
     pub(crate) fn from_rows(

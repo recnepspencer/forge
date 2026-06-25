@@ -43,9 +43,9 @@ fn content_denial_presentation_is_derived_from_typed_receipt() {
 }
 
 #[test]
-fn image_and_slot_are_known_but_capability_gated_unsupported_content_refs() {
+fn invalid_image_and_slot_are_typed_content_ref_denials() {
     let runtime = runtime_for_source(content_source(&[
-        ("content_image", "worth.image.logo"),
+        ("content_image", "asset.logo"),
         ("content_slot", "leading"),
     ]));
 
@@ -60,7 +60,7 @@ fn image_and_slot_are_known_but_capability_gated_unsupported_content_refs() {
     assert_eq!(denials.len(), 2);
     assert_eq!(
         denials[0].denial_code(),
-        WorthUiPrimitiveContentValueDenialCode::UnsupportedImageReference
+        WorthUiPrimitiveContentValueDenialCode::InvalidImageAsset
     );
     assert_eq!(
         denials[1].denial_code(),

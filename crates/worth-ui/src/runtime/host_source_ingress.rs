@@ -1,11 +1,18 @@
 use crate::capability::CapabilitySnapshot;
 use crate::runtime::{
     WorthUiObservedAuthoredEdit, WorthUiObservedAuthoredEditDenial, WorthUiRuntimeHost,
-    WorthUiWatchedCandidateSubmission, WorthUiWatchedCandidateSubmissionDenial,
-    WorthUiWatcherEvent,
+    WorthUiSourceWatcher, WorthUiWatchedCandidateSubmission,
+    WorthUiWatchedCandidateSubmissionDenial, WorthUiWatcherEvent,
 };
 
 impl WorthUiRuntimeHost {
+    pub fn source_ingress(
+        &self,
+        provider: crate::runtime::WorthUiSourceProvider,
+    ) -> WorthUiSourceWatcher {
+        WorthUiSourceWatcher::new(provider)
+    }
+
     pub fn observe_authored_edit(
         &self,
         snapshot: &CapabilitySnapshot,

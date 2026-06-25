@@ -8,12 +8,15 @@ mod schema;
 mod token_resolution;
 mod value;
 
+pub(crate) use authored_props::AuthoredAppearanceStateProp;
 pub use denial_receipt::{
     WorthUiAppearanceStateTokenDenialReason, WorthUiAppearanceStateValueDenialReceipt,
 };
 pub use receipt::{
-    WorthUiAppearanceStateFieldSet, WorthUiAppearanceStateName, WorthUiAppearanceStatePosture,
-    WorthUiResolvedAppearanceStateReceipt, WorthUiStatefulAppearanceRecipeReceipt,
+    WorthUiAppearanceEnabledPosture, WorthUiAppearanceStateFieldSet, WorthUiAppearanceStateName,
+    WorthUiAppearanceStatePosture, WorthUiPrimitiveHostAppearanceObservation,
+    WorthUiPrimitiveObservedPostureReceipt, WorthUiResolvedAppearanceStateReceipt,
+    WorthUiStatefulAppearanceRecipeReceipt,
 };
 pub use report::{
     WorthUiAppearanceStateAdmissionCounters, WorthUiAppearanceStateAdmissionReceipt,

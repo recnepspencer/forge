@@ -1,0 +1,25 @@
+error[E0451]: fields `subject_kind`, `subject_id`, `composition_node_id`, `authority_identity`, `parent_id`, `order`, `sizing_token`, `child_access_row_digest`, `consumed_facts` and `binding_digest` of struct `WorthUiLiveViewCompositionChildBindingReceipt` are private
+  --> tests/ui/runtime_authority/fail/live_view_composition_child_binding_receipt_fields_not_public.rs:7:9
+   |
+ 6 |     let _forged = WorthUiLiveViewCompositionChildBindingReceipt {
+   |                   --------------------------------------------- in this type
+ 7 |         subject_kind: WorthUiLiveViewCompositionChildSubjectKind::Control,
+   |         ^^^^^^^^^^^^ private field
+ 8 |         subject_id: "first_name_input".to_owned(),
+   |         ^^^^^^^^^^ private field
+ 9 |         composition_node_id: "live_view.control.first_name_input".to_owned(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+10 |         authority_identity: "first_name_input".to_owned(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+11 |         parent_id: "input_stack".to_owned(),
+   |         ^^^^^^^^^ private field
+12 |         order: 0,
+   |         ^^^^^ private field
+13 |         sizing_token: "fill(1)".to_owned(),
+   |         ^^^^^^^^^^^^ private field
+14 |         child_access_row_digest: 1,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         consumed_facts: Vec::new(),
+   |         ^^^^^^^^^^^^^^ private field
+16 |         binding_digest: 1,
+   |         ^^^^^^^^^^^^^^ private field

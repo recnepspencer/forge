@@ -74,6 +74,23 @@ impl WorthUiSemanticSliceInventory {
             .iter()
             .find(|descriptor| descriptor.id() == id)
     }
+
+    pub fn consumers_for_runtime_fact_family(
+        &self,
+        family: WorthUiRuntimeFactFamily,
+    ) -> WorthUiSemanticSliceConsumers {
+        self.slices()
+            .iter()
+            .find(|descriptor| {
+                descriptor
+                    .runtime_fact_mapping_families()
+                    .iter()
+                    .any(|candidate| *candidate == family)
+            })
+            .map_or(WorthUiSemanticSliceConsumers::new(&[]), |descriptor| {
+                descriptor.consumers()
+            })
+    }
 }
 
 pub(super) const fn row(
@@ -164,6 +181,9 @@ fn exact_runtime_fact_family_slice(
         WorthUiRuntimeFactFamily::AuthoredSurfaceProps => {
             &[WorthUiRuntimeFactFamily::AuthoredSurfaceProps]
         }
+        WorthUiRuntimeFactFamily::PrimitiveConstruction => {
+            &[WorthUiRuntimeFactFamily::PrimitiveConstruction]
+        }
         WorthUiRuntimeFactFamily::PrimitiveContent => &[WorthUiRuntimeFactFamily::PrimitiveContent],
         WorthUiRuntimeFactFamily::PrimitiveContainer => {
             &[WorthUiRuntimeFactFamily::PrimitiveContainer]
@@ -177,6 +197,9 @@ fn exact_runtime_fact_family_slice(
         WorthUiRuntimeFactFamily::PrimitiveAppearanceState => {
             &[WorthUiRuntimeFactFamily::PrimitiveAppearanceState]
         }
+        WorthUiRuntimeFactFamily::PrimitiveActiveAppearance => {
+            &[WorthUiRuntimeFactFamily::PrimitiveActiveAppearance]
+        }
         WorthUiRuntimeFactFamily::PrimitiveInteraction => {
             &[WorthUiRuntimeFactFamily::PrimitiveInteraction]
         }
@@ -184,8 +207,17 @@ fn exact_runtime_fact_family_slice(
         WorthUiRuntimeFactFamily::PrimitiveFlowLayout => {
             &[WorthUiRuntimeFactFamily::PrimitiveFlowLayout]
         }
+        WorthUiRuntimeFactFamily::PrimitiveDrawPlan => {
+            &[WorthUiRuntimeFactFamily::PrimitiveDrawPlan]
+        }
         WorthUiRuntimeFactFamily::PrimitiveEventGeometry => {
             &[WorthUiRuntimeFactFamily::PrimitiveEventGeometry]
+        }
+        WorthUiRuntimeFactFamily::PrimitiveEventRegion => {
+            &[WorthUiRuntimeFactFamily::PrimitiveEventRegion]
+        }
+        WorthUiRuntimeFactFamily::UserIntentTargetBinding => {
+            &[WorthUiRuntimeFactFamily::UserIntentTargetBinding]
         }
         WorthUiRuntimeFactFamily::AuthoredQueryBindingShape => {
             &[WorthUiRuntimeFactFamily::AuthoredQueryBindingShape]
@@ -196,6 +228,84 @@ fn exact_runtime_fact_family_slice(
         WorthUiRuntimeFactFamily::DensityToken => &[WorthUiRuntimeFactFamily::DensityToken],
         WorthUiRuntimeFactFamily::ActionPosture => &[WorthUiRuntimeFactFamily::ActionPosture],
         WorthUiRuntimeFactFamily::LiveViewBinding => &[WorthUiRuntimeFactFamily::LiveViewBinding],
+        WorthUiRuntimeFactFamily::LiveViewDeclaration => {
+            &[WorthUiRuntimeFactFamily::LiveViewDeclaration]
+        }
+        WorthUiRuntimeFactFamily::LiveViewStateBinding => {
+            &[WorthUiRuntimeFactFamily::LiveViewStateBinding]
+        }
+        WorthUiRuntimeFactFamily::LiveViewStateValue => {
+            &[WorthUiRuntimeFactFamily::LiveViewStateValue]
+        }
+        WorthUiRuntimeFactFamily::LiveViewControlProjection => {
+            &[WorthUiRuntimeFactFamily::LiveViewControlProjection]
+        }
+        WorthUiRuntimeFactFamily::LiveViewControlOptions => {
+            &[WorthUiRuntimeFactFamily::LiveViewControlOptions]
+        }
+        WorthUiRuntimeFactFamily::LiveViewConditionalProjection => {
+            &[WorthUiRuntimeFactFamily::LiveViewConditionalProjection]
+        }
+        WorthUiRuntimeFactFamily::LiveViewParticipation => {
+            &[WorthUiRuntimeFactFamily::LiveViewParticipation]
+        }
+        WorthUiRuntimeFactFamily::LiveViewExpressionDeclaration => {
+            &[WorthUiRuntimeFactFamily::LiveViewExpressionDeclaration]
+        }
+        WorthUiRuntimeFactFamily::LiveViewExpressionProjection => {
+            &[WorthUiRuntimeFactFamily::LiveViewExpressionProjection]
+        }
+        WorthUiRuntimeFactFamily::LiveViewExpressionOutput => {
+            &[WorthUiRuntimeFactFamily::LiveViewExpressionOutput]
+        }
+        WorthUiRuntimeFactFamily::LiveViewReadinessProjection => {
+            &[WorthUiRuntimeFactFamily::LiveViewReadinessProjection]
+        }
+        WorthUiRuntimeFactFamily::LiveViewInteractionIntent => {
+            &[WorthUiRuntimeFactFamily::LiveViewInteractionIntent]
+        }
+        WorthUiRuntimeFactFamily::LiveViewPayloadProjection => {
+            &[WorthUiRuntimeFactFamily::LiveViewPayloadProjection]
+        }
+        WorthUiRuntimeFactFamily::CompositionRoot => &[WorthUiRuntimeFactFamily::CompositionRoot],
+        WorthUiRuntimeFactFamily::CompositionNode => &[WorthUiRuntimeFactFamily::CompositionNode],
+        WorthUiRuntimeFactFamily::CompositionEdge => &[WorthUiRuntimeFactFamily::CompositionEdge],
+        WorthUiRuntimeFactFamily::CompositionParticipation => {
+            &[WorthUiRuntimeFactFamily::CompositionParticipation]
+        }
+        WorthUiRuntimeFactFamily::CompositionPolicy => {
+            &[WorthUiRuntimeFactFamily::CompositionPolicy]
+        }
+        WorthUiRuntimeFactFamily::CompositionTopology => {
+            &[WorthUiRuntimeFactFamily::CompositionTopology]
+        }
+        WorthUiRuntimeFactFamily::CompositionContext => {
+            &[WorthUiRuntimeFactFamily::CompositionContext]
+        }
+        WorthUiRuntimeFactFamily::CompositionContextOverride => {
+            &[WorthUiRuntimeFactFamily::CompositionContextOverride]
+        }
+        WorthUiRuntimeFactFamily::CompositionContextPropagation => {
+            &[WorthUiRuntimeFactFamily::CompositionContextPropagation]
+        }
+        WorthUiRuntimeFactFamily::HostMeasurementObservation => {
+            &[WorthUiRuntimeFactFamily::HostMeasurementObservation]
+        }
+        WorthUiRuntimeFactFamily::LayoutAllocation => &[WorthUiRuntimeFactFamily::LayoutAllocation],
+        WorthUiRuntimeFactFamily::ViewportBoundary => &[WorthUiRuntimeFactFamily::ViewportBoundary],
+        WorthUiRuntimeFactFamily::ClipBoundary => &[WorthUiRuntimeFactFamily::ClipBoundary],
+        WorthUiRuntimeFactFamily::ScrollRestoration => {
+            &[WorthUiRuntimeFactFamily::ScrollRestoration]
+        }
+        WorthUiRuntimeFactFamily::ViewportEventParticipation => {
+            &[WorthUiRuntimeFactFamily::ViewportEventParticipation]
+        }
+        WorthUiRuntimeFactFamily::CompositionRootMountAuthority => {
+            &[WorthUiRuntimeFactFamily::CompositionRootMountAuthority]
+        }
+        WorthUiRuntimeFactFamily::MosaicPlacementLegality => {
+            &[WorthUiRuntimeFactFamily::MosaicPlacementLegality]
+        }
         WorthUiRuntimeFactFamily::VirtualizedDataFrame => {
             &[WorthUiRuntimeFactFamily::VirtualizedDataFrame]
         }

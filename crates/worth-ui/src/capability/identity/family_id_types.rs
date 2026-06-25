@@ -19,6 +19,7 @@ define_capability_id_family!(ThemeTokenId, ThemeTokenIdFamily);
 define_capability_id_family!(AppearanceTokenId, AppearanceTokenIdFamily);
 define_capability_id_family!(DensityTokenId, DensityTokenIdFamily);
 define_capability_id_family!(IconId, IconIdFamily);
+define_capability_id_family!(ImageAssetId, ImageAssetIdFamily);
 define_capability_id_family!(CommandProjectionId, CommandProjectionIdFamily);
 define_capability_id_family!(PluginSlotId, PluginSlotIdFamily);
 define_capability_id_family!(NativeCapabilityId, NativeCapabilityIdFamily);

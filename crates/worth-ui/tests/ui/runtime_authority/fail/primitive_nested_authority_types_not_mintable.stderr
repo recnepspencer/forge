@@ -42,7 +42,7 @@ error: cannot construct `WorthUiPrimitiveContentReceipt` with struct literal syn
 39 |         receipt_digest: 1,
    |         ----------------- private field
    |
-   = note: ...and other private field `kind` that was not provided
+   = note: ...and other private fields `kind`, `participation` and `role` that were not provided
 help: you might have meant to use the `new` associated function
    |
 35 -     let content = WorthUiPrimitiveContentReceipt {
@@ -51,7 +51,41 @@ help: you might have meant to use the `new` associated function
 38 -         dependency_fact: primitive_content_fact(),
 39 -         receipt_digest: 1,
 40 -     };
-35 +     let content = WorthUiPrimitiveContentReceipt::new(_, _, _, _, _);
+35 +     let content = WorthUiPrimitiveContentReceipt::new(_, _, _, _, _, _, _);
+   |
+
+error: cannot construct `WorthUiPrimitiveDrawPlan` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/primitive_nested_authority_types_not_mintable.rs:56:21
+   |
+56 |     let draw_plan = WorthUiPrimitiveDrawPlan {
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^
+57 |         frame,
+   |         ----- private field
+58 |         item_frames: flow_item_frames(),
+   |         ------------------------------- private field
+59 |         counters: layout_counters(),
+   |         --------------------------- private field
+60 |         receipt: primitive_receipt(),
+   |         ---------------------------- private field
+   |
+   = note: ...and other private fields `flow_padding_edges` and `graph_basis` that were not provided
+help: you might have meant to use an associated function to build this type
+   |
+56 -     let draw_plan = WorthUiPrimitiveDrawPlan {
+57 -         frame,
+58 -         item_frames: flow_item_frames(),
+59 -         counters: layout_counters(),
+60 -         receipt: primitive_receipt(),
+61 -     };
+56 +     let draw_plan = WorthUiPrimitiveDrawPlan::from_receipt(_, _, _);
+   |
+56 -     let draw_plan = WorthUiPrimitiveDrawPlan {
+57 -         frame,
+58 -         item_frames: flow_item_frames(),
+59 -         counters: layout_counters(),
+60 -         receipt: primitive_receipt(),
+61 -     };
+56 +     let draw_plan = WorthUiPrimitiveDrawPlan::from_proved_content(_, _, _, _);
    |
 
 error: cannot construct `WorthUiValidatedPrimitivePropSet` with struct literal syntax due to private fields

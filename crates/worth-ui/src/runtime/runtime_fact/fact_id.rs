@@ -1,3 +1,8 @@
+mod composition;
+mod host_observation;
+mod live_view;
+mod query;
+
 use crate::capability::{
     AppearanceTokenId, CommandId, CommandProjectionId, ComponentId, DensityTokenId, SurfaceId,
     ThemeTokenId, ViewBindingId,
@@ -94,39 +99,8 @@ impl WorthUiRuntimeFactId {
         Self::query_live_view(view_binding_id)
     }
 
-    pub fn query_computed_view(view_binding_id: &ViewBindingId) -> Self {
-        Self::new(
-            WorthUiRuntimeFactFamily::QueryComputedView,
-            view_binding_id.as_str(),
-        )
-    }
-
-    pub fn query_state_snapshot(snapshot_identity: impl Into<String>) -> Self {
-        Self::new(
-            WorthUiRuntimeFactFamily::QueryStateSnapshot,
-            snapshot_identity,
-        )
-    }
-
-    pub fn query_effect_posture(effect_identity: impl Into<String>) -> Self {
-        Self::new(
-            WorthUiRuntimeFactFamily::QueryEffectPosture,
-            effect_identity,
-        )
-    }
-
-    pub fn query_recovery_posture(recovery_identity: impl Into<String>) -> Self {
-        Self::new(
-            WorthUiRuntimeFactFamily::QueryRecoveryPosture,
-            recovery_identity,
-        )
-    }
-
-    pub fn query_inspection_target(inspection_identity: impl Into<String>) -> Self {
-        Self::new(
-            WorthUiRuntimeFactFamily::QueryInspectionTarget,
-            inspection_identity,
-        )
+    pub fn mosaic_placement_legality(identity: impl Into<String>) -> Self {
+        Self::new(WorthUiRuntimeFactFamily::MosaicPlacementLegality, identity)
     }
 
     pub fn layout_padding(identity: impl Into<String>) -> Self {
@@ -135,6 +109,29 @@ impl WorthUiRuntimeFactId {
 
     pub fn layout_gap(identity: impl Into<String>) -> Self {
         Self::new(WorthUiRuntimeFactFamily::LayoutGap, identity)
+    }
+
+    pub fn layout_allocation(identity: impl Into<String>) -> Self {
+        Self::new(WorthUiRuntimeFactFamily::LayoutAllocation, identity)
+    }
+
+    pub fn viewport_boundary(identity: impl Into<String>) -> Self {
+        Self::new(WorthUiRuntimeFactFamily::ViewportBoundary, identity)
+    }
+
+    pub fn clip_boundary(identity: impl Into<String>) -> Self {
+        Self::new(WorthUiRuntimeFactFamily::ClipBoundary, identity)
+    }
+
+    pub fn scroll_restoration(identity: impl Into<String>) -> Self {
+        Self::new(WorthUiRuntimeFactFamily::ScrollRestoration, identity)
+    }
+
+    pub fn viewport_event_participation(identity: impl Into<String>) -> Self {
+        Self::new(
+            WorthUiRuntimeFactFamily::ViewportEventParticipation,
+            identity,
+        )
     }
 
     pub fn component(component_id: &ComponentId) -> Self {
@@ -210,6 +207,10 @@ impl WorthUiRuntimeFactId {
         Self::new(WorthUiRuntimeFactFamily::AuthoredSurfaceProps, identity)
     }
 
+    pub fn primitive_construction(identity: impl Into<String>) -> Self {
+        Self::new(WorthUiRuntimeFactFamily::PrimitiveConstruction, identity)
+    }
+
     pub fn primitive_content(identity: impl Into<String>) -> Self {
         Self::new(WorthUiRuntimeFactFamily::PrimitiveContent, identity)
     }
@@ -230,6 +231,13 @@ impl WorthUiRuntimeFactId {
         Self::new(WorthUiRuntimeFactFamily::PrimitiveAppearanceState, identity)
     }
 
+    pub fn primitive_active_appearance(identity: impl Into<String>) -> Self {
+        Self::new(
+            WorthUiRuntimeFactFamily::PrimitiveActiveAppearance,
+            identity,
+        )
+    }
+
     pub fn primitive_interaction(identity: impl Into<String>) -> Self {
         Self::new(WorthUiRuntimeFactFamily::PrimitiveInteraction, identity)
     }
@@ -242,8 +250,20 @@ impl WorthUiRuntimeFactId {
         Self::new(WorthUiRuntimeFactFamily::PrimitiveFlowLayout, identity)
     }
 
+    pub fn primitive_draw_plan(identity: impl Into<String>) -> Self {
+        Self::new(WorthUiRuntimeFactFamily::PrimitiveDrawPlan, identity)
+    }
+
     pub fn primitive_event_geometry(identity: impl Into<String>) -> Self {
         Self::new(WorthUiRuntimeFactFamily::PrimitiveEventGeometry, identity)
+    }
+
+    pub fn primitive_event_region(identity: impl Into<String>) -> Self {
+        Self::new(WorthUiRuntimeFactFamily::PrimitiveEventRegion, identity)
+    }
+
+    pub fn user_intent_target_binding(identity: impl Into<String>) -> Self {
+        Self::new(WorthUiRuntimeFactFamily::UserIntentTargetBinding, identity)
     }
 
     pub fn authored_query_binding_shape(identity: impl Into<String>) -> Self {

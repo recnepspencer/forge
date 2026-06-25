@@ -1,8 +1,8 @@
 use worth_ui::facade::{
     ComponentChildPolicy, ComponentDescriptor, ComponentExecutionLane, ComponentFocusSupport,
     ComponentId, ComponentPropSchema, ComponentStateOwnership, IconDescriptor, IconFamily, IconId,
-    IconSourceDescriptor, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
-    SurfaceStateClass, WorthUiAppBuilder,
+    IconSourceDescriptor, ImageAssetDescriptor, ImageAssetId, SurfaceDescriptor, SurfaceId,
+    SurfaceKind, SurfacePlacementClass, SurfaceStateClass, WorthUiAppBuilder,
 };
 
 pub(crate) const PREVIEW_DEFAULT_PAGE: &str = "HeaderProofPage";
@@ -23,6 +23,9 @@ const PREVIEW_ICONS: &[(&str, &str, &str)] = &[
     ("worth.icon.toolbar.edit", "toolbar", "pencil-line"),
     ("worth.icon.toolbar.delete", "toolbar", "trash-2"),
 ];
+
+const PREVIEW_IMAGES: &[(&str, &str, u16, u16)] =
+    &[("worth.image.logo", "validation-logo.png", 64, 40)];
 
 const PREVIEW_SURFACES: &[(&str, &str)] = &[
     (
@@ -57,6 +60,20 @@ pub(crate) fn register_preview_icon_capabilities(
             IconId::new(*id).expect("valid preview icon id"),
             preview_icon_family(family),
             IconSourceDescriptor::symbol(*source_key),
+        ));
+    }
+    builder
+}
+
+pub(crate) fn register_preview_image_asset_capabilities(
+    mut builder: WorthUiAppBuilder,
+) -> WorthUiAppBuilder {
+    for (id, source_key, width, height) in PREVIEW_IMAGES {
+        builder = builder.register_image_asset(ImageAssetDescriptor::local_static(
+            ImageAssetId::new(*id).expect("valid preview image asset id"),
+            *source_key,
+            *width,
+            *height,
         ));
     }
     builder

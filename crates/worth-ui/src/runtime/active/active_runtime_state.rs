@@ -5,8 +5,9 @@ use crate::runtime::active::{
     WorthUiDropdownSelectionAuthority,
 };
 use crate::runtime::{
-    WorthUiDropdownSelectionState, WorthUiRuntimeActivationStatus, WorthUiRuntimeAuthoringSnapshot,
-    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch, WorthUiRuntimeLifecycle,
+    WorthUiDropdownSelectionState, WorthUiLiveViewStateStore, WorthUiRuntimeActivationStatus,
+    WorthUiRuntimeAuthoringSnapshot, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch,
+    WorthUiRuntimeLifecycle,
 };
 
 #[derive(Debug, Eq, PartialEq)]
@@ -16,6 +17,7 @@ pub(crate) struct WorthUiActiveRuntimeState {
     snapshot: CapabilitySnapshot,
     snapshot_digest: CapabilitySnapshotDigest,
     dropdown_selection_authority: WorthUiDropdownSelectionAuthority,
+    live_view_state_store: WorthUiLiveViewStateStore,
     authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
     lifecycle: WorthUiRuntimeLifecycle,
     status: WorthUiRuntimeActivationStatus,
@@ -39,6 +41,7 @@ impl WorthUiActiveRuntimeState {
             snapshot,
             snapshot_digest,
             dropdown_selection_authority: WorthUiDropdownSelectionAuthority::default(),
+            live_view_state_store: WorthUiLiveViewStateStore::default(),
             authoring_snapshot,
             lifecycle: WorthUiRuntimeLifecycle::Active,
             status: WorthUiRuntimeActivationStatus::Active,
@@ -102,6 +105,14 @@ impl WorthUiActiveRuntimeState {
         self.dropdown_selection_authority.clone()
     }
 
+    pub(crate) fn live_view_state_store(&self) -> &WorthUiLiveViewStateStore {
+        &self.live_view_state_store
+    }
+
+    pub(crate) fn live_view_state_store_mut(&mut self) -> &mut WorthUiLiveViewStateStore {
+        &mut self.live_view_state_store
+    }
+
     pub(crate) fn replace_capability_snapshot(
         &mut self,
         snapshot: CapabilitySnapshot,
@@ -141,6 +152,7 @@ impl WorthUiActiveRuntimeState {
         snapshot: CapabilitySnapshot,
         snapshot_digest: CapabilitySnapshotDigest,
         dropdown_selection_authority: WorthUiDropdownSelectionAuthority,
+        live_view_state_store: WorthUiLiveViewStateStore,
         authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
         lifecycle: WorthUiRuntimeLifecycle,
         status: WorthUiRuntimeActivationStatus,
@@ -153,6 +165,7 @@ impl WorthUiActiveRuntimeState {
             snapshot,
             snapshot_digest,
             dropdown_selection_authority,
+            live_view_state_store,
             authoring_snapshot,
             lifecycle,
             status,

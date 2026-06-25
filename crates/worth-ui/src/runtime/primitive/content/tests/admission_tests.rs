@@ -1,7 +1,7 @@
 use crate::runtime::{
     WorthUiPrimitiveContentIconPaintCommand, WorthUiPrimitiveContentIconRenderPosture,
     WorthUiPrimitiveContentItem, WorthUiPrimitiveContentItemKind, WorthUiPrimitiveContentKind,
-    WorthUiPrimitiveContentValueDenialCode,
+    WorthUiPrimitiveContentRole, WorthUiPrimitiveContentValueDenialCode,
 };
 
 use super::support::{content_source, runtime_for_source, surface_id};
@@ -75,6 +75,40 @@ fn token_backed_text_icon_content_lowers_to_sealed_receipt() {
 }
 
 #[test]
+fn local_static_image_and_role_content_lower_to_receipt() {
+    let runtime = runtime_for_source(content_source(&[
+        ("content_kind", "stack"),
+        ("content_order", "\"image,text\""),
+        ("content_image", "worth.image.logo"),
+        ("content_text", "\"Worth UI\""),
+        ("content_role", "helper_text"),
+    ]));
+
+    let report = runtime.resolve_primitive_content_admission_report(&surface_id());
+    let receipt = report
+        .status()
+        .accepted_receipt()
+        .expect("local static image content should admit")
+        .resolved_receipt(&runtime);
+
+    assert_eq!(receipt.role(), WorthUiPrimitiveContentRole::HelperText);
+    assert_eq!(
+        receipt
+            .items()
+            .iter()
+            .map(WorthUiPrimitiveContentItem::kind)
+            .collect::<Vec<_>>(),
+        vec![
+            WorthUiPrimitiveContentItemKind::Image,
+            WorthUiPrimitiveContentItemKind::Text,
+        ]
+    );
+    let image = receipt.items()[0].as_image().expect("first item is image");
+    assert_eq!(image.asset_id(), "worth.image.logo");
+    assert_eq!(image.source_kind(), "local_static");
+}
+
+#[test]
 fn invalid_content_values_batch_into_schema_ordered_denial_set() {
     let runtime = runtime_for_source(content_source(&[
         ("content_kind", "inline"),
@@ -87,8 +121,10 @@ fn invalid_content_values_batch_into_schema_ordered_denial_set() {
             "content_icon_stroke",
             "validation.density.primitive.content.unknown",
         ),
-        ("content_image", "assets/icon.svg"),
+        ("content_role", "footer"),
+        ("content_image", "asset.icon.svg"),
         ("content_slot", "footer"),
+        ("content_presence", "visibility_hidden"),
         ("content_margin", "fat"),
     ]));
 
@@ -98,7 +134,7 @@ fn invalid_content_values_batch_into_schema_ordered_denial_set() {
         .denial_set()
         .expect("invalid content values reject");
     let denials = denial_set.denials();
-    assert_eq!(report.counters().denials_emitted(), 7);
+    assert_eq!(report.counters().denials_emitted(), 9);
     assert_eq!(
         denials
             .iter()
@@ -106,10 +142,12 @@ fn invalid_content_values_batch_into_schema_ordered_denial_set() {
             .collect::<Vec<_>>(),
         vec![
             "content_icon",
+            "content_image",
             "content_text_size",
             "content_icon_size",
             "content_icon_stroke",
-            "content_image",
+            "content_role",
+            "content_presence",
             "content_slot",
             "content_margin",
         ]
@@ -123,11 +161,19 @@ fn invalid_content_values_batch_into_schema_ordered_denial_set() {
         WorthUiPrimitiveContentValueDenialCode::InvalidIconId
     );
     assert_eq!(
-        denials[4].denial_code(),
-        WorthUiPrimitiveContentValueDenialCode::UnsupportedImageReference
+        denials[1].denial_code(),
+        WorthUiPrimitiveContentValueDenialCode::InvalidImageAsset
     );
     assert_eq!(
         denials[5].denial_code(),
+        WorthUiPrimitiveContentValueDenialCode::InvalidContentRole
+    );
+    assert_eq!(
+        denials[6].denial_code(),
+        WorthUiPrimitiveContentValueDenialCode::InvalidParticipationPosture
+    );
+    assert_eq!(
+        denials[7].denial_code(),
         WorthUiPrimitiveContentValueDenialCode::UnsupportedSlotDeclaration
     );
     assert!(denial_set.denial_set_digest() != 0);

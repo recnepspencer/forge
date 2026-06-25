@@ -1,0 +1,22 @@
+warning: unreachable expression
+ --> tests/ui/runtime_authority/fail/live_view_submission_receipt_fields_not_public.rs:6:26
+  |
+5 |         interaction: todo!(),
+  |                      ------- any code following this expression is unreachable
+6 |         emitted_payload: todo!(),
+  |                          ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `interaction`, `emitted_payload` and `submission_digest` of struct `WorthUiLiveViewInteractionSubmissionReceipt` are private
+ --> tests/ui/runtime_authority/fail/live_view_submission_receipt_fields_not_public.rs:5:9
+  |
+4 |     let _forged = WorthUiLiveViewInteractionSubmissionReceipt {
+  |                   ------------------------------------------- in this type
+5 |         interaction: todo!(),
+  |         ^^^^^^^^^^^ private field
+6 |         emitted_payload: todo!(),
+  |         ^^^^^^^^^^^^^^^ private field
+7 |         submission_digest: 1,
+  |         ^^^^^^^^^^^^^^^^^ private field

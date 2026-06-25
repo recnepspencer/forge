@@ -1,21 +1,17 @@
+mod primitive_event_geometry_phase33_support;
+
+use primitive_event_geometry_phase33_support::{
+    activate_edits, center_of, edit, launch_workbench, nested_event_plan,
+    nested_event_plan_without_required_inner, outer_event_region, prepare_reload,
+    primitive_proof_for_authored_surface, surface_id, INNER_SURFACE, OUTER_SURFACE,
+};
 use worth_ui::facade::{
-    SurfaceId, WorthUiEventGeometryValueDenialCode, WorthUiPrimitiveEventContainment,
-    WorthUiPrimitiveEventCursor, WorthUiPrimitiveEventDispatchPlan,
-    WorthUiPrimitiveEventHitTestPoint, WorthUiPrimitiveEventRegionOrder,
-    WorthUiPrimitiveEventRegionReceipt, WorthUiPrimitiveHitArea,
+    WorthUiEventGeometryValueDenialCode, WorthUiPrimitiveEventContainment,
+    WorthUiPrimitiveEventCursor, WorthUiPrimitiveEventHitTestPoint, WorthUiPrimitiveHitArea,
     WorthUiPrimitiveHitFrameDerivationBasis, WorthUiPrimitivePointerCapture,
     WorthUiPrimitiveProofDenial, WorthUiPrimitiveResolvedCursorPosture, WorthUiRuntimeFactFamily,
-    WorthUiSemanticSliceId,
+    WorthUiRuntimeFactId, WorthUiSemanticSliceId,
 };
-use worth_ui_validation_app::reload::{
-    ValidationAuthoredReloadEdit, ValidationPreparedReload, ValidationReloadRequest,
-};
-use worth_ui_validation_app::{
-    ValidationRuntimeWorkbench, ValidationWorkbenchAuthoredInputs, ValidationWorkbenchLaunch,
-};
-
-const OUTER_SURFACE: &str = "worth.surface.preview.primitive.proof";
-const INNER_SURFACE: &str = "worth.surface.preview.primitive.inner";
 
 #[test]
 fn event_geometry_admits_cursor_hit_area_capture_and_containment() {
@@ -35,10 +31,7 @@ fn event_geometry_admits_cursor_hit_area_capture_and_containment() {
         ],
     );
 
-    let primitive = workbench
-        .runtime()
-        .resolve_primitive_proof(&surface_id(OUTER_SURFACE))
-        .expect("event geometry proof resolves");
+    let primitive = primitive_proof_for_authored_surface(&workbench, OUTER_SURFACE);
     let event_geometry = primitive.event_geometry();
 
     assert_eq!(event_geometry.cursor(), WorthUiPrimitiveEventCursor::Text);
@@ -80,9 +73,13 @@ fn invalid_event_geometry_values_report_one_schema_ordered_denial_set() {
         ],
     );
 
+    let target = workbench
+        .runtime()
+        .bind_authored_primitive_proof_target(&surface_id(OUTER_SURFACE))
+        .expect("event geometry target binds");
     let denial = workbench
         .runtime()
-        .resolve_primitive_proof(&surface_id(OUTER_SURFACE))
+        .resolve_primitive_proof_for_target(&target)
         .expect_err("invalid event geometry rejects primitive proof");
     let WorthUiPrimitiveProofDenial::InvalidEventGeometryValues { report } = denial else {
         panic!("expected event geometry report");
@@ -145,7 +142,16 @@ fn event_geometry_edits_rebind_only_event_geometry_consumers() {
 
 #[test]
 fn nested_containment_routes_inner_and_outer_clicks_distinctly() {
-    let workbench = launch_workbench();
+    let mut workbench = launch_workbench();
+    activate_edits(
+        &mut workbench,
+        &[
+            edit(OUTER_SURFACE, "primitive_disabled", "false"),
+            edit(OUTER_SURFACE, "interaction_readiness", "enabled"),
+            edit(INNER_SURFACE, "primitive_disabled", "false"),
+            edit(INNER_SURFACE, "interaction_readiness", "enabled"),
+        ],
+    );
     let event_plan = nested_event_plan(&workbench);
     let inner_region = event_plan
         .regions()
@@ -153,7 +159,11 @@ fn nested_containment_routes_inner_and_outer_clicks_distinctly() {
         .find(|region| region.surface_id() == INNER_SURFACE)
         .expect("inner event region exists");
     let inner_point = center_of(inner_region.hit_frame());
-    let inner_dispatch = event_plan.dispatch_primary_click(inner_point);
+    let inner_target = workbench
+        .runtime()
+        .bind_primitive_event_dispatch_target(&event_plan, inner_point)
+        .expect("inner event target binds");
+    let inner_dispatch = event_plan.dispatch_primary_click_for_target(&inner_target, inner_point);
 
     assert_eq!(inner_dispatch.primary_surface_id(), Some(INNER_SURFACE));
     assert_eq!(
@@ -174,7 +184,12 @@ fn nested_containment_routes_inner_and_outer_clicks_distinctly() {
         outer_region.hit_frame().x() + 4.0,
         outer_region.hit_frame().y() + 4.0,
     );
-    let outer_dispatch = event_plan.dispatch_primary_click(outer_only_point);
+    let outer_target = workbench
+        .runtime()
+        .bind_primitive_event_dispatch_target(&event_plan, outer_only_point)
+        .expect("outer event target binds");
+    let outer_dispatch =
+        event_plan.dispatch_primary_click_for_target(&outer_target, outer_only_point);
 
     assert_eq!(outer_dispatch.primary_surface_id(), Some(OUTER_SURFACE));
     assert_eq!(
@@ -184,11 +199,16 @@ fn nested_containment_routes_inner_and_outer_clicks_distinctly() {
 }
 
 #[test]
-fn authored_bubble_containment_propagates_from_inner_to_parent() {
+fn event_click_binds_target_before_dispatching_interaction_surface() {
     let mut workbench = launch_workbench();
     activate_edits(
         &mut workbench,
-        &[edit(INNER_SURFACE, "event_containment", "bubble")],
+        &[
+            edit(OUTER_SURFACE, "primitive_disabled", "false"),
+            edit(OUTER_SURFACE, "interaction_readiness", "enabled"),
+            edit(INNER_SURFACE, "primitive_disabled", "false"),
+            edit(INNER_SURFACE, "interaction_readiness", "enabled"),
+        ],
     );
     let event_plan = nested_event_plan(&workbench);
     let inner_region = event_plan
@@ -196,7 +216,82 @@ fn authored_bubble_containment_propagates_from_inner_to_parent() {
         .iter()
         .find(|region| region.surface_id() == INNER_SURFACE)
         .expect("inner event region exists");
-    let dispatch = event_plan.dispatch_primary_click(center_of(inner_region.hit_frame()));
+    let inner_point = center_of(inner_region.hit_frame());
+    let target = workbench
+        .runtime()
+        .bind_primitive_event_dispatch_target(&event_plan, inner_point)
+        .expect("event target binds from hit-tested point");
+    let dispatch = event_plan.dispatch_primary_click_for_target(&target, inner_point);
+
+    assert_eq!(target.surface_id().as_str(), INNER_SURFACE);
+    assert_ne!(target.binding_digest(), 0);
+    assert_eq!(dispatch.primary_surface_id(), Some(INNER_SURFACE));
+    assert_eq!(dispatch.emitted_surface_ids(), &[INNER_SURFACE.to_owned()]);
+}
+
+#[test]
+fn event_dispatch_with_mismatched_target_cannot_emit_surface() {
+    let mut workbench = launch_workbench();
+    activate_edits(
+        &mut workbench,
+        &[
+            edit(OUTER_SURFACE, "primitive_disabled", "false"),
+            edit(OUTER_SURFACE, "interaction_readiness", "enabled"),
+            edit(INNER_SURFACE, "primitive_disabled", "false"),
+            edit(INNER_SURFACE, "interaction_readiness", "enabled"),
+        ],
+    );
+    let event_plan = nested_event_plan(&workbench);
+    let inner_region = event_plan
+        .regions()
+        .iter()
+        .find(|region| region.surface_id() == INNER_SURFACE)
+        .expect("inner event region exists");
+    let outer_region = event_plan
+        .regions()
+        .iter()
+        .find(|region| region.surface_id() == OUTER_SURFACE)
+        .expect("outer event region exists");
+    let inner_point = center_of(inner_region.hit_frame());
+    let outer_only_point = WorthUiPrimitiveEventHitTestPoint::new(
+        outer_region.hit_frame().x() + 4.0,
+        outer_region.hit_frame().y() + 4.0,
+    );
+    let outer_target = workbench
+        .runtime()
+        .bind_primitive_event_dispatch_target(&event_plan, outer_only_point)
+        .expect("outer target binds");
+    let dispatch = event_plan.dispatch_primary_click_for_target(&outer_target, inner_point);
+
+    assert_eq!(dispatch.primary_surface_id(), Some(INNER_SURFACE));
+    assert!(dispatch.emitted_surface_ids().is_empty());
+}
+
+#[test]
+fn authored_bubble_containment_propagates_from_inner_to_parent() {
+    let mut workbench = launch_workbench();
+    activate_edits(
+        &mut workbench,
+        &[
+            edit(OUTER_SURFACE, "primitive_disabled", "false"),
+            edit(OUTER_SURFACE, "interaction_readiness", "enabled"),
+            edit(INNER_SURFACE, "primitive_disabled", "false"),
+            edit(INNER_SURFACE, "interaction_readiness", "enabled"),
+            edit(INNER_SURFACE, "event_containment", "bubble"),
+        ],
+    );
+    let event_plan = nested_event_plan(&workbench);
+    let inner_region = event_plan
+        .regions()
+        .iter()
+        .find(|region| region.surface_id() == INNER_SURFACE)
+        .expect("inner event region exists");
+    let inner_point = center_of(inner_region.hit_frame());
+    let target = workbench
+        .runtime()
+        .bind_primitive_event_dispatch_target(&event_plan, inner_point)
+        .expect("inner event target binds");
+    let dispatch = event_plan.dispatch_primary_click_for_target(&target, inner_point);
 
     assert_eq!(
         dispatch.emitted_surface_ids(),
@@ -233,7 +328,14 @@ fn padded_bounds_and_explicit_hit_slop_use_distinct_authorities() {
 
     activate_edits(
         &mut workbench,
-        &[edit(OUTER_SURFACE, "event_hit_area", "explicit_hit_slop")],
+        &[
+            edit(
+                OUTER_SURFACE,
+                "flow_padding",
+                "validation.density.primitive.flow.padding.fat",
+            ),
+            edit(OUTER_SURFACE, "event_hit_area", "explicit_hit_slop"),
+        ],
     );
     let explicit_region = outer_event_region(&workbench);
     let explicit_hit = explicit_region.hit_frame();
@@ -246,14 +348,30 @@ fn padded_bounds_and_explicit_hit_slop_use_distinct_authorities() {
         WorthUiPrimitiveHitFrameDerivationBasis::FlowPadding
     );
     assert_eq!(
-        padded_region.hit_frame_derivation().edges(),
-        workbench
-            .runtime()
-            .resolve_primitive_proof(&surface_id(OUTER_SURFACE))
-            .expect("outer primitive resolves")
-            .flow_layout()
-            .padding_edges()
+        padded_region.graph_basis().produced_fact().family(),
+        WorthUiRuntimeFactFamily::PrimitiveEventRegion
     );
+    assert_eq!(
+        padded_region.graph_basis().produced_fact(),
+        &WorthUiRuntimeFactId::primitive_event_region(OUTER_SURFACE)
+    );
+    assert!(padded_region
+        .graph_basis()
+        .consumed_facts()
+        .contains(&WorthUiRuntimeFactId::primitive_flow_layout(OUTER_SURFACE)));
+    assert!(padded_region
+        .graph_basis()
+        .consumed_facts()
+        .contains(&WorthUiRuntimeFactId::primitive_content(OUTER_SURFACE)));
+    assert!(padded_region
+        .graph_basis()
+        .consumed_facts()
+        .contains(&WorthUiRuntimeFactId::primitive_draw_plan(OUTER_SURFACE)));
+    assert!(padded_region.graph_basis().consumed_facts().contains(
+        &WorthUiRuntimeFactId::primitive_event_geometry(OUTER_SURFACE)
+    ));
+    assert_eq!(padded_region.graph_basis().source_parse_count(), 0);
+    assert_eq!(padded_region.graph_basis().artifact_scan_count(), 0);
     assert_eq!(
         explicit_region.hit_frame_derivation().basis(),
         WorthUiPrimitiveHitFrameDerivationBasis::ExplicitHitSlop
@@ -276,116 +394,4 @@ fn disabled_none_removes_disabled_region_from_hit_testing() {
         .regions()
         .iter()
         .all(|region| region.surface_id() != INNER_SURFACE));
-}
-
-fn launch_workbench() -> ValidationRuntimeWorkbench {
-    ValidationWorkbenchLaunch::new()
-        .prepare_from_authored_inputs(ValidationWorkbenchAuthoredInputs::sample())
-        .expect("validation workbench should prepare")
-        .into_runtime_workbench()
-}
-
-fn activate_edits(
-    workbench: &mut ValidationRuntimeWorkbench,
-    edits: &[ValidationAuthoredReloadEdit],
-) {
-    let prepared = prepare_reload(workbench, edits);
-    workbench
-        .activate_reload(prepared)
-        .expect("event geometry reload activates");
-}
-
-fn prepare_reload(
-    workbench: &ValidationRuntimeWorkbench,
-    edits: &[ValidationAuthoredReloadEdit],
-) -> ValidationPreparedReload {
-    let inputs = ValidationWorkbenchAuthoredInputs::sample();
-    let mut source_text = inputs.source().source_text().to_owned();
-    for edit in edits {
-        source_text = edit
-            .apply_to_source_text(&source_text)
-            .expect("event geometry edit applies to source");
-    }
-    workbench.runtime().prepare_validation_reload(
-        workbench.runtime().active_capability_snapshot(),
-        ValidationReloadRequest::from_source_module(inputs.source().module_path(), source_text),
-    )
-}
-
-fn nested_event_plan(workbench: &ValidationRuntimeWorkbench) -> WorthUiPrimitiveEventDispatchPlan {
-    nested_event_plan_with_inner_requirement(workbench, true)
-}
-
-fn nested_event_plan_without_required_inner(
-    workbench: &ValidationRuntimeWorkbench,
-) -> WorthUiPrimitiveEventDispatchPlan {
-    nested_event_plan_with_inner_requirement(workbench, false)
-}
-
-fn nested_event_plan_with_inner_requirement(
-    workbench: &ValidationRuntimeWorkbench,
-    require_inner: bool,
-) -> WorthUiPrimitiveEventDispatchPlan {
-    let outer = workbench
-        .runtime()
-        .resolve_primitive_proof(&surface_id(OUTER_SURFACE))
-        .expect("outer primitive resolves");
-    let inner = workbench
-        .runtime()
-        .resolve_primitive_proof(&surface_id(INNER_SURFACE))
-        .expect("inner primitive resolves");
-    let outer_plan = outer.draw_plan(900.0, 600.0);
-    let outer_frame = outer_plan.frame();
-    let inner_plan = inner.draw_plan(outer_frame.width(), outer_frame.height());
-    let outer_region = WorthUiPrimitiveEventRegionReceipt::from_primitive_draw_plan(
-        &outer,
-        &outer_plan,
-        WorthUiPrimitiveEventRegionOrder::new(0, 0),
-    )
-    .expect("outer hit region exists");
-    let maybe_inner_region = WorthUiPrimitiveEventRegionReceipt::from_child_primitive_draw_plan_at(
-        &inner,
-        &inner_plan,
-        WorthUiPrimitiveEventRegionOrder::new(1, 0),
-        outer.surface_id(),
-        outer_frame.x(),
-        outer_frame.y(),
-    );
-    let Some(inner_region) = maybe_inner_region else {
-        assert!(!require_inner, "inner hit region exists");
-        return WorthUiPrimitiveEventDispatchPlan::from_regions([outer_region]);
-    };
-
-    WorthUiPrimitiveEventDispatchPlan::from_regions([outer_region, inner_region])
-}
-
-fn outer_event_region(
-    workbench: &ValidationRuntimeWorkbench,
-) -> WorthUiPrimitiveEventRegionReceipt {
-    let outer = workbench
-        .runtime()
-        .resolve_primitive_proof(&surface_id(OUTER_SURFACE))
-        .expect("outer primitive resolves");
-    let outer_plan = outer.draw_plan(900.0, 600.0);
-    WorthUiPrimitiveEventRegionReceipt::from_primitive_draw_plan(
-        &outer,
-        &outer_plan,
-        WorthUiPrimitiveEventRegionOrder::new(0, 0),
-    )
-    .expect("outer hit region exists")
-}
-
-fn edit(surface_id: &str, prop_key: &str, value: &str) -> ValidationAuthoredReloadEdit {
-    ValidationAuthoredReloadEdit::set_surface_prop(surface_id, prop_key, value)
-}
-
-fn surface_id(surface_id: &str) -> SurfaceId {
-    SurfaceId::new(surface_id).expect("valid surface id")
-}
-
-fn center_of(frame: worth_ui::facade::WorthUiPrimitiveFrame) -> WorthUiPrimitiveEventHitTestPoint {
-    WorthUiPrimitiveEventHitTestPoint::new(
-        frame.x() + frame.width() * 0.5,
-        frame.y() + frame.height() * 0.5,
-    )
 }

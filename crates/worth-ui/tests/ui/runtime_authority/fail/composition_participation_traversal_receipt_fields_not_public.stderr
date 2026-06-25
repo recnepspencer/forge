@@ -1,0 +1,11 @@
+error[E0451]: fields `rows`, `counters` and `receipt_digest` of struct `WorthUiCompositionParticipationTraversalReceipt` are private
+  --> tests/ui/runtime_authority/fail/composition_participation_traversal_receipt_fields_not_public.rs:8:9
+   |
+ 7 |     let _receipt = WorthUiCompositionParticipationTraversalReceipt {
+   |                    ----------------------------------------------- in this type
+ 8 |         rows: Vec::new(),
+   |         ^^^^ private field
+ 9 |         counters: WorthUiCompositionParticipationTraversalCounters::default(),
+   |         ^^^^^^^^ private field
+10 |         receipt_digest: 0,
+   |         ^^^^^^^^^^^^^^ private field

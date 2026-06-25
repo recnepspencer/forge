@@ -1,3 +1,5 @@
+mod controls;
+
 use worth_ui::facade::{
     AppearanceTokenId, CommandProjectionId, ComponentChildPolicy, ComponentDescriptor,
     ComponentExecutionLane, ComponentFocusSupport, ComponentId, ComponentPropSchema,
@@ -22,8 +24,9 @@ use crate::app_capabilities_densities;
 use crate::header::{register_header_command_capabilities, register_header_icon_capabilities};
 use crate::product_preview::{
     register_preview_component_capabilities, register_preview_icon_capabilities,
-    register_preview_surface_capabilities,
+    register_preview_image_asset_capabilities, register_preview_surface_capabilities,
 };
+use controls::{dropdown_input_component, text_input_component};
 
 pub fn validation_worth_ui_app() -> WorthUiApp {
     validation_app_builder().freeze()
@@ -34,8 +37,10 @@ fn validation_app_builder() -> WorthUiAppBuilder {
         register_header_density_tokens(register_header_appearance_tokens(
             register_header_theme_tokens(register_validation_components(
                 register_header_icon_capabilities(register_preview_surface_capabilities(
-                    register_preview_icon_capabilities(register_preview_component_capabilities(
-                        register_preview_sizing_tokens(WorthUi::app()),
+                    register_preview_image_asset_capabilities(register_preview_icon_capabilities(
+                        register_preview_component_capabilities(register_preview_sizing_tokens(
+                            WorthUi::app(),
+                        )),
                     )),
                 )),
             )),
@@ -49,6 +54,8 @@ fn register_validation_components(builder: WorthUiAppBuilder) -> WorthUiAppBuild
         .register_component(header_proof_alt_component())
         .register_component(header_dropdown_component())
         .register_component(header_multi_select_dropdown_component())
+        .register_component(text_input_component())
+        .register_component(dropdown_input_component())
 }
 
 fn register_header_regions(builder: WorthUiAppBuilder) -> WorthUiAppBuilder {

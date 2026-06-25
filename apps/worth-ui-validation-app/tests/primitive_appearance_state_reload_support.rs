@@ -22,15 +22,19 @@ pub fn changed_fact_mapping(
         .expect("appearance-state edit should produce changed fact mapping")
 }
 
-pub fn activate_appearance_state_edits(
+pub fn activate_appearance_state_edits_with_workbench(
     edits: &[ValidationAuthoredReloadEdit],
-) -> WorthUiPrimitiveProjectionReceipt {
+) -> (
+    worth_ui_validation_app::ValidationRuntimeWorkbench,
+    WorthUiPrimitiveProjectionReceipt,
+) {
     let mut workbench = launch_stable_workbench();
     let prepared_reload = prepare_reload_for_edits(&workbench, edits);
     let mapping = changed_fact_mapping(&prepared_reload);
     activate_prepared_reload(&mut workbench, prepared_reload);
-    resolve_projection(&workbench, Some(&mapping))
-        .expect("primitive projection should resolve after appearance-state reload")
+    let projection = resolve_projection(&workbench, Some(&mapping))
+        .expect("primitive projection should resolve after appearance-state reload");
+    (workbench, projection)
 }
 
 pub fn assert_exact_appearance_state_projection_rows(
@@ -40,19 +44,23 @@ pub fn assert_exact_appearance_state_projection_rows(
     assert_projection_row(
         rows,
         WorthUiSemanticSliceId::AuthoredSurfaceInstanceProps,
-        WorthUiRuntimeFactFamily::AuthoredSurfaceProps,
+        &[WorthUiRuntimeFactFamily::AuthoredSurfaceProps],
     );
     assert_projection_row(
         rows,
         WorthUiSemanticSliceId::PrimitiveAppearanceState,
-        WorthUiRuntimeFactFamily::PrimitiveAppearanceState,
+        &[
+            WorthUiRuntimeFactFamily::PrimitiveAppearanceState,
+            WorthUiRuntimeFactFamily::PrimitiveActiveAppearance,
+            WorthUiRuntimeFactFamily::PrimitiveConstruction,
+        ],
     );
 }
 
 fn assert_projection_row(
     rows: &[WorthUiPrimitiveChangedFactEvidenceRow],
     expected_slice: WorthUiSemanticSliceId,
-    expected_family: WorthUiRuntimeFactFamily,
+    expected_families: &[WorthUiRuntimeFactFamily],
 ) {
     let row = rows
         .iter()
@@ -63,7 +71,14 @@ fn assert_projection_row(
         row.change_posture(),
         WorthUiAuthoredDeltaChangePosture::Changed
     );
-    assert_eq!(row.changed_facts().len(), 1);
-    assert_eq!(row.changed_facts()[0].family(), expected_family);
-    assert_eq!(row.changed_facts()[0].identity(), PRIMITIVE_SURFACE);
+    assert_eq!(row.changed_facts().len(), expected_families.len());
+    for expected_family in expected_families {
+        assert!(
+            row.changed_facts().iter().any(|fact| {
+                fact.family() == *expected_family && fact.identity() == PRIMITIVE_SURFACE
+            }),
+            "missing changed fact family {}",
+            expected_family.token()
+        );
+    }
 }

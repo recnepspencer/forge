@@ -1,12 +1,12 @@
 use crate::facade::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
     ComponentStateOwnership, DensityTokenId, IconDescriptor, IconFamily, IconId,
-    IconSourceDescriptor, MosaicChildRule, MosaicClippingPosture, MosaicFocusScopeKind,
-    MosaicHitTestPosture, MosaicRegionKindDescriptor, MosaicRegionKindId, MosaicRegionPersistence,
-    MosaicRegionRole, MosaicScrollOwnership, MosaicSizingBehavior, SurfaceDescriptor, SurfaceId,
-    SurfaceKind, SurfacePlacementClass, SurfaceStateClass, WorthUi, WorthUiApp,
-    WorthUiDensityFamily, WorthUiDensityTokenDescriptor, WorthUiDensityValue, WorthUiPaddingValue,
-    WorthUiRuntimeSourceModule, WorthUiSpacingValue,
+    IconSourceDescriptor, ImageAssetDescriptor, ImageAssetId, MosaicChildRule,
+    MosaicClippingPosture, MosaicFocusScopeKind, MosaicHitTestPosture, MosaicRegionKindDescriptor,
+    MosaicRegionKindId, MosaicRegionPersistence, MosaicRegionRole, MosaicScrollOwnership,
+    MosaicSizingBehavior, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
+    SurfaceStateClass, WorthUi, WorthUiApp, WorthUiDensityFamily, WorthUiDensityTokenDescriptor,
+    WorthUiDensityValue, WorthUiPaddingValue, WorthUiRuntimeSourceModule, WorthUiSpacingValue,
 };
 use crate::runtime::WorthUiRuntimeHost;
 
@@ -47,7 +47,13 @@ fn primitive_content_test_app() -> WorthUiApp {
         ))
         .register_icon(icon("worth.icon.action.plus", "plus"))
         .register_icon(icon("worth.icon.action.check", "check"))
-        .register_icon(fallback_icon("worth.icon.action.fallback", "plus"));
+        .register_icon(fallback_icon("worth.icon.action.fallback", "plus"))
+        .register_image_asset(ImageAssetDescriptor::local_static(
+            ImageAssetId::new("worth.image.logo").unwrap(),
+            "validation-logo.png",
+            64,
+            40,
+        ));
     for token in density_tokens() {
         builder = builder.register_density_token(token);
     }

@@ -8,6 +8,9 @@ use super::digest::{
     appearance_state_receipt_digest, appearance_state_schema_digest,
 };
 use super::receipt::WorthUiAppearanceStateFieldSet;
+use super::receipt::{
+    WorthUiPrimitiveHostAppearanceObservation, WorthUiPrimitiveObservedPostureReceipt,
+};
 use super::report::{
     WorthUiAppearanceStateAdmissionCounters, WorthUiAppearanceStateAdmissionReceipt,
     WorthUiAppearanceStateAdmissionReport, WorthUiAppearanceStateValueDenialSet,
@@ -24,8 +27,31 @@ use super::value::{
     default_appearance_state_value, validate_appearance_state_value,
     WorthUiValidatedAppearanceStateValue,
 };
+use crate::runtime::WorthUiPrimitiveOperabilityPosture;
 
 impl WorthUiRuntimeHost {
+    pub fn observe_primitive_appearance_posture(
+        &self,
+        proof: &crate::runtime::WorthUiPrimitiveProofReceipt,
+        host_observation: WorthUiPrimitiveHostAppearanceObservation,
+    ) -> WorthUiPrimitiveObservedPostureReceipt {
+        let selected = proof.interaction().selection_posture().is_selected();
+        if proof.interaction().affordance().operability().posture()
+            != WorthUiPrimitiveOperabilityPosture::Enabled
+        {
+            return WorthUiPrimitiveObservedPostureReceipt::non_enabled(
+                proof.surface_id(),
+                proof.interaction().affordance().operability().posture(),
+                selected,
+            );
+        }
+        WorthUiPrimitiveObservedPostureReceipt::enabled(
+            proof.surface_id(),
+            host_observation,
+            selected,
+        )
+    }
+
     pub fn resolve_appearance_state_admission_report(
         &self,
         surface_id: &SurfaceId,
@@ -38,11 +64,6 @@ impl WorthUiRuntimeHost {
         surface_id: &SurfaceId,
     ) -> WorthUiAppearanceStateAdmissionReport {
         let authored_props = appearance_state_authored_props(self, surface_id);
-        let schemas = appearance_state_prop_schemas();
-        let mut fields = AppearanceStateFields::default();
-        let mut defaults_applied = 0;
-        let mut values_validated = 0;
-        let mut denials = Vec::new();
         let authored_digest = self
             .active_authoring_snapshot()
             .and_then(|snapshot| {
@@ -51,11 +72,29 @@ impl WorthUiRuntimeHost {
                     .surface_digest(surface_id.as_str())
             })
             .unwrap_or(0xcbf2_9ce4_8422_2325);
+        self.admit_appearance_state_props_for_subject(
+            surface_id.as_str(),
+            authored_props,
+            authored_digest,
+        )
+    }
+
+    pub(crate) fn admit_appearance_state_props_for_subject(
+        &self,
+        subject_id: &str,
+        authored_props: Vec<AuthoredAppearanceStateProp>,
+        authored_digest: u64,
+    ) -> WorthUiAppearanceStateAdmissionReport {
+        let schemas = appearance_state_prop_schemas();
+        let mut fields = AppearanceStateFields::default();
+        let mut defaults_applied = 0;
+        let mut values_validated = 0;
+        let mut denials = Vec::new();
 
         for schema in &schemas {
             admit_schema_prop(
                 self,
-                surface_id.as_str(),
+                subject_id,
                 schema,
                 &authored_props,
                 &mut fields,
@@ -64,7 +103,7 @@ impl WorthUiRuntimeHost {
                 &mut denials,
             );
         }
-        push_unknown_appearance_prop_denials(surface_id.as_str(), &authored_props, &mut denials);
+        push_unknown_appearance_prop_denials(subject_id, &authored_props, &mut denials);
         let counters = WorthUiAppearanceStateAdmissionCounters::new(
             schemas.len(),
             authored_props.len(),
@@ -74,26 +113,21 @@ impl WorthUiRuntimeHost {
         );
         let schema_digest = appearance_state_schema_digest(&schemas);
         if !denials.is_empty() {
-            let denial_set_digest =
-                appearance_state_denial_set_digest(surface_id.as_str(), &denials);
+            let denial_set_digest = appearance_state_denial_set_digest(subject_id, &denials);
             return WorthUiAppearanceStateAdmissionReport::rejected(
-                surface_id.as_str(),
-                WorthUiAppearanceStateValueDenialSet::new(
-                    surface_id.as_str(),
-                    denials,
-                    denial_set_digest,
-                ),
+                subject_id,
+                WorthUiAppearanceStateValueDenialSet::new(subject_id, denials, denial_set_digest),
                 counters,
                 schema_digest,
             );
         }
         let prop_set = fields.into_prop_set();
         let admission_digest =
-            appearance_state_admission_digest(surface_id.as_str(), authored_digest, &prop_set);
+            appearance_state_admission_digest(subject_id, authored_digest, &prop_set);
         WorthUiAppearanceStateAdmissionReport::accepted(
-            surface_id.as_str(),
+            subject_id,
             WorthUiAppearanceStateAdmissionReceipt::new(
-                surface_id.as_str(),
+                subject_id,
                 prop_set,
                 authored_digest,
                 admission_digest,

@@ -2,11 +2,12 @@ use crate::capability::{
     CapabilitySnapshotBuilder, CapabilitySnapshotFreezeInput, CapabilitySupportCatalog,
     FrozenAppearanceCapabilities, FrozenCommandCapabilities, FrozenCommandProjectionCapabilities,
     FrozenComponentCapabilities, FrozenDensityCapabilities, FrozenIconCapabilities,
-    FrozenMosaicPlacementCapabilities, FrozenMosaicRegionCapabilities,
-    FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities, FrozenNativeCapabilities,
-    FrozenPluginSlotCapabilities, FrozenRuntimeOutcomeProjectionCapabilities,
-    FrozenSettingCapabilities, FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities,
-    FrozenThemeTokenCapabilities, FrozenViewBindingCapabilities, RegisteredCapabilitySet,
+    FrozenImageAssetCapabilities, FrozenMosaicPlacementCapabilities,
+    FrozenMosaicRegionCapabilities, FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities,
+    FrozenNativeCapabilities, FrozenPluginSlotCapabilities,
+    FrozenRuntimeOutcomeProjectionCapabilities, FrozenSettingCapabilities,
+    FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities, FrozenThemeTokenCapabilities,
+    FrozenViewBindingCapabilities, RegisteredCapabilitySet,
 };
 
 use super::CapabilitySnapshot;
@@ -240,6 +241,7 @@ impl CapabilitySnapshot {
             appearance_tokens: FrozenAppearanceCapabilities::empty(),
             density_tokens: FrozenDensityCapabilities::empty(),
             icons,
+            image_assets: FrozenImageAssetCapabilities::empty(),
             surfaces,
             mosaic_regions,
             mosaic_placement_policies,

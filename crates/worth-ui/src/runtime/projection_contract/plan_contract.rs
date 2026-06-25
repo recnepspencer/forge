@@ -13,6 +13,7 @@ pub enum WorthUiProjectionFamily {
     PageHost,
     PrimitiveProof,
     QueryProjectionConsumption,
+    LiveViewExpression,
 }
 
 impl WorthUiProjectionFamily {
@@ -26,6 +27,7 @@ impl WorthUiProjectionFamily {
             Self::PageHost => "page_host",
             Self::PrimitiveProof => "primitive_proof",
             Self::QueryProjectionConsumption => "query_projection_consumption",
+            Self::LiveViewExpression => "live_view_expression",
         }
     }
 }

@@ -1,0 +1,13 @@
+error[E0451]: fields `focus_scope_id`, `owner_node_id`, `focus_nodes` and `receipt_digest` of struct `WorthUiFocusScopeParticipationReceipt` are private
+ --> tests/ui/runtime_authority/fail/composition_focus_scope_receipt_fields_not_public.rs:5:9
+  |
+4 |     let _receipt = WorthUiFocusScopeParticipationReceipt {
+  |                    ------------------------------------- in this type
+5 |         focus_scope_id: "scope".to_owned(),
+  |         ^^^^^^^^^^^^^^ private field
+6 |         owner_node_id: "owner".to_owned(),
+  |         ^^^^^^^^^^^^^ private field
+7 |         focus_nodes: Vec::new(),
+  |         ^^^^^^^^^^^ private field
+8 |         receipt_digest: 0,
+  |         ^^^^^^^^^^^^^^ private field

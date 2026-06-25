@@ -2,7 +2,8 @@ use super::WorthUiAuthoredStructuralChangedFactRow;
 use crate::runtime::{
     WorthUiAppearanceRecipeId, WorthUiAuthoredDeltaSummary, WorthUiAuthoredSemanticSubject,
     WorthUiContentSlotId, WorthUiPageInstanceId, WorthUiPageTemplateId, WorthUiRuntimeFactId,
-    WorthUiRuntimeFactSet, WorthUiSemanticSliceId, WorthUiTouchedAuthoredSemanticSliceRow,
+    WorthUiRuntimeFactSet, WorthUiRuntimeGraphAuthority, WorthUiSemanticSliceId,
+    WorthUiTouchedAuthoredSemanticSliceRow,
 };
 
 pub struct WorthUiAuthoredStructuralRuntimeFactLowering;
@@ -69,45 +70,47 @@ fn changed_facts_for_row(
             WorthUiRuntimeFactSet::single(WorthUiRuntimeFactId::authored_surface_props(surface_id))
         }
         (
+            WorthUiSemanticSliceId::PrimitiveConstruction,
+            WorthUiAuthoredSemanticSubject::Surface { surface_id },
+        ) => {
+            WorthUiRuntimeFactSet::single(WorthUiRuntimeFactId::primitive_construction(surface_id))
+        }
+        (
             WorthUiSemanticSliceId::PrimitiveContent,
             WorthUiAuthoredSemanticSubject::Surface { surface_id },
-        ) => WorthUiRuntimeFactSet::single(WorthUiRuntimeFactId::primitive_content(surface_id)),
+        ) => primitive_changed_facts(WorthUiRuntimeFactId::primitive_content(surface_id)),
         (
             WorthUiSemanticSliceId::PrimitiveContainer,
             WorthUiAuthoredSemanticSubject::Surface { surface_id },
-        ) => WorthUiRuntimeFactSet::single(WorthUiRuntimeFactId::primitive_container(surface_id)),
+        ) => primitive_changed_facts(WorthUiRuntimeFactId::primitive_container(surface_id)),
         (
             WorthUiSemanticSliceId::PrimitiveMeasurement,
             WorthUiAuthoredSemanticSubject::Surface { surface_id },
-        ) => WorthUiRuntimeFactSet::single(WorthUiRuntimeFactId::primitive_measurement(surface_id)),
+        ) => primitive_changed_facts(WorthUiRuntimeFactId::primitive_measurement(surface_id)),
         (
             WorthUiSemanticSliceId::PrimitiveAppearance,
             WorthUiAuthoredSemanticSubject::Surface { surface_id },
-        ) => WorthUiRuntimeFactSet::single(WorthUiRuntimeFactId::primitive_appearance(surface_id)),
+        ) => primitive_changed_facts(WorthUiRuntimeFactId::primitive_appearance(surface_id)),
         (
             WorthUiSemanticSliceId::PrimitiveAppearanceState,
             WorthUiAuthoredSemanticSubject::Surface { surface_id },
-        ) => WorthUiRuntimeFactSet::single(WorthUiRuntimeFactId::primitive_appearance_state(
-            surface_id,
-        )),
+        ) => primitive_changed_facts(WorthUiRuntimeFactId::primitive_appearance_state(surface_id)),
         (
             WorthUiSemanticSliceId::PrimitiveInteraction,
             WorthUiAuthoredSemanticSubject::Surface { surface_id },
-        ) => WorthUiRuntimeFactSet::single(WorthUiRuntimeFactId::primitive_interaction(surface_id)),
+        ) => primitive_changed_facts(WorthUiRuntimeFactId::primitive_interaction(surface_id)),
         (
             WorthUiSemanticSliceId::PrimitiveMotion,
             WorthUiAuthoredSemanticSubject::Surface { surface_id },
-        ) => WorthUiRuntimeFactSet::single(WorthUiRuntimeFactId::primitive_motion(surface_id)),
+        ) => primitive_changed_facts(WorthUiRuntimeFactId::primitive_motion(surface_id)),
         (
             WorthUiSemanticSliceId::PrimitiveFlowLayout,
             WorthUiAuthoredSemanticSubject::Surface { surface_id },
-        ) => WorthUiRuntimeFactSet::single(WorthUiRuntimeFactId::primitive_flow_layout(surface_id)),
+        ) => primitive_changed_facts(WorthUiRuntimeFactId::primitive_flow_layout(surface_id)),
         (
             WorthUiSemanticSliceId::PrimitiveEventGeometry,
             WorthUiAuthoredSemanticSubject::Surface { surface_id },
-        ) => WorthUiRuntimeFactSet::single(WorthUiRuntimeFactId::primitive_event_geometry(
-            surface_id,
-        )),
+        ) => primitive_changed_facts(WorthUiRuntimeFactId::primitive_event_geometry(surface_id)),
         (
             WorthUiSemanticSliceId::PageTemplateDeclaration,
             WorthUiAuthoredSemanticSubject::Page { page_name },
@@ -132,6 +135,17 @@ fn changed_facts_for_row(
         )),
         _ => WorthUiRuntimeFactSet::empty(),
     }
+}
+
+fn primitive_changed_facts(family_fact: WorthUiRuntimeFactId) -> WorthUiRuntimeFactSet {
+    WorthUiRuntimeGraphAuthority::new()
+        .plan_invalidation(
+            crate::runtime::WorthUiGraphInvalidationRequest::from_authoritative_changed_facts(
+                WorthUiRuntimeFactSet::single(family_fact),
+            ),
+        )
+        .affected_facts()
+        .clone()
 }
 
 fn content_slot_changed_facts(page_name: &str, slot_name: &str) -> WorthUiRuntimeFactSet {

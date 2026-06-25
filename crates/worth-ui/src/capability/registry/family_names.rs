@@ -6,6 +6,7 @@ pub(crate) const COMMAND_PROJECTION_FAMILY_NAME: &str = RegistryFamily::CommandP
 pub(crate) const COMPONENT_FAMILY_NAME: &str = RegistryFamily::Component.name();
 pub(crate) const DENSITY_TOKEN_FAMILY_NAME: &str = RegistryFamily::DensityToken.name();
 pub(crate) const ICON_FAMILY_NAME: &str = RegistryFamily::Icon.name();
+pub(crate) const IMAGE_ASSET_FAMILY_NAME: &str = RegistryFamily::ImageAsset.name();
 pub(crate) const MOSAIC_PLACEMENT_POLICY_FAMILY_NAME: &str =
     RegistryFamily::MosaicPlacementPolicy.name();
 pub(crate) const MOSAIC_REGION_KIND_FAMILY_NAME: &str = RegistryFamily::MosaicRegionKind.name();

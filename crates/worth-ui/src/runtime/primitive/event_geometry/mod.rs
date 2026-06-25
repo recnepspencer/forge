@@ -8,6 +8,7 @@ mod report;
 mod schema;
 mod value;
 
+pub(crate) use authored_props::AuthoredEventGeometryProp;
 pub use denial_receipt::{
     WorthUiEventGeometryDenialPresentation, WorthUiEventGeometryDenialPresentationRow,
     WorthUiEventGeometryValueDenialReceipt,
@@ -16,11 +17,11 @@ pub use dispatch::{
     WorthUiPrimitiveEventDispatchCandidateReceipt, WorthUiPrimitiveEventDispatchCounters,
     WorthUiPrimitiveEventDispatchOutcome, WorthUiPrimitiveEventDispatchPlan,
     WorthUiPrimitiveEventDispatchReceipt, WorthUiPrimitiveEventHitTestPoint,
-    WorthUiPrimitiveEventRegionOrder, WorthUiPrimitiveEventRegionReceipt,
-    WorthUiPrimitiveHitFrameDerivationBasis, WorthUiPrimitiveHitFrameDerivationReceipt,
-    WorthUiPrimitivePointerCaptureHostSupport, WorthUiPrimitivePointerCaptureState,
-    WorthUiPrimitivePointerFrameInput, WorthUiPrimitivePointerFrameReceipt,
-    WorthUiPrimitivePointerPhase,
+    WorthUiPrimitiveEventRegionGraphBasis, WorthUiPrimitiveEventRegionOrder,
+    WorthUiPrimitiveEventRegionReceipt, WorthUiPrimitiveHitFrameDerivationBasis,
+    WorthUiPrimitiveHitFrameDerivationReceipt, WorthUiPrimitivePointerCaptureHostSupport,
+    WorthUiPrimitivePointerCaptureState, WorthUiPrimitivePointerFrameInput,
+    WorthUiPrimitivePointerFrameReceipt, WorthUiPrimitivePointerPhase,
 };
 pub use receipt::{
     WorthUiPrimitiveEventContainment, WorthUiPrimitiveEventCursor,

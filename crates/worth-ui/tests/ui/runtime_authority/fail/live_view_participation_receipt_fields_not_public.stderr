@@ -1,0 +1,29 @@
+warning: unreachable expression
+ --> tests/ui/runtime_authority/fail/live_view_participation_receipt_fields_not_public.rs:6:17
+  |
+5 |         posture: panic!("fixture only checks receipt field privacy"),
+  |                  --------------------------------------------------- any code following this expression is unreachable
+6 |         layout: true,
+  |                 ^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `posture`, `layout`, `paint`, `events`, `accessibility`, `retained_state` and `participation_digest` of struct `WorthUiLiveViewParticipationReceipt` are private
+  --> tests/ui/runtime_authority/fail/live_view_participation_receipt_fields_not_public.rs:5:9
+   |
+ 4 |     let _forged = WorthUiLiveViewParticipationReceipt {
+   |                   ----------------------------------- in this type
+ 5 |         posture: panic!("fixture only checks receipt field privacy"),
+   |         ^^^^^^^ private field
+ 6 |         layout: true,
+   |         ^^^^^^ private field
+ 7 |         paint: true,
+   |         ^^^^^ private field
+ 8 |         events: true,
+   |         ^^^^^^ private field
+ 9 |         accessibility: true,
+   |         ^^^^^^^^^^^^^ private field
+10 |         retained_state: panic!("fixture only checks receipt field privacy"),
+   |         ^^^^^^^^^^^^^^ private field
+11 |         participation_digest: 1,
+   |         ^^^^^^^^^^^^^^^^^^^^ private field

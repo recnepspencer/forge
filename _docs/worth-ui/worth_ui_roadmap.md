@@ -58,10 +58,13 @@ is composed trust evidence: a real interactive validation app that can run,
 display, replay, and manually validate the shell and reload scenarios that are
 already mechanically supported by the runtime substrate.
 
-Milestone 4 exposed one side-quest blocker inside that work: hot reload must
-become a platform-wide projection rebind spine rather than a set of
-surface-specific reload exceptions. Milestone 4S closes that blocker before
-the Shopify dashboard proof broadens.
+Milestone 4 exposed two side-quest blockers inside that work. First, hot reload
+must become a platform-wide projection rebind spine rather than a set of
+surface-specific reload exceptions. Milestone 4S closes that blocker. Second,
+the post-primitive product surface needs arbitrary runtime-owned composition
+topology rather than a flat mounted-node proof with renderer-local grouping.
+Milestone 4.1 closes that composition blocker before command, Query-bound view,
+form, component, and Shopify dashboard proof work broadens.
 
 ## Roadmap Rules
 
@@ -80,6 +83,10 @@ Rules for every remaining Worth UI item:
   canonical bundles, counter-backed receipts, planned reports, and readiness
   envelopes instead of inventing local performance folklore
 - each milestone must preserve a structurally explicit layout model rather than drifting back toward DOM-shaped percentage, overflow, and implicit-parent folklore
+- arbitrary local product composition must flow through a runtime-owned
+  composition graph with graph/index access planning, host measurement
+  observations, and mounted allocation receipts rather than renderer-local
+  grouping, flexbox folklore, or component-specific layout branches
 - each milestone must define concrete acceptance evidence through platform scenarios, diagnostics artifacts, performance counters, replay-safe plan behavior, tooling evidence, or certification suites
 - no milestone is complete until both implementation and trust evidence exist
 - features that depend on stable identity, shell contracts, or interaction contracts must not ship before those foundations exist
@@ -451,6 +458,96 @@ planning, and counter-backed certification.
 - mixed product storm certification proves deterministic replay, bounded
   projection rebuilds, typed denied/equivalent/valid family evidence, and no
   steady-frame broad scans after activation
+
+## Milestone 4.1: Runtime Composition Graph
+
+Detailed spec: [milestone-4.1-composition-graph.md](./milestone-4.1-composition-graph.md)
+
+### Goal
+
+Make arbitrary UI composition a runtime-owned graph of containers, content,
+controls, interactions, overlays, collections, diagnostics, and motion-capable
+nodes so authored product UI can reorganize, resize, repeat, animate, and hot
+reload without renderer-local layout folklore or Rust recompiles.
+
+### Must Ship
+
+- a runtime composition graph with typed nodes, membership/order/participation
+  edges, layout policies, child sizing policies, and graph-owned fact families
+- composition roots for pages, surfaces, portal entries, diagnostics,
+  collection items, and reusable component instances
+- authored source and Rust-authored composition inputs that lower to the same
+  canonical composition graph
+- graph/index access planning and no-N+1 proof for composition reads such as
+  children, ancestors, participants, affected consumers, and collection windows
+- semantic context propagation for theme, density, disabled/inert posture,
+  validation state, focus scope, and runtime mode
+- host measurement observation lanes for bounds, text/icon metrics, DPI,
+  viewport, scroll, and time where needed
+- mounted layout allocation receipts for nested containers, fill/hug/fixed
+  sizing, baseline, gap, padding, alignment, and conditional participation
+- scroll, clip, hit-test, viewport, focus, and accessibility participation
+  boundaries derived from composition receipts
+- content anatomy nodes for text, icon, spacer, image-ready content, divider,
+  label, helper/error text, and reusable local groups
+- controls and interactions as generic composition children rather than
+  form/button/action-row special cases
+- declarative expression, validation, condition, readiness, and payload
+  projection receipts over runtime state and Query projection facts
+- expression capability registration for app-defined operators with declared
+  inputs, outputs, dependency contracts, cost posture, support posture,
+  diagnostics, planning, evaluation, and mounted evidence
+- stable reconciliation across moves, projection swaps, conditional absence,
+  and target-binding drift
+- mounted diagnostics as ordinary composition nodes
+- runtime portal host, collection composition, adaptive alternatives, motion
+  recipes, and atom/molecule reuse proofs over the same composition graph
+- reusable composition recipes and defaults that lower to ordinary graph nodes,
+  slots, primitive receipts, and instance receipts
+- a validation workbench proving arbitrary nested composition hot reload with
+  receipt-derived diagnostics and bounded counters
+
+### Must Preserve
+
+- Milestone 4S remains the hot reload spine; Milestone 4.1 consumes it rather
+  than replacing it
+- mosaic remains responsible for shell and page topology while composition
+  graph owns local product anatomy and nested content arrangement
+- Worth UI does not become a DOM, CSS, HTML, web-view, or app-local widget
+  runtime
+- Query remains owner of Query truth, graph read access planning, projection
+  facts, support/admission posture, async/result posture, and recovery posture
+  where those surfaces are involved
+- host adapters may allocate pixels and report neutral observations, but they
+  may not decide semantic grouping, equal sizing, state posture, diagnostics,
+  interaction, or motion meaning
+- no per-frame source interpretation, registry lookup, broad artifact scan,
+  broad graph scan, hidden N+1 traversal, or renderer-local semantic layout
+  path returns through convenience APIs
+
+### Acceptance Evidence
+
+- a running validation app can hot reload arbitrary nested composition edits,
+  across multiple pages and surfaces, including equal-width control rows,
+  separate action rows, conditional controls, projection swaps, payload edits,
+  reusable recipes, content changes, overlays, collections, adaptive
+  alternatives, and motion recipes without recompiling
+- denied edits preserve prior mounted receipts and surface typed diagnostics
+  with source spans, denial-set digests, counters, and affected-consumer rows
+- page/root move, semantic context, standard/custom expression,
+  scroll/clip/focus, accessibility participation, and recipe reuse tests prove
+  the architecture scales beyond one validation form
+- graph/index receipts prove composition reads use admitted access plans rather
+  than recursive walks, app-local maps, or broad scans
+- layout allocation receipts prove equal fill, hug, fixed, min/max,
+  participation, baseline, gap, padding, and alignment decisions are runtime
+  meaning
+- renderer-boundary and compile-fail tests prove app code cannot mint
+  composition, allocation, motion, portal, collection, diagnostic, graph proof,
+  or changed-fact dependency receipts
+- replay, equivalence, and counter tests prove semantically equivalent
+  composition inputs lower to equivalent graph and mounted receipts and that
+  steady-frame rendering does not rediscover graph topology
 
 ## Milestone 5: Command Spine, Focus, Selection, and Keyboard Routing
 

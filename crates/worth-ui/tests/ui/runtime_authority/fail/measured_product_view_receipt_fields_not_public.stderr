@@ -1,0 +1,23 @@
+warning: unreachable expression
+ --> tests/ui/runtime_authority/fail/measured_product_view_receipt_fields_not_public.rs:6:28
+  |
+5 |         mounted_product_view: panic!("mounted product view is runtime-admitted"),
+  |                               -------------------------------------------------- any code following this expression is unreachable
+6 |         host_observations: panic!("host observations are runtime-admitted"),
+  |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `mounted_product_view`, `host_observations`, `consumed_facts` and `receipt_digest` of struct `WorthUiMeasuredProductViewReceipt` are private
+ --> tests/ui/runtime_authority/fail/measured_product_view_receipt_fields_not_public.rs:5:9
+  |
+4 |     let _receipt = WorthUiMeasuredProductViewReceipt {
+  |                    --------------------------------- in this type
+5 |         mounted_product_view: panic!("mounted product view is runtime-admitted"),
+  |         ^^^^^^^^^^^^^^^^^^^^ private field
+6 |         host_observations: panic!("host observations are runtime-admitted"),
+  |         ^^^^^^^^^^^^^^^^^ private field
+7 |         consumed_facts: Vec::new(),
+  |         ^^^^^^^^^^^^^^ private field
+8 |         receipt_digest: 1,
+  |         ^^^^^^^^^^^^^^ private field

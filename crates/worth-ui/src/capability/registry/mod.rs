@@ -3,8 +3,10 @@ mod command;
 mod command_projection;
 mod component;
 mod density;
+mod expression;
 mod family_names;
 mod icon;
+mod image_asset;
 mod mosaic_placement;
 mod mosaic_region;
 mod mosaic_sizing;
@@ -54,9 +56,18 @@ pub use density::{
     WorthUiDensityTokenDescriptor, WorthUiDensityValue,
 };
 pub(crate) use density::{WorthUiDensityAcceptedRegistrationProof, WorthUiDensityRegistry};
+pub use expression::{
+    standard_expression_operator_descriptor, standard_expression_operator_descriptors,
+    WorthUiExpressionArity, WorthUiExpressionCostPosture, WorthUiExpressionDependencyContract,
+    WorthUiExpressionDiagnosticsPosture, WorthUiExpressionInputKind,
+    WorthUiExpressionOperatorDescriptor, WorthUiExpressionOperatorId, WorthUiExpressionOutputKind,
+    AND_OPERATOR, DATA_PAYLOAD_OBJECT_OPERATOR, EMPTY_OPERATOR, EQUALS_OPERATOR, FIELD_OPERATOR,
+    LITERAL_TEXT_OPERATOR, NON_EMPTY_OPERATOR, NORMALIZE_TRIM_OPERATOR, NOT_OPERATOR,
+    ONE_OF_OPERATOR, OR_OPERATOR, PAYLOAD_OBJECT_OPERATOR, PRESENT_OPERATOR,
+};
 pub(crate) use family_names::{
     APPEARANCE_TOKEN_FAMILY_NAME, COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME,
-    COMPONENT_FAMILY_NAME, DENSITY_TOKEN_FAMILY_NAME, ICON_FAMILY_NAME,
+    COMPONENT_FAMILY_NAME, DENSITY_TOKEN_FAMILY_NAME, ICON_FAMILY_NAME, IMAGE_ASSET_FAMILY_NAME,
     MOSAIC_PLACEMENT_POLICY_FAMILY_NAME, MOSAIC_REGION_KIND_FAMILY_NAME,
     MOSAIC_SIZING_CONTRACT_FAMILY_NAME, MOSAIC_STATE_SLOT_FAMILY_NAME,
     NATIVE_CAPABILITY_FAMILY_NAME, PLUGIN_SLOT_FAMILY_NAME, RUNTIME_OUTCOME_PROJECTION_FAMILY_NAME,
@@ -69,6 +80,8 @@ pub use icon::{
     IconSourceDescriptor, IconSourceKind, IconThemePosture, RawIconAssetReference,
 };
 pub(crate) use icon::{IconAcceptedRegistrationProof, IconRegistry};
+pub use image_asset::{FrozenImageAssetCapabilities, ImageAssetDescriptor, ImageAssetSourceKind};
+pub(crate) use image_asset::{ImageAssetAcceptedRegistrationProof, ImageAssetRegistry};
 pub use mosaic_placement::{
     FrozenMosaicPlacementCapabilities, MosaicPlacementAction, MosaicPlacementConflictBehavior,
     MosaicPlacementEligibility, MosaicPlacementPersistence, MosaicPlacementPolicyDescriptor,

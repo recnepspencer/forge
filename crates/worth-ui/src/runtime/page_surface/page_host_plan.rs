@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::runtime::{
     WorthUiProjectionDependencyDeclaration, WorthUiProjectionDependencySet,
     WorthUiProjectionEquivalenceBasisKind, WorthUiProjectionFamily, WorthUiProjectionIdentity,
@@ -9,12 +11,16 @@ use crate::source::{
     WorthUiLayoutTopologyNode,
 };
 
-use super::{WorthUiPageHostFrameReceipt, WorthUiPageHostRequest, WorthUiPageHostSlotReceipt};
+use super::{
+    WorthUiPageHostFrameReceipt, WorthUiPageHostRequest, WorthUiPageHostSlotMountReceipt,
+    WorthUiPageHostSlotReceipt,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiPageHostPlan {
     page_name: String,
     slots: Vec<WorthUiPageHostSlotReceipt>,
+    slot_index_by_name: BTreeMap<String, usize>,
     frame_digest: u64,
     dependencies: WorthUiProjectionDependencySet,
 }
@@ -54,12 +60,18 @@ impl WorthUiPageHostPlan {
                 WorthUiPageHostSlotReceipt::new(assignment.slot_name(), assignment.surface_id())
             })
             .collect::<Vec<_>>();
+        let slot_index_by_name = slots
+            .iter()
+            .enumerate()
+            .map(|(index, slot)| (slot.slot_name().to_owned(), index))
+            .collect::<BTreeMap<_, _>>();
         let dependencies = page_dependencies(authoring, request.page_name(), &slots);
         let frame_digest = digest_page_host_frame(authoring, request.page_name(), &slots);
 
         Ok(Self {
             page_name: request.page_name().to_owned(),
             slots,
+            slot_index_by_name,
             frame_digest,
             dependencies,
         })
@@ -83,6 +95,20 @@ impl WorthUiPageHostPlan {
 
     pub fn dependencies(&self) -> &WorthUiProjectionDependencySet {
         &self.dependencies
+    }
+
+    pub fn resolve_slot_mount(&self, slot_name: &str) -> Option<WorthUiPageHostSlotMountReceipt> {
+        let slot = self
+            .slot_index_by_name
+            .get(slot_name)
+            .and_then(|index| self.slots.get(*index))?
+            .clone();
+        Some(WorthUiPageHostSlotMountReceipt::new(
+            self.page_name.clone(),
+            slot.clone(),
+            self.frame_digest,
+            page_slot_mount_facts(&self.page_name, &slot),
+        ))
     }
 }
 
@@ -150,6 +176,23 @@ fn page_dependencies(
         )));
     }
     dependencies
+}
+
+fn page_slot_mount_facts(
+    page_name: &str,
+    slot: &WorthUiPageHostSlotReceipt,
+) -> Vec<WorthUiRuntimeFactId> {
+    let page_template = crate::runtime::WorthUiPageTemplateId::new(page_name)
+        .expect("page name is a valid template id");
+    let content_slot = crate::runtime::WorthUiContentSlotId::new(slot.slot_name())
+        .expect("slot name is a valid content slot id");
+    vec![
+        WorthUiRuntimeFactId::page_content_slot(&page_template, &content_slot),
+        WorthUiRuntimeFactId::surface_mount_raw(slot.surface_id()),
+        WorthUiRuntimeFactId::authored_mount_component_selection(slot.surface_id()),
+        WorthUiRuntimeFactId::authored_surface_props(slot.surface_id()),
+        WorthUiRuntimeFactId::content_mount(format!("{page_name}.{}", slot.slot_name())),
+    ]
 }
 
 fn digest_page_host_frame(

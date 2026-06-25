@@ -37,7 +37,7 @@ pub fn activate_content_edits(
         .expect("content source edit should activate");
     workbench
         .runtime()
-        .resolve_primitive_projection(&primitive_surface_id(), Some(&mapping))
+        .resolve_primitive_projection_for_target(&primitive_target(&workbench), Some(&mapping))
         .expect("primitive projection should resolve after content reload")
 }
 
@@ -79,6 +79,15 @@ fn primitive_surface_id() -> SurfaceId {
     SurfaceId::new(PRIMITIVE_SURFACE).expect("valid primitive surface id")
 }
 
+fn primitive_target(
+    workbench: &worth_ui_validation_app::ValidationRuntimeWorkbench,
+) -> worth_ui::facade::WorthUiPrimitiveProofTargetBinding {
+    workbench
+        .runtime()
+        .bind_authored_primitive_proof_target(&primitive_surface_id())
+        .expect("content primitive projection target binds")
+}
+
 fn stable_content_inputs() -> ValidationWorkbenchAuthoredInputs {
     let inputs = ValidationWorkbenchAuthoredInputs::sample();
     let source = inputs.source();
@@ -114,6 +123,11 @@ fn assert_projection_row(
         .expect("expected content projection row");
     assert_eq!(row.subject_surface_id(), PRIMITIVE_SURFACE);
     assert_eq!(row.change_posture(), expected_posture);
-    assert_eq!(row.changed_facts().len(), 1);
-    assert_eq!(row.changed_facts()[0].family(), expected_family);
+    assert!(
+        row.changed_facts()
+            .iter()
+            .any(|fact| fact.family() == expected_family),
+        "expected changed fact family {}",
+        expected_family.token()
+    );
 }

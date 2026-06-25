@@ -1,13 +1,13 @@
-use crate::capability::{DensityTokenId, SurfaceId, WorthUiDensityValue};
+use crate::capability::SurfaceId;
 use crate::runtime::WorthUiRuntimeHost;
 
-use super::super::WorthUiBoxEdges;
 use super::authored_props::{flow_layout_authored_props, AuthoredFlowLayoutProp};
 use super::denial_receipt::WorthUiFlowLayoutValueDenialReceipt;
 use super::digest::{
     flow_layout_admission_digest, flow_layout_denial_set_digest, flow_layout_receipt_digest,
     flow_layout_schema_digest,
 };
+use super::measurement_resolution::{resolve_flow_measurement, resolve_flow_padding};
 use super::report::{
     WorthUiFlowLayoutAdmissionCounters, WorthUiFlowLayoutAdmissionReceipt,
     WorthUiFlowLayoutAdmissionReport, WorthUiFlowLayoutValueDenialSet,
@@ -35,9 +35,6 @@ impl WorthUiRuntimeHost {
         surface_id: &SurfaceId,
     ) -> WorthUiFlowLayoutAdmissionReport {
         let authored_props = flow_layout_authored_props(self, surface_id);
-        let mut defaults_applied = 0;
-        let mut denials = Vec::new();
-        let schemas = flow_layout_prop_schemas();
         let authored_digest = self
             .active_authoring_snapshot()
             .and_then(|snapshot| {
@@ -46,61 +43,77 @@ impl WorthUiRuntimeHost {
                     .surface_digest(surface_id.as_str())
             })
             .unwrap_or(0xcbf2_9ce4_8422_2325);
-        let kind = admit_schema_prop(
+        self.admit_flow_layout_props_for_subject(
             surface_id.as_str(),
+            authored_props,
+            authored_digest,
+        )
+    }
+
+    pub(crate) fn admit_flow_layout_props_for_subject(
+        &self,
+        subject_id: &str,
+        authored_props: Vec<AuthoredFlowLayoutProp>,
+        authored_digest: u64,
+    ) -> WorthUiFlowLayoutAdmissionReport {
+        let mut defaults_applied = 0;
+        let mut denials = Vec::new();
+        let schemas = flow_layout_prop_schemas();
+        let kind = admit_schema_prop(
+            subject_id,
             schema_for(FLOW_KIND_PROP),
             &authored_props,
             &mut defaults_applied,
             &mut denials,
         );
         let gap = admit_schema_prop(
-            surface_id.as_str(),
+            subject_id,
             schema_for(FLOW_GAP_PROP),
             &authored_props,
             &mut defaults_applied,
             &mut denials,
         );
         let padding = admit_schema_prop(
-            surface_id.as_str(),
+            subject_id,
             schema_for(FLOW_PADDING_PROP),
             &authored_props,
             &mut defaults_applied,
             &mut denials,
         );
         let align = admit_schema_prop(
-            surface_id.as_str(),
+            subject_id,
             schema_for(FLOW_ALIGN_PROP),
             &authored_props,
             &mut defaults_applied,
             &mut denials,
         );
         let cross_align = admit_schema_prop(
-            surface_id.as_str(),
+            subject_id,
             schema_for(FLOW_CROSS_ALIGN_PROP),
             &authored_props,
             &mut defaults_applied,
             &mut denials,
         );
         let fit = admit_schema_prop(
-            surface_id.as_str(),
+            subject_id,
             schema_for(FLOW_FIT_PROP),
             &authored_props,
             &mut defaults_applied,
             &mut denials,
         );
         let fill = admit_schema_prop(
-            surface_id.as_str(),
+            subject_id,
             schema_for(FLOW_FILL_PROP),
             &authored_props,
             &mut defaults_applied,
             &mut denials,
         );
-        push_unknown_flow_layout_prop_denials(surface_id.as_str(), &authored_props, &mut denials);
+        push_unknown_flow_layout_prop_denials(subject_id, &authored_props, &mut denials);
         let gap_token = gap.into_measurement_token();
         let padding_token = padding.into_measurement_token();
         let gap_points = resolve_flow_measurement(
             self,
-            surface_id.as_str(),
+            subject_id,
             schema_for(FLOW_GAP_PROP),
             &gap_token,
             authored_span_for(FLOW_GAP_PROP, &authored_props),
@@ -108,7 +121,7 @@ impl WorthUiRuntimeHost {
         );
         let padding_edges = resolve_flow_padding(
             self,
-            surface_id.as_str(),
+            subject_id,
             schema_for(FLOW_PADDING_PROP),
             &padding_token,
             authored_span_for(FLOW_PADDING_PROP, &authored_props),
@@ -123,14 +136,10 @@ impl WorthUiRuntimeHost {
         );
         let schema_digest = flow_layout_schema_digest(schemas);
         if !denials.is_empty() {
-            let denial_set_digest = flow_layout_denial_set_digest(surface_id.as_str(), &denials);
+            let denial_set_digest = flow_layout_denial_set_digest(subject_id, &denials);
             return WorthUiFlowLayoutAdmissionReport::rejected(
-                surface_id.as_str(),
-                WorthUiFlowLayoutValueDenialSet::new(
-                    surface_id.as_str(),
-                    denials,
-                    denial_set_digest,
-                ),
+                subject_id,
+                WorthUiFlowLayoutValueDenialSet::new(subject_id, denials, denial_set_digest),
                 counters,
                 schema_digest,
             );
@@ -146,12 +155,11 @@ impl WorthUiRuntimeHost {
             fit.into_fit(),
             fill.into_fill(),
         );
-        let admission_digest =
-            flow_layout_admission_digest(surface_id.as_str(), authored_digest, &prop_set);
+        let admission_digest = flow_layout_admission_digest(subject_id, authored_digest, &prop_set);
         WorthUiFlowLayoutAdmissionReport::accepted(
-            surface_id.as_str(),
+            subject_id,
             WorthUiFlowLayoutAdmissionReceipt::new(
-                surface_id.as_str(),
+                subject_id,
                 prop_set,
                 authored_digest,
                 admission_digest,
@@ -235,82 +243,6 @@ fn authored_span_for(
         .iter()
         .find(|prop| prop.key == prop_key)
         .and_then(|prop| prop.source_span)
-}
-
-fn resolve_flow_measurement(
-    runtime: &WorthUiRuntimeHost,
-    surface_id: &str,
-    schema: &'static WorthUiFlowLayoutPropSchema,
-    token_text: &str,
-    source_span: Option<crate::runtime::WorthUiPrimitiveSourceSpan>,
-    denials: &mut Vec<WorthUiFlowLayoutValueDenialReceipt>,
-) -> f32 {
-    let Some(points) = resolve_flow_measurement_points(runtime, token_text) else {
-        let mut denial = WorthUiFlowLayoutValueDenialReceipt::new(
-            surface_id,
-            schema,
-            token_text.to_owned(),
-            None,
-        );
-        denial.attach_source_span(source_span);
-        denials.push(denial);
-        return 0.0;
-    };
-    points
-}
-
-fn resolve_flow_measurement_points(runtime: &WorthUiRuntimeHost, token_text: &str) -> Option<f32> {
-    let token = DensityTokenId::new(token_text).ok()?;
-    let descriptor = runtime.inspect_active_density_token_descriptor(&token)?;
-    match descriptor.value() {
-        WorthUiDensityValue::Padding(value) => Some(value.horizontal_points()),
-        WorthUiDensityValue::Spacing(value) => Some(value.points()),
-        WorthUiDensityValue::HitTargetMinimum(value) => Some(value.points()),
-        WorthUiDensityValue::Posture(_) => None,
-    }
-}
-
-fn resolve_flow_padding(
-    runtime: &WorthUiRuntimeHost,
-    surface_id: &str,
-    schema: &'static WorthUiFlowLayoutPropSchema,
-    token_text: &str,
-    source_span: Option<crate::runtime::WorthUiPrimitiveSourceSpan>,
-    denials: &mut Vec<WorthUiFlowLayoutValueDenialReceipt>,
-) -> WorthUiBoxEdges {
-    let Some(edges) = resolve_flow_measurement_edges(runtime, token_text) else {
-        let mut denial = WorthUiFlowLayoutValueDenialReceipt::new(
-            surface_id,
-            schema,
-            token_text.to_owned(),
-            None,
-        );
-        denial.attach_source_span(source_span);
-        denials.push(denial);
-        return WorthUiBoxEdges::uniform(0.0);
-    };
-    edges
-}
-
-fn resolve_flow_measurement_edges(
-    runtime: &WorthUiRuntimeHost,
-    token_text: &str,
-) -> Option<WorthUiBoxEdges> {
-    let token = DensityTokenId::new(token_text).ok()?;
-    let descriptor = runtime.inspect_active_density_token_descriptor(&token)?;
-    match descriptor.value() {
-        WorthUiDensityValue::Padding(value) => Some(WorthUiBoxEdges::new(
-            value.top().points(),
-            value.right().points(),
-            value.bottom().points(),
-            value.left().points(),
-        )),
-        WorthUiDensityValue::Spacing(value) => Some(WorthUiBoxEdges::uniform(value.points())),
-        WorthUiDensityValue::HitTargetMinimum(value) => {
-            Some(WorthUiBoxEdges::uniform(value.points()))
-        }
-        WorthUiDensityValue::Posture(_) => None,
-    }
 }
 
 fn schema_for(prop_key: &str) -> &'static WorthUiFlowLayoutPropSchema {

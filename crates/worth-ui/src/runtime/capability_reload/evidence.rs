@@ -1,10 +1,15 @@
 use crate::runtime::{WorthUiCapabilityChangedFacts, WorthUiRuntimeFactSet};
 
+#[cfg(test)]
+mod test_stage_family;
+
 use super::{
     WorthUiCapabilityReloadDenialCode, WorthUiCapabilityReloadFamilyCounters,
     WorthUiCapabilityReloadFamilyKind, WorthUiCapabilityReloadFamilyRow,
     WorthUiComponentCompatibility, WorthUiComponentReloadReceipt,
 };
+#[cfg(test)]
+use test_stage_family::family_for_stage;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiCapabilityReloadStage {
@@ -367,41 +372,5 @@ impl WorthUiCapabilityReloadEvidence {
             .filter(|row| row.family() == family)
             .map(|row| row.counters().changed_descriptor_count())
             .sum()
-    }
-}
-
-#[cfg(test)]
-fn family_for_stage(stage: WorthUiCapabilityReloadStage) -> WorthUiCapabilityReloadFamilyKind {
-    match stage {
-        WorthUiCapabilityReloadStage::ThemeTokenSourceParse
-        | WorthUiCapabilityReloadStage::ThemeTokenAdmission => {
-            WorthUiCapabilityReloadFamilyKind::ThemeTokens
-        }
-        WorthUiCapabilityReloadStage::CommandSourceParse
-        | WorthUiCapabilityReloadStage::CommandAdmission => {
-            WorthUiCapabilityReloadFamilyKind::Commands
-        }
-        WorthUiCapabilityReloadStage::CommandProjectionSourceParse
-        | WorthUiCapabilityReloadStage::CommandProjectionAdmission => {
-            WorthUiCapabilityReloadFamilyKind::CommandProjections
-        }
-        WorthUiCapabilityReloadStage::ComponentSourceParse
-        | WorthUiCapabilityReloadStage::ComponentAdmission => {
-            WorthUiCapabilityReloadFamilyKind::Components
-        }
-        WorthUiCapabilityReloadStage::AppearanceSourceParse
-        | WorthUiCapabilityReloadStage::AppearanceAdmission => {
-            WorthUiCapabilityReloadFamilyKind::Appearance
-        }
-        WorthUiCapabilityReloadStage::DensitySourceParse
-        | WorthUiCapabilityReloadStage::DensityAdmission => {
-            WorthUiCapabilityReloadFamilyKind::Density
-        }
-        WorthUiCapabilityReloadStage::DuplicateCapabilityFamily
-        | WorthUiCapabilityReloadStage::ActiveSnapshotDrift
-        | WorthUiCapabilityReloadStage::RuntimeInstanceMismatch
-        | WorthUiCapabilityReloadStage::MissingReadyActivation => {
-            panic!("test-only denied constructor requires a single capability family stage")
-        }
     }
 }

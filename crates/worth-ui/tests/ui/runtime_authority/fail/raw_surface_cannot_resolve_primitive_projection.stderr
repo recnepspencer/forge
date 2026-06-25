@@ -1,0 +1,10 @@
+error[E0599]: no method named `resolve_primitive_projection` found for reference `&WorthUiRuntimeHost` in the current scope
+ --> tests/ui/runtime_authority/fail/raw_surface_cannot_resolve_primitive_projection.rs:9:21
+  |
+9 |     let _ = runtime.resolve_primitive_projection(surface_id, None);
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `resolve_primitive_projection_for_target` with a similar name
+  |
+9 |     let _ = runtime.resolve_primitive_projection_for_target(surface_id, None);
+  |                                                 +++++++++++

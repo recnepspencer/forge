@@ -1,0 +1,15 @@
+error[E0451]: fields `authoritative_changed_facts`, `affected_facts`, `traversed_edges`, `counters` and `receipt_digest` of struct `WorthUiGraphInvalidationReceipt` are private
+  --> tests/ui/runtime_authority/fail/graph_invalidation_receipt_fields_not_public.rs:8:9
+   |
+ 7 |     let _receipt = WorthUiGraphInvalidationReceipt {
+   |                    ------------------------------- in this type
+ 8 |         authoritative_changed_facts: WorthUiRuntimeFactSet::empty(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         affected_facts: WorthUiRuntimeFactSet::empty(),
+   |         ^^^^^^^^^^^^^^ private field
+10 |         traversed_edges: Vec::<WorthUiGraphDependencyEdge>::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         counters: counters(),
+   |         ^^^^^^^^ private field
+12 |         receipt_digest: digest(),
+   |         ^^^^^^^^^^^^^^ private field

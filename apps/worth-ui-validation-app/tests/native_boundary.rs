@@ -1,25 +1,31 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use eframe::egui::Color32;
 use worth_ui_validation_app::header::applied_header_style_receipt;
 use worth_ui_validation_app::ValidationWorkbenchLaunch;
+
+#[allow(dead_code)]
+mod support;
+
+use support::{
+    native_boundary_markers::{
+        ACCESSIBILITY_AND_FOCUS_MEANING_MARKERS, FORBIDDEN_EGUI_MEANING_TOKENS,
+        MOUNTED_CHILD_RENDER_GROUPING_MARKERS, NATIVE_EGUI_BOUNDARY_FILES,
+        PRIMITIVE_EVENT_TOPOLOGY_CONSTRUCTORS, QUERY_RELOAD_PROOF_TYPES,
+        THEME_RELOAD_AND_SOURCE_AUTHORITY_MARKERS,
+    },
+    native_boundary_scanning::{
+        all_paths, file_contains,
+        is_native_egui_boundary_file as path_is_native_egui_boundary_file,
+        is_runtime_receipt_adapter, line_declares_forge_query_dependency, rust_files,
+        strip_toml_comment,
+    },
+};
+
 #[test]
 fn egui_imports_stay_in_native_boundary_files() {
     let src_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-    let allowed = [
-        "app.rs",
-        "app\\primitive_denial_rendering.rs",
-        "app\\primitive_content_rendering.rs",
-        "app\\primitive_paint_colors.rs",
-        "app\\primitive_proof.rs",
-        "header\\header_renderer.rs",
-        "main.rs",
-        "native_window.rs",
-        "pages\\manual_flow_matrix\\renderer.rs",
-        "pages\\product_summary\\renderer.rs",
-        "pages\\page_slot_interaction\\renderer.rs",
-    ];
     let offenders: Vec<_> = rust_files(&src_root)
         .into_iter()
         .filter(|path| file_contains(path, "egui"))
@@ -29,13 +35,33 @@ fn egui_imports_stay_in_native_boundary_files() {
                 .expect("path should be under src root")
                 .display()
                 .to_string();
-            !allowed.contains(&relative.as_str())
+            !NATIVE_EGUI_BOUNDARY_FILES.contains(&relative.as_str())
         })
         .collect();
 
     assert!(
         offenders.is_empty(),
         "egui must stay in admitted native boundary files: {offenders:?}"
+    );
+}
+
+#[test]
+fn egui_meaning_apis_stay_in_approved_host_adapters() {
+    let src_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let offenders: Vec<_> = rust_files(&src_root)
+        .into_iter()
+        .filter(|path| !is_native_egui_boundary_file(path, &src_root))
+        .filter(|path| {
+            let text = fs::read_to_string(path).expect("source should be readable");
+            FORBIDDEN_EGUI_MEANING_TOKENS
+                .iter()
+                .any(|token| text.contains(token))
+        })
+        .collect();
+
+    assert!(
+        offenders.is_empty(),
+        "egui composition/style APIs must stay inside approved host adapters: {offenders:?}"
     );
 }
 
@@ -56,35 +82,58 @@ fn validation_app_does_not_import_runtime_internals() {
 #[test]
 fn validation_app_does_not_construct_query_reload_proof() {
     let src_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-    let forbidden = [
-        "WorthUiQueryRuntimeFactLoweringInput",
-        "WorthUiQueryProjectionFactReceipt",
-        "WorthUiQueryStateSnapshotReceipt",
-        "WorthUiQueryEffectPostureReceipt",
-        "WorthUiQueryLiveRebindPlan",
-        "WorthUiQueryLiveRebindCounters",
-        "WorthUiQueryLiveRebindEntry",
-        "WorthUiQueryLiveRebindOutcome",
-        "WorthUiQueryBindingPreservation",
-        "WorthUiQueryBindingRebind",
-        "WorthUiQueryBindingRetirement",
-        "WorthUiQueryBindingDriftDenial",
-        "WorthUiAdmittedRuntimeChangeEvidence",
-        "WorthUiAdmittedProjectionPlan",
-        "WorthUiProjectionRebindPlan",
-    ];
     let offenders: Vec<_> = rust_files(&src_root)
         .into_iter()
         .filter(|path| !is_runtime_receipt_adapter(path, &src_root))
         .filter(|path| {
             let text = fs::read_to_string(path).expect("source should be readable");
-            forbidden.iter().any(|pattern| text.contains(pattern))
+            QUERY_RELOAD_PROOF_TYPES
+                .iter()
+                .any(|pattern| text.contains(pattern))
         })
         .collect();
 
     assert!(
         offenders.is_empty(),
         "validation app must not mint query/rebind/runtime proof surfaces: {offenders:?}"
+    );
+}
+
+#[test]
+fn validation_app_does_not_construct_primitive_event_topology() {
+    let src_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let offenders: Vec<_> = rust_files(&src_root)
+        .into_iter()
+        .filter(|path| {
+            let text = fs::read_to_string(path).expect("source should be readable");
+            PRIMITIVE_EVENT_TOPOLOGY_CONSTRUCTORS
+                .iter()
+                .any(|pattern| text.contains(pattern))
+        })
+        .collect();
+
+    assert!(
+        offenders.is_empty(),
+        "validation app must ask runtime graph/event planning for primitive event topology: {offenders:?}"
+    );
+}
+
+#[test]
+fn validation_app_does_not_select_accessibility_or_focus_meaning() {
+    let src_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let offenders: Vec<_> = rust_files(&src_root)
+        .into_iter()
+        .filter(|path| {
+            let text = fs::read_to_string(path).expect("source should be readable");
+            ACCESSIBILITY_AND_FOCUS_MEANING_MARKERS
+                .iter()
+                .any(|pattern| text.contains(pattern))
+        })
+        .collect();
+
+    assert!(
+        offenders.is_empty(),
+        "accessibility/focus roles, labels, descriptions, and tab order must come from Worth UI receipts: {offenders:?}"
     );
 }
 
@@ -212,31 +261,34 @@ fn validation_app_has_no_local_style_component_page_shell_or_theme_authority_mod
 }
 
 #[test]
-fn validation_app_does_not_own_theme_reload_or_source_parsing() {
+fn validation_app_renders_mounted_children_without_grouped_control_or_interaction_lookup() {
     let src_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-    let forbidden = [
-        "WorthUiHeaderThemeRuntime",
-        "WorthUiHeaderThemeRuntimeFrame",
-        "WorthUiHeaderThemeRuntimeDenial",
-        "WorthUiSourceParser",
-        "WorthUiParsedSourceToArtifactInputLowerer",
-        "WorthUiArtifactInputResolver",
-        "WorthUiCanonicalArtifactAssembler",
-        "HeaderThemeHotReload",
-        "WorthUiSourceWatcher",
-        "WorthUiWatchedCandidateSubmission",
-        "WorthUiCandidateAdmission",
-        "WorthUiReplacementCandidate",
-        "from_snapshot_and_source_file",
-        "WorthUiHeaderThemePlan::from_snapshot_and_source",
-        "update_token_color",
-        "query_delivery_count",
-    ];
     let offenders: Vec<_> = rust_files(&src_root)
         .into_iter()
         .filter(|path| {
             let text = fs::read_to_string(path).expect("source should be readable");
-            forbidden.iter().any(|pattern| text.contains(pattern))
+            MOUNTED_CHILD_RENDER_GROUPING_MARKERS
+                .iter()
+                .any(|pattern| text.contains(pattern))
+        })
+        .collect();
+
+    assert!(
+        offenders.is_empty(),
+        "validation rendering must consume mounted child receipts instead of grouped control/interaction render-plan rows: {offenders:?}"
+    );
+}
+
+#[test]
+fn validation_app_does_not_own_theme_reload_or_source_parsing() {
+    let src_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let offenders: Vec<_> = rust_files(&src_root)
+        .into_iter()
+        .filter(|path| {
+            let text = fs::read_to_string(path).expect("source should be readable");
+            THEME_RELOAD_AND_SOURCE_AUTHORITY_MARKERS
+                .iter()
+                .any(|pattern| text.contains(pattern))
         })
         .collect();
 
@@ -321,97 +373,6 @@ fn validation_app_does_not_depend_on_forge_query_directly() {
     );
 }
 
-#[test]
-fn forge_query_dependency_guard_rejects_direct_renamed_and_target_specific_forms() {
-    let hostile_lines = [
-        "forge-query = { workspace = true }",
-        "[dependencies.forge-query]",
-        "[dev-dependencies.forge-query]",
-        "[target.'cfg(windows)'.dependencies.forge-query]",
-        "query = { package = \"forge-query\", workspace = true }",
-        "query = { package=\"forge-query\", workspace = true }",
-        "forge-query = { workspace = true } # even when followed by a comment",
-    ];
-
-    for line in hostile_lines {
-        assert!(
-            line_declares_forge_query_dependency(strip_toml_comment(line)),
-            "guard missed direct Forge Query dependency form: {line}"
-        );
-    }
-
-    let safe_lines = [
-        "worth-ui = { workspace = true }",
-        "egui = { workspace = true }",
-        "# forge-query = { workspace = true }",
-        "description = \"mentions forge-query in prose only\"",
-    ];
-
-    for line in safe_lines {
-        assert!(
-            !line_declares_forge_query_dependency(strip_toml_comment(line)),
-            "guard rejected non-dependency manifest line: {line}"
-        );
-    }
-}
-
-fn rust_files(root: &Path) -> Vec<PathBuf> {
-    all_paths(root)
-        .into_iter()
-        .filter(|path| path.extension().is_some_and(|extension| extension == "rs"))
-        .collect()
-}
-
-fn all_paths(root: &Path) -> Vec<PathBuf> {
-    let mut paths = Vec::new();
-    collect_paths(root, &mut paths);
-    paths
-}
-
-fn collect_paths(root: &Path, paths: &mut Vec<PathBuf>) {
-    for entry in fs::read_dir(root).expect("source directory should be readable") {
-        let path = entry.expect("directory entry should be readable").path();
-        paths.push(path.clone());
-        if path.is_dir() {
-            collect_paths(&path, paths);
-        }
-    }
-}
-
-fn file_contains(path: &Path, needle: &str) -> bool {
-    fs::read_to_string(path)
-        .expect("source file should be readable")
-        .contains(needle)
-}
-
-fn is_runtime_receipt_adapter(path: &Path, src_root: &Path) -> bool {
-    let relative = path
-        .strip_prefix(src_root)
-        .expect("path should be under src root")
-        .display()
-        .to_string();
-    matches!(
-        relative.as_str(),
-        "reload\\validation_runtime_change_evidence.rs" | "runtime_workbench\\rebind_execution.rs"
-    )
-}
-
-fn strip_toml_comment(line: &str) -> &str {
-    line.split_once('#')
-        .map_or(line, |(before_comment, _)| before_comment)
-        .trim()
-}
-
-fn line_declares_forge_query_dependency(line: &str) -> bool {
-    line.starts_with("[dependencies.forge-query]")
-        || line.starts_with("[dev-dependencies.forge-query]")
-        || line.contains(".dependencies.forge-query]")
-        || cargo_key_matches_forge_query(line)
-        || line.contains("package = \"forge-query\"")
-        || line.contains("package=\"forge-query\"")
-}
-
-fn cargo_key_matches_forge_query(line: &str) -> bool {
-    line.split_once('=')
-        .is_some_and(|(key, _)| key.trim() == "forge-query")
+fn is_native_egui_boundary_file(path: &Path, src_root: &Path) -> bool {
+    path_is_native_egui_boundary_file(path, src_root, NATIVE_EGUI_BOUNDARY_FILES)
 }

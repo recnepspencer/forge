@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use crate::reload::{
     ValidationAppearanceSource, ValidationCommandProjectionSource, ValidationCommandSource,
-    ValidationComponentSource, ValidationDensitySource, ValidationSourcePackage,
-    ValidationThemeSource,
+    ValidationComponentSource, ValidationDensitySource, ValidationLiveViewSource,
+    ValidationSourcePackage, ValidationThemeSource,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -15,6 +15,7 @@ pub struct ValidationReloadLoopConfig {
     pub(super) component_path: Option<PathBuf>,
     pub(super) appearance_path: Option<PathBuf>,
     pub(super) density_path: Option<PathBuf>,
+    pub(super) live_view_path: Option<PathBuf>,
     pub(super) initial_source: ValidationSourcePackage,
     pub(super) initial_theme: Option<ValidationThemeSource>,
     pub(super) initial_command: Option<ValidationCommandSource>,
@@ -22,6 +23,7 @@ pub struct ValidationReloadLoopConfig {
     pub(super) initial_component: Option<ValidationComponentSource>,
     pub(super) initial_appearance: Option<ValidationAppearanceSource>,
     pub(super) initial_density: Option<ValidationDensitySource>,
+    pub(super) initial_live_view: Option<ValidationLiveViewSource>,
 }
 
 impl ValidationReloadLoopConfig {
@@ -35,6 +37,7 @@ impl ValidationReloadLoopConfig {
             component_path: None,
             appearance_path: None,
             density_path: None,
+            live_view_path: None,
             initial_source,
             initial_theme: None,
             initial_command: None,
@@ -42,6 +45,7 @@ impl ValidationReloadLoopConfig {
             initial_component: None,
             initial_appearance: None,
             initial_density: None,
+            initial_live_view: None,
         }
     }
 
@@ -149,6 +153,20 @@ impl ValidationReloadLoopConfig {
 
     pub fn with_initial_density(mut self, initial_density: ValidationDensitySource) -> Self {
         self.initial_density = Some(initial_density);
+        self
+    }
+
+    pub fn with_live_view_path(mut self, live_view_path: impl Into<PathBuf>) -> Self {
+        self.live_view_path = Some(live_view_path.into());
+        self
+    }
+
+    pub fn live_view_path(&self) -> Option<&PathBuf> {
+        self.live_view_path.as_ref()
+    }
+
+    pub fn with_initial_live_view(mut self, initial_live_view: ValidationLiveViewSource) -> Self {
+        self.initial_live_view = Some(initial_live_view);
         self
     }
 

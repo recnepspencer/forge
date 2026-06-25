@@ -1,11 +1,12 @@
 use crate::capability::{
     CapabilitySupportCatalog, FrozenAppearanceCapabilities, FrozenCommandCapabilities,
     FrozenCommandProjectionCapabilities, FrozenComponentCapabilities, FrozenDensityCapabilities,
-    FrozenIconCapabilities, FrozenMosaicPlacementCapabilities, FrozenMosaicRegionCapabilities,
-    FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities, FrozenNativeCapabilities,
-    FrozenPluginSlotCapabilities, FrozenRuntimeOutcomeProjectionCapabilities,
-    FrozenSettingCapabilities, FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities,
-    FrozenThemeTokenCapabilities, FrozenViewBindingCapabilities, RegisteredCapabilitySet,
+    FrozenIconCapabilities, FrozenImageAssetCapabilities, FrozenMosaicPlacementCapabilities,
+    FrozenMosaicRegionCapabilities, FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities,
+    FrozenNativeCapabilities, FrozenPluginSlotCapabilities,
+    FrozenRuntimeOutcomeProjectionCapabilities, FrozenSettingCapabilities,
+    FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities, FrozenThemeTokenCapabilities,
+    FrozenViewBindingCapabilities, RegisteredCapabilitySet,
 };
 
 pub(crate) struct CapabilitySnapshotFreezeInput {
@@ -16,6 +17,7 @@ pub(crate) struct CapabilitySnapshotFreezeInput {
     pub(crate) appearance_tokens: FrozenAppearanceCapabilities,
     pub(crate) density_tokens: FrozenDensityCapabilities,
     pub(crate) icons: FrozenIconCapabilities,
+    pub(crate) image_assets: FrozenImageAssetCapabilities,
     pub(crate) surfaces: FrozenSurfaceCapabilities,
     pub(crate) mosaic_regions: FrozenMosaicRegionCapabilities,
     pub(crate) mosaic_placement_policies: FrozenMosaicPlacementCapabilities,

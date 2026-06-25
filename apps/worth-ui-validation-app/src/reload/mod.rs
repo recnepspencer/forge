@@ -15,6 +15,7 @@ mod validation_command_source;
 mod validation_component_source;
 mod validation_density_source;
 mod validation_header_rebind_evidence;
+mod validation_live_view_source;
 mod validation_manual_reload_edit;
 mod validation_page_host_rebind_evidence;
 mod validation_phase_execution_evidence;
@@ -41,6 +42,9 @@ pub use validation_component_source::ValidationComponentSource;
 pub use validation_density_source::ValidationDensitySource;
 pub use validation_header_rebind_evidence::{
     ValidationHeaderRebindEvidence, ValidationProjectionRebindRowEvidence,
+};
+pub use validation_live_view_source::{
+    ValidationLiveViewSource, VALIDATION_SAMPLE_LIVE_VIEW_SOURCE,
 };
 pub use validation_manual_reload_edit::ValidationManualReloadEdit;
 pub use validation_page_host_rebind_evidence::{

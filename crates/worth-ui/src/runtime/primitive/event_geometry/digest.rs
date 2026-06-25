@@ -2,7 +2,9 @@ use crate::runtime::{
     WorthUiEventGeometryValueDenialReceipt, WorthUiValidatedEventGeometryPropSet,
 };
 
-use super::super::{WorthUiPrimitiveFrame, WorthUiPrimitiveResolvedCursorPosture};
+use super::super::{
+    WorthUiPrimitiveActivationPosture, WorthUiPrimitiveFrame, WorthUiPrimitiveResolvedCursorPosture,
+};
 use super::dispatch::WorthUiPrimitiveEventRegionReceipt;
 use super::schema::WorthUiEventGeometryPropSchema;
 use super::{
@@ -91,19 +93,19 @@ pub(super) fn event_region_digest(
     visual_frame: WorthUiPrimitiveFrame,
     hit_frame: WorthUiPrimitiveFrame,
     cursor: WorthUiPrimitiveResolvedCursorPosture,
-    can_activate: bool,
+    activation_posture: WorthUiPrimitiveActivationPosture,
     containment: WorthUiPrimitiveEventContainment,
     capture: WorthUiPrimitivePointerCapture,
 ) -> u64 {
     hash_text(&format!(
-        "event-region|surface:{surface_id}|interaction:{interaction_id}|parent:{}|order:{}:{}|visual:{:?}|hit:{:?}|cursor:{:?}|activate:{}|contain:{:?}|capture:{:?}",
+        "event-region|surface:{surface_id}|interaction:{interaction_id}|parent:{}|order:{}:{}|visual:{:?}|hit:{:?}|cursor:{:?}|activate:{:?}|contain:{:?}|capture:{:?}",
         parent_surface_id.unwrap_or("<root>"),
         order.depth(),
         order.order(),
         visual_frame,
         hit_frame,
         cursor,
-        can_activate,
+        activation_posture,
         containment,
         capture
     ))
@@ -121,11 +123,13 @@ pub(super) fn event_dispatch_digest(
     primary_surface_id: Option<&str>,
     emitted_surface_ids: &[String],
     cursor: WorthUiPrimitiveResolvedCursorPosture,
+    query_graph_execution_digest: u64,
 ) -> u64 {
     let mut basis = format!(
-        "event-dispatch|primary:{}|cursor:{:?}",
+        "event-dispatch|primary:{}|cursor:{:?}|query_graph:{}",
         primary_surface_id.unwrap_or("<none>"),
-        cursor
+        cursor,
+        query_graph_execution_digest
     );
     for emitted in emitted_surface_ids {
         basis.push_str(&format!("|emit:{emitted}"));

@@ -22,7 +22,13 @@ fn authored_primitive_surface_resolves_through_projection_boundary() {
 
     let projection = prepared
         .runtime()
-        .resolve_primitive_projection(&surface_id, None)
+        .resolve_primitive_projection_for_target(
+            &prepared
+                .runtime()
+                .bind_authored_primitive_proof_target(&surface_id)
+                .expect("primitive projection target binds"),
+            None,
+        )
         .expect("primitive projection should resolve from authored source");
     let receipt = projection.primitive_receipt();
 
@@ -78,7 +84,7 @@ fn primitive_prop_edits_rebind_projection_with_exact_rows_and_receipt_changes() 
     assert_primitive_edit_rebinds(
         ValidationAuthoredReloadEdit::set_surface_prop(
             PRIMITIVE_SURFACE,
-            "primitive_text",
+            "content_text",
             "\"Hot primitive\"",
         ),
         WorthUiSemanticSliceId::PrimitiveContent,
@@ -112,7 +118,7 @@ fn primitive_prop_edits_rebind_projection_with_exact_rows_and_receipt_changes() 
     assert_primitive_edit_rebinds(
         ValidationAuthoredReloadEdit::set_surface_prop(
             PRIMITIVE_SURFACE,
-            "primitive_submit_payload",
+            "interaction_payload",
             "\"submit.secondary\"",
         ),
         WorthUiSemanticSliceId::PrimitiveInteraction,
@@ -183,7 +189,7 @@ fn primitive_submit_uses_generic_runtime_interaction_lane() {
         .payload()
         .fields()
         .iter()
-        .any(|field| field.name() == "payload" && field.value().as_text() == "submit.secondary"));
+        .any(|field| field.name() == "payload" && field.value().as_text() == "submit.primary"));
 }
 
 #[test]
@@ -281,9 +287,9 @@ fn primitive_draw_plan_comes_from_receipt_not_renderer_constants() {
     let draw_plan = projection.primitive_receipt().draw_plan(1000.0, 600.0);
     let counters = draw_plan.counters();
 
-    assert!((draw_plan.frame().width() - 184.0).abs() < 0.01);
+    assert!((draw_plan.frame().width() - 190.0).abs() < 0.01);
     assert_eq!(draw_plan.frame().height(), 128.0);
-    assert!((draw_plan.frame().x() - (1000.0 - 184.0)).abs() < 0.01);
+    assert!((draw_plan.frame().x() - (1000.0 - 190.0)).abs() < 0.01);
     assert_eq!(draw_plan.frame().y(), 236.0);
     assert_eq!(counters.content_item_count(), 1);
     assert_eq!(counters.layout_item_count(), 1);
@@ -292,8 +298,8 @@ fn primitive_draw_plan_comes_from_receipt_not_renderer_constants() {
         draw_plan.item_frames()[0].item_kind(),
         WorthUiPrimitiveFlowItemKind::Text
     );
-    assert!((draw_plan.item_frames()[0].frame().x() - 37.4).abs() < 0.01);
-    assert!((draw_plan.item_frames()[0].frame().y() - 57.5).abs() < 0.01);
+    assert!((draw_plan.item_frames()[0].frame().x() - 32.0).abs() < 0.01);
+    assert!((draw_plan.item_frames()[0].frame().y() - 56.5).abs() < 0.01);
     assert_eq!(counters.source_parse_count(), 0);
     assert_eq!(counters.artifact_scan_count(), 0);
     assert_eq!(draw_plan.receipt().content().text(), "Worth primitive");

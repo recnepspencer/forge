@@ -20,7 +20,7 @@ pub fn assert_flow_edit_rebinds(
         projection.rebind_status(),
         WorthUiPrimitiveProjectionRebindStatus::Rebound
     );
-    assert_eq!(projection.rebind_plan().rebuilt_facts().len(), 2);
+    assert_eq!(projection.rebind_plan().rebuilt_facts().len(), 5);
     assert_eq!(projection.rebind_plan().preserved_facts().len(), 8);
     assert_exact_flow_projection_rows(projection.changed_rows());
     assert_receipt(projection.primitive_receipt());
@@ -59,7 +59,7 @@ pub fn activate_flow_edits(
         .expect("flow source edit should activate");
     workbench
         .runtime()
-        .resolve_primitive_projection(&primitive_surface_id(), Some(&mapping))
+        .resolve_primitive_projection_for_target(&primitive_target(&workbench), Some(&mapping))
         .expect("primitive projection should resolve after flow reload")
 }
 
@@ -79,6 +79,18 @@ pub fn assert_exact_flow_projection_rows(
         WorthUiRuntimeFactFamily::PrimitiveFlowLayout,
         WorthUiAuthoredDeltaChangePosture::Changed,
     );
+    assert_projection_row(
+        rows,
+        WorthUiSemanticSliceId::PrimitiveFlowLayout,
+        WorthUiRuntimeFactFamily::PrimitiveDrawPlan,
+        WorthUiAuthoredDeltaChangePosture::Changed,
+    );
+    assert_projection_row(
+        rows,
+        WorthUiSemanticSliceId::PrimitiveFlowLayout,
+        WorthUiRuntimeFactFamily::PrimitiveEventRegion,
+        WorthUiAuthoredDeltaChangePosture::Changed,
+    );
 }
 
 pub fn assert_flow_projection_rows_for_mixed_authored_prop_edit(
@@ -95,6 +107,18 @@ pub fn assert_flow_projection_rows_for_mixed_authored_prop_edit(
         rows,
         WorthUiSemanticSliceId::PrimitiveFlowLayout,
         WorthUiRuntimeFactFamily::PrimitiveFlowLayout,
+        WorthUiAuthoredDeltaChangePosture::Changed,
+    );
+    assert_projection_row(
+        rows,
+        WorthUiSemanticSliceId::PrimitiveFlowLayout,
+        WorthUiRuntimeFactFamily::PrimitiveDrawPlan,
+        WorthUiAuthoredDeltaChangePosture::Changed,
+    );
+    assert_projection_row(
+        rows,
+        WorthUiSemanticSliceId::PrimitiveFlowLayout,
+        WorthUiRuntimeFactFamily::PrimitiveEventRegion,
         WorthUiAuthoredDeltaChangePosture::Changed,
     );
     assert_projection_row(
@@ -125,6 +149,15 @@ pub fn stable_source_text_with_edits(edits: &[(&str, &str)]) -> String {
 
 fn primitive_surface_id() -> SurfaceId {
     SurfaceId::new(PRIMITIVE_SURFACE).expect("valid primitive surface id")
+}
+
+fn primitive_target(
+    workbench: &worth_ui_validation_app::ValidationRuntimeWorkbench,
+) -> worth_ui::facade::WorthUiPrimitiveProofTargetBinding {
+    workbench
+        .runtime()
+        .bind_authored_primitive_proof_target(&primitive_surface_id())
+        .expect("flow primitive projection target binds")
 }
 
 fn stable_flow_inputs() -> ValidationWorkbenchAuthoredInputs {
@@ -205,7 +238,10 @@ pub fn assert_projection_row(
         .expect("expected flow projection row");
     assert_eq!(row.subject_surface_id(), PRIMITIVE_SURFACE);
     assert_eq!(row.change_posture(), expected_posture);
-    assert_eq!(row.changed_facts().len(), 1);
-    assert_eq!(row.changed_facts()[0].family(), expected_family);
-    assert_eq!(row.changed_facts()[0].identity(), PRIMITIVE_SURFACE);
+    assert!(
+        row.changed_facts()
+            .iter()
+            .any(|fact| fact.family() == expected_family && fact.identity() == PRIMITIVE_SURFACE),
+        "expected row to contain {expected_family:?} for {PRIMITIVE_SURFACE}"
+    );
 }

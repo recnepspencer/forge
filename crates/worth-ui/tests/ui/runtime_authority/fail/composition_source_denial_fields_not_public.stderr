@@ -1,0 +1,17 @@
+error[E0451]: fields `code`, `subject`, `message`, `expected_syntax`, `source_span` and `denial_digest` of struct `WorthUiCompositionSourceAdmissionDenial` are private
+  --> tests/ui/runtime_authority/fail/composition_source_denial_fields_not_public.rs:7:9
+   |
+ 6 |     let _forged = WorthUiCompositionSourceAdmissionDenial {
+   |                   --------------------------------------- in this type
+ 7 |         code: WorthUiCompositionSourceDenialCode::StaleControlReference,
+   |         ^^^^ private field
+ 8 |         subject: "live_view.control.fake".to_owned(),
+   |         ^^^^^^^ private field
+ 9 |         message: "fake",
+   |         ^^^^^^^ private field
+10 |         expected_syntax: "fake",
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         source_span: None,
+   |         ^^^^^^^^^^^ private field
+12 |         denial_digest: 1,
+   |         ^^^^^^^^^^^^^ private field

@@ -2,13 +2,13 @@ use crate::capability::{
     CapabilitySnapshotBuilder, CapabilitySnapshotFreezeInput, CapabilitySnapshotIndex,
     CapabilitySnapshotIndexParts, CapabilitySupportCatalog, FrozenAppearanceCapabilities,
     FrozenCommandCapabilities, FrozenCommandProjectionCapabilities, FrozenComponentCapabilities,
-    FrozenDensityCapabilities, FrozenIconCapabilities, FrozenMosaicPlacementCapabilities,
-    FrozenMosaicRegionCapabilities, FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities,
-    FrozenNativeCapabilities, FrozenPluginSlotCapabilities,
-    FrozenRuntimeOutcomeProjectionCapabilities, FrozenSettingCapabilities,
-    FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities, FrozenThemeTokenCapabilities,
-    FrozenViewBindingCapabilities, RegisteredCapabilitySet, SnapshotFreezeReport,
-    SnapshotReferenceValidationReport,
+    FrozenDensityCapabilities, FrozenIconCapabilities, FrozenImageAssetCapabilities,
+    FrozenMosaicPlacementCapabilities, FrozenMosaicRegionCapabilities,
+    FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities, FrozenNativeCapabilities,
+    FrozenPluginSlotCapabilities, FrozenRuntimeOutcomeProjectionCapabilities,
+    FrozenSettingCapabilities, FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities,
+    FrozenThemeTokenCapabilities, FrozenViewBindingCapabilities, RegisteredCapabilitySet,
+    SnapshotFreezeReport, SnapshotReferenceValidationReport,
 };
 
 use super::{CapabilitySnapshotDigest, SnapshotMetrics};
@@ -23,6 +23,7 @@ pub struct CapabilitySnapshot {
     appearance_tokens: FrozenAppearanceCapabilities,
     density_tokens: FrozenDensityCapabilities,
     icons: FrozenIconCapabilities,
+    image_assets: FrozenImageAssetCapabilities,
     surfaces: FrozenSurfaceCapabilities,
     mosaic_regions: FrozenMosaicRegionCapabilities,
     mosaic_placement_policies: FrozenMosaicPlacementCapabilities,
@@ -58,6 +59,7 @@ impl CapabilitySnapshot {
             appearance_tokens: input.appearance_tokens,
             density_tokens: input.density_tokens,
             icons: input.icons,
+            image_assets: input.image_assets,
             surfaces: input.surfaces,
             mosaic_regions: input.mosaic_regions,
             mosaic_placement_policies: input.mosaic_placement_policies,
@@ -106,6 +108,10 @@ impl CapabilitySnapshot {
 
     pub fn icons(&self) -> &FrozenIconCapabilities {
         &self.icons
+    }
+
+    pub fn image_assets(&self) -> &FrozenImageAssetCapabilities {
+        &self.image_assets
     }
 
     pub fn surfaces(&self) -> &FrozenSurfaceCapabilities {
@@ -190,6 +196,7 @@ impl CapabilitySnapshot {
             appearance_tokens: &self.appearance_tokens,
             density_tokens: &self.density_tokens,
             icons: &self.icons,
+            image_assets: &self.image_assets,
             surfaces: &self.surfaces,
             mosaic_regions: &self.mosaic_regions,
             mosaic_placement_policies: &self.mosaic_placement_policies,
@@ -310,6 +317,7 @@ impl CapabilitySnapshot {
             appearance_tokens,
             density_tokens,
             icons: self.icons.clone(),
+            image_assets: self.image_assets.clone(),
             surfaces: self.surfaces.clone(),
             mosaic_regions: self.mosaic_regions.clone(),
             mosaic_placement_policies: self.mosaic_placement_policies.clone(),

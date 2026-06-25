@@ -165,7 +165,7 @@ fn capture_on_press(
     input: &WorthUiPrimitivePointerFrameInput,
     dispatch: &WorthUiPrimitiveEventDispatchReceipt,
 ) -> WorthUiPrimitivePointerCaptureState {
-    let Some(surface_id) = dispatch.primary_surface_id() else {
+    let Some(surface_id) = dispatch.outcome().activation_surface_id() else {
         return WorthUiPrimitivePointerCaptureState::Uncaptured;
     };
     let Some(region) = plan
@@ -175,7 +175,7 @@ fn capture_on_press(
     else {
         return WorthUiPrimitivePointerCaptureState::Uncaptured;
     };
-    if region.capture() != WorthUiPrimitivePointerCapture::PressDrag || !region.can_activate() {
+    if region.capture() != WorthUiPrimitivePointerCapture::PressDrag {
         return WorthUiPrimitivePointerCaptureState::Uncaptured;
     }
     match input.host_support {

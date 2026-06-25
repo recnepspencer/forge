@@ -53,13 +53,14 @@ fn flow_gap_edit_preserves_content_digest_and_rebinds_flow_only() {
         "validation.density.primitive.flow.gap.compact",
     )]);
 
-    assert!(projection.changed_rows().iter().any(
-        |row| row.changed_facts()[0].family() == WorthUiRuntimeFactFamily::PrimitiveFlowLayout
-    ));
-    assert!(!projection
-        .changed_rows()
+    assert!(projection.changed_rows().iter().any(|row| row
+        .changed_facts()
         .iter()
-        .any(|row| row.changed_facts()[0].family() == WorthUiRuntimeFactFamily::PrimitiveContent));
+        .any(|fact| fact.family() == WorthUiRuntimeFactFamily::PrimitiveFlowLayout)));
+    assert!(!projection.changed_rows().iter().any(|row| row
+        .changed_facts()
+        .iter()
+        .any(|fact| fact.family() == WorthUiRuntimeFactFamily::PrimitiveContent)));
 }
 
 #[test]

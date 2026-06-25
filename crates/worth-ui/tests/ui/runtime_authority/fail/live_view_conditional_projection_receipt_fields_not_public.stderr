@@ -1,0 +1,44 @@
+warning: unreachable expression
+ --> tests/ui/runtime_authority/fail/live_view_conditional_projection_receipt_fields_not_public.rs:7:20
+  |
+6 |         control: panic!("fixture only checks receipt field privacy"),
+  |                  --------------------------------------------------- any code following this expression is unreachable
+7 |         condition: panic!("fixture only checks receipt field privacy"),
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error: cannot construct `WorthUiLiveViewConditionalProjectionReceipt` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/live_view_conditional_projection_receipt_fields_not_public.rs:4:19
+   |
+ 4 |     let _forged = WorthUiLiveViewConditionalProjectionReceipt {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         live_view_id: "validation.live_view.primitive_proof".to_owned(),
+   |         --------------------------------------------------------------- private field
+ 6 |         control: panic!("fixture only checks receipt field privacy"),
+   |         ------------------------------------------------------------ private field
+ 7 |         condition: panic!("fixture only checks receipt field privacy"),
+   |         -------------------------------------------------------------- private field
+ 8 |         consumed_binding: panic!("fixture only checks receipt field privacy"),
+   |         --------------------------------------------------------------------- private field
+ 9 |         participation: panic!("fixture only checks receipt field privacy"),
+   |         ------------------------------------------------------------------ private field
+10 |         graph_execution: panic!("fixture only checks receipt field privacy"),
+   |         -------------------------------------------------------------------- private field
+11 |         conditional_projection_digest: 1,
+   |         -------------------------------- private field
+   |
+   = note: ...and other private field `expression_projection` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+ 4 -     let _forged = WorthUiLiveViewConditionalProjectionReceipt {
+ 5 -         live_view_id: "validation.live_view.primitive_proof".to_owned(),
+ 6 -         control: panic!("fixture only checks receipt field privacy"),
+ 7 -         condition: panic!("fixture only checks receipt field privacy"),
+ 8 -         consumed_binding: panic!("fixture only checks receipt field privacy"),
+ 9 -         participation: panic!("fixture only checks receipt field privacy"),
+10 -         graph_execution: panic!("fixture only checks receipt field privacy"),
+11 -         conditional_projection_digest: 1,
+12 -     };
+ 4 +     let _forged = WorthUiLiveViewConditionalProjectionReceipt::new(_, _, _, _, _, _, _);
+   |

@@ -6,9 +6,10 @@ use std::path::PathBuf;
 
 use super::{
     ValidationAppearanceSource, ValidationCommandProjectionSource, ValidationCommandSource,
-    ValidationComponentSource, ValidationDensitySource, ValidationObservedAuthoredBatch,
-    ValidationReloadInput, ValidationReloadInputDenial, ValidationReloadObservation,
-    ValidationReloadTick, ValidationSourcePackage, ValidationThemeSource,
+    ValidationComponentSource, ValidationDensitySource, ValidationLiveViewSource,
+    ValidationObservedAuthoredBatch, ValidationReloadInput, ValidationReloadInputDenial,
+    ValidationReloadObservation, ValidationReloadTick, ValidationSourcePackage,
+    ValidationThemeSource,
 };
 
 pub use config::ValidationReloadLoopConfig;
@@ -24,6 +25,7 @@ pub struct ValidationReloadLoop {
     last_component_digest: Option<u64>,
     last_appearance_digest: Option<u64>,
     last_density_digest: Option<u64>,
+    last_live_view_digest: Option<u64>,
 }
 
 impl ValidationReloadLoop {
@@ -35,6 +37,7 @@ impl ValidationReloadLoop {
         let component = read_optional_component_source(config.component_path.as_ref())?;
         let appearance = read_optional_appearance_source(config.appearance_path.as_ref())?;
         let density = read_optional_density_source(config.density_path.as_ref())?;
+        let live_view = read_optional_live_view_source(config.live_view_path.as_ref())?;
         Ok(Self {
             pending_inputs: VecDeque::new(),
             last_source_digest: config.initial_source().source_digest(),
@@ -79,6 +82,15 @@ impl ValidationReloadLoop {
                 .as_ref()
                 .map(ValidationDensitySource::source_digest)
                 .or_else(|| density.as_ref().map(ValidationDensitySource::source_digest)),
+            last_live_view_digest: config
+                .initial_live_view
+                .as_ref()
+                .map(ValidationLiveViewSource::source_digest)
+                .or_else(|| {
+                    live_view
+                        .as_ref()
+                        .map(ValidationLiveViewSource::source_digest)
+                }),
             config,
         })
     }
@@ -118,6 +130,10 @@ impl ValidationReloadLoop {
             Ok(density) => density,
             Err(denial) => return ValidationReloadTick::Unreadable(denial),
         };
+        let live_view = match read_optional_live_view_source(self.config.live_view_path.as_ref()) {
+            Ok(live_view) => live_view,
+            Err(denial) => return ValidationReloadTick::Unreadable(denial),
+        };
 
         let source_changed = source.source_digest() != self.last_source_digest;
         let theme_changed = theme.source_digest() != self.last_theme_digest;
@@ -127,6 +143,7 @@ impl ValidationReloadLoop {
         let component_changed = optional_digest_changed(&component, self.last_component_digest);
         let appearance_changed = optional_digest_changed(&appearance, self.last_appearance_digest);
         let density_changed = optional_digest_changed(&density, self.last_density_digest);
+        let live_view_changed = optional_digest_changed(&live_view, self.last_live_view_digest);
         self.last_source_digest = source.source_digest();
         self.last_theme_digest = theme.source_digest();
         self.last_command_digest = command.as_ref().map(ValidationCommandSource::source_digest);
@@ -140,6 +157,9 @@ impl ValidationReloadLoop {
             .as_ref()
             .map(ValidationAppearanceSource::source_digest);
         self.last_density_digest = density.as_ref().map(ValidationDensitySource::source_digest);
+        self.last_live_view_digest = live_view
+            .as_ref()
+            .map(ValidationLiveViewSource::source_digest);
 
         let mut changed_inputs = VecDeque::new();
         let capability_changed = command_changed
@@ -168,6 +188,12 @@ impl ValidationReloadLoop {
                 unreachable!("changed optional command source must exist");
             };
             changed_inputs.push_back(ValidationReloadInput::HeaderCommands(command));
+        }
+        if live_view_changed {
+            let Some(live_view) = live_view else {
+                unreachable!("changed optional live-view source must exist");
+            };
+            changed_inputs.push_back(ValidationReloadInput::LiveViewSource(live_view));
         }
         if command_projection_changed {
             let Some(command_projection) = command_projection else {
@@ -319,6 +345,12 @@ impl OptionalReloadDigest for ValidationDensitySource {
     }
 }
 
+impl OptionalReloadDigest for ValidationLiveViewSource {
+    fn source_digest(&self) -> u64 {
+        self.source_digest()
+    }
+}
+
 fn read_optional_component_source(
     path: Option<&PathBuf>,
 ) -> Result<Option<ValidationComponentSource>, ValidationReloadInputDenial> {
@@ -347,6 +379,17 @@ fn read_optional_density_source(
     path.map(|path| {
         fs::read_to_string(path)
             .map(|source_text| ValidationDensitySource::from_observed_file(path, source_text))
+            .map_err(|error| ValidationReloadInputDenial::unreadable(path, &error))
+    })
+    .transpose()
+}
+
+fn read_optional_live_view_source(
+    path: Option<&PathBuf>,
+) -> Result<Option<ValidationLiveViewSource>, ValidationReloadInputDenial> {
+    path.map(|path| {
+        fs::read_to_string(path)
+            .map(|source_text| ValidationLiveViewSource::from_observed_file(path, source_text))
             .map_err(|error| ValidationReloadInputDenial::unreadable(path, &error))
     })
     .transpose()

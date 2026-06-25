@@ -1,0 +1,13 @@
+error[E0451]: fields `node_id`, `content`, `semantic_slice` and `receipt_digest` of struct `WorthUiMountedContentNodeReceipt` are private
+ --> tests/ui/runtime_authority/fail/mounted_content_node_receipt_fields_not_public.rs:5:9
+  |
+4 |     let _forged = WorthUiMountedContentNodeReceipt {
+  |                   -------------------------------- in this type
+5 |         node_id: "content".to_owned(),
+  |         ^^^^^^^ private field
+6 |         content: forged_content(),
+  |         ^^^^^^^ private field
+7 |         semantic_slice: "PrimitiveContent",
+  |         ^^^^^^^^^^^^^^ private field
+8 |         receipt_digest: 1,
+  |         ^^^^^^^^^^^^^^ private field

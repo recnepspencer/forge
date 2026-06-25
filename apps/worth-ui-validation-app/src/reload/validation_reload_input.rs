@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 use super::{
     ValidationAppearanceSource, ValidationCommandProjectionSource, ValidationCommandSource,
-    ValidationComponentSource, ValidationDensitySource, ValidationSourcePackage,
-    ValidationThemeSource,
+    ValidationComponentSource, ValidationDensitySource, ValidationLiveViewSource,
+    ValidationSourcePackage, ValidationThemeSource,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -17,6 +17,7 @@ pub enum ValidationReloadInput {
     HeaderComponents(ValidationComponentSource),
     HeaderAppearance(ValidationAppearanceSource),
     HeaderDensity(ValidationDensitySource),
+    LiveViewSource(ValidationLiveViewSource),
     HeaderAppearanceAndDensity {
         appearance: ValidationAppearanceSource,
         density: ValidationDensitySource,
@@ -55,6 +56,7 @@ impl ValidationReloadInput {
             Self::HeaderComponents(_) => None,
             Self::HeaderAppearance(_) => None,
             Self::HeaderDensity(_) => None,
+            Self::LiveViewSource(_) => None,
             Self::HeaderAppearanceAndDensity { .. } => None,
             Self::SourcePackageAndHeaderTheme { source, .. } => Some(source.source_digest()),
         }
@@ -72,6 +74,7 @@ impl ValidationReloadInput {
             Self::HeaderComponents(_) => None,
             Self::HeaderAppearance(_) => None,
             Self::HeaderDensity(_) => None,
+            Self::LiveViewSource(_) => None,
             Self::HeaderAppearanceAndDensity { .. } => None,
             Self::SourcePackageAndHeaderTheme { theme, .. } => Some(theme.source_digest()),
         }

@@ -16,7 +16,8 @@ const INNER_SURFACE: &str = "worth.surface.preview.primitive.inner";
 #[test]
 fn mounted_pointer_frame_reports_cursor_and_inner_click_through_app_boundary() {
     let fixture = ValidationAppReloadFixture::new();
-    let app = fixture.build_app();
+    let mut app = fixture.build_app();
+    enable_inner_surface(&mut app);
     let viewport = ValidationMountedPrimitiveEventViewport::new(900.0, 600.0);
     let inner_point = mounted_inner_center(&app, viewport);
     let hover = app
@@ -50,6 +51,7 @@ fn mounted_pointer_frame_reports_cursor_and_inner_click_through_app_boundary() {
 fn mounted_bubble_and_disabled_paths_are_receipt_distinct() {
     let fixture = ValidationAppReloadFixture::new();
     let mut app = fixture.build_app();
+    enable_inner_surface(&mut app);
     let viewport = ValidationMountedPrimitiveEventViewport::new(900.0, 600.0);
     app.apply_authored_reload_edit(ValidationAuthoredReloadEdit::set_surface_prop(
         INNER_SURFACE,
@@ -65,10 +67,10 @@ fn mounted_bubble_and_disabled_paths_are_receipt_distinct() {
         )
         .expect("mounted bubble frame resolves");
 
-    assert_eq!(
+    assert!(matches!(
         bubbled.pointer_frame().dispatch().outcome(),
-        WorthUiPrimitiveEventDispatchOutcome::Bubbled
-    );
+        WorthUiPrimitiveEventDispatchOutcome::Bubbled(_)
+    ));
     assert_eq!(
         bubbled.pointer_frame().dispatch().emitted_surface_ids(),
         &[INNER_SURFACE.to_owned(), OUTER_SURFACE.to_owned()]
@@ -87,9 +89,17 @@ fn mounted_bubble_and_disabled_paths_are_receipt_distinct() {
         )
         .expect("mounted disabled frame resolves");
 
-    assert_eq!(
+    assert!(matches!(
         disabled.pointer_frame().dispatch().outcome(),
-        WorthUiPrimitiveEventDispatchOutcome::HitDisabled
+        WorthUiPrimitiveEventDispatchOutcome::DisabledHit(_)
+    ));
+    assert_eq!(
+        disabled
+            .pointer_frame()
+            .dispatch()
+            .query_graph_execution()
+            .selected_obligation_count(),
+        6
     );
     assert!(disabled
         .pointer_frame()
@@ -102,6 +112,7 @@ fn mounted_bubble_and_disabled_paths_are_receipt_distinct() {
 fn mounted_press_drag_capture_routes_drag_to_captured_surface() {
     let fixture = ValidationAppReloadFixture::new();
     let mut app = fixture.build_app();
+    enable_inner_surface(&mut app);
     let viewport = ValidationMountedPrimitiveEventViewport::new(900.0, 600.0);
     app.apply_authored_reload_edit(ValidationAuthoredReloadEdit::set_surface_prop(
         INNER_SURFACE,
@@ -182,4 +193,19 @@ fn pointer_input(
         WorthUiPrimitivePointerCaptureState::Uncaptured,
         WorthUiPrimitivePointerCaptureHostSupport::Certified,
     )
+}
+
+fn enable_inner_surface(app: &mut worth_ui_validation_app::ValidationWorkbenchApp) {
+    app.apply_authored_reload_edit(ValidationAuthoredReloadEdit::set_surface_prop(
+        INNER_SURFACE,
+        "primitive_disabled",
+        "false",
+    ))
+    .expect("inner primitive disabled flag edit applies");
+    app.apply_authored_reload_edit(ValidationAuthoredReloadEdit::set_surface_prop(
+        INNER_SURFACE,
+        "interaction_readiness",
+        "enabled",
+    ))
+    .expect("inner interaction readiness edit applies");
 }

@@ -71,6 +71,106 @@ fn authored_surface_props_lower_into_surface_prop_fact_family() {
         .contains_family(WorthUiRuntimeFactFamily::AuthoredSurfaceProps));
 }
 
+#[test]
+fn primitive_content_changes_also_touch_primitive_construction_graph() {
+    let rows = WorthUiAuthoredStructuralRuntimeFactLowering::from_authored_delta_summary(
+        &authored_summary(vec![semantic_row(
+            WorthUiSemanticSliceId::PrimitiveContent,
+            WorthUiAuthoredSemanticSubject::Surface {
+                surface_id: "worth.surface.preview.primitive.proof".to_owned(),
+            },
+        )]),
+    );
+
+    assert_eq!(
+        rows[0].changed_fact_families(),
+        &[
+            WorthUiRuntimeFactFamily::PrimitiveConstruction,
+            WorthUiRuntimeFactFamily::PrimitiveContent,
+            WorthUiRuntimeFactFamily::PrimitiveDrawPlan,
+            WorthUiRuntimeFactFamily::PrimitiveEventRegion,
+        ]
+    );
+    assert!(rows[0]
+        .changed_facts()
+        .contains_exact(&WorthUiRuntimeFactId::primitive_construction(
+            "worth.surface.preview.primitive.proof"
+        )));
+    assert!(rows[0]
+        .changed_facts()
+        .contains_exact(&WorthUiRuntimeFactId::primitive_content(
+            "worth.surface.preview.primitive.proof"
+        )));
+    assert!(rows[0]
+        .changed_facts()
+        .contains_exact(&WorthUiRuntimeFactId::primitive_draw_plan(
+            "worth.surface.preview.primitive.proof"
+        )));
+    assert!(rows[0]
+        .changed_facts()
+        .contains_exact(&WorthUiRuntimeFactId::primitive_event_region(
+            "worth.surface.preview.primitive.proof"
+        )));
+}
+
+#[test]
+fn primitive_flow_layout_changes_touch_draw_plan_and_event_region_facts() {
+    let rows = WorthUiAuthoredStructuralRuntimeFactLowering::from_authored_delta_summary(
+        &authored_summary(vec![semantic_row(
+            WorthUiSemanticSliceId::PrimitiveFlowLayout,
+            WorthUiAuthoredSemanticSubject::Surface {
+                surface_id: "worth.surface.preview.primitive.proof".to_owned(),
+            },
+        )]),
+    );
+
+    assert_eq!(
+        rows[0].changed_fact_families(),
+        &[
+            WorthUiRuntimeFactFamily::PrimitiveConstruction,
+            WorthUiRuntimeFactFamily::PrimitiveFlowLayout,
+            WorthUiRuntimeFactFamily::PrimitiveDrawPlan,
+            WorthUiRuntimeFactFamily::PrimitiveEventRegion,
+        ]
+    );
+    assert!(rows[0]
+        .changed_facts()
+        .contains_exact(&WorthUiRuntimeFactId::primitive_draw_plan(
+            "worth.surface.preview.primitive.proof"
+        )));
+    assert!(rows[0]
+        .changed_facts()
+        .contains_exact(&WorthUiRuntimeFactId::primitive_event_region(
+            "worth.surface.preview.primitive.proof"
+        )));
+}
+
+#[test]
+fn primitive_event_geometry_changes_touch_event_region_fact() {
+    let rows = WorthUiAuthoredStructuralRuntimeFactLowering::from_authored_delta_summary(
+        &authored_summary(vec![semantic_row(
+            WorthUiSemanticSliceId::PrimitiveEventGeometry,
+            WorthUiAuthoredSemanticSubject::Surface {
+                surface_id: "worth.surface.preview.primitive.proof".to_owned(),
+            },
+        )]),
+    );
+
+    assert_eq!(
+        rows[0].changed_fact_families(),
+        &[
+            WorthUiRuntimeFactFamily::PrimitiveConstruction,
+            WorthUiRuntimeFactFamily::PrimitiveEventGeometry,
+            WorthUiRuntimeFactFamily::PrimitiveEventRegion,
+        ]
+    );
+    assert!(rows[0]
+        .changed_facts()
+        .contains_exact(&WorthUiRuntimeFactId::primitive_event_region(
+            "worth.surface.preview.primitive.proof"
+        )));
+}
+
 fn authored_summary(
     semantic_slice_rows: Vec<WorthUiTouchedAuthoredSemanticSliceRow>,
 ) -> WorthUiAuthoredDeltaSummary {

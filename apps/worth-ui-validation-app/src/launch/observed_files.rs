@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 
 use crate::reload::{
     ValidationAppearanceSource, ValidationCommandProjectionSource, ValidationCommandSource,
-    ValidationComponentSource, ValidationDensitySource, ValidationSourcePackage,
-    ValidationThemeSource,
+    ValidationComponentSource, ValidationDensitySource, ValidationLiveViewSource,
+    ValidationSourcePackage, ValidationThemeSource,
 };
 use crate::sample_source::VALIDATION_SAMPLE_MODULE_PATH;
 
@@ -20,6 +20,7 @@ pub struct ValidationObservedWorkbenchFiles {
     component_path: Option<PathBuf>,
     appearance_path: Option<PathBuf>,
     density_path: Option<PathBuf>,
+    live_view_path: Option<PathBuf>,
 }
 
 impl ValidationObservedWorkbenchFiles {
@@ -32,6 +33,7 @@ impl ValidationObservedWorkbenchFiles {
             component_path: None,
             appearance_path: None,
             density_path: None,
+            live_view_path: None,
         }
     }
 
@@ -44,6 +46,7 @@ impl ValidationObservedWorkbenchFiles {
             .with_component_path(workspace_root.join("theme/header.components"))
             .with_appearance_path(workspace_root.join("theme/header.appearance"))
             .with_density_path(workspace_root.join("theme/header.density"))
+            .with_live_view_path(workspace_root.join("source/live_view.worth"))
     }
 
     pub fn with_theme_path(mut self, theme_path: impl Into<PathBuf>) -> Self {
@@ -76,6 +79,11 @@ impl ValidationObservedWorkbenchFiles {
 
     pub fn with_density_path(mut self, density_path: impl Into<PathBuf>) -> Self {
         self.density_path = Some(density_path.into());
+        self
+    }
+
+    pub fn with_live_view_path(mut self, live_view_path: impl Into<PathBuf>) -> Self {
+        self.live_view_path = Some(live_view_path.into());
         self
     }
 
@@ -124,6 +132,12 @@ impl ValidationWorkbenchAuthoredInputs {
         }
         if let Some(path) = files.density_path.as_ref() {
             inputs = inputs.with_density(ValidationDensitySource::from_observed_file(
+                path.clone(),
+                fs::read_to_string(path)?,
+            ));
+        }
+        if let Some(path) = files.live_view_path.as_ref() {
+            inputs = inputs.with_live_view_source(ValidationLiveViewSource::from_observed_file(
                 path.clone(),
                 fs::read_to_string(path)?,
             ));
