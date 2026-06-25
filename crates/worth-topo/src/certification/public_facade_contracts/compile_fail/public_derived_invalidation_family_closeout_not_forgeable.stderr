@@ -1,0 +1,9 @@
+error[E0451]: fields `catalog` and `phase_three_seed` of struct `DerivedInvalidationFamilyCatalogCloseout` are private
+ --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_family_closeout_not_forgeable.rs:8:9
+  |
+7 |     let _ = DerivedInvalidationFamilyCatalogCloseout {
+  |             ---------------------------------------- in this type
+8 |         catalog: catalog(),
+  |         ^^^^^^^ private field
+9 |         phase_three_seed: phase_three_seed(),
+  |         ^^^^^^^^^^^^^^^^ private field

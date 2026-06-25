@@ -26,6 +26,7 @@ use schema::facade::platform::relations::TopologyRelationKind;
 
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 use crate::query_domain::TopologyQueryDomain;
+use crate::query_native_runtime_boundary::TopologyNativeQueryRowField;
 
 use super::mutation_records::TopologyMutationFamily;
 use super::{
@@ -33,9 +34,11 @@ use super::{
     TopologyDeclaredMutationSequence, TopologyMutationApplicationMode,
 };
 pub(crate) use declaration_entry::TopologyRetainedApplicationHandoff;
-pub(crate) use declared_mutation_artifact::TopologyDeclaredMutationArtifact;
 #[cfg(test)]
 pub(crate) use declared_mutation_artifact::TopologyOperatorApplicationQueryAnchor;
+pub(crate) use declared_mutation_artifact::{
+    TopologyDeclaredMutationArtifact, TopologyMutationApplicationEvidence,
+};
 pub(crate) use dependency_paths::topology_relation_dependency_path;
 pub(crate) use error::{TopologyDeclarationEntryStopClass, TopologyMutationApplicationError};
 
@@ -141,9 +144,21 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             TopologyDeclaredMutationActionRef::CreateTopologyEntity { create_key, kind } => Ok(
                 builder.insert_symbolic(create_key, "TopologyEntity", |mutation| {
                     mutation
-                        .aspect("topology.kind", kind.kind_name())
-                        .aspect("topology.structure", create_key)
-                        .aspect("naming.persistent_name", create_key)
+                        .set_aspect(
+                            TopologyNativeQueryRowField::TopologyKind.touch(),
+                            TopologyNativeQueryRowField::TopologyKind
+                                .authored_string(kind.kind_name()),
+                        )
+                        .set_aspect(
+                            TopologyNativeQueryRowField::TopologyStructure.touch(),
+                            TopologyNativeQueryRowField::TopologyStructure
+                                .authored_string(create_key),
+                        )
+                        .set_aspect(
+                            TopologyNativeQueryRowField::NamingPersistentName.touch(),
+                            TopologyNativeQueryRowField::NamingPersistentName
+                                .authored_string(create_key),
+                        )
                 }),
             ),
             TopologyDeclaredMutationActionRef::DetachBoundaryMembership { relation_id, kind } => {

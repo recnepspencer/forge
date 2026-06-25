@@ -1,5 +1,7 @@
 use crate::workload_platform::evidence_ledger::{
-    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
+    BooleanEvidenceRowAuthority, CompleteWorkloadEvidenceLedger,
+    SpatialGeometryEvidenceTouchRequest, WorkloadEvidenceLedger, WorkloadEvidenceRow,
+    WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
 };
 use crate::workload_platform::planar_boolean_edge_splitting::{
     raw_interval_entry, raw_point_entry, raw_schedule, raw_set_from_schedules,
@@ -20,13 +22,18 @@ use crate::workload_platform::planar_boolean_edge_splitting::{
     PlanarBooleanSplitPersistentNamingReceipt, PlanarBooleanSplitSourceEdgeCarrierSet,
     PlanarBooleanSplitVertexIdentitySet, SourceEdgeCarrierRecoverySubject,
 };
-use crate::workload_platform::retained_replay_workload::ReplayReceiptSet;
 
 use super::super::request::{
     PlanarBooleanLoopReconstructionRequest, PlanarBooleanLoopReconstructionRequestInput,
 };
 use super::replay_parity_subject::replay_parity_receipt_for;
 use super::replay_support::retained_replay_receipt_chain;
+use crate::workload_platform::retained_replay_workload::ReplayReceiptSet;
+use crate::workload_platform::vocabulary::{
+    DiagnosticWorkload, GeometryBindingWorkload, ProjectionWorkload, ResponseWorkload,
+    RetainedReplayWorkload, SurfaceSupportWorkload, TransformWorkload,
+};
+use topology::facade::TopologySeed;
 
 pub(crate) enum LoopFixtureEntryOrder {
     Canonical,
@@ -165,10 +172,16 @@ pub(crate) fn prepared_loop_reconstruction_subject_with_tag(
         &overlap_chains,
         &replay_receipts,
     );
-    let evidence_ledger = WorkloadEvidenceLedger::from_rows(vec![
-        WorkloadEvidenceRow::from_boolean_evidence_receipt(split_ledger_result.receipt()),
-    ])
-    .expect("split receipt should index as boolean evidence");
+    let evidence_ledger =
+        complete_loop_test_spatial_touch_ledger(tag, split_ledger_result.receipt());
+    let spatial_touch_authority =
+        SpatialGeometryEvidenceTouchRequest::from_boolean_receipt(split_ledger_result.receipt())
+            .with_complete_ledger(&evidence_ledger)
+            .admit()
+            .expect("split receipt should admit spatial touch authority");
+    let spatial_lookup = spatial_touch_authority
+        .spatial_evidence_lookup(&evidence_ledger)
+        .expect("split receipt should admit spatial evidence lookup");
     let downstream_split_consumption = PlanarBooleanDownstreamSplitConsumption::admit(
         PlanarBooleanDownstreamSplitConsumptionInput::from_split_ledger_receipt(
             split_ledger_result.receipt(),
@@ -176,7 +189,8 @@ pub(crate) fn prepared_loop_reconstruction_subject_with_tag(
             &validation,
             &naming,
             &replay_parity,
-            evidence_ledger.stage_index(),
+            &spatial_touch_authority,
+            &spatial_lookup,
         ),
     )
     .expect("downstream split consumption should admit");
@@ -199,6 +213,84 @@ pub(crate) fn prepared_loop_reconstruction_subject_with_tag(
         split_ledger_result,
         loop_split_consumption,
     }
+}
+
+fn complete_loop_test_spatial_touch_ledger<T>(
+    tag: &str,
+    receipt: &T,
+) -> CompleteWorkloadEvidenceLedger
+where
+    T: BooleanEvidenceRowAuthority + 'static,
+{
+    let label = format!("{tag} loop-test spatial touch authority");
+    let topology = TopologySeed::cube()
+        .with_declaration(label.clone())
+        .build()
+        .expect("topology seed should certify");
+    let topology_workload = topology.query_receipts().declaration_receipt();
+    let geometry = GeometryBindingWorkload::for_topology_receipt(topology_workload)
+        .declared(format!("{label} geometry binding"))
+        .admit()
+        .expect("geometry binding should certify");
+    let support = SurfaceSupportWorkload::for_geometry_binding(&geometry)
+        .declared(format!("{label} surface support"))
+        .admit()
+        .expect("surface support should certify");
+    let projection = ProjectionWorkload::for_surface_support(&support)
+        .declared(format!("{label} projection"))
+        .admit()
+        .expect("projection should certify");
+    let transform = TransformWorkload::for_projection(&projection)
+        .declared(format!("{label} transform"))
+        .admit()
+        .expect("transform should certify");
+    let replay = RetainedReplayWorkload::for_transform(&transform)
+        .declared(format!("{label} retained replay"))
+        .admit()
+        .expect("retained replay should certify");
+    let diagnostics = DiagnosticWorkload::for_retained_replay(&replay)
+        .declared(format!("{label} diagnostics"))
+        .admit()
+        .expect("diagnostics should certify");
+    let response = ResponseWorkload::for_diagnostics(&diagnostics)
+        .declared(format!("{label} response"))
+        .admit()
+        .expect("response should certify");
+
+    WorkloadEvidenceLedger::from_rows(vec![
+        WorkloadEvidenceRow::from_topology_seed_receipt(&topology),
+        WorkloadEvidenceRow::receipt_backed(
+            WorkloadEvidenceStage::GeometryBinding,
+            geometry.identity().receipt_identity(),
+            WorkloadEvidenceStageCounters::binding(1),
+        ),
+        WorkloadEvidenceRow::receipt_backed(
+            WorkloadEvidenceStage::SurfaceSupport,
+            support.identity().receipt_identity(),
+            WorkloadEvidenceStageCounters::surface_support(1),
+        ),
+        WorkloadEvidenceRow::receipt_backed(
+            WorkloadEvidenceStage::Projection,
+            projection.identity().receipt_identity(),
+            WorkloadEvidenceStageCounters::projection(1, 1),
+        ),
+        WorkloadEvidenceRow::receipt_backed(
+            WorkloadEvidenceStage::Transform,
+            transform.identity().receipt_identity(),
+            WorkloadEvidenceStageCounters::transform(1, 1, 0),
+        ),
+        WorkloadEvidenceRow::receipt_backed(
+            WorkloadEvidenceStage::RetainedReplay,
+            replay.identity().receipt_identity(),
+            WorkloadEvidenceStageCounters::retained_replay(1, 1),
+        ),
+        WorkloadEvidenceRow::from_diagnostic_receipt(&diagnostics),
+        WorkloadEvidenceRow::from_response_receipt(&response),
+        WorkloadEvidenceRow::from_boolean_evidence_receipt(receipt),
+    ])
+    .expect("loop test spatial touch rows should index")
+    .certify_complete()
+    .expect("loop test spatial touch rows should complete")
 }
 
 fn request_subject_with_replay_evidence(

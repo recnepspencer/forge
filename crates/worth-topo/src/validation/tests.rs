@@ -8,7 +8,7 @@ mod validator_tests {
 
     use crate::brep::topology_graph::{TopologyFace, TopologyLoop};
     use crate::derived_topology::materialized_graph::TopologyMaterializer;
-    use crate::derived_topology::traversal_views::interpret_topology_view;
+    use crate::derived_topology::traversal_views::bootstrap_topology_interpretation;
     use crate::relational_aspect_boundary::topology_entity_create_fields;
     use crate::test_support::hostile_neighborhoods::validation_neighborhoods::{
         base_seeded_view, closed_shell_view, connected_wire_branch_view, edge, entity, half_edge,
@@ -39,7 +39,7 @@ mod validator_tests {
         let topology = TopologyMaterializer::materialize_from_truth(&read_view)
             .expect(" topology materialization");
 
-        let interpreted = interpret_topology_view(&topology);
+        let interpreted = bootstrap_topology_interpretation(&topology);
         let report = validate_interpreted_topology(&topology, &interpreted)
             .expect("seeded topology should validate");
         let expected_rules = [

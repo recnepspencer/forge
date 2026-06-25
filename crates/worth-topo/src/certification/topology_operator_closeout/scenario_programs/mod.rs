@@ -12,5 +12,7 @@ pub(in crate::certification::topology_operator_closeout) use bowtie_adjacent::re
 pub(crate) use broken_radial_localization::certify_milestone_three_broken_radial_localization_impl;
 pub(in crate::certification::topology_operator_closeout) use broken_radial_localization::rejected_branch_local_broken_radial_declaration;
 pub(crate) use cancellation_chain::certify_milestone_three_cancellation_chain_parity_impl;
-pub(in crate::certification::topology_operator_closeout) use local_successor_rewire::successor_relocation_declaration;
+pub(in crate::certification::topology_operator_closeout) use local_successor_rewire::{
+    successor_candidate_with_retained_predecessor, successor_relocation_declaration,
+};
 pub(crate) use split_collapse_churn::certify_milestone_three_split_collapse_churn_impl;

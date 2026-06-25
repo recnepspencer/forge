@@ -137,7 +137,8 @@ pub(super) fn current_spatial_support_pin_contract(
         .seal()
 }
 
-pub(super) fn evaluate_current_spatial_support_pins(
+#[cfg(test)]
+fn evaluate_current_spatial_support_pins(
 ) -> Result<ForgeQuerySupportPinReport, ForgeQuerySupportPinningError> {
     let snapshot = current_spatial_support_snapshot();
     current_spatial_support_pin_contract(&snapshot)?.evaluate_snapshot(&snapshot)

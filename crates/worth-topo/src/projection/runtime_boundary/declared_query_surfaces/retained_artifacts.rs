@@ -7,86 +7,12 @@ use crate::projection::diagnostic_surfaces::DerivedReadDiagnostics;
 use crate::validation::DerivedTopologyValidationReport;
 
 use super::{
-    materialize_declared_query_surface_binding, TopologyDeclaredQuerySurfaces,
+    materialize_declared_query_surface_binding, retained_payload, TopologyDeclaredQuerySurfaces,
     TopologyQuerySurfaceError,
 };
 
 const HISTORICAL_TRUTH_ARTIFACT_NAME: &str = "topology.historical.truth";
 const HISTORICAL_DERIVED_SNAPSHOT_ARTIFACT_NAME: &str = "topology.historical.derived_snapshot";
-const EQUIVALENCE_ALIGNMENT_FIELDS: [(&str, &str); 18] = [
-    (
-        "equivalence_contract_report.authority_snapshot_id",
-        "authority_snapshot_id",
-    ),
-    (
-        "equivalence_contract_report.authority_branch_id",
-        "authority_branch_id",
-    ),
-    (
-        "equivalence_contract_report.authoritative_mutation_origin",
-        "authoritative_mutation_origin",
-    ),
-    (
-        "equivalence_contract_report.derivation_origin",
-        "derivation_origin",
-    ),
-    (
-        "equivalence_contract_report.truth_basis_digest_hex",
-        "truth_basis_digest_hex",
-    ),
-    (
-        "equivalence_contract_report.touched_aspect_count",
-        "touched_aspect_count",
-    ),
-    (
-        "equivalence_contract_report.triggered_invalidation_targets",
-        "triggered_invalidation_targets",
-    ),
-    (
-        "equivalence_contract_report.precision_fallback_count",
-        "precision_fallback_count",
-    ),
-    (
-        "equivalence_contract_report.precision_budget_fallback_count",
-        "precision_budget_fallback_count",
-    ),
-    (
-        "equivalence_contract_report.materialized_topology_digest.algorithm",
-        "materialized_topology_digest.algorithm",
-    ),
-    (
-        "equivalence_contract_report.materialized_topology_digest.digest_hex",
-        "materialized_topology_digest.digest_hex",
-    ),
-    (
-        "equivalence_contract_report.materialized_topology_digest.row_count",
-        "materialized_topology_digest.row_count",
-    ),
-    (
-        "equivalence_contract_report.interpreted_topology_digest.algorithm",
-        "interpreted_topology_digest.algorithm",
-    ),
-    (
-        "equivalence_contract_report.interpreted_topology_digest.digest_hex",
-        "interpreted_topology_digest.digest_hex",
-    ),
-    (
-        "equivalence_contract_report.interpreted_topology_digest.row_count",
-        "interpreted_topology_digest.row_count",
-    ),
-    (
-        "equivalence_contract_report.derived_validation_digest.algorithm",
-        "derived_validation_digest.algorithm",
-    ),
-    (
-        "equivalence_contract_report.derived_validation_digest.digest_hex",
-        "derived_validation_digest.digest_hex",
-    ),
-    (
-        "equivalence_contract_report.derived_validation_digest.row_count",
-        "derived_validation_digest.row_count",
-    ),
-];
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct TopologyHistoricalTruthArtifact {
@@ -153,13 +79,9 @@ pub(crate) fn materialize_topology_historical_truth_artifact(
             surfaces.validation().into(),
         ],
     )?;
-    let (materialized, interpreted, validation) = bundle
-        .decode_row_triple(
-            surfaces.materialized(),
-            surfaces.interpreted(),
-            surfaces.validation(),
-        )
-        .map_err(bundle_decode_error)?;
+    let materialized = decode_bundle_row(&bundle, surfaces.materialized(), "materialized")?;
+    let interpreted = decode_bundle_row(&bundle, surfaces.interpreted(), "interpreted")?;
+    let validation = decode_bundle_row(&bundle, surfaces.validation(), "validation")?;
     Ok(TopologyHistoricalTruthArtifact {
         materialized,
         interpreted,
@@ -194,24 +116,38 @@ fn derived_surface_rows_from_bundle(
     bundle: &ForgeQueryDerivedArtifactBinding,
     surfaces: &TopologyDeclaredQuerySurfaces,
 ) -> Result<(DerivedReadDiagnostics, DerivedEquivalenceContractReport), TopologyQuerySurfaceError> {
-    ensure_diagnostics_equivalence_alignment(bundle, surfaces)?;
-    bundle
-        .decode_row_pair(surfaces.diagnostics(), surfaces.equivalence_contract())
-        .map_err(bundle_decode_error)
+    let diagnostics: DerivedReadDiagnostics =
+        decode_bundle_row(bundle, surfaces.diagnostics(), "diagnostics")?;
+    let equivalence_contract: DerivedEquivalenceContractReport = decode_bundle_row(
+        bundle,
+        surfaces.equivalence_contract(),
+        "equivalence contract",
+    )?;
+    if diagnostics.equivalence_contract_report != equivalence_contract {
+        return Err(TopologyQuerySurfaceError::new(
+            "derived diagnostics and equivalence contract retained artifacts diverged",
+        ));
+    }
+    Ok((diagnostics, equivalence_contract))
 }
 
-fn ensure_diagnostics_equivalence_alignment(
+fn decode_bundle_row<T>(
     bundle: &ForgeQueryDerivedArtifactBinding,
-    surfaces: &TopologyDeclaredQuerySurfaces,
-) -> Result<(), TopologyQuerySurfaceError> {
+    view: &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
+    label: &str,
+) -> Result<T, TopologyQuerySurfaceError>
+where
+    T: serde::de::DeserializeOwned,
+{
     bundle
-        .verify_scalar_alignment(
-            surfaces.diagnostics(),
-            surfaces.equivalence_contract(),
-            EQUIVALENCE_ALIGNMENT_FIELDS,
-        )
-        .map(|_| ())
+        .materialization(view)
         .map_err(bundle_decode_error)
+        .and_then(|materialization| {
+            materialization
+                .single_retained_row()
+                .map_err(bundle_decode_error)
+                .and_then(|row| retained_payload::decode_retained_payload_row(row, label))
+        })
 }
 
 fn bundle_decode_error(

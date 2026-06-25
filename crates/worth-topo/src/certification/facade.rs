@@ -48,9 +48,14 @@ use crate::certification::topology_operator_closeout::{
     certify_milestone_three_broken_radial_localization_impl,
     certify_milestone_three_cancellation_chain_parity_impl, certify_milestone_three_closeout_impl,
     certify_milestone_three_hostile_suite_impl, certify_milestone_three_split_collapse_churn_impl,
+    certify_topology_operator_selected_obligation_cutover_impl,
     MilestoneThreeHostileScenarioReport, MilestoneThreeHostileSuiteReport,
 };
 use crate::certification::BoundaryFailure;
+use crate::validator_invariant_catalog::{
+    WorthTopologyLegalityCatalogError, WorthTopologyOperatorCertificationCutoverCloseout,
+    WorthTopologySelectedGraphObligationEnforcementCloseout,
+};
 
 pub fn certify_milestone_one_read_basis_traced(
     runtime: &mut RelationalRuntime,
@@ -195,6 +200,12 @@ where
     F: FnMut() -> RelationalRuntime,
 {
     certify_milestone_three_closeout_impl(runtime_factory, stem)
+}
+
+pub fn certify_topology_operator_selected_obligation_cutover(
+    enforcement_closeout: &WorthTopologySelectedGraphObligationEnforcementCloseout,
+) -> Result<WorthTopologyOperatorCertificationCutoverCloseout, WorthTopologyLegalityCatalogError> {
+    certify_topology_operator_selected_obligation_cutover_impl(enforcement_closeout)
 }
 
 pub fn certify_milestone_one_closeout<F>(

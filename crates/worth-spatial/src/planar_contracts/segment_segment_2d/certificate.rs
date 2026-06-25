@@ -3,6 +3,7 @@ use super::{
     CertifiedSegmentSegment2DBasis, CertifiedSegmentSegment2DClassification,
     CertifiedSegmentSegment2DMutationEvidence, CertifiedSegmentSegment2DPerformanceCounters,
 };
+use crate::planar_contracts::predicate_authority::PlanarPredicateFactReceipt;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CertifiedSegmentSegment2DReceipt {
@@ -11,6 +12,7 @@ pub struct CertifiedSegmentSegment2DReceipt {
     envelope_digest: String,
     fact_digest: String,
     mutation_evidence: CertifiedSegmentSegment2DMutationEvidence,
+    orientation_predicates: Vec<PlanarPredicateFactReceipt>,
     counters: CertifiedSegmentSegment2DPerformanceCounters,
 }
 
@@ -21,6 +23,7 @@ impl CertifiedSegmentSegment2DReceipt {
         envelope_digest: String,
         fact_digest: String,
         mutation_evidence: CertifiedSegmentSegment2DMutationEvidence,
+        orientation_predicates: Vec<PlanarPredicateFactReceipt>,
         counters: CertifiedSegmentSegment2DPerformanceCounters,
     ) -> Self {
         Self {
@@ -29,6 +32,7 @@ impl CertifiedSegmentSegment2DReceipt {
             envelope_digest,
             fact_digest,
             mutation_evidence,
+            orientation_predicates,
             counters,
         }
     }
@@ -81,6 +85,10 @@ impl CertifiedSegmentSegment2DReceipt {
 
     pub fn mutation_evidence(&self) -> &CertifiedSegmentSegment2DMutationEvidence {
         &self.mutation_evidence
+    }
+
+    pub fn orientation_predicate_receipts(&self) -> &[PlanarPredicateFactReceipt] {
+        &self.orientation_predicates
     }
 
     pub fn counters(&self) -> CertifiedSegmentSegment2DPerformanceCounters {

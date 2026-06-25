@@ -28,11 +28,15 @@ impl PlanarBooleanLoopReconstructionSplitConsumption {
                 .counters()
                 .receipts_consumed(),
         );
-        counters.consumed_stage_index_rows(
+        counters.consumed_spatial_lookup_product(
             input
                 .downstream_consumption()
                 .counters()
-                .stage_index_rows_consumed(),
+                .spatial_lookup_indexed_lookups(),
+            input
+                .downstream_consumption()
+                .counters()
+                .spatial_lookup_raw_row_scans(),
         );
         let downstream = input.downstream_consumption();
         let consumption_identity = loop_reconstruction_split_consumption_identity(
@@ -93,7 +97,9 @@ impl PlanarBooleanLoopReconstructionSplitConsumption {
             && !self.workload_stage_index_identity.is_empty()
             && self.counters.downstream_gate_consumed() == 1
             && self.counters.receipts_consumed() > 0
-            && self.counters.stage_index_rows_consumed() > 0
+            && self.counters.spatial_lookup_products_consumed() == 1
+            && self.counters.spatial_lookup_indexed_lookups() > 0
+            && self.counters.spatial_lookup_raw_row_scans() == 0
             && self.counters.missing_authority_rejected() == 0
     }
 }

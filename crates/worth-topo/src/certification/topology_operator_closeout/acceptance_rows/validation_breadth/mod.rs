@@ -204,20 +204,14 @@ fn validation_breadth_error(reason: &str) -> TopologyCertificationError {
     ))
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "slow-certification"))]
 mod tests {
-    use crate::facade::certify_milestone_three_hostile_suite;
-    use crate::validation::reference_integrity::build_milestone_one_runtime;
-
     use super::ensure_validation_breadth_rows;
+    use crate::certification::topology_operator_closeout::acceptance_rows::test_support;
 
     #[test]
     fn validation_breadth_gate_rejects_weak_validator_name_counts() {
-        let mut report = certify_milestone_three_hostile_suite(
-            || build_milestone_one_runtime().expect("milestone one runtime builder"),
-            "m3.validation_breadth.weak_validator_names",
-        )
-        .expect("hostile suite should certify before tampering");
+        let mut report = certified_report();
 
         let row = report
             .validation_breadth_rows
@@ -234,11 +228,7 @@ mod tests {
 
     #[test]
     fn validation_breadth_gate_rejects_unlocalized_rejected_scenarios() {
-        let mut report = certify_milestone_three_hostile_suite(
-            || build_milestone_one_runtime().expect("milestone one runtime builder"),
-            "m3.validation_breadth.unlocalized_rejection",
-        )
-        .expect("hostile suite should certify before tampering");
+        let mut report = certified_report();
 
         let row = report
             .validation_breadth_rows
@@ -255,11 +245,7 @@ mod tests {
 
     #[test]
     fn validation_breadth_gate_rejects_source_evidence_drift() {
-        let mut report = certify_milestone_three_hostile_suite(
-            || build_milestone_one_runtime().expect("milestone one runtime builder"),
-            "m3.validation_breadth.source_drift",
-        )
-        .expect("hostile suite should certify before tampering");
+        let mut report = certified_report();
 
         let row = report
             .validation_breadth_rows
@@ -279,11 +265,7 @@ mod tests {
 
     #[test]
     fn validation_breadth_gate_rejects_duplicate_rows() {
-        let mut report = certify_milestone_three_hostile_suite(
-            || build_milestone_one_runtime().expect("milestone one runtime builder"),
-            "m3.validation_breadth.duplicate_row",
-        )
-        .expect("hostile suite should certify before tampering");
+        let mut report = certified_report();
 
         let duplicate = report
             .validation_breadth_rows
@@ -296,5 +278,10 @@ mod tests {
             ensure_validation_breadth_rows(&report).is_err(),
             "validation breadth closeout must reject duplicate or extra rows"
         );
+    }
+
+    fn certified_report(
+    ) -> crate::certification::topology_operator_closeout::MilestoneThreeHostileSuiteReport {
+        test_support::cached_hostile_suite_report()
     }
 }

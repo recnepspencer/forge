@@ -1,3 +1,4 @@
+use std::sync::OnceLock;
 use worth_spatial::facade::planar_contract_bundle::{
     PlanarBooleanReadinessBundle, PlanarContractBundleValidationContracts,
     PlanarContractBundleValidationReceipt, PlanarContractBundleValidator,
@@ -53,9 +54,18 @@ const TOPOLOGY: &str = "topology:kernel-bundle";
 const NEIGHBORHOOD: &str = "neighborhood:kernel-bundle";
 
 pub(crate) fn readiness_receipt() -> PlanarContractBundleValidationReceipt {
+    static READINESS_RECEIPT: OnceLock<PlanarContractBundleValidationReceipt> = OnceLock::new();
+    READINESS_RECEIPT
+        .get_or_init(build_readiness_receipt)
+        .clone()
+}
+
+fn build_readiness_receipt() -> PlanarContractBundleValidationReceipt {
     let predicate = predicate_receipt();
     let precision = precision_receipt(&predicate);
     let frame = frame_receipt(&precision);
+    let segment_contracts =
+        CertifiedSegmentSegment2DContracts::new(segment_handle(), predicate_handle());
     let left = projected_points(
         &frame,
         "left",
@@ -71,16 +81,17 @@ pub(crate) fn readiness_receipt() -> PlanarContractBundleValidationReceipt {
             [2.0e-9, 2.0e-9],
         ],
     );
-    let left_winding = winding_receipt("left", left.clone());
-    let right_winding = winding_receipt("right", right.clone());
+    let left_winding = winding_receipt("left", left.clone(), segment_contracts.clone());
+    let right_winding = winding_receipt("right", right.clone(), segment_contracts.clone());
     let left_area = signed_area_receipt(left_winding.clone(), precision.clone());
     let right_area = signed_area_receipt(right_winding, precision.clone());
-    let overlap = overlap_receipt(left_area.clone(), right_area);
+    let overlap = overlap_receipt(left_area.clone(), right_area, segment_contracts.clone());
     let segment = segment_receipt(
         left[1].clone(),
         left[2].clone(),
         right[3].clone(),
         right[0].clone(),
+        segment_contracts,
     );
     let segment_predicates = segment_orientation_predicates(&segment);
     let predicate_consumption =
@@ -199,6 +210,10 @@ fn projected_points(
 fn winding_receipt(
     label: &'static str,
     projections: Vec<ProjectPointToCertifiedPlane2DReceipt>,
+    segment_contracts: CertifiedSegmentSegment2DContracts<
+        worth_spatial::facade::planar_segment_segment::CertifiedSegmentSegment2DQueryWorld,
+        worth_spatial::facade::planar_predicates::PlanarPredicateAuthorityQueryWorld,
+    >,
 ) -> worth_spatial::facade::planar_winding::CertifiedPolygonWinding2DReceipt {
     let loop_identity = format!("loop:{label}");
     let projected_loop = CertifiedProjectedLoop2D::from_projected_vertices(
@@ -215,7 +230,7 @@ fn winding_receipt(
         .within_planar_neighborhood(NEIGHBORHOOD)
         .compile(&CertifiedPolygonWinding2DContracts::new(
             winding_handle(),
-            CertifiedSegmentSegment2DContracts::new(segment_handle(), predicate_handle()),
+            segment_contracts,
             predicate_handle(),
         ))
         .expect("winding plan")
@@ -239,6 +254,10 @@ fn signed_area_receipt(
 fn overlap_receipt(
     left: CertifiedSignedArea2DReceipt,
     right: CertifiedSignedArea2DReceipt,
+    segment_contracts: CertifiedSegmentSegment2DContracts<
+        worth_spatial::facade::planar_segment_segment::CertifiedSegmentSegment2DQueryWorld,
+        worth_spatial::facade::planar_predicates::PlanarPredicateAuthorityQueryWorld,
+    >,
 ) -> worth_spatial::facade::planar_overlap::CoplanarOverlapContractReceipt {
     CoplanarOverlapContractExtractor::between(
         CertifiedCoplanarOverlapFace2D::from_certified_area("left", left).expect("left"),
@@ -247,7 +266,7 @@ fn overlap_receipt(
     .within_planar_neighborhood(NEIGHBORHOOD)
     .compile(&CoplanarOverlapContractContracts::new(
         overlap_handle(),
-        CertifiedSegmentSegment2DContracts::new(segment_handle(), predicate_handle()),
+        segment_contracts,
     ))
     .expect("overlap plan")
     .extract()
@@ -259,6 +278,10 @@ fn segment_receipt(
     left_end: ProjectPointToCertifiedPlane2DReceipt,
     right_start: ProjectPointToCertifiedPlane2DReceipt,
     right_end: ProjectPointToCertifiedPlane2DReceipt,
+    segment_contracts: CertifiedSegmentSegment2DContracts<
+        worth_spatial::facade::planar_segment_segment::CertifiedSegmentSegment2DQueryWorld,
+        worth_spatial::facade::planar_predicates::PlanarPredicateAuthorityQueryWorld,
+    >,
 ) -> worth_spatial::facade::planar_segment_segment::CertifiedSegmentSegment2DReceipt {
     let left =
         CertifiedProjectedSegment2D::from_projected_endpoints("left-edge", left_start, left_end)
@@ -268,10 +291,7 @@ fn segment_receipt(
             .expect("right segment");
     CertifiedSegmentSegment2D::classify(left, right)
         .within_topology_basis(TOPOLOGY)
-        .compile(&CertifiedSegmentSegment2DContracts::new(
-            segment_handle(),
-            predicate_handle(),
-        ))
+        .compile(&segment_contracts)
         .expect("segment plan")
         .certify()
         .expect("segment receipt")
@@ -280,58 +300,22 @@ fn segment_receipt(
 fn segment_orientation_predicates(
     segment: &worth_spatial::facade::planar_segment_segment::CertifiedSegmentSegment2DReceipt,
 ) -> Vec<PlanarPredicateFactReceipt> {
-    let basis = segment.basis();
-    [
-        [
-            basis.first_start_point_2d(),
-            basis.first_end_point_2d(),
-            basis.second_start_point_2d(),
-        ],
-        [
-            basis.first_start_point_2d(),
-            basis.first_end_point_2d(),
-            basis.second_end_point_2d(),
-        ],
-        [
-            basis.second_start_point_2d(),
-            basis.second_end_point_2d(),
-            basis.first_start_point_2d(),
-        ],
-        [
-            basis.second_start_point_2d(),
-            basis.second_end_point_2d(),
-            basis.first_end_point_2d(),
-        ],
-    ]
-    .into_iter()
-    .map(|points| {
-        let predicate_basis = PlanarPredicateInputBasis::from_projected_orient2d_points(
-            basis.frame_identity(),
-            basis.topology_basis_identity(),
-            basis.movement_rotation_posture_identity(),
-            basis.tolerance_policy_identity(),
-            points,
-        );
-        planar_predicate_authority_facts(
-            &planar_predicate_authority_entry(PlanarPredicateAuthorityCase::orient2d(
-                predicate_basis,
-            )),
-            &predicate_handle(),
+    segment
+        .orientation_predicate_receipts()
+        .iter()
+        .cloned()
+        .fold(
+            Vec::<PlanarPredicateFactReceipt>::new(),
+            |mut unique, receipt| {
+                if unique
+                    .iter()
+                    .all(|existing| existing.fact_digest() != receipt.fact_digest())
+                {
+                    unique.push(receipt);
+                }
+                unique
+            },
         )
-        .expect("segment predicate receipt")
-    })
-    .fold(
-        Vec::<PlanarPredicateFactReceipt>::new(),
-        |mut unique, receipt| {
-            if unique
-                .iter()
-                .all(|existing| existing.fact_digest() != receipt.fact_digest())
-            {
-                unique.push(receipt);
-            }
-            unique
-        },
-    )
 }
 
 fn predicate_consumption_receipt(

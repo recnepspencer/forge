@@ -187,14 +187,21 @@ before overlap extraction resumes.
 Roadmap:
 - [touched-graph-roadmap.md](./touched-graph-roadmap.md)
 
+Milestone 4 is closed only for spatial evidence touch authority, spatial
+lookup identity, Query descriptor/adoption handoff, and its one capped Consumer
+Kit residue row. Milestones 5 through 8 remain open for Query obligation
+selection and graph-read access work.
+
 Spec:
 - [worth-touched-graph-authority-gate.md](./worth-touched-graph-authority-gate.md)
 
 Closes:
 - typed touched graph basis produced by every graph-affecting operator/stage
 - Query obligation selection from touched graph basis
-- Query 9.10 graph read access planning adoption for covered Worth graph reads,
-  including no-N+1, index-posture, budget, and access receipt proof
+- Query `9.10` graph read access adoption split into Worth graph-read
+  inventory, touched-authority-backed Query declarations, and access-plan
+  receipt adoption for covered Worth graph reads, including no-N+1,
+  index-posture, budget, and deletion proof
 - topology validator and invariant derivation from touched graph closure
 - derived invalidation, dirty propagation, replay, evidence lookup, conflict,
   cache/equivalence, undo, public API, and diagnostics from the same basis

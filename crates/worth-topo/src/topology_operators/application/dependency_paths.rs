@@ -1,7 +1,7 @@
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::QueryAspectPath;
 
-pub(crate) fn topology_relation_dependency_path(kind: RelationKind) -> Option<&'static str> {
+pub(crate) fn topology_relation_dependency_path(kind: RelationKind) -> Option<QueryAspectPath> {
     match kind {
         RelationKind::Topology(
             TopologyRelationKind::ModelOwnsBody
@@ -10,7 +10,7 @@ pub(crate) fn topology_relation_dependency_path(kind: RelationKind) -> Option<&'
             | TopologyRelationKind::RegionOwnsShell
             | TopologyRelationKind::ShellOwnsFace
             | TopologyRelationKind::WireOwnsHalfEdge,
-        ) => Some(QueryAspectPath::TOPOLOGY_OWNERSHIP.as_str()),
+        ) => Some(QueryAspectPath::TOPOLOGY_OWNERSHIP),
         RelationKind::Topology(
             TopologyRelationKind::FaceOuterLoop
             | TopologyRelationKind::FaceInnerLoop
@@ -20,9 +20,9 @@ pub(crate) fn topology_relation_dependency_path(kind: RelationKind) -> Option<&'
             | TopologyRelationKind::HalfEdgeUsesEdge
             | TopologyRelationKind::HalfEdgeStartsAtVertex
             | TopologyRelationKind::HalfEdgeEndsAtVertex,
-        ) => Some(QueryAspectPath::TOPOLOGY_BOUNDARY.as_str()),
+        ) => Some(QueryAspectPath::TOPOLOGY_BOUNDARY),
         RelationKind::Topology(TopologyRelationKind::HalfEdgeRadialNext) => {
-            Some(QueryAspectPath::TOPOLOGY_RADIAL.as_str())
+            Some(QueryAspectPath::TOPOLOGY_RADIAL)
         }
         _ => None,
     }

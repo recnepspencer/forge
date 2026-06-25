@@ -79,7 +79,7 @@ impl ForgeQueryDeclarationFamilyMarker<WorkloadOperatorQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_authoring_helpers::declaration_aspect_contract_from_slices(
             &[
                 "workload_operator.family",
                 "workload_operator.required_stage",
@@ -121,7 +121,7 @@ impl ForgeQueryDeclarationFamilyMarker<WorkloadOperatorQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_authoring_helpers::declaration_aspect_contract_from_slices(
             &[
                 "workload_operator.family",
                 "workload_operator.required_stage",

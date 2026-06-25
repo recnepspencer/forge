@@ -12,9 +12,9 @@ use super::super::{
     topology_operator_graph_obligation_adoption_proof,
     topology_operator_graph_obligation_registration_declaration,
     topology_operator_graph_obligation_residue_manifest,
-    topology_operator_relation_touch_descriptor, TOPOLOGY_OPERATOR_GRAPH_OBLIGATION_FAMILY,
-    TOPOLOGY_OPERATOR_RELATION_COLLECTION, TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_OPERATION,
-    TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_PATH,
+    topology_operator_relation_touch_descriptor, topology_rewire_loop_successor_aspect_operation,
+    topology_rewire_loop_successor_aspect_touch, TOPOLOGY_OPERATOR_GRAPH_OBLIGATION_FAMILY,
+    TOPOLOGY_OPERATOR_RELATION_COLLECTION,
 };
 
 #[test]
@@ -70,10 +70,10 @@ fn operator_touch_descriptor_is_real_mutation_not_read_family() {
     );
     assert_eq!(descriptor.update_command_count(), 1);
     assert_eq!(descriptor.declared_collection_count(), 1);
-    assert!(descriptor.touches_collection(TOPOLOGY_OPERATOR_RELATION_COLLECTION));
+    assert_eq!(descriptor.touched_aspect_count(), 1);
     assert!(descriptor
-        .touches_declared_aspect_operation(TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_OPERATION));
-    assert!(descriptor.touches_aspect_path(TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_PATH));
+        .touches_declared_aspect_operation(&topology_rewire_loop_successor_aspect_operation()));
+    assert!(descriptor.touches_aspect(&topology_rewire_loop_successor_aspect_touch()));
 
     let row = descriptor.rows().first().expect("one operator touch row");
     assert_eq!(row.mutation_family(), ForgeQueryMutationFamily::Update);
@@ -97,8 +97,8 @@ fn operator_selection_rejects_read_and_wrong_lifecycle_false_fires() {
         TOPOLOGY_OPERATOR_RELATION_COLLECTION,
         ForgeQueryMutationFamily::Update,
         Some(ForgeQueryGraphTouchLifecycleFamily::ExistingTargetFollowup),
-        [TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_OPERATION],
-        [TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_PATH],
+        [topology_rewire_loop_successor_aspect_operation()],
+        [topology_rewire_loop_successor_aspect_touch()],
     )
     .expect("wrong lifecycle descriptor should build");
 

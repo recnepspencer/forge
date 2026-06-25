@@ -3,6 +3,7 @@ use super::models::{
     TopologyAdjacentHalfEdgeEvidence, TopologyHalfEdgeRadialNeighborhoodView,
     TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,
     TopologyLoopCycleView, TopologyLoopNeighborEvidence, TopologyRadialCandidateEvidence,
+    TopologyShellBoundaryNeighborhoodView,
 };
 
 impl TopologyAdjacentHalfEdgeEvidence {
@@ -85,6 +86,52 @@ impl TopologyHalfEdgeSharedVertexNeighborhoodView {
 impl TopologyHalfEdgeRadialNeighborhoodView {
     pub fn request_report(&self) -> &TopologyReadRequestReport {
         &self.request_report
+    }
+
+    pub fn source_half_edge_identity(&self) -> &str {
+        self.source_half_edge_identity.as_str()
+    }
+
+    pub fn source_edge_identity(&self) -> &str {
+        self.source_edge_identity.as_str()
+    }
+
+    pub fn current_target_half_edge_identity(&self) -> &str {
+        self.current_target_half_edge_identity.as_str()
+    }
+
+    pub fn current_target_edge_identity(&self) -> &str {
+        self.current_target_edge_identity.as_str()
+    }
+
+    pub fn source_radial_next_relation_identity(&self) -> &str {
+        self.source_radial_next_relation_identity.as_str()
+    }
+
+    pub fn same_edge_half_edge_identities(&self) -> &[String] {
+        self.same_edge_half_edge_identities.as_slice()
+    }
+
+    pub fn different_edge_half_edge_identities(&self) -> &[String] {
+        self.different_edge_half_edge_identities.as_slice()
+    }
+
+    pub fn different_edge_half_edges(&self) -> &[TopologyRadialCandidateEvidence] {
+        self.different_edge_half_edges.as_slice()
+    }
+}
+
+impl TopologyShellBoundaryNeighborhoodView {
+    pub fn request_report(&self) -> &TopologyReadRequestReport {
+        &self.request_report
+    }
+
+    pub fn touched_shell_identity(&self) -> &str {
+        self.touched_shell_identity.as_str()
+    }
+
+    pub fn touched_face_identity(&self) -> &str {
+        self.touched_face_identity.as_str()
     }
 
     pub fn source_half_edge_identity(&self) -> &str {

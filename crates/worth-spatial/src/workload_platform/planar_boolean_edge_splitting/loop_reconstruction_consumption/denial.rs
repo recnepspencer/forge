@@ -6,7 +6,7 @@ pub enum PlanarBooleanLoopReconstructionSplitConsumptionDenialKind {
     MissingSplitLedgerReceipt,
     MissingSplitLedgerDownstreamIdentity,
     MissingSplitRequest,
-    MissingWorkloadStageIndex,
+    MissingSpatialLookupProduct,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

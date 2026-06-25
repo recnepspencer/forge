@@ -9,7 +9,8 @@ State file: {state_file}
 Spec file: {spec_file}
 Cursor: phase {current.phase}, turn {current.turn}
 
-Acceptance evidence:
+Acceptance evidence (the closeout checklist; run focused proof now, and run
+broad closeout suites only when this phase explicitly names them):
 {phase.acceptance}
 
 Run this sequence in chat:
@@ -28,6 +29,18 @@ Run this sequence in chat:
 7. Now go implement that plan.
 
 Important boundaries:
+
+Close only what is actually closed. The facade is the only surface: confirm the
+phase exposes its result through ordinary public APIs and that internal types,
+raw rows, and forgeable receipts cannot satisfy the contract from outside. API
+presence is not proof - a method that exists is not a method that proves
+anything. Where the phase claims a property, confirm the structure enforces it.
+
+Re-run the acceptance checks and record command, exit code, and output tail in
+`notes.verification`. Summarize the final proof, the explicit residue or query
+gaps that remain - named and owned per the debt law, not silently dropped - and
+the exact verification commands. Then set `status` and `qa_status` by the
+contract.
 
 - Do not claim aerospace-grade unless the evidence really supports it. It is OK
   to say what remains.

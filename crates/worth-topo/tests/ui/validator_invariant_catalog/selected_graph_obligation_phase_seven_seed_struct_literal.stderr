@@ -1,0 +1,58 @@
+error: cannot construct `WorthTopologySelectedGraphObligationEnforcementPhaseSevenSeed` with struct literal syntax due to private fields
+  --> tests/ui/validator_invariant_catalog/selected_graph_obligation_phase_seven_seed_struct_literal.rs:4:17
+   |
+ 4 |     let _seed = WorthTopologySelectedGraphObligationEnforcementPhaseSevenSeed {
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         phase_six_seed_digest: String::new(),
+   |         ------------------------------------ private field
+ 6 |         selected_plan_digest: String::new(),
+   |         ----------------------------------- private field
+ 7 |         query_execution_envelope_digest: String::new(),
+   |         ---------------------------------------------- private field
+ 8 |         execution_backed_adoption_manifest_digest: String::new(),
+   |         -------------------------------------------------------- private field
+ 9 |         support_pin_digest: String::new(),
+   |         --------------------------------- private field
+10 |         support_matrix_digest: String::new(),
+   |         ------------------------------------ private field
+11 |         residue_manifest_digest: String::new(),
+   |         -------------------------------------- private field
+12 |         local_ceremony_audit_digest: String::new(),
+   |         ------------------------------------------ private field
+13 |         in_memory_proof_digest: String::new(),
+   |         ------------------------------------- private field
+14 |         execution_proof_digest: String::new(),
+   |         ------------------------------------- private field
+15 |         receipt_count: 0,
+   |         ---------------- private field
+16 |         counters_digest: String::new(),
+   |         ------------------------------ private field
+17 |         source_firewall_digest: String::new(),
+   |         ------------------------------------- private field
+18 |         receipt_digests: Vec::new(),
+   |         --------------------------- private field
+19 |         seed_digest: String::new(),
+   |         -------------------------- private field
+   |
+   = note: ...and other private field `routing_closure_digest` that was not provided
+help: you might have meant to use the `from_parts` associated function
+   |
+ 4 -     let _seed = WorthTopologySelectedGraphObligationEnforcementPhaseSevenSeed {
+ 5 -         phase_six_seed_digest: String::new(),
+ 6 -         selected_plan_digest: String::new(),
+ 7 -         query_execution_envelope_digest: String::new(),
+ 8 -         execution_backed_adoption_manifest_digest: String::new(),
+ 9 -         support_pin_digest: String::new(),
+10 -         support_matrix_digest: String::new(),
+11 -         residue_manifest_digest: String::new(),
+12 -         local_ceremony_audit_digest: String::new(),
+13 -         in_memory_proof_digest: String::new(),
+14 -         execution_proof_digest: String::new(),
+15 -         receipt_count: 0,
+16 -         counters_digest: String::new(),
+17 -         source_firewall_digest: String::new(),
+18 -         receipt_digests: Vec::new(),
+19 -         seed_digest: String::new(),
+20 -     };
+ 4 +     let _seed = WorthTopologySelectedGraphObligationEnforcementPhaseSevenSeed::from_parts(_, _, _, _, _, _, _, _, _, _, _, _, _, _);
+   |

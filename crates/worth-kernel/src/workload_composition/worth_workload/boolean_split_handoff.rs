@@ -1,8 +1,8 @@
 use worth_spatial::facade::planar_boolean_edge_splitting::{
-    PlanarBooleanDownstreamSplitConsumption, PlanarBooleanDownstreamSplitConsumptionDenial,
-    PlanarBooleanDownstreamSplitConsumptionInput, PlanarBooleanEdgeSplitReplayParityReceipt,
-    PlanarBooleanSplitChainValidationReceipt, PlanarBooleanSplitDecisionLogReceipt,
-    PlanarBooleanSplitEdgeChainLedgerReceipt, PlanarBooleanSplitPersistentNamingReceipt,
+    PlanarBooleanDownstreamSplitConsumption, PlanarBooleanDownstreamSplitConsumptionInput,
+    PlanarBooleanEdgeSplitReplayParityReceipt, PlanarBooleanSplitChainValidationReceipt,
+    PlanarBooleanSplitDecisionLogReceipt, PlanarBooleanSplitEdgeChainLedgerReceipt,
+    PlanarBooleanSplitPersistentNamingReceipt,
 };
 use worth_spatial::facade::workload_vocabulary::WorkloadEvidenceBooleanReceiptLookupProduct;
 
@@ -57,10 +57,13 @@ impl CompletedBooleanSplitHandoff {
         validation_receipt: &PlanarBooleanSplitChainValidationReceipt,
         persistent_naming_receipt: &PlanarBooleanSplitPersistentNamingReceipt,
         replay_parity_receipt: &PlanarBooleanEdgeSplitReplayParityReceipt,
-    ) -> Result<
-        PlanarBooleanDownstreamSplitConsumption,
-        PlanarBooleanDownstreamSplitConsumptionDenial,
-    > {
+    ) -> Result<PlanarBooleanDownstreamSplitConsumption, WorkloadCompositionError> {
+        let spatial_touch_authority = self
+            .completed_workload
+            .admit_spatial_geometry_evidence_touch(&self.split_ledger_receipt)?;
+        let spatial_lookup = spatial_touch_authority
+            .spatial_evidence_lookup(self.completed_workload.evidence_ledger())
+            .map_err(WorkloadCompositionError::SpatialEvidenceLookup)?;
         PlanarBooleanDownstreamSplitConsumption::admit(
             PlanarBooleanDownstreamSplitConsumptionInput::from_split_ledger_receipt(
                 &self.split_ledger_receipt,
@@ -68,8 +71,10 @@ impl CompletedBooleanSplitHandoff {
                 validation_receipt,
                 persistent_naming_receipt,
                 replay_parity_receipt,
-                self.completed_workload.evidence_ledger().stage_index(),
+                &spatial_touch_authority,
+                &spatial_lookup,
             ),
         )
+        .map_err(WorkloadCompositionError::DownstreamSplitConsumption)
     }
 }

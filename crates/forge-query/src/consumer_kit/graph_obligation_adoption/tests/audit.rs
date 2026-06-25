@@ -33,3 +33,32 @@ fn install() {
     assert_eq!(audit.findings()[0].column(), 17);
     assert!(audit.findings()[0].source_path().is_none());
 }
+
+#[test]
+fn local_ceremony_audit_preserves_code_after_rust_lifetimes() {
+    let sources = ForgeQueryBoundaryAuditSourceSet::new("worth-spatial").source(
+        "lifetime-heavy-source.rs",
+        r#"
+pub struct LifetimeHeavy<'a> {
+    borrowed: &'a str,
+}
+
+fn install_bypass_after_lifetime<'a>() {
+    let _ = ForgeQueryGraphObligationIndex::from_catalog(&catalog);
+}
+"#,
+    );
+
+    let audit = ForgeQueryGraphObligationLocalCeremonyAudit::evaluate(&sources);
+
+    assert_eq!(audit.findings().len(), 1);
+    assert_eq!(
+        audit.findings()[0].source_label(),
+        "lifetime-heavy-source.rs"
+    );
+    assert_eq!(
+        audit.findings()[0].pattern(),
+        "ForgeQueryGraphObligationIndex::from_catalog"
+    );
+    assert_eq!(audit.findings()[0].line(), 7);
+}

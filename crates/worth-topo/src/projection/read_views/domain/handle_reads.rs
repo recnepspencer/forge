@@ -7,7 +7,7 @@ use super::{
     TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView, TopologyReadAggregateReport,
     TopologyReadAnchorIdentity, TopologyReadCloseoutReport, TopologyReadError,
     TopologyReadFallbackPosture, TopologyReadLedger, TopologyReadProofReport,
-    TopologyReadRequestFamily,
+    TopologyReadRequestFamily, TopologyShellBoundaryNeighborhoodView,
 };
 use crate::projection::runtime_boundary::read_execution::TopologyReadExecutionTarget;
 use crate::query_domain::{
@@ -92,6 +92,17 @@ impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
         source_identity: &TopologyReadAnchorIdentity,
     ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyReadError> {
         self.state.radial_half_edge_neighborhood(
+            self.workspace,
+            &self.execution_target,
+            source_identity,
+        )
+    }
+
+    pub fn shell_boundary_neighborhood(
+        &mut self,
+        source_identity: &TopologyReadAnchorIdentity,
+    ) -> Result<TopologyShellBoundaryNeighborhoodView, TopologyReadError> {
+        self.state.shell_boundary_neighborhood(
             self.workspace,
             &self.execution_target,
             source_identity,

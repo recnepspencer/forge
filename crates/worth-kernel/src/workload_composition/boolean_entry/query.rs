@@ -82,7 +82,7 @@ impl ForgeQueryDeclarationFamilyMarker<PlanarBooleanQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_authoring_helpers::declaration_aspect_contract_from_slices(
             &[
                 "planar_boolean.family",
                 "planar_boolean.operation",
@@ -125,7 +125,7 @@ impl ForgeQueryDeclarationFamilyMarker<PlanarBooleanQueryDomain> for PlanarBoole
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_authoring_helpers::declaration_aspect_contract_from_slices(
             &[
                 "planar_boolean.family",
                 "planar_boolean.operation",

@@ -1,0 +1,27 @@
+error[E0451]: fields `phase_four_seed_digest`, `selected_plan_digest`, `touched_closure_digest`, `query_support_digest`, `legality_support_digest`, `executed_rows`, `unaffected_rows`, `denied_rows`, `residue_rows`, `counters` and `execution_receipt_digest` of struct `DerivedInvalidationExecutionReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_execution_receipt_not_forgeable.rs:9:9
+   |
+ 8 |     let _ = DerivedInvalidationExecutionReceipt {
+   |             ----------------------------------- in this type
+ 9 |         phase_four_seed_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         selected_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+11 |         touched_closure_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         query_support_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+13 |         legality_support_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         executed_rows: Vec::<DerivedInvalidationExecutedProductRow>::new(),
+   |         ^^^^^^^^^^^^^ private field
+15 |         unaffected_rows: Vec::<DerivedInvalidationUnaffectedProductExecutionRow>::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+16 |         denied_rows: Vec::<DerivedInvalidationDeniedProductExecutionRow>::new(),
+   |         ^^^^^^^^^^^ private field
+17 |         residue_rows: Vec::<DerivedInvalidationResidueExecutionRow>::new(),
+   |         ^^^^^^^^^^^^ private field
+18 |         counters: fake_counters(),
+   |         ^^^^^^^^ private field
+19 |         execution_receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field

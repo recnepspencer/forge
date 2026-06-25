@@ -1,11 +1,17 @@
-error[E0603]: module `query_domain` is private
- --> src/certification/public_facade_contracts/compile_fail/public_topology_query_domain_entry_constructors_not_exported.rs:1:15
+error[E0451]: field `_sealed` of struct `TopologyQueryDomain` is private
+ --> src/certification/public_facade_contracts/compile_fail/public_topology_query_domain_entry_constructors_not_exported.rs:7:35
   |
-1 | use topology::query_domain::{
-  |               ^^^^^^^^^^^^ private module
+7 |     let _ = TopologyQueryDomain { _sealed: () };
+  |                                   ^^^^^^^ private field
+
+error[E0451]: field `_sealed` of struct `TopologyCurrentHeadAuthoritativeContext` is private
+ --> src/certification/public_facade_contracts/compile_fail/public_topology_query_domain_entry_constructors_not_exported.rs:8:55
   |
-note: the module `query_domain` is defined here
- --> src/lib.rs
+8 |     let _ = TopologyCurrentHeadAuthoritativeContext { _sealed: () };
+  |                                                       ^^^^^^^ private field
+
+error[E0451]: field `_sealed` of struct `TopologySnapshotReadOnlyContext` is private
+ --> src/certification/public_facade_contracts/compile_fail/public_topology_query_domain_entry_constructors_not_exported.rs:9:47
   |
-  | mod query_domain;
-  | ^^^^^^^^^^^^^^^^
+9 |     let _ = TopologySnapshotReadOnlyContext { _sealed: () };
+  |                                               ^^^^^^^ private field

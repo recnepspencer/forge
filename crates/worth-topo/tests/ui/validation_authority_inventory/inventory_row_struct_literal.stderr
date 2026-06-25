@@ -1,0 +1,25 @@
+error[E0451]: fields `source`, `source_path`, `source_symbol`, `authority_kind`, `owner`, `disposition`, `removal_trigger`, `query_access_dependency`, `certification_only_comparison_allowed` and `note` of struct `WorthValidationAuthorityInventoryRow` are private
+  --> tests/ui/validation_authority_inventory/inventory_row_struct_literal.rs:8:9
+   |
+ 7 |     let _row = WorthValidationAuthorityInventoryRow {
+   |                ------------------------------------ in this type
+ 8 |         source: WorthValidationAuthoritySource::TopologyValidatorDerivedReport,
+   |         ^^^^^^ private field
+ 9 |         source_path: "fake.rs",
+   |         ^^^^^^^^^^^ private field
+10 |         source_symbol: "TopologyValidator::derived_validation_report",
+   |         ^^^^^^^^^^^^^ private field
+11 |         authority_kind: WorthValidationAuthorityKind::WholeViewValidatorEntry,
+   |         ^^^^^^^^^^^^^^ private field
+12 |         owner: "fake",
+   |         ^^^^^ private field
+13 |         disposition: WorthValidationAuthorityDisposition::Migrate,
+   |         ^^^^^^^^^^^ private field
+14 |         removal_trigger: "fake",
+   |         ^^^^^^^^^^^^^^^ private field
+15 |         query_access_dependency: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         certification_only_comparison_allowed: true,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         note: "fake",
+   |         ^^^^ private field

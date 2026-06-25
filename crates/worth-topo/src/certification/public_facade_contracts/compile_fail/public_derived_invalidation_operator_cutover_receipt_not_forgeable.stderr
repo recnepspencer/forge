@@ -1,0 +1,27 @@
+error[E0451]: fields `phase_seven_seed_digest`, `operator_touched_basis_digest`, `selected_plan_digest`, `execution_receipt_digest`, `touched_closure_digest`, `query_support_digest`, `legality_support_digest`, `graph_obligation_envelope_digest`, `graph_obligation_dispatch_digest`, `counters` and `receipt_digest` of struct `DerivedInvalidationOperatorCutoverReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_operator_cutover_receipt_not_forgeable.rs:7:9
+   |
+ 6 |     let _ = DerivedInvalidationOperatorCutoverReceipt {
+   |             ----------------------------------------- in this type
+ 7 |         phase_seven_seed_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         operator_touched_basis_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         selected_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+10 |         execution_receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         touched_closure_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         query_support_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+13 |         legality_support_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         graph_obligation_envelope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         graph_obligation_dispatch_digest: Some(String::new()),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         counters: fake_counters(),
+   |         ^^^^^^^^ private field
+17 |         receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field

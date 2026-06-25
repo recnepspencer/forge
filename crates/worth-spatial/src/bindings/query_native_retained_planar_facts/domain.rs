@@ -77,7 +77,7 @@ impl ForgeQueryDeclarationFamilyMarker<RetainedPlanarFactsQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.retained_planar.boolean_readiness",
                 "geometry.retained_planar.structural_identity",

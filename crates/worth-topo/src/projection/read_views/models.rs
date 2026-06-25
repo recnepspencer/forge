@@ -47,6 +47,21 @@ pub struct TopologyHalfEdgeRadialNeighborhoodView {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TopologyShellBoundaryNeighborhoodView {
+    pub(crate) request_report: TopologyReadRequestReport,
+    pub(crate) touched_shell_identity: String,
+    pub(crate) touched_face_identity: String,
+    pub(crate) source_half_edge_identity: String,
+    pub(crate) source_edge_identity: String,
+    pub(crate) current_target_half_edge_identity: String,
+    pub(crate) current_target_edge_identity: String,
+    pub(crate) source_radial_next_relation_identity: String,
+    pub(crate) same_edge_half_edge_identities: Vec<String>,
+    pub(crate) different_edge_half_edge_identities: Vec<String>,
+    pub(crate) different_edge_half_edges: Vec<TopologyRadialCandidateEvidence>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyLoopCycleView {
     pub(crate) request_report: TopologyReadRequestReport,
     pub(crate) start_half_edge_identity: String,

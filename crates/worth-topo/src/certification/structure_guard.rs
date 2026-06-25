@@ -21,16 +21,22 @@ fn topology_crate_skeleton_keeps_the_domain_story() {
             "construction".to_string(),
             "derived_topology".to_string(),
             "projection".to_string(),
+            "query_adoption".to_string(),
+            "query_native_runtime_boundary".to_string(),
             "relational_aspect_boundary".to_string(),
             "test_support".to_string(),
             "topology_operators".to_string(),
             "validation".to_string(),
+            "validation_authority_inventory".to_string(),
+            "validator_invariant_catalog".to_string(),
+            "workload_platform".to_string(),
         ])
     );
 
+    let unexpected_tests = unexpected_top_level_test_entries(&manifest_dir.join("tests"));
     assert!(
-        !manifest_dir.join("tests").exists(),
-        "worth-topo public facade tests must live under certification/public_facade_contracts"
+        unexpected_tests.is_empty(),
+        "worth-topo public facade tests must live under certification/public_facade_contracts; tests/ is reserved for named compile-fail harnesses: {unexpected_tests:?}"
     );
 }
 
@@ -197,19 +203,39 @@ fn broad_direct_file_clusters_stay_explicitly_reviewed() {
     let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
     let allowed_dense_directories = [
         "certification",
+        "certification/projection_closeout/tests/topology_reads",
         "certification/projection_closeout/tests/topology_reads/declaration_entry",
         "certification/public_facade_contracts/compile_fail",
+        "certification/public_facade_contracts/contracts",
         "construction",
+        "construction/query_native_boundary/compose_execution",
         "derived_topology/materialized_graph",
         "projection/read_views/domain/read_proof",
         "projection/runtime_boundary/declared_query_surfaces",
         "projection/runtime_boundary/query_runtime",
         "projection/runtime_boundary/query_runtime/adapters",
         "projection/runtime_boundary/query_runtime/tests",
+        "query_native_runtime_boundary",
         "certification/topology_operator_closeout",
+        "topology_operators/application",
+        "topology_operators/edge_split_blueprint",
+        "topology_operators/loop_reconstruction_blueprint",
         "topology_operators/mutation_records",
         "topology_operators/query_workflow",
+        "topology_operators/touched_graph_basis",
+        "validation_authority_inventory",
         "validation/reference_integrity",
+        "validator_invariant_catalog",
+        "validator_invariant_catalog/milestone_nine_closeout",
+        "validator_invariant_catalog/operator_certification_cutover",
+        "validator_invariant_catalog/relational_invariant_catalog",
+        "validator_invariant_catalog/selected_graph_obligation_enforcement",
+        "validator_invariant_catalog/selected_validator_enforcement",
+        "validator_invariant_catalog/selection_from_touched_closure",
+        "validator_invariant_catalog/tests/milestone_nine_closeout",
+        "validator_invariant_catalog/tests/operator_certification_cutover",
+        "workload_platform/nmt_topology_construction",
+        "workload_platform/topology_seed",
     ];
     let violations = dense_directory_violations(&src, 8, &allowed_dense_directories);
     assert!(
@@ -249,6 +275,25 @@ fn directory_names(path: &Path) -> BTreeSet<String> {
         .filter_map(Result::ok)
         .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
         .map(|entry| entry.file_name().to_string_lossy().to_string())
+        .collect()
+}
+
+fn unexpected_top_level_test_entries(tests: &Path) -> Vec<String> {
+    if !tests.exists() {
+        return Vec::new();
+    }
+    let allowed = BTreeSet::from([
+        "common",
+        "compile_fail_boundaries.rs",
+        "query_runtime_folklore_scans.rs",
+        "query_runtime_golden_paths.rs",
+        "ui",
+    ]);
+    fs::read_dir(tests)
+        .expect("tests directory is readable")
+        .filter_map(Result::ok)
+        .map(|entry| entry.file_name().to_string_lossy().to_string())
+        .filter(|name| !allowed.contains(name.as_str()))
         .collect()
 }
 
@@ -358,6 +403,7 @@ fn dependency_direction_violations(src: &Path) -> Vec<String> {
             "topology_operators/application/bindings.rs",
             "topology_operators/application/existing_truth.rs",
             "topology_operators/application/mod.rs",
+            "topology_operators/adoption_tests/catalog_contracts.rs",
             "topology_operators/local_rewrites/boundary_wiring/adjacency_support.rs",
             "topology_operators/local_rewrites/boundary_wiring/composed_successor_program.rs",
             "topology_operators/local_rewrites/boundary_wiring/membership.rs",
@@ -370,6 +416,7 @@ fn dependency_direction_violations(src: &Path) -> Vec<String> {
             "topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/mod.rs",
             "topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/shared.rs",
             "topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/shell_membership_program.rs",
+            "topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/shell_split_program.rs",
             "topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/wire_membership_program.rs",
             "topology_operators/local_rewrites/sheet_wire_laminar/shell_face_rehome_support.rs",
             "topology_operators/local_rewrites/sheet_wire_laminar/wire_rehome_support.rs",

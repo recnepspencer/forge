@@ -4,6 +4,8 @@ use forge_query::facade::{
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::{QueryCollection, QueryLiveField, QuerySchemaBasis};
 
+use crate::query_native_runtime_boundary::query_live_field_key;
+
 pub(crate) const TOPOLOGY_READ_MAX_CYCLE_DEPTH: u8 = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -59,8 +61,8 @@ pub(crate) fn topology_read_schema_view() -> Result<QuerySchemaView, ForgeQueryR
         .from(QueryCollection::TopologyEntity.as_str())
         .schema_basis(QuerySchemaBasis::TopologyDomainQuery.as_str())
         .select([
-            QueryLiveField::IdentityId.delivered_name(),
-            QueryLiveField::TopologyKind.delivered_name(),
+            query_live_field_key(QueryLiveField::IdentityId),
+            query_live_field_key(QueryLiveField::TopologyKind),
         ]);
     for relation in TopologyDomainTraversalRelation::ALL {
         builder = builder.allow_traversal_relation(

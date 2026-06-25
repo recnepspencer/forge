@@ -96,7 +96,7 @@ fn query_builder_registers_graph_scoped_custom_invariant_and_obligation_together
     );
     assert_eq!(
         registration.rule_identity().name(),
-        "topology.custom.builder-scope"
+        "topology.custom.builder-scope.commit_boundary"
     );
     assert_eq!(
         registration

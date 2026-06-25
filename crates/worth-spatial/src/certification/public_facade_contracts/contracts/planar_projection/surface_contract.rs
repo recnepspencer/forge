@@ -49,19 +49,27 @@ fn certified_plane_projection_family_is_query_native_and_relational() {
     );
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.planar_projection.local_frame_fact".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.planar_projection.local_frame_fact"
+        )));
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.planar_projection.source_point_basis".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.planar_projection.source_point_basis"
+        )));
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.planar_projection.local_delta".to_string()));
-    assert!(aspect_contract
-        .preserved()
-        .contains(&"geometry.planar_projection.point_2d".to_string()));
-    assert!(aspect_contract
-        .preserved()
-        .contains(&"geometry.planar_projection.signed_distance".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.planar_projection.local_delta"
+        )));
+    assert!(aspect_contract.preserved().contains(
+        &crate::query_contract_helpers::aspect_field_key("geometry.planar_projection.point_2d")
+    ));
+    assert!(aspect_contract.preserved().contains(
+        &crate::query_contract_helpers::aspect_field_key(
+            "geometry.planar_projection.signed_distance"
+        )
+    ));
 }
 
 #[test]

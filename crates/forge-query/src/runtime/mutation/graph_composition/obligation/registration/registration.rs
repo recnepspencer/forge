@@ -221,9 +221,14 @@ fn custom_invariant_rule_identity(
     custom_invariant: &CustomInvariantRegistration,
 ) -> ForgeQueryGraphObligationRuleIdentity {
     let identity = &custom_invariant.descriptor().identity;
+    let obligation_name = format!(
+        "{}.{}",
+        identity.rule_id.as_str(),
+        custom_invariant.execution_point().diagnostic_label()
+    );
     ForgeQueryGraphObligationRuleIdentity::new(
         "relational-custom-invariant",
-        identity.rule_id.as_str(),
+        obligation_name,
         format!(
             "v{}.{}",
             identity.semantic_version.major, identity.semantic_version.minor

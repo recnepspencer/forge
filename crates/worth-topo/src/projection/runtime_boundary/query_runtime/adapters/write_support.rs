@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
+use forge_foundational::facade::{AspectValue, InternedString};
 use forge_query::facade::{
-    ForgeQueryAspectValue, ForgeQueryEntityIdentity, ForgeQueryMutationDelta,
-    ForgeQueryMutationKind, ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
+    ForgeQueryAdmittedAspectValue, ForgeQueryAspectTouch, ForgeQueryEntityIdentity,
+    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryWorkspaceError,
 };
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 use forge_relational::facade::publication::{
@@ -16,21 +17,20 @@ use forge_runtime_bridge::facade::{
 };
 use schema::facade::platform::entities::{EntityKind, NamingEntityKind};
 use schema::facade::platform::relations::RelationKind;
-use serde_json::Value;
 
 use crate::relational_aspect_boundary::entity_record_domain_label;
 
 pub(super) fn mutation_deltas_from_commit(
     runtime: &Arc<RwLock<RelationalRuntime>>,
     commit: &CommitResult,
-    declared_aspect_paths: &[String],
+    declared_aspect_touches: &[ForgeQueryAspectTouch],
     declared_target_collection: Option<&str>,
 ) -> Result<Vec<ForgeQueryMutationDelta>, ForgeQueryWorkspaceError> {
     mutation_deltas_from_patch_records(
         runtime,
         commit.envelope().commit.version_id,
         commit.patch(),
-        declared_aspect_paths,
+        declared_aspect_touches,
         declared_target_collection,
     )
 }
@@ -39,7 +39,7 @@ pub(super) fn mutation_deltas_from_patch_records(
     runtime: &Arc<RwLock<RelationalRuntime>>,
     version_id: forge_relational::facade::identity::VersionId,
     patch_records: &[PublishedAuthoritativeRecordPatch],
-    declared_aspect_paths: &[String],
+    declared_aspect_touches: &[ForgeQueryAspectTouch],
     declared_target_collection: Option<&str>,
 ) -> Result<Vec<ForgeQueryMutationDelta>, ForgeQueryWorkspaceError> {
     let runtime = runtime
@@ -52,11 +52,11 @@ pub(super) fn mutation_deltas_from_patch_records(
         else {
             continue;
         };
-        deltas.push(ForgeQueryMutationDelta::new(
+        deltas.push(ForgeQueryMutationDelta::from_touched_aspects(
             collection,
             record_identity(&record.target),
             mutation_kind(record.structural_change),
-            declared_aspect_paths.to_vec(),
+            declared_aspect_touches.to_vec(),
         ));
     }
     if deltas.is_empty() {
@@ -67,21 +67,30 @@ pub(super) fn mutation_deltas_from_patch_records(
     Ok(deltas)
 }
 
-pub(super) fn aspect_map(aspects: &[ForgeQueryAspectValue]) -> BTreeMap<String, Value> {
+pub(super) fn aspect_map(
+    aspects: &[ForgeQueryAdmittedAspectValue],
+) -> Result<BTreeMap<String, AspectValue>, ForgeQueryWorkspaceError> {
     aspects
         .iter()
-        .map(|aspect| (aspect.aspect_path().to_string(), aspect.value().clone()))
+        .map(|aspect| {
+            let value = aspect.foundational_value().cloned().ok_or_else(|| {
+                ForgeQueryWorkspaceError::new(format!(
+                    "topology production runtime requires set value for admitted aspect `{}`",
+                    aspect_touch_key(&aspect.aspect_touch())
+                ))
+            })?;
+            Ok((aspect_touch_key(&aspect.aspect_touch()), value))
+        })
         .collect()
 }
 
 pub(super) fn required_text(
-    aspects: &BTreeMap<String, Value>,
+    aspects: &BTreeMap<String, AspectValue>,
     key: &str,
 ) -> Result<String, ForgeQueryWorkspaceError> {
     aspects
         .get(key)
-        .and_then(Value::as_str)
-        .map(str::to_string)
+        .and_then(aspect_string_value)
         .ok_or_else(|| {
             ForgeQueryWorkspaceError::new(format!(
                 "topology production runtime requires string aspect `{key}`"
@@ -89,8 +98,26 @@ pub(super) fn required_text(
         })
 }
 
-pub(super) fn optional_text(aspects: &BTreeMap<String, Value>, key: &str) -> Option<String> {
-    aspects.get(key).and_then(Value::as_str).map(str::to_string)
+pub(super) fn optional_text(aspects: &BTreeMap<String, AspectValue>, key: &str) -> Option<String> {
+    aspects.get(key).and_then(aspect_string_value)
+}
+
+fn aspect_string_value(value: &AspectValue) -> Option<String> {
+    match value {
+        AspectValue::String(InternedString::Raw(value)) => Some(value.clone()),
+        AspectValue::String(InternedString::Symbol(symbol)) => Some(format!("symbol:{}", symbol.0)),
+        _ => None,
+    }
+}
+
+pub(super) fn aspect_touch_key(touch: &ForgeQueryAspectTouch) -> String {
+    match touch.native_field_path() {
+        Some(path) => std::iter::once(touch.native_aspect_key().as_str())
+            .chain(path.fields().iter().map(|field| field.as_str()))
+            .collect::<Vec<_>>()
+            .join("."),
+        None => touch.native_aspect_key().as_str().to_string(),
+    }
 }
 
 pub(super) fn entity_id_from_query_identity(
@@ -222,28 +249,6 @@ pub(super) fn live_entity_label_exists(
                 entity_record_domain_label(&record).is_some_and(|existing| existing == label)
             })
     })
-}
-
-pub(super) fn write_command_label(command: &ForgeQueryWriteCommand) -> &'static str {
-    match command {
-        ForgeQueryWriteCommand::InsertAspects { .. } => "insert_aspects",
-        ForgeQueryWriteCommand::UpdateAspect { .. } => "update_aspect",
-        ForgeQueryWriteCommand::UpdateAspects { .. } => "update_aspects",
-        ForgeQueryWriteCommand::UpdateExistingAspects { .. } => "update_existing",
-        ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects { .. } => {
-            "verified_update_existing"
-        }
-        ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects { .. } => {
-            "verified_delete_existing"
-        }
-        ForgeQueryWriteCommand::AssertExistingAspects { .. } => "assert_existing",
-        ForgeQueryWriteCommand::VerifyExistingAspects { .. } => "verify_existing",
-        ForgeQueryWriteCommand::UpdateSymbolicAspects { .. } => "update_symbolic",
-        ForgeQueryWriteCommand::DeleteAspects { .. } => "delete_aspects",
-        ForgeQueryWriteCommand::DeleteExistingAspects { .. } => "delete_existing",
-        ForgeQueryWriteCommand::DeleteSymbolicAspects { .. } => "delete_symbolic",
-        ForgeQueryWriteCommand::Delete { .. } => "delete",
-    }
 }
 
 pub(super) fn target_collection_for_patch(

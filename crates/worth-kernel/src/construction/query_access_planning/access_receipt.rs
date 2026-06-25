@@ -30,12 +30,20 @@ pub(crate) struct PrimitiveConstructionExecutedQueryAccessReceipt {
     budget_digest: String,
     graph_index_inventory_match_report_digest: String,
     plan_consumption_digest: String,
+    candidate_root_count: usize,
+    touched_node_count: usize,
+    touched_edge_count: usize,
+    frontier_width: usize,
+    visited_breadth: usize,
+    dedup_breadth: usize,
+    resident_byte_count: usize,
     executor_entry_count: usize,
     strategy_recompute_count: usize,
     edge_scan_count: usize,
     per_result_neighbor_lookup_count: usize,
     persistent_artifact_bypass_count: usize,
     materialized_row_count: usize,
+    fallback_count: usize,
 }
 
 impl PrimitiveConstructionPlannedQueryAccess {
@@ -105,6 +113,7 @@ impl PrimitiveConstructionExecutedQueryAccessReceipt {
             planned.family_digest(),
             executed_plan,
             consumption,
+            receipt.fallback_count(),
         ))
     }
 
@@ -113,8 +122,12 @@ impl PrimitiveConstructionExecutedQueryAccessReceipt {
         family_digest: &str,
         plan: &ForgeQueryAdmittedGraphReadAccessPlan,
         consumption: &ForgeQueryGraphReadAccessPlanConsumption,
+        fallback_count: usize,
     ) -> Self {
         let admission = plan.admission();
+        let cost_estimate = admission.cost_estimate();
+        let intrinsic = cost_estimate.intrinsic();
+        let memory = cost_estimate.supported().memory();
         let execution_counters = consumption.execution_counters();
         Self {
             surface,
@@ -130,12 +143,20 @@ impl PrimitiveConstructionExecutedQueryAccessReceipt {
                 .digest()
                 .to_string(),
             plan_consumption_digest: consumption.digest().to_string(),
+            candidate_root_count: intrinsic.candidate_roots(),
+            touched_node_count: intrinsic.candidate_roots() + intrinsic.frontier_breadth(),
+            touched_edge_count: intrinsic.edge_touches(),
+            frontier_width: intrinsic.frontier_breadth(),
+            visited_breadth: intrinsic.intermediate_set_size(),
+            dedup_breadth: intrinsic.intermediate_set_size(),
+            resident_byte_count: memory.total_bytes(),
             executor_entry_count: execution_counters.executor_entry_count(),
             strategy_recompute_count: execution_counters.strategy_recompute_count(),
             edge_scan_count: execution_counters.edge_scan_count(),
             per_result_neighbor_lookup_count: execution_counters.per_result_neighbor_lookup_count(),
             persistent_artifact_bypass_count: execution_counters.persistent_artifact_bypass_count(),
             materialized_row_count: execution_counters.materialized_row_count(),
+            fallback_count,
         }
     }
 
@@ -179,12 +200,60 @@ impl PrimitiveConstructionExecutedQueryAccessReceipt {
         &self.plan_consumption_digest
     }
 
+    pub(crate) fn candidate_root_count(&self) -> usize {
+        self.candidate_root_count
+    }
+
+    pub(crate) fn touched_node_count(&self) -> usize {
+        self.touched_node_count
+    }
+
+    pub(crate) fn touched_edge_count(&self) -> usize {
+        self.touched_edge_count
+    }
+
+    pub(crate) fn frontier_width(&self) -> usize {
+        self.frontier_width
+    }
+
+    pub(crate) fn visited_breadth(&self) -> usize {
+        self.visited_breadth
+    }
+
+    pub(crate) fn dedup_breadth(&self) -> usize {
+        self.dedup_breadth
+    }
+
+    pub(crate) fn resident_byte_count(&self) -> usize {
+        self.resident_byte_count
+    }
+
     pub(crate) fn executor_entry_count(&self) -> usize {
         self.executor_entry_count
     }
 
+    pub(crate) fn strategy_recompute_count(&self) -> usize {
+        self.strategy_recompute_count
+    }
+
+    pub(crate) fn edge_scan_count(&self) -> usize {
+        self.edge_scan_count
+    }
+
+    pub(crate) fn per_result_neighbor_lookup_count(&self) -> usize {
+        self.per_result_neighbor_lookup_count
+    }
+
+    pub(crate) fn persistent_artifact_bypass_count(&self) -> usize {
+        self.persistent_artifact_bypass_count
+    }
+
     pub(crate) fn materialized_row_count(&self) -> usize {
         self.materialized_row_count
+    }
+
+    pub(crate) fn fallback_count(&self) -> usize {
+        self.fallback_count
     }
 
     pub(crate) fn no_caller_owned_graph_work(&self) -> bool {

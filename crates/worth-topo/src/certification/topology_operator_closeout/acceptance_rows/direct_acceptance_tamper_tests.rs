@@ -1,14 +1,11 @@
-use crate::facade::certify_milestone_three_hostile_suite;
 use crate::topology_operators::TopologyMutationRejectionClass;
-use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 use super::direct_acceptance::ensure_direct_acceptance_proof_rows;
+use super::test_support;
 
 #[test]
 fn direct_acceptance_rejects_derived_fallback_policy_exceeded_rows() {
-    let mut report = certified_hostile_suite_before_tamper(
-        "m3.direct_acceptance.fallback_policy_exceeded_tamper",
-    );
+    let mut report = certified_hostile_suite_before_tamper();
 
     let fallout_row = explicit_fallback_row(&mut report);
     fallout_row.fallback_policy_exceeded = true;
@@ -23,9 +20,7 @@ fn direct_acceptance_rejects_derived_fallback_policy_exceeded_rows() {
 
 #[test]
 fn direct_acceptance_rejects_forged_derived_fallback_rejection_rows() {
-    let mut report = certified_hostile_suite_before_tamper(
-        "m3.direct_acceptance.forged_fallback_rejection_tamper",
-    );
+    let mut report = certified_hostile_suite_before_tamper();
 
     let fallout_row = explicit_fallback_row(&mut report);
     fallout_row.fallback_policy_exceeded = false;
@@ -40,8 +35,7 @@ fn direct_acceptance_rejects_forged_derived_fallback_rejection_rows() {
 
 #[test]
 fn direct_acceptance_rejects_missing_derived_fallback_denial_rows() {
-    let mut report =
-        certified_hostile_suite_before_tamper("m3.direct_acceptance.missing_fallback_denial");
+    let mut report = certified_hostile_suite_before_tamper();
 
     report.derived_fallback_policy_denial_rows.clear();
 
@@ -53,8 +47,7 @@ fn direct_acceptance_rejects_missing_derived_fallback_denial_rows() {
 
 #[test]
 fn direct_acceptance_rejects_weak_naming_continuity_breadth_rows() {
-    let mut report =
-        certified_hostile_suite_before_tamper("m3.direct_acceptance.weak_naming_breadth");
+    let mut report = certified_hostile_suite_before_tamper();
 
     let row = report
         .naming_continuity_breadth_rows
@@ -71,8 +64,7 @@ fn direct_acceptance_rejects_weak_naming_continuity_breadth_rows() {
 
 #[test]
 fn direct_acceptance_rejects_weak_derived_fallback_denial_rows() {
-    let mut report =
-        certified_hostile_suite_before_tamper("m3.direct_acceptance.weak_fallback_denial");
+    let mut report = certified_hostile_suite_before_tamper();
 
     let row = report
         .derived_fallback_policy_denial_rows
@@ -88,13 +80,8 @@ fn direct_acceptance_rejects_weak_derived_fallback_denial_rows() {
 }
 
 fn certified_hostile_suite_before_tamper(
-    stem: &str,
 ) -> crate::certification::topology_operator_closeout::MilestoneThreeHostileSuiteReport {
-    certify_milestone_three_hostile_suite(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        stem,
-    )
-    .expect("milestone three hostile suite should certify before tampering")
+    test_support::cached_hostile_suite_report()
 }
 
 fn explicit_fallback_row(

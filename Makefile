@@ -53,6 +53,34 @@ kernel-test:
 	FORGE_TRACE_DIR=$(FORGE_TRACE_DIR) \
 	cargo test $(KERNEL_EXCLUDES) $(ARGS)
 
+.PHONY: worth-fast
+worth-fast: query-fast spatial-fast
+
+.PHONY: query-fast
+query-fast:
+	cargo check -p forge-query --tests --message-format short
+	cargo test -p forge-query --tests --no-run --message-format short
+	cargo test -p forge-query --lib -- --format terse
+
+.PHONY: spatial-fast
+spatial-fast:
+	cargo check -p worth-spatial --tests --message-format short
+	cargo test -p worth-spatial --tests --no-run --message-format short
+	cargo test -p worth-spatial --lib -- --format terse
+	cargo test -p worth-spatial --test ui -- --format terse
+
+.PHONY: query-closeout
+query-closeout:
+	cargo test -p forge-query --tests -- --format terse
+
+.PHONY: spatial-public-api-closeout
+spatial-public-api-closeout:
+	cargo test -p worth-spatial --test public_api_contract -- --format terse
+
+.PHONY: spatial-closeout
+spatial-closeout:
+	cargo test -p worth-spatial --tests -- --format terse
+
 .PHONY: kernel-check
 kernel-check:
 	cargo check $(KERNEL_EXCLUDES) $(ARGS)

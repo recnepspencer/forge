@@ -1,0 +1,33 @@
+error[E0451]: fields `phase_three_seed_digest`, `catalog_digest`, `touched_closure_digest`, `query_support_digest`, `legality_support_digest`, `density_policy`, `selected_rows`, `unaffected_rows`, `denied_rows`, `residue_rows`, `counters`, `execution_admission`, `phase_four_seed` and `selected_plan_digest` of struct `DerivedInvalidationSelectedPlan` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_selected_plan_not_forgeable.rs:9:9
+   |
+ 8 |     let _ = DerivedInvalidationSelectedPlan {
+   |             ------------------------------- in this type
+ 9 |         phase_three_seed_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         catalog_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+11 |         touched_closure_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         query_support_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+13 |         legality_support_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         density_policy: DerivedInvalidationDensityPolicy::Sparse,
+   |         ^^^^^^^^^^^^^^ private field
+15 |         selected_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^ private field
+16 |         unaffected_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+17 |         denied_rows: Vec::new(),
+   |         ^^^^^^^^^^^ private field
+18 |         residue_rows: Vec::new(),
+   |         ^^^^^^^^^^^^ private field
+19 |         counters: fake_counters(),
+   |         ^^^^^^^^ private field
+20 |         execution_admission: DerivedInvalidationExecutionAdmission::Admitted,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+21 |         phase_four_seed: fake_phase_four_seed(),
+   |         ^^^^^^^^^^^^^^^ private field
+22 |         selected_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field

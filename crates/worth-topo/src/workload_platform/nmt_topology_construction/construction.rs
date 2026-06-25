@@ -13,7 +13,7 @@ use super::receipts::NmtTopologyConstructionReceipt;
 use super::topology_records::build_nmt_topology_view;
 use crate::brep::topology_graph::TopologyView;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
-use crate::derived_topology::traversal_views::interpret_topology_view;
+use crate::derived_topology::traversal_views::bootstrap_topology_interpretation;
 use crate::validation::TopologyValidator;
 use crate::workload_platform::topology_seed::{
     TopologySeedCounters, TopologySeedEntityIdentities, TopologySeedKind,
@@ -129,7 +129,7 @@ fn interpret_validated_topology(
     NmtTopologyConstructionDenial,
 > {
     let materialized = MaterializedTopologyView::from_complete_topology_view(topology.clone());
-    let interpreted = interpret_topology_view(&materialized);
+    let interpreted = bootstrap_topology_interpretation(&materialized);
     TopologyValidator::derived_validation_report(&materialized, &interpreted).map_err(|error| {
         topology_validation(
             pattern.clone(),
@@ -161,7 +161,7 @@ fn seed_receipt_for_construction(
                 super::denial::query_admission(pattern.clone(), error.human_reason())
             })?;
     let materialized = MaterializedTopologyView::from_complete_topology_view(topology.clone());
-    let interpreted = interpret_topology_view(&materialized);
+    let interpreted = bootstrap_topology_interpretation(&materialized);
     let report = TopologyValidator::derived_validation_report(&materialized, &interpreted)
         .map_err(|error| {
             topology_validation(

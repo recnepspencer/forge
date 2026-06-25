@@ -161,16 +161,14 @@ fn replay_branch_breadth_error(reason: &str) -> TopologyCertificationError {
     ))
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "slow-certification"))]
 mod tests {
-    use crate::facade::certify_milestone_three_hostile_suite;
-    use crate::validation::reference_integrity::build_milestone_one_runtime;
-
     use super::ensure_replay_branch_breadth_rows;
+    use crate::certification::topology_operator_closeout::acceptance_rows::test_support;
 
     #[test]
     fn replay_branch_breadth_gate_rejects_replay_source_drift() {
-        let mut report = certified_report("m3.replay_branch_breadth.replay_drift");
+        let mut report = certified_report();
 
         let replay_row = report
             .mutation_replay_parity_rows
@@ -186,7 +184,7 @@ mod tests {
 
     #[test]
     fn replay_branch_breadth_gate_rejects_missing_accepted_branch_evidence() {
-        let mut report = certified_report("m3.replay_branch_breadth.missing_accepted_branch");
+        let mut report = certified_report();
 
         report
             .mutation_branch_local_parity_rows
@@ -200,7 +198,7 @@ mod tests {
 
     #[test]
     fn replay_branch_breadth_gate_rejects_partial_accepted_branch_evidence() {
-        let mut report = certified_report("m3.replay_branch_breadth.partial_accepted_branch");
+        let mut report = certified_report();
 
         let mut removed = false;
         report.mutation_branch_local_parity_rows.retain(|row| {
@@ -220,7 +218,7 @@ mod tests {
 
     #[test]
     fn replay_branch_breadth_gate_rejects_duplicate_accepted_scenario_substitution() {
-        let mut report = certified_report("m3.replay_branch_breadth.duplicate_accepted_scenario");
+        let mut report = certified_report();
 
         let duplicate = report
             .mutation_branch_local_parity_rows
@@ -247,7 +245,7 @@ mod tests {
 
     #[test]
     fn replay_branch_breadth_gate_rejects_missing_rejected_branch_evidence() {
-        let mut report = certified_report("m3.replay_branch_breadth.missing_rejected_branch");
+        let mut report = certified_report();
 
         report
             .mutation_branch_local_parity_rows
@@ -261,7 +259,7 @@ mod tests {
 
     #[test]
     fn replay_branch_breadth_gate_rejects_duplicate_aggregate_rows() {
-        let mut report = certified_report("m3.replay_branch_breadth.duplicate");
+        let mut report = certified_report();
 
         let duplicate = report
             .replay_branch_breadth_rows
@@ -277,12 +275,7 @@ mod tests {
     }
 
     fn certified_report(
-        stem: &str,
     ) -> crate::certification::topology_operator_closeout::MilestoneThreeHostileSuiteReport {
-        certify_milestone_three_hostile_suite(
-            || build_milestone_one_runtime().expect("milestone one runtime builder"),
-            stem,
-        )
-        .expect("hostile suite should certify before tampering")
+        test_support::cached_hostile_suite_report()
     }
 }

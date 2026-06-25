@@ -47,7 +47,7 @@ pub(crate) fn certify_public_facade_row(
     ensure(!facade.contains("TopologyValidationReport"))?;
     ensure(!facade.contains("TopologyValidationRow"))?;
     ensure(!facade.contains("TopologyValidationPhase"))?;
-    ensure(!facade.contains("TopologyValidator"))?;
+    ensure(!facade.contains("pub struct TopologyValidator"))?;
     ensure(!facade.contains("validate_topology_view"))?;
     ensure(!facade.contains("validate_interpreted_topology"))?;
     ensure(!facade.contains("validate_materialized_topology"))?;

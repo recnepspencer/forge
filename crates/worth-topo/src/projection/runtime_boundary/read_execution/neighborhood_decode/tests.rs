@@ -2,6 +2,8 @@ use forge_query::facade::{ForgeQueryEntity, ForgeQueryEntityIdentity, RelationNa
 use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 use serde_json::json;
 
+use crate::query_native_runtime_boundary::{native_entity_row, native_field_path, native_string};
+
 use super::{
     decode_local_rewire_neighborhood, decode_radial_neighborhood, decode_shared_vertex_neighborhood,
 };
@@ -27,13 +29,37 @@ fn row(
     relations: serde_json::Value,
     relation_ids: serde_json::Value,
 ) -> ForgeQueryEntity {
-    ForgeQueryEntity::from_external_projection(
+    native_entity_row(
         entity_identity(partition, slot, generation),
-        json!({
-            "relations": relations,
-            "relation_identities": relation_ids,
-        }),
+        native_relation_fields("relations", relations)
+            .into_iter()
+            .chain(native_relation_fields("relation_identities", relation_ids)),
     )
+}
+
+fn native_relation_fields(
+    field_root: &'static str,
+    values: serde_json::Value,
+) -> Vec<(
+    forge_foundational::facade::CanonicalFieldPath,
+    forge_foundational::facade::AspectValue,
+)> {
+    values
+        .as_object()
+        .expect("relation fixture values should be an object")
+        .iter()
+        .map(|(relation, value)| {
+            (
+                native_field_path([field_root, relation.as_str()])
+                    .expect("relation fixture field path should be valid"),
+                native_string(
+                    value
+                        .as_str()
+                        .expect("relation fixture values should be strings"),
+                ),
+            )
+        })
+        .collect()
 }
 
 #[test]

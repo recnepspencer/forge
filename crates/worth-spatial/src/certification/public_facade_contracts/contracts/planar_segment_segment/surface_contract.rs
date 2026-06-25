@@ -30,8 +30,12 @@ fn certified_segment_segment_family_is_query_native_and_retained() {
     );
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.segment_segment_2d.endpoint.0.projection_fact".to_string()));
-    assert!(aspect_contract
-        .preserved()
-        .contains(&"geometry.segment_segment_2d.classification".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.segment_segment_2d.endpoint.0.projection_fact"
+        )));
+    assert!(aspect_contract.preserved().contains(
+        &crate::query_contract_helpers::aspect_field_key(
+            "geometry.segment_segment_2d.classification"
+        )
+    ));
 }

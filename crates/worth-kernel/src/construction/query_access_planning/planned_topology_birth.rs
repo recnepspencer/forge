@@ -13,7 +13,9 @@ use super::query_shape::{
     construction_access_schema, digest_ordering, digest_result_field, digest_selector,
     map_authoring_error, root_collection, topology_class_result_field, topology_class_selector,
 };
+use crate::construction::admitted_scaffold::prepare_primitive_construction_admitted_artifact;
 use crate::construction::admitted_scaffold::PreparedPrimitiveConstructionAdmittedArtifact;
+use crate::construction::request::PrimitiveConstructionRequest;
 
 pub(crate) fn plan_topology_birth(
     workspace: &mut ForgeQueryWorkspace,
@@ -84,4 +86,14 @@ pub(crate) fn execute_planned_topology_birth(
     planned: PrimitiveConstructionPlannedQueryAccess,
 ) -> Result<PrimitiveConstructionConsumedQueryAccess, PrimitiveConstructionQueryAccessError> {
     execute_planned_construction_query_access(workspace, planned)
+}
+
+pub(crate) fn execute_topology_birth_query_access_for_request(
+    workspace: &mut ForgeQueryWorkspace,
+    request: &PrimitiveConstructionRequest,
+) -> Result<PrimitiveConstructionConsumedQueryAccess, PrimitiveConstructionQueryAccessError> {
+    let admitted = prepare_primitive_construction_admitted_artifact(request)
+        .map_err(|error| PrimitiveConstructionQueryAccessError::Lowering(error.to_string()))?;
+    let planned = plan_topology_birth(workspace, &admitted)?;
+    execute_planned_topology_birth(workspace, planned)
 }

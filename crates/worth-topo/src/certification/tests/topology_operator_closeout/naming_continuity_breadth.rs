@@ -1,17 +1,8 @@
-use super::super::*;
 use crate::facade::{MilestoneThreeHostileScenario, TopologyMutationNamingOutcome};
 
 #[test]
 fn milestone_three_closeout_requires_naming_continuity_breadth_rows() {
-    let report = certify_milestone_three_closeout(
-        || {
-            crate::validation::reference_integrity::milestone_one_runtime_builder()
-                .expect(" milestone one runtime builder")
-                .build()
-        },
-        "milestone-three-naming-continuity-breadth",
-    )
-    .expect("milestone three closeout should certify");
+    let report = crate::certification::test_support::cached_milestone_three_closeout_report();
 
     assert_eq!(report.naming_continuity_breadth_rows.len(), 5);
     assert!(report.naming_continuity_breadth_rows.iter().all(|row| {

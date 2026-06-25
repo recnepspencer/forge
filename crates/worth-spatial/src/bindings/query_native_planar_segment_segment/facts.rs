@@ -11,7 +11,9 @@ use crate::bindings::query_native_planar_predicate::{
 };
 use crate::bindings::query_native_planar_segment_segment::authoring::CertifiedSegmentSegment2DEntry;
 use crate::bindings::query_native_planar_segment_segment::domain::CertifiedSegmentSegment2DQueryDomain;
-use crate::planar_contracts::predicate_authority::PlanarPredicateInputBasis;
+use crate::planar_contracts::predicate_authority::{
+    PlanarPredicateFactReceipt, PlanarPredicateInputBasis,
+};
 use crate::planar_contracts::segment_segment_2d::{
     CertifiedSegmentSegment2DDenial, CertifiedSegmentSegment2DMutationEvidence,
     CertifiedSegmentSegment2DPerformanceCounters, CertifiedSegmentSegment2DReceipt,
@@ -57,6 +59,28 @@ where
     SC: ForgeQueryDomainOperatingContext<CertifiedSegmentSegment2DQueryDomain>,
     PC: ForgeQueryDomainOperatingContext<PlanarPredicateAuthorityQueryDomain>,
 {
+    certified_segment_segment_2d_facts_with_predicate_resolver(entry, segment_handle, |basis| {
+        let predicate_entry =
+            planar_predicate_authority_entry(PlanarPredicateAuthorityCase::orient2d(basis));
+        planar_predicate_authority_facts(&predicate_entry, predicate_handle)
+            .map_err(|source| CertifiedSegmentSegment2DFactError::PredicateFact { source })
+    })
+}
+
+pub fn certified_segment_segment_2d_facts_with_predicate_resolver<SC, F>(
+    entry: &CertifiedSegmentSegment2DEntry,
+    segment_handle: &ForgeQueryAdmittedConfiguredDomainHandle<
+        CertifiedSegmentSegment2DQueryDomain,
+        SC,
+    >,
+    mut predicate_resolver: F,
+) -> Result<CertifiedSegmentSegment2DReceipt, CertifiedSegmentSegment2DFactError>
+where
+    SC: ForgeQueryDomainOperatingContext<CertifiedSegmentSegment2DQueryDomain>,
+    F: FnMut(
+        PlanarPredicateInputBasis,
+    ) -> Result<PlanarPredicateFactReceipt, CertifiedSegmentSegment2DFactError>,
+{
     match segment_handle.orchestrate_declaration_entry_outcome(entry.clone()) {
         ForgeQueryOrdinaryOutcome::Bound(envelope) => {
             let basis = entry.case().basis().clone();
@@ -71,12 +95,7 @@ where
                         basis.tolerance_policy_identity(),
                         *projected_points,
                     );
-                    let predicate_entry = planar_predicate_authority_entry(
-                        PlanarPredicateAuthorityCase::orient2d(predicate_basis),
-                    );
-                    planar_predicate_authority_facts(&predicate_entry, predicate_handle).map_err(
-                        |source| CertifiedSegmentSegment2DFactError::PredicateFact { source },
-                    )
+                    predicate_resolver(predicate_basis)
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             let certified_basis = basis
@@ -107,6 +126,7 @@ where
                 envelope_digest,
                 fact_digest,
                 mutation_evidence,
+                receipts,
                 CertifiedSegmentSegment2DPerformanceCounters::certified(basis_part_count),
             ))
         }

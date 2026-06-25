@@ -1,22 +1,13 @@
 use crate::facade::{
-    certify_milestone_three_closeout, milestone_three_closeout_requirements,
-    CertificationRequiredOutput, MilestoneThreeHostileScenario, MilestoneThreeMutationFalloutClass,
+    milestone_three_closeout_requirements, CertificationRequiredOutput,
+    MilestoneThreeHostileScenario, MilestoneThreeMutationFalloutClass,
     TopologyMutationDerivedFallbackPolicy, TopologyMutationRejectionClass,
 };
-use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
 #[test]
 fn milestone_three_closeout_requires_derived_fallback_policy_denial_rows() {
     let requirements = milestone_three_closeout_requirements();
-    let report = certify_milestone_three_closeout(
-        || {
-            milestone_one_runtime_builder()
-                .expect(" milestone one runtime builder")
-                .build()
-        },
-        "milestone-three-derived-fallback-policy-denial",
-    )
-    .expect("milestone three closeout should certify");
+    let report = crate::certification::test_support::cached_milestone_three_closeout_report();
 
     assert!(requirements
         .required_outputs

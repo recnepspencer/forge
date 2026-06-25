@@ -15,6 +15,7 @@ use crate::certification::support::parity::digest_materialized_topology_view;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::query_native_runtime_boundary::{row_text_at, TopologyNativeQueryRowField};
 use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
@@ -180,10 +181,10 @@ fn first_relation_id_for_kind(
 }
 
 fn relation_kind_label(row: &ForgeQueryEntity) -> Option<&str> {
-    row.external_row()
-        .get("topology")
-        .and_then(|value| value.get("kind"))
-        .and_then(|value| value.as_str())
+    row_text_at(
+        row,
+        TopologyNativeQueryRowField::TopologyKind.row_segments(),
+    )
 }
 
 fn scale_pressure_row_digest(

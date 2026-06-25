@@ -86,11 +86,17 @@ pub(super) fn current_head_query_read_family_support_rows(
                     TopologyReadRequestFamily::HalfEdgeRadialNeighborhood => {
                         "current-head bridge-backed runtime admits the radial topology-domain read family"
                     }
+                    TopologyReadRequestFamily::ShellBoundaryNeighborhood => {
+                        "current-head bridge-backed runtime admits the shell-boundary topology-domain read family"
+                    }
                     TopologyReadRequestFamily::LoopCycleNeighborhood => {
                         "current-head bridge-backed runtime admits the loop-cycle topology-domain read family"
                     }
                     TopologyReadRequestFamily::LocalRewireNeighborhood => {
                         "current-head bridge-backed runtime admits the local-rewire topology-domain read family"
+                    }
+                    TopologyReadRequestFamily::WireNeighborhood => {
+                        "current-head bridge-backed runtime admits the wire topology-domain read family"
                     }
                 },
             )

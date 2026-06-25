@@ -11,6 +11,7 @@ use super::obligation_registration::{
 };
 use super::touched_basis::TopologyPrimitiveConstructionBirthDeclaredTouchedBasis;
 use crate::construction::query_native_boundary::digest_parts;
+use crate::query_native_runtime_boundary::TopologyNativeQueryRowField;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TopologyPrimitiveConstructionBirthComposeProgram {
@@ -123,10 +124,13 @@ impl TopologyPrimitiveConstructionBirthComposeProgram {
                 );
                 let topology_kind = birth_entity.topology_kind();
                 graph.insert_entity(symbol, &self.birth_marker_collection, |entity| {
-                    entity
-                        .aspect("topology.kind", topology_kind)
-                        .aspect("topology.structure", structure.clone())
-                        .aspect("naming.persistent_name", structure)
+                    TopologyNativeQueryRowField::NamingPersistentName.set_on(
+                        TopologyNativeQueryRowField::TopologyStructure.set_on(
+                            TopologyNativeQueryRowField::TopologyKind.set_on(entity, topology_kind),
+                            structure.clone(),
+                        ),
+                        structure,
+                    )
                 })?;
             }
             Ok(())

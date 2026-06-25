@@ -80,7 +80,7 @@ impl ForgeQueryDeclarationFamilyMarker<PredicateCertificateConsumptionQueryDomai
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.predicate_consumption.topology_basis",
                 "geometry.predicate_consumption.movement_rotation",

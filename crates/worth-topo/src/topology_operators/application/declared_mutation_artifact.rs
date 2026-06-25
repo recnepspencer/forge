@@ -11,6 +11,12 @@ use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteRecei
 
 #[cfg(test)]
 use super::TopologyQueryMutationLaneExecutionShape;
+use crate::derived_topology::invalidation_plan::execution::DerivedInvalidationExecutionReceipt;
+use crate::derived_topology::invalidation_plan::migrated_products::CoveredDerivedProductMigrationSweepCloseout;
+use crate::derived_topology::invalidation_plan::operator_cutover::{
+    DerivedInvalidationOperatorCutoverError, DerivedInvalidationOperatorCutoverReceipt,
+};
+use crate::derived_topology::invalidation_plan::selection::DerivedInvalidationSelectedPlan;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::query_domain::TopologyQueryDomain;
 use crate::topology_operators::TopologyDeclaredMutationSequence;
@@ -102,6 +108,22 @@ impl TopologyDeclaredMutationArtifact {
         &self.declared_touched_basis
     }
 
+    pub(crate) fn bind_derived_invalidation_cutover(
+        &self,
+        phase_six_closeout: &CoveredDerivedProductMigrationSweepCloseout,
+        selected_plan: &DerivedInvalidationSelectedPlan,
+        execution_receipt: &DerivedInvalidationExecutionReceipt,
+    ) -> Result<DerivedInvalidationOperatorCutoverReceipt, DerivedInvalidationOperatorCutoverError>
+    {
+        DerivedInvalidationOperatorCutoverReceipt::bind_operator_cutover(
+            phase_six_closeout,
+            selected_plan,
+            execution_receipt,
+            &self.declared_touched_basis,
+            &self.mutation_evidence,
+        )
+    }
+
     pub(crate) fn graph_obligation_envelope_digest(&self) -> Option<&str> {
         self.graph_obligation_orchestration
             .as_ref()
@@ -153,5 +175,23 @@ impl TopologyDeclaredMutationArtifact {
     #[cfg(test)]
     pub(crate) fn post_write_query_artifact_for_test(&self) -> TopologyPostWriteQueryArtifact {
         self.post_write_query_artifact.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn derived_invalidation_cutover_binding_requires_operator_artifact_proofs() {
+        let _: fn(
+            &TopologyDeclaredMutationArtifact,
+            &CoveredDerivedProductMigrationSweepCloseout,
+            &DerivedInvalidationSelectedPlan,
+            &DerivedInvalidationExecutionReceipt,
+        ) -> Result<
+            DerivedInvalidationOperatorCutoverReceipt,
+            DerivedInvalidationOperatorCutoverError,
+        > = TopologyDeclaredMutationArtifact::bind_derived_invalidation_cutover;
     }
 }

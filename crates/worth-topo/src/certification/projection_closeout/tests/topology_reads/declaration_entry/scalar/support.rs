@@ -10,8 +10,8 @@ use crate::facade::{
     TopologyRewireLoopEndpointDeclaration, TopologySpliceRadialAdjacencyDeclaration,
 };
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
-use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use crate::projection::{query_entity_id_from_row, query_relation_id_from_row};
+use crate::query_native_runtime_boundary::query_entity_identity_reporting_label;
 use forge_query::facade::ForgeQueryWorkspace;
 
 pub(super) fn retire_declaration() -> TopologyRetireTopologyEntityDeclaration {
@@ -121,34 +121,26 @@ pub(super) fn endpoint_rewire_fixture(
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
+            crate::query_native_runtime_boundary::row_text_at(row, ["topology", "kind"])
                 .is_some_and(|kind_name| {
                     kind_name == TopologyRelationKind::HalfEdgeEndsAtVertex.kind_name()
                 })
         })
         .expect("seeded topology should contain an endpoint relation");
-    let current_target_identity = relation
-        .external_row()
-        .get("topology")
-        .and_then(|value| value.get("target_identity"))
-        .and_then(|value| value.as_str())
-        .expect("endpoint relation should expose topology.target_identity");
-    let source_identity = relation
-        .external_row()
-        .get("topology")
-        .and_then(|value| value.get("source_identity"))
-        .and_then(|value| value.as_str())
-        .expect("endpoint relation should expose topology.source_identity");
+    let current_target_identity = crate::query_native_runtime_boundary::row_text_at(
+        relation,
+        ["topology", "target_identity"],
+    )
+    .expect("endpoint relation should expose topology.target_identity");
+    let source_identity = crate::query_native_runtime_boundary::row_text_at(
+        relation,
+        ["topology", "source_identity"],
+    )
+    .expect("endpoint relation should expose topology.source_identity");
     let target_vertex_id = entity_rows
         .iter()
         .find(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
+            crate::query_native_runtime_boundary::row_text_at(row, ["topology", "kind"])
                 .is_some_and(|kind_name| kind_name == ".vertex")
                 && query_entity_identity_reporting_label(row.identity()) != current_target_identity
         })
@@ -176,21 +168,17 @@ pub(super) fn radial_splice_fixture(
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
+            crate::query_native_runtime_boundary::row_text_at(row, ["topology", "kind"])
                 .is_some_and(|kind_name| {
                     kind_name == TopologyRelationKind::HalfEdgeRadialNext.kind_name()
                 })
         })
         .expect("seeded topology should contain a radial relation");
-    let source_identity = relation
-        .external_row()
-        .get("topology")
-        .and_then(|value| value.get("source_identity"))
-        .and_then(|value| value.as_str())
-        .expect("radial relation should expose topology.source_identity");
+    let source_identity = crate::query_native_runtime_boundary::row_text_at(
+        relation,
+        ["topology", "source_identity"],
+    )
+    .expect("radial relation should expose topology.source_identity");
     let current_target_identity = topology_read
         .radial_half_edge_neighborhood(workspace, source_identity)
         .expect("seeded topology should expose radial neighborhood")

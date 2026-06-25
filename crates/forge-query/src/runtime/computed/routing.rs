@@ -1,4 +1,5 @@
 use super::*;
+use crate::memory_workspace::ForgeQueryMutationKind;
 use crate::runtime::{
     ForgeQueryAspectTouch, ForgeQueryDerivedMaterializationTarget, ForgeQueryLiveArtifactTarget,
 };
@@ -384,6 +385,12 @@ fn mutation_delta_matches_view(
     view: &ForgeQueryDerivedViewRuntime,
     delta: &ForgeQueryMutationDelta,
 ) -> bool {
+    if matches!(
+        delta.kind(),
+        ForgeQueryMutationKind::Created | ForgeQueryMutationKind::Deleted
+    ) {
+        return true;
+    }
     delta.admitted_touched_aspects().is_empty()
         || delta.admitted_touched_aspects().iter().any(|aspect_touch| {
             view.declaration

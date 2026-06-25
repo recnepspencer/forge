@@ -10,15 +10,26 @@
 mod brep;
 pub mod certification;
 mod construction;
+pub mod derived_invalidation_authority_inventory;
+pub mod derived_invalidation_deletion_closeout;
+pub mod derived_invalidation_execution;
+pub mod derived_invalidation_family_catalog;
+pub mod derived_invalidation_migrated_products;
+pub mod derived_invalidation_milestone_ten_closeout;
+pub mod derived_invalidation_operator_cutover;
+pub mod derived_invalidation_selected_plan;
 mod derived_topology;
 mod projection;
 mod query_adoption;
-mod query_domain;
+pub mod query_domain;
+pub mod query_native_runtime_boundary;
 mod relational_aspect_boundary;
 pub mod runtime_support;
 mod test_support;
 mod topology_operators;
 mod validation;
+pub mod validation_authority_inventory;
+pub mod validator_invariant_catalog;
 pub mod workload_platform;
 
 pub mod facade;

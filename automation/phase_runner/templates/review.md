@@ -10,7 +10,8 @@ Cursor: phase {current.phase}, turn {current.turn}
 Phase scope:
 {phase.scope}
 
-Acceptance evidence:
+Acceptance evidence (re-run focused proof for this phase; broad closeout suites
+are opt-in only when explicitly named):
 {phase.acceptance}
 
 This is the only runner step that must loop. The review question is: is the

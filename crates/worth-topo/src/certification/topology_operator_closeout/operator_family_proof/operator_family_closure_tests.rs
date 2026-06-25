@@ -1,14 +1,9 @@
 use super::operator_family_closure::ensure_operator_family_closure_rows;
-use crate::certification::topology_operator_closeout::suite::certify_milestone_three_hostile_suite_impl;
-use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
 fn operator_family_closure_rejects_decorative_rows_without_counts() {
-    let mut report = certify_milestone_three_hostile_suite_impl(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.operator_family.decorative_row_tamper",
-    )
-    .expect("milestone three hostile suite should certify before tamper");
+    let mut report =
+        crate::certification::test_support::cached_milestone_three_hostile_suite_report();
 
     let row = report
         .operator_family_closure_rows

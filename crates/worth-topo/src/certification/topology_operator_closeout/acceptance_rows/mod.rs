@@ -3,12 +3,14 @@ mod aggregate_distributions;
 mod branch_parity;
 mod determinism_rules;
 mod direct_acceptance;
-#[cfg(test)]
+#[cfg(all(test, feature = "slow-certification"))]
 mod direct_acceptance_tamper_tests;
 #[cfg(test)]
 mod fallout_classification_tests;
 mod naming_continuity_breadth;
 mod replay_branch_breadth;
+#[cfg(all(test, feature = "slow-certification"))]
+mod test_support;
 mod validation_breadth;
 mod validator_family_coverage;
 

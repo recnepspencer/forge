@@ -1,0 +1,33 @@
+warning: unreachable expression
+  --> tests/ui/validator_invariant_catalog/selected_plan_struct_literal.rs:12:26
+   |
+11 |         counters: panic!("private selection counters unavailable"),
+   |                   ------------------------------------------------ any code following this expression is unreachable
+12 |         phase_four_seed: panic!("private Phase 4 seed unavailable"),
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `catalog_digest`, `query_catalog_digest`, `routing_closure_digest`, `query_selection_digest`, `selected_obligation_rows`, `denial_rows`, `counters`, `phase_four_seed` and `selected_plan_digest` of struct `WorthTopologySelectedLegalityObligationPlan` are private
+  --> tests/ui/validator_invariant_catalog/selected_plan_struct_literal.rs:5:9
+   |
+ 4 |     let _ = WorthTopologySelectedLegalityObligationPlan {
+   |             ------------------------------------------- in this type
+ 5 |         catalog_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+ 6 |         query_catalog_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         routing_closure_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         query_selection_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         selected_obligation_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         denial_rows: Vec::new(),
+   |         ^^^^^^^^^^^ private field
+11 |         counters: panic!("private selection counters unavailable"),
+   |         ^^^^^^^^ private field
+12 |         phase_four_seed: panic!("private Phase 4 seed unavailable"),
+   |         ^^^^^^^^^^^^^^^ private field
+13 |         selected_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field

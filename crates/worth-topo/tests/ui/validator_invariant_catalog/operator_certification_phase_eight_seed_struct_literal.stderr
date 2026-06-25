@@ -1,0 +1,15 @@
+error[E0451]: fields `phase_seven_enforcement_seed_digest`, `closeout_digest`, `counters_digest`, `selected_obligation_row_digests` and `seed_digest` of struct `WorthTopologyOperatorCertificationCutoverPhaseEightSeed` are private
+ --> tests/ui/validator_invariant_catalog/operator_certification_phase_eight_seed_struct_literal.rs:5:9
+  |
+4 |     let _seed = WorthTopologyOperatorCertificationCutoverPhaseEightSeed {
+  |                 ------------------------------------------------------- in this type
+5 |         phase_seven_enforcement_seed_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+6 |         closeout_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^ private field
+7 |         counters_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^ private field
+8 |         selected_obligation_row_digests: Vec::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+9 |         seed_digest: String::new(),
+  |         ^^^^^^^^^^^ private field

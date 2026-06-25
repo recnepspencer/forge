@@ -71,6 +71,26 @@ unless they prove the phase itself is not actually done.
 
 The runner sends exactly the turn named by `current`. Available turns: {turns}
 
+Iteration evidence is not the same thing as closeout evidence. During `plan`,
+`implement`, `review`, and `repair`, prefer the narrowest command that proves
+the phase claim: `cargo check`, `cargo test --no-run`, the touched module tests,
+the touched integration target, and the named compile-fail target that protects
+the public boundary. Do not run whole-crate or whole-workspace suites such as
+`cargo test -p forge-query --tests`, `cargo test -p worth-spatial --tests`, or
+the `worth-spatial` `public_api_contract` umbrella unless the phase acceptance
+explicitly names that exact command as required closeout evidence. Heavy
+metaboss, public API umbrella, architectural closeout, and broad compile-fail
+suites are closeout lanes, not ordinary iteration lanes. If a listed acceptance
+item is too broad for iteration, replace it with focused proof plus test
+compilation (`--no-run`) and record the deferred broad command as explicit
+closeout-only evidence rather than burning the loop.
+
+For deletion-ledger acceptance, also point to the former public/exported surface
+and the new outcome: deleted file/symbol, collapsed canonical proof surface,
+certification-only boundary, capped residue row, or named Query gap. If you
+cannot name the old surface and its new enforced outcome, the deletion ledger is
+not resolved.
+
 Advance like this:
 
 - after `plan`: same phase, turn `implement`

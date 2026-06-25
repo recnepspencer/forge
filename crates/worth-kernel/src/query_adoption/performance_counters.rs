@@ -149,7 +149,8 @@ pub fn current_worth_phase_eight_performance_counter_report(
     let spatial = current_spatial_query_consumer_kit_adoption_status()
         .map_err(WorthPhaseEightPerformanceCounterError::SpatialAdoption)?;
     let topology_counters = current_topology_phase_eight_performance_counters();
-    let spatial_counters = current_spatial_phase_eight_performance_counters();
+    let spatial_counters = current_spatial_phase_eight_performance_counters()
+        .map_err(WorthPhaseEightPerformanceCounterError::SpatialAdoption)?;
     let synthetic = WorthQuerySyntheticProofDispositionReport::current()
         .map_err(WorthPhaseEightPerformanceCounterError::SyntheticProof)?;
     let composition = current_kernel_composition_honesty_report()
@@ -263,13 +264,13 @@ mod tests {
         )
         .expect("phase eight performance counter report");
 
-        assert_eq!(report.support_requirement_count(), 9);
-        assert_eq!(report.support_observed_row_count(), 3);
-        assert_eq!(report.support_matched_required_count(), 9);
-        assert_eq!(report.support_snapshot_row_count(), 66);
+        assert_eq!(report.support_requirement_count(), 7);
+        assert_eq!(report.support_observed_row_count(), 8);
+        assert_eq!(report.support_matched_required_count(), 7);
+        assert_eq!(report.support_snapshot_row_count(), 68);
         assert_eq!(report.support_blocking_finding_count(), 0);
-        assert_eq!(report.boundary_audit_source_count(), 6);
-        assert!(report.boundary_audit_coverage_row_count() >= 6);
+        assert_eq!(report.boundary_audit_source_count(), 5);
+        assert!(report.boundary_audit_coverage_row_count() >= 5);
         assert_eq!(report.synthetic_denial_localization_row_count(), 5);
         assert_eq!(report.synthetic_replaced_row_count(), 5);
         assert_eq!(report.explicit_residue_row_count(), 3);

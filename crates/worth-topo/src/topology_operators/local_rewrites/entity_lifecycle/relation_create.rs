@@ -8,6 +8,7 @@ use schema::facade::platform::authority::EntityReference;
 use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
+use crate::query_native_runtime_boundary::TopologyNativeQueryRowField;
 use crate::topology_operators::application::bindings::{query_entity_binding, QueryEntityBinding};
 use crate::topology_operators::application::{
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
@@ -69,11 +70,19 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             lower_entity_reference(bindings, created_entity_kinds, target, expected_target_kind)?;
         Ok(builder.insert("TopologyRelation", |mutation| {
             let mutation = authored_relation_endpoint(
-                mutation.aspect("topology.kind", relation_kind.kind_name()),
-                "topology.source_identity",
+                mutation.set_aspect(
+                    TopologyNativeQueryRowField::TopologyKind.touch(),
+                    TopologyNativeQueryRowField::TopologyKind
+                        .authored_string(relation_kind.kind_name()),
+                ),
+                TopologyNativeQueryRowField::TopologySourceIdentity,
                 &source,
             );
-            authored_relation_endpoint(mutation, "topology.target_identity", &target)
+            authored_relation_endpoint(
+                mutation,
+                TopologyNativeQueryRowField::TopologyTargetIdentity,
+                &target,
+            )
         }))
     }
 }
@@ -126,15 +135,16 @@ fn lower_entity_reference(
 
 fn authored_relation_endpoint(
     mutation: ForgeQueryAspectMutationBuilder,
-    aspect_path: &'static str,
+    field: TopologyNativeQueryRowField,
     reference: &LoweredEntityReference,
 ) -> ForgeQueryAspectMutationBuilder {
     match reference {
-        LoweredEntityReference::Existing(binding) => {
-            mutation.aspect(aspect_path, binding.query_identity_label.clone())
-        }
+        LoweredEntityReference::Existing(binding) => mutation.set_aspect(
+            field.touch(),
+            field.authored_string(binding.query_identity_label.clone()),
+        ),
         LoweredEntityReference::Created { create_key } => mutation.symbolic_entity_identity(
-            aspect_path,
+            field.touch(),
             ForgeQuerySymbolicTargetReference::new(create_key.clone())
                 .expect("created entity keys are non-empty"),
         ),

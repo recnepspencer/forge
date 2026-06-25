@@ -1,16 +1,10 @@
 use crate::facade::{
-    certify_milestone_three_hostile_suite, MilestoneThreeHostileScenario,
-    MilestoneThreeMutationFalloutClass, ReplayParityStatus,
+    MilestoneThreeHostileScenario, MilestoneThreeMutationFalloutClass, ReplayParityStatus,
 };
-use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
 fn milestone_three_reuse_legality_rows_are_suppression_honest() {
-    let report = certify_milestone_three_hostile_suite(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.derived_reuse_legality",
-    )
-    .expect("milestone three hostile suite should certify");
+    let report = crate::certification::test_support::cached_milestone_three_hostile_suite_report();
 
     assert_eq!(report.derived_reuse_legality_rows.len(), 5);
     assert!(report.derived_reuse_legality_rows.iter().all(|row| {

@@ -1,4 +1,6 @@
 use forge_query::facade::ForgeQueryApplicationFacade;
+use std::collections::BTreeMap;
+use std::sync::{Mutex, OnceLock};
 use worth_kernel::workload_composition::{TransformRecipe, WorkloadCatalog};
 use worth_spatial::facade::boolean_readiness_workload::{
     PlanarBooleanReadinessEvidenceBasis, PlanarBooleanReadinessWorkload,
@@ -34,6 +36,7 @@ use worth_spatial::facade::planar_structural_identity::{
 use worth_spatial::facade::projection_fact_parity::{
     ProjectionFactParityEvidenceBasis, ProjectionFactParityWorkload,
 };
+use worth_spatial::facade::workload_vocabulary::CompleteWorkloadEvidenceLedger;
 
 use super::contract_bundle_support::{
     bundle_handle, motion_posture_handle, readiness_receipt, retained_planar_handle,
@@ -43,6 +46,13 @@ use super::local_rebuild_fixture::local_rebuild_receipt;
 
 pub(crate) fn certified_boolean_readiness_workload_receipt(
     world: &'static str,
+) -> PlanarBooleanReadinessWorkloadReceipt {
+    certified_boolean_readiness_workload_receipt_from_ledger(world, workload_ledger(world))
+}
+
+pub(crate) fn certified_boolean_readiness_workload_receipt_from_ledger(
+    world: &'static str,
+    ledger: CompleteWorkloadEvidenceLedger,
 ) -> PlanarBooleanReadinessWorkloadReceipt {
     let bundle_receipt = readiness_receipt();
     let retained = retained_planar_facts(bundle_receipt.clone());
@@ -63,7 +73,6 @@ pub(crate) fn certified_boolean_readiness_workload_receipt(
         recovery.clone(),
         diagnostics.clone(),
     );
-    let ledger = workload_ledger(world);
     let parity = ProjectionFactParityWorkload::from_evidence_basis(
         ProjectionFactParityEvidenceBasis::from_evidence_ledger(ledger.clone())
             .with_live_lane_from_ledger()
@@ -200,15 +209,25 @@ fn projection_consumption_handle() -> forge_query::facade::ForgeQueryAdmittedCon
     ProjectionConsumedPlanarFactsQueryDomain,
     ProjectionConsumedPlanarFactsQueryWorld,
 > {
-    ForgeQueryApplicationFacade::runtime_backed_default()
-        .domain(ProjectionConsumedPlanarFactsQueryDomain)
-        .with_operating_context(ProjectionConsumedPlanarFactsQueryWorld::new(
-            "phase-1-projection-consumed",
-        ))
-        .validate()
-        .expect("validated projection consumption domain")
-        .admit()
-        .expect("admitted projection consumption domain")
+    static PROJECTION_CONSUMPTION_HANDLE: OnceLock<
+        forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
+            ProjectionConsumedPlanarFactsQueryDomain,
+            ProjectionConsumedPlanarFactsQueryWorld,
+        >,
+    > = OnceLock::new();
+    PROJECTION_CONSUMPTION_HANDLE
+        .get_or_init(|| {
+            ForgeQueryApplicationFacade::runtime_backed_default()
+                .domain(ProjectionConsumedPlanarFactsQueryDomain)
+                .with_operating_context(ProjectionConsumedPlanarFactsQueryWorld::new(
+                    "phase-1-projection-consumed",
+                ))
+                .validate()
+                .expect("validated projection consumption domain")
+                .admit()
+                .expect("admitted projection consumption domain")
+        })
+        .clone()
 }
 
 fn diagnostic_handle(
@@ -217,13 +236,33 @@ fn diagnostic_handle(
     PlanarDiagnosticBundleQueryDomain,
     PlanarDiagnosticBundleQueryWorld,
 > {
-    ForgeQueryApplicationFacade::runtime_backed_default()
-        .domain(PlanarDiagnosticBundleQueryDomain)
-        .with_operating_context(PlanarDiagnosticBundleQueryWorld::new(world))
-        .validate()
-        .expect("validated diagnostic domain")
-        .admit()
-        .expect("admitted diagnostic domain")
+    static DIAGNOSTIC_HANDLES: OnceLock<
+        Mutex<
+            BTreeMap<
+                &'static str,
+                forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
+                    PlanarDiagnosticBundleQueryDomain,
+                    PlanarDiagnosticBundleQueryWorld,
+                >,
+            >,
+        >,
+    > = OnceLock::new();
+    let mut handles = DIAGNOSTIC_HANDLES
+        .get_or_init(|| Mutex::new(BTreeMap::new()))
+        .lock()
+        .expect("diagnostic handle cache lock");
+    handles
+        .entry(world)
+        .or_insert_with(|| {
+            ForgeQueryApplicationFacade::runtime_backed_default()
+                .domain(PlanarDiagnosticBundleQueryDomain)
+                .with_operating_context(PlanarDiagnosticBundleQueryWorld::new(world))
+                .validate()
+                .expect("validated diagnostic domain")
+                .admit()
+                .expect("admitted diagnostic domain")
+        })
+        .clone()
 }
 
 fn recovery_handle(
@@ -232,11 +271,31 @@ fn recovery_handle(
     PlanarRecoveryPostureQueryDomain,
     PlanarRecoveryPostureQueryWorld,
 > {
-    ForgeQueryApplicationFacade::runtime_backed_default()
-        .domain(PlanarRecoveryPostureQueryDomain)
-        .with_operating_context(PlanarRecoveryPostureQueryWorld::new(world))
-        .validate()
-        .expect("validated recovery domain")
-        .admit()
-        .expect("admitted recovery domain")
+    static RECOVERY_HANDLES: OnceLock<
+        Mutex<
+            BTreeMap<
+                &'static str,
+                forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
+                    PlanarRecoveryPostureQueryDomain,
+                    PlanarRecoveryPostureQueryWorld,
+                >,
+            >,
+        >,
+    > = OnceLock::new();
+    let mut handles = RECOVERY_HANDLES
+        .get_or_init(|| Mutex::new(BTreeMap::new()))
+        .lock()
+        .expect("recovery handle cache lock");
+    handles
+        .entry(world)
+        .or_insert_with(|| {
+            ForgeQueryApplicationFacade::runtime_backed_default()
+                .domain(PlanarRecoveryPostureQueryDomain)
+                .with_operating_context(PlanarRecoveryPostureQueryWorld::new(world))
+                .validate()
+                .expect("validated recovery domain")
+                .admit()
+                .expect("admitted recovery domain")
+        })
+        .clone()
 }

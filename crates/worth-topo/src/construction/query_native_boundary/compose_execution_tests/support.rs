@@ -215,10 +215,7 @@ pub(super) fn committed_birth_anchor_count(
         .read(surfaces.entities())
         .iter()
         .filter(|row| {
-            row.external_row()
-                .get("naming")
-                .and_then(|value| value.get("persistent_name"))
-                .and_then(|value| value.as_str())
+            crate::query_native_runtime_boundary::row_text_at(row, ["naming", "persistent_name"])
                 .is_some_and(|persistent_name| persistent_name.starts_with(&prefix))
         })
         .count()

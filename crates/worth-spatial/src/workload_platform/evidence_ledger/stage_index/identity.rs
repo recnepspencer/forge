@@ -23,17 +23,23 @@ pub(crate) fn stage_index_identity(
             counters.counterless_boolean_row_count()
         ),
     ];
-    parts.extend(rows.iter().map(|row| {
-        format!(
-            "stage:{}|identity:{}|backing:{}|support:{}|counter-total:{}|upstream:{}",
-            row.stage().human_name(),
-            row.evidence_identity(),
-            backing_key(row.backing()),
-            support_key(row.support()),
-            row.counters().total_receipt_backed_counters(),
-            upstream_binding_key(row)
-        )
-    }));
+    let mut row_parts = rows
+        .iter()
+        .map(|row| {
+            format!(
+                "stage:{}|identity:{}|backing:{}|support:{}|counter-total:{}|counter-shape:{:?}|upstream:{}",
+                row.stage().human_name(),
+                row.evidence_identity(),
+                backing_key(row.backing()),
+                support_key(row.support()),
+                row.counters().total_receipt_backed_counters(),
+                row.counters(),
+                upstream_binding_key(row)
+            )
+        })
+        .collect::<Vec<_>>();
+    row_parts.sort();
+    parts.extend(row_parts);
     truth_digest_parts(TruthDigestScope::ArtifactIdentity, &parts)
 }
 

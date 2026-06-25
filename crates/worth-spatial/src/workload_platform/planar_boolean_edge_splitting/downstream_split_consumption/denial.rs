@@ -7,12 +7,14 @@ pub enum PlanarBooleanDownstreamSplitConsumptionDenialKind {
     MissingPersistentNamingReceipt,
     MissingValidationReceipt,
     MissingReplayParityReceipt,
-    MissingWorkloadStageIndex,
+    MissingSpatialTouchAuthority,
+    MissingSpatialLookupProduct,
     ForeignDecisionLogReceipt,
     ForeignPersistentNamingReceipt,
     ForeignValidationReceipt,
     ForeignReplayParityReceipt,
-    ForeignWorkloadStageIndex,
+    ForeignSpatialTouchAuthority,
+    ForeignSpatialLookupProduct,
     NonReceiptBackedBooleanSplitEvidence,
 }
 

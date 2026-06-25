@@ -18,7 +18,7 @@ fn composition_report_consumes_lower_crate_query_evidence() {
         report.kernel_workload_receipt_family_count(),
         WorkloadEvidenceStage::AUTHORITY_STAGES.len()
     );
-    assert_eq!(report.spatial_workload_support_pin_row_count(), 7);
+    assert_eq!(report.spatial_workload_support_pin_row_count(), 1);
     assert_eq!(
         report.representative_workload_evidence_row_count(),
         WorkloadEvidenceStage::AUTHORITY_STAGES.len()

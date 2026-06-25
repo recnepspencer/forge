@@ -19,11 +19,9 @@ const MICRO_INTERVAL_TOLERANCE: f64 = 1.0e-12;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(super) struct IntervalSubdivisionGroupKey {
-    interval_event_identity: String,
     source_edge_identity: String,
     carrier_identity: String,
     range_bits: [u64; 2],
-    source_interval_identity: String,
     source_range_bits: [u64; 2],
     source_sense: PlanarBooleanSourceIntervalSense,
     normalized_interval_identity: String,
@@ -53,14 +51,12 @@ impl IntervalSubdivisionGroupKey {
             ));
         }
         Ok(Self {
-            interval_event_identity: entry.event_identity().to_string(),
             source_edge_identity: entry.source_edge_identity().to_string(),
             carrier_identity: entry.carrier_identity().to_string(),
             range_bits: [
                 canonical_parameter_bits(range[0]),
                 canonical_parameter_bits(range[1]),
             ],
-            source_interval_identity: entry.source_interval_identity().to_string(),
             source_range_bits: [
                 canonical_parameter_bits(entry.source_parameter_range()[0]),
                 canonical_parameter_bits(entry.source_parameter_range()[1]),
@@ -77,9 +73,6 @@ impl IntervalSubdivisionGroupKey {
         })
     }
 
-    pub(super) fn interval_event_identity(&self) -> &str {
-        &self.interval_event_identity
-    }
     pub(super) fn source_edge_identity(&self) -> &str {
         &self.source_edge_identity
     }
@@ -91,9 +84,6 @@ impl IntervalSubdivisionGroupKey {
             f64::from_bits(self.range_bits[0]),
             f64::from_bits(self.range_bits[1]),
         ]
-    }
-    pub(super) fn source_interval_identity(&self) -> &str {
-        &self.source_interval_identity
     }
     pub(super) fn source_range(&self) -> [f64; 2] {
         [
@@ -259,6 +249,9 @@ fn row_from_group(
         .collect::<Vec<_>>();
     event_group_identities.sort();
     event_group_identities.dedup();
+    let interval_event_identity = canonical_group_identity(&group, |entry| entry.event_identity());
+    let source_interval_identity =
+        canonical_group_identity(&group, |entry| entry.source_interval_identity());
     let subdivision_identity = interval_subdivision_identity(
         endpoint_schedule_identity,
         &key,
@@ -268,12 +261,12 @@ fn row_from_group(
     );
     PlanarBooleanNormalizedIntervalSubdivisionRow::new(
         subdivision_identity,
-        key.interval_event_identity().to_string(),
+        interval_event_identity,
         candidate_identities,
         key.source_edge_identity().to_string(),
         key.carrier_identity().to_string(),
         key.range(),
-        key.source_interval_identity().to_string(),
+        source_interval_identity,
         key.source_range(),
         key.source_sense(),
         key.normalized_interval_identity().to_string(),
@@ -285,4 +278,16 @@ fn row_from_group(
         provenance_entry_identities,
         event_group_identities,
     )
+}
+
+fn canonical_group_identity(
+    group: &[&PlanarBooleanRetainedIntervalSplitEntry],
+    identity: impl Fn(&PlanarBooleanRetainedIntervalSplitEntry) -> &str,
+) -> String {
+    group
+        .iter()
+        .map(|entry| identity(entry))
+        .min()
+        .expect("interval subdivision groups are never empty")
+        .to_string()
 }

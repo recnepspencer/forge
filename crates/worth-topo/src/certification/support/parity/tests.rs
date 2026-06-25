@@ -4,7 +4,7 @@ mod parity_tests {
 
     use crate::certification::MilestoneOneCertificationHarness;
     use crate::derived_topology::materialized_graph::TopologyMaterializer;
-    use crate::derived_topology::traversal_views::interpret_topology_view;
+    use crate::derived_topology::traversal_views::bootstrap_topology_interpretation;
     use crate::facade::{
         build_derived_equivalence_contract, compare_derived_equivalence_contracts,
         digest_derived_validation_report, digest_interpreted_topology_view,
@@ -31,7 +31,7 @@ mod parity_tests {
             .expect("snapshot read");
         let materialized =
             TopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
-        let interpreted = interpret_topology_view(&materialized);
+        let interpreted = bootstrap_topology_interpretation(&materialized);
         let validation =
             validate_interpreted_topology(&materialized, &interpreted).expect("validation");
 
@@ -80,7 +80,7 @@ mod parity_tests {
             .expect("snapshot read");
         let materialized =
             TopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
-        let interpreted = interpret_topology_view(&materialized);
+        let interpreted = bootstrap_topology_interpretation(&materialized);
         let validation =
             validate_interpreted_topology(&materialized, &interpreted).expect("validation");
 

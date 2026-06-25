@@ -42,7 +42,7 @@ impl ForgeQueryDeclarationFamilyMarker<PlanarBooleanReadinessWorkloadQueryDomain
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.boolean_readiness.declaration",
                 "geometry.boolean_readiness.evidence_ledger",

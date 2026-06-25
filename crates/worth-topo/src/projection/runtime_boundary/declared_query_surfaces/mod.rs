@@ -3,7 +3,10 @@
 pub(crate) mod derived_surfaces;
 pub(crate) mod query_diagnostics;
 pub(crate) mod retained_artifacts;
+pub(crate) mod retained_payload;
 pub(crate) mod truth_surfaces;
+
+use std::fmt;
 
 use forge_query::facade::{
     ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewHandle,
@@ -35,7 +38,6 @@ pub(crate) struct TopologyDeclaredQuerySurfaces {
 
 pub(crate) use derived_surfaces::{
     declare_topology_interpreted_surface, declare_topology_validation_surface,
-    TopologyQuerySurfaceError,
 };
 #[cfg(test)]
 pub(crate) use query_diagnostics::equivalence_contract_from_diagnostics_rows;
@@ -46,6 +48,27 @@ pub(crate) use truth_surfaces::{
     declare_persistent_name_live_view, declare_topology_entity_live_view,
     declare_topology_materialized_surface, declare_topology_relation_live_view,
 };
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct TopologyQuerySurfaceError {
+    message: String,
+}
+
+impl TopologyQuerySurfaceError {
+    pub(crate) fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+        }
+    }
+}
+
+impl fmt::Display for TopologyQuerySurfaceError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.message.fmt(f)
+    }
+}
+
+impl std::error::Error for TopologyQuerySurfaceError {}
 
 pub(crate) fn declare_topology_query_surfaces(
     workspace: &mut ForgeQueryWorkspace,
@@ -136,8 +159,9 @@ where
         .materialize_intent(view)
         .execute()
         .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?
-        .decode_single_row()
+        .single_retained_row()
         .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))
+        .and_then(|row| retained_payload::decode_retained_payload_row(row, view.name()))
 }
 
 pub(crate) fn materialize_declared_query_surface_binding(

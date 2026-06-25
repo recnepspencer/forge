@@ -209,20 +209,20 @@ fn topology_read_exposes_local_rewire_cycle_from_sheet_disk() {
         local_rewire
             .request_report
             .relationship_proof_admission_count,
-        3
+        2
     );
     let aggregate = reads.aggregate_report();
     assert_eq!(aggregate.request_count, 1);
     assert_eq!(aggregate.query_runtime_current_execution_count, 1);
     assert_eq!(aggregate.local_neighborhood_execution_count, 0);
-    assert_eq!(aggregate.anchored_expansion_execution_count, 1);
-    assert_eq!(aggregate.explicit_broad_search_execution_count, 0);
+    assert_eq!(aggregate.anchored_expansion_execution_count, 0);
+    assert_eq!(aggregate.explicit_broad_search_execution_count, 1);
     assert_eq!(aggregate.locality_claim_mismatch_count, 0);
     assert_eq!(aggregate.query_execution_count, 1);
     assert_eq!(aggregate.row_scan_fallback_count, 0);
     assert_eq!(aggregate.whole_view_fallback_count, 0);
     assert_eq!(aggregate.lowered_traversal_count, 2);
-    assert_eq!(aggregate.relationship_proof_admission_count, 3);
+    assert_eq!(aggregate.relationship_proof_admission_count, 2);
     assert_eq!(aggregate.family_rows.len(), 1);
     assert_eq!(aggregate.debt_rows.len(), 0);
 }

@@ -1,19 +1,15 @@
 use crate::facade::{
-    certify_milestone_three_bowtie_adjacent_rewire, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileScenario, ReplayParityStatus, TopologyDerivedRegion,
-    TopologyMutationChangedScope, TopologyMutationFamily, TopologyMutationNamingOutcome,
-    TopologyMutationRejectionClass,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario, ReplayParityStatus,
+    TopologyDerivedRegion, TopologyMutationChangedScope, TopologyMutationFamily,
+    TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
 };
-use crate::validation::reference_integrity::build_milestone_one_runtime;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
+
+use super::cached_scenario_report;
 
 #[test]
 fn milestone_three_bowtie_adjacent_rewire_certifies_typed_rejection_with_exact_scope_evidence() {
-    let report = certify_milestone_three_bowtie_adjacent_rewire(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.bowtie",
-    )
-    .expect("milestone three hostile certification should succeed");
+    let report = cached_scenario_report(MilestoneThreeHostileScenario::BowtieAdjacentRewire);
 
     assert_eq!(
         report.scenario,
@@ -88,16 +84,8 @@ fn milestone_three_bowtie_adjacent_rewire_certifies_typed_rejection_with_exact_s
 
 #[test]
 fn milestone_three_bowtie_adjacent_rewire_report_is_deterministic_for_same_seeded_history() {
-    let left = certify_milestone_three_bowtie_adjacent_rewire(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.bowtie.deterministic",
-    )
-    .expect("left hostile certification should succeed");
-    let right = certify_milestone_three_bowtie_adjacent_rewire(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.bowtie.deterministic",
-    )
-    .expect("right hostile certification should succeed");
+    let left = cached_scenario_report(MilestoneThreeHostileScenario::BowtieAdjacentRewire);
+    let right = cached_scenario_report(MilestoneThreeHostileScenario::BowtieAdjacentRewire);
 
     assert_eq!(left.outcome_class, right.outcome_class);
     assert_eq!(left.rejection_class, right.rejection_class);

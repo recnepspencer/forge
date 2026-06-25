@@ -217,7 +217,7 @@ impl ForgeQueryDeclarationFamilyMarker<PrimitiveRebindingQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &["geometry.retained.source", "geometry.retained.subject"],
             &["geometry.retained.historical_inspection"],
             &[],
@@ -250,7 +250,7 @@ impl ForgeQueryDeclarationFamilyMarker<PrimitiveRebindingQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.retained.source",
                 "geometry.retained.subject",
@@ -287,7 +287,7 @@ impl ForgeQueryDeclarationFamilyMarker<PrimitiveRebindingQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &["geometry.retained.left", "geometry.retained.right"],
             &["geometry.retained.replay_parity"],
             &[],
@@ -320,7 +320,7 @@ impl ForgeQueryDeclarationFamilyMarker<PrimitiveRebindingQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &["geometry.recovery.source"],
             &["geometry.recovery.action"],
             &[],

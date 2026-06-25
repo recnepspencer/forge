@@ -20,6 +20,10 @@ pub use operator_touch_descriptor::{
     topology_operator_relation_touch_descriptor, TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_OPERATION,
     TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_PATH,
 };
+#[cfg(test)]
+pub(crate) use operator_touch_descriptor::{
+    topology_rewire_loop_successor_aspect_operation, topology_rewire_loop_successor_aspect_touch,
+};
 pub use registration_declaration::topology_operator_graph_obligation_registration_declaration;
 pub(crate) use registration_declaration::topology_operator_runtime_graph_obligation_registrations;
 pub use selector_coverage::topology_operator_graph_obligation_selector_coverage;

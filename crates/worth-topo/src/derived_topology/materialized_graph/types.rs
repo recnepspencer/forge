@@ -5,6 +5,7 @@ use crate::brep::topology_graph::TopologyView;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MaterializationFallbackClass {
     WholeViewRebuild,
+    CompleteTopologyBootstrap,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -29,6 +30,7 @@ pub struct MaterializedTopologyView {
 }
 
 impl MaterializedTopologyView {
+    #[cfg(test)]
     pub(crate) fn new(topology: TopologyView, report: MaterializationReport) -> Self {
         Self { topology, report }
     }
@@ -55,7 +57,7 @@ impl MaterializedTopologyView {
                     topology_relation_count: 0,
                 },
                 whole_view_materialization: true,
-                fallback_class: Some(MaterializationFallbackClass::WholeViewRebuild),
+                fallback_class: Some(MaterializationFallbackClass::CompleteTopologyBootstrap),
             },
         }
     }

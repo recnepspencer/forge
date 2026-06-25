@@ -80,7 +80,7 @@ impl ForgeQueryDeclarationFamilyMarker<CertifiedPolygonWinding2DQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.polygon_winding_2d.primary_loop",
                 "geometry.polygon_winding_2d.planar_neighborhood",

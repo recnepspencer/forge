@@ -1,6 +1,6 @@
 use forge_query::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, CausalInspection,
-    CausalInspectionMaterializationPolicy, EqualityPredicate, QueryObservationReceipt,
+    AspectFieldSelector, AspectName, AuthoredResultShapeField, CausalInspection,
+    CausalInspectionMaterializationPolicy, EqualityPredicate, FieldName, QueryObservationReceipt,
     QuerySchemaView, ScalarPredicateValue, SchemaFieldKind, SchemaFieldView,
 };
 use worth_spatial::facade::planar_diagnostics::PlanarDiagnosticCausalEvidence;
@@ -66,11 +66,27 @@ fn diagnostic_query_schema(world: &'static str) -> QuerySchemaView {
     QuerySchemaView::new(
         format!("planar-diagnostic-causal-schema-{world}"),
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String)
-                .text_predicate_queryable(),
-            SchemaFieldView::new("diagnostic", "world", SchemaFieldKind::String)
-                .text_predicate_queryable(),
+            SchemaFieldView::new(
+                aspect_name("identity"),
+                field_name("id"),
+                SchemaFieldKind::String,
+            )
+            .text_predicate_queryable(),
+            SchemaFieldView::new(
+                aspect_name("diagnostic"),
+                field_name("world"),
+                SchemaFieldKind::String,
+            )
+            .text_predicate_queryable(),
         ],
         [],
     )
+}
+
+fn aspect_name(value: &str) -> AspectName {
+    AspectName::new(value).expect("diagnostic schema aspect should admit")
+}
+
+fn field_name(value: &str) -> FieldName {
+    FieldName::new(value).expect("diagnostic schema field should admit")
 }

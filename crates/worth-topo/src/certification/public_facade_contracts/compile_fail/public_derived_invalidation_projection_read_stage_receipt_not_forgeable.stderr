@@ -1,0 +1,19 @@
+error[E0451]: fields `operator_cutover_receipt_digest`, `execution_receipt_digest`, `selected_plan_digest`, `touched_closure_digest`, `consumption_scope`, `projection_dirty_expansion_count` and `receipt_digest` of struct `DerivedInvalidationProjectionReadStageReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_projection_read_stage_receipt_not_forgeable.rs:7:9
+   |
+ 6 |     let _ = DerivedInvalidationProjectionReadStageReceipt {
+   |             --------------------------------------------- in this type
+ 7 |         operator_cutover_receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         execution_receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         selected_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+10 |         touched_closure_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         consumption_scope: ProjectionReadStageConsumptionScope::CommittedRead,
+   |         ^^^^^^^^^^^^^^^^^ private field
+12 |         projection_dirty_expansion_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field

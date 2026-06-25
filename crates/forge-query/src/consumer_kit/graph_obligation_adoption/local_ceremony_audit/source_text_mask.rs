@@ -60,6 +60,10 @@ fn mask_code_character(
         return SourceTextMaskState::StringLiteral;
     }
     if ch == '\'' {
+        if apostrophe_starts_rust_lifetime_or_label(chars) {
+            output.push(ch);
+            return SourceTextMaskState::Code;
+        }
         output.push(' ');
         return SourceTextMaskState::CharLiteral;
     }
@@ -109,7 +113,7 @@ fn mask_string_literal_character(
     if ch == '\\' {
         chars.next();
     }
-    output.push(' ');
+    output.push(if ch == '\n' { '\n' } else { ' ' });
     if ends_string {
         SourceTextMaskState::Code
     } else {
@@ -126,8 +130,8 @@ fn mask_char_literal_character(
     if ch == '\\' {
         chars.next();
     }
-    output.push(' ');
-    if ends_char {
+    output.push(if ch == '\n' { '\n' } else { ' ' });
+    if ends_char || ch == '\n' {
         SourceTextMaskState::Code
     } else {
         SourceTextMaskState::CharLiteral
@@ -185,4 +189,32 @@ fn consume_raw_string_hashes(
         chars.next();
     }
     true
+}
+
+fn apostrophe_starts_rust_lifetime_or_label(
+    chars: &std::iter::Peekable<std::str::Chars<'_>>,
+) -> bool {
+    let mut clone = chars.clone();
+    let Some(first_identifier_character) = clone.next() else {
+        return false;
+    };
+    if !is_rust_identifier_start(first_identifier_character) {
+        return false;
+    }
+    while clone
+        .peek()
+        .is_some_and(|ch| is_rust_identifier_continue(*ch))
+    {
+        clone.next();
+    }
+
+    clone.peek() != Some(&'\'')
+}
+
+fn is_rust_identifier_start(ch: char) -> bool {
+    ch == '_' || ch.is_ascii_alphabetic()
+}
+
+fn is_rust_identifier_continue(ch: char) -> bool {
+    ch == '_' || ch.is_ascii_alphanumeric()
 }

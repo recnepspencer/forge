@@ -80,7 +80,7 @@ impl ForgeQueryDeclarationFamilyMarker<PlanarTopologyContractCompletenessQueryDo
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.planar_topology_contract.topology_receipt",
                 "geometry.planar_topology_contract.declared_query_surface",

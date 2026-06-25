@@ -19,6 +19,11 @@ pub(crate) fn match_boolean_receipt_lookup<T: BooleanEvidenceReceipt + 'static>(
     if !row.counters().has_receipt_backed_counter_for_stage(stage) {
         return Err(WorkloadEvidenceLedgerError::CounterlessBooleanStage(stage));
     }
+    if row.counters() != receipt.evidence_counters() {
+        return Err(WorkloadEvidenceLedgerError::MismatchedBooleanStageCounters(
+            stage,
+        ));
+    }
     if row.evidence_identity() != receipt.evidence_identity() {
         return Err(WorkloadEvidenceLedgerError::MismatchedBooleanStage(stage));
     }

@@ -1,7 +1,8 @@
 const QUERY_SUPPORT_PINS_JSON: &str = include_str!("../query_support_pins.json");
 
 use forge_query::facade::consumer_kit::{
-    load_support_pin_contract_document, ForgeQueryPinnedSupportStatus,
+    load_support_pin_contract_terminal_json_document,
+    ForgeQueryExternalSupportPinContractTerminalJsonDocument, ForgeQueryPinnedSupportStatus,
     ForgeQueryPinnedTeachingPosture, ForgeQueryRuntimeFacadeFamily,
     ForgeQuerySupportPinContractSchemaVersion, ForgeQuerySupportPinningErrorKind,
 };
@@ -81,8 +82,12 @@ fn checked_in_support_pin_contract_tampering_fails_typed_at_load() {
         1,
     );
 
-    let error = load_support_pin_contract_document(
-        &tampered_json,
+    let tampered_document =
+        ForgeQueryExternalSupportPinContractTerminalJsonDocument::from_external_terminal_json_document(
+            tampered_json,
+        );
+    let error = load_support_pin_contract_terminal_json_document(
+        &tampered_document,
         ForgeQuerySupportPinContractSchemaVersion::current(),
     )
     .expect_err("tampered checked-in support pin document must fail digest validation");

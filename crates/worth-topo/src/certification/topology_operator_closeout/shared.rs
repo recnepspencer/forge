@@ -4,9 +4,10 @@ use crate::certification::topology_operator_closeout::report::{
 };
 use crate::certification::{DeterministicDigest, ReplayParityStatus};
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
-use crate::derived_topology::traversal_views::interpret_topology_view;
+use crate::derived_topology::traversal_views::bootstrap_topology_interpretation;
 use crate::projection::diagnostic_surfaces::derived_read_diagnostics::derive_topology_validation_report;
-use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
+use crate::query_native_runtime_boundary::query_entity_identity_reporting_label;
+use crate::query_native_runtime_boundary::{row_text_at, TopologyNativeQueryRowField};
 use crate::validation::DerivedTopologyValidationReport;
 use forge_query::facade::{ForgeQueryEntity, ForgeQueryEntityIdentity};
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
@@ -20,17 +21,16 @@ pub(super) fn first_source_identity_for_relation_kind(
     relation_rows
         .iter()
         .find_map(|row| {
-            (row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
-                == Some(relation_kind.kind_name()))
+            (row_text_at(
+                row,
+                TopologyNativeQueryRowField::TopologyKind.row_segments(),
+            ) == Some(relation_kind.kind_name()))
             .then(|| {
-                row.external_row()
-                    .get("topology")
-                    .and_then(|value| value.get("source_identity"))
-                    .and_then(|value| value.as_str())
-                    .map(str::to_string)
+                row_text_at(
+                    row,
+                    TopologyNativeQueryRowField::TopologySourceIdentity.row_segments(),
+                )
+                .map(str::to_string)
             })
             .flatten()
         })
@@ -144,7 +144,7 @@ pub(super) fn find_loop_id_by_label(
 pub(super) fn derived_validation_report_from_materialized(
     materialized: &MaterializedTopologyView,
 ) -> Result<DerivedTopologyValidationReport, TopologyCertificationError> {
-    let interpreted = interpret_topology_view(materialized);
+    let interpreted = bootstrap_topology_interpretation(materialized);
     derive_topology_validation_report(materialized, &interpreted)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))
 }

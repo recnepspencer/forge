@@ -13,7 +13,8 @@ fn declared_query_surfaces_mod_does_not_inline_snapshot_row_fallback_logic() {
     let certification_read_basis_query_runtime =
         include_str!("../../../certification/support/read_basis_query_runtime.rs");
     let declared_computed_views = include_str!("derived_surfaces/computed_views.rs");
-    let declared_query_diagnostics = include_str!("query_diagnostics/mod.rs");
+    let declared_retained_diagnostics = include_str!("query_diagnostics/retained_diagnostics.rs");
+    let declared_equivalence_contract = include_str!("query_diagnostics/equivalence_contract.rs");
     let retained_artifacts = include_str!("retained_artifacts.rs");
 
     assert!(
@@ -59,14 +60,12 @@ fn declared_query_surfaces_mod_does_not_inline_snapshot_row_fallback_logic() {
         "materialize_topology_historical_truth_artifact(",
         "materialize_topology_historical_derived_surface_snapshot(",
         "materialize_declared_query_surface_binding(",
-        "verify_scalar_alignment(",
-        "decode_row_pair(",
-        "decode_row_triple(",
+        "decode_bundle_row(",
+        "retained_payload::decode_retained_payload_row(",
+        "diagnostics.equivalence_contract_report != equivalence_contract",
         "ForgeQueryDerivedArtifactBinding",
         "topology.historical.truth",
         "topology.historical.derived_snapshot",
-        ".decode_row_triple(",
-        ".decode_row_pair(",
     ] {
         assert!(
             retained_artifacts.contains(required),
@@ -92,7 +91,7 @@ fn declared_query_surfaces_mod_does_not_inline_snapshot_row_fallback_logic() {
     assert!(
         certification_snapshot_derived_support
             .contains("runtime.historical_equivalence_read_basis_facts()"),
-        "certification derived-snapshot seam should consume Query-owned retained scalar read-basis evidence instead of decoding struct fields directly",
+        "certification derived-snapshot seam should consume Query-owned retained payload read-basis evidence instead of reopening local rows",
     );
     assert!(
         !certification_snapshot_derived_support.contains("materialize_derived_artifact_bundle("),
@@ -130,20 +129,20 @@ fn declared_query_surfaces_mod_does_not_inline_snapshot_row_fallback_logic() {
     );
     assert!(
         !retained_artifacts.contains("equivalence_contract_from_diagnostics_rows"),
-        "declared-query-surfaces retained-artifact seam should compare diagnostics and equivalence rows through Query-owned retained scalar evidence instead of rebuilding diagnostics-carried equivalence locally",
+        "declared-query-surfaces retained-artifact seam should compare diagnostics and equivalence rows through Query-owned retained payload evidence instead of rebuilding diagnostics-carried equivalence locally",
     );
     assert!(
         source.contains("materialize_intent(view)"),
         "query surfaces entry surface should own one explicit materialization-intent lane for declared derived rows",
     );
     assert!(
-        source.contains(".decode_single_row()"),
+        source.contains(".single_retained_row()")
+            && source.contains("retained_payload::decode_retained_payload_row"),
         "query surfaces entry surface should decode declared derived rows through the Query-owned materialization floor",
     );
     assert!(
-        declared_computed_views.contains(
-            "decode_single_computed_row(materialized_view_name)"
-        ),
+        declared_computed_views.contains("declared_retained_computed_row_sets(view)")
+            && declared_computed_views.contains("decode_single_retained_payload_row("),
         "interpreted and validation maintainers should decode retained upstream rows through the Query-owned upstream-input seam",
     );
     assert!(
@@ -152,9 +151,10 @@ fn declared_query_surfaces_mod_does_not_inline_snapshot_row_fallback_logic() {
         "interpreted and validation maintainers should route through explicit retained-upstream helpers instead of rebuilding synthetic bags inline",
     );
     assert!(
-        declared_query_diagnostics.contains("decode_single_computed_row(materialized_view_name)")
-            && declared_query_diagnostics.contains("decode_single_computed_row(interpreted_view_name)")
-            && declared_query_diagnostics.contains("decode_single_computed_row(validation_view_name)"),
+        declared_retained_diagnostics.contains("declared_retained_computed_row_sets(view)")
+            && declared_retained_diagnostics.contains("decode_single_retained_payload_row(")
+            && declared_equivalence_contract
+                .contains("decode_single_retained_payload_row::<DerivedReadDiagnostics>"),
         "diagnostics maintainers should decode retained upstream rows through the Query-owned upstream-input seam",
     );
     assert!(
@@ -170,16 +170,20 @@ fn declared_query_surfaces_mod_does_not_inline_snapshot_row_fallback_logic() {
         "full historical snapshot seam should consume the shared read-basis query runtime boundary",
     );
     for forbidden in [
-        "equivalence.authority_snapshot_id",
-        "equivalence.authority_branch_id",
-        "equivalence.truth_basis_digest_hex",
-        "equivalence.touched_aspect_count",
+        "ForgeQueryRetainedScalarFactSet",
+        "ReadBasisEquivalenceField",
     ] {
         assert!(
             !certification_snapshot_support.contains(forbidden),
-            "historical snapshot read-basis proof should not spelunk decoded equivalence fields via `{forbidden}` once Query owns retained scalar evidence",
+            "historical snapshot read-basis proof should not revive retained scalar fact plumbing via `{forbidden}` once Query owns retained payload evidence",
         );
     }
+    assert!(
+        certification_snapshot_support.contains("DerivedEquivalenceContractReport")
+            && certification_snapshot_support.contains("equivalence.authority_snapshot_id")
+            && certification_snapshot_support.contains("equivalence.touched_aspect_count"),
+        "historical snapshot read-basis proof should compare the decoded Query-owned retained payload report semantically",
+    );
     for required in [
         "mod derived_surfaces;",
         "mod query_diagnostics;",

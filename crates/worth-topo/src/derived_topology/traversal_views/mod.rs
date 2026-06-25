@@ -1,7 +1,9 @@
-mod facade;
+mod bootstrap_interpretation;
+mod boundary_summaries;
 #[cfg(test)]
 mod tests;
 pub(crate) mod types;
 
-pub use facade::{build_topology_read_artifact, certify_topology_view, interpret_topology_view};
+pub(crate) use bootstrap_interpretation::bootstrap_topology_interpretation;
+pub use bootstrap_interpretation::{build_topology_read_artifact, certify_topology_view};
 pub use types::InterpretedTopologyView;

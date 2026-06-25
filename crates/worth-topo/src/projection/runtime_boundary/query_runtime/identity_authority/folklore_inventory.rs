@@ -10,7 +10,7 @@ pub const PHASE_EIGHT_QUERY_RUNTIME_SCAN_PATHS: &[&str] = &[
     "projection/runtime_boundary/query_runtime/adapters/write_authority.rs",
     "projection/runtime_boundary/query_runtime/adapters/query_rows.rs",
     "projection/runtime_boundary/query_runtime/operator_bindings.rs",
-    "projection/runtime_boundary/query_support/identity_reporting.rs",
+    "query_native_runtime_boundary/identity_reporting.rs",
     "projection/runtime_boundary/query_support/admitted_commit_identity.rs",
     "projection/runtime_boundary/read_execution/",
     "topology_operators/authority_identity.rs",

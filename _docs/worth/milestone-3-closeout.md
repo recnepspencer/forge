@@ -155,9 +155,16 @@ surfaces with:
 - `cargo fmt --check`
 - `cargo test -p worth-topo branch_local_acceptance --quiet`
 - `cargo test -p worth-topo replay_branch_breadth --quiet`
-- `cargo test -p worth-topo topology_operator_closeout --quiet`
+- `scripts/ci/check_worth_topo_milestone3_slow_certification.ps1`
 - `cargo test -p worth-topo broad_direct_file_clusters_stay_explicitly_reviewed --quiet`
 - `cargo test -p worth-topo --quiet`
+
+The Milestone 3 topology-operator closeout is an explicit slow certification
+gate, not part of the default worth-topo unit-test iteration lane. Default
+iteration should use focused tests and `cargo test -p worth-topo --lib`; the
+full closeout gate must still run before declaring topology-operator closeout
+coverage intact after touching operator semantics, replay, branch-local
+behavior, validation breadth, scale pressure, or closeout row contracts.
 
 ## Next Active Milestone
 

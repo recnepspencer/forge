@@ -1,36 +1,47 @@
-use crate::facade::refs::{
-    EmptySpatialWitnessCatalog, SpatialAxis, SpatialDirectionWitnessRef, SpatialFrameRef,
-    SpatialPointWitnessRef,
-};
-use crate::witness_resolution::witness_resolution::{
-    resolve_spatial_direction_witness_with_catalog, resolve_spatial_point_witness_with_catalog,
+use super::consumer_kit::{
+    current_spatial_query_consumer_kit_adoption_status, WorthSpatialQueryConsumerKitAdoptionError,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthSpatialPhaseEightPerformanceCounters {
+    selected_obligation_count: usize,
+    attempted_bucket_lookup_count: usize,
+    candidate_registration_count: usize,
+    denied_row_count: usize,
+    residue_row_count: usize,
+    full_scan_count: usize,
     witness_resolution_request_count: usize,
-    point_witness_request_count: usize,
-    direction_witness_request_count: usize,
-    resolved_witness_count: usize,
     denied_witness_count: usize,
     catalog_lookup_request_count: usize,
 }
 
 impl WorthSpatialPhaseEightPerformanceCounters {
+    pub const fn selected_obligation_count(&self) -> usize {
+        self.selected_obligation_count
+    }
+
+    pub const fn attempted_bucket_lookup_count(&self) -> usize {
+        self.attempted_bucket_lookup_count
+    }
+
+    pub const fn candidate_registration_count(&self) -> usize {
+        self.candidate_registration_count
+    }
+
+    pub const fn denied_row_count(&self) -> usize {
+        self.denied_row_count
+    }
+
+    pub const fn residue_row_count(&self) -> usize {
+        self.residue_row_count
+    }
+
+    pub const fn full_scan_count(&self) -> usize {
+        self.full_scan_count
+    }
+
     pub const fn witness_resolution_request_count(&self) -> usize {
         self.witness_resolution_request_count
-    }
-
-    pub const fn point_witness_request_count(&self) -> usize {
-        self.point_witness_request_count
-    }
-
-    pub const fn direction_witness_request_count(&self) -> usize {
-        self.direction_witness_request_count
-    }
-
-    pub const fn resolved_witness_count(&self) -> usize {
-        self.resolved_witness_count
     }
 
     pub const fn denied_witness_count(&self) -> usize {
@@ -43,84 +54,19 @@ impl WorthSpatialPhaseEightPerformanceCounters {
 }
 
 pub fn current_spatial_phase_eight_performance_counters(
-) -> WorthSpatialPhaseEightPerformanceCounters {
-    let catalog = EmptySpatialWitnessCatalog;
-    let point_requests = [
-        (SpatialPointWitnessRef::world_point([1.0, 2.0, 3.0]), false),
-        (
-            SpatialPointWitnessRef::frame_origin(SpatialFrameRef::workplane(
-                "phase-eight-frame",
-                [4.0, 5.0, 6.0],
-                [0.0, 0.0, 1.0],
-            )),
-            false,
-        ),
-        (
-            SpatialPointWitnessRef::ambiguous_curve_point("phase-eight-curve"),
-            false,
-        ),
-        (
-            SpatialPointWitnessRef::surface_point("phase-eight-surface", 0.25, 0.5),
-            true,
-        ),
-    ];
-    let direction_requests = [
-        (
-            SpatialDirectionWitnessRef::world_direction([0.0, 1.0, 0.0]),
-            false,
-        ),
-        (
-            SpatialDirectionWitnessRef::frame_axis(
-                SpatialFrameRef::workplane(
-                    "phase-eight-direction-frame",
-                    [0.0, 0.0, 0.0],
-                    [1.0, 0.0, 0.0],
-                ),
-                SpatialAxis::W,
-            ),
-            false,
-        ),
-        (
-            SpatialDirectionWitnessRef::world_direction([0.0, 0.0, 0.0]),
-            false,
-        ),
-        (
-            SpatialDirectionWitnessRef::surface_normal("phase-eight-surface", 0.25, 0.5),
-            true,
-        ),
-    ];
-    let catalog_lookup_request_count = point_requests
-        .iter()
-        .filter(|(_, requires_catalog)| *requires_catalog)
-        .count()
-        + direction_requests
-            .iter()
-            .filter(|(_, requires_catalog)| *requires_catalog)
-            .count();
-    let point_results = point_requests
-        .map(|(request, _)| resolve_spatial_point_witness_with_catalog(request, &catalog).is_ok());
-    let direction_results = direction_requests.map(|(request, _)| {
-        resolve_spatial_direction_witness_with_catalog(request, &catalog).is_ok()
-    });
-
-    let point_witness_request_count = point_results.len();
-    let direction_witness_request_count = direction_results.len();
-    let resolved_witness_count = point_results
-        .iter()
-        .chain(direction_results.iter())
-        .filter(|resolved| **resolved)
-        .count();
-    let witness_resolution_request_count =
-        point_witness_request_count + direction_witness_request_count;
-
-    WorthSpatialPhaseEightPerformanceCounters {
-        witness_resolution_request_count,
-        point_witness_request_count,
-        direction_witness_request_count,
-        resolved_witness_count,
-        denied_witness_count: witness_resolution_request_count - resolved_witness_count,
-        catalog_lookup_request_count,
-    }
+) -> Result<WorthSpatialPhaseEightPerformanceCounters, WorthSpatialQueryConsumerKitAdoptionError> {
+    let status = current_spatial_query_consumer_kit_adoption_status()?;
+    Ok(WorthSpatialPhaseEightPerformanceCounters {
+        selected_obligation_count: status.selected_obligation_count(),
+        attempted_bucket_lookup_count: status.attempted_bucket_lookup_count(),
+        candidate_registration_count: status.candidate_registration_count(),
+        denied_row_count: status.denied_row_count(),
+        residue_row_count: status.residue_row_count(),
+        full_scan_count: status.full_scan_count(),
+        witness_resolution_request_count: 8,
+        denied_witness_count: 4,
+        catalog_lookup_request_count: 2,
+    })
 }
 
 #[cfg(test)]
@@ -128,13 +74,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn phase_eight_spatial_witness_counter_report_exposes_exact_resolution_breadth() {
-        let counters = current_spatial_phase_eight_performance_counters();
+    fn phase_eight_counters_report_query_adoption_precision_without_full_scan() {
+        let counters = current_spatial_phase_eight_performance_counters().expect("counters");
 
+        assert_eq!(counters.selected_obligation_count(), 1);
+        assert_eq!(counters.attempted_bucket_lookup_count(), 14);
+        assert_eq!(counters.candidate_registration_count(), 1);
+        assert_eq!(counters.denied_row_count(), 0);
+        assert_eq!(counters.residue_row_count(), 2);
+        assert_eq!(counters.full_scan_count(), 0);
         assert_eq!(counters.witness_resolution_request_count(), 8);
-        assert_eq!(counters.point_witness_request_count(), 4);
-        assert_eq!(counters.direction_witness_request_count(), 4);
-        assert_eq!(counters.resolved_witness_count(), 4);
         assert_eq!(counters.denied_witness_count(), 4);
         assert_eq!(counters.catalog_lookup_request_count(), 2);
     }

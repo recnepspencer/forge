@@ -1,0 +1,13 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_consumed_graph_facts_not_forgeable.rs:4:48
+  |
+4 |       let _ = DerivedTopologyConsumedGraphFacts::new(Vec::new(), Vec::new());
+  |                                                  ^^^ private associated function
+  |
+ ::: src/derived_topology/invalidation_plan/catalog/family/consumed_graph_facts.rs
+  |
+  | /     pub(crate) fn new(
+  | |         relation_kinds: Vec<TopologyRelationKind>,
+  | |         aspects: Vec<TopologyTouchedAspect>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

@@ -6,6 +6,7 @@ use super::shared::{
     bind_existing_entity_handle, bind_existing_relation_handle, delete_existing_entity_from_graph,
 };
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
+use crate::query_native_runtime_boundary::TopologyNativeQueryRowField;
 use crate::topology_operators::application::{
     ensure_declared_touched_basis_covers_sequence_before_write, TopologyDeclaredMutationArtifact,
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
@@ -121,25 +122,35 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             .workspace
             .compose_graph(|graph| {
                 graph.insert_entity(created_wire_key.clone(), "TopologyEntity", |mutation| {
-                    mutation
-                        .aspect("topology.kind", TopologyEntityKind::Wire.kind_name())
-                        .aspect("topology.structure", created_wire_key.clone())
-                        .aspect("naming.persistent_name", created_wire_key.clone())
+                    TopologyNativeQueryRowField::NamingPersistentName.set_on(
+                        TopologyNativeQueryRowField::TopologyStructure.set_on(
+                            TopologyNativeQueryRowField::TopologyKind
+                                .set_on(mutation, TopologyEntityKind::Wire.kind_name()),
+                            created_wire_key.clone(),
+                        ),
+                        created_wire_key.clone(),
+                    )
                 })?;
                 for (relation_handle, relation_id, half_edge_identity) in &relation_rows_to_move {
                     graph.retarget_existing_verified(
                         relation_handle.clone(),
                         |verify| {
-                            let verify = verify
-                                .aspect(
-                                    "topology.kind",
-                                    TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
-                                )
-                                .aspect("topology.source_identity", retired_wire_identity.clone())
-                                .aspect("topology.target_identity", half_edge_identity.clone());
-                            if let Some(path) = dependency_path {
-                                verify.aspect(
-                                    path,
+                            let verify = TopologyNativeQueryRowField::TopologyTargetIdentity
+                                .set_on(
+                                    TopologyNativeQueryRowField::TopologySourceIdentity.set_on(
+                                        TopologyNativeQueryRowField::TopologyKind.set_on(
+                                            verify,
+                                            TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                                        ),
+                                        retired_wire_identity.clone(),
+                                    ),
+                                    half_edge_identity.clone(),
+                                );
+                            if let Some(field) = dependency_path
+                                .and_then(TopologyNativeQueryRowField::from_query_aspect_path)
+                            {
+                                field.set_on(
+                                    verify,
                                     TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                                 )
                             } else {
@@ -149,23 +160,23 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                         |update| {
                             let (prior, successor) =
                                 relation_rebind_authorities[relation_id].clone();
-                            let update = update
-                                .continuity_rebind_existing_target(prior, successor)
-                                .aspect(
-                                    "topology.kind",
-                                    TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
-                                )
+                            let update = update.continuity_rebind_existing_target(prior, successor);
+                            let update = TopologyNativeQueryRowField::TopologyKind
+                                .set_on(update, TopologyRelationKind::WireOwnsHalfEdge.kind_name())
                                 .symbolic_entity_identity(
-                                    "topology.source_identity",
+                                    TopologyNativeQueryRowField::TopologySourceIdentity.touch(),
                                     ForgeQuerySymbolicTargetReference::new(
                                         created_wire_key.clone(),
                                     )
                                     .expect("created entity keys are non-empty"),
-                                )
-                                .aspect("topology.target_identity", half_edge_identity.clone());
-                            if let Some(path) = dependency_path {
-                                update.aspect(
-                                    path,
+                                );
+                            let update = TopologyNativeQueryRowField::TopologyTargetIdentity
+                                .set_on(update, half_edge_identity.clone());
+                            if let Some(field) = dependency_path
+                                .and_then(TopologyNativeQueryRowField::from_query_aspect_path)
+                            {
+                                field.set_on(
+                                    update,
                                     TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                                 )
                             } else {
@@ -288,25 +299,35 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             .workspace
             .compose_graph(|graph| {
                 graph.insert_entity(created_wire_key.clone(), "TopologyEntity", |mutation| {
-                    mutation
-                        .aspect("topology.kind", TopologyEntityKind::Wire.kind_name())
-                        .aspect("topology.structure", created_wire_key.clone())
-                        .aspect("naming.persistent_name", created_wire_key.clone())
+                    TopologyNativeQueryRowField::NamingPersistentName.set_on(
+                        TopologyNativeQueryRowField::TopologyStructure.set_on(
+                            TopologyNativeQueryRowField::TopologyKind
+                                .set_on(mutation, TopologyEntityKind::Wire.kind_name()),
+                            created_wire_key.clone(),
+                        ),
+                        created_wire_key.clone(),
+                    )
                 })?;
                 for (relation_handle, relation_id, half_edge_identity) in &moved_relations {
                     graph.retarget_existing_verified(
                         relation_handle.clone(),
                         |verify| {
-                            let verify = verify
-                                .aspect(
-                                    "topology.kind",
-                                    TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
-                                )
-                                .aspect("topology.source_identity", retained_wire_identity.clone())
-                                .aspect("topology.target_identity", half_edge_identity.clone());
-                            if let Some(path) = dependency_path {
-                                verify.aspect(
-                                    path,
+                            let verify = TopologyNativeQueryRowField::TopologyTargetIdentity
+                                .set_on(
+                                    TopologyNativeQueryRowField::TopologySourceIdentity.set_on(
+                                        TopologyNativeQueryRowField::TopologyKind.set_on(
+                                            verify,
+                                            TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                                        ),
+                                        retained_wire_identity.clone(),
+                                    ),
+                                    half_edge_identity.clone(),
+                                );
+                            if let Some(field) = dependency_path
+                                .and_then(TopologyNativeQueryRowField::from_query_aspect_path)
+                            {
+                                field.set_on(
+                                    verify,
                                     TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                                 )
                             } else {
@@ -316,23 +337,23 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                         |update| {
                             let (prior, successor) =
                                 relation_rebind_authorities[relation_id].clone();
-                            let update = update
-                                .continuity_rebind_existing_target(prior, successor)
-                                .aspect(
-                                    "topology.kind",
-                                    TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
-                                )
+                            let update = update.continuity_rebind_existing_target(prior, successor);
+                            let update = TopologyNativeQueryRowField::TopologyKind
+                                .set_on(update, TopologyRelationKind::WireOwnsHalfEdge.kind_name())
                                 .symbolic_entity_identity(
-                                    "topology.source_identity",
+                                    TopologyNativeQueryRowField::TopologySourceIdentity.touch(),
                                     ForgeQuerySymbolicTargetReference::new(
                                         created_wire_key.clone(),
                                     )
                                     .expect("created entity keys are non-empty"),
-                                )
-                                .aspect("topology.target_identity", half_edge_identity.clone());
-                            if let Some(path) = dependency_path {
-                                update.aspect(
-                                    path,
+                                );
+                            let update = TopologyNativeQueryRowField::TopologyTargetIdentity
+                                .set_on(update, half_edge_identity.clone());
+                            if let Some(field) = dependency_path
+                                .and_then(TopologyNativeQueryRowField::from_query_aspect_path)
+                            {
+                                field.set_on(
+                                    update,
                                     TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                                 )
                             } else {

@@ -2,7 +2,9 @@ use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
-use super::super::query_runtime_support::{query_relation_id_from_row, QueryRuntimeSupport};
+use super::super::query_runtime_support::{
+    query_relation_id_from_row, row_text, QueryRuntimeSupport,
+};
 use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
@@ -37,26 +39,14 @@ fn current_head_runtime_executes_splice_radial_adjacency_through_topology_mutati
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
-                .is_some_and(|kind_name| {
-                    kind_name == TopologyRelationKind::HalfEdgeRadialNext.kind_name()
-                })
+            row_text(row, ["topology", "kind"]).is_some_and(|kind_name| {
+                kind_name == TopologyRelationKind::HalfEdgeRadialNext.kind_name()
+            })
         })
         .expect("seeded topology should contain a radial relation");
-    let source_identity = relation
-        .external_row()
-        .get("topology")
-        .and_then(|value| value.get("source_identity"))
-        .and_then(|value| value.as_str())
+    let source_identity = row_text(relation, ["topology", "source_identity"])
         .expect("radial relation should expose topology.source_identity");
-    let current_target_identity = relation
-        .external_row()
-        .get("topology")
-        .and_then(|value| value.get("target_identity"))
-        .and_then(|value| value.as_str())
+    let current_target_identity = row_text(relation, ["topology", "target_identity"])
         .expect("radial relation should expose topology.target_identity");
     let half_edge_id = support.find_entity_id_by_identity(source_identity);
     let radial_next_half_edge_id = support.alternate_same_edge_half_edge_id(
@@ -137,26 +127,14 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
-                .is_some_and(|kind_name| {
-                    kind_name == TopologyRelationKind::HalfEdgeRadialNext.kind_name()
-                })
+            row_text(row, ["topology", "kind"]).is_some_and(|kind_name| {
+                kind_name == TopologyRelationKind::HalfEdgeRadialNext.kind_name()
+            })
         })
         .expect("seeded topology should contain a radial relation");
-    let source_identity = relation
-        .external_row()
-        .get("topology")
-        .and_then(|value| value.get("source_identity"))
-        .and_then(|value| value.as_str())
+    let source_identity = row_text(relation, ["topology", "source_identity"])
         .expect("radial relation should expose topology.source_identity");
-    let current_target_identity = relation
-        .external_row()
-        .get("topology")
-        .and_then(|value| value.get("target_identity"))
-        .and_then(|value| value.as_str())
+    let current_target_identity = row_text(relation, ["topology", "target_identity"])
         .expect("radial relation should expose topology.target_identity");
     let wrong_half_edge_id = support.find_entity_id_by_identity(current_target_identity);
     let radial_next_half_edge_id = support.alternate_same_edge_half_edge_id(
@@ -231,20 +209,12 @@ fn current_head_runtime_denies_splice_radial_adjacency_across_different_edges() 
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
-                .is_some_and(|kind_name| {
-                    kind_name == TopologyRelationKind::HalfEdgeRadialNext.kind_name()
-                })
+            row_text(row, ["topology", "kind"]).is_some_and(|kind_name| {
+                kind_name == TopologyRelationKind::HalfEdgeRadialNext.kind_name()
+            })
         })
         .expect("seeded topology should contain a radial relation");
-    let source_identity = relation
-        .external_row()
-        .get("topology")
-        .and_then(|value| value.get("source_identity"))
-        .and_then(|value| value.as_str())
+    let source_identity = row_text(relation, ["topology", "source_identity"])
         .expect("radial relation should expose topology.source_identity");
     let half_edge_id = support.find_entity_id_by_identity(source_identity);
     let expected_target_half_edge_id =

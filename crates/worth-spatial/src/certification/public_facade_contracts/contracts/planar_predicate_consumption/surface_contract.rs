@@ -30,17 +30,27 @@ fn predicate_consumption_family_declares_certification_and_substitute_rejection(
 
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.predicate_consumption.predicate_receipts".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.predicate_consumption.predicate_receipts"
+        )));
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.predicate_consumption.consumer_receipts".to_string()));
-    assert!(aspect_contract
-        .preserved()
-        .contains(&"geometry.predicate_consumption.certified_rows".to_string()));
-    assert!(aspect_contract
-        .preserved()
-        .contains(&"geometry.predicate_consumption.precision_metadata".to_string()));
-    assert!(aspect_contract
-        .preserved()
-        .contains(&"geometry.predicate_consumption.substitute_rejection".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.predicate_consumption.consumer_receipts"
+        )));
+    assert!(aspect_contract.preserved().contains(
+        &crate::query_contract_helpers::aspect_field_key(
+            "geometry.predicate_consumption.certified_rows"
+        )
+    ));
+    assert!(aspect_contract.preserved().contains(
+        &crate::query_contract_helpers::aspect_field_key(
+            "geometry.predicate_consumption.precision_metadata"
+        )
+    ));
+    assert!(aspect_contract.preserved().contains(
+        &crate::query_contract_helpers::aspect_field_key(
+            "geometry.predicate_consumption.substitute_rejection"
+        )
+    ));
 }

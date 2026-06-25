@@ -7,6 +7,7 @@ use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
+use crate::query_native_runtime_boundary::TopologyNativeQueryRowField;
 use crate::topology_operators::application::{
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
 };
@@ -14,6 +15,9 @@ use crate::topology_operators::authority_identity::{
     existing_entity_authority, existing_relation_authority,
 };
 use crate::topology_operators::mutation_sequence::TopologyDeclaredMutationMember;
+use crate::topology_operators::touched_graph_basis::{
+    query_aspect_touch, topology_touched_aspect_from_schema_aspect,
+};
 
 pub(super) fn bind_existing_relation_handle(
     _runner: &TopologyMutationApplicationRunner<'_, '_>,
@@ -66,15 +70,13 @@ pub(super) fn delete_existing_entity_from_graph(
 ) -> Result<(), ForgeQueryRuntimeError> {
     graph.delete_existing_verified(
         binding,
-        |verify| verify.aspect("topology.kind", expected_kind_name),
+        |verify| TopologyNativeQueryRowField::TopologyKind.set_on(verify, expected_kind_name),
         |delete| {
-            let mut delete = delete.target_collection(target_collection);
-            for path in schema::facade::query_aspect_path_strings(
-                contract.touched_aspects().iter().copied(),
-            ) {
-                delete = delete.touch(path);
-            }
-            delete
+            delete.target_collection(target_collection).touches(
+                contract.touched_aspects().iter().copied().map(|aspect| {
+                    query_aspect_touch(topology_touched_aspect_from_schema_aspect(aspect))
+                }),
+            )
         },
     )?;
     Ok(())

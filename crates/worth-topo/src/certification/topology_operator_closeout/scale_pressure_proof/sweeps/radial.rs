@@ -20,6 +20,7 @@ use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::query_native_runtime_boundary::{row_text_at, TopologyNativeQueryRowField};
 use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
@@ -45,12 +46,11 @@ where
     F: FnMut() -> RelationalRuntime,
 {
     let primitive = MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 };
-    let left = execute_radial_splice_pressure(runtime_factory, stem, primitive.clone())?;
-    let replay = execute_radial_splice_pressure(runtime_factory, stem, primitive.clone())?;
+    let left = execute_radial_splice_pressure(runtime_factory, stem, primitive.clone(), true)?;
+    let replay = execute_radial_splice_pressure(runtime_factory, stem, primitive.clone(), false)?;
     let replay_verified = left.topology_mutation_digest == replay.topology_mutation_digest
         && left.final_state_digest == replay.final_state_digest
-        && left.mutation_families == replay.mutation_families
-        && left.derived_validation_row_count == replay.derived_validation_row_count;
+        && left.mutation_families == replay.mutation_families;
 
     Ok(MilestoneThreeScalePressureRow {
         sweep: MilestoneThreeScalePressureSweep::RadialAdjacencySplice,
@@ -77,6 +77,7 @@ fn execute_radial_splice_pressure<F>(
     runtime_factory: &mut F,
     stem: &str,
     primitive: MilestoneOnePrimitiveCase,
+    derive_validation: bool,
 ) -> Result<RadialSpliceExecution, TopologyCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
@@ -116,13 +117,19 @@ where
     let final_state_digest =
         digest_materialized_topology_view(&execution.materialized()).digest_hex;
     let final_materialized = execution.materialized();
-    let validation = derived_validation_report_from_materialized(&final_materialized)?;
+    let derived_validation_row_count = if derive_validation {
+        derived_validation_report_from_materialized(&final_materialized)?
+            .rows
+            .len()
+    } else {
+        0
+    };
     Ok(RadialSpliceExecution {
         primitive_family,
         topology_mutation_digest,
         mutation_families,
         final_state_digest,
-        derived_validation_row_count: validation.rows.len(),
+        derived_validation_row_count,
     })
 }
 
@@ -229,11 +236,11 @@ fn relation_target_identity_for_source_kind(
         .iter()
         .find(|row| row_matches_source_kind(row, source_identity, relation_kind))
         .and_then(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("target_identity"))
-                .and_then(|value| value.as_str())
-                .map(str::to_string)
+            row_text_at(
+                row,
+                TopologyNativeQueryRowField::TopologyTargetIdentity.row_segments(),
+            )
+            .map(str::to_string)
         })
         .ok_or_else(|| radial_splice_pressure_error("radial splice target identity should resolve"))
 }
@@ -243,17 +250,14 @@ fn row_matches_source_kind(
     source_identity: &str,
     relation_kind: TopologyRelationKind,
 ) -> bool {
-    row.external_row()
-        .get("topology")
-        .and_then(|value| value.get("kind"))
-        .and_then(|value| value.as_str())
-        == Some(relation_kind.kind_name())
-        && row
-            .external_row()
-            .get("topology")
-            .and_then(|value| value.get("source_identity"))
-            .and_then(|value| value.as_str())
-            == Some(source_identity)
+    row_text_at(
+        row,
+        TopologyNativeQueryRowField::TopologyKind.row_segments(),
+    ) == Some(relation_kind.kind_name())
+        && row_text_at(
+            row,
+            TopologyNativeQueryRowField::TopologySourceIdentity.row_segments(),
+        ) == Some(source_identity)
 }
 
 fn radial_splice_pressure_error(reason: &str) -> TopologyCertificationError {

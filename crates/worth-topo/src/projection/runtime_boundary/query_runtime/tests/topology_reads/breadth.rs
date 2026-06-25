@@ -38,13 +38,13 @@ fn relation_update_query_support_reports_topology_read_breadth_aggregate() {
     assert_eq!(aggregate.request_count, 3);
     assert_eq!(aggregate.query_runtime_current_execution_count, 3);
     assert_eq!(aggregate.local_neighborhood_execution_count, 0);
-    assert_eq!(aggregate.anchored_expansion_execution_count, 2);
-    assert_eq!(aggregate.explicit_broad_search_execution_count, 1);
+    assert_eq!(aggregate.anchored_expansion_execution_count, 0);
+    assert_eq!(aggregate.explicit_broad_search_execution_count, 3);
     assert_eq!(aggregate.locality_claim_mismatch_count, 0);
     assert_eq!(aggregate.query_execution_count, 3);
     assert_eq!(aggregate.row_scan_fallback_count, 0);
     assert_eq!(aggregate.lowered_traversal_count, 5);
-    assert_eq!(aggregate.relationship_proof_admission_count, 8);
+    assert_eq!(aggregate.relationship_proof_admission_count, 6);
     assert_eq!(aggregate.whole_view_fallback_count, 0);
     assert_eq!(aggregate.repeated_rediscovery_denied_count, 0);
     assert_eq!(aggregate.debt_rows.len(), 0);
@@ -63,7 +63,7 @@ fn relation_update_query_support_reports_topology_read_breadth_aggregate() {
             && row.request_count == 2
             && row.query_execution_count == 2
             && row.lowered_traversal_count == 4
-            && row.relationship_proof_admission_count == 6
+            && row.relationship_proof_admission_count == 4
             && row.row_scan_fallback_count == 0
             && row.whole_view_fallback_count == 0
     }));

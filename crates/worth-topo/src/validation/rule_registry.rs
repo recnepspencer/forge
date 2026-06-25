@@ -47,6 +47,10 @@ pub(crate) const DERIVED_TOPOLOGY_RULE_SPECS: [TopologyValidationRuleSpec; 5] = 
     },
 ];
 
+pub(crate) fn derived_topology_rule_specs() -> &'static [TopologyValidationRuleSpec] {
+    &DERIVED_TOPOLOGY_RULE_SPECS
+}
+
 pub(crate) fn rule_spec_for_name(name: &str) -> Option<&'static TopologyValidationRuleSpec> {
     DERIVED_TOPOLOGY_RULE_SPECS
         .iter()

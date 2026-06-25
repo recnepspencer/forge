@@ -3187,6 +3187,7 @@ dependencies = [
 name = "worth-kernel"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
  "forge-proof",
  "forge-query",
  "sha2",
@@ -3264,6 +3265,7 @@ dependencies = [
  "forge-runtime-bridge",
  "serde",
  "serde_json",
+ "sha2",
  "trybuild",
  "worth-primitives",
  "worth-schema",
