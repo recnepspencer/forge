@@ -1,9 +1,8 @@
-You are implementing {project.name}.
+Now go implement the phase {phase.id}: {phase.title} plan.
 
 State file: {state_file}
 Spec file: {spec_file}
 Cursor: phase {current.phase}, turn {current.turn}
-Phase: {phase.id} - {phase.title}
 
 Phase scope:
 {phase.scope}
@@ -11,51 +10,41 @@ Phase scope:
 Acceptance evidence:
 {phase.acceptance}
 
-Work this phase's plan in `notes.plan`. If no usable plan exists, write a concise
-one before editing. Continue from the nearest unfinished item.
+Use the in-chat plan from the previous runner turn as the working plan. If the
+plan is missing or clearly stale, rebuild the missing part inline in chat before
+editing. Keep following our arch laws, perf laws, composition laws, domain
+structure laws, and DX laws.
 
-Before editing each implementation slice, identify the exact plan checkpoint it
-serves: context/API, DX target, directory skeleton, implicit requirement,
-authority proof, deletion/collapse, test proof, or composition QA. If the plan
-is missing the checkpoint needed for the next edit, update the current phase's
-notes first so the work remains resumable.
+Implementation rules:
 
-Work this phase's category plan item by item. Either complete the replacement
-and delete/collapse the prior production path in the same phase, or record the
-exact mechanical blocker that prevents the hard break. Do not leave both the old
-production path and the new proof path alive as a convenience bridge. Slow
-conversions are failed implementations unless the old path is certification-only,
-capped residue, or a named query/runtime gap.
+- Work phase-relevant code only, but follow the real API boundaries wherever the
+  phase leads.
+- Prefer principled production surfaces over adapters, shims, compatibility
+  bridges, fixture-only proof, or renamed debt.
+- Make invalid states unrepresentable where the codebase gives you a reasonable
+  way to do that.
+- Keep directories and files shaped to the explicit skeleton from the plan.
+- Keep touched code and test files under the workspace line cap unless an
+  explicit exemption already exists.
+- Verify what you changed enough to know whether the phase implementation is
+  actually ready for done-check QA.
 
-For each completed slice, record in `notes.done` what changed and what proves
-it. For unfinished slices, record in `notes.remaining` the exact next source
-surface and proof step. If implementation is large, stay on `implement`; do not
-force a review turn until every acceptance item has real implementation
-evidence or a precise blocker.
+Do not put logs, command output tails, artifacts, long plans, or review findings
+into the JSON state. Put substantive implementation explanation in chat. The
+JSON state is only progress tracking.
 
-Treat adapter creation as a defect until proven otherwise. Do not add a shim,
-wrapper, bridge, compatibility facade, pass-through conversion, or old-to-new
-adapter to make callers easier unless you also prove it is mechanically barred
-from production authority and record the cap/removal trigger. If the work feels
-like it needs an adapter, first try the harder cleanup: change the callers,
-delete the old path, and make the new proof type the only ordinary route.
+When done, update the JSON state with only short progress markers:
 
-Enforce mechanically, not by convention: make invalid states unrepresentable,
-push violations to compile errors or tests, and prefer `pub(crate)` over a
-comment asking callers to behave. Scope expansion is the norm, not the
-exception — if the real fix lives behind a blocker in another module or crate,
-expand into it and build the blocker. Do not widen an API, expose a raw seam, or
-leave an escape hatch to dodge hard work, and do not mark debt unless the
-blocker fix is genuinely major and mechanically contained, exactly as the debt
-law requires.
+- `status: complete` and `qa_status: needed` if implementation is ready for the
+  phase-done check.
+- `status: in_progress` if implementation remains, with a short `notes.remaining`
+  marker.
+- `status: blocked` only for a precise blocker.
 
-Verify what you changed and record what proves it in `notes.verification` before
-you claim any status.
+Advance the cursor to `review` only when implementation is ready for the
+phase-done check; otherwise stay on `implement`.
 
 Phase-specific instructions:
 {phase.instructions}
-
-Record what changed, what proves it, and what remains in this phase's notes; set
-status by the contract; advance the cursor.
 
 {contract}

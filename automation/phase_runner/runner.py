@@ -34,10 +34,13 @@ def run_once(
     state = load_state(state_path)
     validate_or_raise(state, state_path)
 
+    if forced_phase is not None or forced_turn is not None:
+        if not isinstance(state.get("current"), dict):
+            state["current"] = {}
     if forced_phase is not None:
-        state.setdefault("current", {})["phase"] = int(forced_phase)
+        state["current"]["phase"] = int(forced_phase)
     if forced_turn is not None:
-        state.setdefault("current", {})["turn"] = forced_turn
+        state["current"]["turn"] = forced_turn
 
     reason = cursor_reason(state)
 

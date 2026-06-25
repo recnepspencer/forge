@@ -1,0 +1,13 @@
+[package]
+name = "forge-store-physical-backend"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.1 platform-grade physical backend facade."
+
+[dependencies]
+forge-store-contracts.workspace = true
+forge-store-physical-format.workspace = true
+
+[lints]
+workspace = true

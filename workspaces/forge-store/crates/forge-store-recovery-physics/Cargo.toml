@@ -1,0 +1,15 @@
+[package]
+name = "forge-store-recovery-physics"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.4 WAL, checkpoint, LSN, and physical recovery rules."
+
+[dependencies]
+forge-store-contracts.workspace = true
+forge-store-physical-backend.workspace = true
+forge-store-physical-format.workspace = true
+forge-store-physical-integrity.workspace = true
+
+[lints]
+workspace = true

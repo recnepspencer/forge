@@ -1,0 +1,9 @@
+[package]
+name = "forge-store-contracts"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Shared Forge Store ids, classifications, errors, and contract vocabulary."
+
+[lints]
+workspace = true

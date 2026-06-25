@@ -1,0 +1,15 @@
+[package]
+name = "forge-store-operations"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.10 operational safety, backup, PITR, repair, and forensics."
+
+[dependencies]
+forge-store-contracts.workspace = true
+forge-store-offline-verifier.workspace = true
+forge-store-physical-integrity.workspace = true
+forge-store-recovery-physics.workspace = true
+
+[lints]
+workspace = true

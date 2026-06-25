@@ -1,9 +1,12 @@
-You are repairing {project.name}.
+Now lets create an in-chat plan to fix the phase {phase.id}: {phase.title}
+done-check issues. Make sure it is principled, follows our arch laws, follows
+our perf laws, and respects our current APIs.
+
+Then go implement that plan.
 
 State file: {state_file}
 Spec file: {spec_file}
 Cursor: phase {current.phase}, turn {current.turn}
-Phase: {phase.id} - {phase.title}
 
 Phase scope:
 {phase.scope}
@@ -11,36 +14,32 @@ Phase scope:
 Acceptance evidence:
 {phase.acceptance}
 
-Open findings to close:
+Open done-check summary from JSON:
 {phase.notes.findings}
 
-Fix the recorded review findings, scoped to this phase. Fix the cause, not the
-symptom: if a finding exists because an invariant was enforced by convention,
-move it up the enforcement hierarchy so the same defect cannot recur. Do not
-paper over a finding to make it disappear from the list.
+Use the detailed findings from the previous chat turn as the real repair input.
+The JSON summary is only a pointer, not the artifact of record.
 
-Before editing, write or update a repair checkpoint in this phase's notes for
-each open finding:
+Repair rules:
 
-- finding id
-- root cause
-- production surface needed for an honest fix
-- implementation change
-- deletion/collapse or capped-residue outcome
-- verification command or structural proof
+- Fix the cause, not the symptom.
+- Do not weaken tests or rename debt to make findings disappear.
+- Do not keep old authority alive through adapters, shims, wrappers, bridges, or
+  compatibility facades unless they are mechanically barred from ordinary
+  production authority.
+- Keep the repair scoped to making this phase actually done.
+- Put the repair plan, implementation explanation, and any important evidence in
+  chat, not in the JSON.
 
-Do not close findings by weakening tests, renaming residue, adding adapters, or
-moving code behind a facade while keeping the old authority path alive.
+After repair, update the JSON state only with short progress markers:
 
-For each finding, verify the repaired behavior, record the evidence in
-`notes.verification`, and mark the finding closed or still-open in
-`notes.findings`. Do not self-certify — a repaired phase returns to `review`,
-never straight to `close`.
+- `status: complete`, `qa_status: needed`, and cursor turn `review` if the phase
+  is ready to re-check.
+- `status: in_progress` and cursor turn `implement` only if substantial
+  implementation remains.
+- `status: blocked` only for a precise blocker.
 
 Phase-specific instructions:
 {phase.instructions}
-
-Record repairs, verification, and remaining findings; set status by the
-contract; advance the cursor to `review`.
 
 {contract}
