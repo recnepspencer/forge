@@ -22,11 +22,25 @@
 Make page, segment, extent, frame, manifest, and physical-reference addressing
 the mandatory substrate for the platform-grade Forge Store backend.
 
-S.1 is complete when the platform-grade backend can persist, reopen, scan, and
-locate representative authoritative and derived records through physical ids
-without deserializing the whole store into heap domain objects, and when all
-legacy heap/file/SQLite paths are fenced into explicit non-platform-grade
-capability tiers.
+S.1 is split into two closeout gates:
+
+- `S.1A PhysicalSubstrateExists`
+  proves the physical byte substrate exists: binary format law, physical
+  references, page/frame headers, page-local slots, extent-backed records,
+  segment/extent/root manifests, free-space generation posture, platform
+  facade, and basic reopen/locate/scan.
+- `S.1B PhysicalSubstrateCertification`
+  proves the substrate honestly earns the database claim: story-readable
+  certification harness, offline verifier parity, exact counters, locality and
+  complexity contracts, shortcut rejection lanes, foundational evidence export,
+  and S.2 handoff readiness.
+
+S.1 is complete when both gates close. The platform-grade backend must persist,
+reopen, scan, and locate representative authoritative and derived records
+through physical ids without deserializing the whole store into heap domain
+objects; all legacy heap/file/SQLite paths must be fenced into explicit
+non-platform-grade capability tiers; and the certification evidence must be
+readable as executable physical-law stories rather than opaque action chains.
 
 ## Why This Sequence Exists
 
@@ -54,10 +68,11 @@ store. This sequence exists to remove that ambiguity first.
 ## Minimum Closeout Spine
 
 The closeout spine is the primary architecture of S.1. Every page type,
-manifest, counter, verifier row, foundational attachment, receipt, and suite
-exists only to protect one edge in this chain:
+manifest, counter, story transcript, verifier row, foundational attachment,
+receipt, and suite exists only to protect one edge in this chain:
 
 `AcceptedHandoffReadiness`
+-> `PhysicalScenarioQualityHarness`
 -> `PhysicalFormatVocabulary`
 -> `PhysicalReferenceAuthority`
 -> `PhysicalHeaderDecodeWitness`
@@ -106,12 +121,18 @@ without heap-shaped shortcuts.
   must be separate responsibilities because they fail and evolve differently.
 - `forge_foundational_roadmap.md`
   protects shared Forge meaning without imposing shared hot-path
-  representation. S.1 must use `forge-foundational` for canonical basis,
+  representation. S.1 must use `forge-foundational` when physical evidence is
+  exported, compared, certified, supported, or handed off: canonical basis,
   digest derivation, identity/locator categories, diagnostic ontology,
   profile/materialization posture, boundary evidence, receipt/provenance
-  language, and performance-report vocabulary, while keeping Store-owned page,
-  frame, segment, extent, manifest, reference, and byte-survival authority
+  language, and performance-report vocabulary. Store-owned page, frame,
+  segment, extent, manifest, reference, and byte-survival authority stays
   inside `forge-store`.
+- Physical scenario harness design
+  protects proof ergonomics across Roadmap 2. S.1 must start a shared
+  scenario harness where readable physical-law stories lower into inspectable
+  plans, drivers, observers, oracles, and transcripts so later WAL, blob,
+  repair, security, and certification lanes extend the same proof architecture.
 - `forge_store_vision.md`
   protects the thesis that Store makes truth survive without owning truth
   semantics. S.1 gives survival a physical byte substrate while preserving
@@ -175,11 +196,17 @@ legacy backend can still present itself as platform-grade, S.1 is not closed.
 - S.1 defines physical references and persisted record framing; buffer-pool
   pinning, eviction, resident-memory budgets, and zero-copy hot-path leases
   belong to S.2
-- `forge-foundational` is a required adoption surface, not an optional
-  vocabulary note: S.1 evidence, canonical layout reports, diagnostic rows,
-  performance receipts, provenance, profiles, locators, and boundary receipts
-  must lower into the current foundational facade or record explicit adoption
-  debt when the exact surface is absent
+- Store physical authority must be locally complete without foundational
+  evidence: physical bytes, references, generations, headers, slots,
+  extents, manifests, root discovery, verifier walks, and stale-reference
+  denial must work through Store-owned witnesses before any exported evidence
+  is lowered into shared vocabulary
+- `forge-foundational` is required only at exported, compared, certified,
+  support, or handoff evidence boundaries: S.1 layout reports, diagnostic
+  rows, performance receipts, provenance, profiles, locators, and boundary
+  receipts must lower into the current foundational facade when they leave the
+  Store-local proof boundary or record explicit adoption debt when the exact
+  surface is absent
 - `forge-foundational` must not own Store physical authority: it may name
   shared boundary categories, canonical basis entries, profile families,
   diagnostic rows, performance claim posture, and receipt/provenance
@@ -232,6 +259,13 @@ S.1-grade authority is compressed into these products:
 - `PhysicalFormatVocabulary`
   - owns physical page, frame, segment, extent, slot, generation, publication,
     manifest, allocation, free-space, and binary-format terminology
+- `PhysicalScenarioQualityHarness`
+  - owns the Roadmap 2 executable proof architecture that S.1 starts and later
+    sequences extend through lane families. It owns scenario definitions,
+    lowered scenario plans, execution, drivers, observers, proof oracles,
+    evidence bundles, and stable transcripts. S.1 consumes it first for
+    physical-substrate certification; S.2 through S.12 must add lanes and
+    oracles, not fork new harness architecture.
 - `PhysicalReferenceAuthority`
   - owns sealed physical id construction, generation-bearing reference
     validation, stale-reference denial, and physical-reference canonical basis
@@ -291,6 +325,9 @@ Supporting products are not automatically public authority surfaces.
   manifest, reference, verifier, counter, and evidence surfaces
 - foundational diagnostic, profile, provenance, receipt, boundary-artifact, and
   performance vocabulary at S.1 evidence boundaries
+- Roadmap 2 scenario harness, quality lanes, drivers, observers, counter
+  expectation harness, denial expectation harness, proof oracles, lowered
+  scenario plans, and stable physical-law proof transcripts
 
 ### Explicitly Out Of Scope
 
@@ -319,9 +356,40 @@ S.1 consumes `AcceptedHandoffReadiness` from S.0 and nothing weaker. S.1 may
 inspect S.0 projections for human diagnostics, but it must not parse them to
 reconstruct source, claim, vocabulary, capability, or certification authority.
 
+### Physical Story Harness Law
+
+After Phase 2, Roadmap 2 certification tests must be expressible as named
+physical law stories that lower into inspectable executable plans. Scenario
+steps must describe the physical law being established or attacked, not private
+implementation convenience. Every story emits a stable proof transcript,
+counter trace, denial trace, and runtime/verifier parity trace when those
+concepts participate in the lane.
+
+The harness progression is mandatory:
+
+`PhysicalScenarioDefinition`
+-> `PhysicalScenarioPlan`
+-> `PhysicalScenarioExecution`
+-> `ObservedPhysicalTrace`
+-> `PhysicalProofOracleVerdict`
+-> `PhysicalStoryTranscript`
+
+Definitions own readable intent. Plans own required capabilities, storage
+boundary crossings, expected physical footprint, expected counters, expected
+denial boundary, driver requirements, observer requirements, and artifact
+policy before execution. Executors run lowered plans without re-deciding proof
+strategy. Observers collect facts. Oracles judge facts by named physical laws.
+Transcripts preserve what happened.
+
+The harness is Roadmap 2 infrastructure. Later sequences add lane families,
+drivers, observers, and oracles for buffer pools, integrity, WAL, isolation,
+I/O, blobs, indexes, formal-model alignment, operations, security, and final
+certification. They must not create sequence-local harnesses that bypass this
+progression.
+
 ### Header Decode Exclusivity Law
 
-After Phase 3, no logical decoder, record locator, verifier payload reader, or
+After Phase 5, no logical decoder, record locator, verifier payload reader, or
 physical facade method may consume raw backend bytes directly. They must
 consume `PhysicalHeaderDecodeWitness` or a stronger admitted physical view.
 
@@ -332,28 +400,53 @@ integer, filename, byte offset, SQLite row id, vector index, path string, or
 semantic artifact id. It must be a Store-owned physical reference carrying
 segment/page-or-extent/slot-or-frame/generation evidence.
 
+### Generation Ownership Law
+
+A physical reference carries the generation of the smallest reusable physical
+cell it addresses. Page-slot references validate against slot or allocation
+generation. Extent-backed references validate against extent or allocation
+generation. Root references validate against root publication generation. Page
+and segment generations may participate in broader admission, but they do not
+substitute for cell-reuse generation.
+
 ### Record Locate Exclusivity Law
 
-After Phase 4, ordinary record location consumes page-local slot state and
+After Phase 6, ordinary record location consumes page-local slot state and
 framed record placement evidence. It must not locate records by deserializing a
 whole page, whole segment, whole file, or whole store into domain objects.
 
+### Moved Slot Honesty Law
+
+S.1 may represent moved slots only as typed denial or as a single-hop physical
+forwarding record with bounded counters. Multi-hop forwarding, semantic
+redirects, cross-page forwarding policy, and compaction policy are deferred
+unless explicitly implemented, bounded, and certified in S.1. A moved slot must
+never become an unbounded locate path.
+
 ### Manifest Discovery Exclusivity Law
 
-After Phase 5, reopen, scan, locate, and offline verification consume
+After Phase 8, reopen, scan, locate, and offline verification consume
 `PhysicalRootManifest` and admitted segment/extent manifests. They must not use
 backend-private directory layout, leftover files, object maps, table schemas,
 or successful filesystem enumeration as physical discovery authority.
 
+### Root Publication Honesty Law
+
+S.1 root publication proves deterministic publication under admitted clean-close
+and explicit test-interposer scenarios. Crash recovery, torn-write repair, and
+recovery source precedence belong to S.4. S.1 must reserve enough root
+publication evidence for S.4 and must typed-deny ambiguous root states rather
+than guessing.
+
 ### Platform Facade Exclusivity Law
 
-After Phase 6, platform-grade S.1 lanes enter through the
+After Phase 10, platform-grade S.1 lanes enter through the
 `PlatformPhysicalFacade`. Private test-only append/read helpers may exist only
 inside narrow fixtures and may not mint platform-grade evidence.
 
 ### Verifier Independence Law
 
-After Phase 7, S.1 evidence must be independently inspectable from persisted
+After Phase 9, S.1 evidence must be independently inspectable from persisted
 bytes by `OfflinePhysicalVerifier`. A verifier that shares live runtime caches,
 backend-private maps, or semantic object graphs cannot close S.1.
 
@@ -408,28 +501,61 @@ src/
   s2_handoff/
 ```
 
-`forge-store-certification` owns S.1 proof, hostile fixtures, and evidence
-materialization:
+`forge-store-certification` owns Roadmap 2 proof meaning, scenario progression,
+oracles, lanes, transcripts, and evidence materialization. S.1 contributes the
+first lane family; later storage-foundation sequences extend the same harness:
 
 ```text
 src/
-  storage_foundation_s1/
-    fixtures/
-    denial_cases/
-    verifier_parity/
-    counter_proofs/
-    foundational_adoption/
-    closeout/
+  scenario_definition/
+  scenario_planning/
+  scenario_execution/
+  proof_oracles/
+  proof_transcripts/
+  evidence_bundles/
+  drivers/
+    adversarial_byte_device/
+    persisted_file_device/
+    crash_interposer/
+    legacy_backend_probe/
+    platform_backend_driver/
+    verifier_only_driver/
+  observers/
+    counter_observer/
+    storage_boundary_observer/
+    materialization_observer/
+    runtime_layout_observer/
+    offline_verifier_observer/
+    denial_boundary_observer/
+    evidence_export_observer/
+  lanes/
+    physical_substrate/
+    buffer_pool/
+    integrity/
+    wal_recovery/
+    physical_isolation/
+    io_qos/
+    blob_chunks/
+    layout_indexes/
+    formal_model_alignment/
+    operations_repair/
+    security_tenant/
+    physical_certification/
 ```
 
-`forge-store-test-support` may own reusable S.1 fixture support only when the
-support has a real Roadmap 2 testing lifecycle:
+`forge-store-test-support` owns reusable mechanical fixtures and deterministic
+test machinery. It must not own story meaning, proof lanes, oracle semantics,
+or certification evidence authority:
 
 ```text
 src/
-  physical_backend_fixture/
-  storage_boundary_interposer/
-  persisted_byte_fixture/
+  byte_devices/
+  fault_injection/
+  persisted_fixtures/
+  clocks_and_schedulers/
+  workload_generators/
+  counter_capture/
+  temp_store_layouts/
 ```
 
 Skeleton rules:
@@ -438,15 +564,66 @@ Skeleton rules:
 - physical-format internals remain private unless exported through contracts or
   the platform facade
 - certification fixtures may not become production constructors
+- scenario setup may mutate private backend state only inside explicitly named
+  adversarial fixtures; ordinary platform-grade lanes must use production
+  constructors and facade operations
+- story transcripts must remain stable enough to compare across replay
+- new database capabilities add lane families, observers, drivers, and oracles;
+  they do not add new harness architecture
+- `forge-store-test-support` may be dumb and reusable, but
+  `forge-store-certification` owns what the fixture proves
 - no directory may be named after `s1`, `phase`, `helpers`, `utils`, or
   `common` unless the directory is a certification profile or artifact output
   where the sequence itself is the subject
 
 ## Required Contracts And Counters
 
+### Roadmap 2 Scenario Harness Contract
+
+Required surfaces:
+
+- `PhysicalScenarioDefinition`
+- `PhysicalScenarioPlan`
+- `PhysicalScenarioExecution`
+- `ObservedPhysicalTrace`
+- `PhysicalProofOracleVerdict`
+- `PhysicalStoryTranscript`
+- `PhysicalScenarioDriver`
+- `PhysicalScenarioObserver`
+- `PhysicalProofOracle`
+
+Rules:
+
+- every certification story starts as a definition that names the physical law
+  it proves or attacks
+- every definition must lower into a scenario plan before execution
+- every plan must expose required capabilities, driver requirements, observer
+  requirements, storage boundary crossings, expected physical footprint,
+  expected counters, expected denial boundary, expected verifier/runtime
+  relationship, artifact policy, and transcript identity basis
+- executors may run lowered plans but may not re-decide driver class, observer
+  set, proof strategy, artifact policy, expected counters, or denial boundary
+- observers collect facts and must remain independent of proof oracles
+- proof oracles judge observed facts by named architectural laws, not by
+  anonymous assertion chains
+- transcripts are stable evidence artifacts and must be replay-comparable
+- S.2 through S.12 extend the harness by adding lane families, drivers,
+  observers, and oracles; they must not fork the definition/planning/execution
+  architecture
+- `forge-store-test-support` may provide reusable bytes, clocks, faults,
+  workloads, temporary layouts, and counter capture; it may not own proof-lane
+  meaning, oracle verdicts, or evidence-bundle authority
+
+Naive trap this prevents:
+
+- building a polished S.1 story DSL that becomes unusable for WAL crash
+  matrices, blob streaming, repair forensics, tenant/security tests, and S.12
+  certification, forcing each later sequence to invent its own harness.
+
 ### Foundational Adoption Contract
 
-Required `forge-foundational` source surfaces:
+Required `forge-foundational` source surfaces at exported, compared,
+certified, support, and handoff evidence boundaries:
 
 - `forge_foundational::canonicalization_api::lower_lane::basis`
   for S.1 canonical basis sequences over physical layout reports, manifest
@@ -540,6 +717,11 @@ Rules:
   directory offsets, extent starts, and manifest records
 - unknown page/frame/manifest kinds fail typed unless a declared forward
   compatibility policy admits skip, preserve, or unsupported behavior
+- format admission, format rejection, format preservation, format migration,
+  and format downgrade refusal must be distinct postures. S.1 may declare full
+  migration out of scope, but it must reserve an explicit future migration lane
+  and must never treat downgrade or unknown-kind preservation as successful
+  admission.
 - reserved fields may be serialized only with a declared zero/preserved/ignored
   rule; they may not contain backend-private meaning
 - binary format construction must not depend on serde map ordering, struct
@@ -609,6 +791,12 @@ Rules:
 
 - no physical reference may omit segment id, page or extent id, slot/frame
   position, and generation
+- the generation in a physical reference belongs to the smallest reusable
+  physical cell being addressed: slot/allocation generation for page-slot
+  references, extent/allocation generation for extent-backed references, and
+  root publication generation for root references
+- page or segment generation may participate in admission but must not
+  substitute for cell-reuse generation
 - stale generation reuse must produce a typed stale-reference failure before
   logical decode
 - physical ids are placement identities, not semantic artifact identities
@@ -887,9 +1075,159 @@ are written.
 
 - None.
 
-### Phase 2: Define Binary Physical Format Law
+### Phase 2: Build Roadmap 2 Scenario Harness And Quality Grammar
 
-Phase 2 makes persisted bytes deterministic before any physical reference,
+Phase 2 builds the executable proof architecture Roadmap 2 uses to develop and
+certify the database. This phase closes the risk that S.1 tests become
+readable but sequence-local, or that later WAL, blob, repair, security, and
+S.12 certification work invent incompatible harnesses.
+
+**Relevant subsystems**
+
+- `forge-store-certification`
+- `forge-store-test-support`
+- `forge-store-contracts`
+- `forge-store-physical-format`
+- `forge-foundational`
+
+**Relevant APIs**
+
+- `PhysicalScenarioQualityHarness`
+- `PhysicalScenarioDefinition`
+- `PhysicalScenarioPlan`
+- `PhysicalScenarioExecution`
+- `ObservedPhysicalTrace`
+- `PhysicalProofOracleVerdict`
+- `PhysicalStoryTranscript`
+- `ScenarioCounterTrace`
+- `ScenarioDenialTrace`
+- `RuntimeVerifierParityTrace`
+- `FixtureAdversaryReport`
+- `PhysicalScenarioDriver`
+- `PhysicalScenarioObserver`
+- `PhysicalProofOracle`
+- `AdversarialByteDeviceDriver`
+- `PersistedFileDeviceDriver`
+- `CrashInterposerDriver`
+- `LegacyBackendProbeDriver`
+- `PlatformBackendDriver`
+- `VerifierOnlyDriver`
+- `CounterObserver`
+- `StorageBoundaryObserver`
+- `MaterializationObserver`
+- `RuntimeLayoutObserver`
+- `OfflineVerifierObserver`
+- `DenialBoundaryObserver`
+- `EvidenceExportObserver`
+
+**Required build shape**
+
+- This phase implements the mandatory harness progression:
+  `PhysicalScenarioDefinition` -> `PhysicalScenarioPlan` ->
+  `PhysicalScenarioExecution` -> `ObservedPhysicalTrace` ->
+  `PhysicalProofOracleVerdict` -> `PhysicalStoryTranscript`.
+- This phase defines story definitions as readable intent. Definitions name the
+  physical law being proved or attacked and may use builder progression for
+  ordered proof steps, but they do not execute storage operations directly.
+- This phase defines scenario plans as the accountability surface. A plan must
+  expose required capabilities, driver requirements, observer requirements,
+  storage boundary crossings, expected physical footprint, expected counters,
+  expected denial boundary, expected verifier/runtime relationship, workload
+  scale, fixture adversary posture, artifact policy, and transcript identity
+  basis before execution.
+- This phase defines scenario execution as a lowered-plan executor. The
+  executor may run plans but may not re-decide proof strategy, capability
+  requirements, artifact policy, observer set, driver class, or expected
+  locality/counter contracts.
+- This phase defines observers as independent fact collectors:
+  `CounterObserver`, `StorageBoundaryObserver`, `MaterializationObserver`,
+  `RuntimeLayoutObserver`, `OfflineVerifierObserver`,
+  `DenialBoundaryObserver`, and `EvidenceExportObserver`.
+- This phase defines proof oracles as named architectural judgments:
+  `NoWholeStoreMaterialization`, `HeaderDecodePrecedesPayloadView`,
+  `StaleGenerationDeniedBeforeLogicalDecode`,
+  `VerifierRuntimeLayoutParity`,
+  `LocateByReferenceIgnoresUnrelatedGrowth`, and
+  `RootAmbiguityDeniedNotGuessed`.
+- This phase defines drivers for execution substrates:
+  adversarial byte device, persisted file device, crash/interruption
+  interposer, legacy backend probe, platform backend candidate, and
+  verifier-only reader.
+- This phase defines story steps named by physical laws:
+  `given_clean_physical_store`, `given_legacy_backend_attempts_platform_claim`,
+  `when_authoritative_record_is_appended`,
+  `when_store_closes_and_reopens_from_bytes`,
+  `then_record_locates_by_physical_reference`,
+  `then_no_whole_store_materialization_occurred`, and
+  `then_offline_verifier_matches_runtime_layout`.
+- This phase defines the initial `lanes/physical_substrate` family for S.1:
+  `happy_authority_lane`, `hostile_reference_lane`,
+  `hostile_format_lane`, `legacy_overclaim_lane`,
+  `offline_verifier_lane`, `scale_locality_lane`,
+  `foundational_export_lane`, and `s2_handoff_lane`.
+- This phase reserves lane families for S.2 through S.12:
+  `buffer_pool`, `integrity`, `wal_recovery`, `physical_isolation`, `io_qos`,
+  `blob_chunks`, `layout_indexes`, `formal_model_alignment`,
+  `operations_repair`, `security_tenant`, and `physical_certification`.
+- This phase makes every story emit stable machine-checkable outputs:
+  `physical_story_transcript`, `scenario_counter_trace`,
+  `scenario_denial_trace`, `runtime_verifier_parity_trace`,
+  `shortcut_rejection_trace`, and `fixture_adversary_report`.
+- This phase maps every acceptance matrix row to one or more quality lanes so
+  proof topology is visible before implementation starts.
+
+**Warnings**
+
+- Do not build a cute test DSL that hides physical authority. The grammar must
+  name the law each step proves or attacks.
+- Do not let the story layer own mechanics. Stories define proof intent; plans
+  own resolved capability and cost; drivers own substrate execution; observers
+  collect facts; oracles judge facts; transcripts preserve evidence.
+- Do not let scenario setup mutate private backend state unless the story names
+  an adversarial fixture boundary.
+- Do not let story helpers become production constructors.
+- Do not put lane meaning into `forge-store-test-support`; test support is
+  reusable machinery, not certification authority.
+- Do not add a WAL harness, blob harness, repair harness, or S.12 harness.
+  Add lane families, observers, drivers, and oracles to the Roadmap 2 harness.
+
+**Test requirements**
+
+- Adversarial parity: the same scenario definition lowers into the same
+  scenario plan, and replay through runtime and verifier observers emits
+  stable transcript identity, counter trace identity, and parity-trace identity
+  for admitted structures.
+- Adversarial denial: a story that tries to satisfy platform-grade evidence
+  through legacy overclaim, backend residue, whole-store materialization, or a
+  sequence-local harness shortcut fails during plan admission or oracle
+  judgment with the named boundary recorded in the denial trace.
+- Harness-quality proof: every S.1 certification row is assigned to a named
+  `physical_substrate` lane and emits a transcript that can be read without
+  inspecting private helper calls.
+- Roadmap-scale proof: stub lane-family definitions for S.2 through S.12 can
+  register oracle families and driver requirements without changing the
+  harness architecture or moving fixtures out of `forge-store-test-support`.
+
+**Engineering decisions**
+
+- The harness is a first-class Roadmap 2 authority product because it turns the
+  physical database architecture into executable language.
+- Friendly stories lower into inspectable plans before execution.
+- Definitions, plans, execution, observers, oracles, transcripts, and evidence
+  bundles are separate responsibilities.
+- Counter assertions attach to the story step that caused the work.
+- Denial assertions name the boundary where failure occurred.
+- Runtime/verifier parity is a harness workflow, not a late closeout
+  convenience.
+- New database capabilities add lanes and oracles, not new harness structure.
+
+**Open questions**
+
+- None.
+
+### Phase 3: Define Binary Physical Format Law
+
+Phase 3 makes persisted bytes deterministic before any physical reference,
 header witness, page, or manifest can claim reopen authority. This phase closes
 the serializer-accident hole.
 
@@ -958,11 +1296,12 @@ the serializer-accident hole.
 
 - None.
 
-### Phase 3: Define Physical References And Header Decode Proofs
+### Phase 4: Define Physical Identity And Generation Semantics
 
-Phase 3 makes raw bytes unobservable until the physical substrate has proven
-what they are. This phase closes the proof chain from persisted byte address to
-header-admitted payload view.
+Phase 4 makes physical identity and generation reuse precise before any header
+or payload view can rely on an address. This phase closes the stale-reference
+hole by defining exactly which reusable physical cell owns the generation a
+reference carries.
 
 **Relevant subsystems**
 
@@ -974,9 +1313,10 @@ header-admitted payload view.
 **Relevant APIs**
 
 - `PhysicalReference`
-- `PhysicalHeaderDecodeWitness`
-- `PhysicalHeaderDecodeReport`
 - `StalePhysicalReference`
+- `PhysicalGenerationOwner`
+- `PhysicalCellReuseDomain`
+- `PhysicalReferenceAdmissionWitness`
 - `forge_foundational::canonicalization_api::lower_lane::basis`
 - `forge_foundational::canonicalization_api::lower_lane::digest`
 - `forge_foundational::canonicalization_api::lower_lane::comparison`
@@ -985,38 +1325,44 @@ header-admitted payload view.
 
 - This phase implements sealed construction for physical ids and references.
 - This phase implements stale-generation-aware reference validation.
-- This phase defines page and frame header formats with reserved integrity and
-  recovery fields.
-- This phase defines header decode reports and witnesses.
-- This phase rejects unknown or incompatible page/frame kinds before logical
-  decode.
-- This phase lowers header reports and reference identities into foundational
-  canonical basis entries before digest derivation.
-- This phase exposes header-decode and stale-generation counters.
+- This phase defines generation ownership for page-slot references,
+  extent-backed references, root references, free-space reuse, and broader page
+  or segment admission.
+- This phase requires page-slot references to validate against slot/allocation
+  generation, extent-backed references to validate against extent/allocation
+  generation, and root references to validate against root publication
+  generation.
+- This phase rejects any implementation where page generation or segment
+  generation substitutes for the smallest reusable cell generation.
+- This phase lowers reference identities and generation-owner rows into
+  foundational canonical basis entries only when exported, compared, or
+  certified.
+- This phase exposes physical-reference-validation and stale-generation
+  counters.
 - This phase adds compile-fail coverage for synthesizing physical decode
-  witnesses outside physical substrate authority.
+  references outside physical substrate authority.
 
 **Warnings**
 
-- Do not expose raw payload bytes as a convenience accessor before header
-  witness construction.
 - Do not use semantic artifact digests as physical reference identity.
-- Do not make checksum slots imply S.3 physical integrity completion.
+- Do not validate a slot-level reference using only page or segment generation.
+- Do not let free-space reuse happen without generation evidence.
 
 **Test requirements**
 
-- Adversarial parity: two independently decoded copies of the same admitted
-  header produce the same foundational canonical basis and Store physical
-  digest wrapper.
-- Adversarial denial: an unknown frame kind, length mismatch, or stale
-  generation reference is rejected before logical decode, and
-  `physical_logical_decode_after_invalid_header_count` remains zero.
-- Compile-fail: callers cannot construct `PhysicalHeaderDecodeWitness` or
-  `PhysicalReference` from raw fields outside the proving module.
+- Adversarial parity: two independently constructed references to the same
+  admitted physical cell carry the same generation owner and canonical
+  reference basis.
+- Adversarial denial: a slot-reuse, extent-reuse, free-space-reuse, or
+  root-publication-reuse fixture rejects the old reference before any header or
+  logical decode can run.
+- Compile-fail: callers cannot construct `PhysicalReference` or
+  `PhysicalReferenceAdmissionWitness` from raw fields outside the proving
+  module.
 
 **Engineering decisions**
 
-- Header admission is the first proof-bearing physical transition.
+- Reference admission is the first proof-bearing physical identity transition.
 - Store wraps foundational digest values where the digest participates in
   Store-specific physical authority.
 - Reference validation consumes generation-bearing physical reference types and
@@ -1026,9 +1372,82 @@ header-admitted payload view.
 
 - None.
 
-### Phase 4: Implement Page-Local Record Framing
+### Phase 5: Define Header Decode Witnesses
 
-Phase 4 turns pages into addressable containers rather than serialized bags.
+Phase 5 makes raw bytes unobservable until the physical substrate has proven
+what they are. This phase closes the proof chain from admitted physical
+reference to header-admitted payload view.
+
+**Relevant subsystems**
+
+- `forge-store-contracts`
+- `forge-store-physical-format`
+- `forge-store-certification`
+- `forge-foundational` canonicalization and diagnostic vocabulary
+
+**Relevant APIs**
+
+- `PhysicalHeaderDecodeWitness`
+- `PhysicalHeaderDecodeReport`
+- `PhysicalPageHeader`
+- `PhysicalFrameHeader`
+- `PhysicalHeaderKind`
+- `PhysicalPayloadViewAdmission`
+- `forge_foundational::canonicalization_api::lower_lane::basis`
+- `forge_foundational::canonicalization_api::lower_lane::digest`
+- foundational diagnostic row/category surfaces from the facade
+
+**Required build shape**
+
+- This phase defines page and frame header formats with kind, version, length,
+  checksum slot, generation fields, publication state, reserved integrity
+  fields, and reserved recovery fields.
+- This phase defines header decode reports and witnesses.
+- This phase rejects unknown or incompatible page/frame kinds before logical
+  decode.
+- This phase checks frame length before payload view construction.
+- This phase reserves checksum and LSN fields without claiming S.3 corruption
+  localization or S.4 recovery physics.
+- This phase lowers header reports into foundational canonical basis only when
+  the report is exported, compared, certified, or handed off.
+- This phase exposes header-decode, unknown-kind, length-mismatch, and
+  logical-decode-after-invalid-header counters.
+- This phase adds compile-fail coverage for synthesizing
+  `PhysicalHeaderDecodeWitness` outside physical substrate authority.
+
+**Warnings**
+
+- Do not expose raw payload bytes as a convenience accessor before header
+  witness construction.
+- Do not make checksum slots imply S.3 physical integrity completion.
+- Do not let a semantic decoder be the first code that notices malformed bytes.
+
+**Test requirements**
+
+- Adversarial parity: two independently decoded copies of the same admitted
+  header produce the same header witness basis and Store physical digest
+  wrapper.
+- Adversarial denial: unknown frame kind, unsupported version, length mismatch,
+  and reserved-field misuse are rejected before payload view or logical decode,
+  and `physical_logical_decode_after_invalid_header_count` remains zero.
+- Compile-fail: callers cannot construct `PhysicalHeaderDecodeWitness` from
+  raw fields outside the proving module.
+
+**Engineering decisions**
+
+- Header admission is the first proof-bearing physical byte transition.
+- Store owns header law; Foundational only receives exported evidence over the
+  header report.
+- Payload view access is typed as the output of header admission, not as a raw
+  byte slice convenience.
+
+**Open questions**
+
+- None.
+
+### Phase 6: Implement Page And Slot Record Framing
+
+Phase 6 turns pages into addressable containers rather than serialized bags.
 This phase closes the ordinary-record addressing contract that S.2 and S.3 will
 later lease, pin, validate, and attack.
 
@@ -1095,9 +1514,74 @@ later lease, pin, validate, and attack.
 
 - None.
 
-### Phase 5: Implement Segments, Extents, Allocation Classes, And Manifests
+### Phase 7: Implement Extent-Backed Large Record Framing
 
-Phase 5 gives pages and extents a discoverable physical universe. This phase
+Phase 7 gives large records their own physical framing instead of hiding them
+inside page-local logic. This phase closes the boundary between ordinary
+page-slot placement and variable-size extent placement.
+
+**Relevant subsystems**
+
+- `forge-store-physical-format`
+- `forge-store-contracts`
+- `forge-store-certification`
+- `forge-foundational` performance and diagnostics vocabulary
+
+**Relevant APIs**
+
+- `ExtentRecordReference`
+- `ExtentAllocationClass`
+- `ExtentFrameHeader`
+- `ExtentBackedRecordPlacement`
+- `ExtentTraversalCounterSnapshot`
+- foundational performance receipt surfaces from the facade
+- foundational diagnostic row/category surfaces from the facade
+
+**Required build shape**
+
+- This phase implements variable-size extent-backed record framing for large
+  payloads and future chunk-family readiness.
+- This phase defines the physical reference shape for extent-backed records,
+  including extent/allocation generation ownership.
+- This phase requires extent payload length and extent membership to be checked
+  before payload view construction.
+- This phase distinguishes extent-backed records from page-local moved slots.
+- This phase records extent reads, extent header decodes, extent membership
+  checks, and extent-backed locate counters.
+
+**Warnings**
+
+- Do not load an extent into a domain object to prove large-record access.
+- Do not treat an extent reference as a semantic blob or artifact identity.
+- Do not let page-local moved slots become unbounded extent traversal.
+
+**Test requirements**
+
+- Adversarial parity: a large record written through an extent-backed reference
+  reopens and locates with the same extent generation evidence and framed
+  payload bounds.
+- Adversarial denial: stale extent generation, extent length mismatch, missing
+  extent membership, and moved-slot-to-extent misuse deny before payload view
+  or logical decode.
+- Performance proof: extent-backed locate counters remain within the declared
+  extent-local bound and produce counter-backed receipt evidence when exported.
+
+**Engineering decisions**
+
+- Extents are a physical substrate for large framed records, not the S.7 blob
+  chunk tree.
+- Extent-backed placement is a peer to page-slot placement, not a special case
+  hidden inside `SlotDirectory`.
+- S.1 may reserve chunk-family allocation classes without claiming native blob
+  semantics.
+
+**Open questions**
+
+- None.
+
+### Phase 8: Implement Segments, Allocation Classes, Free Space, And Root Manifests
+
+Phase 8 gives pages and extents a discoverable physical universe. This phase
 closes the source of physical discovery so reopen and verification do not rely
 on backend-private directory layout or object maps.
 
@@ -1167,9 +1651,78 @@ on backend-private directory layout or object maps.
 
 - None.
 
-### Phase 6: Build The Platform-Grade Physical Backend Facade
+### Phase 9: Build Minimal Offline Manifest Verifier
 
-Phase 6 defines the backend-facing shape later Roadmap 2 sequences will harden.
+Phase 9 proves that persisted roots, manifests, page headers, extent headers,
+slot directories, and free-space maps are sufficient for an independent reader
+before the platform facade becomes the ordinary operation surface.
+
+**Relevant subsystems**
+
+- `forge-store-physical-format`
+- `forge-store-certification`
+- `forge-store-contracts`
+- `forge-foundational` comparison, diagnostics, provenance, and support truth
+
+**Relevant APIs**
+
+- `OfflinePhysicalVerifier`
+- `PhysicalLayoutReport`
+- `ManifestTraversalReport`
+- `MinimalManifestVerifierReport`
+- `RuntimeLayoutObserver`
+- `OfflineVerifierObserver`
+- `forge_foundational::canonicalization_api::lower_lane::comparison`
+- `forge_foundational::boundary_evidence_api::lower_lane::support`
+
+**Required build shape**
+
+- This phase implements a minimal offline verifier over persisted S.1 bytes
+  immediately after manifests exist.
+- This phase walks the root manifest, segment manifests, extent manifests,
+  page/frame headers, slot directories, and free-space maps without live
+  runtime construction.
+- This phase produces a minimal physical layout report and manifest traversal
+  report independent of backend-private object maps.
+- This phase compares minimal verifier observations with runtime layout
+  observations through the story harness parity trace.
+- This phase emits typed verifier diagnostics for missing roots, ambiguous
+  roots, invalid manifest membership, malformed headers, and unsupported
+  reserved-field posture.
+
+**Warnings**
+
+- Do not wait for the platform facade to discover whether manifests are
+  sufficient.
+- Do not reuse live runtime caches or backend object maps in the verifier.
+- Do not make verifier success depend on semantic payload decode.
+
+**Test requirements**
+
+- Adversarial parity: after root/manifest construction, the minimal offline
+  verifier and runtime observer walk the same persisted bytes into the same
+  physical layout basis.
+- Adversarial denial: missing root, ambiguous root, backend residue, malformed
+  manifest membership, and header rejection fixtures fail in the verifier
+  before semantic decode.
+- Independence proof: verifier smoke tests pass with live runtime construction
+  disabled and with backend-private maps unavailable.
+
+**Engineering decisions**
+
+- Minimal verification moves earlier than full facade parity so manifest
+  sufficiency is proven before operations depend on it.
+- Full runtime/verifier comparison and shortcut rejection remain Phase 11.
+- Verifier reports are physical evidence; support truth may describe them but
+  may not mutate them.
+
+**Open questions**
+
+- None.
+
+### Phase 10: Build The Platform-Grade Physical Backend Facade
+
+Phase 10 defines the backend-facing shape later Roadmap 2 sequences will harden.
 This phase closes the executable API boundary for S.1 physical operations.
 
 **Relevant subsystems**
@@ -1193,6 +1746,13 @@ This phase closes the executable API boundary for S.1 physical operations.
 - This phase implements physical append, read, scan, locate,
   root-manifest-publish, and reopen operations for the S.1 platform-grade
   backend candidate.
+- This phase defines root publication as a clean-close and explicit
+  test-interposer guarantee only: interrupted publication must produce a typed
+  ambiguous-root denial, not crash-recovery repair or source-precedence
+  guessing.
+- This phase reserves root publication evidence that S.4 can consume for WAL,
+  checkpoint, and torn-publication recovery without letting S.1 claim those
+  behaviors.
 - This phase keeps semantic commit-envelope authority above the physical
   facade.
 - This phase routes physical operations through production-like storage
@@ -1234,11 +1794,11 @@ This phase closes the executable API boundary for S.1 physical operations.
 
 - None.
 
-### Phase 7: Add S.1 Offline Verification
+### Phase 11: Prove Runtime/Verifier Parity And Shortcut Rejection
 
-Phase 7 creates the first independent byte-inspection path required by Roadmap
-2. This phase closes the claim that S.1 evidence can be produced without
-trusting live runtime state.
+Phase 11 proves that the runtime and offline verifier agree while shortcut
+lanes fail at named boundaries. This phase closes the claim that S.1 evidence
+can be produced without trusting live runtime state or backend-private residue.
 
 **Relevant subsystems**
 
@@ -1303,9 +1863,9 @@ trusting live runtime state.
 
 - None.
 
-### Phase 8: Prove Scale, Locality, And Complexity Boundaries
+### Phase 12: Prove Scale, Locality, And Complexity Boundaries
 
-Phase 8 proves that S.1 physical operations scale by the intended locality
+Phase 12 proves that S.1 physical operations scale by the intended locality
 surface rather than by whole-store metadata. This phase closes the gap between
 correct physical structures and scalable physical structures.
 
@@ -1372,9 +1932,9 @@ correct physical structures and scalable physical structures.
 
 - None.
 
-### Phase 9: Prove The Physical Page/Segment/Extent Substrate
+### Phase 13: Prove The Physical Page/Segment/Extent Substrate
 
-Phase 9 closes S.1 with the named suite, exact counter receipts, foundational
+Phase 13 closes S.1 with the named suite, exact counter receipts, foundational
 evidence materialization, and hostile shortcut lanes. This phase closes the
 sequence only if the evidence is independently interpretable by downstream
 Roadmap 2 work.
@@ -1655,11 +2215,11 @@ validation.
 
 - No debt is allowed merely because the robust physical implementation is
   larger than a restart demo.
-- No debt is allowed for physical reference authority, binary format law,
-  header witness construction, page-local record addressing, root manifest
-  discovery, stale-generation denial, no-whole-store-materialization proof,
-  offline verifier independence, foundational performance receipt
-  participation, or S.2 readiness construction.
+- No debt may weaken physical reference authority, binary format law, header
+  witness construction, page-local addressing, root manifest discovery,
+  stale-generation denial, no-whole-store-materialization proof, offline
+  verifier independence, foundational performance receipt participation at
+  exported/certified boundaries, or S.2 readiness construction.
 - No debt is allowed that lets raw bytes satisfy a logical decoder without a
   header witness.
 - No debt is allowed that lets raw offsets, filenames, row ids, vector indexes,
@@ -1676,6 +2236,21 @@ validation.
   attempted, failed, or synthetic work.
 - No debt is allowed that leaves foundational adoption as prose-only
   references or local lookalike types.
+
+Debt may exist only when it cannot weaken those boundaries and is explicitly
+owned by a later sequence or non-platform-grade lane. Admitted examples:
+
+- richer diagnostic materialization beyond the required typed denial rows
+- optional support truth attachments beyond required exported/certified
+  evidence boundaries
+- non-required allocation strategies beyond the S.1 candidate-search contract
+- additional page-size classes beyond the admitted baseline class
+- advanced moved-slot behavior beyond typed denial or certified single-hop
+  forwarding
+- advanced free-space policy beyond bounded search, typed defer, typed denial,
+  or maintenance signal
+- additional verifier report richness beyond the required physical layout,
+  denial, counter, and parity traces
 
 Deferred by design:
 
@@ -1700,15 +2275,26 @@ independence, bounded metadata access, or evidence materialization.
 - S.1 consumes `AcceptedHandoffReadiness` and rejects weaker S.0 artifacts.
 - production public contracts use physical domain vocabulary rather than phase
   or milestone provenance names.
+- `PhysicalScenarioQualityHarness` exists as Roadmap 2 certification
+  infrastructure, with scenario definitions, lowered plans, execution,
+  drivers, observers, proof oracles, story transcripts, quality lanes, counter
+  traces, denial traces, verifier parity traces, and adversarial fixture
+  reports.
 - binary physical format law fixes byte order, widths, magic/version fields,
   page-size classes, alignment, reserved fields, and forward compatibility.
+- format admission, rejection, preservation, migration-reserved posture, and
+  downgrade refusal are distinct outcomes.
 - physical references are sealed, generation-bearing, and stale-reuse safe.
+- generation ownership is tied to the smallest reusable physical cell each
+  reference addresses.
 - header decode witnesses are required before payload access.
 - page-local record placement works through slot directories or an equivalent
   page-local addressing table.
 - ordinary locate does not deserialize all records on a page or in the store.
 - segment and extent manifests own physical membership.
 - root manifest discovery is sufficient for reopen and offline verification.
+- root publication ambiguity is typed-denied in S.1 rather than guessed or
+  repaired as crash recovery.
 - free-space reuse carries generation evidence.
 - platform facade operations are the only platform-grade S.1 operation surface.
 - legacy heap/file/SQLite paths are fenced by capability tier.
@@ -1729,9 +2315,20 @@ independence, bounded metadata access, or evidence materialization.
 
 - physical id and reference model for pages, segments, extents, frames, slots,
   roots, epochs, and generations
+- Roadmap 2 `PhysicalScenarioQualityHarness` with scenario definitions,
+  lowered scenario plans, execution, drivers, observers, proof oracles,
+  evidence bundles, story-readable lane grammar, counter expectations, denial
+  expectations, runtime/verifier parity expectations, adversarial fixture
+  adapters, and stable proof transcripts
+- initial `lanes/physical_substrate` family plus reserved lane-family topology
+  for `buffer_pool`, `integrity`, `wal_recovery`, `physical_isolation`,
+  `io_qos`, `blob_chunks`, `layout_indexes`, `formal_model_alignment`,
+  `operations_repair`, `security_tenant`, and `physical_certification`
 - binary physical format law for byte order, integer widths, magic/version
   fields, page-size classes, alignment, reserved fields, and forward
   compatibility
+- explicit format admission, rejection, preservation, migration-reserved
+  posture, and downgrade-refusal rules
 - fixed-size page substrate for ordinary framed records
 - variable-size extent substrate for large framed records and future chunk
   families
@@ -1746,6 +2343,10 @@ independence, bounded metadata access, or evidence materialization.
 - S.1 platform-grade physical backend facade for append, read, scan, locate,
   root publication, and reopen
 - stale-generation detection and typed stale-reference failures
+- generation ownership rule for slot/allocation, extent/allocation, and root
+  publication reuse domains
+- typed root-publication ambiguity denial for S.1 clean-close/interposer
+  scenarios, with recovery repair deferred to S.4
 - legacy backend capability-tier classification and forbidden platform-grade
   claim reports
 - S.1 offline verifier for root, segment, extent, page, frame, slot, and
@@ -1799,6 +2400,16 @@ S.1 is complete only when the store satisfies the Roadmap 2 named suite:
 
 Required machine-checkable outputs:
 
+- `physical_story_transcript`
+- `physical_scenario_definition`
+- `physical_scenario_plan`
+- `physical_scenario_execution_report`
+- `physical_proof_oracle_verdict`
+- `scenario_counter_trace`
+- `scenario_denial_trace`
+- `runtime_verifier_parity_trace`
+- `shortcut_rejection_trace`
+- `fixture_adversary_report`
 - `physical_layout_report`
 - `artifact_digest`
 - `failure_digest`
@@ -1811,17 +2422,58 @@ Required machine-checkable outputs:
 - `foundational_boundary_evidence_bundle`
 - `foundational_counter_backed_performance_receipt`
 
-Minimum certification matrix rows:
+Minimum certification matrix rows are grouped by proof domain. Each group maps
+to at least one `PhysicalScenarioQualityHarness` quality lane and should become
+its own certification module or fixture family.
+
+**Physical story harness**
+
+- `physical_story_transcript_replay`
+  replays a representative authority story and proves transcript, counter
+  trace, denial trace, and runtime/verifier parity trace identity across
+  independent observers.
+- `physical_scenario_plan_lowering_replay`
+  lowers the same `PhysicalScenarioDefinition` twice and proves required
+  capabilities, driver requirements, observer requirements, expected boundary
+  crossings, artifact policy, counter expectations, and denial expectations
+  are identical before execution.
+- `roadmap_lane_family_extension_without_harness_fork`
+  registers stub oracle families and driver requirements for S.2 buffer pool,
+  S.4 WAL recovery, S.7 blob chunks, and S.12 physical certification without
+  changing scenario definition, planning, execution, observer, oracle,
+  transcript, or evidence-bundle architecture.
+- `test_support_cannot_own_certification_meaning`
+  attempts to place proof-lane meaning, oracle verdicts, or evidence bundle
+  authority in `forge-store-test-support` and proves the compile or admission
+  boundary rejects it; reusable fixtures may provide bytes, clocks, faults,
+  workloads, and counters only.
+
+**Physical references and generations**
 
 - `single_page_authority_reopen`
   persists an authoritative record on one page, closes, reopens from bytes, and
   locates it by physical reference.
+- `stale_generation_reference_rejected`
+  attempts to use a physical reference after generation reuse and proves typed
+  stale-reference rejection before logical decode.
+- `free_space_generation_reuse_detectable`
+  reuses free space with a new generation and proves old references do not
+  silently resolve.
+
+**Binary format**
+
 - `binary_format_golden_bytes_replay`
   proves S.1 golden bytes decode identically through explicit byte order,
   field width, magic/version, page-size, and alignment rules.
 - `binary_format_serializer_accident_rejected`
   attempts host-endian, serde-order-dependent, Rust-layout-dependent, or
   reserved-field-ambiguous format construction and proves typed rejection.
+- `binary_format_migration_posture_declared`
+  proves format admission, rejection, preservation, migration-reserved posture,
+  and downgrade refusal are distinct machine-checkable outcomes.
+
+**Page, frame, slot, and extent records**
+
 - `multi_segment_authority_scan`
   persists records across multiple segments and proves manifest traversal, page
   scan, and record locate counters match expected breadth.
@@ -1831,18 +2483,6 @@ Minimum certification matrix rows:
 - `extent_backed_large_record`
   stores a large framed record through an extent reference without whole-store
   domain materialization.
-- `root_manifest_discovery`
-  opens the store through the root manifest and discovers segment manifests,
-  extent manifests, allocation classes, and free-space maps.
-- `offline_verifier_layout_match`
-  walks persisted bytes through the S.1 verifier and matches runtime physical
-  layout reports for admitted structures.
-- `offline_verifier_runtime_disagreement_reported`
-  injects a controlled verifier/runtime mismatch and proves disagreement is
-  surfaced as evidence rather than hidden.
-- `stale_generation_reference_rejected`
-  attempts to use a physical reference after generation reuse and proves typed
-  stale-reference rejection before logical decode.
 - `unknown_frame_kind_rejected_before_decode`
   attempts to decode an unknown frame kind and proves logical decode is skipped.
 - `length_mismatch_rejected_before_payload`
@@ -1851,6 +2491,18 @@ Minimum certification matrix rows:
 - `slot_directory_locate_bounded`
   locates records by page-local slot without deserializing all records on the
   page.
+- `moved_slot_bounded_or_denied`
+  proves moved slots are either typed denial or certified single-hop physical
+  forwarding with exact bounded counters; multi-hop forwarding is rejected.
+
+**Segment, extent, root, and free-space manifests**
+
+- `root_manifest_discovery`
+  opens the store through the root manifest and discovers segment manifests,
+  extent manifests, allocation classes, and free-space maps.
+- `root_publication_ambiguity_denied`
+  injects ambiguous or interrupted root publication under the S.1 interposer
+  and proves typed denial rather than S.4-style recovery guessing.
 - `locate_by_reference_ignores_unrelated_store_growth`
   increases unrelated segments, pages, extents, manifests, and records while
   proving locate-by-reference counters remain inside the declared locality
@@ -1859,9 +2511,9 @@ Minimum certification matrix rows:
   creates fragmented free-space pressure and proves append placement remains
   within the declared candidate-search bound or produces typed defer/denial
   with fragmentation evidence.
-- `free_space_generation_reuse_detectable`
-  reuses free space with a new generation and proves old references do not
-  silently resolve.
+
+**Platform facade and legacy fences**
+
 - `legacy_heap_backend_platform_claim_rejected`
   attempts to satisfy S.1 through a heap-shaped backend and proves the platform
   claim is rejected typed.
@@ -1876,6 +2528,22 @@ Minimum certification matrix rows:
 - `backend_residue_guessing_forbidden`
   attempts reopen or locate through backend-local residue not represented in
   the root/segment/extent manifests and proves rejection.
+
+**Offline verifier and runtime parity**
+
+- `minimal_offline_verifier_manifest_smoke`
+  walks persisted root, segment, extent, page, slot, and free-space bytes
+  before facade parity and proves manifests are sufficient for an independent
+  reader.
+- `offline_verifier_layout_match`
+  walks persisted bytes through the S.1 verifier and matches runtime physical
+  layout reports for admitted structures.
+- `offline_verifier_runtime_disagreement_reported`
+  injects a controlled verifier/runtime mismatch and proves disagreement is
+  surfaced as evidence rather than hidden.
+
+**Complexity and counters**
+
 - `physical_counter_bundle_exact`
   proves page reads, page writes, frame decodes, header decodes, record locates,
   manifest lookups, allocations, stale-generation rejections, and forbidden
@@ -1883,6 +2551,9 @@ Minimum certification matrix rows:
 - `physical_complexity_contracts_verified`
   proves every required S.1 complexity contract has counter, algorithm review,
   hostile fixture, and scale/property evidence.
+
+**Foundational evidence export**
+
 - `foundational_adoption_canonical_parity`
   independently constructs S.1 layout/evidence adoption rows and proves they
   canonicalize and digest through foundational APIs to the same identity.
@@ -1898,6 +2569,9 @@ Minimum certification matrix rows:
   varies diagnostic richness/profile materialization and proves authoritative
   physical outcomes are unchanged while optional diagnostic/support rows are
   included or elided only at named boundaries.
+
+**S.2 handoff**
+
 - `s2_entry_rejects_weaker_physical_substrate_inputs`
   proves S.2 entry consumes `S2PhysicalSubstrateReadiness` and rejects raw
   pages, private backend handles, physical projections, or local evidence
@@ -1905,14 +2579,29 @@ Minimum certification matrix rows:
 
 Milestone-specific proof obligations:
 
+- certification lanes are story-readable, replayable, and mapped to named
+  quality lanes with stable transcripts
+- scenario definitions lower into inspectable plans before execution, and
+  executors do not re-decide capability, driver, observer, artifact policy,
+  locality, counter, denial, or oracle strategy
+- S.2 through S.12 certification work can add lane families, drivers,
+  observers, and oracles without forking the harness architecture
+- reusable test support remains mechanical fixture infrastructure and cannot
+  own proof-lane meaning, oracle verdicts, or evidence-bundle authority
 - page, frame, segment, extent, root manifest, and free-space structures are
   self-describing enough for S.1 verification
 - binary physical format law is explicit enough for cross-platform persisted
   byte replay
+- format evolution posture distinguishes admission, rejection, preservation,
+  migration-reserved behavior, and downgrade refusal
 - record location uses physical references and page-local addressing, not
   heap-domain scans
 - physical references carry generation evidence sufficient to reject stale
   reuse
+- moved-slot behavior is typed denial or certified single-hop physical
+  forwarding with bounded counters
+- root publication ambiguity is denied in S.1 and reserved for S.4 recovery
+  physics rather than guessed
 - logical decoders cannot consume bytes without header decode witnesses
 - legacy backends cannot satisfy platform-grade S.1 evidence accidentally
 - offline verifier output is independent enough to disagree with live runtime
@@ -2003,23 +2692,27 @@ eventually earn stronger claims.
   for Store-owned types.
 - Does the sequence define proof obligations, not just implementation tasks?
   Yes. It names the required suite, evidence outputs, matrix rows, exact
-  counters, shortcut rejections, offline verifier behavior, and zero-count
+  counters, shortcut rejections, offline verifier behavior, scenario
+  definition/plan/execution/oracle/transcript progression, and zero-count
   assertions.
 - Are the phases carrying most of the real design information?
-  Yes. The implementation shape lives in the nine ordered phases, with the
+  Yes. The implementation shape lives in the thirteen ordered phases, with the
   top-level sections acting as closure laws and summary gates.
 - Is each phase centered on one conceptual detail or boundary?
-  Yes. Vocabulary/capability, binary format law, reference/header proof,
-  record framing, manifests, platform facade, offline verification,
-  scale/complexity proof, and closeout evidence are split by authority and
-  proof transition.
+  Yes. Capability fences, Roadmap 2 scenario harness grammar, binary format law,
+  physical identity/generations, header witnesses, page slots, extent-backed
+  records, manifests, early verifier smoke, platform facade, runtime/verifier
+  parity, scale/locality proof, and final closeout evidence are split by
+  authority and proof transition.
 - Does each phase contain at least 2 adversarial tests by default?
   Yes. Each phase has parity/replay-style proof and denial/drift/localization
   proof, with more tests where the failure surface is broader.
 - Could a competent engineer map this spec into honest types, modules, and
   tests?
-  Yes. The spec names physical ids, binary format law, headers, slot
-  directories, manifests, allocation classes, backend tiers, verifier paths,
+  Yes. The spec names physical ids, scenario definitions, scenario plans,
+  execution reports, observers, drivers, proof oracles, story transcripts,
+  binary format law, generation ownership, headers, slot directories, extent
+  records, manifests, allocation classes, backend tiers, verifier paths,
   counters, complexity contracts, facades, directory skeletons, phases, and
   certification lanes.
 - Does each phase say how to build the boundary, not just what the boundary is?

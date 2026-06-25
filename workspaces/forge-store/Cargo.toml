@@ -27,6 +27,7 @@ members = [
     "crates/forge-store-physical-format",
     "crates/forge-store-physical-integrity",
     "crates/forge-store-physical-isolation",
+    "crates/forge-store-readiness",
     "crates/forge-store-recovery-physics",
     "crates/forge-store-replication",
     "crates/forge-store-retention",
@@ -71,6 +72,7 @@ forge-store-physical-certification = { path = "crates/forge-store-physical-certi
 forge-store-physical-format = { path = "crates/forge-store-physical-format" }
 forge-store-physical-integrity = { path = "crates/forge-store-physical-integrity" }
 forge-store-physical-isolation = { path = "crates/forge-store-physical-isolation" }
+forge-store-readiness = { path = "crates/forge-store-readiness" }
 forge-store-recovery-physics = { path = "crates/forge-store-recovery-physics" }
 forge-store-replication = { path = "crates/forge-store-replication" }
 forge-store-retention = { path = "crates/forge-store-retention" }

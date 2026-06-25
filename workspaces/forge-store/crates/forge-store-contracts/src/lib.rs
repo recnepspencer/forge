@@ -1,4 +1,33 @@
+//! Store contract vocabulary.
+//!
+//! External callers cannot mint physical authority witnesses directly:
+//!
+//! ```compile_fail
+//! use forge_store_contracts::{
+//!     PhysicalAuthorityScope, StorePhysicalAuthorityWitness, ROADMAP_2_S1_SCOPE,
+//! };
+//!
+//! let _forged = StorePhysicalAuthorityWitness {
+//!     roadmap_scope: ROADMAP_2_S1_SCOPE,
+//!     authority_scope: PhysicalAuthorityScope::PhysicalEvidenceExport,
+//! };
+//! ```
+
 #![forbid(unsafe_code)]
+
+mod artifact_identity;
+mod contract_error;
+mod handoff_readiness;
+mod physical_authority;
+mod roadmap_scope;
+
+pub use artifact_identity::{StableArtifactId, StableDigest};
+pub use contract_error::{StoreContractError, StoreContractResult};
+pub use handoff_readiness::{
+    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, S0HandoffArtifactKind,
+};
+pub use physical_authority::{PhysicalAuthorityScope, StorePhysicalAuthorityWitness};
+pub use roadmap_scope::{RoadmapScope, ROADMAP_2_S1_SCOPE, ROADMAP_2_SCOPE};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DurableArtifactClass {
@@ -14,60 +43,4 @@ pub enum DerivedAccuracyClass {
     Approximate,
     Heuristic,
     Advisory,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RoadmapScope {
-    pub roadmap: &'static str,
-    pub sequence: &'static str,
-}
-
-impl RoadmapScope {
-    pub const fn new(roadmap: &'static str, sequence: &'static str) -> Self {
-        Self { roadmap, sequence }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StableArtifactId(String);
-
-impl StableArtifactId {
-    pub fn new(value: impl Into<String>) -> Result<Self, StoreContractError> {
-        let value = value.into();
-        if value.trim().is_empty() {
-            return Err(StoreContractError::EmptyStableId);
-        }
-        Ok(Self(value))
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StableDigest(String);
-
-impl StableDigest {
-    pub fn new(value: impl Into<String>) -> Result<Self, StoreContractError> {
-        let value = value.into();
-        if value.trim().is_empty() {
-            return Err(StoreContractError::EmptyDigest);
-        }
-        Ok(Self(value))
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-pub type StoreContractResult<T> = Result<T, StoreContractError>;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StoreContractError {
-    EmptyStableId,
-    EmptyDigest,
-    EmptyRequiredField,
-    UnsupportedRoadmapClaim,
 }

@@ -1,0 +1,52 @@
+use crate::{
+    PhysicalGenerationOwner, PhysicalReference, PhysicalReferenceValidationCounterSnapshot,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PhysicalReferenceAdmissionWitness {
+    reference: PhysicalReference,
+}
+
+impl PhysicalReferenceAdmissionWitness {
+    pub(crate) const fn new(reference: PhysicalReference) -> Self {
+        Self { reference }
+    }
+
+    pub const fn reference(self) -> PhysicalReference {
+        self.reference
+    }
+
+    pub fn owner(self) -> PhysicalGenerationOwner {
+        self.reference.generation_owner()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PhysicalReferenceValidationWitness {
+    reference: PhysicalReference,
+    counters: PhysicalReferenceValidationCounterSnapshot,
+}
+
+impl PhysicalReferenceValidationWitness {
+    pub(crate) const fn new(
+        reference: PhysicalReference,
+        counters: PhysicalReferenceValidationCounterSnapshot,
+    ) -> Self {
+        Self {
+            reference,
+            counters,
+        }
+    }
+
+    pub const fn reference(self) -> PhysicalReference {
+        self.reference
+    }
+
+    pub const fn counters(self) -> PhysicalReferenceValidationCounterSnapshot {
+        self.counters
+    }
+
+    pub fn owner(self) -> PhysicalGenerationOwner {
+        self.reference.generation_owner()
+    }
+}

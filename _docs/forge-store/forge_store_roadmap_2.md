@@ -276,6 +276,8 @@ deserializing the whole store into domain structs.
 
 ## S.2: Buffer Pool, Memory Budgets, And Zero-Copy Record Access
 
+Engineering spec: [storage-foundation-s2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s2.md)
+
 ### Goal
 
 Make memory residency bounded and explicit.
