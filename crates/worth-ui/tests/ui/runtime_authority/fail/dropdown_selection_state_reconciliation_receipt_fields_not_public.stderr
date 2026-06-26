@@ -1,7 +1,0 @@
-error[E0451]: field `status` of struct `WorthUiDropdownSelectionStateReconciliationReceipt` is private
- --> tests/ui/runtime_authority/fail/dropdown_selection_state_reconciliation_receipt_fields_not_public.rs:7:9
-  |
-6 |     let _forged = WorthUiDropdownSelectionStateReconciliationReceipt {
-  |                   -------------------------------------------------- in this type
-7 |         status: WorthUiDropdownSelectionStateStatus::Empty,
-  |         ^^^^^^ private field

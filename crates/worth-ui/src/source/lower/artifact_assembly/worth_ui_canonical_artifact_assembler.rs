@@ -5,10 +5,10 @@ use crate::source::{
     WorthUiArtifactAssemblyReport, WorthUiArtifactBindingHandle, WorthUiArtifactBindingNode,
     WorthUiArtifactComponentHandle, WorthUiArtifactComponentNode, WorthUiArtifactHandle,
     WorthUiArtifactImportHandle, WorthUiArtifactImportNode, WorthUiArtifactModule,
-    WorthUiArtifactNode, WorthUiArtifactPageHandle, WorthUiArtifactPageNode,
-    WorthUiArtifactSurfaceHandle, WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenHandle,
-    WorthUiArtifactThemeTokenNode, WorthUiIdentitySeededArtifactInput,
-    WorthUiIdentitySeededArtifactInputNode, WorthUiSourceModuleId,
+    WorthUiArtifactNode, WorthUiArtifactSurfaceHandle, WorthUiArtifactSurfaceNode,
+    WorthUiArtifactThemeTokenHandle, WorthUiArtifactThemeTokenNode,
+    WorthUiIdentitySeededArtifactInput, WorthUiIdentitySeededArtifactInputNode,
+    WorthUiSourceModuleId,
 };
 
 use super::{
@@ -110,19 +110,6 @@ fn assemble_node(
                     node_index,
                 )),
                 node.target().clone(),
-                node.identity_seed().clone(),
-                node.durable_state_eligibility().clone(),
-            ))
-        }
-        WorthUiIdentitySeededArtifactInputNode::Page(node) => {
-            WorthUiArtifactNode::Page(WorthUiArtifactPageNode::new(
-                WorthUiArtifactHandle::Page(WorthUiArtifactPageHandle::new(
-                    module_id.clone(),
-                    node_index,
-                )),
-                node.name_text(),
-                node.template_parameters().to_vec(),
-                node.bound_node().structure().clone(),
                 node.identity_seed().clone(),
                 node.durable_state_eligibility().clone(),
             ))

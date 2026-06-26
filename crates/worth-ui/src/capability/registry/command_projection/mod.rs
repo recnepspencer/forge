@@ -11,8 +11,8 @@ pub use descriptor::{
     CommandProjectionCommandReference, CommandProjectionDescriptor, CommandProjectionGrouping,
     CommandProjectionIconLabelPolicy, CommandProjectionMeaningOverride,
     CommandProjectionMosaicScope, CommandProjectionOrdering, CommandProjectionOverflowBehavior,
-    CommandProjectionReadinessDisplayPolicy, CommandProjectionSelectionMode,
-    CommandProjectionShortcutVisibility, CommandProjectionSurface,
+    CommandProjectionReadinessDisplayPolicy, CommandProjectionShortcutVisibility,
+    CommandProjectionSurface,
 };
 pub use frozen_command_projection_capabilities::FrozenCommandProjectionCapabilities;
 pub use frozen_command_projection_entry::FrozenCommandProjectionEntry;

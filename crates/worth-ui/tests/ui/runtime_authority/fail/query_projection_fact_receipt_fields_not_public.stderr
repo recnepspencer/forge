@@ -1,9 +1,0 @@
-error[E0451]: fields `receipt_identity` and `receipt_digest` of struct `WorthUiQueryProjectionFactReceipt` are private
- --> tests/ui/runtime_authority/fail/query_projection_fact_receipt_fields_not_public.rs:5:9
-  |
-4 |     let _ = WorthUiQueryProjectionFactReceipt {
-  |             --------------------------------- in this type
-5 |         receipt_identity: "validation.query.products.rows".to_owned(),
-  |         ^^^^^^^^^^^^^^^^ private field
-6 |         receipt_digest: 42,
-  |         ^^^^^^^^^^^^^^ private field

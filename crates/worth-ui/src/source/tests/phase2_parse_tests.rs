@@ -189,44 +189,9 @@ fn nested_block_tokens_preserve_structure_without_trivia_noise() {
                 .body()
                 .tokens()
                 .iter()
-                .any(|token| matches!(token.kind(), WorthUiSourceTokenKind::KeywordComponent)));
+                .any(|token| matches!(token, WorthUiSourceTokenKind::KeywordComponent)));
         }
         _ => panic!("expected surface declaration"),
-    }
-}
-
-#[test]
-fn page_template_parameters_parse_as_typed_structure() {
-    let package = WorthUiSourcePackageLoader::from_workspace_root(r"C:\workspace")
-        .register_module_with_source(
-            "app/main.wui",
-            r#"
-            page ProductDetailPage(product_id: ProductId, shop_id: ShopId) {
-                runtime ProductDetailRuntime
-                layout ProductDetailLayout
-                content ProductDetailContent
-            }
-            "#,
-        )
-        .compile()
-        .expect("package should compile");
-
-    let parsed_package =
-        WorthUiSourceParser::parse_package(&package).expect("package should parse");
-    let module = parsed_package
-        .module(&package.module_ids()[0])
-        .expect("parsed module should exist");
-
-    match &module.declarations()[0] {
-        WorthUiParsedSourceDeclaration::Page(page) => {
-            let parameters = page.template_parameters();
-            assert_eq!(parameters.len(), 2);
-            assert_eq!(parameters[0].name_text(), "product_id");
-            assert_eq!(parameters[0].type_text(), "ProductId");
-            assert_eq!(parameters[1].name_text(), "shop_id");
-            assert_eq!(parameters[1].type_text(), "ShopId");
-        }
-        _ => panic!("expected page declaration"),
     }
 }
 

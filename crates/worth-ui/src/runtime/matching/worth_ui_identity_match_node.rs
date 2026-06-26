@@ -9,7 +9,6 @@ pub enum WorthUiIdentityMatchNodeSide {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum WorthUiIdentityMatchNodeKind {
     Import,
-    Page,
     Component,
     Surface,
     Binding,
@@ -83,7 +82,6 @@ impl WorthUiIdentityMatchNodeKind {
     pub(crate) fn from_artifact_kind(kind: WorthUiArtifactNodeKind) -> Self {
         match kind {
             WorthUiArtifactNodeKind::Import => Self::Import,
-            WorthUiArtifactNodeKind::Page => Self::Page,
             WorthUiArtifactNodeKind::Component => Self::Component,
             WorthUiArtifactNodeKind::Surface => Self::Surface,
             WorthUiArtifactNodeKind::Binding => Self::Binding,

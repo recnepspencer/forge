@@ -45,26 +45,8 @@ The shipped baseline for Worth UI today is:
 - the milestone ordering needed to avoid drifting into widget-first or
   application-local infrastructure before the platform foundations exist
 
-Milestones 1 through 3 have now closed the platform skeleton, canonical
-artifact, and active runtime/execution-plan foundations. In particular,
-Milestone 3 absorbed more of the original shell prerequisite work than the
-initial roadmap expected: durable state reconciliation, panel and tab state
-families, mosaic layout/state capability registries, command projections,
-runtime diagnostics, hot replacement, lane execution, and frame-cost
-certification are no longer future prerequisites.
-
-The next gap is therefore not another invisible primitive layer. The next gap
-is composed trust evidence: a real interactive validation app that can run,
-display, replay, and manually validate the shell and reload scenarios that are
-already mechanically supported by the runtime substrate.
-
-Milestone 4 exposed two side-quest blockers inside that work. First, hot reload
-must become a platform-wide projection rebind spine rather than a set of
-surface-specific reload exceptions. Milestone 4S closes that blocker. Second,
-the post-primitive product surface needs arbitrary runtime-owned composition
-topology rather than a flat mounted-node proof with renderer-local grouping.
-Milestone 4.1 closes that composition blocker before command, Query-bound view,
-form, component, and Shopify dashboard proof work broadens.
+This roadmap therefore tracks the work needed to turn the vision into a real
+platform sequence.
 
 ## Roadmap Rules
 
@@ -83,10 +65,6 @@ Rules for every remaining Worth UI item:
   canonical bundles, counter-backed receipts, planned reports, and readiness
   envelopes instead of inventing local performance folklore
 - each milestone must preserve a structurally explicit layout model rather than drifting back toward DOM-shaped percentage, overflow, and implicit-parent folklore
-- arbitrary local product composition must flow through a runtime-owned
-  composition graph with graph/index access planning, host measurement
-  observations, and mounted allocation receipts rather than renderer-local
-  grouping, flexbox folklore, or component-specific layout branches
 - each milestone must define concrete acceptance evidence through platform scenarios, diagnostics artifacts, performance counters, replay-safe plan behavior, tooling evidence, or certification suites
 - no milestone is complete until both implementation and trust evidence exist
 - features that depend on stable identity, shell contracts, or interaction contracts must not ship before those foundations exist
@@ -102,19 +80,16 @@ platform or a shallow collection of components:
 - canonical lowering and artifact architecture
 - hot iteration and stable identity
 - frame-efficient execution lanes and cost certification
-- interactive validation app and composed shell acceptance evidence
 - app shell and command/interaction foundations
 - Query-bound views and forms/workflow surfaces
 
 If this section is weak, everything above it inherits the same failure mode:
 
 - hot reload devolves into interpreted UI or Rust rebuild friction
-- shell behavior becomes app-local glue or invisible primitive-only proof
+- shell behavior becomes app-local glue
 - components ship without coherent focus, accessibility, or runtime posture
 - Query-bound surfaces drift back toward local caches and event plumbing
 - performance claims remain vibes rather than certified contracts
-- manual validation depends on developer memory instead of a replayable
-  platform workbench
 
 ## Milestone 1: Platform Skeleton, Facade, and Capability Registries
 
@@ -310,244 +285,53 @@ honesty.
 - steady-state frame execution proves source parsing, artifact validation,
   registry string lookup, and broad artifact scans remain absent
 
-## Milestone 4: Authoring DX Reset and Shopify Dashboard Product Hardening
-
-Detailed spec: [milestone-4.md](./milestone-4.md)
+## Milestone 4: Application Shell and Workspace Layout
 
 ### Goal
 
-Replace the current low-level Worth UI authoring surface with a first-class
-`app -> workspace -> page -> layout -> content -> surface -> component ->
-appearance` model, then harden that model by building a serious native
-Shopify-style admin dashboard on top of the existing Worth UI compiler,
-runtime, Query-binding, and hot-reload substrate.
+Make Worth UI able to host real desktop products by owning the app shell,
+workspace model, and persisted layout semantics rather than leaving them to
+every downstream application.
 
 ### Must Ship
 
-- first-class authoring for `app`, `workspace`, `page`, `layout`, `content`,
-  typed runtime families, `component`, and `appearance`
-- a workspace-owned shell with typed page navigation and shared overlays,
-  toasts, inspector, rail, and status surfaces
-- mosaic-native layout DX for `fit`, `fill`, `share`, `clamp`, `ratio`,
-  resizable regions, and explicit scroll ownership that lowers into the
-  existing structural-facts pipeline
-- typed runtime declaration families that consume existing `ViewBindingDescriptor`,
-  bound-binding, runtime-hook, and Query-support substrate rather than
-  inventing page-local hydration
-- explicit iteration bindings for repeated live collections and virtualized
-  execution
-- seam arbitration and appearance/theme separation so touching boundaries dedupe
-  by default while chrome remains distinct from structure
-- one serious native Shopify-style admin workspace with overview, products,
-  orders, and customers pages
-- reload, restore, diagnostics, and counter evidence proving the dashboard uses
-  the platform honestly
+- mosaic as the primary structural layout model for shell and page composition
+- multi-window application model
+- nested mosaic regions that can split, stack, overlay, and pin
+- region-level sizing contracts such as fixed, fill, ratio, bounded, and hug
+- explicit scroll ownership and grow-then-scroll behavior at the region level
+- dock, split, tab, sidebar, bottom-panel, and status-surface layout primitives
+  expressed through or alongside the mosaic model where appropriate
+- persisted workspace layout and restore semantics
+- menu bar, toolbar, command palette, context menu, dialog, and modal-sheet
+  shell surfaces
+- active document, active panel, and active window routing contracts
+- enough shell polish that one real workbench-style app can be built without
+  custom layout infrastructure
 
 ### Must Preserve
 
-- the existing source -> artifact -> runtime proof chain and snapshot authority
-  boundaries
-- runtime ownership of active artifact, active plan, durable state, and Query
-  posture drift
-- no browser, DOM, CSS, React, or web-view implementation escapes
-- no UI-local dependency graph, props runtime, hydration graph, or shadow shell
-  runtime
-- no broad lookup or scan regressions on the hot path
-- no layout/style/runtime blob objects that collapse distinct responsibilities
+- workspace layout remains a platform artifact, not a pile of widget-local
+  geometry state
+- mosaic remains the structural space-allocation language rather than
+  collapsing into a grab bag of unrelated layout models for ordinary shell work
+- shell meaning remains command-routed and identity-stable across reloads and
+  restore flows
+- shell does not force app authors to choose between multi-window support and
+  hot-lowered composition
+- persisted shell state remains distinct from authoritative runtime truth
 
 ### Acceptance Evidence
 
-- equivalent old-form and new-form authoring converge on the same canonical
-  artifact meaning
-- the Shopify workspace runs inside one persistent shell with materially
-  different pages and no page-local shell reimplementation
-- repeated live data proves stable iteration identity and bounded visibility
-  execution
-- seams dedupe by default and only diverge when explicit posture requires it
-- reload, restore, and theme/density changes preserve runtime truth and shell
-  continuity
-- receipts, counters, and diagnostics prove the dashboard consumes the existing
-  substrate rather than bypassing it
-
-## Milestone 4S: Hot Reloading
-
-Detailed spec: [milestone-4-hot-reloading.md](./milestone-4-hot-reloading.md)
-
-### Goal
-
-Build the runtime-owned hot reload spine that all Worth UI projections consume,
-so source, capability, Query, action, state, theme, density, appearance, shell,
-page, and component changes flow through declared changed facts, declared
-projection dependencies, typed activation evidence, runtime-owned rebind
-planning, and counter-backed certification.
-
-### Must Ship
-
-- common runtime change evidence over source, capability, Query, and state
-  reload families
-- expanded runtime fact taxonomy for source, capability, Query, layout,
-  content, shell, page, component, appearance, action, and durable-state changes
-- common projection plan contract with declared dependencies and equivalence
-  basis
-- runtime-owned projection rebind coordinator
-- broadened runtime authoring snapshot derived from the existing source and
-  artifact pipeline
-- generalized capability reload family pipeline
-- canonical appearance and density descriptors with typed values, stable digest
-  bases, and appearance/density capability reload families
-- component capability reload with compatibility and state-reconciliation
-  receipts
-- dropdown projection contracts for single-select and multi-select behavior,
-  including deterministic selection-state reconciliation
-- Query-bound reload integration that consumes Query-owned posture rather than
-  rebuilding local state
-- native validation app proof slices using runtime receipts only, including the
-  header/dropdown/style/page-slot manual acceptance path
-- runtime-owned Codex-style validation workspace proof, including authored left
-  rail, top title bar, central thread surface, right environment panel, and
-  built-in gap/containment/scroll semantics proven without preview-local glue
-- compiler enforcement and compile-fail guards against local reload authority
-- reload storm, replay, and counter certification
-
-### Must Preserve
-
-- `WorthUiRuntimeHost` ownership of active artifact, active execution plan,
-  capability snapshot, authoring snapshot, diagnostics, and activation state
-- existing source -> artifact -> runtime proof chain
-- Query ownership of live, async/result, recovery, inspection, projection
-  consumption, and support posture
-- prior-valid runtime truth on denied, stale, unreadable, or invalid reloads
-- renderer boundary as paint-only consumption of runtime receipts
-- no app-local dependency graph, hydration graph, reload state machine, shell
-  map, page map, command map, component registry, dropdown mode authority,
-  style map, or theme state
-- built-in structural semantics such as region gap, inset, scroll ownership,
-  surface containment posture, and built-in component contracts remain
-  platform-owned; app authoring chooses from them but does not redefine them
-- no per-frame source interpretation, registry string lookup, broad artifact
-  scan, or broad projection rebuild hidden behind convenient APIs
-
-### Acceptance Evidence
-
-- header, page-host, theme, command, command-projection, and at least one
-  source-authored page/content projection rebind through one runtime change and
-  projection coordinator path
-- a running native validation app visibly hot reloads text, color, dropdown
-  mode, page slot assignment, and one broader projection without restart
-- the running native validation app visibly hot reloads font size, row padding,
-  container padding, shadow or elevation, and component-backed dropdown behavior
-  through runtime receipts rather than app-local style or component state
-- the running native validation app visibly proves the same authored-truth
-  reload path on a Codex-style workspace shell rather than only on a
-  dashboard-shaped proof
-- the running native validation app exposes a manual verification matrix whose
-  rows name authored input, changed facts, rebuilt projections, preserved
-  projections, visible result, denial/equivalence/replay posture, and counters
-- the manual verification steps are written in human terms so a tester knows
-  what visible change to expect on screen and what evidence summary should stay
-  bounded
-- denied, stale, equivalent, valid, and mixed reloads preserve runtime truth and
-  produce typed evidence
-- projection rebuild breadth is bounded by changed-fact and dependency
-  intersection, with counters proving the claim
-- Query-bound reload evidence preserves Query-owned posture and does not create
-  validation-app local status models
-- compile-fail guards prevent app code from minting reload evidence, projection
-  receipts, direct Query dependency, or local shell, page, menu, theme,
-  component, dropdown, or style authority
-- mixed product storm certification proves deterministic replay, bounded
-  projection rebuilds, typed denied/equivalent/valid family evidence, and no
-  steady-frame broad scans after activation
-
-## Milestone 4.1: Runtime Composition Graph
-
-Detailed spec: [milestone-4.1-composition-graph.md](./milestone-4.1-composition-graph.md)
-
-### Goal
-
-Make arbitrary UI composition a runtime-owned graph of containers, content,
-controls, interactions, overlays, collections, diagnostics, and motion-capable
-nodes so authored product UI can reorganize, resize, repeat, animate, and hot
-reload without renderer-local layout folklore or Rust recompiles.
-
-### Must Ship
-
-- a runtime composition graph with typed nodes, membership/order/participation
-  edges, layout policies, child sizing policies, and graph-owned fact families
-- composition roots for pages, surfaces, portal entries, diagnostics,
-  collection items, and reusable component instances
-- authored source and Rust-authored composition inputs that lower to the same
-  canonical composition graph
-- graph/index access planning and no-N+1 proof for composition reads such as
-  children, ancestors, participants, affected consumers, and collection windows
-- semantic context propagation for theme, density, disabled/inert posture,
-  validation state, focus scope, and runtime mode
-- host measurement observation lanes for bounds, text/icon metrics, DPI,
-  viewport, scroll, and time where needed
-- mounted layout allocation receipts for nested containers, fill/hug/fixed
-  sizing, baseline, gap, padding, alignment, and conditional participation
-- scroll, clip, hit-test, viewport, focus, and accessibility participation
-  boundaries derived from composition receipts
-- content anatomy nodes for text, icon, spacer, image-ready content, divider,
-  label, helper/error text, and reusable local groups
-- controls and interactions as generic composition children rather than
-  form/button/action-row special cases
-- declarative expression, validation, condition, readiness, and payload
-  projection receipts over runtime state and Query projection facts
-- expression capability registration for app-defined operators with declared
-  inputs, outputs, dependency contracts, cost posture, support posture,
-  diagnostics, planning, evaluation, and mounted evidence
-- stable reconciliation across moves, projection swaps, conditional absence,
-  and target-binding drift
-- mounted diagnostics as ordinary composition nodes
-- runtime portal host, collection composition, adaptive alternatives, motion
-  recipes, and atom/molecule reuse proofs over the same composition graph
-- reusable composition recipes and defaults that lower to ordinary graph nodes,
-  slots, primitive receipts, and instance receipts
-- a validation workbench proving arbitrary nested composition hot reload with
-  receipt-derived diagnostics and bounded counters
-
-### Must Preserve
-
-- Milestone 4S remains the hot reload spine; Milestone 4.1 consumes it rather
-  than replacing it
-- mosaic remains responsible for shell and page topology while composition
-  graph owns local product anatomy and nested content arrangement
-- Worth UI does not become a DOM, CSS, HTML, web-view, or app-local widget
-  runtime
-- Query remains owner of Query truth, graph read access planning, projection
-  facts, support/admission posture, async/result posture, and recovery posture
-  where those surfaces are involved
-- host adapters may allocate pixels and report neutral observations, but they
-  may not decide semantic grouping, equal sizing, state posture, diagnostics,
-  interaction, or motion meaning
-- no per-frame source interpretation, registry lookup, broad artifact scan,
-  broad graph scan, hidden N+1 traversal, or renderer-local semantic layout
-  path returns through convenience APIs
-
-### Acceptance Evidence
-
-- a running validation app can hot reload arbitrary nested composition edits,
-  across multiple pages and surfaces, including equal-width control rows,
-  separate action rows, conditional controls, projection swaps, payload edits,
-  reusable recipes, content changes, overlays, collections, adaptive
-  alternatives, and motion recipes without recompiling
-- denied edits preserve prior mounted receipts and surface typed diagnostics
-  with source spans, denial-set digests, counters, and affected-consumer rows
-- page/root move, semantic context, standard/custom expression,
-  scroll/clip/focus, accessibility participation, and recipe reuse tests prove
-  the architecture scales beyond one validation form
-- graph/index receipts prove composition reads use admitted access plans rather
-  than recursive walks, app-local maps, or broad scans
-- layout allocation receipts prove equal fill, hug, fixed, min/max,
-  participation, baseline, gap, padding, and alignment decisions are runtime
-  meaning
-- renderer-boundary and compile-fail tests prove app code cannot mint
-  composition, allocation, motion, portal, collection, diagnostic, graph proof,
-  or changed-fact dependency receipts
-- replay, equivalence, and counter tests prove semantically equivalent
-  composition inputs lower to equivalent graph and mounted receipts and that
-  steady-frame rendering does not rediscover graph topology
+- one sample workbench can open, close, dock, split, tab, persist, and restore
+  its shell without app-local shell logic
+- one nested mosaic shell can express pinned sidebar, stacked scroll regions,
+  and overlay surfaces without DOM-style height or overflow hacks
+- shell state restore is deterministic enough that restart and recovery do not
+  invent layout drift
+- command palette, menus, and context surfaces all project the same command
+  backbone
+- workspace layout edits can survive hot reload when stable IDs remain intact
 
 ## Milestone 5: Command Spine, Focus, Selection, and Keyboard Routing
 

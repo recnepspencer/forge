@@ -10,7 +10,7 @@ use crate::source::{
 
 use super::worth_ui_structural_legality_context::WorthUiStructuralLegalityContext;
 use super::worth_ui_structural_legality_node_lowering::{
-    lower_binding_node, lower_component_node, lower_page_node, lower_surface_node,
+    lower_binding_node, lower_component_node, lower_surface_node,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -65,10 +65,6 @@ fn lower_node(
         WorthUiResolvedArtifactInputNode::Import(import_node) => Ok(
             WorthUiLegallyStructuredArtifactInputNode::Import(import_node.clone()),
         ),
-        WorthUiResolvedArtifactInputNode::Page(page_node) => {
-            lower_page_node(module_id, page_node, context)
-                .map(WorthUiLegallyStructuredArtifactInputNode::Page)
-        }
         WorthUiResolvedArtifactInputNode::Component(component_node) => {
             lower_component_node(module_id, component_node, context)
                 .map(WorthUiLegallyStructuredArtifactInputNode::Component)

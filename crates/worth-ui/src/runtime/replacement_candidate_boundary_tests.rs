@@ -251,8 +251,7 @@ fn file_authored_import_artifact(target_module_path: &str) -> WorthUiArtifact {
         .expect("file-authored package compiles");
     let parsed_source_package =
         WorthUiSourceParser::parse_package(&source_package).expect("source package parses");
-    let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_source_package)
-        .expect("authoring entry should lower to artifact input");
+    let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_source_package);
     canonical_artifact_from_input(artifact_input)
 }
 

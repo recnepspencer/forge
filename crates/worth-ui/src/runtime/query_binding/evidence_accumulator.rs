@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use forge_query::facade::worth_ui_query_binding_evidence_identity;
+use forge_query::facade::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::evidence::WorthUiQueryBindingEvidence;
 use crate::runtime::query_binding::{WorthUiQueryBindingIdentity, WorthUiQueryBindingPosture};
@@ -118,11 +120,17 @@ impl WorthUiQueryBindingEvidenceAccumulator {
 }
 
 fn query_evidence_identity<const N: usize>(surface: &'static str, values: [String; N]) -> String {
-    let identity = worth_ui_query_binding_evidence_identity(surface, &values);
-    format!(
-        "query-evidence:{}",
-        identity.terminal_projection_for_reporting()
+    let identity = ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::ApplicationSupportSectionPosture,
     )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("section"),
+        "worth-ui-query-binding-evidence",
+    )
+    .field_identity(ForgeQueryEvidenceTag::new("surface"), surface)
+    .field_identity_sequence(ForgeQueryEvidenceTag::new("basis"), values)
+    .seal();
+    format!("query-evidence:{}", identity.as_str())
 }
 
 fn digest_runtime_surface(

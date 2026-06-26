@@ -1,22 +1,17 @@
-use crate::capability::{CapabilitySnapshot, CapabilitySnapshotDigest};
+use crate::capability::CapabilitySnapshotDigest;
 use crate::runtime::active::{
     WorthUiActiveArtifact, WorthUiActiveExecutionPlan, WorthUiActiveRuntimeState,
-    WorthUiDropdownSelectionAuthority,
 };
 use crate::runtime::{
-    WorthUiLiveViewStateStore, WorthUiRuntimeActivationStatus, WorthUiRuntimeAuthoringSnapshot,
-    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch, WorthUiRuntimeLifecycle,
+    WorthUiRuntimeActivationStatus, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch,
+    WorthUiRuntimeLifecycle,
 };
 
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct WorthUiPriorValidPlan {
     active_artifact: WorthUiActiveArtifact,
     active_plan: WorthUiActiveExecutionPlan,
-    snapshot: CapabilitySnapshot,
     snapshot_digest: CapabilitySnapshotDigest,
-    dropdown_selection_authority: WorthUiDropdownSelectionAuthority,
-    live_view_state_store: WorthUiLiveViewStateStore,
-    authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
     lifecycle: WorthUiRuntimeLifecycle,
     status: WorthUiRuntimeActivationStatus,
     frame_epoch: WorthUiRuntimeFrameEpoch,
@@ -38,11 +33,7 @@ impl WorthUiPriorValidPlan {
         Self {
             active_artifact: active.active_artifact().clone(),
             active_plan: active.active_plan(),
-            snapshot: active.capability_snapshot().clone(),
             snapshot_digest: active.snapshot_digest(),
-            dropdown_selection_authority: active.dropdown_selection_authority(),
-            live_view_state_store: active.live_view_state_store().clone(),
-            authoring_snapshot: active.authoring_snapshot().cloned(),
             lifecycle: active.lifecycle(),
             status: active.status(),
             frame_epoch: active.frame_epoch(),
@@ -55,11 +46,7 @@ impl WorthUiPriorValidPlan {
         WorthUiActiveRuntimeState::from_preserved_authority(
             self.active_artifact.clone(),
             self.active_plan,
-            self.snapshot.clone(),
             self.snapshot_digest,
-            self.dropdown_selection_authority.clone(),
-            self.live_view_state_store.clone(),
-            self.authoring_snapshot.clone(),
             self.lifecycle,
             self.status,
             self.frame_epoch,

@@ -145,8 +145,7 @@ fn artifact_from_file_sources(main_source: &str, inspector_source: &str) -> Wort
     let parsed_source_package =
         WorthUiSourceParser::parse_package(&source_package).expect("file source should parse");
     artifact_from_input(
-        WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_source_package)
-            .expect("authoring entry should lower to artifact input"),
+        WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_source_package),
         identity_test_app(),
     )
 }

@@ -1,4 +1,0 @@
-mod worth_ui_appearance_accepted_registration_proof;
-mod worth_ui_appearance_registration;
-
-pub(crate) use worth_ui_appearance_accepted_registration_proof::WorthUiAppearanceAcceptedRegistrationProof;

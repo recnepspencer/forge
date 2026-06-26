@@ -12,10 +12,10 @@ use crate::source::{
     WorthUiArtifact, WorthUiArtifactBindingHandle, WorthUiArtifactBindingNode,
     WorthUiArtifactComponentHandle, WorthUiArtifactComponentNode, WorthUiArtifactHandle,
     WorthUiArtifactIdentitySeed, WorthUiArtifactImportHandle, WorthUiArtifactImportNode,
-    WorthUiArtifactModule, WorthUiArtifactNode, WorthUiArtifactPageHandle, WorthUiArtifactPageNode,
-    WorthUiArtifactSurfaceHandle, WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenHandle,
-    WorthUiArtifactThemeTokenNode, WorthUiBoundSurfaceSemantics, WorthUiDurableStateEligibility,
-    WorthUiMosaicStructureFacts, WorthUiSourceModuleId,
+    WorthUiArtifactModule, WorthUiArtifactNode, WorthUiArtifactSurfaceHandle,
+    WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenHandle, WorthUiArtifactThemeTokenNode,
+    WorthUiBoundSurfaceSemantics, WorthUiDurableStateEligibility, WorthUiMosaicStructureFacts,
+    WorthUiSourceModuleId,
 };
 use crate::{capability::*, facade::WorthUiApp};
 
@@ -156,14 +156,6 @@ fn rehandle_node(
                 node.durable_state_eligibility().clone(),
             ))
         }
-        WorthUiArtifactNode::Page(node) => WorthUiArtifactNode::Page(WorthUiArtifactPageNode::new(
-            WorthUiArtifactHandle::Page(WorthUiArtifactPageHandle::new(module_id, index)),
-            node.name_text(),
-            node.template_parameters().to_vec(),
-            node.structure().clone(),
-            node.identity_seed().clone(),
-            node.durable_state_eligibility().clone(),
-        )),
         WorthUiArtifactNode::Component(node) => {
             WorthUiArtifactNode::Component(WorthUiArtifactComponentNode::new(
                 WorthUiArtifactHandle::Component(WorthUiArtifactComponentHandle::new(

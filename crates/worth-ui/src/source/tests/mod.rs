@@ -1,12 +1,7 @@
-mod authoring_entry_success_tests;
-mod canonical_page_slotting_tests;
-mod content_slotting_rejection_tests;
 mod phase10_artifact_digest_tests;
 mod phase11_dependency_metadata_tests;
 mod phase12_rust_composition_parity_tests;
 mod phase13_sample_app_certification_tests;
-mod phase14_authoring_entry_tests;
-mod phase15_layout_topology_tests;
 mod phase1_source_package_tests;
 mod phase2_parse_tests;
 mod phase3_artifact_input_tests;
@@ -16,4 +11,3 @@ mod phase6_binding_semantics_tests;
 mod phase7_identity_seeding_tests;
 mod phase8_canonical_artifact_tests;
 mod phase9_artifact_inspection_tests;
-mod workspace_shell_authoring_tests;

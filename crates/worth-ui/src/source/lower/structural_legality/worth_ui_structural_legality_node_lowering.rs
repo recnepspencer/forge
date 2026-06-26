@@ -1,13 +1,11 @@
 use crate::capability::MosaicChildRule;
 use crate::source::{
-    parse_surface_authoring_body_atoms, WorthUiLegallyStructuredArtifactInputBindingNode,
+    WorthUiLegallyStructuredArtifactInputBindingNode,
     WorthUiLegallyStructuredArtifactInputComponentNode,
-    WorthUiLegallyStructuredArtifactInputPageNode,
     WorthUiLegallyStructuredArtifactInputSurfaceNode, WorthUiMosaicMountFacts,
     WorthUiMosaicRegionFacts, WorthUiMosaicStructureFacts, WorthUiResolvedArtifactInputBindingNode,
-    WorthUiResolvedArtifactInputComponentNode, WorthUiResolvedArtifactInputPageNode,
-    WorthUiResolvedArtifactInputSurfaceNode, WorthUiStructuralLegalityDiagnostic,
-    WorthUiStructuralLegalityDiagnosticCode,
+    WorthUiResolvedArtifactInputComponentNode, WorthUiResolvedArtifactInputSurfaceNode,
+    WorthUiStructuralLegalityDiagnostic, WorthUiStructuralLegalityDiagnosticCode,
 };
 
 use super::worth_ui_structural_body_parser::{
@@ -42,27 +40,6 @@ pub(super) fn lower_component_node(
     ))
 }
 
-pub(super) fn lower_page_node(
-    module_id: &crate::source::WorthUiSourceModuleId,
-    page_node: &WorthUiResolvedArtifactInputPageNode,
-    context: &mut WorthUiStructuralLegalityContext<'_>,
-) -> Result<WorthUiLegallyStructuredArtifactInputPageNode, Vec<WorthUiStructuralLegalityDiagnostic>>
-{
-    let structure = lower_structure(
-        module_id,
-        page_node.body_atoms(),
-        page_node.provenance(),
-        context,
-    )?;
-    Ok(WorthUiLegallyStructuredArtifactInputPageNode::new(
-        page_node.name_text(),
-        page_node.template_parameters().to_vec(),
-        page_node.authored_identity().map(str::to_owned),
-        structure,
-        page_node.provenance().clone(),
-    ))
-}
-
 pub(super) fn lower_surface_node(
     module_id: &crate::source::WorthUiSourceModuleId,
     surface_node: &WorthUiResolvedArtifactInputSurfaceNode,
@@ -73,7 +50,7 @@ pub(super) fn lower_surface_node(
 > {
     let structure = lower_structure(
         module_id,
-        surface_body_atoms_for_structural_lowering(surface_node.body_atoms()),
+        surface_node.body_atoms(),
         surface_node.provenance(),
         context,
     )?;
@@ -84,16 +61,6 @@ pub(super) fn lower_surface_node(
         structure,
         surface_node.provenance().clone(),
     ))
-}
-
-fn surface_body_atoms_for_structural_lowering(
-    body_atoms: &[crate::source::WorthUiArtifactInputBodyAtom],
-) -> &[crate::source::WorthUiArtifactInputBodyAtom] {
-    if parse_surface_authoring_body_atoms(body_atoms).is_ok() {
-        &[]
-    } else {
-        body_atoms
-    }
 }
 
 pub(super) fn lower_binding_node(

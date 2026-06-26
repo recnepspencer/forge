@@ -11,8 +11,7 @@ pub(crate) use worth_ui_artifact_input_equivalence::WorthUiArtifactInputEquivale
 pub(crate) use worth_ui_artifact_input_module::WorthUiArtifactInputModule;
 pub(crate) use worth_ui_artifact_input_node::{
     WorthUiArtifactInputBlockNode, WorthUiArtifactInputBodyAtom, WorthUiArtifactInputImportNode,
-    WorthUiArtifactInputNode, WorthUiArtifactInputNodeKind, WorthUiArtifactInputPageNode,
-    WorthUiArtifactInputTokenNode,
+    WorthUiArtifactInputNode, WorthUiArtifactInputNodeKind, WorthUiArtifactInputTokenNode,
 };
 pub(crate) use worth_ui_artifact_input_normalizer::WorthUiArtifactInputNormalizer;
 pub(crate) use worth_ui_artifact_input_provenance::WorthUiArtifactInputProvenance;

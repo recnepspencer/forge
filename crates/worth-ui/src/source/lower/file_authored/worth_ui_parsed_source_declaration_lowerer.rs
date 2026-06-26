@@ -18,15 +18,6 @@ pub(crate) fn lower_parsed_source_declaration(
                 ),
             ))
         }
-        WorthUiParsedSourceDeclaration::App(_)
-        | WorthUiParsedSourceDeclaration::Workspace(_)
-        | WorthUiParsedSourceDeclaration::Page(_)
-        | WorthUiParsedSourceDeclaration::Runtime(_)
-        | WorthUiParsedSourceDeclaration::Layout(_)
-        | WorthUiParsedSourceDeclaration::Content(_)
-        | WorthUiParsedSourceDeclaration::Appearance(_) => {
-            unreachable!("authoring-entry declarations are lowered before IR node emission")
-        }
         WorthUiParsedSourceDeclaration::Component(block_declaration) => {
             WorthUiArtifactInputNode::Component(lower_parsed_block_declaration(block_declaration))
         }
@@ -64,7 +55,7 @@ fn lower_parsed_block_declaration(
 fn lower_parsed_block_body(body: &WorthUiParsedBlockBody) -> Vec<WorthUiArtifactInputBodyAtom> {
     body.tokens()
         .iter()
-        .map(|token| lower_token_kind_to_body_atom(token.kind()))
+        .map(lower_token_kind_to_body_atom)
         .collect()
 }
 
@@ -75,36 +66,17 @@ fn lower_token_kind_to_body_atom(
         WorthUiSourceTokenKind::Identifier(text) => {
             WorthUiArtifactInputBodyAtom::Identifier(text.clone())
         }
-        WorthUiSourceTokenKind::NumberLiteral(value) => {
-            WorthUiArtifactInputBodyAtom::NumberLiteral(*value)
-        }
         WorthUiSourceTokenKind::StringLiteral(text) => {
             WorthUiArtifactInputBodyAtom::StringLiteral(text.clone())
         }
         WorthUiSourceTokenKind::KeywordImport => WorthUiArtifactInputBodyAtom::KeywordImport,
-        WorthUiSourceTokenKind::KeywordApp => WorthUiArtifactInputBodyAtom::KeywordApp,
-        WorthUiSourceTokenKind::KeywordWorkspace => WorthUiArtifactInputBodyAtom::KeywordWorkspace,
-        WorthUiSourceTokenKind::KeywordPage => WorthUiArtifactInputBodyAtom::KeywordPage,
-        WorthUiSourceTokenKind::KeywordRuntime => WorthUiArtifactInputBodyAtom::KeywordRuntime,
-        WorthUiSourceTokenKind::KeywordLayout => WorthUiArtifactInputBodyAtom::KeywordLayout,
-        WorthUiSourceTokenKind::KeywordContent => WorthUiArtifactInputBodyAtom::KeywordContent,
-        WorthUiSourceTokenKind::KeywordAppearance => {
-            WorthUiArtifactInputBodyAtom::KeywordAppearance
-        }
         WorthUiSourceTokenKind::KeywordComponent => WorthUiArtifactInputBodyAtom::KeywordComponent,
         WorthUiSourceTokenKind::KeywordSurface => WorthUiArtifactInputBodyAtom::KeywordSurface,
         WorthUiSourceTokenKind::KeywordBinding => WorthUiArtifactInputBodyAtom::KeywordBinding,
         WorthUiSourceTokenKind::KeywordToken => WorthUiArtifactInputBodyAtom::KeywordToken,
         WorthUiSourceTokenKind::LeftBrace => WorthUiArtifactInputBodyAtom::LeftBrace,
         WorthUiSourceTokenKind::RightBrace => WorthUiArtifactInputBodyAtom::RightBrace,
-        WorthUiSourceTokenKind::LeftParen => WorthUiArtifactInputBodyAtom::LeftParen,
-        WorthUiSourceTokenKind::RightParen => WorthUiArtifactInputBodyAtom::RightParen,
-        WorthUiSourceTokenKind::LeftBracket => WorthUiArtifactInputBodyAtom::LeftBracket,
-        WorthUiSourceTokenKind::RightBracket => WorthUiArtifactInputBodyAtom::RightBracket,
-        WorthUiSourceTokenKind::Comma => WorthUiArtifactInputBodyAtom::Comma,
-        WorthUiSourceTokenKind::Colon => WorthUiArtifactInputBodyAtom::Colon,
         WorthUiSourceTokenKind::Semicolon => WorthUiArtifactInputBodyAtom::Semicolon,
         WorthUiSourceTokenKind::Equals => WorthUiArtifactInputBodyAtom::Equals,
-        WorthUiSourceTokenKind::Arrow => WorthUiArtifactInputBodyAtom::Arrow,
     }
 }

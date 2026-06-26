@@ -20,7 +20,7 @@ impl CommandProjectionKey {
 
 fn projection_basis(descriptor: &CommandProjectionDescriptor) -> String {
     format!(
-        "{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
+        "{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
         descriptor.id().as_str(),
         descriptor.surface().digest_basis(),
         command_reference_basis(descriptor),
@@ -30,7 +30,6 @@ fn projection_basis(descriptor: &CommandProjectionDescriptor) -> String {
         descriptor.shortcut_visibility().digest_basis(),
         descriptor.readiness_display_policy().digest_basis(),
         descriptor.icon_label_policy().digest_basis(),
-        descriptor.selection_mode().token(),
         descriptor.overflow_behavior().digest_basis(),
         descriptor
             .mosaic_scope()

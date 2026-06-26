@@ -179,7 +179,7 @@ fn watched_artifact_without_material_cannot_be_candidate() {
         .expect("synthetic descriptor can debounce");
 
     let denial = batch
-        .lower_to_candidate_submission(snapshot.capabilities(), None)
+        .lower_to_candidate_submission(snapshot.capabilities())
         .expect_err("candidate material is required");
 
     assert!(matches!(
@@ -202,7 +202,7 @@ fn mixed_file_and_artifact_provider_is_denied_before_candidate_selection() {
     let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("mixed")])
         .expect("mixed material can still debounce")
-        .lower_to_candidate_submission(snapshot.capabilities(), None)
+        .lower_to_candidate_submission(snapshot.capabilities())
         .expect_err("candidate material selection must not be ambiguous");
 
     assert_source_denial_reason(
@@ -230,7 +230,7 @@ fn multiple_artifact_inputs_are_denied_instead_of_first_artifact_winning() {
     let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("rust-authored")])
         .expect("multi-artifact material can still debounce")
-        .lower_to_candidate_submission(snapshot.capabilities(), None)
+        .lower_to_candidate_submission(snapshot.capabilities())
         .expect_err("multiple artifact inputs need explicit merge semantics");
 
     assert_source_denial_reason(
@@ -270,7 +270,7 @@ fn duplicate_source_modules_report_source_package_rejection() {
     let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("duplicate-source")])
         .expect("provider material can debounce before source package validation")
-        .lower_to_candidate_submission(snapshot.capabilities(), None)
+        .lower_to_candidate_submission(snapshot.capabilities())
         .expect_err("duplicate source module identity must fail package validation");
 
     assert_source_denial_reason(
@@ -290,7 +290,7 @@ fn malformed_source_reports_parse_rejection_not_missing_material() {
     let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("malformed-source")])
         .expect("provider material can debounce before parse validation")
-        .lower_to_candidate_submission(snapshot.capabilities(), None)
+        .lower_to_candidate_submission(snapshot.capabilities())
         .expect_err("malformed source must fail parse validation");
 
     assert_source_denial_reason(
@@ -314,7 +314,7 @@ fn ordering_receipt_sequence_drift_is_denied_before_candidate_lowering() {
         .with_sequence_for_test(batch.source_revision().sequence() + 1);
     let denial = batch
         .with_ordering_receipt_for_test(drifted_receipt)
-        .lower_to_candidate_submission(snapshot.capabilities(), None)
+        .lower_to_candidate_submission(snapshot.capabilities())
         .expect_err("receipt drift must be denied before source lowering");
 
     assert_source_denial_reason(
@@ -334,7 +334,7 @@ fn lower_file_submission<const N: usize>(
     session
         .ingest(events)
         .expect("events debounce")
-        .lower_to_candidate_submission(snapshot, None)
+        .lower_to_candidate_submission(snapshot)
         .expect("candidate submission lowers")
 }
 

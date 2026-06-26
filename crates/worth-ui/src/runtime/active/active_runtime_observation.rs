@@ -8,7 +8,6 @@ pub struct WorthUiActiveRuntimeObservation {
     artifact_digest: u64,
     active_plan_digest: u64,
     snapshot_digest: u64,
-    authoring_snapshot_digest: Option<u64>,
     lifecycle: WorthUiRuntimeLifecycle,
     status: WorthUiRuntimeActivationStatus,
     frame_epoch: WorthUiRuntimeFrameEpoch,
@@ -19,7 +18,6 @@ impl WorthUiActiveRuntimeObservation {
         artifact_digest: u64,
         active_plan_digest: u64,
         snapshot_digest: u64,
-        authoring_snapshot_digest: Option<u64>,
         lifecycle: WorthUiRuntimeLifecycle,
         status: WorthUiRuntimeActivationStatus,
         frame_epoch: WorthUiRuntimeFrameEpoch,
@@ -28,7 +26,6 @@ impl WorthUiActiveRuntimeObservation {
             artifact_digest,
             active_plan_digest,
             snapshot_digest,
-            authoring_snapshot_digest,
             lifecycle,
             status,
             frame_epoch,
@@ -45,10 +42,6 @@ impl WorthUiActiveRuntimeObservation {
 
     pub fn snapshot_digest(&self) -> u64 {
         self.snapshot_digest
-    }
-
-    pub fn authoring_snapshot_digest(&self) -> Option<u64> {
-        self.authoring_snapshot_digest
     }
 
     pub fn lifecycle(&self) -> WorthUiRuntimeLifecycle {

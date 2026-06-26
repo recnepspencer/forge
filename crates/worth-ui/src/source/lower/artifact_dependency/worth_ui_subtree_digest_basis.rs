@@ -24,11 +24,6 @@ fn node_basis(node: &WorthUiArtifactNode) -> String {
         WorthUiArtifactNode::Import(node) => {
             format!("import:{}", node.target().authored_text())
         }
-        WorthUiArtifactNode::Page(node) => format!(
-            "page:{}|structure:{}",
-            node.name_text(),
-            structure_basis(node.structure())
-        ),
         WorthUiArtifactNode::Component(node) => format!(
             "component:{}|structure:{}",
             node.component().id().as_str(),

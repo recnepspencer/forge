@@ -1,17 +1,28 @@
-#[path = "support/trybuild_helpers.rs"]
-mod trybuild_helpers;
+fn runtime_source_ingress_pass(path: &str) {
+    trybuild::TestCases::new().pass(path);
+}
 
-#[test]
-fn runtime_source_ingress_public_types_compile() {
-    trybuild_helpers::run_pass_cases(&[
-        "tests/ui/runtime_source_ingress/pass/source_ingress_facade_types.rs",
-    ]);
+fn runtime_source_ingress_fail(path: &str) {
+    trybuild::TestCases::new().compile_fail(path);
 }
 
 #[test]
-fn runtime_source_ingress_boundary_stays_sealed() {
-    trybuild_helpers::run_compile_fail_cases(&[
+fn source_ingress_facade_types_are_importable() {
+    runtime_source_ingress_pass(
+        "tests/ui/runtime_source_ingress/pass/source_ingress_facade_types.rs",
+    );
+}
+
+#[test]
+fn ordering_receipt_fields_are_not_publicly_mintable() {
+    runtime_source_ingress_fail(
         "tests/ui/runtime_source_ingress/fail/ordering_receipt_fields_not_public.rs",
+    );
+}
+
+#[test]
+fn raw_watcher_event_cannot_declare_dependency_impact() {
+    runtime_source_ingress_fail(
         "tests/ui/runtime_source_ingress/fail/raw_watcher_event_cannot_declare_dependency_impact.rs",
-    ]);
+    );
 }

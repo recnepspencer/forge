@@ -10,7 +10,6 @@ pub(crate) use worth_ui_legally_structured_artifact_input_module::WorthUiLegally
 pub(crate) use worth_ui_legally_structured_artifact_input_node::{
     WorthUiLegallyStructuredArtifactInputBindingNode,
     WorthUiLegallyStructuredArtifactInputComponentNode, WorthUiLegallyStructuredArtifactInputNode,
-    WorthUiLegallyStructuredArtifactInputPageNode,
     WorthUiLegallyStructuredArtifactInputSurfaceNode,
     WorthUiLegallyStructuredArtifactInputThemeTokenNode,
 };

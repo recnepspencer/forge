@@ -6,14 +6,14 @@ use crate::source::{
     WorthUiIdentitySeededArtifactInput, WorthUiIdentitySeededArtifactInputBindingNode,
     WorthUiIdentitySeededArtifactInputComponentNode, WorthUiIdentitySeededArtifactInputImportNode,
     WorthUiIdentitySeededArtifactInputModule, WorthUiIdentitySeededArtifactInputNode,
-    WorthUiIdentitySeededArtifactInputPageNode, WorthUiIdentitySeededArtifactInputSurfaceNode,
+    WorthUiIdentitySeededArtifactInputSurfaceNode,
     WorthUiIdentitySeededArtifactInputThemeTokenNode, WorthUiIdentitySeedingDiagnostic,
     WorthUiIdentitySeedingReport,
 };
 
 use super::worth_ui_identity_seed_basis::{
     binding_seed, classify_durable_state, component_seed, import_seed, no_durable_state_surface,
-    page_seed, surface_seed, token_seed,
+    surface_seed, token_seed,
 };
 use super::worth_ui_identity_seeding_metrics::WorthUiIdentitySeedingMetrics;
 
@@ -109,20 +109,6 @@ fn lower_node(
                 ),
             )
         }
-        WorthUiBoundArtifactInputNode::Page(page_node) => {
-            let seed = page_seed(module_id, page_node);
-            let durable = classify_durable_state(page_node.structure());
-            metrics.record_seed(
-                page_node.authored_identity().is_some(),
-                matches!(
-                    durable,
-                    crate::source::WorthUiDurableStateEligibility::Eligible { .. }
-                ),
-            );
-            WorthUiIdentitySeededArtifactInputNode::Page(
-                WorthUiIdentitySeededArtifactInputPageNode::new(page_node.clone(), seed, durable),
-            )
-        }
         WorthUiBoundArtifactInputNode::Surface(surface_node) => {
             let seed = surface_seed(module_id, surface_node);
             let durable = classify_durable_state(surface_node.structure());
@@ -209,11 +195,6 @@ fn authored_seed_details(
 ) -> Option<(&str, String, &str)> {
     match node {
         WorthUiIdentitySeededArtifactInputNode::Import(_) => None,
-        WorthUiIdentitySeededArtifactInputNode::Page(node) => authored_seed_details_for_kind(
-            node.identity_seed().kind(),
-            node.identity_seed().basis(),
-            format!("page:{}", node.name_text()),
-        ),
         WorthUiIdentitySeededArtifactInputNode::Component(node) => authored_seed_details_for_kind(
             node.identity_seed().kind(),
             node.identity_seed().basis(),

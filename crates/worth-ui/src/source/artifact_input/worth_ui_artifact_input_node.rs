@@ -3,7 +3,6 @@ use crate::source::{WorthUiArtifactInputProvenance, WorthUiArtifactInputReferenc
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum WorthUiArtifactInputNodeKind {
     Import,
-    Page,
     Component,
     Surface,
     Binding,
@@ -13,37 +12,21 @@ pub(crate) enum WorthUiArtifactInputNodeKind {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum WorthUiArtifactInputBodyAtom {
     Identifier(String),
-    NumberLiteral(u32),
     StringLiteral(String),
     KeywordImport,
-    KeywordApp,
-    KeywordWorkspace,
-    KeywordPage,
-    KeywordRuntime,
-    KeywordLayout,
-    KeywordContent,
-    KeywordAppearance,
     KeywordComponent,
     KeywordSurface,
     KeywordBinding,
     KeywordToken,
     LeftBrace,
     RightBrace,
-    LeftParen,
-    RightParen,
-    LeftBracket,
-    RightBracket,
-    Comma,
-    Colon,
     Semicolon,
     Equals,
-    Arrow,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum WorthUiArtifactInputNode {
     Import(WorthUiArtifactInputImportNode),
-    Page(WorthUiArtifactInputPageNode),
     Component(WorthUiArtifactInputBlockNode),
     Surface(WorthUiArtifactInputBlockNode),
     Binding(WorthUiArtifactInputBlockNode),
@@ -53,15 +36,6 @@ pub(crate) enum WorthUiArtifactInputNode {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct WorthUiArtifactInputImportNode {
     target: WorthUiArtifactInputReference,
-    provenance: WorthUiArtifactInputProvenance,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct WorthUiArtifactInputPageNode {
-    name_text: String,
-    template_parameters: Vec<(String, String)>,
-    authored_identity: Option<String>,
-    body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
     provenance: WorthUiArtifactInputProvenance,
 }
 
@@ -85,7 +59,6 @@ impl WorthUiArtifactInputNode {
     pub(crate) fn kind(&self) -> WorthUiArtifactInputNodeKind {
         match self {
             Self::Import(_) => WorthUiArtifactInputNodeKind::Import,
-            Self::Page(_) => WorthUiArtifactInputNodeKind::Page,
             Self::Component(_) => WorthUiArtifactInputNodeKind::Component,
             Self::Surface(_) => WorthUiArtifactInputNodeKind::Surface,
             Self::Binding(_) => WorthUiArtifactInputNodeKind::Binding,
@@ -96,7 +69,6 @@ impl WorthUiArtifactInputNode {
     pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
         match self {
             Self::Import(node) => node.provenance(),
-            Self::Page(node) => node.provenance(),
             Self::Component(node) | Self::Surface(node) | Self::Binding(node) => node.provenance(),
             Self::Token(node) => node.provenance(),
         }
@@ -113,44 +85,6 @@ impl WorthUiArtifactInputImportNode {
 
     pub(crate) fn target(&self) -> &WorthUiArtifactInputReference {
         &self.target
-    }
-
-    pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
-        &self.provenance
-    }
-}
-
-impl WorthUiArtifactInputPageNode {
-    pub(crate) fn new(
-        name_text: impl Into<String>,
-        template_parameters: Vec<(String, String)>,
-        authored_identity: Option<String>,
-        body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
-        provenance: WorthUiArtifactInputProvenance,
-    ) -> Self {
-        Self {
-            name_text: name_text.into(),
-            template_parameters,
-            authored_identity,
-            body_atoms,
-            provenance,
-        }
-    }
-
-    pub(crate) fn name_text(&self) -> &str {
-        &self.name_text
-    }
-
-    pub(crate) fn template_parameters(&self) -> &[(String, String)] {
-        &self.template_parameters
-    }
-
-    pub(crate) fn body_atoms(&self) -> &[WorthUiArtifactInputBodyAtom] {
-        &self.body_atoms
-    }
-
-    pub(crate) fn authored_identity(&self) -> Option<&str> {
-        self.authored_identity.as_deref()
     }
 
     pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {

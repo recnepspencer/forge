@@ -1,5 +1,0 @@
-error[E0599]: no method named `complete_preserved` found for struct `WorthUiActivatedProjectionRebindPlan<P>` in the current scope
- --> tests/ui/runtime_authority/fail/activated_projection_rebind_cannot_complete_preserved.rs:8:23
-  |
-8 |     let _ = activated.complete_preserved();
-  |                       ^^^^^^^^^^^^^^^^^^ method not found in `WorthUiActivatedProjectionRebindPlan<WorthUiHeaderMenuPlan>`

@@ -1,13 +1,13 @@
 use crate::capability::CapabilitySnapshot;
 use crate::runtime::activation_staging::WorthUiActivationStager;
-use crate::runtime::active::WorthUiActiveRuntimeState;
+use crate::runtime::active::{
+    WorthUiActiveArtifact, WorthUiActiveExecutionPlan, WorthUiActiveRuntimeObservation,
+    WorthUiActiveRuntimeState,
+};
 use crate::runtime::admission::WorthUiActiveReplacementBasis;
 use crate::runtime::equivalence::WorthUiRuntimeArtifactComparator;
 use crate::runtime::execution_plan_input::WorthUiExecutionPlanInputPreparer;
 use crate::runtime::handle_allocation::WorthUiRuntimeHandleAllocator;
-use crate::runtime::host_launch::{
-    build_active_runtime_state, derive_launch_execution_plan, seal_launch_artifact,
-};
 use crate::runtime::impact::WorthUiReplacementImpactClassifier;
 use crate::runtime::lifecycle::WorthUiRuntimeShutdownReceipt;
 use crate::runtime::matching::WorthUiIdentityMatchGraphBuilder;
@@ -17,10 +17,12 @@ use crate::runtime::plan_inspection::WorthUiExecutionPlanInspector;
 use crate::runtime::preservation::{WorthUiLastValidObservation, WorthUiLastValidRuntimeState};
 use crate::runtime::query_binding::WorthUiQueryBindingComparisonPlanner;
 use crate::runtime::query_live_rebind::WorthUiQueryLiveRebindPlanner;
+use crate::runtime::reconciliation::WorthUiDurableStateReconciliationPlanner;
 use crate::runtime::replacement::WorthUiNodeReplacementClassifier;
+use crate::runtime::source_ingress::WorthUiSourceWatcher;
+use crate::runtime::state_inventory::WorthUiDurableStateInventoryBuilder;
 #[cfg(test)]
 use crate::runtime::WorthUiComponentLoweringHook;
-use crate::runtime::WorthUiRuntimeGraphAuthority;
 use crate::runtime::{
     WorthUiActivationStagingDenial, WorthUiAdmittedReplacementCandidate,
     WorthUiAmbiguousReplacementDenial, WorthUiExecutionPlanInput, WorthUiIdentityMatchDenial,
@@ -28,17 +30,12 @@ use crate::runtime::{
     WorthUiPendingExecutionPlanLoweringInput, WorthUiPlanLoweringDenial,
     WorthUiReplacementImpactClassification, WorthUiReplacementImpactDenial,
     WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial,
-    WorthUiRuntimeHandleAllocation, WorthUiRuntimeHandleAllocationDenial,
-    WorthUiRuntimeImpactNarrowing, WorthUiRuntimeImpactNarrowingDenial, WorthUiRuntimeInstanceId,
-    WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial,
+    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch, WorthUiRuntimeHandleAllocation,
+    WorthUiRuntimeHandleAllocationDenial, WorthUiRuntimeImpactNarrowing,
+    WorthUiRuntimeImpactNarrowingDenial, WorthUiRuntimeLifecycle,
 };
 use crate::runtime::{
-    WorthUiAdmittedRuntimeChangeEvidence, WorthUiCapabilityReloadEvidence,
-    WorthUiClassifiedRuntimeChange, WorthUiComponentInteractionReceipt,
-    WorthUiDropdownSelectionInteractionReceipt, WorthUiRuntimeChangeAdmissionDenial,
-    WorthUiRuntimeChangeFamilyRow, WorthUiRuntimeInstanceWitness, WorthUiValidationReloadEvidence,
-};
-use crate::runtime::{
+    WorthUiDurableStateInventory, WorthUiDurableStateReconciliationDenial,
     WorthUiDurableStateReconciliationPlan, WorthUiQueryBindingComparison,
     WorthUiQueryBindingComparisonDenial, WorthUiQueryLiveRebindPlan,
     WorthUiQueryLiveRebindPlanDenial,
@@ -47,15 +44,31 @@ use crate::runtime::{
     WorthUiExecutionPlan, WorthUiExecutionPlanDigest, WorthUiExecutionPlanEquivalence,
     WorthUiExecutionPlanInspection, WorthUiPlanInspectionDenial,
 };
+use crate::source::{WorthUiArtifact, WorthUiArtifactDigestor, WorthUiArtifactEquivalenceBasis};
+use crate::{capability::CapabilitySnapshotDigest, source::WorthUiArtifactDigest};
 use std::borrow::Borrow;
 
 /// Runtime host that owns active Worth UI runtime truth.
 #[derive(Debug)]
 pub struct WorthUiRuntimeHost {
-    instance_id: WorthUiRuntimeInstanceId,
     active: WorthUiActiveRuntimeState,
     last_valid: WorthUiLastValidRuntimeState,
-    pub(crate) graph_authority: WorthUiRuntimeGraphAuthority,
+}
+
+/// Launch request for creating an active runtime host from canonical artifact truth.
+#[derive(Debug)]
+pub struct WorthUiRuntimeLaunch {
+    artifact: WorthUiArtifact,
+    frame_epoch: WorthUiRuntimeFrameEpoch,
+    diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthUiRuntimeLaunchDenial {
+    StalePendingActivation {
+        pending_epoch: WorthUiRuntimeFrameEpoch,
+        active_epoch: WorthUiRuntimeFrameEpoch,
+    },
 }
 
 impl WorthUiRuntimeHost {
@@ -65,46 +78,34 @@ impl WorthUiRuntimeHost {
     ) -> Result<Self, WorthUiRuntimeLaunchDenial> {
         let WorthUiRuntimeLaunch {
             artifact,
-            authoring_snapshot,
             frame_epoch,
             diagnostic_policy,
         } = launch;
-        let authoring_snapshot = authoring_snapshot
-            .map(crate::runtime::WorthUiCandidateRuntimeAuthoringSnapshot::activate);
         let (active_artifact, artifact_digest) = seal_launch_artifact(artifact);
         let snapshot_digest = snapshot.digest();
         let active_plan = derive_launch_execution_plan(artifact_digest, snapshot_digest);
         let active = build_active_runtime_state(
             active_artifact,
             active_plan,
-            snapshot.clone(),
             snapshot_digest,
-            authoring_snapshot,
             frame_epoch,
             diagnostic_policy,
         );
         let last_valid = WorthUiLastValidRuntimeState::record_from_active(&active);
 
-        Ok(Self {
-            instance_id: WorthUiRuntimeInstanceId::next(),
-            active,
-            last_valid,
-            graph_authority: WorthUiRuntimeGraphAuthority::new(),
-        })
+        Ok(Self { active, last_valid })
     }
 
-    pub(crate) fn instance_id(&self) -> WorthUiRuntimeInstanceId {
-        self.instance_id
+    pub fn lifecycle(&self) -> WorthUiRuntimeLifecycle {
+        self.active.lifecycle()
     }
 
-    pub(crate) fn promote_authoring_snapshot_after_activation(
-        &mut self,
-        authoring_snapshot: Option<crate::runtime::WorthUiCandidateRuntimeAuthoringSnapshot>,
-    ) {
-        self.active.replace_authoring_snapshot(
-            authoring_snapshot
-                .map(crate::runtime::WorthUiCandidateRuntimeAuthoringSnapshot::activate),
-        );
+    pub fn frame_epoch(&self) -> WorthUiRuntimeFrameEpoch {
+        self.active.frame_epoch()
+    }
+
+    pub fn inspect_active(&self) -> WorthUiActiveRuntimeObservation {
+        self.active.observation()
     }
 
     pub fn replacement_admission_basis(&self) -> WorthUiActiveReplacementBasis {
@@ -152,6 +153,26 @@ impl WorthUiRuntimeHost {
         WorthUiNodeReplacementClassifier::classify(impact, narrowing, identity_report)
     }
 
+    pub fn durable_state_inventory(&self) -> WorthUiDurableStateInventoryBuilder {
+        WorthUiDurableStateInventoryBuilder::new()
+    }
+
+    pub fn source_ingress(
+        &self,
+        provider: crate::runtime::WorthUiSourceProvider,
+    ) -> WorthUiSourceWatcher {
+        WorthUiSourceWatcher::new(provider)
+    }
+
+    pub fn reconcile_durable_state(
+        &self,
+        node_plan: &WorthUiNodeReplacementPlan,
+        inventory: &WorthUiDurableStateInventory,
+    ) -> Result<WorthUiDurableStateReconciliationPlan, WorthUiDurableStateReconciliationDenial>
+    {
+        WorthUiDurableStateReconciliationPlanner::reconcile(node_plan, inventory)
+    }
+
     pub fn compare_query_bindings(
         &self,
         node_plan: &WorthUiNodeReplacementPlan,
@@ -174,72 +195,6 @@ impl WorthUiRuntimeHost {
         admitted: &WorthUiAdmittedReplacementCandidate,
     ) -> Result<WorthUiQueryLiveRebindPlan, WorthUiQueryLiveRebindPlanDenial> {
         WorthUiQueryLiveRebindPlanner::plan(comparison, node_plan, narrowing, admitted)
-    }
-
-    pub fn admit_validation_runtime_change(
-        &self,
-        evidence: &WorthUiValidationReloadEvidence,
-    ) -> Result<WorthUiAdmittedRuntimeChangeEvidence, WorthUiRuntimeChangeAdmissionDenial> {
-        WorthUiAdmittedRuntimeChangeEvidence::admit(
-            WorthUiClassifiedRuntimeChange::from_validation_reload(evidence),
-            WorthUiRuntimeInstanceWitness::from_raw(self.instance_id.raw()),
-        )
-    }
-
-    pub fn admit_authored_runtime_change(
-        &self,
-        source_evidence: &WorthUiValidationReloadEvidence,
-        capability_evidence: Option<&WorthUiCapabilityReloadEvidence>,
-    ) -> Result<WorthUiAdmittedRuntimeChangeEvidence, WorthUiRuntimeChangeAdmissionDenial> {
-        let mut rows = vec![WorthUiRuntimeChangeFamilyRow::from_validation_evidence(
-            source_evidence,
-        )];
-        if let Some(capability_evidence) = capability_evidence {
-            rows.push(WorthUiRuntimeChangeFamilyRow::from_capability_evidence(
-                capability_evidence,
-            ));
-        }
-        WorthUiAdmittedRuntimeChangeEvidence::admit(
-            WorthUiClassifiedRuntimeChange::from_rows(rows)
-                .expect("authored runtime change rows should classify coherently"),
-            WorthUiRuntimeInstanceWitness::from_raw(self.instance_id.raw()),
-        )
-    }
-
-    pub fn admit_capability_runtime_change(
-        &self,
-        evidence: &WorthUiCapabilityReloadEvidence,
-    ) -> Result<WorthUiAdmittedRuntimeChangeEvidence, WorthUiRuntimeChangeAdmissionDenial> {
-        WorthUiAdmittedRuntimeChangeEvidence::admit(
-            WorthUiClassifiedRuntimeChange::from_capability_reload(evidence),
-            WorthUiRuntimeInstanceWitness::from_raw(self.instance_id.raw()),
-        )
-    }
-
-    pub fn admit_dropdown_selection_runtime_change(
-        &self,
-        receipt: &WorthUiDropdownSelectionInteractionReceipt,
-    ) -> Result<WorthUiAdmittedRuntimeChangeEvidence, WorthUiRuntimeChangeAdmissionDenial> {
-        WorthUiAdmittedRuntimeChangeEvidence::admit(
-            WorthUiClassifiedRuntimeChange::from_dropdown_selection_interaction(
-                WorthUiRuntimeInstanceWitness::from_raw(self.instance_id.raw()),
-                receipt,
-            ),
-            WorthUiRuntimeInstanceWitness::from_raw(self.instance_id.raw()),
-        )
-    }
-
-    pub fn admit_component_interaction_runtime_change(
-        &self,
-        receipt: &WorthUiComponentInteractionReceipt,
-    ) -> Result<WorthUiAdmittedRuntimeChangeEvidence, WorthUiRuntimeChangeAdmissionDenial> {
-        WorthUiAdmittedRuntimeChangeEvidence::admit(
-            WorthUiClassifiedRuntimeChange::from_component_interaction(
-                WorthUiRuntimeInstanceWitness::from_raw(self.instance_id.raw()),
-                receipt,
-            ),
-            WorthUiRuntimeInstanceWitness::from_raw(self.instance_id.raw()),
-        )
     }
 
     pub fn prepare_pending_execution_plan_lowering_input(
@@ -361,10 +316,6 @@ impl WorthUiRuntimeHost {
         &mut self.active
     }
 
-    pub(crate) fn active_state_for_read(&self) -> &WorthUiActiveRuntimeState {
-        &self.active
-    }
-
     pub(crate) fn record_last_valid_from_active_for_swap(&mut self) {
         self.last_valid = WorthUiLastValidRuntimeState::record_from_active(&self.active);
     }
@@ -390,5 +341,55 @@ impl WorthUiRuntimeHost {
     pub(crate) fn advance_frame_epoch_for_test(&mut self) {
         self.active
             .advance_frame_epoch_for_test(self.active.frame_epoch().next());
+    }
+}
+
+fn seal_launch_artifact(
+    artifact: WorthUiArtifact,
+) -> (WorthUiActiveArtifact, WorthUiArtifactDigest) {
+    let artifact_digest =
+        WorthUiArtifactDigestor::digest(&artifact, WorthUiArtifactEquivalenceBasis::semantic());
+    (
+        WorthUiActiveArtifact::new(artifact, artifact_digest),
+        artifact_digest,
+    )
+}
+
+fn derive_launch_execution_plan(
+    artifact_digest: WorthUiArtifactDigest,
+    snapshot_digest: CapabilitySnapshotDigest,
+) -> WorthUiActiveExecutionPlan {
+    WorthUiActiveExecutionPlan::from_launch_authority(artifact_digest, snapshot_digest)
+}
+
+fn build_active_runtime_state(
+    active_artifact: WorthUiActiveArtifact,
+    active_plan: WorthUiActiveExecutionPlan,
+    snapshot_digest: CapabilitySnapshotDigest,
+    frame_epoch: WorthUiRuntimeFrameEpoch,
+    diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
+) -> WorthUiActiveRuntimeState {
+    WorthUiActiveRuntimeState::new(
+        active_artifact,
+        active_plan,
+        snapshot_digest,
+        frame_epoch,
+        diagnostic_policy,
+    )
+}
+
+impl WorthUiRuntimeLaunch {
+    #[allow(dead_code)]
+    pub(crate) fn from_canonical_artifact(artifact: WorthUiArtifact) -> Self {
+        Self {
+            artifact,
+            frame_epoch: WorthUiRuntimeFrameEpoch::initial(),
+            diagnostic_policy: WorthUiRuntimeDiagnosticPolicy::minimal(),
+        }
+    }
+
+    pub fn with_diagnostics(mut self, diagnostic_policy: WorthUiRuntimeDiagnosticPolicy) -> Self {
+        self.diagnostic_policy = diagnostic_policy;
+        self
     }
 }

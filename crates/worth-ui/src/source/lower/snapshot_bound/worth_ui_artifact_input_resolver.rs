@@ -5,8 +5,8 @@ use crate::source::{
     WorthUiArtifactInput, WorthUiArtifactInputNode, WorthUiResolutionDiagnostic,
     WorthUiResolutionReport, WorthUiResolvedArtifactInput, WorthUiResolvedArtifactInputBindingNode,
     WorthUiResolvedArtifactInputComponentNode, WorthUiResolvedArtifactInputModule,
-    WorthUiResolvedArtifactInputNode, WorthUiResolvedArtifactInputPageNode,
-    WorthUiResolvedArtifactInputSurfaceNode, WorthUiResolvedArtifactInputThemeTokenNode,
+    WorthUiResolvedArtifactInputNode, WorthUiResolvedArtifactInputSurfaceNode,
+    WorthUiResolvedArtifactInputThemeTokenNode,
 };
 
 use super::worth_ui_snapshot_resolution_context::WorthUiSnapshotResolutionContext;
@@ -63,15 +63,6 @@ fn resolve_node(
         WorthUiArtifactInputNode::Import(import_node) => Ok(
             WorthUiResolvedArtifactInputNode::Import(import_node.clone()),
         ),
-        WorthUiArtifactInputNode::Page(page_node) => Ok(WorthUiResolvedArtifactInputNode::Page(
-            WorthUiResolvedArtifactInputPageNode::new(
-                page_node.name_text(),
-                page_node.template_parameters().to_vec(),
-                page_node.authored_identity().map(str::to_owned),
-                page_node.body_atoms().to_vec(),
-                page_node.provenance().clone(),
-            ),
-        )),
         WorthUiArtifactInputNode::Component(component_node) => {
             let (component, descriptor) = resolution_context.resolve_component(
                 module_id,

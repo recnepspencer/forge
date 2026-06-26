@@ -1,9 +1,0 @@
-error[E0451]: fields `identity` and `outcome` of struct `WorthUiQueryLiveRebindEntry` are private
-  --> tests/ui/runtime_authority/fail/query_live_rebind_entry_fields_not_public.rs:15:9
-   |
-14 |     let _ = WorthUiQueryLiveRebindEntry {
-   |             --------------------------- in this type
-15 |         identity: forged_query_binding_identity(),
-   |         ^^^^^^^^ private field
-16 |         outcome: forged_query_live_rebind_outcome(),
-   |         ^^^^^^^ private field

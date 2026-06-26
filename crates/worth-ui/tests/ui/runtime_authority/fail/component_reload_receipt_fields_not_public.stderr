@@ -1,9 +1,0 @@
-error[E0451]: fields `component_ids` and `compatibility` of struct `WorthUiComponentReloadReceipt` are private
- --> tests/ui/runtime_authority/fail/component_reload_receipt_fields_not_public.rs:5:9
-  |
-4 |     let _forged = WorthUiComponentReloadReceipt {
-  |                   ----------------------------- in this type
-5 |         component_ids: Vec::new(),
-  |         ^^^^^^^^^^^^^ private field
-6 |         compatibility: forged_compatibility(),
-  |         ^^^^^^^^^^^^^ private field

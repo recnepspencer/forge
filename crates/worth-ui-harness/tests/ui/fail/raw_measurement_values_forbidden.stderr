@@ -1,5 +1,0 @@
-error[E0599]: no variant or associated item named `from_raw_pixels` found for enum `HarnessDensity` in the current scope
- --> tests/ui/fail/raw_measurement_values_forbidden.rs:4:36
-  |
-4 |     let _density = HarnessDensity::from_raw_pixels([
-  |                                    ^^^^^^^^^^^^^^^ variant or associated item not found in `HarnessDensity`

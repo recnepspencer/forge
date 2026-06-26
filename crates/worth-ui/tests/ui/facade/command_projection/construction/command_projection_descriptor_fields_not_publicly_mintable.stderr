@@ -1,4 +1,4 @@
-error[E0451]: fields `id`, `surface`, `command_references`, `eligible_categories`, `groupings`, `ordering`, `shortcut_visibility`, `readiness_display_policy`, `icon_label_policy`, `overflow_behavior`, `mosaic_scope`, `selection_mode` and `meaning_overrides` of struct `CommandProjectionDescriptor` are private
+error[E0451]: fields `id`, `surface`, `command_references`, `eligible_categories`, `groupings`, `ordering`, `shortcut_visibility`, `readiness_display_policy`, `icon_label_policy`, `overflow_behavior`, `mosaic_scope` and `meaning_overrides` of struct `CommandProjectionDescriptor` are private
   --> tests/ui/facade/command_projection/construction/command_projection_descriptor_fields_not_publicly_mintable.rs:7:9
    |
  6 |     let _ = CommandProjectionDescriptor {
@@ -25,7 +25,5 @@ error[E0451]: fields `id`, `surface`, `command_references`, `eligible_categories
    |         ^^^^^^^^^^^^^^^^^ private field
 17 |         mosaic_scope: None,
    |         ^^^^^^^^^^^^ private field
-18 |         selection_mode: worth_ui::facade::CommandProjectionSelectionMode::SingleSelect,
-   |         ^^^^^^^^^^^^^^ private field
-19 |         meaning_overrides: Vec::new(),
+18 |         meaning_overrides: Vec::new(),
    |         ^^^^^^^^^^^^^^^^^ private field

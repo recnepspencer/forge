@@ -1,7 +1,0 @@
-component_id = validation.component.header.dropdown
-prop_schema = validation.header.dropdown.props
-child_policy = no_children
-state_ownership = runtime_owned
-focus = focusable
-execution_lane = interactive
-command_binding_slots = validation.command.header.reload

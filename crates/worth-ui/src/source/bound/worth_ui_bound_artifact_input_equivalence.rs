@@ -34,11 +34,6 @@ fn nodes_are_equivalent(
             WorthUiBoundArtifactInputNode::Import(left),
             WorthUiBoundArtifactInputNode::Import(right),
         ) => left.target() == right.target(),
-        (WorthUiBoundArtifactInputNode::Page(left), WorthUiBoundArtifactInputNode::Page(right)) => {
-            left.name_text() == right.name_text()
-                && left.template_parameters() == right.template_parameters()
-                && left.structure() == right.structure()
-        }
         (
             WorthUiBoundArtifactInputNode::Component(left),
             WorthUiBoundArtifactInputNode::Component(right),

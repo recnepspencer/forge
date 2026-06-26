@@ -341,7 +341,6 @@ fn reject_identity_kind_mismatch(
 fn node_identity_seed(node: &WorthUiArtifactNode) -> &WorthUiArtifactIdentitySeed {
     match node {
         WorthUiArtifactNode::Import(node) => node.identity_seed(),
-        WorthUiArtifactNode::Page(node) => node.identity_seed(),
         WorthUiArtifactNode::Component(node) => node.identity_seed(),
         WorthUiArtifactNode::Surface(node) => node.identity_seed(),
         WorthUiArtifactNode::Binding(node) => node.identity_seed(),
@@ -352,7 +351,6 @@ fn node_identity_seed(node: &WorthUiArtifactNode) -> &WorthUiArtifactIdentitySee
 fn node_durable_state_eligibility(node: &WorthUiArtifactNode) -> &WorthUiDurableStateEligibility {
     match node {
         WorthUiArtifactNode::Import(node) => node.durable_state_eligibility(),
-        WorthUiArtifactNode::Page(node) => node.durable_state_eligibility(),
         WorthUiArtifactNode::Component(node) => node.durable_state_eligibility(),
         WorthUiArtifactNode::Surface(node) => node.durable_state_eligibility(),
         WorthUiArtifactNode::Binding(node) => node.durable_state_eligibility(),

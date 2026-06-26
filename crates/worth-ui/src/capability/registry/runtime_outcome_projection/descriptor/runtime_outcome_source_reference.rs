@@ -98,7 +98,7 @@ impl RuntimeOutcomeSourceReference {
     pub fn from_query_async_result_state(state: &ForgeQueryRuntimeAsyncResultState) -> Self {
         Self::QueryRuntimeAsyncResultState {
             kind: state.kind(),
-            result_state_digest: state.result_state_for_reporting().to_string(),
+            result_state_digest: state.result_state_digest().to_string(),
         }
     }
 

@@ -10,8 +10,6 @@ mod active_runtime_authority_tests;
 mod artifact_equivalence_boundary_tests;
 #[path = "atomic_plan_swap_boundary_tests.rs"]
 mod atomic_plan_swap_boundary_tests;
-#[path = "authoring_snapshot_boundary_tests.rs"]
-mod authoring_snapshot_boundary_tests;
 #[path = "candidate_admission_boundary_tests.rs"]
 mod candidate_admission_boundary_tests;
 #[path = "canvas_spatial_lane_boundary_tests.rs"]
@@ -104,16 +102,10 @@ mod reload_counter_boundary_tests;
 mod reload_failure_boundary_tests;
 #[path = "reload_failure_test_support.rs"]
 mod reload_failure_test_support;
-#[path = "reload_projection_frame_replay_tests.rs"]
-mod reload_projection_frame_replay_tests;
 #[path = "reload_storm_certification_boundary_tests.rs"]
 mod reload_storm_certification_boundary_tests;
 #[path = "reload_storm_certification_test_support.rs"]
 mod reload_storm_certification_test_support;
-#[path = "reload_storm_closeout_certification_tests.rs"]
-mod reload_storm_closeout_certification_tests;
-#[path = "reload_storm_seeded_replay_tests.rs"]
-mod reload_storm_seeded_replay_tests;
 #[path = "replacement_candidate_boundary_tests.rs"]
 mod replacement_candidate_boundary_tests;
 #[path = "replacement_impact_boundary_tests.rs"]
@@ -128,24 +120,10 @@ mod runtime_diagnostics_family_coverage_tests;
 mod runtime_diagnostics_projection_boundary_tests;
 #[path = "runtime_diagnostics_projection_test_support.rs"]
 mod runtime_diagnostics_projection_test_support;
-#[path = "source_ingress_authored_delta_boundary_tests.rs"]
-mod source_ingress_authored_delta_boundary_tests;
-#[path = "source_ingress_authored_delta_source_fixtures.rs"]
-pub(crate) mod source_ingress_authored_delta_source_fixtures;
-#[path = "source_ingress_authored_delta_test_support.rs"]
-pub(crate) mod source_ingress_authored_delta_test_support;
-#[path = "source_ingress_authored_package_test_support.rs"]
-pub(crate) mod source_ingress_authored_package_test_support;
-#[path = "source_ingress_authored_surface_component_tests.rs"]
-mod source_ingress_authored_surface_component_tests;
 #[path = "source_ingress_boundary_tests.rs"]
 mod source_ingress_boundary_tests;
 #[path = "source_ingress_test_support.rs"]
 pub(crate) mod source_ingress_test_support;
-#[path = "source_ingress_validation_reload_changed_facts_tests.rs"]
-mod source_ingress_validation_reload_changed_facts_tests;
-#[path = "source_ingress_validation_reload_structural_family_tests.rs"]
-mod source_ingress_validation_reload_structural_family_tests;
 #[path = "steady_frame_counter_boundary_tests.rs"]
 mod steady_frame_counter_boundary_tests;
 #[path = "steady_frame_counter_forbidden_work_tests.rs"]
@@ -154,8 +132,6 @@ mod steady_frame_counter_forbidden_work_tests;
 mod steady_frame_counter_schema_tests;
 #[path = "steady_frame_report_planning_tests.rs"]
 mod steady_frame_report_planning_tests;
-#[path = "validation_reload_authored_ingress_boundary_tests.rs"]
-mod validation_reload_authored_ingress_boundary_tests;
 #[path = "virtualized_data_lane_boundary_tests.rs"]
 mod virtualized_data_lane_boundary_tests;
 #[path = "virtualized_data_lane_test_support.rs"]

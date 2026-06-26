@@ -108,9 +108,6 @@ impl DependencyDerivationContext {
         self.record_subtree_digest(node);
         match node {
             WorthUiArtifactNode::Import(import) => self.record_module_import(import),
-            WorthUiArtifactNode::Page(page) => {
-                self.record_structure_edges(page.handle(), page.structure())
-            }
             WorthUiArtifactNode::Component(component) => {
                 self.record_structure_edges(component.handle(), component.structure())
             }

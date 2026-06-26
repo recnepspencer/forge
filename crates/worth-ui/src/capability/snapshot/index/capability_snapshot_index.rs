@@ -1,24 +1,20 @@
 use crate::capability::{
-    AppearanceTokenId, CommandDescriptor, CommandId, CommandProjectionDescriptor,
-    CommandProjectionId, ComponentDescriptor, ComponentId, DensityTokenId,
-    FrozenAppearanceCapabilities, FrozenCommandCapabilities, FrozenCommandProjectionCapabilities,
-    FrozenComponentCapabilities, FrozenDensityCapabilities, FrozenIconCapabilities,
-    FrozenImageAssetCapabilities, FrozenMosaicPlacementCapabilities,
-    FrozenMosaicRegionCapabilities, FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities,
-    FrozenNativeCapabilities, FrozenPluginSlotCapabilities,
-    FrozenRuntimeOutcomeProjectionCapabilities, FrozenSettingCapabilities,
-    FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities, FrozenThemeTokenCapabilities,
-    FrozenViewBindingCapabilities, IconDescriptor, IconId, ImageAssetDescriptor, ImageAssetId,
+    CommandDescriptor, CommandId, CommandProjectionDescriptor, CommandProjectionId,
+    ComponentDescriptor, ComponentId, FrozenCommandCapabilities,
+    FrozenCommandProjectionCapabilities, FrozenComponentCapabilities, FrozenIconCapabilities,
+    FrozenMosaicPlacementCapabilities, FrozenMosaicRegionCapabilities,
+    FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities, FrozenNativeCapabilities,
+    FrozenPluginSlotCapabilities, FrozenRuntimeOutcomeProjectionCapabilities,
+    FrozenSettingCapabilities, FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities,
+    FrozenThemeTokenCapabilities, FrozenViewBindingCapabilities, IconDescriptor, IconId,
     MosaicPlacementPolicyDescriptor, MosaicPlacementPolicyId, MosaicRegionKindDescriptor,
     MosaicRegionKindId, MosaicSizingContractDescriptor, MosaicSizingContractId,
     MosaicStateSlotDescriptor, MosaicStateSlotId, NativeCapabilityDescriptor, NativeCapabilityId,
     PluginSlotDescriptor, PluginSlotId, RuntimeOutcomeProjectionDescriptor,
     RuntimeOutcomeProjectionId, SettingDescriptor, SettingId, SurfaceDescriptor, SurfaceId,
     TaskPresentationDescriptor, TaskPresentationId, ThemeTokenDescriptor, ThemeTokenId,
-    ViewBindingDescriptor, ViewBindingId, WorthUiAppearanceTokenDescriptor,
-    WorthUiDensityTokenDescriptor, APPEARANCE_TOKEN_FAMILY_NAME, COMMAND_FAMILY_NAME,
-    COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME, DENSITY_TOKEN_FAMILY_NAME,
-    ICON_FAMILY_NAME, IMAGE_ASSET_FAMILY_NAME, MOSAIC_PLACEMENT_POLICY_FAMILY_NAME,
+    ViewBindingDescriptor, ViewBindingId, COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME,
+    COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME, MOSAIC_PLACEMENT_POLICY_FAMILY_NAME,
     MOSAIC_REGION_KIND_FAMILY_NAME, MOSAIC_SIZING_CONTRACT_FAMILY_NAME,
     MOSAIC_STATE_SLOT_FAMILY_NAME, NATIVE_CAPABILITY_FAMILY_NAME, PLUGIN_SLOT_FAMILY_NAME,
     RUNTIME_OUTCOME_PROJECTION_FAMILY_NAME, SETTING_FAMILY_NAME, SURFACE_FAMILY_NAME,
@@ -33,10 +29,7 @@ pub struct CapabilitySnapshotIndex<'snapshot> {
     commands: &'snapshot FrozenCommandCapabilities,
     command_projections: &'snapshot FrozenCommandProjectionCapabilities,
     components: &'snapshot FrozenComponentCapabilities,
-    appearance_tokens: &'snapshot FrozenAppearanceCapabilities,
-    density_tokens: &'snapshot FrozenDensityCapabilities,
     icons: &'snapshot FrozenIconCapabilities,
-    image_assets: &'snapshot FrozenImageAssetCapabilities,
     surfaces: &'snapshot FrozenSurfaceCapabilities,
     mosaic_regions: &'snapshot FrozenMosaicRegionCapabilities,
     mosaic_placement_policies: &'snapshot FrozenMosaicPlacementCapabilities,
@@ -57,10 +50,7 @@ impl<'snapshot> CapabilitySnapshotIndex<'snapshot> {
             commands: snapshot_parts.commands,
             command_projections: snapshot_parts.command_projections,
             components: snapshot_parts.components,
-            appearance_tokens: snapshot_parts.appearance_tokens,
-            density_tokens: snapshot_parts.density_tokens,
             icons: snapshot_parts.icons,
-            image_assets: snapshot_parts.image_assets,
             surfaces: snapshot_parts.surfaces,
             mosaic_regions: snapshot_parts.mosaic_regions,
             mosaic_placement_policies: snapshot_parts.mosaic_placement_policies,
@@ -88,20 +78,8 @@ impl<'snapshot> CapabilitySnapshotIndex<'snapshot> {
         ComponentSnapshotIndex::new(self.components)
     }
 
-    pub fn appearance_tokens(self) -> AppearanceTokenSnapshotIndex<'snapshot> {
-        AppearanceTokenSnapshotIndex::new(self.appearance_tokens)
-    }
-
-    pub fn density_tokens(self) -> DensityTokenSnapshotIndex<'snapshot> {
-        DensityTokenSnapshotIndex::new(self.density_tokens)
-    }
-
     pub fn icons(self) -> IconSnapshotIndex<'snapshot> {
         IconSnapshotIndex::new(self.icons)
-    }
-
-    pub fn image_assets(self) -> ImageAssetSnapshotIndex<'snapshot> {
-        ImageAssetSnapshotIndex::new(self.image_assets)
     }
 
     pub fn surfaces(self) -> SurfaceSnapshotIndex<'snapshot> {
@@ -157,10 +135,7 @@ pub(crate) struct CapabilitySnapshotIndexParts<'snapshot> {
     pub(crate) commands: &'snapshot FrozenCommandCapabilities,
     pub(crate) command_projections: &'snapshot FrozenCommandProjectionCapabilities,
     pub(crate) components: &'snapshot FrozenComponentCapabilities,
-    pub(crate) appearance_tokens: &'snapshot FrozenAppearanceCapabilities,
-    pub(crate) density_tokens: &'snapshot FrozenDensityCapabilities,
     pub(crate) icons: &'snapshot FrozenIconCapabilities,
-    pub(crate) image_assets: &'snapshot FrozenImageAssetCapabilities,
     pub(crate) surfaces: &'snapshot FrozenSurfaceCapabilities,
     pub(crate) mosaic_regions: &'snapshot FrozenMosaicRegionCapabilities,
     pub(crate) mosaic_placement_policies: &'snapshot FrozenMosaicPlacementCapabilities,
@@ -220,32 +195,11 @@ snapshot_index_family!(
     ComponentDescriptor
 );
 snapshot_index_family!(
-    AppearanceTokenSnapshotIndex,
-    APPEARANCE_TOKEN_FAMILY_NAME,
-    FrozenAppearanceCapabilities,
-    AppearanceTokenId,
-    WorthUiAppearanceTokenDescriptor
-);
-snapshot_index_family!(
-    DensityTokenSnapshotIndex,
-    DENSITY_TOKEN_FAMILY_NAME,
-    FrozenDensityCapabilities,
-    DensityTokenId,
-    WorthUiDensityTokenDescriptor
-);
-snapshot_index_family!(
     IconSnapshotIndex,
     ICON_FAMILY_NAME,
     FrozenIconCapabilities,
     IconId,
     IconDescriptor
-);
-snapshot_index_family!(
-    ImageAssetSnapshotIndex,
-    IMAGE_ASSET_FAMILY_NAME,
-    FrozenImageAssetCapabilities,
-    ImageAssetId,
-    ImageAssetDescriptor
 );
 snapshot_index_family!(
     SurfaceSnapshotIndex,

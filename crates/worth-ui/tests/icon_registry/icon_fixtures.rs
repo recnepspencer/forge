@@ -1,6 +1,5 @@
 use forge_query::facade::{
-    worth_ui_query_binding_evidence_identity, ForgeQueryRuntimeAsyncResultState,
-    ForgeQueryRuntimeAsyncResultStateKind,
+    ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeAsyncResultStateKind,
 };
 use worth_ui::facade::{
     CommandDescriptor, CommandId, ComponentChildPolicy, ComponentDescriptor, ComponentId,
@@ -105,17 +104,8 @@ pub(crate) fn denied_projection_with_icon(
 fn async_result_state() -> ForgeQueryRuntimeAsyncResultState {
     ForgeQueryRuntimeAsyncResultState::new(
         ForgeQueryRuntimeAsyncResultStateKind::Denied,
-        &worth_ui_query_binding_evidence_identity(
-            "runtime-outcome-fixture",
-            &["causality.digest".to_string()],
-        ),
-        &worth_ui_query_binding_evidence_identity(
-            "runtime-outcome-fixture",
-            &["basis.digest".to_string()],
-        ),
-        &worth_ui_query_binding_evidence_identity(
-            "runtime-outcome-fixture",
-            &["generation.digest".to_string()],
-        ),
+        "causality.digest",
+        "basis.digest",
+        "generation.digest",
     )
 }

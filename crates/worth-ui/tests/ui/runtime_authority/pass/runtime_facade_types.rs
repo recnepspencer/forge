@@ -25,13 +25,6 @@ use worth_ui::facade::{
     WorthUiExecutionPlanEquivalenceBasis, WorthUiExecutionPlanEquivalenceCounters,
     WorthUiExecutionPlanInput, WorthUiExtensionHookAdmission, WorthUiFocusChainReconciliation,
     WorthUiFrameBoundary, WorthUiFrameBoundaryPosture, WorthUiHandlePlanGeneration,
-    WorthUiHeaderFrame, WorthUiHeaderFramePlan, WorthUiHeaderFramePlanDenial,
-    WorthUiHeaderFrameRebindDenial, WorthUiHeaderFrameRebindReceipt,
-    WorthUiHeaderFrameRebindRequest, WorthUiHeaderFrameRebindStatus,
-    WorthUiHeaderFrameReceipt, WorthUiHeaderMenuCommand, WorthUiHeaderMenuGroup,
-    WorthUiHeaderMenuPlan, WorthUiHeaderMenuPlanDenial, WorthUiHeaderMenuProjectionRequest,
-    WorthUiHeaderThemeFrameReceipt, WorthUiHeaderThemePlan, WorthUiHeaderThemePlanDenial,
-    WorthUiHeaderThemeTokenRequest,
     WorthUiIdentityMatchCounters, WorthUiIdentityMatchDenial, WorthUiIdentityMatchEdge,
     WorthUiIdentityMatchGraph, WorthUiIdentityMatchNode, WorthUiIdentityMatchNodeKind,
     WorthUiIdentityMatchNodeSide, WorthUiIdentityMatchReport, WorthUiIdentitySeedContribution,
@@ -83,9 +76,7 @@ use worth_ui::facade::{
     WorthUiTextEditStateReconciliation, WorthUiTokenHandle, WorthUiTokenThemeImpact,
     WorthUiTransientInteractionPolicy, WorthUiTransientInteractionState,
     WorthUiUnsupportedHookDenial, WorthUiUnsupportedHookDenialReason,
-    WorthUiUnsupportedReplacementImpact, WorthUiValidationPreparedReload,
-    WorthUiValidationReloadEvidence, WorthUiValidationReloadRequest, WorthUiValidationReloadStage,
-    WorthUiValidationReloadStatus, WorthUiViewBindingHandle, WorthUiRenderResourceRef,
+    WorthUiUnsupportedReplacementImpact, WorthUiViewBindingHandle, WorthUiRenderResourceRef,
 };
 
 fn accepts_runtime_types(
@@ -335,29 +326,6 @@ fn main() {
     let _ = WorthUiLaneAdmissionDenialReason::UnsupportedLaneReference;
     let _ = WorthUiLaneAdapterHookKind::CanvasSpatialDrawAndHitTest;
     let _ = WorthUiUnsupportedHookDenialReason::ActivePlanTruthOverride;
-    let _: Option<WorthUiValidationPreparedReload> = None;
-    let _: Option<WorthUiValidationReloadEvidence> = None;
-    let _: Option<WorthUiValidationReloadRequest> = None;
-    let _: Option<WorthUiHeaderFrame<'static>> = None;
-    let _: Option<WorthUiHeaderFramePlan> = None;
-    let _: Option<WorthUiHeaderFramePlanDenial> = None;
-    let _: Option<WorthUiHeaderFrameRebindDenial> = None;
-    let _: Option<WorthUiHeaderFrameRebindReceipt> = None;
-    let _: Option<WorthUiHeaderFrameRebindRequest> = None;
-    let _: Option<WorthUiHeaderFrameReceipt> = None;
-    let _: Option<WorthUiHeaderMenuCommand> = None;
-    let _: Option<WorthUiHeaderMenuGroup> = None;
-    let _: Option<WorthUiHeaderMenuPlan> = None;
-    let _: Option<WorthUiHeaderMenuPlanDenial> = None;
-    let _: Option<WorthUiHeaderMenuProjectionRequest> = None;
-    let _: Option<WorthUiHeaderThemeFrameReceipt> = None;
-    let _: Option<WorthUiHeaderThemePlan> = None;
-    let _: Option<WorthUiHeaderThemePlanDenial> = None;
-    let _: Option<WorthUiHeaderThemeTokenRequest> = None;
-    let _ = WorthUiHeaderFrameRebindStatus::EquivalentAfterActivation;
-    let _ = WorthUiValidationReloadStage::SourceIngress;
-    let _ = WorthUiValidationReloadStage::RuntimeInstanceMismatch;
-    let _ = WorthUiValidationReloadStatus::ReadyForFrameBoundary;
 
     accepts_runtime_types(
         None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,

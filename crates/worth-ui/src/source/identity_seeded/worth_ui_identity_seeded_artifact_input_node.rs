@@ -1,15 +1,13 @@
 use crate::source::{
     WorthUiArtifactIdentitySeed, WorthUiArtifactInputImportNode, WorthUiArtifactInputProvenance,
     WorthUiBoundArtifactInputBindingNode, WorthUiBoundArtifactInputComponentNode,
-    WorthUiBoundArtifactInputPageNode, WorthUiBoundArtifactInputSurfaceNode,
-    WorthUiBoundArtifactInputThemeTokenNode, WorthUiBoundViewBindingReference,
-    WorthUiDurableStateEligibility,
+    WorthUiBoundArtifactInputSurfaceNode, WorthUiBoundArtifactInputThemeTokenNode,
+    WorthUiBoundViewBindingReference, WorthUiDurableStateEligibility,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum WorthUiIdentitySeededArtifactInputNode {
     Import(WorthUiIdentitySeededArtifactInputImportNode),
-    Page(WorthUiIdentitySeededArtifactInputPageNode),
     Component(WorthUiIdentitySeededArtifactInputComponentNode),
     Surface(WorthUiIdentitySeededArtifactInputSurfaceNode),
     Binding(WorthUiIdentitySeededArtifactInputBindingNode),
@@ -19,13 +17,6 @@ pub(crate) enum WorthUiIdentitySeededArtifactInputNode {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct WorthUiIdentitySeededArtifactInputImportNode {
     node: WorthUiArtifactInputImportNode,
-    identity_seed: WorthUiArtifactIdentitySeed,
-    durable_state_eligibility: WorthUiDurableStateEligibility,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct WorthUiIdentitySeededArtifactInputPageNode {
-    node: WorthUiBoundArtifactInputPageNode,
     identity_seed: WorthUiArtifactIdentitySeed,
     durable_state_eligibility: WorthUiDurableStateEligibility,
 }
@@ -85,10 +76,6 @@ macro_rules! seeded_node_impl {
 }
 
 seeded_node_impl!(
-    WorthUiIdentitySeededArtifactInputPageNode,
-    WorthUiBoundArtifactInputPageNode
-);
-seeded_node_impl!(
     WorthUiIdentitySeededArtifactInputComponentNode,
     WorthUiBoundArtifactInputComponentNode
 );
@@ -132,24 +119,6 @@ impl WorthUiIdentitySeededArtifactInputImportNode {
 
     pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
         self.node.provenance()
-    }
-}
-
-impl WorthUiIdentitySeededArtifactInputPageNode {
-    pub(crate) fn name_text(&self) -> &str {
-        self.node.name_text()
-    }
-
-    pub(crate) fn template_parameters(&self) -> &[(String, String)] {
-        self.node.template_parameters()
-    }
-
-    pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
-        self.node.provenance()
-    }
-
-    pub(crate) fn bound_node(&self) -> &WorthUiBoundArtifactInputPageNode {
-        &self.node
     }
 }
 

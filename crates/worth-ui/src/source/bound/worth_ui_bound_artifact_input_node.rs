@@ -10,20 +10,10 @@ use crate::source::{
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum WorthUiBoundArtifactInputNode {
     Import(WorthUiArtifactInputImportNode),
-    Page(WorthUiBoundArtifactInputPageNode),
     Component(WorthUiBoundArtifactInputComponentNode),
     Surface(WorthUiBoundArtifactInputSurfaceNode),
     Binding(WorthUiBoundArtifactInputBindingNode),
     Token(WorthUiBoundArtifactInputThemeTokenNode),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct WorthUiBoundArtifactInputPageNode {
-    name_text: String,
-    template_parameters: Vec<(String, String)>,
-    authored_identity: Option<String>,
-    structure: WorthUiMosaicStructureFacts,
-    provenance: WorthUiArtifactInputProvenance,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -85,44 +75,6 @@ impl WorthUiBoundArtifactInputComponentNode {
 
     pub(crate) fn descriptor(&self) -> &ComponentDescriptor {
         &self.descriptor
-    }
-
-    pub(crate) fn authored_identity(&self) -> Option<&str> {
-        self.authored_identity.as_deref()
-    }
-
-    pub(crate) fn structure(&self) -> &WorthUiMosaicStructureFacts {
-        &self.structure
-    }
-
-    pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
-        &self.provenance
-    }
-}
-
-impl WorthUiBoundArtifactInputPageNode {
-    pub(crate) fn new(
-        name_text: impl Into<String>,
-        template_parameters: Vec<(String, String)>,
-        authored_identity: Option<String>,
-        structure: WorthUiMosaicStructureFacts,
-        provenance: WorthUiArtifactInputProvenance,
-    ) -> Self {
-        Self {
-            name_text: name_text.into(),
-            template_parameters,
-            authored_identity,
-            structure,
-            provenance,
-        }
-    }
-
-    pub(crate) fn name_text(&self) -> &str {
-        &self.name_text
-    }
-
-    pub(crate) fn template_parameters(&self) -> &[(String, String)] {
-        &self.template_parameters
     }
 
     pub(crate) fn authored_identity(&self) -> Option<&str> {

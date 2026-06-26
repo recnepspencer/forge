@@ -1,13 +1,59 @@
-#[path = "support/trybuild_helpers.rs"]
-mod trybuild_helpers;
+#[test]
+fn durable_state_inventory_fields_are_not_publicly_mintable() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/durable_state_inventory_fields_not_public.rs",
+    );
+}
 
 #[test]
-fn runtime_state_query_boundary_stays_sealed() {
-    trybuild_helpers::run_compile_fail_cases(&[
-        "tests/ui/runtime_authority/fail/durable_state_inventory_fields_not_public.rs",
+fn durable_state_reconciliation_plan_fields_are_not_publicly_mintable() {
+    runtime_authority_compile_fail(
         "tests/ui/runtime_authority/fail/durable_state_reconciliation_plan_fields_not_public.rs",
+    );
+}
+
+#[test]
+fn durable_state_reconciliation_receipt_fields_are_not_publicly_mintable() {
+    runtime_authority_compile_fail(
         "tests/ui/runtime_authority/fail/durable_state_reconciliation_receipt_fields_not_public.rs",
+    );
+}
+
+#[test]
+fn durable_state_reconciliation_counters_are_not_publicly_mintable() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/durable_state_reconciliation_counters_not_publicly_mintable.rs",
+    );
+}
+
+#[test]
+fn durable_state_carry_forward_fields_are_not_publicly_mintable() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/durable_state_carry_forward_fields_not_public.rs",
+    );
+}
+
+#[test]
+fn durable_state_replacement_fields_are_not_publicly_mintable() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/durable_state_replacement_fields_not_public.rs",
+    );
+}
+
+#[test]
+fn local_query_result_state_enum_cannot_replace_query_binding_posture() {
+    runtime_authority_compile_fail(
         "tests/ui/runtime_authority/fail/local_query_result_state_enum_cannot_replace_query_binding_posture.rs",
+    );
+}
+
+#[test]
+fn local_subscription_recovery_path_cannot_replace_query_rebind_plan() {
+    runtime_authority_compile_fail(
         "tests/ui/runtime_authority/fail/local_subscription_recovery_path_cannot_replace_query_rebind.rs",
-    ]);
+    );
+}
+
+fn runtime_authority_compile_fail(path: &str) {
+    trybuild::TestCases::new().compile_fail(path);
 }

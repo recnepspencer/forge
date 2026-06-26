@@ -56,8 +56,7 @@ pub(super) fn file_authored_inspection_subject(
         .expect("file-authored package should compile");
     let parsed_source_package =
         WorthUiSourceParser::parse_package(&source_package).expect("source package should parse");
-    let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_source_package)
-        .expect("authoring entry should lower to artifact input");
+    let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_source_package);
     let resolved = crate::source::WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
         .expect("phase 4 resolution should succeed");
     let structured = crate::source::WorthUiStructuralLegalityLowerer::lower(&resolved, snapshot)

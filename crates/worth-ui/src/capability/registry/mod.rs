@@ -1,12 +1,8 @@
-mod appearance;
 mod command;
 mod command_projection;
 mod component;
-mod density;
-mod expression;
 mod family_names;
 mod icon;
-mod image_asset;
 mod mosaic_placement;
 mod mosaic_region;
 mod mosaic_sizing;
@@ -15,19 +11,11 @@ mod native_capability;
 mod plugin_slot;
 mod runtime_outcome_projection;
 mod settings;
-mod style_value;
 mod surface;
 mod task_presentation;
 mod theme_token;
 mod view_binding;
 
-pub use appearance::{
-    FrozenAppearanceCapabilities, WorthUiAppearanceFamily, WorthUiAppearanceTokenDescriptor,
-    WorthUiAppearanceTokenSource, WorthUiAppearanceValue,
-};
-pub(crate) use appearance::{
-    WorthUiAppearanceAcceptedRegistrationProof, WorthUiAppearanceRegistry,
-};
 pub(crate) use command::CommandAcceptedRegistrationProof;
 pub(crate) use command::CommandRegistry;
 pub use command::{
@@ -41,9 +29,8 @@ pub use command_projection::{
     CommandProjectionCommandReference, CommandProjectionDescriptor, CommandProjectionGrouping,
     CommandProjectionIconLabelPolicy, CommandProjectionKey, CommandProjectionMeaningOverride,
     CommandProjectionMosaicScope, CommandProjectionOrdering, CommandProjectionOverflowBehavior,
-    CommandProjectionReadinessDisplayPolicy, CommandProjectionSelectionMode,
-    CommandProjectionShortcutVisibility, CommandProjectionSurface,
-    FrozenCommandProjectionCapabilities, FrozenCommandProjectionEntry,
+    CommandProjectionReadinessDisplayPolicy, CommandProjectionShortcutVisibility,
+    CommandProjectionSurface, FrozenCommandProjectionCapabilities, FrozenCommandProjectionEntry,
 };
 pub(crate) use component::{ComponentAcceptedRegistrationProof, ComponentRegistry};
 pub use component::{
@@ -51,23 +38,8 @@ pub use component::{
     ComponentExecutionLane, ComponentFocusSupport, ComponentPropSchema, ComponentStateOwnership,
     FrozenComponentCapabilities,
 };
-pub use density::{
-    FrozenDensityCapabilities, WorthUiDensityFamily, WorthUiDensityPostureValue,
-    WorthUiDensityTokenDescriptor, WorthUiDensityValue,
-};
-pub(crate) use density::{WorthUiDensityAcceptedRegistrationProof, WorthUiDensityRegistry};
-pub use expression::{
-    standard_expression_operator_descriptor, standard_expression_operator_descriptors,
-    WorthUiExpressionArity, WorthUiExpressionCostPosture, WorthUiExpressionDependencyContract,
-    WorthUiExpressionDiagnosticsPosture, WorthUiExpressionInputKind,
-    WorthUiExpressionOperatorDescriptor, WorthUiExpressionOperatorId, WorthUiExpressionOutputKind,
-    AND_OPERATOR, DATA_PAYLOAD_OBJECT_OPERATOR, EMPTY_OPERATOR, EQUALS_OPERATOR, FIELD_OPERATOR,
-    LITERAL_TEXT_OPERATOR, NON_EMPTY_OPERATOR, NORMALIZE_TRIM_OPERATOR, NOT_OPERATOR,
-    ONE_OF_OPERATOR, OR_OPERATOR, PAYLOAD_OBJECT_OPERATOR, PRESENT_OPERATOR,
-};
 pub(crate) use family_names::{
-    APPEARANCE_TOKEN_FAMILY_NAME, COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME,
-    COMPONENT_FAMILY_NAME, DENSITY_TOKEN_FAMILY_NAME, ICON_FAMILY_NAME, IMAGE_ASSET_FAMILY_NAME,
+    COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME,
     MOSAIC_PLACEMENT_POLICY_FAMILY_NAME, MOSAIC_REGION_KIND_FAMILY_NAME,
     MOSAIC_SIZING_CONTRACT_FAMILY_NAME, MOSAIC_STATE_SLOT_FAMILY_NAME,
     NATIVE_CAPABILITY_FAMILY_NAME, PLUGIN_SLOT_FAMILY_NAME, RUNTIME_OUTCOME_PROJECTION_FAMILY_NAME,
@@ -76,12 +48,10 @@ pub(crate) use family_names::{
 };
 pub use icon::{
     FrozenIconCapabilities, FrozenIconEntry, IconAccessibilityPosture, IconColorSupport,
-    IconDescriptor, IconFamily, IconKey, IconNativeVectorSupport, IconSizeSupport,
-    IconSourceDescriptor, IconSourceKind, IconThemePosture, RawIconAssetReference,
+    IconDescriptor, IconFamily, IconKey, IconSizeSupport, IconSourceDescriptor, IconSourceKind,
+    IconThemePosture, RawIconAssetReference,
 };
 pub(crate) use icon::{IconAcceptedRegistrationProof, IconRegistry};
-pub use image_asset::{FrozenImageAssetCapabilities, ImageAssetDescriptor, ImageAssetSourceKind};
-pub(crate) use image_asset::{ImageAssetAcceptedRegistrationProof, ImageAssetRegistry};
 pub use mosaic_placement::{
     FrozenMosaicPlacementCapabilities, MosaicPlacementAction, MosaicPlacementConflictBehavior,
     MosaicPlacementEligibility, MosaicPlacementPersistence, MosaicPlacementPolicyDescriptor,
@@ -142,11 +112,6 @@ pub use settings::{
     SettingValueSchema,
 };
 pub(crate) use settings::{SettingAcceptedRegistrationProof, SettingsRegistry};
-pub use style_value::{
-    WorthUiBorderWidthValue, WorthUiCornerRadiusValue, WorthUiFontSizeValue, WorthUiLengthValue,
-    WorthUiPaddingValue, WorthUiShadowValue, WorthUiSpacingValue, WorthUiStyleValueError,
-    WorthUiStyleValueErrorReason,
-};
 pub use surface::{
     FrozenSurfaceCapabilities, SurfaceDescriptor, SurfaceKind, SurfacePlacementClass,
     SurfaceStateClass,

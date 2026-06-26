@@ -1,5 +1,4 @@
 use crate::runtime::{WorthUiIdentityMatchNodeKind, WorthUiNodeLifecycleTransition};
-use crate::source::WorthUiArtifactHandle;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiNodeReplacementClassification {
@@ -7,8 +6,6 @@ pub struct WorthUiNodeReplacementClassification {
     transition: WorthUiNodeLifecycleTransition,
     active_kind: Option<WorthUiIdentityMatchNodeKind>,
     candidate_kind: Option<WorthUiIdentityMatchNodeKind>,
-    active_handle: Option<WorthUiArtifactHandle>,
-    candidate_handle: Option<WorthUiArtifactHandle>,
     active_durable_state_eligible: bool,
     candidate_durable_state_eligible: bool,
 }
@@ -27,21 +24,9 @@ impl WorthUiNodeReplacementClassification {
             transition,
             active_kind,
             candidate_kind,
-            active_handle: None,
-            candidate_handle: None,
             active_durable_state_eligible,
             candidate_durable_state_eligible,
         }
-    }
-
-    pub(crate) fn with_artifact_handles(
-        mut self,
-        active_handle: Option<WorthUiArtifactHandle>,
-        candidate_handle: Option<WorthUiArtifactHandle>,
-    ) -> Self {
-        self.active_handle = active_handle;
-        self.candidate_handle = candidate_handle;
-        self
     }
 
     pub fn identity_basis(&self) -> &str {
@@ -58,10 +43,6 @@ impl WorthUiNodeReplacementClassification {
 
     pub fn candidate_kind(&self) -> Option<WorthUiIdentityMatchNodeKind> {
         self.candidate_kind
-    }
-
-    pub(crate) fn candidate_handle(&self) -> Option<&WorthUiArtifactHandle> {
-        self.candidate_handle.as_ref()
     }
 
     pub fn active_durable_state_eligible(&self) -> bool {

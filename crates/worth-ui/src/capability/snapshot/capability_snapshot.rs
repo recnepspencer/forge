@@ -1,29 +1,25 @@
 use crate::capability::{
-    CapabilitySnapshotBuilder, CapabilitySnapshotFreezeInput, CapabilitySnapshotIndex,
-    CapabilitySnapshotIndexParts, CapabilitySupportCatalog, FrozenAppearanceCapabilities,
-    FrozenCommandCapabilities, FrozenCommandProjectionCapabilities, FrozenComponentCapabilities,
-    FrozenDensityCapabilities, FrozenIconCapabilities, FrozenImageAssetCapabilities,
-    FrozenMosaicPlacementCapabilities, FrozenMosaicRegionCapabilities,
-    FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities, FrozenNativeCapabilities,
-    FrozenPluginSlotCapabilities, FrozenRuntimeOutcomeProjectionCapabilities,
-    FrozenSettingCapabilities, FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities,
-    FrozenThemeTokenCapabilities, FrozenViewBindingCapabilities, RegisteredCapabilitySet,
-    SnapshotFreezeReport, SnapshotReferenceValidationReport,
+    CapabilitySnapshotFreezeInput, CapabilitySnapshotIndex, CapabilitySnapshotIndexParts,
+    CapabilitySupportCatalog, FrozenCommandCapabilities, FrozenCommandProjectionCapabilities,
+    FrozenComponentCapabilities, FrozenIconCapabilities, FrozenMosaicPlacementCapabilities,
+    FrozenMosaicRegionCapabilities, FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities,
+    FrozenNativeCapabilities, FrozenPluginSlotCapabilities,
+    FrozenRuntimeOutcomeProjectionCapabilities, FrozenSettingCapabilities,
+    FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities, FrozenThemeTokenCapabilities,
+    FrozenViewBindingCapabilities, RegisteredCapabilitySet, SnapshotFreezeReport,
+    SnapshotReferenceValidationReport,
 };
 
 use super::{CapabilitySnapshotDigest, SnapshotMetrics};
 
 /// Immutable capability snapshot consumed by later lowering phases.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct CapabilitySnapshot {
     registered_capabilities: RegisteredCapabilitySet,
     commands: FrozenCommandCapabilities,
     command_projections: FrozenCommandProjectionCapabilities,
     components: FrozenComponentCapabilities,
-    appearance_tokens: FrozenAppearanceCapabilities,
-    density_tokens: FrozenDensityCapabilities,
     icons: FrozenIconCapabilities,
-    image_assets: FrozenImageAssetCapabilities,
     surfaces: FrozenSurfaceCapabilities,
     mosaic_regions: FrozenMosaicRegionCapabilities,
     mosaic_placement_policies: FrozenMosaicPlacementCapabilities,
@@ -56,10 +52,7 @@ impl CapabilitySnapshot {
             commands: input.commands,
             command_projections: input.command_projections,
             components: input.components,
-            appearance_tokens: input.appearance_tokens,
-            density_tokens: input.density_tokens,
             icons: input.icons,
-            image_assets: input.image_assets,
             surfaces: input.surfaces,
             mosaic_regions: input.mosaic_regions,
             mosaic_placement_policies: input.mosaic_placement_policies,
@@ -96,22 +89,8 @@ impl CapabilitySnapshot {
         &self.components
     }
 
-    /// Frozen typed appearance token capabilities admitted at registration freeze.
-    pub fn appearance_tokens(&self) -> &FrozenAppearanceCapabilities {
-        &self.appearance_tokens
-    }
-
-    /// Frozen typed density token capabilities admitted at registration freeze.
-    pub fn density_tokens(&self) -> &FrozenDensityCapabilities {
-        &self.density_tokens
-    }
-
     pub fn icons(&self) -> &FrozenIconCapabilities {
         &self.icons
-    }
-
-    pub fn image_assets(&self) -> &FrozenImageAssetCapabilities {
-        &self.image_assets
     }
 
     pub fn surfaces(&self) -> &FrozenSurfaceCapabilities {
@@ -193,10 +172,7 @@ impl CapabilitySnapshot {
             commands: &self.commands,
             command_projections: &self.command_projections,
             components: &self.components,
-            appearance_tokens: &self.appearance_tokens,
-            density_tokens: &self.density_tokens,
             icons: &self.icons,
-            image_assets: &self.image_assets,
             surfaces: &self.surfaces,
             mosaic_regions: &self.mosaic_regions,
             mosaic_placement_policies: &self.mosaic_placement_policies,
@@ -220,118 +196,5 @@ impl CapabilitySnapshot {
     /// Canonical reference validation summary for future lowering.
     pub fn validation_summary(&self) -> &SnapshotReferenceValidationReport {
         &self.reference_validation
-    }
-
-    pub(crate) fn with_theme_tokens_replaced(
-        &self,
-        theme_tokens: FrozenThemeTokenCapabilities,
-    ) -> Self {
-        self.with_replaced_families(
-            self.commands.clone(),
-            self.command_projections.clone(),
-            self.components.clone(),
-            self.appearance_tokens.clone(),
-            self.density_tokens.clone(),
-            theme_tokens,
-        )
-    }
-
-    pub(crate) fn with_commands_replaced(&self, commands: FrozenCommandCapabilities) -> Self {
-        self.with_replaced_families(
-            commands,
-            self.command_projections.clone(),
-            self.components.clone(),
-            self.appearance_tokens.clone(),
-            self.density_tokens.clone(),
-            self.theme_tokens.clone(),
-        )
-    }
-
-    pub(crate) fn with_command_projections_replaced(
-        &self,
-        command_projections: FrozenCommandProjectionCapabilities,
-    ) -> Self {
-        self.with_replaced_families(
-            self.commands.clone(),
-            command_projections,
-            self.components.clone(),
-            self.appearance_tokens.clone(),
-            self.density_tokens.clone(),
-            self.theme_tokens.clone(),
-        )
-    }
-
-    pub(crate) fn with_components_replaced(&self, components: FrozenComponentCapabilities) -> Self {
-        self.with_replaced_families(
-            self.commands.clone(),
-            self.command_projections.clone(),
-            components,
-            self.appearance_tokens.clone(),
-            self.density_tokens.clone(),
-            self.theme_tokens.clone(),
-        )
-    }
-
-    pub(crate) fn with_appearance_tokens_replaced(
-        &self,
-        appearance_tokens: FrozenAppearanceCapabilities,
-    ) -> Self {
-        self.with_replaced_families(
-            self.commands.clone(),
-            self.command_projections.clone(),
-            self.components.clone(),
-            appearance_tokens,
-            self.density_tokens.clone(),
-            self.theme_tokens.clone(),
-        )
-    }
-
-    pub(crate) fn with_density_tokens_replaced(
-        &self,
-        density_tokens: FrozenDensityCapabilities,
-    ) -> Self {
-        self.with_replaced_families(
-            self.commands.clone(),
-            self.command_projections.clone(),
-            self.components.clone(),
-            self.appearance_tokens.clone(),
-            density_tokens,
-            self.theme_tokens.clone(),
-        )
-    }
-
-    fn with_replaced_families(
-        &self,
-        commands: FrozenCommandCapabilities,
-        command_projections: FrozenCommandProjectionCapabilities,
-        components: FrozenComponentCapabilities,
-        appearance_tokens: FrozenAppearanceCapabilities,
-        density_tokens: FrozenDensityCapabilities,
-        theme_tokens: FrozenThemeTokenCapabilities,
-    ) -> Self {
-        CapabilitySnapshotBuilder::new(CapabilitySnapshotFreezeInput {
-            registered_capabilities: self.registered_capabilities.clone(),
-            commands,
-            command_projections,
-            components,
-            appearance_tokens,
-            density_tokens,
-            icons: self.icons.clone(),
-            image_assets: self.image_assets.clone(),
-            surfaces: self.surfaces.clone(),
-            mosaic_regions: self.mosaic_regions.clone(),
-            mosaic_placement_policies: self.mosaic_placement_policies.clone(),
-            mosaic_sizing_contracts: self.mosaic_sizing_contracts.clone(),
-            mosaic_state_slots: self.mosaic_state_slots.clone(),
-            native_capabilities: self.native_capabilities.clone(),
-            plugin_slots: self.plugin_slots.clone(),
-            view_bindings: self.view_bindings.clone(),
-            runtime_outcome_projections: self.runtime_outcome_projections.clone(),
-            settings: self.settings.clone(),
-            task_presentations: self.task_presentations.clone(),
-            theme_tokens,
-            support_catalog: self.support_catalog.clone(),
-        })
-        .freeze()
     }
 }

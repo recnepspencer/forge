@@ -5,8 +5,7 @@ use crate::capability::{
     CommandProjectionAcceptedRegistrationProof, CommandProjectionDescriptor,
     CommandProjectionRegistry, CommandRegistry, ComponentAcceptedRegistrationProof,
     ComponentDescriptor, ComponentRegistry, IconAcceptedRegistrationProof, IconDescriptor,
-    IconRegistry, ImageAssetAcceptedRegistrationProof, ImageAssetDescriptor, ImageAssetRegistry,
-    MosaicPlacementAcceptedRegistrationProof, MosaicPlacementPolicyDescriptor,
+    IconRegistry, MosaicPlacementAcceptedRegistrationProof, MosaicPlacementPolicyDescriptor,
     MosaicPlacementRegistry, MosaicRegionAcceptedRegistrationProof, MosaicRegionKindDescriptor,
     MosaicRegionRegistry, MosaicSizingAcceptedRegistrationProof, MosaicSizingContractDescriptor,
     MosaicSizingRegistry, MosaicStateSlotAcceptedRegistrationProof, MosaicStateSlotDescriptor,
@@ -19,9 +18,7 @@ use crate::capability::{
     TaskPresentationAcceptedRegistrationProof, TaskPresentationDescriptor,
     TaskPresentationRegistry, ThemeTokenAcceptedRegistrationProof, ThemeTokenDescriptor,
     ThemeTokenRegistry, ViewBindingAcceptedRegistrationProof, ViewBindingDescriptor,
-    ViewBindingRegistry, WorthUiAppearanceAcceptedRegistrationProof, WorthUiAppearanceRegistry,
-    WorthUiAppearanceTokenDescriptor, WorthUiDensityAcceptedRegistrationProof,
-    WorthUiDensityRegistry, WorthUiDensityTokenDescriptor,
+    ViewBindingRegistry,
 };
 
 use super::WorthUiApp;
@@ -32,10 +29,7 @@ pub struct WorthUiAppBuilder {
     command_registry: CommandRegistry,
     command_projection_registry: CommandProjectionRegistry,
     component_registry: ComponentRegistry,
-    appearance_registry: WorthUiAppearanceRegistry,
-    density_registry: WorthUiDensityRegistry,
     icon_registry: IconRegistry,
-    image_asset_registry: ImageAssetRegistry,
     surface_registry: SurfaceRegistry,
     mosaic_region_registry: MosaicRegionRegistry,
     mosaic_placement_registry: MosaicPlacementRegistry,
@@ -58,10 +52,7 @@ impl WorthUiAppBuilder {
             command_registry: CommandRegistry::empty(),
             command_projection_registry: CommandProjectionRegistry::empty(),
             component_registry: ComponentRegistry::empty(),
-            appearance_registry: WorthUiAppearanceRegistry::empty(),
-            density_registry: WorthUiDensityRegistry::empty(),
             icon_registry: IconRegistry::empty(),
-            image_asset_registry: ImageAssetRegistry::empty(),
             surface_registry: SurfaceRegistry::empty(),
             mosaic_region_registry: MosaicRegionRegistry::empty(),
             mosaic_placement_registry: MosaicPlacementRegistry::empty(),
@@ -102,38 +93,11 @@ impl WorthUiAppBuilder {
         self
     }
 
-    /// Register a typed appearance token capability.
-    pub fn register_appearance_token(
-        mut self,
-        descriptor: WorthUiAppearanceTokenDescriptor,
-    ) -> Self {
-        self.registration_candidates
-            .push(descriptor.registration_candidate());
-        self.appearance_registry.push(descriptor);
-        self
-    }
-
-    /// Register a typed density token capability.
-    pub fn register_density_token(mut self, descriptor: WorthUiDensityTokenDescriptor) -> Self {
-        self.registration_candidates
-            .push(descriptor.registration_candidate());
-        self.density_registry.push(descriptor);
-        self
-    }
-
     /// Register a domain-agnostic stable icon capability.
     pub fn register_icon(mut self, descriptor: IconDescriptor) -> Self {
         self.registration_candidates
             .push(descriptor.registration_candidate());
         self.icon_registry.push(descriptor);
-        self
-    }
-
-    /// Register a local/static image asset capability for content anatomy.
-    pub fn register_image_asset(mut self, descriptor: ImageAssetDescriptor) -> Self {
-        self.registration_candidates
-            .push(descriptor.registration_candidate());
-        self.image_asset_registry.push(descriptor);
         self
     }
 
@@ -265,21 +229,8 @@ impl WorthUiAppBuilder {
             validation_report
                 .accepted_identity_texts_for_registry_family(RegistryFamily::Component),
         );
-        let accepted_appearance_tokens =
-            WorthUiAppearanceAcceptedRegistrationProof::from_identity_texts(
-                validation_report
-                    .accepted_identity_texts_for_registry_family(RegistryFamily::AppearanceToken),
-            );
-        let accepted_density_tokens = WorthUiDensityAcceptedRegistrationProof::from_identity_texts(
-            validation_report
-                .accepted_identity_texts_for_registry_family(RegistryFamily::DensityToken),
-        );
         let accepted_icons = IconAcceptedRegistrationProof::from_identity_texts(
             validation_report.accepted_identity_texts_for_registry_family(RegistryFamily::Icon),
-        );
-        let accepted_image_assets = ImageAssetAcceptedRegistrationProof::from_identity_texts(
-            validation_report
-                .accepted_identity_texts_for_registry_family(RegistryFamily::ImageAsset),
         );
         let accepted_surfaces = SurfaceAcceptedRegistrationProof::from_identity_texts(
             validation_report.accepted_identity_texts_for_registry_family(RegistryFamily::Surface),
@@ -342,10 +293,7 @@ impl WorthUiAppBuilder {
             .command_projection_registry
             .freeze(&accepted_command_projections);
         let component_capabilities = self.component_registry.freeze(&accepted_components);
-        let appearance_capabilities = self.appearance_registry.freeze(&accepted_appearance_tokens);
-        let density_capabilities = self.density_registry.freeze(&accepted_density_tokens);
         let icon_capabilities = self.icon_registry.freeze(&accepted_icons);
-        let image_asset_capabilities = self.image_asset_registry.freeze(&accepted_image_assets);
         let surface_capabilities = self.surface_registry.freeze(&accepted_surfaces);
         let mosaic_region_capabilities =
             self.mosaic_region_registry.freeze(&accepted_mosaic_regions);
@@ -376,10 +324,7 @@ impl WorthUiAppBuilder {
                 commands: command_capabilities,
                 command_projections: command_projection_capabilities,
                 components: component_capabilities,
-                appearance_tokens: appearance_capabilities,
-                density_tokens: density_capabilities,
                 icons: icon_capabilities,
-                image_assets: image_asset_capabilities,
                 surfaces: surface_capabilities,
                 mosaic_regions: mosaic_region_capabilities,
                 mosaic_placement_policies: mosaic_placement_capabilities,

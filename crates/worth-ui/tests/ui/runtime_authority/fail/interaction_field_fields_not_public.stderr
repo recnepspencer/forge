@@ -1,9 +1,0 @@
-error[E0451]: fields `name` and `value` of struct `WorthUiInteractionField` are private
- --> tests/ui/runtime_authority/fail/interaction_field_fields_not_public.rs:5:9
-  |
-4 |     let _forged = WorthUiInteractionField {
-  |                   ----------------------- in this type
-5 |         name: "payload".to_owned(),
-  |         ^^^^ private field
-6 |         value: WorthUiInteractionFieldValue::Text("forged".to_owned()),
-  |         ^^^^^ private field

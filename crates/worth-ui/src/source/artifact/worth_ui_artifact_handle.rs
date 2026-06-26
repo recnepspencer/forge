@@ -3,7 +3,6 @@ use crate::source::WorthUiSourceModuleId;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum WorthUiArtifactNodeKind {
     Import,
-    Page,
     Component,
     Surface,
     Binding,
@@ -12,12 +11,6 @@ pub(crate) enum WorthUiArtifactNodeKind {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) struct WorthUiArtifactImportHandle {
-    module_id: WorthUiSourceModuleId,
-    node_index: usize,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub(crate) struct WorthUiArtifactPageHandle {
     module_id: WorthUiSourceModuleId,
     node_index: usize,
 }
@@ -49,7 +42,6 @@ pub(crate) struct WorthUiArtifactThemeTokenHandle {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum WorthUiArtifactHandle {
     Import(WorthUiArtifactImportHandle),
-    Page(WorthUiArtifactPageHandle),
     Component(WorthUiArtifactComponentHandle),
     Surface(WorthUiArtifactSurfaceHandle),
     Binding(WorthUiArtifactBindingHandle),
@@ -78,7 +70,6 @@ macro_rules! artifact_handle_impl {
 }
 
 artifact_handle_impl!(WorthUiArtifactImportHandle);
-artifact_handle_impl!(WorthUiArtifactPageHandle);
 artifact_handle_impl!(WorthUiArtifactComponentHandle);
 artifact_handle_impl!(WorthUiArtifactSurfaceHandle);
 artifact_handle_impl!(WorthUiArtifactBindingHandle);
@@ -88,7 +79,6 @@ impl WorthUiArtifactHandle {
     pub(crate) fn module_id(&self) -> &WorthUiSourceModuleId {
         match self {
             Self::Import(handle) => handle.module_id(),
-            Self::Page(handle) => handle.module_id(),
             Self::Component(handle) => handle.module_id(),
             Self::Surface(handle) => handle.module_id(),
             Self::Binding(handle) => handle.module_id(),
@@ -99,7 +89,6 @@ impl WorthUiArtifactHandle {
     pub(crate) fn node_index(&self) -> usize {
         match self {
             Self::Import(handle) => handle.node_index(),
-            Self::Page(handle) => handle.node_index(),
             Self::Component(handle) => handle.node_index(),
             Self::Surface(handle) => handle.node_index(),
             Self::Binding(handle) => handle.node_index(),
@@ -110,7 +99,6 @@ impl WorthUiArtifactHandle {
     pub(crate) fn kind(&self) -> WorthUiArtifactNodeKind {
         match self {
             Self::Import(_) => WorthUiArtifactNodeKind::Import,
-            Self::Page(_) => WorthUiArtifactNodeKind::Page,
             Self::Component(_) => WorthUiArtifactNodeKind::Component,
             Self::Surface(_) => WorthUiArtifactNodeKind::Surface,
             Self::Binding(_) => WorthUiArtifactNodeKind::Binding,

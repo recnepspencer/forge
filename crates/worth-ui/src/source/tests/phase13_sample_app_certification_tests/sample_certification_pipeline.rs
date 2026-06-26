@@ -62,8 +62,7 @@ pub(super) fn certify_file_source_package(
     let parsed_package = WorthUiSourceParser::parse_package(&source_package)
         .map_err(|report| WorthUiSampleCertificationFailure::Parse(parse_codes(&report)))?;
     certify_artifact_input(
-        WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_package)
-            .expect("authoring entry should lower to artifact input"),
+        WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_package),
         authoring_evidence,
     )
 }

@@ -1,7 +1,0 @@
-error: cannot construct `WorthUiRuntimeAuthoringSnapshot` with struct literal syntax due to private fields
- --> tests/ui/runtime_authority/fail/runtime_authoring_snapshot_fields_not_public.rs:4:19
-  |
-4 |     let _forged = WorthUiRuntimeAuthoringSnapshot {};
-  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |
-  = note: private fields that were not provided

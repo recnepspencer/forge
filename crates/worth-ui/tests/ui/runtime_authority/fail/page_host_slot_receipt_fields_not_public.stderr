@@ -1,9 +1,0 @@
-error[E0451]: fields `slot_name` and `surface_id` of struct `WorthUiPageHostSlotReceipt` are private
- --> tests/ui/runtime_authority/fail/page_host_slot_receipt_fields_not_public.rs:5:9
-  |
-4 |     let _forged = WorthUiPageHostSlotReceipt {
-  |                   -------------------------- in this type
-5 |         slot_name: "ProductsPanel".to_owned(),
-  |         ^^^^^^^^^ private field
-6 |         surface_id: "surface.products.panel".to_owned(),
-  |         ^^^^^^^^^^ private field

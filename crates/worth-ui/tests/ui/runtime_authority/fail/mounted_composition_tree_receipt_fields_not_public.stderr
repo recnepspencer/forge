@@ -1,7 +1,0 @@
-error[E0560]: struct `WorthUiMountedCompositionTreeReceipt` has no field named `children_by_parent`
- --> tests/ui/runtime_authority/fail/mounted_composition_tree_receipt_fields_not_public.rs:9:9
-  |
-9 |         children_by_parent: std::collections::BTreeMap::new(),
-  |         ^^^^^^^^^^^^^^^^^^ `WorthUiMountedCompositionTreeReceipt` does not have this field
-  |
-  = note: all struct fields are already assigned
