@@ -3,6 +3,11 @@
 This folder is the crate-facing feature documentation surface for
 `forge-foundational`.
 
+Start here if you need the big-picture orientation for crate boundaries and
+chooser rules:
+
+- [Foundational Orientation](./FOUNDATIONAL_README.md)
+
 Read by capability area:
 
 - [Aspect Contracts, Values, And Authoritative State](./aspect-contracts-values-and-authoritative-state/README.md)
