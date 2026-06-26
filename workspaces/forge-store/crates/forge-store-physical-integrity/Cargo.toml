@@ -6,6 +6,7 @@ license.workspace = true
 description = "Roadmap 2 S.3 physical checksums, scrub, quarantine, and corruption localization."
 
 [dependencies]
+forge-store-buffer-pool.workspace = true
 forge-store-contracts.workspace = true
 forge-store-offline-verifier.workspace = true
 forge-store-physical-format.workspace = true

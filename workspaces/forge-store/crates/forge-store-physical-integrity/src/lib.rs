@@ -1,6 +1,11 @@
 #![forbid(unsafe_code)]
 
+mod scrub_planning_memory_envelope;
+
 use forge_store_physical_format::PhysicalReference;
+pub use scrub_planning_memory_envelope::{
+    ScrubPlanningMemoryEnvelope, ScrubPlanningMemoryEnvelopeDenial,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalQuarantine {

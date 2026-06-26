@@ -10,6 +10,10 @@ pub enum PhysicalProofOracleKind {
     ForbiddenLegacyPlatformClaim,
     NoWholeStoreMaterialization,
     ScenarioPlanOwnsStrategy,
+    LargeStorePressureBounded,
+    OomAvoidanceBeforeMaterialization,
+    PressureTranscriptReplayStable,
+    ShortcutCertificationRejected,
     TranscriptPreservesEvidence,
     VerifierRuntimeLayoutParity,
 }
@@ -21,6 +25,10 @@ impl PhysicalProofOracleKind {
             Self::ForbiddenLegacyPlatformClaim => "forbidden_legacy_platform_claim",
             Self::NoWholeStoreMaterialization => "no_whole_store_materialization",
             Self::ScenarioPlanOwnsStrategy => "scenario_plan_owns_strategy",
+            Self::LargeStorePressureBounded => "large_store_pressure_bounded",
+            Self::OomAvoidanceBeforeMaterialization => "oom_avoidance_before_materialization",
+            Self::PressureTranscriptReplayStable => "pressure_transcript_replay_stable",
+            Self::ShortcutCertificationRejected => "shortcut_certification_rejected",
             Self::TranscriptPreservesEvidence => "transcript_preserves_evidence",
             Self::VerifierRuntimeLayoutParity => "verifier_runtime_layout_parity",
         }
@@ -34,6 +42,8 @@ pub enum PhysicalOracleDenialKind {
     MissingExpectedDenial(ScenarioDenialBoundary),
     MissingResolvedPlanStrategy,
     MissingRuntimeVerifierParity,
+    MissingPressureClass,
+    MissingShortcutRejection(ScenarioDenialBoundary),
     MissingTranscriptEvidence,
 }
 
@@ -110,6 +120,16 @@ fn judge_oracle(
             judge_no_whole_store_materialization(trace)
         }
         PhysicalProofOracleKind::ScenarioPlanOwnsStrategy => judge_plan_owns_strategy(trace),
+        PhysicalProofOracleKind::LargeStorePressureBounded => {
+            judge_large_store_pressure_bounded(trace)
+        }
+        PhysicalProofOracleKind::OomAvoidanceBeforeMaterialization => {
+            judge_oom_avoidance_before_materialization(trace)
+        }
+        PhysicalProofOracleKind::PressureTranscriptReplayStable => judge_transcript_evidence(trace),
+        PhysicalProofOracleKind::ShortcutCertificationRejected => {
+            judge_shortcut_certification_rejected(trace)
+        }
         PhysicalProofOracleKind::TranscriptPreservesEvidence => judge_transcript_evidence(trace),
         PhysicalProofOracleKind::VerifierRuntimeLayoutParity => {
             judge_runtime_verifier_parity(trace)
@@ -176,6 +196,7 @@ fn judge_plan_owns_strategy(trace: &ObservedPhysicalTrace) -> PhysicalOracleOutc
         trace.cost_class(),
         PhysicalScenarioCostClass::BoundedPhysicalLocate
             | PhysicalScenarioCostClass::CertificationExtension
+            | PhysicalScenarioCostClass::LargeStoreMemoryPressure
             | PhysicalScenarioCostClass::LegacyProbeOnly
             | PhysicalScenarioCostClass::ManifestBoundedVerifierParity
     );
@@ -188,6 +209,7 @@ fn judge_plan_owns_strategy(trace: &ObservedPhysicalTrace) -> PhysicalOracleOutc
             | ExpectedPhysicalFootprint::OfflineManifestRead
             | ExpectedPhysicalFootprint::LocalityScaleSample
             | ExpectedPhysicalFootprint::FoundationalEvidenceExport
+            | ExpectedPhysicalFootprint::LargeStorePressureFixture
             | ExpectedPhysicalFootprint::RoadmapFamilyExtension(_)
     );
     if has_capability && has_cost && has_footprint && !trace.required_oracles().is_empty() {
@@ -200,6 +222,62 @@ fn judge_plan_owns_strategy(trace: &ObservedPhysicalTrace) -> PhysicalOracleOutc
 fn judge_transcript_evidence(trace: &ObservedPhysicalTrace) -> PhysicalOracleOutcome {
     if trace.counter_trace().observed_counters().is_empty() || trace.required_oracles().is_empty() {
         return PhysicalOracleOutcome::Denied(PhysicalOracleDenialKind::MissingTranscriptEvidence);
+    }
+    PhysicalOracleOutcome::Satisfied
+}
+
+fn judge_large_store_pressure_bounded(trace: &ObservedPhysicalTrace) -> PhysicalOracleOutcome {
+    if trace.pressure_class().is_none() {
+        return PhysicalOracleOutcome::Denied(PhysicalOracleDenialKind::MissingPressureClass);
+    }
+    for counter in [
+        PhysicalCounterExpectationKind::PressureFixtureStoreBytes,
+        PhysicalCounterExpectationKind::PressureFixtureResidentBudgetBytes,
+        PhysicalCounterExpectationKind::ResidentBytesPeak,
+        PhysicalCounterExpectationKind::AllocationBytesPeak,
+        PhysicalCounterExpectationKind::WholeStoreMaterializationAttempts,
+    ] {
+        if !trace.counter_trace().is_expected(counter) {
+            return PhysicalOracleOutcome::Denied(PhysicalOracleDenialKind::CounterMismatch(
+                counter,
+            ));
+        }
+    }
+    PhysicalOracleOutcome::Satisfied
+}
+
+fn judge_oom_avoidance_before_materialization(
+    trace: &ObservedPhysicalTrace,
+) -> PhysicalOracleOutcome {
+    for counter in [
+        PhysicalCounterExpectationKind::UnboundedAllocationAttempts,
+        PhysicalCounterExpectationKind::DomainObjectConstructions,
+        PhysicalCounterExpectationKind::WholeStoreMaterializationAttempts,
+    ] {
+        if trace.counter_trace().observed_value(counter) != Some(0) {
+            return PhysicalOracleOutcome::Denied(PhysicalOracleDenialKind::CounterMismatch(
+                counter,
+            ));
+        }
+    }
+    PhysicalOracleOutcome::Satisfied
+}
+
+fn judge_shortcut_certification_rejected(trace: &ObservedPhysicalTrace) -> PhysicalOracleOutcome {
+    for shortcut in [
+        ScenarioDenialBoundary::BypassedLoweredPlan,
+        ScenarioDenialBoundary::BypassedObserverTrace,
+        ScenarioDenialBoundary::TestSupportOwnedMeaning,
+    ] {
+        if !trace
+            .shortcut_trace()
+            .forbidden_shortcuts()
+            .contains(&shortcut)
+        {
+            return PhysicalOracleOutcome::Denied(
+                PhysicalOracleDenialKind::MissingShortcutRejection(shortcut),
+            );
+        }
     }
     PhysicalOracleOutcome::Satisfied
 }

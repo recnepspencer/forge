@@ -1,4 +1,5 @@
 use forge_store_contracts::StableArtifactId;
+use forge_store_test_support::LargeStorePressureFixture;
 
 use crate::scenario_plan_rules::{
     capability_tier_for_lane, cost_class_for_lane, counter_expectations_for_lane,
@@ -67,6 +68,7 @@ pub enum PhysicalScenarioCostClass {
     BoundedPhysicalLocate,
     CertificationExtension,
     LegacyProbeOnly,
+    LargeStoreMemoryPressure,
     ManifestBoundedVerifierParity,
 }
 
@@ -79,6 +81,7 @@ pub enum ExpectedPhysicalFootprint {
     OfflineManifestRead,
     LocalityScaleSample,
     FoundationalEvidenceExport,
+    LargeStorePressureFixture,
     RoadmapFamilyExtension(RoadmapLaneFamily),
 }
 
@@ -110,6 +113,7 @@ pub struct PhysicalScenarioPlan {
     artifact_policy: ArtifactPolicy,
     workload_scale: WorkloadScale,
     storage_boundary_crossings: Vec<StorageBoundaryCrossing>,
+    large_store_pressure_fixture: Option<LargeStorePressureFixture>,
 }
 
 impl PhysicalScenarioPlan {
@@ -139,20 +143,36 @@ impl PhysicalScenarioPlan {
             driver_requirements: driver_requirements_for_lane(lane, extensions)?,
             observer_requirements: observer_requirements_for_lane(lane, extensions)?,
             required_oracles: required_oracles.clone(),
-            expected_counters: counter_expectations_for_lane(physical_lane),
-            expected_denial_boundary: physical_lane.and_then(denial_boundary_for_lane),
-            forbidden_shortcuts: forbidden_shortcuts_for_lane(physical_lane),
+            expected_counters: counter_expectations_for_lane(
+                physical_lane,
+                definition.large_store_pressure_fixture(),
+            ),
+            expected_denial_boundary: denial_boundary_for_lane(
+                physical_lane,
+                definition.large_store_pressure_fixture(),
+            ),
+            forbidden_shortcuts: forbidden_shortcuts_for_lane(
+                physical_lane,
+                definition.large_store_pressure_fixture(),
+            ),
             resolved_capability: capability_tier_for_lane(lane),
-            cost_class: cost_class_for_lane(lane),
-            expected_physical_footprint: footprint_for_lane(lane),
+            cost_class: cost_class_for_lane(lane, definition.large_store_pressure_fixture()),
+            expected_physical_footprint: footprint_for_lane(
+                lane,
+                definition.large_store_pressure_fixture(),
+            ),
             runtime_verifier_relationship: runtime_relationship_for_definition(
                 lane,
                 &required_oracles,
             ),
-            fixture_adversary_posture: fixture_posture_for_lane(physical_lane),
+            fixture_adversary_posture: fixture_posture_for_lane(
+                physical_lane,
+                definition.large_store_pressure_fixture(),
+            ),
             artifact_policy: ArtifactPolicy::FullEvidenceTranscript,
             workload_scale: WorkloadScale::CertificationMatrix,
             storage_boundary_crossings: storage_crossings_for_steps(definition.steps(), lane),
+            large_store_pressure_fixture: definition.large_store_pressure_fixture(),
         })
     }
 
@@ -222,6 +242,10 @@ impl PhysicalScenarioPlan {
 
     pub fn storage_boundary_crossings(&self) -> &[StorageBoundaryCrossing] {
         &self.storage_boundary_crossings
+    }
+
+    pub const fn large_store_pressure_fixture(&self) -> Option<LargeStorePressureFixture> {
+        self.large_store_pressure_fixture
     }
 }
 

@@ -2,7 +2,6 @@ use crate::physical_substrate_closeout_story::{
     PhysicalSubstrateCloseoutStoryReport, PhysicalSubstrateCloseoutStoryRow,
 };
 use crate::PhysicalFoundationEvidenceBundle;
-use crate::S2PhysicalSubstrateReadiness;
 use crate::{
     PhysicalComplexityEvidenceReport, PhysicalExtentRecordFramingEvidenceReport,
     PhysicalExtentRecordFramingEvidenceRow, PhysicalIdentityEvidenceReport,
@@ -15,7 +14,7 @@ use crate::{
 use forge_store_claim_boundaries::PlatformGradeClaimWitness;
 use forge_store_contracts::{RoadmapScope, StableArtifactId};
 use forge_store_physical_format::PhysicalOperationKind;
-use forge_store_readiness::PhysicalFoundationEvidenceField;
+use forge_store_readiness::{PhysicalFoundationEvidenceField, S2PhysicalSubstrateReadiness};
 
 #[derive(Debug)]
 pub struct PhysicalPageSegmentExtentSubstrateRun {
@@ -52,6 +51,7 @@ pub struct PhysicalPageSegmentExtentSubstrateEvidence {
     complexity: Vec<PhysicalComplexityEvidenceReport>,
     foundation: PhysicalFoundationEvidenceBundle,
     platform_grade_witness: PlatformGradeClaimWitness,
+    s2_readiness: S2PhysicalSubstrateReadiness,
 }
 
 impl PhysicalPageSegmentExtentSubstrateEvidence {
@@ -67,6 +67,7 @@ impl PhysicalPageSegmentExtentSubstrateEvidence {
         complexity: Vec<PhysicalComplexityEvidenceReport>,
         foundation: PhysicalFoundationEvidenceBundle,
         platform_grade_witness: PlatformGradeClaimWitness,
+        s2_readiness: S2PhysicalSubstrateReadiness,
     ) -> Self {
         Self {
             story,
@@ -79,6 +80,7 @@ impl PhysicalPageSegmentExtentSubstrateEvidence {
             complexity,
             foundation,
             platform_grade_witness,
+            s2_readiness,
         }
     }
 
@@ -121,6 +123,10 @@ impl PhysicalPageSegmentExtentSubstrateEvidence {
     pub const fn foundation(&self) -> &PhysicalFoundationEvidenceBundle {
         &self.foundation
     }
+
+    pub const fn s2_readiness(&self) -> S2PhysicalSubstrateReadiness {
+        self.s2_readiness
+    }
 }
 
 #[derive(Debug)]
@@ -147,6 +153,7 @@ impl PhysicalPageSegmentExtentSubstrateCloseout {
             evidence.platform_grade_witness(),
             evidence.foundation.scope(),
         )?;
+        require_s2_readiness_scope(evidence.s2_readiness(), evidence.foundation.scope())?;
         Ok(Self {
             scope: evidence.foundation.scope(),
             run,
@@ -166,7 +173,7 @@ impl PhysicalPageSegmentExtentSubstrateCloseout {
     }
 
     pub fn into_s2_readiness(self) -> S2PhysicalSubstrateReadiness {
-        S2PhysicalSubstrateReadiness::from_admitted_physical_substrate_closeout(self.scope)
+        self.evidence().s2_readiness()
     }
 }
 
@@ -183,6 +190,7 @@ pub enum PhysicalSubstrateCloseoutDenial {
     UnverifiedComplexityOperation(PhysicalOperationKind),
     MissingFoundationEvidence(PhysicalFoundationEvidenceField),
     PlatformWitnessScopeMismatch,
+    S2ReadinessScopeMismatch,
 }
 
 fn require_story_rows(
@@ -318,5 +326,16 @@ fn require_platform_witness_scope(
         Ok(())
     } else {
         Err(PhysicalSubstrateCloseoutDenial::PlatformWitnessScopeMismatch)
+    }
+}
+
+fn require_s2_readiness_scope(
+    readiness: S2PhysicalSubstrateReadiness,
+    scope: RoadmapScope,
+) -> Result<(), PhysicalSubstrateCloseoutDenial> {
+    if readiness.scope() == scope {
+        Ok(())
+    } else {
+        Err(PhysicalSubstrateCloseoutDenial::S2ReadinessScopeMismatch)
     }
 }

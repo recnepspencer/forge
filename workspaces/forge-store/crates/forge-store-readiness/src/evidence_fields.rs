@@ -52,4 +52,14 @@ impl PhysicalFoundationEvidenceField {
             Self::FoundationalCounterBackedPerformanceReceipt,
         ]
     }
+
+    pub const fn required_for_s2_foundational_residency() -> [Self; 5] {
+        [
+            Self::CounterSnapshot,
+            Self::PhysicalLayoutReport,
+            Self::FoundationalProfileMaterializationPlan,
+            Self::FoundationalProvenanceSupportTruth,
+            Self::FoundationalCounterBackedPerformanceReceipt,
+        ]
+    }
 }

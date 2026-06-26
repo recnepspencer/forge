@@ -9,6 +9,7 @@ description = "Forge Store foundational adoption and physical substrate readines
 forge-foundational = { path = "../../../../crates/forge-foundational" }
 forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-contracts.workspace = true
+forge-store-physical-format.workspace = true
 
 [lints]
 workspace = true
