@@ -1,3 +1,4 @@
+use crate::canonical_basis_source_registry::STORE_CANONICAL_BASIS_FAMILY_REGISTRY;
 use forge_store_aspect_native::{
     canonical_basis_source_owner_for_family, certify_canonical_basis_field_role,
     StoreCanonicalBasisFamily, StoreCanonicalBasisFieldRole, StoreCanonicalBasisSourceDenial,
@@ -8,34 +9,44 @@ use forge_store_aspect_native::{
 pub struct StoreCanonicalBasisInventoryRow {
     family: Option<StoreCanonicalBasisFamily>,
     family_name: &'static str,
+    source_path: &'static str,
     classifying_subsystem: &'static str,
 }
 
 impl StoreCanonicalBasisInventoryRow {
-    pub const fn owned(
+    pub const fn registered(
+        family_name: &'static str,
+        source_path: &'static str,
         family: StoreCanonicalBasisFamily,
         classifying_subsystem: &'static str,
     ) -> Self {
         Self {
             family: Some(family),
-            family_name: family.canonical_basis_family_label(),
+            family_name,
+            source_path,
             classifying_subsystem,
         }
     }
 
     pub const fn unclassified(
         family_name: &'static str,
+        source_path: &'static str,
         classifying_subsystem: &'static str,
     ) -> Self {
         Self {
             family: None,
             family_name,
+            source_path,
             classifying_subsystem,
         }
     }
 
     pub const fn family_name(&self) -> &'static str {
         self.family_name
+    }
+
+    pub const fn source_path(&self) -> &'static str {
+        self.source_path
     }
 
     pub const fn classifying_subsystem(&self) -> &'static str {
@@ -65,15 +76,7 @@ pub fn certify_store_canonical_basis_source_inventory(
 }
 
 pub fn current_store_canonical_basis_inventory() -> Vec<StoreCanonicalBasisInventoryRow> {
-    StoreCanonicalBasisFamily::ALL
-        .into_iter()
-        .map(|family| {
-            let subsystem = canonical_basis_source_owner_for_family(family)
-                .map(|owner| owner.classifying_subsystem())
-                .unwrap_or("unclassified Store evidence family");
-            StoreCanonicalBasisInventoryRow::owned(family, subsystem)
-        })
-        .collect()
+    STORE_CANONICAL_BASIS_FAMILY_REGISTRY.to_vec()
 }
 
 pub fn certify_store_canonical_basis_source_rows(

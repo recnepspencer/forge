@@ -34,6 +34,8 @@ mod buffer_pool_scenario_plans;
 mod buffer_pool_story_lanes;
 mod buffer_pool_transcripts;
 mod canonical_basis_source_inventory;
+mod canonical_basis_source_registry;
+mod canonical_basis_source_scan;
 #[cfg(test)]
 mod canonical_basis_source_tests;
 mod certification_matrix;
