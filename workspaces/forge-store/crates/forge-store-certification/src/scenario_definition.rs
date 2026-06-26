@@ -1,4 +1,5 @@
 use forge_store_contracts::StableArtifactId;
+use forge_store_test_support::LargeStorePressureFixture;
 
 use crate::{PhysicalProofOracleKind, PhysicalSubstrateLane, RoadmapLaneFamily};
 
@@ -37,6 +38,10 @@ pub enum PhysicalStoryStep {
     ThenRecordLocatesByPhysicalReference,
     ThenForbiddenClaimIsDenied,
     ThenRuntimeVerifierParityIsPreserved,
+    GivenLargeStorePressureFixture,
+    WhenBufferPoolPressureRuns,
+    ThenMemoryPressureCountersMatchEnvelope,
+    ThenShortcutCertificationFails,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -46,6 +51,7 @@ pub struct PhysicalScenarioDefinition {
     physical_law: String,
     steps: Vec<PhysicalStoryStep>,
     required_oracles: Vec<PhysicalProofOracleKind>,
+    large_store_pressure_fixture: Option<LargeStorePressureFixture>,
 }
 
 impl PhysicalScenarioDefinition {
@@ -72,6 +78,10 @@ impl PhysicalScenarioDefinition {
     pub fn required_oracles(&self) -> &[PhysicalProofOracleKind] {
         &self.required_oracles
     }
+
+    pub const fn large_store_pressure_fixture(&self) -> Option<LargeStorePressureFixture> {
+        self.large_store_pressure_fixture
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -81,6 +91,7 @@ pub struct PhysicalScenarioDefinitionBuilder {
     physical_law: Option<String>,
     steps: Vec<PhysicalStoryStep>,
     required_oracles: Vec<PhysicalProofOracleKind>,
+    large_store_pressure_fixture: Option<LargeStorePressureFixture>,
 }
 
 impl PhysicalScenarioDefinitionBuilder {
@@ -91,6 +102,7 @@ impl PhysicalScenarioDefinitionBuilder {
             physical_law: None,
             steps: Vec::new(),
             required_oracles: Vec::new(),
+            large_store_pressure_fixture: None,
         }
     }
 
@@ -121,6 +133,14 @@ impl PhysicalScenarioDefinitionBuilder {
         self
     }
 
+    pub const fn large_store_pressure_fixture(
+        mut self,
+        fixture: LargeStorePressureFixture,
+    ) -> Self {
+        self.large_store_pressure_fixture = Some(fixture);
+        self
+    }
+
     pub fn define(self) -> Result<PhysicalScenarioDefinition, PhysicalScenarioDefinitionDenial> {
         let name = StableArtifactId::new(self.name)
             .map_err(|_| PhysicalScenarioDefinitionDenial::InvalidScenarioName)?;
@@ -140,6 +160,7 @@ impl PhysicalScenarioDefinitionBuilder {
             physical_law,
             steps: self.steps,
             required_oracles: self.required_oracles,
+            large_store_pressure_fixture: self.large_store_pressure_fixture,
         })
     }
 }

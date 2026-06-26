@@ -40,6 +40,7 @@ pub(crate) fn closeout_run(
             complexity_reports()?,
             foundation_bundle()?,
             scan.platform_grade_witness(),
+            scan.s2_readiness(),
         ),
     ))
 }
@@ -63,6 +64,7 @@ pub(crate) fn closeout_run_without_shortcut_row(
             complexity_reports()?,
             foundation_bundle()?,
             scan.platform_grade_witness(),
+            scan.s2_readiness(),
         ),
     ))
 }
@@ -88,6 +90,7 @@ pub(crate) fn closeout_run_without_legacy_overclaim_row(
             complexity_reports()?,
             foundation_bundle()?,
             scan.platform_grade_witness(),
+            scan.s2_readiness(),
         ),
     ))
 }

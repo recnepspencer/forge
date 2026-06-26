@@ -1,9 +1,19 @@
 #![forbid(unsafe_code)]
 
+mod allocation_sentinels;
+mod large_record_streams;
+mod memory_pressure;
+mod resident_pressure_fixtures;
+
 use forge_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
     PhysicalReference, PhysicalReferenceAuthority, PhysicalSegmentId,
 };
+
+pub use allocation_sentinels::AllocationSentinel;
+pub use large_record_streams::LargeRecordStreamPressure;
+pub use memory_pressure::MemoryPressureDriverInput;
+pub use resident_pressure_fixtures::{LargeStorePressureClass, LargeStorePressureFixture};
 
 pub fn test_physical_reference(slot_index: u16) -> PhysicalReference {
     let cell = PhysicalGenerationAuthority::s1()

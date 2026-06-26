@@ -6,6 +6,7 @@ use crate::{
     PhysicalStoryStep, PhysicalSubstrateLane, RoadmapLaneFamily, RuntimeVerifierRelationship,
     ScenarioCounterExpectation, ScenarioDenialBoundary, ScenarioLane, StorageBoundaryCrossing,
 };
+use forge_store_test_support::{LargeStorePressureClass, LargeStorePressureFixture};
 
 pub(crate) fn driver_requirements_for_lane(
     lane: ScenarioLane,
@@ -112,6 +113,7 @@ pub(crate) fn default_oracles_for_lane(
 
 pub(crate) fn counter_expectations_for_lane(
     lane: Option<PhysicalSubstrateLane>,
+    fixture: Option<LargeStorePressureFixture>,
 ) -> Vec<ScenarioCounterExpectation> {
     let mut counters = vec![
         ScenarioCounterExpectation::new(
@@ -135,28 +137,47 @@ pub(crate) fn counter_expectations_for_lane(
             1,
         ));
     }
+    if let Some(fixture) = fixture {
+        counters.extend(pressure_counter_expectations(fixture));
+    }
     counters
 }
 
 pub(crate) fn denial_boundary_for_lane(
-    lane: PhysicalSubstrateLane,
+    lane: Option<PhysicalSubstrateLane>,
+    fixture: Option<LargeStorePressureFixture>,
 ) -> Option<ScenarioDenialBoundary> {
+    if let Some(fixture) = fixture {
+        return pressure_denial_boundary(fixture);
+    }
     match lane {
-        PhysicalSubstrateLane::HostileReference => Some(ScenarioDenialBoundary::StaleGeneration),
-        PhysicalSubstrateLane::HostileFormat => Some(ScenarioDenialBoundary::HeaderBeforePayload),
-        PhysicalSubstrateLane::LegacyOverclaim => Some(ScenarioDenialBoundary::LegacyPlatformClaim),
-        PhysicalSubstrateLane::S2Handoff => Some(ScenarioDenialBoundary::WeakerS2Handoff),
+        Some(PhysicalSubstrateLane::HostileReference) => {
+            Some(ScenarioDenialBoundary::StaleGeneration)
+        }
+        Some(PhysicalSubstrateLane::HostileFormat) => {
+            Some(ScenarioDenialBoundary::HeaderBeforePayload)
+        }
+        Some(PhysicalSubstrateLane::LegacyOverclaim) => {
+            Some(ScenarioDenialBoundary::LegacyPlatformClaim)
+        }
+        Some(PhysicalSubstrateLane::S2Handoff) => Some(ScenarioDenialBoundary::WeakerS2Handoff),
         _ => None,
     }
 }
 
 pub(crate) fn forbidden_shortcuts_for_lane(
     lane: Option<PhysicalSubstrateLane>,
+    fixture: Option<LargeStorePressureFixture>,
 ) -> Vec<ScenarioDenialBoundary> {
     let mut shortcuts = vec![
         ScenarioDenialBoundary::BackendResidueGuessing,
         ScenarioDenialBoundary::WholeStoreMaterialization,
     ];
+    if fixture.is_some() {
+        shortcuts.push(ScenarioDenialBoundary::BypassedLoweredPlan);
+        shortcuts.push(ScenarioDenialBoundary::BypassedObserverTrace);
+        shortcuts.push(ScenarioDenialBoundary::TestSupportOwnedMeaning);
+    }
     if lane == Some(PhysicalSubstrateLane::FoundationalExport) {
         shortcuts.push(ScenarioDenialBoundary::FoundationalLookalike);
     }
@@ -186,7 +207,22 @@ pub(crate) fn runtime_relationship_for_definition(
 
 pub(crate) fn fixture_posture_for_lane(
     lane: Option<PhysicalSubstrateLane>,
+    fixture: Option<LargeStorePressureFixture>,
 ) -> FixtureAdversaryPosture {
+    if let Some(fixture) = fixture {
+        return match fixture.class() {
+            LargeStorePressureClass::FragmentedPressure => {
+                FixtureAdversaryPosture::FragmentedResidentPressure
+            }
+            LargeStorePressureClass::ProtectedPressure => {
+                FixtureAdversaryPosture::ProtectedResidentPressure
+            }
+            LargeStorePressureClass::StreamingPressure => {
+                FixtureAdversaryPosture::StreamingPressure
+            }
+            _ => FixtureAdversaryPosture::LargeStorePressure,
+        };
+    }
     match lane {
         Some(PhysicalSubstrateLane::HostileReference) => FixtureAdversaryPosture::HostileReference,
         Some(PhysicalSubstrateLane::HostileFormat) => FixtureAdversaryPosture::HostileFormat,
@@ -234,7 +270,16 @@ pub(crate) fn capability_tier_for_lane(lane: ScenarioLane) -> PhysicalScenarioCa
     }
 }
 
-pub(crate) fn cost_class_for_lane(lane: ScenarioLane) -> PhysicalScenarioCostClass {
+pub(crate) fn cost_class_for_lane(
+    lane: ScenarioLane,
+    fixture: Option<LargeStorePressureFixture>,
+) -> PhysicalScenarioCostClass {
+    if fixture.is_some()
+        && lane.family() == RoadmapLaneFamily::BufferPool
+        && lane.physical_substrate_lane().is_none()
+    {
+        return PhysicalScenarioCostClass::LargeStoreMemoryPressure;
+    }
     match lane.physical_substrate_lane() {
         Some(PhysicalSubstrateLane::LegacyOverclaim) => PhysicalScenarioCostClass::LegacyProbeOnly,
         Some(
@@ -245,7 +290,16 @@ pub(crate) fn cost_class_for_lane(lane: ScenarioLane) -> PhysicalScenarioCostCla
     }
 }
 
-pub(crate) fn footprint_for_lane(lane: ScenarioLane) -> ExpectedPhysicalFootprint {
+pub(crate) fn footprint_for_lane(
+    lane: ScenarioLane,
+    fixture: Option<LargeStorePressureFixture>,
+) -> ExpectedPhysicalFootprint {
+    if fixture.is_some()
+        && lane.family() == RoadmapLaneFamily::BufferPool
+        && lane.physical_substrate_lane().is_none()
+    {
+        return ExpectedPhysicalFootprint::LargeStorePressureFixture;
+    }
     match lane.physical_substrate_lane() {
         Some(PhysicalSubstrateLane::HappyAuthority) => {
             ExpectedPhysicalFootprint::SinglePageAuthority
@@ -276,5 +330,67 @@ pub(crate) fn footprint_for_lane(lane: ScenarioLane) -> ExpectedPhysicalFootprin
 fn push_unique<T: PartialEq>(items: &mut Vec<T>, item: T) {
     if !items.contains(&item) {
         items.push(item);
+    }
+}
+
+fn pressure_counter_expectations(
+    fixture: LargeStorePressureFixture,
+) -> Vec<ScenarioCounterExpectation> {
+    let pinned_pages = fixture.protected_page_count();
+    let copied_payload_bytes = if fixture.class() == LargeStorePressureClass::StreamingPressure {
+        fixture.streaming_window_bytes()
+    } else {
+        0
+    };
+    vec![
+        ScenarioCounterExpectation::new(
+            PhysicalCounterExpectationKind::PressureFixtureStoreBytes,
+            fixture.declared_store_bytes(),
+        ),
+        ScenarioCounterExpectation::new(
+            PhysicalCounterExpectationKind::PressureFixtureResidentBudgetBytes,
+            fixture.resident_budget_bytes(),
+        ),
+        ScenarioCounterExpectation::new(
+            PhysicalCounterExpectationKind::ResidentBytesPeak,
+            fixture.resident_budget_bytes(),
+        ),
+        ScenarioCounterExpectation::new(
+            PhysicalCounterExpectationKind::PinnedPagesPeak,
+            pinned_pages,
+        ),
+        ScenarioCounterExpectation::new(PhysicalCounterExpectationKind::DirtyPagesPeak, 0),
+        ScenarioCounterExpectation::new(
+            PhysicalCounterExpectationKind::AllocationBytesPeak,
+            fixture.allocation_envelope_bytes(),
+        ),
+        ScenarioCounterExpectation::new(
+            PhysicalCounterExpectationKind::CopiedPayloadBytes,
+            copied_payload_bytes,
+        ),
+        ScenarioCounterExpectation::new(
+            PhysicalCounterExpectationKind::DomainObjectConstructions,
+            0,
+        ),
+        ScenarioCounterExpectation::new(
+            PhysicalCounterExpectationKind::UnboundedAllocationAttempts,
+            0,
+        ),
+        ScenarioCounterExpectation::new(
+            PhysicalCounterExpectationKind::DiagnosticMaterializationBytes,
+            0,
+        ),
+    ]
+}
+
+fn pressure_denial_boundary(fixture: LargeStorePressureFixture) -> Option<ScenarioDenialBoundary> {
+    match fixture.class() {
+        LargeStorePressureClass::ProtectedPressure => {
+            Some(ScenarioDenialBoundary::ProtectedResidentPressure)
+        }
+        LargeStorePressureClass::StreamingPressure => {
+            Some(ScenarioDenialBoundary::StreamingWindowPressure)
+        }
+        _ => None,
     }
 }

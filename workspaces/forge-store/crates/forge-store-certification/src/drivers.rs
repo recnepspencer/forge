@@ -4,6 +4,7 @@ pub enum PhysicalScenarioDriverKind {
     PersistedFileDevice,
     CrashInterposer,
     LegacyBackendProbe,
+    MemoryPressureDriver,
     PlatformBackendCandidate,
     VerifierOnlyReader,
 }
@@ -15,6 +16,7 @@ impl PhysicalScenarioDriverKind {
             Self::PersistedFileDevice => "persisted_file_device",
             Self::CrashInterposer => "crash_interposer",
             Self::LegacyBackendProbe => "legacy_backend_probe",
+            Self::MemoryPressureDriver => "memory_pressure_driver",
             Self::PlatformBackendCandidate => "platform_backend_candidate",
             Self::VerifierOnlyReader => "verifier_only_reader",
         }

@@ -1,6 +1,7 @@
 use crate::{
     PhysicalOracleJudgment, PhysicalProofOracleVerdict, PhysicalScenarioPlanIdentity,
-    RuntimeVerifierParityTrace, ScenarioCounterTrace, ScenarioDenialTrace, ShortcutRejectionTrace,
+    RuntimeVerifierParityTrace, ScenarioCounterTrace, ScenarioDenialTrace, ScenarioObserverTrace,
+    ShortcutRejectionTrace,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -10,6 +11,7 @@ pub struct PhysicalStoryTranscript {
     denial_trace: ScenarioDenialTrace,
     parity_trace: RuntimeVerifierParityTrace,
     shortcut_trace: ShortcutRejectionTrace,
+    observer_trace: ScenarioObserverTrace,
     judgments: Vec<PhysicalOracleJudgment>,
 }
 
@@ -22,6 +24,7 @@ impl PhysicalStoryTranscript {
             denial_trace: trace.denial_trace().clone(),
             parity_trace: trace.parity_trace(),
             shortcut_trace: trace.shortcut_trace().clone(),
+            observer_trace: trace.observer_trace().clone(),
             judgments: verdict.judgments().to_vec(),
         }
     }
@@ -46,7 +49,27 @@ impl PhysicalStoryTranscript {
         &self.shortcut_trace
     }
 
+    pub const fn observer_trace(&self) -> &ScenarioObserverTrace {
+        &self.observer_trace
+    }
+
     pub fn judgments(&self) -> &[PhysicalOracleJudgment] {
         &self.judgments
+    }
+
+    #[cfg(test)]
+    pub(crate) fn without_counter_for_test(
+        &self,
+        counter: crate::PhysicalCounterExpectationKind,
+    ) -> Self {
+        Self {
+            plan_identity: self.plan_identity.clone(),
+            counter_trace: self.counter_trace.without_counter_for_test(counter),
+            denial_trace: self.denial_trace.clone(),
+            parity_trace: self.parity_trace,
+            shortcut_trace: self.shortcut_trace.clone(),
+            observer_trace: self.observer_trace.clone(),
+            judgments: self.judgments.clone(),
+        }
     }
 }
