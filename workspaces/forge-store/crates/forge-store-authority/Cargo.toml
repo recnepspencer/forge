@@ -6,6 +6,7 @@ license.workspace = true
 description = "Canonical Store authority records and artifact identity contracts."
 
 [dependencies]
+forge-store-aspect-native.workspace = true
 forge-store-contracts.workspace = true
 
 [lints]

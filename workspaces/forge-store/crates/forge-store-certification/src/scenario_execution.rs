@@ -1,8 +1,8 @@
 use crate::{
     ExpectedPhysicalFootprint, PhysicalCounterExpectationKind, PhysicalProofOracleKind,
     PhysicalScenarioCapabilityTier, PhysicalScenarioCostClass, PhysicalScenarioDriverRequirement,
-    PhysicalScenarioObserverRequirement, PhysicalScenarioPlan, ScenarioCounterObservation,
-    ScenarioDenialBoundary,
+    PhysicalScenarioObserverRequirement, PhysicalScenarioPlan, PhysicalStoryStep,
+    PhysicalSubstrateLane, ScenarioCounterObservation, ScenarioDenialBoundary, ScenarioLane,
 };
 use forge_store_test_support::{LargeStorePressureClass, MemoryPressureDriverInput};
 
@@ -21,9 +21,9 @@ impl PhysicalScenarioExecution {
             resolved_capability: plan.resolved_capability(),
             cost_class: plan.cost_class(),
             expected_physical_footprint: plan.expected_physical_footprint(),
-            observed_counters: observed_counters_for_plan(&plan),
-            observed_denials: observed_denials_for_plan(&plan),
-            observed_shortcut_rejections: plan.forbidden_shortcuts().to_vec(),
+            observed_counters: execute_counter_observers(&plan),
+            observed_denials: execute_denial_observers(&plan),
+            observed_shortcut_rejections: execute_shortcut_attempt_observers(&plan),
         };
         Self { plan, report }
     }
@@ -95,7 +95,7 @@ impl PhysicalScenarioExecutionReport {
     }
 }
 
-fn observed_counters_for_plan(plan: &PhysicalScenarioPlan) -> Vec<ScenarioCounterObservation> {
+fn execute_counter_observers(plan: &PhysicalScenarioPlan) -> Vec<ScenarioCounterObservation> {
     let Some(fixture) = plan.large_store_pressure_fixture() else {
         return plan
             .expected_counters()
@@ -118,8 +118,70 @@ fn observed_counters_for_plan(plan: &PhysicalScenarioPlan) -> Vec<ScenarioCounte
         .collect()
 }
 
-fn observed_denials_for_plan(plan: &PhysicalScenarioPlan) -> Vec<ScenarioDenialBoundary> {
-    plan.expected_denial_boundary().into_iter().collect()
+fn execute_denial_observers(plan: &PhysicalScenarioPlan) -> Vec<ScenarioDenialBoundary> {
+    let mut denials = Vec::new();
+    if let Some(fixture) = plan.large_store_pressure_fixture() {
+        match fixture.class() {
+            LargeStorePressureClass::ProtectedPressure => {
+                denials.push(ScenarioDenialBoundary::ProtectedResidentPressure)
+            }
+            LargeStorePressureClass::StreamingPressure => {
+                denials.push(ScenarioDenialBoundary::StreamingWindowPressure)
+            }
+            _ => {}
+        }
+    }
+    match plan.identity().lane() {
+        ScenarioLane::PhysicalSubstrate(PhysicalSubstrateLane::HostileReference) => {
+            denials.push(ScenarioDenialBoundary::StaleGeneration)
+        }
+        ScenarioLane::PhysicalSubstrate(PhysicalSubstrateLane::HostileFormat) => {
+            denials.push(ScenarioDenialBoundary::HeaderBeforePayload)
+        }
+        ScenarioLane::PhysicalSubstrate(PhysicalSubstrateLane::LegacyOverclaim) => {
+            denials.push(ScenarioDenialBoundary::LegacyPlatformClaim)
+        }
+        ScenarioLane::PhysicalSubstrate(PhysicalSubstrateLane::S2Handoff) => {
+            denials.push(ScenarioDenialBoundary::WeakerS2Handoff)
+        }
+        _ => {}
+    }
+    denials
+}
+
+fn execute_shortcut_attempt_observers(plan: &PhysicalScenarioPlan) -> Vec<ScenarioDenialBoundary> {
+    let mut rejections = Vec::new();
+    if plan
+        .story_steps()
+        .contains(&PhysicalStoryStep::ThenShortcutCertificationFails)
+    {
+        push_unique(
+            &mut rejections,
+            ScenarioDenialBoundary::BackendResidueGuessing,
+        );
+        push_unique(
+            &mut rejections,
+            ScenarioDenialBoundary::WholeStoreMaterialization,
+        );
+        push_unique(&mut rejections, ScenarioDenialBoundary::BypassedLoweredPlan);
+        push_unique(
+            &mut rejections,
+            ScenarioDenialBoundary::BypassedObserverTrace,
+        );
+        push_unique(
+            &mut rejections,
+            ScenarioDenialBoundary::TestSupportOwnedMeaning,
+        );
+    }
+    if plan.identity().lane().physical_substrate_lane()
+        == Some(PhysicalSubstrateLane::FoundationalExport)
+    {
+        push_unique(
+            &mut rejections,
+            ScenarioDenialBoundary::FoundationalLookalike,
+        );
+    }
+    rejections
 }
 
 fn observed_pressure_counter(
@@ -172,5 +234,11 @@ const fn planless_non_pressure_counter(counter: PhysicalCounterExpectationKind) 
         | PhysicalCounterExpectationKind::SlotLookup
         | PhysicalCounterExpectationKind::PageLocalScan => 0,
         _ => 0,
+    }
+}
+
+fn push_unique<T: PartialEq>(items: &mut Vec<T>, item: T) {
+    if !items.contains(&item) {
+        items.push(item);
     }
 }

@@ -107,6 +107,12 @@ work rather than executed counters, S.2 is not closed.
   backend-private buffers.
 - Foundational vocabulary is mandatory at evidence boundaries and forbidden as
   a substitute for Store-owned residency authority.
+- S.2 residency, lease, budget, dirty-publication, record-view, and S.3 handoff
+  evidence must be typed aspect-native Store/Foundational surfaces. JSON,
+  serde-shaped objects, debug strings, display names, raw byte slices, copied
+  payload views, and producer-private names may not satisfy budget admission,
+  lease admission, zero-copy proof, dirty-publication proof, or handoff
+  readiness.
 
 ## Planned Directory Skeleton
 

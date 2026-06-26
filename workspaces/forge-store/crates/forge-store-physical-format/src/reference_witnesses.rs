@@ -50,3 +50,30 @@ impl PhysicalReferenceValidationWitness {
         self.reference.generation_owner()
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RootPublicationValidationWitness {
+    validation: PhysicalReferenceValidationWitness,
+}
+
+impl RootPublicationValidationWitness {
+    pub(crate) const fn new(validation: PhysicalReferenceValidationWitness) -> Self {
+        Self { validation }
+    }
+
+    pub const fn reference(self) -> PhysicalReference {
+        self.validation.reference()
+    }
+
+    pub const fn counters(self) -> PhysicalReferenceValidationCounterSnapshot {
+        self.validation.counters()
+    }
+
+    pub fn owner(self) -> PhysicalGenerationOwner {
+        self.validation.owner()
+    }
+
+    pub const fn as_physical_reference_validation(self) -> PhysicalReferenceValidationWitness {
+        self.validation
+    }
+}

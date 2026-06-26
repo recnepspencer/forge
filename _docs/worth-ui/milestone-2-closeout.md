@@ -7,7 +7,7 @@ Milestone 2 is complete as of 2026-06-12.
 This closeout records completion of:
 
 - `_docs/worth-ui/milestone-2.md`
-- `crates/worth-ui`
+- `workspaces/worth-ui/crates/worth-ui`
 
 The milestone closes Worth UI's source-to-artifact foundation: repo-authored
 source packages and Rust-authored composition now lower through one
@@ -173,3 +173,4 @@ legality, provenance, dependency metadata, and digest/equivalence truth as its
 input. Hot reload and execution-plan work should not reopen source lowering or
 artifact authority unless it is explicitly extending the artifact contract and
 proving the same phase-chain boundaries again.
+

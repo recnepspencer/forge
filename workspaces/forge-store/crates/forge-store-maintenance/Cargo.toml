@@ -9,6 +9,7 @@ description = "Roadmap 1 maintenance isolation and scheduling contracts."
 forge-store-buffer-pool.workspace = true
 forge-store-contracts.workspace = true
 forge-store-io-scheduler.workspace = true
+forge-store-physical-integrity.workspace = true
 forge-store-retention.workspace = true
 
 [lints]

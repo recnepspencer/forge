@@ -2,8 +2,8 @@ use crate::{
     ExtentGenerationCell, FreeSpaceReuseAddress, FreeSpaceReuseCell, PhysicalReference,
     PhysicalReferenceAdmissionWitness, PhysicalReferenceDenialKind, PhysicalReferenceKind,
     PhysicalReferenceValidationCounterSnapshot, PhysicalReferenceValidationDenial,
-    PhysicalReferenceValidationWitness, RootPublicationCell, SlotGenerationCell,
-    StalePhysicalReference,
+    PhysicalReferenceValidationWitness, RootPublicationCell, RootPublicationValidationWitness,
+    SlotGenerationCell, StalePhysicalReference,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -165,7 +165,7 @@ impl PhysicalReferenceAuthority {
         self,
         admission: PhysicalReferenceAdmissionWitness,
         current: RootPublicationCell,
-    ) -> Result<PhysicalReferenceValidationWitness, PhysicalReferenceValidationDenial> {
+    ) -> Result<RootPublicationValidationWitness, PhysicalReferenceValidationDenial> {
         let reference = admission.reference();
         let placement_counters =
             PhysicalReferenceValidationCounterSnapshot::for_root_publication_attempt();
@@ -191,9 +191,8 @@ impl PhysicalReferenceAuthority {
                 ),
             ));
         }
-        Ok(PhysicalReferenceValidationWitness::new(
-            reference,
-            generation_counters,
+        Ok(RootPublicationValidationWitness::new(
+            PhysicalReferenceValidationWitness::new(reference, generation_counters),
         ))
     }
 }

@@ -124,6 +124,18 @@
 //! let shortcut: PhysicalShortcutBoundaryDenial = todo!();
 //! let _forged = denial.with_shortcut_denial(shortcut);
 //! ```
+//!
+//! Current-root scope posture cannot be synthesized without membership proof:
+//!
+//! ```compile_fail
+//! use forge_store_physical_format::{
+//!     CurrentRootManifestAdmission, RootManifestIntegrityPosture,
+//! };
+//!
+//! let _forged = RootManifestIntegrityPosture::CurrentRootAdmitted(
+//!     CurrentRootManifestAdmission { root_owner: todo!() },
+//! );
+//! ```
 
 #![forbid(unsafe_code)]
 
@@ -136,6 +148,9 @@ mod binary_format_denials;
 mod binary_format_tests;
 mod binary_format_witness;
 mod byte_order;
+mod checksum_coverage;
+mod checksum_coverage_denials;
+mod checksum_coverage_fields;
 mod denials;
 mod extent_membership;
 mod extent_record_authority;
@@ -207,6 +222,7 @@ mod page_record_test_support;
 mod page_record_tests;
 mod page_size;
 mod payload_view;
+mod physical_scope;
 mod record_framing;
 mod reference_authority;
 mod reference_counters;
@@ -232,6 +248,17 @@ pub use binary_format::{
 pub use binary_format_denials::PhysicalBinaryFormatError;
 pub use binary_format_witness::PhysicalBinaryEncodingWitness;
 pub use byte_order::{PhysicalByteOrder, PhysicalByteOrderDeclaration};
+pub use checksum_coverage::{
+    s1_required_covered_header_fields, ChecksumCoverageAuthoritySource, ChecksumCoverageMap,
+    ChecksumCoverageMapBuilder,
+};
+pub use checksum_coverage_denials::ChecksumCoverageMapDenial;
+pub use checksum_coverage_fields::{
+    ChecksumCompatibilityFieldPosture, ChecksumCoverageDisposition, ChecksumCoverageEncoding,
+    ChecksumCoverageRegion, ChecksumFieldHandling, ChecksumGenerationFieldPosture,
+    ChecksumHeaderField, ChecksumLengthFieldPosture, ChecksumPaddingPosture, ChecksumPayloadRegion,
+    ChecksumReservedFieldPosture, ChecksumUnknownFieldPosture,
+};
 pub use denials::PhysicalVocabularyError;
 pub use extent_membership::ExtentMembership;
 pub use extent_record_authority::{
@@ -325,6 +352,11 @@ pub use page_record_counters::PageRecordCounterSnapshot;
 pub use page_record_denials::{PageRecordDenial, PageRecordDenialKind};
 pub use page_size::PhysicalPageSizeClass;
 pub use payload_view::{PhysicalPayloadView, PhysicalPayloadViewAdmission};
+pub use physical_scope::{
+    CheckpointAdjacencyPosture, CurrentRootManifestAdmission, ManifestMembershipDenial,
+    ManifestMembershipProof, PhysicalReferenceScope, PhysicalScopeFamily,
+    RootManifestIntegrityPosture,
+};
 pub use record_framing::{
     FramedRecordPayload, FramedRecordView, RecordPagePayload, RecordPlacementClass,
     RecordPlacementWitness,
@@ -336,6 +368,7 @@ pub use reference_denials::{
 };
 pub use reference_witnesses::{
     PhysicalReferenceAdmissionWitness, PhysicalReferenceValidationWitness,
+    RootPublicationValidationWitness,
 };
 pub use references::{PhysicalReference, PhysicalReferenceKind};
 pub use reserved_fields::{PhysicalReservedFieldPolicy, PhysicalReservedFieldPolicyDeclaration};

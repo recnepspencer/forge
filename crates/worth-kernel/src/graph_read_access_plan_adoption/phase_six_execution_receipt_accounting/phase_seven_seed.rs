@@ -1,7 +1,6 @@
 use crate::graph_read_access_plan_adoption::{
     WorthGraphReadAccessBoundedExecutionContract, WorthGraphReadAccessPostureCapRow,
-    WorthGraphReadAccessSliceCutoverProof,
-    WorthGraphReadAccessSpatialDensePostureProjection,
+    WorthGraphReadAccessSliceCutoverProof, WorthGraphReadAccessSpatialDensePostureProjection,
     WorthGraphReadAccessSpatialDenseSourceFirewallReport,
 };
 
