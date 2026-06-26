@@ -1,12 +1,12 @@
 use super::denial::{graph_composition_error, ForgeQueryGraphCompositionDenialKind};
 use crate::runtime::{
-    ForgeQueryContinuityMutationOutcomeClass, ForgeQueryNamingMutationFamily,
-    ForgeQueryRuntimeError, ForgeQueryWriteCommand,
+    ForgeQueryContinuityMutationOutcomeClass, ForgeQueryMutationTargetCollectionIdentity,
+    ForgeQueryNamingMutationFamily, ForgeQueryRuntimeError, ForgeQueryWriteCommand,
 };
 
 pub(super) fn require_retarget_intent(
     command: &ForgeQueryWriteCommand,
-    declared_collection: &str,
+    declared_collection: Option<&ForgeQueryMutationTargetCollectionIdentity>,
 ) -> Result<(), ForgeQueryRuntimeError> {
     if command.continuity_intent().is_some_and(|intent| {
         matches!(
@@ -18,7 +18,7 @@ pub(super) fn require_retarget_intent(
         return Err(graph_composition_error(
             ForgeQueryGraphCompositionDenialKind::ExistingTargetIdentityPreservationUnavailable,
             None,
-            Some(declared_collection.to_string()),
+            declared_collection.cloned(),
             "graph retarget lanes preserve one continuing target identity; split or merge continuity requires supersession_with_lineage instead",
         ));
     }
@@ -35,14 +35,14 @@ pub(super) fn require_retarget_intent(
     Err(graph_composition_error(
         ForgeQueryGraphCompositionDenialKind::ExistingTargetRetargetUnsupported,
         None,
-        Some(declared_collection.to_string()),
+        declared_collection.cloned(),
         "graph retarget lanes require naming_rebind_target(...) or continuity_rebind_existing_target(...) on the update component",
     ))
 }
 
 pub(super) fn require_supersession_intent(
     command: &ForgeQueryWriteCommand,
-    declared_collection: &str,
+    declared_collection: Option<&ForgeQueryMutationTargetCollectionIdentity>,
 ) -> Result<(), ForgeQueryRuntimeError> {
     let has_supersession_continuity = command.continuity_intent().is_some_and(|intent| {
         matches!(
@@ -57,7 +57,7 @@ pub(super) fn require_supersession_intent(
     Err(graph_composition_error(
         ForgeQueryGraphCompositionDenialKind::ExistingTargetSupersessionUnsupported,
         None,
-        Some(declared_collection.to_string()),
+        declared_collection.cloned(),
         "graph supersession lanes require continuity_split_successors(...) or continuity_rebind_merge_successor(...) on the update component",
     ))
 }

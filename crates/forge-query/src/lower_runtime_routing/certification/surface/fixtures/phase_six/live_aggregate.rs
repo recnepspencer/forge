@@ -164,13 +164,28 @@ fn runtime_live_installation_evidence(
 
 fn live_aggregate_fixture() -> LiveAggregateFixture {
     let request = DeclarativeLiveQueryRequest::new("Task", DeclarativeLiveViewShape::table())
-        .project(DeclarativeProjectionField::new("identity", "id"))
-        .project(DeclarativeProjectionField::new("status", "value"));
+        .project(DeclarativeProjectionField::from_authoring_parts(
+            "identity", "id",
+        ))
+        .project(DeclarativeProjectionField::from_authoring_parts(
+            "status", "value",
+        ));
     let schema_view = QuerySchemaView::new(
         "certification-live-aggregate",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("status", "value", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("status")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("value")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
         [],
     );
@@ -185,7 +200,7 @@ fn live_aggregate_fixture() -> LiveAggregateFixture {
         request.clone(),
         schema_view,
         phase_six_snapshot_identity("live-aggregate-snapshot"),
-        None::<Vec<(String, String)>>,
+        None::<Vec<crate::view_shape_live::ForgeQueryGroupedBaselineMember>>,
     )
     .expect("live aggregate fixture should declare a runtime live session");
     let live_admission =

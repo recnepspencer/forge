@@ -11,6 +11,11 @@ use forge_query::facade::{
 use schema::facade::QueryAspectPath;
 use serde_json::json;
 
+use crate::query_native_runtime_boundary::query_aspect_touch;
+
+use super::retained_payload::{
+    incremental_patch_touches, publish_retained_payload, refresh_patch_touches,
+};
 use super::QUERY_SURFACE_FAILURE_ROW_KEY;
 pub(crate) use equivalence_contract::declare_topology_equivalence_contract_surface;
 #[cfg(test)]
@@ -19,23 +24,11 @@ pub(crate) use evidence::TopologyQueryMutationEvidence;
 use retained_diagnostics::derived_read_diagnostics_from_upstreams;
 
 #[derive(Debug, Clone)]
-pub(crate) struct TopologyDiagnosticsMaintainer {
-    materialized_view_name: String,
-    interpreted_view_name: String,
-    validation_view_name: String,
-}
+pub(crate) struct TopologyDiagnosticsMaintainer;
 
 impl TopologyDiagnosticsMaintainer {
-    pub(crate) fn new(
-        materialized_view_name: impl Into<String>,
-        interpreted_view_name: impl Into<String>,
-        validation_view_name: impl Into<String>,
-    ) -> Self {
-        Self {
-            materialized_view_name: materialized_view_name.into(),
-            interpreted_view_name: interpreted_view_name.into(),
-            validation_view_name: validation_view_name.into(),
-        }
+    pub(crate) fn new() -> Self {
+        Self
     }
 }
 
@@ -53,19 +46,15 @@ impl ForgeQueryDerivedViewMaintainer for TopologyDiagnosticsMaintainer {
                 view.name(),
             ),
         });
-        materialization.replace_rows([payload.clone()]);
+        let patch_payload = publish_retained_payload(view.name(), materialization, &payload);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
             crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
                 "topology-diagnostics-incremental-unexpected",
             ),
             delta.entity_identity().clone(),
-            if view.produced_aspects().is_empty() {
-                delta.aspect_paths().to_vec()
-            } else {
-                view.produced_aspects().to_vec()
-            },
-            payload,
+            incremental_patch_touches(view, delta),
+            patch_payload,
         )
     }
 
@@ -76,50 +65,23 @@ impl ForgeQueryDerivedViewMaintainer for TopologyDiagnosticsMaintainer {
         upstreams: &ForgeQueryRetainedUpstreamInputs,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> Option<ForgeQueryDerivedPatch> {
-        let payload = match derived_read_diagnostics_from_upstreams(
-            refresh,
-            upstreams,
-            &self.materialized_view_name,
-            &self.interpreted_view_name,
-            &self.validation_view_name,
-        ) {
+        let payload = match derived_read_diagnostics_from_upstreams(refresh, view, upstreams) {
             Ok(diagnostics) => {
                 serde_json::to_value(diagnostics).expect("derived diagnostics must serialize")
             }
             Err(error) => json!({ QUERY_SURFACE_FAILURE_ROW_KEY: error.to_string() }),
         };
-        materialization.replace_rows([payload.clone()]);
+        let patch_payload = publish_retained_payload(view.name(), materialization, &payload);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
             crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
                 "topology-diagnostics",
             ),
-            if view.produced_aspects().is_empty() {
-                view.dependency_aspects().to_vec()
-            } else {
-                view.produced_aspects().to_vec()
-            },
-            payload,
+            refresh_patch_touches(view),
+            patch_payload,
             "topology-derived-diagnostics",
         ))
     }
-}
-
-pub(crate) fn topology_diagnostics_computed_declaration(
-    surface_name: impl Into<String>,
-) -> Result<ForgeQueryDerivedView, ForgeQueryRuntimeError> {
-    ForgeQueryComputedBuilder::surface(surface_name)
-        .reads([
-            QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
-            QueryAspectPath::TOPOLOGY_OWNERSHIP.as_str(),
-            QueryAspectPath::TOPOLOGY_BOUNDARY.as_str(),
-            QueryAspectPath::TOPOLOGY_RADIAL.as_str(),
-            QueryAspectPath::NAMING_PERSISTENT_NAME.as_str(),
-            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS.as_str(),
-            QueryAspectPath::DIAGNOSTICS_DECISIONS.as_str(),
-        ])
-        .whole_refresh_fallback()
-        .build()
 }
 
 pub(crate) fn declare_topology_diagnostics_surface<T, M, I, V>(
@@ -130,16 +92,20 @@ pub(crate) fn declare_topology_diagnostics_surface<T, M, I, V>(
     validation_view: &ForgeQueryDerivedViewHandle<V>,
 ) -> Result<ForgeQueryDerivedViewHandle<T>, ForgeQueryRuntimeError> {
     let surface_name = surface_name.into();
-    let view = topology_diagnostics_computed_declaration(surface_name)?
-        .depends_on_derived_name(materialized_view.name())
-        .depends_on_derived_name(interpreted_view.name())
-        .depends_on_derived_name(validation_view.name());
-    workspace.computed_view(
-        view,
-        TopologyDiagnosticsMaintainer::new(
-            materialized_view.name(),
-            interpreted_view.name(),
-            validation_view.name(),
-        ),
-    )
+    let view = ForgeQueryComputedBuilder::surface(surface_name)
+        .reads([
+            query_aspect_touch(QueryAspectPath::TOPOLOGY_STRUCTURE),
+            query_aspect_touch(QueryAspectPath::TOPOLOGY_OWNERSHIP),
+            query_aspect_touch(QueryAspectPath::TOPOLOGY_BOUNDARY),
+            query_aspect_touch(QueryAspectPath::TOPOLOGY_RADIAL),
+            query_aspect_touch(QueryAspectPath::NAMING_PERSISTENT_NAME),
+            query_aspect_touch(QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS),
+            query_aspect_touch(QueryAspectPath::DIAGNOSTICS_DECISIONS),
+        ])
+        .depends_on_computed(materialized_view)
+        .depends_on_computed(interpreted_view)
+        .depends_on_computed(validation_view)
+        .whole_refresh_fallback()
+        .build()?;
+    workspace.computed_view(view, TopologyDiagnosticsMaintainer::new())
 }

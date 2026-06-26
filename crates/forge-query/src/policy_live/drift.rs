@@ -211,7 +211,7 @@ pub fn certify_policy_live_drift_evidence(
     }
 
     if density_evidence.authorized_relevance_width()
-        != live_plan.relevance().authorized_fields().len()
+        != live_plan.relevance().authorized_field_paths().len()
     {
         return Err(PolicyAwareExecutionSeamError::new(
             PolicyAwareExecutionSeamFailureClass::UnsupportedPolicyExecutionMode,

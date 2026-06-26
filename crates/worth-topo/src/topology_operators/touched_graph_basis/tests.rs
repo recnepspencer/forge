@@ -1,10 +1,12 @@
+use forge_query::facade::ForgeQueryAspectTouch;
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 use schema::facade::platform::aspects::{
     DiagnosticsAspect, GeometryAspect, LineageAspect, NamingAspect, TopologyAspect,
 };
 use schema::facade::platform::relations::TopologyRelationKind;
 use std::collections::BTreeSet;
-use std::path::PathBuf;
+
+mod line_cap;
 
 use super::lowering::test_basis_from_parts;
 use super::{
@@ -20,7 +22,7 @@ use super::{
 use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
     LoopEndpointKind, TopologyRewireLoopEndpointDeclaration,
-    TopologySpliceRadialAdjacencyDeclaration, TOPOLOGY_OPERATOR_RELATION_COLLECTION,
+    TopologySpliceRadialAdjacencyDeclaration,
 };
 
 #[test]
@@ -93,8 +95,10 @@ fn basis_lowers_to_query_descriptor_without_becoming_query_authority() {
 
     let descriptor = topology_operator_touch_descriptor_from_touched_graph_basis(&basis).unwrap();
 
-    assert!(descriptor.touches_collection(TOPOLOGY_OPERATOR_RELATION_COLLECTION));
-    assert!(descriptor.touches_aspect_path(TopologyTouchedAspect::TopologyStructure.as_str()));
+    assert_eq!(descriptor.declared_collection_count(), 1);
+    assert!(descriptor.touches_aspect(&query_aspect_touch(
+        TopologyTouchedAspect::TopologyStructure
+    )));
     assert_eq!(
         descriptor.touched_aspect_count(),
         basis.counters().touched_aspect_count()
@@ -140,8 +144,10 @@ fn different_operator_intent_selects_different_touched_basis_and_descriptor_sets
         0,
         "rewire basis must select validator aspects"
     );
-    assert!(rewire_descriptor.touches_aspect_path(TopologyTouchedAspect::TopologyBoundary.as_str()));
-    assert!(splice_descriptor.touches_aspect_path(TopologyTouchedAspect::TopologyRadial.as_str()));
+    assert!(rewire_descriptor
+        .touches_aspect(&query_aspect_touch(TopologyTouchedAspect::TopologyBoundary)));
+    assert!(splice_descriptor
+        .touches_aspect(&query_aspect_touch(TopologyTouchedAspect::TopologyRadial)));
 }
 
 #[test]
@@ -230,79 +236,73 @@ fn operating_world_identity_participates_in_touched_graph_digest() {
     );
 }
 
-#[test]
-fn touched_graph_basis_files_satisfy_workspace_line_cap() {
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let basis_dir = manifest_dir.join("src/topology_operators/touched_graph_basis");
-    let mut rust_files = std::fs::read_dir(&basis_dir)
-        .unwrap()
-        .map(|entry| entry.unwrap().path())
-        .filter(|path| path.extension().is_some_and(|extension| extension == "rs"))
-        .collect::<Vec<_>>();
-    rust_files.sort();
-
-    for path in rust_files {
-        let relative = path
-            .strip_prefix(&manifest_dir)
-            .unwrap()
-            .display()
-            .to_string();
-        let contents = std::fs::read_to_string(&path).unwrap();
-        let line_count = contents.lines().count();
-        assert!(
-            line_count <= 400,
-            "{} has {} lines, above the workspace cap",
-            relative,
-            line_count
-        );
-    }
-}
-
-#[test]
-fn production_touched_graph_basis_has_no_spatial_geometry_admission_bridge() {
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let basis_dir = manifest_dir.join("src/topology_operators/touched_graph_basis");
-    let forbidden_patterns = [
-        "WorthGeometryOnlyEvidence",
-        "GeometryOnlyEvidence",
-        "geometry_only_evidence",
-        "spatial_sealed_receipt_admission",
-        "from_spatial_boolean_receipt",
-        "type_name::<",
-    ];
-
-    for entry in std::fs::read_dir(&basis_dir).unwrap() {
-        let path = entry.unwrap().path();
-        if path.extension().is_none_or(|extension| extension != "rs") {
-            continue;
-        }
-        if path
-            .file_name()
-            .is_some_and(|file_name| file_name == "tests.rs")
-        {
-            continue;
-        }
-        let relative = path
-            .strip_prefix(&manifest_dir)
-            .unwrap()
-            .display()
-            .to_string();
-        let contents = std::fs::read_to_string(&path).unwrap();
-        for forbidden_pattern in forbidden_patterns {
-            assert!(
-                !contents.contains(forbidden_pattern),
-                "{relative} still contains forbidden topology geometry admission pattern {forbidden_pattern}"
-            );
-        }
-    }
-}
-
 fn entity_id(slot: u64) -> EntityId {
     EntityId::new(PartitionId::main(), slot, 1)
 }
 
 fn relation_id(slot: u64) -> RelationId {
     RelationId::new(PartitionId::main(), slot, 1)
+}
+
+fn query_aspect_touch(aspect: TopologyTouchedAspect) -> ForgeQueryAspectTouch {
+    ForgeQueryAspectTouch::whole_aspect(schema_aspect_for_touched_aspect(aspect).aspect_key())
+}
+
+fn schema_aspect_for_touched_aspect(
+    aspect: TopologyTouchedAspect,
+) -> schema::facade::platform::aspects::Aspect {
+    match aspect {
+        TopologyTouchedAspect::TopologyStructure => {
+            schema::facade::platform::aspects::Aspect::Topology(TopologyAspect::Structure)
+        }
+        TopologyTouchedAspect::TopologyOwnership => {
+            schema::facade::platform::aspects::Aspect::Topology(TopologyAspect::Ownership)
+        }
+        TopologyTouchedAspect::TopologyBoundary => {
+            schema::facade::platform::aspects::Aspect::Topology(TopologyAspect::Boundary)
+        }
+        TopologyTouchedAspect::TopologyRadial => {
+            schema::facade::platform::aspects::Aspect::Topology(TopologyAspect::Radial)
+        }
+        TopologyTouchedAspect::GeometryBinding => {
+            schema::facade::platform::aspects::Aspect::Geometry(GeometryAspect::Binding)
+        }
+        TopologyTouchedAspect::GeometryEmbedding => {
+            schema::facade::platform::aspects::Aspect::Geometry(GeometryAspect::Embedding)
+        }
+        TopologyTouchedAspect::GeometryProvenance => {
+            schema::facade::platform::aspects::Aspect::Geometry(GeometryAspect::Provenance)
+        }
+        TopologyTouchedAspect::GeometryApproximation => {
+            schema::facade::platform::aspects::Aspect::Geometry(GeometryAspect::Approximation)
+        }
+        TopologyTouchedAspect::GeometryUvAnchoring => {
+            schema::facade::platform::aspects::Aspect::Geometry(GeometryAspect::UvAnchoring)
+        }
+        TopologyTouchedAspect::GeometryCarrier => {
+            schema::facade::platform::aspects::Aspect::Geometry(GeometryAspect::Carrier)
+        }
+        TopologyTouchedAspect::GeometryPrecision => {
+            schema::facade::platform::aspects::Aspect::Geometry(GeometryAspect::Precision)
+        }
+        TopologyTouchedAspect::GeometryFallback => {
+            schema::facade::platform::aspects::Aspect::Geometry(GeometryAspect::Fallback)
+        }
+        TopologyTouchedAspect::LineageProvenance => {
+            schema::facade::platform::aspects::Aspect::Lineage(LineageAspect::Provenance)
+        }
+        TopologyTouchedAspect::NamingPersistentName => {
+            schema::facade::platform::aspects::Aspect::Naming(NamingAspect::PersistentName)
+        }
+        TopologyTouchedAspect::DiagnosticsDecisions => {
+            schema::facade::platform::aspects::Aspect::Diagnostics(DiagnosticsAspect::Decisions)
+        }
+        TopologyTouchedAspect::DiagnosticsInterpretations => {
+            schema::facade::platform::aspects::Aspect::Diagnostics(
+                DiagnosticsAspect::Interpretations,
+            )
+        }
+    }
 }
 
 fn test_world_identity(value: &'static str) -> TopologyTouchedOperatingWorldIdentityDigest {

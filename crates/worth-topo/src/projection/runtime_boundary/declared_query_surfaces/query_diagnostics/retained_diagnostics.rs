@@ -1,4 +1,7 @@
-use forge_query::facade::{ForgeQueryRetainedRefreshContext, ForgeQueryRetainedUpstreamInputs};
+use forge_query::facade::{
+    ForgeQueryDerivedView, ForgeQueryRetainedRefreshContext, ForgeQueryRetainedUpstreamInputs,
+};
+#[cfg(test)]
 use serde_json::Value;
 
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
@@ -13,9 +16,13 @@ use crate::projection::diagnostic_surfaces::{
 };
 use crate::validation::{DerivedTopologyValidationReport, RegisteredTopologyValidationReport};
 
-use super::super::derived_surfaces::{decode_query_surface_row, TopologyQuerySurfaceError};
+#[cfg(test)]
+use super::super::derived_surfaces::decode_query_surface_row;
+use super::super::retained_payload::decode_single_retained_payload_row;
+use super::super::TopologyQuerySurfaceError;
 use super::TopologyQueryMutationEvidence;
 
+#[cfg(test)]
 #[allow(dead_code)]
 pub(crate) fn derived_read_diagnostics_from_query_rows(
     refresh: &ForgeQueryRetainedRefreshContext,
@@ -36,21 +43,23 @@ pub(crate) fn derived_read_diagnostics_from_query_rows(
 
 pub(super) fn derived_read_diagnostics_from_upstreams(
     refresh: &ForgeQueryRetainedRefreshContext,
+    view: &ForgeQueryDerivedView,
     upstreams: &ForgeQueryRetainedUpstreamInputs,
-    materialized_view_name: &str,
-    interpreted_view_name: &str,
-    validation_view_name: &str,
 ) -> Result<DerivedReadDiagnostics, TopologyQuerySurfaceError> {
     let evidence = TopologyQueryMutationEvidence::from_refresh(refresh)?;
-    let materialized: MaterializedTopologyView = upstreams
-        .decode_single_computed_row(materialized_view_name)
-        .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
-    let interpreted: InterpretedTopologyView = upstreams
-        .decode_single_computed_row(interpreted_view_name)
-        .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
-    let validation: DerivedTopologyValidationReport = upstreams
-        .decode_single_computed_row(validation_view_name)
-        .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
+    let mut upstream_rows = upstreams.declared_retained_computed_row_sets(view);
+    let materialized: MaterializedTopologyView = decode_single_retained_payload_row(
+        upstream_rows.next().unwrap_or_default(),
+        "materialized topology",
+    )?;
+    let interpreted: InterpretedTopologyView = decode_single_retained_payload_row(
+        upstream_rows.next().unwrap_or_default(),
+        "interpreted topology",
+    )?;
+    let validation: DerivedTopologyValidationReport = decode_single_retained_payload_row(
+        upstream_rows.next().unwrap_or_default(),
+        "topology validation",
+    )?;
 
     build_diagnostics_from_decoded_surfaces(evidence, materialized, interpreted, validation)
 }

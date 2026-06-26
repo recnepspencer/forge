@@ -1,5 +1,4 @@
 use forge_relational::facade::history::BranchId;
-use serde_json::json;
 
 use crate::aspect_field_authoring::aspect_key;
 use crate::effect_lifecycle::{
@@ -12,8 +11,8 @@ use super::super::execution_support::{
     runtime_snapshot_identity, update_entity_name,
 };
 use super::super::support::{
-    branch_mutation_basis, raw_mutation_effect_with_binding, runtime_workflow_binding_for_branch,
-    runtime_workflow_binding_with_snapshot,
+    branch_mutation_basis, native_name_patch, raw_mutation_effect_with_binding,
+    runtime_workflow_binding_for_branch, runtime_workflow_binding_with_snapshot,
 };
 
 #[test]
@@ -35,12 +34,12 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
         .push(raw_mutation_effect_with_binding(
             binding.clone(),
             left,
-            json!({ "name": "left-batched" }),
+            native_name_patch("left-batched"),
         ))
         .push(raw_mutation_effect_with_binding(
             binding,
             right,
-            json!({ "name": "right-batched" }),
+            native_name_patch("right-batched"),
         ))
         .admit()
         .expect("batch should admit")
@@ -118,7 +117,7 @@ fn mutation_batch_preserves_branch_scoped_authority_target() {
                 "branch-a",
             ),
             entity_id,
-            json!({ "name": "branch-batched" }),
+            native_name_patch("branch-batched"),
         ))
         .admit()
         .expect("batch should admit")
@@ -153,7 +152,7 @@ fn retained_lowered_batch_denies_after_intervening_truth_change() {
                 "branch-a",
             ),
             entity_id,
-            json!({ "name": "stale-batch" }),
+            native_name_patch("stale-batch"),
         ))
         .admit()
         .expect("batch should admit")
@@ -206,7 +205,7 @@ fn lowered_branch_batch_does_not_deny_when_only_another_branch_moves() {
                 "branch-a",
             ),
             entity_id,
-            json!({ "name": "branch-batched" }),
+            native_name_patch("branch-batched"),
         ))
         .admit()
         .expect("batch should admit")

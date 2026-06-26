@@ -4,6 +4,7 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use super::super::shared::{entity_id_from_query_identity, relation_id_from_query_identity};
 use super::scale_pressure_span::scaled_successor_span_declaration;
 use crate::certification::error::TopologyCertificationError;
+use crate::query_native_runtime_boundary::{row_text_at, TopologyNativeQueryRowField};
 use crate::topology_operators::{
     LoopEndpointKind, TopologyRewireLoopEndpointDeclaration,
     TopologyRewireLoopSuccessorProgramDeclaration,
@@ -70,27 +71,25 @@ fn row_matches_source_kind(
     relation_kind: TopologyRelationKind,
 ) -> bool {
     self::relation_kind(row) == Some(relation_kind.kind_name())
-        && row
-            .external_row()
-            .get("topology")
-            .and_then(|value| value.get("source_identity"))
-            .and_then(|value| value.as_str())
-            == Some(source_identity)
+        && row_text_at(
+            row,
+            TopologyNativeQueryRowField::TopologySourceIdentity.row_segments(),
+        ) == Some(source_identity)
 }
 
 fn relation_kind(row: &ForgeQueryEntity) -> Option<&str> {
-    row.external_row()
-        .get("topology")
-        .and_then(|value| value.get("kind"))
-        .and_then(|value| value.as_str())
+    row_text_at(
+        row,
+        TopologyNativeQueryRowField::TopologyKind.row_segments(),
+    )
 }
 
 fn relation_target_identity(row: &ForgeQueryEntity) -> Option<String> {
-    row.external_row()
-        .get("topology")
-        .and_then(|value| value.get("target_identity"))
-        .and_then(|value| value.as_str())
-        .map(str::to_string)
+    row_text_at(
+        row,
+        TopologyNativeQueryRowField::TopologyTargetIdentity.row_segments(),
+    )
+    .map(str::to_string)
 }
 
 fn scale_pressure_loop_error(reason: &str) -> TopologyCertificationError {

@@ -7,27 +7,20 @@ use forge_query::facade::{
 use schema::facade::{QueryAspectPath, QueryCollection, QueryLiveField, QuerySchemaBasis};
 use serde_json::json;
 
-use crate::derived_topology::materialized_graph::{
-    TopologyMaterializer, TopologyQueryMaterializationInput,
+use super::super::retained_payload::{
+    incremental_patch_touches, publish_retained_payload, refresh_patch_touches,
+};
+use super::super::QUERY_SURFACE_FAILURE_ROW_KEY;
+use crate::query_native_runtime_boundary::{
+    query_aspect_field_key, query_aspect_touch, query_live_field_key, TopologyNativeQueryRowField,
 };
 
-use super::QUERY_SURFACE_FAILURE_ROW_KEY;
-
 #[derive(Debug, Clone)]
-pub(crate) struct TopologyMaterializedMaintainer {
-    entity_view_name: String,
-    relation_view_name: String,
-}
+pub(crate) struct TopologyMaterializedMaintainer;
 
 impl TopologyMaterializedMaintainer {
-    pub(crate) fn new(
-        entity_view_name: impl Into<String>,
-        relation_view_name: impl Into<String>,
-    ) -> Self {
-        Self {
-            entity_view_name: entity_view_name.into(),
-            relation_view_name: relation_view_name.into(),
-        }
+    pub(crate) fn new() -> Self {
+        Self
     }
 }
 
@@ -45,19 +38,15 @@ impl ForgeQueryDerivedViewMaintainer for TopologyMaterializedMaintainer {
                 view.name(),
             ),
         });
-        materialization.replace_rows([payload.clone()]);
+        let patch_payload = publish_retained_payload(view.name(), materialization, &payload);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
             crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
                 "topology-materialized-incremental-unexpected",
             ),
             delta.entity_identity().clone(),
-            if view.produced_aspects().is_empty() {
-                delta.aspect_paths().to_vec()
-            } else {
-                view.produced_aspects().to_vec()
-            },
-            payload,
+            incremental_patch_touches(view, delta),
+            patch_payload,
         )
     }
 
@@ -65,32 +54,21 @@ impl ForgeQueryDerivedViewMaintainer for TopologyMaterializedMaintainer {
         &mut self,
         view: &ForgeQueryDerivedView,
         _refresh: &forge_query::facade::ForgeQueryRetainedRefreshContext,
-        upstreams: &forge_query::facade::ForgeQueryRetainedUpstreamInputs,
+        _upstreams: &forge_query::facade::ForgeQueryRetainedUpstreamInputs,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> Option<ForgeQueryDerivedPatch> {
-        let entity_rows = upstreams.live_rows(&self.entity_view_name).unwrap_or(&[]);
-        let relation_rows = upstreams.live_rows(&self.relation_view_name).unwrap_or(&[]);
-
-        let payload = match TopologyQueryMaterializationInput::decode(entity_rows, relation_rows) {
-            Ok(input) => match TopologyMaterializer::materialize_query_input(&input) {
-                Ok(materialized) => serde_json::to_value(materialized)
-                    .expect("materialized topology view must serialize"),
-                Err(error) => json!({ QUERY_SURFACE_FAILURE_ROW_KEY: error.to_string() }),
-            },
-            Err(error) => json!({ QUERY_SURFACE_FAILURE_ROW_KEY: error.to_string() }),
-        };
-        materialization.replace_rows([payload.clone()]);
+        let payload = json!({
+            QUERY_SURFACE_FAILURE_ROW_KEY:
+                "topology materialized surface requires Query-native retained materialization support; local materialization fallback is denied",
+        });
+        let patch_payload = publish_retained_payload(view.name(), materialization, &payload);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
             crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
                 "topology-materialized",
             ),
-            if view.produced_aspects().is_empty() {
-                view.dependency_aspects().to_vec()
-            } else {
-                view.produced_aspects().to_vec()
-            },
-            payload,
+            refresh_patch_touches(view),
+            patch_payload,
             "topology-retained-live-rebuild",
         ))
     }
@@ -101,13 +79,13 @@ pub(crate) fn topology_entity_live_view_declaration(
 ) -> Result<ForgeQueryWorkspaceLiveViewDeclaration, ForgeQueryRuntimeError> {
     ForgeQueryLiveViewBuilder::surface(surface_name)
         .select([
-            QueryLiveField::IdentityId.delivered_name(),
-            QueryLiveField::TopologyKind.delivered_name(),
-            QueryAspectPath::LINEAGE_PROVENANCE.as_str(),
-            QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
-            QueryAspectPath::NAMING_PERSISTENT_NAME.as_str(),
+            query_live_field_key(QueryLiveField::IdentityId),
+            query_live_field_key(QueryLiveField::TopologyKind),
+            query_aspect_field_key(QueryAspectPath::LINEAGE_PROVENANCE),
+            query_aspect_field_key(QueryAspectPath::TOPOLOGY_STRUCTURE),
+            query_aspect_field_key(QueryAspectPath::NAMING_PERSISTENT_NAME),
         ])
-        .order_by(QueryLiveField::IdentityId.delivered_name())
+        .order_by(query_live_field_key(QueryLiveField::IdentityId))
         .from(QueryCollection::TopologyEntity.as_str())
         .schema_basis(QuerySchemaBasis::TopologyEntityLiveView.as_str())
         .build()
@@ -118,39 +96,18 @@ pub(crate) fn topology_relation_live_view_declaration(
 ) -> Result<ForgeQueryWorkspaceLiveViewDeclaration, ForgeQueryRuntimeError> {
     ForgeQueryLiveViewBuilder::surface(surface_name)
         .select([
-            QueryAspectPath::LINEAGE_PROVENANCE.as_str(),
-            QueryAspectPath::TOPOLOGY_OWNERSHIP.as_str(),
-            QueryAspectPath::TOPOLOGY_BOUNDARY.as_str(),
-            QueryAspectPath::TOPOLOGY_RADIAL.as_str(),
-            QueryLiveField::IdentityId.delivered_name(),
-            QueryLiveField::TopologyKind.delivered_name(),
-            QueryLiveField::TopologySourceIdentity.delivered_name(),
-            QueryLiveField::TopologyTargetIdentity.delivered_name(),
+            query_aspect_field_key(QueryAspectPath::LINEAGE_PROVENANCE),
+            query_aspect_field_key(QueryAspectPath::TOPOLOGY_OWNERSHIP),
+            query_aspect_field_key(QueryAspectPath::TOPOLOGY_BOUNDARY),
+            query_aspect_field_key(QueryAspectPath::TOPOLOGY_RADIAL),
+            query_live_field_key(QueryLiveField::IdentityId),
+            query_live_field_key(QueryLiveField::TopologyKind),
+            query_live_field_key(QueryLiveField::TopologySourceIdentity),
+            query_live_field_key(QueryLiveField::TopologyTargetIdentity),
         ])
-        .order_by(QueryLiveField::IdentityId.delivered_name())
+        .order_by(query_live_field_key(QueryLiveField::IdentityId))
         .from(QueryCollection::TopologyRelation.as_str())
         .schema_basis(QuerySchemaBasis::TopologyRelationLiveView.as_str())
-        .build()
-}
-
-pub(crate) fn topology_materialized_computed_declaration(
-    surface_name: impl Into<String>,
-) -> Result<ForgeQueryDerivedView, ForgeQueryRuntimeError> {
-    ForgeQueryComputedBuilder::surface(surface_name)
-        .reads([
-            QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
-            QueryAspectPath::TOPOLOGY_OWNERSHIP.as_str(),
-            QueryAspectPath::TOPOLOGY_BOUNDARY.as_str(),
-            QueryAspectPath::TOPOLOGY_RADIAL.as_str(),
-            QueryAspectPath::NAMING_PERSISTENT_NAME.as_str(),
-        ])
-        .produces([
-            QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
-            QueryAspectPath::TOPOLOGY_OWNERSHIP.as_str(),
-            QueryAspectPath::TOPOLOGY_BOUNDARY.as_str(),
-            QueryAspectPath::TOPOLOGY_RADIAL.as_str(),
-        ])
-        .whole_refresh_fallback()
         .build()
 }
 
@@ -183,11 +140,24 @@ pub(crate) fn declare_topology_materialized_surface<T, E, R>(
     relation_view: &ForgeQueryLiveView<R>,
 ) -> Result<ForgeQueryDerivedViewHandle<T>, ForgeQueryRuntimeError> {
     let surface_name = surface_name.into();
-    let view = topology_materialized_computed_declaration(surface_name)?
-        .depends_on_live_name(entity_view.name())
-        .depends_on_live_name(relation_view.name());
-    workspace.computed_view(
-        view,
-        TopologyMaterializedMaintainer::new(entity_view.name(), relation_view.name()),
-    )
+    let view = ForgeQueryComputedBuilder::surface(surface_name)
+        .reads([
+            TopologyNativeQueryRowField::TopologyKind.touch(),
+            query_aspect_touch(QueryAspectPath::TOPOLOGY_STRUCTURE),
+            query_aspect_touch(QueryAspectPath::TOPOLOGY_OWNERSHIP),
+            query_aspect_touch(QueryAspectPath::TOPOLOGY_BOUNDARY),
+            query_aspect_touch(QueryAspectPath::TOPOLOGY_RADIAL),
+            query_aspect_touch(QueryAspectPath::NAMING_PERSISTENT_NAME),
+        ])
+        .produces([
+            query_aspect_touch(QueryAspectPath::TOPOLOGY_STRUCTURE),
+            query_aspect_touch(QueryAspectPath::TOPOLOGY_OWNERSHIP),
+            query_aspect_touch(QueryAspectPath::TOPOLOGY_BOUNDARY),
+            query_aspect_touch(QueryAspectPath::TOPOLOGY_RADIAL),
+        ])
+        .depends_on_live(entity_view)
+        .depends_on_live(relation_view)
+        .whole_refresh_fallback()
+        .build()?;
+    workspace.computed_view(view, TopologyMaterializedMaintainer::new())
 }

@@ -1,5 +1,3 @@
-use serde_json::json;
-
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
@@ -10,7 +8,7 @@ use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeCapabilityRequest, ForgeQueryLowerRuntimeRouteKind,
     ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeSeamKey,
 };
-use crate::runtime::ForgeQueryIntentDeclaration;
+use crate::runtime::{ForgeQueryIntentDeclaration, ForgeQueryIntentInput};
 
 use super::super::{ForgeQueryLowerRuntimeRepresentativeEvidenceSource, RepresentativeArtifacts};
 
@@ -86,11 +84,14 @@ fn certification_intent_receipt() -> crate::runtime::ForgeQueryIntentReceipt {
             "Task",
             "v1",
             "lower-runtime-certification-intent-input",
-            json!({
-                "collection": "Task",
-                "entity_identity": "intent-task-1",
-                "title": "Intent fixture"
-            }),
+            ForgeQueryIntentInput::object([
+                ("collection", ForgeQueryIntentInput::string("Task")),
+                (
+                    "entity_identity",
+                    ForgeQueryIntentInput::string("intent-task-1"),
+                ),
+                ("title", ForgeQueryIntentInput::string("Intent fixture")),
+            ]),
         ))
         .expect("intent runtime fixture should execute")
 }

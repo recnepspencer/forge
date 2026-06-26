@@ -1,5 +1,6 @@
 use forge_query::facade::consumer_kit::{
-    load_support_pin_contract_document, ForgeQuerySupportPinContract,
+    load_support_pin_contract_terminal_json_document,
+    ForgeQueryExternalSupportPinContractTerminalJsonDocument, ForgeQuerySupportPinContract,
     ForgeQuerySupportPinContractSchemaVersion, ForgeQuerySupportPinningError,
 };
 
@@ -8,8 +9,12 @@ const PRIMITIVE_CONSTRUCTION_QUERY_SUPPORT_PIN_CONTRACT_JSON: &str =
 
 pub(crate) fn primitive_construction_query_support_pins(
 ) -> Result<ForgeQuerySupportPinContract, ForgeQuerySupportPinningError> {
-    load_support_pin_contract_document(
-        PRIMITIVE_CONSTRUCTION_QUERY_SUPPORT_PIN_CONTRACT_JSON,
+    let document =
+        ForgeQueryExternalSupportPinContractTerminalJsonDocument::from_static_external_terminal_json_document(
+            PRIMITIVE_CONSTRUCTION_QUERY_SUPPORT_PIN_CONTRACT_JSON,
+        );
+    load_support_pin_contract_terminal_json_document(
+        &document,
         ForgeQuerySupportPinContractSchemaVersion::current(),
     )
 }

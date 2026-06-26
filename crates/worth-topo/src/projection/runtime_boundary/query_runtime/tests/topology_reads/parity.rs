@@ -89,6 +89,12 @@ fn relation_update_query_support_reports_topology_read_proof_report_with_replay_
         proof_report
             .request_aggregate
             .anchored_expansion_execution_count,
+        0
+    );
+    assert_eq!(
+        proof_report
+            .request_aggregate
+            .explicit_broad_search_execution_count,
         1
     );
     assert_eq!(proof_report.request_aggregate.lowered_traversal_count, 2);

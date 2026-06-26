@@ -11,6 +11,7 @@ pub const PRIMITIVE_CONSTRUCTION_FAMILIES: [PrimitiveConstructionFamily; 6] = [
     PrimitiveConstructionFamily::ShellWithHole,
 ];
 
+#[cfg(test)]
 pub fn primitive_construction_topology_birth_class(
     family: PrimitiveConstructionFamily,
 ) -> &'static str {

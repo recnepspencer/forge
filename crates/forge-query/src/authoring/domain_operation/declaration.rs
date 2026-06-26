@@ -64,7 +64,7 @@ impl ForgeQueryGraphReadDomainOperationDeclaration {
         let references = self
             .admitted_references
             .iter()
-            .map(|reference| reference.relation_name())
+            .map(|reference| reference.terminal_relation_projection_for_boundary())
             .collect::<Vec<_>>()
             .join(",");
         let support = self.support_families.join(",");

@@ -1,5 +1,5 @@
 use crate::harness::certification::digest_parts;
-use crate::runtime::ForgeQueryInspection;
+use crate::runtime::{ForgeQueryAspectTouch, ForgeQueryInspection};
 
 use super::AspectApiFinalizationCertificationMatrix;
 
@@ -55,11 +55,11 @@ pub(super) fn inspection_digest(inspection: &ForgeQueryInspection) -> String {
     }
 }
 
-pub(super) fn touched_aspect_digest(paths: &[String]) -> String {
+pub(super) fn touched_aspect_digest(touches: &[ForgeQueryAspectTouch]) -> String {
     digest_parts(
-        &paths
+        &touches
             .iter()
-            .map(|path| format!("aspect:{path}"))
+            .map(|touch| format!("aspect:{}", touch.admitted_touch_digest_part()))
             .collect::<Vec<_>>(),
     )
 }

@@ -1,0 +1,23 @@
+warning: unreachable expression
+ --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_inventory_report_not_forgeable.rs:7:39
+  |
+6 |         counters: todo!(),
+  |                   ------- any code following this expression is unreachable
+7 |         required_ordinary_categories: Vec::new(),
+  |                                       ^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `rows`, `counters`, `required_ordinary_categories` and `report_digest` of struct `DerivedInvalidationAuthorityInventoryReport` are private
+ --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_inventory_report_not_forgeable.rs:5:9
+  |
+4 |     let _ = DerivedInvalidationAuthorityInventoryReport {
+  |             ------------------------------------------- in this type
+5 |         rows: Vec::new(),
+  |         ^^^^ private field
+6 |         counters: todo!(),
+  |         ^^^^^^^^ private field
+7 |         required_ordinary_categories: Vec::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+8 |         report_digest: String::new(),
+  |         ^^^^^^^^^^^^^ private field

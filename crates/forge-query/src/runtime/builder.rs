@@ -297,7 +297,7 @@ impl ForgeQueryRuntimeBuilder {
             active_subscriptions: ActiveSubscriptionRuntime::new(),
             live_subscriptions: BTreeMap::new(),
             materialized_read_views: BTreeMap::new(),
-            live_subscription_index: BTreeMap::new(),
+            live_subscription_index: Vec::new(),
             installed_programs: BTreeMap::new(),
             run_traces: BTreeMap::new(),
             derived_views: BTreeMap::new(),

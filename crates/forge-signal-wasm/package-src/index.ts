@@ -1,5 +1,8 @@
-export { default } from "./raw_surface.js";
-export * from "./raw_surface.js";
+export default async function init(...args) {
+  const rawSurface = await import("./raw_surface.js");
+  return rawSurface.default(...args);
+}
+
 export {
   clockCapability,
   hostCapabilityPlan,

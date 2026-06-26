@@ -17,7 +17,7 @@ fn runtime_live_view_denies_when_schema_boundary_receipt_drifts_from_request() {
         .expect("backend should build with drifting schema boundary receipt");
 
     let error = runtime
-        .declare_live_view::<serde_json::Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "external.tasks",
             task_live_request(),
             task_schema(),
@@ -36,10 +36,10 @@ fn runtime_write_denies_when_write_authority_route_receipt_drifts_from_command()
             &mut self,
             bridge: &RuntimeBridge,
             relational_runtime: Option<&mut RelationalRuntime>,
-            command: ForgeQueryWriteCommand,
+            mutation: ForgeQueryBackendAdmissibleMutation,
         ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
             let mut authority = TestWriteAuthority;
-            let honest = authority.write(bridge, relational_runtime, command.clone())?;
+            let honest = authority.write(bridge, relational_runtime, mutation)?;
             Ok(WriteAuthorityExecutionReceipt::from_command(
                 &ForgeQueryWriteCommand::Delete {
                     entity_identity: crate::memory_workspace::admit_authored_entity_label(
@@ -69,8 +69,8 @@ fn runtime_write_denies_when_write_authority_route_receipt_drifts_from_command()
         .write(insert_command(
             "Task",
             [
-                ("identity.id", serde_json::json!("")),
-                ("title.value", serde_json::json!("x")),
+                ("identity.id", test_string_aspect_value("")),
+                ("title.value", test_string_aspect_value("x")),
             ],
         ))
         .expect_err("drifted write route receipt must deny the write");

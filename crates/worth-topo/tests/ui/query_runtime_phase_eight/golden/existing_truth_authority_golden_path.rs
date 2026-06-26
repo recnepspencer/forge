@@ -6,8 +6,8 @@ use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 
 fn main() {
-    let entity_id = EntityId::new(PartitionId(1), 1, 1);
-    let relation_id = RelationId::new(PartitionId(1), 2, 1);
+    let _entity_id = EntityId::new(PartitionId(1), 1, 1);
+    let _relation_id = RelationId::new(PartitionId(1), 2, 1);
     let entity_identity = ForgeQueryEntityIdentity::from_relational_record(
         RelationalBridgeRecordIdentityParts::entity(1, 1, 1),
     );

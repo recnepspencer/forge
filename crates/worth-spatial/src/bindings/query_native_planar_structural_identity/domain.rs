@@ -77,7 +77,7 @@ impl ForgeQueryDeclarationFamilyMarker<PlanarStructuralIdentityQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.planar_structural_identity.boolean_readiness",
                 "geometry.planar_structural_identity.canonical_transform_basis",

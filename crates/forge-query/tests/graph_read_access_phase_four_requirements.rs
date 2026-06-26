@@ -1,3 +1,4 @@
+use forge_foundational::facade::{AspectKey, FieldKey};
 use forge_query::facade::runtime::{
     derive_graph_read_access_requirements, explain_boolean_selectivity_shape_for_family,
     explain_graph_read_access_requirements_for_family,
@@ -19,6 +20,14 @@ use std::collections::BTreeMap;
 mod support;
 
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
+
+fn aspect_key(value: &str) -> AspectKey {
+    AspectKey::new(value).expect("test aspect key should be valid")
+}
+
+fn field_key(value: &str) -> FieldKey {
+    FieldKey::new(value).expect("test field key should be valid")
+}
 
 #[test]
 fn equivalent_access_shapes_derive_stable_requirement_sets() {
@@ -175,21 +184,21 @@ fn predicate_and_ordering_shapes_add_typed_support_rows() {
     );
     assert_eq!(predicate_row.predicate_field_authorities().len(), 1);
     assert_eq!(
-        predicate_row.predicate_field_authorities()[0].aspect(),
-        "status"
+        predicate_row.predicate_field_authorities()[0].native_aspect_key(),
+        &aspect_key("status")
     );
     assert_eq!(
-        predicate_row.predicate_field_authorities()[0].field(),
-        "value"
+        predicate_row.predicate_field_authorities()[0].native_field_key(),
+        &field_key("value")
     );
     assert_eq!(ordering_row.ordering_field_authorities().len(), 1);
     assert_eq!(
-        ordering_row.ordering_field_authorities()[0].aspect(),
-        "profile"
+        ordering_row.ordering_field_authorities()[0].native_aspect_key(),
+        &aspect_key("profile")
     );
     assert_eq!(
-        ordering_row.ordering_field_authorities()[0].field(),
-        "display_name"
+        ordering_row.ordering_field_authorities()[0].native_field_key(),
+        &field_key("display_name")
     );
 }
 
@@ -342,13 +351,39 @@ fn two_relation_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "graph-read-access-phase-four-two-relation",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
-            SchemaFieldView::new("status", "value", SchemaFieldKind::String),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("id")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("status")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("value")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
         ],
         [
-            SchemaRelationView::new("manager", 2),
-            SchemaRelationView::new("mentor", 2),
+            SchemaRelationView::new(
+                forge_query::facade::RelationName::new("manager")
+                    .expect("schema relation literal must be valid"),
+                2,
+            ),
+            SchemaRelationView::new(
+                forge_query::facade::RelationName::new("mentor")
+                    .expect("schema relation literal must be valid"),
+                2,
+            ),
         ],
     )
 }

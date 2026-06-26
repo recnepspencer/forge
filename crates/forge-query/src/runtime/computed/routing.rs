@@ -1,27 +1,33 @@
 use super::*;
+use crate::memory_workspace::ForgeQueryMutationKind;
+use crate::runtime::{
+    ForgeQueryAspectTouch, ForgeQueryDerivedMaterializationTarget, ForgeQueryLiveArtifactTarget,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::runtime) struct ForgeQueryComputedRouteResult {
-    affected_view_ids: Vec<String>,
+    affected_view_targets: Vec<ForgeQueryDerivedMaterializationTarget>,
     refresh_fallback: bool,
     considered_view_count: usize,
 }
 
 impl ForgeQueryComputedRouteResult {
     pub(in crate::runtime) fn new(
-        affected_view_ids: Vec<String>,
+        affected_view_targets: Vec<ForgeQueryDerivedMaterializationTarget>,
         refresh_fallback: bool,
         considered_view_count: usize,
     ) -> Self {
         Self {
-            affected_view_ids,
+            affected_view_targets,
             refresh_fallback,
             considered_view_count,
         }
     }
 
-    pub(in crate::runtime) fn affected_view_ids(self) -> Vec<String> {
-        self.affected_view_ids
+    pub(in crate::runtime) fn affected_view_targets(
+        self,
+    ) -> Vec<ForgeQueryDerivedMaterializationTarget> {
+        self.affected_view_targets
     }
 
     pub(in crate::runtime) fn refresh_fallback(&self) -> bool {
@@ -34,13 +40,13 @@ impl ForgeQueryComputedRouteResult {
 }
 
 pub(in crate::runtime) fn admit_derived_view_declaration(
-    derived_views: &BTreeMap<String, ForgeQueryDerivedViewRuntime>,
-    live_view_names: &BTreeSet<String>,
+    derived_views: &BTreeMap<ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewRuntime>,
+    live_view_targets: &BTreeSet<ForgeQueryLiveArtifactTarget>,
     declaration: &ForgeQueryDerivedView,
 ) -> Result<(), ForgeQueryComputedAdmissionError> {
     let name = declaration.name();
     for upstream in declaration.upstream_live_views() {
-        if !live_view_names.contains(upstream) {
+        if !live_view_targets.contains(&ForgeQueryLiveArtifactTarget::from_view_name(upstream)) {
             return Err(ForgeQueryComputedAdmissionError::MissingUpstreamLive {
                 upstream: upstream.clone(),
             });
@@ -50,12 +56,18 @@ pub(in crate::runtime) fn admit_derived_view_declaration(
         if upstream == name {
             return Err(ForgeQueryComputedAdmissionError::SelfDependency);
         }
-        if !derived_views.contains_key(upstream) {
+        let upstream_target = ForgeQueryDerivedMaterializationTarget::new(upstream);
+        if !derived_views.contains_key(&upstream_target) {
             return Err(ForgeQueryComputedAdmissionError::MissingUpstreamComputed {
                 upstream: upstream.clone(),
             });
         }
-        if reaches_derived_view(derived_views, upstream, name, &mut BTreeSet::new()) {
+        if reaches_derived_view(
+            derived_views,
+            &upstream_target,
+            &ForgeQueryDerivedMaterializationTarget::new(name),
+            &mut BTreeSet::new(),
+        ) {
             return Err(ForgeQueryComputedAdmissionError::Cycle {
                 upstream: upstream.clone(),
             });
@@ -65,46 +77,56 @@ pub(in crate::runtime) fn admit_derived_view_declaration(
 }
 
 pub(in crate::runtime) fn insert_derived_runtime(
-    derived_views: &mut BTreeMap<String, ForgeQueryDerivedViewRuntime>,
+    derived_views: &mut BTreeMap<
+        ForgeQueryDerivedMaterializationTarget,
+        ForgeQueryDerivedViewRuntime,
+    >,
     dependency_index: &mut ForgeQueryComputedDependencyIndex,
     view: ForgeQueryDerivedView,
     maintainer: Option<Box<dyn ForgeQueryDerivedViewMaintainer>>,
 ) {
     dependency_index.register(&view);
-    derived_views.insert(
-        view.name().to_string(),
-        ForgeQueryDerivedViewRuntime::new(view, maintainer),
-    );
+    let target = ForgeQueryDerivedMaterializationTarget::new(view.name());
+    derived_views.insert(target, ForgeQueryDerivedViewRuntime::new(view, maintainer));
 }
 
 pub(in crate::runtime) fn route_derived_view_patches(
-    derived_views: &mut BTreeMap<String, ForgeQueryDerivedViewRuntime>,
+    derived_views: &mut BTreeMap<
+        ForgeQueryDerivedMaterializationTarget,
+        ForgeQueryDerivedViewRuntime,
+    >,
     dependency_index: &ForgeQueryComputedDependencyIndex,
-    candidate_live_view_names: impl IntoIterator<Item = String>,
-    retained_live_rows: &BTreeMap<String, Vec<crate::memory_workspace::ForgeQueryEntity>>,
+    candidate_live_view_targets: impl IntoIterator<Item = ForgeQueryLiveArtifactTarget>,
+    retained_live_rows: &BTreeMap<
+        ForgeQueryLiveArtifactTarget,
+        Vec<crate::memory_workspace::ForgeQueryEntity>,
+    >,
     receipt: &ForgeQueryMutationReceipt,
     mutation_metadata: &crate::runtime::ForgeQueryMutationMetadata,
 ) -> ForgeQueryComputedRouteResult {
     let mut affected = Vec::new();
     let mut refresh_fallback = false;
     let mut considered_view_count = 0;
-    let mut candidates = dependency_index.live_candidates(candidate_live_view_names);
-    let mut emitted_by_view: BTreeMap<String, Vec<ForgeQueryDerivedPatch>> = BTreeMap::new();
+    let mut candidates = dependency_index.live_candidates(candidate_live_view_targets);
+    let mut emitted_by_view: BTreeMap<
+        ForgeQueryDerivedMaterializationTarget,
+        Vec<ForgeQueryDerivedPatch>,
+    > = BTreeMap::new();
     let refresh = ForgeQueryRetainedRefreshContext::from_mutation(
         receipt.commit_identity.clone(),
         receipt.snapshot_identity.clone(),
         receipt
             .deltas
             .iter()
-            .flat_map(|delta| delta.aspect_paths.iter().cloned()),
+            .flat_map(|delta| delta.admitted_touched_aspects().iter().cloned()),
         mutation_metadata.clone(),
     );
 
-    for view_name in topological_derived_order(derived_views) {
-        if !candidates.contains(&view_name) {
+    for view_target in topological_derived_order(derived_views) {
+        if !candidates.contains(&view_target) {
             continue;
         }
-        let Some(view) = derived_views.get(&view_name) else {
+        let Some(view) = derived_views.get(&view_target) else {
             continue;
         };
         considered_view_count += 1;
@@ -116,10 +138,10 @@ pub(in crate::runtime) fn route_derived_view_patches(
         if !view.declaration.incremental() {
             let upstreams =
                 retained_upstream_inputs(&view.declaration, retained_live_rows, derived_views);
-            let Some(view) = derived_views.get_mut(&view_name) else {
+            let Some(view) = derived_views.get_mut(&view_target) else {
                 continue;
             };
-            affected.push(view.declaration.name().to_string());
+            affected.push(view_target.clone());
             let mut patch = if let Some(maintainer) = view.maintainer.as_mut() {
                 maintainer
                     .refresh_from_upstreams(
@@ -147,19 +169,19 @@ pub(in crate::runtime) fn route_derived_view_patches(
                 refresh_fallback = true;
             }
             emitted_by_view
-                .entry(view.declaration.name().to_string())
+                .entry(view_target.clone())
                 .or_default()
                 .push(patch.clone());
             view.patches.push(patch);
-            candidates.extend(dependency_index.dependents(&view_name));
+            candidates.extend(dependency_index.dependents(&view_target));
             continue;
         }
 
-        let Some(view) = derived_views.get_mut(&view_name) else {
+        let Some(view) = derived_views.get_mut(&view_target) else {
             continue;
         };
         for delta in source_deltas {
-            affected.push(view.declaration.name().to_string());
+            affected.push(view_target.clone());
             let mut patch = if let Some(maintainer) = view.maintainer.as_mut() {
                 maintainer.maintain(&view.declaration, &delta, &mut view.materialization)
             } else {
@@ -168,7 +190,7 @@ pub(in crate::runtime) fn route_derived_view_patches(
                     receipt.commit_identity.clone(),
                     delta.entity_identity.clone(),
                     effective_patch_aspects(&view.declaration, &delta),
-                    Value::Null,
+                    ForgeQueryDerivedPatchPayload::empty(),
                 )
             };
             patch.bind_commit_identity(receipt.commit_identity.clone());
@@ -176,13 +198,13 @@ pub(in crate::runtime) fn route_derived_view_patches(
                 refresh_fallback = true;
             }
             emitted_by_view
-                .entry(view.declaration.name().to_string())
+                .entry(view_target.clone())
                 .or_default()
                 .push(patch.clone());
             view.patches.push(patch);
         }
-        if emitted_by_view.contains_key(&view_name) {
-            candidates.extend(dependency_index.dependents(&view_name));
+        if emitted_by_view.contains_key(&view_target) {
+            candidates.extend(dependency_index.dependents(&view_target));
         }
     }
 
@@ -192,67 +214,78 @@ pub(in crate::runtime) fn route_derived_view_patches(
 }
 
 pub(in crate::runtime) fn retained_live_view_names_for_candidates(
-    derived_views: &BTreeMap<String, ForgeQueryDerivedViewRuntime>,
+    derived_views: &BTreeMap<ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewRuntime>,
     dependency_index: &ForgeQueryComputedDependencyIndex,
-    candidate_live_view_names: impl IntoIterator<Item = String>,
-) -> BTreeSet<String> {
-    let candidate_live_view_names = candidate_live_view_names.into_iter().collect::<Vec<_>>();
-    let mut retained = candidate_live_view_names
+    candidate_live_view_targets: impl IntoIterator<Item = ForgeQueryLiveArtifactTarget>,
+) -> BTreeSet<ForgeQueryLiveArtifactTarget> {
+    let candidate_live_view_targets = candidate_live_view_targets.into_iter().collect::<Vec<_>>();
+    let mut retained = candidate_live_view_targets
         .iter()
         .cloned()
         .collect::<BTreeSet<_>>();
     let mut pending = dependency_index
-        .live_candidates(candidate_live_view_names)
+        .live_candidates(candidate_live_view_targets)
         .into_iter()
         .collect::<Vec<_>>();
     let mut seen_views = BTreeSet::new();
 
-    while let Some(view_name) = pending.pop() {
-        if !seen_views.insert(view_name.clone()) {
+    while let Some(view_target) = pending.pop() {
+        if !seen_views.insert(view_target.clone()) {
             continue;
         }
-        let Some(view) = derived_views.get(&view_name) else {
+        let Some(view) = derived_views.get(&view_target) else {
             continue;
         };
-        retained.extend(view.declaration.upstream_live_views().iter().cloned());
-        pending.extend(dependency_index.dependents(&view_name));
+        retained.extend(
+            view.declaration
+                .upstream_live_views()
+                .iter()
+                .cloned()
+                .map(ForgeQueryLiveArtifactTarget::from_view_name),
+        );
+        pending.extend(dependency_index.dependents(&view_target));
     }
     retained
 }
 
 fn retained_upstream_inputs(
     declaration: &ForgeQueryDerivedView,
-    retained_live_rows: &BTreeMap<String, Vec<crate::memory_workspace::ForgeQueryEntity>>,
-    derived_views: &BTreeMap<String, ForgeQueryDerivedViewRuntime>,
+    retained_live_rows: &BTreeMap<
+        ForgeQueryLiveArtifactTarget,
+        Vec<crate::memory_workspace::ForgeQueryEntity>,
+    >,
+    derived_views: &BTreeMap<ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewRuntime>,
 ) -> ForgeQueryRetainedUpstreamInputs {
-    ForgeQueryRetainedUpstreamInputs::new(
+    ForgeQueryRetainedUpstreamInputs::from_retained_computed_rows(
         declaration.upstream_live_views().iter().filter_map(|name| {
+            let target = ForgeQueryLiveArtifactTarget::from_view_name(name);
             retained_live_rows
-                .get(name)
+                .get(&target)
                 .cloned()
-                .map(|rows| (name.clone(), rows))
+                .map(|rows| (target, rows))
         }),
         declaration
             .upstream_derived_views()
             .iter()
             .filter_map(|name| {
+                let target = ForgeQueryDerivedMaterializationTarget::new(name);
                 derived_views
-                    .get(name)
-                    .map(|view| (name.clone(), view.materialization.rows().to_vec()))
+                    .get(&target)
+                    .map(|view| (target, view.materialization.retained_rows().to_vec()))
             }),
     )
 }
 
 fn reaches_derived_view(
-    derived_views: &BTreeMap<String, ForgeQueryDerivedViewRuntime>,
-    start: &str,
-    target: &str,
-    seen: &mut BTreeSet<String>,
+    derived_views: &BTreeMap<ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewRuntime>,
+    start: &ForgeQueryDerivedMaterializationTarget,
+    target: &ForgeQueryDerivedMaterializationTarget,
+    seen: &mut BTreeSet<ForgeQueryDerivedMaterializationTarget>,
 ) -> bool {
     if start == target {
         return true;
     }
-    if !seen.insert(start.to_string()) {
+    if !seen.insert(start.clone()) {
         return false;
     }
     let Some(view) = derived_views.get(start) else {
@@ -261,18 +294,25 @@ fn reaches_derived_view(
     view.declaration
         .upstream_derived_views()
         .iter()
-        .any(|upstream| reaches_derived_view(derived_views, upstream, target, seen))
+        .any(|upstream| {
+            reaches_derived_view(
+                derived_views,
+                &ForgeQueryDerivedMaterializationTarget::new(upstream),
+                target,
+                seen,
+            )
+        })
 }
 
 fn topological_derived_order(
-    derived_views: &BTreeMap<String, ForgeQueryDerivedViewRuntime>,
-) -> Vec<String> {
+    derived_views: &BTreeMap<ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewRuntime>,
+) -> Vec<ForgeQueryDerivedMaterializationTarget> {
     let mut ordered = Vec::new();
     let mut permanent = BTreeSet::new();
     let mut temporary = BTreeSet::new();
-    for name in derived_views.keys() {
+    for target in derived_views.keys() {
         visit_derived_view(
-            name,
+            target,
             derived_views,
             &mut permanent,
             &mut temporary,
@@ -283,29 +323,35 @@ fn topological_derived_order(
 }
 
 fn visit_derived_view(
-    name: &str,
-    derived_views: &BTreeMap<String, ForgeQueryDerivedViewRuntime>,
-    permanent: &mut BTreeSet<String>,
-    temporary: &mut BTreeSet<String>,
-    ordered: &mut Vec<String>,
+    target: &ForgeQueryDerivedMaterializationTarget,
+    derived_views: &BTreeMap<ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewRuntime>,
+    permanent: &mut BTreeSet<ForgeQueryDerivedMaterializationTarget>,
+    temporary: &mut BTreeSet<ForgeQueryDerivedMaterializationTarget>,
+    ordered: &mut Vec<ForgeQueryDerivedMaterializationTarget>,
 ) {
-    if permanent.contains(name) || !temporary.insert(name.to_string()) {
+    if permanent.contains(target) || !temporary.insert(target.clone()) {
         return;
     }
-    if let Some(view) = derived_views.get(name) {
+    if let Some(view) = derived_views.get(target) {
         for upstream in view.declaration.upstream_derived_views() {
-            visit_derived_view(upstream, derived_views, permanent, temporary, ordered);
+            visit_derived_view(
+                &ForgeQueryDerivedMaterializationTarget::new(upstream),
+                derived_views,
+                permanent,
+                temporary,
+                ordered,
+            );
         }
     }
-    temporary.remove(name);
-    permanent.insert(name.to_string());
-    ordered.push(name.to_string());
+    temporary.remove(target);
+    permanent.insert(target.clone());
+    ordered.push(target.clone());
 }
 
 fn relevant_source_deltas(
     view: &ForgeQueryDerivedViewRuntime,
     receipt: &ForgeQueryMutationReceipt,
-    emitted_by_view: &BTreeMap<String, Vec<ForgeQueryDerivedPatch>>,
+    emitted_by_view: &BTreeMap<ForgeQueryDerivedMaterializationTarget, Vec<ForgeQueryDerivedPatch>>,
 ) -> Vec<ForgeQueryMutationDelta> {
     let mut deltas = Vec::new();
     let accepts_authoritative_deltas = view.declaration.upstream_derived_views().is_empty();
@@ -320,7 +366,8 @@ fn relevant_source_deltas(
     }
 
     for upstream in view.declaration.upstream_derived_views() {
-        let Some(upstream_patches) = emitted_by_view.get(upstream) else {
+        let upstream_target = ForgeQueryDerivedMaterializationTarget::new(upstream);
+        let Some(upstream_patches) = emitted_by_view.get(&upstream_target) else {
             continue;
         };
         for patch in upstream_patches {
@@ -338,26 +385,28 @@ fn mutation_delta_matches_view(
     view: &ForgeQueryDerivedViewRuntime,
     delta: &ForgeQueryMutationDelta,
 ) -> bool {
-    delta.aspect_paths.is_empty()
-        || delta.aspect_paths.iter().any(|aspect_path| {
+    if matches!(
+        delta.kind(),
+        ForgeQueryMutationKind::Created | ForgeQueryMutationKind::Deleted
+    ) {
+        return true;
+    }
+    delta.admitted_touched_aspects().is_empty()
+        || delta.admitted_touched_aspects().iter().any(|aspect_touch| {
             view.declaration
-                .dependency_aspects()
+                .dependency_aspect_touches()
                 .iter()
-                .any(|dependency| {
-                    aspect_path == dependency
-                        || aspect_path.starts_with(&format!("{dependency}."))
-                        || dependency.starts_with(&format!("{aspect_path}."))
-                })
+                .any(|dependency| dependency.matches_or_contains(aspect_touch))
         })
 }
 
 fn effective_patch_aspects(
     view: &ForgeQueryDerivedView,
     delta: &ForgeQueryMutationDelta,
-) -> Vec<String> {
-    if !view.produced_aspects().is_empty() {
-        view.produced_aspects().to_vec()
+) -> Vec<ForgeQueryAspectTouch> {
+    if !view.produced_aspect_touches().is_empty() {
+        view.produced_aspect_touches().to_vec()
     } else {
-        delta.aspect_paths.clone()
+        delta.admitted_touched_aspects().to_vec()
     }
 }

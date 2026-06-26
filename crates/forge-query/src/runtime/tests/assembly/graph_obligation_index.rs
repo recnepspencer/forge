@@ -133,7 +133,7 @@ fn symbolic_relation_retirement_descriptor() -> ForgeQueryGraphTouchDescriptor {
             .unwrap()
             .in_target_collection("topology.edge")
             .unwrap(),
-        touched_aspect_paths: vec!["weight".to_string()],
+        touched_aspects: vec![test_aspect_touch("weight")],
         metadata: ForgeQueryMutationMetadata::new(),
         naming_intent: None,
     };
@@ -141,7 +141,12 @@ fn symbolic_relation_retirement_descriptor() -> ForgeQueryGraphTouchDescriptor {
     let step = ForgeQueryGraphCompositionProgramStep::new(
         0,
         ForgeQueryGraphCompositionProgramStepKind::SymbolicRelationRetirement,
-        "topology.edge",
+        Some(
+            crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+                "graph-composition-test",
+                "topology.edge",
+            ),
+        ),
         Some("edge".to_string()),
     )
     .with_relation_kind_id(forge_relational::facade::identity::KindId(77));

@@ -24,6 +24,7 @@ use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclar
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::query_native_runtime_boundary::{row_text_at, TopologyNativeQueryRowField};
 use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::{
     BoundaryMembershipKind, TopologyCreateInnerLoopOnExistingFaceDeclaration,
@@ -206,23 +207,18 @@ fn face_inner_loop_relation_id(
         .read(surfaces.relations())
         .iter()
         .find(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
+            row_text_at(row, TopologyNativeQueryRowField::TopologyKind.row_segments())
                 == Some(schema::facade::platform::relations::TopologyRelationKind::FaceInnerLoop.kind_name())
-                && row
-                    .external_row()
-                    .get("topology")
-                    .and_then(|value| value.get("source_identity"))
-                    .and_then(|value| value.as_str())
+                && row_text_at(
+                    row,
+                    TopologyNativeQueryRowField::TopologySourceIdentity.row_segments(),
+                )
                     .and_then(|identity| entity_id_from_query_identity(identity).ok())
                     == Some(face_id)
-                && row
-                    .external_row()
-                    .get("topology")
-                    .and_then(|value| value.get("target_identity"))
-                    .and_then(|value| value.as_str())
+                && row_text_at(
+                    row,
+                    TopologyNativeQueryRowField::TopologyTargetIdentity.row_segments(),
+                )
                     .and_then(|identity| entity_id_from_query_identity(identity).ok())
                     == Some(loop_id)
         })

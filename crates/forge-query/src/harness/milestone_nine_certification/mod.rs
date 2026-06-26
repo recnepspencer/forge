@@ -851,6 +851,10 @@ fn phase_two_mask_snapshot(
     )
 }
 
+fn secret_salary_key() -> crate::authoring::AspectFieldKey {
+    crate::authoring::AspectFieldKey::from_authoring_parts("secret", "salary").unwrap()
+}
+
 pub(crate) fn phase_three_test_narrowed_artifact(
 ) -> crate::policy_narrowing::NarrowedPolicyQueryArtifact {
     let canonical = canonical_query_with_secret_projection();
@@ -871,7 +875,7 @@ pub(crate) fn phase_three_test_narrowed_artifact(
         phase_two_mask_snapshot(
             &admitted,
             crate::authorized_projection::PolicyAspectMask::allow_all()
-                .with_masked("secret", "salary"),
+                .with_masked(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::none(),
@@ -903,6 +907,44 @@ fn phase_three_test_unmasked_artifact() -> crate::policy_narrowing::NarrowedPoli
         RelationshipProofDescriptorSet::none(),
     )
     .unwrap()
+}
+
+fn native_authorized_projection_fields(
+    narrowed: &crate::policy_narrowing::NarrowedPolicyQueryArtifact,
+) -> Vec<crate::authorized_projection::AuthorizedProjectionFieldPath> {
+    narrowed
+        .authorized_projection()
+        .visible_field_paths()
+        .to_vec()
+}
+
+fn authorized_projection_field(
+    aspect: &str,
+    field: &str,
+) -> crate::authorized_projection::AuthorizedProjectionFieldPath {
+    crate::authorized_projection::AuthorizedProjectionFieldPath::from_native_keys(
+        forge_foundational::facade::AspectKey::new(aspect.to_string())
+            .expect("certification aspect key"),
+        forge_foundational::facade::FieldKey::new(field.to_string())
+            .expect("certification field key"),
+    )
+}
+
+fn policy_placeholder_request(
+    fields: impl IntoIterator<Item = (&'static str, &'static str)>,
+) -> crate::policy_delivery::PolicyPlaceholderMaskingRequest {
+    let fields = fields
+        .into_iter()
+        .map(|(aspect, field)| {
+            crate::authorized_projection::AuthorizedProjectionFieldPath::from_native_keys(
+                forge_foundational::facade::AspectKey::new(aspect)
+                    .expect("placeholder aspect key should admit"),
+                forge_foundational::facade::FieldKey::new(field)
+                    .expect("placeholder field key should admit"),
+            )
+        })
+        .collect();
+    crate::policy_delivery::PolicyPlaceholderMaskingRequest::from_authorized_field_paths(fields)
 }
 
 fn phase_three_bundle(
@@ -1074,9 +1116,7 @@ fn phase_four_bundle_from_narrowed(
     .unwrap();
     let placeholder_denial = crate::policy_delivery::deny_policy_placeholder_masking(
         &narrowed,
-        crate::policy_delivery::PolicyPlaceholderMaskingRequest::new(vec![
-            "secret.salary".to_string()
-        ]),
+        policy_placeholder_request([("secret", "salary")]),
     );
     let placeholder_denial_digest = match placeholder_denial {
         Ok(admitted_no_denial) => admitted_no_denial.failure_digest().to_string(),
@@ -1379,7 +1419,7 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
         phase_two_mask_snapshot(
             &masked_predicate_admitted,
             crate::authorized_projection::PolicyAspectMask::allow_all()
-                .with_masked("secret", "salary"),
+                .with_masked(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::none(),
@@ -1401,7 +1441,7 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
         phase_two_mask_snapshot(
             &masked_ordering_admitted,
             crate::authorized_projection::PolicyAspectMask::allow_all()
-                .with_non_disclosing_use_only("secret", "salary"),
+                .with_non_disclosing_use_only(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::none(),
@@ -1413,10 +1453,10 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
         phase_two_mask_snapshot(
             &phase_two_admitted,
             crate::authorized_projection::PolicyAspectMask::allow_all()
-                .with_non_disclosing_use_only("secret", "salary"),
+                .with_non_disclosing_use_only(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none().with_grouping_field(
-            crate::authoring::AspectFieldKey::new("secret", "salary").unwrap(),
+            crate::authoring::AspectFieldKey::from_authoring_parts("secret", "salary").unwrap(),
         ),
         RelationshipProofDescriptorSet::none(),
     )
@@ -1427,10 +1467,10 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
         phase_two_mask_snapshot(
             &phase_two_admitted,
             crate::authorized_projection::PolicyAspectMask::allow_all()
-                .with_masked("secret", "salary"),
+                .with_masked(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none().with_template_predicate_field(
-            crate::authoring::AspectFieldKey::new("secret", "salary").unwrap(),
+            crate::authoring::AspectFieldKey::from_authoring_parts("secret", "salary").unwrap(),
         ),
         RelationshipProofDescriptorSet::none(),
     )
@@ -1441,7 +1481,7 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
         phase_two_mask_snapshot(
             &phase_two_admitted,
             crate::authorized_projection::PolicyAspectMask::allow_all()
-                .with_masked("secret", "salary"),
+                .with_masked(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::new(
@@ -1456,7 +1496,7 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
         phase_two_mask_snapshot(
             &phase_two_admitted,
             crate::authorized_projection::PolicyAspectMask::allow_all()
-                .with_masked("secret", "salary"),
+                .with_masked(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::new(
@@ -1473,7 +1513,7 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
         phase_two_mask_snapshot(
             &phase_two_admitted,
             crate::authorized_projection::PolicyAspectMask::allow_all()
-                .with_masked("secret", "salary"),
+                .with_masked(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::new(
@@ -1509,7 +1549,7 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
     let raw_diff_scrub = crate::policy_plan::deny_raw_diff_scrub();
     let masked_live_relevance = crate::policy_live::admit_policy_aware_live_plan(
         &phase_three_narrowed,
-        &["secret.salary".to_string()],
+        &[authorized_projection_field("secret", "salary")],
         crate::policy_live::PolicyDriftDisposition::NoChange,
         crate::policy_live::PolicyLiveDensityPosture::SparseDelta,
     )
@@ -1521,9 +1561,7 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
     .unwrap_err();
     let placeholder_masking = crate::policy_delivery::deny_policy_placeholder_masking(
         &phase_three_narrowed,
-        crate::policy_delivery::PolicyPlaceholderMaskingRequest::new(vec![
-            "secret.salary".to_string()
-        ]),
+        policy_placeholder_request([("secret", "salary")]),
     )
     .unwrap_err();
     let store_deferred = crate::policy_plan::lower_policy_aware_historical_plan(
@@ -1537,10 +1575,10 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
         phase_two_mask_snapshot(
             &phase_two_admitted,
             crate::authorized_projection::PolicyAspectMask::allow_all()
-                .with_masked("secret", "salary"),
+                .with_masked(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none().with_aggregation_field(
-            crate::authoring::AspectFieldKey::new("secret", "salary").unwrap(),
+            crate::authoring::AspectFieldKey::from_authoring_parts("secret", "salary").unwrap(),
         ),
         RelationshipProofDescriptorSet::none(),
     )
@@ -1551,10 +1589,11 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
         phase_two_mask_snapshot(
             &phase_two_admitted,
             crate::authorized_projection::PolicyAspectMask::allow_all()
-                .with_masked("secret", "salary"),
+                .with_masked(secret_salary_key()),
         ),
-        crate::authorized_projection::PolicyInfluenceSet::none()
-            .with_cursor_field(crate::authoring::AspectFieldKey::new("secret", "salary").unwrap()),
+        crate::authorized_projection::PolicyInfluenceSet::none().with_cursor_field(
+            crate::authoring::AspectFieldKey::from_authoring_parts("secret", "salary").unwrap(),
+        ),
         RelationshipProofDescriptorSet::none(),
     )
     .unwrap_err();
@@ -1564,10 +1603,10 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
         phase_two_mask_snapshot(
             &phase_two_admitted,
             crate::authorized_projection::PolicyAspectMask::allow_all()
-                .with_masked("secret", "salary"),
+                .with_masked(secret_salary_key()),
         ),
         crate::authorized_projection::PolicyInfluenceSet::none().with_view_membership_field(
-            crate::authoring::AspectFieldKey::new("secret", "salary").unwrap(),
+            crate::authoring::AspectFieldKey::from_authoring_parts("secret", "salary").unwrap(),
         ),
         RelationshipProofDescriptorSet::none(),
     )
@@ -1887,8 +1926,8 @@ fn canonical_rows() -> Vec<MilestoneNineCertificationRow> {
         PolicyExecutionModeRequest::CurrentRead,
     )
     .unwrap();
-    let phase_two_mask =
-        crate::authorized_projection::PolicyAspectMask::allow_all().with_masked("secret", "salary");
+    let phase_two_mask = crate::authorized_projection::PolicyAspectMask::allow_all()
+        .with_masked(secret_salary_key());
     let phase_two_no_proof = phase_two_bundle(
         phase_two_canonical.clone(),
         phase_two_mask.clone(),
@@ -1902,7 +1941,7 @@ fn canonical_rows() -> Vec<MilestoneNineCertificationRow> {
     let non_disclosing_use = phase_two_bundle(
         phase_two_canonical.clone(),
         crate::authorized_projection::PolicyAspectMask::allow_all()
-            .with_non_disclosing_use_only("secret", "salary"),
+            .with_non_disclosing_use_only(secret_salary_key()),
         RelationshipProofDescriptorSet::none(),
     );
     let phase_two_direct_proof = phase_two_bundle(
@@ -1969,9 +2008,7 @@ fn canonical_rows() -> Vec<MilestoneNineCertificationRow> {
     .unwrap();
     let live_plan = crate::policy_live::admit_policy_aware_live_plan(
         &phase_three_narrowed,
-        phase_three_narrowed
-            .authorized_projection()
-            .visible_fields(),
+        &native_authorized_projection_fields(&phase_three_narrowed),
         crate::policy_live::PolicyDriftDisposition::NoChange,
         crate::policy_live::PolicyLiveDensityPosture::SparseDelta,
     )
@@ -2042,9 +2079,7 @@ fn canonical_rows() -> Vec<MilestoneNineCertificationRow> {
     let scale_report = crate::policy_certification::employee_record_policy_scale_report();
     let live_drift_readmission_plan = crate::policy_live::admit_policy_aware_live_plan(
         &phase_three_narrowed,
-        phase_three_narrowed
-            .authorized_projection()
-            .visible_fields(),
+        &native_authorized_projection_fields(&phase_three_narrowed),
         crate::policy_live::PolicyDriftDisposition::FreshAdmissionFromCheckpoint,
         crate::policy_live::PolicyLiveDensityPosture::SparseDelta,
     )
@@ -2060,7 +2095,7 @@ fn canonical_rows() -> Vec<MilestoneNineCertificationRow> {
         crate::policy_live::PolicyLiveDensityEvidence::new(
             phase_three_narrowed
                 .authorized_projection()
-                .visible_fields()
+                .visible_field_paths()
                 .len(),
             1,
             1,
@@ -2069,9 +2104,7 @@ fn canonical_rows() -> Vec<MilestoneNineCertificationRow> {
     .unwrap();
     let live_burst_readmission_plan = crate::policy_live::admit_policy_aware_live_plan(
         &phase_three_narrowed,
-        phase_three_narrowed
-            .authorized_projection()
-            .visible_fields(),
+        &native_authorized_projection_fields(&phase_three_narrowed),
         crate::policy_live::PolicyDriftDisposition::NoChange,
         crate::policy_live::PolicyLiveDensityPosture::BurstReadmission,
     )
@@ -2087,11 +2120,11 @@ fn canonical_rows() -> Vec<MilestoneNineCertificationRow> {
         crate::policy_live::PolicyLiveDensityEvidence::new(
             phase_three_narrowed
                 .authorized_projection()
-                .visible_fields()
+                .visible_field_paths()
                 .len(),
             phase_three_narrowed
                 .authorized_projection()
-                .visible_fields()
+                .visible_field_paths()
                 .len(),
             1,
         ),

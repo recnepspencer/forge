@@ -1,0 +1,27 @@
+error[E0451]: fields `inventory_seed_digest`, `catalog_digest`, `required_family_count`, `declared_family_count`, `query_required_family_count`, `legality_required_family_count`, `spatial_receipt_required_family_count`, `no_spatial_evidence_family_count`, `bounded_rebuild_family_count`, `incremental_eligible_family_count` and `seed_digest` of struct `DerivedInvalidationPhaseThreeSeed` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_phase_three_seed_not_forgeable.rs:5:9
+   |
+ 4 |     let _ = DerivedInvalidationPhaseThreeSeed {
+   |             --------------------------------- in this type
+ 5 |         inventory_seed_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 6 |         catalog_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+ 7 |         required_family_count: 7,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         declared_family_count: 7,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         query_required_family_count: 7,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         legality_required_family_count: 7,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         spatial_receipt_required_family_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         no_spatial_evidence_family_count: 7,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         bounded_rebuild_family_count: 3,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         incremental_eligible_family_count: 4,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         seed_digest: String::new(),
+   |         ^^^^^^^^^^^ private field

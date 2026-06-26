@@ -1,17 +1,18 @@
 use forge_query::facade::{
-    ForgeQueryComputedInspectionEvidence, ForgeQueryInspection, ForgeQueryRetainedScalarFactSet,
-    ForgeQueryRuntimeStateKind, ForgeQueryWorkspace,
+    ForgeQueryComputedInspectionEvidence, ForgeQueryInspection, ForgeQueryRuntimeStateKind,
+    ForgeQueryWorkspace,
 };
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::MilestoneOneCertificationError;
+use crate::projection::diagnostic_surfaces::DerivedEquivalenceContractReport;
 use crate::projection::runtime_boundary::declared_query_surfaces::retained_artifacts::{
     materialize_topology_historical_derived_surface_snapshot,
     TopologyHistoricalDerivedSurfaceSnapshot,
 };
 use crate::projection::runtime_boundary::declared_query_surfaces::{
-    declare_topology_query_surfaces, materialize_declared_query_surface_binding,
+    declare_topology_query_surfaces, materialize_declared_query_surface_row,
     TopologyDeclaredQuerySurfaces, TopologyQuerySurfaceError,
 };
 use crate::projection::runtime_boundary::query_runtime::{
@@ -24,15 +25,6 @@ pub(crate) struct HistoricalReadBasisQueryRuntime {
     workspace: ForgeQueryWorkspace,
     surfaces: TopologyDeclaredQuerySurfaces,
 }
-
-const READ_BASIS_EQUIVALENCE_FIELDS: [&str; 6] = [
-    "authority_snapshot_id",
-    "authority_branch_id",
-    "authoritative_mutation_origin",
-    "derivation_origin",
-    "truth_basis_digest_hex",
-    "touched_aspect_count",
-];
 
 pub(crate) struct HistoricalQuerySurfaceEvidence {
     #[cfg(test)]
@@ -115,17 +107,11 @@ impl HistoricalReadBasisQueryRuntime {
 
     pub(crate) fn historical_equivalence_read_basis_facts(
         &mut self,
-    ) -> Result<ForgeQueryRetainedScalarFactSet, TopologyQuerySurfaceError> {
-        materialize_declared_query_surface_binding(
+    ) -> Result<DerivedEquivalenceContractReport, TopologyQuerySurfaceError> {
+        materialize_declared_query_surface_row(
             &mut self.workspace,
-            "topology.historical.read_basis_equivalence",
-            [self.surfaces.equivalence_contract().into()],
-        )?
-        .consume_scalar_fields(
             self.surfaces.equivalence_contract(),
-            READ_BASIS_EQUIVALENCE_FIELDS,
         )
-        .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))
     }
 
     pub(crate) fn query_surface_evidence(

@@ -26,46 +26,21 @@ fn declaration_entry_lowers_touched_basis_before_query_contribution_orchestratio
 }
 
 #[test]
-fn raw_query_workflow_fronts_are_certification_only() {
+fn query_workflow_fronts_are_public_dx_but_declaration_entry_stays_basis_first() {
     let query_workflow_mod = include_str!("../query_workflow/mod.rs").replace("\r\n", "\n");
     let topology_operators_mod = include_str!("../mod.rs").replace("\r\n", "\n");
+    let public_facade = include_str!("../../facade.rs").replace("\r\n", "\n");
     let orchestration_boundary =
         include_str!("declaration_entry/orchestration_boundary.rs").replace("\r\n", "\n");
 
-    fn has_ungated_line(source: &str, needle: &str) -> bool {
-        let lines: Vec<_> = source.lines().collect();
-        lines.iter().enumerate().any(|(index, line)| {
-            line.contains(needle)
-                && match index
-                    .checked_sub(1)
-                    .and_then(|previous| lines.get(previous))
-                {
-                    Some(previous) => !previous.trim().starts_with("#[cfg(test)]"),
-                    None => true,
-                }
-        })
-    }
-
-    for source in [&query_workflow_mod, &topology_operators_mod] {
-        assert!(
-            !has_ungated_line(
-                source,
-                "pub(crate) use grouped_and_contribution_builders::topology_operator_contribution_workflow;"
-            ) && !has_ungated_line(
-                source,
-                "pub(crate) use workflow_handle_ext::TopologyOperatorWorkflowHandleExt;"
-            ) && !has_ungated_line(source, "mod handle_impl;")
-                && !has_ungated_line(source, "mod workflow_handle_ext;"),
-            "raw topology Query workflow fronts must not be production crate-wide authority",
-        );
-    }
     assert!(
         query_workflow_mod.contains(
-            "#[cfg(test)]\npub(crate) use grouped_and_contribution_builders::topology_operator_contribution_workflow;"
-        ) && query_workflow_mod.contains(
-            "#[cfg(test)]\npub(crate) use workflow_handle_ext::TopologyOperatorWorkflowHandleExt;"
-        ),
-        "raw Query workflow fronts may remain only as certification-only residue",
+            "pub use grouped_and_contribution_builders::topology_operator_contribution_workflow;"
+        ) && query_workflow_mod
+            .contains("pub use workflow_handle_ext::TopologyOperatorWorkflowHandleExt;")
+            && topology_operators_mod.contains("pub use query_workflow::{")
+            && public_facade.contains("pub use crate::topology_operators::{"),
+        "topology operator workflow fronts are public DX and must not remain cfg(test) residue",
     );
 
     let basis_index = orchestration_boundary

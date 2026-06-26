@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 
 use crate::intent_admission::{ForgeQueryLiveReadExecutionHandoff, ForgeQueryReadExecutionHandoff};
 use crate::query_context::{AdmittedQueryBasisContext, QueryContextFamily};
+use forge_foundational::facade::CanonicalFieldPath;
 
 use super::{
     ForgeQueryAuthoritativeMutationObligationDispatch, ForgeQueryGraphObligationDispatchContext,
@@ -95,10 +96,10 @@ fn read_family_read_verbs(
         ForgeQueryGraphTouchReadVerb::ExposesDerivedTopology,
     ]);
     if !read_family_touch_shape(read_graph)
-        .aspect_paths()
+        .aspect_touches()
         .is_empty()
     {
-        verbs.insert(ForgeQueryGraphTouchReadVerb::ObservesAspectPath);
+        verbs.insert(ForgeQueryGraphTouchReadVerb::ObservesAspect);
     }
     if read_graph.declared_traversal_clause_count() > 0 {
         verbs.insert(ForgeQueryGraphTouchReadVerb::ObservesRelationKind);
@@ -122,21 +123,30 @@ fn read_family_touch_shape(
     read_graph: &crate::runtime::ForgeQueryReadGraph,
 ) -> ForgeQueryGraphReadTouchShape {
     let request = read_graph.declarative_request();
-    let mut aspect_paths = BTreeSet::new();
+    let mut aspect_touches = BTreeSet::new();
     for field in request
         .query_projection()
         .iter()
         .chain(request.result_fields().iter())
     {
-        aspect_paths.insert(format!("{}.{}", field.aspect(), field.field()));
+        aspect_touches.insert(read_field_touch(field.source_field_key()));
     }
     for filter in request.predicate_filters() {
-        aspect_paths.insert(format!("{}.{}", filter.aspect(), filter.field()));
+        aspect_touches.insert(read_field_touch(filter.source_field_key()));
     }
     for ordering in request.ordering() {
-        aspect_paths.insert(format!("{}.{}", ordering.aspect(), ordering.field()));
+        aspect_touches.insert(read_field_touch(ordering.source_field_key()));
     }
-    ForgeQueryGraphReadTouchShape::new(aspect_paths)
+    ForgeQueryGraphReadTouchShape::new(aspect_touches)
+}
+
+fn read_field_touch(
+    field: &crate::authoring::AspectFieldKey,
+) -> crate::runtime::ForgeQueryAspectTouch {
+    crate::runtime::ForgeQueryAspectTouch::from_native_parts(
+        field.native_aspect_key(),
+        Some(CanonicalFieldPath::single(field.native_field_key())),
+    )
 }
 
 fn read_context_crosses_operating_world(family: &QueryContextFamily) -> bool {

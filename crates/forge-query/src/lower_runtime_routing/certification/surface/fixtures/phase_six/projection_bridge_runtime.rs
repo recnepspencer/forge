@@ -1,6 +1,5 @@
 use forge_foundational::facade::{
-    AspectKey, AspectLocator, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
-    ScalarAspectType,
+    AspectKey, AspectLocator, CanonicalFieldPath, FieldKey, LocatorAuthority, ScalarAspectType,
 };
 use forge_runtime_bridge::facade::{
     AspectKeySelector, BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity,
@@ -111,13 +110,23 @@ impl TruthSnapshotReader for ProjectionBridgeSnapshotReader {
                             (read.relational_record_identity_parts() == Some(*record_identity))
                                 .then(|| match read.aspect_key().as_str() {
                                     "identity.id" => {
-                                        AspectValue::String(identity_value.as_str().into())
+                                        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                                            identity_value.as_str(),
+                                        )
                                     }
-                                    "status" => AspectValue::String(grouping_value.as_str().into()),
-                                    _ => AspectValue::String("unknown".into()),
+                                    "status" => {
+                                        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                                            grouping_value.as_str(),
+                                        )
+                                    }
+                                    _ => crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                                        "unknown",
+                                    ),
                                 })
                         })
-                        .unwrap_or_else(|| AspectValue::String("unknown".into()));
+                        .unwrap_or_else(|| {
+                            crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value("unknown")
+                        });
                     SnapshotReadRecord::for_request(read, payload)
                 })
                 .collect(),

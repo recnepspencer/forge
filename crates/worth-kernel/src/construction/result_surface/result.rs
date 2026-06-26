@@ -190,30 +190,6 @@ impl ExecutedPrimitiveConstructionGraphAuthorityResult {
         self.core.artifact_digest()
     }
 
-    pub(crate) fn birth_truth_digest(&self) -> &str {
-        self.core.birth_truth_digest()
-    }
-
-    pub(crate) fn birth_completeness_digest(&self) -> &str {
-        self.core.birth_completeness_digest()
-    }
-
-    pub(crate) fn topology_fact_digest(&self) -> &str {
-        self.core.topology_fact_digest()
-    }
-
-    pub(crate) fn projection_receipt_digest(&self) -> &str {
-        self.core.projection_receipt_digest()
-    }
-
-    pub(crate) fn read_surface(&self) -> TopologyConstructionQueryReadSurface {
-        self.core.read_surface()
-    }
-
-    pub(crate) fn fact_provenance(&self) -> TopologyConstructionQueryFactProvenance {
-        self.core.fact_provenance()
-    }
-
     pub(crate) fn realization_strategy(&self) -> PrimitiveRealizationStrategy {
         self.core.realization_strategy()
     }

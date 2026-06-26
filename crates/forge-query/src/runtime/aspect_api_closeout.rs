@@ -66,7 +66,7 @@ impl ForgeQueryAspectApiFinalizationCloseout {
                 .to_string(),
         ];
         let must_not_assume_yet = vec![
-            "JSON has already been removed from forge-query, forge-relational, forge-store, or the runtime bridge internally"
+            "terminal document JSON or external reference artifacts are native authority carriers"
                 .to_string(),
             "lower-level write commands are the preferred ordinary public story"
                 .to_string(),
@@ -90,7 +90,7 @@ impl ForgeQueryAspectApiFinalizationCloseout {
                 .to_string(),
             "gate intent-shaped authority crossings through support admission until that family is explicitly stabilized"
                 .to_string(),
-            "move JSON removal work underneath this facade instead of teaching new code to depend on payload lowering"
+            "treat terminal JSON documents as external import/export only; keep runtime mutation and read authority in aspect-native proof carriers"
                 .to_string(),
         ];
         let required_verification_commands = vec![
@@ -119,7 +119,7 @@ impl ForgeQueryAspectApiFinalizationCloseout {
                 "lower-level seams stay explicit rather than co-equal: {} lower-level stable surfaces",
                 lower_level_stable_surfaces.len()
             ),
-            "downstream runtimes may build on the facade now, while lower-crate JSON removal remains an internal rewrite".to_string(),
+            "downstream runtimes may build on the facade now, while JSON-shaped authority remains forbidden".to_string(),
         ];
 
         let mut parts = vec![

@@ -2,18 +2,13 @@ use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent};
 
 use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
-    NamingMutationContinuityMatrix, TopologyCreateInnerLoopOnExistingFaceDeclaration,
-    TopologyDeclaredMutationSequence, TopologyDetachBoundaryMembershipDeclaration,
-    TopologyMutationDigest, TopologyMutationFamily, TopologyMutationNamingOutcome,
+    TopologyDeclaredMutationSequence, TopologyMutationDigest, TopologyMutationFamily,
     TopologyMutationSequenceDigest, TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
-    TopologyRetireTopologyEntityDeclaration, TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
+    TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
 };
 
 #[derive(Clone)]
 pub(super) enum TopologyCloseoutDeclaration {
-    CreateInnerLoopOnExistingFace(TopologyCreateInnerLoopOnExistingFaceDeclaration),
-    DetachBoundaryMembership(TopologyDetachBoundaryMembershipDeclaration),
-    RetireTopologyEntity(TopologyRetireTopologyEntityDeclaration),
     RehomeAllOwnedHalfEdgesToNewWire(TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration),
     SplitConnectedHalfEdgeSetToNewWire(TopologySplitConnectedHalfEdgeSetToNewWireDeclaration),
 }
@@ -23,11 +18,6 @@ impl TopologyDeclarationMutationPayload for TopologyCloseoutDeclaration {
 
     fn into_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
         match self {
-            Self::CreateInnerLoopOnExistingFace(declaration) => {
-                declaration.into_mutation_sequence()
-            }
-            Self::DetachBoundaryMembership(declaration) => declaration.into_mutation_sequence(),
-            Self::RetireTopologyEntity(declaration) => declaration.into_mutation_sequence(),
             Self::RehomeAllOwnedHalfEdgesToNewWire(declaration) => {
                 declaration.into_mutation_sequence()
             }
@@ -42,8 +32,6 @@ impl TopologyDeclarationMutationPayload for TopologyCloseoutDeclaration {
 pub(super) struct TopologyCloseoutMutationPlan {
     pub(super) raw_intent: RawTopologyIntent,
     pub(super) topology_mutation_digest: TopologyMutationDigest,
-    pub(super) naming_mutation_continuity_matrix: NamingMutationContinuityMatrix,
-    pub(super) mutation_families: Vec<TopologyMutationFamily>,
 }
 
 impl TopologyCloseoutMutationPlan {
@@ -54,8 +42,6 @@ impl TopologyCloseoutMutationPlan {
         Self {
             raw_intent: RawTopologyIntent::new(mutations, MutationOrigin::BranchLocalApplication),
             topology_mutation_digest: sequence.topology_mutation_digest().clone(),
-            naming_mutation_continuity_matrix: sequence.naming_continuity_matrix().clone(),
-            mutation_families: sequence.families().to_vec(),
         }
     }
 }
@@ -154,16 +140,6 @@ pub(super) fn aggregate_topology_mutation_digest_for_plans(
     )
 }
 
-pub(super) fn aggregate_naming_mutation_continuity_matrix_for_plans(
-    plans: impl IntoIterator<Item = TopologyCloseoutMutationPlan>,
-) -> NamingMutationContinuityMatrix {
-    let rows = plans
-        .into_iter()
-        .flat_map(|plan| plan.naming_mutation_continuity_matrix.rows)
-        .collect::<Vec<_>>();
-    naming_mutation_continuity_matrix_from_rows(rows)
-}
-
 pub(super) fn aggregate_topology_mutation_digest_for_declarations<D>(
     declarations: impl IntoIterator<Item = D>,
 ) -> TopologyMutationDigest
@@ -187,29 +163,6 @@ where
         .into_iter()
         .flat_map(|declaration| declaration.semantic_families())
         .collect()
-}
-
-fn naming_mutation_continuity_matrix_from_rows(
-    rows: Vec<crate::topology_operators::TopologyMutationNamingRow>,
-) -> NamingMutationContinuityMatrix {
-    let preserved_count = rows
-        .iter()
-        .filter(|row| row.outcome == TopologyMutationNamingOutcome::Preserved)
-        .count();
-    let ambiguous_count = rows
-        .iter()
-        .filter(|row| row.outcome == TopologyMutationNamingOutcome::Ambiguous)
-        .count();
-    let rejected_count = rows
-        .iter()
-        .filter(|row| row.outcome == TopologyMutationNamingOutcome::Rejected)
-        .count();
-    NamingMutationContinuityMatrix {
-        rows,
-        preserved_count,
-        ambiguous_count,
-        rejected_count,
-    }
 }
 
 fn digest_rows(rows: impl IntoIterator<Item = String>) -> TopologyMutationSequenceDigest {

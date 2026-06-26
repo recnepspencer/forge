@@ -33,20 +33,21 @@ fn topology_read_schema_admits_only_declared_traversal_relations() {
     );
 
     for relation in TopologyDomainTraversalRelation::ALL {
+        let relation_name = relation.relation_name();
         let admitted = schema
-            .relation(relation.relation_name().as_str())
+            .relation(&relation_name)
             .expect("declared topology domain traversal relation must be admitted");
-        assert_eq!(admitted.relation(), relation.relation_name().as_str());
+        assert_eq!(admitted.relation_name(), &relation_name);
         assert_eq!(admitted.max_depth(), relation.max_depth());
     }
-    assert_eq!(
-        schema.relation(TopologyRelationKind::LoopOwnsHalfEdge.kind_name()),
-        None
-    );
-    assert_eq!(
-        schema.relation(TopologyRelationKind::WireOwnsHalfEdge.kind_name()),
-        None
-    );
+    let loop_owns_half_edge =
+        forge_query::facade::RelationName::new(TopologyRelationKind::LoopOwnsHalfEdge.kind_name())
+            .expect("relation name should admit");
+    let wire_owns_half_edge =
+        forge_query::facade::RelationName::new(TopologyRelationKind::WireOwnsHalfEdge.kind_name())
+            .expect("relation name should admit");
+    assert_eq!(schema.relation(&loop_owns_half_edge), None);
+    assert_eq!(schema.relation(&wire_owns_half_edge), None);
     assert_ne!(schema.basis(), comparison_schema.basis());
 }
 

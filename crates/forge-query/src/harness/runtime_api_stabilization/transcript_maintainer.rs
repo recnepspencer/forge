@@ -1,10 +1,11 @@
-use serde_json::json;
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
 
 use crate::facade::{
-    ForgeQueryDerivedPatch, ForgeQueryDerivedView, ForgeQueryDerivedViewMaintainer,
-    ForgeQueryDerivedViewMaterialization, ForgeQueryMutationDelta,
+    ForgeQueryDerivedPatch, ForgeQueryDerivedPatchPayload, ForgeQueryDerivedView,
+    ForgeQueryDerivedViewMaintainer, ForgeQueryDerivedViewMaterialization, ForgeQueryMutationDelta,
 };
 use crate::memory_workspace::ForgeQueryCommitIdentity;
+use crate::runtime::ForgeQueryRetainedFieldPath;
 
 pub(super) struct TranscriptMaintainer {
     pub(super) prefix: &'static str,
@@ -18,28 +19,62 @@ impl ForgeQueryDerivedViewMaintainer for TranscriptMaintainer {
         delta: &ForgeQueryMutationDelta,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> ForgeQueryDerivedPatch {
-        let row = json!({
-            "family": self.prefix,
-            "entity": delta.entity_identity.terminal_projection_for_reporting().to_string(),
-            "view": view.name(),
-        });
+        let retained_scalars = [
+            (
+                retained_field_path("family"),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                    self.prefix.to_string(),
+                ),
+            ),
+            (
+                retained_field_path("entity"),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                    delta
+                        .entity_identity
+                        .terminal_projection_for_reporting()
+                        .to_string(),
+                ),
+            ),
+            (
+                retained_field_path("view"),
+                crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                    view.name().to_string(),
+                ),
+            ),
+        ];
         if self.replace {
-            materialization.replace_rows([row.clone()]);
+            materialization
+                .replace_retained_scalar_row(retained_scalars.clone())
+                .expect("transcript row should admit native scalar values");
         } else {
-            materialization.push_row(row.clone());
+            materialization
+                .push_retained_scalar_row(retained_scalars.clone())
+                .expect("transcript row should admit native scalar values");
         }
         ForgeQueryDerivedPatch::incremental(
             view.name(),
             transcript_commit_identity("transcript-derived-commit", self.prefix),
             delta.entity_identity.clone(),
-            if view.produced_aspects().is_empty() {
-                delta.aspect_paths.clone()
+            if view.produced_aspect_touches().is_empty() {
+                delta.admitted_touched_aspects().to_vec()
             } else {
-                view.produced_aspects().to_vec()
+                view.produced_aspect_touches().to_vec()
             },
-            row,
+            ForgeQueryDerivedPatchPayload::from_retained_scalar_values(retained_scalars)
+                .expect("transcript payload should admit native scalar values"),
         )
     }
+}
+
+fn retained_field_path(path: &str) -> ForgeQueryRetainedFieldPath {
+    let fields = path
+        .split('.')
+        .map(|segment| FieldKey::new(segment.to_string()))
+        .collect::<Option<Vec<_>>>()
+        .expect("transcript retained field path should admit");
+    let path = CanonicalFieldPath::new(fields)
+        .expect("transcript retained field path should not be empty");
+    ForgeQueryRetainedFieldPath::from_canonical_field_path(path)
 }
 
 fn transcript_commit_identity(namespace: &str, evidence: &str) -> ForgeQueryCommitIdentity {

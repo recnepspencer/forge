@@ -81,7 +81,7 @@ impl ForgeQueryDeclarationFamilyMarker<PlanarBooleanEntryBasisQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_authoring_helpers::declaration_aspect_contract_from_slices(
             &[
                 "planar_boolean_basis.readiness_digest",
                 "planar_boolean_basis.readiness_declaration_digest",

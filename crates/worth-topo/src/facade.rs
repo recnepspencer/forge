@@ -39,6 +39,73 @@ pub use crate::construction::{
     TopologyPrimitiveConstructionQueryHandoff, TopologyPrimitiveConstructionQueryReceipt,
     TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
 };
+pub use crate::derived_invalidation_deletion_closeout::{
+    close_derived_invalidation_deletion, current_deletion_source_firewall,
+    DerivedInvalidationDeletionAudit, DerivedInvalidationDeletionCloseout,
+    DerivedInvalidationDeletionCounters, DerivedInvalidationDeletionDisposition,
+    DerivedInvalidationDeletionError, DerivedInvalidationDeletionErrorKind,
+    DerivedInvalidationDeletionLedger, DerivedInvalidationDeletionRow,
+    DerivedInvalidationDeletionSourceFirewall, DerivedInvalidationDeletionSourceFirewallViolation,
+    DerivedInvalidationPhaseNineSeed, DerivedInvalidationResidueAudit,
+    DerivedInvalidationResidueAuditRow,
+};
+pub use crate::derived_invalidation_execution::{
+    DerivedInvalidationDeniedProductExecutionRow, DerivedInvalidationDiagnosticProjection,
+    DerivedInvalidationDiagnosticRow, DerivedInvalidationExecutedProductRow,
+    DerivedInvalidationExecutionCounters, DerivedInvalidationExecutionError,
+    DerivedInvalidationExecutionErrorKind, DerivedInvalidationExecutionOutcome,
+    DerivedInvalidationExecutionReceipt, DerivedInvalidationResidueExecutionRow,
+    DerivedInvalidationUnaffectedProductExecutionRow,
+};
+pub use crate::derived_invalidation_migrated_products::{
+    close_loop_cycle_migration_slice, close_materialized_graph_migration_slice,
+    close_traversal_views_migration_slice, LoopCycleBoundarySourceRow,
+    LoopCycleDerivedProductOutput, LoopCycleExecutionInput, LoopCycleMigrationCloseout,
+    LoopCycleMigrationCounters, LoopCycleMigrationError, LoopCycleOldAuthorityResidue,
+    LoopCycleOldAuthorityResidueRow, LoopCyclePhaseSixSeed, LoopCycleProductRow,
+    MaterializedGraphDerivedProductOutput, MaterializedGraphDiagnosticProjection,
+    MaterializedGraphExecutionInput, MaterializedGraphMigrationCloseout,
+    MaterializedGraphMigrationCounters, MaterializedGraphMigrationError,
+    MaterializedGraphOldAuthorityResidue, MaterializedGraphOldAuthorityResidueRow,
+    MaterializedGraphPhaseTenSeed, MaterializedGraphProductEntityRow,
+    MaterializedGraphProductRelationRow, MaterializedGraphReadEntityRow,
+    MaterializedGraphReadRelationRow, MaterializedGraphReadSource,
+    MaterializedGraphReadStageExecutor, MaterializedGraphReadStageReceipt,
+    TraversalViewsDerivedProductOutput, TraversalViewsDiagnosticProjection,
+    TraversalViewsExecutionInput, TraversalViewsMigrationCloseout, TraversalViewsMigrationCounters,
+    TraversalViewsMigrationError, TraversalViewsOldAuthorityResidue,
+    TraversalViewsOldAuthorityResidueRow, TraversalViewsPhaseElevenSeed, TraversalViewsProductRow,
+    TraversalViewsReadSource, TraversalViewsReadStageExecutor, TraversalViewsReadStageReceipt,
+    TraversalViewsSourceRow,
+};
+pub use crate::derived_invalidation_milestone_ten_closeout::{
+    close_derived_invalidation_milestone_ten, DerivedInvalidationMilestoneElevenLookupReadiness,
+    DerivedInvalidationMilestoneElevenProductReceiptRef, DerivedInvalidationMilestoneElevenSeed,
+    DerivedInvalidationMilestoneTenCloseout, DerivedInvalidationMilestoneTenCounters,
+    DerivedInvalidationMilestoneTenError, DerivedInvalidationMilestoneTenErrorKind,
+    DerivedInvalidationMilestoneTenPerformanceProof,
+    DerivedInvalidationMilestoneTenPerformanceSlopeCase,
+    DerivedInvalidationMilestoneTenProductSummaryReport,
+    DerivedInvalidationMilestoneTenProductSummaryRow,
+};
+pub use crate::derived_invalidation_operator_cutover::{
+    current_operator_cutover_source_firewall, DerivedInvalidationOperatorCutoverCloseout,
+    DerivedInvalidationOperatorCutoverCounters, DerivedInvalidationOperatorCutoverError,
+    DerivedInvalidationOperatorCutoverErrorKind, DerivedInvalidationOperatorCutoverReceipt,
+    DerivedInvalidationOperatorCutoverSourceFirewall,
+    DerivedInvalidationOperatorCutoverSourceFirewallViolation, DerivedInvalidationPhaseEightSeed,
+    DerivedInvalidationProjectionReadStageReceipt, ProjectionReadStageConsumptionScope,
+};
+pub use crate::derived_invalidation_selected_plan::{
+    DerivedInvalidationDenialKind, DerivedInvalidationDenialRow, DerivedInvalidationDensityPolicy,
+    DerivedInvalidationExecutionAdmission, DerivedInvalidationLegalitySupportEvidence,
+    DerivedInvalidationPhaseFourSeed, DerivedInvalidationPlannedDisposition,
+    DerivedInvalidationQuerySupportEvidence, DerivedInvalidationResidueRow,
+    DerivedInvalidationSelectedPlan, DerivedInvalidationSelectedRow,
+    DerivedInvalidationSelectionCounters, DerivedInvalidationSelectionError,
+    DerivedInvalidationSelectionErrorKind, DerivedInvalidationTouchedClosure,
+    DerivedInvalidationUnaffectedRow,
+};
 pub use crate::projection::runtime_boundary::declared_query_surfaces::truth_surfaces::{
     NamingAttachmentReport, NamingAttachmentRow,
 };
@@ -70,6 +137,15 @@ pub use crate::query_adoption::{
 };
 pub use crate::query_domain::{
     topology_current_head_query_basis_evidence, TopologyCurrentHeadQueryBasisEvidence,
+};
+pub use crate::query_native_runtime_boundary::{
+    WorthTopologyNativeAspectField, WorthTopologyNativeAspectValue,
+    WorthTopologyNativeCarrierBoundaryError, WorthTopologyNativeFieldPath,
+    WorthTopologyNativeSetAspectInput, WorthTopologyQueryNativeRuntimeBoundaryInventory,
+    WorthTopologyQueryNativeRuntimeBoundaryInventoryError,
+    WorthTopologyQueryNativeRuntimeBoundaryInventoryRow,
+    WorthTopologyQueryNativeRuntimeBoundaryResidueStatus,
+    WorthTopologyQueryNativeRuntimeBoundaryStaleSymbol,
 };
 pub use crate::topology_operators::{
     topology_operator_command_batch_equivalent_touch_descriptor,
@@ -151,6 +227,89 @@ pub use crate::topology_operators::{
     TOPOLOGY_OPERATOR_GRAPH_OBLIGATION_FAMILY, TOPOLOGY_OPERATOR_RELATION_COLLECTION,
     TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_OPERATION, TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_PATH,
 };
+#[doc(hidden)]
+pub use crate::validation_authority_inventory::{
+    validation_authority_inventory_compile_fail_targets,
+    VALIDATION_AUTHORITY_INVENTORY_COMPILE_FAIL_TARGET_COUNT,
+};
+pub use crate::validator_invariant_catalog::{
+    current_worth_topology_legality_catalog_closeout, WorthTopologyDiagnosticProjectionPosture,
+    WorthTopologyEnforcementPhase,
+    WorthTopologyGraphScopedCustomInvariantRegistrationProjectionRow,
+    WorthTopologyInvariantFamilyIdentity, WorthTopologyInvariantFamilyRecord,
+    WorthTopologyLegalityCatalog, WorthTopologyLegalityCatalogCloseout,
+    WorthTopologyLegalityCatalogError, WorthTopologyLegalityCatalogNoExecutionProof,
+    WorthTopologyLegalityCatalogPhaseThreeSeed, WorthTopologyLegalityCatalogSourceFirewallReport,
+    WorthTopologyLegalityCatalogSourceFirewallViolation, WorthTopologyLegalityFamilyIdentity,
+    WorthTopologyLegalityFamilyRecord, WorthTopologyLegalityFamilySourceAuthorityKind,
+    WorthTopologyLegalityFamilySourceProof, WorthTopologyLegalitySelectionCloseout,
+    WorthTopologyLegalitySelectionCounters, WorthTopologyLegalitySelectionDenial,
+    WorthTopologyLegalitySelectionDenialKind, WorthTopologyLegalitySelectionPhaseFourSeed,
+    WorthTopologyLoopWiringAdmittedLocalFacts, WorthTopologyLoopWiringDiagnosticProjection,
+    WorthTopologyLoopWiringHalfEdgeWitnessRow, WorthTopologyLoopWiringLoopWitnessRow,
+    WorthTopologyLoopWiringViolationKind, WorthTopologyLoopWiringWitnessInput,
+    WorthTopologyLoopWiringWitnessIntakeReceipt, WorthTopologyLoopWiringWitnessRow,
+    WorthTopologyMilestoneNineCloseout, WorthTopologyMilestoneNineCloseoutCounters,
+    WorthTopologyMilestoneNineCloseoutDenial, WorthTopologyMilestoneNineCloseoutDenialKind,
+    WorthTopologyMilestoneNineDeletionDisposition, WorthTopologyMilestoneNineDeletionLedgerReport,
+    WorthTopologyMilestoneNineDeletionLedgerRow, WorthTopologyMilestoneNinePublicProof,
+    WorthTopologyMilestoneNineResidueAuditReport, WorthTopologyMilestoneNineResidueAuditRow,
+    WorthTopologyMilestoneNineResidueStatus, WorthTopologyMilestoneNineSourceFirewallReport,
+    WorthTopologyMilestoneTenSeed, WorthTopologyOperatorCertificationCutoverCloseout,
+    WorthTopologyOperatorCertificationCutoverCounters,
+    WorthTopologyOperatorCertificationCutoverDenial,
+    WorthTopologyOperatorCertificationCutoverDenialKind,
+    WorthTopologyOperatorCertificationCutoverPhaseEightSeed,
+    WorthTopologyOperatorCertificationCutoverSourceFirewallReport,
+    WorthTopologyOperatorCertificationOldExpectationResidueReport,
+    WorthTopologyOperatorCertificationOldExpectationResidueRow,
+    WorthTopologyOperatorCertificationOldExpectationResidueStatus,
+    WorthTopologyOperatorSelectedObligationCloseoutRow,
+    WorthTopologyOperatorSelectedObligationSupportPostureRow,
+    WorthTopologyQueryGraphObligationCatalogProjection,
+    WorthTopologyQueryGraphObligationRegistrationProjectionRow,
+    WorthTopologyRelationalInvariantCatalogCloseout,
+    WorthTopologyRelationalInvariantCatalogCounters, WorthTopologyRelationalInvariantCatalogDenial,
+    WorthTopologyRelationalInvariantCatalogDenialKind,
+    WorthTopologyRelationalInvariantCatalogPhaseSixSeed,
+    WorthTopologyRelationalInvariantCatalogSourceFirewallReport,
+    WorthTopologyRelationalInvariantOldPackResidueReport,
+    WorthTopologyRelationalInvariantOldPackResidueRow,
+    WorthTopologyRelationalInvariantOldPackResidueStatus,
+    WorthTopologyRelationalInvariantOrdinaryAuthorityAdmission,
+    WorthTopologyRelationalInvariantQueryRegistrationArtifactProjection,
+    WorthTopologyRelationalInvariantQueryRegistrationBundle,
+    WorthTopologyRelationalInvariantRejectedAuthorityKind, WorthTopologyRequiredAccessPosture,
+    WorthTopologySelectedGraphObligationDiagnosticWitness,
+    WorthTopologySelectedGraphObligationEnforcementCloseout,
+    WorthTopologySelectedGraphObligationEnforcementCounters,
+    WorthTopologySelectedGraphObligationEnforcementDenial,
+    WorthTopologySelectedGraphObligationEnforcementDenialKind,
+    WorthTopologySelectedGraphObligationEnforcementOutcome,
+    WorthTopologySelectedGraphObligationEnforcementPhaseSevenSeed,
+    WorthTopologySelectedGraphObligationEnforcementReceipt,
+    WorthTopologySelectedGraphObligationEnforcementSourceFirewallReport,
+    WorthTopologySelectedGraphObligationExecutionInput,
+    WorthTopologySelectedLegalityObligationPlan, WorthTopologySelectedLegalityObligationRow,
+    WorthTopologySelectedRelationalInvariantFamilyRow,
+    WorthTopologySelectedValidatorEnforcementCloseout,
+    WorthTopologySelectedValidatorEnforcementCounters,
+    WorthTopologySelectedValidatorEnforcementDenial,
+    WorthTopologySelectedValidatorEnforcementDenialKind,
+    WorthTopologySelectedValidatorEnforcementOutcome,
+    WorthTopologySelectedValidatorEnforcementPhaseFiveSeed,
+    WorthTopologySelectedValidatorEnforcementReceipt,
+    WorthTopologySelectedValidatorEnforcementSourceFirewallReport,
+    WorthTopologyTouchedApplicability, WorthTopologyValidatorFamilyIdentity,
+    WorthTopologyValidatorFamilyRecord, WorthTopologyValidatorRoutingClosure,
+    WorthTopologyWitnessPosture,
+};
+#[doc(hidden)]
+pub use crate::validator_invariant_catalog::{
+    worth_topology_legality_catalog_compile_fail_targets,
+    WorthTopologyLegalityCatalogCompileFailTarget,
+    WORTH_TOPOLOGY_LEGALITY_CATALOG_COMPILE_FAIL_TARGET_COUNT,
+};
 pub use crate::workload_platform::{
     NmtTopologyConstruction, NmtTopologyConstructionCounters, NmtTopologyConstructionDenial,
     NmtTopologyConstructionDenialClass, NmtTopologyConstructionReceipt, NmtTopologyPattern,
@@ -169,8 +328,7 @@ pub use crate::workload_platform::{
 };
 pub use forge_relational::facade::identity::{EntityId, PartitionId};
 
-#[cfg(test)]
-pub(crate) use crate::topology_operators::{
+pub use crate::topology_operators::{
     topology_grouped_operator_neighborhood, topology_operator_continuation_target,
     topology_operator_contribution_workflow, topology_operator_signal_workflow,
     TopologyOperatorWorkflowHandleExt,

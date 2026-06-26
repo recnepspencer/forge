@@ -80,3 +80,4 @@ mod public_api_workload_inventory;
 mod public_api_workload_operators;
 #[path = "workload_vocabulary/mod.rs"]
 mod public_api_workload_vocabulary;
+mod query_contract_helpers;

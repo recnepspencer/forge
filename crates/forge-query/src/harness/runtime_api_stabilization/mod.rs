@@ -7,7 +7,10 @@ mod transcript_session_proofs;
 mod transcripts;
 
 use crate::harness::certification::{digest_parts, CertificationMatrix};
-use crate::runtime::{ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus};
+use crate::runtime::{
+    ForgeQueryAspectTouch, ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus,
+};
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 
 use closeout::RuntimeApiStabilizationCloseout;
 
@@ -168,4 +171,24 @@ impl RuntimeApiStabilizationAdapter {
     ) -> crate::runtime::ForgeQueryRuntimePublicApiTranscriptEvidence {
         transcripts::composed_runtime_hostile_transcript()
     }
+}
+
+pub(super) fn transcript_aspect_touch(
+    authored_touch_text: impl AsRef<str>,
+) -> ForgeQueryAspectTouch {
+    let authored_touch_text = authored_touch_text.as_ref();
+    let mut segments = authored_touch_text.split('.');
+    let aspect_label = segments
+        .next()
+        .expect("runtime transcript authored touch should include an aspect");
+    let aspect_key =
+        AspectKey::new(aspect_label).expect("runtime transcript aspect key should admit");
+    let fields = segments
+        .map(|field_label| {
+            FieldKey::new(field_label).expect("runtime transcript field key should admit")
+        })
+        .collect::<Vec<_>>();
+    let field_path =
+        CanonicalFieldPath::new(fields).expect("runtime transcript field path should admit");
+    ForgeQueryAspectTouch::aspect_field_path(aspect_key, field_path)
 }

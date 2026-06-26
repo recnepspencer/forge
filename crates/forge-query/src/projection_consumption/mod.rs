@@ -45,6 +45,8 @@ pub use contracts::{
     BoundProjectionFactFamily, MaterializedProjectionContract, ProjectionContractSourcePosture,
     ProjectionContractSupportPosture,
 };
+#[cfg(test)]
+pub(crate) use declaration::test_authorized_field_paths;
 pub use declaration::{
     declare_projection_consumption, ProjectionConsumptionBindingContext,
     ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError,
@@ -68,9 +70,10 @@ pub use envelope::{
     ProjectionConsumptionEnvelopeSourceRefs, SelfDescribingProjectionConsumptionEnvelope,
 };
 pub use extraction::ProjectionFactExtractionError;
+pub(crate) use facts::projection_fact_field_path_from_segments;
 #[allow(unused_imports)]
 pub use facts::{
-    ProjectMaterializedFacts, ProjectionFactKind, ProjectionFactRequest,
+    ProjectMaterializedFacts, ProjectionFactFieldPath, ProjectionFactKind, ProjectionFactRequest,
     ProjectionMaterializedFactPosture, ProjectionMaterializedFactPostureKind,
 };
 pub use receipt::ProjectionConsumptionReceipt;

@@ -18,13 +18,14 @@ pub(crate) fn validate_ordering_entries(
 
     for entry in ordering {
         counters.record_schema_lookup();
-        let Some(field) = schema_view.field(entry.aspect.as_str(), entry.field.as_str()) else {
+        let key = entry.field_key();
+        let Some(field) = schema_view.field(key.aspect(), key.field()) else {
             counters.record_rejection();
             rejection_matrix.record_ordering_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::UnknownOrderingField {
-                    aspect: entry.aspect.to_string(),
-                    field: entry.field.to_string(),
+                    aspect: key.aspect().to_string(),
+                    field: key.field().to_string(),
                 },
                 counters.clone(),
                 rejection_matrix.clone(),
@@ -36,8 +37,8 @@ pub(crate) fn validate_ordering_entries(
             rejection_matrix.record_ordering_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::UnsupportedStructuredContentOrdering {
-                    aspect: entry.aspect.to_string(),
-                    field: entry.field.to_string(),
+                    aspect: key.aspect().to_string(),
+                    field: key.field().to_string(),
                     direction: direction_name(entry),
                 },
                 counters.clone(),
@@ -50,8 +51,8 @@ pub(crate) fn validate_ordering_entries(
             rejection_matrix.record_ordering_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::NonOrderableField {
-                    aspect: entry.aspect.to_string(),
-                    field: entry.field.to_string(),
+                    aspect: key.aspect().to_string(),
+                    field: key.field().to_string(),
                 },
                 counters.clone(),
                 rejection_matrix.clone(),
@@ -60,7 +61,7 @@ pub(crate) fn validate_ordering_entries(
 
         let projected = projections
             .iter()
-            .any(|projection| projection.aspect == entry.aspect && projection.field == entry.field);
+            .any(|projection| projection.field_key() == entry.field_key());
 
         counters.record_ordering_validated();
         validated_ordering.push(ValidatedOrderingEntry::from_canonical(
@@ -69,8 +70,8 @@ pub(crate) fn validate_ordering_entries(
             projected,
         ));
         events.push(ValidationEvent::OrderingValidated {
-            aspect: entry.aspect.to_string(),
-            field: entry.field.to_string(),
+            aspect: key.aspect().to_string(),
+            field: key.field().to_string(),
             direction: direction_name(entry),
             field_kind: format!("{:?}", field.kind()),
             projected,

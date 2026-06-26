@@ -27,6 +27,13 @@ pub(super) fn query_entity_id_from_row(row: &forge_query::facade::ForgeQueryEnti
     crate::projection::query_entity_id_from_row(row).expect("query entity provenance should decode")
 }
 
+pub(super) fn row_text<'a>(
+    row: &'a forge_query::facade::ForgeQueryEntity,
+    path: [&'static str; 2],
+) -> Option<&'a str> {
+    crate::query_native_runtime_boundary::row_text_at(row, path)
+}
+
 pub(super) struct QueryRuntimeSupport {
     topology_read: TopologyReadProofHarness,
     entity_rows: Vec<forge_query::facade::ForgeQueryEntity>,

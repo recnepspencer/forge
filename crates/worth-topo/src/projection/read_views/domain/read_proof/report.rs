@@ -23,24 +23,30 @@ pub enum TopologyReadExecutionEngine {
 pub enum TopologyReadRequestFamily {
     HalfEdgeSharedVertexNeighborhood,
     HalfEdgeRadialNeighborhood,
+    ShellBoundaryNeighborhood,
     LoopCycleNeighborhood,
     LocalRewireNeighborhood,
+    WireNeighborhood,
 }
 
 impl TopologyReadRequestFamily {
-    pub const ALL: [Self; 4] = [
+    pub const ALL: [Self; 6] = [
         Self::HalfEdgeSharedVertexNeighborhood,
         Self::HalfEdgeRadialNeighborhood,
+        Self::ShellBoundaryNeighborhood,
         Self::LoopCycleNeighborhood,
         Self::LocalRewireNeighborhood,
+        Self::WireNeighborhood,
     ];
 
     pub fn claimed_scope_class(self) -> ForgeQueryReadScopeClass {
         match self {
             Self::HalfEdgeSharedVertexNeighborhood => ForgeQueryReadScopeClass::LocalNeighborhood,
             Self::HalfEdgeRadialNeighborhood => ForgeQueryReadScopeClass::LocalNeighborhood,
+            Self::ShellBoundaryNeighborhood => ForgeQueryReadScopeClass::LocalNeighborhood,
             Self::LoopCycleNeighborhood => ForgeQueryReadScopeClass::ExplicitBroadSearch,
-            Self::LocalRewireNeighborhood => ForgeQueryReadScopeClass::AnchoredExpansion,
+            Self::LocalRewireNeighborhood => ForgeQueryReadScopeClass::ExplicitBroadSearch,
+            Self::WireNeighborhood => ForgeQueryReadScopeClass::AnchoredExpansion,
         }
     }
 }

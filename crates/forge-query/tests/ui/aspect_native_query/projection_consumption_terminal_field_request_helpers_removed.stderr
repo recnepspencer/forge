@@ -1,0 +1,11 @@
+error[E0599]: no method named `terminal_display_field` found for struct `forge_query::facade::ProjectMaterializedFacts` in the current scope
+ --> tests/ui/aspect_native_query/projection_consumption_terminal_field_request_helpers_removed.rs:4:49
+  |
+4 |     let _ = ProjectMaterializedFacts::declare().terminal_display_field("profile.display_name");
+  |                                                 ^^^^^^^^^^^^^^^^^^^^^^ method not found in `forge_query::facade::ProjectMaterializedFacts`
+
+error[E0599]: no method named `terminal_derived_scalar_field` found for struct `forge_query::facade::ProjectMaterializedFacts` in the current scope
+ --> tests/ui/aspect_native_query/projection_consumption_terminal_field_request_helpers_removed.rs:6:45
+  |
+6 |         ProjectMaterializedFacts::declare().terminal_derived_scalar_field("profile.display_name");
+  |                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `forge_query::facade::ProjectMaterializedFacts`

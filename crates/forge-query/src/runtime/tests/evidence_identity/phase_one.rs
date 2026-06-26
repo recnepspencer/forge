@@ -3,7 +3,6 @@ use super::proof_support::*;
 use crate::runtime::evidence_identities::{
     runtime_state_snapshot_basis_label_identity, runtime_state_snapshot_result_shape_label_identity,
 };
-use serde_json::json;
 
 #[test]
 fn runtime_evidence_identity_surface_is_exported_through_public_facades() {
@@ -216,7 +215,7 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task|1", "title": "preview: title" }),
+            test_intent_input([("entity", "task|1"), ("title", "preview: title")]),
         ))
         .expect("sandboxed preview intent should be admitted");
 
@@ -305,7 +304,7 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
             "strategy.intent.reconcile",
             "1.0",
             "intent.reconcile.input.v1",
-            json!({ "entity": "task|2", "title": "branch: title" }),
+            test_intent_input([("entity", "task|2"), ("title", "branch: title")]),
         ))
         .expect("branch intent should be admitted");
 
@@ -387,7 +386,7 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
                 "strategy.intent.reconcile",
                 "1.0",
                 "intent.reconcile.input.v1",
-                json!({ "entity": "task|1" }),
+                test_intent_input([("entity", "task|1")]),
             ))
             .expect_err("derive-only preview must deny write intents")
     };

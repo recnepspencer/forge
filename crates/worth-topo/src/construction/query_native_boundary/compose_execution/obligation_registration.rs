@@ -1,14 +1,28 @@
 use forge_query::facade::{
-    ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphObligationRegistration,
-    ForgeQueryGraphObligationRuleIdentity, ForgeQueryGraphObligationSupportLane,
-    ForgeQueryGraphObligationSupportPosture, ForgeQueryGraphTouchSelector,
-    ForgeQueryMutationFamily,
+    ForgeQueryAspectMutationOperation, ForgeQueryGraphObligationOperatingWorldSelector,
+    ForgeQueryGraphObligationRegistration, ForgeQueryGraphObligationRuleIdentity,
+    ForgeQueryGraphObligationSupportLane, ForgeQueryGraphObligationSupportPosture,
+    ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchDescriptorDenial,
+    ForgeQueryGraphTouchSelector, ForgeQueryMutationFamily,
 };
+
+use crate::query_native_runtime_boundary::TopologyNativeQueryRowField;
 
 pub const TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION: &str =
     "TopologyPrimitiveConstructionBirth";
 pub(crate) const TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_LAYOUT_VIOLATION_COLLECTION: &str =
     "TopologyPrimitiveConstructionBirthLayoutViolation";
+
+pub(super) fn topology_primitive_construction_birth_touch_descriptor(
+) -> Result<ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchDescriptorDenial> {
+    ForgeQueryGraphTouchDescriptor::declared_mutation_collection(
+        TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
+        ForgeQueryMutationFamily::Insert,
+        None,
+        construction_birth_operations(),
+        construction_birth_touches(),
+    )
+}
 
 pub fn topology_primitive_construction_birth_graph_obligation_registration(
     support_lane: ForgeQueryGraphObligationSupportLane,
@@ -24,16 +38,8 @@ pub fn topology_primitive_construction_birth_graph_obligation_registration(
         ForgeQueryGraphTouchSelector::declared_mutation_collection(
             TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
             ForgeQueryMutationFamily::Insert,
-            [
-                "set:topology.kind",
-                "set:topology.structure",
-                "set:naming.persistent_name",
-            ],
-            [
-                "topology.kind",
-                "topology.structure",
-                "naming.persistent_name",
-            ],
+            construction_birth_operations(),
+            construction_birth_touches(),
         )
         .expect("primitive construction birth selector is static and non-empty"),
         operating_world_selector,
@@ -65,4 +71,22 @@ pub(crate) fn topology_primitive_construction_birth_layout_violation_registratio
     .with_support_posture(ForgeQueryGraphObligationSupportPosture::unsupported(
         support_lane,
     ))
+}
+
+fn construction_birth_operations() -> Vec<ForgeQueryAspectMutationOperation> {
+    construction_birth_touches()
+        .into_iter()
+        .map(ForgeQueryAspectMutationOperation::set)
+        .collect()
+}
+
+fn construction_birth_touches() -> Vec<forge_query::facade::ForgeQueryAspectTouch> {
+    [
+        TopologyNativeQueryRowField::TopologyKind,
+        TopologyNativeQueryRowField::TopologyStructure,
+        TopologyNativeQueryRowField::NamingPersistentName,
+    ]
+    .into_iter()
+    .map(TopologyNativeQueryRowField::touch)
+    .collect()
 }

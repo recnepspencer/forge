@@ -7,10 +7,11 @@ use crate::memory_workspace::{
     ForgeQueryWorkspaceErrorKind,
 };
 use crate::runtime::{
-    runtime_subscription_support_evidence_identity, ForgeQueryAspectValue,
+    runtime_subscription_support_evidence_identity, ForgeQueryBackendAdmissibleMutation,
     ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryEffectPolicy, ForgeQueryIntentDeclaration,
-    ForgeQueryIntentExecution, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeBackend,
-    ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryIntentExecution, ForgeQueryLiveArtifactTarget, ForgeQueryMutationFamily,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryPreviewBasisAdmission,
+    ForgeQueryRuntimeBackend, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile, ForgeQueryWriteCommand,
     ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt,
     LiveViewDeclarationAdmissionReceipt, SubscriptionActivationReceipt,
@@ -24,7 +25,7 @@ use super::support_profile::in_memory_test_backend_support_profile;
 pub(super) struct ForgeQueryInMemoryTestBackend {
     workspace: ForgeQueryMemoryWorkspace,
     support_profile: ForgeQueryRuntimeSupportProfile,
-    live_views: BTreeMap<String, String>,
+    live_views: BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryMutationTargetCollectionIdentity>,
 }
 
 impl ForgeQueryInMemoryTestBackend {
@@ -36,10 +37,14 @@ impl ForgeQueryInMemoryTestBackend {
         }
     }
 
-    fn ensure_declared_collection(&self, collection: &str) -> Result<(), ForgeQueryWorkspaceError> {
-        if collection != self.workspace.kind_name() {
+    fn ensure_declared_collection(
+        &self,
+        collection: &crate::runtime::ForgeQueryMutationTargetCollectionIdentity,
+    ) -> Result<(), ForgeQueryWorkspaceError> {
+        let collection_label = collection.as_str();
+        if collection_label != self.workspace.kind_name() {
             let message = format!(
-                "in-memory test backend only supports collection `{}`; command declared `{collection}`",
+                "in-memory test backend only supports collection `{}`; command declared `{collection_label}`",
                 self.workspace.kind_name()
             );
             return Err(ForgeQueryWorkspaceError::with_kind(
@@ -54,15 +59,20 @@ impl ForgeQueryInMemoryTestBackend {
         &self,
         request: &DeclarativeLiveQueryRequest,
     ) -> Result<(), ForgeQueryWorkspaceError> {
-        self.ensure_declared_collection(request.target())
+        self.ensure_declared_collection(
+            &crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+                "in-memory-live-request",
+                request.target(),
+            ),
+        )
     }
 
     fn admit_write_command(
         &self,
         command: &ForgeQueryWriteCommand,
     ) -> Result<(), ForgeQueryWorkspaceError> {
-        if let Some(collection) = command.declared_collection_ref() {
-            self.ensure_declared_collection(collection)?;
+        if let Some(collection) = command.declared_collection_identity() {
+            self.ensure_declared_collection(&collection)?;
         }
         match command {
             ForgeQueryWriteCommand::InsertAspects { .. }
@@ -80,50 +90,49 @@ impl ForgeQueryInMemoryTestBackend {
         }
     }
 
-    fn apply_write_command(
+    fn apply_backend_admissible_mutation(
         &mut self,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        self.admit_write_command(&command)?;
-        match command {
-            ForgeQueryWriteCommand::InsertAspects {
-                collection,
-                aspects,
-                ..
-            } => {
+        match mutation.mutation_family() {
+            ForgeQueryMutationFamily::Insert => {
+                let collection = mutation.declared_collection_identity().ok_or_else(|| {
+                    ForgeQueryWorkspaceError::new(
+                        "insert mutation missing declared collection after admission",
+                    )
+                })?;
                 self.ensure_declared_collection(&collection)?;
-                self.workspace.insert_aspects(aspects)
+                self.workspace
+                    .insert_aspects(mutation.admitted_aspect_values().to_vec())
             }
-            ForgeQueryWriteCommand::UpdateAspect {
-                entity_identity,
-                aspect_path,
-                value,
-            } => self.workspace.update_aspects(
-                entity_identity,
-                vec![ForgeQueryAspectValue::new(aspect_path, value)?],
-            ),
-            ForgeQueryWriteCommand::UpdateAspects {
-                entity_identity,
-                aspects,
-                ..
-            } => self.workspace.update_aspects(entity_identity, aspects),
-            ForgeQueryWriteCommand::DeleteAspects {
-                entity_identity, ..
+            ForgeQueryMutationFamily::Update => {
+                let entity_identity = mutation.declared_entity_identity().ok_or_else(|| {
+                    ForgeQueryWorkspaceError::new(
+                        "update mutation missing declared entity after admission",
+                    )
+                })?;
+                self.workspace
+                    .update_aspects(entity_identity, mutation.admitted_aspect_values().to_vec())
             }
-            | ForgeQueryWriteCommand::Delete { entity_identity } => {
+            ForgeQueryMutationFamily::Delete => {
+                let entity_identity = mutation.declared_entity_identity().ok_or_else(|| {
+                    ForgeQueryWorkspaceError::new(
+                        "delete mutation missing declared entity after admission",
+                    )
+                })?;
                 self.workspace.delete(entity_identity)
             }
-            unsupported => unreachable!(
+            unsupported => Err(ForgeQueryWorkspaceError::new(format!(
                 "write command `{}` should be rejected by admission before execution",
-                unsupported.mutation_family().as_str()
-            ),
+                unsupported.as_str()
+            ))),
         }
     }
 
-    fn view_targets_collection(&self, view_name: &str) -> bool {
+    fn view_targets_collection(&self, target: &ForgeQueryLiveArtifactTarget) -> bool {
         self.live_views
-            .get(view_name)
-            .is_some_and(|target| target == self.workspace.kind_name())
+            .get(target)
+            .is_some_and(|target| target.as_str() == self.workspace.kind_name())
     }
 }
 
@@ -156,34 +165,32 @@ impl ForgeQueryRuntimeBackend for ForgeQueryInMemoryTestBackend {
         _schema_view: QuerySchemaView,
     ) -> Result<ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError> {
         self.ensure_live_request_target(&request)?;
+        let live_target = ForgeQueryLiveArtifactTarget::from_view_name(name.clone());
         self.live_views
-            .insert(name.clone(), request.target().to_string());
+            .insert(live_target, request.target_collection_identity());
         Ok(ForgeQueryLiveViewHandle::new(name))
     }
 
     fn write(
         &mut self,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        self.apply_write_command(command)
+        self.apply_backend_admissible_mutation(mutation)
     }
 
     fn write_batch(
         &mut self,
-        commands: Vec<ForgeQueryWriteCommand>,
+        mutations: Vec<ForgeQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
-        if commands.len() > 1 {
+        if mutations.len() > 1 {
             return Err(ForgeQueryWorkspaceError::with_kind(
                 ForgeQueryWorkspaceErrorKind::BatchAtomicityUnsupported,
                 "in-memory test backend denies multi-command batches before execution because scaffold batch atomicity is not supported",
             ));
         }
-        for command in &commands {
-            self.admit_write_command(command)?;
-        }
-        let mut receipts = Vec::with_capacity(commands.len());
-        for command in commands {
-            receipts.push(self.apply_write_command(command)?);
+        let mut receipts = Vec::with_capacity(mutations.len());
+        for mutation in mutations {
+            receipts.push(self.apply_backend_admissible_mutation(mutation)?);
         }
         Ok(receipts)
     }
@@ -195,27 +202,37 @@ impl ForgeQueryRuntimeBackend for ForgeQueryInMemoryTestBackend {
         Err(ForgeQueryRuntimeError::MissingIntentAuthority)
     }
 
-    fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity> {
-        if self.view_targets_collection(view_name) {
+    fn live_entities_for_target(
+        &self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity> {
+        if self.view_targets_collection(target) {
             return self.workspace.entities();
         }
         Vec::new()
     }
 
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
+    fn drain_live_patches_for_target(
+        &mut self,
+        _target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch> {
         Vec::new()
     }
 
-    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+    fn affected_live_view_targets(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget> {
         self.live_views
             .iter()
             .filter(|(_, target)| {
-                receipt
-                    .deltas()
-                    .iter()
-                    .any(|delta| delta.collection() == target.as_str())
+                receipt.deltas().iter().any(|delta| {
+                    delta
+                        .target_collection_identity()
+                        .same_target_collection_as(target)
+                })
             })
-            .map(|(name, _)| name.clone())
+            .map(|(target, _)| target.clone())
             .collect()
     }
 

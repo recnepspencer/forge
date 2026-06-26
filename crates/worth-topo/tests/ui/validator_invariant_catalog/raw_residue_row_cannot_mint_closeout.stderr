@@ -1,0 +1,11 @@
+error[E0308]: mismatched types
+ --> tests/ui/validator_invariant_catalog/raw_residue_row_cannot_mint_closeout.rs:6:57
+  |
+6 |       let _closeout: WorthTopologyMilestoneNineCloseout = WorthTopologyMilestoneNineResidueAuditReport {
+  |  ____________________----------------------------------___^
+  | |                    |
+  | |                    expected due to this
+7 | |         rows: Vec::new(),
+8 | |         report_digest: String::new(),
+9 | |     };
+  | |_____^ expected `WorthTopologyMilestoneNineCloseout`, found `WorthTopologyMilestoneNineResidueAuditReport`

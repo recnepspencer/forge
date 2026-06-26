@@ -16,7 +16,6 @@ use crate::certification::DeterministicDigest;
 #[derive(Debug, Clone)]
 pub(crate) struct SchemaTopologyAuthoringBranchSession {
     branch_id: BranchId,
-    main_head_before_mutation: Option<forge_relational::facade::history::CommitId>,
 }
 
 impl SchemaTopologyAuthoringBranchSession {
@@ -26,12 +25,6 @@ impl SchemaTopologyAuthoringBranchSession {
 
     pub(crate) fn branch_label(&self) -> &str {
         &self.branch_id.0
-    }
-
-    pub(crate) fn main_head_before_mutation(
-        &self,
-    ) -> Option<&forge_relational::facade::history::CommitId> {
-        self.main_head_before_mutation.as_ref()
     }
 }
 
@@ -46,30 +39,8 @@ impl SchemaTopologyAuthoringBranchExecutionLedger {
         self.session.branch_id()
     }
 
-    pub(crate) fn branch_label(&self) -> &str {
-        self.session.branch_label()
-    }
-
     pub(crate) fn branch_truth_digest(&self) -> DeterministicDigest {
         deterministic_digest_rows(self.truth_digest_rows.iter().cloned())
-    }
-
-    pub(crate) fn branch_head_diverged_from_main(
-        &self,
-        runtime: &RelationalRuntime,
-    ) -> Result<bool, String> {
-        let branch_head_after_mutation = runtime
-            .history()
-            .branch_head(self.branch_id())
-            .ok_or_else(|| "accepted branch head missing".to_string())?
-            .commit_id;
-        let main_head_after_mutation = runtime
-            .history()
-            .branch_head(&BranchId("main".to_string()))
-            .ok_or_else(|| "main branch head missing".to_string())?
-            .commit_id;
-        Ok(branch_head_after_mutation != main_head_after_mutation
-            && self.session.main_head_before_mutation() == Some(&main_head_after_mutation))
     }
 }
 
@@ -117,14 +88,7 @@ pub(super) fn open_schema_topology_authoring_branch(
         .history_authority()
         .create_branch(branch_id.clone(), &BranchId("main".to_string()))
         .map_err(|error| format!("{error:?}"))?;
-    let main_head_before_mutation = runtime
-        .history()
-        .branch_head(&BranchId("main".to_string()))
-        .map(|head| head.commit_id);
-    Ok(SchemaTopologyAuthoringBranchSession {
-        branch_id,
-        main_head_before_mutation,
-    })
+    Ok(SchemaTopologyAuthoringBranchSession { branch_id })
 }
 
 pub(crate) fn witness_rejected_branch_local_intent_through_schema_execution(

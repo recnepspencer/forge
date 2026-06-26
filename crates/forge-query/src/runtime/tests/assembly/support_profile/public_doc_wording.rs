@@ -69,7 +69,7 @@ fn intent_admission_doc_teaches_the_runtime_floor_with_final_public_names() {
         "`runtime.probe_existing_intent(request).review()?.admit()?.execute()`",
         "`workspace.probe_existing_intent(request).execute()`",
         "`workspace.probe_existing_intent(request).review()?.admit()?.execute()`",
-        "`workspace.materialize(&view)`",
+        "`workspace.materialize_result(&view)?`",
         "`forge_query_basis_observation_intent(RawBasisIntent::CurrentHead)?.admit()?.scope()`",
         "`forge_query_projection_consumption_intent(declaration)?.admit()?.bind_contract()`",
         "`ForgeQueryIntentDecisionTraceEnvelope`",

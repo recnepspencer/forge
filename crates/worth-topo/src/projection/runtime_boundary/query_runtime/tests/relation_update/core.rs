@@ -1,4 +1,4 @@
-use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
+use crate::query_native_runtime_boundary::query_entity_identity_reporting_label;
 use crate::topology_operators::authority_identity::existing_relation_authority;
 use forge_query::facade::{
     ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthAssertionMode,
@@ -7,11 +7,14 @@ use forge_query::facade::{
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
-use super::super::query_runtime_support::{query_entity_id_from_row, query_relation_id_from_row};
+use super::super::query_runtime_support::{
+    query_entity_id_from_row, query_relation_id_from_row, row_text,
+};
 use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::query_native_runtime_boundary::TopologyNativeQueryRowField;
 use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::{
     LoopEndpointKind, TopologyMutationFamily, TopologyRewireLoopEndpointDeclaration,
@@ -39,27 +42,15 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
-                .is_some_and(|kind_name| {
-                    kind_name == TopologyRelationKind::HalfEdgeNext.kind_name()
-                })
+            row_text(row, ["topology", "kind"]).is_some_and(|kind_name| {
+                kind_name == TopologyRelationKind::HalfEdgeNext.kind_name()
+            })
         })
         .expect("seeded topology should contain half-edge successor relation");
-    let source_identity = relation
-        .external_row()
-        .get("topology")
-        .and_then(|value| value.get("source_identity"))
-        .and_then(|value| value.as_str())
+    let source_identity = row_text(relation, ["topology", "source_identity"])
         .expect("seeded relation should expose topology.source_identity")
         .to_string();
-    let target_vertex_identity = relation
-        .external_row()
-        .get("topology")
-        .and_then(|value| value.get("target_identity"))
-        .and_then(|value| value.as_str())
+    let target_vertex_identity = row_text(relation, ["topology", "target_identity"])
         .expect("seeded relation should expose topology.target_identity")
         .to_string();
     let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(
@@ -79,22 +70,24 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
             graph.update_existing_verified(
                 binding,
                 |verify| {
-                    verify
-                        .aspect(
-                            "topology.kind",
-                            TopologyRelationKind::HalfEdgeNext.kind_name(),
-                        )
-                        .aspect("topology.source_identity", &source_identity)
-                        .aspect("topology.target_identity", &target_vertex_identity)
+                    TopologyNativeQueryRowField::TopologyTargetIdentity.set_on(
+                        TopologyNativeQueryRowField::TopologySourceIdentity.set_on(
+                            TopologyNativeQueryRowField::TopologyKind
+                                .set_on(verify, TopologyRelationKind::HalfEdgeNext.kind_name()),
+                            &source_identity,
+                        ),
+                        &target_vertex_identity,
+                    )
                 },
                 |mutation| {
-                    mutation
-                        .aspect(
-                            "topology.kind",
-                            TopologyRelationKind::HalfEdgeNext.kind_name(),
-                        )
-                        .aspect("topology.source_identity", &source_identity)
-                        .aspect("topology.target_identity", &target_vertex_identity)
+                    TopologyNativeQueryRowField::TopologyTargetIdentity.set_on(
+                        TopologyNativeQueryRowField::TopologySourceIdentity.set_on(
+                            TopologyNativeQueryRowField::TopologyKind
+                                .set_on(mutation, TopologyRelationKind::HalfEdgeNext.kind_name()),
+                            &source_identity,
+                        ),
+                        &target_vertex_identity,
+                    )
                 },
             )?;
             Ok(())
@@ -132,11 +125,7 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
         .find(|row| query_relation_id_from_row(row) == query_relation_id_from_row(relation))
         .expect("relation should remain visible after denied update");
     assert_eq!(
-        original_relation
-            .external_row()
-            .get("topology")
-            .and_then(|value| value.get("target_identity"))
-            .and_then(|value| value.as_str()),
+        row_text(original_relation, ["topology", "target_identity"]),
         Some(target_vertex_identity.as_str())
     );
 }
@@ -163,35 +152,19 @@ fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_mutation_
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
-                .is_some_and(|kind_name| {
-                    kind_name == TopologyRelationKind::HalfEdgeEndsAtVertex.kind_name()
-                })
+            row_text(row, ["topology", "kind"]).is_some_and(|kind_name| {
+                kind_name == TopologyRelationKind::HalfEdgeEndsAtVertex.kind_name()
+            })
         })
         .expect("seeded topology should contain an endpoint relation");
-    let current_target_identity = relation
-        .external_row()
-        .get("topology")
-        .and_then(|value| value.get("target_identity"))
-        .and_then(|value| value.as_str())
+    let current_target_identity = row_text(relation, ["topology", "target_identity"])
         .expect("endpoint relation should expose topology.target_identity");
-    let source_identity = relation
-        .external_row()
-        .get("topology")
-        .and_then(|value| value.get("source_identity"))
-        .and_then(|value| value.as_str())
+    let source_identity = row_text(relation, ["topology", "source_identity"])
         .expect("endpoint relation should expose topology.source_identity");
     let target_vertex_id = entity_rows
         .iter()
         .find(|row| {
-            row.external_row()
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
-                .is_some_and(|kind_name| kind_name == ".vertex")
+            row_text(row, ["topology", "kind"]).is_some_and(|kind_name| kind_name == ".vertex")
                 && query_entity_identity_reporting_label(row.identity()) != current_target_identity
         })
         .map(query_entity_id_from_row)

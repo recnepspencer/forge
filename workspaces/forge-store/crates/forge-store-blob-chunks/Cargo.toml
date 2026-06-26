@@ -1,0 +1,16 @@
+[package]
+name = "forge-store-blob-chunks"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.7 native content-addressed blob and object chunk store."
+
+[dependencies]
+forge-store-buffer-pool.workspace = true
+forge-store-contracts.workspace = true
+forge-store-physical-backend.workspace = true
+forge-store-physical-format.workspace = true
+forge-store-physical-integrity.workspace = true
+
+[lints]
+workspace = true

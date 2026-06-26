@@ -5,7 +5,9 @@ use super::fixtures::{
     DeferredFamily, DeniedFamily, DescriptiveDeferredSignalFamily, FailedFamily,
     MaskedCoverageFamily, ReceiptFamily, StaleFamily, WorldSensitiveFamily,
 };
-use crate::application::ForgeQueryDeclarationProgressionChecked;
+use crate::application::{
+    assert_declaration_aspect_projections, ForgeQueryDeclarationProgressionChecked,
+};
 use crate::target_binding::ForgeQueryBindingTargetWitness;
 
 #[test]
@@ -147,21 +149,21 @@ fn progressed_artifacts_expose_aspect_contract_and_reviewed_coverage() {
     let handle = admitted_handle("collaborative");
     let progressed = progressed(&handle, Declaration::<AdmittedFamily>::new("edge:42"));
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         progressed.aspect_contract().required(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         progressed.reviewed_aspect_coverage().present(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
 
     let semantics = progressed.binding_target().semantics().clone();
     let (_, _, _, _, _, contract, coverage) = semantics
         .admitted_declaration_progression()
         .expect("progression target semantics should exist");
-    assert_eq!(contract.required(), &["selection.active_edge".to_string()]);
-    assert_eq!(coverage.present(), &["selection.active_edge".to_string()]);
+    assert_declaration_aspect_projections(contract.required(), &["selection.active_edge"]);
+    assert_declaration_aspect_projections(coverage.present(), &["selection.active_edge"]);
 }
 
 #[test]
@@ -184,14 +186,14 @@ fn progression_binding_semantics_preserve_masked_reviewed_coverage() {
     let handle = admitted_handle("collaborative");
     let progressed = progressed(&handle, Declaration::<MaskedCoverageFamily>::new("edge:42"));
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         progressed.reviewed_aspect_coverage().masked(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
 
     let semantics = progressed.binding_target().semantics().clone();
     let (_, _, _, _, _, _, coverage) = semantics
         .admitted_declaration_progression()
         .expect("progression target semantics should exist");
-    assert_eq!(coverage.masked(), &["selection.active_edge".to_string()]);
+    assert_declaration_aspect_projections(coverage.masked(), &["selection.active_edge"]);
 }

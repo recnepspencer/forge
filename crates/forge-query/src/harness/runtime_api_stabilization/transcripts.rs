@@ -1,11 +1,11 @@
-use serde_json::Value;
-
 use crate::facade::{
-    ForgeQueryInspection, ForgeQueryRuntimeFacadeFamily,
+    AspectFieldKey, ForgeQueryInspection, ForgeQueryRuntimeFacadeFamily,
     ForgeQueryRuntimePublicApiTranscriptEvidence,
 };
 use crate::identity::hash_parts;
+use crate::runtime::ForgeQueryNativeRow;
 
+use super::transcript_aspect_touch;
 use super::transcript_maintainer::TranscriptMaintainer;
 use super::transcript_runtime::transcript_runtime;
 use super::transcript_session_proofs::{
@@ -124,34 +124,34 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
         .workspace(format!("{}.workspace", spec.family))
         .expect("transcript runtime should expose a named workspace");
     let live = workspace
-        .live_view::<Value>(spec.view_name, |q| {
+        .live_view::<ForgeQueryNativeRow>(spec.view_name, |q| {
             q.from(spec.collection)
                 .select(
-                    std::iter::once("identity.id".to_string()).chain(
+                    std::iter::once(live_field("identity.id")).chain(
                         spec.produced_aspects
                             .iter()
-                            .map(|aspect| (*aspect).to_string()),
+                            .map(|aspect| live_field(*aspect)),
                     ),
                 )
-                .order_by("identity.id")
+                .order_by(live_field("identity.id"))
                 .schema_basis(format!("runtime-transcript-{}", spec.family))
                 .as_surface(spec.view_name)
         })
         .expect("transcript live surface should declare");
     let first = workspace
-        .computed::<Value>(
+        .computed::<ForgeQueryNativeRow>(
             spec.first_computed,
             |c| {
                 c.depends_on_live(&live)
                     .reads(
                         spec.produced_aspects
                             .iter()
-                            .map(|aspect| (*aspect).to_string()),
+                            .map(|aspect| transcript_aspect_touch(*aspect)),
                     )
                     .produces(
                         spec.produced_aspects
                             .iter()
-                            .map(|aspect| format!("{aspect}.derived")),
+                            .map(|aspect| transcript_aspect_touch(format!("{aspect}.derived"))),
                     )
             },
             TranscriptMaintainer {
@@ -161,19 +161,19 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
         )
         .expect("first computed transcript surface should declare");
     let second = workspace
-        .computed::<Value>(
+        .computed::<ForgeQueryNativeRow>(
             spec.second_computed,
             |c| {
                 c.depends_on_computed(&first)
                     .reads(
                         spec.produced_aspects
                             .iter()
-                            .map(|aspect| format!("{aspect}.derived")),
+                            .map(|aspect| transcript_aspect_touch(format!("{aspect}.derived"))),
                     )
                     .produces(
                         spec.produced_aspects
                             .iter()
-                            .map(|aspect| format!("{aspect}.ready")),
+                            .map(|aspect| transcript_aspect_touch(format!("{aspect}.ready"))),
                     )
             },
             TranscriptMaintainer {
@@ -183,19 +183,22 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
         )
         .expect("nested computed transcript surface should declare");
     let effect = workspace
-        .effect::<Value>(spec.effect_name, |e| {
+        .effect::<ForgeQueryNativeRow>(spec.effect_name, |e| {
             e.when_computed(
                 &second,
                 spec.produced_aspects
                     .iter()
-                    .map(|aspect| format!("{aspect}.ready")),
+                    .map(|aspect| transcript_aspect_touch(format!("{aspect}.ready"))),
             )
             .condition_expression(
                 format!("{}.custom-expression", spec.family),
                 spec.produced_aspects
                     .iter()
-                    .map(|aspect| format!("{aspect}.ready")),
-                [format!("{}.effect-output", spec.family)],
+                    .map(|aspect| transcript_aspect_touch(format!("{aspect}.ready"))),
+                [transcript_aspect_touch(format!(
+                    "{}.effect-output",
+                    spec.family
+                ))],
             )
             .write_intent("strategy.intent.transcript")
             .meaningful_change_suppression()
@@ -209,12 +212,18 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
         .expect("authoritative transcript intent should commit");
     let write = workspace
         .insert(spec.collection, |entity| {
-            let entity = entity.aspect("identity.id", format!("{}-entity-1", spec.family));
+            let entity = entity.set_aspect(
+                transcript_aspect_touch("identity.id"),
+                string_aspect_value(format!("{}-entity-1", spec.family)),
+            );
             spec.produced_aspects
                 .iter()
                 .enumerate()
                 .fold(entity, |builder, (index, aspect)| {
-                    builder.aspect(*aspect, format!("{}-value-{index}", spec.family))
+                    builder.set_aspect(
+                        transcript_aspect_touch(*aspect),
+                        string_aspect_value(format!("{}-value-{index}", spec.family)),
+                    )
                 })
         })
         .expect("transcript write should route live, computed, and effect artifacts");
@@ -224,7 +233,7 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
     );
     assert!(
         write
-            .affected_live_view_ids()
+            .terminal_affected_live_view_ids_projection()
             .iter()
             .any(|view| view == spec.view_name),
         "transcript write should affect its durable live view"
@@ -325,4 +334,16 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
         authority_lane_digest,
         spec.assertion_floor,
     )
+}
+
+fn live_field(authored_field_text: &str) -> AspectFieldKey {
+    let (aspect, field) = authored_field_text
+        .split_once('.')
+        .expect("transcript authored field should use aspect.field form");
+    AspectFieldKey::from_authoring_parts(aspect, field)
+        .expect("transcript aspect field should be valid")
+}
+
+fn string_aspect_value(value: impl Into<String>) -> crate::runtime::ForgeQueryAuthoredAspectValue {
+    crate::runtime::ForgeQueryAuthoredAspectValue::string(value)
 }

@@ -4,7 +4,9 @@ use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde_json::Value;
 
 use super::super::report::{MilestoneThreeHostileScenario, MilestoneThreeHostileSuiteReport};
-use super::super::scenario_programs::successor_relocation_declaration;
+use super::super::scenario_programs::{
+    successor_candidate_with_retained_predecessor, successor_relocation_declaration,
+};
 use super::super::shared::first_source_identity_for_relation_kind;
 use super::mutation_query_traversal_types::{
     MilestoneThreeMutationTopologyQueryTraversalRow,
@@ -122,17 +124,13 @@ where
     )?;
     let pre_mutation_query = TopologyReadProofHarness::current_head();
     let pre_mutation_rewire = pre_mutation_query
-        .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 4)
+        .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 6)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let chosen_successor_identity = pre_mutation_rewire
-        .cycle_identities()
-        .get(3)
-        .cloned()
-        .ok_or_else(|| {
-            mutation_query_traversal_error(
-                "ambiguous local rewire should expose a successor candidate",
-            )
-        })?;
+    let chosen_successor_identity = successor_candidate_with_retained_predecessor(
+        &pre_mutation_rewire,
+        3,
+        "ambiguous local rewire",
+    )?;
     let declaration =
         successor_relocation_declaration(&pre_mutation_rewire, &chosen_successor_identity)?;
     execute_current_head_topology_declaration::<TopologyRewireLoopSuccessorProgramDeclaration>(
@@ -144,7 +142,7 @@ where
 
     let post_mutation_query = TopologyReadProofHarness::current_head();
     let local_rewire = post_mutation_query
-        .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 4)
+        .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 6)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let loop_cycle = post_mutation_query
         .loop_cycle(&mut workspace, &moved_half_edge_identity, 6)

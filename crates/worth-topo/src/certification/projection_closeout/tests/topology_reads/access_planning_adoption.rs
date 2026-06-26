@@ -5,9 +5,7 @@ use forge_query::facade::consumer_kit::{
     graph_read_bypass_adoption, graph_read_bypass_audit, query_boundary_source_inventory,
     ForgeQueryGraphReadBypassResidueManifest,
 };
-use forge_query::facade::{
-    ForgeQueryGraphReadAccessAdmissionPosture, ForgeQueryGraphReadAccessDenialKind,
-};
+use forge_query::facade::ForgeQueryGraphReadAccessAdmissionPosture;
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
@@ -199,9 +197,9 @@ fn phase_sixteen_runtime_boundary_rejects_depth_proof_drift_before_execution() {
 }
 
 #[test]
-fn phase_sixteen_broad_local_rewire_denies_before_inline_expansion() {
+fn phase_sixteen_broad_local_rewire_uses_typed_non_inline_posture() {
     let (mut workspace, surfaces, _) =
-        seeded_sheet_disk_workspace("query.phase-16.local-rewire-broad-denial");
+        seeded_sheet_disk_workspace("query.phase-16.local-rewire-broad-posture");
     let lookup_rows = current_lookup_rows(&mut workspace, &surfaces);
     let start_identity = lookup_rows
         .lookup()
@@ -211,25 +209,19 @@ fn phase_sixteen_broad_local_rewire_denies_before_inline_expansion() {
     let handle = current_head_query_handle();
     let mut reads = handle.topology_reads(&mut workspace);
 
-    let error = match reads.local_rewire_neighborhood(&anchor, 6) {
-        Ok(_) => panic!("broad local rewire must deny instead of expanding inline"),
-        Err(error) => error,
-    };
+    let local_rewire = reads
+        .local_rewire_neighborhood(&anchor, 6)
+        .expect("broad local rewire should execute through a typed graph access posture");
+    let proof = local_rewire
+        .request_report()
+        .graph_access_proof()
+        .expect("local rewire should carry graph access proof");
 
     assert_eq!(
-        error.kind(),
-        TopologyReadErrorKind::ReadFamilyExecutionDenied
+        proof.admission_posture(),
+        &ForgeQueryGraphReadAccessAdmissionPosture::AdmittedPagedStreaming
     );
-    let denial = error
-        .graph_access_denial()
-        .expect("broad local rewire denial should preserve Query access denial");
-    assert_eq!(
-        denial.denial_kind(),
-        &ForgeQueryGraphReadAccessDenialKind::BudgetExceeded
-    );
-    assert_eq!(denial.executor_entry_count(), Some(0));
-    assert_eq!(denial.materialized_row_count(), Some(0));
-    assert!(denial.budget_exceeded().is_some());
+    assert!(proof.no_caller_owned_graph_work());
 }
 
 #[test]

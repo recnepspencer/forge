@@ -14,7 +14,8 @@ use worth_spatial::facade::planar_boolean_loop_reconstruction::{
     PlanarBooleanLoopReplayParityInput,
 };
 use worth_spatial::facade::workload_vocabulary::{
-    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
+    BooleanEvidenceStageKind, WorkloadEvidenceRow, WorkloadEvidenceStage,
+    WorkloadEvidenceStageCounters,
 };
 
 use super::edge_splitting_replay_parity_support::build_edge_split_replay_parity_subject;
@@ -52,6 +53,24 @@ pub(crate) fn assert_loop_ledger_satisfies_workload_requirement_and_runtime_regi
         handoff.workload_stage_index_identity(),
         matrix.registry_identity().digest(),
     );
+    let authority = handoff
+        .completed_workload()
+        .admit_spatial_geometry_evidence_touch(handoff.loop_ledger_receipt())
+        .expect("real completed loop workload must admit spatial touch authority");
+    assert_eq!(
+        authority.boolean_stage(),
+        BooleanEvidenceStageKind::LoopReconstruction
+    );
+    assert_eq!(
+        authority.evidence_identity(),
+        handoff.loop_ledger_receipt().receipt_identity()
+    );
+    assert_eq!(
+        authority.stage_index_identity(),
+        handoff.workload_stage_index_identity()
+    );
+    assert_eq!(authority.lookup_counters().indexed_lookup_count(), 1);
+    assert_eq!(authority.lookup_counters().raw_row_scan_count(), 0);
 }
 
 pub(crate) fn assert_loop_ledger_rejects_manual_or_counterless_evidence() {
@@ -149,6 +168,38 @@ pub(crate) fn assert_loop_ledger_replay_branch_preserves_workload_requirement() 
         original.runtime_registration_proof().proof_identity(),
         replayed.runtime_registration_proof().proof_identity()
     );
+    let original_authority = original
+        .completed_workload()
+        .admit_spatial_geometry_evidence_touch(original.loop_ledger_receipt())
+        .expect("original completed loop workload must admit spatial touch authority");
+    let replayed_authority = replayed
+        .completed_workload()
+        .admit_spatial_geometry_evidence_touch(replayed.loop_ledger_receipt())
+        .expect("replayed completed loop workload must admit spatial touch authority");
+    assert_eq!(original_authority.digest(), replayed_authority.digest());
+    assert_eq!(
+        original_authority.stage_index_identity(),
+        replayed_authority.stage_index_identity()
+    );
+    assert_eq!(
+        original_authority.stage_link_set_identity(),
+        replayed_authority.stage_link_set_identity()
+    );
+    assert_eq!(
+        original_authority.evidence_counters(),
+        replayed_authority.evidence_counters()
+    );
+    assert_eq!(original_authority.support(), replayed_authority.support());
+    assert_eq!(
+        original_authority.lookup_counters().indexed_lookup_count(),
+        1
+    );
+    assert_eq!(
+        replayed_authority.lookup_counters().indexed_lookup_count(),
+        1
+    );
+    assert_eq!(original_authority.lookup_counters().raw_row_scan_count(), 0);
+    assert_eq!(replayed_authority.lookup_counters().raw_row_scan_count(), 0);
 }
 
 pub(crate) fn assert_loop_stage_requirement_maps_only_to_loop_ledger_receipts() {

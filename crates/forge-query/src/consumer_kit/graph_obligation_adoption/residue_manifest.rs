@@ -197,6 +197,10 @@ impl ForgeQueryGraphObligationResidueRow {
         &self.decision
     }
 
+    pub fn row_digest(&self) -> &str {
+        &self.row_digest
+    }
+
     fn has_same_contract(&self, previous: &Self) -> bool {
         self.owner == previous.owner
             && self.introduced_in == previous.introduced_in

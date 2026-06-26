@@ -54,7 +54,8 @@ pub use types::{
 
 pub fn current_worth_graph_authority_gate_report(
 ) -> Result<WorthGraphAuthorityGateReport, WorthGraphAuthorityGateViolation> {
-    if !crate::construction::graph_obligation_adoption::primitive_construction_graph_obligation_execution_closeout_passes()
+    if crate::construction::graph_obligation_adoption::primitive_construction_graph_obligation_registration_declaration()
+        .is_err()
     {
         return Err(WorthGraphAuthorityGateViolation::PrimitiveConstructionBirthExecutionNotCovered);
     }

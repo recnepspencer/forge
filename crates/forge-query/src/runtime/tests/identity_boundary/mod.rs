@@ -12,7 +12,6 @@ use crate::facade::ForgeQueryApplicationFacade;
 use crate::intent_admission::{
     ForgeQueryAuthoritativeMutationIntentSeed, ForgeQueryAuthoritativeMutationPreflight,
 };
-use crate::runtime::ForgeQueryWriteCommand;
 use crate::ForgeQueryEvidenceIdentityScheme;
 
 const AI_README: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/AI_README.md"));
@@ -435,21 +434,21 @@ fn unified_inspection_request_labels_remain_typed_artifacts() {
 #[test]
 fn authoritative_mutation_seed_identity_resists_delimiter_pressure() {
     let left = ForgeQueryAuthoritativeMutationIntentSeed::new(
-        ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("entity|a:1"),
-            aspect_path: "profile.name".to_string(),
-            value: json!("left"),
-        },
+        test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("entity|a:1"),
+            "profile.name",
+            "left",
+        ),
         ForgeQueryAuthoritativeMutationPreflight::Admitted {
             verified_existing_truth_assertion: None,
         },
     );
     let right = ForgeQueryAuthoritativeMutationIntentSeed::new(
-        ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("entity"),
-            aspect_path: "a:1|profile.name".to_string(),
-            value: json!("left"),
-        },
+        test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("entity"),
+            "a:1|profile.name",
+            "left",
+        ),
         ForgeQueryAuthoritativeMutationPreflight::Admitted {
             verified_existing_truth_assertion: None,
         },
@@ -467,16 +466,16 @@ fn authoritative_mutation_seed_identity_resists_delimiter_pressure() {
 
 #[test]
 fn authoritative_mutation_batch_seed_composes_component_evidence_identities() {
-    let left = ForgeQueryWriteCommand::UpdateAspect {
-        entity_identity: crate::memory_workspace::admit_authored_entity_label("batch:left|1"),
-        aspect_path: "profile.name".to_string(),
-        value: json!("left"),
-    };
-    let right = ForgeQueryWriteCommand::UpdateAspect {
-        entity_identity: crate::memory_workspace::admit_authored_entity_label("batch:right:1"),
-        aspect_path: "profile.name".to_string(),
-        value: json!("right"),
-    };
+    let left = test_update_string_aspect_command(
+        crate::memory_workspace::admit_authored_entity_label("batch:left|1"),
+        "profile.name",
+        "left",
+    );
+    let right = test_update_string_aspect_command(
+        crate::memory_workspace::admit_authored_entity_label("batch:right:1"),
+        "profile.name",
+        "right",
+    );
     let batch = crate::intent_admission::ForgeQueryAuthoritativeMutationBatchIntentSeed::new(
         vec![left.clone(), right.clone()],
         crate::runtime::ForgeQueryGraphCompositionBreadth::empty(),

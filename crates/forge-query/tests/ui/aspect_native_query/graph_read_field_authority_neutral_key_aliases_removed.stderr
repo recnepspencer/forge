@@ -1,0 +1,43 @@
+warning: unreachable statement
+ --> tests/ui/aspect_native_query/graph_read_field_authority_neutral_key_aliases_removed.rs:7:5
+  |
+6 |     let predicate: ForgeQueryGraphReadPredicateFieldAuthority = unreachable!();
+  |                                                                 -------------- any code following this expression is unreachable
+7 |     let _ = predicate.aspect();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `aspect` found for struct `ForgeQueryGraphReadPredicateFieldAuthority` in the current scope
+ --> tests/ui/aspect_native_query/graph_read_field_authority_neutral_key_aliases_removed.rs:7:23
+  |
+7 |     let _ = predicate.aspect();
+  |                       ^^^^^^ private field, not a method
+
+error[E0599]: no method named `field` found for struct `ForgeQueryGraphReadPredicateFieldAuthority` in the current scope
+ --> tests/ui/aspect_native_query/graph_read_field_authority_neutral_key_aliases_removed.rs:8:23
+  |
+8 |     let _ = predicate.field();
+  |                       ^^^^^ private field, not a method
+  |
+help: there is a method `field_kind` with a similar name
+  |
+8 |     let _ = predicate.field_kind();
+  |                            +++++
+
+error[E0599]: no method named `aspect` found for struct `ForgeQueryGraphReadOrderingFieldAuthority` in the current scope
+  --> tests/ui/aspect_native_query/graph_read_field_authority_neutral_key_aliases_removed.rs:11:22
+   |
+11 |     let _ = ordering.aspect();
+   |                      ^^^^^^ private field, not a method
+
+error[E0599]: no method named `field` found for struct `ForgeQueryGraphReadOrderingFieldAuthority` in the current scope
+  --> tests/ui/aspect_native_query/graph_read_field_authority_neutral_key_aliases_removed.rs:12:22
+   |
+12 |     let _ = ordering.field();
+   |                      ^^^^^ private field, not a method
+   |
+help: there is a method `field_kind` with a similar name
+   |
+12 |     let _ = ordering.field_kind();
+   |                           +++++

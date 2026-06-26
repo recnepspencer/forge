@@ -1,0 +1,17 @@
+error[E0308]: arguments to this function are incorrect
+  --> src/certification/public_facade_contracts/compile_fail/workload_vocabulary/query_descriptor_cannot_lower_without_spatial_touch_authority.rs:13:13
+   |
+13 |     let _ = lower_spatial_touch_authority_to_query_descriptor(&descriptor, &descriptor);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ -----------  ----------- expected `&SpatialEvidenceLookupProduct`, found `&ForgeQueryGraphTouchDescriptor`
+   |                                                               |
+   |                                                               expected `&SpatialGeometryEvidenceTouchAuthority`, found `&ForgeQueryGraphTouchDescriptor`
+   |
+   = note: expected reference `&SpatialGeometryEvidenceTouchAuthority`
+              found reference `&ForgeQueryGraphTouchDescriptor`
+   = note: expected reference `&SpatialEvidenceLookupProduct`
+              found reference `&ForgeQueryGraphTouchDescriptor`
+note: function defined here
+  --> src/workload_platform/evidence_ledger/spatial_touch_admission/query_lowering.rs
+   |
+   | pub fn lower_spatial_touch_authority_to_query_descriptor(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

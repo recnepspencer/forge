@@ -263,7 +263,7 @@ impl ForgeQueryDeclarationFamilyMarker<PlanarBooleanSegmentCandidateIndexQueryDo
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.planar_boolean.segment_candidate_index.segment_set",
                 "geometry.planar_boolean.segment_candidate_index.strategy",

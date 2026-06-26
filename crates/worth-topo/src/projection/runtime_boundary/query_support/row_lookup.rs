@@ -1,12 +1,17 @@
-use forge_query::facade::{ForgeQueryEntity, ForgeQueryEntityIdentity};
+use forge_query::facade::ForgeQueryEntity;
+#[cfg(test)]
+use forge_query::facade::ForgeQueryEntityIdentity;
+#[cfg(test)]
 use forge_relational::facade::identity::{EntityId, RelationId};
+#[cfg(test)]
 use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
+#[cfg(test)]
 use super::query_rows::{
-    query_entity_id_from_row, query_relation_id_from_row, relation_kind_name,
-    topology_source_identity, topology_target_identity, TopologyQueryRowError,
+    query_entity_id_from_row, query_relation_id_from_row, TopologyQueryRowError,
 };
+use super::query_rows::{relation_kind_name, topology_source_identity, topology_target_identity};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct TopologyQueryRowLookupError {
@@ -21,6 +26,7 @@ impl TopologyQueryRowLookupError {
     }
 }
 
+#[cfg(test)]
 impl From<TopologyQueryRowError> for TopologyQueryRowLookupError {
     fn from(error: TopologyQueryRowError) -> Self {
         Self::new(error.to_string())
@@ -36,6 +42,7 @@ impl std::fmt::Display for TopologyQueryRowLookupError {
 impl std::error::Error for TopologyQueryRowLookupError {}
 
 pub(crate) struct TopologyQueryRowLookup<'a> {
+    #[cfg(test)]
     entity_rows: &'a [ForgeQueryEntity],
     relation_rows: &'a [ForgeQueryEntity],
 }
@@ -45,12 +52,16 @@ impl<'a> TopologyQueryRowLookup<'a> {
         entity_rows: &'a [ForgeQueryEntity],
         relation_rows: &'a [ForgeQueryEntity],
     ) -> Self {
+        #[cfg(not(test))]
+        let _ = entity_rows;
         Self {
+            #[cfg(test)]
             entity_rows,
             relation_rows,
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn first_source_identity_for_relation_kind(
         &self,
         relation_kind: TopologyRelationKind,
@@ -86,6 +97,7 @@ impl<'a> TopologyQueryRowLookup<'a> {
             .and_then(|row| query_entity_id_from_row(row).map_err(Into::into))
     }
 
+    #[cfg(test)]
     pub(crate) fn find_entity_identity_by_id(
         &self,
         entity_id: EntityId,
@@ -128,7 +140,6 @@ impl<'a> TopologyQueryRowLookup<'a> {
             })
     }
 
-    #[cfg(test)]
     pub(crate) fn incoming_source_identity(
         &self,
         target_identity: &str,
@@ -197,6 +208,7 @@ impl<'a> TopologyQueryRowLookup<'a> {
     }
 }
 
+#[cfg(test)]
 fn query_identity_label(identity: &ForgeQueryEntityIdentity) -> Option<String> {
     let parts = identity.relational_record_parts()?;
     let kind = match parts.kind() {

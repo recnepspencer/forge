@@ -73,6 +73,10 @@ impl PrimitiveConstructionGraphObligationExecutionMatrixRow {
         &self.rule_identity_digest
     }
 
+    pub(crate) fn execution_budget_digest(&self) -> &str {
+        &self.execution_budget_digest
+    }
+
     pub(crate) fn obligation_kind(&self) -> ForgeQueryGraphObligationKind {
         self.obligation_kind
     }
@@ -121,26 +125,11 @@ pub(crate) fn primitive_construction_graph_obligation_replay_pair(
     )
 }
 
-pub(crate) fn primitive_construction_graph_obligation_execution_closeout_passes() -> bool {
-    let rows = primitive_construction_graph_obligation_execution_matrix();
-    rows.len() == PRIMITIVE_CONSTRUCTION_FAMILIES.len()
-        && rows.iter().all(|row| {
-            row.selected_count() == 1
-                && !row.result_digest().is_empty()
-                && !row.outcome_digest().is_empty()
-                && !row.evidence_digest().is_empty()
-                && !row.envelope_digest().is_empty()
-                && row.execution_status()
-                    == Some(ForgeQueryGraphObligationExecutionStatus::Executed)
-                && row.has_authoritative_dispatch_identity()
-        })
-}
-
 fn execute_primitive_family_graph_obligation_case(
     family: PrimitiveConstructionFamily,
     label: &str,
 ) -> PrimitiveConstructionGraphObligationExecutionMatrixRow {
-    let intent = representative_intent(family);
+    let intent = representative_primitive_construction_intent(family);
     let result = execute_primitive_family_result_with_compose_evidence(&intent, label);
     let evidence = result.topology_compose_evidence();
     let outcome_digest = execute_primitive_family_outcome_evidence_digest(intent, label);
@@ -207,7 +196,9 @@ fn primitive_family_execution_matrix_row_from_evidence(
     }
 }
 
-fn representative_intent(family: PrimitiveConstructionFamily) -> PrimitiveConstructionIntent {
+pub(super) fn representative_primitive_construction_intent(
+    family: PrimitiveConstructionFamily,
+) -> PrimitiveConstructionIntent {
     match family {
         PrimitiveConstructionFamily::SimplexSolid => {
             PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(1.25))

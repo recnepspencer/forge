@@ -183,6 +183,10 @@ async function main() {
   assert.equal(packageJson.types, "./index.d.ts");
   assert.equal(packageJson.exports["."].import, "./index.js");
   assert.equal(packageJson.exports["."].types, "./index.d.ts");
+  assert.equal(packageJson.exports["./raw"].import, "./raw_surface.js");
+  assert.equal(packageJson.exports["./raw"].types, "./raw_surface.d.ts");
+  assert.equal(packageJson.exports["./raw_surface.js"].import, "./raw_surface.js");
+  assert.equal(packageJson.exports["./raw_surface.js"].types, "./raw_surface.d.ts");
   assert.equal(packageJson.exports["./react"].import, "./react/index.js");
   assert.equal(packageJson.exports["./react"].types, "./react/index.d.ts");
 

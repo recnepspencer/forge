@@ -17,7 +17,7 @@ inspectable handles:
 - aspect-native `workspace.insert(...)`, `workspace.update(...)`,
   `workspace.delete(...)`, and `workspace.batch(...)`
 - `workspace.read(...)`, `workspace.observe(...)`, and
-  `workspace.materialize(...)`
+  `workspace.materialize_result(...)`
 - `workspace.state(...)`
 - `workspace.inspect(...)`
 - `workspace.public_api_contract()`
@@ -65,8 +65,8 @@ Alternate names remain adapters for existing call sites and tests.
   variants of `preview` and `branch`.
 - `execute_intent` should migrate toward `intent`.
 - `execute_next_effect_write_intent` should migrate toward `next_effect_intent`.
-- `read_live`, `drain_patches`, and `read_derived` should migrate toward
-  `read`, `observe`, and `materialize`.
+- `read_live`, `drain_patches`, and `read_derived_result` should migrate
+  toward `read`, `observe`, and `materialize_result`.
 
 `computed_declaration` is intentionally not part of the alternate-name surface.
 

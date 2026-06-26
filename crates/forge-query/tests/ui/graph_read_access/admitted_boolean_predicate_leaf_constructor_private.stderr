@@ -1,19 +1,19 @@
 error[E0451]: fields `aspect`, `field`, `family`, `operator`, `normalized_operand_values`, `field_kind` and `selectivity_class` of struct `ForgeQueryAdmittedBooleanPredicateLeaf` are private
-  --> tests/ui/graph_read_access/admitted_boolean_predicate_leaf_constructor_private.rs:8:9
+  --> tests/ui/graph_read_access/admitted_boolean_predicate_leaf_constructor_private.rs:9:9
    |
- 7 |     let _ = ForgeQueryAdmittedBooleanPredicateLeaf {
+ 8 |     let _ = ForgeQueryAdmittedBooleanPredicateLeaf {
    |             -------------------------------------- in this type
- 8 |         aspect: "status".to_string(),
+ 9 |         aspect: AspectKey::new("status").unwrap(),
    |         ^^^^^^ private field
- 9 |         field: "value".to_string(),
+10 |         field: FieldKey::new("value").unwrap(),
    |         ^^^^^ private field
-10 |         family: "equality".to_string(),
+11 |         family: "equality".to_string(),
    |         ^^^^^^ private field
-11 |         operator: ForgeQueryPredicateOperandOperator::Equal,
+12 |         operator: ForgeQueryPredicateOperandOperator::Equal,
    |         ^^^^^^^^ private field
-12 |         normalized_operand_values: vec!["string:active".to_string()],
+13 |         normalized_operand_values: vec!["string:active".to_string()],
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-13 |         field_kind: ForgeQueryGraphReadAdmittedSchemaFieldKind::String,
+14 |         field_kind: ForgeQueryGraphReadAdmittedSchemaFieldKind::String,
    |         ^^^^^^^^^^ private field
-14 |         selectivity_class: ForgeQueryPredicateSelectivityClass::ExactAnchor,
+15 |         selectivity_class: ForgeQueryPredicateSelectivityClass::ExactAnchor,
    |         ^^^^^^^^^^^^^^^^^ private field

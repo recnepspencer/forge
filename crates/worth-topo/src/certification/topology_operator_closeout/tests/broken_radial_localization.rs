@@ -1,19 +1,15 @@
 use crate::facade::{
-    certify_milestone_three_broken_radial_localization, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileScenario, ReplayParityStatus, TopologyDerivedRegion,
-    TopologyMutationChangedScope, TopologyMutationFamily, TopologyMutationNamingOutcome,
-    TopologyMutationRejectionClass,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario, ReplayParityStatus,
+    TopologyDerivedRegion, TopologyMutationChangedScope, TopologyMutationFamily,
+    TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
 };
-use crate::validation::reference_integrity::build_milestone_one_runtime;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
+
+use super::cached_scenario_report;
 
 #[test]
 fn milestone_three_broken_radial_localization_certifies_exact_radial_rejection_and_replay() {
-    let report = certify_milestone_three_broken_radial_localization(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.broken_radial",
-    )
-    .expect("milestone three broken radial certification should succeed");
+    let report = cached_scenario_report(MilestoneThreeHostileScenario::BrokenRadialLocalization);
 
     assert_eq!(
         report.scenario,
@@ -92,16 +88,8 @@ fn milestone_three_broken_radial_localization_certifies_exact_radial_rejection_a
 
 #[test]
 fn milestone_three_broken_radial_localization_report_is_deterministic_for_same_seeded_history() {
-    let left = certify_milestone_three_broken_radial_localization(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.broken_radial.deterministic",
-    )
-    .expect("left broken radial certification should succeed");
-    let right = certify_milestone_three_broken_radial_localization(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.broken_radial.deterministic",
-    )
-    .expect("right broken radial certification should succeed");
+    let left = cached_scenario_report(MilestoneThreeHostileScenario::BrokenRadialLocalization);
+    let right = cached_scenario_report(MilestoneThreeHostileScenario::BrokenRadialLocalization);
 
     assert_eq!(left.outcome_class, right.outcome_class);
     assert_eq!(left.rejection_class, right.rejection_class);

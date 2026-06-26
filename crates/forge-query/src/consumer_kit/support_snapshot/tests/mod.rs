@@ -1,6 +1,7 @@
 mod document_load_denial;
 mod equivalence;
 mod facade_dx;
+mod hostile_terminal_document;
 mod matrix_comparison_denial;
 mod runtime_boundary;
 mod serialization;

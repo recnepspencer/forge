@@ -1,6 +1,5 @@
 use forge_relational::facade::history::BranchId;
 use forge_runtime_bridge::facade::BridgeWritebackOutcomeClass;
-use serde_json::json;
 
 use crate::effect_lifecycle::{
     scope_admitted_effect_plan, EffectDiagnosticsRequest, EffectEnvelopePrimaryResult,
@@ -15,7 +14,8 @@ use super::execution_support::{
 };
 use super::support::{
     admitted_mutation_effect_for_entity_with_binding, admitted_tenant_writeback_effect,
-    branch_mutation_basis, raw_mutation_effect_with_binding, runtime_workflow_binding_for_branch,
+    branch_mutation_basis, native_name_patch, raw_mutation_effect_with_binding,
+    runtime_workflow_binding_for_branch,
 };
 
 #[test]
@@ -35,7 +35,7 @@ fn mutation_execution_mints_receipt_first_envelope_and_diagnostics() {
             "branch-a",
         ),
         entity_id,
-        json!({ "name": "receipt-first" }),
+        native_name_patch("receipt-first"),
     ))
     .lower()
     .expect("mutation should lower")
@@ -190,7 +190,7 @@ fn batch_execution_mints_batch_write_receipt_family() {
                 "branch-a",
             ),
             left,
-            json!({ "name": "left-batch-receipt" }),
+            native_name_patch("left-batch-receipt"),
         ))
         .push(raw_mutation_effect_with_binding(
             runtime_workflow_binding_for_branch(
@@ -198,7 +198,7 @@ fn batch_execution_mints_batch_write_receipt_family() {
                 "branch-a",
             ),
             right,
-            json!({ "name": "right-batch-receipt" }),
+            native_name_patch("right-batch-receipt"),
         ))
         .admit()
         .expect("batch should admit")

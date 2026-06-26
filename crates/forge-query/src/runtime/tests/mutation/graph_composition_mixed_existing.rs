@@ -9,19 +9,37 @@ fn compose_graph_supports_mixed_symbolic_create_and_existing_target_lifecycle() 
     let mut workspace = task_relation_runtime()
         .workspace("tasks.graph-composition-mixed-existing")
         .expect("runtime should open a named workspace");
-    let tasks: ForgeQueryLiveView<Value> = workspace
+    let tasks: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.graph-composition-mixed-existing-tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-mixed-existing-tasks")
         })
         .expect("task live view should declare");
-    let relations: ForgeQueryLiveView<Value> = workspace
+    let relations: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.graph-composition-mixed-existing-relations", |q| {
             q.from("TaskRelation")
-                .select(["identity.id", "kind.value", "status.value"])
-                .order_by("identity.id")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("kind", "value")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("status", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                )
                 .schema_basis("tasks-graph-composition-mixed-existing-relations")
         })
         .expect("relation live view should declare");
@@ -29,17 +47,35 @@ fn compose_graph_supports_mixed_symbolic_create_and_existing_target_lifecycle() 
     let update_seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect("identity.id", "rel-update")
-                .aspect("kind.value", "depends_on")
-                .aspect("status.value", "open")
+                .set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("rel-update"),
+                )
+                .set_aspect(
+                    test_aspect_touch("kind.value"),
+                    test_authored_string_aspect_value("depends_on"),
+                )
+                .set_aspect(
+                    test_aspect_touch("status.value"),
+                    test_authored_string_aspect_value("open"),
+                )
         })
         .expect("update seed should execute");
     let delete_seed = workspace
         .insert("TaskRelation", |relation| {
             relation
-                .aspect("identity.id", "rel-delete")
-                .aspect("kind.value", "blocks")
-                .aspect("status.value", "stale")
+                .set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("rel-delete"),
+                )
+                .set_aspect(
+                    test_aspect_touch("kind.value"),
+                    test_authored_string_aspect_value("blocks"),
+                )
+                .set_aspect(
+                    test_aspect_touch("status.value"),
+                    test_authored_string_aspect_value("stale"),
+                )
         })
         .expect("delete seed should execute");
     let update_binding = workspace
@@ -68,14 +104,23 @@ fn compose_graph_supports_mixed_symbolic_create_and_existing_target_lifecycle() 
     let receipt = workspace
         .compose_graph(|graph| {
             let _ = graph.insert_entity("draft-task", "Task", |task| {
-                task.aspect("identity.id", "task-mixed-existing")
-                    .aspect("title.value", "Mixed existing task")
+                task.set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-mixed-existing"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Mixed existing task"),
+                )
             })?;
             graph.update_existing(update_binding, |relation| {
-                relation.aspect("status.value", "closed")
+                relation.set_aspect(
+                    test_aspect_touch("status.value"),
+                    test_authored_string_aspect_value("closed"),
+                )
             })?;
             graph.delete_existing(delete_binding, |delete| {
-                delete.touches(["kind.value", "status.value"])
+                delete.touches(test_aspect_touches(["kind.value", "status.value"]))
             })?;
             Ok(())
         })
@@ -149,11 +194,11 @@ fn compose_graph_supports_mixed_symbolic_create_and_existing_target_lifecycle() 
     assert_eq!(task_rows.len(), 1);
     assert_eq!(relation_rows.len(), 1);
     assert_eq!(
-        relation_rows[0].external_row()["identity"]["id"].as_str(),
+        test_native_string_value(&relation_rows[0], "identity.id").as_deref(),
         Some("rel-update")
     );
     assert_eq!(
-        relation_rows[0].external_row()["status"]["value"].as_str(),
+        test_native_string_value(&relation_rows[0], "status.value").as_deref(),
         Some("closed")
     );
 

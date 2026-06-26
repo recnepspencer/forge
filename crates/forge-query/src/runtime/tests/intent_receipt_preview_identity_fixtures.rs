@@ -8,7 +8,7 @@ pub(super) struct PreviewReceiptInspectionFixture {
 pub(super) fn preview_receipt_with_basis<const N: usize>(
     basis_evidence: [&'static str; N],
     intent_name: &str,
-    input: Value,
+    input: ForgeQueryIntentInput,
 ) -> PreviewReceiptInspectionFixture {
     let mut runtime = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())

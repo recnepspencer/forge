@@ -1,4 +1,4 @@
-use crate::application::ForgeQueryDeclarationEnvelopeInput;
+use crate::application::{test_declaration_aspect_key, ForgeQueryDeclarationEnvelopeInput};
 use crate::target_binding::ForgeQueryBindingTargetWitness;
 
 use super::support::{admitted_handle, progressed, AspectRichEnvelopeFamily, EnvelopeInput};
@@ -27,11 +27,11 @@ fn envelopes_publish_scoped_crossing_aspects_without_widening_beyond_receipts() 
     assert!(!envelope
         .aspect_publication()
         .present()
-        .contains(&"selection.material_edit".to_string()));
+        .contains(&test_declaration_aspect_key("selection.material_edit")));
     assert!(envelope
         .aspect_publication()
         .masked()
-        .contains(&"selection.private_authority".to_string()));
+        .contains(&test_declaration_aspect_key("selection.private_authority")));
 }
 
 #[test]

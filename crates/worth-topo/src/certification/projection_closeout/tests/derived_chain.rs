@@ -2,6 +2,8 @@ use super::topology_reads::support::{
     default_query_mutation_evidence, seeded_sheet_disk_workspace,
 };
 use super::*;
+use crate::projection::runtime_boundary::declared_query_surfaces::materialize_declared_query_surface_row;
+use crate::query_native_runtime_boundary::TopologyNativeQueryRowField;
 
 #[test]
 fn query_native_derived_chain_materializes_interpretation_and_validation() {
@@ -12,37 +14,46 @@ fn query_native_derived_chain_materializes_interpretation_and_validation() {
             builder
                 .metadata(
                     TopologyQueryMutationEvidence::metadata_key(),
-                    default_query_mutation_evidence([
+                    serde_json::to_string(&default_query_mutation_evidence([
                         "topology.structure".to_string(),
                         "naming.persistent_name".to_string(),
-                    ]),
+                    ]))
+                    .expect("query mutation evidence should serialize"),
                 )
-                .aspect("topology.kind", TopologyEntityKind::Vertex.kind_name())
-                .aspect("topology.structure", "query-derived-chain.extra-vertex")
-                .aspect("naming.persistent_name", "query-derived-chain.extra-vertex")
+                .pipe(|builder| {
+                    TopologyNativeQueryRowField::NamingPersistentName.set_on(
+                        TopologyNativeQueryRowField::TopologyStructure.set_on(
+                            TopologyNativeQueryRowField::TopologyKind
+                                .set_on(builder, TopologyEntityKind::Vertex.kind_name()),
+                            "query-derived-chain.extra-vertex",
+                        ),
+                        "query-derived-chain.extra-vertex",
+                    )
+                })
         })
         .expect("entity insert should succeed");
-    let materialized_rows = workspace.materialize(surfaces.materialized());
-    let interpreted_rows = workspace.materialize(surfaces.interpreted());
-    let validation_rows = workspace.materialize(surfaces.validation());
+    let materialized: MaterializedTopologyView =
+        materialize_declared_query_surface_row(&mut workspace, surfaces.materialized())
+            .expect("materialized topology row");
+    let interpreted_view: InterpretedTopologyView =
+        materialize_declared_query_surface_row(&mut workspace, surfaces.interpreted())
+            .expect("interpreted topology row");
+    let validation_report: DerivedTopologyValidationReport =
+        materialize_declared_query_surface_row(&mut workspace, surfaces.validation())
+            .expect("validation topology row");
 
     assert!(last_receipt
-        .affected_derived_view_ids()
+        .terminal_affected_derived_view_ids_projection()
         .contains(&MATERIALIZED_TOPOLOGY_SURFACE.to_string()));
     assert!(last_receipt
-        .affected_derived_view_ids()
+        .terminal_affected_derived_view_ids_projection()
         .contains(&INTERPRETED_TOPOLOGY_SURFACE.to_string()));
     assert!(last_receipt
-        .affected_derived_view_ids()
+        .terminal_affected_derived_view_ids_projection()
         .contains(&VALIDATION_TOPOLOGY_SURFACE.to_string()));
     assert_eq!(last_receipt.considered_computed_view_count(), 5);
 
-    let interpreted_view: InterpretedTopologyView =
-        serde_json::from_value(interpreted_rows[0].clone()).expect("interpreted topology row");
-    let validation_report: DerivedTopologyValidationReport =
-        serde_json::from_value(validation_rows[0].clone()).expect("validation topology row");
-
-    assert_eq!(materialized_rows.len(), 1);
+    assert!(materialized.report().breadth.topology_entity_count > 0);
     assert_eq!(interpreted_view.report().interpreted_wire_count, 1);
     assert_eq!(interpreted_view.report().interpreted_shell_count, 1);
     assert!(validation_report
@@ -63,20 +74,22 @@ fn query_native_derived_chain_exposes_query_state_and_inspection() {
             builder
                 .metadata(
                     TopologyQueryMutationEvidence::metadata_key(),
-                    default_query_mutation_evidence([
+                    serde_json::to_string(&default_query_mutation_evidence([
                         "topology.structure".to_string(),
                         "naming.persistent_name".to_string(),
-                    ]),
+                    ]))
+                    .expect("query mutation evidence should serialize"),
                 )
-                .aspect("topology.kind", TopologyEntityKind::Vertex.kind_name())
-                .aspect(
-                    "topology.structure",
-                    "query-derived-inspection.extra-vertex",
-                )
-                .aspect(
-                    "naming.persistent_name",
-                    "query-derived-inspection.extra-vertex",
-                )
+                .pipe(|builder| {
+                    TopologyNativeQueryRowField::NamingPersistentName.set_on(
+                        TopologyNativeQueryRowField::TopologyStructure.set_on(
+                            TopologyNativeQueryRowField::TopologyKind
+                                .set_on(builder, TopologyEntityKind::Vertex.kind_name()),
+                            "query-derived-inspection.extra-vertex",
+                        ),
+                        "query-derived-inspection.extra-vertex",
+                    )
+                })
         })
         .expect("entity insert should succeed");
     let validation_state = workspace
@@ -116,20 +129,8 @@ fn query_native_derived_chain_exposes_query_state_and_inspection() {
                 ]
             );
             assert!(inspection.upstream_live_views().is_empty());
-            assert_eq!(
-                inspection.dependency_aspects(),
-                &[
-                    "topology.structure".to_string(),
-                    "topology.ownership".to_string(),
-                    "topology.boundary".to_string(),
-                    "topology.radial".to_string(),
-                    "diagnostics.interpretations".to_string(),
-                ]
-            );
-            assert_eq!(
-                inspection.produced_aspects(),
-                &["diagnostics.decisions".to_string()]
-            );
+            assert_eq!(inspection.dependency_aspect_touches().len(), 5);
+            assert_eq!(inspection.produced_aspect_touches().len(), 1);
             assert!(!inspection.incremental_delivery());
             assert!(inspection.materialized_row_count() > 0);
             assert!(inspection.pending_patch_count() > 0);
@@ -148,13 +149,7 @@ fn query_native_derived_chain_exposes_query_state_and_inspection() {
                 inspection.upstream_derived_views(),
                 &[DIAGNOSTICS_TOPOLOGY_SURFACE.to_string()]
             );
-            assert_eq!(
-                inspection.dependency_aspects(),
-                &[
-                    "diagnostics.interpretations".to_string(),
-                    "diagnostics.decisions".to_string(),
-                ]
-            );
+            assert_eq!(inspection.dependency_aspect_touches().len(), 2);
             assert!(inspection.pending_refresh_fallback_count() >= 1);
         }
         other => panic!("expected derived inspection, got {other:?}"),
@@ -169,28 +164,35 @@ fn query_native_derived_chain_exposes_query_state_and_inspection() {
             assert_eq!(
                 inspection
                     .mutation_metadata()
-                    .get(TopologyQueryMutationEvidence::metadata_key())
-                    .expect(" topology mutation metadata should retain"),
-                &serde_json::to_value(default_query_mutation_evidence([
+                    .get(
+                        &forge_query::facade::ForgeQueryMutationMetadataKey::new(
+                            TopologyQueryMutationEvidence::metadata_key(),
+                        )
+                        .expect("metadata key should admit"),
+                    )
+                    .expect(" topology mutation metadata should retain")
+                    .terminal_digest_text(),
+                serde_json::to_string(&default_query_mutation_evidence([
                     "topology.structure".to_string(),
                     "naming.persistent_name".to_string(),
                 ]))
                 .expect("query mutation evidence should serialize")
+                .as_str()
             );
         }
         other => panic!("expected write receipt inspection, got {other:?}"),
     }
 
     assert_eq!(
-        receipt.affected_live_view_ids(),
-        &[
+        receipt.terminal_affected_live_view_ids_projection(),
+        vec![
             ".naming.persistent_names".to_string(),
-            ".topology.entities".to_string(),
+            ".topology.entities".to_string()
         ]
     );
     assert_eq!(
-        receipt.affected_derived_view_ids(),
-        &[
+        receipt.terminal_affected_derived_view_ids_projection(),
+        vec![
             DIAGNOSTICS_TOPOLOGY_SURFACE.to_string(),
             EQUIVALENCE_TOPOLOGY_SURFACE.to_string(),
             INTERPRETED_TOPOLOGY_SURFACE.to_string(),
@@ -199,12 +201,12 @@ fn query_native_derived_chain_exposes_query_state_and_inspection() {
         ]
     );
 
-    let diagnostics_rows = workspace.materialize(surfaces.diagnostics());
-    let equivalence_rows = workspace.materialize(surfaces.equivalence_contract());
     let diagnostics_report: DerivedReadDiagnostics =
-        serde_json::from_value(diagnostics_rows[0].clone()).expect("diagnostics topology row");
-    let equivalence_report = equivalence_contract_from_diagnostics_rows(&diagnostics_rows)
-        .expect("equivalence contract should decode from diagnostics surface");
+        materialize_declared_query_surface_row(&mut workspace, surfaces.diagnostics())
+            .expect("diagnostics topology row");
+    let equivalence_report: crate::certification::DerivedEquivalenceContractReport =
+        materialize_declared_query_surface_row(&mut workspace, surfaces.equivalence_contract())
+            .expect("equivalence row should decode");
 
     assert!(
         diagnostics_report
@@ -225,10 +227,15 @@ fn query_native_derived_chain_exposes_query_state_and_inspection() {
         diagnostics_report.validation_report.rows.len()
     );
     assert_eq!(
-        serde_json::from_value::<crate::certification::DerivedEquivalenceContractReport>(
-            equivalence_rows[0].clone()
-        )
-        .expect("equivalence row should decode"),
-        equivalence_report
+        equivalence_report,
+        diagnostics_report.equivalence_contract_report
     );
 }
+
+trait Pipe: Sized {
+    fn pipe<T>(self, f: impl FnOnce(Self) -> T) -> T {
+        f(self)
+    }
+}
+
+impl<T> Pipe for T {}

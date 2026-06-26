@@ -28,7 +28,7 @@ impl ForgeQueryDeclarationFamilyMarker<PrimitiveConstructionQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_authoring_helpers::declaration_aspect_contract_from_slices(
             &["construction.family"],
             &[],
             &[],

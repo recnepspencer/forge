@@ -1,11 +1,11 @@
-use serde_json::Value;
-
 use crate::memory_workspace::ForgeQueryWorkspaceErrorKind;
 use crate::runtime::{
-    ForgeQueryInspection, ForgeQueryMutationFamily, ForgeQueryPreviewOptions,
-    ForgeQueryRuntimeError, InvariantCatalog, InvariantRegistration, InvariantRule,
+    ForgeQueryAspectTouch, ForgeQueryInspection, ForgeQueryMutationFamily, ForgeQueryNativeRow,
+    ForgeQueryPreviewOptions, ForgeQueryRuntimeError, InvariantCatalog, InvariantRegistration,
+    InvariantRule,
 };
 use crate::session_label::ForgeQuerySessionLabel;
+use forge_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
 
 use super::{in_memory_test_runtime, ForgeQueryTestBackendSchema};
 
@@ -13,25 +13,33 @@ use super::{in_memory_test_runtime, ForgeQueryTestBackendSchema};
 fn in_memory_test_runtime_executes_public_insert_and_live_read() {
     let mut workspace = task_workspace();
     let tasks = workspace
-        .live_view::<Value>("consumer-kit.test.tasks", |view| {
+        .live_view::<ForgeQueryNativeRow>("consumer-kit.test.tasks", |view| {
             view.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
         })
         .expect("test backend should declare a live view for its collection");
 
     let receipt = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Write real tests")
+            task.set_aspect(touch("identity.id"), authored_text("task-1"))
+                .set_aspect(touch("title.value"), authored_text("Write real tests"))
         })
         .expect("test backend should execute public workspace insert");
 
     assert_eq!(workspace.read(&tasks).len(), 1);
     assert_eq!(
         workspace
-            .read_live_by_name("consumer-kit.test.tasks")
-            .expect("named live read should execute")
+            .read_live_result(&tasks)
+            .expect("typed live read should execute")
             .rows()
             .len(),
         1
@@ -69,14 +77,17 @@ fn in_memory_test_runtime_executes_public_insert_and_live_read() {
 fn in_memory_test_runtime_executes_update_delete_and_live_routing() {
     let mut workspace = task_workspace();
     let tasks = workspace
-        .live_view::<Value>("consumer-kit.test.crud.tasks", |view| {
-            view.from("Task").select(["identity.id", "title.value"])
+        .live_view::<ForgeQueryNativeRow>("consumer-kit.test.crud.tasks", |view| {
+            view.from("Task").select([
+                crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id").unwrap(),
+                crate::authoring::AspectFieldKey::from_authoring_parts("title", "value").unwrap(),
+            ])
         })
         .expect("task live view should declare");
     let insert = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-crud")
-                .aspect("title.value", "Draft")
+            task.set_aspect(touch("identity.id"), authored_text("task-crud"))
+                .set_aspect(touch("title.value"), authored_text("Draft"))
         })
         .expect("insert should execute");
     let entity_identity = insert
@@ -86,17 +97,17 @@ fn in_memory_test_runtime_executes_update_delete_and_live_routing() {
 
     let update = workspace
         .update(entity_identity.clone(), |task| {
-            task.aspect("title.value", "Updated")
+            task.set_aspect(touch("title.value"), authored_text("Updated"))
         })
         .expect("update should execute");
     assert_eq!(update.mutation_family(), ForgeQueryMutationFamily::Update);
     assert_eq!(
-        update.affected_live_view_ids(),
+        update.terminal_affected_live_view_ids_projection(),
         &["consumer-kit.test.crud.tasks".to_string()]
     );
     assert_eq!(
-        workspace.read(&tasks)[0].external_row()["title"]["value"].as_str(),
-        Some("Updated")
+        workspace.read(&tasks)[0].scalar_value_at(&field_path("title.value")),
+        Some(&text("Updated"))
     );
 
     let delete = workspace
@@ -104,7 +115,7 @@ fn in_memory_test_runtime_executes_update_delete_and_live_routing() {
         .expect("delete should execute");
     assert_eq!(delete.mutation_family(), ForgeQueryMutationFamily::Delete);
     assert_eq!(
-        delete.affected_live_view_ids(),
+        delete.terminal_affected_live_view_ids_projection(),
         &["consumer-kit.test.crud.tasks".to_string()]
     );
     assert!(workspace.read(&tasks).is_empty());
@@ -125,8 +136,8 @@ fn in_memory_test_runtime_stages_sandboxed_preview_writes_without_authoritative_
 
     preview
         .insert("Task", |task| {
-            task.aspect("identity.id", "preview-task")
-                .aspect("title.value", "Preview only")
+            task.set_aspect(touch("identity.id"), authored_text("preview-task"))
+                .set_aspect(touch("title.value"), authored_text("Preview only"))
         })
         .expect("sandboxed preview write should stage");
     let outcome = preview.discard();
@@ -136,8 +147,11 @@ fn in_memory_test_runtime_stages_sandboxed_preview_writes_without_authoritative_
     assert_eq!(outcome.write_count(), 1);
     assert_eq!(outcome.authoritative_residue_count(), 0);
     let tasks = workspace
-        .live_view::<Value>("consumer-kit.test.after-preview", |view| {
-            view.from("Task").select(["identity.id", "title.value"])
+        .live_view::<ForgeQueryNativeRow>("consumer-kit.test.after-preview", |view| {
+            view.from("Task").select([
+                crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id").unwrap(),
+                crate::authoring::AspectFieldKey::from_authoring_parts("title", "value").unwrap(),
+            ])
         })
         .expect("live view should declare after preview discard");
     assert!(workspace.read(&tasks).is_empty());
@@ -158,7 +172,7 @@ fn in_memory_test_runtime_denies_wrong_collection_preview_before_residue() {
 
     let error = preview
         .insert("Issue", |issue| {
-            issue.aspect("identity.id", "issue-preview")
+            issue.set_aspect(touch("identity.id"), authored_text("issue-preview"))
         })
         .expect_err("preview write should honor backend schema before staging");
     assert_workspace_error_kind(error, ForgeQueryWorkspaceErrorKind::UnsupportedCollection);
@@ -172,8 +186,11 @@ fn in_memory_test_runtime_denies_wrong_collection_preview_before_residue() {
 fn in_memory_test_runtime_denies_multi_command_batch_before_partial_residue() {
     let mut workspace = task_workspace();
     let tasks = workspace
-        .live_view::<Value>("consumer-kit.test.batch-denial.tasks", |view| {
-            view.from("Task").select(["identity.id", "title.value"])
+        .live_view::<ForgeQueryNativeRow>("consumer-kit.test.batch-denial.tasks", |view| {
+            view.from("Task").select([
+                crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id").unwrap(),
+                crate::authoring::AspectFieldKey::from_authoring_parts("title", "value").unwrap(),
+            ])
         })
         .expect("task live view should declare");
 
@@ -181,13 +198,13 @@ fn in_memory_test_runtime_denies_multi_command_batch_before_partial_residue() {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "task-batch-1")
-                        .aspect("title.value", "First")
+                    task.set_aspect(touch("identity.id"), authored_text("task-batch-1"))
+                        .set_aspect(touch("title.value"), authored_text("First"))
                 })
                 .insert("Issue", |issue| {
                     issue
-                        .aspect("identity.id", "issue-batch-2")
-                        .aspect("title.value", "Second")
+                        .set_aspect(touch("identity.id"), authored_text("issue-batch-2"))
+                        .set_aspect(touch("title.value"), authored_text("Second"))
                 })
         })
         .expect_err("scaffold backend should deny multi-command batch before execution");
@@ -205,8 +222,8 @@ fn in_memory_test_runtime_fails_closed_for_unsupported_collections() {
     let error = workspace
         .insert("Issue", |issue| {
             issue
-                .aspect("identity.id", "issue-1")
-                .aspect("title.value", "Wrong family")
+                .set_aspect(touch("identity.id"), authored_text("issue-1"))
+                .set_aspect(touch("title.value"), authored_text("Wrong family"))
         })
         .expect_err("test backend should reject collections outside its schema");
 
@@ -228,8 +245,8 @@ fn in_memory_test_runtime_lowers_invariant_catalog_into_real_write_denial() {
 
     let error = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-denied")
-                .aspect("title.value", "Denied by invariant")
+            task.set_aspect(touch("identity.id"), authored_text("task-denied"))
+                .set_aspect(touch("title.value"), authored_text("Denied by invariant"))
         })
         .expect_err("registered invariant should deny the write");
 
@@ -258,8 +275,11 @@ fn in_memory_test_runtime_merges_repeated_invariant_catalog_inputs() {
 
     let error = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-denied")
-                .aspect("title.value", "Denied by merged invariant")
+            task.set_aspect(touch("identity.id"), authored_text("task-denied"))
+                .set_aspect(
+                    touch("title.value"),
+                    authored_text("Denied by merged invariant"),
+                )
         })
         .expect_err("first invariant catalog must not be overwritten by the second");
 
@@ -289,4 +309,43 @@ fn assert_workspace_error_kind(error: ForgeQueryRuntimeError, kind: ForgeQueryWo
         }
         other => panic!("expected workspace error `{kind:?}`, got {other:?}"),
     }
+}
+
+fn touch(touch_fixture: &str) -> ForgeQueryAspectTouch {
+    let mut segments = touch_fixture.split('.');
+    let aspect_key = AspectKey::new(
+        segments
+            .next()
+            .expect("test touch fixture should name an aspect"),
+    )
+    .expect("test aspect key should admit");
+    let field_segments = segments
+        .map(|field| FieldKey::new(field).expect("test field key should admit"))
+        .collect::<Vec<_>>();
+    if field_segments.is_empty() {
+        ForgeQueryAspectTouch::whole_aspect(aspect_key)
+    } else {
+        ForgeQueryAspectTouch::aspect_field_path(
+            aspect_key,
+            CanonicalFieldPath::new(field_segments).expect("test field path should admit"),
+        )
+    }
+}
+
+fn authored_text(value: impl Into<String>) -> crate::runtime::ForgeQueryAuthoredAspectValue {
+    crate::runtime::ForgeQueryAuthoredAspectValue::string(value)
+}
+
+fn text(value: impl Into<String>) -> AspectValue {
+    crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(value)
+}
+
+fn field_path(path: &str) -> CanonicalFieldPath {
+    CanonicalFieldPath::new(
+        path.split('.')
+            .map(FieldKey::new)
+            .collect::<Option<Vec<_>>>()
+            .expect("test field path segments should be valid"),
+    )
+    .expect("test field path should not be empty")
 }

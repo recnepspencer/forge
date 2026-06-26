@@ -1,6 +1,6 @@
 use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
-use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use crate::projection::TopologyQueryRowLookup;
+use crate::query_native_runtime_boundary::query_entity_identity_reporting_label;
 use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use schema::facade::platform::relations::TopologyRelationKind;

@@ -1,3 +1,5 @@
+use forge_foundational::facade::{AspectKey, FieldKey};
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGraphReadRelationAuthority {
     schema_basis_digest: String,
@@ -34,8 +36,8 @@ impl ForgeQueryGraphReadRelationAuthority {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGraphReadPredicateFieldAuthority {
     schema_basis_digest: String,
-    aspect: String,
-    field: String,
+    aspect: AspectKey,
+    field: FieldKey,
     field_kind: String,
 }
 
@@ -44,11 +46,11 @@ impl ForgeQueryGraphReadPredicateFieldAuthority {
         &self.schema_basis_digest
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn native_aspect_key(&self) -> &AspectKey {
         &self.aspect
     }
 
-    pub fn field(&self) -> &str {
+    pub fn native_field_key(&self) -> &FieldKey {
         &self.field
     }
 
@@ -58,14 +60,14 @@ impl ForgeQueryGraphReadPredicateFieldAuthority {
 
     pub(crate) fn new(
         schema_basis_digest: impl Into<String>,
-        aspect: impl Into<String>,
-        field: impl Into<String>,
+        aspect: AspectKey,
+        field: FieldKey,
         field_kind: impl Into<String>,
     ) -> Self {
         Self {
             schema_basis_digest: schema_basis_digest.into(),
-            aspect: aspect.into(),
-            field: field.into(),
+            aspect,
+            field,
             field_kind: field_kind.into(),
         }
     }
@@ -73,7 +75,10 @@ impl ForgeQueryGraphReadPredicateFieldAuthority {
     pub(crate) fn digest_part(&self) -> String {
         format!(
             "predicate_authority:{}:{}:{}:{}",
-            self.schema_basis_digest, self.aspect, self.field, self.field_kind
+            self.schema_basis_digest,
+            self.aspect.as_str(),
+            self.field.as_str(),
+            self.field_kind
         )
     }
 }
@@ -81,8 +86,8 @@ impl ForgeQueryGraphReadPredicateFieldAuthority {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGraphReadOrderingFieldAuthority {
     schema_basis_digest: String,
-    aspect: String,
-    field: String,
+    aspect: AspectKey,
+    field: FieldKey,
     direction: String,
     field_kind: String,
 }
@@ -92,11 +97,11 @@ impl ForgeQueryGraphReadOrderingFieldAuthority {
         &self.schema_basis_digest
     }
 
-    pub fn aspect(&self) -> &str {
+    pub fn native_aspect_key(&self) -> &AspectKey {
         &self.aspect
     }
 
-    pub fn field(&self) -> &str {
+    pub fn native_field_key(&self) -> &FieldKey {
         &self.field
     }
 
@@ -110,15 +115,15 @@ impl ForgeQueryGraphReadOrderingFieldAuthority {
 
     pub(crate) fn new(
         schema_basis_digest: impl Into<String>,
-        aspect: impl Into<String>,
-        field: impl Into<String>,
+        aspect: AspectKey,
+        field: FieldKey,
         direction: impl Into<String>,
         field_kind: impl Into<String>,
     ) -> Self {
         Self {
             schema_basis_digest: schema_basis_digest.into(),
-            aspect: aspect.into(),
-            field: field.into(),
+            aspect,
+            field,
             direction: direction.into(),
             field_kind: field_kind.into(),
         }
@@ -127,7 +132,11 @@ impl ForgeQueryGraphReadOrderingFieldAuthority {
     pub(crate) fn digest_part(&self) -> String {
         format!(
             "ordering_authority:{}:{}:{}:{}:{}",
-            self.schema_basis_digest, self.aspect, self.field, self.direction, self.field_kind
+            self.schema_basis_digest,
+            self.aspect.as_str(),
+            self.field.as_str(),
+            self.direction,
+            self.field_kind
         )
     }
 }

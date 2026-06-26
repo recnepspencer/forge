@@ -1,4 +1,5 @@
 use crate::harness::milestone_nine_certification::phase_three_test_narrowed_artifact;
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 use super::{
     admit_policy_aware_live_plan, certify_policy_live_drift_evidence, PolicyDriftDisposition,
@@ -8,10 +9,7 @@ use super::{
 #[test]
 fn live_relevance_uses_authorized_fields_only() {
     let artifact = phase_three_test_narrowed_artifact();
-    let fields = vec![
-        "identity.id".to_string(),
-        "profile.display_name".to_string(),
-    ];
+    let fields = authorized_fields([("identity", "id"), ("profile", "display_name")]);
     let live = admit_policy_aware_live_plan(
         &artifact,
         &fields,
@@ -20,7 +18,13 @@ fn live_relevance_uses_authorized_fields_only() {
     )
     .expect("authorized live relevance should admit");
 
-    assert_eq!(live.relevance().authorized_fields(), fields.as_slice());
+    assert_eq!(
+        native_relevance_fields(live.relevance().authorized_field_paths()),
+        vec![
+            native_field_pair("identity", "id"),
+            native_field_pair("profile", "display_name")
+        ]
+    );
     assert_eq!(
         live.core().seam().counters().live_relevance_field_width(),
         2
@@ -31,10 +35,45 @@ fn live_relevance_uses_authorized_fields_only() {
     );
 }
 
+fn native_relevance_fields(
+    fields: &[crate::authorized_projection::AuthorizedProjectionFieldPath],
+) -> Vec<(AspectKey, FieldKey)> {
+    fields
+        .iter()
+        .map(|field| {
+            (
+                field.native_aspect_key().clone(),
+                field.native_field_key().clone(),
+            )
+        })
+        .collect()
+}
+
+fn native_field_pair(aspect: &str, field: &str) -> (AspectKey, FieldKey) {
+    (
+        AspectKey::new(aspect).expect("test aspect key should admit"),
+        FieldKey::new(field).expect("test field key should admit"),
+    )
+}
+
+fn authorized_fields(
+    fields: impl IntoIterator<Item = (&'static str, &'static str)>,
+) -> Vec<crate::authorized_projection::AuthorizedProjectionFieldPath> {
+    fields
+        .into_iter()
+        .map(|(aspect, field)| {
+            crate::authorized_projection::AuthorizedProjectionFieldPath::from_native_keys(
+                AspectKey::new(aspect).expect("test aspect key"),
+                FieldKey::new(field).expect("test field key"),
+            )
+        })
+        .collect()
+}
+
 #[test]
 fn masked_live_relevance_denies_before_admission() {
     let artifact = phase_three_test_narrowed_artifact();
-    let fields = vec!["secret.salary".to_string()];
+    let fields = authorized_fields([("secret", "salary")]);
     let error = admit_policy_aware_live_plan(
         &artifact,
         &fields,
@@ -49,10 +88,7 @@ fn masked_live_relevance_denies_before_admission() {
 #[test]
 fn live_drift_evidence_must_match_admitted_plan() {
     let artifact = phase_three_test_narrowed_artifact();
-    let fields = vec![
-        "identity.id".to_string(),
-        "profile.display_name".to_string(),
-    ];
+    let fields = authorized_fields([("identity", "id"), ("profile", "display_name")]);
     let live = admit_policy_aware_live_plan(
         &artifact,
         &fields,
@@ -84,10 +120,7 @@ fn live_drift_evidence_must_match_admitted_plan() {
 #[test]
 fn live_epoch_readmission_counter_is_exact_in_certified_evidence() {
     let artifact = phase_three_test_narrowed_artifact();
-    let fields = vec![
-        "identity.id".to_string(),
-        "profile.display_name".to_string(),
-    ];
+    let fields = authorized_fields([("identity", "id"), ("profile", "display_name")]);
     let live = admit_policy_aware_live_plan(
         &artifact,
         &fields,
@@ -116,10 +149,7 @@ fn live_epoch_readmission_counter_is_exact_in_certified_evidence() {
 #[test]
 fn live_drift_evidence_current_basis_must_match_admitted_plan() {
     let artifact = phase_three_test_narrowed_artifact();
-    let fields = vec![
-        "identity.id".to_string(),
-        "profile.display_name".to_string(),
-    ];
+    let fields = authorized_fields([("identity", "id"), ("profile", "display_name")]);
     let live = admit_policy_aware_live_plan(
         &artifact,
         &fields,
@@ -143,10 +173,7 @@ fn live_drift_evidence_current_basis_must_match_admitted_plan() {
 #[test]
 fn live_tenant_readmission_counter_is_exact_in_certified_evidence() {
     let artifact = phase_three_test_narrowed_artifact();
-    let fields = vec![
-        "identity.id".to_string(),
-        "profile.display_name".to_string(),
-    ];
+    let fields = authorized_fields([("identity", "id"), ("profile", "display_name")]);
     let live = admit_policy_aware_live_plan(
         &artifact,
         &fields,
@@ -171,10 +198,7 @@ fn live_tenant_readmission_counter_is_exact_in_certified_evidence() {
 #[test]
 fn live_burst_readmission_is_an_exact_seam_counter() {
     let artifact = phase_three_test_narrowed_artifact();
-    let fields = vec![
-        "identity.id".to_string(),
-        "profile.display_name".to_string(),
-    ];
+    let fields = authorized_fields([("identity", "id"), ("profile", "display_name")]);
     let live = admit_policy_aware_live_plan(
         &artifact,
         &fields,
@@ -202,10 +226,7 @@ fn live_burst_readmission_is_an_exact_seam_counter() {
 #[test]
 fn live_dense_restart_debt_is_an_exact_denial_counter() {
     let artifact = phase_three_test_narrowed_artifact();
-    let fields = vec![
-        "identity.id".to_string(),
-        "profile.display_name".to_string(),
-    ];
+    let fields = authorized_fields([("identity", "id"), ("profile", "display_name")]);
     let error = admit_policy_aware_live_plan(
         &artifact,
         &fields,
@@ -221,10 +242,7 @@ fn live_dense_restart_debt_is_an_exact_denial_counter() {
 #[test]
 fn live_density_evidence_rejects_unadmitted_dense_restart() {
     let artifact = phase_three_test_narrowed_artifact();
-    let fields = vec![
-        "identity.id".to_string(),
-        "profile.display_name".to_string(),
-    ];
+    let fields = authorized_fields([("identity", "id"), ("profile", "display_name")]);
     let live = admit_policy_aware_live_plan(
         &artifact,
         &fields,
@@ -248,10 +266,7 @@ fn live_density_evidence_rejects_unadmitted_dense_restart() {
 #[test]
 fn live_density_evidence_width_must_match_admitted_relevance_width() {
     let artifact = phase_three_test_narrowed_artifact();
-    let fields = vec![
-        "identity.id".to_string(),
-        "profile.display_name".to_string(),
-    ];
+    let fields = authorized_fields([("identity", "id"), ("profile", "display_name")]);
     let live = admit_policy_aware_live_plan(
         &artifact,
         &fields,

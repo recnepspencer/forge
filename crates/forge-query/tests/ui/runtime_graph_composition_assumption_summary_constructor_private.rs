@@ -9,7 +9,7 @@ fn main() {
         verification_read_set_breadth: ForgeQueryVerificationReadSetBreadth {
             target_binding_count: 0,
             asserted_aspect_count: 0,
-            distinct_asserted_aspect_path_count: 0,
+            distinct_asserted_aspect_touch_count: 0,
             cleared_assertion_count: 0,
             counter_snapshot: String::new(),
         },

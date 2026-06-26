@@ -1,16 +1,8 @@
-use crate::facade::{
-    certify_milestone_three_hostile_suite, MilestoneThreeDerivedWorkBreadthClass,
-    MilestoneThreeHostileScenario,
-};
-use crate::validation::reference_integrity::build_milestone_one_runtime;
+use crate::facade::{MilestoneThreeDerivedWorkBreadthClass, MilestoneThreeHostileScenario};
 
 #[test]
 fn milestone_three_derived_work_breadth_exposes_actual_rebuild_scope() {
-    let report = certify_milestone_three_hostile_suite(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.derived_work_breadth",
-    )
-    .expect("milestone three hostile suite should certify");
+    let report = crate::certification::test_support::cached_milestone_three_hostile_suite_report();
 
     assert_eq!(report.derived_work_breadth_rows.len(), 5);
     assert!(report.derived_work_breadth_rows.iter().all(|row| {

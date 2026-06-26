@@ -1,6 +1,6 @@
 use crate::planning::ExecutionPlanBundle;
 use crate::validation::ValidatedQueryBundle;
-use forge_foundational::facade::AspectKey;
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 use super::grouped_binding::QueryResultBindingProof;
 use super::grouped_policy::{GroupedDeltaAdmissionPolicy, GroupedReplayDeliveryPosture};
@@ -14,10 +14,6 @@ pub struct GroupedBaselineMaterializationContract {
 }
 
 impl GroupedBaselineMaterializationContract {
-    pub fn grouping_aspect(&self) -> &str {
-        self.grouping_aspect.as_str()
-    }
-
     pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
@@ -60,10 +56,6 @@ pub struct GroupedViewPlanningArtifact {
 }
 
 impl GroupedViewPlanningArtifact {
-    pub fn grouping_aspect(&self) -> &str {
-        self.grouping_aspect.as_str()
-    }
-
     pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
@@ -125,18 +117,21 @@ impl GroupedViewPlanningArtifact {
         execution_plan: &ExecutionPlanBundle,
         grouping_aspect: &AspectKey,
     ) -> Option<Self> {
+        let identity_aspect_key = AspectKey::new("identity")?;
+        let identity_field_key = FieldKey::new("id")?;
         let identity_binding = validated_view
             .result_shape()
             .bindings()
             .iter()
             .enumerate()
             .find(|(_, binding)| {
-                binding.source_aspect() == "identity" && binding.source_field() == "id"
+                binding.native_source_aspect_key() == &identity_aspect_key
+                    && binding.native_source_field_key() == &identity_field_key
             })
             .map(|(binding_index, binding)| {
-                QueryResultBindingProof::new(
-                    binding.source_aspect(),
-                    binding.source_field(),
+                QueryResultBindingProof::from_native_source_keys(
+                    binding.native_source_aspect_key(),
+                    binding.native_source_field_key(),
                     binding_index,
                 )
             })??;
@@ -145,11 +140,11 @@ impl GroupedViewPlanningArtifact {
             .bindings()
             .iter()
             .enumerate()
-            .find(|(_, binding)| binding.source_aspect() == grouping_aspect.as_str())
+            .find(|(_, binding)| binding.native_source_aspect_key() == grouping_aspect)
             .map(|(binding_index, binding)| {
-                QueryResultBindingProof::new(
-                    binding.source_aspect(),
-                    binding.source_field(),
+                QueryResultBindingProof::from_native_source_keys(
+                    binding.native_source_aspect_key(),
+                    binding.native_source_field_key(),
                     binding_index,
                 )
             })??;

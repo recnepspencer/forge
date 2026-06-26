@@ -77,7 +77,7 @@ impl ForgeQueryDeclarationFamilyMarker<PlanarMotionPostureQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "geometry.planar_motion_posture.boolean_readiness",
                 "geometry.planar_motion_posture.motion_steps",

@@ -861,7 +861,7 @@ dependencies = [
 
 [[package]]
 name = "forge-signal-wasm"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = [
  "base64 0.22.1",
  "console_error_panic_hook",
@@ -3173,6 +3173,7 @@ dependencies = [
 name = "worth-kernel"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
  "forge-proof",
  "forge-query",
  "sha2",
@@ -3249,6 +3250,7 @@ dependencies = [
  "forge-runtime-bridge",
  "serde",
  "serde_json",
+ "sha2",
  "trybuild",
  "worth-primitives",
  "worth-schema",

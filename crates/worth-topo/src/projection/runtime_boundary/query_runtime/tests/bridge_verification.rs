@@ -1,11 +1,13 @@
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::query_native_runtime_boundary::TopologyNativeQueryRowField;
 use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 use crate::topology_operators::authority_identity::{
     existing_entity_authority, existing_relation_authority,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
+use forge_foundational::facade::{AspectValue, InternedString};
 use forge_query::facade::{
     ForgeQueryBridgeBackedVerificationSupportStatus, ForgeQueryEntityIdentity,
     ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
@@ -39,7 +41,10 @@ fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
         .probe_existing_intent(
             ForgeQueryExistingTruthProbeRequest::new(
                 binding.clone(),
-                ["topology.kind", "naming.persistent_name"],
+                [
+                    TopologyNativeQueryRowField::TopologyKind.touch(),
+                    TopologyNativeQueryRowField::NamingPersistentName.touch(),
+                ],
             )
             .expect("entity probe request should build"),
         )
@@ -52,19 +57,21 @@ fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
         ForgeQueryExistingTruthProbeMode::BackendVerifiedProbe
     );
     assert_eq!(
-        probe
-            .field("topology.kind")
-            .expect("topology.kind should be present")
-            .external_value_json(),
-        "\".vertex\""
+        probe_text(
+            probe
+                .field_for_touch(&TopologyNativeQueryRowField::TopologyKind.touch())
+                .expect("topology.kind should be present")
+                .foundational_value()
+        ),
+        Some(".vertex")
     );
 
     workspace
         .compose_graph(|graph| {
             graph.delete_existing_verified(
                 binding,
-                |entity| entity.aspect("topology.kind", ".vertex"),
-                |delete| delete.touch("topology.kind"),
+                |entity| TopologyNativeQueryRowField::TopologyKind.set_on(entity, ".vertex"),
+                |delete| delete.touch(TopologyNativeQueryRowField::TopologyKind.touch()),
             )?;
             Ok(())
         })
@@ -169,9 +176,9 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
             ForgeQueryExistingTruthProbeRequest::new(
                 binding.clone(),
                 [
-                    "topology.kind",
-                    "topology.source_identity",
-                    "topology.target_identity",
+                    TopologyNativeQueryRowField::TopologyKind.touch(),
+                    TopologyNativeQueryRowField::TopologySourceIdentity.touch(),
+                    TopologyNativeQueryRowField::TopologyTargetIdentity.touch(),
                 ],
             )
             .expect("relation probe request should build"),
@@ -185,36 +192,47 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
         ForgeQueryExistingTruthProbeMode::BackendVerifiedProbe
     );
     assert_eq!(
-        probe
-            .field("topology.kind")
-            .expect("topology.kind should be present")
-            .external_value_json(),
-        "\".loop_owns_half_edge\""
+        probe_text(
+            probe
+                .field_for_touch(&TopologyNativeQueryRowField::TopologyKind.touch())
+                .expect("topology.kind should be present")
+                .foundational_value()
+        ),
+        Some(".loop_owns_half_edge")
     );
-    let source_identity: String = serde_json::from_str(
+    let source_identity: String = probe_text(
         probe
-            .field("topology.source_identity")
+            .field_for_touch(&TopologyNativeQueryRowField::TopologySourceIdentity.touch())
             .expect("source identity should be present")
-            .external_value_json(),
+            .foundational_value(),
     )
-    .expect("source identity probe value should decode");
-    let target_identity: String = serde_json::from_str(
+    .expect("source identity probe value should decode")
+    .to_string();
+    let target_identity: String = probe_text(
         probe
-            .field("topology.target_identity")
+            .field_for_touch(&TopologyNativeQueryRowField::TopologyTargetIdentity.touch())
             .expect("target identity should be present")
-            .external_value_json(),
+            .foundational_value(),
     )
-    .expect("target identity probe value should decode");
+    .expect("target identity probe value should decode")
+    .to_string();
     workspace
         .compose_graph(|graph| {
             graph.update_existing_verified(
                 binding.clone(),
-                |relation| relation.aspect("topology.kind", ".loop_owns_half_edge"),
+                |relation| {
+                    TopologyNativeQueryRowField::TopologyKind
+                        .set_on(relation, ".loop_owns_half_edge")
+                },
                 |update| {
-                    update
-                        .aspect("topology.kind", ".loop_owns_half_edge")
-                        .aspect("topology.source_identity", &source_identity)
-                        .aspect("topology.target_identity", &target_identity)
+                    TopologyNativeQueryRowField::TopologyTargetIdentity.set_on(
+                        TopologyNativeQueryRowField::TopologySourceIdentity.set_on(
+                            TopologyNativeQueryRowField::TopologyKind
+                                .set_on(update, ".loop_owns_half_edge"),
+                            &source_identity,
+                        ),
+                        &target_identity,
+                    )
                 },
             )?;
             Ok(())
@@ -224,8 +242,11 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
         .compose_graph(|graph| {
             graph.delete_existing_verified(
                 binding,
-                |relation| relation.aspect("topology.kind", ".loop_owns_half_edge"),
-                |delete| delete.touch("topology.kind"),
+                |relation| {
+                    TopologyNativeQueryRowField::TopologyKind
+                        .set_on(relation, ".loop_owns_half_edge")
+                },
+                |delete| delete.touch(TopologyNativeQueryRowField::TopologyKind.touch()),
             )?;
             Ok(())
         })
@@ -250,4 +271,11 @@ fn relation_identity(
         relation.local_slot.0,
         relation.generation.0,
     ))
+}
+
+fn probe_text(value: &AspectValue) -> Option<&str> {
+    match value {
+        AspectValue::String(InternedString::Raw(value)) => Some(value.as_str()),
+        _ => None,
+    }
 }

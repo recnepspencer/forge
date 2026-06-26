@@ -38,7 +38,11 @@ macro_rules! forge_query_schema {
                     ],
                     [
                         $(
-                            $crate::facade::SchemaRelationView::new($relation, $max_depth)
+                            $crate::facade::SchemaRelationView::new(
+                                $crate::facade::RelationName::new($relation)
+                                    .expect("typed schema relation literal must be valid"),
+                                $max_depth
+                            )
                         ),*
                     ],
                 )
@@ -71,8 +75,10 @@ macro_rules! forge_query_schema {
         $crate::forge_query_schema!(
             @apply_schema_caps
             $crate::facade::SchemaFieldView::new(
-                $aspect,
-                $field,
+                $crate::facade::AspectName::new($aspect)
+                    .expect("typed schema aspect literal must be valid"),
+                $crate::facade::FieldName::new($field)
+                    .expect("typed schema field literal must be valid"),
                 $crate::facade::SchemaFieldKind::$kind
             ),
             [ $($caps)* ]

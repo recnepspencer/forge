@@ -110,12 +110,7 @@ impl ForgeQueryExistingTruthBindingEvidence {
             outcome: ForgeQueryExistingTruthBindingOutcome::ExistingAuthoritativeTarget,
             authoritative_identity: binding.authoritative_identity().clone(),
             resolved_entity_identity,
-            target_collection: binding.target_collection().map(|collection| {
-                ForgeQueryMutationTargetCollectionIdentity::new(
-                    "existing-truth-binding",
-                    collection,
-                )
-            }),
+            target_collection: binding.target_collection_identity().cloned(),
             binding_digest: ForgeQueryMutationEvidenceDigest::source_identity(
                 "existing-truth-binding",
                 binding.binding_evidence_identity(),

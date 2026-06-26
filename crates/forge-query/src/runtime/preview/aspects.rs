@@ -1,33 +1,36 @@
 use super::*;
+use crate::runtime::{ForgeQueryDerivedMaterializationTarget, ForgeQueryLiveArtifactTarget};
 
 pub(super) fn relevant_live_aspects(
     request: &DeclarativeLiveQueryRequest,
     deltas: &[ForgeQueryMutationDelta],
-) -> Vec<String> {
-    let mut aspects = BTreeSet::new();
+) -> Vec<ForgeQueryAspectTouch> {
+    let mut aspects: BTreeSet<ForgeQueryAspectTouch> = BTreeSet::new();
+    let request_target = request.target_collection_identity();
     for delta in deltas {
-        if delta.collection != request.target() {
+        if !delta
+            .target_collection_identity()
+            .same_target_collection_as(&request_target)
+        {
             continue;
         }
-        if delta.aspect_paths.is_empty()
+        if delta.admitted_touched_aspects().is_empty()
             || matches!(
                 delta.kind,
                 ForgeQueryMutationKind::Created | ForgeQueryMutationKind::Deleted
             )
         {
             for field in request.projection() {
-                aspects.insert(format!("{}.{}", field.aspect(), field.field()));
+                aspects.insert(preview_field_touch(field.source_field_key()));
             }
             continue;
         }
-        for changed in &delta.aspect_paths {
+        for touch in delta.admitted_touched_aspects() {
             if request.projection().iter().any(|field| {
-                let projected = format!("{}.{}", field.aspect(), field.field());
-                changed == &projected
-                    || changed.starts_with(&format!("{}.", field.aspect()))
-                    || projected.starts_with(&format!("{changed}."))
+                let projected = preview_field_touch(field.source_field_key());
+                touch.matches_or_contains(&projected)
             }) {
-                aspects.insert(changed.clone());
+                aspects.insert(touch.clone());
             }
         }
     }
@@ -36,25 +39,30 @@ pub(super) fn relevant_live_aspects(
 
 pub(super) fn relevant_computed_aspects(
     runtime: &ForgeQueryDerivedViewRuntime,
-    live_affected: &BTreeMap<String, Vec<String>>,
-    computed_affected: &BTreeMap<String, Vec<String>>,
-) -> Vec<String> {
+    live_affected: &BTreeMap<ForgeQueryLiveArtifactTarget, Vec<ForgeQueryAspectTouch>>,
+    computed_affected: &BTreeMap<
+        ForgeQueryDerivedMaterializationTarget,
+        Vec<ForgeQueryAspectTouch>,
+    >,
+) -> Vec<ForgeQueryAspectTouch> {
     let mut matched = BTreeSet::new();
     for upstream in runtime.declaration.upstream_live_views() {
-        if let Some(aspects) = live_affected.get(upstream) {
+        let upstream = ForgeQueryLiveArtifactTarget::from_view_name(upstream.to_string());
+        if let Some(aspects) = live_affected.get(&upstream) {
             matched.extend(aspects.iter().cloned());
         }
     }
     for upstream in runtime.declaration.upstream_derived_views() {
-        if let Some(aspects) = computed_affected.get(upstream) {
+        let upstream = ForgeQueryDerivedMaterializationTarget::new(upstream.to_string());
+        if let Some(aspects) = computed_affected.get(&upstream) {
             matched.extend(aspects.iter().cloned());
         }
     }
     if matched.is_empty() {
         return Vec::new();
     }
-    if !runtime.declaration.produced_aspects().is_empty() {
-        runtime.declaration.produced_aspects().to_vec()
+    if !runtime.declaration.produced_aspect_touches().is_empty() {
+        runtime.declaration.produced_aspect_touches().to_vec()
     } else {
         matched.into_iter().collect()
     }
@@ -62,16 +70,19 @@ pub(super) fn relevant_computed_aspects(
 
 pub(super) fn relevant_effect_aspects(
     inspected: &ForgeQueryEffectInspectionEvidence,
-    live_affected: &BTreeMap<String, Vec<String>>,
-    computed_affected: &BTreeMap<String, Vec<String>>,
-) -> Vec<String> {
+    live_affected: &BTreeMap<ForgeQueryLiveArtifactTarget, Vec<ForgeQueryAspectTouch>>,
+    computed_affected: &BTreeMap<
+        ForgeQueryDerivedMaterializationTarget,
+        Vec<ForgeQueryAspectTouch>,
+    >,
+) -> Vec<ForgeQueryAspectTouch> {
     let source_aspects = match inspected.trigger_source_kind() {
-        ForgeQueryEffectTriggerSourceKind::LiveView => {
-            live_affected.get(inspected.trigger_source())
-        }
-        ForgeQueryEffectTriggerSourceKind::ComputedView => {
-            computed_affected.get(inspected.trigger_source())
-        }
+        ForgeQueryEffectTriggerSourceKind::LiveView => live_affected.get(
+            &ForgeQueryLiveArtifactTarget::from_view_name(inspected.trigger_source().to_string()),
+        ),
+        ForgeQueryEffectTriggerSourceKind::ComputedView => computed_affected.get(
+            &ForgeQueryDerivedMaterializationTarget::new(inspected.trigger_source().to_string()),
+        ),
     };
     let Some(source_aspects) = source_aspects else {
         return Vec::new();
@@ -79,14 +90,22 @@ pub(super) fn relevant_effect_aspects(
     source_aspects
         .iter()
         .filter(|aspect| {
-            inspected.trigger_aspects().iter().any(|declared| {
-                aspect == &declared
-                    || aspect.starts_with(&format!("{declared}."))
-                    || declared.starts_with(&format!("{aspect}."))
-            })
+            inspected
+                .trigger_aspect_touches()
+                .iter()
+                .any(|declared| declared.matches_or_contains(aspect))
         })
         .cloned()
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect()
+}
+
+fn preview_field_touch(field: &crate::authoring::AspectFieldKey) -> ForgeQueryAspectTouch {
+    ForgeQueryAspectTouch::from_native_parts(
+        field.native_aspect_key(),
+        Some(forge_foundational::facade::CanonicalFieldPath::single(
+            field.native_field_key(),
+        )),
+    )
 }

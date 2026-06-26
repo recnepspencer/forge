@@ -58,12 +58,24 @@ fn preview_batch_dispatches_without_inventing_authoritative_batch_context() {
         .batch(|batch| {
             batch
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "preview-batch-a")
-                        .aspect("title.value", "Preview A")
+                    task.set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value("preview-batch-a"),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("title.value"),
+                        test_authored_string_aspect_value("Preview A"),
+                    )
                 })
                 .insert("Task", |task| {
-                    task.aspect("identity.id", "preview-batch-b")
-                        .aspect("title.value", "Preview B")
+                    task.set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value("preview-batch-b"),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("title.value"),
+                        test_authored_string_aspect_value("Preview B"),
+                    )
                 })
         })
         .expect("preview batch should be admitted");

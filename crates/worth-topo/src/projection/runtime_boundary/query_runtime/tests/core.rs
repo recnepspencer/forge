@@ -1,9 +1,11 @@
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
+use crate::projection::runtime_boundary::declared_query_surfaces::materialize_declared_query_surface_row;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyQueryMutationFamilySupportStatus, TopologyQueryMutationLane,
     TopologyQueryMutationLaneSupportStatus, TopologyRuntimeAdapters,
     TopologyRuntimePostureCapability, TopologyRuntimePostureStatus,
 };
+use crate::query_native_runtime_boundary::{row_text_at, TopologyNativeQueryRowField};
 use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::{ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus};
@@ -110,13 +112,9 @@ fn current_head_runtime_reads_seeded_topology_without_query_import() {
     assert!(!entity_rows.is_empty());
     assert!(!relation_rows.is_empty());
     assert!(!persistent_name_rows.is_empty());
-    assert!(entity_rows.iter().any(|row| {
-        row.external_row()
-            .get("naming")
-            .and_then(|value| value.get("persistent_name"))
-            .and_then(|value| value.as_str())
-            .is_some()
-    }));
+    assert!(entity_rows
+        .iter()
+        .any(|row| { row_text_at(row, ["naming", "persistent_name"]).is_some() }));
 }
 
 #[test]
@@ -133,26 +131,26 @@ fn current_head_runtime_writes_topology_through_real_runtime() {
 
     let receipt = workspace
         .insert("TopologyEntity", |builder| {
-            builder
-                .aspect("topology.kind", ".vertex")
-                .aspect("topology.structure", "query-runtime-write.added_vertex")
-                .aspect("naming.persistent_name", "query-runtime-write.added_vertex")
+            TopologyNativeQueryRowField::NamingPersistentName.set_on(
+                TopologyNativeQueryRowField::TopologyStructure.set_on(
+                    TopologyNativeQueryRowField::TopologyKind.set_on(builder, ".vertex"),
+                    "query-runtime-write.added_vertex",
+                ),
+                "query-runtime-write.added_vertex",
+            )
         })
         .expect("entity create should commit");
 
     let entity_rows = workspace.read(surfaces.entities());
-    let materialized_rows = workspace.materialize(surfaces.materialized());
     let materialized: MaterializedTopologyView =
-        serde_json::from_value(materialized_rows[0].clone()).expect("materialized topology row");
+        materialize_declared_query_surface_row(&mut workspace, surfaces.materialized())
+            .expect("materialized topology row");
     assert!(entity_rows.iter().any(|row| {
-        row.external_row()
-            .get("naming")
-            .and_then(|value| value.get("persistent_name"))
-            .and_then(|value| value.as_str())
+        row_text_at(row, ["naming", "persistent_name"])
             .is_some_and(|name| name == "query-runtime-write.added_vertex")
     }));
     assert!(receipt
-        .affected_derived_view_ids()
+        .terminal_affected_derived_view_ids_projection()
         .contains(&surfaces.materialized().name().to_string()));
     assert!(!materialized.topology().vertices.is_empty());
 }
@@ -165,9 +163,11 @@ fn current_head_runtime_denies_unsupported_insert_collections() {
 
     let error = workspace
         .insert("PersistentName", |builder| {
-            builder
-                .aspect("topology.kind", ".naming.persistent_name")
-                .aspect("naming.persistent_name", ".current-head.denials.name")
+            TopologyNativeQueryRowField::NamingPersistentName.set_on(
+                TopologyNativeQueryRowField::TopologyKind
+                    .set_on(builder, ".naming.persistent_name"),
+                ".current-head.denials.name",
+            )
         })
         .expect_err("unsupported insert collections must fail closed");
 
@@ -309,13 +309,13 @@ fn snapshot_read_only_runtime_reads_seeded_topology_and_denies_writes() {
 
     let error = workspace
         .insert("TopologyEntity", |builder| {
-            builder
-                .aspect("topology.kind", ".vertex")
-                .aspect("topology.structure", ".snapshot-read-only.runtime.vertex")
-                .aspect(
-                    "naming.persistent_name",
+            TopologyNativeQueryRowField::NamingPersistentName.set_on(
+                TopologyNativeQueryRowField::TopologyStructure.set_on(
+                    TopologyNativeQueryRowField::TopologyKind.set_on(builder, ".vertex"),
                     ".snapshot-read-only.runtime.vertex",
-                )
+                ),
+                ".snapshot-read-only.runtime.vertex",
+            )
         })
         .expect_err("snapshot runtime must deny authoritative writes");
 

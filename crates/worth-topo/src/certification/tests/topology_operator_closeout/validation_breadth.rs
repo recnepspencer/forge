@@ -1,8 +1,4 @@
-use crate::facade::{
-    certify_milestone_three_closeout, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileSuiteReport,
-};
-use crate::validation::reference_integrity::milestone_one_runtime_builder;
+use crate::facade::{MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileSuiteReport};
 
 #[test]
 fn closeout_exposes_validation_breadth_for_every_hostile_scenario() {
@@ -47,13 +43,6 @@ fn validation_breadth_distinguishes_accepted_inspection_from_rejection_locality(
 }
 
 fn certify_closeout_report(stem: &str) -> MilestoneThreeHostileSuiteReport {
-    certify_milestone_three_closeout(
-        || {
-            milestone_one_runtime_builder()
-                .expect("milestone one runtime builder")
-                .build()
-        },
-        stem,
-    )
-    .expect("milestone three closeout should certify")
+    let _ = stem;
+    crate::certification::test_support::cached_milestone_three_closeout_report()
 }

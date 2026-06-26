@@ -25,3 +25,16 @@ fn hostile_current_head_baseline_callers_use_current_head_materialized_helper() 
         );
     }
 }
+
+#[test]
+fn current_head_materialized_helper_has_no_local_materialization_fallback() {
+    let source = fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src/certification/support/current_head_materialized_topology.rs"),
+    )
+    .expect("current-head materialized helper should remain readable");
+
+    assert!(!source.contains("fallback_current_head_materialized_topology"));
+    assert!(!source.contains("TopologyMaterializer::materialize_query_input"));
+    assert!(!source.contains("TopologyQueryMaterializationInput::decode"));
+}

@@ -79,7 +79,7 @@ impl ForgeQueryDeclarationFamilyMarker<PrimitiveRebindingQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "rebinding.kind",
                 "rebinding.prior",

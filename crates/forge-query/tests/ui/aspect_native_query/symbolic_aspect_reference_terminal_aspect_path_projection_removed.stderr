@@ -1,0 +1,5 @@
+error[E0599]: no method named `terminal_aspect_path_projection` found for struct `ForgeQuerySymbolicAspectReference` in the current scope
+  --> tests/ui/aspect_native_query/symbolic_aspect_reference_terminal_aspect_path_projection_removed.rs:11:23
+   |
+11 |     let _ = reference.terminal_aspect_path_projection();
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQuerySymbolicAspectReference`

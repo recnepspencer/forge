@@ -1,5 +1,5 @@
 use crate::workload_platform::evidence_ledger::{
-    WorkloadEvidenceLedgerError, WorkloadEvidenceStage,
+    BooleanEvidenceStageKind, WorkloadEvidenceSupport,
 };
 
 use super::counters::PlanarBooleanDownstreamSplitConsumptionCounters;
@@ -49,11 +49,18 @@ pub(crate) fn validate_downstream_split_consumption_input(
         "downstream split consumption requires retained replay parity authority",
     )?;
     reject_missing(
-        input.stage_index().index_identity(),
-        Kind::MissingWorkloadStageIndex,
-        "workload stage index",
+        input.spatial_touch_authority().digest().as_str(),
+        Kind::MissingSpatialTouchAuthority,
+        "spatial touch authority",
         *counters,
-        "downstream split consumption requires Query-owned workload evidence stage index",
+        "downstream split consumption requires admitted spatial touch authority",
+    )?;
+    reject_missing(
+        input.spatial_lookup().lookup_key().as_str(),
+        Kind::MissingSpatialLookupProduct,
+        "spatial evidence lookup product",
+        *counters,
+        "downstream split consumption requires spatial evidence lookup authority",
     )?;
 
     reject_receipt_mismatch(
@@ -109,10 +116,8 @@ pub(crate) fn validate_downstream_split_consumption_input(
         "replay parity receipt must certify the downstream identity being consumed",
     )?;
 
-    input
-        .stage_index()
-        .require_boolean_receipt(input.split_ledger_receipt())
-        .map_err(|error| stage_index_denial(error, input, counters))?;
+    reject_spatial_touch_mismatch(input, counters)?;
+    reject_spatial_lookup_mismatch(input, counters)?;
     Ok(())
 }
 
@@ -159,37 +164,73 @@ fn reject_receipt_mismatch(
     Ok(())
 }
 
-fn stage_index_denial(
-    error: WorkloadEvidenceLedgerError,
+fn reject_spatial_touch_mismatch(
     input: &PlanarBooleanDownstreamSplitConsumptionInput<'_>,
     counters: &mut PlanarBooleanDownstreamSplitConsumptionCounters,
-) -> PlanarBooleanDownstreamSplitConsumptionDenial {
-    match error {
-        WorkloadEvidenceLedgerError::MissingBooleanStage(WorkloadEvidenceStage::BooleanSplit)
-        | WorkloadEvidenceLedgerError::ManualBooleanStage(WorkloadEvidenceStage::BooleanSplit)
-        | WorkloadEvidenceLedgerError::CounterlessBooleanStage(
-            WorkloadEvidenceStage::BooleanSplit,
-        ) => {
-            counters.rejected_non_receipt_evidence();
-            PlanarBooleanDownstreamSplitConsumptionDenial::new(
-                Kind::NonReceiptBackedBooleanSplitEvidence,
-                "boolean-split-stage",
-                input.split_ledger_receipt().receipt_identity(),
-                "missing or counterless BooleanSplit evidence",
-                *counters,
-                "downstream split consumption requires receipt-backed BooleanSplit evidence",
-            )
-        }
-        _ => {
-            counters.rejected_foreign_receipt();
-            PlanarBooleanDownstreamSplitConsumptionDenial::new(
-                Kind::ForeignWorkloadStageIndex,
-                "workload-stage-index",
-                input.split_ledger_receipt().receipt_identity(),
-                format!("{error:?}"),
-                *counters,
-                "workload stage index must contain the exact split ledger receipt",
-            )
-        }
+) -> Result<(), PlanarBooleanDownstreamSplitConsumptionDenial> {
+    let authority = input.spatial_touch_authority();
+    if authority.boolean_stage() != BooleanEvidenceStageKind::Split {
+        counters.rejected_non_receipt_evidence();
+        return Err(PlanarBooleanDownstreamSplitConsumptionDenial::new(
+            Kind::NonReceiptBackedBooleanSplitEvidence,
+            "spatial-touch-boolean-stage",
+            "Split",
+            format!("{:?}", authority.boolean_stage()),
+            *counters,
+            "downstream split consumption requires Split spatial touch authority",
+        ));
     }
+    reject_receipt_mismatch(
+        input.split_ledger_receipt().receipt_identity(),
+        authority.evidence_identity(),
+        Kind::ForeignSpatialTouchAuthority,
+        "spatial-touch-evidence-identity",
+        counters,
+        "spatial touch authority must admit the split ledger receipt being consumed downstream",
+    )
+}
+
+fn reject_spatial_lookup_mismatch(
+    input: &PlanarBooleanDownstreamSplitConsumptionInput<'_>,
+    counters: &mut PlanarBooleanDownstreamSplitConsumptionCounters,
+) -> Result<(), PlanarBooleanDownstreamSplitConsumptionDenial> {
+    let lookup = input.spatial_lookup();
+    if lookup.boolean_stage() != BooleanEvidenceStageKind::Split {
+        counters.rejected_non_receipt_evidence();
+        return Err(PlanarBooleanDownstreamSplitConsumptionDenial::new(
+            Kind::NonReceiptBackedBooleanSplitEvidence,
+            "spatial-lookup-boolean-stage",
+            "Split",
+            format!("{:?}", lookup.boolean_stage()),
+            *counters,
+            "downstream split consumption requires Split spatial lookup authority",
+        ));
+    }
+    if lookup.support() != WorkloadEvidenceSupport::Admitted {
+        counters.rejected_non_receipt_evidence();
+        return Err(PlanarBooleanDownstreamSplitConsumptionDenial::new(
+            Kind::NonReceiptBackedBooleanSplitEvidence,
+            "spatial-lookup-support",
+            "Admitted",
+            format!("{:?}", lookup.support()),
+            *counters,
+            "downstream split consumption requires admitted spatial lookup authority",
+        ));
+    }
+    reject_receipt_mismatch(
+        input.spatial_touch_authority().evidence_identity(),
+        lookup.evidence_identity(),
+        Kind::ForeignSpatialLookupProduct,
+        "spatial-lookup-evidence-identity",
+        counters,
+        "spatial lookup product must describe the admitted spatial touch authority",
+    )?;
+    reject_receipt_mismatch(
+        input.spatial_touch_authority().stage_index_identity(),
+        lookup.lookup_key().stage_index_identity(),
+        Kind::ForeignSpatialLookupProduct,
+        "spatial-lookup-stage-index-identity",
+        counters,
+        "spatial lookup product must preserve the admitted stage-index identity",
+    )
 }

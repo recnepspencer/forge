@@ -1,7 +1,7 @@
 use forge_query::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, AuthoringError, EqualityPredicate,
-    OrderingSelector, QuerySchemaView, RelationName, ScalarPredicateValue, SchemaFieldKind,
-    SchemaFieldView, SchemaRelationView,
+    AspectFieldSelector, AspectName, AuthoredResultShapeField, AuthoringError, EqualityPredicate,
+    FieldName, OrderingSelector, QuerySchemaView, RelationName, ScalarPredicateValue,
+    SchemaFieldKind, SchemaFieldView, SchemaRelationView,
 };
 
 use super::access_denial::PrimitiveConstructionQueryAccessError;
@@ -29,14 +29,19 @@ pub(crate) fn construction_access_schema(
     Ok(QuerySchemaView::new(
         format!("worth-kernel.primitive-construction.graph-read:{max_depth}"),
         [
-            SchemaFieldView::new(IDENTITY_ASPECT, DIGEST_FIELD, SchemaFieldKind::String),
-            SchemaFieldView::new(TOPOLOGY_ASPECT, CLASS_FIELD, SchemaFieldKind::String)
-                .presence_predicate_queryable(),
+            SchemaFieldView::new(
+                aspect_name(IDENTITY_ASPECT)?,
+                field_name(DIGEST_FIELD)?,
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                aspect_name(TOPOLOGY_ASPECT)?,
+                field_name(CLASS_FIELD)?,
+                SchemaFieldKind::String,
+            )
+            .presence_predicate_queryable(),
         ],
-        [SchemaRelationView::new(
-            dependency_relation.as_str(),
-            max_depth,
-        )],
+        [SchemaRelationView::new(dependency_relation, max_depth)],
     ))
 }
 
@@ -93,6 +98,14 @@ pub(crate) fn map_authoring_error(
         "{context}:{}",
         authoring_error_code(&error)
     ))
+}
+
+fn aspect_name(name: &'static str) -> Result<AspectName, PrimitiveConstructionQueryAccessError> {
+    AspectName::new(name).map_err(|error| map_authoring_error("schema-aspect", error))
+}
+
+fn field_name(name: &'static str) -> Result<FieldName, PrimitiveConstructionQueryAccessError> {
+    FieldName::new(name).map_err(|error| map_authoring_error("schema-field", error))
 }
 
 fn authoring_error_code(error: &AuthoringError) -> &'static str {

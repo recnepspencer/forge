@@ -13,6 +13,21 @@ python automation/phase_runner/runner.py `
   --validate
 ```
 
+## Fast Verification
+
+Use the fast Worth lane during implementation and review turns:
+
+```powershell
+.\scripts\ci\check_worth_fast_iteration.ps1
+```
+
+This lane compiles the `forge-query` and `worth-spatial` test surfaces, runs
+their fast unit gates, and runs the `worth-spatial` compile-fail boundary target.
+It intentionally does not execute whole-crate suites such as
+`cargo test -p forge-query --tests`, `cargo test -p worth-spatial --tests`, or
+the `worth-spatial` `public_api_contract` umbrella. Those are closeout lanes and
+must be requested explicitly by a phase acceptance item.
+
 ## Dry Run
 
 ```powershell
@@ -81,11 +96,20 @@ It does not know what a crate, milestone, proof, or closeout means. Those belong
 in the config and templates.
 
 The bundled templates assume the spec owns the high-level phase order. A plan
-turn decomposes the current phase into category mini-plans with source surfaces,
-proof boundaries, first hard breaks or deletions, proof evidence, and blockers.
-Reviews prioritize missed composition, line-cap violations, static/global
-compatibility paths, and slow-conversion bridges as correctness findings, not
-optional cleanup.
+turn creates an in-chat implementation plan with relevant context, the
+adversarial constraint, DX target code block, directory skeleton, implicit
+requirements, and a phase-relevant implementation sequence. The JSON state is
+not the artifact of record for those details; it only tracks progress.
+
+The required loop is phase done-ness:
+
+- `review` runs the phase-done QA loop and sends genuinely incomplete work to
+  `repair`.
+- `repair` fixes the done-check findings and returns to `review`.
+- `close` runs non-looping hardening passes for test quality, directory/file
+  quality, and aerospace-grade gaps. Those passes may produce and implement
+  additional plans, but they do not force another runner loop unless they prove
+  the phase itself was not actually done.
 
 The state file drives execution through an explicit cursor:
 
@@ -112,17 +136,20 @@ Keep prompt content in templates, and keep project semantics in JSON fields.
 
 Every turn template ends with `{contract}`, which renders `templates/_contract.md`
 (override with a top-level `contract_template` field in the state file). The
-contract is the shared, load-bearing half of every prompt — it carries the rules
+contract is the shared, load-bearing half of every prompt. It carries the rules
 that must be identical on every turn:
 
-- the state-mutation protocol (read the state file fresh in the same command
+- the state-mutation protocol: read the state file fresh in the same command
   that writes it; mutate only the current phase row, cursor, `completed_at`, and
-  history; preserve everything else)
+  small history entries; preserve everything else
+- the rule that JSON is only lightweight progress state, not a place for logs,
+  artifacts, command output tails, full plans, long findings, or proof
+  transcripts
 - the `status` / `qa_status` enums and the transition mapping
-- the turn state machine and cursor-advancement rules (the runner sends exactly
-  the cursor turn and infers nothing — the model advances `current` itself)
-- the rule that acceptance checks are *run* and their evidence recorded, and
-  that a status is a claim backed by recorded evidence rather than an assertion
+- the turn state machine and cursor-advancement rules: the runner sends exactly
+  the cursor turn and infers nothing; the model advances `current` itself
+- the rule that only phase done-ness loops; test-purity, directory polish, and
+  aerospace-grade follow-up are close-pass hardening inputs, not loop conditions
 
 The contract is rendered first, against the same context, so it can resolve
 `{status_values}`, `{qa_status_values}`, and `{turns}`. Each turn template adds

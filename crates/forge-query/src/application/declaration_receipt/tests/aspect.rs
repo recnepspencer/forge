@@ -1,4 +1,5 @@
 use crate::application::{
+    assert_declaration_aspect_projections, test_declaration_aspect_key,
     ForgeQueryDeclarationReceiptChecked, ForgeQueryDeclarationReceiptInput,
     ForgeQueryDeclarationRouteIntent,
 };
@@ -18,23 +19,23 @@ fn planned_receipts_preserve_route_scoped_aspect_contract() {
         )
         .unwrap_or_else(|_| panic!("aspect-rich receipt should issue"));
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         receipt.aspect_contract().required(),
-        &["selection.active_edge".to_string()]
+        &["selection.active_edge"],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         receipt.aspect_contract().preserved(),
-        &["selection.local_topology".to_string()]
+        &["selection.local_topology"],
     );
     assert!(receipt.aspect_contract().published().is_empty());
     assert!(!receipt
         .aspect_publication()
         .present()
-        .contains(&"selection.material_edit".to_string()));
+        .contains(&test_declaration_aspect_key("selection.material_edit")));
     assert!(receipt
         .aspect_publication()
         .masked()
-        .contains(&"selection.private_authority".to_string()));
+        .contains(&test_declaration_aspect_key("selection.private_authority")));
 }
 
 #[test]
@@ -69,14 +70,14 @@ fn denied_receipts_keep_scoped_aspect_publication_without_widening() {
     )) {
         ForgeQueryDeclarationReceiptChecked::Denied(denial) => {
             let receipt = denial.receipt();
-            assert_eq!(
+            assert_declaration_aspect_projections(
                 receipt.aspect_contract().required(),
-                &["selection.active_edge".to_string()]
+                &["selection.active_edge"],
             );
             assert!(!receipt
                 .aspect_publication()
                 .present()
-                .contains(&"selection.material_edit".to_string()));
+                .contains(&test_declaration_aspect_key("selection.material_edit")));
         }
         _ => panic!("unsupported receipt kind should deny with retained aspect truth"),
     }
@@ -97,7 +98,7 @@ fn deferred_and_failed_receipts_keep_honest_scoped_publication() {
                 .receipt()
                 .aspect_publication()
                 .masked()
-                .contains(&"selection.private_authority".to_string()));
+                .contains(&test_declaration_aspect_key("selection.private_authority")));
         }
         _ => panic!("aspect-rich deferred receipt should remain deferred"),
     }
@@ -113,7 +114,7 @@ fn deferred_and_failed_receipts_keep_honest_scoped_publication() {
                 .receipt()
                 .aspect_publication()
                 .masked()
-                .contains(&"selection.private_authority".to_string()));
+                .contains(&test_declaration_aspect_key("selection.private_authority")));
         }
         _ => panic!("aspect-rich failed receipt should remain failed"),
     }

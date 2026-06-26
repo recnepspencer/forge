@@ -1,9 +1,12 @@
 use crate::runtime::{
-    ForgeQueryAspectValue, ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram,
+    ForgeQueryAdmittedAspectValue, ForgeQueryAspectMutationOperation,
+    ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram,
     ForgeQueryGraphCompositionProgramStep, ForgeQueryGraphCompositionProgramStepKind,
-    ForgeQueryGraphTouchDescriptor, ForgeQueryMutationMetadata, ForgeQuerySymbolicTargetReference,
+    ForgeQueryGraphTouchDescriptor, ForgeQueryMutationMetadata,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQuerySymbolicTargetReference,
     ForgeQueryWriteCommand,
 };
+use forge_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
 use forge_relational::facade::identity::KindId;
 
 pub(super) fn descriptor_for_step_kind(
@@ -78,7 +81,7 @@ pub(super) fn one_step_delete_program(
 ) {
     let command = ForgeQueryWriteCommand::DeleteSymbolicAspects {
         reference: reference(symbol, collection),
-        touched_aspect_paths: touched_paths.into_iter().map(str::to_string).collect(),
+        touched_aspects: touched_paths.into_iter().map(touch).collect(),
         metadata: ForgeQueryMutationMetadata::new(),
         naming_intent: None,
     };
@@ -98,7 +101,7 @@ pub(super) fn one_step_delete_program_with_relation_kind_id(
 ) {
     let command = ForgeQueryWriteCommand::DeleteSymbolicAspects {
         reference: reference(symbol, collection),
-        touched_aspect_paths: touched_paths.into_iter().map(str::to_string).collect(),
+        touched_aspects: touched_paths.into_iter().map(touch).collect(),
         metadata: ForgeQueryMutationMetadata::new(),
         naming_intent: None,
     };
@@ -115,7 +118,7 @@ pub(super) fn one_step_update_program(
     kind: ForgeQueryGraphCompositionProgramStepKind,
     collection: &str,
     symbol: &str,
-    aspect_path: &str,
+    touch_fixture: &str,
 ) -> (
     Vec<ForgeQueryWriteCommand>,
     ForgeQueryGraphCompositionBreadth,
@@ -123,12 +126,47 @@ pub(super) fn one_step_update_program(
 ) {
     let command = ForgeQueryWriteCommand::UpdateSymbolicAspects {
         reference: reference(symbol, collection),
-        aspects: vec![ForgeQueryAspectValue::new(aspect_path, 1).unwrap()],
+        aspects: vec![
+            ForgeQueryAdmittedAspectValue::new(touch(touch_fixture), int_value(1)).unwrap(),
+        ],
         metadata: ForgeQueryMutationMetadata::new(),
         naming_intent: None,
         continuity_intent: None,
     };
     one_step_program(kind, collection, symbol, command)
+}
+
+pub(super) fn touch(touch_fixture: &str) -> crate::runtime::ForgeQueryAspectTouch {
+    native_touch(touch_fixture)
+}
+
+pub(super) fn set_operation(touch_fixture: &str) -> ForgeQueryAspectMutationOperation {
+    ForgeQueryAspectMutationOperation::set(touch(touch_fixture))
+}
+
+fn int_value(value: i64) -> AspectValue {
+    AspectValue::Int64(value)
+}
+
+fn native_touch(aspect_fixture: &str) -> crate::runtime::ForgeQueryAspectTouch {
+    let mut segments = aspect_fixture.split('.');
+    let aspect_key = AspectKey::new(
+        segments
+            .next()
+            .expect("test touch fixture should name an aspect"),
+    )
+    .expect("test aspect key should admit");
+    let field_segments = segments
+        .map(|segment| FieldKey::new(segment).expect("test field key should admit"))
+        .collect::<Vec<_>>();
+    if field_segments.is_empty() {
+        crate::runtime::ForgeQueryAspectTouch::whole_aspect(aspect_key)
+    } else {
+        crate::runtime::ForgeQueryAspectTouch::aspect_field_path(
+            aspect_key,
+            CanonicalFieldPath::new(field_segments).expect("test field path should admit"),
+        )
+    }
 }
 
 fn one_step_program(
@@ -160,8 +198,12 @@ fn one_step_program_with_relation_kind_id(
         symbolic_entity_declaration_count(kind),
         symbolic_relation_declaration_count(kind),
     );
-    let mut step =
-        ForgeQueryGraphCompositionProgramStep::new(0, kind, collection, Some(symbol.to_string()));
+    let mut step = ForgeQueryGraphCompositionProgramStep::new(
+        0,
+        kind,
+        Some(target_collection(collection)),
+        Some(symbol.to_string()),
+    );
     if let Some(relation_kind_id) = relation_kind_id {
         step = step.with_relation_kind_id(relation_kind_id);
     }
@@ -174,6 +216,10 @@ fn reference(symbol: &str, collection: &str) -> ForgeQuerySymbolicTargetReferenc
         .unwrap()
         .in_target_collection(collection)
         .unwrap()
+}
+
+fn target_collection(collection: &str) -> ForgeQueryMutationTargetCollectionIdentity {
+    ForgeQueryMutationTargetCollectionIdentity::new("graph-composition-test", collection)
 }
 
 fn symbolic_entity_declaration_count(kind: ForgeQueryGraphCompositionProgramStepKind) -> usize {

@@ -9,9 +9,9 @@ use forge_runtime_bridge::facade::{
 
 fn install_temporal_async_and_mixed_residue(
     runtime: &mut ForgeQueryRuntime,
-    temporal_view: &ForgeQueryLiveView<Value>,
-    async_view: &ForgeQueryLiveView<Value>,
-    mixed_view: &ForgeQueryLiveView<Value>,
+    temporal_view: &ForgeQueryLiveView<ForgeQueryNativeRow>,
+    async_view: &ForgeQueryLiveView<ForgeQueryNativeRow>,
+    mixed_view: &ForgeQueryLiveView<ForgeQueryNativeRow>,
 ) {
     runtime
         .emit_time_only_delivery(
@@ -72,13 +72,13 @@ fn install_temporal_async_and_mixed_residue(
 #[test]
 fn preview_discard_closeout_tracks_temporal_async_and_mixed_residue_parity() {
     let mut runtime = stateful_bridge_task_runtime();
-    let temporal_view: ForgeQueryLiveView<Value> = runtime
+    let temporal_view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.preview-temporal", task_live_request(), task_schema())
         .expect("temporal live view should declare");
-    let async_view: ForgeQueryLiveView<Value> = runtime
+    let async_view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.preview-async", task_live_request(), task_schema())
         .expect("async live view should declare");
-    let mixed_view: ForgeQueryLiveView<Value> = runtime
+    let mixed_view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.preview-mixed", task_live_request(), task_schema())
         .expect("mixed live view should declare");
     install_temporal_async_and_mixed_residue(
@@ -128,17 +128,17 @@ fn preview_discard_closeout_tracks_temporal_async_and_mixed_residue_parity() {
 #[test]
 fn preview_promotion_closeout_records_rebinding_for_temporal_async_and_mixed_handles() {
     let mut runtime = stateful_bridge_task_runtime();
-    let temporal_view: ForgeQueryLiveView<Value> = runtime
+    let temporal_view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.promote-temporal", task_live_request(), task_schema())
         .expect("temporal live view should declare");
-    let async_view: ForgeQueryLiveView<Value> = runtime
+    let async_view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.promote-async", task_live_request(), task_schema())
         .expect("async live view should declare");
-    let mixed_view: ForgeQueryLiveView<Value> = runtime
+    let mixed_view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.promote-mixed", task_live_request(), task_schema())
         .expect("mixed live view should declare");
     runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>("tasks.table", task_live_request(), task_schema())
         .expect("authoritative target live view should declare");
     install_temporal_async_and_mixed_residue(
         &mut runtime,
@@ -161,8 +161,14 @@ fn preview_promotion_closeout_records_rebinding_for_temporal_async_and_mixed_han
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("preview-promote-temporal-async")),
-                    ("title.value", json!("Promoted preview residue task")),
+                    (
+                        "identity.id",
+                        test_string_aspect_value("preview-promote-temporal-async"),
+                    ),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Promoted preview residue task"),
+                    ),
                 ],
             ))
             .expect("preview write should stage");
@@ -207,7 +213,7 @@ fn preview_promotion_closeout_records_rebinding_for_temporal_async_and_mixed_han
 #[test]
 fn preview_discard_retains_crossed_preview_completion_residue_typed() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.preview-crossed-completion",
             task_live_request(),
@@ -260,7 +266,7 @@ fn preview_discard_retains_crossed_preview_completion_residue_typed() {
 #[test]
 fn preview_promotion_denies_with_typed_rebinding_recovery_posture() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.preview-promotion-mismatch",
             task_live_request(),
@@ -294,8 +300,14 @@ fn preview_promotion_denies_with_typed_rebinding_recovery_posture() {
             .write(insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("preview-promotion-mismatch")),
-                    ("title.value", json!("Should require rebinding")),
+                    (
+                        "identity.id",
+                        test_string_aspect_value("preview-promotion-mismatch"),
+                    ),
+                    (
+                        "title.value",
+                        test_string_aspect_value("Should require rebinding"),
+                    ),
                 ],
             ))
             .expect("preview write should stage");

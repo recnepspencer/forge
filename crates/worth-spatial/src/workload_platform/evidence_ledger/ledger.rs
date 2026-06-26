@@ -176,6 +176,7 @@ pub enum WorkloadEvidenceLedgerError {
     MissingBooleanStage(WorkloadEvidenceStage),
     ManualBooleanStage(WorkloadEvidenceStage),
     CounterlessBooleanStage(WorkloadEvidenceStage),
+    MismatchedBooleanStageCounters(WorkloadEvidenceStage),
     MismatchedBooleanStage(WorkloadEvidenceStage),
     UnsupportedBooleanStage(WorkloadEvidenceStage),
     GuardFailed(WorkloadEvidenceGuardError),
@@ -230,6 +231,12 @@ impl WorkloadEvidenceLedgerError {
             Self::CounterlessBooleanStage(stage) => {
                 format!(
                     "workload evidence ledger cannot count {} without receipt-backed counters",
+                    stage.human_name()
+                )
+            }
+            Self::MismatchedBooleanStageCounters(stage) => {
+                format!(
+                    "workload evidence ledger counter identity does not match the {} receipt",
                     stage.human_name()
                 )
             }

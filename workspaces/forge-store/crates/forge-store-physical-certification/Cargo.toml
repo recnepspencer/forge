@@ -1,0 +1,20 @@
+[package]
+name = "forge-store-physical-certification"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.12 physical database certification and performance evidence."
+
+[dependencies]
+forge-store-blob-chunks.workspace = true
+forge-store-buffer-pool.workspace = true
+forge-store-contracts.workspace = true
+forge-store-io-scheduler.workspace = true
+forge-store-offline-verifier.workspace = true
+forge-store-operations.workspace = true
+forge-store-physical-integrity.workspace = true
+forge-store-recovery-physics.workspace = true
+forge-store-security.workspace = true
+
+[lints]
+workspace = true

@@ -1,4 +1,3 @@
-import { createRawSignals } from "../../../raw_surface.js";
 import {
   HOST_CAPABILITY_PLAN_BRAND,
   requirePlainObject,
@@ -109,10 +108,12 @@ function normalizeCreateSignalsOptions(options) {
   });
 }
 
-function createMainThreadCompatibilitySignals(request) {
+async function createMainThreadCompatibilitySignals(request) {
+  const rawSurface = await import("../../../raw_surface.js");
+  await rawSurface.default();
   return request.hostCapabilities === null
-    ? wrapSignals(createRawSignals())
-    : wrapSignals(createRawSignals(), {
+    ? wrapSignals(rawSurface.createRawSignals())
+    : wrapSignals(rawSurface.createRawSignals(), {
       hostCapabilities: request.hostCapabilities,
     });
 }

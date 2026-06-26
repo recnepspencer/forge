@@ -15,8 +15,8 @@ fn runtime_support_denies_unsupported_write_family_before_execution() {
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("external-1")),
-                ("title.value", json!("Should not write")),
+                ("identity.id", test_string_aspect_value("external-1")),
+                ("title.value", test_string_aspect_value("Should not write")),
             ],
         ))
         .expect_err("unsupported write family should deny before write authority");
@@ -71,8 +71,8 @@ fn runtime_support_denies_unsupported_computed_family_before_registration() {
     );
 
     let error = runtime
-        .declare_maintained_derived_view::<Value>(
-            ForgeQueryDerivedView::new("task_titles.unsupported", ["title".to_string()]),
+        .declare_maintained_derived_view::<ForgeQueryNativeRow>(
+            ForgeQueryDerivedView::new("task_titles.unsupported", [test_aspect_touch("title")]),
             TitleListMaintainer,
         )
         .expect_err("unsupported computed family should deny before registration");

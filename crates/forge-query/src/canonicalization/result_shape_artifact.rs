@@ -1,8 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::authoring::{
-    AspectFieldKey, AspectName, AuthoredResultShapeField, DeliveredFieldName, FieldName,
-    ResultShapeFamily,
+    AspectFieldKey, AuthoredResultShapeField, DeliveredFieldName, ResultShapeFamily,
 };
 use crate::diagnostics::{CanonicalizationCounters, CanonicalizationWarning, NormalizationEvent};
 use crate::identity::CanonicalResultShapeDigest;
@@ -20,45 +19,38 @@ pub(super) fn build_result_shape_artifact(
     counters: &mut CanonicalizationCounters,
 ) -> Result<CanonicalResultShapeArtifact, QueryCanonicalizationError> {
     let mut seen = BTreeSet::new();
-    let mut delivered_name_sources = BTreeMap::<DeliveredFieldName, (AspectName, FieldName)>::new();
+    let mut delivered_name_sources = BTreeMap::<DeliveredFieldName, AspectFieldKey>::new();
     let mut ordered = Vec::new();
     let mut duplicate_result_fields = Vec::new();
 
     for field in fields {
         let canonical = CanonicalResultField {
-            source_aspect: field.source_aspect_name().clone(),
-            source_field: field.source_field_name().clone(),
+            source: field.source_field_key().clone(),
             delivered_name: field.delivered_field_name().clone(),
         };
         if !projection_field_set.contains(&canonical.source_projection_key()) {
             return Err(QueryCanonicalizationError::UnprojectedShapeField {
-                source_aspect: canonical.source_aspect.to_string(),
-                source_field: canonical.source_field.to_string(),
+                source_aspect: canonical.source_field_key().aspect().to_string(),
+                source_field: canonical.source_field_key().field().to_string(),
                 delivered_name: canonical.delivered_name.to_string(),
             });
         }
 
         match delivered_name_sources.get(&canonical.delivered_name) {
-            Some((source_aspect, source_field))
-                if source_aspect != &canonical.source_aspect
-                    || source_field != &canonical.source_field =>
-            {
+            Some(source) if source != canonical.source_field_key() => {
                 return Err(QueryCanonicalizationError::AmbiguousShapeAliasIdentity {
                     delivered_name: canonical.delivered_name.to_string(),
-                    first_source_aspect: source_aspect.to_string(),
-                    first_source_field: source_field.to_string(),
-                    second_source_aspect: canonical.source_aspect.to_string(),
-                    second_source_field: canonical.source_field.to_string(),
+                    first_source_aspect: source.aspect().to_string(),
+                    first_source_field: source.field().to_string(),
+                    second_source_aspect: canonical.source_field_key().aspect().to_string(),
+                    second_source_field: canonical.source_field_key().field().to_string(),
                 });
             }
             Some(_) => {}
             None => {
                 delivered_name_sources.insert(
                     canonical.delivered_name.clone(),
-                    (
-                        canonical.source_aspect.clone(),
-                        canonical.source_field.clone(),
-                    ),
+                    canonical.source_field_key().clone(),
                 );
             }
         }
@@ -76,8 +68,8 @@ pub(super) fn build_result_shape_artifact(
         ordered
             .iter()
             .map(|canonical| NormalizationEvent::ResultFieldRetained {
-                source_aspect: canonical.source_aspect.to_string(),
-                source_field: canonical.source_field.to_string(),
+                source_aspect: canonical.source_field_key().aspect().to_string(),
+                source_field: canonical.source_field_key().field().to_string(),
                 delivered_name: canonical.delivered_name.to_string(),
             }),
     );

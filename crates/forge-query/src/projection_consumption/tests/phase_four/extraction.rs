@@ -13,8 +13,9 @@ use super::super::super::{
     ProjectionSourceFamily,
 };
 use super::support::{
-    admitted, binding, phase_four_commit_identity, phase_four_snapshot_identity,
-    phase_four_truth_snapshot_identity, relational_row_set, test_entity_identity, write_receipt,
+    admitted, binding, canonical_field_path, phase_four_commit_identity,
+    phase_four_snapshot_identity, phase_four_truth_snapshot_identity, relational_row_set,
+    test_entity_identity, write_receipt,
 };
 use crate::runtime::{ForgeQueryMutationTargetClass, ForgeQueryWriteReceipt};
 
@@ -27,8 +28,22 @@ fn relational_row_set_extracts_identity_and_field_facts() {
         ProjectMaterializedFacts::declare()
             .entity_identities()
             .view_local_identities()
-            .display_field("profile.display_name")
-            .derived_scalar_field("profile.display_name"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            )
+            .derived_scalar_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            ),
     )
     .bind_contract();
 
@@ -54,8 +69,10 @@ fn relational_row_set_extracts_identity_and_field_facts() {
     assert_eq!(consumed.counters().extracted_fact_count(), 8);
     assert_eq!(consumed.counters().source_row_width_consumed(), 6);
     assert_eq!(
-        consumed.display_fields()[0].field_key(),
-        "profile.display_name"
+        consumed.display_fields()[0]
+            .field_path()
+            .canonical_field_path(),
+        &canonical_field_path("profile.display_name")
     );
 }
 
@@ -147,7 +164,14 @@ fn extraction_rejects_missing_field_evidence_and_family_mismatch() {
     let display_contract = admitted(
         ProjectionConsumptionSource::from_relational_row_set(&row_set),
         binding(&["profile.missing"]),
-        ProjectMaterializedFacts::declare().display_field("profile.missing"),
+        ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("missing")
+                    .expect("projection fact field segment should admit"),
+            ]),
+        ),
     )
     .bind_contract();
     let field_error = display_contract
@@ -177,11 +201,19 @@ fn extraction_rejects_missing_field_evidence_and_family_mismatch() {
             vec![
                 SnapshotReadRecord::for_request(
                     &entity_one_display_read,
-                    aspect_value(AspectValue::String("Task One".into())),
+                    aspect_value(
+                        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                            "Task One",
+                        ),
+                    ),
                 ),
                 SnapshotReadRecord::for_request(
                     &entity_two_display_read,
-                    aspect_value(AspectValue::String("Task Two".into())),
+                    aspect_value(
+                        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                            "Task Two",
+                        ),
+                    ),
                 ),
             ],
         ),

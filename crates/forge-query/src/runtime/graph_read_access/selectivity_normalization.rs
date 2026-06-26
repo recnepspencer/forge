@@ -20,8 +20,8 @@ pub(crate) fn normalize_boolean_selectivity_for_access_shape(
                 .iter()
                 .map(|leaf| {
                     ForgeQueryBooleanPredicateSelectivityRow::new(
-                        leaf.aspect(),
-                        leaf.field(),
+                        leaf.native_aspect_key().clone(),
+                        leaf.native_field_key().clone(),
                         leaf.family(),
                         leaf.operator().clone(),
                         leaf.normalized_operand_values().to_vec(),

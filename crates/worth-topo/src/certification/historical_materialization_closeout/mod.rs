@@ -149,18 +149,19 @@ fn certify_runtime_artifact_floors_row(
     let materialization_intents = source_text(
         "..\\forge-query\\src\\runtime\\runtime_inspection_materialization_intents.rs",
     )?;
-    let workspace_queries = source_text("..\\forge-query\\src\\runtime\\workspace_queries.rs")?;
+    let workspace_live_queries =
+        source_text("..\\forge-query\\src\\runtime\\workspace_live_queries.rs")?;
 
-    ensure(derived_binding.contains("pub fn decode_row_pair"))?;
-    ensure(derived_binding.contains("pub fn decode_row_triple"))?;
+    ensure(derived_binding.contains("pub fn materialization<T>("))?;
+    ensure(derived_binding.contains("single_retained_row"))?;
     ensure(retained_scalar_facts.contains("pub fn consume_scalar_fields"))?;
-    ensure(retained_scalar_alignment.contains("pub fn verify_scalar_alignment"))?;
+    ensure(retained_scalar_alignment.contains("retained scalar"))?;
     ensure(materialization_intents.contains("pub fn materialize_derived_artifact_binding"))?;
-    ensure(workspace_queries.contains("pub fn read_live_artifact_binding"))?;
+    ensure(workspace_live_queries.contains("pub fn read_live_artifact_binding"))?;
 
     closed_row(
         TopologyHistoricalMaterializationArea::RuntimeArtifactFloors,
-        "Query runtime owns the retained and live historical artifact floors through exact materialize-and-bind, read-and-bind, typed retained pack decode, retained scalar evidence, and retained scalar alignment seams",
+        "Query runtime owns the retained and live historical artifact floors through exact materialize-and-bind, read-and-bind, retained row access, retained scalar evidence, and native retained payload decode seams",
         "crates/forge-query/src/runtime",
     )
 }
@@ -176,18 +177,25 @@ fn certify_retained_truth_projection_row(
     ensure(retained_artifacts.contains("pub(crate) fn materialized(&self)"))?;
     ensure(retained_artifacts.contains("pub(crate) fn diagnostics(&self)"))?;
     ensure(retained_artifacts.contains("materialize_declared_query_surface_binding("))?;
-    ensure(retained_artifacts.contains("verify_scalar_alignment("))?;
-    ensure(retained_artifacts.contains("decode_row_triple("))?;
-    ensure(retained_artifacts.contains("decode_row_pair("))?;
+    ensure(retained_artifacts.contains("decode_bundle_row("))?;
+    ensure(retained_artifacts.contains("single_retained_row()"))?;
+    ensure(retained_artifacts.contains("retained_payload::decode_retained_payload_row("))?;
+    ensure(
+        retained_artifacts
+            .contains("diagnostics.equivalence_contract_report != equivalence_contract"),
+    )?;
     ensure(!retained_artifacts.contains("workspace.materialize("))?;
     ensure(!retained_artifacts.contains("workspace.read("))?;
     ensure(!retained_artifacts.contains("stage_topology_read_from_view("))?;
     ensure(!retained_artifacts.contains("TopologyQueryMaterializationInput::decode("))?;
     ensure(!retained_artifacts.contains("equivalence_contract_from_diagnostics_rows"))?;
+    ensure(!retained_artifacts.contains("verify_scalar_alignment("))?;
+    ensure(!retained_artifacts.contains("decode_row_triple("))?;
+    ensure(!retained_artifacts.contains("decode_row_pair("))?;
 
     closed_row(
         TopologyHistoricalMaterializationArea::RetainedTruthProjection,
-        "the surviving production retained-artifact seam is now a thin topology projection over Query-owned retained artifact floors, not local historical truth reconstruction from staged read authority",
+        "the surviving production retained-artifact seam is now a thin topology projection over Query-owned retained artifact floors and native retained payload rows, not local historical truth reconstruction from staged read authority or legacy paired/triple row decoding",
         "src/projection/runtime_boundary/declared_query_surfaces/retained_artifacts.rs",
     )
 }

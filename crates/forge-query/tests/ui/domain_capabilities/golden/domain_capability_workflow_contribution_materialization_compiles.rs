@@ -1,7 +1,6 @@
 use forge_query::facade::runtime::{
-    forge_query_domain, BridgePreviewSessionIdentity, ForgeQueryIntentDeclaration,
+    forge_query_domain, BridgePreviewSessionIdentity, ForgeQueryIntentDeclaration, ForgeQueryIntentInput,
 };
-use serde_json::json;
 
 fn workflow_common_lane() {
     let declaration = ForgeQueryIntentDeclaration::strategy_commit(
@@ -9,7 +8,7 @@ fn workflow_common_lane() {
         "spatial.commit",
         "1",
         "geometry.patch",
-        json!({"edge":"e-1"}),
+        ForgeQueryIntentInput::object([("edge", ForgeQueryIntentInput::string("e-1"))]),
     );
 
     let _plan = forge_query_domain("worth.spatial")

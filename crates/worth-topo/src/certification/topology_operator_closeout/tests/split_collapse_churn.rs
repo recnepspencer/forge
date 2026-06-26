@@ -1,18 +1,15 @@
 use crate::facade::{
-    certify_milestone_three_split_collapse_churn, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileScenario, ReplayParityStatus, TopologyMutationDerivedFallbackPolicy,
-    TopologyMutationFamily, TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario, ReplayParityStatus,
+    TopologyMutationDerivedFallbackPolicy, TopologyMutationFamily, TopologyMutationNamingOutcome,
+    TopologyMutationRejectionClass,
 };
-use crate::validation::reference_integrity::build_milestone_one_runtime;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
+
+use super::cached_scenario_report;
 
 #[test]
 fn milestone_three_split_collapse_churn_certifies_topology_operator_owner_churn() {
-    let report = certify_milestone_three_split_collapse_churn(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.split_collapse_churn",
-    )
-    .expect("milestone three split-collapse churn certification should succeed");
+    let report = cached_scenario_report(MilestoneThreeHostileScenario::SplitCollapseChurn);
 
     assert_eq!(
         report.scenario,
@@ -101,16 +98,8 @@ fn milestone_three_split_collapse_churn_certifies_topology_operator_owner_churn(
 
 #[test]
 fn milestone_three_split_collapse_churn_report_is_deterministic_for_same_seeded_history() {
-    let left = certify_milestone_three_split_collapse_churn(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.split_collapse_churn.deterministic",
-    )
-    .expect("left split-collapse churn certification should succeed");
-    let right = certify_milestone_three_split_collapse_churn(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.split_collapse_churn.deterministic",
-    )
-    .expect("right split-collapse churn certification should succeed");
+    let left = cached_scenario_report(MilestoneThreeHostileScenario::SplitCollapseChurn);
+    let right = cached_scenario_report(MilestoneThreeHostileScenario::SplitCollapseChurn);
 
     assert_eq!(left.outcome_class, right.outcome_class);
     assert_eq!(

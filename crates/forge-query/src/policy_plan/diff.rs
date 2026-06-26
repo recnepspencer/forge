@@ -103,7 +103,7 @@ pub fn lower_policy_aware_diff_plan(
             artifact,
             PolicyAwareExecutionMode::HistoricalDiff,
             PolicyAwarePlanCostPosture::RuntimeDiffBounded,
-            artifact.authorized_projection().visible_fields().len(),
+            artifact.authorized_projection().visible_field_paths().len(),
             0,
         ),
         basis_pair,

@@ -1,7 +1,3 @@
-use forge_relational::facade::runtime::RelationalRuntime;
-use forge_runtime_bridge::facade::{BridgeMutationAuthorityBundle, RuntimeBridge};
-use serde_json::Value;
-
 use super::{
     LiveViewDeclarationAdmissionBoundaryReceipt, LiveViewDeclarationAdmissionReceipt,
     SignalInvalidationBoundaryReceipt, SignalInvalidationRoutingReceipt,
@@ -21,16 +17,21 @@ use crate::program::ForgeQueryDerivedView;
 use crate::schema_view::QuerySchemaView;
 use crate::session_label::ForgeQuerySessionLabel;
 use crate::subscription::SubscriptionActivationInput;
+use crate::view_shape_live::ForgeQueryGroupedBaselineMember;
+use forge_relational::facade::runtime::RelationalRuntime;
+use forge_runtime_bridge::facade::{BridgeMutationAuthorityBundle, RuntimeBridge};
 
 use crate::runtime::remask_posture::ForgeQueryRuntimeRemaskProjection;
 use crate::runtime::{
-    ForgeQueryEffectPolicy, ForgeQueryExistingTruthAssertionDenial,
-    ForgeQueryExistingTruthBindingDenial, ForgeQueryExistingTruthProbe,
-    ForgeQueryExistingTruthProbeDenial, ForgeQueryExistingTruthProbeRequest,
+    ForgeQueryBackendAdmissibleMutation, ForgeQueryEffectPolicy,
+    ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthBindingDenial,
+    ForgeQueryExistingTruthProbe, ForgeQueryExistingTruthProbeDenial,
+    ForgeQueryExistingTruthProbeField, ForgeQueryExistingTruthProbeRequest,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile,
-    ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQueryLiveArtifactTarget, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryRuntimeSupportProfile, ForgeQueryVerifiedExistingTruthAssertion,
+    ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };
 
 pub fn runtime_subscription_support_evidence_identity(
@@ -49,7 +50,7 @@ pub trait ForgeQueryRuntimeBackend {
     fn support_profile(&self) -> ForgeQueryRuntimeSupportProfile;
 
     fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
-        unavailable_snapshot_identity()
+        super::unavailable_snapshot_identity()
     }
 
     fn admit_live_view_declaration(
@@ -68,12 +69,12 @@ pub trait ForgeQueryRuntimeBackend {
 
     fn write(
         &mut self,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError>;
 
     fn write_batch(
         &mut self,
-        commands: Vec<ForgeQueryWriteCommand>,
+        mutations: Vec<ForgeQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError>;
 
     fn admit_existing_truth_binding(
@@ -86,7 +87,7 @@ pub trait ForgeQueryRuntimeBackend {
     fn verify_existing_truth_assertion(
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
-        _aspects: &[crate::runtime::ForgeQueryAspectValue],
+        _aspects: &[crate::runtime::ForgeQueryAdmittedAspectValue],
     ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>
     {
         Err(ForgeQueryExistingTruthAssertionDenial::new(
@@ -116,11 +117,20 @@ pub trait ForgeQueryRuntimeBackend {
         declaration: &ForgeQueryIntentDeclaration,
     ) -> Result<ForgeQueryIntentExecution, ForgeQueryRuntimeError>;
 
-    fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity>;
+    fn live_entities_for_target(
+        &self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity>;
 
-    fn drain_live_patches(&mut self, view_name: &str) -> Vec<ForgeQueryLivePatch>;
+    fn drain_live_patches_for_target(
+        &mut self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch>;
 
-    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String>;
+    fn affected_live_view_targets(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget>;
 
     fn install_live_subscription(
         &mut self,
@@ -158,24 +168,9 @@ pub trait ForgeQueryRuntimeBackend {
     fn grouped_baseline_members(
         &self,
         _request: &DeclarativeLiveQueryRequest,
-    ) -> Result<Option<Vec<(String, String)>>, ForgeQueryWorkspaceError> {
+    ) -> Result<Option<Vec<ForgeQueryGroupedBaselineMember>>, ForgeQueryWorkspaceError> {
         Ok(None)
     }
-}
-
-pub(in crate::runtime) fn unavailable_snapshot_identity() -> ForgeQuerySnapshotIdentity {
-    ForgeQuerySnapshotIdentity::preview(
-        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeStateSnapshot)
-            .field_shape(
-                ForgeQueryEvidenceTag::new("snapshot_authority"),
-                "unavailable",
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("snapshot_contract"),
-                "backend-must-override-for-authoritative-truth",
-            )
-            .seal(),
-    )
 }
 
 pub trait ForgeQueryRuntimeSchemaAdapter {
@@ -212,11 +207,20 @@ pub trait ForgeQueryRuntimeSourceAdapter {
         schema_view: QuerySchemaView,
     ) -> Result<ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError>;
 
-    fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity>;
+    fn live_entities_for_target(
+        &self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryEntity>;
 
-    fn drain_live_patches(&mut self, view_name: &str) -> Vec<ForgeQueryLivePatch>;
+    fn drain_live_patches_for_target(
+        &mut self,
+        target: &ForgeQueryLiveArtifactTarget,
+    ) -> Vec<ForgeQueryLivePatch>;
 
-    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String>;
+    fn affected_live_view_targets(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget>;
 }
 
 pub trait ForgeQueryRuntimeSnapshotIdentityAdapter {
@@ -227,13 +231,13 @@ pub trait ForgeQueryRuntimeExistingTruthVerificationAdapter {
     fn verify_existing_truth_assertion(
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
-        aspects: &[crate::runtime::ForgeQueryAspectValue],
-    ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>;
+        aspects: &[crate::runtime::ForgeQueryAdmittedAspectValue],
+    ) -> Result<(), ForgeQueryExistingTruthAssertionDenial>;
 
     fn probe_existing_truth(
         &self,
         request: &ForgeQueryExistingTruthProbeRequest,
-    ) -> Result<Vec<(String, Value)>, ForgeQueryExistingTruthProbeDenial>;
+    ) -> Result<Vec<ForgeQueryExistingTruthProbeField>, ForgeQueryExistingTruthProbeDenial>;
 }
 
 pub trait ForgeQueryRuntimeWriteAuthorityAdapter {
@@ -241,7 +245,7 @@ pub trait ForgeQueryRuntimeWriteAuthorityAdapter {
         &self,
         bridge: &RuntimeBridge,
         snapshot_identity: &ForgeQuerySnapshotIdentity,
-        command: &ForgeQueryWriteCommand,
+        mutation: &ForgeQueryBackendAdmissibleMutation,
         collection: &str,
         entity_identity: &ForgeQueryEntityIdentity,
         mutation_kind: ForgeQueryMutationKind,
@@ -249,7 +253,7 @@ pub trait ForgeQueryRuntimeWriteAuthorityAdapter {
         super::build_bridge_authority_bundle(
             bridge,
             snapshot_identity,
-            command,
+            mutation,
             collection,
             entity_identity,
             mutation_kind,
@@ -258,28 +262,28 @@ pub trait ForgeQueryRuntimeWriteAuthorityAdapter {
 
     fn build_write_authority_execution_receipt(
         &self,
-        command: &ForgeQueryWriteCommand,
+        mutation: &ForgeQueryBackendAdmissibleMutation,
         receipt: ForgeQueryMutationReceipt,
     ) -> WriteAuthorityExecutionReceipt {
-        WriteAuthorityExecutionReceipt::from_command(command, receipt)
+        WriteAuthorityExecutionReceipt::from_backend_admissible_mutation(mutation, receipt)
     }
 
     fn write(
         &mut self,
         bridge: &RuntimeBridge,
         relational_runtime: Option<&mut RelationalRuntime>,
-        command: ForgeQueryWriteCommand,
+        mutation: ForgeQueryBackendAdmissibleMutation,
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError>;
 
     fn write_batch(
         &mut self,
         bridge: &RuntimeBridge,
         mut relational_runtime: Option<&mut RelationalRuntime>,
-        commands: Vec<ForgeQueryWriteCommand>,
+        mutations: Vec<ForgeQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<WriteAuthorityExecutionReceipt>, ForgeQueryWorkspaceError> {
-        let mut receipts = Vec::with_capacity(commands.len());
-        for command in commands {
-            receipts.push(self.write(bridge, relational_runtime.as_deref_mut(), command)?);
+        let mut receipts = Vec::with_capacity(mutations.len());
+        for mutation in mutations {
+            receipts.push(self.write(bridge, relational_runtime.as_deref_mut(), mutation)?);
         }
         Ok(receipts)
     }

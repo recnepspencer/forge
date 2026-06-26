@@ -22,15 +22,19 @@ use worth_geom::facade::{
     PrimitiveRealizationStrategy, PrimitiveStabilityClass, PrimitiveSupportNormalClass,
 };
 
+pub(crate) use geometry_recovery::GeometryRecoveryActionFactReceipt;
+#[cfg(test)]
 pub(crate) use geometry_recovery::PrimitiveConstructionRecoveryAction;
+#[cfg(test)]
 pub(crate) use geometry_recovery::{
-    GeometryRecoveryAction, GeometryRecoveryActionFactReceipt, GeometryRecoverySourcePosture,
-    GeometryRecoveryTargetScope,
+    GeometryRecoveryAction, GeometryRecoverySourcePosture, GeometryRecoveryTargetScope,
 };
+pub(crate) use outcome_rejection::PrimitiveConstructionRejectedOutcome;
+#[cfg(test)]
 pub(crate) use outcome_rejection::{
-    PrimitiveConstructionRejectedOutcome, PrimitiveConstructionRejectionClass,
-    PrimitiveConstructionRejectionLocality,
+    PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
 };
+#[cfg(test)]
 pub(crate) use rejection_facts::prepare_primitive_construction_rejected_facts;
 #[allow(unused_imports)]
 pub(crate) use rejection_facts::PrimitiveConstructionRejectedFacts;
@@ -119,18 +123,6 @@ impl PrimitiveConstructionAcceptedOutcome {
         &self.canonical_artifact_digest
     }
 
-    pub(crate) fn topology_compose_evidence_digest(&self) -> Option<&str> {
-        self.topology_compose_evidence_digest.as_deref()
-    }
-
-    pub(crate) fn graph_obligation_envelope_digest(&self) -> Option<&str> {
-        self.graph_obligation_envelope_digest.as_deref()
-    }
-
-    pub(crate) fn graph_obligation_selected_count(&self) -> usize {
-        self.graph_obligation_selected_count
-    }
-
     pub(crate) fn outcome_digest(&self) -> &str {
         &self.outcome_digest
     }
@@ -185,18 +177,6 @@ impl ExecutedPrimitiveConstructionGraphAuthorityOutcome {
         }
     }
 
-    pub(crate) fn family(&self) -> PrimitiveConstructionFamily {
-        self.family
-    }
-
-    pub(crate) fn canonical_artifact_digest(&self) -> &str {
-        &self.canonical_artifact_digest
-    }
-
-    pub(crate) fn result_digest(&self) -> &str {
-        &self.result_digest
-    }
-
     pub(crate) fn topology_compose_evidence_digest(&self) -> &str {
         &self.topology_compose_evidence_digest
     }
@@ -240,15 +220,6 @@ impl PrimitiveConstructionPreparedOutcome {
 pub(crate) enum PrimitiveConstructionExecutedPreparedOutcome {
     Accepted(ExecutedPrimitiveConstructionGraphAuthorityOutcome),
     Rejected(PrimitiveConstructionRejectedOutcome),
-}
-
-impl PrimitiveConstructionExecutedPreparedOutcome {
-    pub(crate) fn family(&self) -> PrimitiveConstructionFamily {
-        match self {
-            Self::Accepted(outcome) => outcome.family(),
-            Self::Rejected(outcome) => outcome.family(),
-        }
-    }
 }
 
 pub(crate) fn prepare_primitive_construction_executed_outcome<

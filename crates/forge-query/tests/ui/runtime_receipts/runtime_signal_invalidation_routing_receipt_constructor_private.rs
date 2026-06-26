@@ -11,7 +11,7 @@ fn main() {
             collection: "Task".to_string(),
             entity_identity: "task-1".to_string(),
             kind: ForgeQueryMutationKind::Created,
-            aspect_paths: vec!["title.value".to_string()],
+            touched_aspects: Vec::new(),
         }],
         bridge_authority: None,
     };

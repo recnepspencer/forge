@@ -211,8 +211,8 @@ fn symbolic_aspect_resolution_identity(
                 resolution.family().as_str(),
             )
             .field_value(
-                ForgeQueryEvidenceTag::new("aspect_path"),
-                resolution.aspect_path(),
+                ForgeQueryEvidenceTag::new("admitted_aspect_touch"),
+                resolution.aspect_touch().admitted_touch_digest_part(),
             )
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("symbol"),

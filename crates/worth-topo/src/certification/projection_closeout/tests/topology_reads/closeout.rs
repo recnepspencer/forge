@@ -167,6 +167,12 @@ fn topology_read_proof_report_aggregates_request_and_parity_evidence_on_the_boun
         proof_report
             .request_aggregate
             .anchored_expansion_execution_count,
+        0
+    );
+    assert_eq!(
+        proof_report
+            .request_aggregate
+            .explicit_broad_search_execution_count,
         1
     );
     assert_eq!(

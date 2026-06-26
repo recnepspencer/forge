@@ -46,10 +46,10 @@ fn projection_consumption_warning_eligibility_stays_admitted_without_execution_h
             "narrowed-shape-digest",
             "policy-digest",
             "tenant-schema-digest",
-            vec!["field.visible".to_string()],
+            crate::projection_consumption::test_authorized_field_paths(&["field.visible"]),
         ),
         crate::projection_consumption::ProjectMaterializedFacts::declare()
-            .display_field("field.visible"),
+            .display_field_path(crate::projection_consumption::projection_fact_field_path_from_segments([forge_foundational::facade::FieldKey::new("field").expect("projection fact field segment should admit"), forge_foundational::facade::FieldKey::new("visible").expect("projection fact field segment should admit")])),
     )
     .expect("projection declaration should build");
     let request =

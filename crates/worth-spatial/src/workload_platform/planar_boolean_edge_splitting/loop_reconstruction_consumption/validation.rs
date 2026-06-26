@@ -39,11 +39,11 @@ pub(crate) fn validate_loop_reconstruction_split_consumption_input(
         "loop reconstruction requires split request lineage",
     )?;
     reject_missing(
-        downstream.workload_stage_index_identity(),
-        Kind::MissingWorkloadStageIndex,
-        "workload stage index",
+        downstream.spatial_lookup_key(),
+        Kind::MissingSpatialLookupProduct,
+        "spatial lookup product",
         counters,
-        "loop reconstruction must preserve Query-owned workload stage-index authority",
+        "loop reconstruction must preserve downstream spatial lookup authority",
     )
 }
 

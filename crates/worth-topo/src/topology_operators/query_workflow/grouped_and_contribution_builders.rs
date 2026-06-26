@@ -1,25 +1,19 @@
-#[cfg(test)]
 use forge_query::facade::{
     ForgeQueryContributionComposedOrchestrationInput, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationSupportsNeighborhoodGrouping, ForgeQueryGroupedDeclarationInput,
 };
 
-#[cfg(test)]
 use crate::query_domain::TopologyQueryDomain;
 use crate::topology_operators::application::TopologyDeclarationMutationPayload;
-#[cfg(test)]
 use crate::topology_operators::TopologyOperatorContributionDeclaration;
 
 use super::semantic_contribution_codec::{
     topology_fallback_policy_contribution, topology_naming_row_contributions,
 };
-#[cfg(test)]
 use super::TopologyOperatorContributionInput;
 use super::TopologyOperatorContributionIntent;
-#[cfg(test)]
 use super::TopologyOperatorGroupedInput;
 
-#[cfg(test)]
 pub fn topology_grouped_operator_neighborhood<I>(seed: I) -> TopologyOperatorGroupedInput<I>
 where
     I: ForgeQueryDeclarationInput<TopologyQueryDomain>,
@@ -28,7 +22,6 @@ where
     ForgeQueryGroupedDeclarationInput::local_neighborhood(seed)
 }
 
-#[cfg(test)]
 pub fn topology_operator_contribution_workflow<I>(
     declaration: I,
 ) -> TopologyOperatorContributionInput<I>

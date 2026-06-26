@@ -1,0 +1,70 @@
+error: cannot construct `WorthTopologyOperatorSelectedObligationCloseoutRow` with struct literal syntax due to private fields
+  --> tests/ui/validator_invariant_catalog/operator_selected_obligation_row_struct_literal.rs:4:16
+   |
+ 4 |     let _row = WorthTopologyOperatorSelectedObligationCloseoutRow {
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         selected_plan_digest: String::new(),
+   |         ----------------------------------- private field
+ 6 |         selected_obligation_row_digest: String::new(),
+   |         --------------------------------------------- private field
+ 7 |         worth_family_identity_digest: String::new(),
+   |         ------------------------------------------- private field
+ 8 |         query_registration_digest: String::new(),
+   |         ---------------------------------------- private field
+ 9 |         query_rule_identity_digest: String::new(),
+   |         ----------------------------------------- private field
+10 |         query_execution_row_digest: String::new(),
+   |         ----------------------------------------- private field
+11 |         query_execution_envelope_digest: String::new(),
+   |         ---------------------------------------------- private field
+12 |         query_execution_status: String::new(),
+   |         ------------------------------------- private field
+13 |         query_support_lane: String::new(),
+   |         --------------------------------- private field
+14 |         query_support_status: String::new(),
+   |         ----------------------------------- private field
+15 |         query_support_posture_digest: String::new(),
+   |         ------------------------------------------- private field
+16 |         query_execution_budget_digest: String::new(),
+   |         -------------------------------------------- private field
+17 |         query_execution_cost_class: String::new(),
+   |         ----------------------------------------- private field
+18 |         query_execution_scope: String::new(),
+   |         ------------------------------------ private field
+19 |         query_budget_exceeded_policy: String::new(),
+   |         ------------------------------------------- private field
+20 |         query_diagnostic_materialization: String::new(),
+   |         ----------------------------------------------- private field
+21 |         query_state_load_counters_digest: String::new(),
+   |         ----------------------------------------------- private field
+22 |         enforcement_receipt_digest: String::new(),
+   |         ----------------------------------------- private field
+23 |         row_digest: String::new(),
+   |         ------------------------- private field
+   |
+   = note: ...and other private field `diagnostic_witness_digest` that was not provided
+help: you might have meant to use the `from_enforcement_receipt` associated function
+   |
+ 4 -     let _row = WorthTopologyOperatorSelectedObligationCloseoutRow {
+ 5 -         selected_plan_digest: String::new(),
+ 6 -         selected_obligation_row_digest: String::new(),
+ 7 -         worth_family_identity_digest: String::new(),
+ 8 -         query_registration_digest: String::new(),
+ 9 -         query_rule_identity_digest: String::new(),
+10 -         query_execution_row_digest: String::new(),
+11 -         query_execution_envelope_digest: String::new(),
+12 -         query_execution_status: String::new(),
+13 -         query_support_lane: String::new(),
+14 -         query_support_status: String::new(),
+15 -         query_support_posture_digest: String::new(),
+16 -         query_execution_budget_digest: String::new(),
+17 -         query_execution_cost_class: String::new(),
+18 -         query_execution_scope: String::new(),
+19 -         query_budget_exceeded_policy: String::new(),
+20 -         query_diagnostic_materialization: String::new(),
+21 -         query_state_load_counters_digest: String::new(),
+22 -         enforcement_receipt_digest: String::new(),
+23 -         row_digest: String::new(),
+24 -     };
+ 4 +     let _row = WorthTopologyOperatorSelectedObligationCloseoutRow::from_enforcement_receipt(_);
+   |

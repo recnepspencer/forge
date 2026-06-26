@@ -19,30 +19,30 @@ use crate::runtime::{
 
 #[derive(Clone, Debug, PartialEq)]
 pub(in crate::runtime) struct ForgeQueryPublishedArtifactEntry {
-    view_name: String,
+    target: ForgeQueryDerivedMaterializationTarget,
     published_binding: Option<Arc<ForgeQueryDerivedArtifactBinding>>,
     async_result_state: Option<ForgeQueryRuntimeAsyncResultState>,
 }
 
 impl ForgeQueryPublishedArtifactEntry {
     pub(in crate::runtime) fn published(
-        view_name: impl Into<String>,
+        target: ForgeQueryDerivedMaterializationTarget,
         binding: ForgeQueryDerivedArtifactBinding,
         async_result_state: Option<ForgeQueryRuntimeAsyncResultState>,
     ) -> Self {
         Self {
-            view_name: view_name.into(),
+            target,
             published_binding: Some(Arc::new(binding)),
             async_result_state,
         }
     }
 
     pub(in crate::runtime) fn unpublished(
-        view_name: impl Into<String>,
+        target: ForgeQueryDerivedMaterializationTarget,
         async_result_state: ForgeQueryRuntimeAsyncResultState,
     ) -> Self {
         Self {
-            view_name: view_name.into(),
+            target,
             published_binding: None,
             async_result_state: Some(async_result_state),
         }
@@ -53,14 +53,15 @@ impl ForgeQueryPublishedArtifactEntry {
         view_name: &str,
         runtime_view: &ForgeQueryDerivedViewRuntime,
     ) -> Result<Self, ForgeQueryRuntimeError> {
+        let target = ForgeQueryDerivedMaterializationTarget::new(view_name);
         let evidence =
             crate::runtime::ForgeQueryComputedInspectionEvidence::from_runtime(runtime_view);
         let receipt = ForgeQueryDerivedMaterializationReceipt::from_evidence(
             &evidence,
             snapshot_identity.clone(),
         );
-        let materialization = ForgeQueryDerivedMaterializationResult::new(
-            runtime_view.materialization.rows().to_vec(),
+        let materialization = ForgeQueryDerivedMaterializationResult::from_retained_rows(
+            runtime_view.materialization.retained_rows().to_vec(),
             receipt,
         );
         let async_result_state = async_result_state_for_shared_read_entry(
@@ -71,13 +72,13 @@ impl ForgeQueryPublishedArtifactEntry {
         );
         if runtime_view.materialization.is_published() {
             return Ok(Self::published(
-                view_name.to_string(),
-                bind_shared_read_artifact(snapshot_identity, view_name, materialization)?,
+                target.clone(),
+                bind_shared_read_artifact(snapshot_identity, &target, materialization)?,
                 async_result_state,
             ));
         }
         Ok(Self::unpublished(
-            view_name.to_string(),
+            target,
             unpublished_async_result_state(snapshot_identity, view_name),
         ))
     }
@@ -86,6 +87,10 @@ impl ForgeQueryPublishedArtifactEntry {
         &self,
     ) -> Option<Arc<ForgeQueryDerivedArtifactBinding>> {
         self.published_binding.clone()
+    }
+
+    pub(in crate::runtime) fn target(&self) -> &ForgeQueryDerivedMaterializationTarget {
+        &self.target
     }
 
     pub(in crate::runtime) fn async_result_state(
@@ -97,19 +102,19 @@ impl ForgeQueryPublishedArtifactEntry {
 
 fn bind_shared_read_artifact(
     snapshot_identity: &ForgeQuerySnapshotIdentity,
-    view_name: &str,
+    target: &ForgeQueryDerivedMaterializationTarget,
     materialization: ForgeQueryDerivedMaterializationResult,
 ) -> Result<ForgeQueryDerivedArtifactBinding, ForgeQueryRuntimeError> {
     let bundle = ForgeQueryDerivedMaterializationBundle::new(
         snapshot_identity.clone(),
-        std::collections::BTreeMap::from([(view_name.to_string(), materialization)]),
+        std::collections::BTreeMap::from([(target.clone(), materialization)]),
     );
     bundle.bind_retained_artifact_identity(
         shared_read_bind_retained_artifact_label_identity(
-            view_name,
+            target.terminal_view_name_projection(),
             &snapshot_identity.evidence_identity(),
         ),
-        [ForgeQueryDerivedMaterializationTarget::new(view_name)],
+        [target.clone()],
     )
 }
 

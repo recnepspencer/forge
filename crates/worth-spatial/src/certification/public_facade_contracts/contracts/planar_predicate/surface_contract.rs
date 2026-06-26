@@ -36,11 +36,17 @@ fn planar_predicate_authority_family_is_query_native_and_relational() {
     );
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.planar_predicate.projected_points".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.planar_predicate.projected_points"
+        )));
     assert!(aspect_contract
         .required()
-        .contains(&"geometry.planar_predicate.coincidence_policy".to_string()));
-    assert!(aspect_contract
-        .preserved()
-        .contains(&"geometry.planar_predicate.certified_sign".to_string()));
+        .contains(&crate::query_contract_helpers::aspect_field_key(
+            "geometry.planar_predicate.coincidence_policy"
+        )));
+    assert!(aspect_contract.preserved().contains(
+        &crate::query_contract_helpers::aspect_field_key(
+            "geometry.planar_predicate.certified_sign"
+        )
+    ));
 }

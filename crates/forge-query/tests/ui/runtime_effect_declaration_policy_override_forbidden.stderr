@@ -1,7 +1,15 @@
+warning: unused imports: `CanonicalFieldPath` and `FieldKey`
+ --> tests/ui/runtime_effect_declaration_policy_override_forbidden.rs:1:45
+  |
+1 | use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
+  |                                             ^^^^^^^^^^^^^^^^^^  ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
 error[E0599]: no method named `with_effect_policy` found for struct `ForgeQueryEffectDeclaration` in the current scope
-  --> tests/ui/runtime_effect_declaration_policy_override_forbidden.rs:15:25
+  --> tests/ui/runtime_effect_declaration_policy_override_forbidden.rs:16:25
    |
-15 |     let _ = declaration.with_effect_policy(ForgeQueryEffectPolicy::Muted);
+16 |     let _ = declaration.with_effect_policy(ForgeQueryEffectPolicy::Muted);
    |                         ^^^^^^^^^^^^^^^^^^
    |
 help: there is a method `effect_policy` with a similar name, but with different arguments

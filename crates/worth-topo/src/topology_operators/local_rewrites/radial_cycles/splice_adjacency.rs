@@ -7,6 +7,7 @@ use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
+use crate::query_native_runtime_boundary::TopologyNativeQueryRowField;
 use crate::topology_operators::application::bindings::{
     query_entity_binding, query_relation_binding,
 };
@@ -114,23 +115,35 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         Ok(builder.update_existing_verified(
             binding,
             |verify| {
-                let verify = verify
-                    .aspect("topology.kind", relation_kind.kind_name())
-                    .aspect("topology.source_identity", verified_source_query_identity)
-                    .aspect("topology.target_identity", current_target_query_identity);
-                if let Some(path) = dependency_path {
-                    verify.aspect(path, relation_kind.kind_name())
+                let verify = TopologyNativeQueryRowField::TopologyTargetIdentity.set_on(
+                    TopologyNativeQueryRowField::TopologySourceIdentity.set_on(
+                        TopologyNativeQueryRowField::TopologyKind
+                            .set_on(verify, relation_kind.kind_name()),
+                        verified_source_query_identity,
+                    ),
+                    current_target_query_identity,
+                );
+                if let Some(field) =
+                    dependency_path.and_then(TopologyNativeQueryRowField::from_query_aspect_path)
+                {
+                    field.set_on(verify, relation_kind.kind_name())
                 } else {
                     verify
                 }
             },
             |update| {
-                let update = update
-                    .aspect("topology.kind", relation_kind.kind_name())
-                    .aspect("topology.source_identity", source_query_identity)
-                    .aspect("topology.target_identity", updated_target_query_identity);
-                if let Some(path) = dependency_path {
-                    update.aspect(path, relation_kind.kind_name())
+                let update = TopologyNativeQueryRowField::TopologyTargetIdentity.set_on(
+                    TopologyNativeQueryRowField::TopologySourceIdentity.set_on(
+                        TopologyNativeQueryRowField::TopologyKind
+                            .set_on(update, relation_kind.kind_name()),
+                        source_query_identity,
+                    ),
+                    updated_target_query_identity,
+                );
+                if let Some(field) =
+                    dependency_path.and_then(TopologyNativeQueryRowField::from_query_aspect_path)
+                {
+                    field.set_on(update, relation_kind.kind_name())
                 } else {
                     update
                 }

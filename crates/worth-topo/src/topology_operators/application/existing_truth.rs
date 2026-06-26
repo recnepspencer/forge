@@ -7,8 +7,12 @@ use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
+use crate::query_native_runtime_boundary::TopologyNativeQueryRowField;
 use crate::topology_operators::authority_identity::{
     existing_entity_authority, existing_relation_authority,
+};
+use crate::topology_operators::touched_graph_basis::{
+    query_aspect_touch, topology_touched_aspect_from_schema_aspect,
 };
 use crate::topology_operators::TopologyDeclaredMutationMember;
 
@@ -44,15 +48,18 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         )?;
         Ok(builder.delete_existing_verified(
             binding,
-            |verify| verify.aspect("topology.kind", expected_kind.kind_name()),
+            |verify| {
+                verify.set_aspect(
+                    TopologyNativeQueryRowField::TopologyKind.touch(),
+                    TopologyNativeQueryRowField::TopologyKind
+                        .authored_string(expected_kind.kind_name()),
+                )
+            },
             |delete| {
-                let mut delete = delete.target_collection("TopologyEntity");
-                for path in schema::facade::query_aspect_path_strings(
-                    contract.touched_aspects().iter().copied(),
-                ) {
-                    delete = delete.touch(path);
-                }
-                delete
+                let delete = delete.target_collection("TopologyEntity");
+                delete.touches(contract.touched_aspects().iter().copied().map(|aspect| {
+                    query_aspect_touch(topology_touched_aspect_from_schema_aspect(aspect))
+                }))
             },
         ))
     }
@@ -85,15 +92,18 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         )?;
         Ok(builder.delete_existing_verified(
             binding,
-            |verify| verify.aspect("topology.kind", expected_kind.kind_name()),
+            |verify| {
+                verify.set_aspect(
+                    TopologyNativeQueryRowField::TopologyKind.touch(),
+                    TopologyNativeQueryRowField::TopologyKind
+                        .authored_string(expected_kind.kind_name()),
+                )
+            },
             |delete| {
-                let mut delete = delete.target_collection("TopologyRelation");
-                for path in schema::facade::query_aspect_path_strings(
-                    contract.touched_aspects().iter().copied(),
-                ) {
-                    delete = delete.touch(path);
-                }
-                delete
+                let delete = delete.target_collection("TopologyRelation");
+                delete.touches(contract.touched_aspects().iter().copied().map(|aspect| {
+                    query_aspect_touch(topology_touched_aspect_from_schema_aspect(aspect))
+                }))
             },
         ))
     }

@@ -4,19 +4,19 @@ use super::super::support::*;
 fn write_intent_effect_lowers_to_pending_intent_with_phase_evidence() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(
+        .declare_effect::<ForgeQueryNativeRow>(
             ForgeQueryEffectDeclaration::write_intent(
                 "intent.reconcile-title",
-                ForgeQueryEffectTrigger::live_view(&live, ["title"]),
+                ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
                 "reconcile-title-slug",
             )
             .with_condition(ForgeQueryEffectCondition::expression(
                 "expr.title.needs-slug",
-                ["title"],
-                ["intent.slug"],
+                test_aspect_touches(["title"]),
+                test_aspect_touches(["intent.slug"]),
             )),
         )
         .expect("pending write-intent effect should declare");
@@ -25,8 +25,8 @@ fn write_intent_effect_lowers_to_pending_intent_with_phase_evidence() {
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("")),
-                ("title.value", json!("Intent task")),
+                ("identity.id", test_string_aspect_value("")),
+                ("title.value", test_string_aspect_value("Intent task")),
             ],
         ))
         .expect("write should route pending intent effect");
@@ -102,18 +102,18 @@ fn write_intent_effect_lowers_to_pending_intent_with_phase_evidence() {
 fn write_intent_effect_rejects_authoritative_truth_target() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");
     let declaration = ForgeQueryEffectDeclaration::write_intent(
         "intent.truth-smuggle",
-        ForgeQueryEffectTrigger::live_view(&live, ["title"]),
+        ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
         "direct-truth-write",
     )
     .with_effect_policy(ForgeQueryEffectPolicy::AuthoritativeAllowed)
     .with_target_lane(ForgeQueryAuthorityLane::AuthoritativeTruth);
 
     let error = runtime
-        .declare_effect::<Value>(declaration)
+        .declare_effect::<ForgeQueryNativeRow>(declaration)
         .expect_err("write intent cannot target truth directly");
 
     match error {

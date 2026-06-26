@@ -107,6 +107,22 @@ impl TopologyTouchedGraphBasis {
     pub fn digest(&self) -> &str {
         &self.digest
     }
+
+    #[cfg(test)]
+    pub(crate) fn with_operating_world_for_tests(
+        self,
+        operating_world: TopologyTouchedOperatingWorld,
+    ) -> Self {
+        Self::from_input(TopologyTouchedGraphBasisInput {
+            entities: self.entities,
+            relations: self.relations,
+            relation_kinds: self.relation_kinds,
+            aspects: self.aspects,
+            topology_scopes: self.topology_scopes,
+            lifecycle_posture: self.lifecycle_posture,
+            operating_world,
+        })
+    }
 }
 
 fn basis_digest(

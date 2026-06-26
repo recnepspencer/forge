@@ -13,6 +13,11 @@ This second roadmap corrects the missing foundation beneath that program:
 `forge-store` must become a real physical database engine, not a heap-shaped
 persistence harness with strong semantic evidence around it.
 
+This roadmap is the build plan for the Forge Store physical foundation. The
+planned implementation surface is the dedicated Forge Store workspace and crate
+family. Roadmap 2 does not rely on any prior Store topology, persistence path,
+or compatibility lane as an architectural premise.
+
 This is a side-step program. It belongs after the active `13.x`
 subscription-support cleanup arc closes and before the roadmap proceeds into
 `Milestone 14`, `Milestone 15`, native blob expansion, replication closure, and
@@ -68,6 +73,18 @@ then the store has not earned the database claim.
 ## Roadmap Rules
 
 - Roadmap 2 is about physical database architecture, not new semantic features.
+- Roadmap 2 is greenfield for the physical Store foundation. Planned code lands
+  in the dedicated Store workspace/crate family.
+- No compatibility backend, prior persistence path, historical topology, or
+  external semantic harness is a Roadmap 2 foundation unless a later sequence
+  introduces it as new typed work with explicit authority.
+- `forge-foundational` supplies shared platform vocabulary, id categories,
+  proof-bearing construction expectations, and boundary language where those
+  concepts are cross-platform rather than Store-specific.
+- `forge-proof` supplies shared proof progression, receipt, evidence, suite,
+  and certification vocabulary where Store needs to report what was proven.
+  Store still owns physical durability, media layout, corruption localization,
+  recovery physics, and byte survival.
 - `forge-relational` continues to own semantic MVCC, transaction meaning,
   snapshot visibility, branch truth, and identity semantics.
 - `forge-store` owns physical byte survival: pages, segments, frames, buffer
@@ -75,9 +92,6 @@ then the store has not earned the database claim.
   localization, I/O pacing, blob chunks, backup, repair, and audit evidence.
 - Physical layout may optimize access, but it may never become semantic
   authority.
-- Current heap/file/SQLite persistence paths must be classified honestly as
-  bootstrap, compatibility, or certification-harness backends until they satisfy
-  the physical foundation gates.
 - No storage-foundation sequence may close on functionality alone. It must close
   on correctness, boundedness, latency isolation, corruption behavior,
   operational diagnosis, and certification evidence for its declared operating
@@ -101,11 +115,21 @@ then the store has not earned the database claim.
   protects visible, testable cost. Roadmap 2 requires resident-memory,
   allocation, I/O, read-amplification, write-amplification, and interference
   counters instead of throughput folklore.
-- `domain_laws.md`
+- `domain_structure_laws.md`
   protects decomposition by responsibility. Roadmap 2 splits pages, buffer
   pool, integrity, recovery, physical isolation, I/O, blobs, layout, formal
   models, operations, security, and certification into separate storage
   programs because they fail and evolve differently.
+- `forge_foundational_roadmap.md`
+  protects shared Forge vocabulary from being reinvented locally. Roadmap 2
+  uses Foundational terms for cross-platform ids, classifications, construction
+  guarantees, and public contract language, while keeping Store-specific byte
+  survival concepts inside Store.
+- `forge_proof_roadmap.md`
+  protects shared proof progression, evidence, receipt, suite, and
+  certification vocabulary. Roadmap 2 uses Proof where Store reports proof, but
+  does not move Store-owned media, recovery, corruption, or durability authority
+  into Proof.
 - `forge_store_vision.md`
   says Store makes truth survive. Roadmap 2 clarifies that survival includes
   physical media, bounded memory, native blobs, corruption localization, and
@@ -118,61 +142,67 @@ then the store has not earned the database claim.
   certification suites to be added before the store can claim beta,
   financial-platform, or aerospace-grade readiness.
 
-## S.0: Shipped Store Reconciliation And Capability Reclassification
+## S.0: Foundation Source Boundary And Claim Vocabulary
 
 Engineering spec: [storage-foundation-s0.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s0.md)
 
 ### Goal
 
-Reconcile the Store work already completed or in progress against Roadmap 2
-before new physical foundation work begins.
+Establish the source boundary, claim vocabulary, shared Foundational/Proof
+adoption, deferred physical guarantee map, and S.1 handoff contract for the
+Forge Store physical foundation.
 
 ### Boundary
 
-This is not a retroactive failure label for semantic Store milestones. This is
-an honesty pass that separates semantic durability already earned from physical
-database posture not yet earned.
+This is not physical page work. This is the contract foundation that makes later
+page, backend, verifier, recovery, and certification work consume typed,
+aspect-native Store facts instead of prose, local folklore, or ad hoc JSON.
 
 ### Adversarial Constraint
 
 No milestone, closeout, backend, certification lane, or roadmap phrase may
-claim platform-grade physical database behavior if its implementation still
-depends on heap-shaped state, serde-loaded full objects, backend-local residue,
-unbounded memory, or unverified media assumptions.
+claim platform-grade physical database behavior without a Store-owned physical
+witness, a declared capability tier, accepted proof evidence, and a mapped
+Roadmap 2 sequence for any deferred guarantee.
 
 ### Must Ship
 
-- capability-tier classification for every existing backend:
-  bootstrap, semantic-certification, compatibility, physical-foundation, or
-  platform-grade
-- audit of Milestones 1 through 13.3 for claims that imply physical database
-  guarantees
-- explicit list of semantic guarantees that remain valid without Roadmap 2
-- explicit list of physical guarantees deferred to `S.1` through `S.12`
-- migration notes for tests and closeouts that currently prove semantic parity
-  but not physical boundedness
+- declared source-set contracts for the Forge Store workspace crate family
+- typed/aspect-native input manifest and terminal projection rules
+- capability-tier vocabulary for Roadmap 2 backend and evidence claims
+- claim scanner and report vocabulary for language that implies physical
+  database guarantees
+- explicit physical guarantees deferred to `S.1` through `S.12`
 - terminology cleanup for any "production-grade embedded backend" language
   that currently overstates the physical substrate
+- shared-vocabulary adoption map for `forge-foundational` and `forge-proof`,
+  distinguishing imported platform vocabulary from Store-owned physical
+  durability vocabulary
 
 ### Must Preserve
 
-- already-earned semantic authority, replay, recovery, subscription-support,
-  retention, tiering, and certification work remains valuable
-- reclassification does not weaken correctness claims that were actually proven
-- later physical work must build under existing semantic authority boundaries
+- later physical work must respect semantic authority boundaries owned by
+  `forge-relational`
+- runtime bridge and signal evidence may support Store claims only through
+  typed cross-crate surfaces
+- Foundational and Proof vocabulary is imported where shared, while Store keeps
+  byte survival authority
 
 ### Proof Obligations
 
-- every prior Store milestone has an explicit physical-status row
-- every backend has a declared capability tier and forbidden claims
+- every new Roadmap 2 backend has a declared capability tier and forbidden
+  claims
 - every deferred physical guarantee maps to one or more `S.*` sequences
+- every shared-language adoption point names whether it comes from
+  `forge-foundational`, `forge-proof`, or Store-owned physical vocabulary
+- S.1 cannot consume a terminal projection, stale artifact, or raw string in
+  place of an accepted native witness
 
 ### Closeout Gate
 
-`S.0` is not closed until the first roadmap can be read without implying that
-heap/file/SQLite bootstrap paths are already the platform-grade physical
-database substrate, and every earlier milestone has a clear semantic-vs-physical
-status.
+`S.0` is not closed until the Forge Store workspace has typed contracts for
+source manifests, capability tiers, claim reports, deferred guarantees, shared
+vocabulary adoption, certification evidence, and S.1 handoff readiness.
 
 ## S.1: Physical Page, Segment, And Extent Substrate
 
@@ -199,19 +229,31 @@ deserialization, or backend-private layout knowledge.
 - fixed-size page and variable-size extent model
 - page ids, segment ids, extent ids, epochs, generation counters, and physical
   references
+- explicit binary physical format law for byte order, integer widths,
+  magic/version fields, page-size classes, alignment, reserved fields, and
+  forward compatibility
 - physical page/frame headers with kind, version, length, checksum slot,
   generation, and publication state
 - slot directories or equivalent page-local record addressing
 - record framing independent of serde domain object materialization
 - segment manifests, allocation classes, free-space maps, and physical root
   manifests
-- explicit bootstrap-backend classification for existing heap/file/SQLite paths
+- explicit `forge-foundational` adoption for S.1 canonical basis, digest
+  derivation, diagnostic rows, profile/materialization posture,
+  provenance/support truth, completed-boundary receipts, and counter-backed
+  performance receipts at Store evidence boundaries
+- crate-local public facades that map to the new Store workspace boundaries
+  and keep physical format authority separate from semantic authority
+- `S2PhysicalSubstrateReadiness` handoff so buffer-pool work consumes typed
+  physical substrate proof rather than raw pages or backend handles
 
 ### Must Preserve
 
 - canonical commit envelopes remain semantic authority
 - physical pages are byte containers and access structures, not truth semantics
 - backend variation may alter placement, not artifact meaning
+- format contracts remain Store-owned even when they consume shared
+  Foundational ids or Proof evidence vocabulary
 
 ### Proof Obligations
 
@@ -220,15 +262,21 @@ deserialization, or backend-private layout knowledge.
 - no required lane performs whole-store heap materialization
 - physical references remain stable across restart and detectable across stale
   generation reuse
+- locate, append, manifest lookup, root open, verifier walk, and evidence
+  materialization have verified complexity contracts and exact counter proof
+- S.1 evidence consumes `forge-foundational` public/grouped APIs where shared
+  boundary vocabulary exists, while Store-owned physical witnesses remain the
+  only authority for physical byte survival
 
 ### Closeout Gate
 
 `S.1` is not closed until the primary platform-grade backend can persist,
 reopen, scan, and locate records through page/segment/extent identifiers without
-deserializing the whole store into domain structs, and every legacy heap-shaped
-path is explicitly outside the platform-grade backend tier.
+deserializing the whole store into domain structs.
 
 ## S.2: Buffer Pool, Memory Budgets, And Zero-Copy Record Access
+
+Engineering spec: [storage-foundation-s2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s2.md)
 
 ### Goal
 
@@ -803,7 +851,13 @@ work, blob scale, cross-backend parity, and hazard-analysis residual risk.
 - [test-requirements-2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements-2.md)
   adversarial harness requirements are satisfied for every closed `S.*`
   sequence
-- current heap/file/SQLite paths are honestly classified by capability tier
+- Roadmap 2 workspace crates expose the typed source, claim, handoff, and
+  certification contracts required for S.1 entry
+- new Store work lives in the dedicated workspace/crate family and does not
+  inherit undeclared module topology as precedent
+- Forge Foundational and Forge Proof vocabulary have been reviewed and adopted
+  where they prevent local folklore without stealing Store-owned physical
+  authority
 - no platform-grade backend requires full-store heap materialization
 - physical integrity exists below logical artifact digests
 - memory, allocation, recovery, latency, read-amplification, and

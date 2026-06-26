@@ -160,7 +160,6 @@ pub const EXACT_ZERO_FORMAT_DIGEST_PATHS: &[&str] = &[
     "projection_consumption/dx.rs",
     "projection_consumption/eligibility.rs",
     "projection_consumption/envelope.rs",
-    "projection_consumption/extraction/aspect_value_projection.rs",
     "projection_consumption/extraction/grouped.rs",
     "projection_consumption/extraction/live_binding.rs",
     "projection_consumption/extraction/mod.rs",

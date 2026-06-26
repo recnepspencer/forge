@@ -6,11 +6,11 @@ fn ordinary_runtime_backed_read_path_keeps_forbidden_fallback_seams_at_exact_zer
     let mut workspace = runtime
         .workspace("runtime.tests.hostile-read-bootstrap")
         .expect("task runtime should open a named workspace");
-    let tasks: ForgeQueryLiveView<Value> = workspace
+    let tasks: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("runtime.tests.hostile-read-bootstrap.tasks", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([identity_id_field_key(), title_value_field_key()])
+                .order_by(title_value_field_key())
                 .schema_basis("runtime-tests-hostile-read-bootstrap-tasks")
         })
         .expect("task live view should declare");
@@ -19,8 +19,14 @@ fn ordinary_runtime_backed_read_path_keeps_forbidden_fallback_seams_at_exact_zer
 
     workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-hostile-bootstrap")
-                .aspect("title.value", "Hostile bootstrap task")
+            task.set_aspect(
+                test_aspect_touch("identity.id"),
+                test_authored_string_aspect_value("task-hostile-bootstrap"),
+            )
+            .set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("Hostile bootstrap task"),
+            )
         })
         .expect("insert should execute through the ordinary bridge-backed lane");
 

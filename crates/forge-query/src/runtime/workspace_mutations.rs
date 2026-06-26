@@ -73,20 +73,19 @@ impl ForgeQueryWorkspace {
         )?)
     }
 
-    pub(crate) fn probe_existing<I, S>(
+    pub(crate) fn probe_existing<I>(
         &self,
         binding: ForgeQueryExistingTruthTargetBinding,
-        aspect_paths: I,
+        aspect_touches: I,
     ) -> Result<super::ForgeQueryExistingTruthProbe, ForgeQueryRuntimeError>
     where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
+        I: IntoIterator<Item = super::ForgeQueryAspectTouch>,
     {
         Ok(self
             .runtime
             .probe_existing_intent(super::ForgeQueryExistingTruthProbeRequest::new(
                 binding,
-                aspect_paths,
+                aspect_touches,
             )?)
             .execute()?
             .probe()
@@ -171,7 +170,7 @@ impl ForgeQueryWorkspace {
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         self.write(ForgeQueryWriteCommand::DeleteExistingAspects {
             binding,
-            touched_aspect_paths: Vec::new(),
+            touched_aspects: Vec::new(),
             metadata: ForgeQueryMutationMetadata::default(),
             naming_intent: None,
         })

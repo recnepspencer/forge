@@ -16,7 +16,7 @@ use super::declaration::{
     declare_projection_consumption, ProjectionConsumptionBindingContext,
     ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError,
 };
-use super::facts::ProjectMaterializedFacts;
+use super::facts::{ProjectMaterializedFacts, ProjectionFactFieldPath};
 use super::source::ProjectionConsumptionSource;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -204,13 +204,13 @@ impl ProjectionConsumptionDeclarationBuilder {
         self
     }
 
-    pub fn display_field(mut self, field: impl Into<String>) -> Self {
-        self.requested = self.requested.display_field(field);
+    pub fn display_field_path(mut self, field: ProjectionFactFieldPath) -> Self {
+        self.requested = self.requested.display_field_path(field);
         self
     }
 
-    pub fn derived_scalar_field(mut self, field: impl Into<String>) -> Self {
-        self.requested = self.requested.derived_scalar_field(field);
+    pub fn derived_scalar_field_path(mut self, field: ProjectionFactFieldPath) -> Self {
+        self.requested = self.requested.derived_scalar_field_path(field);
         self
     }
 

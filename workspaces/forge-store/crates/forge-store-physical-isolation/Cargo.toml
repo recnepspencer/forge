@@ -1,0 +1,14 @@
+[package]
+name = "forge-store-physical-isolation"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.5 latches, epochs, stable read plans, and reclaim barriers."
+
+[dependencies]
+forge-store-buffer-pool.workspace = true
+forge-store-contracts.workspace = true
+forge-store-physical-format.workspace = true
+
+[lints]
+workspace = true

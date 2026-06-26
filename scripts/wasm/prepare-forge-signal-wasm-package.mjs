@@ -178,6 +178,108 @@ async function compileReactEntryPoints() {
   );
 }
 
+async function writeBundlerCompatibleWasmEntrypoint() {
+  const source = `/* @ts-self-types="./forge_signal_wasm.d.ts" */
+
+import * as imports from "./forge_signal_wasm_bg.js";
+import { __wbg_set_wasm } from "./forge_signal_wasm_bg.js";
+
+let wasmInitialized = false;
+let wasmInitPromise = null;
+
+async function init(input) {
+  if (wasmInitialized) {
+    return imports;
+  }
+  if (wasmInitPromise !== null) {
+    return wasmInitPromise;
+  }
+  wasmInitPromise = initializeWasm(input);
+  return wasmInitPromise;
+}
+
+async function initializeWasm(input) {
+  const importObject = { "./forge_signal_wasm_bg.js": imports };
+  const wasm = input === undefined
+    ? await instantiateDefaultWasm(importObject)
+    : (await instantiateWasm(input, importObject)).exports;
+  __wbg_set_wasm(wasm);
+  wasm.__wbindgen_start();
+  wasmInitialized = true;
+  return imports;
+}
+
+async function instantiateDefaultWasm(importObject) {
+  if (!isDedicatedWorkerScope()) {
+    try {
+      const wasmModule = await import("./forge_signal_wasm_bg.wasm");
+      const wasm = normalizeWasmModule(wasmModule);
+      if (wasm !== null) {
+        return wasm;
+      }
+    } catch {
+    }
+  }
+  return (await instantiateWasm(
+    new URL("./forge_signal_wasm_bg.wasm", import.meta.url),
+    importObject,
+  )).exports;
+}
+
+function isDedicatedWorkerScope() {
+  return typeof WorkerGlobalScope === "function" && globalThis instanceof WorkerGlobalScope;
+}
+
+function normalizeWasmModule(wasmModule) {
+  if (hasWasmExports(wasmModule)) {
+    return wasmModule;
+  }
+  if (hasWasmExports(wasmModule?.default)) {
+    return wasmModule.default;
+  }
+  return null;
+}
+
+function hasWasmExports(candidate) {
+  return Boolean(candidate?.__wbindgen_start && candidate?.__wbindgen_externrefs);
+}
+
+async function instantiateWasm(source, importObject) {
+  if (source instanceof WebAssembly.Module) {
+    return new WebAssembly.Instance(source, importObject);
+  }
+  if (source instanceof WebAssembly.Instance) {
+    return source;
+  }
+  if (source instanceof Response) {
+    return instantiateResponse(source, importObject);
+  }
+  if (source instanceof URL || typeof source === "string" || source instanceof Request) {
+    return instantiateResponse(fetch(source), importObject);
+  }
+  const result = await WebAssembly.instantiate(source, importObject);
+  return result instanceof WebAssembly.Instance ? result : result.instance;
+}
+
+async function instantiateResponse(responseOrPromise, importObject) {
+  const response = await responseOrPromise;
+  if (WebAssembly.instantiateStreaming && response.headers.get("Content-Type") === "application/wasm") {
+    const result = await WebAssembly.instantiateStreaming(response, importObject);
+    return result.instance;
+  }
+  const bytes = await response.arrayBuffer();
+  const result = await WebAssembly.instantiate(bytes, importObject);
+  return result.instance;
+}
+
+export default init;
+export {
+    ComputedSignal, DisposableHandle, InputSignal, OutputSignal, SignalAdapters, SignalApp, SignalDiagnostics, SignalHistory, SignalRuntime, SignalSpecialist, SignalWorkerRuntime, Signals, SignalsTransaction, createSignals, forgeSignalCoreProfile, forgeSignalMaxAspects, start
+} from "./forge_signal_wasm_bg.js";
+`;
+  await writeFile(path.join(pkgDir, "forge_signal_wasm.js"), source, "utf8");
+}
+
 packageJson.name = packageNameOverride
   ?? (normalizedScope ? `@${normalizedScope}/forge-signal-wasm` : "forge-signal-wasm");
 packageJson.version = crateVersion;
@@ -217,6 +319,14 @@ packageJson.exports = {
     types: "./index.d.ts",
     import: "./index.js",
   },
+  "./raw": {
+    types: "./raw_surface.d.ts",
+    import: "./raw_surface.js",
+  },
+  "./raw_surface.js": {
+    types: "./raw_surface.d.ts",
+    import: "./raw_surface.js",
+  },
   "./react": {
     types: "./react/index.d.ts",
     import: "./react/index.js",
@@ -232,6 +342,7 @@ packageJson.peerDependenciesMeta = {
 };
 
 await resetPackageStage();
+await writeBundlerCompatibleWasmEntrypoint();
 
 const noticePath = path.join(pkgDir, "PROPRIETARY.md");
 if (publishNoticeMode === "proprietary") {

@@ -11,10 +11,14 @@ mod snapshot;
 #[cfg(test)]
 mod tests;
 
-pub use document::ForgeQuerySupportSnapshotDocument;
+pub use document::{
+    ForgeQueryExternalSupportSnapshotTerminalJsonDocument,
+    ForgeQuerySupportSnapshotTerminalJsonDocument,
+};
 pub use error::{ForgeQuerySupportSnapshotError, ForgeQuerySupportSnapshotErrorKind};
 pub use projection::{
-    load_support_snapshot_document, project_support_snapshot, project_workspace_support_snapshot,
+    load_support_snapshot_terminal_json_document, project_support_snapshot,
+    project_workspace_support_snapshot,
 };
 pub use row::ForgeQuerySupportSnapshotRow;
 pub use schema::ForgeQuerySupportSnapshotSchemaVersion;

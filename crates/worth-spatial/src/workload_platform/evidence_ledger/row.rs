@@ -107,6 +107,22 @@ impl WorkloadEvidenceRow {
         }
     }
 
+    pub(crate) fn certification_manual_with_counters(
+        stage: WorkloadEvidenceStage,
+        evidence_identity: impl Into<String>,
+        counters: WorkloadEvidenceStageCounters,
+    ) -> Self {
+        Self {
+            stage,
+            evidence_identity: evidence_identity.into(),
+            backing: WorkloadEvidenceBacking::Manual,
+            support: WorkloadEvidenceSupport::Manual,
+            counters,
+            receipt_type_id: None,
+            upstream_stage_binding: None,
+        }
+    }
+
     pub(crate) fn certification_only_with_support(
         stage: WorkloadEvidenceStage,
         evidence_identity: impl Into<String>,

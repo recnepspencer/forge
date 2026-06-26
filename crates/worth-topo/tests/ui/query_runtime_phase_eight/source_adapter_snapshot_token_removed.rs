@@ -1,7 +1,7 @@
 use forge_query::facade::{
     DeclarativeLiveQueryRequest, ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
-    ForgeQueryMutationReceipt, ForgeQueryRuntimeSourceAdapter, ForgeQueryWorkspaceError,
-    QuerySchemaView,
+    ForgeQueryLiveArtifactTarget, ForgeQueryMutationReceipt, ForgeQueryRuntimeSourceAdapter,
+    ForgeQueryWorkspaceError, QuerySchemaView,
 };
 
 struct SnapshotTokenSource;
@@ -16,15 +16,18 @@ impl ForgeQueryRuntimeSourceAdapter for SnapshotTokenSource {
         panic!("not executed")
     }
 
-    fn live_entities(&self, _view_name: &str) -> Vec<ForgeQueryEntity> {
+    fn live_entities_for_target(&self, _target: &ForgeQueryLiveArtifactTarget) -> Vec<ForgeQueryEntity> {
         Vec::new()
     }
 
-    fn drain_live_patches(&mut self, _view_name: &str) -> Vec<ForgeQueryLivePatch> {
+    fn drain_live_patches_for_target(&mut self, _target: &ForgeQueryLiveArtifactTarget) -> Vec<ForgeQueryLivePatch> {
         Vec::new()
     }
 
-    fn affected_live_view_ids(&self, _receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+    fn affected_live_view_targets(
+        &self,
+        _receipt: &ForgeQueryMutationReceipt,
+    ) -> Vec<ForgeQueryLiveArtifactTarget> {
         Vec::new()
     }
 

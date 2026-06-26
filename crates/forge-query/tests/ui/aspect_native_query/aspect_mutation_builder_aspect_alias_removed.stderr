@@ -1,0 +1,10 @@
+error[E0599]: no method named `aspect` found for struct `ForgeQueryAspectMutationBuilder` in the current scope
+ --> tests/ui/aspect_native_query/aspect_mutation_builder_aspect_alias_removed.rs:5:52
+  |
+5 |     let _ = ForgeQueryAspectMutationBuilder::new().aspect(
+  |             ---------------------------------------^^^^^^
+  |
+help: there is a method `set_aspect` with a similar name
+  |
+5 |     let _ = ForgeQueryAspectMutationBuilder::new().set_aspect(
+  |                                                    ++++

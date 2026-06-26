@@ -1,0 +1,27 @@
+error[E0599]: no method named `source_aspect` found for struct `QueryResultBindingProof` in the current scope
+ --> tests/ui/aspect_native_query/grouped_binding_string_aliases_removed.rs:5:21
+  |
+5 |     let _ = binding.source_aspect();
+  |                     ^^^^^^^^^^^^^ method not found in `QueryResultBindingProof`
+
+error[E0599]: no method named `source_field` found for struct `QueryResultBindingProof` in the current scope
+ --> tests/ui/aspect_native_query/grouped_binding_string_aliases_removed.rs:6:21
+  |
+6 |     let _ = binding.source_field();
+  |                     ^^^^^^^^^^^^
+  |
+help: there is a method `source_field_key` with a similar name
+  |
+6 |     let _ = binding.source_field_key();
+  |                                 ++++
+
+error[E0599]: no method named `field_key` found for struct `QueryResultBindingProof` in the current scope
+ --> tests/ui/aspect_native_query/grouped_binding_string_aliases_removed.rs:7:21
+  |
+7 |     let _ = binding.field_key();
+  |                     ^^^^^^^^^
+  |
+help: there is a method `source_field_key` with a similar name
+  |
+7 |     let _ = binding.source_field_key();
+  |                     +++++++

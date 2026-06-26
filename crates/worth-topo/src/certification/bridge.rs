@@ -14,7 +14,7 @@ use crate::certification::support::reporting::{
 };
 use crate::certification::BridgeTraceAnchor;
 use crate::projection::runtime_boundary::bridge::build_milestone_one_bridge;
-use crate::projection::runtime_boundary::query_support::bridge_identity_projection;
+use crate::query_native_runtime_boundary::bridge_identity_projection;
 use crate::test_support::primitive_corpus::bridge_cases::milestone_one_bridge_proof_cases;
 use crate::test_support::primitive_corpus::validated_topology::committed_primitive_input;
 

@@ -99,8 +99,8 @@ pub use crate::program::{
     ForgeQueryAuthorityRequirement, ForgeQueryDerivedView, ForgeQueryOperation,
     ForgeQueryOperationInput, ForgeQueryOperationOutput, ForgeQueryPortType, ForgeQueryProgram,
     ForgeQueryProgramEffect, ForgeQueryProgramError, ForgeQueryProgramSource,
-    ForgeQueryProgramTrace, ForgeQuerySchemaAdapter, ForgeQueryTypedPort, ForgeQueryValueExpr,
-    ForgeQueryWorkflowGraph, ForgeQueryWriteCommandTemplate,
+    ForgeQueryProgramTrace, ForgeQueryProgramValue, ForgeQuerySchemaAdapter, ForgeQueryTypedPort,
+    ForgeQueryValueExpr, ForgeQueryWorkflowGraph, ForgeQueryWriteCommandTemplate,
 };
 pub use crate::query_basis_lifecycle::{
     admit_certification_basis, admit_certification_basis_intent, admit_inspection_basis,

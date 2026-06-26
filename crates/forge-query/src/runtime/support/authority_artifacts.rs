@@ -5,6 +5,7 @@ use crate::evidence_identity::{
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 use crate::runtime::ForgeQueryAuthorityLane;
 use forge_runtime_bridge::facade::BridgeIdentityEvidence;
+use std::cmp::Ordering;
 
 #[path = "authority_artifacts/basis_admission.rs"]
 mod basis_admission;
@@ -145,6 +146,20 @@ pub struct ForgeQueryMutationTargetCollectionIdentity {
     identity: ForgeQueryEvidenceIdentity,
 }
 
+impl Ord for ForgeQueryMutationTargetCollectionIdentity {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.label
+            .cmp(&other.label)
+            .then_with(|| self.identity.as_str().cmp(other.identity.as_str()))
+    }
+}
+
+impl PartialOrd for ForgeQueryMutationTargetCollectionIdentity {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl ForgeQueryMutationTargetCollectionIdentity {
     pub(crate) fn new(role: &'static str, label: impl Into<String>) -> Self {
         let label = label.into();
@@ -162,6 +177,10 @@ impl ForgeQueryMutationTargetCollectionIdentity {
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.identity
+    }
+
+    pub fn same_target_collection_as(&self, other: &Self) -> bool {
+        self.label == other.label
     }
 }
 
@@ -188,6 +207,18 @@ impl ForgeQueryMutationSymbolIdentity {
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.identity
+    }
+}
+
+impl Ord for ForgeQueryMutationSymbolIdentity {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.label.cmp(&other.label)
+    }
+}
+
+impl PartialOrd for ForgeQueryMutationSymbolIdentity {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 

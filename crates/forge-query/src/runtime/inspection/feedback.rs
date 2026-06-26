@@ -158,8 +158,11 @@ impl ForgeQueryFeedbackPhaseGraphInspection {
                 phase_nodes.push(ForgeQueryFeedbackPhaseNode::Resubscribe);
                 (
                     ForgeQueryFeedbackTermination::CommittedResubscribe,
-                    receipt.intent_receipt().affected_live_view_ids().len(),
-                    receipt.intent_receipt().affected_derived_view_ids().len(),
+                    receipt.intent_receipt().affected_live_view_targets().len(),
+                    receipt
+                        .intent_receipt()
+                        .affected_derived_view_targets()
+                        .len(),
                 )
             } else {
                 (ForgeQueryFeedbackTermination::CoalescedNoMutation, 0, 0)

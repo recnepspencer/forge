@@ -1,18 +1,15 @@
 use crate::facade::{
-    certify_milestone_three_cancellation_chain_parity, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileScenario, ReplayParityStatus, TopologyMutationDerivedFallbackPolicy,
-    TopologyMutationFamily, TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario, ReplayParityStatus,
+    TopologyMutationDerivedFallbackPolicy, TopologyMutationFamily, TopologyMutationNamingOutcome,
+    TopologyMutationRejectionClass,
 };
-use crate::validation::reference_integrity::build_milestone_one_runtime;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
+
+use super::cached_scenario_report;
 
 #[test]
 fn milestone_three_cancellation_chain_parity_replays_and_returns_to_baseline() {
-    let report = certify_milestone_three_cancellation_chain_parity(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.cancellation",
-    )
-    .expect("milestone three cancellation-chain certification should succeed");
+    let report = cached_scenario_report(MilestoneThreeHostileScenario::CancellationChainParity);
 
     assert_eq!(
         report.scenario,
@@ -102,16 +99,8 @@ fn milestone_three_cancellation_chain_parity_replays_and_returns_to_baseline() {
 
 #[test]
 fn milestone_three_cancellation_chain_report_is_deterministic_for_same_seeded_history() {
-    let left = certify_milestone_three_cancellation_chain_parity(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.cancellation.deterministic",
-    )
-    .expect("left cancellation-chain certification should succeed");
-    let right = certify_milestone_three_cancellation_chain_parity(
-        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
-        "m3.cancellation.deterministic",
-    )
-    .expect("right cancellation-chain certification should succeed");
+    let left = cached_scenario_report(MilestoneThreeHostileScenario::CancellationChainParity);
+    let right = cached_scenario_report(MilestoneThreeHostileScenario::CancellationChainParity);
 
     assert_eq!(left.outcome_class, right.outcome_class);
     assert_eq!(

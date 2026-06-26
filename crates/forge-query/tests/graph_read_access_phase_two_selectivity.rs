@@ -183,8 +183,10 @@ fn boolean_selectivity_shape_rejects_unadmitted_predicate_before_normalization()
                 QuerySchemaView::new(
                     "graph-read-access-selectivity-rejection",
                     [SchemaFieldView::new(
-                        "identity",
-                        "id",
+                        forge_query::facade::AspectName::new("identity")
+                            .expect("schema aspect literal must be valid"),
+                        forge_query::facade::FieldName::new("id")
+                            .expect("schema field literal must be valid"),
                         SchemaFieldKind::String,
                     )],
                     [],
@@ -292,13 +294,37 @@ fn predicate_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "graph-read-access-selectivity",
         [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("status", "value", SchemaFieldKind::String)
-                .membership_predicate_queryable(),
-            SchemaFieldView::new("profile", "age", SchemaFieldKind::Integer),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String)
-                .text_predicate_queryable()
-                .presence_predicate_queryable(),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("id")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("status")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("value")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            )
+            .membership_predicate_queryable(),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("age")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::Integer,
+            ),
+            SchemaFieldView::new(
+                forge_query::facade::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                forge_query::facade::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            )
+            .text_predicate_queryable()
+            .presence_predicate_queryable(),
         ],
         [],
     )

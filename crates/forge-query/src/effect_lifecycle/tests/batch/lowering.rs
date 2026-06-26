@@ -1,5 +1,4 @@
 use forge_relational::facade::history::BranchId;
-use serde_json::json;
 
 use crate::effect_lifecycle::{
     effect_batch, EffectAuthoringBasis, EffectAuthorityLane, EffectAuthorityOwner,
@@ -10,7 +9,8 @@ use super::super::execution_support::{
     create_entity, relational_runtime_with_intent_strategy, runtime_snapshot_identity,
 };
 use super::super::support::{
-    branch_mutation_basis, raw_mutation_effect_with_binding, runtime_workflow_binding_with_snapshot,
+    branch_mutation_basis, native_name_patch, raw_mutation_effect_with_binding,
+    runtime_workflow_binding_with_snapshot,
 };
 
 #[test]
@@ -32,12 +32,12 @@ fn mutation_batch_lowers_once_into_a_batch_native_relational_artifact() {
         .push(raw_mutation_effect_with_binding(
             binding.clone(),
             left,
-            json!({ "name": "left-batched" }),
+            native_name_patch("left-batched"),
         ))
         .push(raw_mutation_effect_with_binding(
             binding,
             right,
-            json!({ "name": "right-batched" }),
+            native_name_patch("right-batched"),
         ))
         .admit()
         .expect("batch should admit")

@@ -4,6 +4,7 @@ use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::shared::bind_existing_relation_handle;
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
+use crate::query_native_runtime_boundary::TopologyNativeQueryRowField;
 use crate::topology_operators::application::{
     ensure_declared_touched_basis_covers_sequence_before_write, TopologyDeclaredMutationArtifact,
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
@@ -111,25 +112,37 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                     created_shell_key.clone(),
                     "TopologyEntity",
                     |mutation| {
-                        mutation
-                            .aspect("topology.kind", TopologyEntityKind::Shell.kind_name())
-                            .aspect("topology.structure", created_shell_key.clone())
-                            .aspect("naming.persistent_name", created_shell_key.clone())
+                        TopologyNativeQueryRowField::NamingPersistentName.set_on(
+                            TopologyNativeQueryRowField::TopologyStructure.set_on(
+                                TopologyNativeQueryRowField::TopologyKind
+                                    .set_on(mutation, TopologyEntityKind::Shell.kind_name()),
+                                created_shell_key.clone(),
+                            ),
+                            created_shell_key.clone(),
+                        )
                     },
                 )?;
                 graph.insert_relation("TopologyRelation", |relation| {
+                    let relation = TopologyNativeQueryRowField::TopologyKind.set_on_relation(
+                        relation,
+                        TopologyRelationKind::RegionOwnsShell.kind_name(),
+                    );
                     let relation = relation
-                        .aspect(
-                            "topology.kind",
-                            TopologyRelationKind::RegionOwnsShell.kind_name(),
-                        )
                         .existing_entity_identity(
-                            "topology.source_identity",
+                            TopologyNativeQueryRowField::TopologySourceIdentity.touch(),
                             region_binding.query_identity.clone(),
                         )
-                        .symbolic_entity_identity("topology.target_identity", &shell_symbol);
-                    if let Some(path) = region_dependency_path {
-                        relation.aspect(path, TopologyRelationKind::RegionOwnsShell.kind_name())
+                        .symbolic_entity_identity(
+                            TopologyNativeQueryRowField::TopologyTargetIdentity.touch(),
+                            &shell_symbol,
+                        );
+                    if let Some(field) = region_dependency_path
+                        .and_then(TopologyNativeQueryRowField::from_query_aspect_path)
+                    {
+                        field.set_on_relation(
+                            relation,
+                            TopologyRelationKind::RegionOwnsShell.kind_name(),
+                        )
                     } else {
                         relation
                     }
@@ -137,46 +150,42 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 graph.retarget_existing_verified(
                     face_handle.clone(),
                     |verify| {
-                        let verify = verify
-                            .aspect(
-                                "topology.kind",
-                                TopologyRelationKind::ShellOwnsFace.kind_name(),
-                            )
-                            .aspect(
-                                "topology.source_identity",
+                        let verify = TopologyNativeQueryRowField::TopologyTargetIdentity.set_on(
+                            TopologyNativeQueryRowField::TopologySourceIdentity.set_on(
+                                TopologyNativeQueryRowField::TopologyKind.set_on(
+                                    verify,
+                                    TopologyRelationKind::ShellOwnsFace.kind_name(),
+                                ),
                                 retained_shell_binding.query_identity_label.clone(),
-                            )
-                            .aspect(
-                                "topology.target_identity",
-                                face_binding.query_identity_label.clone(),
-                            );
-                        if let Some(path) = face_dependency_path {
-                            verify.aspect(path, TopologyRelationKind::ShellOwnsFace.kind_name())
+                            ),
+                            face_binding.query_identity_label.clone(),
+                        );
+                        if let Some(field) = face_dependency_path
+                            .and_then(TopologyNativeQueryRowField::from_query_aspect_path)
+                        {
+                            field.set_on(verify, TopologyRelationKind::ShellOwnsFace.kind_name())
                         } else {
                             verify
                         }
                     },
                     |update| {
-                        let update = update
-                            .continuity_rebind_existing_target(
-                                face_rebind_authorities.0.clone(),
-                                face_rebind_authorities.1.clone(),
-                            )
-                            .aspect(
-                                "topology.kind",
-                                TopologyRelationKind::ShellOwnsFace.kind_name(),
-                            )
+                        let update = update.continuity_rebind_existing_target(
+                            face_rebind_authorities.0.clone(),
+                            face_rebind_authorities.1.clone(),
+                        );
+                        let update = TopologyNativeQueryRowField::TopologyKind
+                            .set_on(update, TopologyRelationKind::ShellOwnsFace.kind_name())
                             .symbolic_entity_identity(
-                                "topology.source_identity",
+                                TopologyNativeQueryRowField::TopologySourceIdentity.touch(),
                                 ForgeQuerySymbolicTargetReference::new(created_shell_key.clone())
                                     .expect("created entity keys are non-empty"),
-                            )
-                            .aspect(
-                                "topology.target_identity",
-                                face_binding.query_identity_label.clone(),
                             );
-                        if let Some(path) = face_dependency_path {
-                            update.aspect(path, TopologyRelationKind::ShellOwnsFace.kind_name())
+                        let update = TopologyNativeQueryRowField::TopologyTargetIdentity
+                            .set_on(update, face_binding.query_identity_label.clone());
+                        if let Some(field) = face_dependency_path
+                            .and_then(TopologyNativeQueryRowField::from_query_aspect_path)
+                        {
+                            field.set_on(update, TopologyRelationKind::ShellOwnsFace.kind_name())
                         } else {
                             update
                         }

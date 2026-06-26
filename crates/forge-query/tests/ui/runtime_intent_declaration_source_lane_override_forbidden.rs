@@ -1,7 +1,6 @@
 use forge_query::facade::{
-    ForgeQueryIntentDeclaration, ForgeQueryIntentSourceLane,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentInput, ForgeQueryIntentSourceLane,
 };
-use serde_json::json;
 
 fn main() {
     let declaration = ForgeQueryIntentDeclaration::strategy_commit(
@@ -9,7 +8,7 @@ fn main() {
         "strategy.intent.reconcile",
         "1.0",
         "input-contract",
-        json!({"taskId": "task-1"}),
+        ForgeQueryIntentInput::object([("taskId", ForgeQueryIntentInput::string("task-1"))]),
     );
     let _ = declaration.with_source_lane(ForgeQueryIntentSourceLane::EffectTriggered);
 }

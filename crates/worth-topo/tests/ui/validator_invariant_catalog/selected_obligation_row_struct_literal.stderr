@@ -1,0 +1,33 @@
+warning: unreachable expression
+ --> tests/ui/validator_invariant_catalog/selected_obligation_row_struct_literal.rs:8:23
+  |
+7 |         query_obligation_kind: panic!("private Query kind unavailable"),
+  |                                ---------------------------------------- any code following this expression is unreachable
+8 |         support_lane: panic!("private support lane unavailable"),
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `worth_family_identity_digest`, `query_rule_identity_digest`, `query_obligation_kind`, `support_lane`, `support_status`, `support_posture_digest`, `execution_budget_digest`, `registration_digest` and `row_digest` of struct `WorthTopologySelectedLegalityObligationRow` are private
+  --> tests/ui/validator_invariant_catalog/selected_obligation_row_struct_literal.rs:5:9
+   |
+ 4 |     let _ = WorthTopologySelectedLegalityObligationRow {
+   |             ------------------------------------------ in this type
+ 5 |         worth_family_identity_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 6 |         query_rule_identity_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         query_obligation_kind: panic!("private Query kind unavailable"),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         support_lane: panic!("private support lane unavailable"),
+   |         ^^^^^^^^^^^^ private field
+ 9 |         support_status: panic!("private support status unavailable"),
+   |         ^^^^^^^^^^^^^^ private field
+10 |         support_posture_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         execution_budget_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         registration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+13 |         row_digest: String::new(),
+   |         ^^^^^^^^^^ private field

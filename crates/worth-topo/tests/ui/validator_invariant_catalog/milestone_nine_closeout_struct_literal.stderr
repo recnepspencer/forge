@@ -1,0 +1,177 @@
+warning: unreachable expression
+  --> tests/ui/validator_invariant_catalog/milestone_nine_closeout_struct_literal.rs:11:24
+   |
+10 |         deletion_ledger: todo!(),
+   |                          ------- any code following this expression is unreachable
+11 |         residue_audit: todo!(),
+   |                        ^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `phase_eight_cutover_seed_digest`, `operator_cutover_closeout_digest`, `deletion_ledger`, `residue_audit`, `source_firewall`, `counters`, `public_proof`, `milestone_ten_seed` and `closeout_digest` of struct `WorthTopologyMilestoneNineCloseout` are private
+  --> tests/ui/validator_invariant_catalog/milestone_nine_closeout_struct_literal.rs:8:9
+   |
+ 7 |     let _closeout = WorthTopologyMilestoneNineCloseout {
+   |                     ---------------------------------- in this type
+ 8 |         phase_eight_cutover_seed_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         operator_cutover_closeout_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         deletion_ledger: todo!(),
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         residue_audit: todo!(),
+   |         ^^^^^^^^^^^^^ private field
+12 |         source_firewall: todo!(),
+   |         ^^^^^^^^^^^^^^^ private field
+13 |         counters: WorthTopologyMilestoneNineCloseoutCounters {
+   |         ^^^^^^^^ private field
+...
+32 |         public_proof: WorthTopologyMilestoneNinePublicProof {
+   |         ^^^^^^^^^^^^ private field
+...
+51 |         milestone_ten_seed: WorthTopologyMilestoneTenSeed {
+   |         ^^^^^^^^^^^^^^^^^^ private field
+...
+80 |         closeout_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `selected_obligation_count`, `worth_family_count`, `enforcement_receipt_count`, `graph_read_receipt_count`, `budget_denial_count`, `support_pin_count`, `executor_row_count`, `execution_backed_adoption_proof_count`, `residue_manifest_count`, `deletion_ledger_row_count`, `capped_residue_row_count`, `stale_residue_row_count`, `uncapped_authority_count`, `source_firewall_violation_count`, `scanned_source_file_count`, `whole_view_certification_only_count` and `counters_digest` of struct `WorthTopologyMilestoneNineCloseoutCounters` are private
+  --> tests/ui/validator_invariant_catalog/milestone_nine_closeout_struct_literal.rs:14:13
+   |
+13 |         counters: WorthTopologyMilestoneNineCloseoutCounters {
+   |                   ------------------------------------------ in this type
+14 |             selected_obligation_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |             worth_family_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^ private field
+16 |             enforcement_receipt_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |             graph_read_receipt_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |             budget_denial_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^ private field
+19 |             support_pin_count: 0,
+   |             ^^^^^^^^^^^^^^^^^ private field
+20 |             executor_row_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^ private field
+21 |             execution_backed_adoption_proof_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+22 |             residue_manifest_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^ private field
+23 |             deletion_ledger_row_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+24 |             capped_residue_row_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+25 |             stale_residue_row_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^ private field
+26 |             uncapped_authority_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+27 |             source_firewall_violation_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+28 |             scanned_source_file_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+29 |             whole_view_certification_only_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+30 |             counters_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `closeout_digest`, `deletion_ledger_digest`, `residue_audit_digest`, `source_firewall_digest`, `counters_digest`, `selected_obligation_row_digests`, `query_selected_obligation_digests`, `enforcement_receipt_digests`, `execution_proof_digest`, `support_pin_digest`, `support_matrix_digest`, `adoption_manifest_digest`, `residue_manifest_digest`, `local_ceremony_audit_digest`, `old_authority_closed`, `ordinary_operator_paths_query_backed` and `proof_digest` of struct `WorthTopologyMilestoneNinePublicProof` are private
+  --> tests/ui/validator_invariant_catalog/milestone_nine_closeout_struct_literal.rs:33:13
+   |
+32 |         public_proof: WorthTopologyMilestoneNinePublicProof {
+   |                       ------------------------------------- in this type
+33 |             closeout_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^ private field
+34 |             deletion_ledger_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^ private field
+35 |             residue_audit_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^ private field
+36 |             source_firewall_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^ private field
+37 |             counters_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^ private field
+38 |             selected_obligation_row_digests: Vec::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+39 |             query_selected_obligation_digests: Vec::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+40 |             enforcement_receipt_digests: Vec::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+41 |             execution_proof_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^ private field
+42 |             support_pin_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^ private field
+43 |             support_matrix_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^ private field
+44 |             adoption_manifest_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+45 |             residue_manifest_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^ private field
+46 |             local_ceremony_audit_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+47 |             old_authority_closed: false,
+   |             ^^^^^^^^^^^^^^^^^^^^ private field
+48 |             ordinary_operator_paths_query_backed: false,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+49 |             proof_digest: String::new(),
+   |             ^^^^^^^^^^^^ private field
+
+error[E0451]: fields `phase_nine_closeout_digest`, `phase_six_seed_digest`, `phase_eight_cutover_seed_digest`, `phase_seven_enforcement_seed_digest`, `routing_closure_digest`, `selected_obligation_row_digests`, `query_selected_obligation_digests`, `worth_family_identity_digests`, `enforcement_receipt_digests`, `query_execution_envelope_digest`, `query_execution_row_digests`, `support_posture_row_digests`, `support_posture_digests`, `diagnostic_witness_digest_summary`, `execution_backed_adoption_manifest_digest`, `support_pin_digest`, `support_matrix_digest`, `residue_manifest_digest`, `local_ceremony_audit_digest`, `in_memory_proof_digest`, `execution_proof_digest`, `deletion_ledger_digest`, `residue_audit_digest`, `source_firewall_digest`, `counters_digest`, `claims_invalidation_planning` and `seed_digest` of struct `WorthTopologyMilestoneTenSeed` are private
+  --> tests/ui/validator_invariant_catalog/milestone_nine_closeout_struct_literal.rs:52:13
+   |
+51 |         milestone_ten_seed: WorthTopologyMilestoneTenSeed {
+   |                             ----------------------------- in this type
+52 |             phase_nine_closeout_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+53 |             phase_six_seed_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^ private field
+54 |             phase_eight_cutover_seed_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+55 |             phase_seven_enforcement_seed_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+56 |             routing_closure_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^ private field
+57 |             selected_obligation_row_digests: Vec::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+58 |             query_selected_obligation_digests: Vec::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+59 |             worth_family_identity_digests: Vec::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+60 |             enforcement_receipt_digests: Vec::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+61 |             query_execution_envelope_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+62 |             query_execution_row_digests: Vec::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+63 |             support_posture_row_digests: Vec::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+64 |             support_posture_digests: Vec::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^ private field
+65 |             diagnostic_witness_digest_summary: Vec::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+66 |             execution_backed_adoption_manifest_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+67 |             support_pin_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^ private field
+68 |             support_matrix_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^ private field
+69 |             residue_manifest_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^ private field
+70 |             local_ceremony_audit_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+71 |             in_memory_proof_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^ private field
+72 |             execution_proof_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^ private field
+73 |             deletion_ledger_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^ private field
+74 |             residue_audit_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^ private field
+75 |             source_firewall_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^ private field
+76 |             counters_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^ private field
+77 |             claims_invalidation_planning: true,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+78 |             seed_digest: String::new(),
+   |             ^^^^^^^^^^^ private field

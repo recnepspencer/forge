@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use crate::evidence_identity::{
@@ -6,32 +7,77 @@ use crate::evidence_identity::{
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::surface::live_artifact_binding::ForgeQueryLiveArtifactBinding;
 use crate::runtime::ForgeQueryLiveView;
-use crate::runtime::ForgeQueryRuntimeError;
 #[cfg(test)]
 use crate::runtime::{record_forbidden_fallback_seam_invocation, ForgeQueryForbiddenFallbackSeam};
+use crate::runtime::{ForgeQueryRuntimeError, ForgeQueryRuntimeLiveSubscriptionInstallation};
 
 use super::ForgeQueryLiveReadResult;
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryLiveArtifactTarget {
     view_name: String,
+    installation: Option<ForgeQueryRuntimeLiveSubscriptionInstallation>,
+}
+
+impl Ord for ForgeQueryLiveArtifactTarget {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.view_name.cmp(&other.view_name)
+    }
+}
+
+impl PartialOrd for ForgeQueryLiveArtifactTarget {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl ForgeQueryLiveArtifactTarget {
-    pub fn new(view_name: impl Into<String>) -> Self {
+    pub(crate) fn view_name(&self) -> &str {
+        &self.view_name
+    }
+
+    pub fn terminal_view_name_projection(&self) -> &str {
+        self.view_name()
+    }
+
+    pub(crate) fn from_view_name(view_name: impl Into<String>) -> Self {
         Self {
             view_name: view_name.into(),
+            installation: None,
         }
     }
 
-    pub fn view_name(&self) -> &str {
-        &self.view_name
+    pub fn from_source_adapter_declared_view_name(view_name: impl Into<String>) -> Self {
+        Self::from_view_name(view_name)
+    }
+
+    pub(in crate::runtime) fn from_subscription_installation(
+        installation: &ForgeQueryRuntimeLiveSubscriptionInstallation,
+    ) -> Self {
+        Self {
+            view_name: installation.view_name().to_string(),
+            installation: Some(installation.clone()),
+        }
+    }
+
+    pub(in crate::runtime) fn subscription_installation(
+        &self,
+    ) -> Option<&ForgeQueryRuntimeLiveSubscriptionInstallation> {
+        self.installation.as_ref()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(view_name: impl Into<String>) -> Self {
+        Self::from_view_name(view_name)
     }
 }
 
 impl<T> From<&ForgeQueryLiveView<T>> for ForgeQueryLiveArtifactTarget {
     fn from(value: &ForgeQueryLiveView<T>) -> Self {
-        Self::new(value.name())
+        Self {
+            view_name: value.name().to_string(),
+            installation: Some(value.subscription_installation().clone()),
+        }
     }
 }
 
@@ -40,13 +86,13 @@ pub struct ForgeQueryLiveArtifactBundle {
     snapshot_identity: ForgeQuerySnapshotIdentity,
     snapshot_evidence_identity: ForgeQueryEvidenceIdentity,
     bundle_digest: String,
-    reads: BTreeMap<String, ForgeQueryLiveReadResult>,
+    reads: BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryLiveReadResult>,
 }
 
 impl ForgeQueryLiveArtifactBundle {
     pub(in crate::runtime) fn new(
         snapshot_identity: ForgeQuerySnapshotIdentity,
-        reads: BTreeMap<String, ForgeQueryLiveReadResult>,
+        reads: BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryLiveReadResult>,
     ) -> Self {
         let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         let bundle_digest =
@@ -57,8 +103,12 @@ impl ForgeQueryLiveArtifactBundle {
                 )
                 .field_value_sequence(
                     ForgeQueryEvidenceTag::new("read_result"),
-                    reads.iter().map(|(view_name, result)| {
-                        format!("{view_name}:{}", result.receipt().result_digest())
+                    reads.iter().map(|(target, result)| {
+                        format!(
+                            "{}:{}",
+                            target.terminal_view_name_projection(),
+                            result.receipt().result_digest()
+                        )
                     }),
                 )
                 .seal()
@@ -88,31 +138,39 @@ impl ForgeQueryLiveArtifactBundle {
         self.reads.len()
     }
 
-    pub fn target_view_names(&self) -> impl Iterator<Item = &str> {
-        self.reads.keys().map(String::as_str)
+    pub fn targets(&self) -> impl Iterator<Item = ForgeQueryLiveArtifactTarget> + '_ {
+        self.reads.keys().cloned()
     }
 
-    pub fn includes_view_name(&self, view_name: &str) -> bool {
-        self.reads.contains_key(view_name)
+    pub fn terminal_target_view_names_projection(&self) -> impl Iterator<Item = &str> {
+        self.reads
+            .keys()
+            .map(ForgeQueryLiveArtifactTarget::terminal_view_name_projection)
+    }
+
+    pub fn includes_target(&self, target: &ForgeQueryLiveArtifactTarget) -> bool {
+        self.reads.contains_key(target)
     }
 
     pub fn read<T>(
         &self,
         view: &ForgeQueryLiveView<T>,
     ) -> Result<&ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
-        self.read_by_name(view.name())
+        let target = ForgeQueryLiveArtifactTarget::from(view);
+        self.read_for_target(&target)
     }
 
-    pub fn read_by_name(
+    pub(crate) fn read_for_target(
         &self,
-        view_name: &str,
+        target: &ForgeQueryLiveArtifactTarget,
     ) -> Result<&ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
-        self.reads.get(view_name).ok_or_else(|| {
+        self.reads.get(target).ok_or_else(|| {
             ForgeQueryRuntimeError::ReadCompositionDenied(
                 crate::runtime::ForgeQueryReadDenial::new(
                     crate::runtime::ForgeQueryReadDenialKind::ExecutionDenied,
                     format!(
-                        "live artifact bundle did not retain requested live view `{view_name}`"
+                        "live artifact bundle did not retain requested live view `{}`",
+                        target.terminal_view_name_projection()
                     ),
                 ),
             )
@@ -134,7 +192,7 @@ impl ForgeQueryLiveArtifactBundle {
     #[cfg(test)]
     pub(crate) fn test_only(
         snapshot_identity: ForgeQuerySnapshotIdentity,
-        reads: BTreeMap<String, ForgeQueryLiveReadResult>,
+        reads: BTreeMap<ForgeQueryLiveArtifactTarget, ForgeQueryLiveReadResult>,
     ) -> Self {
         Self::new(snapshot_identity, reads)
     }

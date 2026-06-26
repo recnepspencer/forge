@@ -1,5 +1,5 @@
 use crate::facade::runtime::{
-    ForgeQueryExistingEntityTarget, ForgeQueryExistingTruthProbeRequest,
+    ForgeQueryAspectTouch, ForgeQueryExistingEntityTarget, ForgeQueryExistingTruthProbeRequest,
     ForgeQueryExistingTruthProbeResult, ForgeQueryExistingTruthTargetBinding, ForgeQueryWorkspace,
 };
 use crate::intent_admission::{
@@ -7,6 +7,7 @@ use crate::intent_admission::{
 };
 
 use super::runtime::certification_runtime;
+use super::{identity_id_touch, title_value_touch};
 
 #[derive(Clone)]
 pub(in crate::intent_admission::certification) struct CertifiedRoutingIntentFixture {
@@ -38,7 +39,7 @@ pub(in crate::intent_admission::certification) fn certified_routing_intent_fixtu
         .workspace("certification-routing-intent")
         .expect("routing certification workspace should open");
     let binding = seeded_probe_binding(&mut workspace);
-    let request = ForgeQueryExistingTruthProbeRequest::new(binding, ["identity.id", "title.value"])
+    let request = ForgeQueryExistingTruthProbeRequest::new(binding, probe_aspects())
         .expect("routing certification request should build");
     let runtime = workspace.into_runtime();
     let review = runtime
@@ -78,15 +79,12 @@ pub(in crate::intent_admission::certification) fn routing_delegation_parity_fixt
         .expect("workspace routing parity workspace should open");
     let delegated_binding = seeded_probe_binding(&mut delegated_workspace);
     let workspace_legacy_request =
-        ForgeQueryExistingTruthProbeRequest::new(delegated_binding, ["identity.id", "title.value"])
+        ForgeQueryExistingTruthProbeRequest::new(delegated_binding, probe_aspects())
             .expect("workspace routing legacy request should build");
     let workspace_legacy = delegated_workspace
         .probe_existing(
             workspace_legacy_request.binding().clone(),
-            workspace_legacy_request
-                .aspect_paths()
-                .iter()
-                .map(String::as_str),
+            workspace_legacy_request.aspect_touches().iter().cloned(),
         )
         .expect("workspace routing legacy path should execute");
     let workspace_legacy_canonical = delegated_workspace
@@ -99,7 +97,7 @@ pub(in crate::intent_admission::certification) fn routing_delegation_parity_fixt
         .expect("workspace routing canonical workspace should open");
     let canonical_binding = seeded_probe_binding(&mut canonical_workspace);
     let canonical_request =
-        ForgeQueryExistingTruthProbeRequest::new(canonical_binding, ["identity.id", "title.value"])
+        ForgeQueryExistingTruthProbeRequest::new(canonical_binding, probe_aspects())
             .expect("workspace routing canonical request should build");
     let workspace_canonical = canonical_workspace
         .probe_existing_intent(canonical_request)
@@ -114,11 +112,9 @@ pub(in crate::intent_admission::certification) fn routing_delegation_parity_fixt
         .workspace("certification-routing-runtime-legacy")
         .expect("runtime routing legacy workspace should open");
     let delegated_runtime_binding = seeded_probe_binding(&mut delegated_runtime_workspace);
-    let delegated_runtime_request = ForgeQueryExistingTruthProbeRequest::new(
-        delegated_runtime_binding,
-        ["identity.id", "title.value"],
-    )
-    .expect("runtime routing legacy request should build");
+    let delegated_runtime_request =
+        ForgeQueryExistingTruthProbeRequest::new(delegated_runtime_binding, probe_aspects())
+            .expect("runtime routing legacy request should build");
     let delegated_runtime = delegated_runtime_workspace.into_runtime();
     let runtime_legacy = delegated_runtime
         .probe_existing(delegated_runtime_request.clone())
@@ -132,11 +128,9 @@ pub(in crate::intent_admission::certification) fn routing_delegation_parity_fixt
         .workspace("certification-routing-runtime-canonical")
         .expect("runtime routing canonical workspace should open");
     let canonical_runtime_binding = seeded_probe_binding(&mut canonical_runtime_workspace);
-    let canonical_runtime_request = ForgeQueryExistingTruthProbeRequest::new(
-        canonical_runtime_binding,
-        ["identity.id", "title.value"],
-    )
-    .expect("runtime routing canonical request should build");
+    let canonical_runtime_request =
+        ForgeQueryExistingTruthProbeRequest::new(canonical_runtime_binding, probe_aspects())
+            .expect("runtime routing canonical request should build");
     let canonical_runtime = canonical_runtime_workspace.into_runtime();
     let runtime_canonical = canonical_runtime
         .probe_existing_intent(canonical_runtime_request)
@@ -177,13 +171,23 @@ pub(in crate::intent_admission::certification) fn routing_delegation_parity_fixt
     }
 }
 
+fn probe_aspects() -> [ForgeQueryAspectTouch; 2] {
+    [identity_id_touch(), title_value_touch()]
+}
+
 fn seeded_probe_binding(
     workspace: &mut ForgeQueryWorkspace,
 ) -> ForgeQueryExistingTruthTargetBinding {
     let seed = workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Seed title")
+            task.set_aspect(
+                identity_id_touch(),
+                crate::runtime::ForgeQueryAuthoredAspectValue::string("task-1"),
+            )
+            .set_aspect(
+                title_value_touch(),
+                crate::runtime::ForgeQueryAuthoredAspectValue::string("Seed title"),
+            )
         })
         .expect("routing certification seed insert should execute");
     let authority_label =

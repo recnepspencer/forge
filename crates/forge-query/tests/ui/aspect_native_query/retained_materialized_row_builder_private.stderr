@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `builder` found for struct `ForgeQueryRetainedMaterializedRow` in the current scope
+ --> tests/ui/aspect_native_query/retained_materialized_row_builder_private.rs:4:48
+  |
+4 |     let _ = ForgeQueryRetainedMaterializedRow::builder();
+  |                                                ^^^^^^^ function or associated item not found in `ForgeQueryRetainedMaterializedRow`

@@ -8,10 +8,6 @@ pub struct GroupedLaneIdentity {
 }
 
 impl GroupedLaneIdentity {
-    pub fn grouping_aspect(&self) -> &str {
-        self.grouping_aspect.as_str()
-    }
-
     pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
@@ -25,6 +21,32 @@ impl GroupedLaneIdentity {
             grouping_aspect,
             lane_key: lane_key.into(),
         }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryGroupedBaselineMember {
+    member_key: String,
+    lane_key: String,
+}
+
+impl ForgeQueryGroupedBaselineMember {
+    pub fn from_authoritative_member_lane_keys(
+        member_key: impl Into<String>,
+        lane_key: impl Into<String>,
+    ) -> Self {
+        Self {
+            member_key: member_key.into(),
+            lane_key: lane_key.into(),
+        }
+    }
+
+    pub fn member_key(&self) -> &str {
+        &self.member_key
+    }
+
+    pub fn lane_key(&self) -> &str {
+        &self.lane_key
     }
 }
 
@@ -53,10 +75,6 @@ pub struct GroupedViewResultArtifact {
 }
 
 impl GroupedViewResultArtifact {
-    pub fn grouping_aspect(&self) -> &str {
-        self.grouping_aspect.as_str()
-    }
-
     pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
@@ -93,10 +111,6 @@ impl GroupedDesiredStateArtifact {
         &self.result
     }
 
-    pub fn grouping_aspect(&self) -> &str {
-        self.result.grouping_aspect()
-    }
-
     pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         self.result.native_grouping_aspect_key()
     }
@@ -104,14 +118,18 @@ impl GroupedDesiredStateArtifact {
 
 pub(crate) fn desired_state_from_members(
     grouping_aspect: AspectKey,
-    mut members: Vec<(String, String)>,
+    mut members: Vec<ForgeQueryGroupedBaselineMember>,
 ) -> GroupedDesiredStateArtifact {
-    members.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+    members.sort_by(|left, right| {
+        left.member_key
+            .cmp(&right.member_key)
+            .then_with(|| left.lane_key.cmp(&right.lane_key))
+    });
     let member_states = members
         .iter()
-        .map(|(member_key, lane_key)| GroupedMemberState {
-            member_key: member_key.clone(),
-            lane: GroupedLaneIdentity::new(grouping_aspect.clone(), lane_key.clone()),
+        .map(|member| GroupedMemberState {
+            member_key: member.member_key.clone(),
+            lane: GroupedLaneIdentity::new(grouping_aspect.clone(), member.lane_key.clone()),
         })
         .collect::<Vec<_>>();
     let mut lane_identities = member_states

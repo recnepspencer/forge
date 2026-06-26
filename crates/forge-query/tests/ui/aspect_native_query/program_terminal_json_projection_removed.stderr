@@ -1,0 +1,17 @@
+error[E0599]: no method named `terminal_json_projection` found for struct `ForgeQueryProgramValue` in the current scope
+ --> tests/ui/aspect_native_query/program_terminal_json_projection_removed.rs:7:19
+  |
+7 |     let _ = value.terminal_json_projection();
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryProgramValue`
+
+error[E0599]: no method named `terminal_json_value_projection` found for struct `ForgeQueryOperationInput` in the current scope
+  --> tests/ui/aspect_native_query/program_terminal_json_projection_removed.rs:10:19
+   |
+10 |     let _ = input.terminal_json_value_projection();
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryOperationInput`
+
+error[E0599]: no method named `terminal_json_value_projection` found for struct `ForgeQueryOperationOutput` in the current scope
+  --> tests/ui/aspect_native_query/program_terminal_json_projection_removed.rs:13:20
+   |
+13 |     let _ = output.terminal_json_value_projection();
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryOperationOutput`

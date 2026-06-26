@@ -1,11 +1,12 @@
+use forge_foundational::facade::{AspectKey, FieldKey};
 use forge_query::facade::runtime::{
     ForgeQueryAdmittedGraphReadProjectionField, ForgeQueryGraphReadAdmittedSchemaFieldKind,
 };
 
 fn main() {
     let _ = ForgeQueryAdmittedGraphReadProjectionField {
-        aspect: "identity".to_string(),
-        field: "id".to_string(),
+        aspect: AspectKey::new("identity").unwrap(),
+        field: FieldKey::new("id").unwrap(),
         delivered_name: "id".to_string(),
         kind: ForgeQueryGraphReadAdmittedSchemaFieldKind::String,
     };

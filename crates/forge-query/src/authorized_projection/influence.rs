@@ -116,10 +116,7 @@ impl PolicyInfluenceSet {
     pub fn from_grouped_view_planning(
         grouped: &GroupedViewPlanningArtifact,
     ) -> Result<Self, crate::authoring::AuthoringError> {
-        Ok(Self::none().with_grouping_field(AspectFieldKey::new(
-            grouped.grouping_binding().source_aspect(),
-            grouped.grouping_binding().source_field(),
-        )?))
+        Ok(Self::none().with_grouping_field(grouped.grouping_binding().source_field_key().clone()))
     }
 
     pub fn entries(&self) -> &[PolicyInfluenceEntry] {

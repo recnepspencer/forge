@@ -17,7 +17,7 @@ pub(crate) fn validate_traversal_entries(
 
     for traversal in traversals {
         counters.record_schema_lookup();
-        let Some(relation) = schema_view.relation(traversal.relation.as_str()) else {
+        let Some(relation) = schema_view.relation(&traversal.relation) else {
             counters.record_rejection();
             rejection_matrix.record_traversal_rejection();
             return Err(ValidationFailureArtifact::new(

@@ -19,7 +19,7 @@ fn drain_only_program(view_name: &str) -> ForgeQueryProgram {
 #[test]
 fn runtime_time_only_delivery_is_canonical_without_relational_patch() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("tasks.time-only", task_live_request(), task_schema())
         .expect("live view should declare");
 
@@ -54,7 +54,7 @@ fn runtime_time_only_delivery_is_canonical_without_relational_patch() {
 #[test]
 fn runtime_state_and_inspection_retain_last_time_only_delivery_after_drain() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.inspect-time-only",
             task_live_request(),
@@ -73,7 +73,7 @@ fn runtime_state_and_inspection_retain_last_time_only_delivery_after_drain() {
         .expect("time-only delivery should emit");
     let _ = runtime.drain_patches(&view);
 
-    let state = <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
+    let state = <&ForgeQueryLiveView<ForgeQueryNativeRow> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
         &view, &runtime,
     )
     .expect("state should snapshot");
@@ -106,7 +106,7 @@ fn runtime_state_and_inspection_retain_last_time_only_delivery_after_drain() {
 #[test]
 fn runtime_time_only_delivery_matches_program_drain_lane_and_denies_missing_evidence() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.program-time-only",
             task_live_request(),

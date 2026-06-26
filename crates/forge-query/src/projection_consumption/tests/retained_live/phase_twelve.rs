@@ -64,7 +64,14 @@ fn retained_and_live_ordinary_consumption_path_stays_receipt_first_and_zero_reop
             ),
             ProjectMaterializedFacts::declare()
                 .view_local_identities()
-                .display_field("profile.display_name")
+                .display_field_path(
+                    crate::projection_consumption::projection_fact_field_path_from_segments([
+                        forge_foundational::facade::FieldKey::new("profile")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("display_name")
+                            .expect("projection fact field segment should admit"),
+                    ]),
+                )
                 .source_references(),
         )
         .expect("retained ordinary projection path should succeed");
@@ -79,7 +86,14 @@ fn retained_and_live_ordinary_consumption_path_stays_receipt_first_and_zero_reop
             ProjectMaterializedFacts::declare()
                 .entity_identities()
                 .view_local_identities()
-                .display_field("profile.display_name")
+                .display_field_path(
+                    crate::projection_consumption::projection_fact_field_path_from_segments([
+                        forge_foundational::facade::FieldKey::new("profile")
+                            .expect("projection fact field segment should admit"),
+                        forge_foundational::facade::FieldKey::new("display_name")
+                            .expect("projection fact field segment should admit"),
+                    ]),
+                )
                 .source_references(),
         )
         .expect("live ordinary projection path should succeed");

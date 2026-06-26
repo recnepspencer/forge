@@ -17,12 +17,12 @@ pub(in crate::runtime::tests) fn preview_safe_program() -> ForgeQueryProgram {
                 ForgeQueryWriteCommandTemplate::InsertAspects {
                     collection: "Task".to_string(),
                     aspects: vec![
-                        ForgeQueryAspectValueTemplate::new(
-                            "identity.id",
-                            ForgeQueryValueExpr::literal(Value::String(String::new())),
+                        ForgeQueryAdmittedAspectValueTemplate::new(
+                            test_aspect_touch("identity.id"),
+                            ForgeQueryValueExpr::literal(ForgeQueryProgramValue::string("")),
                         ),
-                        ForgeQueryAspectValueTemplate::new(
-                            "title.value",
+                        ForgeQueryAdmittedAspectValueTemplate::new(
+                            test_aspect_touch("title.value"),
                             ForgeQueryValueExpr::input("title"),
                         ),
                     ],
@@ -43,7 +43,7 @@ pub(in crate::runtime::tests) struct SummaryMaintainer;
 pub(in crate::runtime::tests) struct RefreshCountMaintainer;
 
 fn test_delta_display_identity(delta: &crate::memory_workspace::ForgeQueryMutationDelta) -> String {
-    if let Some(upstream_view) = delta.collection.strip_prefix("derived:") {
+    if let Some(upstream_view) = delta.collection().strip_prefix("derived:") {
         if delta.entity_identity
             == crate::memory_workspace::admit_authored_entity_label(upstream_view)
         {
@@ -64,18 +64,18 @@ impl ForgeQueryDerivedViewMaintainer for TitleListMaintainer {
         delta: &crate::memory_workspace::ForgeQueryMutationDelta,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> ForgeQueryDerivedPatch {
-        let row = Value::String(test_delta_display_identity(delta));
-        materialization.push_row(row.clone());
+        let retained_row = retained_string_test_row("value", test_delta_display_identity(delta));
+        materialization.push_retained_row(retained_row.clone());
         ForgeQueryDerivedPatch::incremental(
             view.name(),
             crate::memory_workspace::admit_external_commit_label("derived-test-commit"),
             delta.entity_identity.clone(),
-            if view.produced_aspects().is_empty() {
-                delta.aspect_paths.clone()
+            if view.produced_aspect_touches().is_empty() {
+                delta.admitted_touched_aspects().to_vec()
             } else {
-                view.produced_aspects().to_vec()
+                view.produced_aspect_touches().to_vec()
             },
-            row,
+            ForgeQueryDerivedPatchPayload::from_retained_row(retained_row),
         )
     }
 }
@@ -87,18 +87,21 @@ impl ForgeQueryDerivedViewMaintainer for SummaryMaintainer {
         delta: &crate::memory_workspace::ForgeQueryMutationDelta,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> ForgeQueryDerivedPatch {
-        let row = Value::String(format!("summary:{}", test_delta_display_identity(delta)));
-        materialization.replace_rows([row.clone()]);
+        let retained_row = retained_string_test_row(
+            "value",
+            format!("summary:{}", test_delta_display_identity(delta)),
+        );
+        materialization.replace_retained_rows([retained_row.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
             crate::memory_workspace::admit_external_commit_label("derived-summary-commit"),
             delta.entity_identity.clone(),
-            if view.produced_aspects().is_empty() {
-                delta.aspect_paths.clone()
+            if view.produced_aspect_touches().is_empty() {
+                delta.admitted_touched_aspects().to_vec()
             } else {
-                view.produced_aspects().to_vec()
+                view.produced_aspect_touches().to_vec()
             },
-            row,
+            ForgeQueryDerivedPatchPayload::from_retained_row(retained_row),
         )
     }
 }
@@ -110,21 +113,21 @@ impl ForgeQueryDerivedViewMaintainer for RefreshCountMaintainer {
         delta: &crate::memory_workspace::ForgeQueryMutationDelta,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> ForgeQueryDerivedPatch {
-        let row = Value::String(format!(
-            "incremental:{}",
-            test_delta_display_identity(delta)
-        ));
-        materialization.replace_rows([row.clone()]);
+        let retained_row = retained_string_test_row(
+            "value",
+            format!("incremental:{}", test_delta_display_identity(delta)),
+        );
+        materialization.replace_retained_rows([retained_row.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
             crate::memory_workspace::admit_external_commit_label("refresh-count-incremental"),
             delta.entity_identity.clone(),
-            if view.produced_aspects().is_empty() {
-                delta.aspect_paths.clone()
+            if view.produced_aspect_touches().is_empty() {
+                delta.admitted_touched_aspects().to_vec()
             } else {
-                view.produced_aspects().to_vec()
+                view.produced_aspect_touches().to_vec()
             },
-            row,
+            ForgeQueryDerivedPatchPayload::from_retained_row(retained_row),
         )
     }
 
@@ -136,20 +139,20 @@ impl ForgeQueryDerivedViewMaintainer for RefreshCountMaintainer {
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> Option<ForgeQueryDerivedPatch> {
         let count = upstreams
-            .live_view_names()
-            .flat_map(|view_name| upstreams.live_rows(view_name).into_iter().flatten())
-            .count();
-        let row = Value::String(format!("count:{count}"));
-        materialization.replace_rows([row.clone()]);
+            .declared_live_row_sets(view)
+            .map(<[crate::memory_workspace::ForgeQueryEntity]>::len)
+            .sum::<usize>();
+        let retained_row = retained_string_test_row("value", format!("count:{count}"));
+        materialization.replace_retained_rows([retained_row.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
             crate::memory_workspace::admit_external_commit_label("refresh-count-rebuild"),
-            if view.produced_aspects().is_empty() {
-                view.dependency_aspects().to_vec()
+            if view.produced_aspect_touches().is_empty() {
+                view.dependency_aspect_touches().to_vec()
             } else {
-                view.produced_aspects().to_vec()
+                view.produced_aspect_touches().to_vec()
             },
-            row,
+            ForgeQueryDerivedPatchPayload::from_retained_row(retained_row),
             "retained-live-snapshot-rebuild",
         ))
     }
@@ -190,12 +193,12 @@ impl ForgeQueryProgramSource for FakeDsl {
                     ForgeQueryWriteCommandTemplate::InsertAspects {
                         collection: "Task".to_string(),
                         aspects: vec![
-                            ForgeQueryAspectValueTemplate::new(
-                                "identity.id",
-                                ForgeQueryValueExpr::literal(Value::String(String::new())),
+                            ForgeQueryAdmittedAspectValueTemplate::new(
+                                test_aspect_touch("identity.id"),
+                                ForgeQueryValueExpr::literal(ForgeQueryProgramValue::string("")),
                             ),
-                            ForgeQueryAspectValueTemplate::new(
-                                "title.value",
+                            ForgeQueryAdmittedAspectValueTemplate::new(
+                                test_aspect_touch("title.value"),
                                 ForgeQueryValueExpr::input("title"),
                             ),
                         ],

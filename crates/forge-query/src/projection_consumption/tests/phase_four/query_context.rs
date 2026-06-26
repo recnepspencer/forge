@@ -1,11 +1,9 @@
-use serde_json::json;
-
 use super::super::super::{
     ProjectMaterializedFacts, ProjectionConsumptionSource, ProjectionFactExtractionError,
 };
 use super::support::{
     admitted, binding_for_result_shape, query_context_execution_current,
-    query_context_execution_historical, query_context_execution_preview,
+    query_context_execution_historical, query_context_execution_preview, text_value,
 };
 use crate::query_context::{QueryContextExecutionArtifact, QueryContextExecutionFamily};
 
@@ -21,8 +19,22 @@ fn current_query_context_extracts_identity_and_row_bound_field_facts() {
         ProjectMaterializedFacts::declare()
             .entity_identities()
             .view_local_identities()
-            .display_field("profile.display_name")
-            .derived_scalar_field("metrics.priority"),
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            )
+            .derived_scalar_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("metrics")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("priority")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            ),
     )
     .bind_contract();
 
@@ -42,11 +54,11 @@ fn current_query_context_extracts_identity_and_row_bound_field_facts() {
     );
     assert_eq!(
         consumed.display_fields()[0].value(),
-        &json!("payload-row-0")
+        &text_value("payload-row-0")
     );
     assert_eq!(
         consumed.derived_scalar_fields()[1].value(),
-        &json!("payload-row-1")
+        &text_value("payload-row-1")
     );
     assert_eq!(consumed.counters().source_row_width_consumed(), 4);
     assert_eq!(consumed.counters().source_evidence_lookup_width(), 0);
@@ -60,7 +72,14 @@ fn query_context_extracts_bound_source_reference_metadata() {
         ProjectionConsumptionSource::from_query_context_execution(&execution),
         binding_for_result_shape("result-shape:test", &["profile.display_name"]),
         ProjectMaterializedFacts::declare()
-            .display_field("profile.display_name")
+            .display_field_path(
+                crate::projection_consumption::projection_fact_field_path_from_segments([
+                    forge_foundational::facade::FieldKey::new("profile")
+                        .expect("projection fact field segment should admit"),
+                    forge_foundational::facade::FieldKey::new("display_name")
+                        .expect("projection fact field segment should admit"),
+                ]),
+            )
             .source_references(),
     )
     .bind_contract();
@@ -80,7 +99,7 @@ fn query_context_extracts_bound_source_reference_metadata() {
     );
     assert_eq!(
         consumed.display_fields()[0].value(),
-        &json!("historical-row-0")
+        &text_value("historical-row-0")
     );
     assert_eq!(consumed.counters().source_row_width_consumed(), 1);
     assert_eq!(consumed.counters().source_evidence_lookup_width(), 1);
@@ -92,7 +111,14 @@ fn query_context_extraction_rejects_result_shape_drift() {
     let contract = admitted(
         ProjectionConsumptionSource::from_query_context_execution(&execution),
         binding_for_result_shape("result-shape:test", &["profile.display_name"]),
-        ProjectMaterializedFacts::declare().display_field("profile.display_name"),
+        ProjectMaterializedFacts::declare().display_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                forge_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                forge_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
+            ]),
+        ),
     )
     .bind_contract();
     let mismatched = QueryContextExecutionArtifact::test_only(

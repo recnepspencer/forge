@@ -28,7 +28,7 @@ fn remasked_runtime(projection: ForgeQueryRuntimeRemaskProjection) -> ForgeQuery
 #[test]
 fn runtime_downstream_delivery_projects_time_only_contract_with_explicit_resume_posture() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.downstream-time-only",
             task_live_request(),
@@ -130,7 +130,7 @@ fn runtime_downstream_delivery_projects_mixed_cause_and_async_truth_without_recl
         .expect("coalesced mixed-cause delivery should plan");
 
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.downstream-mixed-cause",
             task_live_request(),
@@ -185,7 +185,7 @@ fn runtime_downstream_delivery_fails_closed_for_stale_basis_and_preserves_remask
         "relationship-proof:stable",
         "schema-context:drifted",
     ));
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "tasks.downstream-remask-denied",
             task_live_request(),

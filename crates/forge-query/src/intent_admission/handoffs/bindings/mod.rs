@@ -8,9 +8,9 @@ use crate::evidence_identity::{
 };
 use crate::memory_workspace::ForgeQueryCommitIdentity;
 use crate::runtime::{
-    ForgeQueryAuthoritativeMutationObligationDispatch, ForgeQueryEffectDelivery,
-    ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryIntentDeclaration, ForgeQueryIntentSourceLane,
-    ForgeQueryWriteCommand,
+    ForgeQueryAspectTouch, ForgeQueryAuthoritativeMutationObligationDispatch,
+    ForgeQueryEffectDelivery, ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryIntentDeclaration,
+    ForgeQueryIntentSourceLane, ForgeQueryWriteCommand,
 };
 
 use super::{
@@ -314,11 +314,13 @@ fn hash_effect_pending_delivery(pending_delivery: &ForgeQueryEffectDelivery) -> 
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("aspect"),
-            pending_delivery.aspect_paths().iter().map(String::as_str),
+            terminal_aspect_touch_digest_parts(pending_delivery.aspect_touches())
+                .iter()
+                .map(String::as_str),
         )
         .field_value(
             ForgeQueryEvidenceTag::new("payload"),
-            pending_delivery.payload().to_string(),
+            pending_delivery.payload().terminal_digest_material(),
         )
         .optional_value(
             ForgeQueryEvidenceTag::new("reason"),
@@ -331,6 +333,13 @@ fn hash_effect_pending_delivery(pending_delivery: &ForgeQueryEffectDelivery) -> 
         .seal()
         .as_str()
         .to_string()
+}
+
+fn terminal_aspect_touch_digest_parts(touches: &[ForgeQueryAspectTouch]) -> Vec<String> {
+    touches
+        .iter()
+        .map(ForgeQueryAspectTouch::admitted_touch_digest_part)
+        .collect()
 }
 
 fn effect_delivery_family_label(

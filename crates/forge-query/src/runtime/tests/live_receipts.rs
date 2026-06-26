@@ -21,7 +21,7 @@ fn runtime_write_denies_when_signal_routing_receipt_drifts_from_write_receipt() 
         .build_backend_from_parts()
         .build()
         .expect("backend with drifting signal receipt should still build");
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("external.tasks", task_live_request(), task_schema())
         .expect("live view should declare before hostile write");
 
@@ -29,8 +29,11 @@ fn runtime_write_denies_when_signal_routing_receipt_drifts_from_write_receipt() 
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("")),
-                ("title.value", json!("Signal receipt drift")),
+                ("identity.id", test_string_aspect_value("")),
+                (
+                    "title.value",
+                    test_string_aspect_value("Signal receipt drift"),
+                ),
             ],
         ))
         .expect_err("signal routing receipt drift must deny the write");
@@ -65,8 +68,11 @@ fn runtime_write_denies_authority_less_receipt_at_signal_routing_boundary() {
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("authority-less")),
-                ("title.value", json!("Authority-less receipt")),
+                ("identity.id", test_string_aspect_value("authority-less")),
+                (
+                    "title.value",
+                    test_string_aspect_value("Authority-less receipt"),
+                ),
             ],
         ))
         .expect_err("authority-less write receipt must fail signal routing");
@@ -92,7 +98,7 @@ fn runtime_batch_write_denies_when_signal_routing_batch_width_drifts_from_receip
         .build_backend_from_parts()
         .build()
         .expect("backend with truncating signal batch sink should still build");
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("external.tasks.batch", task_live_request(), task_schema())
         .expect("live view should declare before hostile batch write");
 
@@ -101,15 +107,21 @@ fn runtime_batch_write_denies_when_signal_routing_batch_width_drifts_from_receip
             insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("")),
-                    ("title.value", json!("first hostile batch write")),
+                    ("identity.id", test_string_aspect_value("")),
+                    (
+                        "title.value",
+                        test_string_aspect_value("first hostile batch write"),
+                    ),
                 ],
             ),
             insert_command(
                 "Task",
                 [
-                    ("identity.id", json!("")),
-                    ("title.value", json!("second hostile batch write")),
+                    ("identity.id", test_string_aspect_value("")),
+                    (
+                        "title.value",
+                        test_string_aspect_value("second hostile batch write"),
+                    ),
                 ],
             ),
         ])
@@ -149,12 +161,12 @@ fn runtime_live_read_receipt_retains_materialized_remask_posture() {
         .build_backend_from_parts()
         .build()
         .expect("remasked runtime should build");
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view("external.tasks.remask", task_live_request(), task_schema())
         .expect("live view should declare");
 
     let receipt = runtime
-        .execute_live_read_by_name(view.name())
+        .read_live_result(&view)
         .expect("live read should execute")
         .receipt()
         .clone();
@@ -185,7 +197,7 @@ fn runtime_live_read_receipt_retains_materialized_remask_posture() {
 #[test]
 fn runtime_live_read_receipt_retains_time_only_materialized_posture() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: ForgeQueryLiveView<Value> = runtime
+    let view: ForgeQueryLiveView<ForgeQueryNativeRow> = runtime
         .declare_live_view(
             "external.tasks.time-only",
             task_live_request(),
@@ -203,7 +215,7 @@ fn runtime_live_read_receipt_retains_time_only_materialized_posture() {
         .expect("time-only delivery should emit");
 
     let receipt = runtime
-        .execute_live_read_by_name(view.name())
+        .read_live_result(&view)
         .expect("live read should execute")
         .receipt()
         .clone();
@@ -234,7 +246,7 @@ fn runtime_live_read_receipt_retains_time_only_materialized_posture() {
 #[test]
 fn runtime_live_read_receipt_retains_async_and_mixed_cause_posture_precedence() {
     let mut async_runtime = stateful_bridge_task_runtime();
-    let async_view: ForgeQueryLiveView<Value> = async_runtime
+    let async_view: ForgeQueryLiveView<ForgeQueryNativeRow> = async_runtime
         .declare_live_view("external.tasks.async", task_live_request(), task_schema())
         .expect("async live view should declare");
     let (basis_digest, generation_digest) =
@@ -251,7 +263,7 @@ fn runtime_live_read_receipt_retains_async_and_mixed_cause_posture_precedence() 
         )
         .expect("async result state should project");
     let async_receipt = async_runtime
-        .execute_live_read_by_name(async_view.name())
+        .read_live_result(&async_view)
         .expect("async live read should execute")
         .receipt()
         .clone();
@@ -296,14 +308,14 @@ fn runtime_live_read_receipt_retains_async_and_mixed_cause_posture_precedence() 
         )
         .expect("mixed-cause delivery window should plan");
     let mut mixed_runtime = stateful_bridge_task_runtime();
-    let mixed_view: ForgeQueryLiveView<Value> = mixed_runtime
+    let mixed_view: ForgeQueryLiveView<ForgeQueryNativeRow> = mixed_runtime
         .declare_live_view("external.tasks.mixed", task_live_request(), task_schema())
         .expect("mixed live view should declare");
     mixed_runtime
         .emit_mixed_cause_delivery(mixed_view.name(), &ordering, &window)
         .expect("mixed-cause delivery should emit");
     let mixed_receipt = mixed_runtime
-        .execute_live_read_by_name(mixed_view.name())
+        .read_live_result(&mixed_view)
         .expect("mixed-cause live read should execute")
         .receipt()
         .clone();

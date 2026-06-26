@@ -1,27 +1,28 @@
-use crate::runtime::ForgeQueryMutationFamily;
+use crate::runtime::{
+    ForgeQueryAspectTouch, ForgeQueryMutationFamily, ForgeQueryMutationTargetCollectionIdentity,
+};
 
 use super::super::read_verb::ForgeQueryGraphTouchReadVerb;
 use super::{ForgeQueryGraphTouchDescriptorRow, ForgeQueryGraphTouchDescriptorRowInput};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ForgeQueryGraphReadTouchShape {
-    aspect_paths: Vec<String>,
+    aspect_touches: Vec<ForgeQueryAspectTouch>,
 }
 
 impl ForgeQueryGraphReadTouchShape {
-    pub fn new(aspect_paths: impl IntoIterator<Item = String>) -> Self {
-        let mut aspect_paths = aspect_paths
-            .into_iter()
-            .map(|path| path.trim().to_string())
-            .filter(|path| !path.is_empty())
-            .collect::<Vec<_>>();
-        aspect_paths.sort();
-        aspect_paths.dedup();
-        Self { aspect_paths }
+    pub fn new(aspect_touches: impl IntoIterator<Item = ForgeQueryAspectTouch>) -> Self {
+        Self {
+            aspect_touches: aspect_touches
+                .into_iter()
+                .collect::<std::collections::BTreeSet<_>>()
+                .into_iter()
+                .collect(),
+        }
     }
 
-    pub fn aspect_paths(&self) -> &[String] {
-        &self.aspect_paths
+    pub fn aspect_touches(&self) -> &[ForgeQueryAspectTouch] {
+        &self.aspect_touches
     }
 }
 
@@ -49,11 +50,14 @@ fn read_touch_row(
         read_verb: Some(verb),
         program_step_kind: None,
         lifecycle_family: None,
-        declared_collection: Some(collection.to_string()),
+        declared_collection: Some(ForgeQueryMutationTargetCollectionIdentity::new(
+            "graph-read-touch-row",
+            collection,
+        )),
         relation_kind_id: None,
         declared_symbol: None,
         declared_aspect_operations: Vec::new(),
-        touched_aspect_paths: shape.aspect_paths().to_vec(),
+        touched_aspects: shape.aspect_touches().to_vec(),
         has_symbolic_target_reference: false,
         has_existing_truth_binding: false,
         symbolic_aspect_reference_count: 0,

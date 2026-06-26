@@ -7,8 +7,8 @@ error[E0624]: associated function `new` is private
  ::: src/runtime/graph_read_access/schema_reference_evidence/admitted_reference_rows.rs
   |
   | /     pub(crate) fn new(
-  | |         aspect: impl Into<String>,
-  | |         field: impl Into<String>,
+  | |         aspect: AspectKey,
+  | |         field: FieldKey,
   | |         direction: impl Into<String>,
   | |         kind: ForgeQueryGraphReadAdmittedSchemaFieldKind,
   | |     ) -> Self {

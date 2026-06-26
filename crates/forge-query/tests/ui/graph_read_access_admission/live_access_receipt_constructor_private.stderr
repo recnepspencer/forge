@@ -49,7 +49,7 @@ help: you might have meant to use an associated function to build this type
 20 -             strategy_recompute_count: 0,
 21 -             background_index_build_count: 0,
 22 -         },
-12 +         maintenance_counters: ForgeQueryLiveGraphReadMaintenanceCounters::observed_mutation_delivery(_, _, _),
+12 +         maintenance_counters: ForgeQueryLiveGraphReadMaintenanceCounters::observed_mutation_delivery(_, _, _, _),
    |
 
 error: cannot construct `ForgeQueryLiveGraphReadAccessReceipt` with struct literal syntax due to private fields

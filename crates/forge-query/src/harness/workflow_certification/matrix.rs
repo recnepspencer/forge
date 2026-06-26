@@ -6,6 +6,7 @@ use super::row_catalog::{
     WorkflowCanonicalRowSpec, WorkflowRejectionRowSpec, WORKFLOW_CANONICAL_ROW_SPECS,
     WORKFLOW_REJECTION_ROW_SPECS,
 };
+use crate::aspect_field_authoring::single_native_string_aspect_field_patch;
 use crate::harness::certification::{
     CanonicalCertificationRow, ParityAnchor, RejectionCertificationRow,
 };
@@ -32,7 +33,6 @@ use crate::workflow::{
 use crate::workflow::{MergeLoweringInput, MutationLoweringInput, WritebackLoweringInput};
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::{EntityId, PartitionId};
-use serde_json::json;
 
 pub struct MilestoneFivePointFiveWorkflowCertificationAdapter;
 
@@ -830,7 +830,10 @@ fn rejection_row(
                 &authority_binding_identity,
                 MutationLoweringInput::IntentReconciliation {
                     entity_id: EntityId::new(PartitionId(1), 41, 0),
-                    desired_aspect_fields_external_json: json!({"name":"after"}),
+                    desired_aspect_fields: single_native_string_aspect_field_patch(
+                        "name", "name", "after",
+                    )
+                    .expect("name patch should be native"),
                 },
             )
             .expect("mutation lowering should succeed");

@@ -1,0 +1,45 @@
+[package]
+name = "forge-store"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Thin public facade for the rebuilt Forge Store crate family."
+
+[dependencies]
+forge-store-analysis.workspace = true
+forge-store-authority.workspace = true
+forge-store-blob-chunks.workspace = true
+forge-store-branch-deltas.workspace = true
+forge-store-budgets.workspace = true
+forge-store-buffer-pool.workspace = true
+forge-store-certification.workspace = true
+forge-store-claim-boundaries.workspace = true
+forge-store-compatibility.workspace = true
+forge-store-contracts.workspace = true
+forge-store-extensions.workspace = true
+forge-store-formal-models.workspace = true
+forge-store-io-scheduler.workspace = true
+forge-store-layout-indexes.workspace = true
+forge-store-live-query.workspace = true
+forge-store-maintenance.workspace = true
+forge-store-modes.workspace = true
+forge-store-offline-verifier.workspace = true
+forge-store-operations.workspace = true
+forge-store-physical-backend.workspace = true
+forge-store-physical-certification.workspace = true
+forge-store-physical-format.workspace = true
+forge-store-physical-integrity.workspace = true
+forge-store-physical-isolation.workspace = true
+forge-store-recovery-physics.workspace = true
+forge-store-replication.workspace = true
+forge-store-retention.workspace = true
+forge-store-s0-reclassification.workspace = true
+forge-store-schema-lineage.workspace = true
+forge-store-security.workspace = true
+forge-store-snapshots.workspace = true
+forge-store-subscription-support.workspace = true
+forge-store-tiering.workspace = true
+forge-store-wal.workspace = true
+
+[lints]
+workspace = true

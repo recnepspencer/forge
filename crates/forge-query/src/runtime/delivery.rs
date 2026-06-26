@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
@@ -8,10 +8,12 @@ use crate::subscription::{
 };
 
 use super::{
-    ForgeQueryAuthorityLane, ForgeQueryLiveGraphReadMaintenanceReceipt,
-    ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeLiveSubscriptionInstallation,
-    ForgeQueryRuntimeMixedCauseDelivery, ForgeQueryRuntimeRemaskPosture,
+    ForgeQueryAuthorityLane, ForgeQueryLiveArtifactTarget,
+    ForgeQueryLiveGraphReadMaintenanceReceipt, ForgeQueryRuntimeAsyncResultState,
+    ForgeQueryRuntimeLiveSubscriptionInstallation, ForgeQueryRuntimeMixedCauseDelivery,
+    ForgeQueryRuntimeRemaskPosture,
 };
+use crate::runtime::ForgeQueryMutationTargetCollectionIdentity;
 
 pub(super) struct ForgeQueryRuntimeLiveSubscriptionActivation {
     pub(super) installation: ForgeQueryRuntimeLiveSubscriptionInstallation,
@@ -30,6 +32,33 @@ pub(super) struct ForgeQueryRuntimeLiveSubscriptionState {
     pub(super) last_delivery: Option<ForgeQueryRuntimeRetainedDelivery>,
     pub(super) async_result_state: Option<ForgeQueryRuntimeAsyncResultState>,
     pub(super) remask_posture: Option<ForgeQueryRuntimeRemaskPosture>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct ForgeQueryLiveSubscriptionIndexEntry {
+    target_collection: ForgeQueryMutationTargetCollectionIdentity,
+    targets: BTreeSet<ForgeQueryLiveArtifactTarget>,
+}
+
+impl ForgeQueryLiveSubscriptionIndexEntry {
+    fn new(target_collection: ForgeQueryMutationTargetCollectionIdentity) -> Self {
+        Self {
+            target_collection,
+            targets: BTreeSet::new(),
+        }
+    }
+
+    pub(super) fn target_collection(&self) -> &ForgeQueryMutationTargetCollectionIdentity {
+        &self.target_collection
+    }
+
+    pub(super) fn targets(&self) -> &BTreeSet<ForgeQueryLiveArtifactTarget> {
+        &self.targets
+    }
+
+    fn targets_mut(&mut self) -> &mut BTreeSet<ForgeQueryLiveArtifactTarget> {
+        &mut self.targets
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -219,29 +248,35 @@ impl ForgeQueryRuntimeRetainedDelivery {
 }
 
 pub(super) fn register_live_subscription_index(
-    index: &mut BTreeMap<String, BTreeSet<String>>,
+    index: &mut Vec<ForgeQueryLiveSubscriptionIndexEntry>,
     view_name: &str,
+    target: ForgeQueryLiveArtifactTarget,
     request: &DeclarativeLiveQueryRequest,
 ) {
     unregister_live_subscription_index(index, view_name);
-    index
-        .entry(request.target().to_string())
-        .or_default()
-        .insert(view_name.to_string());
+    let target_collection = request.target_collection_identity();
+    let entry = match index.iter_mut().find(|entry| {
+        entry
+            .target_collection
+            .same_target_collection_as(&target_collection)
+    }) {
+        Some(entry) => entry,
+        None => {
+            index.push(ForgeQueryLiveSubscriptionIndexEntry::new(target_collection));
+            index.last_mut().expect("inserted subscription index entry")
+        }
+    };
+    entry.targets_mut().insert(target);
 }
 
 fn unregister_live_subscription_index(
-    index: &mut BTreeMap<String, BTreeSet<String>>,
+    index: &mut Vec<ForgeQueryLiveSubscriptionIndexEntry>,
     view_name: &str,
 ) {
-    let empty_collections = index
-        .iter_mut()
-        .filter_map(|(collection, view_names)| {
-            view_names.remove(view_name);
-            view_names.is_empty().then(|| collection.clone())
-        })
-        .collect::<Vec<_>>();
-    for collection in empty_collections {
-        index.remove(&collection);
-    }
+    index.retain_mut(|entry| {
+        entry
+            .targets_mut()
+            .retain(|target| target.view_name() != view_name);
+        !entry.targets().is_empty()
+    });
 }

@@ -59,7 +59,9 @@ impl TruthSnapshotReader for StaticSnapshotReader {
                 .map(|read| {
                     SnapshotReadRecord::for_request(
                         read,
-                        forge_foundational::facade::AspectValue::String("preview".into()),
+                        crate::runtime::ForgeQueryAdmittedAspectValue::native_string_value(
+                            "preview",
+                        ),
                     )
                 })
                 .collect(),

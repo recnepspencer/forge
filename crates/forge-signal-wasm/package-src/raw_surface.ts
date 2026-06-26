@@ -1,6 +1,7 @@
 import {
   ComputedSignal as RawComputedSignal,
   DisposableHandle as RawDisposableHandle,
+  default as initWasm,
   InputSignal as RawInputSignal,
   OutputSignal as RawOutputSignal,
   SignalAdapters,
@@ -18,7 +19,8 @@ import {
   start,
 } from "./forge_signal_wasm.js";
 
-export default async function init() {
+export default async function init(input) {
+  await initWasm(input);
   return undefined;
 }
 

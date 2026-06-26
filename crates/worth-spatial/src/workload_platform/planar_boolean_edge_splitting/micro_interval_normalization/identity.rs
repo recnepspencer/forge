@@ -20,12 +20,11 @@ pub(super) fn interval_subdivision_identity(
     let mut parts = vec![
         "planar-boolean-normalized-interval-subdivision".to_string(),
         format!("endpoint-schedule:{endpoint_schedule_identity}"),
-        format!("interval-event:{}", key.interval_event_identity()),
+        format!("interval-kind:{}", key.interval_event_kind().as_str()),
         format!("source-edge:{}", key.source_edge_identity()),
         format!("carrier:{}", key.carrier_identity()),
         format!("range-start:{}", canonical_parameter_bits(key.range()[0])),
         format!("range-end:{}", canonical_parameter_bits(key.range()[1])),
-        format!("source-interval:{}", key.source_interval_identity()),
         format!(
             "source-range-start:{}",
             canonical_parameter_bits(key.source_range()[0])

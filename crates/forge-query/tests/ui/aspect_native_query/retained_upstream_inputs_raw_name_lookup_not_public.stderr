@@ -1,0 +1,102 @@
+error[E0599]: no method named `live_rows` found for struct `ForgeQueryRetainedUpstreamInputs` in the current scope
+ --> tests/ui/aspect_native_query/retained_upstream_inputs_raw_name_lookup_not_public.rs:6:23
+  |
+6 |     let _ = upstreams.live_rows("tasks.table");
+  |                       ^^^^^^^^^ private field, not a method
+  |
+help: there is a method `live_rows_for` with a similar name
+  |
+6 |     let _ = upstreams.live_rows_for("tasks.table");
+  |                                ++++
+
+error[E0599]: no method named `retained_computed_rows` found for struct `ForgeQueryRetainedUpstreamInputs` in the current scope
+ --> tests/ui/aspect_native_query/retained_upstream_inputs_raw_name_lookup_not_public.rs:7:23
+  |
+7 |     let _ = upstreams.retained_computed_rows("computed.titles");
+  |                       ^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `retained_computed_rows_for` with a similar name
+  |
+7 |     let _ = upstreams.retained_computed_rows_for("computed.titles");
+  |                                             ++++
+
+error[E0599]: no method named `single_retained_computed_row` found for struct `ForgeQueryRetainedUpstreamInputs` in the current scope
+ --> tests/ui/aspect_native_query/retained_upstream_inputs_raw_name_lookup_not_public.rs:8:23
+  |
+8 |     let _ = upstreams.single_retained_computed_row("computed.titles");
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `single_retained_computed_row_for` with a similar name
+  |
+8 |     let _ = upstreams.single_retained_computed_row_for("computed.titles");
+  |                                                   ++++
+
+error[E0599]: no method named `live_view_names` found for struct `ForgeQueryRetainedUpstreamInputs` in the current scope
+ --> tests/ui/aspect_native_query/retained_upstream_inputs_raw_name_lookup_not_public.rs:9:23
+  |
+9 |     let _ = upstreams.live_view_names();
+  |                       ^^^^^^^^^^^^^^^ method not found in `ForgeQueryRetainedUpstreamInputs`
+
+error[E0599]: no method named `computed_view_names` found for struct `ForgeQueryRetainedUpstreamInputs` in the current scope
+  --> tests/ui/aspect_native_query/retained_upstream_inputs_raw_name_lookup_not_public.rs:10:23
+   |
+10 |     let _ = upstreams.computed_view_names();
+   |                       ^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryRetainedUpstreamInputs`
+
+error[E0599]: no method named `declared_live_rows` found for struct `ForgeQueryRetainedUpstreamInputs` in the current scope
+  --> tests/ui/aspect_native_query/retained_upstream_inputs_raw_name_lookup_not_public.rs:11:23
+   |
+11 |     let _ = upstreams.declared_live_rows(&declaration, "tasks.table");
+   |                       ^^^^^^^^^^^^^^^^^^
+   |
+help: there is a method `declared_live_row_sets` with a similar name, but with different arguments
+  --> src/runtime/computed/surface.rs
+   |
+   | /     pub fn declared_live_row_sets<'a>(
+   | |         &'a self,
+   | |         declaration: &'a ForgeQueryDerivedView,
+   | |     ) -> impl Iterator<Item = &'a [ForgeQueryEntity]> + 'a {
+   | |__________________________________________________________^
+
+error[E0599]: no method named `declared_retained_computed_rows` found for struct `ForgeQueryRetainedUpstreamInputs` in the current scope
+  --> tests/ui/aspect_native_query/retained_upstream_inputs_raw_name_lookup_not_public.rs:12:23
+   |
+12 |     let _ = upstreams.declared_retained_computed_rows(&declaration, "computed.titles");
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: there is a method `declared_retained_computed_row_sets` with a similar name, but with different arguments
+  --> src/runtime/computed/surface.rs
+   |
+   | /     pub fn declared_retained_computed_row_sets<'a>(
+   | |         &'a self,
+   | |         declaration: &'a ForgeQueryDerivedView,
+   | |     ) -> impl Iterator<Item = &'a [ForgeQueryRetainedMaterializedRow]> + 'a {
+   | |___________________________________________________________________________^
+
+error[E0599]: no method named `single_declared_retained_computed_row` found for struct `ForgeQueryRetainedUpstreamInputs` in the current scope
+  --> tests/ui/aspect_native_query/retained_upstream_inputs_raw_name_lookup_not_public.rs:13:23
+   |
+13 |     let _ = upstreams.single_declared_retained_computed_row(&declaration, "computed.titles");
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: there is a method `single_declared_retained_computed_row_for` with a similar name
+   |
+13 |     let _ = upstreams.single_declared_retained_computed_row_for(&declaration, "computed.titles");
+   |                                                            ++++
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/aspect_native_query/retained_upstream_inputs_raw_name_lookup_not_public.rs:14:47
+   |
+14 |       let _ = ForgeQueryRetainedUpstreamInputs::new(
+   |                                                 ^^^ private associated function
+   |
+  ::: src/runtime/computed/surface.rs
+   |
+   | /     pub(in crate::runtime) fn new(
+   | |         live_rows: impl IntoIterator<Item = (ForgeQueryLiveArtifactTarget, Vec<ForgeQueryEntity>)>,
+   | |         computed_rows: impl IntoIterator<
+   | |             Item = (
+...  |
+   | |         >,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

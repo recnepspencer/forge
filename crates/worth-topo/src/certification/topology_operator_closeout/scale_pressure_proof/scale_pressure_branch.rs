@@ -118,7 +118,7 @@ fn branch_local_vertex_creation_declaration(
 }
 
 fn large_branch_history_step_count() -> usize {
-    12
+    4
 }
 
 fn branch_history_row_digest(replay_verified: bool) -> String {

@@ -27,11 +27,7 @@ pub(in crate::certification::topology_operator_closeout) fn certify_milestone_th
 where
     F: FnMut() -> RelationalRuntime,
 {
-    let mut rows = certify_accepted_branch_local_mutation_parity_rows(
-        &mut runtime_factory,
-        stem,
-        scenario_reports,
-    )?;
+    let mut rows = certify_accepted_branch_local_mutation_parity_rows(stem, scenario_reports)?;
     rows.extend(certify_rejected_branch_local_diagnostic_parity(
         &mut runtime_factory,
         stem,

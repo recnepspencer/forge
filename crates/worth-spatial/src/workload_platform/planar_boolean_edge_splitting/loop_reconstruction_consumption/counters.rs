@@ -2,7 +2,9 @@
 pub struct PlanarBooleanLoopReconstructionSplitConsumptionCounters {
     downstream_gate_consumed: usize,
     receipts_consumed: usize,
-    stage_index_rows_consumed: usize,
+    spatial_lookup_products_consumed: usize,
+    spatial_lookup_indexed_lookups: usize,
+    spatial_lookup_raw_row_scans: usize,
     missing_authority_rejected: usize,
 }
 
@@ -15,8 +17,14 @@ impl PlanarBooleanLoopReconstructionSplitConsumptionCounters {
         self.receipts_consumed += count;
     }
 
-    pub(crate) fn consumed_stage_index_rows(&mut self, count: usize) {
-        self.stage_index_rows_consumed += count;
+    pub(crate) fn consumed_spatial_lookup_product(
+        &mut self,
+        indexed_lookups: usize,
+        raw_row_scans: usize,
+    ) {
+        self.spatial_lookup_products_consumed += 1;
+        self.spatial_lookup_indexed_lookups += indexed_lookups;
+        self.spatial_lookup_raw_row_scans += raw_row_scans;
     }
 
     pub(crate) fn rejected_missing_authority(&mut self) {
@@ -31,8 +39,16 @@ impl PlanarBooleanLoopReconstructionSplitConsumptionCounters {
         self.receipts_consumed
     }
 
-    pub fn stage_index_rows_consumed(self) -> usize {
-        self.stage_index_rows_consumed
+    pub fn spatial_lookup_products_consumed(self) -> usize {
+        self.spatial_lookup_products_consumed
+    }
+
+    pub fn spatial_lookup_indexed_lookups(self) -> usize {
+        self.spatial_lookup_indexed_lookups
+    }
+
+    pub fn spatial_lookup_raw_row_scans(self) -> usize {
+        self.spatial_lookup_raw_row_scans
     }
 
     pub fn missing_authority_rejected(self) -> usize {

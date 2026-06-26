@@ -18,15 +18,14 @@ pub(crate) fn validate_result_shape_bindings(
 
     for field in fields {
         counters.record_schema_lookup();
-        let Some(schema_field) =
-            schema_view.field(field.source_aspect.as_str(), field.source_field.as_str())
-        else {
+        let source = field.source_field_key();
+        let Some(schema_field) = schema_view.field(source.aspect(), source.field()) else {
             counters.record_rejection();
             rejection_matrix.record_result_shape_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::IllegalResultShapeBinding {
-                    aspect: field.source_aspect.to_string(),
-                    field: field.source_field.to_string(),
+                    aspect: source.aspect().to_string(),
+                    field: source.field().to_string(),
                     delivered_name: field.delivered_name.to_string(),
                 },
                 counters.clone(),
@@ -39,8 +38,8 @@ pub(crate) fn validate_result_shape_bindings(
             rejection_matrix.record_result_shape_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::IllegalResultShapeBinding {
-                    aspect: field.source_aspect.to_string(),
-                    field: field.source_field.to_string(),
+                    aspect: source.aspect().to_string(),
+                    field: source.field().to_string(),
                     delivered_name: field.delivered_name.to_string(),
                 },
                 counters.clone(),
@@ -48,9 +47,10 @@ pub(crate) fn validate_result_shape_bindings(
             ));
         }
 
-        if !projections.iter().any(|projection| {
-            projection.aspect == field.source_aspect && projection.field == field.source_field
-        }) {
+        if !projections
+            .iter()
+            .any(|projection| projection.field_key() == source)
+        {
             counters.record_rejection();
             rejection_matrix.record_compatibility_rejection();
             return Err(ValidationFailureArtifact::new(
@@ -68,8 +68,8 @@ pub(crate) fn validate_result_shape_bindings(
             schema_field.kind().clone(),
         ));
         events.push(ValidationEvent::ResultShapeBindingValidated {
-            aspect: field.source_aspect.to_string(),
-            field: field.source_field.to_string(),
+            aspect: source.aspect().to_string(),
+            field: source.field().to_string(),
             delivered_name: field.delivered_name.to_string(),
             field_kind: format!("{:?}", schema_field.kind()),
         });

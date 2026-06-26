@@ -1,0 +1,27 @@
+error[E0451]: fields `identity`, `consumed_graph_facts`, `invalidation_predicate`, `update_posture`, `spatial_evidence_posture`, `query_receipt_posture`, `legality_receipt_posture`, `diagnostic_posture`, `support_posture` and `family_digest` of struct `DerivedTopologyProductFamilyRecord` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_family_record_not_forgeable.rs:11:9
+   |
+10 |     let _ = DerivedTopologyProductFamilyRecord {
+   |             ---------------------------------- in this type
+11 |         identity: DerivedTopologyProductFamilyIdentity::LoopCycles,
+   |         ^^^^^^^^ private field
+12 |         consumed_graph_facts: consumed_graph_facts(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+13 |         invalidation_predicate:
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |             DerivedTopologyInvalidationPredicate::ConsumedGraphFactsIntersectTouchedClosure,
+15 |         update_posture: DerivedTopologyUpdatePosture::IncrementalEligible,
+   |         ^^^^^^^^^^^^^^ private field
+16 |         spatial_evidence_posture: DerivedTopologySpatialEvidencePosture::NoSpatialEvidenceConsumed,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         query_receipt_posture: DerivedTopologyQueryReceiptPosture::NativeReadReceiptRequired,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         legality_receipt_posture:
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |             DerivedTopologyLegalityReceiptPosture::SelectedLegalityReceiptRequired,
+20 |         diagnostic_posture: DerivedTopologyDiagnosticPosture::ProductFamilyWitnessRequired,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+21 |         support_posture: DerivedTopologySupportPosture::QuerySupportRequired,
+   |         ^^^^^^^^^^^^^^^ private field
+22 |         family_digest: String::new(),
+   |         ^^^^^^^^^^^^^ private field

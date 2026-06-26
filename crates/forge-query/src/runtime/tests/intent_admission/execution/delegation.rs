@@ -8,7 +8,7 @@ fn execute_intent_delegates_to_canonical_admission_and_execution_handoff() {
         "strategy.intent.reconcile",
         "1.0",
         "intent.reconcile.input.v1",
-        json!({"entity": "task-1", "title": "Intent committed title"}),
+        test_intent_input([("entity", "task-1"), ("title", "Intent committed title")]),
     );
     let canonical = runtime
         .admit_authoritative_intent_for_execution(declaration.clone())
@@ -43,21 +43,28 @@ fn execute_intent_delegates_to_canonical_admission_and_execution_handoff() {
 fn execute_next_effect_write_intent_delegates_to_canonical_admission_and_execution_handoff() {
     let mut delegated_runtime = intent_runtime_with_authority(TestIntentAuthority);
     let delegated_live = delegated_runtime
-        .declare_live_view::<Value>("tasks.effect-admission", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.effect-admission",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let delegated_effect = delegated_runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.reconcile-admission",
-            ForgeQueryEffectTrigger::live_view(&delegated_live, ["title.value"]),
+            ForgeQueryEffectTrigger::live_view(
+                &delegated_live,
+                test_aspect_touches(["title.value"]),
+            ),
             "strategy.intent.reconcile",
         ))
         .expect("write-intent effect should declare");
     delegated_runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from write"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title from write",
+        ))
         .expect("write should queue pending effect intent");
 
     let delegated = delegated_runtime
@@ -66,21 +73,28 @@ fn execute_next_effect_write_intent_delegates_to_canonical_admission_and_executi
 
     let mut canonical_runtime = intent_runtime_with_authority(TestIntentAuthority);
     let canonical_live = canonical_runtime
-        .declare_live_view::<Value>("tasks.effect-admission", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.effect-admission",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let canonical_effect = canonical_runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.reconcile-admission",
-            ForgeQueryEffectTrigger::live_view(&canonical_live, ["title.value"]),
+            ForgeQueryEffectTrigger::live_view(
+                &canonical_live,
+                test_aspect_touches(["title.value"]),
+            ),
             "strategy.intent.reconcile",
         ))
         .expect("write-intent effect should declare");
     canonical_runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from write"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title from write",
+        ))
         .expect("write should queue pending effect intent");
     let (pending_delivery, canonical_handoff) = canonical_runtime
         .admit_next_effect_write_intent_for_execution(
@@ -131,25 +145,25 @@ fn execute_next_effect_write_intent_delegates_to_canonical_admission_and_executi
 fn effect_write_intent_denies_when_graph_obligations_require_pre_execution_touch_descriptor() {
     let mut runtime = intent_runtime_with_collection_obligation(TestIntentAuthority, "Task");
     let live = runtime
-        .declare_live_view::<Value>(
+        .declare_live_view::<ForgeQueryNativeRow>(
             "tasks.effect-obligation",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+        .declare_effect::<ForgeQueryNativeRow>(ForgeQueryEffectDeclaration::write_intent(
             "effects.obligation-reconcile",
-            ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+            ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",
         ))
         .expect("write-intent effect should declare");
     runtime
-        .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-            aspect_path: "title.value".to_string(),
-            value: json!("title from write"),
-        })
+        .write(test_update_string_aspect_command(
+            crate::memory_workspace::admit_authored_entity_label("task-1"),
+            "title.value",
+            "title from write",
+        ))
         .expect("write should queue pending effect intent");
 
     let error = runtime
@@ -167,11 +181,11 @@ fn effect_write_intent_denies_when_graph_obligations_require_pre_execution_touch
 #[test]
 fn scalar_write_delegates_to_canonical_admission_and_execution_handoff() {
     let mut delegated_runtime = intent_runtime_with_authority(TestIntentAuthority);
-    let command = ForgeQueryWriteCommand::UpdateAspect {
-        entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
-        aspect_path: "title.value".to_string(),
-        value: json!("title from scalar write"),
-    };
+    let command = test_update_string_aspect_command(
+        crate::memory_workspace::admit_authored_entity_label("task-1"),
+        "title.value",
+        "title from scalar write",
+    );
     let delegated = delegated_runtime
         .write(command.clone())
         .expect("delegated scalar write should execute");

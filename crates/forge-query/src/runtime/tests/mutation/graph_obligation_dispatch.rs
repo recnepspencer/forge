@@ -338,24 +338,37 @@ fn graph_batch_program() -> (
     let task = graph
         .insert_entity("task", "Task", |entity| {
             entity
-                .aspect("identity.id", "task-dispatch")
-                .aspect("title.value", "Draft")
+                .set_aspect(
+                    test_aspect_touch("identity.id"),
+                    test_authored_string_aspect_value("task-dispatch"),
+                )
+                .set_aspect(
+                    test_aspect_touch("title.value"),
+                    test_authored_string_aspect_value("Draft"),
+                )
         })
         .unwrap();
     let edge = graph
         .insert_symbolic_relation("edge", "TaskEdge", |relation| {
             relation
-                .aspect("edge.kind", "depends_on")
-                .symbolic_entity_identity("edge.source_identity", &task)
+                .set_aspect(
+                    test_aspect_touch("edge.kind"),
+                    test_authored_string_aspect_value("depends_on"),
+                )
+                .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &task)
                 .existing_entity_identity(
-                    "edge.target_identity",
+                    test_aspect_touch("edge.target_identity"),
                     test_entity_identity("task-existing"),
                 )
         })
         .unwrap();
     graph
         .delete_relation(&edge, |delete| {
-            delete.touches(["edge.kind", "edge.source_identity", "edge.target_identity"])
+            delete.touches(test_aspect_touches([
+                "edge.kind",
+                "edge.source_identity",
+                "edge.target_identity",
+            ]))
         })
         .unwrap();
     graph.finish().unwrap()
@@ -363,10 +376,21 @@ fn graph_batch_program() -> (
 
 fn task_insert_command(id: &str) -> ForgeQueryWriteCommand {
     ForgeQueryWriteCommand::InsertAspects {
-        collection: "Task".to_string(),
+        collection: crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+            "write-command-declared",
+            "Task",
+        ),
         aspects: vec![
-            ForgeQueryAspectValue::new("identity.id", id).unwrap(),
-            ForgeQueryAspectValue::new("title.value", "Ordinary task").unwrap(),
+            ForgeQueryAdmittedAspectValue::new(
+                test_aspect_touch("identity.id"),
+                test_string_aspect_value(id),
+            )
+            .unwrap(),
+            ForgeQueryAdmittedAspectValue::new(
+                test_aspect_touch("title.value"),
+                test_string_aspect_value("Ordinary task"),
+            )
+            .unwrap(),
         ],
         symbolic_aspect_references: Vec::new(),
         metadata: ForgeQueryMutationMetadata::new(),

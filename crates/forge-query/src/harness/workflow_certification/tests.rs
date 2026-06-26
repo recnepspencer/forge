@@ -2,7 +2,7 @@ use super::{
     MilestoneFivePointFiveWorkflowCertificationAdapter, WorkflowFailureClass,
     WORKFLOW_REQUIRED_CANONICAL_ROW_NAMES, WORKFLOW_REQUIRED_REJECTION_ROW_NAMES,
 };
-use crate::aspect_field_authoring::single_aspect_field_patch_from_external_json;
+use crate::aspect_field_authoring::single_native_string_aspect_field_patch;
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
@@ -27,7 +27,6 @@ use forge_runtime_bridge::facade::{
     BridgeWritebackEffectClass, BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass,
     BridgeWritebackRequestMode, BridgeWritebackStrategyClass,
 };
-use serde_json::json;
 
 #[test]
 fn workflow_certification_matrix_covers_required_rows() {
@@ -129,19 +128,16 @@ fn workflow_certification_mutation_lowering_matches_direct_relational_control() 
         &authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
-            desired_aspect_fields_external_json: json!({"name":"after"}),
+            desired_aspect_fields: single_native_string_aspect_field_patch("name", "name", "after")
+                .expect("name patch should lower"),
         },
     )
     .expect("mutation lowering should succeed");
 
     let control = IntentReconciliationInput {
         entity_id: EntityId::new(PartitionId(1), 41, 0),
-        desired_aspect_fields: single_aspect_field_patch_from_external_json(
-            "name",
-            "name",
-            json!("after"),
-        )
-        .expect("control field patch"),
+        desired_aspect_fields: single_native_string_aspect_field_patch("name", "name", "after")
+            .expect("control field patch"),
     }
     .into_native_canonical_request(StrategyCallerProvenance {
         request_origin: StrategyRequestOrigin::Api,
@@ -405,7 +401,8 @@ fn workflow_certification_lane_specific_counters_are_exercised() {
         &authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
-            desired_aspect_fields_external_json: json!({"name":"after"}),
+            desired_aspect_fields: single_native_string_aspect_field_patch("name", "name", "after")
+                .expect("name patch should lower"),
         },
     )
     .expect("mutation lowering should succeed");

@@ -5,17 +5,23 @@ fn workspace_reads_live_artifact_binding_as_one_snapshot_coherent_named_pack() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("live.artifact.binding")
         .expect("task runtime should open a named workspace");
-    let entities: ForgeQueryLiveView<Value> = workspace
+    let entities: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view_request("tasks.live-entities", task_live_request(), task_schema())
         .expect("entity live view should declare");
-    let names: ForgeQueryLiveView<Value> = workspace
+    let names: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view_request("tasks.live-names", task_live_request(), task_schema())
         .expect("naming live view should declare");
 
     workspace
         .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Live artifact")
+            task.set_aspect(
+                test_aspect_touch("identity.id"),
+                test_authored_string_aspect_value("task-1"),
+            )
+            .set_aspect(
+                test_aspect_touch("title.value"),
+                test_authored_string_aspect_value("Live artifact"),
+            )
         })
         .expect("workspace write should execute");
 

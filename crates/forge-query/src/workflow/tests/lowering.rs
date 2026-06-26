@@ -1,4 +1,4 @@
-use crate::aspect_field_authoring::single_aspect_field_patch_from_external_json;
+use crate::aspect_field_authoring::single_native_string_aspect_field_patch;
 use crate::harness::fixtures::{execution_preflights, preview_bridge::active_preview_artifacts};
 use crate::preview::{
     admit_preview_workflow_foundation_request, bind_preflight_to_preview_session,
@@ -19,7 +19,6 @@ use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::{EntityId, PartitionId};
 use forge_relational::facade::merge::{MergeExecutionRequest, MergeIntent};
 use forge_runtime_bridge::facade::{BridgeRequestKind, BridgeWritebackRequestMode};
-use serde_json::json;
 
 #[test]
 fn runtime_mutation_lowering_emits_explicit_strategy_request() {
@@ -44,7 +43,8 @@ fn runtime_mutation_lowering_emits_explicit_strategy_request() {
         &authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
-            desired_aspect_fields_external_json: json!({"name":"after"}),
+            desired_aspect_fields: single_native_string_aspect_field_patch("name", "name", "after")
+                .expect("name patch should lower"),
         },
     )
     .expect("runtime mutation lowering should succeed");
@@ -74,12 +74,8 @@ fn runtime_mutation_lowering_emits_explicit_strategy_request() {
 
     let control = IntentReconciliationInput {
         entity_id: EntityId::new(PartitionId(1), 41, 0),
-        desired_aspect_fields: single_aspect_field_patch_from_external_json(
-            "name",
-            "name",
-            json!("after"),
-        )
-        .expect("control field patch"),
+        desired_aspect_fields: single_native_string_aspect_field_patch("name", "name", "after")
+            .expect("control field patch"),
     }
     .into_native_canonical_request(StrategyCallerProvenance {
         request_origin: StrategyRequestOrigin::Api,

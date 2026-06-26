@@ -13,24 +13,48 @@ fn compose_graph_with_domain_invariant_denial_accepts_contributed_denial_artifac
     let mut workspace = stateful_bridge_task_edge_runtime()
         .workspace("tasks.graph-composition-domain-capability-denial")
         .expect("runtime should open a named workspace");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view(
             "tasks.graph-composition-domain-capability-denial-tasks",
             |q| {
                 q.from("Task")
-                    .select(["identity.id", "title.value"])
-                    .order_by("title.value")
+                    .select([
+                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                            .unwrap(),
+                    ])
+                    .order_by(
+                        crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                            .unwrap(),
+                    )
                     .schema_basis("tasks-graph-composition-domain-capability-denial-tasks")
             },
         )
         .expect("task live view should declare");
-    let _: ForgeQueryLiveView<Value> = workspace
+    let _: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view(
             "tasks.graph-composition-domain-capability-denial-edges",
             |q| {
                 q.from("TaskEdge")
-                    .select(["edge.kind", "edge.source_identity", "edge.target_identity"])
-                    .order_by("edge.kind")
+                    .select([
+                        crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind")
+                            .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts(
+                            "edge",
+                            "source_identity",
+                        )
+                        .unwrap(),
+                        crate::authoring::AspectFieldKey::from_authoring_parts(
+                            "edge",
+                            "target_identity",
+                        )
+                        .unwrap(),
+                    ])
+                    .order_by(
+                        crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind")
+                            .unwrap(),
+                    )
                     .schema_basis("tasks-graph-composition-domain-capability-denial-edges")
             },
         )
@@ -58,16 +82,25 @@ fn compose_graph_with_domain_invariant_denial_accepts_contributed_denial_artifac
         .compose_graph_with_domain_invariant_denial(
             |graph| {
                 let task = graph.insert_entity("draft-task", "Task", |task| {
-                    task.aspect("identity.id", "task-draft")
-                        .aspect("title.value", "Draft task")
+                    task.set_aspect(
+                        test_aspect_touch("identity.id"),
+                        test_authored_string_aspect_value("task-draft"),
+                    )
+                    .set_aspect(
+                        test_aspect_touch("title.value"),
+                        test_authored_string_aspect_value("Draft task"),
+                    )
                 })?;
                 graph.insert_relation("TaskEdge", |edge| {
-                    edge.aspect("edge.kind", "depends_on")
-                        .symbolic_entity_identity("edge.source_identity", &task)
-                        .existing_entity_identity(
-                            "edge.target_identity",
-                            test_entity_identity("task-existing"),
-                        )
+                    edge.set_aspect(
+                        test_aspect_touch("edge.kind"),
+                        test_authored_string_aspect_value("depends_on"),
+                    )
+                    .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &task)
+                    .existing_entity_identity(
+                        test_aspect_touch("edge.target_identity"),
+                        test_entity_identity("task-existing"),
+                    )
                 })?;
                 Ok(())
             },

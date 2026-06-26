@@ -233,8 +233,12 @@ fn primitive_construction_birth_compose_requires_declared_touched_basis_before_q
         "declared touched-basis coverage must be checked inside the program before Query graph composition executes",
     );
     assert!(
-        touched_basis.contains("TopologyDeclaredTouchedGraphBasis::from_sequence"),
-        "construction birth intent may feed canonical touched-basis construction but must not stand in as the basis",
+        touched_basis.contains("topology_touched_graph_basis_from_mutation_sequence("),
+        "construction birth intent may feed canonical touched-basis lowering but must not stand in as the basis",
+    );
+    assert!(
+        touched_basis.contains("TopologyDeclaredTouchedGraphBasisProof::from_basis_with_touch_descriptor"),
+        "construction birth touched-basis lowering must seal the basis behind descriptor-backed proof",
     );
     assert!(
         touched_basis.contains("TopologyDeclaredMutationSequenceBuilder"),

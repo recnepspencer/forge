@@ -146,11 +146,17 @@ impl ViewShapePlanArtifact {
             format!("patch:{}", patch_posture.as_str()),
             format!(
                 "focus:{}",
-                delivery_metadata.focus_aspect().unwrap_or("none")
+                delivery_metadata
+                    .native_focus_aspect_key()
+                    .map(|key| key.as_str())
+                    .unwrap_or("none")
             ),
             format!(
                 "grouping:{}",
-                delivery_metadata.grouping_aspect().unwrap_or("none")
+                delivery_metadata
+                    .native_grouping_aspect_key()
+                    .map(|key| key.as_str())
+                    .unwrap_or("none")
             ),
             format!(
                 "identity_consumption:{}",
@@ -183,8 +189,11 @@ impl ViewShapePlanArtifact {
                 "grouped_identity_binding_field:{}",
                 maintenance_contract
                     .grouped_planning()
-                    .map(|planning| planning.identity_binding().field_key())
-                    .unwrap_or_else(|| "none".to_string())
+                    .map(|planning| planning
+                        .identity_binding()
+                        .native_binding_aspect_key()
+                        .as_str())
+                    .unwrap_or("none")
             ),
             format!(
                 "grouped_grouping_binding_index:{}",
@@ -197,8 +206,11 @@ impl ViewShapePlanArtifact {
                 "grouped_grouping_binding_field:{}",
                 maintenance_contract
                     .grouped_planning()
-                    .map(|planning| planning.grouping_binding().field_key())
-                    .unwrap_or_else(|| "none".to_string())
+                    .map(|planning| planning
+                        .grouping_binding()
+                        .native_binding_aspect_key()
+                        .as_str())
+                    .unwrap_or("none")
             ),
             format!(
                 "grouped_member_transition_bound:{}",

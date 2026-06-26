@@ -25,14 +25,14 @@ pub(crate) fn validate_predicate_entries(
 
     for predicate in predicates {
         counters.record_schema_lookup();
-        let Some(field) = schema_view.field(predicate.aspect.as_str(), predicate.field.as_str())
-        else {
+        let key = predicate.field_key();
+        let Some(field) = schema_view.field(key.aspect(), key.field()) else {
             counters.record_rejection();
             rejection_matrix.record_predicate_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::UnknownField {
-                    aspect: predicate.aspect.to_string(),
-                    field: predicate.field.to_string(),
+                    aspect: key.aspect().to_string(),
+                    field: key.field().to_string(),
                 },
                 counters.clone(),
                 rejection_matrix.clone(),
@@ -47,8 +47,8 @@ pub(crate) fn validate_predicate_entries(
             rejection_matrix.record_predicate_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::UnsupportedStructuredContentPredicate {
-                    aspect: predicate.aspect.to_string(),
-                    field: predicate.field.to_string(),
+                    aspect: key.aspect().to_string(),
+                    field: key.field().to_string(),
                     predicate_family,
                 },
                 counters.clone(),
@@ -63,8 +63,8 @@ pub(crate) fn validate_predicate_entries(
             rejection_matrix.record_predicate_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::IllegalWorkflowPredicateCapabilityOrContextShape {
-                    aspect: predicate.aspect.to_string(),
-                    field: predicate.field.to_string(),
+                    aspect: key.aspect().to_string(),
+                    field: key.field().to_string(),
                     predicate_family,
                 },
                 counters.clone(),
@@ -77,8 +77,8 @@ pub(crate) fn validate_predicate_entries(
             rejection_matrix.record_predicate_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::IncompatiblePredicateFamily {
-                    aspect: predicate.aspect.to_string(),
-                    field: predicate.field.to_string(),
+                    aspect: key.aspect().to_string(),
+                    field: key.field().to_string(),
                     predicate_family,
                     field_kind: field_kind_name(field.kind()),
                 },
@@ -92,8 +92,8 @@ pub(crate) fn validate_predicate_entries(
             rejection_matrix.record_predicate_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::IncompatiblePredicateFamily {
-                    aspect: predicate.aspect.to_string(),
-                    field: predicate.field.to_string(),
+                    aspect: key.aspect().to_string(),
+                    field: key.field().to_string(),
                     predicate_family,
                     field_kind: field_kind_name(field.kind()),
                 },
@@ -105,8 +105,8 @@ pub(crate) fn validate_predicate_entries(
         counters.record_predicate_validated();
         legal_predicates.push((predicate.clone(), field.kind().clone(), value_kind));
         events.push(ValidationEvent::PredicateValidated {
-            aspect: predicate.aspect.to_string(),
-            field: predicate.field.to_string(),
+            aspect: key.aspect().to_string(),
+            field: key.field().to_string(),
             predicate_family,
             field_kind: format!("{:?}", field.kind()),
         });
@@ -127,10 +127,7 @@ fn normalize_legal_predicates(
 
     for predicate in legal_predicates {
         by_field
-            .entry(AspectFieldKey::from_parts(
-                predicate.0.aspect.clone(),
-                predicate.0.field.clone(),
-            ))
+            .entry(predicate.0.field_key().clone())
             .or_default()
             .push(predicate);
     }

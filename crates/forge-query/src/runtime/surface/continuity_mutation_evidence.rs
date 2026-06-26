@@ -115,7 +115,7 @@ impl ForgeQueryContinuityMutationEvidence {
         bundle: &BridgeContinuityMutationBundle,
         basis_binding_identity: Option<&ForgeQueryEvidenceIdentity>,
         resolved_target_entity_identity: Option<&ForgeQueryEntityIdentity>,
-        target_collection: Option<&str>,
+        target_collection: Option<&ForgeQueryMutationTargetCollectionIdentity>,
     ) -> Self {
         let family = match bundle.family() {
             BridgeContinuityMutationFamily::RebindExistingTarget => {
@@ -149,13 +149,12 @@ impl ForgeQueryContinuityMutationEvidence {
             .and_then(RelationalBridgeRecordIdentityParts::from_bridge_entity_identity)
             .map(ForgeQueryEntityIdentity::from_relational_record)
             .or_else(|| resolved_target_entity_identity.cloned());
-        let target_collection =
-            bundle
-                .target_collection()
-                .or(target_collection)
-                .map(|collection| {
-                    ForgeQueryMutationTargetCollectionIdentity::new("continuity-target", collection)
-                });
+        let target_collection = bundle
+            .target_collection()
+            .map(|collection| {
+                ForgeQueryMutationTargetCollectionIdentity::new("continuity-target", collection)
+            })
+            .or_else(|| target_collection.cloned());
         let lineage_identity =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
                 .field_shape(ForgeQueryEvidenceTag::new("role"), "continuity-lineage")
@@ -237,7 +236,7 @@ impl ForgeQueryContinuityMutationEvidence {
         intent: &crate::runtime::ForgeQueryContinuityMutationIntent,
         basis_binding_identity: Option<&ForgeQueryEvidenceIdentity>,
         resolved_target_entity_identity: Option<&ForgeQueryEntityIdentity>,
-        target_collection: Option<&str>,
+        target_collection: Option<&ForgeQueryMutationTargetCollectionIdentity>,
     ) -> Self {
         let outcome_class = match intent.outcome_class() {
             crate::runtime::ForgeQueryContinuityMutationOutcomeClass::ContinuesAsSingleSuccessor => {
@@ -259,9 +258,7 @@ impl ForgeQueryContinuityMutationEvidence {
         let basis_binding_digest = basis_binding_identity.map(|identity| {
             ForgeQueryMutationEvidenceDigest::source_identity("continuity-basis-binding", identity)
         });
-        let target_collection = target_collection.map(|collection| {
-            ForgeQueryMutationTargetCollectionIdentity::new("continuity-target", collection)
-        });
+        let target_collection = target_collection.cloned();
         let lineage_identity =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
                 .field_shape(ForgeQueryEvidenceTag::new("role"), "continuity-lineage")

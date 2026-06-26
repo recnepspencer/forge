@@ -1,8 +1,8 @@
 use crate::application::{
-    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
-    ForgeQueryDeclarationBridgeRoutingInput, ForgeQueryDeclarationEntryInspectionInput,
-    ForgeQueryDeclarationEntryReadinessStatus, ForgeQueryDeclarationRelationalRoutingInput,
-    ForgeQueryDeclarationSignalCompatibilityInput,
+    assert_declaration_aspect_projections, ForgeQueryDeclarationAspectCoverageBasis,
+    ForgeQueryDeclarationAspectFit, ForgeQueryDeclarationBridgeRoutingInput,
+    ForgeQueryDeclarationEntryInspectionInput, ForgeQueryDeclarationEntryReadinessStatus,
+    ForgeQueryDeclarationRelationalRoutingInput, ForgeQueryDeclarationSignalCompatibilityInput,
 };
 
 use super::support::{
@@ -78,9 +78,9 @@ fn authority_rich_envelope_inspection_surfaces_authority_summaries_in_readiness(
         Err(_) => panic!("inspection should succeed"),
     };
 
-    assert_eq!(
+    assert_declaration_aspect_projections(
         inspection.envelope_aspect_publication().masked(),
-        &["selection.private_authority".to_string()]
+        &["selection.private_authority"],
     );
 
     let relational_row = inspection
@@ -107,14 +107,12 @@ fn authority_rich_envelope_inspection_surfaces_authority_summaries_in_readiness(
         bridge_row.status(),
         ForgeQueryDeclarationEntryReadinessStatus::Unsupported
     );
-    assert_eq!(
-        bridge_row
-            .bridge_authority_summary()
-            .expect("bridge summary should exist")
-            .mapped_aspects()
-            .present(),
-        &Vec::<String>::new()
-    );
+    assert!(bridge_row
+        .bridge_authority_summary()
+        .expect("bridge summary should exist")
+        .mapped_aspects()
+        .present()
+        .is_empty());
     assert!(bridge_row
         .bridge_authority_summary()
         .expect("bridge summary should exist")
@@ -130,13 +128,13 @@ fn authority_rich_envelope_inspection_surfaces_authority_summaries_in_readiness(
     let signal_summary = signal_row
         .signal_authority_summary()
         .expect("signal summary should exist");
-    assert_eq!(
+    assert_declaration_aspect_projections(
         signal_summary.dependency_aspects().required(),
-        &["signal.material_edit".to_string()]
+        &["signal.material_edit"],
     );
-    assert_eq!(
+    assert_declaration_aspect_projections(
         signal_summary.produced_aspects().required(),
-        &["signal.preview_patch".to_string()]
+        &["signal.preview_patch"],
     );
 }
 
@@ -199,10 +197,11 @@ fn relational_and_bridge_checked_inspection_expose_authority_specific_posture() 
         bridge_posture.aspect_summary().mapping_fit(),
         ForgeQueryDeclarationAspectFit::Exact
     );
-    assert_eq!(
-        bridge_posture.aspect_summary().mapped_aspects().present(),
-        &Vec::<String>::new()
-    );
+    assert!(bridge_posture
+        .aspect_summary()
+        .mapped_aspects()
+        .present()
+        .is_empty());
 }
 
 #[test]

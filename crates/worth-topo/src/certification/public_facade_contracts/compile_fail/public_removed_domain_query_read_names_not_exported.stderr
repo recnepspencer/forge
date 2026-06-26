@@ -37,15 +37,3 @@ help: a similar name exists in the module
 4 -     TopologyDomainQueryRequestReport,
 4 +     TopologyReadRequestReport,
   |
-
-error[E0603]: module `query_domain` is private
- --> src/certification/public_facade_contracts/compile_fail/public_removed_domain_query_read_names_not_exported.rs:1:15
-  |
-1 | use topology::query_domain::{
-  |               ^^^^^^^^^^^^ private module
-  |
-note: the module `query_domain` is defined here
- --> src/lib.rs
-  |
-  | mod query_domain;
-  | ^^^^^^^^^^^^^^^^

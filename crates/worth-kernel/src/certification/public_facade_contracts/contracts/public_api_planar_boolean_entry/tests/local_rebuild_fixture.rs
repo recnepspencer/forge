@@ -1,4 +1,6 @@
 use forge_query::facade::ForgeQueryApplicationFacade;
+use std::collections::BTreeMap;
+use std::sync::{Mutex, OnceLock};
 use worth_primitives::{
     PrimitiveConstructionFamilyContractRegistry, PrimitiveGeometryIdentityBundle,
     PrimitiveSupportPlaneIdentity, PrimitiveVertexIdentity, PrimitiveWitnessDescriptor,
@@ -140,13 +142,33 @@ fn binding_handle(
     PrimitiveBindingQueryDomain,
     PrimitiveBindingQueryWorld,
 > {
-    ForgeQueryApplicationFacade::runtime_backed_default()
-        .domain(PrimitiveBindingQueryDomain)
-        .with_operating_context(PrimitiveBindingQueryWorld::new(world))
-        .validate()
-        .expect("validated binding domain")
-        .admit()
-        .expect("admitted binding domain")
+    static BINDING_HANDLES: OnceLock<
+        Mutex<
+            BTreeMap<
+                &'static str,
+                forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
+                    PrimitiveBindingQueryDomain,
+                    PrimitiveBindingQueryWorld,
+                >,
+            >,
+        >,
+    > = OnceLock::new();
+    let mut handles = BINDING_HANDLES
+        .get_or_init(|| Mutex::new(BTreeMap::new()))
+        .lock()
+        .expect("binding handle cache lock");
+    handles
+        .entry(world)
+        .or_insert_with(|| {
+            ForgeQueryApplicationFacade::runtime_backed_default()
+                .domain(PrimitiveBindingQueryDomain)
+                .with_operating_context(PrimitiveBindingQueryWorld::new(world))
+                .validate()
+                .expect("validated binding domain")
+                .admit()
+                .expect("admitted binding domain")
+        })
+        .clone()
 }
 
 fn rebinding_handle(
@@ -155,13 +177,33 @@ fn rebinding_handle(
     PrimitiveRebindingQueryDomain,
     PrimitiveRebindingQueryWorld,
 > {
-    ForgeQueryApplicationFacade::runtime_backed_default()
-        .domain(PrimitiveRebindingQueryDomain)
-        .with_operating_context(PrimitiveRebindingQueryWorld::new(world))
-        .validate()
-        .expect("validated rebinding domain")
-        .admit()
-        .expect("admitted rebinding domain")
+    static REBINDING_HANDLES: OnceLock<
+        Mutex<
+            BTreeMap<
+                &'static str,
+                forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
+                    PrimitiveRebindingQueryDomain,
+                    PrimitiveRebindingQueryWorld,
+                >,
+            >,
+        >,
+    > = OnceLock::new();
+    let mut handles = REBINDING_HANDLES
+        .get_or_init(|| Mutex::new(BTreeMap::new()))
+        .lock()
+        .expect("rebinding handle cache lock");
+    handles
+        .entry(world)
+        .or_insert_with(|| {
+            ForgeQueryApplicationFacade::runtime_backed_default()
+                .domain(PrimitiveRebindingQueryDomain)
+                .with_operating_context(PrimitiveRebindingQueryWorld::new(world))
+                .validate()
+                .expect("validated rebinding domain")
+                .admit()
+                .expect("admitted rebinding domain")
+        })
+        .clone()
 }
 
 fn local_rebuild_handle(
@@ -170,11 +212,31 @@ fn local_rebuild_handle(
     PlanarLocalRebuildParityQueryDomain,
     PlanarLocalRebuildParityQueryWorld,
 > {
-    ForgeQueryApplicationFacade::runtime_backed_default()
-        .domain(PlanarLocalRebuildParityQueryDomain)
-        .with_operating_context(PlanarLocalRebuildParityQueryWorld::new(world))
-        .validate()
-        .expect("validated local rebuild domain")
-        .admit()
-        .expect("admitted local rebuild domain")
+    static LOCAL_REBUILD_HANDLES: OnceLock<
+        Mutex<
+            BTreeMap<
+                &'static str,
+                forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
+                    PlanarLocalRebuildParityQueryDomain,
+                    PlanarLocalRebuildParityQueryWorld,
+                >,
+            >,
+        >,
+    > = OnceLock::new();
+    let mut handles = LOCAL_REBUILD_HANDLES
+        .get_or_init(|| Mutex::new(BTreeMap::new()))
+        .lock()
+        .expect("local rebuild handle cache lock");
+    handles
+        .entry(world)
+        .or_insert_with(|| {
+            ForgeQueryApplicationFacade::runtime_backed_default()
+                .domain(PlanarLocalRebuildParityQueryDomain)
+                .with_operating_context(PlanarLocalRebuildParityQueryWorld::new(world))
+                .validate()
+                .expect("validated local rebuild domain")
+                .admit()
+                .expect("admitted local rebuild domain")
+        })
+        .clone()
 }

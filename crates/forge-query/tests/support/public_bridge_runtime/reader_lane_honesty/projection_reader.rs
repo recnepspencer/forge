@@ -1,7 +1,8 @@
+use forge_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use forge_query::facade::{
     public_bridge_hostile_title_projection_artifacts, ForgeQueryPublishedDerivedArtifactHandle,
     ForgeQueryPublishedProjectionConsumption, ProjectMaterializedFacts,
-    ProjectionFactConsumptionAttempt,
+    ProjectionFactConsumptionAttempt, ProjectionFactFieldPath,
 };
 use forge_query::{
     ForgeQueryPublicBridgeProjectionConsumptionEvidence,
@@ -35,7 +36,7 @@ impl<'a> PublicBridgePublishedProjectionReader<'a> {
             .consume_projection_facts(
                 &result_shape,
                 &authorized_projection,
-                ProjectMaterializedFacts::declare().display_field("title.value"),
+                ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
             )
             .expect("public bridge reader lane should consume typed projection facts");
         let evidence = read_evidence_from_attempt(attempt);
@@ -43,6 +44,16 @@ impl<'a> PublicBridgePublishedProjectionReader<'a> {
         assert_eq!(after, before, "reader path must not trigger reevaluation");
         evidence
     }
+}
+
+fn title_value_field_path() -> ProjectionFactFieldPath {
+    ProjectionFactFieldPath::from_canonical_field_path(
+        CanonicalFieldPath::new(vec![
+            FieldKey::new("title").expect("test field segment must be valid"),
+            FieldKey::new("value").expect("test field segment must be valid"),
+        ])
+        .expect("test field path must be valid"),
+    )
 }
 
 fn read_evidence_from_attempt(
@@ -58,7 +69,15 @@ fn read_evidence_from_attempt(
                 facts
                     .display_fields()
                     .first()
-                    .and_then(|fact| fact.value().as_str())
+                    .and_then(|fact| match fact.value() {
+                        AspectValue::String(value) => match value {
+                            forge_foundational::facade::InternedString::Raw(value) => {
+                                Some(value.as_str())
+                            }
+                            forge_foundational::facade::InternedString::Symbol(_) => None,
+                        },
+                        _ => None,
+                    })
                     .expect("projection reader lane should expose title.value")
                     .to_string(),
                 receipt.receipt_digest(),

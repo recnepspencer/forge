@@ -1,10 +1,13 @@
 use std::collections::BTreeSet;
 
-use forge_query::facade::{ForgeQueryEntity, ForgeQueryEntityIdentity, RelationName};
+use forge_query::facade::{
+    forge_query_materialized_relation_field_key, ForgeQueryEntity, ForgeQueryEntityIdentity,
+    RelationName,
+};
 use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
-use serde_json::Value;
 
 use crate::projection::read_views::domain::error::TopologyReadError;
+use crate::query_native_runtime_boundary::row_text_at;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RetainedTopologyRows<'a> {
@@ -54,11 +57,12 @@ impl<'a> RetainedTopologyRow<'a> {
         relation: &RelationName,
         label: &str,
     ) -> Result<&'a str, TopologyReadError> {
-        relation_target_identity_from_payload(
-            self.row.external_row().get("relations"),
+        relation_target_identity_from_native_fields(
+            self.row,
             relation,
             label,
             "relation materialization",
+            "relations",
         )
     }
 
@@ -67,11 +71,12 @@ impl<'a> RetainedTopologyRow<'a> {
         relation: &RelationName,
         label: &str,
     ) -> Result<&'a str, TopologyReadError> {
-        relation_target_identity_from_payload(
-            self.row.external_row().get("relation_identities"),
+        relation_target_identity_from_native_fields(
+            self.row,
             relation,
             label,
             "relation identity materialization",
+            "relation_identities",
         )
     }
 
@@ -91,21 +96,20 @@ impl<'a> RetainedTopologyRow<'a> {
     }
 }
 
-fn relation_target_identity_from_payload<'a>(
-    payload: Option<&'a Value>,
+fn relation_target_identity_from_native_fields<'a>(
+    row: &'a ForgeQueryEntity,
     relation: &RelationName,
     label: &str,
     materialization_label: &str,
+    field_root: &str,
 ) -> Result<&'a str, TopologyReadError> {
-    payload
-        .and_then(|relations| relations.get(relation.as_str()))
-        .and_then(Value::as_str)
-        .ok_or_else(|| {
-            TopologyReadError::read_family_execution_denied(format!(
-                "{label} rows did not retain `{}` {materialization_label}",
-                relation.as_str()
-            ))
-        })
+    let relation_slot = forge_query_materialized_relation_field_key(relation);
+    row_text_at(row, [field_root, relation_slot.as_str()]).ok_or_else(|| {
+        TopologyReadError::read_family_execution_denied(format!(
+            "{label} rows did not retain `{}` {materialization_label}",
+            relation.as_str()
+        ))
+    })
 }
 
 pub(crate) fn adjacent_row_identities_sharing_targets(
@@ -206,17 +210,9 @@ fn retained_row_identity_label(row: &ForgeQueryEntity) -> Option<String> {
 }
 
 fn row_projection_identity_label(row: &ForgeQueryEntity) -> Option<String> {
-    row.external_row()
-        .get("identity")
-        .and_then(|value| value.get("id"))
-        .and_then(Value::as_str)
+    row_text_at(row, ["identity", "id"])
+        .or_else(|| row_text_at(row, ["id"]))
         .map(str::to_string)
-        .or_else(|| {
-            row.external_row()
-                .get("id")
-                .and_then(Value::as_str)
-                .map(str::to_string)
-        })
 }
 
 fn query_identity_label(identity: &ForgeQueryEntityIdentity) -> Option<String> {

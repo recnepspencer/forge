@@ -83,8 +83,7 @@ pub(crate) use mutation_sequence::topology_mutation_digest_for_records;
 pub(crate) use mutation_sequence::TopologyDeclaredMutationMember;
 pub(crate) use mutation_sequence::TopologyDeclaredMutationSequence;
 pub use naming_continuity::NamingMutationContinuityMatrix;
-#[cfg(test)]
-pub(crate) use query_workflow::{
+pub use query_workflow::{
     topology_grouped_operator_neighborhood, topology_operator_continuation_target,
     topology_operator_contribution_workflow, topology_operator_signal_workflow,
     TopologyOperatorWorkflowHandleExt,
@@ -124,11 +123,16 @@ pub use query_workflow::{
 pub use rejection_locality::{
     RejectedMutationScopeReport, RejectedMutationScopeRow, TopologyMutationRejectionClass,
 };
-pub(crate) use touched_graph_basis::TopologyTouchedOperatingWorldIdentityDigest;
+#[cfg(test)]
+pub(crate) use touched_graph_basis::test_basis_from_parts;
 pub use touched_graph_basis::{
     topology_operator_touch_descriptor_from_touched_graph_basis, TopologyDeclaredTouchedGraphBasis,
     TopologyDeclaredTouchedGraphBasisProof, TopologyGraphLifecyclePosture, TopologyTouchedAspect,
     TopologyTouchedEntity, TopologyTouchedGraphBasis, TopologyTouchedGraphCounters,
     TopologyTouchedOperatingWorld, TopologyTouchedOperatingWorldPosture, TopologyTouchedRelation,
     TopologyTouchedScope,
+};
+pub(crate) use touched_graph_basis::{
+    topology_touched_graph_basis_from_mutation_sequence,
+    TopologyTouchedOperatingWorldIdentityDigest,
 };

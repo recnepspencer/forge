@@ -83,6 +83,9 @@ pub(crate) enum TopologyReadRequest {
     HalfEdgeRadialNeighborhood {
         source_half_edge_identity: TopologyReadAnchorIdentity,
     },
+    ShellBoundaryNeighborhood {
+        source_half_edge_identity: TopologyReadAnchorIdentity,
+    },
     LoopCycleNeighborhood {
         start_half_edge_identity: TopologyReadAnchorIdentity,
         depth: u8,
@@ -90,6 +93,11 @@ pub(crate) enum TopologyReadRequest {
     LocalRewireNeighborhood {
         moved_half_edge_identity: TopologyReadAnchorIdentity,
         cycle_depth: u8,
+    },
+    #[allow(dead_code)]
+    WireNeighborhood {
+        source_half_edge_identity: TopologyReadAnchorIdentity,
+        wire_depth: u8,
     },
 }
 
@@ -144,10 +152,14 @@ impl TopologyReadRequest {
             Self::HalfEdgeRadialNeighborhood { .. } => {
                 TopologyReadRequestFamily::HalfEdgeRadialNeighborhood
             }
+            Self::ShellBoundaryNeighborhood { .. } => {
+                TopologyReadRequestFamily::ShellBoundaryNeighborhood
+            }
             Self::LoopCycleNeighborhood { .. } => TopologyReadRequestFamily::LoopCycleNeighborhood,
             Self::LocalRewireNeighborhood { .. } => {
                 TopologyReadRequestFamily::LocalRewireNeighborhood
             }
+            Self::WireNeighborhood { .. } => TopologyReadRequestFamily::WireNeighborhood,
         }
     }
 
@@ -162,6 +174,9 @@ impl TopologyReadRequest {
             }
             | Self::HalfEdgeRadialNeighborhood {
                 source_half_edge_identity,
+            }
+            | Self::ShellBoundaryNeighborhood {
+                source_half_edge_identity,
             } => source_half_edge_identity,
             Self::LoopCycleNeighborhood {
                 start_half_edge_identity,
@@ -171,6 +186,10 @@ impl TopologyReadRequest {
                 moved_half_edge_identity,
                 ..
             } => moved_half_edge_identity,
+            Self::WireNeighborhood {
+                source_half_edge_identity,
+                ..
+            } => source_half_edge_identity,
         }
     }
 
@@ -196,6 +215,16 @@ impl TopologyReadRequest {
                     1,
                 ),
             ],
+            Self::ShellBoundaryNeighborhood { .. } => vec![
+                TopologyReadTraversalStep::new(
+                    TopologyDomainTraversalRelation::HalfEdgeRadialNext,
+                    1,
+                ),
+                TopologyReadTraversalStep::new(
+                    TopologyDomainTraversalRelation::HalfEdgeUsesEdge,
+                    1,
+                ),
+            ],
             Self::LoopCycleNeighborhood { depth, .. } => {
                 vec![TopologyReadTraversalStep::new(
                     TopologyDomainTraversalRelation::HalfEdgeNext,
@@ -206,6 +235,13 @@ impl TopologyReadRequest {
                 TopologyReadTraversalStep::new(
                     TopologyDomainTraversalRelation::HalfEdgeNext,
                     *cycle_depth,
+                ),
+                TopologyReadTraversalStep::new(TopologyDomainTraversalRelation::HalfEdgePrev, 1),
+            ],
+            Self::WireNeighborhood { wire_depth, .. } => vec![
+                TopologyReadTraversalStep::new(
+                    TopologyDomainTraversalRelation::HalfEdgeNext,
+                    *wire_depth,
                 ),
                 TopologyReadTraversalStep::new(TopologyDomainTraversalRelation::HalfEdgePrev, 1),
             ],

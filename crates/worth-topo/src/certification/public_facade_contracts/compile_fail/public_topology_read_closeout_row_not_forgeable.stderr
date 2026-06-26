@@ -1,40 +1,25 @@
-error[E0603]: module `query_domain` is private
- --> src/certification/public_facade_contracts/compile_fail/public_topology_read_closeout_row_not_forgeable.rs:1:15
-  |
-1 | use topology::query_domain::{
-  |               ^^^^^^^^^^^^ private module
-  |
-note: the module `query_domain` is defined here
- --> src/lib.rs
-  |
-  | mod query_domain;
-  | ^^^^^^^^^^^^^^^^
-
-error[E0603]: module `query_domain` is private
- --> src/certification/public_facade_contracts/compile_fail/public_topology_read_closeout_row_not_forgeable.rs:1:15
-  |
-1 | use topology::query_domain::{
-  |               ^^^^^^^^^^^^ private module
-2 |     TopologyReadCloseoutRow, TopologyReadCloseoutStatus,
-  |                              -------------------------- enum `TopologyReadCloseoutStatus` is not publicly re-exported
-  |
-note: the module `query_domain` is defined here
- --> src/lib.rs
-  |
-  | mod query_domain;
-  | ^^^^^^^^^^^^^^^^
-
-error[E0603]: module `query_domain` is private
- --> src/certification/public_facade_contracts/compile_fail/public_topology_read_closeout_row_not_forgeable.rs:1:15
-  |
-1 | use topology::query_domain::{
-  |               ^^^^^^^^^^^^ private module
-2 |     TopologyReadCloseoutRow, TopologyReadCloseoutStatus,
-3 |     TopologyReadRequestFamily,
-  |     ------------------------- enum `TopologyReadRequestFamily` is not publicly re-exported
-  |
-note: the module `query_domain` is defined here
- --> src/lib.rs
-  |
-  | mod query_domain;
-  | ^^^^^^^^^^^^^^^^
+error: cannot construct `TopologyReadCloseoutRow` with struct literal syntax due to private fields
+  --> src/certification/public_facade_contracts/compile_fail/public_topology_read_closeout_row_not_forgeable.rs:7:13
+   |
+ 7 |     let _ = TopologyReadCloseoutRow {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^
+ 8 |         request_family: TopologyReadRequestFamily::LoopCycleNeighborhood,
+   |         ---------------------------------------------------------------- private field
+ 9 |         status: TopologyReadCloseoutStatus::QueryExecutedDebtFree,
+   |         --------------------------------------------------------- private field
+10 |         request_count: 1,
+   |         ---------------- private field
+11 |         query_execution_count: 1,
+   |         ------------------------ private field
+12 |         locality_claim_mismatch_count: 0,
+   |         -------------------------------- private field
+13 |         debt_row_count: 0,
+   |         ----------------- private field
+14 |         row_scan_fallback_count: 0,
+   |         -------------------------- private field
+15 |         whole_view_fallback_count: 0,
+   |         ---------------------------- private field
+16 |         repeated_rediscovery_denied_count: 0,
+   |         ------------------------------------ private field
+   |
+   = note: ...and other private fields `reason` and `row_digest` that were not provided

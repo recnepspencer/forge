@@ -1,15 +1,24 @@
 use forge_query::facade::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDomainOperatingContext,
 };
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
 
-use crate::bindings::query_native_planar_predicate::PlanarPredicateAuthorityQueryDomain;
+use crate::bindings::query_native_planar_predicate::{
+    planar_predicate_authority_entry, planar_predicate_authority_facts,
+    PlanarPredicateAuthorityCase, PlanarPredicateAuthorityFactError,
+    PlanarPredicateAuthorityQueryDomain,
+};
 use crate::bindings::query_native_planar_segment_segment::authoring::{
     certified_segment_segment_2d_entry, CertifiedSegmentSegment2DCase,
     CertifiedSegmentSegment2DEntry,
 };
 use crate::bindings::query_native_planar_segment_segment::domain::CertifiedSegmentSegment2DQueryDomain;
 use crate::bindings::query_native_planar_segment_segment::facts::{
-    certified_segment_segment_2d_facts, CertifiedSegmentSegment2DFactError,
+    certified_segment_segment_2d_facts_with_predicate_resolver, CertifiedSegmentSegment2DFactError,
+};
+use crate::planar_contracts::predicate_authority::{
+    PlanarPredicateFactReceipt, PlanarPredicateInputBasis,
 };
 use crate::planar_contracts::projection_2d::ProjectPointToCertifiedPlane2DReceipt;
 use crate::planar_contracts::segment_segment_2d::{
@@ -118,7 +127,7 @@ impl CertifiedSegmentSegment2D {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct CertifiedSegmentSegment2DContracts<SC, PC>
 where
     SC: ForgeQueryDomainOperatingContext<CertifiedSegmentSegment2DQueryDomain>,
@@ -128,6 +137,7 @@ where
         ForgeQueryAdmittedConfiguredDomainHandle<CertifiedSegmentSegment2DQueryDomain, SC>,
     predicate_handle:
         ForgeQueryAdmittedConfiguredDomainHandle<PlanarPredicateAuthorityQueryDomain, PC>,
+    predicate_cache: Arc<Mutex<BTreeMap<String, PlanarPredicateFactReceipt>>>,
 }
 
 impl<SC, PC> CertifiedSegmentSegment2DContracts<SC, PC>
@@ -148,7 +158,45 @@ where
         Self {
             segment_handle,
             predicate_handle,
+            predicate_cache: Arc::new(Mutex::new(BTreeMap::new())),
         }
+    }
+
+    fn predicate_receipt(
+        &self,
+        basis: PlanarPredicateInputBasis,
+    ) -> Result<PlanarPredicateFactReceipt, CertifiedSegmentSegment2DFactError> {
+        let key = predicate_cache_key(&basis);
+        if let Some(receipt) = self
+            .predicate_cache
+            .lock()
+            .expect("segment predicate cache lock")
+            .get(&key)
+            .cloned()
+        {
+            return Ok(receipt);
+        }
+
+        let predicate_entry =
+            planar_predicate_authority_entry(PlanarPredicateAuthorityCase::orient2d(basis));
+        let receipt = planar_predicate_authority_facts(&predicate_entry, &self.predicate_handle)
+            .map_err(predicate_fact_error)?;
+        self.predicate_cache
+            .lock()
+            .expect("segment predicate cache lock")
+            .insert(key, receipt.clone());
+        Ok(receipt)
+    }
+}
+
+impl<SC, PC> PartialEq for CertifiedSegmentSegment2DContracts<SC, PC>
+where
+    SC: ForgeQueryDomainOperatingContext<CertifiedSegmentSegment2DQueryDomain>,
+    PC: ForgeQueryDomainOperatingContext<PlanarPredicateAuthorityQueryDomain>,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.segment_handle == other.segment_handle
+            && self.predicate_handle == other.predicate_handle
     }
 }
 
@@ -182,10 +230,34 @@ where
     pub fn certify(
         self,
     ) -> Result<CertifiedSegmentSegment2DReceipt, CertifiedSegmentSegment2DFactError> {
-        certified_segment_segment_2d_facts(
+        certified_segment_segment_2d_facts_with_predicate_resolver(
             &self.entry,
             &self.contracts.segment_handle,
-            &self.contracts.predicate_handle,
+            |basis| self.contracts.predicate_receipt(basis),
         )
     }
+}
+
+fn predicate_fact_error(
+    source: PlanarPredicateAuthorityFactError,
+) -> CertifiedSegmentSegment2DFactError {
+    CertifiedSegmentSegment2DFactError::PredicateFact { source }
+}
+
+fn predicate_cache_key(basis: &PlanarPredicateInputBasis) -> String {
+    let mut key = format!(
+        "{}:{}:{}:{}:{}",
+        basis.local_frame_identity(),
+        basis.topology_basis_identity(),
+        basis.movement_rotation_posture_identity(),
+        basis.tolerance_policy_identity(),
+        basis.coincidence_policy().as_str(),
+    );
+    for point in basis.projected_points() {
+        for coordinate in point {
+            key.push(':');
+            key.push_str(&coordinate.to_bits().to_string());
+        }
+    }
+    key
 }

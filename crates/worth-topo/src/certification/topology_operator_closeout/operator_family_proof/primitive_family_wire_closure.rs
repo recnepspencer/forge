@@ -32,6 +32,7 @@ pub(in crate::certification::topology_operator_closeout) fn execute_wire_split_c
     stem: &str,
     primitive: MilestoneOnePrimitiveCase,
     split_offset: usize,
+    derive_validation: bool,
 ) -> Result<PrimitiveClosureExecution, TopologyCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
@@ -90,8 +91,13 @@ where
         collapse_declaration.clone(),
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let validation =
-        derived_validation_report_from_materialized(collapse_execution.materialized())?;
+    let derived_validation_row_count = if derive_validation {
+        derived_validation_report_from_materialized(collapse_execution.materialized())?
+            .rows
+            .len()
+    } else {
+        0
+    };
     let mutation_families = split_declaration
         .semantic_families()
         .into_iter()
@@ -107,7 +113,7 @@ where
         final_materialized_topology_digest: digest_materialized_topology_view(
             collapse_execution.materialized(),
         ),
-        derived_validation_row_count: validation.rows.len(),
+        derived_validation_row_count,
     })
 }
 

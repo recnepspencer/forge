@@ -12,15 +12,19 @@ use crate::subscription::{
 
 pub(crate) fn emit_time_only_live_subscription_delivery(
     active_subscriptions: &mut ActiveSubscriptionRuntime,
-    live_subscriptions: &mut BTreeMap<String, ForgeQueryRuntimeLiveSubscriptionState>,
+    live_subscriptions: &mut BTreeMap<
+        ForgeQueryLiveArtifactTarget,
+        ForgeQueryRuntimeLiveSubscriptionState,
+    >,
     view_name: &str,
     cause_kind: QuerySubscriptionDeliveryCauseKind,
     evidence_digest: &str,
     previous_value_available: bool,
     temporal_basis_fresh: bool,
 ) -> Result<ForgeQueryRuntimeDeliveryBatch, ForgeQueryRuntimeError> {
+    let target = ForgeQueryLiveArtifactTarget::from_view_name(view_name);
     let state = live_subscriptions
-        .get_mut(view_name)
+        .get_mut(&target)
         .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveSubscription(view_name.to_string()))?;
     if cause_kind.requires_previous_value() && !previous_value_available {
         return Err(ForgeQueryRuntimeError::LiveSubscriptionInstallation {

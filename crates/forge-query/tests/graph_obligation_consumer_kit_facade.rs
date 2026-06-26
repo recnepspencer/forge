@@ -9,8 +9,9 @@ use forge_query::facade::consumer_kit::{
     ForgeQueryGraphObligationSelectorCoverageDeclaration, ForgeQueryGraphObligationSupportPin,
 };
 use forge_query::facade::runtime::{
-    ForgeQueryGraphObligationExecutionResultEnvelope, ForgeQueryGraphObligationExecutionStatus,
-    ForgeQueryGraphObligationKind, ForgeQueryGraphObligationOperatingWorldDescriptor,
+    ForgeQueryAspectMutationOperation, ForgeQueryGraphObligationExecutionResultEnvelope,
+    ForgeQueryGraphObligationExecutionStatus, ForgeQueryGraphObligationKind,
+    ForgeQueryGraphObligationOperatingWorldDescriptor,
     ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphObligationRegistration,
     ForgeQueryGraphObligationRuleIdentity, ForgeQueryGraphObligationSupportLane,
     ForgeQueryGraphObligationSupportMatrix, ForgeQueryGraphObligationSupportPosture,
@@ -18,6 +19,10 @@ use forge_query::facade::runtime::{
     ForgeQueryMutationFamily,
 };
 use std::any::type_name;
+
+mod support;
+
+use support::aspect_touch as touch;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum WorthGraphAuthorityQueryContractRole {
@@ -290,8 +295,8 @@ fn graph_obligation_consumer_kit_public_facade_proves_execution_backed_adoption(
                 "topology.edge",
                 ForgeQueryMutationFamily::Update,
                 None,
-                ["set:capacity"],
-                ["capacity"],
+                [set_operation("capacity")],
+                [touch("capacity")],
             )
             .unwrap(),
             &ForgeQueryGraphObligationOperatingWorldDescriptor::any_committed_authority(),
@@ -365,8 +370,8 @@ fn selection_only_adoption_cannot_claim_execution_backed_closeout() {
                 "topology.edge",
                 ForgeQueryMutationFamily::Update,
                 None,
-                ["set:capacity"],
-                ["capacity"],
+                [set_operation("capacity")],
+                [touch("capacity")],
             )
             .unwrap(),
             &ForgeQueryGraphObligationOperatingWorldDescriptor::any_committed_authority(),
@@ -380,4 +385,8 @@ fn selection_only_adoption_cannot_claim_execution_backed_closeout() {
         ForgeQueryGraphObligationConsumerKitErrorKind::MissingInMemoryProof
     );
     assert!(error.message().contains("real execution proof"));
+}
+
+fn set_operation(authored_touch_text: &str) -> ForgeQueryAspectMutationOperation {
+    ForgeQueryAspectMutationOperation::set(touch(authored_touch_text))
 }

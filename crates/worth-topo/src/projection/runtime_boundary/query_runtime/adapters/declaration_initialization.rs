@@ -47,7 +47,7 @@ impl ForgeQueryRuntimeDeclarationInitializationAdapter
                 let mut metadata = ForgeQueryMutationMetadata::default();
                 metadata.insert(
                     TopologyQueryMutationEvidence::metadata_key().to_string(),
-                    serde_json::to_value(TopologyQueryMutationEvidence::from_read_basis(read_basis))
+                    serde_json::to_string(&TopologyQueryMutationEvidence::from_read_basis(read_basis))
                         .map_err(|error| {
                             ForgeQueryWorkspaceError::new(format!(
                                 "topology declaration initialization failed to encode historical read-basis evidence: {error}"

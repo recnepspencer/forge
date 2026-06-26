@@ -3,6 +3,7 @@
 use crate::domain_capabilities::identity::domain_capability_scope_encoder;
 use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 use forge_relational::facade::merge::RelationalMergeInspectionArtifact;
+use forge_relational::facade::transactions::AspectFieldPatch;
 use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 
 use crate::basis::ExecutionPreflightBundle;
@@ -217,7 +218,7 @@ impl ForgeQueryWorkflowLoweringSemantics {
                 encoder = match input {
                     MutationLoweringInput::IntentReconciliation {
                         entity_id,
-                        desired_aspect_fields_external_json,
+                        desired_aspect_fields,
                     } => encoder
                         .field_shape(
                             ForgeQueryEvidenceTag::new("input_kind"),
@@ -237,8 +238,7 @@ impl ForgeQueryWorkflowLoweringSemantics {
                         )
                         .field_shape(
                             ForgeQueryEvidenceTag::new("desired_aspect_fields"),
-                            &serde_json::to_string(desired_aspect_fields_external_json)
-                                .unwrap_or_else(|_| "serialization_failed".to_string()),
+                            &aspect_field_patch_identity_text(desired_aspect_fields),
                         ),
                 };
                 encoder.seal()
@@ -471,6 +471,18 @@ impl ForgeQueryWorkflowRuntimeSemantics {
     pub(crate) fn semantics_for_reporting(&self) -> String {
         self.semantics_identity().as_str().to_string()
     }
+}
+
+fn aspect_field_patch_identity_text(patch: &AspectFieldPatch) -> String {
+    patch
+        .to_canonical_bytes()
+        .map(|bytes| {
+            bytes
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>()
+        })
+        .unwrap_or_else(|_| "canonical_patch_serialization_failed".to_string())
 }
 
 fn workflow_external_relational_inspection_reference_identity(

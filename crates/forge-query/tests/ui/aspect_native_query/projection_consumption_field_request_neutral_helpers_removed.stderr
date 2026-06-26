@@ -1,0 +1,33 @@
+error[E0599]: no function or associated item named `from_authoring_path` found for struct `ProjectionFactFieldPath` in the current scope
+ --> tests/ui/aspect_native_query/projection_consumption_field_request_neutral_helpers_removed.rs:4:38
+  |
+4 |     let _ = ProjectionFactFieldPath::from_authoring_path("profile.display_name").unwrap();
+  |                                      ^^^^^^^^^^^^^^^^^^^ function or associated item not found in `ProjectionFactFieldPath`
+  |
+note: if you're trying to build a new `ProjectionFactFieldPath`, consider using `ProjectionFactFieldPath::from_canonical_field_path` which returns `ProjectionFactFieldPath`
+ --> src/projection_consumption/facts.rs
+  |
+  |     pub fn from_canonical_field_path(path: CanonicalFieldPath) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `display_field` found for struct `forge_query::facade::ProjectMaterializedFacts` in the current scope
+ --> tests/ui/aspect_native_query/projection_consumption_field_request_neutral_helpers_removed.rs:6:49
+  |
+6 |     let _ = ProjectMaterializedFacts::declare().display_field("profile.display_name");
+  |                                                 ^^^^^^^^^^^^^
+  |
+help: there is a method `display_field_path` with a similar name
+  |
+6 |     let _ = ProjectMaterializedFacts::declare().display_field_path("profile.display_name");
+  |                                                              +++++
+
+error[E0599]: no method named `derived_scalar_field` found for struct `forge_query::facade::ProjectMaterializedFacts` in the current scope
+ --> tests/ui/aspect_native_query/projection_consumption_field_request_neutral_helpers_removed.rs:8:45
+  |
+8 |         ProjectMaterializedFacts::declare().derived_scalar_field("profile.display_name");
+  |                                             ^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `derived_scalar_field_path` with a similar name
+  |
+8 |         ProjectMaterializedFacts::declare().derived_scalar_field_path("profile.display_name");
+  |                                                                 +++++

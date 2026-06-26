@@ -13,17 +13,31 @@ impl AuthoredResultShapeField {
         delivered_name: impl Into<String>,
     ) -> Result<Self, AuthoringError> {
         Ok(Self {
-            source: AspectFieldKey::new(source_aspect, source_field)
+            source: AspectFieldKey::from_authoring_parts(source_aspect, source_field)
                 .map_err(|_| AuthoringError::EmptyResultFieldSource)?,
             delivered_name: DeliveredFieldName::new(delivered_name)?,
         })
     }
 
-    pub fn source_aspect(&self) -> &str {
+    pub fn from_source_field_key(
+        source: AspectFieldKey,
+        delivered_name: impl Into<String>,
+    ) -> Result<Self, AuthoringError> {
+        Ok(Self {
+            source,
+            delivered_name: DeliveredFieldName::new(delivered_name)?,
+        })
+    }
+
+    pub fn source_field_key(&self) -> &AspectFieldKey {
+        &self.source
+    }
+
+    pub(crate) fn source_aspect(&self) -> &str {
         self.source.aspect().as_str()
     }
 
-    pub fn source_field(&self) -> &str {
+    pub(crate) fn source_field(&self) -> &str {
         self.source.field().as_str()
     }
 

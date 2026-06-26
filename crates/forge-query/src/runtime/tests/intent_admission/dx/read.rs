@@ -73,11 +73,19 @@ fn live_read_intent_common_path_helper_executes_through_canonical_handoff() {
     let runtime = read_runtime();
     let mut workspace = ForgeQueryWorkspace::new("intent-admission-live-read-dx", runtime)
         .expect("workspace should build");
-    let live_view: ForgeQueryLiveView<Value> = workspace
+    let live_view: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("intent-admission-live-read")
         })
         .expect("live view should declare");
@@ -111,11 +119,19 @@ fn live_read_intent_advanced_path_helper_exposes_request_eligibility_decision_an
     let runtime = read_runtime();
     let mut workspace = ForgeQueryWorkspace::new("intent-admission-live-read-advanced", runtime)
         .expect("workspace should build");
-    let live_view: ForgeQueryLiveView<Value> = workspace
+    let live_view: ForgeQueryLiveView<ForgeQueryNativeRow> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
-                .select(["identity.id", "title.value"])
-                .order_by("title.value")
+                .select([
+                    crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
+                        .unwrap(),
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                ])
+                .order_by(
+                    crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
+                        .unwrap(),
+                )
                 .schema_basis("intent-admission-live-read")
         })
         .expect("live view should declare");

@@ -1,6 +1,7 @@
 use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::{
-    ForgeQueryRuntimeError, ForgeQuerySymbolicTargetReference, ForgeQueryWorkspaceError,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryRuntimeError,
+    ForgeQuerySymbolicTargetReference, ForgeQueryWorkspaceError,
 };
 use forge_runtime_bridge::facade::{
     BridgeSymbolicTargetCollection, BridgeSymbolicTargetReferenceBundle,
@@ -10,7 +11,7 @@ use forge_runtime_bridge::facade::{
 pub(super) fn bridge_symbolic_target_reference(
     reference: &ForgeQuerySymbolicTargetReference,
     resolved_entity_identity: &ForgeQueryEntityIdentity,
-    resolved_collection: Option<&str>,
+    resolved_collection: Option<&ForgeQueryMutationTargetCollectionIdentity>,
 ) -> Result<BridgeSymbolicTargetReferenceBundle, ForgeQueryRuntimeError> {
     let resolved_entity_identity = resolved_entity_identity
         .relational_record_parts()
@@ -23,6 +24,7 @@ pub(super) fn bridge_symbolic_target_reference(
     Ok(BridgeSymbolicTargetReferenceBundle::same_batch_target(
         BridgeSymbolicTargetSymbolIdentity::from_external_symbol_evidence(reference.symbol()),
         resolved_entity_identity,
-        resolved_collection.map(BridgeSymbolicTargetCollection::new),
+        resolved_collection
+            .map(|collection| BridgeSymbolicTargetCollection::new(collection.as_str())),
     ))
 }

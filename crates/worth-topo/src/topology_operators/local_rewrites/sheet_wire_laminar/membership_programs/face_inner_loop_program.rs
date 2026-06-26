@@ -3,6 +3,7 @@ use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
+use crate::query_native_runtime_boundary::TopologyNativeQueryRowField;
 use crate::topology_operators::application::{
     ensure_declared_touched_basis_covers_sequence_before_write, TopologyDeclaredMutationArtifact,
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
@@ -79,28 +80,38 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             .compose_graph(|graph| {
                 let loop_symbol =
                     graph.insert_entity(create_key.clone(), "TopologyEntity", |mutation| {
-                        mutation
-                            .aspect("topology.kind", TopologyEntityKind::Loop.kind_name())
-                            .aspect("topology.structure", create_key.clone())
-                            .aspect("naming.persistent_name", create_key.clone())
+                        TopologyNativeQueryRowField::NamingPersistentName.set_on(
+                            TopologyNativeQueryRowField::TopologyStructure.set_on(
+                                TopologyNativeQueryRowField::TopologyKind
+                                    .set_on(mutation, TopologyEntityKind::Loop.kind_name()),
+                                create_key.clone(),
+                            ),
+                            create_key.clone(),
+                        )
                     })?;
                 graph.insert_relation("TopologyRelation", |relation| {
+                    let relation = TopologyNativeQueryRowField::TopologyKind
+                        .set_on_relation(relation, TopologyRelationKind::FaceInnerLoop.kind_name());
                     let relation = relation
-                        .aspect(
-                            "topology.kind",
-                            TopologyRelationKind::FaceInnerLoop.kind_name(),
-                        )
                         .existing_entity_identity(
-                            "topology.source_identity",
+                            TopologyNativeQueryRowField::TopologySourceIdentity.touch(),
                             face_binding.query_identity.clone(),
                         )
-                        .symbolic_entity_identity("topology.target_identity", &loop_symbol);
-                    if let Some(path) = topology_relation_dependency_path(
+                        .symbolic_entity_identity(
+                            TopologyNativeQueryRowField::TopologyTargetIdentity.touch(),
+                            &loop_symbol,
+                        );
+                    if let Some(field) = topology_relation_dependency_path(
                         schema::facade::platform::relations::RelationKind::Topology(
                             TopologyRelationKind::FaceInnerLoop,
                         ),
-                    ) {
-                        relation.aspect(path, TopologyRelationKind::FaceInnerLoop.kind_name())
+                    )
+                    .and_then(TopologyNativeQueryRowField::from_query_aspect_path)
+                    {
+                        field.set_on_relation(
+                            relation,
+                            TopologyRelationKind::FaceInnerLoop.kind_name(),
+                        )
                     } else {
                         relation
                     }

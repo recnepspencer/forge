@@ -16,8 +16,10 @@ pub use contract::ForgeQuerySupportPinContract;
 pub use declaration::{
     support_pinning_contract, ForgeQuerySupportPinContractBuilder, ForgeQuerySupportPinDeclaration,
 };
-pub use document::ForgeQuerySupportPinContractDocument;
-pub use document::ForgeQuerySupportPinContractSchemaVersion;
+pub use document::{
+    ForgeQueryExternalSupportPinContractTerminalJsonDocument,
+    ForgeQuerySupportPinContractSchemaVersion, ForgeQuerySupportPinContractTerminalJsonDocument,
+};
 pub use error::{ForgeQuerySupportPinningError, ForgeQuerySupportPinningErrorKind};
 pub use evaluation::{
     ForgeQuerySupportPinFinding, ForgeQuerySupportPinFindingKind, ForgeQuerySupportPinReport,
@@ -26,9 +28,12 @@ pub use observed_row::ForgeQueryObservedSupportPin;
 pub use requirement::{ForgeQuerySupportPinRequirement, ForgeQuerySupportPinRequirementDraft};
 pub use status::{ForgeQueryPinnedSupportStatus, ForgeQueryPinnedTeachingPosture};
 
-pub fn load_support_pin_contract_document(
-    json: &str,
+use document::ForgeQuerySupportPinContractDocument;
+
+pub fn load_support_pin_contract_terminal_json_document(
+    terminal_json_document: &ForgeQueryExternalSupportPinContractTerminalJsonDocument,
     expected_schema_version: ForgeQuerySupportPinContractSchemaVersion,
 ) -> Result<ForgeQuerySupportPinContract, ForgeQuerySupportPinningError> {
-    ForgeQuerySupportPinContractDocument::from_json(json)?.validate(expected_schema_version)
+    ForgeQuerySupportPinContractDocument::from_terminal_json_document(terminal_json_document)?
+        .validate(expected_schema_version)
 }

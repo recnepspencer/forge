@@ -1,11 +1,5 @@
 use forge_proof::TransitionOutcome;
 
-use crate::target_binding::ForgeQueryBindingTargetWitness;
-use forge_relational::facade::history::BranchId;
-use forge_relational::facade::identity::{EntityId, PartitionId};
-use forge_runtime_bridge::facade::BridgeRequestKind;
-use serde_json::json;
-
 use super::test_support::{
     admitted_plan_target_parts, declaration_target, ready, ready_payload, success,
 };
@@ -17,6 +11,10 @@ use super::{
     ForgeQueryWorkflowLoweringSemantics, ForgeQueryWorkflowRuntimeBindingSemantics,
     ForgeQueryWorkflowRuntimeSemantics,
 };
+use crate::target_binding::ForgeQueryBindingTargetWitness;
+use forge_relational::facade::history::BranchId;
+use forge_relational::facade::identity::{EntityId, PartitionId};
+use forge_runtime_bridge::facade::BridgeRequestKind;
 
 #[test]
 fn mutation_lowering_materializer_builds_runtime_lowered_declaration() {
@@ -39,7 +37,10 @@ fn mutation_lowering_materializer_builds_runtime_lowered_declaration() {
             crate::memory_workspace::admit_external_snapshot_label("runtime-snapshot:42"),
             authority_binding_identity.clone(),
             EntityId::new(PartitionId(1), 41, 0),
-            json!({"name":"after"}),
+            crate::aspect_field_authoring::single_native_string_aspect_field_patch(
+                "name", "name", "after",
+            )
+            .expect("name patch should build"),
         )
         .bind_to_declaration_target(declaration_target("intent-workflow-mutation")),
     )));

@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::planar_contracts::segment_segment_2d::CertifiedSegmentSegment2DReceipt;
-use crate::workload_platform::planar_boolean_events::PlanarBooleanSegmentPairEnumerationReceipt;
+use crate::workload_platform::planar_boolean_events::{
+    PlanarBooleanSegmentCandidateRowReceipt, PlanarBooleanSegmentPairEnumerationReceipt,
+};
 
 use super::bound_pair::PlanarBooleanPredicateBoundPair;
 use super::counters::PlanarBooleanEventPredicateBindingCounters;
@@ -52,7 +54,7 @@ pub(crate) fn aligned_segment_contracts(
             reduced_pair_identity,
             pair_enumeration,
             segment_receipts,
-            candidate_row.candidate_identity(),
+            candidate_row,
             segment_receipt,
         )?;
         bound_pairs.push(PlanarBooleanPredicateBoundPair::new(
@@ -73,17 +75,19 @@ fn segment_receipt_map<'a>(
     BTreeMap<String, &'a CertifiedSegmentSegment2DReceipt>,
     PlanarBooleanEventPredicateBindingDenial,
 > {
+    let candidate_identity_by_segments = candidate_identity_by_segment_pair(pair_enumeration);
     let mut map = BTreeMap::new();
     for receipt in segment_receipts {
-        let key = matching_pair_identity(pair_enumeration, receipt).ok_or_else(|| {
-            denial(
-                PlanarBooleanEventPredicateBindingDenialKind::SegmentContractIdentityMismatch,
-                reduced_pair_identity,
-                "",
-                counters(pair_enumeration, segment_receipts, 0, 0),
-                "segment-segment receipt identities do not match any enumerated segment pair",
-            )
-        })?;
+        let key =
+            matching_pair_identity(&candidate_identity_by_segments, receipt).ok_or_else(|| {
+                denial(
+                    PlanarBooleanEventPredicateBindingDenialKind::SegmentContractIdentityMismatch,
+                    reduced_pair_identity,
+                    "",
+                    counters(pair_enumeration, segment_receipts, 0, 0),
+                    "segment-segment receipt identities do not match any enumerated segment pair",
+                )
+            })?;
         if map.insert(key.clone(), receipt).is_some() {
             return Err(denial(
                 PlanarBooleanEventPredicateBindingDenialKind::DuplicateSegmentContractForPair,
@@ -97,34 +101,50 @@ fn segment_receipt_map<'a>(
     Ok(map)
 }
 
-fn matching_pair_identity(
+fn candidate_identity_by_segment_pair(
     pair_enumeration: &PlanarBooleanSegmentPairEnumerationReceipt,
-    receipt: &CertifiedSegmentSegment2DReceipt,
-) -> Option<String> {
+) -> BTreeMap<(String, String), String> {
     pair_enumeration
         .candidate_rows()
         .iter()
-        .find(|candidate_row| {
-            receipt.basis().first_segment_identity()
-                == candidate_row.left().canonical_segment_identity()
-                && receipt.basis().second_segment_identity()
-                    == candidate_row.right().canonical_segment_identity()
+        .map(|candidate_row| {
+            (
+                (
+                    candidate_row
+                        .left()
+                        .canonical_segment_identity()
+                        .to_string(),
+                    candidate_row
+                        .right()
+                        .canonical_segment_identity()
+                        .to_string(),
+                ),
+                candidate_row.candidate_identity().to_string(),
+            )
         })
-        .map(|candidate_row| candidate_row.candidate_identity().to_string())
+        .collect()
+}
+
+fn matching_pair_identity(
+    candidate_identity_by_segments: &BTreeMap<(String, String), String>,
+    receipt: &CertifiedSegmentSegment2DReceipt,
+) -> Option<String> {
+    candidate_identity_by_segments
+        .get(&(
+            receipt.basis().first_segment_identity().to_string(),
+            receipt.basis().second_segment_identity().to_string(),
+        ))
+        .cloned()
 }
 
 fn validate_segment_receipt_scope(
     reduced_pair_identity: &str,
     pair_enumeration: &PlanarBooleanSegmentPairEnumerationReceipt,
     segment_receipts: &[CertifiedSegmentSegment2DReceipt],
-    segment_pair_identity: &str,
+    candidate_row: &PlanarBooleanSegmentCandidateRowReceipt,
     receipt: &CertifiedSegmentSegment2DReceipt,
 ) -> Result<(), PlanarBooleanEventPredicateBindingDenial> {
-    let candidate_row = pair_enumeration
-        .candidate_rows()
-        .iter()
-        .find(|candidate_row| candidate_row.candidate_identity() == segment_pair_identity)
-        .expect("segment receipt map keys only come from candidate rows");
+    let segment_pair_identity = candidate_row.candidate_identity();
     let expected_local_frame = candidate_row.local_frame_identity();
     let expected_precision_basis = candidate_row.precision_basis_identity();
 

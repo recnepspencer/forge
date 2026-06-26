@@ -7,8 +7,9 @@ use forge_relational::facade::identity::PartitionId;
 use super::super::support::{
     admitted_alternate_branch_mutation_effect, admitted_branch_merge_effect,
     admitted_mutation_effect, admitted_tenant_mutation_effect, admitted_tenant_writeback_effect,
-    preview_closeout_basis, preview_derived_inspection_advisory, preview_workflow_binding,
-    runtime_workflow_binding, store_backed_effect_basis, workflow_request,
+    native_name_patch, preview_closeout_basis, preview_derived_inspection_advisory,
+    preview_workflow_binding, runtime_workflow_binding, store_backed_effect_basis,
+    workflow_request,
 };
 use crate::workflow::{
     MutationLoweringInput, WorkflowAuthorityTargetFamily, WorkflowDeclarationFamily,
@@ -83,7 +84,7 @@ fn batch_admission_denies_preview_mutation_until_authoritative_rebind() {
             ),
             input: MutationLoweringInput::IntentReconciliation {
                 entity_id: forge_relational::facade::identity::EntityId::new(PartitionId(1), 33, 0),
-                desired_aspect_fields_external_json: serde_json::json!({ "name": "preview-batch-mutation" }),
+                desired_aspect_fields: native_name_patch("preview-batch-mutation"),
             },
         })
         .admit()
@@ -112,7 +113,7 @@ fn batch_admission_denies_advisory_preview_derived_mutation_components() {
             ),
             input: MutationLoweringInput::IntentReconciliation {
                 entity_id: forge_relational::facade::identity::EntityId::new(PartitionId(1), 34, 0),
-                desired_aspect_fields_external_json: serde_json::json!({ "name": "advisory-batch-mutation" }),
+                desired_aspect_fields: native_name_patch("advisory-batch-mutation"),
             },
         })
         .admit()

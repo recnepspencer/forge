@@ -1,0 +1,37 @@
+error[E0061]: this method takes 1 argument but 2 arguments were supplied
+ --> tests/ui/aspect_native_query/policy_aspect_mask_rejects_raw_field_strings.rs:4:43
+  |
+4 |     let _ = PolicyAspectMask::allow_all().with_masked("secret", "salary");
+  |                                           ^^^^^^^^^^^ --------  -------- unexpected argument #2 of type `&'static str`
+  |                                                       |
+  |                                                       expected `AspectFieldKey`, found `&str`
+  |
+note: method defined here
+ --> src/authorized_projection/masks.rs
+  |
+  |     pub fn with_masked(mut self, field: AspectFieldKey) -> Self {
+  |            ^^^^^^^^^^^
+help: remove the extra argument
+  |
+4 -     let _ = PolicyAspectMask::allow_all().with_masked("secret", "salary");
+4 +     let _ = PolicyAspectMask::allow_all().with_masked(/* AspectFieldKey */);
+  |
+
+error[E0061]: this method takes 1 argument but 2 arguments were supplied
+ --> tests/ui/aspect_native_query/policy_aspect_mask_rejects_raw_field_strings.rs:6:39
+  |
+6 |         PolicyAspectMask::allow_all().with_non_disclosing_use_only("secret", "salary");
+  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ --------  -------- unexpected argument #2 of type `&'static str`
+  |                                                                    |
+  |                                                                    expected `AspectFieldKey`, found `&str`
+  |
+note: method defined here
+ --> src/authorized_projection/masks.rs
+  |
+  |     pub fn with_non_disclosing_use_only(mut self, field: AspectFieldKey) -> Self {
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: remove the extra argument
+  |
+6 -         PolicyAspectMask::allow_all().with_non_disclosing_use_only("secret", "salary");
+6 +         PolicyAspectMask::allow_all().with_non_disclosing_use_only(/* AspectFieldKey */);
+  |

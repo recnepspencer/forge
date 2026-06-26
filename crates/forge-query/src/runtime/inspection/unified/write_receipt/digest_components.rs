@@ -18,8 +18,8 @@ pub(super) fn declared_aspect_operation_identities(
                 operation.kind().as_str(),
             )
             .field_value(
-                ForgeQueryEvidenceTag::new("aspect_path"),
-                operation.aspect_path(),
+                ForgeQueryEvidenceTag::new("admitted_aspect_touch"),
+                operation.aspect_touch().admitted_touch_digest_part(),
             )
             .seal()
         })
@@ -31,14 +31,15 @@ pub(super) fn mutation_metadata_entry_identities(
 ) -> Vec<ForgeQueryEvidenceIdentity> {
     mutation_metadata
         .entries()
-        .iter()
         .map(|(key, value)| {
-            let encoded_value = serde_json::to_string(value).unwrap_or_else(|_| value.to_string());
             forge_query_evidence_identity(
                 ForgeQueryEvidenceScope::WriteReceiptMutationMetadataEntry,
             )
-            .field_value(ForgeQueryEvidenceTag::new("key"), key)
-            .field_value(ForgeQueryEvidenceTag::new("value"), encoded_value)
+            .field_value(ForgeQueryEvidenceTag::new("key"), key.as_str())
+            .field_value(
+                ForgeQueryEvidenceTag::new("value"),
+                value.terminal_digest_text(),
+            )
             .seal()
         })
         .collect()

@@ -2,13 +2,14 @@ use crate::intent_admission::ForgeQueryAuthoritativeMutationBatchIntentSeed;
 use crate::runtime::{
     ForgeQueryGraphCompositionProgramStepKind, ForgeQueryGraphTouchDescriptor,
     ForgeQueryGraphTouchDescriptorKind, ForgeQueryGraphTouchLifecycleFamily,
-    ForgeQueryGraphTouchReadVerb,
+    ForgeQueryGraphTouchReadVerb, ForgeQueryMutationTargetCollectionIdentity,
 };
 use forge_relational::facade::identity::KindId;
 
 use super::fixtures::{
     descriptor_for_collection, descriptor_for_relation_kind_id, descriptor_for_step_kind,
-    descriptor_for_touched_paths, one_step_delete_program, one_step_update_program,
+    descriptor_for_touched_paths, one_step_delete_program, one_step_update_program, set_operation,
+    touch,
 };
 
 #[test]
@@ -32,8 +33,8 @@ fn direct_and_seed_descriptor_derivation_match() {
         from_seed.kind(),
         ForgeQueryGraphTouchDescriptorKind::AuthoritativeMutationBatch
     );
-    assert!(from_seed.touches_collection("topology.edge"));
-    assert!(from_seed.touches_aspect_path("weight"));
+    assert!(from_seed.touches_target_collection(&target_collection("topology.edge")));
+    assert!(from_seed.touches_aspect(&touch("weight")));
 }
 
 #[test]
@@ -61,8 +62,8 @@ fn relation_kind_changes_alter_descriptor_identity() {
         relation.descriptor_digest(),
         containment.descriptor_digest()
     );
-    assert!(relation.touches_collection("topology.edge"));
-    assert!(!relation.touches_collection("topology.containment"));
+    assert!(relation.touches_target_collection(&target_collection("topology.edge")));
+    assert!(!relation.touches_target_collection(&target_collection("topology.containment")));
 }
 
 #[test]
@@ -74,8 +75,8 @@ fn relation_kind_ids_are_retained_as_descriptor_identity_lanes() {
     assert_eq!(edge.relation_kind_count(), 1);
     assert!(edge.touches_relation_kind_id(KindId(77)));
     assert!(!edge.touches_relation_kind_id(KindId(88)));
-    assert!(edge.touches_collection("topology.edge"));
-    assert!(!edge.touches_collection("77"));
+    assert!(edge.touches_target_collection(&target_collection("topology.edge")));
+    assert!(!edge.touches_target_collection(&target_collection("77")));
 }
 
 #[test]
@@ -84,8 +85,8 @@ fn explicit_touched_paths_alter_descriptor_identity() {
     let capacity = descriptor_for_touched_paths(vec!["capacity"]);
 
     assert_ne!(weight.descriptor_digest(), capacity.descriptor_digest());
-    assert!(weight.touches_aspect_path("weight"));
-    assert!(!weight.touches_aspect_path("capacity"));
+    assert!(weight.touches_aspect(&touch("weight")));
+    assert!(!weight.touches_aspect(&touch("capacity")));
 }
 
 #[test]
@@ -102,16 +103,16 @@ fn declared_aspect_operations_are_retained_separately_from_touches() {
     )
     .unwrap();
 
-    assert_eq!(descriptor.declared_aspect_path_count(), 1);
+    assert_eq!(descriptor.declared_aspect_touch_count(), 1);
     assert_eq!(descriptor.declared_aspect_operation_count(), 1);
     assert_eq!(descriptor.touched_aspect_count(), 0);
     assert_eq!(descriptor.insert_command_count(), 0);
     assert_eq!(descriptor.update_command_count(), 1);
     assert_eq!(descriptor.assertion_command_count(), 0);
     assert_eq!(descriptor.delete_command_count(), 0);
-    assert!(descriptor.touches_declared_aspect_operation("set:weight"));
-    assert!(descriptor.touches_aspect_path("weight"));
-    assert!(!descriptor.touches_aspect_path("eight"));
+    assert!(descriptor.touches_declared_aspect_operation(&set_operation("weight")));
+    assert!(descriptor.touches_aspect(&touch("weight")));
+    assert!(!descriptor.touches_aspect(&touch("eight")));
 }
 
 #[test]
@@ -138,11 +139,15 @@ fn read_descriptors_use_read_vocabulary_without_mutation_lifecycle_overclaim() {
 
     assert_eq!(read.kind(), ForgeQueryGraphTouchDescriptorKind::ReadFamily);
     assert_eq!(live.kind(), ForgeQueryGraphTouchDescriptorKind::LiveRead);
-    assert!(read.touches_collection("TaskEdge"));
+    assert!(read.touches_target_collection(&target_collection("TaskEdge")));
     assert_eq!(
         read.rows()[0].read_verb(),
         Some(ForgeQueryGraphTouchReadVerb::ObservesCollection)
     );
     assert_eq!(read.rows()[0].lifecycle_family(), None);
     assert_ne!(read.descriptor_digest(), live.descriptor_digest());
+}
+
+fn target_collection(value: &str) -> ForgeQueryMutationTargetCollectionIdentity {
+    ForgeQueryMutationTargetCollectionIdentity::new("graph-touch-descriptor-test", value)
 }

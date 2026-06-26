@@ -1,0 +1,27 @@
+error[E0451]: fields `catalog_digest`, `selected_plan_digest`, `execution_receipt_digest`, `migration_sweep_digest`, `operator_cutover_digest`, `deletion_closeout_digest`, `product_summary`, `performance_proof`, `counters`, `milestone_eleven_seed` and `closeout_digest` of struct `DerivedInvalidationMilestoneTenCloseout` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_milestone_ten_closeout_not_forgeable.rs:9:9
+   |
+ 8 |     let _ = DerivedInvalidationMilestoneTenCloseout {
+   |             --------------------------------------- in this type
+ 9 |         catalog_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+10 |         selected_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+11 |         execution_receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         migration_sweep_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         operator_cutover_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         deletion_closeout_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         product_summary: fake_product_summary(),
+   |         ^^^^^^^^^^^^^^^ private field
+16 |         performance_proof: fake_performance_proof(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+17 |         counters: fake_counters(),
+   |         ^^^^^^^^ private field
+18 |         milestone_eleven_seed: fake_milestone_eleven_seed(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         closeout_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field

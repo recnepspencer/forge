@@ -217,7 +217,13 @@ pub(super) fn raw_mutation_effect_with_binding(
         ),
         input: MutationLoweringInput::IntentReconciliation {
             entity_id,
-            desired_aspect_fields_external_json: serde_json::json!({ "name": desired_name }),
+            desired_aspect_fields:
+                crate::aspect_field_authoring::single_native_string_aspect_field_patch(
+                    "name",
+                    "name",
+                    desired_name,
+                )
+                .expect("name patch should be native"),
         },
     }
 }

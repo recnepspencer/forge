@@ -12,6 +12,22 @@ error[E0560]: struct `forge_query::facade::ForgeQueryIntentReceipt` has no field
    |
    = note: all struct fields are already assigned
 
+error[E0560]: struct `forge_query::facade::ForgeQueryIntentReceipt` has no field named `affected_live_view_ids`
+  --> tests/ui/runtime_intent_receipt_constructor_private.rs:20:9
+   |
+20 |         affected_live_view_ids: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ `forge_query::facade::ForgeQueryIntentReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `forge_query::facade::ForgeQueryIntentReceipt` has no field named `affected_derived_view_ids`
+  --> tests/ui/runtime_intent_receipt_constructor_private.rs:21:9
+   |
+21 |         affected_derived_view_ids: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ `forge_query::facade::ForgeQueryIntentReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned
+
 error[E0560]: struct `forge_query::facade::ForgeQueryIntentReceipt` has no field named `receipt_digest`
   --> tests/ui/runtime_intent_receipt_constructor_private.rs:30:9
    |

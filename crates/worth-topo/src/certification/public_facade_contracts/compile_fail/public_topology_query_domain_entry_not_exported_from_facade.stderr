@@ -26,3 +26,12 @@ error[E0432]: unresolved imports `topology::facade::topology_current_head_author
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 8 |     TopologySnapshotReadOnlyConfiguredDomainHandleChecked, TopologySnapshotReadOnlyContext,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: consider importing this struct instead:
+          topology::query_domain::TopologyCurrentHeadAuthoritativeContext
+  = help: consider importing this type alias instead:
+          topology::query_domain::TopologyCurrentHeadConfiguredDomainHandle
+  = help: consider importing this type alias instead:
+          topology::query_domain::TopologyCurrentHeadConfiguredDomainHandleChecked
+  = help: consider importing this struct instead:
+          topology::query_domain::TopologyQueryDomain

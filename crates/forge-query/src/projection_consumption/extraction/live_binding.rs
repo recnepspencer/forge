@@ -8,8 +8,9 @@ use super::super::identity::{
     compose_live_binding_row_identity, compose_scoped_row_source_identity,
 };
 use super::super::source::ProjectionSourceFamily;
+use super::consumed_scalar_value::consumed_scalar_value_from_entity_path;
 use crate::projection_consumption::ProjectionFactExtractionError;
-use crate::runtime::ForgeQueryLiveArtifactBinding;
+use crate::runtime::{ForgeQueryLiveArtifactBinding, ForgeQueryLiveArtifactTarget};
 use std::collections::BTreeSet;
 
 pub(super) fn extract_live_binding_facts(
@@ -35,9 +36,9 @@ pub(super) fn extract_live_binding_facts(
         .fact_families()
         .iter()
         .filter_map(|fact| match fact.kind() {
-            ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
-                fact.field_key().map(str::to_string)
-            }
+            ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => fact
+                .field_path()
+                .map(|field_path| field_path.terminal_projection_for_boundary().to_string()),
             _ => None,
         })
         .collect::<BTreeSet<_>>();
@@ -48,10 +49,11 @@ pub(super) fn extract_live_binding_facts(
     let mut derived_scalar_fields = Vec::new();
     let mut row_count = 0;
 
-    for view_name in binding.target_view_names() {
+    for target in binding.targets() {
         let read = binding
-            .read_by_name(view_name)
-            .expect("binding target names should resolve");
+            .read_for_target(target)
+            .expect("binding targets should resolve");
+        let view_name = target.view_name();
         for (index, row) in read.rows().iter().enumerate() {
             row_count += 1;
             let row_identity =
@@ -71,23 +73,43 @@ pub(super) fn extract_live_binding_facts(
                         ));
                     }
                     ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
-                        let field_key = fact_family.field_key().expect("field key required");
-                        let value = row.external_row_path(field_key).ok_or_else(|| {
+                        let field_path = fact_family
+                            .field_path()
+                            .expect("field path required")
+                            .clone();
+                        let value = consumed_scalar_value_from_entity_path(
+                            row,
+                            field_path.canonical_field_path(),
+                        )
+                        .map_err(|_message| {
+                            ProjectionFactExtractionError::InvalidDeclaredFieldValueShape {
+                                source_family: contract.source_family(),
+                                source_identity: compose_scoped_row_source_identity(
+                                    contract.source_identity(),
+                                    row_identity.as_str(),
+                                ),
+                                field_key: field_path
+                                    .terminal_projection_for_boundary()
+                                    .to_string(),
+                                fact_kind: fact_family.kind(),
+                                expected_shape: "foundational scalar",
+                            }
+                        })?
+                        .ok_or_else(|| {
                             ProjectionFactExtractionError::MissingDeclaredFieldEvidence {
                                 source_family: contract.source_family(),
                                 source_identity: compose_scoped_row_source_identity(
                                     contract.source_identity(),
                                     row_identity.as_str(),
                                 ),
-                                field_key: field_key.to_string(),
+                                field_key: field_path
+                                    .terminal_projection_for_boundary()
+                                    .to_string(),
                                 fact_kind: fact_family.kind(),
                             }
                         })?;
-                        let fact = ConsumedFieldValueFact::new(
-                            row_identity.as_str(),
-                            field_key,
-                            value.clone(),
-                        );
+                        let fact =
+                            ConsumedFieldValueFact::new(row_identity.as_str(), field_path, value);
                         if fact_family.kind() == ProjectionFactKind::DisplayField {
                             display_fields.push(fact);
                         } else {
@@ -105,7 +127,7 @@ pub(super) fn extract_live_binding_facts(
     }
 
     let source_references = if extracts_source_references {
-        binding_target_source_references("live_target_view", binding.target_view_names())
+        binding_target_source_references("live_target_view", binding.targets())
     } else {
         Vec::new()
     };
@@ -164,9 +186,10 @@ fn live_binding_row_identity(binding_digest: &str, view_name: &str, index: usize
 
 fn binding_target_source_references<'a>(
     label: &'static str,
-    view_names: impl Iterator<Item = &'a str>,
+    targets: impl IntoIterator<Item = &'a ForgeQueryLiveArtifactTarget>,
 ) -> Vec<ConsumedSourceReferenceFact> {
-    view_names
-        .map(|view_name| ConsumedSourceReferenceFact::new(label, view_name))
+    targets
+        .into_iter()
+        .map(|target| ConsumedSourceReferenceFact::new(label, target.view_name()))
         .collect()
 }

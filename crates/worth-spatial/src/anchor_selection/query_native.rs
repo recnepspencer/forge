@@ -73,7 +73,7 @@ impl ForgeQueryDeclarationFamilyMarker<SpatialAnchorSelectionQueryDomain>
     }
 
     fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
-        ForgeQueryDeclarationAspectContract::from_slices(
+        crate::query_aspect_contract::declaration_aspect_contract_from_slices(
             &[
                 "spatial.anchor.selection.kind",
                 "spatial.anchor.selection.anchor",

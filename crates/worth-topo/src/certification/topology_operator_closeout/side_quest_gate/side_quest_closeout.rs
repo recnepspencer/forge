@@ -178,7 +178,7 @@ fn local_rewire_parity_artifact(
     )?;
     let (mut workspace, _assembly) = snapshot_basis_workspace(runtime, stem, read_basis)?;
     let local_rewire = query
-        .local_rewire_neighborhood(&mut workspace, &moved_identity, 4)
+        .local_rewire_neighborhood(&mut workspace, &moved_identity, 6)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     Ok(build_topology_read_view_parity_artifact(
         read_basis,

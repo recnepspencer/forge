@@ -150,12 +150,13 @@ pub(crate) fn prepare_primitive_construction_executed_admitted_artifact(
             &prepared.topology_query_admitted_handoff,
         )
         .map_err(PrimitiveConstructionPhaseError::TopologyBirthCompose)?;
-    let compose_execution = topology::facade::run_primitive_construction_birth_declared_touched_basis_compose(
-        workspace,
-        prepared.topology_query_admitted_handoff.clone(),
-        declared_touched_basis,
-    )
-    .map_err(PrimitiveConstructionPhaseError::TopologyBirthCompose)?;
+    let compose_execution =
+        topology::facade::run_primitive_construction_birth_declared_touched_basis_compose(
+            workspace,
+            prepared.topology_query_admitted_handoff.clone(),
+            declared_touched_basis,
+        )
+        .map_err(PrimitiveConstructionPhaseError::TopologyBirthCompose)?;
     Ok(admitted_artifact_from_prepared_runtime_inputs(prepared)
         .with_topology_compose_evidence(compose_execution.evidence().clone()))
 }

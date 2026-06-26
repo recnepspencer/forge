@@ -8,13 +8,17 @@ fn time_only_pending_write_intent_retains_write_adjacent_trigger_through_deliver
         "time-only:cause:task-title",
     );
     let live = runtime
-        .declare_live_view::<Value>("tasks.time-follow-on", task_live_request(), task_schema())
+        .declare_live_view::<ForgeQueryNativeRow>(
+            "tasks.time-follow-on",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<Value>(
+        .declare_effect::<ForgeQueryNativeRow>(
             ForgeQueryEffectDeclaration::write_intent(
                 "effects.time-follow-on",
-                ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+                ForgeQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
                 "strategy.intent.reconcile",
             )
             .with_write_adjacent_trigger(
@@ -28,8 +32,14 @@ fn time_only_pending_write_intent_retains_write_adjacent_trigger_through_deliver
         .write(insert_command(
             "Task",
             [
-                ("identity.id", json!("time-only-follow-on-1")),
-                ("title.value", json!("title from time-only wake")),
+                (
+                    "identity.id",
+                    test_string_aspect_value("time-only-follow-on-1"),
+                ),
+                (
+                    "title.value",
+                    test_string_aspect_value("title from time-only wake"),
+                ),
             ],
         ))
         .expect("write should queue time-only follow-on");

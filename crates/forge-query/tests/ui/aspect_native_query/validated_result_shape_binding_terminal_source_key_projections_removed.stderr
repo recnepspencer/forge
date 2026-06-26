@@ -1,0 +1,21 @@
+warning: unreachable statement
+ --> tests/ui/aspect_native_query/validated_result_shape_binding_terminal_source_key_projections_removed.rs:5:5
+  |
+4 |     let binding: ValidatedResultShapeBinding = unreachable!();
+  |                                                -------------- any code following this expression is unreachable
+5 |     let _ = binding.terminal_source_aspect_projection();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `terminal_source_aspect_projection` found for struct `ValidatedResultShapeBinding` in the current scope
+ --> tests/ui/aspect_native_query/validated_result_shape_binding_terminal_source_key_projections_removed.rs:5:21
+  |
+5 |     let _ = binding.terminal_source_aspect_projection();
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ValidatedResultShapeBinding`
+
+error[E0599]: no method named `terminal_source_field_projection` found for struct `ValidatedResultShapeBinding` in the current scope
+ --> tests/ui/aspect_native_query/validated_result_shape_binding_terminal_source_key_projections_removed.rs:6:21
+  |
+6 |     let _ = binding.terminal_source_field_projection();
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ValidatedResultShapeBinding`
