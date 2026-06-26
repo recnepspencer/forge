@@ -1,5 +1,0 @@
-error[E0599]: no associated item named `Unregistered` found for struct `WorthUiComponentLoweringHookFamily` in the current scope
- --> tests/ui/runtime_authority/fail/unregistered_component_hook_family_not_public_plan_input.rs:4:49
-  |
-4 |     let _ = WorthUiComponentLoweringHookFamily::Unregistered("local.node".to_owned());
-  |                                                 ^^^^^^^^^^^^ associated item not found in `WorthUiComponentLoweringHookFamily`

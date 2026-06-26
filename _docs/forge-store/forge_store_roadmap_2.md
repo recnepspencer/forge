@@ -30,14 +30,20 @@ Current critical path in the first roadmap says:
 `Milestone 13` -> `Milestone 13.1` -> `Milestone 13.2` ->
 `Milestone 13.3` -> `Milestone 14`
 
-Roadmap 2 inserts this required physical foundation gate:
+Roadmap 2 inserts this required aspect-native and physical foundation gate:
 
-`Milestone 13.3` -> `S.0` -> `S.1` -> `S.2` -> `S.3` -> `S.4` ->
-`S.5` -> `S.6` -> `S.7` -> `S.8` -> `S.9` -> `S.10` -> `S.11` ->
-`S.12` -> `Milestone 14`
+`Milestone 13.3` -> `Aspect-Native Workspace Gate` -> `S.0` -> `S.1`
+-> `S.2` -> `S.3` -> `S.4` -> `S.5` -> `S.6` -> `S.7` -> `S.8`
+-> `S.9` -> `S.10` -> `S.11` -> `S.12` -> `Milestone 14`
 
 The `S.*` numbers are storage-foundation sequence numbers, not ordinary feature
 milestones. They express dependency order for the physical database substrate.
+
+The aspect-native gate is not an `S.*` storage sequence because it is a
+workspace truth-shape prerequisite. It closes before `S.0` so every source
+boundary, evidence artifact, handoff, digest basis, and certification row in
+the physical roadmap starts from native Foundational aspect material instead
+of JSON-shaped payloads.
 
 ## Global Adversarial Constraint
 
@@ -75,6 +81,10 @@ then the store has not earned the database claim.
 - Roadmap 2 is about physical database architecture, not new semantic features.
 - Roadmap 2 is greenfield for the physical Store foundation. Planned code lands
   in the dedicated Store workspace/crate family.
+- The dedicated Store workspace must close the
+  [Aspect-Native Workspace Gate](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-aspect-native-gate.md)
+  before `S.0` implementation proceeds. JSON may exist only as an explicitly
+  named terminal projection or hostile/readmission test input.
 - No compatibility backend, prior persistence path, historical topology, or
   external semantic harness is a Roadmap 2 foundation unless a later sequence
   introduces it as new typed work with explicit authority.
@@ -141,6 +151,74 @@ then the store has not earned the database claim.
   remains the certification baseline. Roadmap 2 requires new physical
   certification suites to be added before the store can claim beta,
   financial-platform, or aerospace-grade readiness.
+
+## Aspect-Native Workspace Gate
+
+Engineering spec: [storage-foundation-aspect-native-gate.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-aspect-native-gate.md)
+
+### Goal
+
+Make the dedicated Forge Store workspace aspect-native before `S.0` and all
+physical database foundation work.
+
+### Boundary
+
+This is not page, WAL, blob, or recovery implementation. This is the
+truth-shape gate that ensures Store workspace facts are native Foundational
+aspect material and Store-owned physical witnesses, with JSON confined to
+explicit terminal projection or hostile/readmission inputs.
+
+### Adversarial Constraint
+
+No Store workspace authority, evidence, digest basis, handoff, recovery input,
+certification row, or ordinary test fixture may require or accept JSON-shaped
+state, `serde_json::Value`, arbitrary serde serialization, raw string identity,
+or terminal projection text as semantic authority.
+
+### Must Ship
+
+- current JSON/serde residue inventory for old and new Store surfaces
+- native Store boundary vocabulary over Foundational `AspectValue`,
+  `StructAspectValue`, `AspectKey`, validated aspect values, authoritative
+  aspect state, authoritative patches, masks, locators, canonical basis,
+  receipts, diagnostics, and performance evidence
+- Store-owned physical witness wrappers where byte-survival authority is local
+  to Store
+- terminal projection and terminal JSON projection quarantine
+- explicit JSON ingress readmission lane that lowers to native aspects before
+  authority consumption
+- native canonical basis and digest path with no JSON serialization basis
+- compile-fail and scan proofs for JSON residue, generic serde authority,
+  terminal projection re-entry, raw string identity, and neutral string
+  accessors
+- S0 handoff artifact that is typed/native and cannot be satisfied by JSON,
+  logs, markdown, or terminal projections
+
+### Must Preserve
+
+- Store owns physical byte survival
+- Foundational owns shared aspect and boundary vocabulary
+- Proof owns shared proof/reporting vocabulary
+- Relational owns semantic truth/MVCC meaning
+- physical pages, frames, records, WAL, manifests, and blob chunks remain
+  binary Store structures, not JSON documents
+
+### Proof Obligations
+
+- unclassified production JSON/serde residue fails the gate
+- terminal JSON modules are the only JSON homes in the dedicated Store
+  workspace
+- ordinary Store tests author native aspect values and Store physical witnesses
+- canonical basis and digest evidence are derived from native facts
+- terminal projections cannot reconstruct authority without Store readmission
+- S0 can consume only the typed native readiness artifact
+
+### Closeout Gate
+
+The Aspect-Native Workspace Gate is not closed until the dedicated Store
+workspace can prove that all ordinary source, evidence, handoff, digest,
+recovery, certification, and harness paths are aspect-native, and that JSON is
+confined to named terminal projection or hostile/readmission boundaries.
 
 ## S.0: Foundation Source Boundary And Claim Vocabulary
 
@@ -326,6 +404,8 @@ allocation counters.
 
 ## S.3: Physical Integrity, Scrub, Quarantine, And Corruption Localization
 
+Engineering spec: [storage-foundation-s3.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s3.md)
+
 ### Goal
 
 Detect damaged bytes before logical decode and localize physical corruption.
@@ -374,6 +454,8 @@ damage all localize to typed physical boundaries before any semantic decoder is
 allowed to consume the bytes.
 
 ## S.4: WAL, Checkpoint, LSN, And Recovery Physics
+
+Engineering spec: [storage-foundation-s4.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s4.md)
 
 ### Goal
 
@@ -846,6 +928,8 @@ work, blob scale, cross-backend parity, and hazard-analysis residual risk.
 
 `forge-store` may resume the first roadmap's post-13.3 platform path only when:
 
+- the Aspect-Native Workspace Gate is closed, proving JSON is confined to
+  terminal projection or hostile/readmission boundaries
 - `S.0` through `S.12` are implemented or explicitly scoped with named,
   non-platform-grade debt
 - [test-requirements-2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements-2.md)

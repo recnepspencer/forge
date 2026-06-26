@@ -1,5 +1,0 @@
-error[E0599]: no function or associated item named `from_local_explanation` found for struct `WorthUiQueryInspectionLinks` in the current scope
-  --> tests/ui/runtime_authority/fail/local_query_explanation_record_cannot_replace_query_inspection_link.rs:11:47
-   |
-11 |     let _links = WorthUiQueryInspectionLinks::from_local_explanation(local.explanation);
-   |                                               ^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthUiQueryInspectionLinks`

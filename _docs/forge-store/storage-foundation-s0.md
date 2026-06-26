@@ -160,6 +160,14 @@ S.0 is not closed.
   S.1 page/segment/extent substrate work
 - later milestones may proceed only with explicit non-platform-grade debt if
   they depend on unclosed Roadmap 2 guarantees
+- S.0 artifacts, evidence bundles, handoff readiness, claim reports, backend
+  matrices, and migration notes must be typed aspect-native Store/Foundational
+  surfaces; JSON, serde-shaped objects, debug strings, display names, raw
+  bytes, and producer-private names may appear only as hostile inputs,
+  rejected compatibility-origin fixtures, or explicitly named migration debt
+- no S.1 consumer may treat parseable JSON, a schema-compatible object, or a
+  copied report as evidence; S.1 may consume only admitted native witnesses,
+  aspect-native evidence artifacts, and proof-bearing handoff readiness
 
 ## Scope
 
@@ -207,17 +215,17 @@ Required artifact directory:
 
 - `_docs/forge-store/artifacts/storage-foundation-s0/`
 
-Required artifacts:
+Required typed aspect-native artifacts:
 
-- `backend-capability-matrix.json`
-- `milestone-physical-status-matrix.json`
-- `semantic-physical-claim-report.json`
-- `deferred-physical-guarantee-map.json`
-- `terminology-risk-report.json`
-- `test-migration-notes.json`
-- `harness-maturity-report.json`
-- `s1-handoff-readiness.json`
-- `s0-evidence-bundle.json`
+- `backend-capability-matrix.aspec`
+- `milestone-physical-status-matrix.aspec`
+- `semantic-physical-claim-report.aspec`
+- `deferred-physical-guarantee-map.aspec`
+- `terminology-risk-report.aspec`
+- `test-migration-notes.aspec`
+- `harness-maturity-report.aspec`
+- `s1-handoff-readiness.aspec`
+- `s0-evidence-bundle.aspec`
 
 Required implementation-facing surfaces:
 
@@ -232,15 +240,29 @@ Required implementation-facing surfaces:
 
 Rules:
 
-- the JSON artifacts are the closeout source of truth; prose summarizes them
+- typed aspect-native artifacts are the closeout source of truth; prose
+  summarizes them
+- each artifact must lower through `forge-foundational` aspec-native value,
+  identity, locator, profile, diagnostic, canonical-basis, receipt, and
+  performance vocabulary where those surfaces exist
 - each artifact must include a schema version, source revision, generated-at
-  policy, and deterministic digest over semantically relevant fields
+  policy, and deterministic digest over semantically relevant aspec fields
 - timestamps, local paths, and host names may appear only in explicitly
   excluded nondeterministic metadata sections
 - S.1 may not consume hand-written summaries when the canonical S.0 artifact is
   present
-- S.0 closeout must fail if any required artifact is missing, non-parseable,
-  schema-incompatible, or digest-inconsistent
+- S.0 closeout must fail if any required artifact is missing, not admitted as
+  aspect-native evidence, schema-incompatible, digest-inconsistent, or backed
+  by JSON-shaped objects, debug strings, raw bytes, or producer-private names
+
+JSON compatibility stance:
+
+- JSON may appear only as a hostile input, rejected compatibility-origin
+  fixture, or explicitly named migration debt record.
+- JSON may not be the canonical source of truth, closeout artifact format,
+  evidence bundle shape, digest basis, S.1 handoff payload, or proof witness.
+- Parseable JSON is not evidence. Only typed aspect-native admission plus
+  canonical-basis proof can satisfy S.0 closeout.
 
 Naive trap this prevents:
 
@@ -1205,7 +1227,8 @@ Phase 1 defines the language that keeps the audit honest.
 
 Required work:
 
-- define the canonical S.0 artifact directory and required JSON artifact set
+- define the canonical S.0 artifact directory and required typed
+  aspect-native artifact set
 - define the named complexity contracts and required cost surfaces
 - define the audit input manifest and scan budget vocabulary
 - define capability tiers for existing and future backends
@@ -1379,7 +1402,7 @@ Exit condition:
 
 - canonical S.0 artifact directory:
   `_docs/forge-store/artifacts/storage-foundation-s0/`
-- required parseable JSON artifacts for backend tiers, milestone status,
+- required typed aspect-native artifacts for backend tiers, milestone status,
   claim reports, deferred guarantees, terminology findings, test migration
   notes, harness maturity, S.1 handoff readiness, and the S.0 evidence bundle
 - common artifact envelope schema and stable row schema for all matrix-style
@@ -1489,9 +1512,10 @@ Minimum certification matrix rows:
 - `all_existing_backends_classified`
   Every backend and evidence lane has exactly one declared tier and a valid-use
   statement.
-- `canonical_artifact_set_parseable`
-  Every required S.0 JSON artifact exists, parses, matches schema version, and
-  has a deterministic digest.
+- `canonical_artifact_set_aspect_native`
+  Every required S.0 aspect-native artifact exists, admits through typed
+  Foundational value/identity/locator/canonical-basis surfaces, matches schema
+  version, rejects JSON-shaped substitutes, and has a deterministic digest.
 - `canonical_artifact_rows_stable`
   Matrix rows have stable row ids, local evidence references, sortable order,
   and no digest dependence on nondeterministic metadata.

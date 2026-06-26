@@ -61,15 +61,31 @@
 //! let _forged = prove_s2_physical_substrate_readiness(readiness);
 //! ```
 //!
-//! S.3 physical integrity readiness is not a readiness-crate authority surface:
+//! S.3 physical integrity readiness cannot be synthesized from raw fields:
 //!
 //! ```compile_fail
 //! use forge_store_readiness::S3PhysicalIntegrityReadiness;
 //!
-//! let _forged: S3PhysicalIntegrityReadiness = todo!();
+//! let _forged = S3PhysicalIntegrityReadiness {
+//!     s2_readiness: todo!(),
+//!     payload: todo!(),
+//! };
+//! ```
+//!
+//! S.3 physical integrity readiness cannot be copied and replayed:
+//!
+//! ```compile_fail
+//! use forge_store_readiness::S3PhysicalIntegrityReadiness;
+//!
+//! fn copy_readiness(
+//!     readiness: S3PhysicalIntegrityReadiness,
+//! ) -> (S3PhysicalIntegrityReadiness, S3PhysicalIntegrityReadiness) {
+//!     (readiness, readiness)
+//! }
 //! ```
 
 mod adoption_denial;
+mod aspect_native_vocabulary_readiness;
 mod evidence_fields;
 #[cfg(test)]
 mod evidence_fields_tests;
@@ -80,11 +96,16 @@ mod s2_physical_substrate_proof;
 mod s2_physical_substrate_readiness;
 mod s2_readiness_denial;
 mod s2_readiness_facts;
+mod s3_physical_integrity_readiness;
 mod s3_readiness_denial;
 mod s3_readiness_payload;
 mod s3_readiness_recap;
 
 pub use adoption_denial::FoundationalAdoptionDenial;
+pub use aspect_native_vocabulary_readiness::{
+    AspectNativeVocabularyFamily, AspectNativeVocabularyPosture,
+    StoreAspectNativeVocabularyReadiness,
+};
 pub use evidence_fields::PhysicalFoundationEvidenceField;
 pub use foundational_adoption::{
     FoundationalAdoptionFamily, FoundationalAdoptionRow, FoundationalAdoptionStatus,
@@ -101,6 +122,7 @@ pub use s2_readiness_denial::{S2ReadinessDenial, S2ReadinessDenialKind};
 pub use s2_readiness_facts::{
     S2PhysicalReadinessFact, S2PhysicalReadinessFacts, S2ReadinessFactPosture,
 };
+pub use s3_physical_integrity_readiness::S3PhysicalIntegrityReadiness;
 pub use s3_readiness_denial::{S3ReadinessDenial, S3ReadinessDenialKind};
 pub use s3_readiness_payload::{
     IntegrityInspectionLifetimeLaw, ProtectedIntegrityViewCapability, S2NoMaterializationWitness,

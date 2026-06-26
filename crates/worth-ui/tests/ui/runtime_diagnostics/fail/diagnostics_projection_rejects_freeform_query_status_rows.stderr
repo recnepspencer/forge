@@ -1,5 +1,0 @@
-error[E0599]: no function or associated item named `from_freeform_rows` found for struct `WorthUiQueryStatusSurface` in the current scope
- --> tests/ui/runtime_diagnostics/fail/diagnostics_projection_rejects_freeform_query_status_rows.rs:4:47
-  |
-4 |     let _surface = WorthUiQueryStatusSurface::from_freeform_rows(["loading"]);
-  |                                               ^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthUiQueryStatusSurface`

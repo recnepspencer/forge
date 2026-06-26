@@ -19,4 +19,6 @@ impl RoadmapScope {
 }
 
 pub const ROADMAP_2_SCOPE: &str = "Roadmap 2";
+pub const ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE: RoadmapScope =
+    RoadmapScope::new(ROADMAP_2_SCOPE, "Aspect-Native Workspace Gate");
 pub const ROADMAP_2_S1_SCOPE: RoadmapScope = RoadmapScope::new(ROADMAP_2_SCOPE, "S.1");

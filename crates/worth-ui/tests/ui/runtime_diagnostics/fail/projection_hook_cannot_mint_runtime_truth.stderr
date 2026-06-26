@@ -1,5 +1,0 @@
-error[E0599]: no method named `active_artifact_digest` found for struct `WorthUiDiagnosticProjectionHook` in the current scope
- --> tests/ui/runtime_diagnostics/fail/projection_hook_cannot_mint_runtime_truth.rs:5:18
-  |
-5 |     let _ = hook.active_artifact_digest();
-  |                  ^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthUiDiagnosticProjectionHook`

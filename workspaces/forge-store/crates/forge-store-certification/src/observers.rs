@@ -10,6 +10,13 @@ pub enum PhysicalScenarioObserverKind {
     StorageBoundary,
     EvidenceExport,
     MaterializationShortcut,
+    S3PreDecodeAdmission,
+    S3SemanticDecoderInvocation,
+    S3PhysicalLocality,
+    S3DamageClassification,
+    S3Quarantine,
+    S3RecoveryHandoff,
+    S3LineCapComposition,
 }
 
 impl PhysicalScenarioObserverKind {
@@ -25,6 +32,13 @@ impl PhysicalScenarioObserverKind {
             Self::StorageBoundary => "storage_boundary",
             Self::EvidenceExport => "evidence_export",
             Self::MaterializationShortcut => "materialization_shortcut",
+            Self::S3PreDecodeAdmission => "s3_pre_decode_admission",
+            Self::S3SemanticDecoderInvocation => "s3_semantic_decoder_invocation",
+            Self::S3PhysicalLocality => "s3_physical_locality",
+            Self::S3DamageClassification => "s3_damage_classification",
+            Self::S3Quarantine => "s3_quarantine",
+            Self::S3RecoveryHandoff => "s3_recovery_handoff",
+            Self::S3LineCapComposition => "s3_line_cap_composition",
         }
     }
 }

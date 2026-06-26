@@ -9,6 +9,7 @@ description = "Roadmap 1 generic and domain Store certification suites."
 forge-foundational = { path = "../../../../crates/forge-foundational" }
 forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-analysis.workspace = true
+forge-store-aspect-native.workspace = true
 forge-store-authority.workspace = true
 forge-store-blob-chunks.workspace = true
 forge-store-budgets.workspace = true

@@ -1,116 +1,20 @@
-//! Store certification vocabulary.
-//!
-//! Raw Store digests cannot satisfy canonical artifact evidence:
-//!
-//! ```compile_fail
-//! use forge_store_certification::PhysicalFoundationEvidenceBundle;
-//! use forge_store_contracts::{StableArtifactId, StableDigest};
-//! use forge_store_readiness::FoundationalVocabularyAdoptionMap;
-//!
-//! let adoption = FoundationalVocabularyAdoptionMap::s1_all_public_lanes().unwrap();
-//! let raw_digest = StableDigest::new("sha256:raw-store-digest").unwrap();
-//!
-//! let _builder = PhysicalFoundationEvidenceBundle::builder(adoption)
-//!     .with_canonical_artifact_digest(
-//!         StableArtifactId::new("artifact_digest").unwrap(),
-//!         raw_digest,
-//!     );
-//! ```
-//!
-//! Public callers cannot skip the scenario harness progression:
-//!
-//! ```compile_fail
-//! use forge_store_certification::{
-//!     PhysicalProofOracleKind, PhysicalScenarioDefinition, PhysicalScenarioExecution,
-//!     PhysicalScenarioQualityHarness, PhysicalStoryStep, PhysicalSubstrateLane,
-//! };
-//!
-//! let definition = PhysicalScenarioDefinition::story("direct_execution_forge")
-//!     .physical_substrate_lane(PhysicalSubstrateLane::HappyAuthority)
-//!     .proves_law("external callers must not mint execution directly")
-//!     .step(PhysicalStoryStep::GivenCleanPhysicalStore)
-//!     .requires_oracle(PhysicalProofOracleKind::ScenarioPlanOwnsStrategy)
-//!     .define()
-//!     .unwrap();
-//! let harness = PhysicalScenarioQualityHarness::roadmap_2();
-//! let plan = harness.lower(definition).unwrap();
-//!
-//! let _forged = PhysicalScenarioExecution::from_plan(plan);
-//! ```
-//!
-//! Raw digests cannot be supplied as binary format evidence:
-//!
-//! ```compile_fail
-//! use forge_store_certification::BinaryPhysicalFormatEvidence;
-//! use forge_store_contracts::StableDigest;
-//! use forge_store_physical_format::PhysicalBinaryEncodingWitness;
-//!
-//! let witness = PhysicalBinaryEncodingWitness::s1_canonical().unwrap();
-//! let digest = StableDigest::new("sha256:raw-binary-format").unwrap();
-//! let _evidence = BinaryPhysicalFormatEvidence::from_witness(&witness, digest);
-//! ```
-//!
-//! S.2 readiness is minted only by admitted S.1 physical substrate closeout:
-//!
-//! ```compile_fail
-//! use forge_store_readiness::S2PhysicalSubstrateReadiness;
-//! use forge_store_contracts::ROADMAP_2_S1_SCOPE;
-//!
-//! let _forged = S2PhysicalSubstrateReadiness {
-//!     scope: ROADMAP_2_S1_SCOPE,
-//!     facts: todo!(),
-//!     sealed: true,
-//! };
-//! ```
-//!
-//! Raw closeout evidence descriptors cannot be assembled outside certification:
-//!
-//! ```compile_fail
-//! use forge_store_certification::PhysicalPageSegmentExtentSubstrateEvidence;
-//!
-//! let _forged = PhysicalPageSegmentExtentSubstrateEvidence::new(
-//!     unimplemented!(),
-//!     unimplemented!(),
-//!     unimplemented!(),
-//!     unimplemented!(),
-//!     unimplemented!(),
-//!     unimplemented!(),
-//!     unimplemented!(),
-//!     unimplemented!(),
-//!     unimplemented!(),
-//!     unimplemented!(),
-//! );
-//! ```
-//!
-//! Raw closeout runs cannot be assembled outside certification:
-//!
-//! ```compile_fail
-//! use forge_store_certification::PhysicalPageSegmentExtentSubstrateRun;
-//! use forge_store_contracts::StableArtifactId;
-//!
-//! let _forged = PhysicalPageSegmentExtentSubstrateRun::new(
-//!     StableArtifactId::new("synthetic-closeout").unwrap(),
-//!     unimplemented!(),
-//! );
-//! ```
-//!
-//! S.3 physical integrity readiness cannot be minted from raw payload fields:
-//!
-//! ```compile_fail
-//! use forge_store_certification::S3PhysicalIntegrityReadiness;
-//!
-//! let _forged = S3PhysicalIntegrityReadiness::from_s2_bounded_residency_closeout(
-//!     todo!(),
-//!     todo!(),
-//! );
-//! ```
-
+#![doc = include_str!("certification_compile_fail_proofs.md")]
 #![doc = include_str!("receipt_authority_compile_fail_proofs.md")]
 #![forbid(unsafe_code)]
 
 mod allocation_envelope_evidence;
 #[cfg(test)]
 mod allocation_envelope_evidence_tests;
+#[cfg(test)]
+mod aspect_native_authority_denial_tests;
+#[cfg(test)]
+mod aspect_native_diagnostic_evidence_tests;
+#[cfg(test)]
+mod aspect_native_identity_tests;
+#[cfg(test)]
+mod aspect_native_performance_evidence_tests;
+#[cfg(test)]
+mod aspect_native_vocabulary_tests;
 mod background_envelope_evidence;
 #[cfg(test)]
 mod background_envelope_evidence_tests;
@@ -129,7 +33,20 @@ mod buffer_pool_scenario_definitions;
 mod buffer_pool_scenario_plans;
 mod buffer_pool_story_lanes;
 mod buffer_pool_transcripts;
+mod canonical_basis_source_inventory;
+mod canonical_basis_source_registry;
+mod canonical_basis_source_scan;
+#[cfg(test)]
+mod canonical_basis_source_tests;
 mod certification_matrix;
+#[cfg(test)]
+mod checksum_declaration_tests;
+#[cfg(test)]
+mod chunk_integrity_without_blob_lifecycle_tests;
+#[cfg(test)]
+mod cross_family_wrong_scope_tests;
+#[cfg(test)]
+mod derived_index_damage_tests;
 mod dirty_publication_evidence;
 #[cfg(test)]
 mod dirty_publication_evidence_test_support;
@@ -146,6 +63,8 @@ mod foundational_boundary_evidence;
 #[cfg(test)]
 mod foundational_boundary_evidence_tests;
 mod foundational_boundary_performance;
+#[cfg(test)]
+mod foundational_integrity_evidence_tests;
 mod harness;
 #[cfg(test)]
 mod harness_tests;
@@ -171,8 +90,42 @@ mod page_record_framing_evidence_tests;
 mod physical_complexity_evidence;
 #[cfg(test)]
 mod physical_complexity_evidence_tests;
+#[cfg(test)]
+mod physical_container_integrity_hardening_tests;
+#[cfg(test)]
+mod physical_container_integrity_test_support;
+#[cfg(test)]
+mod physical_container_integrity_tests;
 mod physical_foundation_evidence;
 mod physical_identity_evidence;
+mod physical_integrity_closeout_bundle;
+mod physical_integrity_closeout_denial;
+mod physical_integrity_closeout_handoff;
+mod physical_integrity_closeout_harness;
+mod physical_integrity_closeout_harness_execution;
+mod physical_integrity_closeout_harness_runner;
+#[cfg(test)]
+mod physical_integrity_closeout_harness_test_support;
+mod physical_integrity_closeout_line_cap;
+#[cfg(test)]
+mod physical_integrity_closeout_line_cap_test_support;
+#[cfg(test)]
+mod physical_integrity_closeout_line_cap_tests;
+mod physical_integrity_closeout_owned_file;
+mod physical_integrity_closeout_proof;
+mod physical_integrity_closeout_report;
+mod physical_integrity_closeout_suite;
+mod physical_integrity_closeout_suite_kind;
+#[cfg(test)]
+mod physical_integrity_closeout_test_support;
+#[cfg(test)]
+mod physical_integrity_closeout_tests;
+#[cfg(test)]
+mod physical_integrity_entry_authority_tests;
+#[cfg(test)]
+mod physical_scope_admission_test_support;
+#[cfg(test)]
+mod physical_scope_admission_tests;
 mod physical_substrate_certification_authority;
 mod physical_substrate_certification_denial;
 mod physical_substrate_certification_reports;
@@ -191,7 +144,13 @@ mod pin_lifecycle_evidence_tests;
 mod platform_facade_evidence;
 #[cfg(test)]
 mod platform_facade_evidence_tests;
+#[cfg(test)]
+mod pre_decode_physical_admission_test_support;
+#[cfg(test)]
+mod pre_decode_physical_admission_tests;
 mod protected_integrity_view_evidence;
+#[cfg(test)]
+mod quarantine_sealing_tests;
 mod record_view_evidence;
 #[cfg(test)]
 mod record_view_evidence_admission_tests;
@@ -210,17 +169,36 @@ mod runtime_verifier_support;
 mod s2_acceptance_suite_transcript;
 mod s2_entry_boundary_evidence;
 mod s3_readiness_handoff;
+#[cfg(test)]
+mod s4_integrity_damage_map_tests;
+#[cfg(test)]
+mod s4_integrity_handoff_tests;
+#[cfg(test)]
+mod s4_quarantine_receipt_binding_tests;
 mod scale_fixture;
 mod scale_property;
 mod scenario_definition;
 mod scenario_execution;
 mod scenario_plan;
 mod scenario_plan_rules;
+mod scenario_planned_work_evidence;
+#[cfg(test)]
+mod scrub_execution_tests;
 mod speculative_work_evidence;
 #[cfg(test)]
 mod speculative_work_evidence_tests;
+mod store_json_residue_certification;
+mod store_json_residue_denial;
+mod store_json_residue_entry;
+mod store_json_residue_inventory;
+mod store_json_residue_prelude_scan;
+mod store_json_residue_scan;
+#[cfg(test)]
+mod store_json_residue_tests;
 mod story_transcript;
 mod synthetic_closeout_rejection;
+#[cfg(test)]
+mod wal_frame_integrity_tests;
 
 pub use allocation_envelope_evidence::{
     AllocationEnvelopeEvidenceDenial, AllocationEnvelopeEvidenceReport,
@@ -249,6 +227,11 @@ pub use buffer_pool_scenario_definitions::{
 };
 pub use buffer_pool_scenario_plans::{BufferPoolScenarioPlan, BufferPoolScenarioPlanDenial};
 pub use buffer_pool_transcripts::BufferPoolPressureTranscriptIdentity;
+pub use canonical_basis_source_inventory::{
+    certify_store_canonical_basis_source_inventory, certify_store_canonical_basis_source_rows,
+    current_store_canonical_basis_inventory, StoreCanonicalBasisInventoryDenial,
+    StoreCanonicalBasisInventoryRow,
+};
 pub use certification_matrix::S1CertificationRow;
 pub use dirty_publication_evidence::{
     DirtyPublicationEvidenceDenial, DirtyPublicationEvidenceReport, DirtyPublicationEvidenceRow,
@@ -262,7 +245,7 @@ pub use extent_record_framing_evidence::{
     PhysicalExtentRecordFramingEvidenceDenial, PhysicalExtentRecordFramingEvidenceReport,
     PhysicalExtentRecordFramingEvidenceRow,
 };
-pub use forge_store_readiness::S2PhysicalSubstrateReadiness;
+pub use forge_store_readiness::{S2PhysicalSubstrateReadiness, S3PhysicalIntegrityReadiness};
 pub use foundational_boundary_evidence::{
     AllocationEnvelopePerformanceReceipt, BufferPoolProvenanceAttachment,
     CompletedResidencyBoundaryReceipt, CopyMaterializationPerformanceReceipt,
@@ -316,9 +299,35 @@ pub use physical_foundation_evidence::{
     PhysicalFoundationEvidenceDenial, PhysicalFoundationEvidenceEntry,
     PhysicalFoundationEvidenceIdentity,
 };
-pub use physical_identity_evidence::PhysicalIdentityEvidenceRow;
 pub use physical_identity_evidence::{
-    PhysicalIdentityEvidenceDenial, PhysicalIdentityEvidenceReport,
+    PhysicalIdentityEvidenceDenial, PhysicalIdentityEvidenceReport, PhysicalIdentityEvidenceRow,
+};
+pub use physical_integrity_closeout_bundle::{
+    close_s3_physical_integrity_from_executed_evidence, PhysicalIntegrityCertificationBundle,
+};
+pub use physical_integrity_closeout_denial::{
+    PhysicalIntegrityCloseoutDenial, S3CloseoutDenialBoundary,
+};
+pub use physical_integrity_closeout_handoff::S3S4HandoffCloseoutEvidence;
+pub use physical_integrity_closeout_harness::S3HarnessTranscriptEvidence;
+pub use physical_integrity_closeout_harness_execution::{
+    S3CloseoutExecutedOutputKind, S3CloseoutHarnessExecutionEvidence,
+};
+pub use physical_integrity_closeout_line_cap::{
+    S3CloseoutModuleKind, S3LineCapCompositionEvidence, S3LineCapModuleEvidence,
+};
+pub use physical_integrity_closeout_owned_file::S3OwnedCloseoutFileEvidence;
+pub use physical_integrity_closeout_proof::{
+    S3ExecutedBoundaryDenialEvidence, S3ExecutedCorruptionLocalizationEvidence,
+};
+pub use physical_integrity_closeout_report::{
+    PhysicalIntegrityCloseoutReport, S3CloseoutSuiteHarnessSummary,
+};
+pub use physical_integrity_closeout_suite::{
+    PhysicalIntegrityCloseoutSuite, PhysicalIntegrityCloseoutSuiteEvidence,
+};
+pub use physical_integrity_closeout_suite_kind::{
+    S3AcceptanceSuiteKind, S3CloseoutEvidenceFamily, S3CorruptionLocalizationBoundary,
 };
 pub use physical_substrate_certification_authority::{
     certify_physical_page_segment_extent_substrate, certify_s2_physical_substrate_readiness,
@@ -362,7 +371,6 @@ pub use s2_entry_boundary_evidence::{
     S2EntryBoundaryEvidenceDenial, S2EntryBoundaryEvidenceReport, S2EntryBoundaryEvidenceRow,
     S2ForbiddenEntryAttempt,
 };
-pub use s3_readiness_handoff::S3PhysicalIntegrityReadiness;
 pub use scale_fixture::{
     PhysicalHostileScaleCondition, PhysicalHostileScaleFixtureDenial,
     PhysicalHostileScaleFixtureReport, PhysicalHostileScaleFixtureSource,
@@ -378,13 +386,21 @@ pub use scenario_plan::{
     PhysicalScenarioCostClass, PhysicalScenarioPlan, PhysicalScenarioPlanDenial,
     PhysicalScenarioPlanIdentity, StorageBoundaryCrossing, WorkloadScale,
 };
+pub use scenario_planned_work_evidence::PhysicalScenarioPlannedWorkBoundaryReport;
 pub use speculative_work_evidence::{
     SpeculativeWorkEvidenceDenial, SpeculativeWorkEvidenceReport, SpeculativeWorkEvidenceRow,
 };
+pub use store_json_residue_certification::certify_store_json_residue_inventory;
+pub use store_json_residue_denial::StoreJsonResidueDenial;
+pub use store_json_residue_entry::{
+    StoreJsonAuthorityRisk, StoreJsonResidueClassification, StoreJsonResidueOccurrence,
+    StoreJsonResidueTokenKind, StoreJsonResidueZone,
+};
+pub use store_json_residue_inventory::StoreJsonResidueInventory;
 pub use story_transcript::PhysicalStoryTranscript;
 pub use synthetic_closeout_rejection::{
     SyntheticCloseoutRejectionDenial, SyntheticCloseoutShortcutAttempt,
-    SyntheticCloseoutShortcutRejectionReport,
+    SyntheticCloseoutShortcutInput, SyntheticCloseoutShortcutRejectionReport,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

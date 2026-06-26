@@ -27,7 +27,9 @@ pub use handoff_readiness::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, S0HandoffArtifactKind,
 };
 pub use physical_authority::{PhysicalAuthorityScope, StorePhysicalAuthorityWitness};
-pub use roadmap_scope::{RoadmapScope, ROADMAP_2_S1_SCOPE, ROADMAP_2_SCOPE};
+pub use roadmap_scope::{
+    RoadmapScope, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE, ROADMAP_2_S1_SCOPE, ROADMAP_2_SCOPE,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DurableArtifactClass {

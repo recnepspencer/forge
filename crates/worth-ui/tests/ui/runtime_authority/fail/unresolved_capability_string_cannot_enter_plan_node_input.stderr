@@ -1,5 +1,0 @@
-error[E0599]: no function or associated item named `from_unresolved_capability` found for struct `WorthUiPlanNodeInput` in the current scope
- --> tests/ui/runtime_authority/fail/unresolved_capability_string_cannot_enter_plan_node_input.rs:4:35
-  |
-4 |     let _ = WorthUiPlanNodeInput::from_unresolved_capability("query.workspace.selection");
-  |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthUiPlanNodeInput`

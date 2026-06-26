@@ -62,7 +62,7 @@ pub(crate) fn foundational_receipt_with_protected_view() -> (
     CompletedResidencyBoundaryReceipt,
     ProtectedIntegrityViewEvidence,
 ) {
-    let payload = b"phase12-boundary";
+    let payload = b"bounded-memory-boundary";
     let mut table = resident_frame_table();
     let admission = admit_payload_frame(&mut table, 17, 2, payload);
     table
@@ -130,13 +130,13 @@ pub(crate) fn s2_readiness() -> S2PhysicalSubstrateReadiness {
             AcceptedHandoffReadiness::from_s0_artifacts(
                 ROADMAP_2_S1_SCOPE,
                 HandoffEvidenceDigestSet::new(
-                    StableDigest::new("sha256:phase12-backend").unwrap(),
-                    StableDigest::new("sha256:phase12-deferred").unwrap(),
-                    StableDigest::new("sha256:phase12-harness").unwrap(),
-                    StableDigest::new("sha256:phase12-terms").unwrap(),
-                    StableDigest::new("sha256:phase12-audit").unwrap(),
-                    StableDigest::new("sha256:phase12-complexity").unwrap(),
-                    StableDigest::new("sha256:phase12-provenance").unwrap(),
+                    StableDigest::new("sha256:bounded-memory-backend").unwrap(),
+                    StableDigest::new("sha256:bounded-memory-deferred").unwrap(),
+                    StableDigest::new("sha256:bounded-memory-harness").unwrap(),
+                    StableDigest::new("sha256:bounded-memory-terms").unwrap(),
+                    StableDigest::new("sha256:bounded-memory-audit").unwrap(),
+                    StableDigest::new("sha256:bounded-memory-complexity").unwrap(),
+                    StableDigest::new("sha256:bounded-memory-provenance").unwrap(),
                 ),
             )
             .unwrap(),

@@ -7,61 +7,9 @@ use forge_store_readiness::{
     BufferPoolAuthorityRecap, IntegrityInspectionLifetimeLaw, PhysicalAuthorityRecap,
     ProtectedIntegrityViewCapability, S2BoundedCounterRecap, S2DenialBehaviorRecap,
     S2DeniedBoundaryKind, S2NoMaterializationWitness, S2PhysicalSubstrateReadiness,
-    S3PhysicalIntegrityReadinessPayload, S3ReadinessDenial, S3ReadinessDenialKind,
+    S3PhysicalIntegrityReadiness, S3PhysicalIntegrityReadinessPayload, S3ReadinessDenial,
     ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S3PhysicalIntegrityReadiness {
-    s2_readiness: S2PhysicalSubstrateReadiness,
-    payload: S3PhysicalIntegrityReadinessPayload,
-}
-
-impl S3PhysicalIntegrityReadiness {
-    fn from_s2_bounded_residency_closeout(
-        s2_readiness: S2PhysicalSubstrateReadiness,
-        payload: S3PhysicalIntegrityReadinessPayload,
-    ) -> Result<Self, S3ReadinessDenial> {
-        if !s2_readiness.is_sealed() {
-            return Err(S3ReadinessDenial::new(
-                S3ReadinessDenialKind::S2ReadinessNotSealed,
-            ));
-        }
-        require_physical_recap_matches_s2_facts(s2_readiness, payload)?;
-        Ok(Self {
-            s2_readiness,
-            payload: payload.require_complete()?,
-        })
-    }
-
-    pub const fn s2_readiness(self) -> S2PhysicalSubstrateReadiness {
-        self.s2_readiness
-    }
-
-    pub const fn payload(self) -> S3PhysicalIntegrityReadinessPayload {
-        self.payload
-    }
-
-    pub const fn protected_view_capability(self) -> ProtectedIntegrityViewCapability {
-        self.payload.protected_view_capability()
-    }
-
-    pub const fn verifier_resident_envelope(self) -> VerifierResidentEnvelope {
-        self.payload.verifier_resident_envelope()
-    }
-
-    pub const fn scrub_allocation_envelope(self) -> ScrubPlanningAllocationEnvelope {
-        self.payload.scrub_allocation_envelope()
-    }
-
-    pub const fn inspection_lifetime_law(self) -> IntegrityInspectionLifetimeLaw {
-        self.payload.inspection_lifetime_law()
-    }
-
-    pub const fn no_materialization_witness(self) -> S2NoMaterializationWitness {
-        self.payload.no_materialization_witness()
-    }
-}
 
 impl BoundedMemoryCloseoutReport {
     pub fn publish_s3_physical_integrity_readiness(
@@ -70,24 +18,6 @@ impl BoundedMemoryCloseoutReport {
     ) -> Result<S3PhysicalIntegrityReadiness, S3ReadinessDenial> {
         let payload = payload_from_closeout(self.bundle(), s2_readiness)?;
         S3PhysicalIntegrityReadiness::from_s2_bounded_residency_closeout(s2_readiness, payload)
-    }
-}
-
-fn require_physical_recap_matches_s2_facts(
-    s2_readiness: S2PhysicalSubstrateReadiness,
-    payload: S3PhysicalIntegrityReadinessPayload,
-) -> Result<(), S3ReadinessDenial> {
-    let facts = s2_readiness.facts();
-    let recap = payload.physical_authority_recap();
-    if recap.physical_reference_count() == facts.physical_reference_count()
-        && recap.header_decode_witness_count() == facts.header_decode_witness_count()
-        && recap.payload_admission_witness_count() == facts.payload_admission_witness_count()
-    {
-        Ok(())
-    } else {
-        Err(S3ReadinessDenial::new(
-            S3ReadinessDenialKind::PhysicalAuthorityRecapMismatch,
-        ))
     }
 }
 
