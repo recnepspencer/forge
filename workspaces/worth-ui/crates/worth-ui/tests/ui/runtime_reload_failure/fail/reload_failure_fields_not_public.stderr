@@ -1,0 +1,12 @@
+error: cannot construct `WorthUiReloadFailure` with struct literal syntax due to private fields
+ --> tests/ui/runtime_reload_failure/fail/reload_failure_fields_not_public.rs:4:13
+  |
+4 |     let _ = WorthUiReloadFailure {};
+  |             ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields `denial`, `preservation_receipt`, `failed_activation_report` and `counters` that were not provided
+help: you might have meant to use the `new` associated function
+  |
+4 -     let _ = WorthUiReloadFailure {};
+4 +     let _ = WorthUiReloadFailure::new(_, _, _, _);
+  |

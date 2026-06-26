@@ -1,0 +1,15 @@
+error[E0432]: unresolved imports `worth_ui::CommandDescriptor`, `worth_ui::CommandId`, `worth_ui::WorthUi`
+ --> tests/ui/facade_visibility/topology/crate_root_does_not_bypass_facade.rs:1:16
+  |
+1 | use worth_ui::{CommandDescriptor, CommandId, WorthUi};
+  |                ^^^^^^^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^ no `WorthUi` in the root
+  |                |                  |
+  |                |                  no `CommandId` in the root
+  |                no `CommandDescriptor` in the root
+  |
+  = help: consider importing this struct instead:
+          worth_ui::facade::CommandDescriptor
+  = help: consider importing this struct instead:
+          worth_ui::facade::CommandId
+  = help: consider importing this struct instead:
+          worth_ui::facade::WorthUi

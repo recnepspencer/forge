@@ -7,7 +7,7 @@ Milestone 1 is complete as of 2026-06-11.
 This closeout records completion of:
 
 - `_docs/worth-ui/milestone-1.md`
-- `crates/worth-ui`
+- `workspaces/worth-ui/crates/worth-ui`
 
 The milestone closes Worth UI as a domain-agnostic platform subsystem with one
 public facade, proof-bearing capability registration, typed registry families,
@@ -195,3 +195,4 @@ With Milestone 1 closed, the next Worth UI milestone can start from frozen
 capability snapshots as its source of truth. The next milestone should not
 reopen registration authority unless it is explicitly extending the registry
 family inventory and proving the same lifecycle propagation boundaries again.
+

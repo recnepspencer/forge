@@ -1,0 +1,39 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/forge-ui-types",
+    "crates/forge-ui-theme",
+    "crates/forge-ui-components",
+    "crates/forge-ui-adapters",
+    "crates/forge-ui-state",
+    "crates/worth-ui",
+]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "UNLICENSED"
+
+[workspace.dependencies]
+forge-foundational = { path = "../../crates/forge-foundational" }
+forge-proof = { path = "../../crates/forge-proof" }
+forge-query = { path = "../../crates/forge-query" }
+forge-signal = { path = "../../crates/forge-signal" }
+
+forge-ui-types = { path = "crates/forge-ui-types" }
+forge-ui-theme = { path = "crates/forge-ui-theme" }
+forge-ui-components = { path = "crates/forge-ui-components" }
+forge-ui-adapters = { path = "crates/forge-ui-adapters" }
+forge-ui-state = { path = "crates/forge-ui-state" }
+worth-ui = { path = "crates/worth-ui" }
+
+serde = { version = "1", features = ["derive", "rc"] }
+egui = "0.31"
+trybuild = "1.0"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+result_large_err = "allow"

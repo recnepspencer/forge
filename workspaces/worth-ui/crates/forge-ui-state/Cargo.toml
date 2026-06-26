@@ -1,0 +1,14 @@
+[package]
+name = "forge-ui-state"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+forge-ui-types    = { workspace = true }
+forge-ui-adapters = { workspace = true }
+forge-ui-theme    = { workspace = true }
+forge-signal      = { workspace = true }

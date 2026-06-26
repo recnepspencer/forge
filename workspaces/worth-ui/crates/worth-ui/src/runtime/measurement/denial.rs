@@ -1,0 +1,23 @@
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WorthUiMeasurementCertificationDenial {
+    EmptyCounterPacket,
+    CounterFamilyBoundaryMismatch,
+    HotPathWithoutMeasurementBoundary,
+    CounterFamilyNotRequiredByContract,
+    BoundaryNotRequiredByContract,
+    UnattributedWorkBucket,
+    ElapsedTimeOnlyFrameCost,
+    MissingWorthUiCounterEvidence,
+    MissingNonzeroWorthUiCounterEvidence,
+    MissingQueryEvidence,
+    DuplicateCounterName,
+    CounterNameDoesNotMatchFamilyBoundary,
+    FoundationalBoundaryMismatch,
+    FoundationalEvidenceStrengthMismatch,
+    InvalidFoundationalCounterName,
+    InvalidFoundationalContractName,
+    FoundationalClaimConstruction,
+    FoundationalBundleConstruction,
+    FoundationalReceiptConstruction,
+    FoundationalBasisConstruction,
+}

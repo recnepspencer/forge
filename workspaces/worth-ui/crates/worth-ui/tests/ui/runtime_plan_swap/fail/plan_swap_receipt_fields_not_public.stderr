@@ -1,0 +1,12 @@
+error: cannot construct `WorthUiPlanSwapReceipt` with struct literal syntax due to private fields
+ --> tests/ui/runtime_plan_swap/fail/plan_swap_receipt_fields_not_public.rs:4:13
+  |
+4 |     let _ = WorthUiPlanSwapReceipt {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields that were not provided
+help: you might have meant to use the `new` associated function
+  |
+4 -     let _ = WorthUiPlanSwapReceipt {};
+4 +     let _ = WorthUiPlanSwapReceipt::new(_);
+  |
