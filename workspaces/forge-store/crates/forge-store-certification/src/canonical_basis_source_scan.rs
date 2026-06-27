@@ -1,6 +1,4 @@
-use crate::{
-    StoreCanonicalBasisInventoryDenial, StoreCanonicalBasisInventoryRow,
-};
+use crate::{StoreCanonicalBasisInventoryDenial, StoreCanonicalBasisInventoryRow};
 use std::{fs, path::Path};
 
 const INCLUDED_FAMILY_TERMS: [&str; 6] = [
@@ -34,13 +32,14 @@ pub fn certify_scanned_store_canonical_basis_families_are_registered(
 ) -> Result<(), StoreCanonicalBasisInventoryDenial> {
     for scanned in scan_store_canonical_basis_family_surfaces(workspace_root, scope_roots) {
         if !registered.iter().any(|row| {
-            row.family_name() == scanned.family_name()
-                && row.source_path() == scanned.source_path()
+            row.family_name() == scanned.family_name() && row.source_path() == scanned.source_path()
         }) {
-            return Err(StoreCanonicalBasisInventoryDenial::UnclassifiedEvidenceFamily {
-                family_name: scanned.family_name(),
-                classifying_subsystem: scanned.source_path(),
-            });
+            return Err(
+                StoreCanonicalBasisInventoryDenial::ScannedUnregisteredEvidenceFamily {
+                    family_name: scanned.family_name().to_string(),
+                    classifying_subsystem: scanned.source_path().to_string(),
+                },
+            );
         }
     }
 
@@ -117,11 +116,11 @@ fn public_family_name_from_line(line: &str) -> Option<&str> {
     let trimmed = line.trim_start();
     let remainder = trimmed
         .strip_prefix("pub struct ")
-        .or_else(|| trimmed.strip_prefix("pub enum "))?;
+        .or_else(|| trimmed.strip_prefix("pub enum "))
+        .or_else(|| trimmed.strip_prefix("pub(crate) struct "))
+        .or_else(|| trimmed.strip_prefix("pub(crate) enum "))?;
     let family_name = remainder
-        .split(|character: char| {
-            !(character.is_ascii_alphanumeric() || character == '_')
-        })
+        .split(|character: char| !(character.is_ascii_alphanumeric() || character == '_'))
         .next()?;
 
     if is_canonical_basis_family_surface(family_name) {
@@ -137,7 +136,21 @@ fn is_canonical_basis_family_surface(family_name: &str) -> bool {
         .any(|term| family_name.contains(term))
         && !EXCLUDED_SUPPORT_TERMS
             .iter()
-            .any(|term| family_name.contains(term))
+            .any(|term| support_term_excludes_family_name(term, family_name))
+}
+
+fn support_term_excludes_family_name(term: &str, family_name: &str) -> bool {
+    if term == "Denial" && family_name.contains("DenialEvidence") {
+        return false;
+    }
+    if term == "Authority" && family_name.contains("AuthorityEvidence") {
+        return false;
+    }
+    if matches!(term, "Source" | "Input") && family_name.contains("Recovery") {
+        return false;
+    }
+
+    family_name.contains(term)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

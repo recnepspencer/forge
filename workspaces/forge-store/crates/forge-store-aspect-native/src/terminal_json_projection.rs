@@ -3,7 +3,10 @@ use forge_foundational::{
 };
 use serde_json::{Map, Number, Value};
 
-use crate::{StoreAspectBoundaryFact, StoreAspectIdentity, StoreTerminalProjectionDenial};
+use crate::{
+    StoreAspectBoundaryFact, StoreAspectIdentity, StoreTerminalProjectionDenial,
+    StoreTerminalProjectionDisplayLabel, StoreTerminalProjectionDocumentBytes,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StoreTerminalJsonProjection {
@@ -28,6 +31,30 @@ impl StoreTerminalJsonProjection {
 
     pub(crate) fn into_terminal_projection_document(self) -> Value {
         self.terminal_projection_document
+    }
+
+    pub fn to_compact_terminal_json_document_bytes(
+        &self,
+    ) -> Result<StoreTerminalProjectionDocumentBytes, StoreTerminalProjectionDenial> {
+        render_compact_terminal_json_document(&self.terminal_projection_document)
+    }
+
+    pub fn to_pretty_terminal_json_document_bytes(
+        &self,
+    ) -> Result<StoreTerminalProjectionDocumentBytes, StoreTerminalProjectionDenial> {
+        let rendered = serde_json::to_string_pretty(&self.terminal_projection_document)
+            .map_err(|_| StoreTerminalProjectionDenial::TerminalProjectionRenderingDenied)?;
+        StoreTerminalProjectionDocumentBytes::from_terminal_projection_bytes(rendered.into_bytes())
+    }
+
+    pub fn to_labelled_terminal_json_document_bytes(
+        &self,
+        label: &StoreTerminalProjectionDisplayLabel,
+    ) -> Result<StoreTerminalProjectionDocumentBytes, StoreTerminalProjectionDenial> {
+        render_compact_terminal_json_document(&labelled_terminal_projection_document(
+            label,
+            self.terminal_projection_document.clone(),
+        ))
     }
 }
 
@@ -64,6 +91,30 @@ fn struct_value_to_terminal_json(
         );
     }
     Ok(Value::Object(object))
+}
+
+fn labelled_terminal_projection_document(
+    label: &StoreTerminalProjectionDisplayLabel,
+    terminal_projection_document: Value,
+) -> Value {
+    let mut envelope = Map::new();
+    envelope.insert(
+        "display_label".to_string(),
+        Value::String(label.terminal_display_label().to_string()),
+    );
+    envelope.insert(
+        "terminal_projection".to_string(),
+        terminal_projection_document,
+    );
+    Value::Object(envelope)
+}
+
+fn render_compact_terminal_json_document(
+    document: &Value,
+) -> Result<StoreTerminalProjectionDocumentBytes, StoreTerminalProjectionDenial> {
+    let rendered = serde_json::to_string(document)
+        .map_err(|_| StoreTerminalProjectionDenial::TerminalProjectionRenderingDenied)?;
+    StoreTerminalProjectionDocumentBytes::from_terminal_projection_bytes(rendered.into_bytes())
 }
 
 fn aspect_value_to_terminal_json(

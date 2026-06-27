@@ -6,6 +6,9 @@ use crate::StoreAspectNativeDenial;
 pub enum StoreTerminalProjectionDenial {
     MissingProjectedAspectValue,
     ContractIdentityMismatch,
+    EmptyTerminalProjectionDocument,
+    EmptyTerminalProjectionDisplayLabel,
+    TerminalProjectionRenderingDenied,
     UnsupportedTerminalProjectionValue(&'static str),
     JsonCompatibilityDenied(JsonCompatibilityLoweringDenial),
     StoreAuthorityDenied(StoreAspectNativeDenial),

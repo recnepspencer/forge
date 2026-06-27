@@ -10,11 +10,15 @@ mod aspect_native_authority_denial_tests;
 #[cfg(test)]
 mod aspect_native_diagnostic_evidence_tests;
 #[cfg(test)]
+mod aspect_native_harness_authoring_tests;
+#[cfg(test)]
 mod aspect_native_identity_tests;
 #[cfg(test)]
 mod aspect_native_performance_evidence_tests;
 #[cfg(test)]
 mod aspect_native_vocabulary_tests;
+#[cfg(test)]
+mod authority_projection_readmission_tests;
 mod background_envelope_evidence;
 #[cfg(test)]
 mod background_envelope_evidence_tests;
@@ -33,6 +37,12 @@ mod buffer_pool_scenario_definitions;
 mod buffer_pool_scenario_plans;
 mod buffer_pool_story_lanes;
 mod buffer_pool_transcripts;
+#[cfg(test)]
+mod canonical_basis_entry_construction_tests;
+#[cfg(test)]
+mod canonical_basis_entry_denial_tests;
+#[cfg(test)]
+mod canonical_basis_entry_order_tests;
 mod canonical_basis_source_inventory;
 mod canonical_basis_source_registry;
 mod canonical_basis_source_scan;
@@ -47,6 +57,10 @@ mod chunk_integrity_without_blob_lifecycle_tests;
 mod cross_family_wrong_scope_tests;
 #[cfg(test)]
 mod derived_index_damage_tests;
+#[cfg(test)]
+mod digest_authority_denial_tests;
+#[cfg(test)]
+mod digest_authority_equivalence_tests;
 mod dirty_publication_evidence;
 #[cfg(test)]
 mod dirty_publication_evidence_test_support;
@@ -69,6 +83,10 @@ mod harness;
 #[cfg(test)]
 mod harness_tests;
 mod header_decode_evidence;
+#[cfg(test)]
+mod hostile_readmission_json_fixture_boundary_tests;
+#[cfg(test)]
+mod json_fixture_boundary_tests;
 mod lanes;
 mod large_store_pressure_evidence;
 #[cfg(test)]
@@ -150,6 +168,8 @@ mod pre_decode_physical_admission_test_support;
 mod pre_decode_physical_admission_tests;
 mod protected_integrity_view_evidence;
 #[cfg(test)]
+mod public_facade_dependency_tests;
+#[cfg(test)]
 mod quarantine_sealing_tests;
 mod record_view_evidence;
 #[cfg(test)]
@@ -166,6 +186,9 @@ mod runtime_verifier_comparison;
 mod runtime_verifier_comparison_tests;
 mod runtime_verifier_diagnostics;
 mod runtime_verifier_support;
+#[cfg(test)]
+mod s0_handoff_contract_tests;
+mod s0_handoff_gate_evidence;
 mod s2_acceptance_suite_transcript;
 mod s2_entry_boundary_evidence;
 mod s3_readiness_handoff;
@@ -198,6 +221,8 @@ mod store_json_residue_tests;
 mod story_transcript;
 mod synthetic_closeout_rejection;
 #[cfg(test)]
+mod terminal_projection_json_fixture_boundary_tests;
+#[cfg(test)]
 mod wal_frame_integrity_tests;
 
 pub use allocation_envelope_evidence::{
@@ -228,6 +253,7 @@ pub use buffer_pool_scenario_definitions::{
 pub use buffer_pool_scenario_plans::{BufferPoolScenarioPlan, BufferPoolScenarioPlanDenial};
 pub use buffer_pool_transcripts::BufferPoolPressureTranscriptIdentity;
 pub use canonical_basis_source_inventory::{
+    certify_scanned_store_canonical_basis_source_inventory,
     certify_store_canonical_basis_source_inventory, certify_store_canonical_basis_source_rows,
     current_store_canonical_basis_inventory, StoreCanonicalBasisInventoryDenial,
     StoreCanonicalBasisInventoryRow,
@@ -366,6 +392,9 @@ pub use runtime_verifier_diagnostics::{
     RuntimeVerifierDiagnosticDenial, RuntimeVerifierDiagnosticKind, RuntimeVerifierDiagnosticReport,
 };
 pub use runtime_verifier_support::{RuntimeVerifierSupportDenial, RuntimeVerifierSupportReport};
+pub use s0_handoff_gate_evidence::{
+    certify_s0_handoff_gate_proof_evidence, S0HandoffGateCertificationDenial,
+};
 pub use s2_acceptance_suite_transcript::S2AcceptanceSuiteKind;
 pub use s2_entry_boundary_evidence::{
     S2EntryBoundaryEvidenceDenial, S2EntryBoundaryEvidenceReport, S2EntryBoundaryEvidenceRow,

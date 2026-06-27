@@ -1,5 +1,6 @@
 use crate::{S4IntegrityHandoffDenial, S4IntegrityHandoffDenialKind};
 use forge_foundational::{FoundationalBoundaryArtifactCategory, FoundationalBoundaryArtifactRole};
+use forge_store_aspect_native::StoreDigestEvidence;
 use forge_store_contracts::StableDigest;
 use forge_store_physical_format::PhysicalReferenceScope;
 use forge_store_physical_integrity::{
@@ -15,7 +16,7 @@ pub struct RecoveryIntegrityHandoffReceipt {
     outcome: IntegrityEvidenceOutcome,
     locality: IntegrityEvidenceLocality,
     counters: IntegrityEvidenceCounters,
-    physical_authority_basis: Option<StableDigest>,
+    physical_authority_basis: Option<StoreDigestEvidence>,
     receipt_evidence_basis: Option<StableDigest>,
 }
 
@@ -84,7 +85,7 @@ impl RecoveryIntegrityHandoffReceipt {
         self.counters
     }
 
-    pub fn physical_authority_basis(&self) -> Option<&StableDigest> {
+    pub fn physical_authority_basis(&self) -> Option<&StoreDigestEvidence> {
         self.physical_authority_basis.as_ref()
     }
 
@@ -116,9 +117,9 @@ impl RecoveryIntegrityHandoffReceipt {
 
     pub(crate) fn require_physical_authority_basis(
         &self,
-        basis: StableDigest,
+        basis: &StoreDigestEvidence,
     ) -> Result<(), S4IntegrityHandoffDenial> {
-        if self.physical_authority_basis.as_ref() == Some(&basis) {
+        if self.physical_authority_basis.as_ref() == Some(basis) {
             Ok(())
         } else {
             Err(S4IntegrityHandoffDenial::new(
@@ -168,7 +169,9 @@ impl RecoveryIntegrityHandoffReceipt {
     }
 }
 
-fn physical_authority_basis(evidence: &PhysicalIntegrityEvidenceBundle) -> Option<StableDigest> {
+fn physical_authority_basis(
+    evidence: &PhysicalIntegrityEvidenceBundle,
+) -> Option<StoreDigestEvidence> {
     match evidence.store_claim() {
         StoreIntegrityBoundaryClaim::PhysicalAuthority(claim) => Some(claim.basis().clone()),
         _ => None,

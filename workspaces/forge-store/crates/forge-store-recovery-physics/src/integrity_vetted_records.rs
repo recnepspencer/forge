@@ -1,13 +1,14 @@
 use crate::{RecoveryIntegrityHandoffReceipt, S4IntegrityHandoffDenial};
-use forge_store_contracts::StableDigest;
 use forge_store_physical_format::{
     PhysicalGenerationOwner, PhysicalReferenceScope, RootManifestIntegrityPosture,
 };
 use forge_store_physical_integrity::{
-    CheckpointRecordIntegrityReport, FrameIntegrityReport, IntegrityEvidenceCounters,
-    ManifestIntegrityCounters, ManifestIntegrityReport, PageIntegrityReport,
-    PhysicalBoundaryLocalization, SegmentManifestIntegrityReport, WalFrameIntegrityCounters,
-    WalFrameIntegrityInputIdentity, WalFrameIntegrityReport, WalTailIntegrityPosture,
+    checkpoint_authority_digest, frame_authority_digest, manifest_authority_digest,
+    page_authority_digest, wal_frame_authority_digest, CheckpointRecordIntegrityReport,
+    FrameIntegrityReport, IntegrityEvidenceCounters, ManifestIntegrityCounters,
+    ManifestIntegrityReport, PageIntegrityReport, PhysicalBoundaryLocalization,
+    SegmentManifestIntegrityReport, WalFrameIntegrityCounters, WalFrameIntegrityInputIdentity,
+    WalFrameIntegrityReport, WalTailIntegrityPosture,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,7 +26,8 @@ impl IntegrityVettedWalFrame {
     ) -> Result<Self, S4IntegrityHandoffDenial> {
         receipt.require_scope(report.basis().scope())?;
         receipt.require_counters(IntegrityEvidenceCounters::WalFrame(report.counters()))?;
-        receipt.require_physical_authority_basis(wal_authority_basis(report))?;
+        let expected = wal_frame_authority_digest(report).map_err(authority_basis_denial)?;
+        receipt.require_physical_authority_basis(&expected)?;
         Ok(Self {
             input_identity: report.input_identity(),
             tail_posture: report.tail_posture(),
@@ -66,7 +68,8 @@ impl IntegrityVettedCheckpointRecord {
     ) -> Result<Self, S4IntegrityHandoffDenial> {
         receipt.require_scope(report.basis().scope())?;
         receipt.require_counters(IntegrityEvidenceCounters::WalFrame(report.counters()))?;
-        receipt.require_physical_authority_basis(checkpoint_authority_basis(report))?;
+        let expected = checkpoint_authority_digest(report).map_err(authority_basis_denial)?;
+        receipt.require_physical_authority_basis(&expected)?;
         Ok(Self {
             input_identity: report.input_identity(),
             tail_posture: report.tail_posture(),
@@ -106,7 +109,8 @@ impl IntegrityVettedRootManifestRecord {
         receipt: RecoveryIntegrityHandoffReceipt,
     ) -> Result<Self, S4IntegrityHandoffDenial> {
         receipt.require_counters(IntegrityEvidenceCounters::Manifest(report.counters()))?;
-        receipt.require_physical_authority_basis(manifest_authority_basis(report))?;
+        let expected = manifest_authority_digest(report).map_err(authority_basis_denial)?;
+        receipt.require_physical_authority_basis(&expected)?;
         Ok(Self {
             posture: report.root().posture(),
             root_owner: report.root().root_owner(),
@@ -145,7 +149,8 @@ impl IntegrityVettedSegmentManifestRecord {
         receipt: RecoveryIntegrityHandoffReceipt,
     ) -> Result<Self, S4IntegrityHandoffDenial> {
         receipt.require_counters(IntegrityEvidenceCounters::Manifest(report.counters()))?;
-        receipt.require_physical_authority_basis(manifest_authority_basis(report))?;
+        let expected = manifest_authority_digest(report).map_err(authority_basis_denial)?;
+        receipt.require_physical_authority_basis(&expected)?;
         Ok(Self {
             segment: *report.segment(),
             counters: report.counters(),
@@ -188,7 +193,8 @@ impl IntegrityVettedPageFrameRecord {
     ) -> Result<Self, S4IntegrityHandoffDenial> {
         receipt.require_scope(report.basis().scope())?;
         receipt.require_counters(IntegrityEvidenceCounters::Container(report.counters()))?;
-        receipt.require_physical_authority_basis(page_authority_basis(report))?;
+        let expected = page_authority_digest(report).map_err(authority_basis_denial)?;
+        receipt.require_physical_authority_basis(&expected)?;
         Ok(Self {
             kind: IntegrityVettedPageFrameKind::Page,
             scope: report.basis().scope(),
@@ -204,7 +210,8 @@ impl IntegrityVettedPageFrameRecord {
     ) -> Result<Self, S4IntegrityHandoffDenial> {
         receipt.require_scope(report.basis().scope())?;
         receipt.require_counters(IntegrityEvidenceCounters::Container(report.counters()))?;
-        receipt.require_physical_authority_basis(frame_authority_basis(report))?;
+        let expected = frame_authority_digest(report).map_err(authority_basis_denial)?;
+        receipt.require_physical_authority_basis(&expected)?;
         Ok(Self {
             kind: IntegrityVettedPageFrameKind::Frame,
             scope: report.basis().scope(),
@@ -235,30 +242,8 @@ impl IntegrityVettedPageFrameRecord {
     }
 }
 
-fn page_authority_basis(report: &PageIntegrityReport) -> StableDigest {
-    digest(format!("authority:{:?}", report.basis()))
-}
-
-fn frame_authority_basis(report: &FrameIntegrityReport) -> StableDigest {
-    digest(format!("authority:{:?}", report.basis()))
-}
-
-fn wal_authority_basis(report: &WalFrameIntegrityReport) -> StableDigest {
-    digest(format!("wal-authority:{:?}", report.basis()))
-}
-
-fn checkpoint_authority_basis(report: &CheckpointRecordIntegrityReport) -> StableDigest {
-    digest(format!("checkpoint-authority:{:?}", report.basis()))
-}
-
-fn manifest_authority_basis(report: &ManifestIntegrityReport) -> StableDigest {
-    digest(format!(
-        "manifest-authority:{:?}:{:?}",
-        report.root(),
-        report.reference_basis()
-    ))
-}
-
-fn digest(value: impl Into<String>) -> StableDigest {
-    StableDigest::new(value).expect("S.4 vetted record authority basis is non-empty")
+fn authority_basis_denial(
+    _: forge_store_physical_integrity::PhysicalIntegrityEvidenceDenial,
+) -> S4IntegrityHandoffDenial {
+    S4IntegrityHandoffDenial::new(crate::S4IntegrityHandoffDenialKind::ReceiptBasisMismatch)
 }

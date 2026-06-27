@@ -24,8 +24,12 @@ forge-store-physical-certification.workspace = true
 forge-store-readiness.workspace = true
 forge-store-recovery-physics.workspace = true
 forge-store-replication.workspace = true
+forge-store-s0-reclassification.workspace = true
 forge-store-subscription-support.workspace = true
 forge-store-test-support.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+serde_json = "1"

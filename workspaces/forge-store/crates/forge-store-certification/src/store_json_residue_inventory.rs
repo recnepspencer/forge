@@ -81,6 +81,33 @@ fn classify_store_json_residue_occurrence(
             "allowed only as scanner vocabulary that denies JSON authority",
         );
     }
+    if is_exact_json_authority_denial_certification_home(occurrence.path()) {
+        return checked(
+            occurrence,
+            StoreJsonResidueZone::DedicatedWorkspaceCertificationEnforcement,
+            "forge-store aspect-native certification",
+            StoreJsonAuthorityRisk::CertificationScannerVocabulary,
+            "allowed only as denial vocabulary proving JSON cannot enter authority",
+        );
+    }
+    if is_exact_phase9_harness_json_certification_home(occurrence.path()) {
+        return checked(
+            occurrence,
+            StoreJsonResidueZone::DedicatedWorkspaceHostileReadmission,
+            "forge-store aspect-native harness certification",
+            StoreJsonAuthorityRisk::HostileReadmissionOnly,
+            "allowed only in Phase 9 terminal or hostile/readmission harness proof",
+        );
+    }
+    if is_exact_phase10_public_facade_certification_home(occurrence.path()) {
+        return checked(
+            occurrence,
+            StoreJsonResidueZone::DedicatedWorkspaceCertificationEnforcement,
+            "forge-store public facade certification",
+            StoreJsonAuthorityRisk::CertificationScannerVocabulary,
+            "allowed only as Phase 10 public facade dependency denial proof",
+        );
+    }
     if is_exact_terminal_projection_json_home(occurrence.path()) {
         return checked(
             occurrence,
@@ -116,6 +143,32 @@ fn is_exact_terminal_projection_json_home(path: &str) -> bool {
 fn is_exact_json_ingress_readmission_home(path: &str) -> bool {
     path
         == "workspaces/forge-store/crates/forge-store-aspect-native/src/json_ingress_readmission.rs"
+}
+
+fn is_exact_phase9_harness_json_certification_home(path: &str) -> bool {
+    matches!(
+        path,
+        "workspaces/forge-store/crates/forge-store-certification/Cargo.toml"
+            | "workspaces/forge-store/crates/forge-store-certification/src/hostile_readmission_json_fixture_boundary_tests.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/aspect_native_terminal_projection.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/aspect_native_terminal_projection_hostile_readmission.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/terminal_projection_quarantine_ui.rs"
+    )
+}
+
+fn is_exact_phase10_public_facade_certification_home(path: &str) -> bool {
+    matches!(
+        path,
+        "workspaces/forge-store/crates/forge-store-certification/src/public_facade_dependency_tests.rs"
+    )
+}
+
+fn is_exact_json_authority_denial_certification_home(path: &str) -> bool {
+    matches!(
+        path,
+        "workspaces/forge-store/crates/forge-store-certification/src/canonical_basis_entry_denial_tests.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/src/digest_authority_denial_tests.rs"
+    )
 }
 
 fn classify_legacy_root_crate_occurrence(

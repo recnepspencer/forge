@@ -92,6 +92,7 @@ mod evidence_fields_tests;
 mod foundational_adoption;
 mod foundational_lanes;
 mod proof_vocabulary;
+mod s0_handoff;
 mod s2_physical_substrate_proof;
 mod s2_physical_substrate_readiness;
 mod s2_readiness_denial;
@@ -113,6 +114,11 @@ pub use foundational_adoption::{
 };
 pub use foundational_lanes::FoundationalPublicLaneSet;
 pub use proof_vocabulary::{FoundationalAdoptionDigest, ProofVocabularyAdoptionMap};
+pub use s0_handoff::{
+    accept_s0_aspect_native_gate_handoff, reconstruct_s0_handoff_verdict_from_native_evidence,
+    reject_terminal_json_projection_as_s0_handoff, S0AspectNativeGateHandoff,
+    S0AspectNativeGateHandoffDenial, S0AspectNativeGateHandoffVerdict,
+};
 pub use s2_physical_substrate_proof::{
     close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
     S1PhysicalSubstrateCloseoutReceipt,

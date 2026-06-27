@@ -1,60 +1,32 @@
 Phase {phase.id}: {phase.title} has passed the required done-check loop.
 
-Now run the non-looping hardening sequence below. These passes can produce work,
-and you should implement the reasonable fixes they uncover, but do not force the
-runner to loop on test purity, directory polish, or aerospace-grade status. The
-only mandatory loop was whether the phase was actually done.
+This is the legacy bundled close turn. Prefer the segmented close-hardening
+prompt set when the state file includes these turns:
+
+- `close_qa`
+- `close_plan`
+- `close_fix`
+- `close_quality_qa`
+- `close_quality_plan`
+- `close_quality_fix`
+
+If those turns exist in this state, do not run QA, plan, and fixes in this same
+turn. Update only lightweight JSON state by moving this phase cursor to
+`close_qa`, then stop.
+
+If this state has not yet been migrated, run the smallest closeout verification
+needed to avoid losing progress, keep the phase `status: complete` and
+`qa_status: passed`, add only compact tracking markers, and advance to the next
+phase at `plan` or set `current: null` if this was the final phase.
 
 State file: {state_file}
 Spec file: {spec_file}
 Cursor: phase {current.phase}, turn {current.turn}
 
-Acceptance evidence (the closeout checklist; run focused proof now, and run
-broad closeout suites only when this phase explicitly names them):
+Acceptance evidence:
 {phase.acceptance}
 
-Run this sequence in chat:
-
-1. [$qa-tests](C:\Users\Esther\.codex\skills\qa-tests\SKILL.md) Do not code
-   yet. First, find everything weak or synthetic in our tests. Deliver me a
-   list. Then tell me which production surfaces are missing to support them
-   honestly so that we can make them completely real.
-2. Now lets create an in-chat plan to fix those issues. Make sure it is
-   principled and follows our arch laws and respects our current APIs.
-3. Now go implement that plan.
-4. [$code-quality-qa](C:\Users\Esther\.codex\skills\code-quality-qa\SKILL.md)
-   now lets double check our directories and file lengths.
-5. Now what is left before we can call this aerospace grade?
-6. Create another in-chat plan to implement that.
-7. Now go implement that plan.
-
-Important boundaries:
-
-Close only what is actually closed. The facade is the only surface: confirm the
-phase exposes its result through ordinary public APIs and that internal types,
-raw rows, and forgeable receipts cannot satisfy the contract from outside. API
-presence is not proof - a method that exists is not a method that proves
-anything. Where the phase claims a property, confirm the structure enforces it.
-
-Re-run the acceptance checks and record command, exit code, and output tail in
-`notes.verification`. Summarize the final proof, the explicit residue or query
-gaps that remain - named and owned per the debt law, not silently dropped - and
-the exact verification commands. Then set `status` and `qa_status` by the
-contract.
-
-- Do not claim aerospace-grade unless the evidence really supports it. It is OK
-  to say what remains.
-- Do not loop because tests are not perfect or because aerospace-grade remains
-  out of reach. Implement the principled, phase-relevant fixes that are
-  reasonable now, and record any larger remainder in chat.
-- Do not put logs, artifacts, command tails, long QA lists, or plans into the
-  JSON. The JSON is only progress tracking.
-
-When this close pass is complete, update only lightweight JSON state:
-
-- keep this phase `status: complete` and `qa_status: passed`
-- add at most short `notes.done` / `notes.remaining` markers
-- if a later phase exists, advance to that phase at turn `plan`
-- if this was the last phase, set `current` to null and set `completed_at`
+Do not put logs, artifacts, command tails, long QA lists, or plans into the
+JSON. The JSON is only progress tracking.
 
 {contract}

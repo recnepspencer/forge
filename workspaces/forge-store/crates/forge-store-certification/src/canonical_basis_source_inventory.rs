@@ -1,9 +1,11 @@
 use crate::canonical_basis_source_registry::STORE_CANONICAL_BASIS_FAMILY_REGISTRY;
+use crate::canonical_basis_source_scan::certify_scanned_store_canonical_basis_families_are_registered;
 use forge_store_aspect_native::{
     canonical_basis_source_owner_for_family, certify_canonical_basis_field_role,
     StoreCanonicalBasisFamily, StoreCanonicalBasisFieldRole, StoreCanonicalBasisSourceDenial,
     STORE_CANONICAL_BASIS_SOURCE_OWNERS,
 };
+use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StoreCanonicalBasisInventoryRow {
@@ -52,6 +54,10 @@ impl StoreCanonicalBasisInventoryRow {
     pub const fn classifying_subsystem(&self) -> &'static str {
         self.classifying_subsystem
     }
+
+    pub const fn family(&self) -> Option<StoreCanonicalBasisFamily> {
+        self.family
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -64,6 +70,10 @@ pub enum StoreCanonicalBasisInventoryDenial {
         family_name: &'static str,
         classifying_subsystem: &'static str,
     },
+    ScannedUnregisteredEvidenceFamily {
+        family_name: String,
+        classifying_subsystem: String,
+    },
     DuplicateSourceOwner(StoreCanonicalBasisFamily),
     ForbiddenCanonicalBasisField(StoreCanonicalBasisFieldRole),
 }
@@ -73,6 +83,18 @@ pub fn certify_store_canonical_basis_source_inventory(
     certify_store_canonical_basis_source_rows(&current_store_canonical_basis_inventory())?;
     certify_source_owner_map_has_no_duplicates()?;
     certify_forbidden_fields_are_not_basis_sources()
+}
+
+pub fn certify_scanned_store_canonical_basis_source_inventory(
+    workspace_root: &Path,
+    scope_roots: &[&str],
+) -> Result<(), StoreCanonicalBasisInventoryDenial> {
+    certify_store_canonical_basis_source_inventory()?;
+    certify_scanned_store_canonical_basis_families_are_registered(
+        workspace_root,
+        scope_roots,
+        STORE_CANONICAL_BASIS_FAMILY_REGISTRY,
+    )
 }
 
 pub fn current_store_canonical_basis_inventory() -> Vec<StoreCanonicalBasisInventoryRow> {

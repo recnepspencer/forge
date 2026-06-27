@@ -1,5 +1,6 @@
 use crate::ScrubPlan;
 use forge_foundational::{FoundationalBoundaryArtifactCategory, FoundationalBoundaryArtifactRole};
+use forge_store_aspect_native::StoreDigestEvidence;
 use forge_store_contracts::StableDigest;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,11 +81,25 @@ macro_rules! claim_type {
     };
 }
 
-claim_type!(StorePhysicalAuthorityBoundaryClaim);
 claim_type!(StoreDerivedProjectionBoundaryClaim);
 claim_type!(StoreSupportOnlyBoundaryClaim);
 claim_type!(StorePlannedWorkBoundaryClaim);
 claim_type!(StoreReceiptEvidenceBoundaryClaim);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StorePhysicalAuthorityBoundaryClaim {
+    basis: StoreDigestEvidence,
+}
+
+impl StorePhysicalAuthorityBoundaryClaim {
+    pub(crate) const fn new(basis: StoreDigestEvidence) -> Self {
+        Self { basis }
+    }
+
+    pub const fn basis(&self) -> &StoreDigestEvidence {
+        &self.basis
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StorePlannedWorkBoundaryKind {

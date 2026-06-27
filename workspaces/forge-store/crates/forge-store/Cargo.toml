@@ -7,6 +7,7 @@ description = "Thin public facade for the rebuilt Forge Store crate family."
 
 [dependencies]
 forge-store-analysis.workspace = true
+forge-store-aspect-native.workspace = true
 forge-store-authority.workspace = true
 forge-store-blob-chunks.workspace = true
 forge-store-branch-deltas.workspace = true
@@ -40,6 +41,10 @@ forge-store-snapshots.workspace = true
 forge-store-subscription-support.workspace = true
 forge-store-tiering.workspace = true
 forge-store-wal.workspace = true
+
+[dev-dependencies]
+forge-foundational = { path = "../../../../crates/forge-foundational" }
+forge-proof = { path = "../../../../crates/forge-proof" }
 
 [lints]
 workspace = true

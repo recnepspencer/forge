@@ -29,7 +29,13 @@
     "implement": "templates/implement.md",
     "review": "templates/review.md",
     "repair": "templates/repair.md",
-    "close": "templates/close.md"
+    "close": "templates/close.md",
+    "close_qa": "templates/close_qa.md",
+    "close_plan": "templates/close_plan.md",
+    "close_fix": "templates/close_fix.md",
+    "close_quality_qa": "templates/close_quality_qa.md",
+    "close_quality_plan": "templates/close_quality_plan.md",
+    "close_quality_fix": "templates/close_quality_fix.md"
   },
   "contract_template": "templates/_contract.md",
   "session": {

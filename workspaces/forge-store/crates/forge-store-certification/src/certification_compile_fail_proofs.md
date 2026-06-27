@@ -118,3 +118,228 @@ let _ = PhysicalIntegrityEvidenceAuthority::store_local().materialize(
     PhysicalIntegrityEvidenceProfile::full(),
 );
 ```
+
+Raw JSON cannot satisfy page-header native Store canonical basis construction:
+
+```compile_fail
+use forge_store_aspect_native::{
+    StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily,
+};
+
+let raw = serde_json::Value::Null;
+let _ = StoreCanonicalBasisConstruction::for_family(
+    StoreCanonicalBasisFamily::PhysicalPageHeader,
+)
+.with_page_header_witness(raw);
+```
+
+Raw JSON cannot satisfy aspect-boundary native Store canonical basis construction:
+
+```compile_fail
+use forge_store_aspect_native::{
+    StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily,
+};
+
+let raw = serde_json::Value::Null;
+let _ = StoreCanonicalBasisConstruction::for_family(
+    StoreCanonicalBasisFamily::AspectBoundaryFact,
+)
+.with_aspect_boundary_fact(raw);
+```
+
+Raw JSON cannot satisfy aspect-patch native Store canonical basis construction:
+
+```compile_fail
+use forge_store_aspect_native::{
+    StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily,
+};
+
+let raw = serde_json::Value::Null;
+let _ = StoreCanonicalBasisConstruction::for_family(
+    StoreCanonicalBasisFamily::AspectPatchBoundaryFact,
+)
+.with_aspect_patch_boundary_fact(raw);
+```
+
+String text cannot satisfy page-header native Store canonical basis construction:
+
+```compile_fail
+use forge_store_aspect_native::{
+    StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily,
+};
+
+let text = String::from("store.physical.page.header");
+let _ = StoreCanonicalBasisConstruction::for_family(
+    StoreCanonicalBasisFamily::PhysicalPageHeader,
+)
+.with_page_header_witness(text);
+```
+
+String text cannot satisfy aspect-boundary native Store canonical basis construction:
+
+```compile_fail
+use forge_store_aspect_native::{
+    StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily,
+};
+
+let text = String::from("store.aspect.boundary.fact");
+let _ = StoreCanonicalBasisConstruction::for_family(
+    StoreCanonicalBasisFamily::AspectBoundaryFact,
+)
+.with_aspect_boundary_fact(text);
+```
+
+String text cannot satisfy aspect-patch native Store canonical basis construction:
+
+```compile_fail
+use forge_store_aspect_native::{
+    StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily,
+};
+
+let text = String::from("store.aspect.patch.boundary.fact");
+let _ = StoreCanonicalBasisConstruction::for_family(
+    StoreCanonicalBasisFamily::AspectPatchBoundaryFact,
+)
+.with_aspect_patch_boundary_fact(text);
+```
+
+Terminal projection text cannot satisfy page-header native Store canonical basis construction:
+
+```compile_fail
+use forge_store_aspect_native::{
+    StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily, StoreTerminalProjectionText,
+};
+
+let text: StoreTerminalProjectionText = todo!();
+let _ = StoreCanonicalBasisConstruction::for_family(
+    StoreCanonicalBasisFamily::PhysicalPageHeader,
+)
+.with_page_header_witness(text);
+```
+
+Terminal projection text cannot satisfy aspect-boundary native Store canonical basis construction:
+
+```compile_fail
+use forge_store_aspect_native::{
+    StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily, StoreTerminalProjectionText,
+};
+
+let text: StoreTerminalProjectionText = todo!();
+let _ = StoreCanonicalBasisConstruction::for_family(
+    StoreCanonicalBasisFamily::AspectBoundaryFact,
+)
+.with_aspect_boundary_fact(text);
+```
+
+Terminal projection text cannot satisfy aspect-patch native Store canonical basis construction:
+
+```compile_fail
+use forge_store_aspect_native::{
+    StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily, StoreTerminalProjectionText,
+};
+
+let text: StoreTerminalProjectionText = todo!();
+let _ = StoreCanonicalBasisConstruction::for_family(
+    StoreCanonicalBasisFamily::AspectPatchBoundaryFact,
+)
+.with_aspect_patch_boundary_fact(text);
+```
+
+Generic Serialize inputs cannot satisfy page-header native Store canonical basis construction:
+
+```compile_fail
+use forge_store_aspect_native::{
+    StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily,
+};
+
+fn try_generic_serialize<T: serde::Serialize>(value: T) {
+    let _ = StoreCanonicalBasisConstruction::for_family(
+        StoreCanonicalBasisFamily::PhysicalPageHeader,
+    )
+    .with_page_header_witness(value);
+}
+```
+
+Generic Serialize inputs cannot satisfy aspect-boundary native Store canonical basis construction:
+
+```compile_fail
+use forge_store_aspect_native::{
+    StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily,
+};
+
+fn try_generic_serialize<T: serde::Serialize>(value: T) {
+    let _ = StoreCanonicalBasisConstruction::for_family(
+        StoreCanonicalBasisFamily::AspectBoundaryFact,
+    )
+    .with_aspect_boundary_fact(value);
+}
+```
+
+Generic Serialize inputs cannot satisfy aspect-patch native Store canonical basis construction:
+
+```compile_fail
+use forge_store_aspect_native::{
+    StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily,
+};
+
+fn try_generic_serialize<T: serde::Serialize>(value: T) {
+    let _ = StoreCanonicalBasisConstruction::for_family(
+        StoreCanonicalBasisFamily::AspectPatchBoundaryFact,
+    )
+    .with_aspect_patch_boundary_fact(value);
+}
+```
+
+Digest strings cannot construct Store aspect identity authority:
+
+```compile_fail
+use forge_store_aspect_native::StoreAspectIdentity;
+
+let digest_text = String::from("sha256:aspect-identity");
+let _identity = StoreAspectIdentity::from_digest_text(digest_text);
+```
+
+Digest strings cannot construct Store recovery source authority:
+
+```compile_fail
+use forge_store_recovery_physics::PhysicalRecoverySource;
+
+let digest_text = String::from("sha256:recovery-source");
+let _source = PhysicalRecoverySource::from_digest_text(digest_text);
+```
+
+Digest strings cannot construct Store checkpoint authority:
+
+```compile_fail
+use forge_store_recovery_physics::CheckpointValidityDecision;
+
+let digest_text = String::from("sha256:checkpoint");
+let _checkpoint = CheckpointValidityDecision::from_digest_text(digest_text);
+```
+
+Digest strings cannot construct Store page authority:
+
+```compile_fail
+use forge_store_physical_format::PhysicalPageId;
+
+let digest_text = String::from("sha256:page");
+let _page = PhysicalPageId::from_digest_text(digest_text);
+```
+
+Digest strings cannot construct Store WAL authority:
+
+```compile_fail
+use forge_store_physical_integrity::WalFrameIntegrityAuthority;
+
+let digest_text = String::from("sha256:wal");
+let _wal = WalFrameIntegrityAuthority::from_digest_text(digest_text);
+```
+
+Digest strings cannot construct Store certification authority:
+
+```compile_fail
+use forge_store_certification::StoreCertificationProgram;
+
+let digest_text = String::from("sha256:certification");
+let _program = StoreCertificationProgram::from_digest_text(digest_text);
+```

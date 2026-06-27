@@ -1,10 +1,7 @@
 {
   "schema_version": 1,
-  "state_revision": 62,
-  "current": {
-    "phase": 4,
-    "turn": "repair"
-  },
+  "state_revision": 229,
+  "current": null,
   "project": {
     "name": "Forge Store Aspect-Native Workspace Gate",
     "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/forge",
@@ -195,21 +192,36 @@
       ],
       "instructions": "Implement only Phase 4. Build the source-role map before any digest cleanup. Keep source manifests, page headers, physical witnesses, recovery receipts, performance reports, and S.* handoffs distinct even when they share Foundational basis vocabulary.",
       "qa_focus": "Do not create one generic canonical basis helper for all Store facts. Do not leave any evidence family ownerless. Do not select projection fields as basis sources.",
-      "status": "regressed",
-      "qa_status": "failed",
+      "status": "complete",
+      "qa_status": "passed",
       "attempts": 0,
       "notes": {
         "plan": [
           "Plan posted in chat; canonical basis source ownership map next."
         ],
         "done": [
-          "Implemented canonical-basis source owner map and focused certification checks."
+          "Implemented canonical-basis source owner map and focused certification checks.",
+          "Repaired source ownership certification to scan real scoped family surfaces.",
+          "Scanner now covers pub(crate) evidence families and missed integrity rows.",
+          "Scanner now includes authority-evidence family names and focused assertion.",
+          "Scanner now covers recovery source/input family names.",
+          "Scanner now covers denial-evidence family names.",
+          "Close hardening promoted scanner to production certification API."
         ],
-        "remaining": [],
+        "remaining": [
+          "Whole gate remains open for phases 5-11."
+        ],
         "findings": [
-          "Certification inventory is self-referential and misses real evidence families."
+          "Certification inventory is self-referential and misses real evidence families.",
+          "Scanner misses pub(crate) production evidence families.",
+          "Scanner still excludes authority evidence family names.",
+          "Scanner excludes recovery source/input family names.",
+          "Scanner excludes denial-evidence family names."
         ],
-        "verification": []
+        "verification": [
+          "Focused canonical-basis source tests and certification check passed.",
+          "Phase 4 phase-done QA passed."
+        ]
       }
     },
     {
@@ -230,15 +242,29 @@
       ],
       "instructions": "Implement only Phase 5. Build native basis entry constructors from Foundational aspect material and Store physical witnesses. This phase produces typed canonical material; it does not own final digest authority.",
       "qa_focus": "Do not accept T: Serialize, raw strings, or terminal projection text in native basis constructors. Do not let semantic values stand in for physical byte-survival witnesses.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "attempts": 0,
       "notes": {
-        "plan": [],
-        "done": [],
+        "plan": [
+          "Plan posted in chat; native canonical entry construction next."
+        ],
+        "done": [
+          "Implemented native canonical basis constructors and focused Phase 5 proofs.",
+          "Repaired aspect and patch basis constructors to include Store physical witnesses.",
+          "Repaired source-role canonical entry kinds.",
+          "Phase 5 close hardening completed."
+        ],
         "remaining": [],
-        "findings": [],
-        "verification": []
+        "findings": [
+          "Phase 8 authority/readmission gaps remain."
+        ],
+        "verification": [
+          "Focused aspect-native/certification checks, Phase 5 tests, and doctests passed.",
+          "Phase 5 repair checks passed.",
+          "Phase 5 source-role kind repair checks passed.",
+          "Phase 5 qa-loop passed."
+        ]
       }
     },
     {
@@ -261,15 +287,32 @@
       ],
       "instructions": "Implement only Phase 6. Make every Store digest and equivalence claim name the native canonical basis that justifies it. Digest evidence carries source role and equivalence basis identity; digest text remains evidence/projection, not authority.",
       "qa_focus": "Do not leave serde_json digest helpers or generic Serialize digest APIs alive. Do not let digest text become identity authority. Do not allow basis-free equivalence.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "attempts": 0,
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "Plan posted in chat; digest authority and equivalence contracts next."
+        ],
+        "done": [
+          "Implemented typed Store digest authority and equivalence basis proofs.",
+          "Repair bound digest/equivalence authority to Store native basis domains.",
+          "Repair replaced physical-integrity authority digest strings with typed Store native digest evidence.",
+          "Repaired physical authority basis projection text into typed native tokens.",
+          "Phase 6 close hardening strengthened digest authority tests."
+        ],
+        "remaining": [
+          "Whole gate continues with phase 7."
+        ],
+        "findings": [
+          "Phase 8 authority/readmission gaps remain."
+        ],
+        "verification": [
+          "Focused aspect-native/certification checks, digest authority tests, and doctests passed.",
+          "Focused physical-integrity, recovery, certification checks and Phase 6 tests passed.",
+          "Focused Phase 6 repair checks and digest authority tests passed.",
+          "Phase 6 phase-done QA passed."
+        ]
       }
     },
     {
@@ -289,15 +332,30 @@
       ],
       "instructions": "Implement only Phase 7. Separate terminal projection checksums from Store digest authority. Projection parity proves quarantine and readmission behavior, not JSON authority equivalence.",
       "qa_focus": "Do not let terminal document checksums satisfy authority digest slots. Do not let projection round trips bypass readmission or native basis reconstruction.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "attempts": 0,
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "Plan posted in chat; terminal projection digest/checksum separation next."
+        ],
+        "done": [
+          "Implemented terminal checksum separation and readmission digest proofs.",
+          "Repaired display-label and native-basis proof gaps.",
+          "Phase 7 close hardening added hostile labelled-readmission proof and display module split."
+        ],
+        "remaining": [
+          "Whole gate continues with phase 8."
+        ],
+        "findings": [
+          "Phase 8 authority/readmission gaps remain."
+        ],
+        "verification": [
+          "Focused phase 7 checks passed.",
+          "Focused phase 7 repair checks passed.",
+          "Phase 7 phase-done QA passed.",
+          "Phase 7 close hardening checks passed."
+        ]
       }
     },
     {
@@ -318,15 +376,29 @@
       ],
       "instructions": "Implement only Phase 8. Split current authority, external tokens, derived evidence, retained evidence, and terminal projection text into distinct types with owner-controlled constructors and readmission denials.",
       "qa_focus": "Do not reconstruct authority from display, path, digest, filename, or external token text. Do not collapse retained evidence and current authority because their representation is identical.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "attempts": 0,
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
+        "plan": [
+          "Plan posted in chat; authority/projection/readmission type split next."
+        ],
+        "done": [
+          "Implemented authority/projection/readmission type split.",
+          "Repaired Phase 8 stale/readmission and authority-record gaps.",
+          "Added unsupported readmission denial path and proof.",
+          "Close hardening strengthened readmission outcome and compile-fail proof."
+        ],
+        "remaining": [
+          "Whole gate continues with phase 9."
+        ],
         "findings": [],
-        "verification": []
+        "verification": [
+          "Focused phase 8 checks passed.",
+          "Focused Phase 8 repair checks passed.",
+          "Focused Phase 8 unsupported-denial repair checks passed.",
+          "Phase 8 phase-done QA passed."
+        ]
       }
     },
     {
@@ -346,15 +418,28 @@
       ],
       "instructions": "Implement only Phase 9. Make ordinary Store harness author native aspects and physical witnesses directly. JSON remains allowed only for terminal projection and hostile/readmission tests that name the boundary.",
       "qa_focus": "Do not let shared harness preludes export json! or serde_json::Value. Do not hide JSON lowering inside native fixture builders. Do not treat golden JSON snapshots as authority proof.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "attempts": 0,
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
+        "plan": [
+          "Plan posted in chat; authority/projection/readmission type split next.",
+          "Plan posted in chat; native harness authoring and JSON fixture quarantine next."
+        ],
+        "done": [
+          "Implemented authority/projection/readmission type split.",
+          "Implemented native harness fixtures and JSON boundary certification.",
+          "JSON fixture payload access now requires suite witnesses.",
+          "JSON suite admission now uses caller boundary context.",
+          "Phase 9 close hardening strengthened public-facade compile-fail proof."
+        ],
+        "remaining": [
+          "Gate continues with phase 10."
+        ],
         "findings": [],
-        "verification": []
+        "verification": [
+          "Phase 9 done-check passed."
+        ]
       }
     },
     {
@@ -374,15 +459,30 @@
       ],
       "instructions": "Implement only Phase 10. Make the aspect-native boundary the ordinary public Store workspace lane. Localize any required serde_json dependency to the smallest terminal projection or ingress module.",
       "qa_focus": "Do not export internal JSON helpers through the facade. Do not leave serde_json as a broad workspace dependency by convenience. Do not expose generic serde authority helpers.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "attempts": 0,
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "Plan posted in chat; public facade and dependency enforcement next."
+        ],
+        "done": [
+          "Implemented public native facade and dependency enforcement proof.",
+          "Added named certification facade capability.",
+          "Close-pass test hardening completed.",
+          "No phase-relevant structural remainder found."
+        ],
+        "remaining": [
+          "Broader gate closeout remains outside Phase 10."
+        ],
+        "findings": [
+          "Missing named public certification facade capability."
+        ],
+        "verification": [
+          "Focused facade, downstream, and residue checks passed.",
+          "Repair focused checks passed.",
+          "Phase-done QA passed for public facade dependency enforcement."
+        ]
       }
     },
     {
@@ -403,564 +503,818 @@
       ],
       "instructions": "Implement only Phase 11. Produce the typed gate output that S0 must consume. The handoff must include negative proof for terminal JSON, unclassified residue, raw string identity, generic serde authority, and non-native digest basis.",
       "qa_focus": "Do not close on markdown, logs, terminal JSON, or symbolic readiness. Do not let S0 consume stale residue inventory instead of current scan evidence. Do not claim whole Roadmap 2 physical behavior.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "attempts": 0,
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
+        "plan": [
+          "Plan posted in chat; authority/projection/readmission type split next.",
+          "Plan posted in chat; typed S0 handoff contract next."
+        ],
+        "done": [
+          "Implemented authority/projection/readmission type split.",
+          "Implemented typed native S0 handoff contract.",
+          "Repaired S0 handoff current proof evidence.",
+          "Sealed S0 handoff gate proof evidence against count forgery.",
+          "Phase 11 close hardening complete.",
+          "S0 handoff tests strengthened."
+        ],
+        "remaining": [
+          "Lower S0 harness proof still source-scan based; certification facade performs typed harness proof."
+        ],
         "findings": [],
-        "verification": []
+        "verification": [
+          "Focused S0 handoff tests and package checks passed.",
+          "Runner state validation passed.",
+          "Focused S0 handoff tests, doctest boundary, no-run target, and package checks passed.",
+          "Phase 11 done-check passed."
+        ]
       }
     }
   ],
   "history": [
     {
-      "at": "2026-06-26T18:33:31.549900+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 1 plan",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T18:36:16.7222158Z",
-      "event": "phase_1_plan_posted",
-      "detail": "cursor advanced to implement",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T18:36:24.045870+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 1 plan",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T18:36:54.055373+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 1 implement",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T18:42:42.5430978Z",
-      "event": "phase_1_implementation_complete",
-      "detail": "cursor advanced to review",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T18:42:55.342606+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 1 implement",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T18:43:25.354383+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 1 review",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T18:46:45.0378632Z",
-      "event": "phase_1_review_failed",
-      "detail": "cursor advanced to repair",
-      "exit_code": 1
-    },
-    {
-      "at": "2026-06-26T18:46:54.383888+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 1 review",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T18:47:24.386713+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 1 repair",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T18:49:28.1682497Z",
-      "event": "phase_1_repair_complete",
-      "detail": "cursor advanced to review",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T18:49:36.491154+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 1 repair",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T18:50:06.502993+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 1 review",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T18:51:47.8051357Z",
-      "event": "phase_1_review_failed",
-      "detail": "cursor advanced to repair",
-      "exit_code": 1
-    },
-    {
-      "at": "2026-06-26T18:52:03.802350+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 1 review",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T18:52:33.811940+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 1 repair",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T18:55:50.0961286Z",
-      "event": "phase_1_repair_complete",
-      "detail": "cursor advanced to review",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T18:56:09.013670+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 1 repair",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T18:56:39.028048+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 1 review",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T18:58:49.8824200Z",
-      "event": "phase_1_review_passed",
-      "detail": "cursor advanced to close",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T18:59:14.136226+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 1 review",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T18:59:44.147062+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 1 close",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T19:01:04.771109+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 1 close",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:01:34.783648+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 1 close",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T19:04:19.7511936Z",
-      "event": "phase_1_close_complete",
-      "detail": "cursor advanced to phase 2 plan",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:04:41.200705+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 1 close",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:05:11.211592+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 2 plan",
-      "exit_code": null
-    },
-    {
-      "timestamp": "2026-06-26T19:09:27.5687454Z",
-      "phase": 2,
-      "turn": "plan",
-      "event": "phase_2_plan_posted",
-      "detail": "cursor advanced to implement"
-    },
-    {
-      "at": "2026-06-26T19:09:40.229445+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 2 plan",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:10:10.233717+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 2 implement",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T19:19:16.0338004Z",
-      "phase": 2,
-      "turn": "implement",
-      "event": "phase_2_implemented",
-      "note": "advanced to review"
-    },
-    {
-      "at": "2026-06-26T19:19:26.430791+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 2 implement",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:19:56.441657+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 2 review",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T19:21:43.9794830Z",
-      "phase": 2,
-      "turn": "review",
-      "event": "phase_2_review_failed",
-      "note": "identity and witness authority gaps"
-    },
-    {
-      "at": "2026-06-26T19:22:01.988252+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 2 review",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:22:31.997766+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 2 repair",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T19:25:47.1294614Z",
-      "phase": 2,
-      "turn": "repair",
-      "event": "phase_2_repaired",
-      "note": "advanced to review"
-    },
-    {
-      "at": "2026-06-26T19:26:00.978659+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 2 repair",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:26:30.993563+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 2 review",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T19:27:31.2125073Z",
-      "phase": 2,
-      "turn": "review",
-      "event": "phase_2_review_failed",
-      "note": "extra state keys under singular boundary fact"
-    },
-    {
-      "at": "2026-06-26T19:27:43.423441+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 2 review",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:28:13.434541+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 2 repair",
-      "exit_code": null
-    },
-    {
-      "at": "2026-06-26T19:30:14.0015766Z",
-      "phase": 2,
-      "turn": "repair",
-      "event": "phase_2_repaired",
-      "note": "advanced to review"
-    },
-    {
-      "at": "2026-06-26T19:30:22.493302+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 2 repair",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:30:52.504517+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 2 review",
-      "exit_code": null
-    },
-    {
-      "phase": 2,
-      "turn": "review",
-      "status": "regressed",
-      "note": "Generic diagnostic evidence admits raw payloads.",
-      "at": "2026-06-26T19:33:37.8468915Z"
-    },
-    {
-      "at": "2026-06-26T19:33:49.418235+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 2 review",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:34:19.427934+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 2 repair",
-      "exit_code": null
-    },
-    {
-      "phase": 2,
-      "turn": "repair",
-      "status": "complete",
-      "note": "Diagnostic evidence repair ready for review.",
-      "at": "2026-06-26T19:39:44.7993747Z"
-    },
-    {
-      "at": "2026-06-26T19:39:53.675927+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 2 repair",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:40:23.680246+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 2 review",
-      "exit_code": null
-    },
-    {
-      "phase": 2,
-      "turn": "review",
-      "status": "complete",
-      "qa_status": "passed",
-      "note": "phase-done QA passed",
-      "at": "2026-06-26T13:43:56.6208706-06:00"
-    },
-    {
-      "at": "2026-06-26T19:44:11.227220+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 2 review",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:44:41.238105+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 2 close",
-      "exit_code": null
-    },
-    {
-      "phase": 2,
-      "turn": "close",
-      "status": "complete",
-      "qa_status": "passed",
-      "note": "Phase 2 close hardening completed.",
-      "at": "2026-06-26T13:52:11.3701216-06:00"
-    },
-    {
-      "at": "2026-06-26T19:53:50.595943+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 2 close",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:54:20.611199+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 3 plan",
-      "exit_code": null
-    },
-    {
-      "phase": 3,
-      "turn": "plan",
-      "status": "in_progress",
-      "qa_status": "not_started",
-      "note": "Phase 3 plan posted.",
-      "at": "2026-06-26T19:56:21.985Z"
-    },
-    {
-      "at": "2026-06-26T19:56:36.337225+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 3 plan",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T19:57:06.351315+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 3 implement",
-      "exit_code": null
-    },
-    {
-      "phase": 3,
-      "turn": "implement",
-      "status": "complete",
-      "qa_status": "needed",
-      "note": "Phase 3 implementation ready for review.",
-      "at": "2026-06-26T20:10:02.624Z"
-    },
-    {
-      "at": "2026-06-26T20:10:25.376503+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 3 implement",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T20:10:55.385927+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 3 review",
-      "exit_code": null
-    },
-    {
-      "phase": 3,
+      "at": "2026-06-26T22:35:35.665Z",
+      "phase": 6,
       "turn": "review",
       "status": "regressed",
       "qa_status": "failed",
-      "note": "Terminal projection exposes raw JSON Value, allowing non-Store readmission bypass.",
-      "at": "2026-06-26T20:12:41.859Z"
+      "note": "phase 6 qa-loop found projection text inside physical authority basis"
     },
     {
-      "at": "2026-06-26T20:12:52.136730+00:00",
+      "at": "2026-06-26T22:35:52.342567+00:00",
       "event": "codex_turn_completed",
-      "detail": "phase 3 review",
+      "detail": "phase 6 review",
       "exit_code": 0
     },
     {
-      "at": "2026-06-26T20:13:22.148138+00:00",
+      "at": "2026-06-26T22:36:22.358104+00:00",
       "event": "runner_prompt_selected",
-      "detail": "phase 3 repair",
+      "detail": "phase 6 repair",
       "exit_code": null
     },
     {
-      "phase": 3,
+      "at": "2026-06-26T22:42:51.192Z",
+      "phase": 6,
       "turn": "repair",
-      "status": "complete",
-      "qa_status": "needed",
-      "note": "Terminal projection raw JSON escape repaired.",
-      "at": "2026-06-26T20:15:42.142Z"
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "phase 6 projection-text authority repair ready for review"
     },
     {
-      "at": "2026-06-26T20:15:52.996288+00:00",
+      "at": "2026-06-26T22:43:30.884383+00:00",
       "event": "codex_turn_completed",
-      "detail": "phase 3 repair",
+      "detail": "phase 6 repair",
       "exit_code": 0
     },
     {
-      "at": "2026-06-26T20:16:23.007956+00:00",
+      "at": "2026-06-26T22:44:00.899227+00:00",
       "event": "runner_prompt_selected",
-      "detail": "phase 3 review",
+      "detail": "phase 6 review",
       "exit_code": null
     },
     {
-      "phase": 3,
+      "at": "2026-06-26T22:48:36.9608194Z",
+      "phase": 6,
       "turn": "review",
       "status": "complete",
       "qa_status": "passed",
-      "note": "Phase 3 phase-done QA passed.",
-      "at": "2026-06-26T20:19:51.380Z"
+      "note": "Phase 6 phase-done QA passed."
     },
     {
-      "at": "2026-06-26T20:20:08.241859+00:00",
+      "at": "2026-06-26T22:48:59.539505+00:00",
       "event": "codex_turn_completed",
-      "detail": "phase 3 review",
+      "detail": "phase 6 review",
       "exit_code": 0
     },
     {
-      "at": "2026-06-26T20:20:38.254273+00:00",
+      "at": "2026-06-26T22:49:29.556482+00:00",
       "event": "runner_prompt_selected",
-      "detail": "phase 3 close",
+      "detail": "phase 6 close",
       "exit_code": null
     },
     {
-      "phase": 3,
+      "at": "2026-06-26T22:55:34.3847827Z",
+      "phase": 6,
       "turn": "close",
       "status": "complete",
       "qa_status": "passed",
-      "note": "Phase 3 close hardening completed.",
-      "at": "2026-06-26T20:29:06.536Z"
+      "note": "Phase 6 close hardening complete; advance to phase 7 plan."
     },
     {
-      "at": "2026-06-26T20:29:25.678354+00:00",
+      "at": "2026-06-26T22:55:56.988329+00:00",
       "event": "codex_turn_completed",
-      "detail": "phase 3 close",
+      "detail": "phase 6 close",
       "exit_code": 0
     },
     {
-      "at": "2026-06-26T20:29:55.694741+00:00",
+      "at": "2026-06-26T22:56:27.001715+00:00",
       "event": "runner_prompt_selected",
-      "detail": "phase 4 plan",
+      "detail": "phase 7 plan",
       "exit_code": null
     },
     {
-      "at": "2026-06-26T20:33:03.989261+00:00",
-      "event": "codex_turn_completed",
-      "detail": "phase 4 plan",
-      "exit_code": 0
-    },
-    {
-      "at": "2026-06-26T20:33:34.006542+00:00",
-      "event": "runner_prompt_selected",
-      "detail": "phase 4 plan",
-      "exit_code": null
-    },
-    {
-      "phase": 4,
+      "at": "2026-06-26T22:58:23.2480752Z",
+      "phase": 7,
       "turn": "plan",
-      "status": "in_progress",
-      "qa_status": "not_started",
-      "note": "Plan posted in chat; canonical basis source ownership map next.",
-      "at": "2026-06-26T20:33:50.301Z"
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "Phase 7 plan posted; advance to implement."
     },
     {
-      "at": "2026-06-26T20:34:19.218054+00:00",
+      "at": "2026-06-26T22:58:59.332523+00:00",
       "event": "codex_turn_completed",
-      "detail": "phase 4 plan",
+      "detail": "phase 7 plan",
       "exit_code": 0
     },
     {
-      "at": "2026-06-26T20:34:49.231255+00:00",
+      "at": "2026-06-26T22:59:29.348862+00:00",
       "event": "runner_prompt_selected",
-      "detail": "phase 4 implement",
+      "detail": "phase 7 implement",
       "exit_code": null
     },
     {
-      "phase": 4,
+      "at": "2026-06-26T17:06:51.9451370-06:00",
+      "phase": 7,
       "turn": "implement",
-      "status": "complete",
-      "qa_status": "needed",
-      "note": "Implemented canonical-basis source owner map and focused certification checks.",
-      "at": "2026-06-26T20:39:25.324Z"
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "Phase 7 implementation ready for review."
     },
     {
-      "at": "2026-06-26T20:39:42.807359+00:00",
+      "at": "2026-06-26T23:07:33.008739+00:00",
       "event": "codex_turn_completed",
-      "detail": "phase 4 implement",
+      "detail": "phase 7 implement",
       "exit_code": 0
     },
     {
-      "at": "2026-06-26T20:40:12.812753+00:00",
+      "at": "2026-06-26T23:08:03.018333+00:00",
       "event": "runner_prompt_selected",
-      "detail": "phase 4 review",
+      "detail": "phase 7 review",
       "exit_code": null
     },
     {
-      "phase": 4,
+      "at": "2026-06-26T17:10:02.2150594-06:00",
+      "phase": 7,
       "turn": "review",
       "status": "regressed",
       "qa_status": "failed",
-      "note": "Certification inventory is self-referential and misses real evidence families.",
-      "at": "2026-06-26T20:41:16.484Z"
+      "note": "Display-label and native-basis proof gaps remain."
     },
     {
-      "at": "2026-06-26T20:41:31.843571+00:00",
+      "at": "2026-06-26T23:11:25.515979+00:00",
       "event": "codex_turn_completed",
-      "detail": "phase 4 review",
+      "detail": "phase 7 review",
       "exit_code": 0
     },
     {
-      "at": "2026-06-26T20:42:01.856564+00:00",
+      "at": "2026-06-26T23:11:55.531672+00:00",
       "event": "runner_prompt_selected",
-      "detail": "phase 4 repair",
+      "detail": "phase 7 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T17:14:45.9940769-06:00",
+      "phase": 7,
+      "turn": "repair",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "Phase 7 repair ready for review."
+    },
+    {
+      "at": "2026-06-26T23:15:25.591912+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:15:55.606431+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:19:33.771956+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:20:03.782694+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 close",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:24:49.503873+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 close",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:25:19.513268+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:27:58.362240+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:28:28.383824+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:35:18.750488+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:35:48.761154+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:37:39.293461+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:38:09.305174+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:42:56.8519205Z",
+      "phase": 8,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "Phase 8 repair ready for review."
+    },
+    {
+      "at": "2026-06-26T23:43:20.472750+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:43:50.490148+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:45:40.7495818Z",
+      "phase": 8,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "Unsupported readmission denial path is only an unused variant."
+    },
+    {
+      "at": "2026-06-26T23:45:54.030344+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:46:24.040893+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:47:50.7279721Z",
+      "phase": 8,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "Unsupported readmission denial repair ready for review."
+    },
+    {
+      "at": "2026-06-26T23:48:05.391149+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:48:35.401155+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:49:52.8476944Z",
+      "phase": 8,
+      "turn": "review",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "Phase 8 phase-done QA passed."
+    },
+    {
+      "at": "2026-06-26T23:50:08.033329+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:50:38.045747+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 close",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:58:23.8664569Z",
+      "phase": 8,
+      "turn": "close",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "Phase 8 close hardening complete; advanced to phase 9 plan."
+    },
+    {
+      "at": "2026-06-26T23:58:59.493533+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 close",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:59:29.503784+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 9 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T00:01:14.1964446Z",
+      "phase": 9,
+      "turn": "plan",
+      "status": "in_progress",
+      "qa_status": "needed",
+      "note": "Phase 9 implementation plan posted; advanced to implement."
+    },
+    {
+      "at": "2026-06-27T00:01:20.129036+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 9 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T00:01:50.138595+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 9 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T00:11:30.0953992Z",
+      "phase": 9,
+      "turn": "implement",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "Phase 9 implementation ready for review."
+    },
+    {
+      "at": "2026-06-27T00:11:49.455347+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 9 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T00:12:19.464732+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 9 review",
+      "exit_code": null
+    },
+    {
+      "phase": 9,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "JSON fixture payload access is not suite-witness gated.",
+      "at": "2026-06-26T18:14:47.5044529-06:00"
+    },
+    {
+      "at": "2026-06-27T00:15:01.894843+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 9 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T00:15:31.904304+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 9 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 9,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "JSON fixture payload access now requires suite witnesses.",
+      "at": "2026-06-26T18:18:59.1081934-06:00"
+    },
+    {
+      "at": "2026-06-27T00:19:09.328485+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 9 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T00:19:39.331399+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 9 review",
+      "exit_code": null
+    },
+    {
+      "phase": 9,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "JSON suite witness can still be minted by public enum selection.",
+      "at": "2026-06-26T18:21:10.9647425-06:00"
+    },
+    {
+      "at": "2026-06-27T00:21:23.167924+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 9 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T00:21:53.183106+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 9 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 9,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "JSON suite admission now uses caller boundary context.",
+      "at": "2026-06-26T18:29:04.1322685-06:00"
+    },
+    {
+      "at": "2026-06-27T00:29:17.962752+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 9 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T00:29:47.973175+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 9 review",
+      "exit_code": null
+    },
+    {
+      "phase": 9,
+      "turn": "review",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "Phase 9 done-check passed."
+    },
+    {
+      "at": "2026-06-27T00:33:33.391024+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 9 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T00:34:03.400680+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 9 close",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T00:34:09.304910+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 9 close",
+      "exit_code": 1
+    },
+    {
+      "at": "2026-06-27T00:34:09.315923+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "RunnerFailure: codex exited with 1: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T00:34:15.320709+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 1
+    },
+    {
+      "at": "2026-06-27T01:47:48.509439+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 9 close",
+      "exit_code": null
+    },
+    {
+      "phase": 9,
+      "turn": "recovery",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "Recovery validation passed; state file valid."
+    },
+    {
+      "phase": 9,
+      "turn": "close",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "Phase 9 close hardening complete; advanced to phase 10 plan."
+    },
+    {
+      "at": "2026-06-27T01:54:23.128370+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 9 close",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T01:54:53.140732+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 plan",
+      "exit_code": null
+    },
+    {
+      "phase": 10,
+      "turn": "plan",
+      "status": "in_progress",
+      "qa_status": "not_started",
+      "note": "Phase 10 implementation plan posted; advanced to implement."
+    },
+    {
+      "at": "2026-06-27T01:57:44.084408+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T01:58:14.102834+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 implement",
+      "exit_code": null
+    },
+    {
+      "phase": 10,
+      "turn": "implement",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "phase 10 implementation ready for review",
+      "at": "2026-06-27T02:05:34.818807+00:00"
+    },
+    {
+      "at": "2026-06-27T02:05:53.860732+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T02:06:23.871127+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T02:08:39.624348+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T02:09:09.635530+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T02:10:34.435263+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T02:11:04.447633+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T02:12:10.319843+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T02:12:40.325470+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 close",
+      "exit_code": null
+    },
+    {
+      "phase": 10,
+      "turn": "close",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "phase 10 close-pass hardening complete",
+      "at": "2026-06-27T02:14:55.759699+00:00"
+    },
+    {
+      "at": "2026-06-27T02:15:04.043240+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 close",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T02:15:34.052122+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T02:16:49.409181+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T02:17:19.420742+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 plan",
+      "exit_code": null
+    },
+    {
+      "phase": 11,
+      "turn": "plan",
+      "status": "in_progress",
+      "qa_status": "not_started",
+      "note": "phase 11 implementation plan posted",
+      "at": "2026-06-27T02:17:40.533043+00:00"
+    },
+    {
+      "at": "2026-06-27T02:17:46.515282+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T02:18:16.524616+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T02:25:57.491823+00:00",
+      "phase": 11,
+      "turn": "implement",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "Phase 11 implementation ready for review."
+    },
+    {
+      "at": "2026-06-27T02:26:15.854048+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T02:26:45.864862+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T02:28:05.203326+00:00",
+      "phase": 11,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "Phase 11 done-check found missing typed current proof evidence."
+    },
+    {
+      "at": "2026-06-27T02:28:23.375544+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T02:28:53.386834+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T02:39:30.949534+00:00",
+      "phase": 11,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "Phase 11 repair returned to review."
+    },
+    {
+      "at": "2026-06-27T02:39:49.768401+00:00",
+      "phase": 11,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "Runner state validation passed."
+    },
+    {
+      "at": "2026-06-27T02:40:07.051748+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T02:40:37.062863+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T02:42:12.121645+00:00",
+      "phase": 11,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "S0 gate proof evidence can be forged from public count constructors."
+    },
+    {
+      "at": "2026-06-27T02:42:31.359959+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T02:43:01.364274+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T02:51:54.146048+00:00",
+      "phase": 11,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "Sealed S0 handoff proof evidence and returned to review."
+    },
+    {
+      "at": "2026-06-27T02:52:11.193187+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T02:52:41.204104+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T02:56:50.188831+00:00",
+      "phase": 11,
+      "turn": "review",
+      "event": "qa_passed",
+      "note": "Phase 11 done-check passed; cursor advanced to close."
+    },
+    {
+      "at": "2026-06-27T02:56:58.569920+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T02:57:28.580263+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 close",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T03:01:48.928132+00:00",
+      "phase": 11,
+      "turn": "close",
+      "event": "phase_closed",
+      "note": "Phase 11 close hardening complete; gate phase list exhausted."
+    },
+    {
+      "at": "2026-06-27T03:02:00.605883+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 close",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T03:02:30.617904+00:00",
+      "event": "runner_stop",
+      "detail": "all phases are complete",
       "exit_code": null
     }
-  ]
+  ],
+  "completed_at": "2026-06-27T03:01:48.928132+00:00"
 }

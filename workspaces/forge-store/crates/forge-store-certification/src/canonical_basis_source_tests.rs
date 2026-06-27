@@ -1,4 +1,7 @@
 use crate::{
+    canonical_basis_source_registry::STORE_CANONICAL_BASIS_FAMILY_REGISTRY,
+    canonical_basis_source_scan::scan_store_canonical_basis_family_surfaces,
+    certify_scanned_store_canonical_basis_source_inventory,
     certify_store_canonical_basis_source_inventory, certify_store_canonical_basis_source_rows,
     current_store_canonical_basis_inventory, StoreCanonicalBasisInventoryDenial,
     StoreCanonicalBasisInventoryRow,
@@ -15,9 +18,10 @@ fn current_store_evidence_families_have_canonical_basis_source_owners() {
         .expect("all current Store families must have source owners");
 
     let inventory = current_store_canonical_basis_inventory();
-    assert_eq!(inventory.len(), StoreCanonicalBasisFamily::ALL.len());
+    assert_eq!(inventory.len(), STORE_CANONICAL_BASIS_FAMILY_REGISTRY.len());
 
-    for family in StoreCanonicalBasisFamily::ALL {
+    for row in inventory {
+        let family = row.family().expect("registered rows carry owner family");
         let owner = canonical_basis_source_owner_for_family(family)
             .expect("family must have a source owner");
         assert!(!owner.owner_crate().is_empty());
@@ -26,10 +30,60 @@ fn current_store_evidence_families_have_canonical_basis_source_owners() {
 }
 
 #[test]
+fn source_map_covers_scanned_store_workspace_family_surfaces() {
+    let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(|crates_dir| crates_dir.parent())
+        .and_then(|workspace_dir| workspace_dir.parent())
+        .and_then(|forge_root| forge_root.parent())
+        .expect("manifest path should be inside forge workspace");
+    let scope_roots = [
+        "workspaces/forge-store/crates/forge-store-aspect-native/src",
+        "workspaces/forge-store/crates/forge-store-certification/src",
+        "workspaces/forge-store/crates/forge-store-readiness/src",
+        "workspaces/forge-store/crates/forge-store-physical-format/src",
+        "workspaces/forge-store/crates/forge-store-physical-integrity/src",
+        "workspaces/forge-store/crates/forge-store-recovery-physics/src",
+        "workspaces/forge-store/crates/forge-store-wal/src",
+    ];
+    let scanned = scan_store_canonical_basis_family_surfaces(workspace_root, &scope_roots);
+
+    assert!(scanned.iter().any(|family| {
+        family.family_name() == "DerivedIndexAuthorityEvidence"
+            && family.source_path()
+                == "workspaces/forge-store/crates/forge-store-physical-integrity/src/index_page_integrity_request.rs"
+    }));
+    assert!(scanned.iter().any(|family| {
+        family.family_name() == "S3ExecutedBoundaryDenialEvidence"
+            && family.source_path()
+                == "workspaces/forge-store/crates/forge-store-certification/src/physical_integrity_closeout_proof.rs"
+    }));
+    assert!(scanned.iter().any(|family| {
+        family.family_name() == "PhysicalRecoverySource"
+            && family.source_path()
+                == "workspaces/forge-store/crates/forge-store-recovery-physics/src/lib.rs"
+    }));
+    assert!(scanned.iter().any(|family| {
+        family.family_name() == "RecoveryBlockingIntegritySource"
+            && family.source_path()
+                == "workspaces/forge-store/crates/forge-store-recovery-physics/src/recovery_blocking_integrity.rs"
+    }));
+    assert!(scanned.iter().any(|family| {
+        family.family_name() == "RecoveryPhysicsIntegrityInput"
+            && family.source_path()
+                == "workspaces/forge-store/crates/forge-store-recovery-physics/src/integrity_input.rs"
+    }));
+
+    certify_scanned_store_canonical_basis_source_inventory(workspace_root, &scope_roots)
+        .expect("source owner registry must cover every scanned Store family surface");
+}
+
+#[test]
 fn unclassified_store_evidence_family_fails_with_classifying_subsystem() {
     let denial = certify_store_canonical_basis_source_rows(&[
         StoreCanonicalBasisInventoryRow::unclassified(
             "new recovery receipt family",
+            "workspaces/forge-store/crates/forge-store-recovery-physics/src/new_receipt.rs",
             "forge-store-recovery-physics",
         ),
     ])

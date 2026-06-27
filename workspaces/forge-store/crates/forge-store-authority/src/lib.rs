@@ -1,38 +1,37 @@
 #![forbid(unsafe_code)]
 
 mod aspect_native_authority;
+mod authority_readmission;
+mod canonical_authority_record;
+mod current_authority;
+mod derived_authority_evidence;
+mod external_authority_token;
+mod retained_authority_evidence;
 
-pub use aspect_native_authority::AspectNativeAuthorityRecord;
-
-use forge_store_aspect_native::StoreAspectBoundaryFact;
-use forge_store_contracts::{DurableArtifactClass, StableArtifactId};
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CanonicalAuthorityRecord {
-    artifact_id: StableArtifactId,
-    artifact_class: DurableArtifactClass,
-}
-
-impl CanonicalAuthorityRecord {
-    pub fn new(artifact_id: StableArtifactId) -> Self {
-        Self {
-            artifact_id,
-            artifact_class: DurableArtifactClass::Authoritative,
-        }
-    }
-
-    pub fn artifact_id(&self) -> &StableArtifactId {
-        &self.artifact_id
-    }
-
-    pub const fn artifact_class(&self) -> DurableArtifactClass {
-        self.artifact_class
-    }
-}
-
-pub fn admit_aspect_native_authority_record(
-    artifact_id: StableArtifactId,
-    boundary_fact: StoreAspectBoundaryFact,
-) -> AspectNativeAuthorityRecord {
-    AspectNativeAuthorityRecord::new(artifact_id, boundary_fact)
-}
+pub use aspect_native_authority::{
+    admit_aspect_native_authority_record, AspectNativeAuthorityRecord,
+};
+pub use authority_readmission::{
+    deny_lower_authority_source_as_current_authority,
+    deny_lower_authority_source_readmission_as_current_authority,
+    deny_unsupported_authority_source_as_current_authority,
+    deny_unsupported_authority_source_readmission_as_current_authority,
+    readmit_external_store_authority_token, readmit_retained_store_authority_evidence,
+    StoreAuthorityReadmissionDenial, StoreAuthorityReadmissionOutcome, StoreLowerAuthoritySource,
+};
+pub use canonical_authority_record::CanonicalAuthorityRecord;
+pub use current_authority::{
+    require_current_physical_authority, require_current_store_authority,
+    StoreCurrentAuthorityWitness, StoreCurrentPhysicalAuthorityWitness,
+};
+pub use derived_authority_evidence::{
+    report_derived_store_authority_evidence, StoreDerivedAuthorityEvidence,
+    StoreDerivedAuthorityEvidenceRole,
+};
+pub use external_authority_token::{
+    StoreAuthorityFilename, StoreExternalAuthorityToken, StoreExternalAuthorityTokenFreshness,
+};
+pub use retained_authority_evidence::{
+    compare_retained_store_authority_evidence, report_retained_store_authority_evidence,
+    StoreRetainedAuthorityEvidence, StoreRetainedAuthorityEvidenceComparison,
+};

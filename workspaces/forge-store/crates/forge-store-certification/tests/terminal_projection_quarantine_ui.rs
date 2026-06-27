@@ -37,6 +37,10 @@ fn terminal_projection_quarantine_fixtures() -> &'static [CompileFailFixture] {
             expected_stderr: "associated function `from_terminal_projection_document` is private",
         },
         CompileFailFixture {
+            fixture_name: "terminal_json_document_checksum_cannot_satisfy_digest_authority.rs",
+            expected_stderr: "found `StoreTerminalDocumentChecksum`",
+        },
+        CompileFailFixture {
             fixture_name: "terminal_projection_text_cannot_satisfy_identity.rs",
             expected_stderr: "expected `StoreAspectIdentity`",
         },
