@@ -2,6 +2,9 @@
 pub enum PhysicalScenarioObserverKind {
     CounterBundle,
     DenialBoundary,
+    AllocationEnvelope,
+    Materialization,
+    ResidentBudget,
     RuntimeLayout,
     OfflineVerifier,
     StorageBoundary,
@@ -14,6 +17,9 @@ impl PhysicalScenarioObserverKind {
         match self {
             Self::CounterBundle => "counter_bundle",
             Self::DenialBoundary => "denial_boundary",
+            Self::AllocationEnvelope => "allocation_envelope",
+            Self::Materialization => "materialization",
+            Self::ResidentBudget => "resident_budget",
             Self::RuntimeLayout => "runtime_layout",
             Self::OfflineVerifier => "offline_verifier",
             Self::StorageBoundary => "storage_boundary",

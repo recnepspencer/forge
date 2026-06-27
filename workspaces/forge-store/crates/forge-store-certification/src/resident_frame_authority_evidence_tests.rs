@@ -1,0 +1,245 @@
+use crate::{ResidentFrameAuthorityEvidenceReport, ResidentFrameAuthorityEvidenceRow};
+use forge_store_buffer_pool::{
+    BufferPoolBudget, DirtyPageBudget, PinnedPageBudget, ResidentFrameDenial,
+    ResidentFrameLoadRequest, ResidentFrameShortcutAttempt, ResidentFrameTable,
+    ResidentFrameTableCapacity, ResidentMemoryBudget, S2PhysicalResidencyEntry,
+};
+use forge_store_contracts::{
+    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
+};
+use forge_store_physical_format::{
+    PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
+    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalPublicationState,
+    PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalReferenceValidationWitness,
+    PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
+};
+use forge_store_readiness::{
+    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
+};
+
+#[test]
+fn resident_frame_authority_evidence_uses_executed_table_counters() {
+    let mut table = resident_frame_table();
+    let first = table
+        .admit_frame(load_request(7, 2, payload_len_for_frame_size(4096)))
+        .unwrap();
+    let second = table
+        .admit_frame(load_request(7, 2, payload_len_for_frame_size(4096)))
+        .unwrap();
+
+    for row in ResidentFrameAuthorityEvidenceRow::s2_phase_two_table_rows() {
+        let report = ResidentFrameAuthorityEvidenceReport::from_table(*row, &table).unwrap();
+
+        assert_eq!(report.row(), *row);
+        assert_eq!(report.counters().resident_bytes().as_bytes(), 4096);
+        assert_eq!(report.counters().hit_count(), 1);
+        assert_eq!(report.counters().miss_count(), 1);
+    }
+    assert_eq!(first.resident_frame_token(), second.resident_frame_token());
+}
+
+#[test]
+fn resident_generation_separation_evidence_observes_slot_reuse() {
+    let mut table = resident_frame_table();
+    let first = table
+        .admit_frame(load_request(7, 2, payload_len_for_frame_size(4096)))
+        .unwrap();
+    let proof = table
+        .reuse_frame_slot_with_generation_separation(
+            first.slot(),
+            load_request(8, 3, payload_len_for_frame_size(4096)),
+        )
+        .unwrap();
+    let report = ResidentFrameAuthorityEvidenceReport::from_generation_separation(proof);
+
+    assert_ne!(
+        proof.previous_identity().generation(),
+        proof.replacement_identity().generation()
+    );
+    assert_eq!(proof.stale_token(), first.resident_frame_token());
+    assert_eq!(
+        report.row(),
+        ResidentFrameAuthorityEvidenceRow::ResidentGenerationDomainSeparated
+    );
+    assert_eq!(report.counters().miss_count(), 2);
+    assert_eq!(report.counters().frame_table_lookup_count(), 3);
+}
+
+#[test]
+fn forbidden_residency_proofs_are_certified_as_denials() {
+    for attempt in ResidentFrameShortcutAttempt::s2_phase_two_forbidden_attempts() {
+        let denial = ResidentFrameDenial::from_shortcut_attempt(*attempt);
+        let report =
+            ResidentFrameAuthorityEvidenceReport::from_forbidden_denial(*attempt, denial).unwrap();
+
+        assert_eq!(
+            report.row(),
+            ResidentFrameAuthorityEvidenceRow::ForbiddenResidencyProofRejected(*attempt)
+        );
+    }
+}
+
+#[test]
+fn forbidden_residency_evidence_rejects_mismatched_denial() {
+    let denial = ResidentFrameDenial::from_shortcut_attempt(
+        ResidentFrameShortcutAttempt::SemanticObjectPresence,
+    );
+    let rejected = ResidentFrameAuthorityEvidenceReport::from_forbidden_denial(
+        ResidentFrameShortcutAttempt::BackendPrivateResidue,
+        denial,
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        rejected,
+        crate::ResidentFrameAuthorityEvidenceDenial::ForbiddenDenialMismatch
+    );
+}
+
+#[test]
+fn forbidden_shortcut_row_cannot_be_reported_from_table_counters() {
+    let table = resident_frame_table();
+    let denial = ResidentFrameAuthorityEvidenceReport::from_table(
+        ResidentFrameAuthorityEvidenceRow::ForbiddenResidencyProofRejected(
+            ResidentFrameShortcutAttempt::BackendPrivateResidue,
+        ),
+        &table,
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        denial,
+        crate::ResidentFrameAuthorityEvidenceDenial::WrongEvidenceRow
+    );
+}
+
+#[test]
+fn generation_separation_row_requires_executed_table_proof() {
+    let table = resident_frame_table();
+    let denial = ResidentFrameAuthorityEvidenceReport::from_table(
+        ResidentFrameAuthorityEvidenceRow::ResidentGenerationDomainSeparated,
+        &table,
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        denial,
+        crate::ResidentFrameAuthorityEvidenceDenial::WrongEvidenceRow
+    );
+}
+
+fn resident_frame_table() -> ResidentFrameTable {
+    let readiness = prove_s2_physical_substrate_readiness(
+        close_s1_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+    )
+    .unwrap();
+    let budget = BufferPoolBudget::declare(
+        ResidentMemoryBudget::bytes(8192).unwrap(),
+        PinnedPageBudget::pages(4).unwrap(),
+        DirtyPageBudget::pages(2).unwrap(),
+    );
+    let admitted = S2PhysicalResidencyEntry::from_s1_readiness(readiness)
+        .unwrap()
+        .with_budget(budget)
+        .admit()
+        .unwrap();
+    ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(2).unwrap())
+}
+
+fn load_request(
+    generation_value: u64,
+    page_value: u64,
+    payload_len: usize,
+) -> ResidentFrameLoadRequest {
+    ResidentFrameLoadRequest::from_s1_physical_frame(
+        validated_slot_reference(generation_value, page_value),
+        frame_header_witness(generation_value, page_value, payload_len),
+    )
+    .unwrap()
+}
+
+fn validated_slot_reference(
+    generation_value: u64,
+    page_value: u64,
+) -> PhysicalReferenceValidationWitness {
+    let generations = PhysicalGenerationAuthority::s1();
+    let references = PhysicalReferenceAuthority::s1();
+    let cell = generations
+        .slot_cell(segment(1), page(page_value), slot(3))
+        .with_slot_generation(generation(generation_value));
+    let admitted = references.admit_page_slot(cell);
+    references.validate_page_slot(admitted, cell).unwrap()
+}
+
+fn frame_header_witness(
+    generation_value: u64,
+    page_value: u64,
+    payload_len: usize,
+) -> forge_store_physical_format::PhysicalHeaderDecodeWitness {
+    header_authority()
+        .decode_frame_header(
+            validated_slot_reference(generation_value, page_value),
+            &header_bytes(generation_value, payload_len),
+            PhysicalFrameKind::RecordFrame,
+        )
+        .unwrap()
+        .witness()
+}
+
+fn header_authority() -> PhysicalHeaderAuthority {
+    PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+}
+
+fn header_bytes(generation_value: u64, payload_len: usize) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload_len);
+    bytes.push(PhysicalFrameKind::RecordFrame.tag());
+    bytes.extend_from_slice(&1u16.to_le_bytes());
+    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
+    bytes.extend_from_slice(&(payload_len as u32).to_le_bytes());
+    bytes.extend_from_slice(&generation_value.to_le_bytes());
+    bytes.push(PhysicalPublicationState::Published.code());
+    bytes.extend_from_slice(&0u32.to_le_bytes());
+    bytes.extend_from_slice(&0u64.to_le_bytes());
+    bytes.resize(PHYSICAL_HEADER_LENGTH as usize + payload_len, 0xAB);
+    bytes
+}
+
+fn payload_len_for_frame_size(frame_size: u64) -> usize {
+    (frame_size - PHYSICAL_HEADER_LENGTH as u64) as usize
+}
+
+fn accepted_s1_readiness() -> AcceptedHandoffReadiness {
+    AcceptedHandoffReadiness::from_s0_artifacts(
+        ROADMAP_2_S1_SCOPE,
+        HandoffEvidenceDigestSet::new(
+            digest("backend"),
+            digest("deferred"),
+            digest("harness"),
+            digest("terms"),
+            digest("audit"),
+            digest("complexity"),
+            digest("provenance"),
+        ),
+    )
+    .unwrap()
+}
+
+fn digest(name: &str) -> StableDigest {
+    StableDigest::new(format!("sha256:{name}")).unwrap()
+}
+
+fn segment(value: u64) -> PhysicalSegmentId {
+    PhysicalSegmentId::from_raw(value).unwrap()
+}
+
+fn page(value: u64) -> PhysicalPageId {
+    PhysicalPageId::from_raw(value).unwrap()
+}
+
+fn slot(value: u16) -> PhysicalRecordSlot {
+    PhysicalRecordSlot::from_raw(value).unwrap()
+}
+
+fn generation(value: u64) -> PhysicalGeneration {
+    PhysicalGeneration::from_raw(value).unwrap()
+}

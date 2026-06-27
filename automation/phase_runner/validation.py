@@ -57,7 +57,7 @@ def validate_state(state: dict[str, Any], state_path: Path) -> list[str]:
 
     templates = state.get("turn_templates", {})
     if isinstance(templates, dict):
-        for key in ("plan", "implement", "review", "repair", "close"):
+        for key in ("plan", "implement", "review", "repair"):
             value = templates.get(key)
             if not isinstance(value, str) or not value:
                 errors.append(f"turn_templates.{key} must name a template file")
@@ -65,6 +65,13 @@ def validate_state(state: dict[str, Any], state_path: Path) -> list[str]:
                 template_path = resolve_config_path(state_path, value)
                 if not template_path.exists():
                     errors.append(f"template not found for {key}: {template_path}")
+        for key, value in templates.items():
+            if not isinstance(value, str) or not value:
+                errors.append(f"turn_templates.{key} must name a template file")
+                continue
+            template_path = resolve_config_path(state_path, value)
+            if not template_path.exists():
+                errors.append(f"template not found for {key}: {template_path}")
 
     contract_template = state.get("contract_template") or "templates/_contract.md"
     contract_path = resolve_config_path(state_path, contract_template)

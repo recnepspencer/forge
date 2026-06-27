@@ -6,8 +6,6 @@ license.workspace = true
 description = "Roadmap 1 admission control and resource budget contracts."
 
 [dependencies]
-forge-store-blob-chunks.workspace = true
-forge-store-buffer-pool.workspace = true
 forge-store-contracts.workspace = true
 forge-store-io-scheduler.workspace = true
 

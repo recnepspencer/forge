@@ -1,6 +1,11 @@
 #![forbid(unsafe_code)]
 
+mod large_record_streaming_envelope;
+
 use forge_store_contracts::StableDigest;
+pub use large_record_streaming_envelope::{
+    LargeRecordStreamingEnvelope, LargeRecordStreamingEnvelopeDenial,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobChunkIdentity {
