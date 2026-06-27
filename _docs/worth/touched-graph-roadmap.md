@@ -892,6 +892,9 @@ This milestone is too narrow if:
 
 ## Milestone 13: Aspect-Routed Conflict, Independence, And Batch Admission
 
+Spec:
+[touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.md](./touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.md)
+
 Freeze aspects as a first-class routing axis for post-lookup concurrency so
 conflict, independence, and batch admission reason over the same graph meaning
 language rather than entity-only overlap heuristics.
