@@ -16,6 +16,11 @@ pub enum PhysicalProofOracleKind {
     ShortcutCertificationRejected,
     TranscriptPreservesEvidence,
     VerifierRuntimeLayoutParity,
+    S3DamagedBytesDenyBeforeLogicalDecode,
+    S3DamageLocalizesToPhysicalBoundary,
+    S3SyntheticShortcutRejected,
+    S3RecoveryHandoffContainsOnlyIntegrityEvidence,
+    S3LineCapCompositionChecked,
 }
 
 impl PhysicalProofOracleKind {
@@ -31,6 +36,15 @@ impl PhysicalProofOracleKind {
             Self::ShortcutCertificationRejected => "shortcut_certification_rejected",
             Self::TranscriptPreservesEvidence => "transcript_preserves_evidence",
             Self::VerifierRuntimeLayoutParity => "verifier_runtime_layout_parity",
+            Self::S3DamagedBytesDenyBeforeLogicalDecode => {
+                "s3_damaged_bytes_deny_before_logical_decode"
+            }
+            Self::S3DamageLocalizesToPhysicalBoundary => "s3_damage_localizes_to_physical_boundary",
+            Self::S3SyntheticShortcutRejected => "s3_synthetic_shortcut_rejected",
+            Self::S3RecoveryHandoffContainsOnlyIntegrityEvidence => {
+                "s3_recovery_handoff_contains_only_integrity_evidence"
+            }
+            Self::S3LineCapCompositionChecked => "s3_line_cap_composition_checked",
         }
     }
 }
@@ -133,6 +147,15 @@ fn judge_oracle(
         PhysicalProofOracleKind::TranscriptPreservesEvidence => judge_transcript_evidence(trace),
         PhysicalProofOracleKind::VerifierRuntimeLayoutParity => {
             judge_runtime_verifier_parity(trace)
+        }
+        PhysicalProofOracleKind::S3DamagedBytesDenyBeforeLogicalDecode => {
+            judge_s3_damaged_bytes_deny_before_logical_decode(trace)
+        }
+        PhysicalProofOracleKind::S3DamageLocalizesToPhysicalBoundary
+        | PhysicalProofOracleKind::S3RecoveryHandoffContainsOnlyIntegrityEvidence
+        | PhysicalProofOracleKind::S3LineCapCompositionChecked => judge_transcript_evidence(trace),
+        PhysicalProofOracleKind::S3SyntheticShortcutRejected => {
+            judge_shortcut_certification_rejected(trace)
         }
     }
 }
@@ -289,4 +312,24 @@ fn judge_runtime_verifier_parity(trace: &ObservedPhysicalTrace) -> PhysicalOracl
     } else {
         PhysicalOracleOutcome::Denied(PhysicalOracleDenialKind::MissingRuntimeVerifierParity)
     }
+}
+
+fn judge_s3_damaged_bytes_deny_before_logical_decode(
+    trace: &ObservedPhysicalTrace,
+) -> PhysicalOracleOutcome {
+    if trace
+        .counter_trace()
+        .observed_value(PhysicalCounterExpectationKind::LogicalDecodeBeforeHeaderValidation)
+        != Some(0)
+    {
+        return PhysicalOracleOutcome::Denied(PhysicalOracleDenialKind::CounterMismatch(
+            PhysicalCounterExpectationKind::LogicalDecodeBeforeHeaderValidation,
+        ));
+    }
+    if trace.denial_trace().observed_denials().is_empty()
+        && trace.shortcut_trace().forbidden_shortcuts().is_empty()
+    {
+        return PhysicalOracleOutcome::Denied(PhysicalOracleDenialKind::MissingTranscriptEvidence);
+    }
+    PhysicalOracleOutcome::Satisfied
 }

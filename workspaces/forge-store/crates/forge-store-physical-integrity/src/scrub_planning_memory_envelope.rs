@@ -27,6 +27,14 @@ impl ScrubPlanningMemoryEnvelope {
         self.envelope.allocation_scope()
     }
 
+    pub const fn allocation_bytes(self) -> u64 {
+        self.envelope.allocation_bytes()
+    }
+
+    pub const fn pinned_pages(self) -> u32 {
+        self.envelope.pinned_pages()
+    }
+
     pub const fn counters(self) -> BackgroundEnvelopeCounterSnapshot {
         self.envelope.counters()
     }

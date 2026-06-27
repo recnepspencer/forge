@@ -1,0 +1,21 @@
+error[E0599]: no function or associated item named `offset_page` found for struct `WorthUiVisibleRange` in the current scope
+ --> tests/ui/runtime_authority/fail/visible_range_offset_pagination_constructor_missing.rs:4:39
+  |
+4 |     let _range = WorthUiVisibleRange::offset_page(2, 100);
+  |                                       ^^^^^^^^^^^ function or associated item not found in `WorthUiVisibleRange`
+  |
+note: if you're trying to build a new `WorthUiVisibleRange` consider using one of the following associated functions:
+      WorthUiVisibleRange::rows
+      WorthUiVisibleRange::grid
+ --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/virtualized_data_lane/visible_range.rs
+  |
+  |       pub fn rows(start_row: u32, row_count: u32) -> Result<Self, WorthUiVisibleRangeDenial> {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  | /     pub fn grid(
+  | |         start_row: u32,
+  | |         row_count: u32,
+  | |         start_column: u32,
+  | |         column_count: u32,
+  | |     ) -> Result<Self, WorthUiVisibleRangeDenial> {
+  | |________________________________________________^

@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/runtime_measurement/fail/uncertified_counter_packet_cannot_lower_to_foundational.rs:16:70
+   |
+16 |     let _ = WorthUiFoundationalCounterBridge::lower_certified_packet(&packet);
+   |             -------------------------------------------------------- ^^^^^^^ expected `&WorthUiCertifiedMeasurementPacket`, found `&WorthUiMeasurementCounterPacket`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected reference `&WorthUiCertifiedMeasurementPacket`
+              found reference `&WorthUiMeasurementCounterPacket`
+note: associated function defined here
+  --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/measurement/foundational_bridge.rs
+   |
+   |     pub fn lower_certified_packet(
+   |            ^^^^^^^^^^^^^^^^^^^^^^

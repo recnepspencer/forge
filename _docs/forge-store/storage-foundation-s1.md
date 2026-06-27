@@ -213,6 +213,12 @@ legacy backend can still present itself as platform-grade, S.1 is not closed.
   attachments, but it may not define page bytes, frame headers, slot
   directories, allocation rules, manifest authority, stale-generation law, or
   durable physical reference semantics
+- S.1 physical bytes are Store-owned framed binary records, not JSON or serde
+  domain objects. Any exported S.1 evidence, canonical basis, digest
+  preparation, diagnostic row, receipt, performance receipt, or S.2 handoff
+  must lower through aspect-native Store/Foundational value, identity, locator,
+  and proof surfaces rather than JSON-shaped payloads, debug strings, display
+  names, raw maps, or producer-private names.
 
 ## Production-Grade Implementation Bar
 

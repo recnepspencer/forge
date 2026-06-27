@@ -25,7 +25,19 @@ impl PhysicalFormatVersion {
         Self { value: 1 }
     }
 
+    pub const fn reserved_future(value: u16) -> Option<Self> {
+        if value > 1 {
+            Some(Self { value })
+        } else {
+            None
+        }
+    }
+
     pub const fn value(&self) -> u16 {
         self.value
+    }
+
+    pub const fn is_reserved_future(&self) -> bool {
+        self.value > 1
     }
 }

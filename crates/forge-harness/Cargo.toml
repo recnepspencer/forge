@@ -10,9 +10,9 @@ keywords = ["harness", "testing", "certification", "parity", "workflows"]
 categories = ["development-tools::testing", "science"]
 
 [dependencies]
-serde = { workspace = true, features = ["derive"] }
-serde_json.workspace = true
-tracing.workspace = true
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
 
 [lints]
 workspace = true

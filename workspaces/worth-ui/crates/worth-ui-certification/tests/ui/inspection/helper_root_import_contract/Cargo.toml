@@ -1,0 +1,9 @@
+[package]
+name = "inspection-helper-root-import-contract"
+version = "0.0.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+worth-ui-inspection = { path = "../../../../../worth-ui-inspection" }

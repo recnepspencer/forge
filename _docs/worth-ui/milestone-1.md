@@ -96,61 +96,61 @@ These are the intended code and proof surfaces for the milestone. Exact module
 names may adjust during implementation, but changes must preserve the same
 responsibility boundaries and facade direction.
 
-- Phase 1 uses `crates/worth-ui/src/lib.rs`,
-  `crates/worth-ui/src/facade/mod.rs`, and facade compile tests.
-- Phase 2 uses `crates/worth-ui/src/facade/builder.rs`,
-  `crates/worth-ui/src/facade/app.rs`,
-  `crates/worth-ui/src/capability/snapshot/mod.rs`, and builder lifecycle
+- Phase 1 uses `workspaces/worth-ui/crates/worth-ui/src/lib.rs`,
+  `workspaces/worth-ui/crates/worth-ui/src/facade/mod.rs`, and facade compile tests.
+- Phase 2 uses `workspaces/worth-ui/crates/worth-ui/src/facade/builder.rs`,
+  `workspaces/worth-ui/crates/worth-ui/src/facade/app.rs`,
+  `workspaces/worth-ui/crates/worth-ui/src/capability/snapshot/mod.rs`, and builder lifecycle
   tests.
-- Phase 3 uses `crates/worth-ui/src/capability/identity/mod.rs` and ID
+- Phase 3 uses `workspaces/worth-ui/crates/worth-ui/src/capability/identity/mod.rs` and ID
   validation compile-fail tests.
-- Phase 4 uses `crates/worth-ui/src/capability/support/mod.rs` and support
+- Phase 4 uses `workspaces/worth-ui/crates/worth-ui/src/capability/support/mod.rs` and support
   posture admission tests.
-- Phase 5 uses `crates/worth-ui/src/capability/diagnostics/mod.rs` and
+- Phase 5 uses `workspaces/worth-ui/crates/worth-ui/src/capability/diagnostics/mod.rs` and
   deterministic diagnostic replay tests.
-- Phase 6 uses `crates/worth-ui/src/capability/registry/command.rs` and command
+- Phase 6 uses `workspaces/worth-ui/crates/worth-ui/src/capability/registry/command.rs` and command
   registry tests.
-- Phase 7 uses `crates/worth-ui/src/capability/registry/component.rs` and
+- Phase 7 uses `workspaces/worth-ui/crates/worth-ui/src/capability/registry/component.rs` and
   component descriptor tests.
-- Phase 8 uses `crates/worth-ui/src/capability/registry/surface.rs` and
+- Phase 8 uses `workspaces/worth-ui/crates/worth-ui/src/capability/registry/surface.rs` and
   domain-agnostic surface tests.
-- Phase 9 uses `crates/worth-ui/src/capability/registry/mosaic_region.rs` and
+- Phase 9 uses `workspaces/worth-ui/crates/worth-ui/src/capability/registry/mosaic_region.rs` and
   mosaic region law tests.
-- Phase 10 uses `crates/worth-ui/src/capability/registry/mosaic_placement.rs`
+- Phase 10 uses `workspaces/worth-ui/crates/worth-ui/src/capability/registry/mosaic_placement.rs`
   and mosaic placement law tests.
-- Phase 11 uses `crates/worth-ui/src/capability/registry/mosaic_sizing.rs` and
+- Phase 11 uses `workspaces/worth-ui/crates/worth-ui/src/capability/registry/mosaic_sizing.rs` and
   magic-number denial tests.
-- Phase 12 uses `crates/worth-ui/src/capability/registry/mosaic_state.rs` and
+- Phase 12 uses `workspaces/worth-ui/crates/worth-ui/src/capability/registry/mosaic_state.rs` and
   UI-state ownership tests.
-- Phase 13 uses `crates/worth-ui/src/capability/registry/view_binding.rs` and
+- Phase 13 uses `workspaces/worth-ui/crates/worth-ui/src/capability/registry/view_binding.rs` and
   Query-boundary tests.
 - Phase 14 uses
-  `crates/worth-ui/src/capability/registry/runtime_outcome_projection.rs` and
+  `workspaces/worth-ui/crates/worth-ui/src/capability/registry/runtime_outcome_projection.rs` and
   runtime posture projection tests.
-- Phase 15 uses `crates/worth-ui/src/capability/registry/settings.rs` and typed
+- Phase 15 uses `workspaces/worth-ui/crates/worth-ui/src/capability/registry/settings.rs` and typed
   settings tests.
-- Phase 16 uses `crates/worth-ui/src/capability/registry/task_presentation.rs`
+- Phase 16 uses `workspaces/worth-ui/crates/worth-ui/src/capability/registry/task_presentation.rs`
   and task presentation boundary tests.
-- Phase 17 uses `crates/worth-ui/src/capability/registry/theme_token.rs` and
+- Phase 17 uses `workspaces/worth-ui/crates/worth-ui/src/capability/registry/theme_token.rs` and
   semantic token tests.
-- Phase 18 uses `crates/worth-ui/src/capability/registry/icon.rs` and icon
+- Phase 18 uses `workspaces/worth-ui/crates/worth-ui/src/capability/registry/icon.rs` and icon
   identity tests.
 - Phase 19 uses
-  `crates/worth-ui/src/capability/registry/command_projection.rs` and command
+  `workspaces/worth-ui/crates/worth-ui/src/capability/registry/command_projection.rs` and command
   projection tests.
-- Phase 20 uses `crates/worth-ui/src/capability/registry/plugin_slot.rs` and
+- Phase 20 uses `workspaces/worth-ui/crates/worth-ui/src/capability/registry/plugin_slot.rs` and
   plugin contribution-slot tests.
 - Phase 21 uses
-  `crates/worth-ui/src/capability/registry/native_capability.rs` and native
+  `workspaces/worth-ui/crates/worth-ui/src/capability/registry/native_capability.rs` and native
   capability posture tests.
-- Phase 22 uses `crates/worth-ui/src/capability/snapshot/freeze.rs`,
-  `crates/worth-ui/src/capability/snapshot/index.rs`, and snapshot determinism
+- Phase 22 uses `workspaces/worth-ui/crates/worth-ui/src/capability/snapshot/freeze.rs`,
+  `workspaces/worth-ui/crates/worth-ui/src/capability/snapshot/index.rs`, and snapshot determinism
   and cost tests.
-- Phase 23 uses `crates/worth-ui/tests/ui/facade_visibility` and compile-fail
+- Phase 23 uses `workspaces/worth-ui/crates/worth-ui/tests/ui/facade_visibility` and compile-fail
   fixtures for private constructors, proof fields, and snapshot internals.
-- Phase 24 uses `crates/worth-ui/tests/integration/minimal_structural_app.rs`
+- Phase 24 uses `workspaces/worth-ui/crates/worth-ui/tests/integration/minimal_structural_app.rs`
   or an equivalent example-backed integration test.
-- Phase 25 uses `crates/worth-ui/src/capability/family_inventory.rs`,
+- Phase 25 uses `workspaces/worth-ui/crates/worth-ui/src/capability/family_inventory.rs`,
   snapshot/facade construction sites, and registry-extension propagation tests.
 
 ### Phase 1: Facade Crate Entry
@@ -1617,3 +1617,4 @@ This milestone belongs first because every later Worth UI claim depends on a
 single facade, typed capability identities, domain-agnostic registry law,
 mosaic structural vocabulary, and immutable snapshots that can be validated
 without app-local folklore.
+

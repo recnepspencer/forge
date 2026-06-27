@@ -2,7 +2,8 @@ use crate::{
     BufferPoolScenarioPlan, HarnessCloseoutEvidenceReport, HarnessCloseoutTranscriptEvidence,
     LargeStoreMemoryPressureScenario, LargeStorePressureClass, LargeStorePressureEvidenceBundle,
     PhysicalCounterExpectationKind, PhysicalScenarioQualityHarness, S2AcceptanceSuiteKind,
-    SyntheticCloseoutShortcutAttempt, SyntheticCloseoutShortcutRejectionReport,
+    SyntheticCloseoutShortcutAttempt, SyntheticCloseoutShortcutInput,
+    SyntheticCloseoutShortcutRejectionReport,
 };
 
 pub(crate) fn pressure_bundles() -> Vec<LargeStorePressureEvidenceBundle> {
@@ -47,13 +48,17 @@ pub(crate) fn synthetic_rejections() -> Vec<SyntheticCloseoutShortcutRejectionRe
     [
         SyntheticCloseoutShortcutAttempt::LogsOnlyProof,
         SyntheticCloseoutShortcutAttempt::SameRunSelfComparison,
+        SyntheticCloseoutShortcutAttempt::ExpectedErrorsOnly,
+        SyntheticCloseoutShortcutAttempt::InMemoryOnlyBuffers,
         SyntheticCloseoutShortcutAttempt::SmallFixtureOnly,
+        SyntheticCloseoutShortcutAttempt::FixtureLabelsOnly,
         SyntheticCloseoutShortcutAttempt::TestSupportOwnedOracleMeaning,
     ]
     .into_iter()
     .map(|attempt| {
+        let input = SyntheticCloseoutShortcutInput::from_transcript(attempt, &transcript);
         let denial = SyntheticCloseoutShortcutRejectionReport::attempt_shortcut_certification(
-            attempt,
+            input,
             &transcript,
         )
         .unwrap_err();

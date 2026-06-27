@@ -1,0 +1,966 @@
+{
+  "schema_version": 1,
+  "state_revision": 62,
+  "current": {
+    "phase": 4,
+    "turn": "repair"
+  },
+  "project": {
+    "name": "Forge Store Aspect-Native Workspace Gate",
+    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/forge",
+    "spec_file": "_docs/forge-store/storage-foundation-aspect-native-gate.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "_docs/forge-store/forge_store_roadmap_2.md",
+      "_docs/forge-store/storage-foundation-aspect-native-gate.md",
+      "workspaces/forge-store/README.md",
+      "workspaces/forge-store/Cargo.toml",
+      "crates/forge-foundational/src/lib.rs",
+      "crates/forge-foundational/docs/aspect-contracts-values-and-authoritative-state/README.md",
+      "crates/forge-foundational/docs/canonical-basis-and-reproducible-identity/README.md",
+      "crates/forge-foundational/docs/lineage-provenance-receipts-and-support-truth/README.md",
+      "crates/forge-foundational/docs/performance/README.md"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/aspect_native_gate_plan.md",
+    "implement": "templates/aspect_native_gate_implement.md",
+    "review": "templates/aspect_native_gate_review.md",
+    "repair": "templates/aspect_native_gate_repair.md",
+    "close": "templates/aspect_native_gate_close.md"
+  },
+  "contract_template": "templates/_contract.md",
+  "session": {
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.5",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    },
+    "thread_id": "019f0535-6034-7140-8d9c-c58c7b9ae40f",
+    "thread_started_at": "2026-06-26T18:33:32.447310+00:00"
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Residue Inventory And No-New-JSON Freeze",
+      "owner": "forge-store aspect-native certification",
+      "scope": [
+        "crates/forge-store",
+        "workspaces/forge-store",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-test-support",
+        "automation/phase_runner/forge-store-aspect-native-gate.json"
+      ],
+      "acceptance": [
+        "Every current JSON, serde_json, Serialize, Deserialize, json!, and raw JSON helper occurrence in Store production and ordinary test surfaces is classified by zone, owner, authority risk, and quarantine or removal condition.",
+        "Any unclassified production JSON/serde occurrence in the dedicated Store workspace fails a focused certification check.",
+        "Ordinary Store test preludes do not export serde_json::Value, json!, or JSON document helpers as the normal fixture authoring model."
+      ],
+      "instructions": "Implement only Phase 1 from the Aspect-Native Workspace Gate. Build the residue inventory and no-new-JSON freeze. Treat legacy crates/forge-store as compatibility/residue inventory, not Roadmap 2 precedent. The JSON state file remains progress tracking only and must not become an evidence artifact.",
+      "qa_focus": "Do not normalize JSON as an acceptable substrate. Do not hide unclassified residue in allowlists. Do not let ordinary tests keep JSON fixture authoring alive.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "Plan posted in chat; residue inventory and no-new-JSON freeze next."
+        ],
+        "done": [
+          "Implemented residue inventory scanner, certification entry point, and prelude freeze tests.",
+          "Removed path-name JSON allowlist bypass.",
+          "Classified legacy raw JSON helper names.",
+          "Close hardening strengthened real-surface residue tests and digest-risk classification."
+        ],
+        "remaining": [
+          "Whole gate remains open for phases 2-11."
+        ],
+        "findings": [
+          "Review found path-name JSON allowlist bypass; repair required.",
+          "Review found unclassified raw JSON helper names; repair required."
+        ],
+        "verification": [
+          "Focused store_json_residue tests and forge-store-certification check passed.",
+          "Focused residue tests and certification check passed after repair.",
+          "Focused residue tests and certification check passed after raw-helper repair.",
+          "Phase 1 QA passed; focused residue tests and certification check passed."
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Foundational Aspect-Native Store Vocabulary",
+      "owner": "forge-store aspect-native boundary",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-aspect-native",
+        "workspaces/forge-store/crates/forge-store-authority",
+        "workspaces/forge-store/crates/forge-store-contracts",
+        "workspaces/forge-store/crates/forge-store-readiness",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "crates/forge-foundational"
+      ],
+      "acceptance": [
+        "Store boundary facts are authored through Foundational AspectValue, StructAspectValue, AspectKey, validated values, authoritative state, authoritative patches, masks, locators, receipts, diagnostics, and performance evidence where those concepts are shared.",
+        "Raw AspectValue, String, terminal projection text, and unvalidated StructAspectValue cannot satisfy Store authority APIs requiring validated native state or Store-owned physical witnesses.",
+        "Store aspect identity flows through AspectKey and locators; dotted strings are terminal projection only."
+      ],
+      "instructions": "Implement only Phase 2. Define the native Store vocabulary over existing Foundational APIs without moving Store physical byte-survival authority into Foundational. Store-owned physical witnesses remain Store types that can materialize Foundational boundary evidence.",
+      "qa_focus": "Do not let raw strings, display labels, digest text, or path projections become aspect identity. Do not create local clones of Foundational aspect vocabulary unless Store owns a real physical distinction.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "Plan posted in chat; native Store vocabulary implementation next."
+        ],
+        "done": [
+          "Close hardening completed; focused checks passed."
+        ],
+        "remaining": [
+          "Whole gate continues with phase 3."
+        ],
+        "findings": [
+          "Generic diagnostic evidence admits raw payloads; repair required."
+        ],
+        "verification": [
+          "Phase 2 phase-done QA passed."
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "Terminal Projection Quarantine",
+      "owner": "forge-store terminal projection boundary",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-aspect-native",
+        "workspaces/forge-store/crates/forge-store-compatibility",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-operations"
+      ],
+      "acceptance": [
+        "Terminal JSON projection is one-way until explicit Store readmission returns validated native aspect material.",
+        "Store authority identities, evidence identities, aspect locators, and handoff facts do not expose neutral Display, ToString, AsRef<str>, or string accessors unless the method name says terminal projection.",
+        "Production JSON homes in the dedicated Store workspace are confined to approved terminal projection or external ingress modules."
+      ],
+      "instructions": "Implement only Phase 3. Make terminal projection spatially and type-level visible. JSON ingress must lower through explicit readmission into native value/state/patch artifacts before any authority consumption.",
+      "qa_focus": "Do not let terminal projection text become a key, identity, locator, digest basis, recovery source, or handoff input. Do not add neutral to_json/value/payload/as_str helpers on authority types.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "Plan posted in chat; terminal projection quarantine implementation next."
+        ],
+        "done": [
+          "Implemented terminal projection quarantine and explicit JSON readmission.",
+          "Repaired terminal projection raw JSON escape; projection document is no longer public.",
+          "Phase 3 close hardening completed."
+        ],
+        "remaining": [
+          "Whole gate continues with later phases."
+        ],
+        "findings": [
+          "Terminal projection exposes raw JSON Value, allowing non-Store readmission bypass."
+        ],
+        "verification": [
+          "Focused Phase 3 checks passed.",
+          "Focused Phase 3 repair checks passed.",
+          "Phase 3 phase-done QA passed."
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "title": "Canonical Basis Source Ownership",
+      "owner": "forge-store canonical basis source map",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-aspect-native",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-readiness",
+        "workspaces/forge-store/crates/forge-store-physical-format",
+        "workspaces/forge-store/crates/forge-store-physical-integrity",
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-wal"
+      ],
+      "acceptance": [
+        "Every Store workspace evidence, handoff, receipt, diagnostic, performance, and recovery family has an assigned native canonical-basis source owner.",
+        "A Store evidence family without a canonical-basis source owner fails with the subsystem that must classify it.",
+        "Terminal projection, operator display, document checksum, and compatibility text fields cannot be selected as canonical-basis sources."
+      ],
+      "instructions": "Implement only Phase 4. Build the source-role map before any digest cleanup. Keep source manifests, page headers, physical witnesses, recovery receipts, performance reports, and S.* handoffs distinct even when they share Foundational basis vocabulary.",
+      "qa_focus": "Do not create one generic canonical basis helper for all Store facts. Do not leave any evidence family ownerless. Do not select projection fields as basis sources.",
+      "status": "regressed",
+      "qa_status": "failed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "Plan posted in chat; canonical basis source ownership map next."
+        ],
+        "done": [
+          "Implemented canonical-basis source owner map and focused certification checks."
+        ],
+        "remaining": [],
+        "findings": [
+          "Certification inventory is self-referential and misses real evidence families."
+        ],
+        "verification": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Native Canonical Entry Construction",
+      "owner": "forge-store native canonical basis construction",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-aspect-native",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-physical-format",
+        "workspaces/forge-store/crates/forge-store-physical-integrity",
+        "crates/forge-foundational"
+      ],
+      "acceptance": [
+        "Equivalent Store boundary facts constructed in different valid orders produce the same native canonical basis without serializing through JSON.",
+        "serde_json::Value, String, terminal projection text, and generic Serialize inputs cannot satisfy native basis constructors.",
+        "Physical evidence families cannot construct canonical basis from semantic aspect values alone when Store-owned byte-survival witnesses are required."
+      ],
+      "instructions": "Implement only Phase 5. Build native basis entry constructors from Foundational aspect material and Store physical witnesses. This phase produces typed canonical material; it does not own final digest authority.",
+      "qa_focus": "Do not accept T: Serialize, raw strings, or terminal projection text in native basis constructors. Do not let semantic values stand in for physical byte-survival witnesses.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "Digest Authority And Equivalence Contracts",
+      "owner": "forge-store digest authority",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-aspect-native",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-readiness",
+        "workspaces/forge-store/crates/forge-store-physical-integrity",
+        "workspaces/forge-store/crates/forge-store-physical-format",
+        "crates/forge-foundational"
+      ],
+      "acceptance": [
+        "No production Store digest helper accepts T: Serialize or calls serde_json::to_vec as canonical authority.",
+        "Digest strings cannot construct identity, recovery source, checkpoint, page, WAL, or certification authority.",
+        "Reuse, parity, suppression, and digest comparison APIs require a typed equivalence basis and deny basis-free comparison.",
+        "The same native basis yields the same typed Store digest through different valid input orderings."
+      ],
+      "instructions": "Implement only Phase 6. Make every Store digest and equivalence claim name the native canonical basis that justifies it. Digest evidence carries source role and equivalence basis identity; digest text remains evidence/projection, not authority.",
+      "qa_focus": "Do not leave serde_json digest helpers or generic Serialize digest APIs alive. Do not let digest text become identity authority. Do not allow basis-free equivalence.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "Terminal Projection Digest And Checksum Separation",
+      "owner": "forge-store terminal projection checksum boundary",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-aspect-native",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-compatibility",
+        "workspaces/forge-store/crates/forge-store-operations"
+      ],
+      "acceptance": [
+        "Terminal JSON field ordering, whitespace, and display label changes do not change native canonical basis or Store digest authority.",
+        "Terminal JSON document checksums cannot enter APIs requiring Store authority digest.",
+        "Projection round trips rebuild native basis after explicit readmission rather than trusting the projection."
+      ],
+      "instructions": "Implement only Phase 7. Separate terminal projection checksums from Store digest authority. Projection parity proves quarantine and readmission behavior, not JSON authority equivalence.",
+      "qa_focus": "Do not let terminal document checksums satisfy authority digest slots. Do not let projection round trips bypass readmission or native basis reconstruction.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 8,
+      "title": "Authority, Projection, And Readmission Types",
+      "owner": "forge-store identity authority",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-aspect-native",
+        "workspaces/forge-store/crates/forge-store-authority",
+        "workspaces/forge-store/crates/forge-store-claim-boundaries",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "crates/forge-foundational"
+      ],
+      "acceptance": [
+        "Terminal projection text, digest strings, filenames, and external tokens cannot construct current Store authority identities.",
+        "External tokens become usable only after owning Store authority validates them and returns a typed current-authority witness.",
+        "Historical retained evidence can be reported and compared but cannot enter APIs requiring current physical authority without readmission."
+      ],
+      "instructions": "Implement only Phase 8. Split current authority, external tokens, derived evidence, retained evidence, and terminal projection text into distinct types with owner-controlled constructors and readmission denials.",
+      "qa_focus": "Do not reconstruct authority from display, path, digest, filename, or external token text. Do not collapse retained evidence and current authority because their representation is identical.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 9,
+      "title": "Aspect-Native Test Harness Authoring",
+      "owner": "forge-store test support",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-test-support",
+        "workspaces/forge-store/crates/forge-store-aspect-native",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Normal Store fixtures build evidence from AspectKey, AspectValue, StructAspectValue, validated values, authoritative states, patches, locators, and Store physical witnesses without JSON authoring.",
+        "JSON fixtures can target only terminal projection or hostile/readmission suites and fail in non-terminal suites.",
+        "Hostile readmission tests use JSON only as attacker input and assert readmission, denial, and native output explicitly."
+      ],
+      "instructions": "Implement only Phase 9. Make ordinary Store harness author native aspects and physical witnesses directly. JSON remains allowed only for terminal projection and hostile/readmission tests that name the boundary.",
+      "qa_focus": "Do not let shared harness preludes export json! or serde_json::Value. Do not hide JSON lowering inside native fixture builders. Do not treat golden JSON snapshots as authority proof.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 10,
+      "title": "Public Facade And Dependency Enforcement",
+      "owner": "forge-store public facade",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store/src/lib.rs",
+        "workspaces/forge-store/crates/forge-store-aspect-native",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Ordinary downstream code can author Store boundary facts through native aspect and witness types and cannot import internal JSON/serde compatibility helpers.",
+        "serde_json appears only in approved terminal projection dependencies, modules, public exports, or hostile/readmission test paths.",
+        "Public Store APIs do not expose T: Serialize, T: DeserializeOwned, serde_json::Value, or raw JSON document constructors for authority paths."
+      ],
+      "instructions": "Implement only Phase 10. Make the aspect-native boundary the ordinary public Store workspace lane. Localize any required serde_json dependency to the smallest terminal projection or ingress module.",
+      "qa_focus": "Do not export internal JSON helpers through the facade. Do not leave serde_json as a broad workspace dependency by convenience. Do not expose generic serde authority helpers.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 11,
+      "title": "S0 Handoff Contract",
+      "owner": "forge-store S0 readiness handoff",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-aspect-native",
+        "workspaces/forge-store/crates/forge-store-readiness",
+        "workspaces/forge-store/crates/forge-store-s0-reclassification",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "_docs/forge-store/storage-foundation-s0.md"
+      ],
+      "acceptance": [
+        "The S0 readiness artifact is a typed native boundary artifact with canonical basis, receipts, diagnostics, and performance evidence, not JSON.",
+        "S0 rejects terminal JSON projection output as a handoff input with a typed denial.",
+        "The S0 handoff verdict can be reconstructed from native canonical basis and evidence receipts without logs or terminal JSON."
+      ],
+      "instructions": "Implement only Phase 11. Produce the typed gate output that S0 must consume. The handoff must include negative proof for terminal JSON, unclassified residue, raw string identity, generic serde authority, and non-native digest basis.",
+      "qa_focus": "Do not close on markdown, logs, terminal JSON, or symbolic readiness. Do not let S0 consume stale residue inventory instead of current scan evidence. Do not claim whole Roadmap 2 physical behavior.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-06-26T18:33:31.549900+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T18:36:16.7222158Z",
+      "event": "phase_1_plan_posted",
+      "detail": "cursor advanced to implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T18:36:24.045870+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T18:36:54.055373+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T18:42:42.5430978Z",
+      "event": "phase_1_implementation_complete",
+      "detail": "cursor advanced to review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T18:42:55.342606+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T18:43:25.354383+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T18:46:45.0378632Z",
+      "event": "phase_1_review_failed",
+      "detail": "cursor advanced to repair",
+      "exit_code": 1
+    },
+    {
+      "at": "2026-06-26T18:46:54.383888+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T18:47:24.386713+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T18:49:28.1682497Z",
+      "event": "phase_1_repair_complete",
+      "detail": "cursor advanced to review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T18:49:36.491154+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T18:50:06.502993+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T18:51:47.8051357Z",
+      "event": "phase_1_review_failed",
+      "detail": "cursor advanced to repair",
+      "exit_code": 1
+    },
+    {
+      "at": "2026-06-26T18:52:03.802350+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T18:52:33.811940+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T18:55:50.0961286Z",
+      "event": "phase_1_repair_complete",
+      "detail": "cursor advanced to review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T18:56:09.013670+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T18:56:39.028048+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T18:58:49.8824200Z",
+      "event": "phase_1_review_passed",
+      "detail": "cursor advanced to close",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T18:59:14.136226+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T18:59:44.147062+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 close",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T19:01:04.771109+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 close",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:01:34.783648+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 close",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T19:04:19.7511936Z",
+      "event": "phase_1_close_complete",
+      "detail": "cursor advanced to phase 2 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:04:41.200705+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 close",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:05:11.211592+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 plan",
+      "exit_code": null
+    },
+    {
+      "timestamp": "2026-06-26T19:09:27.5687454Z",
+      "phase": 2,
+      "turn": "plan",
+      "event": "phase_2_plan_posted",
+      "detail": "cursor advanced to implement"
+    },
+    {
+      "at": "2026-06-26T19:09:40.229445+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:10:10.233717+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T19:19:16.0338004Z",
+      "phase": 2,
+      "turn": "implement",
+      "event": "phase_2_implemented",
+      "note": "advanced to review"
+    },
+    {
+      "at": "2026-06-26T19:19:26.430791+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:19:56.441657+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T19:21:43.9794830Z",
+      "phase": 2,
+      "turn": "review",
+      "event": "phase_2_review_failed",
+      "note": "identity and witness authority gaps"
+    },
+    {
+      "at": "2026-06-26T19:22:01.988252+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:22:31.997766+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T19:25:47.1294614Z",
+      "phase": 2,
+      "turn": "repair",
+      "event": "phase_2_repaired",
+      "note": "advanced to review"
+    },
+    {
+      "at": "2026-06-26T19:26:00.978659+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:26:30.993563+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T19:27:31.2125073Z",
+      "phase": 2,
+      "turn": "review",
+      "event": "phase_2_review_failed",
+      "note": "extra state keys under singular boundary fact"
+    },
+    {
+      "at": "2026-06-26T19:27:43.423441+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:28:13.434541+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T19:30:14.0015766Z",
+      "phase": 2,
+      "turn": "repair",
+      "event": "phase_2_repaired",
+      "note": "advanced to review"
+    },
+    {
+      "at": "2026-06-26T19:30:22.493302+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:30:52.504517+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 review",
+      "exit_code": null
+    },
+    {
+      "phase": 2,
+      "turn": "review",
+      "status": "regressed",
+      "note": "Generic diagnostic evidence admits raw payloads.",
+      "at": "2026-06-26T19:33:37.8468915Z"
+    },
+    {
+      "at": "2026-06-26T19:33:49.418235+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:34:19.427934+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 2,
+      "turn": "repair",
+      "status": "complete",
+      "note": "Diagnostic evidence repair ready for review.",
+      "at": "2026-06-26T19:39:44.7993747Z"
+    },
+    {
+      "at": "2026-06-26T19:39:53.675927+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:40:23.680246+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 review",
+      "exit_code": null
+    },
+    {
+      "phase": 2,
+      "turn": "review",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "phase-done QA passed",
+      "at": "2026-06-26T13:43:56.6208706-06:00"
+    },
+    {
+      "at": "2026-06-26T19:44:11.227220+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:44:41.238105+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 close",
+      "exit_code": null
+    },
+    {
+      "phase": 2,
+      "turn": "close",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "Phase 2 close hardening completed.",
+      "at": "2026-06-26T13:52:11.3701216-06:00"
+    },
+    {
+      "at": "2026-06-26T19:53:50.595943+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 close",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:54:20.611199+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 plan",
+      "exit_code": null
+    },
+    {
+      "phase": 3,
+      "turn": "plan",
+      "status": "in_progress",
+      "qa_status": "not_started",
+      "note": "Phase 3 plan posted.",
+      "at": "2026-06-26T19:56:21.985Z"
+    },
+    {
+      "at": "2026-06-26T19:56:36.337225+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T19:57:06.351315+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 implement",
+      "exit_code": null
+    },
+    {
+      "phase": 3,
+      "turn": "implement",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "Phase 3 implementation ready for review.",
+      "at": "2026-06-26T20:10:02.624Z"
+    },
+    {
+      "at": "2026-06-26T20:10:25.376503+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T20:10:55.385927+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 review",
+      "exit_code": null
+    },
+    {
+      "phase": 3,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "Terminal projection exposes raw JSON Value, allowing non-Store readmission bypass.",
+      "at": "2026-06-26T20:12:41.859Z"
+    },
+    {
+      "at": "2026-06-26T20:12:52.136730+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T20:13:22.148138+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 3,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "Terminal projection raw JSON escape repaired.",
+      "at": "2026-06-26T20:15:42.142Z"
+    },
+    {
+      "at": "2026-06-26T20:15:52.996288+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T20:16:23.007956+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 review",
+      "exit_code": null
+    },
+    {
+      "phase": 3,
+      "turn": "review",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "Phase 3 phase-done QA passed.",
+      "at": "2026-06-26T20:19:51.380Z"
+    },
+    {
+      "at": "2026-06-26T20:20:08.241859+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T20:20:38.254273+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 close",
+      "exit_code": null
+    },
+    {
+      "phase": 3,
+      "turn": "close",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "Phase 3 close hardening completed.",
+      "at": "2026-06-26T20:29:06.536Z"
+    },
+    {
+      "at": "2026-06-26T20:29:25.678354+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 close",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T20:29:55.694741+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T20:33:03.989261+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 4 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T20:33:34.006542+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 plan",
+      "exit_code": null
+    },
+    {
+      "phase": 4,
+      "turn": "plan",
+      "status": "in_progress",
+      "qa_status": "not_started",
+      "note": "Plan posted in chat; canonical basis source ownership map next.",
+      "at": "2026-06-26T20:33:50.301Z"
+    },
+    {
+      "at": "2026-06-26T20:34:19.218054+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 4 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T20:34:49.231255+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 implement",
+      "exit_code": null
+    },
+    {
+      "phase": 4,
+      "turn": "implement",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "Implemented canonical-basis source owner map and focused certification checks.",
+      "at": "2026-06-26T20:39:25.324Z"
+    },
+    {
+      "at": "2026-06-26T20:39:42.807359+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 4 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T20:40:12.812753+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 review",
+      "exit_code": null
+    },
+    {
+      "phase": 4,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "Certification inventory is self-referential and misses real evidence families.",
+      "at": "2026-06-26T20:41:16.484Z"
+    },
+    {
+      "at": "2026-06-26T20:41:31.843571+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 4 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T20:42:01.856564+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 repair",
+      "exit_code": null
+    }
+  ]
+}

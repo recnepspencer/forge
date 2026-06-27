@@ -1,0 +1,12 @@
+[package]
+name = "worth-ui-dsl"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lib]
+name = "worth_ui_dsl"
+path = "src/lib.rs"
+
+[lints]
+workspace = true

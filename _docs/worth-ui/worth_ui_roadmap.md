@@ -40,6 +40,10 @@ The shipped baseline for Worth UI today is:
 
 - the platform thesis captured in
   [worth-ui-vision.md](./worth-ui-vision.md)
+- the DSL direction captured in
+  [worth-ui-dsl-vision.md](./worth-ui-dsl-vision.md)
+- the inspection and AI-diagnostics direction captured in
+  [ai-diagnostics.md](./ai-diagnostics.md)
 - the explicit decision to build above `egui` while keeping Worth-owned
   lowering, artifact, shell, interaction, and performance architecture
 - the milestone ordering needed to avoid drifting into widget-first or
@@ -56,6 +60,10 @@ Rules for every remaining Worth UI item:
 - each milestone must solve a structural problem before the dependent product features broaden
 - each milestone must preserve the ownership boundary between Worth UI, Worth Query, the runtime bridge, truth/runtime authority, and lower native adapters
 - each milestone must preserve hot-lowered composition, canonical UI artifacts, and no per-frame source interpretation
+- each milestone that touches authored UI source, declaration artifacts, or
+  runtime composition must preserve the DSL rule that authoring is a semantic
+  language for canonical runtime declarations rather than a component,
+  modifier, selector, or render-local widget language
 - each milestone must treat the running Worth runtime as the primary host for
   hot reload, diagnostics, stable identity reconciliation, and safe plan swaps
 - each milestone must preserve explicit accessibility, keyboard, focus, and diagnostics posture rather than treating them as polish
@@ -64,11 +72,20 @@ Rules for every remaining Worth UI item:
   should lower Worth UI evidence into Forge Foundational performance claims,
   canonical bundles, counter-backed receipts, planned reports, and readiness
   envelopes instead of inventing local performance folklore
+- each runtime milestone must ship the evidence, inspection, replay, and
+  relevance surfaces required to explain the runtime families it introduces;
+  explanation is not a late debug pass
+- AI-facing inspection harnesses must arrive before, or at least alongside, the
+  runtime families they need to inspect; a polished human inspector may arrive
+  later, but formal AI entry points may not
 - each milestone must preserve a structurally explicit layout model rather than drifting back toward DOM-shaped percentage, overflow, and implicit-parent folklore
 - each milestone must define concrete acceptance evidence through platform scenarios, diagnostics artifacts, performance counters, replay-safe plan behavior, tooling evidence, or certification suites
 - no milestone is complete until both implementation and trust evidence exist
 - features that depend on stable identity, shell contracts, or interaction contracts must not ship before those foundations exist
 - Worth UI must not become a second truth runtime, a second query runtime, or a web-runtime clone
+- DSL sugar must follow admitted runtime lanes; authored syntax must not
+  outrun declaration artifacts, aspect contracts, graph truth, measurement,
+  Query binding, intent, services, or diagnostics support
 
 ## Foundation-First Critical Path
 
@@ -78,14 +95,15 @@ These are the milestones that determine whether Worth UI becomes a real
 platform or a shallow collection of components:
 
 - canonical lowering and artifact architecture
-- hot iteration and stable identity
+- hot composition runtime architecture
 - frame-efficient execution lanes and cost certification
 - app shell and command/interaction foundations
 - Query-bound views and forms/workflow surfaces
 
 If this section is weak, everything above it inherits the same failure mode:
 
-- hot reload devolves into interpreted UI or Rust rebuild friction
+- hot composition devolves into interpreted UI, Rust rebuild friction, or
+  renderer-owned state carry-forward
 - shell behavior becomes app-local glue
 - components ship without coherent focus, accessibility, or runtime posture
 - Query-bound surfaces drift back toward local caches and event plumbing
@@ -156,6 +174,9 @@ growth broaden the surface area.
   toolbars, tables, inspectors, forms, tokens, and bindings
 - Rust-native composition API or macro path that can emit the same canonical
   artifact input as file-authored UI source
+- authored syntax shaped by [worth-ui-dsl-vision.md](./worth-ui-dsl-vision.md):
+  semantic lanes, explicit declaration families, and no component-local
+  modifier/selector/view-builder authority
 - parser and validator that consume source and capability registries
 - one canonical UI artifact carrying stable IDs, component references, command
   bindings, Query/view bindings, layout intent, accessibility metadata, and
@@ -181,6 +202,9 @@ growth broaden the surface area.
 - artifact meaning remains independent of diagnostics richness
 - the lowering pipeline does not bypass capability registries or app facade
   boundaries
+- the source format does not smuggle structure, layout, appearance,
+  operability, intent, or service meaning through modifier order, selector
+  reach, or render-local builder semantics
 
 ### Acceptance Evidence
 
@@ -194,104 +218,690 @@ growth broaden the surface area.
   capabilities without reading Rust control flow
 - Rust-authored composition and file-authored source that declare the same UI
   meaning lower to equivalent artifact identity and structure
+- semantically equivalent authoring does not depend on modifier order,
+  selector precedence, or ambient builder context to lower correctly
 
-## Milestone 3: Hot Runtime, Stable Identity, Execution Plans, and Frame-Cost Certification
+## Milestone 3: Hot Composition Architecture Series
 
-Detailed spec: [milestone-3.md](./milestone-3.md)
+This roadmap milestone is now a series rather than one overloaded runtime lump.
+
+It co-develops with [worth-ui-dsl-vision.md](./worth-ui-dsl-vision.md) and
+[ai-diagnostics.md](./ai-diagnostics.md). The DSL is the semantic source
+boundary for the same runtime architecture; the AI/inspection substrate is the
+runtime explanation boundary for that architecture. Neither should evolve as a
+separate folklore layer ahead of admitted runtime lanes.
+
+The sequencing rule is:
+
+```text
+3.1 establishes inspection authority and the formal harness contract
+later 3.x slices continuously enrich that harness with real runtime evidence
+```
+
+The sequence is intentional:
+
+```text
+meaning
+-> identity
+-> aspects
+-> indexes
+-> obligations
+-> inspection evidence
+-> measurement
+-> execution plans
+-> receipts
+-> visual snapshots
+-> observations
+-> rebind
+-> Query binding
+-> intent
+-> services
+-> diagnostics
+-> visual evaluation
+-> AI inspection tools
+-> inspector surface
+-> certification
+```
+
+Hot reload is not a standalone feature milestone. It is the behavior of this
+entire authority pipeline under source, Query, measurement, host-observation,
+and world changes.
 
 ### Goal
 
-Make canonical Worth UI artifacts become active, frame-executable runtime plans
-that can be hot-replaced inside a running app without losing identity, durable
-interaction state, Query-owned binding posture, diagnostics truth, or frame-cost
-honesty.
+Turn canonical Worth UI artifacts into a runtime-owned hot composition
+substrate whose declaration, aspect contract, graph, indexes, obligations,
+inspection evidence, measurement, execution plans, receipts, observations,
+rebind, diagnostics, and certification are real before shell, forms, and
+richer product UX broaden the surface area.
 
-### Must Ship
+### Must Preserve Across The Series
 
-- runtime host authority over active artifact, active execution plan, last valid
-  state, reload status, and diagnostics references
-- runtime lifecycle, frame epoch, pending activation, pause/resume, shutdown,
-  and failed-activation recovery receipts
-- file-watch and debounce pipeline for UI source changes
-- replaceable candidate envelopes for file-authored UI and admitted
-  Rust-authored artifact inputs
-- candidate admission, artifact equivalence, impact narrowing, identity
-  matching, durable-state reconciliation, and Query binding rebind planning
-- named impact surfaces for commands, tokens/themes, accessibility metadata,
-  Query bindings, state families, lane assignment, renderer resources, and
-  diagnostics policy
-- atomic safe-frame activation that preserves the prior active plan on invalid
-  candidates, failed lowering, failed reconciliation, or failed swap
-- execution-plan lowering from canonical artifact into active egui-facing
-  runtime plans
-- compact runtime handles for commands, components, children, tokens, and view
-  bindings rather than per-frame string or registry resolution
-- admitted extension hooks for source ingress, debounce policy, identity seed
-  contribution, durable state families, component lowering, lane adapters,
-  canvas/spatial mechanics, real-time overlay mechanics, diagnostics
-  projection, custom counters, and report materialization
-- specialized execution lanes for ordinary widget/shell surfaces, virtualized
-  data surfaces, canvas/spatial surfaces, and real-time overlay or HUD surfaces
-- cross-lane parity proving lanes specialize mechanics and cost rather than
-  canonical UI meaning
-- typed diagnostics and in-app diagnostics projection for reload, plan,
-  reconciliation, Query, lane, and frame-cost failures
-- named counters for reload/lowering work and steady-frame lane work
-- Forge Foundational performance envelopes for shared claim vocabulary,
-  canonical bundle comparison, counter-backed receipts, report materialization,
-  certified performance bundles, and readiness closure
-- hostile certification for reload storms, invalid reload preservation,
-  identity/state carry-forward, Query drift, data-heavy lanes, real-time lanes,
-  and no-source/no-registry/no-broad-scan steady frames
-
-### Must Preserve
-
-- semantic richness stays in lowering-time artifacts rather than poisoning the
-  ordinary frame loop
-- invalid reloads never blank or corrupt the active app shell
+- semantic richness stays in lowering-time artifacts, admitted contracts, graph
+  topology, and execution plans rather than leaking into per-frame host code
+- invalid reloads never blank, corrupt, or silently replace the last admitted
+  mounted truth
 - identity changes remain explicit replacement events rather than accidental
-  state loss
-- hot reload remains composition reload, not arbitrary Rust-code hot patching
-- the running Worth runtime remains the owner of active artifacts, active plans,
-  diagnostics, reconciliation state, and plan swap boundaries
-- state reconciliation remains compatible with nested layout structure rather
-  than flattening regions into anonymous geometry
-- Query-facing runtime surfaces referenced by active plans preserve Query-owned
-  support, admission, live, async/result, projection, recovery, inspection, and
-  explanation posture
-- execution-lane specialization does not fork UI meaning into incompatible
-  shadow runtimes
-- extension hooks remain typed, admitted, receipt-bearing contributions rather
-  than active-plan, Query, state, lane, or certification bypasses
-- performance instrumentation remains product-visible enough to certify claims
-- no broad widget, shell, canvas, data, or plugin milestone can force per-frame
-  source interpretation, registry lookup, or broad artifact scans back into the
-  hot path
+  state loss or tree-position folklore
+- Query-facing runtime surfaces preserve Query-owned support, admission, live,
+  async/result, projection, recovery, inspection, and explanation posture
+- aspects and indexes remain part of correctness and proof, not a later
+  optimization pass
+- host adapters remain native-mechanics translators rather than semantic owners
+- diagnostics, inspection, and certification remain typed runtime artifacts
+  rather than logs, strings, or demo-only helpers
+- the AI harness remains a first-class runtime consumer rather than a late
+  screenshot-and-log convenience layer
+- the human inspector remains a projection over runtime evidence rather than a
+  second explanation system
 
-### Acceptance Evidence
+### Milestone 3.1: Runtime Boundary Closure and Crate Split
 
-- the same running app can accept valid replacement artifacts produced from
-  file-authored UI or Rust-authored composition through the same activation
-  pipeline
-- equivalent replacements classify as no-op and avoid needless plan swaps
-- valid reloads preserve eligible durable state and explicitly replace or drop
-  ineligible state
-- invalid reloads preserve the previous active plan while surfacing typed
-  diagnostics
-- identical canonical artifacts produce identical execution plans where the lane
-  and capability set are unchanged
-- ordinary, virtualized data, canvas/spatial, and real-time overlay lanes all
-  prove lane-specific execution through counters and receipts
+This slice gives future runtime work the correct architectural home before more
+behavior lands. It also establishes the formal inspection authority boundary so
+AI and human inspection never have to scrape logs or invent a second
+explanation runtime later.
+
+**Must ship**
+
+- target architectural split for:
+  - `worth-ui`
+  - `worth-ui-dsl`
+  - `worth-ui-runtime`
+  - `worth-ui-inspection`
+  - `worth-ui-query-binding`
+  - `worth-ui-host-contract`
+  - `worth-ui-host-egui`
+  - `worth-ui-certification`
+- `worth-ui-host-contract` as the stable native-host boundary and
+  `worth-ui-host-egui` as only the first adapter implementation rather than
+  the permanent rendering substrate
+- sealed inspection and harness contract types:
+  - `UiInspectionTarget`
+  - `UiInspectionQuery`
+  - `UiInspectionScope`
+  - `UiEvidenceBudget`
+  - `UiEvidenceRichness`
+  - `UiInspectionReceipt`
+- one formal inspection facade entry point that accepts typed inspection
+  queries and returns typed receipts, even while later milestones broaden the
+  supported targets, scopes, and evidence families
+- typed unsupported/not-yet-admitted posture for inspection targets or scopes
+  whose backing runtime families have not landed yet
+- support snapshot shape on the public Worth UI side
+- hard-prohibition audit for obvious forbidden imports, folders, and deep
+  adapter/runtime coupling
+- hard-prohibition audit for renderer-local debug helpers, panel-local
+  diagnostic truth, and host-bypass explanation paths
+
+**Acceptance evidence**
+
+- public facade exists without reopening Milestone 1 as generic platform
+  skeleton work
+- DSL ownership exists as a first-class crate boundary from the start instead
+  of being scattered through facade or runtime modules
+- inspection authority exists as a first-class runtime boundary from the start
+- AI-facing and human-facing inspection must route through the same runtime
+  inspection facade rather than separate ad hoc lanes
+- unsupported inspection scopes fail through typed posture on the formal
+  harness rather than through missing APIs or string errors
+- host adapter cannot depend on runtime internals except through admitted host
+  contracts
+- a second host adapter can be introduced against `worth-ui-host-contract`
+  without changing runtime truth ownership or moving host-neutral types into
+  `worth-ui-host-egui`
+- certification crate exists as the canonical anti-cheating home rather than
+  test helpers drifting through unrelated modules
+
+### Milestone 3.2: Canonical Declaration Artifacts and Aspect Contracts
+
+This slice extends Milestone 2 from "canonical source lowers once" into
+"runtime-owned declarations already carry the semantic contracts hot
+composition needs later."
+
+This is the first 3.x slice that must stay in lockstep with the DSL vision.
+
+**Must ship**
+
+- `UiDeclarationArtifact`
+- `UiDeclarationIdentity`
+- `UiDeclarationFamily`
+- `UiAspectContract`
+- support snapshot and support-row scaffolding for declaration families
+- initial admitted declaration families:
+  - `page`
+  - `page-set`
+  - `region`
+  - `mosaic`
+  - `local-composition`
+  - `control`
+  - `query-binding`
+  - `intent`
+  - `diagnostic-surface`
+
+**Acceptance evidence**
+
+- authored declaration lowers once into a canonical artifact with stable
+  identity, family, aspect contract, topology, touch meaning, measurement
+  policy, service usage, and Query binding posture
+- no runtime phase rediscovering UI meaning from source text or renderer code
+- aspect coverage report exists and can explain what semantic slices the
+  declaration publishes
+- declaration artifacts are rich enough to support lane-oriented DSL authoring
+  without falling back to component-local meaning blobs
+
+### Milestone 3.3: UI Authority Graph, Identity, Participation, and Core Indexes
+
+This slice creates the runtime-owned graph that decides what exists, where it
+lives, what participates, and how bounded lookup works.
+
+**Must ship**
+
+- `UiGraphNodeIdentity`
+- `UiGraphSnapshot`
+- parent/child/slot topology
+- page/region/mosaic membership
+- explicit presence and participation posture
+- declaration-instance correspondence
+- stable repeated-instance identity
+- initial core indexes:
+  - `graph node identity -> node`
+  - `declaration identity -> graph node(s)`
+  - `parent identity -> child set`
+  - `slot identity -> occupant set`
+  - `page identity -> participating node set`
+  - `published aspect -> publishing node/receipt set`
+  - `consumed aspect -> dependent node/receipt set`
+  - `mounted receipt identity -> mounted receipt`
+
+**Acceptance evidence**
+
+- no recursive tree walk for ordinary lookup
+- no tree-position identity
+- graph mutation and index mutation are transactionally aligned
+- participation axes stay explicit: mounted, visible, layout, hit-test, focus,
+  accessibility, input, and diagnostic
+
+### Milestone 3.4: Admission, Support, and Graph Touch Obligations
+
+This slice closes the "who selects checks?" boundary. Callers declare touched
+meaning; the runtime selects obligations.
+
+**Must ship**
+
+- `UiGraphTouchDescriptor`
+- `UiSelectedObligationSet`
+- `UiObligationDispatchPlan`
+- `UiObligationVerdict`
+- `UiAdmissionReport`
+- world-aware support and admission posture
+- initial obligation families:
+  - `structural-legality`
+  - `participation-legality`
+  - `slot-contract`
+  - `measurement-requirement`
+  - `query-binding-requirement`
+  - `intent-operability-requirement`
+  - `diagnostic-surface-requirement`
+
+**Acceptance evidence**
+
+- declaration-change touches select obligations
+- host-observation touches can select a different obligation neighborhood
+- appearance-only touches do not trigger structure/focus obligations
+- invalid structural edits deny before graph corruption
+- denied admission preserves prior admitted mounted truth
+
+### Milestone 3.5: Inspection Evidence Expansion and Relevance Indexes
+
+This slice operationalizes the 3.1 inspection boundary by adding the first
+substantial evidence families, relevance routing, and indexes over the runtime
+truth already established by declarations, graph topology, and admission.
+
+**Must ship**
+
+- `UiEvidenceSlice`
+- `UiRelevanceFilter`
+- typed evidence families for:
+  - declaration
+  - admission
+  - graph
+  - aspects
+  - obligations
+- stable indexes for:
+  - declaration identity -> evidence sets
+  - source span -> declaration / admission evidence
+  - graph node identity -> obligations / declaration / admission evidence
+  - published aspect -> publishing nodes / receipts
+  - consumed aspect -> dependent nodes / obligations / receipts
+- the first formal AI harness path for targeted inspection by identity,
+  source span, and scope before screenshot support exists
+
+**Acceptance evidence**
+
+- an agent can inspect a declaration artifact without receiving a giant dump
+- an agent can inspect a graph node by identity and request only aspect-local
+  evidence
+- an agent can request `evidence_refs` before `materialized_detail`
+- the 3.1 inspection facade can now answer real runtime questions instead of
+  just carrying contract shape
+- inspection responses emit typed receipts rather than strings or logs
+- no renderer-local debug helper is required to explain declaration, admission,
+  graph, or aspect posture
+
+### Milestone 3.6: Measurement and Allocation Kernel
+
+This slice makes runtime-owned space allocation real before shell/layout
+features broaden.
+
+**Must ship**
+
+- `UiMeasurementRequest`
+- `UiMeasurementResult`
+- `UiAllocationPlan`
+- `UiAllocationReceipt`
+- measurement vocabulary for:
+  - `available-space`
+  - `fixed`
+  - `hug`
+  - `fill`
+  - `equal-share`
+  - `min`
+  - `max`
+  - `bounded`
+  - `content-measured`
+  - `viewport-relative`
+  - `scroll-owned`
+  - `portal-anchored`
+
+**Acceptance evidence**
+
+- viewport resize enters as host observation and replans only the affected
+  allocation neighborhood
+- host supplies measurement evidence only; it does not decide layout meaning
+- mosaic resize and local composition allocation use the same measurement lane
+
+### Milestone 3.7: Execution-Plan Lowering, Equivalence, and Frame-Cost Surfaces
+
+This slice ensures execution consumes lowered plans instead of reconstructing
+strategy from graph or declaration artifacts every frame.
+
+**Must ship**
+
+- execution-plan lowering from canonical declaration + graph + allocation into
+  active runtime plans
+- equivalence and no-op classification for candidate replacements
+- compact runtime handles for commands, components, children, tokens, and view
+  bindings
+- named counters for reload/lowering work and steady-frame execution work
+- Forge Foundational performance-envelope integration for shared claim
+  vocabulary and certified claim bundles
+
+**Acceptance evidence**
+
+- identical canonical artifacts produce equivalent execution plans where the
+  lane and capability set are unchanged
+- equivalent replacements avoid needless plan swaps
 - steady-state frame execution proves source parsing, artifact validation,
   registry string lookup, and broad artifact scans remain absent
+
+### Milestone 3.8: Mounted Receipts and Host Contract
+
+This slice closes the host boundary: host code may render and observe, but may
+not own visible UI meaning.
+
+**Must ship**
+
+- `UiMountedNodeReceipt`
+- `UiMountedFrameReceipt`
+- mounted receipt facts for paint intent, clip/layer, allocation box, input
+  participation, focus participation, hit-test participation, accessibility,
+  motion projection, and diagnostic projection
+- host contract for viewport, pointer, keyboard, focus, scroll, time/tick, and
+  text-measurement observations
+
+**Acceptance evidence**
+
+- egui adapter renders only mounted receipts
+- egui adapter reports observations only
+- host cannot receive authored declarations directly
+- host cannot decide visible/disabled/valid/layout meaning
+
+### Milestone 3.9: Visual Snapshot Receipts and Hit-Test Identity Bridge
+
+This slice makes screenshots, hit testing, and visible-region targeting
+identity-backed runtime evidence instead of loose image bytes.
+
+**Must ship**
+
+- `UiVisualSnapshotReceipt`
+- frame capture by identity
+- node capture by identity
+- region capture by identity
+- hit-test region map
+- visible mounted node overlay support
+- `screen point -> mounted receipt identity`
+- `screenshot region -> mounted receipt identity`
+- `mounted receipt identity -> declaration / graph / evidence` bridge
+
+**Acceptance evidence**
+
+- the runtime can capture the current frame without creating a second visual
+  truth path
+- an agent can ask what node is under a pixel and receive mounted identity
+- a screenshot region can be traced back to mounted receipt, graph node,
+  declaration, and evidence
+- screenshot support is tied to frame identity rather than loose PNG bytes
+
+### Milestone 3.10: Observation Intake and Hot Rebind Planner
+
+This slice makes hot reload real as bounded rebind rather than renderer
+refresh.
+
+**Must ship**
+
+- `UiHostObservation`
+- `UiRebindPlan`
+- `UiRebindReceipt`
+- changed-fact classification
+- affected-aspect detection
+- consumed-fact and consumed-aspect index lookup
+- preserve/remount decisions
+- invalidated measurement, binding, and obligation sets
+
+**Must handle**
+
+- source declaration edits
+- viewport resize
+- host measurement results
+- Query-backed fact changes
+- service-event changes
+
+**Acceptance evidence**
+
+- local source edits do not rebuild the whole page
+- appearance changes do not invalidate structure
+- layout changes do not invalidate Query binding unless declared
+- resize invalidates allocation without broad graph rebind
+- invalid hot edits preserve the last admitted mounted truth
+
+### Milestone 3.11: Query Binding and Projection Consumption Substrate
+
+This slice broadens Milestone 2's declared binding references into a minimal
+runtime binding substrate, but not yet the full product surface richness of
+Milestone 6.
+
+**Must ship**
+
+- `UiProjectionBinding`
+- `UiProjectionFactReceipt`
+- schema/view-shape binding posture
+- projected scalar value and projected collection lanes
+- binding invalidation
+- payload-shape requirement posture
+- minimum binding postures:
+  - `ready`
+  - `pending`
+  - `current`
+  - `stale`
+  - `revalidating`
+  - `denied`
+  - `unsupported`
+  - `schema-mismatch`
+  - `wrong-world`
+  - `rebind-required`
+
+**Acceptance evidence**
+
+- selected-inspector fields come from Query projection facts
+- schema-swap rebinding preserves compatible field identity where admitted
+- invalid schema/payload posture emits typed mounted diagnostics
+- no local loading/error enum replaces Query posture
+- no renderer-side query builder exists
+
+### Milestone 3.12: Intent, Operability, and Interaction Substrate
+
+This slice turns host observations into runtime-routed intents instead of
+widget callbacks.
+
+**Must ship**
+
+- `UiIntentDeclaration`
+- `UiIntentAdmission`
+- interaction families for:
+  - `click`
+  - `edit`
+  - `select`
+  - `submit`
+  - `navigate-page`
+  - `change-mosaic`
+  - `open-portal`
+  - `close-portal`
+  - `invoke-command`
+- operability postures for:
+  - `operable`
+  - `disabled`
+  - `readonly`
+  - `pending`
+  - `denied`
+  - `unsupported`
+  - `wrong-world`
+  - `stale`
+  - `rebind-required`
+  - `requires-confirmation`
+
+**Acceptance evidence**
+
+- controls do not own callback meaning
+- submit payloads are assembled from runtime/control projection rather than
+  renderer code
+- disabled/readiness posture comes from runtime authority
+- click success is not treated as mutation success
+- invalid submits emit typed intent denials
+
+### Milestone 3.13: Runtime Services Foundation
+
+This slice closes the cross-cutting service lanes that the certification
+vertical slice depends on.
+
+**Must ship**
+
+- first-class service lanes for:
+  - `portal`
+  - `focus`
+  - `motion`
+  - `command-routing`
+  - `scroll`
+  - `selection`
+- minimal admitted service path for each family rather than feature-broad
+  product richness
+
+**Acceptance evidence**
+
+- dropdowns open through the portal service with logical owner, anchor, layer
+  posture, measurement plan, and focus/dismissal rules
+- focus scopes, participant sets, route requests, host focus observations, and
+  runtime focus receipts are real runtime artifacts
+- motion projections derive from previous receipt + next receipt + motion
+  declaration rather than host-local animation meaning
+
+### Milestone 3.14: Diagnostics, Inspection, and Evidence Closure
+
+This slice makes denials, support gaps, and rebind decisions typed, mountable,
+and inspectable instead of spooky.
+
+**Must ship**
+
+- `UiDiagnosticArtifact`
+- `UiCausalInspectionReport`
+- diagnostic identity, stop class, world, source declaration identity,
+  affected graph identity, selected obligations, admission evidence, binding
+  evidence, measurement evidence, host capability evidence, rebind evidence,
+  aspect-fit denials, and aspect-coverage reports
+
+**Acceptance evidence**
+
+- diagnostics mount through the mounted receipt path
+- no string-only errors
+- tests do not match diagnostic messages
+- unsupported vs denied vs stale vs wrong-world vs rebind-required remain
+  distinct
+- inspection explains why a node rebound, preserved, remounted, or denied
+
+### Milestone 3.15: Visual Geometry, Design Invariants, and Perceptual Inspection
+
+This slice lets the runtime answer alignment, spacing, symmetry, and visual
+consistency questions from receipt-backed geometry first and screenshot pixels
+second.
+
+**Must ship**
+
+- `UiTextRunReceipt`
+- `UiTextBaselineReceipt`
+- `UiGlyphBoundsReceipt`
+- `UiVisualBoundsReceipt`
+- `UiVisualAnchor`
+- `UiAlignmentGroup`
+- `UiSpacingGroup`
+- `UiSymmetryAxis`
+- `UiVisualInvariantDeclaration`
+- `UiVisualEvaluationQuery`
+- `UiVisualEvaluationReport`
+- `UiVisualFinding`
+- `UiVisualOverlayReceipt`
+- declared invariant, advisory, and ad hoc inspection levels
+
+**Acceptance evidence**
+
+- the runtime can answer whether two labels align by baseline or leading edge
+- the runtime can evaluate spacing rhythm or equal-width allocation without
+  pixel-only guessing
+- visual findings can link back to mounted receipt, graph node, declaration,
+  and source span
+- screenshot-confirmed visual inspection remains secondary to receipt-backed
+  geometry rather than replacing it
+
+### Milestone 3.16: AI Agent Inspection Tools and Replay Protocol
+
+This slice turns the evidence substrate into a real agent-facing repair and
+inspection interface.
+
+**Must ship**
+
+- formal AI tool registry over the runtime inspection substrate
+- screenshot/frame capture tool
+- inspect-target tool
+- inspect-at-point tool
+- diagnostic-relevance tool
+- frame-diff tool
+- rebind-explanation tool
+- replay session, replay cursor, and stop-point selection
+- replay stop points for parse, semantic lowering, declaration artifact,
+  admission, graph touch, obligation selection, Query binding, measurement,
+  mounted receipts, host observations, rebind planning, and diagnostics
+
+**Acceptance evidence**
+
+- an agent can debug a failed hot reload without reading giant dumps
+- an agent can request only diagnostics relevant to a selected node, source
+  edit, or denied rebind
+- an agent can replay the last edit to the first denial point
+- an agent can compare before/after frames or receipts by aspect scope
+
+### Milestone 3.17: Worth Inspector Surface
+
+This slice adds the human-facing runtime inspector as a projection over the
+same evidence substrate the AI harness already uses.
+
+**Must ship**
+
+- visual tree view
+- authority graph view
+- aspect inspector
+- rebind timeline
+- measurement inspector
+- Query binding inspector
+- services inspector
+- diagnostics feed
+- replay timeline
+- visual evaluation view
+
+**Acceptance evidence**
+
+- the inspector consumes the same evidence substrate as the AI tools
+- clicking a visible node can navigate to declaration, graph, receipt, and
+  diagnostic evidence
+- the inspector can be authored through Worth UI where feasible
+- the inspector does not become the source of diagnostic truth
+
+### Milestone 3.18: Hot Composition Certification Vertical Slice
+
+This slice is certification, not product scope broadening. It proves the
+runtime architecture through one hostile, realistic workflow.
+
+**Scenario**
+
+```text
+Workflow Editor Page
+  left: step list
+  center: workflow graph canvas
+  right: selected step inspector
+```
+
+**Must prove**
+
+- hot page/mosaic edits change graph topology through declarations
+- resize invalidates allocation without broad unrelated rebind
+- selected-step schema comes from Query projection facts
+- field swaps preserve compatible identity where admitted
+- dropdowns open through the runtime portal service
+- focus is routed through the runtime focus service
+- motion uses the runtime motion service
+- submit payloads are admitted against Query/schema posture
+- invalid payloads emit mounted diagnostics
+- host adapters never decide disabled/visible/valid meaning
+- receipts prove bounded rebind
+- unrelated nodes remain untouched
+
+### Acceptance Evidence For The Series
+
+- the same running app can accept valid replacement declarations produced from
+  file-authored UI or Rust-authored composition through the same activation and
+  rebind pipeline
+- equivalent replacements classify as no-op where the series says they should
+- valid reloads preserve eligible durable state and explicitly replace or drop
+  ineligible state
+- invalid reloads preserve the previous admitted mounted truth while surfacing
+  typed diagnostics
+- execution-plan lowering, mounted receipts, observation intake, Query binding,
+  intent routing, service routing, and diagnostics all prove their work through
+  runtime-owned artifacts instead of renderer-local helpers
+- steady-state frame execution proves source parsing, artifact validation,
+  registry string lookup, and broad artifact scans remain absent
+
+### Sequencing Notes
+
+- Milestone 3.1 through 3.18 replace the old single Milestone 3 runtime lump
+  with a narrower authority-first sequence
+- `ai-diagnostics.md` co-develops across the full 3.x series; each runtime
+  family must become inspectable as it lands instead of waiting for the end
+- the formal AI inspection harness begins in Milestone 3.1; later milestones
+  enrich it with real evidence families, visual capture, replay, and inspector
+  projections
+- the DSL vision must co-develop with Milestone 2 and Milestone 3.2 through
+  3.17; sugar follows admitted runtime lanes instead of running ahead of them
+- Milestones 4 through 7 now build on this substrate instead of reopening
+  runtime authority, layout truth, Query posture, or interaction ownership
+- detailed specs should split into milestone-3.x docs as each slice begins
+  rather than trying to keep one giant Milestone 3 spec honest
 
 ## Milestone 4: Application Shell and Workspace Layout
 
 ### Goal
 
-Make Worth UI able to host real desktop products by owning the app shell,
-workspace model, and persisted layout semantics rather than leaving them to
-every downstream application.
+Build real desktop shell products on top of the Milestone 3.x hot composition
+substrate by owning the app shell, workspace model, and persisted layout
+semantics rather than leaving them to every downstream application.
 
 ### Must Ship
 
@@ -320,6 +930,9 @@ every downstream application.
 - shell does not force app authors to choose between multi-window support and
   hot-lowered composition
 - persisted shell state remains distinct from authoritative runtime truth
+- Milestone 4 must consume the page, mosaic, measurement, receipt, and rebind
+  substrate from Milestone 3.x rather than reopening renderer-owned layout or
+  shell-local topology state
 
 ### Acceptance Evidence
 
@@ -337,8 +950,9 @@ every downstream application.
 
 ### Goal
 
-Finish the core interaction substrate so actions, focus, selection, and
-keyboard workflows are platform semantics instead of widget-local conventions.
+Broaden the interaction substrate closed in Milestones 3.12 and 3.13 so
+actions, focus, selection, and keyboard workflows become rich platform
+semantics instead of widget-local conventions.
 
 ### Must Ship
 
@@ -361,6 +975,9 @@ keyboard workflows are platform semantics instead of widget-local conventions.
 - keyboard ergonomics do not bypass accessibility semantics
 - command readiness does not collapse into generic booleans when runtime
   posture can remain structured
+- Milestone 5 must deepen command, focus, selection, and keyboard richness on
+  the admitted interaction and service substrate rather than reintroducing
+  host-local callback routing or native-widget focus truth
 
 ### Acceptance Evidence
 
@@ -376,8 +993,10 @@ keyboard workflows are platform semantics instead of widget-local conventions.
 
 ### Goal
 
-Make Worth UI’s serious data surfaces bind to declared Query meaning instead of
-app-local caches, host-shaped events, or widget-owned live-update folklore.
+Broaden the minimal Query binding and projection-consumption substrate from
+Milestone 3.11 into serious data surfaces that bind to declared Query meaning
+instead of app-local caches, host-shaped events, or widget-owned live-update
+folklore.
 
 ### Must Ship
 
@@ -404,6 +1023,9 @@ app-local caches, host-shaped events, or widget-owned live-update folklore.
 - view surfaces remain honest about policy masks, unsupported families, denied
   basis combinations, and deferred capability rows
 - app authors do not need local caches to keep core surfaces usable
+- Milestone 6 must build richer table, tree, inspector, and timeline surfaces
+  on the admitted binding substrate instead of reopening local Query clones,
+  local result-state models, or renderer-owned live semantics
 
 ### Acceptance Evidence
 
@@ -419,8 +1041,10 @@ app-local caches, host-shaped events, or widget-owned live-update folklore.
 
 ### Goal
 
-Make forms and editing a platform capability rather than a loose pile of input
-widgets, local booleans, and submission folklore.
+Broaden the interaction, Query-binding, and diagnostic substrate from
+Milestones 3.11, 3.12, and 3.14 so forms and editing become a platform
+capability rather than a loose pile of input widgets, local booleans, and
+submission folklore.
 
 ### Must Ship
 
@@ -444,6 +1068,9 @@ widgets, local booleans, and submission folklore.
   semantics compose with existing Query/runtime lanes rather than a Worth-UI-
   owned form status model
 - form behavior remains accessible, keyboard-usable, and hot-reload-safe
+- Milestone 7 must consume the runtime-owned intent, operability, binding, and
+  evidence substrate instead of inventing a Worth-UI-local form framework above
+  it
 
 ### Acceptance Evidence
 

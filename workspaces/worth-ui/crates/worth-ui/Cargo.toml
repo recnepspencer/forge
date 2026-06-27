@@ -1,0 +1,24 @@
+[package]
+name = "worth-ui"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lib]
+name = "worth_ui"
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+worth-ui-runtime = { path = "../worth-ui-runtime" }
+
+[dev-dependencies]
+forge-foundational = { path = "../../../../crates/forge-foundational" }
+forge-query = { path = "../../../../crates/forge-query" }
+forge-relational = { path = "../../../../crates/forge-relational" }
+forge-runtime-bridge = { path = "../../../../crates/forge-runtime-bridge" }
+forge-signal = { path = "../../../../crates/forge-signal" }
+trybuild = { workspace = true }
+worth-ui-dsl = { path = "../worth-ui-dsl" }

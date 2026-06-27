@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/forge-store",
     "crates/forge-store-analysis",
+    "crates/forge-store-aspect-native",
     "crates/forge-store-authority",
     "crates/forge-store-blob-chunks",
     "crates/forge-store-branch-deltas",
@@ -48,6 +49,7 @@ license = "UNLICENSED"
 
 [workspace.dependencies]
 forge-store-analysis = { path = "crates/forge-store-analysis" }
+forge-store-aspect-native = { path = "crates/forge-store-aspect-native" }
 forge-store-authority = { path = "crates/forge-store-authority" }
 forge-store-blob-chunks = { path = "crates/forge-store-blob-chunks" }
 forge-store-branch-deltas = { path = "crates/forge-store-branch-deltas" }

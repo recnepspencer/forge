@@ -1,0 +1,47 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/forge-ui-theme",
+    "crates/forge-ui-components",
+    "crates/worth-ui-dsl",
+    "crates/worth-ui-runtime",
+    "crates/worth-ui-inspection",
+    "crates/worth-ui-query-binding",
+    "crates/worth-ui-host-contract",
+    "crates/worth-ui-host-egui",
+    "crates/worth-ui-certification",
+    "crates/worth-ui",
+]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "UNLICENSED"
+
+[workspace.dependencies]
+forge-foundational = { path = "../../crates/forge-foundational" }
+forge-proof = { path = "../../crates/forge-proof" }
+forge-query = { path = "../../crates/forge-query" }
+forge-signal = { path = "../../crates/forge-signal" }
+
+forge-ui-theme = { path = "crates/forge-ui-theme" }
+forge-ui-components = { path = "crates/forge-ui-components" }
+worth-ui-dsl = { path = "crates/worth-ui-dsl" }
+worth-ui-runtime = { path = "crates/worth-ui-runtime" }
+worth-ui-inspection = { path = "crates/worth-ui-inspection" }
+worth-ui-query-binding = { path = "crates/worth-ui-query-binding" }
+worth-ui-host-contract = { path = "crates/worth-ui-host-contract" }
+worth-ui-host-egui = { path = "crates/worth-ui-host-egui" }
+worth-ui-certification = { path = "crates/worth-ui-certification" }
+worth-ui = { path = "crates/worth-ui" }
+
+serde = { version = "1", features = ["derive", "rc"] }
+egui = "0.31"
+trybuild = "1.0"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+result_large_err = "allow"

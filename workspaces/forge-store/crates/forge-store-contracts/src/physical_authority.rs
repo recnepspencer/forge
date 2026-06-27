@@ -1,7 +1,11 @@
-use crate::{RoadmapScope, StoreContractError, StoreContractResult, ROADMAP_2_S1_SCOPE};
+use crate::{
+    RoadmapScope, StoreContractError, StoreContractResult, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
+    ROADMAP_2_S1_SCOPE,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalAuthorityScope {
+    AspectNativeBoundaryVocabulary,
     PhysicalFoundationVocabulary,
     PhysicalEvidenceExport,
     PhysicalSubstrateReadiness,
@@ -14,9 +18,18 @@ pub struct StorePhysicalAuthorityWitness {
 }
 
 impl StorePhysicalAuthorityWitness {
+    pub fn for_aspect_native_boundary(roadmap_scope: RoadmapScope) -> StoreContractResult<Self> {
+        Self::admit(
+            roadmap_scope,
+            ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
+            PhysicalAuthorityScope::AspectNativeBoundaryVocabulary,
+        )
+    }
+
     pub fn for_s1_vocabulary(roadmap_scope: RoadmapScope) -> StoreContractResult<Self> {
         Self::admit(
             roadmap_scope,
+            ROADMAP_2_S1_SCOPE,
             PhysicalAuthorityScope::PhysicalFoundationVocabulary,
         )
     }
@@ -31,9 +44,10 @@ impl StorePhysicalAuthorityWitness {
 
     fn admit(
         roadmap_scope: RoadmapScope,
+        expected_scope: RoadmapScope,
         authority_scope: PhysicalAuthorityScope,
     ) -> StoreContractResult<Self> {
-        if roadmap_scope != ROADMAP_2_S1_SCOPE {
+        if roadmap_scope != expected_scope {
             return Err(StoreContractError::PhysicalAuthorityScopeMismatch);
         }
         Ok(Self {

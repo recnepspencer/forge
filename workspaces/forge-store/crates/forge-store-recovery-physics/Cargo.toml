@@ -6,6 +6,7 @@ license.workspace = true
 description = "Roadmap 2 S.4 WAL, checkpoint, LSN, and physical recovery rules."
 
 [dependencies]
+forge-foundational = { path = "../../../../crates/forge-foundational" }
 forge-store-buffer-pool.workspace = true
 forge-store-contracts.workspace = true
 forge-store-physical-backend.workspace = true

@@ -1,0 +1,18 @@
+error[E0277]: the trait bound `&str: Borrow<WorthUiPendingActivation>` is not satisfied
+ --> tests/ui/runtime_authority/fail/raw_source_cannot_enter_plan_lowering.rs:4:47
+  |
+4 |     let _ = host.prepare_execution_plan_input("component Button {}");
+  |                  ---------------------------- ^^^^^^^^^^^^^^^^^^^^^ the trait `Borrow<WorthUiPendingActivation>` is not implemented for `&str`
+  |                  |
+  |                  required by a bound introduced by this call
+  |
+help: the trait `Borrow<str>` is implemented for `String`
+ --> $RUST/alloc/src/str.rs
+note: required by a bound in `WorthUiRuntimeHost::prepare_execution_plan_input`
+ --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/host.rs
+  |
+  |     pub fn prepare_execution_plan_input<P>(
+  |            ---------------------------- required by a bound in this associated function
+...
+  |         P: Borrow<WorthUiPendingActivation>,
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `WorthUiRuntimeHost::prepare_execution_plan_input`
