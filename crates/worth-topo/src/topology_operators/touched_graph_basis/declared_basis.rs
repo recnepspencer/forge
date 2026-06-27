@@ -25,7 +25,7 @@ pub struct TopologyDeclaredTouchedGraphBasis<I> {
 }
 
 impl TopologyDeclaredTouchedGraphBasisProof {
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support-lowering"))]
     pub(crate) fn from_basis_for_tests(
         semantic_family_key: &'static str,
         basis: TopologyTouchedGraphBasis,
@@ -55,6 +55,15 @@ impl TopologyDeclaredTouchedGraphBasisProof {
             basis,
             touch_descriptor,
         }
+    }
+
+    pub(crate) fn from_mutation_sequence(
+        semantic_family_key: &'static str,
+        sequence: &TopologyDeclaredMutationSequence,
+        operating_world: TopologyTouchedOperatingWorld,
+    ) -> Result<Self, ForgeQueryGraphTouchDescriptorDenial> {
+        let basis = topology_touched_graph_basis_from_mutation_sequence(sequence, operating_world);
+        Self::from_basis(semantic_family_key, basis)
     }
 
     pub fn semantic_family_key(&self) -> &'static str {

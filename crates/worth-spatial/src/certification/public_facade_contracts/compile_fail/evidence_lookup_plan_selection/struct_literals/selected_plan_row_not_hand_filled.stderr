@@ -1,0 +1,22 @@
+error: cannot construct `EvidenceLookupSelectedPlanRow` with struct literal syntax due to private fields
+ --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_plan_selection/struct_literals/selected_plan_row_not_hand_filled.rs:4:13
+  |
+4 |     let _ = EvidenceLookupSelectedPlanRow {
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         family_identity: String::new(),
+  |         ------------------------------ private field
+6 |         family_declaration_digest: String::new(),
+  |         ---------------------------------------- private field
+7 |         row_digest: String::new(),
+  |         ------------------------- private field
+  |
+  = note: ...and other private fields that were not provided
+help: you might have meant to use the `from_parts` associated function
+  |
+4 -     let _ = EvidenceLookupSelectedPlanRow {
+5 -         family_identity: String::new(),
+6 -         family_declaration_digest: String::new(),
+7 -         row_digest: String::new(),
+8 -     };
+4 +     let _ = EvidenceLookupSelectedPlanRow::from_parts(_);
+  |

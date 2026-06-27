@@ -34,6 +34,8 @@ mod query_milestone_boundary_tests;
 #[cfg(test)]
 mod query_selector_precision_tests;
 #[cfg(test)]
+mod receipt_backed_admission_test_authority;
+#[cfg(test)]
 mod receipt_coverage_tests;
 #[cfg(test)]
 mod rejection_boundary_tests;
@@ -75,6 +77,13 @@ pub use query_lowering::{
     SpatialEvidenceQueryLoweringDenial, SpatialEvidenceQueryLoweringDenialKind,
     SpatialEvidenceQueryTouchDescriptor, SpatialEvidenceQueryTouchDescriptorDigest,
 };
+#[cfg(test)]
+pub(crate) use receipt_backed_admission_test_authority::{
+    receipt_backed_event_ledger_touch_authority_for_admission_tests,
+    receipt_backed_touch_authority_for_admission_tests,
+    receipt_backed_touch_authority_for_admission_tests_with_declared_world,
+};
+pub(crate) use request::SpatialGeometryEvidenceTouchRowRequest;
 pub use request::{
     SpatialGeometryEvidenceTouchAdmissionInput, SpatialGeometryEvidenceTouchRequest,
 };

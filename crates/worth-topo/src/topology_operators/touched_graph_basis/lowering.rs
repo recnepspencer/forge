@@ -10,7 +10,7 @@ use crate::topology_operators::{
     TopologyDeclaredMutationActionRef, TopologyDeclaredMutationSequence, TopologyMutationFamily,
     TOPOLOGY_OPERATOR_RELATION_COLLECTION,
 };
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 use crate::topology_operators::{
     TopologyMutationChangedScope, TopologyRewireLoopEndpointDeclaration,
     TopologySpliceRadialAdjacencyDeclaration,
@@ -24,7 +24,7 @@ use super::{
     TopologyTouchedEntity, TopologyTouchedGraphBasis, TopologyTouchedOperatingWorld,
     TopologyTouchedRelation,
 };
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 use super::{TopologyTouchedAspect, TopologyTouchedScope};
 
 #[cfg(test)]
@@ -374,7 +374,7 @@ fn lifecycle_family_for_lifecycle(
     }
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 pub(crate) fn test_basis_from_parts(
     entities: Vec<TopologyTouchedEntity>,
     relations: Vec<TopologyTouchedRelation>,

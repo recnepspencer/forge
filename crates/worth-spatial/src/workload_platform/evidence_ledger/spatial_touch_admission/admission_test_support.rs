@@ -99,7 +99,7 @@ where
     ))
 }
 
-fn certified_workload_stage_rows(label: &'static str) -> Vec<WorkloadEvidenceRow> {
+pub(super) fn certified_workload_stage_rows(label: &'static str) -> Vec<WorkloadEvidenceRow> {
     let topology = TopologySeed::cube()
         .with_declaration(label)
         .build()

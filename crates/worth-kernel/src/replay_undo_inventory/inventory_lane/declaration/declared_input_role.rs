@@ -1,0 +1,20 @@
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum ReplayUndoDeclaredInputRole {
+    RetainedReplayWorkloadReceipt,
+    DiagnosticsWorkloadReceipt,
+    LookupConsumedWorkloadHandoff,
+    StageIndexIdentity,
+    EvidenceLookupExecutionReceipt,
+    EvidenceLookupCoveredFamilyIdentities,
+    EvidenceLookupPublicCloseout,
+    EvidenceLookupPublicCloseoutAssemblyInput,
+    MilestoneTwelveSeed,
+    SourceFirewallReport,
+    InvalidationSelectedPlan,
+    InvalidationExecutionReceipt,
+    InvalidationDiagnosticProjection,
+    InvalidationMilestoneElevenSeed,
+    InvalidationLookupReadiness,
+    InvalidationProductReceiptRef,
+    InvalidationQueryReceiptDigest,
+}

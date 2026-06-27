@@ -1,13 +1,17 @@
 use topology::facade::TopologyWorkloadReceipt;
 mod boolean_chain_handoff;
+mod boolean_chain_replay_undo_boundary;
 mod boolean_loop_reconstruction_closeout;
 mod boolean_loop_reconstruction_handoff;
 mod boolean_loop_reconstruction_products;
 mod boolean_split_handoff;
 mod boolean_stage_requirements;
+mod lookup_consumed_workload;
 mod query_obligation_selection;
+mod replay_undo_boundary;
 mod spatial_touch_authority;
 use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanDownstreamSplitConsumptionDenial;
+use worth_spatial::facade::planar_boolean_events::PlanarBooleanEventLedgerLookupExecutionDenial;
 use worth_spatial::facade::workload_vocabulary::{
     BooleanEvidenceReceipt, CompleteWorkloadEvidenceLedger, DiagnosticWorkloadReceipt,
     GeometryBindingWorkloadReceipt, ProjectionWorkloadReceipt, ResponseWorkloadReceipt,
@@ -18,14 +22,21 @@ use worth_spatial::facade::workload_vocabulary::{
 
 use super::{boolean_evidence_requirement::map_boolean_ledger_error, WorkloadStageRequirement};
 pub use boolean_chain_handoff::{
-    BooleanChainIntegrationCounters, BooleanChainIntegrationHandoff, BooleanChainResidueRow,
+    BooleanChainCompletedReceiptGuard, BooleanChainIntegrationCounters,
+    BooleanChainIntegrationHandoff, BooleanChainResidueBoundary, BooleanChainResidueRemovalTrigger,
+    BooleanChainResidueRow,
 };
+pub use boolean_chain_replay_undo_boundary::BooleanChainReplayUndoBoundaryHandoff;
 pub use boolean_loop_reconstruction_closeout::PlanarBooleanLoopReconstructionCloseoutInput;
 pub use boolean_loop_reconstruction_handoff::{
     CompletedBooleanLoopReconstructionHandoff, PlanarBooleanLoopRuntimeRegistrationProof,
 };
 pub use boolean_loop_reconstruction_products::CompletedBooleanLoopReconstructionProducts;
 pub use boolean_split_handoff::CompletedBooleanSplitHandoff;
+pub use lookup_consumed_workload::LookupConsumedWorkloadComposition;
+pub use replay_undo_boundary::{
+    AdmittedBooleanSplitReplayUndoBoundary, BooleanSplitReplayUndoBoundaryRequest,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthWorkload {
@@ -198,7 +209,14 @@ pub enum WorkloadCompositionError {
     BooleanChainHandoff(String),
     SpatialTouchAuthority(SpatialGeometryEvidenceTouchDenial),
     SpatialEvidenceLookup(SpatialEvidenceLookupDenial),
+    EventLedgerLookupExecution(PlanarBooleanEventLedgerLookupExecutionDenial),
+    EventLedgerLookupExecutionPacket(PlanarBooleanEventLedgerLookupExecutionDenial),
     DownstreamSplitConsumption(PlanarBooleanDownstreamSplitConsumptionDenial),
+    ReplayUndoBoundary(String),
+    ReplayUndoTransactionBoundary(
+        crate::replay_undo_transaction_boundary::ReplayUndoTransactionBoundaryError,
+    ),
+    LookupConsumedWorkload(String),
 }
 
 impl WorkloadCompositionError {
@@ -228,7 +246,12 @@ impl WorkloadCompositionError {
             Self::BooleanChainHandoff(reason) => reason.clone(),
             Self::SpatialTouchAuthority(denial) => denial.human_reason(),
             Self::SpatialEvidenceLookup(denial) => denial.detail().to_string(),
+            Self::EventLedgerLookupExecution(denial) => denial.detail().to_string(),
+            Self::EventLedgerLookupExecutionPacket(denial) => denial.detail().to_string(),
             Self::DownstreamSplitConsumption(denial) => denial.human_reason().to_string(),
+            Self::ReplayUndoBoundary(reason) => reason.clone(),
+            Self::ReplayUndoTransactionBoundary(error) => format!("{error:?}"),
+            Self::LookupConsumedWorkload(reason) => reason.clone(),
         }
     }
 

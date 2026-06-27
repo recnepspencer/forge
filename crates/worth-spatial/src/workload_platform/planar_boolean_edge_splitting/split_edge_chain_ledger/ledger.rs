@@ -17,6 +17,9 @@ pub struct PlanarBooleanSplitEdgeChainLedger {
     ledger_identity: String,
     declaration_identity: String,
     split_request_identity: String,
+    event_ledger_lookup_selected_plan_digest: String,
+    event_ledger_lookup_execution_receipt_digest: String,
+    event_ledger_lookup_product_output_digest: String,
     split_chain_validation_receipt_identity: String,
     split_persistent_naming_receipt_identity: String,
     split_decision_log_receipt_identity: String,
@@ -104,6 +107,18 @@ impl PlanarBooleanSplitEdgeChainLedger {
             ledger_identity,
             declaration_identity: input.declaration().declaration_identity().to_string(),
             split_request_identity: input.split_request().split_request_identity().to_string(),
+            event_ledger_lookup_selected_plan_digest: input
+                .split_request()
+                .event_ledger_lookup_selected_plan_digest()
+                .to_string(),
+            event_ledger_lookup_execution_receipt_digest: input
+                .split_request()
+                .event_ledger_lookup_execution_receipt_digest()
+                .to_string(),
+            event_ledger_lookup_product_output_digest: input
+                .split_request()
+                .event_ledger_lookup_product_output_digest()
+                .to_string(),
             split_chain_validation_receipt_identity: input
                 .split_chain_validation()
                 .receipt_identity()
@@ -132,6 +147,15 @@ impl PlanarBooleanSplitEdgeChainLedger {
     }
     pub fn split_request_identity(&self) -> &str {
         &self.split_request_identity
+    }
+    pub fn event_ledger_lookup_selected_plan_digest(&self) -> &str {
+        &self.event_ledger_lookup_selected_plan_digest
+    }
+    pub fn event_ledger_lookup_execution_receipt_digest(&self) -> &str {
+        &self.event_ledger_lookup_execution_receipt_digest
+    }
+    pub fn event_ledger_lookup_product_output_digest(&self) -> &str {
+        &self.event_ledger_lookup_product_output_digest
     }
     pub fn split_chain_validation_receipt_identity(&self) -> &str {
         &self.split_chain_validation_receipt_identity

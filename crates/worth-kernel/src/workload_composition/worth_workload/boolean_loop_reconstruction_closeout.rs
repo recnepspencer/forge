@@ -28,9 +28,12 @@ use worth_spatial::facade::planar_boolean_loop_reconstruction::{
 };
 use worth_spatial::facade::retained_replay_workload::ReplayReceiptSet;
 
+use crate::replay_undo_transaction_boundary::ReplayUndoTransactionBoundaryPacket;
+
 use super::{
-    CompletedBooleanLoopReconstructionHandoff, CompletedBooleanLoopReconstructionProducts,
-    CompletedBooleanSplitHandoff, WorkloadCompositionError,
+    AdmittedBooleanSplitReplayUndoBoundary, CompletedBooleanLoopReconstructionHandoff,
+    CompletedBooleanLoopReconstructionProducts, CompletedBooleanSplitHandoff,
+    WorkloadCompositionError,
 };
 
 pub struct PlanarBooleanLoopReconstructionCloseoutInput<'a> {
@@ -82,9 +85,21 @@ impl<'a> PlanarBooleanLoopReconstructionCloseoutInput<'a> {
 }
 
 impl CompletedBooleanSplitHandoff {
-    pub fn complete_boolean_loop_reconstruction(
+    pub(crate) fn complete_boolean_loop_reconstruction_from_admitted_replay_undo_boundary(
+        &self,
+        admitted_boundary: &AdmittedBooleanSplitReplayUndoBoundary,
+        input: PlanarBooleanLoopReconstructionCloseoutInput<'_>,
+    ) -> Result<CompletedBooleanLoopReconstructionHandoff, WorkloadCompositionError> {
+        self.complete_boolean_loop_reconstruction_with_boundary_packet(
+            input,
+            Some(admitted_boundary.transaction_boundary_packet().clone()),
+        )
+    }
+
+    fn complete_boolean_loop_reconstruction_with_boundary_packet(
         &self,
         input: PlanarBooleanLoopReconstructionCloseoutInput<'_>,
+        replay_undo_transaction_boundary_packet: Option<ReplayUndoTransactionBoundaryPacket>,
     ) -> Result<CompletedBooleanLoopReconstructionHandoff, WorkloadCompositionError> {
         let downstream_consumption = self.admit_downstream_split_consumption(
             input.split_decision_log_receipt,
@@ -266,6 +281,7 @@ impl CompletedBooleanSplitHandoff {
                 &evidence_receipt,
                 input.operator_matrix,
                 input.validator_plan,
+                self.lookup_consumed_workload_handoff(),
             )?;
         let completed_workload = completed_handoff.completed_workload().clone();
         let runtime_registration_proof = completed_handoff.runtime_registration_proof().clone();
@@ -296,6 +312,8 @@ impl CompletedBooleanSplitHandoff {
             loop_ledger_receipt,
             evidence_receipt,
             runtime_registration_proof,
+            self.lookup_consumed_workload_handoff().clone(),
+            replay_undo_transaction_boundary_packet,
         ))
     }
 }

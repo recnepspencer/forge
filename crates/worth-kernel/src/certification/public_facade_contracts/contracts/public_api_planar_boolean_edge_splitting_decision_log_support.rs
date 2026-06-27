@@ -130,6 +130,7 @@ fn split_request_for_metaboss(
 ) -> PlanarBooleanEdgeSplitRequest {
     let segment_pairs = &subject.inputs().pair_worklist;
     let ledger = subject.ledger();
+    let workload = subject.pair().left().workload();
     let mut evidence_rows = vec![
         WorkloadEvidenceRow::from_boolean_evidence_receipt(segment_pairs),
         WorkloadEvidenceRow::from_boolean_evidence_receipt(ledger),
@@ -149,19 +150,27 @@ fn split_request_for_metaboss(
         ),
     )
     .expect("metaboss candidate-index gate should admit before split request");
-    let event_ledger_lookup = evidence
-        .require_boolean_receipt_lookup(ledger)
-        .expect("typed event-ledger lookup should admit before split request");
+    let lookup_evidence_ledger = if workload.require_boolean_event_ledger(ledger).is_ok() {
+        workload.evidence_ledger().clone()
+    } else {
+        workload
+            .evidence_ledger()
+            .with_boolean_evidence_receipt(ledger)
+            .expect("event-ledger lookup basis should append the exact event-ledger receipt once")
+    };
+    let event_ledger_lookup = workload
+        .require_boolean_event_ledger_lookup_execution_packet(ledger)
+        .expect("execution-backed event-ledger lookup packet should admit before split request");
     let retained_replay_stage_links = subject.pair().left().replay_receipts().map(|_| {
-        evidence
+        lookup_evidence_ledger
             .stage_index()
             .link_required_stages(&[WorkloadEvidenceStage::RetainedReplay])
-            .expect("retained replay stage link should admit when replay evidence is present")
+            .expect("retained replay stage link should admit from the same lookup evidence basis")
     });
     PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
         ledger,
         &gate,
-        &event_ledger_lookup,
+        event_ledger_lookup.witness(),
         retained_replay_stage_links.as_ref(),
     ))
     .expect("metaboss split request should admit before decision logging")

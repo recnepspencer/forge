@@ -1,0 +1,30 @@
+warning: unreachable expression
+  --> tests/fixtures/replay_undo_semantic_graph/replay_undo_public_closeout_not_hand_filled.rs:11:34
+   |
+10 |         counters: todo!(),
+   |                   ------- any code following this expression is unreachable
+11 |         milestone_thirteen_seed: todo!(),
+   |                                  ^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `closeout_identity`, `transaction_packet_identity`, `replay_scope_identity`, `undo_scope_identity`, `inventory_rows`, `counters` and `milestone_thirteen_seed` of struct `ReplayUndoMilestoneTwelvePublicCloseout` are private
+  --> tests/fixtures/replay_undo_semantic_graph/replay_undo_public_closeout_not_hand_filled.rs:5:9
+   |
+ 4 |     let _ = ReplayUndoMilestoneTwelvePublicCloseout {
+   |             --------------------------------------- in this type
+ 5 |         closeout_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+ 6 |         transaction_packet_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         replay_scope_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         undo_scope_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         inventory_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^^ private field
+10 |         counters: todo!(),
+   |         ^^^^^^^^ private field
+11 |         milestone_thirteen_seed: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field

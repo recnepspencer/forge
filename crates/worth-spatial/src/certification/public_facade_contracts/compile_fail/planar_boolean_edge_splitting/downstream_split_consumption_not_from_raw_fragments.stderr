@@ -12,6 +12,6 @@ note: if you're trying to build a new `PlanarBooleanDownstreamSplitConsumptionIn
   | |         decision_log_receipt: &'a PlanarBooleanSplitDecisionLogReceipt,
   | |         validation_receipt: &'a PlanarBooleanSplitChainValidationReceipt,
 ... |
-  | |         spatial_lookup: &'a SpatialEvidenceLookupProduct,
+  | |         spatial_touch_authority: &'a SpatialGeometryEvidenceTouchAuthority,
   | |     ) -> Self {
   | |_____________^

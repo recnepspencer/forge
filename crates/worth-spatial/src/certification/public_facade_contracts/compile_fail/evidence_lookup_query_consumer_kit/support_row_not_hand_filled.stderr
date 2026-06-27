@@ -1,0 +1,28 @@
+error: cannot construct `EvidenceLookupQuerySupportPinRow` with struct literal syntax due to private fields
+  --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_query_consumer_kit/support_row_not_hand_filled.rs:5:13
+   |
+ 5 |     let _ = EvidenceLookupQuerySupportPinRow {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 6 |         runtime_family: ForgeQueryRuntimeFacadeFamily::Read,
+   |         --------------------------------------------------- private field
+ 7 |         query_support_surface: String::new(),
+   |         ------------------------------------ private field
+ 8 |         snapshot_row_digest: String::new(),
+   |         ---------------------------------- private field
+ 9 |         support_pin_report_digest: String::new(),
+   |         ---------------------------------------- private field
+10 |         row_digest: String::new(),
+   |         ------------------------- private field
+   |
+   = note: ...and other private fields `source_touchpoint` and `required_query_surface` that were not provided
+help: you might have meant to use the `new` associated function
+   |
+ 5 -     let _ = EvidenceLookupQuerySupportPinRow {
+ 6 -         runtime_family: ForgeQueryRuntimeFacadeFamily::Read,
+ 7 -         query_support_surface: String::new(),
+ 8 -         snapshot_row_digest: String::new(),
+ 9 -         support_pin_report_digest: String::new(),
+10 -         row_digest: String::new(),
+11 -     };
+ 5 +     let _ = EvidenceLookupQuerySupportPinRow::new(_, _, _, _, _, _);
+   |

@@ -26,4 +26,4 @@ error: cannot construct `PlanarBooleanEdgeSplitRequest` with struct literal synt
 17 |         counters: PlanarBooleanEdgeSplitRequestCounters::default(),
    |         ---------------------------------------------------------- private field
    |
-   = note: ...and other private field `retained_replay_stage_identity` that was not provided
+   = note: ...and other private fields `event_ledger_lookup_selected_plan_digest`, `event_ledger_lookup_execution_receipt_digest`, `event_ledger_lookup_product_output_digest` and `retained_replay_stage_identity` that were not provided

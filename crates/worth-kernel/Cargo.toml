@@ -22,11 +22,13 @@ worth-geom.workspace = true
 worth-math.workspace = true
 worth-spatial.workspace = true
 worth-topo.workspace = true
+worth-schema.workspace = true
 sha2 = "0.10"
 
 [dev-dependencies]
 trybuild.workspace = true
 worth-spatial = { workspace = true, features = ["test-support-lowering"] }
+worth-topo = { workspace = true, features = ["test-support-lowering"] }
 
 [lints]
 workspace = true

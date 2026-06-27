@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/fixtures/replay_undo_family_catalog/topology_replay_identity_not_from_wrong_authority.rs:7:51
+  |
+7 |     let _ = admit_topology_replay_family_identity(authority);
+  |             ------------------------------------- ^^^^^^^^^ expected `TopologyReplayFamilyIdentityAuthority`, found `TopologyUndoFamilyIdentityAuthority`
+  |             |
+  |             arguments to this function are incorrect
+  |
+note: function defined here
+ --> $WORKSPACE/crates/worth-topo/src/replay_family_catalog/family_identity.rs
+  |
+  | pub fn admit_topology_replay_family_identity(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

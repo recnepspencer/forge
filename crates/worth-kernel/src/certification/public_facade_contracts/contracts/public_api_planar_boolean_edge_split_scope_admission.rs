@@ -170,6 +170,7 @@ fn metaboss_edge_split_request(
 ) {
     let segment_pairs = &subject.inputs().pair_worklist;
     let ledger = subject.ledger();
+    let workload = subject.pair().left().workload();
     let evidence = WorkloadEvidenceLedger::from_rows(vec![
         WorkloadEvidenceRow::from_boolean_evidence_receipt(segment_pairs),
         WorkloadEvidenceRow::from_boolean_evidence_receipt(ledger),
@@ -183,13 +184,13 @@ fn metaboss_edge_split_request(
         ),
     )
     .expect("candidate-index gate should admit");
-    let event_ledger_lookup = evidence
-        .require_boolean_receipt_lookup(ledger)
-        .expect("typed event-ledger lookup should admit before split request");
+    let event_ledger_lookup = workload
+        .require_boolean_event_ledger_lookup_execution_packet(ledger)
+        .expect("execution-backed event-ledger lookup packet should admit before split request");
     let request = PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
         ledger,
         &gate,
-        &event_ledger_lookup,
+        event_ledger_lookup.witness(),
         None,
     ))
     .expect("edge split request should admit from event ledger and candidate-index gate");

@@ -147,6 +147,57 @@ pub use crate::query_native_runtime_boundary::{
     WorthTopologyQueryNativeRuntimeBoundaryResidueStatus,
     WorthTopologyQueryNativeRuntimeBoundaryStaleSymbol,
 };
+pub use crate::replay_family_catalog::{
+    admit_topology_replay_family_declaration, admit_topology_replay_family_identity,
+    current_topology_replay_family_catalog, TopologyReplayFamilyCatalog,
+    TopologyReplayFamilyDeclaration, TopologyReplayFamilyDeclarationInput,
+    TopologyReplayFamilyIdentity, TopologyReplayFamilyIdentityAuthority,
+    TopologyReplayFamilyLocalityPosture, TopologyReplayFamilyPriorProofPosture,
+    TopologyReplayFamilyScopeProductPosture, TopologyReplayFamilyStageIndexPosture,
+    TopologyReplayFamilyWorkloadDependencyPosture,
+};
+pub use crate::replay_undo_semantic_graph::{
+    admit_prepared_topology_replay_semantic_graph_input,
+    admit_topology_replay_semantic_graph_input, admit_topology_undo_semantic_graph_input,
+    lower_topology_replay_equivalence_basis,
+    lower_topology_replay_equivalence_basis_from_admitted_input,
+    lower_topology_replay_equivalence_basis_from_scope_product,
+    lower_topology_replay_equivalence_basis_from_selected_plan,
+    lower_topology_replay_equivalence_basis_from_touched_closure,
+    lower_topology_replay_scope_identity, lower_topology_replay_scope_identity_from_admitted_input,
+    lower_topology_replay_scope_identity_from_scope_product,
+    lower_topology_replay_scope_identity_from_touched_closure,
+    lower_topology_replay_scope_product_from_admitted_input,
+    lower_topology_replay_scope_product_from_selected_plan, lower_topology_undo_equivalence_basis,
+    lower_topology_undo_equivalence_basis_from_admitted_input,
+    lower_topology_undo_equivalence_basis_from_scope_product,
+    lower_topology_undo_equivalence_basis_from_selected_plan,
+    lower_topology_undo_equivalence_basis_from_touched_closure, lower_topology_undo_scope_identity,
+    lower_topology_undo_scope_identity_from_admitted_input,
+    lower_topology_undo_scope_identity_from_scope_product,
+    lower_topology_undo_scope_identity_from_touched_closure,
+    lower_topology_undo_scope_product_from_admitted_input,
+    lower_topology_undo_scope_product_from_materialized_graph_request,
+    lower_topology_undo_scope_product_from_selected_plan,
+    lower_topology_undo_scope_product_from_traversal_views_request,
+    prepare_topology_replay_semantic_graph_request,
+    prepare_topology_replay_semantic_graph_stage_identity, select_topology_replay_plan,
+    select_topology_undo_plan, MaterializedGraphRollbackRequest, TopologyReplayPlanError,
+    TopologyReplayScopeProduct, TopologyReplayScopeProductCounters, TopologyReplaySelectedPlan,
+    TopologyReplaySemanticGraphAdmissionError, TopologyReplaySemanticGraphAdmissionRequest,
+    TopologyReplaySemanticGraphAdmittedInput, TopologyReplaySemanticGraphPreparationRequest,
+    TopologyReplaySemanticGraphPreparedRequest, TopologyReplaySemanticGraphPreparedStageAuthority,
+    TopologyReplaySemanticGraphSelectedPlanIdentity, TopologyReplaySemanticGraphStageIdentity,
+    TopologyReplaySemanticGraphStageReceiptAuthority, TopologyUndoFamilyExecutionError,
+    TopologyUndoPlanError, TopologyUndoScopeProduct, TopologyUndoScopeProductCounters,
+    TopologyUndoSelectedPlan, TopologyUndoSemanticGraphAdmissionError,
+    TopologyUndoSemanticGraphAdmissionRequest, TopologyUndoSemanticGraphAdmittedInput,
+    TraversalViewsRollbackRequest,
+};
+#[cfg(any(test, feature = "test-support-lowering"))]
+pub use crate::replay_undo_semantic_graph::{
+    traversal_views_topology_undo_fixture, TraversalViewsTopologyUndoFixture,
+};
 pub use crate::topology_operators::{
     topology_operator_command_batch_equivalent_touch_descriptor,
     topology_operator_graph_obligation_adoption_proof, topology_operator_graph_obligation_catalog,
@@ -326,12 +377,20 @@ pub use crate::workload_platform::{
     TopologyWorkloadEnvelope, TopologyWorkloadFamily, TopologyWorkloadReceipt,
     TopologyWorkloadSupport, TopologyWorkloadSupportPosture,
 };
-pub use forge_relational::facade::identity::{EntityId, PartitionId};
+pub use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 
 pub use crate::topology_operators::{
     topology_grouped_operator_neighborhood, topology_operator_continuation_target,
     topology_operator_contribution_workflow, topology_operator_signal_workflow,
     TopologyOperatorWorkflowHandleExt,
+};
+pub use crate::undo_family_catalog::{
+    admit_topology_undo_family_declaration, admit_topology_undo_family_identity,
+    current_topology_undo_family_catalog, TopologyUndoFamilyCatalog, TopologyUndoFamilyDeclaration,
+    TopologyUndoFamilyDeclarationInput, TopologyUndoFamilyIdentity,
+    TopologyUndoFamilyIdentityAuthority, TopologyUndoFamilyLocalityPosture,
+    TopologyUndoFamilyPriorProofPosture, TopologyUndoFamilyScopeProductPosture,
+    TopologyUndoFamilyStageIndexPosture, TopologyUndoFamilyWorkloadDependencyPosture,
 };
 
 #[cfg(test)]

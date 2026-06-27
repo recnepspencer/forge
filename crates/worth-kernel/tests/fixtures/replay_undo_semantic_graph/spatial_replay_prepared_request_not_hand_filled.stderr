@@ -1,0 +1,17 @@
+error[E0451]: fields `family_identity`, `spatial_touch_authority`, `prior_proof_identity`, `stage_index_identity`, `lookup_consumed_workload_handoff` and `retained_replay_receipt` of struct `SpatialReplaySemanticGraphPreparedRequest` are private
+  --> tests/fixtures/replay_undo_semantic_graph/spatial_replay_prepared_request_not_hand_filled.rs:5:9
+   |
+ 4 |     let _ = SpatialReplaySemanticGraphPreparedRequest {
+   |             ----------------------------------------- in this type
+ 5 |         family_identity: fake(),
+   |         ^^^^^^^^^^^^^^^ private field
+ 6 |         spatial_touch_authority: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         prior_proof_identity: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         stage_index_identity: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         lookup_consumed_workload_handoff: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         retained_replay_receipt: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field

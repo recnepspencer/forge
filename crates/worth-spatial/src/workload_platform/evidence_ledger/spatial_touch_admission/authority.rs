@@ -7,8 +7,8 @@ use super::digest::{
 };
 use super::operating_world::SpatialGeometryEvidenceTouchOperatingWorld;
 use crate::workload_platform::evidence_ledger::{
-    BooleanEvidenceStageKind, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
-    WorkloadEvidenceStageLookupCounters, WorkloadEvidenceSupport,
+    BooleanEvidenceStageKind, WorkloadEvidenceRow, WorkloadEvidenceStage,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceStageLookupCounters, WorkloadEvidenceSupport,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -24,6 +24,7 @@ pub struct SpatialGeometryEvidenceTouchAuthority {
     stage_link_set_identity: String,
     counter_honesty: SpatialGeometryEvidenceTouchCounterHonesty,
     operating_world: SpatialGeometryEvidenceTouchOperatingWorld,
+    authority_rows: Vec<WorkloadEvidenceRow>,
 }
 
 struct SpatialGeometryEvidenceTouchAuthorityParts {
@@ -35,6 +36,7 @@ struct SpatialGeometryEvidenceTouchAuthorityParts {
     lookup_counters: WorkloadEvidenceStageLookupCounters,
     stage_index_identity: String,
     stage_link_set_identity: String,
+    authority_rows: Vec<WorkloadEvidenceRow>,
 }
 
 pub(super) fn admit_spatial_geometry_evidence_touch_authority(
@@ -46,6 +48,7 @@ pub(super) fn admit_spatial_geometry_evidence_touch_authority(
     lookup_counters: WorkloadEvidenceStageLookupCounters,
     stage_index_identity: String,
     stage_link_set_identity: String,
+    authority_rows: Vec<WorkloadEvidenceRow>,
 ) -> SpatialGeometryEvidenceTouchAuthority {
     SpatialGeometryEvidenceTouchAuthority::from_parts(SpatialGeometryEvidenceTouchAuthorityParts {
         boolean_stage,
@@ -56,6 +59,7 @@ pub(super) fn admit_spatial_geometry_evidence_touch_authority(
         lookup_counters,
         stage_index_identity,
         stage_link_set_identity,
+        authority_rows,
     })
 }
 
@@ -89,6 +93,7 @@ impl SpatialGeometryEvidenceTouchAuthority {
             stage_link_set_identity: parts.stage_link_set_identity,
             counter_honesty,
             operating_world,
+            authority_rows: parts.authority_rows,
         }
     }
 
@@ -134,5 +139,18 @@ impl SpatialGeometryEvidenceTouchAuthority {
 
     pub fn operating_world(&self) -> SpatialGeometryEvidenceTouchOperatingWorld {
         self.operating_world
+    }
+
+    pub fn authority_rows(&self) -> &[WorkloadEvidenceRow] {
+        &self.authority_rows
+    }
+
+    pub fn selected_receipt_row(&self) -> WorkloadEvidenceRow {
+        WorkloadEvidenceRow::receipt_backed_with_support(
+            self.evidence_stage,
+            self.evidence_identity.clone(),
+            self.support,
+            self.evidence_counters,
+        )
     }
 }

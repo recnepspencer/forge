@@ -1,6 +1,4 @@
-use crate::workload_platform::evidence_ledger::{
-    BooleanEvidenceStageKind, WorkloadEvidenceSupport,
-};
+use crate::workload_platform::evidence_ledger::BooleanEvidenceStageKind;
 
 use super::counters::PlanarBooleanDownstreamSplitConsumptionCounters;
 use super::denial::{
@@ -56,11 +54,31 @@ pub(crate) fn validate_downstream_split_consumption_input(
         "downstream split consumption requires admitted spatial touch authority",
     )?;
     reject_missing(
-        input.spatial_lookup().lookup_key().as_str(),
-        Kind::MissingSpatialLookupProduct,
-        "spatial evidence lookup product",
+        input
+            .split_ledger_receipt()
+            .event_ledger_lookup_selected_plan_digest(),
+        Kind::MissingLookupSelectedPlanDigest,
+        "split-request selected-plan digest",
         *counters,
-        "downstream split consumption requires spatial evidence lookup authority",
+        "downstream split consumption requires receipt-backed selected lookup-plan proof",
+    )?;
+    reject_missing(
+        input
+            .split_ledger_receipt()
+            .event_ledger_lookup_execution_receipt_digest(),
+        Kind::MissingLookupExecutionReceiptDigest,
+        "split-request execution-receipt digest",
+        *counters,
+        "downstream split consumption requires receipt-backed lookup execution proof",
+    )?;
+    reject_missing(
+        input
+            .split_ledger_receipt()
+            .event_ledger_lookup_product_output_digest(),
+        Kind::MissingLookupProductOutputDigest,
+        "split-request lookup-product-output digest",
+        *counters,
+        "downstream split consumption requires receipt-backed lookup product-output proof",
     )?;
 
     reject_receipt_mismatch(
@@ -117,7 +135,6 @@ pub(crate) fn validate_downstream_split_consumption_input(
     )?;
 
     reject_spatial_touch_mismatch(input, counters)?;
-    reject_spatial_lookup_mismatch(input, counters)?;
     Ok(())
 }
 
@@ -187,50 +204,5 @@ fn reject_spatial_touch_mismatch(
         "spatial-touch-evidence-identity",
         counters,
         "spatial touch authority must admit the split ledger receipt being consumed downstream",
-    )
-}
-
-fn reject_spatial_lookup_mismatch(
-    input: &PlanarBooleanDownstreamSplitConsumptionInput<'_>,
-    counters: &mut PlanarBooleanDownstreamSplitConsumptionCounters,
-) -> Result<(), PlanarBooleanDownstreamSplitConsumptionDenial> {
-    let lookup = input.spatial_lookup();
-    if lookup.boolean_stage() != BooleanEvidenceStageKind::Split {
-        counters.rejected_non_receipt_evidence();
-        return Err(PlanarBooleanDownstreamSplitConsumptionDenial::new(
-            Kind::NonReceiptBackedBooleanSplitEvidence,
-            "spatial-lookup-boolean-stage",
-            "Split",
-            format!("{:?}", lookup.boolean_stage()),
-            *counters,
-            "downstream split consumption requires Split spatial lookup authority",
-        ));
-    }
-    if lookup.support() != WorkloadEvidenceSupport::Admitted {
-        counters.rejected_non_receipt_evidence();
-        return Err(PlanarBooleanDownstreamSplitConsumptionDenial::new(
-            Kind::NonReceiptBackedBooleanSplitEvidence,
-            "spatial-lookup-support",
-            "Admitted",
-            format!("{:?}", lookup.support()),
-            *counters,
-            "downstream split consumption requires admitted spatial lookup authority",
-        ));
-    }
-    reject_receipt_mismatch(
-        input.spatial_touch_authority().evidence_identity(),
-        lookup.evidence_identity(),
-        Kind::ForeignSpatialLookupProduct,
-        "spatial-lookup-evidence-identity",
-        counters,
-        "spatial lookup product must describe the admitted spatial touch authority",
-    )?;
-    reject_receipt_mismatch(
-        input.spatial_touch_authority().stage_index_identity(),
-        lookup.lookup_key().stage_index_identity(),
-        Kind::ForeignSpatialLookupProduct,
-        "spatial-lookup-stage-index-identity",
-        counters,
-        "spatial lookup product must preserve the admitted stage-index identity",
     )
 }

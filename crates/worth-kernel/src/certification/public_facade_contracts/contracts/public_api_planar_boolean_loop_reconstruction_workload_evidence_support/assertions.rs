@@ -2,7 +2,6 @@
 mod fixtures;
 #[path = "../public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
 mod reduced_pair_support;
-
 use topology::facade::PlanarBooleanLoopBlueprintRegistry;
 use worth_kernel::workload_composition::WorkloadCompositionError;
 use worth_spatial::certification::workload_evidence::{
@@ -239,6 +238,7 @@ pub(crate) fn assert_loop_stage_requirement_maps_only_to_loop_ledger_receipts() 
             foreign_handoff.evidence_receipt(),
             &matrix,
             &validators,
+            foreign_handoff.lookup_consumed_workload_handoff(),
         )
         .expect("a real foreign loop receipt still composes into a completed workload row");
     let mismatch_denial = foreign_workload
@@ -274,6 +274,7 @@ pub(crate) fn assert_loop_closeout_exposes_certified_runtime_registration_artifa
             handoff.evidence_receipt(),
             &matrix,
             &validators,
+            handoff.lookup_consumed_workload_handoff(),
         )
         .expect("supported public matrix and validator plan must certify runtime registration");
     assert_runtime_registration_proof(

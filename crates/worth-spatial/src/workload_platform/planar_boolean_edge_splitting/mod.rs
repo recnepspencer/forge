@@ -8,6 +8,8 @@ mod endpoint_boundary_normalization;
 mod event_participation_index;
 mod interval_parameter_admission;
 mod interval_split_candidates;
+#[cfg(test)]
+mod lookup_execution_test_support;
 mod loop_reconstruction_consumption;
 mod micro_interval_normalization;
 mod overlap_edge_chains;
@@ -93,6 +95,10 @@ pub use interval_split_candidates::{
     PlanarBooleanIntervalSplitCandidate, PlanarBooleanIntervalSplitCandidateCounters,
     PlanarBooleanIntervalSplitCandidateDenial, PlanarBooleanIntervalSplitCandidateDenialKind,
     PlanarBooleanIntervalSplitCandidateSet,
+};
+#[cfg(test)]
+pub(crate) use lookup_execution_test_support::{
+    event_ledger_lookup_execution_subject, EventLedgerLookupExecutionTestSubject,
 };
 #[allow(unused_imports)]
 pub use loop_reconstruction_consumption::{
