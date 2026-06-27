@@ -1,0 +1,7 @@
+error[E0432]: unresolved imports `worth_ui_runtime::facade::bootstrap_runtime`, `worth_ui_runtime::facade::WorthUiRuntimeBuilderCore`
+ --> tests/ui/lifecycle/external_runtime_facade_builder_and_bootstrap_entries_are_not_public.rs:1:32
+  |
+1 | use worth_ui_runtime::facade::{bootstrap_runtime, WorthUiRuntimeBuilderCore};
+  |                                ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiRuntimeBuilderCore` in `facade`
+  |                                |
+  |                                no `bootstrap_runtime` in `facade`

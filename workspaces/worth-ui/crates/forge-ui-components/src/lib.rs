@@ -2,7 +2,7 @@
 //!
 //! DOMAIN: All visual widgets used by the Forge UI. Every component is a
 //! pure function over egui::Ui + ForgeTheme + props. No state, no side effects.
-//! DEPENDENCIES: forge-ui-theme, forge-ui-types, egui.
+//! DEPENDENCIES: forge-ui-theme, egui.
 
 // ── Atoms ────────────────────────────────────────────────────────────────────
 pub mod alert;

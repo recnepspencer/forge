@@ -12,9 +12,7 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-forge-foundational = { workspace = true }
-forge-proof = { workspace = true }
-forge-query = { workspace = true }
+worth-ui-runtime = { workspace = true }
 
 [dev-dependencies]
 trybuild = { workspace = true }

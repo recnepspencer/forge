@@ -1,0 +1,16 @@
+[package]
+name = "worth-ui-host-egui"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lib]
+name = "worth_ui_host_egui"
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+worth-ui-host-contract = { workspace = true }
+egui = { workspace = true }

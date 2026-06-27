@@ -1,0 +1,24 @@
+[package]
+name = "worth-ui-certification"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lib]
+name = "worth_ui_certification"
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+syn = { version = "2.0", features = ["full", "visit"] }
+toml = "0.8"
+
+[dev-dependencies]
+trybuild = { workspace = true }
+worth-ui-dsl = { workspace = true }
+worth-ui-host-contract = { workspace = true }
+worth-ui-inspection = { workspace = true }
+worth-ui-runtime = { workspace = true }
+worth-ui = { workspace = true }

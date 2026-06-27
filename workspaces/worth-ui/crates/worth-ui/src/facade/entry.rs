@@ -1,4 +1,4 @@
-use super::WorthUiAppBuilder;
+use super::WorthUiBuilder;
 
 /// Public entrypoint for building Worth UI applications.
 pub struct WorthUi {
@@ -7,7 +7,7 @@ pub struct WorthUi {
 
 impl WorthUi {
     /// Start a Worth UI application definition.
-    pub fn app() -> WorthUiAppBuilder {
-        WorthUiAppBuilder::new()
+    pub fn app() -> WorthUiBuilder {
+        WorthUiBuilder::new()
     }
 }
