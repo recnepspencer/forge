@@ -16,7 +16,7 @@ pub use closeout::DerivedInvalidationFamilyCatalogCloseout;
 pub use counters::DerivedInvalidationFamilyCatalogCounters;
 pub use current::current_derived_invalidation_family_catalog;
 pub use error::{DerivedInvalidationFamilyCatalogError, DerivedInvalidationFamilyCatalogErrorKind};
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 pub(crate) use family::DerivedTopologyProductFamilyRecordInput;
 pub use family::{
     DerivedTopologyConsumedGraphFacts, DerivedTopologyDiagnosticPosture,

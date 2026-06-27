@@ -123,7 +123,7 @@ pub use query_workflow::{
 pub use rejection_locality::{
     RejectedMutationScopeReport, RejectedMutationScopeRow, TopologyMutationRejectionClass,
 };
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 pub(crate) use touched_graph_basis::test_basis_from_parts;
 pub use touched_graph_basis::{
     topology_operator_touch_descriptor_from_touched_graph_basis, TopologyDeclaredTouchedGraphBasis,

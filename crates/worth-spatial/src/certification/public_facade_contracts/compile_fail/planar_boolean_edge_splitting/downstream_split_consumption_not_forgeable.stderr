@@ -24,4 +24,4 @@ error: cannot construct `PlanarBooleanDownstreamSplitConsumption` with struct li
 14 |         counters: Default::default(),
    |         ---------------------------- private field
    |
-   = note: ...and other private fields `spatial_lookup_key`, `spatial_lookup_product_digest`, `spatial_support`, `spatial_stage_counters` and `spatial_lookup_counters` that were not provided
+   = note: ...and other private fields `lookup_selected_plan_digest`, `lookup_execution_receipt_digest`, `lookup_product_output_digest`, `spatial_support`, `spatial_stage_counters` and `spatial_lookup_counters` that were not provided

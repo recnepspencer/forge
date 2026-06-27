@@ -108,7 +108,7 @@ impl TopologyTouchedGraphBasis {
         &self.digest
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support-lowering"))]
     pub(crate) fn with_operating_world_for_tests(
         self,
         operating_world: TopologyTouchedOperatingWorld,

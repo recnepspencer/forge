@@ -23,7 +23,7 @@ note: expected `&...`, found `&Vec<PlanarBooleanSegmentCarrier>`
    |
 16 |         &raw_segment_carriers,
    |         ^^^^^^^^^^^^^^^^^^^^^
-   = note: expected reference `&WorkloadEvidenceBooleanReceiptLookupProduct`
+   = note: expected reference `&PlanarBooleanEventLedgerLookupExecutionWitness`
               found reference `&Vec<PlanarBooleanSegmentCarrier>`
 note: associated function defined here
   --> src/workload_platform/planar_boolean_edge_splitting/edge_split_request/input.rs

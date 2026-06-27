@@ -68,9 +68,12 @@ pub use workload_catalog::{
     WorkloadTopologyBreadth,
 };
 pub use worth_workload::{
-    BooleanChainIntegrationCounters, BooleanChainIntegrationHandoff, BooleanChainResidueRow,
-    CompletedBooleanLoopReconstructionHandoff, CompletedBooleanLoopReconstructionProducts,
-    CompletedBooleanSplitHandoff, PlanarBooleanLoopReconstructionCloseoutInput,
+    AdmittedBooleanSplitReplayUndoBoundary, BooleanChainCompletedReceiptGuard,
+    BooleanChainIntegrationCounters, BooleanChainIntegrationHandoff, BooleanChainResidueBoundary,
+    BooleanChainResidueRemovalTrigger, BooleanChainResidueRow,
+    BooleanSplitReplayUndoBoundaryRequest, CompletedBooleanLoopReconstructionHandoff,
+    CompletedBooleanLoopReconstructionProducts, CompletedBooleanSplitHandoff,
+    LookupConsumedWorkloadComposition, PlanarBooleanLoopReconstructionCloseoutInput,
     PlanarBooleanLoopRuntimeRegistrationProof, WorkloadCompositionError, WorthWorkload,
     WorthWorkloadParts,
 };

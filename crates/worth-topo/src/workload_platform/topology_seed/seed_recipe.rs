@@ -1,7 +1,7 @@
 use super::{
-    TopologySeedCleanFailClass, TopologySeedCleanFailReasonCode, TopologySeedCleanFailReceipt,
-    TopologySeedCleanFailStage, TopologySeedCounters, TopologySeedEntityIdentities,
-    TopologySeedKind, TopologySeedQueryReceipts, TopologySeedReceipt,
+    TopologySeedBuiltTopology, TopologySeedCleanFailClass, TopologySeedCleanFailReasonCode,
+    TopologySeedCleanFailReceipt, TopologySeedCleanFailStage, TopologySeedCounters,
+    TopologySeedEntityIdentities, TopologySeedKind, TopologySeedQueryReceipts, TopologySeedReceipt,
     TopologySeedValidationReceipt,
 };
 use crate::brep::topology_graph::TopologyView;
@@ -40,6 +40,14 @@ impl TopologySeedRecipe {
     }
 
     pub fn build(self) -> Result<TopologySeedReceipt, TopologySeedCleanFailReceipt> {
+        self.build_with_topology()
+            .map(TopologySeedBuiltTopology::into_parts)
+            .map(|(_, receipt)| receipt)
+    }
+
+    pub fn build_with_topology(
+        self,
+    ) -> Result<TopologySeedBuiltTopology, TopologySeedCleanFailReceipt> {
         let query_receipts = self.query_receipts()?;
         let output = self.build_recipe_output(&query_receipts)?;
         self.admit_recipe_output(query_receipts, output)
@@ -67,7 +75,7 @@ impl TopologySeedRecipe {
         &self,
         query_receipts: TopologySeedQueryReceipts,
         output: TopologySeedRecipeOutput,
-    ) -> Result<TopologySeedReceipt, TopologySeedCleanFailReceipt> {
+    ) -> Result<TopologySeedBuiltTopology, TopologySeedCleanFailReceipt> {
         if let Some(denial) = dirty_seed_denial(self.kind) {
             let (identities, counters) = seed_evidence(&output.topology, 0);
             return Err(TopologySeedCleanFailReceipt::new(
@@ -105,13 +113,16 @@ impl TopologySeedRecipe {
 
         let validation = TopologySeedValidationReceipt::from_report(&report);
         let (identities, counters) = seed_evidence(&output.topology, validation.row_count());
-        Ok(TopologySeedReceipt::new(
-            self.kind,
-            query_receipts,
-            identities,
-            counters,
-            validation,
-            output.neighborhood,
+        Ok(TopologySeedBuiltTopology::new(
+            output.topology,
+            TopologySeedReceipt::new(
+                self.kind,
+                query_receipts,
+                identities,
+                counters,
+                validation,
+                output.neighborhood,
+            ),
         ))
     }
 
@@ -188,5 +199,24 @@ struct DirtyTopologySeedDenial {
 impl From<TopologySeedRecipeOutput> for TopologyView {
     fn from(output: TopologySeedRecipeOutput) -> Self {
         output.topology
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::TopologySeed;
+
+    #[test]
+    fn build_with_topology_returns_view_and_matching_receipt() {
+        let built = TopologySeed::open_wire()
+            .build_with_topology()
+            .expect("open wire seed should build");
+
+        assert_eq!(
+            built.receipt().kind(),
+            super::super::TopologySeedKind::OpenWire
+        );
+        assert!(built.receipt().can_enter_spatial_binding());
+        assert!(!built.topology().vertices.is_empty());
     }
 }

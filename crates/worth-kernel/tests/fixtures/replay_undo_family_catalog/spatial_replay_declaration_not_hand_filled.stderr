@@ -1,0 +1,18 @@
+error[E0451]: fields `identity`, `locality_posture`, `prior_proof_posture`, `stage_index_posture`, `workload_dependency_posture` and `scope_product_posture` of struct `SpatialReplayFamilyDeclaration` are private
+  --> tests/fixtures/replay_undo_family_catalog/spatial_replay_declaration_not_hand_filled.rs:9:9
+   |
+ 8 |     let _ = SpatialReplayFamilyDeclaration {
+   |             ------------------------------ in this type
+ 9 |         identity: SpatialReplayFamilyIdentity::BooleanEventLedgerReplay,
+   |         ^^^^^^^^ private field
+10 |         locality_posture: SpatialReplayFamilyLocalityPosture::RequiresSpatialTouchAuthority,
+   |         ^^^^^^^^^^^^^^^^ private field
+11 |         prior_proof_posture: SpatialReplayFamilyPriorProofPosture::RequiresEvidenceLookupExecutionReceipt,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+12 |         stage_index_posture: SpatialReplayFamilyStageIndexPosture::RequiresStageIndexIdentity,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+13 |         workload_dependency_posture:
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |             SpatialReplayFamilyWorkloadDependencyPosture::RequiresLookupConsumedWorkloadAndRetainedReplay,
+15 |         scope_product_posture: SpatialReplayFamilyScopeProductPosture::RequiresSpatialReplayScopeProduct,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field

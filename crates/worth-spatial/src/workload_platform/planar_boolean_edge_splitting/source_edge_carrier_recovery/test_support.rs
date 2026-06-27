@@ -1,9 +1,10 @@
 use crate::workload_platform::evidence_ledger::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
 use crate::workload_platform::planar_boolean_common_plane::PlanarBooleanCommonPlaneOperandSide;
 use crate::workload_platform::planar_boolean_edge_splitting::{
-    PlanarBooleanCandidateIndexConsumptionGate, PlanarBooleanCandidateIndexConsumptionInput,
-    PlanarBooleanEdgeSplitRequest, PlanarBooleanEdgeSplitRequestInput,
-    PlanarBooleanEdgeSplitScopeAdmission, PlanarBooleanEdgeSplitScopeAdmissionInput,
+    event_ledger_lookup_execution_subject, PlanarBooleanCandidateIndexConsumptionGate,
+    PlanarBooleanCandidateIndexConsumptionInput, PlanarBooleanEdgeSplitRequest,
+    PlanarBooleanEdgeSplitRequestInput, PlanarBooleanEdgeSplitScopeAdmission,
+    PlanarBooleanEdgeSplitScopeAdmissionInput,
 };
 use crate::workload_platform::planar_boolean_events::{
     normalize_endpoint_order, validate_segment_endpoint_admissibility,
@@ -70,13 +71,18 @@ pub(crate) fn subject_with_ledger(
         ),
     )
     .expect("candidate-index gate should admit");
-    let event_ledger_lookup = evidence
-        .require_boolean_receipt_lookup(&ledger)
-        .expect("typed event-ledger lookup should admit");
+    let event_ledger_lookup = event_ledger_lookup_execution_subject(
+        "source-edge-recovery",
+        &ledger,
+        vec![
+            WorkloadEvidenceRow::from_boolean_evidence_receipt(&segment_pairs),
+            WorkloadEvidenceRow::from_boolean_evidence_receipt(&ledger),
+        ],
+    );
     let request = PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
         &ledger,
         &gate,
-        &event_ledger_lookup,
+        &event_ledger_lookup.witness,
         None,
     ))
     .expect("split request should admit");

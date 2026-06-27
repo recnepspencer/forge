@@ -1,0 +1,23 @@
+error[E0451]: fields `stage_receipt_identity`, `workload_stage_index_identity`, `selected_lookup_plan_digest`, `lookup_execution_receipt_digest`, `lookup_product_output_digest`, `topology_derived_receipt_state`, `covered_family_identities`, `counters` and `milestone_twelve_seed` of struct `EvidenceLookupConsumedWorkloadHandoff` are private
+  --> tests/fixtures/replay_undo_semantic_graph/lookup_consumed_workload_handoff_not_hand_filled.rs:5:9
+   |
+ 4 |     let _ = EvidenceLookupConsumedWorkloadHandoff {
+   |             ------------------------------------- in this type
+ 5 |         stage_receipt_identity: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+ 6 |         workload_stage_index_identity: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         selected_lookup_plan_digest: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         lookup_execution_receipt_digest: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         lookup_product_output_digest: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         topology_derived_receipt_state: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         covered_family_identities: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         counters: fake(),
+   |         ^^^^^^^^ private field
+13 |         milestone_twelve_seed: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field

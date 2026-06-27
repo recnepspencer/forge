@@ -3195,6 +3195,7 @@ dependencies = [
  "worth-geom",
  "worth-math",
  "worth-primitives",
+ "worth-schema",
  "worth-spatial",
  "worth-topo",
 ]

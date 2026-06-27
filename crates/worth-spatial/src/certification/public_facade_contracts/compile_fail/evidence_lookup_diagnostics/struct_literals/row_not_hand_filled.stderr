@@ -1,0 +1,43 @@
+warning: unreachable expression
+ --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_diagnostics/struct_literals/row_not_hand_filled.rs:8:31
+  |
+7 |         stage: panic!(),
+  |                -------- any code following this expression is unreachable
+8 |         spatial_touch_digest: String::new(),
+  |                               ^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `family_identity`, `family_declaration_digest`, `stage`, `spatial_touch_digest`, `stage_receipt_digest`, `selected_plan_digest`, `selected_plan_row_digest`, `execution_receipt_digest`, `evidence_classes`, `topology_posture`, `query_posture`, `query_surface_contract`, `witness` and `row_digest` of struct `EvidenceLookupDiagnosticRow` are private
+  --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_diagnostics/struct_literals/row_not_hand_filled.rs:5:9
+   |
+ 4 |     let _ = EvidenceLookupDiagnosticRow {
+   |             --------------------------- in this type
+ 5 |         family_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+ 6 |         family_declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         stage: panic!(),
+   |         ^^^^^ private field
+ 8 |         spatial_touch_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         stage_receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+10 |         selected_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+11 |         selected_plan_row_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         execution_receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         evidence_classes: panic!(),
+   |         ^^^^^^^^^^^^^^^^ private field
+14 |         topology_posture: panic!(),
+   |         ^^^^^^^^^^^^^^^^ private field
+15 |         query_posture: panic!(),
+   |         ^^^^^^^^^^^^^ private field
+16 |         query_surface_contract: panic!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         witness: panic!(),
+   |         ^^^^^^^ private field
+18 |         row_digest: String::new(),
+   |         ^^^^^^^^^^ private field

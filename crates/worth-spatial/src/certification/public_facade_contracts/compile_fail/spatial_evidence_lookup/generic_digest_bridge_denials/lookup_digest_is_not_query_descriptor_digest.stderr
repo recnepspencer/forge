@@ -1,0 +1,13 @@
+error[E0277]: the trait bound `SpatialEvidenceLookupProductDigest: Borrow<SpatialEvidenceQueryTouchDescriptorDigest>` is not satisfied
+  --> src/certification/public_facade_contracts/compile_fail/spatial_evidence_lookup/generic_digest_bridge_denials/lookup_digest_is_not_query_descriptor_digest.rs:14:37
+   |
+14 |     require_query_descriptor_digest(lookup_digest());
+   |     ------------------------------- ^^^^^^^^^^^^^^^ the trait `Borrow<SpatialEvidenceQueryTouchDescriptorDigest>` is not implemented for `SpatialEvidenceLookupProductDigest`
+   |     |
+   |     required by a bound introduced by this call
+   |
+note: required by a bound in `require_query_descriptor_digest`
+  --> src/certification/public_facade_contracts/compile_fail/spatial_evidence_lookup/generic_digest_bridge_denials/lookup_digest_is_not_query_descriptor_digest.rs:7:39
+   |
+ 7 | fn require_query_descriptor_digest<T: Borrow<SpatialEvidenceQueryTouchDescriptorDigest>>(_: T) {}
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `require_query_descriptor_digest`

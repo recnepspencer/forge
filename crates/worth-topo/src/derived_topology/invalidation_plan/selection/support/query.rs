@@ -56,7 +56,7 @@ impl DerivedInvalidationQuerySupportEvidence {
         )
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support-lowering"))]
     pub(crate) fn from_receipt_digests_for_tests(
         projection_consumption_receipt_digest: Option<String>,
         native_read_receipt_digest: Option<String>,

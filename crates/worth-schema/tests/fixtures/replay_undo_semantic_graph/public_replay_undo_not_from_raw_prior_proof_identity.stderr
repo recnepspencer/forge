@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `schema::facade::platform::authority::replay_undo_semantic_graph::admit_topology_derived_invalidation_prior_proof_identity`
+ --> tests/fixtures/replay_undo_semantic_graph/public_replay_undo_not_from_raw_prior_proof_identity.rs:1:5
+  |
+1 | use schema::facade::platform::authority::replay_undo_semantic_graph::admit_topology_derived_invalidation_prior_proof_identity;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_topology_derived_invalidation_prior_proof_identity` in `facade::platform::authority::replay_undo_semantic_graph`

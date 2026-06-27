@@ -8,7 +8,7 @@ mod selected_plan;
 mod support;
 mod touched_closure;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 pub(crate) mod selection_test_fixtures;
 #[cfg(test)]
 mod tests;

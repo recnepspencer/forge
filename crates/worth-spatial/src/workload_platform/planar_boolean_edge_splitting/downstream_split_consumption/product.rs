@@ -4,8 +4,7 @@ use super::identity::downstream_split_consumption_identity;
 use super::input::PlanarBooleanDownstreamSplitConsumptionInput;
 use super::validation::validate_downstream_split_consumption_input;
 use crate::workload_platform::evidence_ledger::{
-    SpatialEvidenceLookupProductDigest, WorkloadEvidenceStageCounters,
-    WorkloadEvidenceStageLookupCounters, WorkloadEvidenceSupport,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceStageLookupCounters, WorkloadEvidenceSupport,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -19,8 +18,9 @@ pub struct PlanarBooleanDownstreamSplitConsumption {
     persistent_naming_receipt_identity: String,
     replay_parity_receipt_identity: String,
     workload_stage_index_identity: String,
-    spatial_lookup_key: String,
-    spatial_lookup_product_digest: SpatialEvidenceLookupProductDigest,
+    lookup_selected_plan_digest: String,
+    lookup_execution_receipt_digest: String,
+    lookup_product_output_digest: String,
     spatial_support: WorkloadEvidenceSupport,
     spatial_stage_counters: WorkloadEvidenceStageCounters,
     spatial_lookup_counters: WorkloadEvidenceStageLookupCounters,
@@ -55,11 +55,11 @@ impl PlanarBooleanDownstreamSplitConsumption {
         counters.consumed_replay_parity_rows(input.replay_parity_receipt().parity_rows().len());
         counters.consumed_spatial_lookup_product(
             input
-                .spatial_lookup()
+                .spatial_touch_authority()
                 .lookup_counters()
                 .indexed_lookup_count(),
             input
-                .spatial_lookup()
+                .spatial_touch_authority()
                 .lookup_counters()
                 .raw_row_scan_count(),
         );
@@ -68,8 +68,12 @@ impl PlanarBooleanDownstreamSplitConsumption {
             input.decision_log_receipt().receipt_identity(),
             input.persistent_naming_receipt().receipt_identity(),
             input.replay_parity_receipt().receipt_identity(),
-            input.spatial_lookup().lookup_key().as_str(),
-            input.spatial_lookup().product_digest().as_str(),
+            input
+                .split_ledger_receipt()
+                .event_ledger_lookup_execution_receipt_digest(),
+            input
+                .split_ledger_receipt()
+                .event_ledger_lookup_product_output_digest(),
             counters,
         );
         Ok(Self {
@@ -100,15 +104,24 @@ impl PlanarBooleanDownstreamSplitConsumption {
                 .receipt_identity()
                 .to_string(),
             workload_stage_index_identity: input
-                .spatial_lookup()
-                .lookup_key()
+                .spatial_touch_authority()
                 .stage_index_identity()
                 .to_string(),
-            spatial_lookup_key: input.spatial_lookup().lookup_key().as_str().to_string(),
-            spatial_lookup_product_digest: input.spatial_lookup().product_digest().clone(),
-            spatial_support: input.spatial_lookup().support(),
-            spatial_stage_counters: input.spatial_lookup().counters(),
-            spatial_lookup_counters: input.spatial_lookup().lookup_counters(),
+            lookup_selected_plan_digest: input
+                .split_ledger_receipt()
+                .event_ledger_lookup_selected_plan_digest()
+                .to_string(),
+            lookup_execution_receipt_digest: input
+                .split_ledger_receipt()
+                .event_ledger_lookup_execution_receipt_digest()
+                .to_string(),
+            lookup_product_output_digest: input
+                .split_ledger_receipt()
+                .event_ledger_lookup_product_output_digest()
+                .to_string(),
+            spatial_support: input.spatial_touch_authority().support(),
+            spatial_stage_counters: input.spatial_touch_authority().evidence_counters(),
+            spatial_lookup_counters: input.spatial_touch_authority().lookup_counters(),
             counters,
         })
     }
@@ -149,12 +162,16 @@ impl PlanarBooleanDownstreamSplitConsumption {
         &self.workload_stage_index_identity
     }
 
-    pub fn spatial_lookup_key(&self) -> &str {
-        &self.spatial_lookup_key
+    pub fn lookup_selected_plan_digest(&self) -> &str {
+        &self.lookup_selected_plan_digest
     }
 
-    pub fn spatial_lookup_product_digest(&self) -> &SpatialEvidenceLookupProductDigest {
-        &self.spatial_lookup_product_digest
+    pub fn lookup_execution_receipt_digest(&self) -> &str {
+        &self.lookup_execution_receipt_digest
+    }
+
+    pub fn lookup_product_output_digest(&self) -> &str {
+        &self.lookup_product_output_digest
     }
 
     pub fn spatial_support(&self) -> WorkloadEvidenceSupport {
@@ -183,8 +200,9 @@ impl PlanarBooleanDownstreamSplitConsumption {
             && !self.persistent_naming_receipt_identity.is_empty()
             && !self.replay_parity_receipt_identity.is_empty()
             && !self.workload_stage_index_identity.is_empty()
-            && !self.spatial_lookup_key.is_empty()
-            && !self.spatial_lookup_product_digest.as_str().is_empty()
+            && !self.lookup_selected_plan_digest.is_empty()
+            && !self.lookup_execution_receipt_digest.is_empty()
+            && !self.lookup_product_output_digest.is_empty()
             && self.counters.receipts_consumed() == 5
             && self.counters.spatial_lookup_products_consumed() == 1
             && self.counters.split_chains_consumed() > 0

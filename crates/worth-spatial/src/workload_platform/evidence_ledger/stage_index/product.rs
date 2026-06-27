@@ -7,7 +7,7 @@ use crate::workload_platform::evidence_ledger::{
 use super::super::stage_links::link_required_stages;
 use super::counters::WorkloadEvidenceStageIndexCounters;
 use super::identity::stage_index_identity;
-use super::receipt_match::match_boolean_receipt_lookup;
+use super::receipt_match::{match_boolean_receipt_lookup, match_boolean_row_lookup};
 use super::validation::{build_stage_offsets, stage_index_counters};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -105,6 +105,16 @@ impl WorkloadEvidenceStageIndexProduct {
         receipt: &T,
     ) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceLedgerError> {
         match_boolean_receipt_lookup(self, receipt)
+    }
+
+    pub(crate) fn require_boolean_row_lookup(
+        &self,
+        stage: WorkloadEvidenceStage,
+        evidence_identity: &str,
+        support: crate::workload_platform::evidence_ledger::WorkloadEvidenceSupport,
+        counters: crate::workload_platform::evidence_ledger::WorkloadEvidenceStageCounters,
+    ) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceLedgerError> {
+        match_boolean_row_lookup(self, stage, evidence_identity, support, counters)
     }
 
     pub fn link_required_stages(

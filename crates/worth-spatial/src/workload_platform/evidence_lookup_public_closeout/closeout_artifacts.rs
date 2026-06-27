@@ -1,0 +1,308 @@
+use crate::workload_platform::evidence_ledger::{
+    SpatialEvidenceSurfaceDeletionLedgerRow, WorkloadEvidenceStage,
+};
+use crate::workload_platform::evidence_lookup_family_catalog::EvidenceLookupFamilyDeclaration;
+use crate::workload_platform::evidence_lookup_query_consumer_kit::EvidenceLookupQueryConsumerKitCloseout;
+use crate::workload_platform::evidence_lookup_query_surface_matrix::EvidenceLookupQuerySurfaceMatrixCloseout;
+use crate::workload_platform::evidence_lookup_source_firewall::EvidenceLookupSourceFirewallReport;
+use crate::workload_platform::evidence_lookup_stage_cutover::EvidenceLookupCoveredStageCutoverProof;
+use crate::workload_platform::evidence_lookup_workload_cutover::EvidenceLookupMilestoneTwelveSeed;
+use worth_primitives::{truth_digest_parts, TruthDigestScope};
+
+use super::counters::EvidenceLookupPublicCloseoutCounters;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum EvidenceLookupPublicCloseoutDisposition {
+    ReceiptProof {
+        selected_lookup_plan_digest: String,
+        lookup_execution_receipt_digest: String,
+        lookup_product_output_digest: String,
+    },
+    NonOrdinaryResidue {
+        reason: String,
+        removal_trigger: String,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EvidenceLookupPublicCloseoutFamilyStageRow {
+    pub(super) family_identity: String,
+    pub(super) family_declaration_digest: String,
+    pub(super) stage: WorkloadEvidenceStage,
+    pub(super) stage_receipt_family_identity: String,
+    pub(super) spatial_touch_digest: Option<String>,
+    pub(super) topology_input_summary: String,
+    pub(super) query_import_evidence_digest: Option<String>,
+    pub(super) query_surface_row_digest: String,
+    pub(super) disposition: EvidenceLookupPublicCloseoutDisposition,
+    pub(super) row_digest: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EvidenceLookupPublicCloseout {
+    pub(super) family_stage_rows: Vec<EvidenceLookupPublicCloseoutFamilyStageRow>,
+    pub(super) query_surface_matrix: EvidenceLookupQuerySurfaceMatrixCloseout,
+    pub(super) query_consumer_kit: EvidenceLookupQueryConsumerKitCloseout,
+    pub(super) source_firewall_report: EvidenceLookupSourceFirewallReport,
+    pub(super) spatial_deletion_ledger_rows: Vec<SpatialEvidenceSurfaceDeletionLedgerRow>,
+    pub(super) counters: EvidenceLookupPublicCloseoutCounters,
+    pub(super) family_coverage_digest: String,
+    pub(super) spatial_deletion_ledger_digest: String,
+    pub(super) residue_audit_digest: String,
+    pub(super) milestone_twelve_seed: EvidenceLookupMilestoneTwelveSeed,
+    pub(super) closeout_digest: String,
+}
+
+impl EvidenceLookupPublicCloseoutFamilyStageRow {
+    pub(super) fn from_receipt_proof(
+        family: &EvidenceLookupFamilyDeclaration,
+        stage: WorkloadEvidenceStage,
+        query_surface_row_digest: &str,
+        proof: &EvidenceLookupCoveredStageCutoverProof,
+    ) -> Self {
+        let disposition = EvidenceLookupPublicCloseoutDisposition::ReceiptProof {
+            selected_lookup_plan_digest: proof.selected_lookup_plan_digest().to_string(),
+            lookup_execution_receipt_digest: proof.lookup_execution_receipt_digest().to_string(),
+            lookup_product_output_digest: proof.lookup_product_output_digest().to_string(),
+        };
+        let row = Self {
+            family_identity: family.identity().as_str().to_string(),
+            family_declaration_digest: family.declaration_digest().to_string(),
+            stage,
+            stage_receipt_family_identity: family
+                .stage_applicability()
+                .stage_receipt_family_identity()
+                .digest()
+                .to_string(),
+            spatial_touch_digest: Some(proof.spatial_touch_digest().to_string()),
+            topology_input_summary: topology_input_summary(family),
+            query_import_evidence_digest: family
+                .query_posture()
+                .imported_evidence_digest()
+                .map(str::to_string),
+            query_surface_row_digest: query_surface_row_digest.to_string(),
+            disposition,
+            row_digest: String::new(),
+        };
+        row.with_row_digest()
+    }
+
+    pub(super) fn blocked_by_topology_seed(
+        family: &EvidenceLookupFamilyDeclaration,
+        stage: WorkloadEvidenceStage,
+        query_surface_row_digest: &str,
+    ) -> Self {
+        let required_family = family
+            .topology_input_posture()
+            .required_family()
+            .expect("blocked topology residue requires topology family");
+        let disposition = EvidenceLookupPublicCloseoutDisposition::NonOrdinaryResidue {
+            reason: format!(
+                "family `{}` at stage `{}` remains non-ordinary until topology seed proves `{}`",
+                family.identity().as_str(),
+                stage.human_name(),
+                required_family.as_str()
+            ),
+            removal_trigger: format!(
+                "Milestone 10 seed consumption for `{}` is wired into the lookup lane",
+                required_family.as_str()
+            ),
+        };
+        let row = Self {
+            family_identity: family.identity().as_str().to_string(),
+            family_declaration_digest: family.declaration_digest().to_string(),
+            stage,
+            stage_receipt_family_identity: family
+                .stage_applicability()
+                .stage_receipt_family_identity()
+                .digest()
+                .to_string(),
+            spatial_touch_digest: None,
+            topology_input_summary: topology_input_summary(family),
+            query_import_evidence_digest: family
+                .query_posture()
+                .imported_evidence_digest()
+                .map(str::to_string),
+            query_surface_row_digest: query_surface_row_digest.to_string(),
+            disposition,
+            row_digest: String::new(),
+        };
+        row.with_row_digest()
+    }
+
+    pub fn family_identity(&self) -> &str {
+        &self.family_identity
+    }
+
+    pub fn family_declaration_digest(&self) -> &str {
+        &self.family_declaration_digest
+    }
+
+    pub const fn stage(&self) -> WorkloadEvidenceStage {
+        self.stage
+    }
+
+    pub fn stage_receipt_family_identity(&self) -> &str {
+        &self.stage_receipt_family_identity
+    }
+
+    pub fn spatial_touch_digest(&self) -> Option<&str> {
+        self.spatial_touch_digest.as_deref()
+    }
+
+    pub fn topology_input_summary(&self) -> &str {
+        &self.topology_input_summary
+    }
+
+    pub fn query_import_evidence_digest(&self) -> Option<&str> {
+        self.query_import_evidence_digest.as_deref()
+    }
+
+    pub fn query_surface_row_digest(&self) -> &str {
+        &self.query_surface_row_digest
+    }
+
+    pub const fn disposition(&self) -> &EvidenceLookupPublicCloseoutDisposition {
+        &self.disposition
+    }
+
+    pub fn selected_lookup_plan_digest(&self) -> Option<&str> {
+        match &self.disposition {
+            EvidenceLookupPublicCloseoutDisposition::ReceiptProof {
+                selected_lookup_plan_digest,
+                ..
+            } => Some(selected_lookup_plan_digest),
+            EvidenceLookupPublicCloseoutDisposition::NonOrdinaryResidue { .. } => None,
+        }
+    }
+
+    pub fn lookup_execution_receipt_digest(&self) -> Option<&str> {
+        match &self.disposition {
+            EvidenceLookupPublicCloseoutDisposition::ReceiptProof {
+                lookup_execution_receipt_digest,
+                ..
+            } => Some(lookup_execution_receipt_digest),
+            EvidenceLookupPublicCloseoutDisposition::NonOrdinaryResidue { .. } => None,
+        }
+    }
+
+    pub fn lookup_product_output_digest(&self) -> Option<&str> {
+        match &self.disposition {
+            EvidenceLookupPublicCloseoutDisposition::ReceiptProof {
+                lookup_product_output_digest,
+                ..
+            } => Some(lookup_product_output_digest),
+            EvidenceLookupPublicCloseoutDisposition::NonOrdinaryResidue { .. } => None,
+        }
+    }
+
+    pub fn row_digest(&self) -> &str {
+        &self.row_digest
+    }
+
+    fn with_row_digest(mut self) -> Self {
+        self.row_digest = row_digest(&self);
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_test_disposition(
+        mut self,
+        disposition: EvidenceLookupPublicCloseoutDisposition,
+    ) -> Self {
+        self.disposition = disposition;
+        self.spatial_touch_digest = None;
+        self.with_row_digest()
+    }
+}
+
+impl EvidenceLookupPublicCloseout {
+    pub fn family_stage_rows(&self) -> &[EvidenceLookupPublicCloseoutFamilyStageRow] {
+        &self.family_stage_rows
+    }
+
+    pub const fn query_surface_matrix(&self) -> &EvidenceLookupQuerySurfaceMatrixCloseout {
+        &self.query_surface_matrix
+    }
+
+    pub const fn query_consumer_kit(&self) -> &EvidenceLookupQueryConsumerKitCloseout {
+        &self.query_consumer_kit
+    }
+
+    pub const fn source_firewall_report(&self) -> &EvidenceLookupSourceFirewallReport {
+        &self.source_firewall_report
+    }
+
+    pub fn spatial_deletion_ledger(&self) -> &[SpatialEvidenceSurfaceDeletionLedgerRow] {
+        &self.spatial_deletion_ledger_rows
+    }
+
+    pub const fn counters(&self) -> &EvidenceLookupPublicCloseoutCounters {
+        &self.counters
+    }
+
+    pub fn family_coverage_digest(&self) -> &str {
+        &self.family_coverage_digest
+    }
+
+    pub fn spatial_deletion_ledger_digest(&self) -> &str {
+        &self.spatial_deletion_ledger_digest
+    }
+
+    pub fn residue_audit_digest(&self) -> &str {
+        &self.residue_audit_digest
+    }
+
+    pub fn milestone_twelve_seed(&self) -> &EvidenceLookupMilestoneTwelveSeed {
+        &self.milestone_twelve_seed
+    }
+
+    pub fn closeout_digest(&self) -> &str {
+        &self.closeout_digest
+    }
+}
+
+fn topology_input_summary(family: &EvidenceLookupFamilyDeclaration) -> String {
+    match family.topology_input_posture().required_family_identity() {
+        Some(family_identity) => format!(
+            "{:?}:{family_identity}",
+            family.topology_input_posture().state()
+        ),
+        None => format!("{:?}:none", family.topology_input_posture().state()),
+    }
+}
+
+fn row_digest(row: &EvidenceLookupPublicCloseoutFamilyStageRow) -> String {
+    let disposition_part = match &row.disposition {
+        EvidenceLookupPublicCloseoutDisposition::ReceiptProof {
+            selected_lookup_plan_digest,
+            lookup_execution_receipt_digest,
+            lookup_product_output_digest,
+        } => format!(
+            "receipt-proof:{selected_lookup_plan_digest}:{lookup_execution_receipt_digest}:{lookup_product_output_digest}"
+        ),
+        EvidenceLookupPublicCloseoutDisposition::NonOrdinaryResidue {
+            reason,
+            removal_trigger,
+        } => format!("residue:{reason}:{removal_trigger}"),
+    };
+    truth_digest_parts(
+        TruthDigestScope::ArtifactIdentity,
+        &[
+            "worth-spatial:evidence-lookup-public-closeout-family-stage-row:v2".to_string(),
+            row.family_identity.clone(),
+            row.family_declaration_digest.clone(),
+            row.stage.human_name().to_string(),
+            row.stage_receipt_family_identity.clone(),
+            row.spatial_touch_digest
+                .clone()
+                .unwrap_or_else(|| "no-spatial-touch-proof".to_string()),
+            row.topology_input_summary.clone(),
+            row.query_import_evidence_digest
+                .clone()
+                .unwrap_or_else(|| "no-query-import".to_string()),
+            row.query_surface_row_digest.clone(),
+            disposition_part,
+        ],
+    )
+}

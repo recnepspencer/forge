@@ -12,6 +12,7 @@ pub(crate) mod gateway;
 pub(crate) mod geometry_binding;
 pub(crate) mod interpretation;
 pub(crate) mod precision_fallback;
+pub(crate) mod replay_undo_semantic_graph;
 pub(crate) mod topology_class;
 pub(crate) mod touched_graph_basis;
 
@@ -43,6 +44,17 @@ pub use interpretation::{
 pub use precision_fallback::{
     FallbackDisposition, FallbackProofClass, PrecisionBudgetFallbackRecord,
     PrecisionEscalationCause, PrecisionFallbackRecord, PrecisionRegime,
+};
+#[allow(unused_imports)]
+pub use replay_undo_semantic_graph::{
+    admit_replay_scope_identity, admit_replay_undo_stage_index_identity,
+    admit_spatial_evidence_lookup_prior_proof_identity,
+    admit_topology_derived_invalidation_prior_proof_identity, admit_undo_scope_identity,
+    ReplayScopeIdentity, ReplayScopeIdentityInput, ReplayUndoSemanticGraphEquivalenceBasis,
+    ReplayUndoSemanticGraphLocalityScope, ReplayUndoSemanticGraphPriorProofClass,
+    ReplayUndoSemanticGraphPriorProofIdentity, ReplayUndoSemanticGraphStageIndexIdentity,
+    ReplayUndoSemanticGraphTouchedSubject, ReplayUndoTransactionScopeClaim,
+    ReplayUndoTransactionScopeKind, UndoScopeIdentity, UndoScopeIdentityInput,
 };
 #[allow(unused_imports)]
 pub use topology_class::TopologyClass;

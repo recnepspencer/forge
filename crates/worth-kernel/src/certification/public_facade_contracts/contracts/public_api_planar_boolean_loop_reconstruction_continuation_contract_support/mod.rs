@@ -150,11 +150,20 @@ pub(crate) fn completed_split_handoff_for(
     subject: &MetabossEventExtractionSubject,
     replay_subject: &super::edge_splitting_replay_parity_support::EdgeSplitReplayParitySubject,
 ) -> CompletedBooleanSplitHandoff {
+    let event_ledger_lookup_packet = subject
+        .pair()
+        .left()
+        .workload()
+        .require_boolean_event_ledger_lookup_execution_packet(subject.ledger())
+        .expect("real workload should admit the event-ledger lookup execution packet");
     let completed_split_handoff = subject
         .pair()
         .left()
         .workload()
-        .complete_boolean_split_handoff(replay_subject.original_ledger.receipt())
+        .complete_boolean_split_handoff(
+            replay_subject.original_ledger.receipt(),
+            &event_ledger_lookup_packet,
+        )
         .expect("real workload should produce a proof-bearing split completion handoff");
     completed_split_handoff
         .require_boolean_split()

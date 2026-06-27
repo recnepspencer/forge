@@ -49,6 +49,9 @@ pub use event_ledger::{
     PlanarBooleanEventLedger, PlanarBooleanEventLedgerAssemblyCompiledPlan,
     PlanarBooleanEventLedgerAssemblyPlan, PlanarBooleanEventLedgerCounters,
     PlanarBooleanEventLedgerDenial, PlanarBooleanEventLedgerDenialKind,
+    PlanarBooleanEventLedgerLookupExecutionDenial,
+    PlanarBooleanEventLedgerLookupExecutionDenialKind,
+    PlanarBooleanEventLedgerLookupExecutionPacket, PlanarBooleanEventLedgerLookupExecutionWitness,
     PlanarBooleanEventLedgerReceipt, PlanarBooleanOrderedEventSet,
 };
 pub use interval_events::{

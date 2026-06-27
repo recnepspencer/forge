@@ -1,0 +1,27 @@
+error[E0451]: fields `family_stage_rows`, `query_surface_matrix`, `query_consumer_kit`, `source_firewall_report`, `spatial_deletion_ledger_rows`, `counters`, `family_coverage_digest`, `spatial_deletion_ledger_digest`, `residue_audit_digest`, `milestone_twelve_seed` and `closeout_digest` of struct `EvidenceLookupPublicCloseout` are private
+  --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_public_closeout/closeout_not_hand_filled.rs:10:9
+   |
+ 9 |     requires_public_closeout(EvidenceLookupPublicCloseout {
+   |                              ---------------------------- in this type
+10 |         family_stage_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+11 |         query_surface_matrix: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+12 |         query_consumer_kit: fake(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+13 |         source_firewall_report: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         spatial_deletion_ledger_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         counters: fake(),
+   |         ^^^^^^^^ private field
+16 |         family_coverage_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         spatial_deletion_ledger_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         residue_audit_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+19 |         milestone_twelve_seed: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         closeout_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field

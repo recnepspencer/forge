@@ -1,0 +1,10 @@
+error[E0624]: associated function `builder` is private
+ --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_inventory/inventory_row_builder_not_public.rs:4:41
+  |
+4 |     let _ = EvidenceLookupInventoryRow::builder();
+  |                                         ^^^^^^^ private associated function
+  |
+ ::: src/workload_platform/evidence_lookup_inventory/row.rs
+  |
+  |     pub(crate) fn builder() -> EvidenceLookupInventoryRowBuilder {
+  |     ------------------------------------------------------------ private associated function defined here

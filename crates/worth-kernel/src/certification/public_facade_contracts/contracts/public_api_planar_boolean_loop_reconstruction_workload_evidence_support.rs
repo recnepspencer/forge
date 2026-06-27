@@ -29,6 +29,7 @@ mod metaboss_support;
 mod real_handoff_support;
 
 pub(crate) use assertions::{
+    assert_legacy_loop_closeout_cannot_claim_packet_backed_boundary,
     assert_loop_closeout_exposes_certified_runtime_registration_artifacts,
     assert_loop_ledger_rejects_manual_or_counterless_evidence,
     assert_loop_ledger_replay_branch_preserves_workload_requirement,
@@ -36,6 +37,8 @@ pub(crate) use assertions::{
     assert_loop_replay_closeout_rejects_foreign_loop_authority,
     assert_loop_replay_closeout_rejects_foreign_retained_replay_authority,
     assert_loop_stage_requirement_maps_only_to_loop_ledger_receipts,
+    assert_packet_backed_loop_closeout_matches_legacy_vertical_slice,
+    assert_packet_backed_loop_closeout_rejects_foreign_scope_products,
 };
 pub(crate) use boolean_chain_assertions::{
     assert_boolean_chain_accepts_only_completed_receipts_and_query_proof,
@@ -43,6 +46,13 @@ pub(crate) use boolean_chain_assertions::{
     assert_boolean_chain_residue_manifest_is_capped_and_non_authority,
     assert_large_admitted_boolean_chain_scales_with_declared_breadth,
 };
+pub(crate) use continuation_contract_support::{
+    completed_split_handoff_for, recovered_source_carriers,
+};
+pub(crate) use edge_splitting_replay_parity_support::{
+    build_edge_split_replay_parity_subject, replay_parity_report,
+};
+pub(crate) use metaboss_support::MetabossEventExtractionSubject;
 pub(crate) use real_handoff_support::{
     certified_real_loop_handoff, certified_real_loop_replay_closeout_chain,
     real_loop_handoff_for_branch, CertifiedLoopReplayCloseoutChain, ReplayBranch,

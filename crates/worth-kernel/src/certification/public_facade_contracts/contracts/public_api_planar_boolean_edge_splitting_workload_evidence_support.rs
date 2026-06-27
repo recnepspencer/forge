@@ -15,8 +15,12 @@ pub(crate) fn assert_split_ledger_satisfies_workload_requirement_for_7_4_consump
 ) {
     let (result, _, _, _) = build_split_edge_chain_ledger_with_manifest_for_metaboss(subject);
     let receipt = result.receipt();
-    let workload = reduced_pair_support::rebuild_left_workload(subject.pair(), vec![])
-        .complete_boolean_split_handoff(receipt)
+    let base_workload = reduced_pair_support::rebuild_left_workload(subject.pair(), vec![]);
+    let event_ledger_lookup_packet = base_workload
+        .require_boolean_event_ledger_lookup_execution_packet(subject.ledger())
+        .expect("real workload should admit the event-ledger lookup execution packet");
+    let workload = base_workload
+        .complete_boolean_split_handoff(receipt, &event_ledger_lookup_packet)
         .expect(
             "completed split ledger handoff must compose into a proof-bearing workload handoff",
         );
@@ -66,6 +70,29 @@ pub(crate) fn assert_split_ledger_rejects_manual_or_counterless_evidence(
     assert_eq!(
         counterless_denial,
         WorkloadCompositionError::CounterlessEvidenceStage(WorkloadEvidenceStage::BooleanSplit)
+    );
+}
+
+pub(crate) fn assert_split_handoff_rejects_foreign_event_ledger_lookup_packet(
+    subject: &MetabossEventExtractionSubject,
+) {
+    let (result, _, _, _) = build_split_edge_chain_ledger_with_manifest_for_metaboss(subject);
+    let receipt = result.receipt();
+    let workload = reduced_pair_support::rebuild_left_workload(subject.pair(), vec![]);
+    let foreign_subject =
+        MetabossEventExtractionSubject::certify("phase11 foreign split lookup packet");
+    let foreign_workload =
+        reduced_pair_support::rebuild_left_workload(foreign_subject.pair(), vec![]);
+    let foreign_packet = foreign_workload
+        .require_boolean_event_ledger_lookup_execution_packet(foreign_subject.ledger())
+        .expect("foreign workload should admit its real event-ledger lookup packet");
+
+    let denial = workload
+        .complete_boolean_split_handoff(receipt, &foreign_packet)
+        .expect_err("split completion must reject a foreign event-ledger lookup packet");
+    assert!(
+        matches!(denial, WorkloadCompositionError::LookupConsumedWorkload(_)),
+        "foreign event-ledger lookup packet must fail through the lookup-consumed workload lane: {denial:?}"
     );
 }
 

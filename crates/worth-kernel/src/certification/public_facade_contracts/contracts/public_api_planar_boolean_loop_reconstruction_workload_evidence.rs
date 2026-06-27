@@ -6,11 +6,14 @@ use workload_evidence_support::{
     assert_boolean_chain_query_proof_does_not_rewrite_ledger_identities,
     assert_boolean_chain_residue_manifest_is_capped_and_non_authority,
     assert_large_admitted_boolean_chain_scales_with_declared_breadth,
+    assert_legacy_loop_closeout_cannot_claim_packet_backed_boundary,
     assert_loop_closeout_exposes_certified_runtime_registration_artifacts,
     assert_loop_ledger_rejects_manual_or_counterless_evidence,
     assert_loop_ledger_replay_branch_preserves_workload_requirement,
     assert_loop_ledger_satisfies_workload_requirement_and_runtime_registration,
     assert_loop_stage_requirement_maps_only_to_loop_ledger_receipts,
+    assert_packet_backed_loop_closeout_matches_legacy_vertical_slice,
+    assert_packet_backed_loop_closeout_rejects_foreign_scope_products,
 };
 
 #[test]
@@ -36,6 +39,21 @@ fn boolean_loop_reconstruction_stage_requirement_maps_only_to_loop_ledger_receip
 #[test]
 fn boolean_loop_reconstruction_closeout_exposes_certified_runtime_registration_artifacts() {
     assert_loop_closeout_exposes_certified_runtime_registration_artifacts();
+}
+
+#[test]
+fn packet_backed_loop_closeout_matches_legacy_vertical_slice() {
+    assert_packet_backed_loop_closeout_matches_legacy_vertical_slice();
+}
+
+#[test]
+fn packet_backed_loop_closeout_rejects_foreign_scope_products() {
+    assert_packet_backed_loop_closeout_rejects_foreign_scope_products();
+}
+
+#[test]
+fn legacy_loop_closeout_cannot_claim_packet_backed_boundary() {
+    assert_legacy_loop_closeout_cannot_claim_packet_backed_boundary();
 }
 
 #[test]

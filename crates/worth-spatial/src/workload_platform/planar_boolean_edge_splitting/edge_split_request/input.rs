@@ -1,15 +1,16 @@
 use crate::workload_platform::evidence_ledger::{
-    WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceStage,
-    WorkloadEvidenceStageLinkSet,
+    WorkloadEvidenceStage, WorkloadEvidenceStageLinkSet,
 };
 use crate::workload_platform::planar_boolean_edge_splitting::PlanarBooleanCandidateIndexConsumptionGate;
-use crate::workload_platform::planar_boolean_events::PlanarBooleanEventLedgerReceipt;
+use crate::workload_platform::planar_boolean_events::{
+    PlanarBooleanEventLedgerLookupExecutionWitness, PlanarBooleanEventLedgerReceipt,
+};
 
 #[derive(Clone, Copy)]
 pub struct PlanarBooleanEdgeSplitRequestInput<'a> {
     event_ledger: &'a PlanarBooleanEventLedgerReceipt,
     candidate_index_gate: &'a PlanarBooleanCandidateIndexConsumptionGate,
-    event_ledger_lookup: &'a WorkloadEvidenceBooleanReceiptLookupProduct,
+    event_ledger_lookup: &'a PlanarBooleanEventLedgerLookupExecutionWitness,
     retained_replay_stage_links: Option<&'a WorkloadEvidenceStageLinkSet>,
 }
 
@@ -17,7 +18,7 @@ impl<'a> PlanarBooleanEdgeSplitRequestInput<'a> {
     pub fn new(
         event_ledger: &'a PlanarBooleanEventLedgerReceipt,
         candidate_index_gate: &'a PlanarBooleanCandidateIndexConsumptionGate,
-        event_ledger_lookup: &'a WorkloadEvidenceBooleanReceiptLookupProduct,
+        event_ledger_lookup: &'a PlanarBooleanEventLedgerLookupExecutionWitness,
         retained_replay_stage_links: Option<&'a WorkloadEvidenceStageLinkSet>,
     ) -> Self {
         Self {
@@ -36,7 +37,7 @@ impl<'a> PlanarBooleanEdgeSplitRequestInput<'a> {
         self.candidate_index_gate
     }
 
-    pub(crate) fn event_ledger_lookup(&self) -> &'a WorkloadEvidenceBooleanReceiptLookupProduct {
+    pub(crate) fn event_ledger_lookup(&self) -> &'a PlanarBooleanEventLedgerLookupExecutionWitness {
         self.event_ledger_lookup
     }
 

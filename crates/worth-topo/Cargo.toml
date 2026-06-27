@@ -10,6 +10,7 @@ name = "topology"
 
 [features]
 slow-certification = []
+test-support-lowering = []
 
 [[test]]
 name = "public_api_contract"

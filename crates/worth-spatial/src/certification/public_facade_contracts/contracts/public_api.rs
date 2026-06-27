@@ -2,6 +2,24 @@ mod public_api_anchor_selection;
 mod public_api_arbitration_boundary;
 mod public_api_bindings_boundary;
 mod public_api_birth_and_resolution;
+#[path = "evidence_lookup_execution/mod.rs"]
+mod public_api_evidence_lookup_execution;
+#[path = "evidence_lookup_family_catalog/mod.rs"]
+mod public_api_evidence_lookup_family_catalog;
+#[path = "evidence_lookup_index_product/mod.rs"]
+mod public_api_evidence_lookup_index_product;
+#[path = "evidence_lookup_input_admission/mod.rs"]
+mod public_api_evidence_lookup_input_admission;
+#[path = "evidence_lookup_inventory/mod.rs"]
+mod public_api_evidence_lookup_inventory;
+#[path = "evidence_lookup_plan_selection/mod.rs"]
+mod public_api_evidence_lookup_plan_selection;
+#[path = "evidence_lookup_query_consumer_kit/mod.rs"]
+mod public_api_evidence_lookup_query_consumer_kit;
+#[path = "evidence_lookup_query_surface_matrix/mod.rs"]
+mod public_api_evidence_lookup_query_surface_matrix;
+#[path = "evidence_lookup_source_firewall/mod.rs"]
+mod public_api_evidence_lookup_source_firewall;
 mod public_api_facade_boundary;
 mod public_api_geometry_applicability;
 #[path = "geometry_binding_workload/mod.rs"]
@@ -16,6 +34,8 @@ mod public_api_nmt_certification_context;
 mod public_api_planar_admission;
 #[path = "planar_boolean_common_plane/mod.rs"]
 mod public_api_planar_boolean_common_plane;
+#[path = "planar_boolean_events_lookup_execution_witness.rs"]
+mod public_api_planar_boolean_events_lookup_execution_witness;
 #[path = "planar_clean_fail_boundary/mod.rs"]
 mod public_api_planar_clean_fail_boundary;
 #[path = "planar_contract_bundle/mod.rs"]

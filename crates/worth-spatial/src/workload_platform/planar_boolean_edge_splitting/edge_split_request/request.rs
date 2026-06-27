@@ -16,6 +16,9 @@ pub struct PlanarBooleanEdgeSplitRequest {
     candidate_index_consumption_gate_identity: String,
     candidate_index_product_identity: String,
     query_index_plan_digest: String,
+    event_ledger_lookup_selected_plan_digest: String,
+    event_ledger_lookup_execution_receipt_digest: String,
+    event_ledger_lookup_product_output_digest: String,
     retained_replay_stage_identity: Option<String>,
     counters: PlanarBooleanEdgeSplitRequestCounters,
 }
@@ -27,6 +30,7 @@ impl PlanarBooleanEdgeSplitRequest {
         validate_edge_split_request(&input)?;
         let event_ledger = input.event_ledger();
         let candidate_index_gate = input.candidate_index_gate();
+        let event_ledger_lookup = input.event_ledger_lookup();
         let request = Self {
             split_request_identity: String::new(),
             event_ledger_identity: event_ledger.event_ledger_identity().to_string(),
@@ -48,6 +52,15 @@ impl PlanarBooleanEdgeSplitRequest {
                 .candidate_index_product_identity()
                 .to_string(),
             query_index_plan_digest: candidate_index_gate.query_index_plan_digest().to_string(),
+            event_ledger_lookup_selected_plan_digest: event_ledger_lookup
+                .selected_plan_digest()
+                .to_string(),
+            event_ledger_lookup_execution_receipt_digest: event_ledger_lookup
+                .execution_receipt_digest()
+                .to_string(),
+            event_ledger_lookup_product_output_digest: event_ledger_lookup
+                .lookup_product_output_digest()
+                .to_string(),
             retained_replay_stage_identity: input
                 .retained_replay_stage_identity()
                 .map(ToString::to_string),
@@ -102,6 +115,18 @@ impl PlanarBooleanEdgeSplitRequest {
 
     pub fn query_index_plan_digest(&self) -> &str {
         &self.query_index_plan_digest
+    }
+
+    pub fn event_ledger_lookup_selected_plan_digest(&self) -> &str {
+        &self.event_ledger_lookup_selected_plan_digest
+    }
+
+    pub fn event_ledger_lookup_execution_receipt_digest(&self) -> &str {
+        &self.event_ledger_lookup_execution_receipt_digest
+    }
+
+    pub fn event_ledger_lookup_product_output_digest(&self) -> &str {
+        &self.event_ledger_lookup_product_output_digest
     }
 
     pub fn retained_replay_stage_identity(&self) -> Option<&str> {
