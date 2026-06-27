@@ -85,13 +85,6 @@ impl<'a> PlanarBooleanLoopReconstructionCloseoutInput<'a> {
 }
 
 impl CompletedBooleanSplitHandoff {
-    pub fn complete_boolean_loop_reconstruction(
-        &self,
-        input: PlanarBooleanLoopReconstructionCloseoutInput<'_>,
-    ) -> Result<CompletedBooleanLoopReconstructionHandoff, WorkloadCompositionError> {
-        self.complete_boolean_loop_reconstruction_with_boundary_packet(input, None)
-    }
-
     pub(crate) fn complete_boolean_loop_reconstruction_from_admitted_replay_undo_boundary(
         &self,
         admitted_boundary: &AdmittedBooleanSplitReplayUndoBoundary,

@@ -11,7 +11,7 @@ pub fn lower(catalog: &ReplayUndoDeclaredSourceCatalog) -> Vec<ReplayUndoInvento
     let source = catalog
         .require_source(ReplayUndoDeclaredSourceIdentity::KernelUndoOrdinaryLaneGap)
         .expect("declared source");
-    vec![ReplayUndoInventoryReportRow::new(
+    vec![ReplayUndoInventoryReportRow::new_with_residue_count(
         source.identity(),
         source.source_path(),
         source.source_kind(),
@@ -21,5 +21,7 @@ pub fn lower(catalog: &ReplayUndoDeclaredSourceCatalog) -> Vec<ReplayUndoInvento
         source.authority_roles().clone(),
         source.observability_roles().clone(),
         Some("milestone12.undo_family_lane"),
+        Some(1),
+        1,
     )]
 }

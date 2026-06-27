@@ -34,7 +34,9 @@ pub fn lower(catalog: &ReplayUndoDeclaredSourceCatalog) -> Vec<ReplayUndoInvento
     .into_iter()
     .map(|(identity, owner, category, disposition, trigger)| {
         let source = catalog.require_source(identity).expect("declared source");
-        ReplayUndoInventoryReportRow::new(
+        let residue_cap = (disposition == ReplayUndoInventoryDisposition::Cap).then_some(1);
+        let observed_residue_count = usize::from(residue_cap.is_some());
+        ReplayUndoInventoryReportRow::new_with_residue_count(
             source.identity(),
             source.source_path(),
             source.source_kind(),
@@ -44,6 +46,8 @@ pub fn lower(catalog: &ReplayUndoDeclaredSourceCatalog) -> Vec<ReplayUndoInvento
             source.authority_roles().clone(),
             source.observability_roles().clone(),
             trigger,
+            residue_cap,
+            observed_residue_count,
         )
     })
     .collect()

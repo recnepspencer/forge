@@ -2,7 +2,6 @@
 mod fixtures;
 #[path = "../public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
 mod reduced_pair_support;
-
 use topology::facade::PlanarBooleanLoopBlueprintRegistry;
 use worth_kernel::workload_composition::WorkloadCompositionError;
 use worth_spatial::certification::workload_evidence::{
@@ -20,10 +19,7 @@ use worth_spatial::facade::workload_vocabulary::{
 
 use super::edge_splitting_replay_parity_support::build_edge_split_replay_parity_subject;
 use super::metaboss_support::MetabossEventExtractionSubject;
-use super::real_handoff_support::{
-    foreign_packet_backed_boundary_error, packet_backed_loop_handoff_for_branch,
-    real_loop_handoff_for_branch, ReplayBranch,
-};
+use super::real_handoff_support::{real_loop_handoff_for_branch, ReplayBranch};
 use fixtures::assert_runtime_registration_proof;
 
 pub(crate) fn assert_loop_ledger_satisfies_workload_requirement_and_runtime_registration() {
@@ -301,86 +297,6 @@ pub(crate) fn assert_loop_closeout_exposes_certified_runtime_registration_artifa
             .validator_names()
             .len(),
         4
-    );
-}
-
-pub(crate) fn assert_packet_backed_loop_closeout_matches_legacy_vertical_slice() {
-    let registry = PlanarBooleanLoopBlueprintRegistry::phase_2();
-    let matrix = registry.operator_classification_matrix();
-    let validators = registry.validator_registration_plan();
-    let subject = MetabossEventExtractionSubject::certify("phase12.10 packet-backed loop closeout");
-    let legacy =
-        real_loop_handoff_for_branch(&subject, ReplayBranch::Original, &matrix, &validators)
-            .expect("legacy loop closeout");
-    let packet_backed = packet_backed_loop_handoff_for_branch(
-        &subject,
-        ReplayBranch::Original,
-        &matrix,
-        &validators,
-    )
-    .expect("packet-backed loop closeout");
-
-    assert_eq!(
-        packet_backed.loop_ledger_receipt().receipt_identity(),
-        legacy.loop_ledger_receipt().receipt_identity()
-    );
-    assert_eq!(
-        packet_backed.evidence_receipt().receipt_identity(),
-        legacy.evidence_receipt().receipt_identity()
-    );
-    assert_eq!(
-        packet_backed.runtime_registration_proof(),
-        legacy.runtime_registration_proof()
-    );
-    assert!(
-        legacy.replay_undo_transaction_boundary_packet().is_none(),
-        "legacy loop closeout should not silently claim packet-backed replay/undo migration",
-    );
-    let packet = packet_backed
-        .require_replay_undo_transaction_boundary_packet()
-        .expect("migrated loop closeout must retain the replay/undo transaction boundary packet");
-    assert_eq!(
-        packet.packet_identity(),
-        packet_backed
-            .replay_undo_transaction_boundary_packet()
-            .expect("packet-backed handoff should expose the same retained packet")
-            .packet_identity()
-    );
-}
-
-pub(crate) fn assert_packet_backed_loop_closeout_rejects_foreign_scope_products() {
-    let subject = MetabossEventExtractionSubject::certify("phase12.10 packet-backed scope denial");
-    let foreign_subject =
-        MetabossEventExtractionSubject::certify("phase12.10 foreign packet-backed scope denial");
-    let error = foreign_packet_backed_boundary_error(&subject, &foreign_subject);
-
-    assert!(
-        matches!(
-            error,
-            WorkloadCompositionError::ReplayUndoBoundary(_)
-                | WorkloadCompositionError::ReplayUndoTransactionBoundary(_)
-        ),
-        "foreign replay/undo scope products must fail through the packet-backed boundary: {error:?}"
-    );
-}
-
-pub(crate) fn assert_legacy_loop_closeout_cannot_claim_packet_backed_boundary() {
-    let registry = PlanarBooleanLoopBlueprintRegistry::phase_2();
-    let matrix = registry.operator_classification_matrix();
-    let validators = registry.validator_registration_plan();
-    let subject = MetabossEventExtractionSubject::certify(
-        "phase12.10 legacy loop closeout packet-backed denial",
-    );
-    let legacy =
-        real_loop_handoff_for_branch(&subject, ReplayBranch::Original, &matrix, &validators)
-            .expect("legacy loop closeout");
-
-    let error = legacy
-        .require_replay_undo_transaction_boundary_packet()
-        .expect_err("legacy loop closeout must not satisfy the migrated packet-backed consumer");
-    assert!(
-        matches!(error, WorkloadCompositionError::ReplayUndoBoundary(_)),
-        "legacy loop closeout should fail through a typed replay/undo boundary denial: {error:?}"
     );
 }
 

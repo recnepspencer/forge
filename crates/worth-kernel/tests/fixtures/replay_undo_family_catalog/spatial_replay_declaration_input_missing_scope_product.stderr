@@ -1,5 +1,5 @@
-error[E0063]: missing field `scope_product_posture` in initializer of `SpatialReplayFamilyDeclarationInput`
+error[E0063]: missing fields `covered_lookup_identity` and `scope_product_posture` in initializer of `SpatialReplayFamilyDeclarationInput`
  --> tests/fixtures/replay_undo_family_catalog/spatial_replay_declaration_input_missing_scope_product.rs:9:53
   |
 9 |     let _ = admit_spatial_replay_family_declaration(SpatialReplayFamilyDeclarationInput {
-  |                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `scope_product_posture`
+  |                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `covered_lookup_identity` and `scope_product_posture`

@@ -59,6 +59,7 @@ pub(crate) fn event_carrier_projected_operand_requests_from_catalog(
     PlanarBooleanCommonPlaneOperandBProjectedRequest,
 ) {
     let pair = WorkloadCatalog::planar_boolean_event_carrier_clean_planar_body_pair()
+        .with_retained_replay_artifacts()
         .declared(readiness_scope)
         .build()
         .expect("event carrier pair should build");

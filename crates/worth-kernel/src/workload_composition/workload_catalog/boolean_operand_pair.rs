@@ -198,7 +198,9 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
                 WorkloadCatalog::single_face_loop()
             }
             WorkloadCatalogRecipeKind::BooleanEventCarrierCleanPlanarBodyPair => {
-                WorkloadCatalog::single_face_loop()
+                WorkloadCatalog::single_face_loop().with_planar_loop_boundary_profile(
+                    PlanarLoopBoundaryCatalogProfile::BooleanEventMetabossLeft,
+                )
             }
             WorkloadCatalogRecipeKind::BooleanEventExtractionMetabossPair => {
                 WorkloadCatalog::single_face_loop()
@@ -241,7 +243,9 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
                 WorkloadCatalog::single_face_loop()
             }
             WorkloadCatalogRecipeKind::BooleanEventCarrierCleanPlanarBodyPair => {
-                WorkloadCatalog::single_face_loop()
+                WorkloadCatalog::single_face_loop().with_planar_loop_boundary_profile(
+                    PlanarLoopBoundaryCatalogProfile::BooleanEventMetabossRight,
+                )
             }
             WorkloadCatalogRecipeKind::BooleanEventExtractionMetabossPair => {
                 WorkloadCatalog::single_face_loop()

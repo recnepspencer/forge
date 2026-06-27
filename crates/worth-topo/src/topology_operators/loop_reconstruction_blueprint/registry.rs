@@ -87,6 +87,25 @@ impl PlanarBooleanLoopBlueprintRegistry {
         }
     }
 
+    pub fn into_classification_matrix_and_validator_plan(
+        self,
+    ) -> (
+        PlanarBooleanLoopOperatorClassificationMatrix,
+        PlanarBooleanLoopValidatorRegistrationPlan,
+    ) {
+        let registry_identity = self.identity;
+        (
+            PlanarBooleanLoopOperatorClassificationMatrix {
+                operators: self.operators,
+                registry_identity: registry_identity.clone(),
+            },
+            PlanarBooleanLoopValidatorRegistrationPlan {
+                validators: self.validators,
+                registry_identity,
+            },
+        )
+    }
+
     pub fn required_operator_names(&self) -> impl Iterator<Item = &'static str> {
         REQUIRED_PHASE_2_OPERATOR_LANES
             .iter()

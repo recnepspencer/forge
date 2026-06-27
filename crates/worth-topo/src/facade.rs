@@ -377,7 +377,7 @@ pub use crate::workload_platform::{
     TopologyWorkloadEnvelope, TopologyWorkloadFamily, TopologyWorkloadReceipt,
     TopologyWorkloadSupport, TopologyWorkloadSupportPosture,
 };
-pub use forge_relational::facade::identity::{EntityId, PartitionId};
+pub use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 
 pub use crate::topology_operators::{
     topology_grouped_operator_neighborhood, topology_operator_continuation_target,

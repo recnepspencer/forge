@@ -1,5 +1,6 @@
 use topology::facade::TopologyWorkloadReceipt;
 mod boolean_chain_handoff;
+mod boolean_chain_replay_undo_boundary;
 mod boolean_loop_reconstruction_closeout;
 mod boolean_loop_reconstruction_handoff;
 mod boolean_loop_reconstruction_products;
@@ -25,6 +26,7 @@ pub use boolean_chain_handoff::{
     BooleanChainIntegrationHandoff, BooleanChainResidueBoundary, BooleanChainResidueRemovalTrigger,
     BooleanChainResidueRow,
 };
+pub use boolean_chain_replay_undo_boundary::BooleanChainReplayUndoBoundaryHandoff;
 pub use boolean_loop_reconstruction_closeout::PlanarBooleanLoopReconstructionCloseoutInput;
 pub use boolean_loop_reconstruction_handoff::{
     CompletedBooleanLoopReconstructionHandoff, PlanarBooleanLoopRuntimeRegistrationProof,

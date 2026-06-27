@@ -20,6 +20,7 @@ mod query_authoring_helpers;
 pub mod query_graph_authority_gate;
 #[doc(hidden)]
 pub mod query_obligation_selection;
+pub mod replay_undo_consumer_cutover;
 pub mod replay_undo_family_catalog;
 pub mod replay_undo_inventory;
 pub mod replay_undo_transaction_boundary;

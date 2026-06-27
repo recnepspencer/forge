@@ -69,7 +69,8 @@ pub use workload_catalog::{
 };
 pub use worth_workload::{
     AdmittedBooleanSplitReplayUndoBoundary, BooleanChainCompletedReceiptGuard,
-    BooleanChainIntegrationCounters, BooleanChainIntegrationHandoff, BooleanChainResidueBoundary,
+    BooleanChainIntegrationCounters, BooleanChainIntegrationHandoff,
+    BooleanChainReplayUndoBoundaryHandoff, BooleanChainResidueBoundary,
     BooleanChainResidueRemovalTrigger, BooleanChainResidueRow,
     BooleanSplitReplayUndoBoundaryRequest, CompletedBooleanLoopReconstructionHandoff,
     CompletedBooleanLoopReconstructionProducts, CompletedBooleanSplitHandoff,

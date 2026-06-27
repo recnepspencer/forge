@@ -17,6 +17,8 @@ pub struct ReplayUndoInventoryReportRow {
     authority_roles: ReplayUndoDeclaredInputRoleSet,
     observability_roles: ReplayUndoDeclaredInputRoleSet,
     removal_trigger: Option<String>,
+    residue_cap: Option<usize>,
+    observed_residue_count: usize,
 }
 
 impl ReplayUndoInventoryReportRow {
@@ -31,6 +33,34 @@ impl ReplayUndoInventoryReportRow {
         observability_roles: ReplayUndoDeclaredInputRoleSet,
         removal_trigger: Option<&str>,
     ) -> Self {
+        Self::new_with_residue_count(
+            source_identity,
+            source_path,
+            source_kind,
+            owner,
+            category,
+            disposition,
+            authority_roles,
+            observability_roles,
+            removal_trigger,
+            None,
+            0,
+        )
+    }
+
+    pub(crate) fn new_with_residue_count(
+        source_identity: ReplayUndoDeclaredSourceIdentity,
+        source_path: impl Into<String>,
+        source_kind: ReplayUndoDeclaredSourceKind,
+        owner: ReplayUndoInventoryOwner,
+        category: ReplayUndoInventoryCategory,
+        disposition: ReplayUndoInventoryDisposition,
+        authority_roles: ReplayUndoDeclaredInputRoleSet,
+        observability_roles: ReplayUndoDeclaredInputRoleSet,
+        removal_trigger: Option<&str>,
+        residue_cap: Option<usize>,
+        observed_residue_count: usize,
+    ) -> Self {
         Self {
             source_identity,
             source_path: source_path.into(),
@@ -41,6 +71,8 @@ impl ReplayUndoInventoryReportRow {
             authority_roles,
             observability_roles,
             removal_trigger: removal_trigger.map(str::to_string),
+            residue_cap,
+            observed_residue_count,
         }
     }
 
@@ -78,5 +110,13 @@ impl ReplayUndoInventoryReportRow {
 
     pub fn removal_trigger(&self) -> Option<&str> {
         self.removal_trigger.as_deref()
+    }
+
+    pub const fn residue_cap(&self) -> Option<usize> {
+        self.residue_cap
+    }
+
+    pub const fn observed_residue_count(&self) -> usize {
+        self.observed_residue_count
     }
 }

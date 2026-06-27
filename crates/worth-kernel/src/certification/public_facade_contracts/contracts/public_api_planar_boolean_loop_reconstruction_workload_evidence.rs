@@ -1,3 +1,5 @@
+#[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
+mod reduced_pair_support;
 #[path = "public_api_planar_boolean_loop_reconstruction_workload_evidence_support.rs"]
 mod workload_evidence_support;
 
@@ -14,6 +16,9 @@ use workload_evidence_support::{
     assert_loop_stage_requirement_maps_only_to_loop_ledger_receipts,
     assert_packet_backed_loop_closeout_matches_legacy_vertical_slice,
     assert_packet_backed_loop_closeout_rejects_foreign_scope_products,
+    assert_public_closeout_rejects_mismatched_proof_products,
+    assert_replay_undo_consumer_cutover_closes_from_ordinary_chain,
+    assert_topology_undo_product_changes_packet_identity,
 };
 
 #[test]
@@ -49,6 +54,25 @@ fn packet_backed_loop_closeout_matches_legacy_vertical_slice() {
 #[test]
 fn packet_backed_loop_closeout_rejects_foreign_scope_products() {
     assert_packet_backed_loop_closeout_rejects_foreign_scope_products();
+}
+
+#[test]
+fn packet_identity_changes_when_topology_undo_product_changes() {
+    assert_topology_undo_product_changes_packet_identity();
+}
+
+#[test]
+fn replay_undo_consumer_cutover_closes_from_ordinary_chain() {
+    reduced_pair_support::run_with_large_stack(|| {
+        assert_replay_undo_consumer_cutover_closes_from_ordinary_chain();
+    });
+}
+
+#[test]
+fn public_closeout_rejects_mismatched_proof_products() {
+    reduced_pair_support::run_with_large_stack(|| {
+        assert_public_closeout_rejects_mismatched_proof_products();
+    });
 }
 
 #[test]

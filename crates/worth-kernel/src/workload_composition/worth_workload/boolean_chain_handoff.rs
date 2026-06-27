@@ -3,8 +3,10 @@ use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanSplitEdge
 use worth_spatial::facade::planar_boolean_loop_reconstruction::PlanarBooleanLoopReconstructionLedgerReceipt;
 
 use super::{
+    BooleanChainReplayUndoBoundaryHandoff, BooleanSplitReplayUndoBoundaryRequest,
     CompletedBooleanLoopReconstructionHandoff, CompletedBooleanSplitHandoff,
-    PlanarBooleanLoopRuntimeRegistrationProof, WorkloadCompositionError,
+    PlanarBooleanLoopReconstructionCloseoutInput, PlanarBooleanLoopRuntimeRegistrationProof,
+    WorkloadCompositionError,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -29,6 +31,7 @@ pub struct BooleanChainIntegrationCounters {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BooleanChainCompletedReceiptGuard {
+    ReplayUndoTransactionBoundaryPacketAdmission,
     SplitCompletedHandoffAdmission,
     LoopCompletedHandoffAdmission,
     RuntimeProofBoundToLoopReceiptAndStage,
@@ -56,6 +59,7 @@ pub struct BooleanChainResidueRow {
 }
 
 const BOOLEAN_CHAIN_COMPLETED_RECEIPT_GUARDS: &[BooleanChainCompletedReceiptGuard] = &[
+    BooleanChainCompletedReceiptGuard::ReplayUndoTransactionBoundaryPacketAdmission,
     BooleanChainCompletedReceiptGuard::SplitCompletedHandoffAdmission,
     BooleanChainCompletedReceiptGuard::LoopCompletedHandoffAdmission,
     BooleanChainCompletedReceiptGuard::RuntimeProofBoundToLoopReceiptAndStage,
@@ -85,6 +89,7 @@ impl BooleanChainIntegrationHandoff {
         split_handoff: &CompletedBooleanSplitHandoff,
         loop_handoff: &CompletedBooleanLoopReconstructionHandoff,
     ) -> Result<Self, WorkloadCompositionError> {
+        loop_handoff.require_replay_undo_transaction_boundary_packet()?;
         split_handoff.require_boolean_split()?;
         loop_handoff.require_boolean_loop_reconstruction()?;
         loop_handoff
@@ -272,12 +277,17 @@ impl BooleanChainResidueBoundary {
     }
 }
 
-impl CompletedBooleanLoopReconstructionHandoff {
-    pub fn complete_boolean_chain_integration_handoff(
+impl CompletedBooleanSplitHandoff {
+    pub fn complete_boolean_chain_integration_from_replay_undo_boundary(
         &self,
-        split_handoff: &CompletedBooleanSplitHandoff,
-    ) -> Result<BooleanChainIntegrationHandoff, WorkloadCompositionError> {
-        BooleanChainIntegrationHandoff::from_completed_handoffs(split_handoff, self)
+        boundary_request: BooleanSplitReplayUndoBoundaryRequest<'_>,
+        loop_closeout_input: PlanarBooleanLoopReconstructionCloseoutInput<'_>,
+    ) -> Result<BooleanChainReplayUndoBoundaryHandoff, WorkloadCompositionError> {
+        BooleanChainReplayUndoBoundaryHandoff::from_replay_undo_boundary(
+            self,
+            boundary_request,
+            loop_closeout_input,
+        )
     }
 }
 
