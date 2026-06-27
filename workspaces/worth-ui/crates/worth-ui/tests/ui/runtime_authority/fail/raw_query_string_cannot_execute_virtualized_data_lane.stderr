@@ -5,7 +5,7 @@ error[E0599]: no function or associated item named `query_key` found for struct 
   |                                                      ^^^^^^^^^ function or associated item not found in `WorthUiVirtualizedDataFrameTarget`
   |
 note: if you're trying to build a new `WorthUiVirtualizedDataFrameTarget`, consider using `WorthUiVirtualizedDataFrameTarget::view_binding` which returns `WorthUiVirtualizedDataFrameTarget`
- --> src/runtime/virtualized_data_lane/frame_target.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/virtualized_data_lane/frame_target.rs
   |
   |     pub fn view_binding(handle: WorthUiViewBindingHandle, range: WorthUiVisibleRange) -> Self {
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

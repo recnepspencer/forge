@@ -9,11 +9,11 @@ keywords = ["bridge", "runtime", "invalidation", "snapshot", "facade"]
 categories = ["data-structures", "science"]
 
 [dependencies]
-forge-foundational.workspace = true
-forge-harness.workspace = true
-forge-proof.workspace = true
-forge-signal.workspace = true
-serde_json.workspace = true
+forge-foundational = { path = "../forge-foundational" }
+forge-harness = { path = "../forge-harness" }
+forge-proof = { path = "../forge-proof" }
+forge-signal = { path = "../forge-signal" }
+serde_json = "1"
 sha2 = "0.10"
 
 [dev-dependencies]

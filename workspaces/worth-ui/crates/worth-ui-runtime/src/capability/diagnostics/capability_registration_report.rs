@@ -24,7 +24,7 @@ impl CapabilityRegistrationReport {
         &self.accepted_snapshot
     }
 
-    pub(crate) fn into_accepted_snapshot(self) -> CapabilitySnapshot {
+    pub fn into_accepted_snapshot(self) -> CapabilitySnapshot {
         self.accepted_snapshot
     }
 

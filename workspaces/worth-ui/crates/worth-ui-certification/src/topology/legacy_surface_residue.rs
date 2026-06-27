@@ -92,7 +92,10 @@ fn read_source(path: &Path) -> String {
         .unwrap_or_else(|error| panic!("{} should decode: {error}", path.display()))
 }
 
-fn removed_legacy_crate_still_ships(workspace_root: &Path, expectation: &LegacyCrateExpectation) -> bool {
+fn removed_legacy_crate_still_ships(
+    workspace_root: &Path,
+    expectation: &LegacyCrateExpectation,
+) -> bool {
     let crate_root = workspace_root.join(expectation.member_path);
     crate_root.join("Cargo.toml").exists() || crate_root.join("src/lib.rs").exists()
 }
@@ -173,7 +176,10 @@ pub fn audit_no_parallel_legacy_authority(workspace_root: &Path) -> Vec<String> 
             "forge-ui-theme",
             workspace_root.join("crates/forge-ui-theme/Cargo.toml"),
         ),
-        ("worth-ui", workspace_root.join("crates/worth-ui/Cargo.toml")),
+        (
+            "worth-ui",
+            workspace_root.join("crates/worth-ui/Cargo.toml"),
+        ),
     ];
 
     for (crate_name, manifest_path) in owner_expectations {
@@ -240,16 +246,15 @@ pub fn audit_no_parallel_legacy_authority(workspace_root: &Path) -> Vec<String> 
 
     let worth_ui_root_source = read_source(&workspace_root.join("crates/worth-ui/src/lib.rs"));
     if worth_ui_root_source.contains("forge_ui_") {
-        violations.push(
-            "worth-ui crate root reintroduces forge-ui compatibility authority".to_string(),
-        );
+        violations
+            .push("worth-ui crate root reintroduces forge-ui compatibility authority".to_string());
     }
     let worth_ui_public_lines: Vec<&str> = worth_ui_root_source
         .lines()
         .map(str::trim)
         .filter(|line| line.starts_with("pub "))
         .collect();
-    let admitted_worth_ui_public_lines = ["pub use worth_ui_runtime::facade;"];
+    let admitted_worth_ui_public_lines = ["pub mod facade;"];
     for line in worth_ui_public_lines {
         if !admitted_worth_ui_public_lines.contains(&line) {
             violations.push(format!(
@@ -276,7 +281,9 @@ pub fn audit_legacy_shim_honesty(workspace_root: &Path) -> Vec<String> {
         }
 
         let residual_files: Vec<String> = fs::read_dir(&retired_root)
-            .unwrap_or_else(|error| panic!("{} should be readable: {error}", retired_root.display()))
+            .unwrap_or_else(|error| {
+                panic!("{} should be readable: {error}", retired_root.display())
+            })
             .filter_map(Result::ok)
             .map(|entry| entry.path())
             .filter(|path| path.is_file())

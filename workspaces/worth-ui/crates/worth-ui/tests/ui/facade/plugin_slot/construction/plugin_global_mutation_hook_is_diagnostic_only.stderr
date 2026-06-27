@@ -10,7 +10,7 @@ note: if you're trying to build a new `PluginContributionFamily` consider using 
       PluginContributionFamily::surface
       PluginContributionFamily::setting
       and $N others
- --> src/capability/registry/plugin_slot/descriptor/plugin_contribution_family.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/capability/registry/plugin_slot/descriptor/plugin_contribution_family.rs
   |
   |     pub fn command() -> Self {
   |     ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -47,7 +47,7 @@ error[E0599]: no function or associated item named `opaque_callback` found for s
    |                                                              ^^^^^^^^^^^^^^^ function or associated item not found in `PluginSlotGlobalMutationHook`
    |
 note: if you're trying to build a new `PluginSlotGlobalMutationHook`, consider using `PluginSlotGlobalMutationHook::opaque_callback_for_diagnostics` which returns `PluginSlotGlobalMutationHook`
-  --> src/capability/registry/plugin_slot/descriptor/plugin_slot_global_mutation_hook.rs
+  --> $WORKSPACE/crates/worth-ui-runtime/src/capability/registry/plugin_slot/descriptor/plugin_slot_global_mutation_hook.rs
    |
    |     pub fn opaque_callback_for_diagnostics() -> Self {
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

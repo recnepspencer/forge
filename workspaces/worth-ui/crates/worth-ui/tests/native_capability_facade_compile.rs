@@ -1,6 +1,10 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 #[test]
-fn facade_native_capability_registration_compiles() {
-    facade_compile_pass("tests/ui/facade/pass/native_capability_registration_uses_only_facade.rs");
+fn compat_root_native_capability_registration_compiles() {
+    facade_compile_pass(
+        "tests/ui/facade/compat_pass/native_capability_registration_uses_only_facade.rs",
+    );
 }
 
 #[test]
@@ -32,11 +36,12 @@ fn ambient_host_check_is_diagnostic_only() {
 }
 
 fn facade_compile_pass(fixture_path: &str) {
-    let tests = trybuild::TestCases::new();
+    let tests = trybuild_support::new_test_cases();
     tests.pass(fixture_path);
 }
 
 fn facade_compile_fail(fixture_path: &str) {
-    let tests = trybuild::TestCases::new();
+    let tests = trybuild_support::new_test_cases();
     tests.compile_fail(fixture_path);
 }
+

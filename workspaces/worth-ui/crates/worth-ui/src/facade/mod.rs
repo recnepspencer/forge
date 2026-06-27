@@ -1,77 +1,11 @@
-mod app;
-mod builder;
+pub mod app;
+pub mod compat;
+pub mod diagnostics;
+pub mod dsl;
 mod entry;
+pub mod host;
+pub mod inspection;
+pub mod registry;
+pub mod support;
 
-pub use app::WorthUiApp;
-pub use builder::{WorthUiAppBuilder, WorthUiBuilder};
-pub use entry::WorthUi;
-pub use worth_ui_runtime::facade::{
-    AdmittedCapability, AmbientHostCheck, ArbitraryKeyValueSettingBag, CapabilityDiagnosticCode,
-    CapabilityDiagnosticRichness, CapabilityDiagnosticSeverity, CapabilityIdError,
-    CapabilityRegistrationDiagnostic, CapabilityRegistrationReport, CapabilitySnapshot,
-    CapabilitySnapshotDigest, CapabilitySnapshotIndex, CapabilitySupportId, CapabilitySupportKind,
-    CapabilitySupportPosture, CapabilitySupportRejection, CommandCategory, CommandDescriptor,
-    CommandId, CommandProjectionCommandReference, CommandProjectionDescriptor,
-    CommandProjectionGrouping, CommandProjectionIconLabelPolicy, CommandProjectionId,
-    CommandProjectionKey, CommandProjectionMeaningOverride, CommandProjectionMosaicScope,
-    CommandProjectionOrdering, CommandProjectionOverflowBehavior,
-    CommandProjectionReadinessDisplayPolicy, CommandProjectionShortcutVisibility,
-    CommandProjectionSurface, CommandReadinessBinding, CommandRuntimeIntentBinding,
-    ComponentAccessibilitySupport, ComponentChildPolicy, ComponentDescriptor,
-    ComponentExecutionLane, ComponentFocusSupport, ComponentId, ComponentPropSchema,
-    ComponentStateOwnership, DeferredCapability, FrozenCapabilityFamily, FrozenCommandCapabilities,
-    FrozenCommandProjectionCapabilities, FrozenCommandProjectionEntry, FrozenComponentCapabilities,
-    FrozenIconCapabilities, FrozenIconEntry, FrozenMosaicPlacementCapabilities,
-    FrozenMosaicRegionCapabilities, FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities,
-    FrozenMosaicStateSlotEntry, FrozenNativeCapabilities, FrozenNativeCapabilityEntry,
-    FrozenPluginSlotCapabilities, FrozenPluginSlotEntry,
-    FrozenRuntimeOutcomeProjectionCapabilities, FrozenRuntimeOutcomeProjectionEntry,
-    FrozenSettingCapabilities, FrozenSettingEntry, FrozenSurfaceCapabilities,
-    FrozenTaskPresentationCapabilities, FrozenTaskPresentationEntry, FrozenThemeTokenCapabilities,
-    FrozenThemeTokenEntry, FrozenViewBindingCapabilities, FrozenViewBindingEntry,
-    IconAccessibilityPosture, IconColorSupport, IconDescriptor, IconFamily, IconId, IconKey,
-    IconSizeSupport, IconSourceDescriptor, IconSourceKind, IconThemePosture, MeasurementConstraint,
-    MeasurementValue, MosaicChildRule, MosaicClippingPosture, MosaicFocusScopeKind,
-    MosaicHitTestPosture, MosaicMeasurementAuthority, MosaicOverflowBehavior,
-    MosaicParentGrowthBehavior, MosaicPlacementAction, MosaicPlacementConflictBehavior,
-    MosaicPlacementEligibility, MosaicPlacementPersistence, MosaicPlacementPolicyDescriptor,
-    MosaicPlacementPolicyId, MosaicPlacementReloadReconciliation, MosaicPlacementSource,
-    MosaicPlacementSupport, MosaicPlacementTarget, MosaicRegionKindDescriptor, MosaicRegionKindId,
-    MosaicRegionPersistence, MosaicRegionRole, MosaicResizePermission, MosaicScrollOwnership,
-    MosaicSizingBehavior, MosaicSizingContractDescriptor, MosaicSizingContractId, MosaicSizingKind,
-    MosaicSizingPersistence, MosaicStableIdentityBehavior, MosaicStateOwnerIdentity,
-    MosaicStateOwnerScopeId, MosaicStatePersistencePolicy, MosaicStateReconciliationKey,
-    MosaicStateReplacementRule, MosaicStateSlotDescriptor, MosaicStateSlotId, MosaicStateSlotKind,
-    MosaicStateTruthPosture, MosaicViewportConstraint, NamedMeasurementDefinition,
-    NamedMeasurementToken, NativeCapabilityDescriptor, NativeCapabilityFamily, NativeCapabilityId,
-    NativeCapabilityKey, NativePlatformPosture, NativeShellAuthorityClaim,
-    PlatformInternalCapability, PluginCapabilityPermission, PluginContributionFamily,
-    PluginSlotContributionReference, PluginSlotDescriptor, PluginSlotDiagnostics,
-    PluginSlotGlobalMutationHook, PluginSlotId, PluginSlotKey, PluginSlotOrdering,
-    PluginSlotSupportPosture, QueryBasisPostureReference, QueryDenialPresentation,
-    QueryLiveCompatibility, QueryResultShapeReference, QueryViewBindingKey,
-    QueryViewCapabilityReference, RawColorOutsideTokenDefinition, RawIconAssetReference,
-    RawLayoutMeasurementForDiagnostics, RawLayoutMeasurementKind, RegisteredCapabilitySet,
-    RegistryFamily, RegistryFamilyFacadeExposure, RegistryFamilyInventoryAudit,
-    RegistryFamilyLifecyclePropagation, RuntimeOutcomeAffordance, RuntimeOutcomeDenialPosture,
-    RuntimeOutcomeFamily, RuntimeOutcomePresentation, RuntimeOutcomeProjectionDescriptor,
-    RuntimeOutcomeProjectionId, RuntimeOutcomeProjectionKey, RuntimeOutcomeRecoveryPosture,
-    RuntimeOutcomeSourceReference, RuntimeOutcomeTone, SettingDefaultPosture, SettingDefaultValue,
-    SettingDescriptor, SettingEditorHint, SettingId, SettingKey, SettingMigrationPosture,
-    SettingOwnershipMetadata, SettingScope, SettingValidationPosture, SettingValueSchema,
-    SnapshotFamilyIndex, SnapshotFreezeReport, SnapshotLookupCounters, SnapshotLookupReport,
-    SnapshotMetrics, SnapshotReferenceValidationReport, SnapshotReferenceViolation,
-    SnapshotReferenceViolationKind, SupportRequirement, SupportSnapshot, SurfaceDescriptor,
-    SurfaceId, SurfaceKind, SurfacePlacementClass, SurfaceStateClass,
-    TaskPresentationCancellationPosture, TaskPresentationDescriptor,
-    TaskPresentationFailurePosture, TaskPresentationFamily, TaskPresentationId,
-    TaskPresentationKey, TaskPresentationLifecyclePosture, TaskPresentationProjectionEligibility,
-    TaskPresentationRuntimeAuthorityPosture, ThemeColorValue, ThemeColorValueError,
-    ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenKey,
-    ThemeTokenSource, ThemeTokenValue, UiInspectionMilestoneExpectation, UiInspectionPosture,
-    UiInspectionQuery, UiInspectionReceipt, UiInspectionScope, UiInspectionScopeInventory,
-    UiInspectionScopeInventoryFields, UiInspectionScopeSupportRow, UiInspectionSupportStatus,
-    UiInspectionTarget, UnsupportedCapability, ViewBindingDescriptor, ViewBindingFamily,
-    ViewBindingId, VisibleStateBindingDeclaration, WorthUiDslPackage, WorthUiHostContract,
-    WorthUiRuntimeSupportInventory, WorthUiRuntimeSupportInventoryFields, WorthUiRuntimeSupportRow,
-};
+pub use compat::*;

@@ -1,4 +1,4 @@
-error[E0451]: field `_sealed` of struct `WorthUi` is private
+error[E0451]: field `_sealed` of struct `worth_ui::facade::WorthUi` is private
  --> tests/ui/facade/construction/sealed_lifecycle/direct_entry_construction_fails.rs:4:23
   |
 4 |     let _ = WorthUi { _sealed: () };

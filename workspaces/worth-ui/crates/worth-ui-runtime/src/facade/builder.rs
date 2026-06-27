@@ -20,13 +20,9 @@ use crate::capability::{
     ThemeTokenRegistry, ViewBindingAcceptedRegistrationProof, ViewBindingDescriptor,
     ViewBindingRegistry,
 };
-use worth_ui_dsl::WorthUiDslPackage;
-use worth_ui_host_contract::{WorthUiHostAdapter, WorthUiHostContract};
 
-use super::freeze_core::WorthUiCapabilityRegistrationFreezeCore;
-
-/// Builder for a Worth UI application definition.
-pub struct WorthUiAppBuilder {
+/// Low-level capability registration builder for the public Worth UI facade.
+pub struct CapabilityRegistrationBuilder {
     registration_candidates: Vec<RegistrationCandidate>,
     command_registry: CommandRegistry,
     command_projection_registry: CommandProjectionRegistry,
@@ -45,11 +41,9 @@ pub struct WorthUiAppBuilder {
     task_presentation_registry: TaskPresentationRegistry,
     theme_token_registry: ThemeTokenRegistry,
     diagnostic_richness: CapabilityDiagnosticRichness,
-    dsl_package: WorthUiDslPackage,
-    host_contract: WorthUiHostContract,
 }
 
-impl WorthUiAppBuilder {
+impl CapabilityRegistrationBuilder {
     pub fn new() -> Self {
         Self {
             registration_candidates: Vec::new(),
@@ -70,24 +64,7 @@ impl WorthUiAppBuilder {
             task_presentation_registry: TaskPresentationRegistry::empty(),
             theme_token_registry: ThemeTokenRegistry::empty(),
             diagnostic_richness: CapabilityDiagnosticRichness::Rich,
-            dsl_package: WorthUiDslPackage::empty(),
-            host_contract: WorthUiHostContract::headless(),
         }
-    }
-
-    /// Attach the authored DSL package that owns the source-boundary truth.
-    pub fn with_dsl_package(mut self, dsl_package: WorthUiDslPackage) -> Self {
-        self.dsl_package = dsl_package;
-        self
-    }
-
-    /// Attach a host through the admitted host-contract boundary.
-    pub fn with_host<Host>(mut self, host: Host) -> Self
-    where
-        Host: WorthUiHostAdapter,
-    {
-        self.host_contract = host.host_contract();
-        self
     }
 
     /// Register a domain-agnostic application command capability.
@@ -225,19 +202,6 @@ impl WorthUiAppBuilder {
             .push(descriptor.registration_candidate());
         self.theme_token_registry.push(descriptor);
         self
-    }
-
-    /// Freeze registered capabilities into a low-level core for the product facade.
-    pub fn into_freeze_core(self) -> WorthUiCapabilityRegistrationFreezeCore {
-        let dsl_package = self.dsl_package.clone();
-        let host_contract = self.host_contract;
-        let capability_snapshot = self.freeze_with_registration_report().into_accepted_snapshot();
-
-        WorthUiCapabilityRegistrationFreezeCore::new(
-            capability_snapshot,
-            dsl_package,
-            host_contract,
-        )
     }
 
     /// Freeze registered capabilities and return structured registration diagnostics.

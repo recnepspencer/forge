@@ -1,13 +1,5 @@
-error[E0603]: module `capability` is private
+error[E0433]: failed to resolve: could not find `capability` in `worth_ui`
  --> tests/ui/facade/topology/internal_modules/internal_registry_module_import_fails.rs:1:15
   |
 1 | use worth_ui::capability::registry::CommandRegistry;
-  |               ^^^^^^^^^^  -------- module `registry` is not publicly re-exported
-  |               |
-  |               private module
-  |
-note: the module `capability` is defined here
- --> src/lib.rs
-  |
-  | mod capability;
-  | ^^^^^^^^^^^^^^
+  |               ^^^^^^^^^^ could not find `capability` in `worth_ui`

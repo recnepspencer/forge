@@ -7,7 +7,7 @@ error[E0308]: mismatched types
   |                        arguments to this method are incorrect
   |
 note: method defined here
- --> src/capability/registry/view_binding/descriptor/view_binding_descriptor.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/capability/registry/view_binding/descriptor/view_binding_descriptor.rs
   |
   |     pub fn with_query_capability_posture(
   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

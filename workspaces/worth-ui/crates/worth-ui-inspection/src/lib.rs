@@ -5,13 +5,17 @@ mod receipt;
 mod scope;
 mod target;
 
-pub use facade::{
-    UiInspectionScopeInventory, UiInspectionScopeInventoryFields, UiInspectionScopeSupportRow,
-};
+pub use facade::{UiInspectionScopeInventory, RUNTIME_INSPECTION_SCOPE_INVENTORY};
 pub use posture::{
-    UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionSupportStatus,
+    UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionSupportReason,
+    UiInspectionSupportStatus, UiInspectionUnsupportedPosture,
 };
-pub use query::UiInspectionQuery;
-pub use receipt::{phase3_unsupported_receipt, UiInspectionReceipt};
+pub use query::{
+    UiEvidenceBudget, UiEvidenceRichness, UiInspectionEvidenceSource, UiInspectionQuery,
+    UiInspectionRelevance,
+};
+pub use receipt::{
+    UiInspectionClosureReport, UiInspectionScopeSupportRow, UiInspectionSupportReport,
+};
 pub use scope::UiInspectionScope;
 pub use target::UiInspectionTarget;

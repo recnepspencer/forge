@@ -12,7 +12,13 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-worth-ui-runtime = { workspace = true }
+worth-ui-runtime = { path = "../worth-ui-runtime" }
 
 [dev-dependencies]
+forge-foundational = { path = "../../../../crates/forge-foundational" }
+forge-query = { path = "../../../../crates/forge-query" }
+forge-relational = { path = "../../../../crates/forge-relational" }
+forge-runtime-bridge = { path = "../../../../crates/forge-runtime-bridge" }
+forge-signal = { path = "../../../../crates/forge-signal" }
 trybuild = { workspace = true }
+worth-ui-dsl = { path = "../worth-ui-dsl" }

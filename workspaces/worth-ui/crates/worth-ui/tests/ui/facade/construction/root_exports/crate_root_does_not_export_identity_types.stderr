@@ -7,9 +7,12 @@ error[E0432]: unresolved imports `worth_ui::CommandId`, `worth_ui::ComponentId`,
   |                |          no `ComponentId` in the root
   |                no `CommandId` in the root
   |
-  = help: consider importing this struct instead:
+  = help: consider importing one of these structs instead:
           worth_ui::facade::CommandId
-  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::CommandId
+  = help: consider importing one of these structs instead:
           worth_ui::facade::ComponentId
-  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::ComponentId
+  = help: consider importing one of these structs instead:
           worth_ui::facade::SurfaceId
+          worth_ui_runtime::facade::SurfaceId

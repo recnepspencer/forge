@@ -4,7 +4,7 @@ pub struct WorthUiRuntimeSupportRow {
 }
 
 impl WorthUiRuntimeSupportRow {
-    pub fn new(subsystem: &'static str) -> Self {
+    pub(crate) fn new(subsystem: &'static str) -> Self {
         Self { subsystem }
     }
 
@@ -14,11 +14,11 @@ impl WorthUiRuntimeSupportRow {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthUiRuntimeSupportInventoryFields {
-    pub dsl_package: WorthUiRuntimeSupportRow,
-    pub inspection: WorthUiRuntimeSupportRow,
-    pub query_binding: WorthUiRuntimeSupportRow,
-    pub host_contract: WorthUiRuntimeSupportRow,
+pub(crate) struct WorthUiRuntimeSupportInventoryFields {
+    pub(crate) dsl_package: WorthUiRuntimeSupportRow,
+    pub(crate) inspection: WorthUiRuntimeSupportRow,
+    pub(crate) query_binding: WorthUiRuntimeSupportRow,
+    pub(crate) host_contract: WorthUiRuntimeSupportRow,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -27,7 +27,7 @@ pub struct WorthUiRuntimeSupportInventory {
 }
 
 impl WorthUiRuntimeSupportInventory {
-    pub fn new(fields: WorthUiRuntimeSupportInventoryFields) -> Self {
+    pub(crate) fn new(fields: WorthUiRuntimeSupportInventoryFields) -> Self {
         Self {
             rows: [
                 fields.dsl_package,
@@ -42,3 +42,21 @@ impl WorthUiRuntimeSupportInventory {
         &self.rows
     }
 }
+
+pub const PHASE3_RUNTIME_SUPPORT_INVENTORY: WorthUiRuntimeSupportInventory =
+    WorthUiRuntimeSupportInventory {
+        rows: [
+            WorthUiRuntimeSupportRow {
+                subsystem: "dsl_package",
+            },
+            WorthUiRuntimeSupportRow {
+                subsystem: "inspection",
+            },
+            WorthUiRuntimeSupportRow {
+                subsystem: "query_binding",
+            },
+            WorthUiRuntimeSupportRow {
+                subsystem: "host_contract",
+            },
+        ],
+    };

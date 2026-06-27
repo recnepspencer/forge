@@ -1,9 +1,11 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 fn runtime_canvas_spatial_lane_compile_pass(path: &str) {
-    trybuild::TestCases::new().pass(path);
+    trybuild_support::new_test_cases().pass(path);
 }
 
 fn runtime_canvas_spatial_lane_compile_fail(path: &str) {
-    trybuild::TestCases::new().compile_fail(path);
+    trybuild_support::new_test_cases().compile_fail(path);
 }
 
 #[test]
@@ -68,3 +70,4 @@ fn spatial_tool_state_hook_fields_are_not_publicly_mintable() {
         "tests/ui/runtime_authority/fail/spatial_tool_state_hook_fields_not_public.rs",
     );
 }
+

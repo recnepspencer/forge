@@ -1,6 +1,10 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 #[test]
-fn facade_theme_token_registration_compiles() {
-    facade_compile_pass("tests/ui/facade/pass/theme_token_registration_uses_only_facade.rs");
+fn compat_root_theme_token_registration_compiles() {
+    facade_compile_pass(
+        "tests/ui/facade/compat_pass/theme_token_registration_uses_only_facade.rs",
+    );
 }
 
 #[test]
@@ -32,11 +36,12 @@ fn theme_token_registry_type_not_publicly_importable() {
 }
 
 fn facade_compile_pass(fixture_path: &str) {
-    let tests = trybuild::TestCases::new();
+    let tests = trybuild_support::new_test_cases();
     tests.pass(fixture_path);
 }
 
 fn facade_compile_fail(fixture_path: &str) {
-    let tests = trybuild::TestCases::new();
+    let tests = trybuild_support::new_test_cases();
     tests.compile_fail(fixture_path);
 }
+

@@ -1,4 +1,5 @@
-use worth_ui::facade::{WorthUi, WorthUiDslPackage};
+use worth_ui::facade::app::WorthUi;
+use worth_ui::facade::dsl::WorthUiDslPackage;
 use worth_ui_host_contract::{WorthUiHostAdapter, WorthUiHostContract, WorthUiHostKind};
 
 struct AlternateHost;

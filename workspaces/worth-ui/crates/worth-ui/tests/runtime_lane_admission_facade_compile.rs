@@ -1,5 +1,7 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 fn runtime_lane_admission_compile_fail(path: &str) {
-    trybuild::TestCases::new().compile_fail(path);
+    trybuild_support::new_test_cases().compile_fail(path);
 }
 
 #[test]
@@ -43,3 +45,4 @@ fn extension_hook_cannot_override_active_plan_truth() {
         "tests/ui/runtime_authority/fail/extension_hook_cannot_override_active_plan_truth.rs",
     );
 }
+

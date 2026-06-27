@@ -1,9 +1,11 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 use std::path::Path;
 use std::process::Command;
 
 #[test]
 fn second_adapter_can_satisfy_the_host_contract_without_egui_internals() {
-    trybuild::TestCases::new().pass("tests/ui/host/second_adapter_implements_contract.rs");
+    trybuild_support::new_test_cases().pass("tests/ui/host/second_adapter_implements_contract.rs");
 }
 
 #[test]
@@ -24,3 +26,4 @@ fn alternate_adapter_crate_compiles_with_host_contract_only_dependency() {
         String::from_utf8_lossy(&output.stderr)
     );
 }
+

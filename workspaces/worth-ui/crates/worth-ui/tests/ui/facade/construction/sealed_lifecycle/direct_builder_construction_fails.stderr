@@ -1,10 +1,10 @@
-error: cannot construct `WorthUiAppBuilder` with struct literal syntax due to private fields
+error: cannot construct `WorthUiBuilder` with struct literal syntax due to private fields
  --> tests/ui/facade/construction/sealed_lifecycle/direct_builder_construction_fails.rs:4:13
   |
 4 |     let _ = WorthUiAppBuilder {};
   |             ^^^^^^^^^^^^^^^^^
   |
-  = note: private fields that were not provided
+  = note: private fields `inner`, `dsl_package` and `host_contract` that were not provided
 help: you might have meant to use the `new` associated function
   |
 4 -     let _ = WorthUiAppBuilder {};

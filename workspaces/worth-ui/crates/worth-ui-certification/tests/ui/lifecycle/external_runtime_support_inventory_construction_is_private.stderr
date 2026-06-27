@@ -1,0 +1,29 @@
+error[E0432]: unresolved imports `worth_ui_runtime::facade::WorthUiRuntimeSupportInventoryFields`, `worth_ui_runtime::facade::WorthUiRuntimeSupportRow`
+ --> tests/ui/lifecycle/external_runtime_support_inventory_construction_is_private.rs:2:37
+  |
+2 |     WorthUiRuntimeSupportInventory, WorthUiRuntimeSupportInventoryFields, WorthUiRuntimeSupportRow,
+  |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiRuntimeSupportRow` in `facade`
+  |                                     |
+  |                                     no `WorthUiRuntimeSupportInventoryFields` in `facade`
+  |
+help: a similar name exists in the module
+  |
+2 -     WorthUiRuntimeSupportInventory, WorthUiRuntimeSupportInventoryFields, WorthUiRuntimeSupportRow,
+2 +     WorthUiRuntimeSupportInventory, WorthUiRuntimeSupportInventory, WorthUiRuntimeSupportRow,
+  |
+help: a similar name exists in the module
+  |
+2 -     WorthUiRuntimeSupportInventory, WorthUiRuntimeSupportInventoryFields, WorthUiRuntimeSupportRow,
+2 +     WorthUiRuntimeSupportInventory, WorthUiRuntimeSupportInventoryFields, WorthUiLaneSupportRow,
+  |
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/lifecycle/external_runtime_support_inventory_construction_is_private.rs:13:45
+   |
+13 |     let _ = WorthUiRuntimeSupportInventory::new(fields);
+   |                                             ^^^ private associated function
+   |
+  ::: $WORKSPACE/crates/worth-ui-runtime/src/lifecycle/support_inventory.rs
+   |
+   |     pub(crate) fn new(fields: WorthUiRuntimeSupportInventoryFields) -> Self {
+   |     ----------------------------------------------------------------------- private associated function defined here

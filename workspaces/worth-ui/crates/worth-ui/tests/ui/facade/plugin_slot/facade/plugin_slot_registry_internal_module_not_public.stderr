@@ -1,22 +1,5 @@
-error[E0603]: module `capability` is private
+error[E0433]: failed to resolve: could not find `capability` in `worth_ui`
  --> tests/ui/facade/plugin_slot/facade/plugin_slot_registry_internal_module_not_public.rs:2:23
   |
 2 |     let _ = worth_ui::capability::registry::plugin_slot::PluginSlotRegistry::empty();
-  |                       ^^^^^^^^^^ private module          ------------------ struct `PluginSlotRegistry` is not publicly re-exported
-  |
-note: the module `capability` is defined here
- --> src/lib.rs
-  |
-  | mod capability;
-  | ^^^^^^^^^^^^^^
-
-error[E0624]: associated function `empty` is private
- --> tests/ui/facade/plugin_slot/facade/plugin_slot_registry_internal_module_not_public.rs:2:78
-  |
-2 |     let _ = worth_ui::capability::registry::plugin_slot::PluginSlotRegistry::empty();
-  |                                                                              ^^^^^ private associated function
-  |
- ::: src/capability/registry/plugin_slot/plugin_slot_registry.rs
-  |
-  |     pub(crate) fn empty() -> Self {
-  |     ----------------------------- private associated function defined here
+  |                       ^^^^^^^^^^ could not find `capability` in `worth_ui`

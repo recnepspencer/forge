@@ -1,16 +1,10 @@
-mod inspection_receipt;
+mod closure_report;
+mod evidence;
+mod replay;
+mod scope_support_row;
+mod snapshot;
+mod support_report;
 
-pub use inspection_receipt::UiInspectionReceipt;
-
-use crate::{
-    UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery,
-};
-
-pub fn phase3_unsupported_receipt(query: UiInspectionQuery) -> UiInspectionReceipt {
-    UiInspectionReceipt::new(
-        query,
-        UiInspectionPosture::Unsupported {
-            expected_in: UiInspectionMilestoneExpectation::Milestone31,
-        },
-    )
-}
+pub use closure_report::UiInspectionClosureReport;
+pub use scope_support_row::UiInspectionScopeSupportRow;
+pub use support_report::UiInspectionSupportReport;

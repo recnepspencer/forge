@@ -1,9 +1,11 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 fn parity_compile_pass(path: &str) {
-    trybuild::TestCases::new().pass(path);
+    trybuild_support::new_test_cases().pass(path);
 }
 
 fn parity_compile_fail(path: &str) {
-    trybuild::TestCases::new().compile_fail(path);
+    trybuild_support::new_test_cases().compile_fail(path);
 }
 
 #[test]
@@ -47,3 +49,4 @@ fn rust_cannot_inject_active_plan_nodes_directly() {
         "tests/ui/runtime_file_rust_replacement_parity/fail/rust_cannot_inject_active_plan_nodes.rs",
     );
 }
+

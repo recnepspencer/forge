@@ -1,7 +1,11 @@
 //! Public Worth UI runtime capability and inspection surfaces.
 
+mod app;
+mod app_builder;
 mod builder;
-mod freeze_core;
+mod inspection_observation;
+mod inspection_receipt;
+mod runtime_bridge;
 
 pub use crate::capability::{
     AdmittedCapability, AmbientHostCheck, ArbitraryKeyValueSettingBag, CapabilityDiagnosticCode,
@@ -69,16 +73,19 @@ pub use crate::capability::{
     ThemeTokenSource, ThemeTokenValue, UnsupportedCapability, ViewBindingDescriptor,
     ViewBindingFamily, ViewBindingId, VisibleStateBindingDeclaration,
 };
+pub use crate::lifecycle::{WorthUiRuntimeSupportInventory, PHASE3_RUNTIME_SUPPORT_INVENTORY};
+pub use crate::runtime::*;
+pub use app::{WorthUi, WorthUiApp};
+pub use app_builder::{WorthUiAppBuilder, WorthUiBuilder};
+pub use builder::CapabilityRegistrationBuilder;
+pub use inspection_observation::UiInspectionFacadeObservation;
+pub use inspection_receipt::UiInspectionReceipt;
 pub use worth_ui_dsl::WorthUiDslPackage;
 pub use worth_ui_host_contract::{WorthUiHostAdapter, WorthUiHostContract};
 pub use worth_ui_inspection::{
-    phase3_unsupported_receipt, UiInspectionMilestoneExpectation, UiInspectionPosture,
-    UiInspectionQuery, UiInspectionReceipt, UiInspectionScope, UiInspectionScopeInventory,
-    UiInspectionScopeInventoryFields, UiInspectionScopeSupportRow, UiInspectionSupportStatus,
-    UiInspectionTarget,
+    UiEvidenceBudget, UiEvidenceRichness, UiInspectionClosureReport, UiInspectionEvidenceSource,
+    UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery,
+    UiInspectionRelevance, UiInspectionScope, UiInspectionScopeSupportRow,
+    UiInspectionSupportReason, UiInspectionSupportReport, UiInspectionSupportStatus,
+    UiInspectionTarget, UiInspectionUnsupportedPosture,
 };
-pub use crate::lifecycle::{
-    WorthUiRuntimeSupportInventory, WorthUiRuntimeSupportInventoryFields, WorthUiRuntimeSupportRow,
-};
-pub use builder::WorthUiAppBuilder as WorthUiCapabilityRegistrationBuilderCore;
-pub use freeze_core::WorthUiCapabilityRegistrationFreezeCore;

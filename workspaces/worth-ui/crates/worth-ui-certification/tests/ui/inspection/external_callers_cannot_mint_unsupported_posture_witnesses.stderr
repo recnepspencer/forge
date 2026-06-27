@@ -1,0 +1,13 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/inspection/external_callers_cannot_mint_unsupported_posture_witnesses.rs:7:51
+  |
+7 |       let witness = UiInspectionUnsupportedPosture::new(
+  |                                                     ^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-ui-inspection/src/posture/support_posture.rs
+  |
+  | /     pub(crate) const fn new(
+  | |         reason: UiInspectionSupportReason,
+  | |         expected_in: Option<UiInspectionMilestoneExpectation>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

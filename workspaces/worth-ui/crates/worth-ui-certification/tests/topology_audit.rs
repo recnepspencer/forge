@@ -1,10 +1,22 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
+use worth_ui::facade::app::WorthUi;
+use worth_ui::facade::inspection::{
+    UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery,
+    UiInspectionScope, UiInspectionSupportReason, UiInspectionSupportStatus,
+    UiInspectionTarget,
+};
 use worth_ui_certification::topology::{
     audit_host_egui_dependency_boundary, audit_no_cross_crate_deep_imports,
-    expected_phase3_lifecycle_subsystems,
+    audit_non_dsl_crates_do_not_reach_dsl_internals,
+    audit_consumers_route_inspection_through_worth_ui_facade,
+    audit_inspection_future_artifact_seed_topology, audit_inspection_public_module_names,
+    audit_inspection_public_module_role_purity,
+    audit_phase3_lifecycle_public_surface, expected_phase3_lifecycle_subsystems,
+    audit_preboundary_receipt_and_posture_files_do_not_lower_to_foundational,
+    audit_public_surfaces_do_not_recreate_query_owned_lanes,
+    audit_required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_option,
 };
-use worth_ui::facade::WorthUi;
 
 fn workspace_root() -> &'static Path {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -14,6 +26,27 @@ fn workspace_root() -> &'static Path {
         .expect("workspace root")
 }
 
+fn topology_negative_fixture_root(name: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/topology_negative")
+        .join(name)
+}
+
+fn assert_has_violation(
+    violations: &[String],
+    expected_file_fragment: &str,
+    expected_reason_fragment: &str,
+) {
+    assert!(
+        violations.iter().any(|violation| {
+            violation.contains(expected_file_fragment)
+                && violation.contains(expected_reason_fragment)
+        }),
+        "expected a violation containing file fragment `{expected_file_fragment}` and reason fragment `{expected_reason_fragment}`;\nactual violations:\n{}",
+        violations.join("\n")
+    );
+}
+
 #[test]
 fn host_egui_only_uses_host_contract_surfaces() {
     let violations = audit_host_egui_dependency_boundary(workspace_root());
@@ -21,9 +54,192 @@ fn host_egui_only_uses_host_contract_surfaces() {
 }
 
 #[test]
+fn host_egui_boundary_audit_rejects_known_bad_runtime_import_fixture() {
+    let violations =
+        audit_host_egui_dependency_boundary(&topology_negative_fixture_root(
+            "host_egui_forbidden_runtime_import",
+        ));
+    assert_has_violation(
+        &violations,
+        "worth-ui-host-egui",
+        "reaches worth-ui-runtime internals",
+    );
+}
+
+#[test]
 fn no_crate_deep_imports_sibling_internals() {
     let violations = audit_no_cross_crate_deep_imports(workspace_root());
     assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn non_dsl_crates_only_use_admitted_dsl_boundary_types() {
+    let violations = audit_non_dsl_crates_do_not_reach_dsl_internals(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn non_dsl_audit_rejects_known_bad_dsl_internal_import_fixture() {
+    let violations = audit_non_dsl_crates_do_not_reach_dsl_internals(
+        &topology_negative_fixture_root("non_dsl_deep_import"),
+    );
+    assert_has_violation(
+        &violations,
+        "lib.rs",
+        "reaches worth-ui-dsl internals",
+    );
+}
+
+#[test]
+fn public_surfaces_do_not_recreate_query_owned_lanes() {
+    let violations = audit_public_surfaces_do_not_recreate_query_owned_lanes(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn inspection_crate_exposes_no_forbidden_public_module_names() {
+    let violations = audit_inspection_public_module_names(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn inspection_public_module_name_audit_rejects_nested_forbidden_module_fixture() {
+    let violations = audit_inspection_public_module_names(&topology_negative_fixture_root(
+        "inspection_forbidden_nested_public_module",
+    ));
+    assert_has_violation(
+        &violations,
+        "nested\\mod.rs",
+        "forbidden public module `debug`",
+    );
+}
+
+#[test]
+fn inspection_crate_public_modules_stay_role_pure() {
+    let violations = audit_inspection_public_module_role_purity(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn inspection_role_purity_audit_rejects_mixed_public_module_fixture() {
+    let violations = audit_inspection_public_module_role_purity(&topology_negative_fixture_root(
+        "inspection_role_purity_drift",
+    ));
+    assert_has_violation(
+        &violations,
+        "receipt/mod.rs",
+        "single public responsibility",
+    );
+}
+
+#[test]
+fn inspection_crate_seeds_private_future_artifact_homes() {
+    let violations = audit_inspection_future_artifact_seed_topology(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn inspection_artifact_seed_audit_rejects_missing_or_public_seed_fixture() {
+    let violations =
+        audit_inspection_future_artifact_seed_topology(&topology_negative_fixture_root(
+            "inspection_missing_artifact_seed_homes",
+        ));
+    assert_has_violation(
+        &violations,
+        "receipt/replay/mod.rs",
+        "future replay inspection artifacts lack an honest internal home",
+    );
+    assert_has_violation(
+        &violations,
+        "receipt/mod.rs",
+        "private `replay` child module",
+    );
+}
+
+#[test]
+fn query_lane_audit_rejects_nested_public_surface_fixture() {
+    let violations = audit_public_surfaces_do_not_recreate_query_owned_lanes(
+        &topology_negative_fixture_root("public_query_lane_recreation"),
+    );
+    assert_has_violation(
+        &violations,
+        "nested.rs",
+        "recreates a Query-owned support/async-result/inspection/causal-explanation/projection-fact lane",
+    );
+}
+
+#[test]
+fn consumers_route_inspection_through_the_worth_ui_facade() {
+    let violations = audit_consumers_route_inspection_through_worth_ui_facade(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn consumer_bypass_audit_rejects_known_bad_fixture() {
+    let violations = audit_consumers_route_inspection_through_worth_ui_facade(
+        &topology_negative_fixture_root("inspection_facade_bypass_consumer"),
+    );
+    assert_has_violation(
+        &violations,
+        "fake-inspection-consumer\\Cargo.toml",
+        "depends on `worth-ui-runtime` directly",
+    );
+    assert_has_violation(
+        &violations,
+        "src\\lib.rs",
+        "must enter through worth_ui::facade",
+    );
+}
+
+#[test]
+fn preboundary_receipt_and_posture_files_stay_out_of_foundational() {
+    let violations =
+        audit_preboundary_receipt_and_posture_files_do_not_lower_to_foundational(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn foundational_lowering_audit_rejects_known_bad_preboundary_fixture() {
+    let violations = audit_preboundary_receipt_and_posture_files_do_not_lower_to_foundational(
+        &topology_negative_fixture_root("preboundary_foundational_lowering"),
+    );
+    assert_has_violation(
+        &violations,
+        "closure_posture.rs",
+        "lowers runtime-local receipt/support/posture truth into forge_foundational before a real boundary",
+    );
+}
+
+#[test]
+fn phase3_lifecycle_public_surface_is_curated() {
+    let violations = audit_phase3_lifecycle_public_surface(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_option() {
+    let violations =
+        audit_required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_option(
+            workspace_root(),
+        );
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn lifecycle_aggregate_audit_rejects_known_bad_default_and_option_fixture() {
+    let violations = audit_required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_option(
+        &topology_negative_fixture_root("lifecycle_aggregate_cheat"),
+    );
+    assert_has_violation(
+        &violations,
+        "worth_ui_runtime_bootstrap.rs",
+        "default required lifecycle state",
+    );
+    assert_has_violation(
+        &violations,
+        "worth_ui_runtime_bootstrap.rs",
+        "weaken required lifecycle state with Option/map storage",
+    );
 }
 
 #[test]
@@ -40,29 +256,85 @@ fn lifecycle_inventories_match_phase3_closure_inventory() {
         .map(|row| row.subsystem())
         .collect();
     let inspection_rows: Vec<_> = app
-        .inspection_scope_inventory()
+        .inspection_closure_report()
         .rows()
         .iter()
-        .map(|row| row.subsystem())
+        .map(|row| {
+            (
+                row.subsystem(),
+                row.scope(),
+                row.status(),
+                row.reason(),
+                row.expected_in(),
+            )
+        })
+        .collect();
+    let expected_inspection_rows: Vec<_> = expected
+        .iter()
+        .flat_map(|subsystem| {
+            [
+                (
+                    *subsystem,
+                    UiInspectionScope::Graph,
+                    UiInspectionSupportStatus::Unsupported,
+                    Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted),
+                    Some(UiInspectionMilestoneExpectation::Milestone31),
+                ),
+                (
+                    *subsystem,
+                    UiInspectionScope::Measurement,
+                    UiInspectionSupportStatus::Unsupported,
+                    Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted),
+                    Some(UiInspectionMilestoneExpectation::Milestone31),
+                ),
+                (
+                    *subsystem,
+                    UiInspectionScope::Mounting,
+                    UiInspectionSupportStatus::Unsupported,
+                    Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted),
+                    Some(UiInspectionMilestoneExpectation::Milestone31),
+                ),
+                (
+                    *subsystem,
+                    UiInspectionScope::Rebind,
+                    UiInspectionSupportStatus::Unsupported,
+                    Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted),
+                    Some(UiInspectionMilestoneExpectation::Milestone31),
+                ),
+            ]
+        })
         .collect();
 
     assert_eq!(runtime_rows, expected);
-    assert_eq!(inspection_rows, expected);
+    assert_eq!(inspection_rows, expected_inspection_rows);
 }
 
 #[test]
-fn facade_inspection_is_available_from_immutable_app_reference() {
+fn facade_inspection_from_immutable_app_reference_uses_lifecycle_owned_support_posture() {
     let app = WorthUi::app()
         .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
         .freeze();
     let app_ref = &app;
-    let receipt = app_ref.inspect(worth_ui::facade::UiInspectionQuery::new(
-        worth_ui::facade::UiInspectionTarget::product_root(),
-        worth_ui::facade::UiInspectionScope::graph(),
-    ));
+    let scope = UiInspectionScope::graph();
+    let support_report = app_ref.inspection_support_report(scope);
+    let receipt = app_ref.inspect(UiInspectionQuery::new(UiInspectionTarget::product_root(), scope));
 
+    assert_eq!(receipt.query().scope(), UiInspectionScope::Graph);
     assert_eq!(
-        receipt.query().scope(),
-        worth_ui::facade::UiInspectionScope::Graph
+        support_report.status(),
+        UiInspectionSupportStatus::Unsupported
+    );
+    let unsupported = receipt
+        .posture()
+        .unsupported_posture()
+        .expect("unsupported graph inspection should carry a sealed unsupported posture witness");
+    assert_eq!(receipt.posture(), UiInspectionPosture::Unsupported(unsupported));
+    assert_eq!(
+        unsupported.reason(),
+        UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted
+    );
+    assert_eq!(
+        unsupported.expected_in(),
+        Some(UiInspectionMilestoneExpectation::Milestone31)
     );
 }

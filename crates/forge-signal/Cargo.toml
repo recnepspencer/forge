@@ -17,13 +17,13 @@ profile-standard = []
 profile-extended = []
 
 [dependencies]
-tracing.workspace = true
-serde = { workspace = true, features = ["derive"] }
-smallvec = { workspace = true, features = ["serde"] }
-rayon.workspace = true
-serde_json = { workspace = true }
-forge-proof.workspace = true
-forge-foundational.workspace = true
+tracing = "0.1"
+serde = { version = "1", features = ["derive"] }
+smallvec = { version = "1", features = ["serde"] }
+rayon = "1"
+serde_json = "1"
+forge-proof = { path = "../forge-proof" }
+forge-foundational = { path = "../forge-foundational" }
 sha2 = "0.10"
 
 [dev-dependencies]

@@ -10,7 +10,7 @@ note: if you're trying to build a new `WorthUiCanvasSpatialFrameTarget` consider
       WorthUiCanvasSpatialFrameTarget::hit_test
       WorthUiCanvasSpatialFrameTarget::overlay
       WorthUiCanvasSpatialFrameTarget::tool_state
- --> src/runtime/canvas_spatial_lane/frame_target.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/canvas_spatial_lane/frame_target.rs
   |
   |     pub fn viewport(viewport_plan: WorthUiCanvasViewportPlan) -> Self {
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

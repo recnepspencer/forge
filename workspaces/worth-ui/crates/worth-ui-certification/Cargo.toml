@@ -17,8 +17,8 @@ toml = "0.8"
 
 [dev-dependencies]
 trybuild = { workspace = true }
-worth-ui-dsl = { workspace = true }
-worth-ui-host-contract = { workspace = true }
-worth-ui-inspection = { workspace = true }
-worth-ui-runtime = { workspace = true }
-worth-ui = { workspace = true }
+worth-ui-dsl = { path = "../worth-ui-dsl" }
+worth-ui-host-contract = { path = "../worth-ui-host-contract" }
+worth-ui-inspection = { path = "../worth-ui-inspection" }
+worth-ui-runtime = { path = "../worth-ui-runtime" }
+worth-ui = { path = "../worth-ui" }

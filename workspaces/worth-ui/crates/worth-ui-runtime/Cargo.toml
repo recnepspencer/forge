@@ -12,10 +12,10 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-forge-foundational = { workspace = true }
-forge-proof = { workspace = true }
-forge-query = { workspace = true }
-worth-ui-dsl = { workspace = true }
-worth-ui-inspection = { workspace = true }
-worth-ui-query-binding = { workspace = true }
-worth-ui-host-contract = { workspace = true }
+forge-foundational = { path = "../../../../crates/forge-foundational" }
+forge-proof = { path = "../../../../crates/forge-proof" }
+forge-query = { path = "../../../../crates/forge-query" }
+worth-ui-dsl = { path = "../worth-ui-dsl" }
+worth-ui-inspection = { path = "../worth-ui-inspection" }
+worth-ui-query-binding = { path = "../worth-ui-query-binding" }
+worth-ui-host-contract = { path = "../worth-ui-host-contract" }

@@ -7,7 +7,7 @@ error[E0308]: mismatched types
   |             arguments to this function are incorrect
   |
 note: associated function defined here
- --> src/capability/registry/mosaic_state/descriptor/state_identity/mosaic_state_owner_identity.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/capability/registry/mosaic_state/descriptor/state_identity/mosaic_state_owner_identity.rs
   |
   |     pub fn runtime_scope(scope: MosaicStateOwnerScopeId) -> Self {
   |            ^^^^^^^^^^^^^
