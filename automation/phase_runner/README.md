@@ -106,10 +106,12 @@ The required loop is phase done-ness:
 - `review` runs the phase-done QA loop and sends genuinely incomplete work to
   `repair`.
 - `repair` fixes the done-check findings and returns to `review`.
-- `close` runs non-looping hardening passes for test quality, directory/file
-  quality, and aerospace-grade gaps. Those passes may produce and implement
-  additional plans, but they do not force another runner loop unless they prove
-  the phase itself was not actually done.
+- in the original prompt set, `close` runs non-looping hardening passes after
+  the phase-done loop passes.
+- in the split test-hardening prompt set, the post-done sequence is
+  `test_review -> test_repair_plan -> test_repair_implement -> code_quality_review`.
+  That set separates review, planning, and implementation for test realism and
+  structural QA so each turn has one job.
 
 The state file drives execution through an explicit cursor:
 
@@ -124,6 +126,57 @@ The state file drives execution through an explicit cursor:
 
 The runner sends exactly that turn. It does not infer the next message from
 status fields.
+
+## Prompt Sets
+
+The runner can use more than one prompt set.
+
+### Original close-pass set
+
+The bundled default templates are the compact five-turn set:
+
+- `plan`
+- `implement`
+- `review`
+- `repair`
+- `close`
+
+This keeps the phase loop small, but the `close` turn compresses test QA,
+follow-up planning, implementation, and code-quality review into one prompt.
+
+### Split test-hardening set
+
+For better answer quality on hardening work, use the split post-done set:
+
+- `plan`
+- `implement`
+- `review`
+- `repair`
+- `test_review`
+- `test_repair_plan`
+- `test_repair_implement`
+- `code_quality_review`
+
+Recommended template mapping:
+
+```json
+{
+  "contract_template": "templates/_contract_test_hardening.md",
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md"
+  }
+}
+```
+
+This set drops the extra closeout/aerospace-grade prompt and ends the phase
+after code-quality review records final verification and advances the cursor.
 
 ## Templates
 
