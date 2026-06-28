@@ -19,11 +19,44 @@ use forge_store_physical_integrity::{
     PhysicalScopeAdmission, ScopedPhysicalValidatorInput,
 };
 
+#[derive(Clone, Copy)]
+pub(crate) struct PageReportFixtureCell {
+    segment: u64,
+    page: u64,
+    slot: u64,
+    generation: u64,
+}
+
+impl PageReportFixtureCell {
+    pub(crate) const fn new(segment: u64, page: u64, slot: u64, generation: u64) -> Self {
+        Self {
+            segment,
+            page,
+            slot,
+            generation,
+        }
+    }
+
+    const fn default_authority_scope() -> Self {
+        Self::new(1, 2, 3, 7)
+    }
+}
+
 pub(crate) fn inspect_page_report(
     page_payload: &[u8],
 ) -> forge_store_physical_integrity::PageIntegrityReport {
+    inspect_page_report_for_cell(
+        page_payload,
+        PageReportFixtureCell::default_authority_scope(),
+    )
+}
+
+pub(crate) fn inspect_page_report_for_cell(
+    page_payload: &[u8],
+    fixture_cell: PageReportFixtureCell,
+) -> forge_store_physical_integrity::PageIntegrityReport {
     let mut report = None;
-    with_scoped_page(page_payload, |input| {
+    with_scoped_page(page_payload, fixture_cell, |input| {
         report = Some(PhysicalContainerIntegrity::inspect_page(input).unwrap());
     });
     report.unwrap()
@@ -33,9 +66,13 @@ pub(crate) fn inspect_page_denial(
     page_payload: &[u8],
 ) -> forge_store_physical_integrity::PhysicalContainerIntegrityDenial {
     let mut denial = None;
-    with_scoped_page(page_payload, |input| {
-        denial = Some(PhysicalContainerIntegrity::inspect_page(input).unwrap_err());
-    });
+    with_scoped_page(
+        page_payload,
+        PageReportFixtureCell::default_authority_scope(),
+        |input| {
+            denial = Some(PhysicalContainerIntegrity::inspect_page(input).unwrap_err());
+        },
+    );
     denial.unwrap()
 }
 
@@ -88,11 +125,24 @@ pub(crate) fn inspect_frame_with_witness_payload(
     denial.unwrap()
 }
 
-fn with_scoped_page(page_payload: &[u8], run: impl FnOnce(ScopedPhysicalValidatorInput<'_>)) {
-    let cell = page_cell(1, 2, 7);
+fn with_scoped_page(
+    page_payload: &[u8],
+    fixture_cell: PageReportFixtureCell,
+    run: impl FnOnce(ScopedPhysicalValidatorInput<'_>),
+) {
+    let cell = page_cell(
+        fixture_cell.segment,
+        fixture_cell.page,
+        fixture_cell.generation,
+    );
     with_checked_page(page_payload, cell, |checked| {
         let scope = PhysicalReferenceScope::page(cell);
-        let root = root_with_slot(1, 2, 3, 7);
+        let root = root_with_slot(
+            fixture_cell.segment,
+            fixture_cell.page,
+            fixture_cell.slot,
+            fixture_cell.generation,
+        );
         let membership = scope_membership(&root, scope);
         let request = page_request(&checked, scope, membership);
         let admission = PhysicalScopeAdmission::admit_page(checked, request).unwrap();
@@ -101,8 +151,19 @@ fn with_scoped_page(page_payload: &[u8], run: impl FnOnce(ScopedPhysicalValidato
 }
 
 pub(crate) fn page_payload_with_record(payload: &[u8]) -> Vec<u8> {
+    page_payload_with_record_for_cell(payload, PageReportFixtureCell::default_authority_scope())
+}
+
+pub(crate) fn page_payload_with_record_for_cell(
+    payload: &[u8],
+    fixture_cell: PageReportFixtureCell,
+) -> Vec<u8> {
     let records = PhysicalPageRecordAuthority::s1(header_authority());
-    let cell = page_cell(1, 2, 7);
+    let cell = page_cell(
+        fixture_cell.segment,
+        fixture_cell.page,
+        fixture_cell.generation,
+    );
     let empty_page = page_bytes(cell, &[]);
     let header = header_authority()
         .decode_page_header(cell, &empty_page, PhysicalPageKind::DataPage)
@@ -113,7 +174,15 @@ pub(crate) fn page_payload_with_record(payload: &[u8]) -> Vec<u8> {
     records
         .append_record(
             admitted,
-            SlotAppendRequest::ordinary(slot_cell(1, 2, 3, 7), payload),
+            SlotAppendRequest::ordinary(
+                slot_cell(
+                    fixture_cell.segment,
+                    fixture_cell.page,
+                    fixture_cell.slot,
+                    fixture_cell.generation,
+                ),
+                payload,
+            ),
         )
         .unwrap()
         .page_payload()

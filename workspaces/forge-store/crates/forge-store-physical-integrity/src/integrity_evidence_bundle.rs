@@ -1,3 +1,7 @@
+use crate::integrity_authority_claim_basis::{
+    checkpoint_authority_digest, manifest_authority_digest, page_authority_digest,
+    wal_frame_authority_digest,
+};
 use crate::integrity_evidence_quarantine::{
     quarantine_evidence_denial_count, quarantine_evidence_outcome, quarantine_receipt_claim_basis,
 };
@@ -250,7 +254,7 @@ impl EvidenceParts {
         match source {
             StoreExecutedIntegrityEvidence::AuthoritativePage { report, .. } => {
                 let basis = report.basis();
-                let digest = digest(format!("authority:{:?}", basis));
+                let claim = physical_authority_claim(page_authority_digest(report)?);
                 Ok(Self {
                     category: FoundationalBoundaryArtifactCategory::Artifact,
                     role: FoundationalBoundaryArtifactRole::AuthoritativeCurrent,
@@ -258,12 +262,12 @@ impl EvidenceParts {
                     locality: IntegrityEvidenceLocality::PhysicalScope(basis.scope()),
                     counters: IntegrityEvidenceCounters::Container(report.counters()),
                     denial_count: 0,
-                    claim: physical_authority_claim(digest),
+                    claim,
                 })
             }
             StoreExecutedIntegrityEvidence::AuthoritativeWalFrame { report } => {
                 let basis = report.basis();
-                let digest = digest(format!("wal-authority:{:?}", basis));
+                let claim = physical_authority_claim(wal_frame_authority_digest(report)?);
                 Ok(Self {
                     category: FoundationalBoundaryArtifactCategory::Artifact,
                     role: FoundationalBoundaryArtifactRole::AuthoritativeCurrent,
@@ -271,12 +275,12 @@ impl EvidenceParts {
                     locality: IntegrityEvidenceLocality::PhysicalScope(basis.scope()),
                     counters: IntegrityEvidenceCounters::WalFrame(report.counters()),
                     denial_count: 0,
-                    claim: physical_authority_claim(digest),
+                    claim,
                 })
             }
             StoreExecutedIntegrityEvidence::AuthoritativeCheckpointRecord { report } => {
                 let basis = report.basis();
-                let digest = digest(format!("checkpoint-authority:{:?}", basis));
+                let claim = physical_authority_claim(checkpoint_authority_digest(report)?);
                 Ok(Self {
                     category: FoundationalBoundaryArtifactCategory::Artifact,
                     role: FoundationalBoundaryArtifactRole::AuthoritativeCurrent,
@@ -284,15 +288,11 @@ impl EvidenceParts {
                     locality: IntegrityEvidenceLocality::PhysicalScope(basis.scope()),
                     counters: IntegrityEvidenceCounters::WalFrame(report.counters()),
                     denial_count: 0,
-                    claim: physical_authority_claim(digest),
+                    claim,
                 })
             }
             StoreExecutedIntegrityEvidence::AuthoritativeManifest { report } => {
-                let digest = digest(format!(
-                    "manifest-authority:{:?}:{:?}",
-                    report.root(),
-                    report.reference_basis()
-                ));
+                let claim = physical_authority_claim(manifest_authority_digest(report)?);
                 Ok(Self {
                     category: FoundationalBoundaryArtifactCategory::Artifact,
                     role: FoundationalBoundaryArtifactRole::AuthoritativeCurrent,
@@ -306,7 +306,7 @@ impl EvidenceParts {
                         .unwrap_or(IntegrityEvidenceLocality::SupportReport),
                     counters: IntegrityEvidenceCounters::Manifest(report.counters()),
                     denial_count: 0,
-                    claim: physical_authority_claim(digest),
+                    claim,
                 })
             }
             StoreExecutedIntegrityEvidence::RebuildableDerived { report, .. } => {
@@ -358,7 +358,9 @@ impl EvidenceParts {
     }
 }
 
-fn physical_authority_claim(digest: StableDigest) -> StoreIntegrityBoundaryClaim {
+fn physical_authority_claim(
+    digest: forge_store_aspect_native::StoreDigestEvidence,
+) -> StoreIntegrityBoundaryClaim {
     StoreIntegrityBoundaryClaim::PhysicalAuthority(StorePhysicalAuthorityBoundaryClaim::new(digest))
 }
 

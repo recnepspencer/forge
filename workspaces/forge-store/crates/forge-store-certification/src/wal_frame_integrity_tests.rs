@@ -5,18 +5,23 @@ use forge_store_physical_format::{
     CheckpointAdjacencyPosture, PhysicalReferenceScope, RootManifestIntegrityPosture,
 };
 use forge_store_physical_integrity::{
-    PhysicalScopeAdmission, PhysicalScopeAdmissionRequest, ScopedPhysicalValidatorInput,
+    PhysicalIntegrityEvidenceAuthority, PhysicalIntegrityEvidenceProfile, PhysicalScopeAdmission,
+    PhysicalScopeAdmissionRequest, ScopedPhysicalValidatorInput, StoreExecutedIntegrityEvidence,
     WalFrameDamageDenialKind, WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
-    WalTailIntegrityPosture,
+    WalFrameIntegrityReport, WalTailIntegrityPosture,
 };
-use forge_store_recovery_physics::RecoveryPhysicsIntegrityInput;
+use forge_store_recovery_physics::{
+    IntegrityVettedWalFrame, RecoveryIntegrityHandoffReceipt, RecoveryPhysicsIntegrityInput,
+};
 
 #[test]
 fn intact_wal_frame_independent_reads_produce_same_report_and_s4_input_identity() {
     let first = inspect_intact_wal_frame();
     let second = inspect_intact_wal_frame();
-    let first_input = RecoveryPhysicsIntegrityInput::from_wal_integrity_report(&first);
-    let second_input = RecoveryPhysicsIntegrityInput::from_wal_integrity_report(&second);
+    let first_record = vetted_wal_frame(&first);
+    let second_record = vetted_wal_frame(&second);
+    let first_input = RecoveryPhysicsIntegrityInput::from_vetted_wal_frame(&first_record);
+    let second_input = RecoveryPhysicsIntegrityInput::from_vetted_wal_frame(&second_record);
 
     assert_eq!(first, second);
     assert_eq!(first_input, second_input);
@@ -186,6 +191,17 @@ fn inspect_intact_wal_frame() -> forge_store_physical_integrity::WalFrameIntegri
         },
     );
     report.unwrap()
+}
+
+fn vetted_wal_frame(report: &WalFrameIntegrityReport) -> IntegrityVettedWalFrame {
+    let evidence = PhysicalIntegrityEvidenceAuthority::store_local()
+        .materialize(
+            StoreExecutedIntegrityEvidence::authoritative_wal_frame(report),
+            PhysicalIntegrityEvidenceProfile::reduced(),
+        )
+        .unwrap();
+    let receipt = RecoveryIntegrityHandoffReceipt::from_executed_evidence(&evidence).unwrap();
+    IntegrityVettedWalFrame::from_integrity_report(report, receipt).unwrap()
 }
 
 pub(crate) fn inspect_denial(

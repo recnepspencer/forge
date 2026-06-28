@@ -1,0 +1,67 @@
+use forge_foundational::{
+    aspects, AspectValue, ContractValidationInput, InternedString, ScalarAspectType,
+};
+use forge_proof::TransitionOutcome;
+use forge_store::aspect_native::{
+    StoreAspectAuthorityInput, StoreAspectBoundaryFact, StoreAspectIdentity,
+    StorePhysicalAuthorityWitness, StorePhysicalBoundaryWitness,
+    ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
+};
+use forge_store::certification::{
+    certify_store_json_residue_inventory, StoreCertificationProgram, StoreJsonAuthorityRisk,
+    StoreJsonResidueDenial, StoreJsonResidueInventory, StoreJsonResidueTokenKind,
+    StoreJsonResidueZone,
+};
+
+#[test]
+fn downstream_code_authors_boundary_facts_through_public_native_facade() {
+    let key = aspects()
+        .vocabulary()
+        .key("store.physical.segment.identity")
+        .unwrap();
+    let contract = aspects()
+        .contract()
+        .for_key(key.clone())
+        .identified_by(aspects().vocabulary().identity(10))
+        .at_revision(aspects().vocabulary().revision(1))
+        .scalar(ScalarAspectType::String);
+    let validated =
+        match aspects()
+            .validate()
+            .against(&contract)
+            .value(ContractValidationInput::from(AspectValue::String(
+                InternedString::from("segment-001"),
+            ))) {
+            TransitionOutcome::Success(value) => value,
+            outcome => panic!("validation should succeed: {outcome:?}"),
+        };
+    let state = match aspects().authoritative_state().admit([validated]) {
+        TransitionOutcome::Success(state) => state,
+        outcome => panic!("state admission should succeed: {outcome:?}"),
+    };
+    let physical_witness = StorePhysicalBoundaryWitness::from_physical_authority(
+        StorePhysicalAuthorityWitness::for_aspect_native_boundary(
+            ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+
+    let fact = StoreAspectBoundaryFact::from_admitted_state(
+        StoreAspectIdentity::from_aspect_key(key.clone()),
+        StoreAspectAuthorityInput::new(state, physical_witness),
+    )
+    .unwrap();
+
+    assert_eq!(fact.identity(), &StoreAspectIdentity::from_aspect_key(key));
+}
+
+#[test]
+fn downstream_code_reaches_certification_through_public_facade() {
+    let _program = StoreCertificationProgram::Generic;
+    let _zone = StoreJsonResidueZone::DedicatedWorkspaceCertificationEnforcement;
+    let _risk = StoreJsonAuthorityRisk::CertificationScannerVocabulary;
+    let _token = StoreJsonResidueTokenKind::SerdeJson;
+    let _certify: fn() -> Result<StoreJsonResidueInventory, StoreJsonResidueDenial> =
+        certify_store_json_residue_inventory;
+}

@@ -137,6 +137,7 @@ impl ResidentFrameTable {
         self.publish_dirty_counters();
         Ok(DirtyPublicationReceipt::new(
             plan.dirty_identity(),
+            plan.frame_request(),
             crate::DirtyPageCount::from_observed_pages(1),
             self.dirty_counters,
         ))

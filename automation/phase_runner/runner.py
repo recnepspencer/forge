@@ -263,7 +263,13 @@ def parse_args() -> argparse.Namespace:
         help="stop on runner validation/render failures instead of asking Codex to repair state",
     )
     parser.add_argument("--phase", type=int, help="render or run a specific phase id")
-    parser.add_argument("--turn", choices=["plan", "implement", "review", "repair", "close"])
+    parser.add_argument(
+        "--turn",
+        help=(
+            "render or run a specific turn; must exist in the state's "
+            "turn_templates map"
+        ),
+    )
     return parser.parse_args()
 
 

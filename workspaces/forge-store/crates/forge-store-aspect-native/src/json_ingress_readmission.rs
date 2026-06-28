@@ -8,7 +8,8 @@ use serde_json::Value;
 
 use crate::{
     StoreAspectAuthorityInput, StoreAspectBoundaryFact, StoreAspectIdentity,
-    StorePhysicalBoundaryWitness, StoreTerminalJsonProjection, StoreTerminalProjectionDenial,
+    StoreAspectNativeDenial, StorePhysicalBoundaryWitness, StoreTerminalJsonProjection,
+    StoreTerminalProjectionDenial,
 };
 
 pub type StoreTerminalJsonReadmissionOutcome = TransitionOutcome<
@@ -38,6 +39,15 @@ impl StoreTerminalJsonReadmission {
 
     pub const fn physical_witness(&self) -> StorePhysicalBoundaryWitness {
         self.physical_witness
+    }
+
+    pub fn rebuild_store_boundary_fact(
+        &self,
+    ) -> Result<StoreAspectBoundaryFact, StoreAspectNativeDenial> {
+        StoreAspectBoundaryFact::from_admitted_state(
+            self.identity.clone(),
+            StoreAspectAuthorityInput::new(self.admitted_state.clone(), self.physical_witness),
+        )
     }
 }
 

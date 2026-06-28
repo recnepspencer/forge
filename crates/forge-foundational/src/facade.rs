@@ -411,6 +411,8 @@ pub use crate::performance::{
     foundational_performance_milestone8_readiness_report,
     foundational_performance_work_class_definitions, performance, performance_bundle,
     plan_performance_report, policy_admission_receipt,
+    prepare_counter_backed_performance_receipt_for_canonical_basis,
+    prepare_materialized_performance_report_for_canonical_basis,
     readmit_certified_performance_bundle_after_boundary,
     require_foundational_performance_milestone8_production_test_readiness,
     BoundaryBridgedCertifiedPerformanceBundle, FoundationalAttachedCounterBackedPerformanceReceipt,

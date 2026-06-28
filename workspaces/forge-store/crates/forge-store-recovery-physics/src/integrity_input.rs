@@ -1,6 +1,5 @@
-use forge_store_physical_integrity::{
-    WalFrameIntegrityInputIdentity, WalFrameIntegrityReport, WalTailIntegrityPosture,
-};
+use crate::IntegrityVettedWalFrame;
+use forge_store_physical_integrity::{WalFrameIntegrityInputIdentity, WalTailIntegrityPosture};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoveryPhysicsIntegrityInput {
@@ -9,10 +8,10 @@ pub struct RecoveryPhysicsIntegrityInput {
 }
 
 impl RecoveryPhysicsIntegrityInput {
-    pub fn from_wal_integrity_report(report: &WalFrameIntegrityReport) -> Self {
+    pub fn from_vetted_wal_frame(record: &IntegrityVettedWalFrame) -> Self {
         Self {
-            wal_identity: report.input_identity(),
-            tail_posture: report.tail_posture(),
+            wal_identity: record.input_identity(),
+            tail_posture: record.tail_posture(),
         }
     }
 

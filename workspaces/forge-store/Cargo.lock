@@ -19,7 +19,10 @@ version = "0.1.0"
 name = "forge-store"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-proof",
  "forge-store-analysis",
+ "forge-store-aspect-native",
  "forge-store-authority",
  "forge-store-blob-chunks",
  "forge-store-branch-deltas",
@@ -70,6 +73,7 @@ dependencies = [
  "forge-foundational",
  "forge-proof",
  "forge-store-contracts",
+ "forge-store-physical-format",
  "serde_json",
 ]
 
@@ -77,6 +81,7 @@ dependencies = [
 name = "forge-store-authority"
 version = "0.1.0"
 dependencies = [
+ "forge-proof",
  "forge-store-aspect-native",
  "forge-store-contracts",
 ]
@@ -144,14 +149,17 @@ dependencies = [
  "forge-store-compatibility",
  "forge-store-contracts",
  "forge-store-maintenance",
+ "forge-store-physical-backend",
  "forge-store-physical-certification",
  "forge-store-physical-format",
  "forge-store-physical-integrity",
  "forge-store-readiness",
  "forge-store-recovery-physics",
  "forge-store-replication",
+ "forge-store-s0-reclassification",
  "forge-store-subscription-support",
  "forge-store-test-support",
+ "serde_json",
 ]
 
 [[package]]
@@ -287,6 +295,7 @@ version = "0.1.0"
 dependencies = [
  "forge-foundational",
  "forge-proof",
+ "forge-store-aspect-native",
  "forge-store-buffer-pool",
  "forge-store-contracts",
  "forge-store-offline-verifier",
@@ -312,6 +321,7 @@ dependencies = [
  "forge-store-aspect-native",
  "forge-store-contracts",
  "forge-store-physical-format",
+ "forge-store-s0-reclassification",
 ]
 
 [[package]]
@@ -319,11 +329,15 @@ name = "forge-store-recovery-physics"
 version = "0.1.0"
 dependencies = [
  "forge-foundational",
+ "forge-proof",
+ "forge-store-aspect-native",
+ "forge-store-budgets",
  "forge-store-buffer-pool",
  "forge-store-contracts",
  "forge-store-physical-backend",
  "forge-store-physical-format",
  "forge-store-physical-integrity",
+ "forge-store-readiness",
 ]
 
 [[package]]
@@ -394,8 +408,12 @@ dependencies = [
 name = "forge-store-test-support"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-proof",
+ "forge-store-aspect-native",
  "forge-store-contracts",
  "forge-store-physical-format",
+ "forge-store-recovery-physics",
 ]
 
 [[package]]

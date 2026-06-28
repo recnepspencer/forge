@@ -1,4 +1,4 @@
-use crate::locators::FoundationalTransitionLocator;
+use crate::locators::{BoundaryArtifactLocator, FoundationalTransitionLocator};
 
 use super::super::primitives::{
     FoundationalBoundaryEvidenceExecutionPosture, FoundationalBoundaryEvidenceLocality,
@@ -9,15 +9,37 @@ use super::definitions::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FoundationalBoundaryEvidenceReceiptBoundary(FoundationalTransitionLocator);
+pub enum FoundationalBoundaryEvidenceReceiptBoundary {
+    Transition(FoundationalTransitionLocator),
+    BoundaryArtifact(BoundaryArtifactLocator),
+}
 
 impl FoundationalBoundaryEvidenceReceiptBoundary {
     pub fn transition(locator: FoundationalTransitionLocator) -> Self {
-        Self(locator)
+        Self::Transition(locator)
+    }
+
+    pub fn boundary_artifact(locator: BoundaryArtifactLocator) -> Self {
+        Self::BoundaryArtifact(locator)
+    }
+
+    pub fn transition_locator(&self) -> Option<&FoundationalTransitionLocator> {
+        match self {
+            Self::Transition(locator) => Some(locator),
+            Self::BoundaryArtifact(_) => None,
+        }
     }
 
     pub fn locator(&self) -> &FoundationalTransitionLocator {
-        &self.0
+        self.transition_locator()
+            .expect("receipt boundary does not carry a transition locator")
+    }
+
+    pub fn boundary_artifact_locator(&self) -> Option<&BoundaryArtifactLocator> {
+        match self {
+            Self::Transition(_) => None,
+            Self::BoundaryArtifact(locator) => Some(locator),
+        }
     }
 }
 

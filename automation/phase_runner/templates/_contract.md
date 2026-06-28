@@ -91,15 +91,26 @@ certification-only boundary, capped residue row, or named Query gap. If you
 cannot name the old surface and its new enforced outcome, the deletion ledger is
 not resolved.
 
-Advance like this:
+Default phase turns advance like this:
 
 - after `plan`: same phase, turn `implement`
 - after `implement`: same phase, turn `review` if implementation is ready for
   the phase-done check; otherwise stay on `implement`
 - after `review`: same phase, turn `repair` if the phase is not actually done;
-  turn `close` if the phase is actually done
+  turn `close_qa` if the phase is actually done and this prompt set provides
+  segmented close-hardening turns; otherwise turn `close`
 - after `repair`: same phase, turn `review`
-- after `close`: next phase at turn `plan`, or `current: null` and
+- after legacy `close`: next phase at turn `plan`, or `current: null` and
   `completed_at` if this was the last phase
 
-Only `close` advances to the next phase.
+Segmented close-hardening turns advance like this:
+
+- after `close_qa`: same phase, turn `close_plan`
+- after `close_plan`: same phase, turn `close_fix`
+- after `close_fix`: same phase, turn `close_quality_qa`
+- after `close_quality_qa`: same phase, turn `close_quality_plan`
+- after `close_quality_plan`: same phase, turn `close_quality_fix`
+- after `close_quality_fix`: next phase at turn `plan`, or `current: null` and
+  `completed_at` if this was the last phase
+
+Only `close` or `close_quality_fix` advances to the next phase.

@@ -148,6 +148,29 @@ fn exact_json_readmission_home_is_quarantined() {
 }
 
 #[test]
+fn exact_phase9_harness_json_certification_home_is_quarantined() {
+    let occurrence = StoreJsonResidueOccurrence::new(
+        "workspaces/forge-store/crates/forge-store-certification/src/hostile_readmission_json_fixture_boundary_tests.rs",
+        19,
+        StoreJsonResidueTokenKind::SerdeJson,
+        "let attacker = serde_json::json!({});",
+    );
+
+    let inventory = StoreJsonResidueInventory::from_occurrences(vec![occurrence])
+        .expect("Phase 9 JSON certification home is classified");
+    let classification = inventory.classified().first().unwrap();
+
+    assert_eq!(
+        classification.zone(),
+        StoreJsonResidueZone::DedicatedWorkspaceHostileReadmission
+    );
+    assert_eq!(
+        classification.authority_risk(),
+        StoreJsonAuthorityRisk::HostileReadmissionOnly
+    );
+}
+
+#[test]
 fn ordinary_store_tests_do_not_import_json_preludes() {
     certify_store_json_residue_inventory().expect("ordinary preludes are JSON-free");
 

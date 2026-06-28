@@ -34,6 +34,10 @@ mod index_page_integrity_denials;
 mod index_page_integrity_reports;
 mod index_page_integrity_request;
 mod inspection_lease;
+mod integrity_authority_basis_entries;
+mod integrity_authority_basis_tokens;
+mod integrity_authority_claim_basis;
+mod integrity_authority_counter_entries;
 mod integrity_checked_physical_form;
 mod integrity_evidence_authority;
 mod integrity_evidence_bundle;
@@ -141,6 +145,10 @@ pub use index_page_integrity_reports::{
 };
 pub use index_page_integrity_request::DerivedIndexIntegrityInspectionRequest;
 pub use inspection_lease::IntegrityInspectionLease;
+pub use integrity_authority_claim_basis::{
+    checkpoint_authority_digest, frame_authority_digest, manifest_authority_digest,
+    page_authority_digest, wal_frame_authority_digest,
+};
 pub use integrity_checked_physical_form::{
     IntegrityCheckedFrame, IntegrityCheckedPage, IntegrityCheckedPhysicalFormKind,
 };

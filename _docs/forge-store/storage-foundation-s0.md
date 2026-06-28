@@ -917,6 +917,17 @@ Naive trap this prevents:
 S.0 must emit a handoff artifact that S.1 treats as an input gate, not
 background reading.
 
+Before S.0 may consume the aspect-native gate output, the input must be a typed
+`S0AspectNativeGateHandoff` built from `StoreS0ReadinessHandoffArtifact`.
+That artifact carries a native canonical basis, completed boundary receipts,
+diagnostic support reports, and counter-backed performance receipts. Terminal
+JSON projection output, unclassified residue, raw string identity, generic
+serde authority, and non-native digest basis are not handoff inputs; each must
+be denied by `S0HandoffGateProofEvidence`. That evidence is produced from the
+current JSON residue scan, terminal projection boundary classification,
+Foundational adoption map, public facade proof, and native harness proof rather
+than from logs, markdown, terminal JSON, or symbolic labels.
+
 Required handoff fields:
 
 - accepted backend tier matrix digest

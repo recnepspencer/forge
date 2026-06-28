@@ -218,6 +218,10 @@ impl StoreCanonicalBasisSourceOwner {
         self.allowed_sources.contains(&source)
     }
 
+    pub fn primary_source_kind(&self) -> Option<StoreCanonicalBasisSourceKind> {
+        self.allowed_sources.first().copied()
+    }
+
     pub fn denies_field(&self, field_role: StoreCanonicalBasisFieldRole) -> bool {
         self.denied_fields.contains(&field_role)
     }
