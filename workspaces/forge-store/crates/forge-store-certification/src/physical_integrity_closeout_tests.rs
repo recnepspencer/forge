@@ -8,7 +8,7 @@ use crate::{
         copied_s2_synthetic_rejections, executed_boundary_denial_evidence,
         executed_localization_evidence, lane_plan_and_transcript, s3_harness, s3_readiness,
     },
-    s4_integrity_handoff_tests::intact_readiness,
+    s4_integrity_handoff_test_support::intact_readiness,
     PhysicalIntegrityCertificationBundle, PhysicalIntegrityCloseoutDenial,
     PhysicalIntegrityCloseoutSuite, PhysicalIntegrityCloseoutSuiteEvidence,
     PhysicalProofOracleKind, PhysicalScenarioDriverKind, PhysicalScenarioObserverKind,

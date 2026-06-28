@@ -28,6 +28,10 @@ impl WalFrameIntegrityInputIdentity {
         }
     }
 
+    pub const fn from_wal_damage_basis(basis: &PhysicalScopeBasis) -> Self {
+        Self::new(basis.scope(), basis.checkpoint_adjacency())
+    }
+
     pub const fn scope(self) -> PhysicalReferenceScope {
         self.scope
     }

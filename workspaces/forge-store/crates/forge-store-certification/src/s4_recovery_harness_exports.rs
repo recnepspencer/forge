@@ -1,0 +1,17 @@
+pub use crate::s4_recovery_harness::{
+    RecoveryPhysicsCertificationDenial, RecoveryPhysicsCertificationMatrix,
+    RecoveryPhysicsCertificationRow, RecoveryPhysicsCounterExpectation, RecoveryPhysicsCounterKind,
+    RecoveryPhysicsCrashLane, RecoveryPhysicsCrashMatrix, RecoveryPhysicsCrashMatrixBuilder,
+    RecoveryPhysicsCrashMatrixDenial, RecoveryPhysicsEvidenceBundle, RecoveryPhysicsMutant,
+    RecoveryPhysicsMutationFailureEvidence, RecoveryPhysicsMutationSuiteEvidence,
+    RecoveryPhysicsMutationSuiteEvidenceDenial, RecoveryPhysicsMutationSuiteLaneEvidence,
+    RecoveryPhysicsMutationValidationDenial, RecoveryPhysicsMutationValidationMatrix,
+    RecoveryPhysicsMutationValidationRow, RecoveryPhysicsObserverKind,
+    RecoveryPhysicsOracleJudgment, RecoveryPhysicsOracleKind,
+    RecoveryPhysicsRoadmap2HarnessCertification, RecoveryPhysicsRoadmap2HarnessDenial,
+    RecoveryPhysicsScenarioDefinition, RecoveryPhysicsScenarioDefinitionBuilder,
+    RecoveryPhysicsScenarioDefinitionDenial, RecoveryPhysicsScenarioDrivers,
+    RecoveryPhysicsScenarioPlan, RecoveryPhysicsScenarioPlanDenial, RecoveryPhysicsShortcutAttempt,
+    RecoveryPhysicsShortcutDenialBoundary, RecoveryPhysicsShortcutDenialReason,
+    RecoveryPhysicsShortcutRejection, RecoveryPhysicsTranscript,
+};

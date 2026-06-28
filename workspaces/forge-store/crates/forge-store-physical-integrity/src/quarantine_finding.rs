@@ -3,7 +3,7 @@ use crate::{
     DerivedDamageClassification, IndexPageIntegrityDenial, IndexPageIntegrityReport,
     IntactPhysicalBoundary, PageIntegrityReport, PhysicalBoundaryLocalization,
     PhysicalContainerIntegrityDenial, PhysicalLocalityReport, QuarantineSealDenial,
-    QuarantineSealDenialKind, QuarantinedPhysicalDamage,
+    QuarantineSealDenialKind, QuarantinedPhysicalDamage, WalFrameDamageDenial,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -37,6 +37,20 @@ impl ExecutedQuarantineFinding {
             Some(ambiguous) => QuarantinedPhysicalDamage::ambiguous(locality, ambiguous),
             None => QuarantinedPhysicalDamage::exact(locality),
         };
+        Ok(Self {
+            locality,
+            damage_classification: DamageClassification::QuarantinedPhysicalDamage(damage),
+        })
+    }
+
+    pub fn from_wal_frame_denial(
+        denial: &WalFrameDamageDenial,
+    ) -> Result<Self, QuarantineSealDenial> {
+        let basis = denial.basis().ok_or_else(|| {
+            QuarantineSealDenial::new(QuarantineSealDenialKind::MissingExecutedPhysicalBasis)
+        })?;
+        let locality = PhysicalLocalityReport::exact_scope(basis);
+        let damage = QuarantinedPhysicalDamage::exact(locality);
         Ok(Self {
             locality,
             damage_classification: DamageClassification::QuarantinedPhysicalDamage(damage),

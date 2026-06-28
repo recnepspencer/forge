@@ -7,12 +7,19 @@ description = "Roadmap 2 S.4 WAL, checkpoint, LSN, and physical recovery rules."
 
 [dependencies]
 forge-foundational = { path = "../../../../crates/forge-foundational" }
+forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-aspect-native.workspace = true
+forge-store-budgets.workspace = true
 forge-store-buffer-pool.workspace = true
 forge-store-contracts.workspace = true
 forge-store-physical-backend.workspace = true
 forge-store-physical-format.workspace = true
 forge-store-physical-integrity.workspace = true
+forge-store-readiness.workspace = true
+
+[features]
+default = []
+certification-test-authority = []
 
 [lints]
 workspace = true

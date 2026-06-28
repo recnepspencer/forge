@@ -118,6 +118,7 @@ mod physical_foundation_evidence;
 mod physical_identity_evidence;
 mod physical_integrity_closeout_bundle;
 mod physical_integrity_closeout_denial;
+mod physical_integrity_closeout_exports;
 mod physical_integrity_closeout_handoff;
 mod physical_integrity_closeout_harness;
 mod physical_integrity_closeout_harness_execution;
@@ -191,13 +192,23 @@ mod s0_handoff_contract_tests;
 mod s0_handoff_gate_evidence;
 mod s2_acceptance_suite_transcript;
 mod s2_entry_boundary_evidence;
+#[cfg(test)]
+mod s3_integrity_readiness_test_support;
 mod s3_readiness_handoff;
 #[cfg(test)]
 mod s4_integrity_damage_map_tests;
 #[cfg(test)]
+mod s4_integrity_handoff_test_support;
+#[cfg(test)]
 mod s4_integrity_handoff_tests;
 #[cfg(test)]
 mod s4_quarantine_receipt_binding_tests;
+#[cfg(test)]
+mod s4_recovery_blocking_damage_test_support;
+#[cfg(test)]
+mod s4_recovery_entry_admission_tests;
+mod s4_recovery_harness;
+mod s4_recovery_harness_exports;
 mod scale_fixture;
 mod scale_property;
 mod scenario_definition;
@@ -210,15 +221,18 @@ mod scrub_execution_tests;
 mod speculative_work_evidence;
 #[cfg(test)]
 mod speculative_work_evidence_tests;
+mod store_certification_program;
 mod store_json_residue_certification;
 mod store_json_residue_denial;
 mod store_json_residue_entry;
+mod store_json_residue_exports;
 mod store_json_residue_inventory;
 mod store_json_residue_prelude_scan;
 mod store_json_residue_scan;
 #[cfg(test)]
 mod store_json_residue_tests;
 mod story_transcript;
+mod synthetic_closeout_exports;
 mod synthetic_closeout_rejection;
 #[cfg(test)]
 mod terminal_projection_json_fixture_boundary_tests;
@@ -328,45 +342,7 @@ pub use physical_foundation_evidence::{
 pub use physical_identity_evidence::{
     PhysicalIdentityEvidenceDenial, PhysicalIdentityEvidenceReport, PhysicalIdentityEvidenceRow,
 };
-pub use physical_integrity_closeout_bundle::{
-    close_s3_physical_integrity_from_executed_evidence, PhysicalIntegrityCertificationBundle,
-};
-pub use physical_integrity_closeout_denial::{
-    PhysicalIntegrityCloseoutDenial, S3CloseoutDenialBoundary,
-};
-pub use physical_integrity_closeout_handoff::S3S4HandoffCloseoutEvidence;
-pub use physical_integrity_closeout_harness::S3HarnessTranscriptEvidence;
-pub use physical_integrity_closeout_harness_execution::{
-    S3CloseoutExecutedOutputKind, S3CloseoutHarnessExecutionEvidence,
-};
-pub use physical_integrity_closeout_line_cap::{
-    S3CloseoutModuleKind, S3LineCapCompositionEvidence, S3LineCapModuleEvidence,
-};
-pub use physical_integrity_closeout_owned_file::S3OwnedCloseoutFileEvidence;
-pub use physical_integrity_closeout_proof::{
-    S3ExecutedBoundaryDenialEvidence, S3ExecutedCorruptionLocalizationEvidence,
-};
-pub use physical_integrity_closeout_report::{
-    PhysicalIntegrityCloseoutReport, S3CloseoutSuiteHarnessSummary,
-};
-pub use physical_integrity_closeout_suite::{
-    PhysicalIntegrityCloseoutSuite, PhysicalIntegrityCloseoutSuiteEvidence,
-};
-pub use physical_integrity_closeout_suite_kind::{
-    S3AcceptanceSuiteKind, S3CloseoutEvidenceFamily, S3CorruptionLocalizationBoundary,
-};
-pub use physical_substrate_certification_authority::{
-    certify_physical_page_segment_extent_substrate, certify_s2_physical_substrate_readiness,
-};
-pub use physical_substrate_certification_denial::PhysicalSubstrateCertificationDenial;
-pub use physical_substrate_closeout::{
-    PhysicalPageSegmentExtentSubstrateCloseout, PhysicalPageSegmentExtentSubstrateEvidence,
-    PhysicalPageSegmentExtentSubstrateRun, PhysicalSubstrateCloseoutDenial,
-};
-pub use physical_substrate_closeout_story::{
-    PhysicalSubstrateCloseoutStoryDenial, PhysicalSubstrateCloseoutStoryReport,
-    PhysicalSubstrateCloseoutStoryRow,
-};
+pub use physical_integrity_closeout_exports::*;
 pub use pin_lifecycle_evidence::{
     PinLifecycleEvidenceDenial, PinLifecycleEvidenceReport, PinLifecycleEvidenceRow,
 };
@@ -400,6 +376,7 @@ pub use s2_entry_boundary_evidence::{
     S2EntryBoundaryEvidenceDenial, S2EntryBoundaryEvidenceReport, S2EntryBoundaryEvidenceRow,
     S2ForbiddenEntryAttempt,
 };
+pub use s4_recovery_harness_exports::*;
 pub use scale_fixture::{
     PhysicalHostileScaleCondition, PhysicalHostileScaleFixtureDenial,
     PhysicalHostileScaleFixtureReport, PhysicalHostileScaleFixtureSource,
@@ -419,21 +396,7 @@ pub use scenario_planned_work_evidence::PhysicalScenarioPlannedWorkBoundaryRepor
 pub use speculative_work_evidence::{
     SpeculativeWorkEvidenceDenial, SpeculativeWorkEvidenceReport, SpeculativeWorkEvidenceRow,
 };
-pub use store_json_residue_certification::certify_store_json_residue_inventory;
-pub use store_json_residue_denial::StoreJsonResidueDenial;
-pub use store_json_residue_entry::{
-    StoreJsonAuthorityRisk, StoreJsonResidueClassification, StoreJsonResidueOccurrence,
-    StoreJsonResidueTokenKind, StoreJsonResidueZone,
-};
-pub use store_json_residue_inventory::StoreJsonResidueInventory;
+pub use store_certification_program::StoreCertificationProgram;
+pub use store_json_residue_exports::*;
 pub use story_transcript::PhysicalStoryTranscript;
-pub use synthetic_closeout_rejection::{
-    SyntheticCloseoutRejectionDenial, SyntheticCloseoutShortcutAttempt,
-    SyntheticCloseoutShortcutInput, SyntheticCloseoutShortcutRejectionReport,
-};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StoreCertificationProgram {
-    Generic,
-    Domain,
-}
+pub use synthetic_closeout_exports::*;

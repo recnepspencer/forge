@@ -6,7 +6,7 @@ pub struct S4RecoveryPhysicsIntegrityReadiness {
 }
 
 impl S4RecoveryPhysicsIntegrityReadiness {
-    pub fn from_s3_integrity_handoff(payload: S4IntegrityHandoffPayload) -> Self {
+    pub(crate) fn from_admitted_s3_handoff(payload: S4IntegrityHandoffPayload) -> Self {
         Self { payload }
     }
 

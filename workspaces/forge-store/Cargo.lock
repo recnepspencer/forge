@@ -149,6 +149,7 @@ dependencies = [
  "forge-store-compatibility",
  "forge-store-contracts",
  "forge-store-maintenance",
+ "forge-store-physical-backend",
  "forge-store-physical-certification",
  "forge-store-physical-format",
  "forge-store-physical-integrity",
@@ -328,12 +329,15 @@ name = "forge-store-recovery-physics"
 version = "0.1.0"
 dependencies = [
  "forge-foundational",
+ "forge-proof",
  "forge-store-aspect-native",
+ "forge-store-budgets",
  "forge-store-buffer-pool",
  "forge-store-contracts",
  "forge-store-physical-backend",
  "forge-store-physical-format",
  "forge-store-physical-integrity",
+ "forge-store-readiness",
 ]
 
 [[package]]
@@ -409,6 +413,7 @@ dependencies = [
  "forge-store-aspect-native",
  "forge-store-contracts",
  "forge-store-physical-format",
+ "forge-store-recovery-physics",
 ]
 
 [[package]]

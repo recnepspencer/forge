@@ -15,6 +15,20 @@ impl<T> CanonicalVec<T> {
         Self { items, proof }
     }
 
+    pub fn try_from_sorted(items: Vec<T>) -> Result<Self, Vec<T>>
+    where
+        T: Ord,
+    {
+        if items.windows(2).all(|window| window[0] <= window[1]) {
+            Ok(Self::new(
+                items,
+                Proof::<CanonicalOrder, StructuralProofAuthority>::mint(),
+            ))
+        } else {
+            Err(items)
+        }
+    }
+
     pub fn as_slice(&self) -> &[T] {
         &self.items
     }
@@ -38,6 +52,21 @@ impl<T> UniqueVec<T> {
     #[allow(dead_code)]
     pub(crate) fn new(items: Vec<T>, proof: UniquenessProof) -> Self {
         Self { items, proof }
+    }
+
+    pub fn try_from_unique(mut items: Vec<T>) -> Result<Self, Vec<T>>
+    where
+        T: Ord,
+    {
+        items.sort();
+        if items.windows(2).all(|window| window[0] != window[1]) {
+            Ok(Self::new(
+                items,
+                Proof::<Uniqueness, StructuralProofAuthority>::mint(),
+            ))
+        } else {
+            Err(items)
+        }
     }
 
     pub fn as_slice(&self) -> &[T] {

@@ -9,5 +9,8 @@ description = "Roadmap 2 S.1 platform-grade physical backend facade."
 forge-store-contracts.workspace = true
 forge-store-physical-format.workspace = true
 
+[features]
+certification-test-authority = []
+
 [lints]
 workspace = true

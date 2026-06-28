@@ -2,6 +2,7 @@ use crate::{
     DirtyPageCount, DirtyPageCounterSnapshot, DirtyPageIdentity, LeaseEpoch,
     ResidentFrameLoadRequest,
 };
+use forge_store_physical_format::{PageGenerationCell, PhysicalGenerationAuthority};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct DirtyPublicationEpoch(u64);
@@ -50,6 +51,10 @@ impl DirtyPublicationPlan {
         self.request.frame_size().as_bytes()
     }
 
+    pub const fn frame_request(&self) -> ResidentFrameLoadRequest {
+        self.request
+    }
+
     pub const fn lease_epoch(&self) -> LeaseEpoch {
         self.lease_epoch
     }
@@ -74,6 +79,7 @@ impl DirtyPublicationPlan {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DirtyPublicationReceipt {
     identity: DirtyPageIdentity,
+    request: ResidentFrameLoadRequest,
     released_dirty_pages: DirtyPageCount,
     counters: DirtyPageCounterSnapshot,
 }
@@ -81,11 +87,13 @@ pub struct DirtyPublicationReceipt {
 impl DirtyPublicationReceipt {
     pub(crate) const fn new(
         identity: DirtyPageIdentity,
+        request: ResidentFrameLoadRequest,
         released_dirty_pages: DirtyPageCount,
         counters: DirtyPageCounterSnapshot,
     ) -> Self {
         Self {
             identity,
+            request,
             released_dirty_pages,
             counters,
         }
@@ -93,6 +101,19 @@ impl DirtyPublicationReceipt {
 
     pub const fn dirty_identity(self) -> DirtyPageIdentity {
         self.identity
+    }
+
+    pub fn page_generation(self) -> PageGenerationCell {
+        let reference = self.request.reference().reference();
+        let segment_id = reference
+            .segment_id()
+            .expect("resident frame requests are admitted page-slot references");
+        let page_id = reference
+            .page_id()
+            .expect("resident frame requests are admitted page-slot references");
+        PhysicalGenerationAuthority::s1()
+            .page_cell(segment_id, page_id)
+            .with_page_generation(reference.generation())
     }
 
     pub const fn counters(self) -> DirtyPageCounterSnapshot {
