@@ -1,8 +1,9 @@
 use crate::replay_undo_transaction_boundary::ReplayUndoTransactionBoundaryPacket;
 
 use super::super::{
-    CompletedBooleanLoopReconstructionHandoff, CompletedBooleanSplitHandoff,
-    PlanarBooleanLoopReconstructionCloseoutInput, WorkloadCompositionError,
+    BooleanChainReplayUndoBoundaryHandoff, CompletedBooleanLoopReconstructionHandoff,
+    CompletedBooleanSplitHandoff, PlanarBooleanLoopReconstructionCloseoutInput,
+    WorkloadCompositionError,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -40,5 +41,14 @@ impl AdmittedBooleanSplitReplayUndoBoundary {
     ) -> Result<CompletedBooleanLoopReconstructionHandoff, WorkloadCompositionError> {
         self.completed_split_handoff
             .complete_boolean_loop_reconstruction_from_admitted_replay_undo_boundary(self, input)
+    }
+
+    pub fn complete_boolean_chain_integration(
+        &self,
+        input: PlanarBooleanLoopReconstructionCloseoutInput<'_>,
+    ) -> Result<BooleanChainReplayUndoBoundaryHandoff, WorkloadCompositionError> {
+        super::super::BooleanChainReplayUndoBoundaryHandoff::from_admitted_replay_undo_boundary(
+            self, input,
+        )
     }
 }

@@ -192,6 +192,8 @@ pub(crate) fn foreign_packet_backed_boundary_error(
         &foreign_completed_split_handoff,
         |replay_scope, undo_scope| {
             completed_split_handoff
+                .admit_batch_execution_cluster()
+                .expect("packet-backed split handoff admits batch execution cluster")
                 .admit_boolean_split_replay_undo_boundary(
                     BooleanSplitReplayUndoBoundaryRequest::new(
                         &topology_undo_scope_product,
@@ -262,9 +264,10 @@ fn complete_replay_undo_chain_from_boundary(
 > {
     let recovered_source_carriers =
         continuation_contract_support::recovered_source_carriers(subject, split_request);
-    completed_split_handoff.complete_boolean_chain_integration_from_replay_undo_boundary(
-        boundary_request,
-        PlanarBooleanLoopReconstructionCloseoutInput::new(
+    completed_split_handoff
+        .admit_batch_execution_cluster()?
+        .admit_boolean_split_replay_undo_boundary(boundary_request)?
+        .complete_boolean_chain_integration(PlanarBooleanLoopReconstructionCloseoutInput::new(
             decision_log_receipt,
             validation,
             naming,
@@ -277,8 +280,7 @@ fn complete_replay_undo_chain_from_boundary(
             replay_receipts,
             matrix,
             validators,
-        ),
-    )
+        ))
 }
 
 fn with_matching_spatial_scope_products<T>(

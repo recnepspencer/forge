@@ -1,6 +1,12 @@
 use crate::validation::TopologyValidationRuleIdentity;
+use schema::facade::platform::authority::touched_graph_conflict::{
+    ConflictParticipantIdentity, ConflictRoutingVocabularyError,
+};
+use schema::facade::platform::authority::touched_graph_conflict_internal::admit_conflict_validator_participant_identity_from_digest;
 
-use super::legality_family_identity_digest;
+use super::{
+    identity_digest::WorthTopologyLegalityFamilyIdentityDigest, legality_family_identity_digest,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct WorthTopologyValidatorFamilyIdentity {
@@ -8,7 +14,7 @@ pub struct WorthTopologyValidatorFamilyIdentity {
     name: String,
     semantic_version: String,
     stable_key: String,
-    identity_digest: String,
+    identity_digest: WorthTopologyLegalityFamilyIdentityDigest,
 }
 
 impl WorthTopologyValidatorFamilyIdentity {
@@ -54,6 +60,16 @@ impl WorthTopologyValidatorFamilyIdentity {
     }
 
     pub fn identity_digest(&self) -> &str {
+        self.identity_digest.as_str()
+    }
+
+    pub fn authority_digest(&self) -> &WorthTopologyLegalityFamilyIdentityDigest {
         &self.identity_digest
+    }
+
+    pub fn conflict_participant_identity(
+        &self,
+    ) -> Result<ConflictParticipantIdentity, ConflictRoutingVocabularyError> {
+        admit_conflict_validator_participant_identity_from_digest(self.authority_digest())
     }
 }

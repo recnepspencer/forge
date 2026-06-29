@@ -1,4 +1,5 @@
 use topology::facade::TopologyWorkloadReceipt;
+mod batch_execution_attachment;
 mod boolean_chain_handoff;
 mod boolean_chain_replay_undo_boundary;
 mod boolean_loop_reconstruction_closeout;
@@ -6,20 +7,20 @@ mod boolean_loop_reconstruction_handoff;
 mod boolean_loop_reconstruction_products;
 mod boolean_split_handoff;
 mod boolean_stage_requirements;
+mod error;
 mod lookup_consumed_workload;
+mod ordinary_consumer_sweep;
 mod query_obligation_selection;
 mod replay_undo_boundary;
 mod spatial_touch_authority;
-use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanDownstreamSplitConsumptionDenial;
-use worth_spatial::facade::planar_boolean_events::PlanarBooleanEventLedgerLookupExecutionDenial;
 use worth_spatial::facade::workload_vocabulary::{
     BooleanEvidenceReceipt, CompleteWorkloadEvidenceLedger, DiagnosticWorkloadReceipt,
     GeometryBindingWorkloadReceipt, ProjectionWorkloadReceipt, ResponseWorkloadReceipt,
-    RetainedReplayWorkloadReceipt, SpatialEvidenceLookupDenial, SpatialGeometryEvidenceTouchDenial,
-    SpatialGeometryEvidenceTouchDenialKind, SurfaceSupportWorkloadReceipt,
-    TransformWorkloadReceipt, WorkloadEvidenceStage, WorkloadStageSupport,
+    RetainedReplayWorkloadReceipt, SurfaceSupportWorkloadReceipt, TransformWorkloadReceipt,
+    WorkloadEvidenceStage, WorkloadStageSupport,
 };
 
+use super::BatchAdmissionExecutionReceipt;
 use super::{boolean_evidence_requirement::map_boolean_ledger_error, WorkloadStageRequirement};
 pub use boolean_chain_handoff::{
     BooleanChainCompletedReceiptGuard, BooleanChainIntegrationCounters,
@@ -33,7 +34,18 @@ pub use boolean_loop_reconstruction_handoff::{
 };
 pub use boolean_loop_reconstruction_products::CompletedBooleanLoopReconstructionProducts;
 pub use boolean_split_handoff::CompletedBooleanSplitHandoff;
+pub use error::{LookupConsumedWorkloadDenial, ReplayUndoBoundaryDenial, WorkloadCompositionError};
 pub use lookup_consumed_workload::LookupConsumedWorkloadComposition;
+pub(crate) use ordinary_consumer_sweep::{
+    current_replay_undo_boundary_route_authority, current_worth_workload_ordinary_consumer_cutover,
+    WorthWorkloadOrdinaryConsumerCutover, WorthWorkloadOrdinaryConsumerCutoverPosture,
+    WorthWorkloadOrdinaryConsumerCutoverRow,
+};
+pub use ordinary_consumer_sweep::{
+    worth_workload_ordinary_consumer_residue_rows, CompletedBooleanSplitBatchExecutionCluster,
+    LookupConsumedBatchExecutionCluster, WorthWorkloadOrdinaryConsumerResidueBoundary,
+    WorthWorkloadOrdinaryConsumerResidueRow, WorthWorkloadOrdinaryConsumerResidueSurface,
+};
 pub use replay_undo_boundary::{
     AdmittedBooleanSplitReplayUndoBoundary, BooleanSplitReplayUndoBoundaryRequest,
 };
@@ -46,6 +58,7 @@ pub struct WorthWorkload {
     projection: ProjectionWorkloadReceipt,
     transform: TransformWorkloadReceipt,
     retained_replay: RetainedReplayWorkloadReceipt,
+    batch_admission_execution: Option<BatchAdmissionExecutionReceipt>,
     diagnostics: DiagnosticWorkloadReceipt,
     response: ResponseWorkloadReceipt,
     evidence_ledger: CompleteWorkloadEvidenceLedger,
@@ -59,6 +72,7 @@ pub struct WorthWorkloadParts {
     pub projection: ProjectionWorkloadReceipt,
     pub transform: TransformWorkloadReceipt,
     pub retained_replay: RetainedReplayWorkloadReceipt,
+    pub batch_admission_execution: Option<BatchAdmissionExecutionReceipt>,
     pub diagnostics: DiagnosticWorkloadReceipt,
     pub response: ResponseWorkloadReceipt,
     pub evidence_ledger: CompleteWorkloadEvidenceLedger,
@@ -76,6 +90,7 @@ impl WorthWorkload {
             projection: parts.projection,
             transform: parts.transform,
             retained_replay: parts.retained_replay,
+            batch_admission_execution: parts.batch_admission_execution,
             diagnostics: parts.diagnostics,
             response: parts.response,
             evidence_ledger: parts.evidence_ledger,
@@ -104,6 +119,10 @@ impl WorthWorkload {
 
     pub fn retained_replay(&self) -> &RetainedReplayWorkloadReceipt {
         &self.retained_replay
+    }
+
+    pub fn batch_admission_execution(&self) -> Option<&BatchAdmissionExecutionReceipt> {
+        self.batch_admission_execution.as_ref()
     }
 
     pub fn diagnostics(&self) -> &DiagnosticWorkloadReceipt {
@@ -142,6 +161,12 @@ fn require_admitted_stage_postures(
         WorkloadStageRequirement::RetainedReplay,
         parts.retained_replay.envelope().posture().support(),
     )?;
+    if parts.batch_admission_execution.is_some() {
+        require_admitted(
+            WorkloadStageRequirement::BatchAdmissionExecution,
+            WorkloadStageSupport::Admitted,
+        )?;
+    }
     require_admitted(
         WorkloadStageRequirement::Diagnostics,
         parts.diagnostics.envelope().posture().support(),
@@ -195,76 +220,6 @@ fn require_matching_evidence_ledger(
         WorkloadEvidenceStage::Response,
         &parts.response.identity().receipt_identity(),
     )
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorkloadCompositionError {
-    UnsupportedStage(WorkloadStageRequirement),
-    MissingEvidenceStage(WorkloadEvidenceStage),
-    ManualEvidenceStage(WorkloadEvidenceStage),
-    CounterlessEvidenceStage(WorkloadEvidenceStage),
-    MismatchedEvidenceStage(WorkloadEvidenceStage),
-    LoopReconstructionCloseout(String),
-    LoopRuntimeRegistration(String),
-    BooleanChainHandoff(String),
-    SpatialTouchAuthority(SpatialGeometryEvidenceTouchDenial),
-    SpatialEvidenceLookup(SpatialEvidenceLookupDenial),
-    EventLedgerLookupExecution(PlanarBooleanEventLedgerLookupExecutionDenial),
-    EventLedgerLookupExecutionPacket(PlanarBooleanEventLedgerLookupExecutionDenial),
-    DownstreamSplitConsumption(PlanarBooleanDownstreamSplitConsumptionDenial),
-    ReplayUndoBoundary(String),
-    ReplayUndoTransactionBoundary(
-        crate::replay_undo_transaction_boundary::ReplayUndoTransactionBoundaryError,
-    ),
-    LookupConsumedWorkload(String),
-}
-
-impl WorkloadCompositionError {
-    pub fn human_reason(&self) -> String {
-        match self {
-            Self::UnsupportedStage(stage) => format!(
-                "{} is not admitted for operator composition",
-                stage.human_name()
-            ),
-            Self::MissingEvidenceStage(stage) => {
-                format!("workload evidence ledger is missing {}", stage.human_name())
-            }
-            Self::ManualEvidenceStage(stage) => format!(
-                "workload evidence ledger has hand-filled {} instead of a source receipt",
-                stage.human_name()
-            ),
-            Self::CounterlessEvidenceStage(stage) => format!(
-                "workload evidence ledger cannot count {} without receipt-backed counters",
-                stage.human_name()
-            ),
-            Self::MismatchedEvidenceStage(stage) => format!(
-                "workload evidence ledger does not match the {} receipt",
-                stage.human_name()
-            ),
-            Self::LoopReconstructionCloseout(reason) => reason.clone(),
-            Self::LoopRuntimeRegistration(reason) => reason.clone(),
-            Self::BooleanChainHandoff(reason) => reason.clone(),
-            Self::SpatialTouchAuthority(denial) => denial.human_reason(),
-            Self::SpatialEvidenceLookup(denial) => denial.detail().to_string(),
-            Self::EventLedgerLookupExecution(denial) => denial.detail().to_string(),
-            Self::EventLedgerLookupExecutionPacket(denial) => denial.detail().to_string(),
-            Self::DownstreamSplitConsumption(denial) => denial.human_reason().to_string(),
-            Self::ReplayUndoBoundary(reason) => reason.clone(),
-            Self::ReplayUndoTransactionBoundary(error) => format!("{error:?}"),
-            Self::LookupConsumedWorkload(reason) => reason.clone(),
-        }
-    }
-
-    pub fn spatial_touch_denial(&self) -> Option<&SpatialGeometryEvidenceTouchDenial> {
-        match self {
-            Self::SpatialTouchAuthority(denial) => Some(denial),
-            _ => None,
-        }
-    }
-
-    pub fn spatial_touch_denial_kind(&self) -> Option<SpatialGeometryEvidenceTouchDenialKind> {
-        self.spatial_touch_denial().map(|denial| denial.kind())
-    }
 }
 
 fn require_admitted(

@@ -1,9 +1,9 @@
 # Phase Runner
 
 This is a reusable JSON-backed Codex phase runner. The runner owns the small
-mechanics: state loading, cursor rendering, Codex invocation, thread capture,
-and runner history. Project semantics live in the state file and prompt
-templates.
+mechanics: canonical state loading, structural validation, cursor rendering,
+Codex invocation, typed recovery, and runner history. Project semantics live in
+the state file and prompt templates.
 
 ## Validate
 
@@ -81,6 +81,19 @@ the recovery turn exits successfully. The runner also writes a `.bak` copy
 before each state save, so recovery can still resume the persisted Codex thread
 when the live state file is malformed JSON. Use `--no-recover` when you want
 local debugging to stop at the first runner failure.
+
+The runner now has explicit subsystem boundaries:
+
+- `state_normalization.py`: canonical shape repair for lightweight persisted
+  state, such as phase note buckets
+- `validation.py`: structural admissibility checks only; it never mutates state
+- `runner_runtime.py`: the normal turn lifecycle
+- `runner_recovery.py`: failure classification, recovery policy, and terminal
+  stop handling
+- `codex_cli.py`: the Codex subprocess boundary
+
+This keeps local state repair, structural validation, Codex process execution,
+and recovery policy from collapsing into one monolithic control path.
 
 ## Boundary
 

@@ -58,4 +58,16 @@ fn schema_public_boundary_is_curated() {
     t.compile_fail(
         "tests/compile_fail/touched_graph_basis/geometry_admission_contract_not_public.rs",
     );
+    t.compile_fail(
+        "tests/compile_fail/touched_graph_conflict/raw_entity_string_cannot_mint_participant.rs",
+    );
+    t.compile_fail(
+        "tests/compile_fail/touched_graph_conflict/raw_locality_string_cannot_mint_identity.rs",
+    );
+    t.compile_fail(
+        "tests/compile_fail/touched_graph_conflict/public_source_traits_not_on_ordinary_facade.rs",
+    );
+    t.compile_fail(
+        "tests/compile_fail/touched_graph_conflict/internal_conflict_authority_module_not_enabled_by_default.rs",
+    );
 }

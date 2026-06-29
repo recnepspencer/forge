@@ -16,6 +16,9 @@ pub use crate::replay_undo_semantic_graph::{
     lower_spatial_undo_scope_product_from_boolean_event_ledger_request,
     lower_spatial_undo_scope_product_from_projection_receipt_request,
     lower_spatial_undo_scope_product_from_selected_plan,
+    current_boolean_event_ledger_spatial_boundary, current_boolean_split_spatial_boundary,
+    current_projection_receipt_spatial_boundary, CurrentReplayUndoSpatialBoundary,
+    CurrentReplayUndoSpatialBoundaryError,
     prepare_spatial_replay_semantic_graph_request, select_spatial_replay_plan,
     select_spatial_undo_plan, BooleanEventLedgerRollbackRequest, ProjectionReceiptRollbackRequest,
     ReplayUndoSemanticGraphLoweringError, SpatialReplayPlanError, SpatialReplayScopeProduct,
@@ -29,6 +32,7 @@ pub use crate::replay_undo_semantic_graph::{
 };
 #[cfg(any(test, feature = "test-support-lowering"))]
 pub use crate::replay_undo_semantic_graph::{
+    boolean_event_ledger_query_required_sibling_spatial_boundary_fixture,
     boolean_event_ledger_spatial_boundary_fixture, projection_receipt_spatial_boundary_fixture,
     ReplayUndoSpatialBoundaryFixture,
 };

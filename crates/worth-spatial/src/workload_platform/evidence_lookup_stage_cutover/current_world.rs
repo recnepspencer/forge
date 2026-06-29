@@ -5,7 +5,6 @@ use crate::workload_platform::evidence_ledger::{
     SpatialGeometryEvidenceTouchRowRequest, WorkloadEvidenceRow, WorkloadEvidenceStage,
     WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
-#[cfg(any(test, feature = "test-support-lowering"))]
 use crate::workload_platform::vocabulary::{
     GeometryBindingWorkload, ProjectionWorkload, RetainedReplayWorkload,
     RetainedReplayWorkloadReceipt, SurfaceSupportWorkload, TransformWorkload,
@@ -94,7 +93,6 @@ fn current_world_label(stage: WorkloadEvidenceStage) -> &'static str {
     }
 }
 
-#[cfg(any(test, feature = "test-support-lowering"))]
 pub(crate) fn current_retained_replay_receipt_for_stage(
     stage: WorkloadEvidenceStage,
 ) -> RetainedReplayWorkloadReceipt {

@@ -39,6 +39,6 @@ pub use crate::workload_platform::vocabulary::{
     ResponseWorkload, ResponseWorkloadReceipt, RetainedReplayWorkload,
     RetainedReplayWorkloadReceipt, SpatialWorkloadStage, SurfaceSupportWorkload,
     SurfaceSupportWorkloadReceipt, TransformWorkload, TransformWorkloadReceipt,
-    WorkloadStageDenial, WorkloadStageEnvelope, WorkloadStageIdentity, WorkloadStagePosture,
-    WorkloadStageSupport,
+    WorkloadStage, WorkloadStageDenial, WorkloadStageEnvelope, WorkloadStageIdentity,
+    WorkloadStagePosture, WorkloadStageSupport,
 };

@@ -3,12 +3,17 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+mod compile_fail_fixture_catalog;
+
 #[path = "contracts/graph_read_access_inventory/fixture_catalog.rs"]
 mod graph_read_access_inventory_contracts;
 #[allow(dead_code)]
 #[path = "contracts/public_api_planar_boolean_loop_reconstruction_guard_coverage.rs"]
 mod loop_reconstruction_guard_coverage;
 
+use compile_fail_fixture_catalog::{
+    COMPILE_FAIL_FIXTURES, PLANAR_BOOLEAN_LOOP_RECONSTRUCTION_CORE_FIXTURES,
+};
 use graph_read_access_inventory_contracts::graph_read_access_inventory_expected_compile_fail_fixtures;
 use loop_reconstruction_guard_coverage::loop_reconstruction_compile_fail_fixtures;
 
@@ -125,110 +130,65 @@ const QUERY_OBLIGATION_SELECTION_AUTHORITY_EXPECTED_ERRORS: &[(&str, &str)] = &[
     ),
 ];
 
-const COMPILE_FAIL_FIXTURES: &[&str] = &[
-    "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_prepare_helpers_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/authority/public_construction_query_native_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/authority/public_construction_query_authority_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/authority/public_construction_policy_and_arbitration_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/authority/public_construction_tolerance_precision_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_entry_prepare_outcome_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_entry_prepare_result_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/authority/public_kernel_certification_plan_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_raw_request_cannot_skip_admission.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_raw_spatial_fixture_cannot_be_operator_workload.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_intent_admission_phase_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_authoring_input_traits_are_sealed.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_motion_intent_direct_admission_helpers_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_motion_intent_catalog_admission_helpers_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_motion_intent_finish_helpers_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_motion_intent_catalog_finish_helpers_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_construction_motion_witness_resolution_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_construction_branch_preview_basis_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_admitted_intent_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_admitted_handoff_helper_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_scaffold_handoff_helper_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_raw_handoff_helper_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_execution_phase_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/phases/public_binding_declaration_entry_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry/public_planar_boolean_declaration_receipt_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry/public_planar_boolean_blocker_evidence_receipt_fields_not_public.rs",
-    "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry/public_planar_boolean_operand_pair_construction_receipt_fields_not_public.rs",
-    "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry/public_planar_boolean_outcome_receipt_fields_not_public.rs",
-    "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry/public_planar_boolean_support_receipt_constructor_not_exported.rs",
-    PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[0],
-    PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[1],
-    PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[2],
-    PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[3],
-    PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[4],
-    PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[5],
-    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[0],
-    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[1],
-    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[2],
-    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[3],
-    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[4],
-    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[5],
-    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[6],
-    PLANAR_BOOLEAN_EDGE_SPLITTING_FIXTURES[0],
-    PLANAR_BOOLEAN_EDGE_SPLITTING_FIXTURES[1],
-    PLANAR_BOOLEAN_EDGE_SPLITTING_FIXTURES[2],
-    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/island_partition_not_forgeable.rs",
-    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/split_attribution_not_forgeable.rs",
-    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/role_outcome_boundary_not_forgeable.rs",
-    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/containment_posture_set_not_forgeable.rs",
-    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/degenerate_loop_boundary_not_forgeable.rs",
-    "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_fields_not_public.rs",
-    PLANAR_BOOLEAN_ENTRY_BASIS_KERNEL_SUMMARY_FIXTURE,
-    "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_rejects_generic_ledger_substitution.rs",
-    "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_rejects_hand_built_planar_facts.rs",
-    "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_rejects_topology_seed_substitution.rs",
-    "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_rejects_worth_workload_substitution.rs",
-    "src/certification/public_facade_contracts/compile_fail/workload_catalog/public_built_boolean_operand_pair_recipe_fields_not_public.rs",
-    "src/certification/public_facade_contracts/compile_fail/workload_catalog/public_workload_catalog_static_fixture_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/workload_catalog/public_workload_catalog_rejects_raw_topology_rows_for_nmt.rs",
-    "src/certification/public_facade_contracts/compile_fail/workload_operator/operator_evidence_binding_fields_private.rs",
-    WORTH_GRAPH_AUTHORITY_FIXTURES[0],
-    WORTH_GRAPH_AUTHORITY_FIXTURES[1],
-    "src/certification/public_facade_contracts/compile_fail/authority/public_binding_and_anchoring_authoring_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/results/public_canonical_artifact_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/results/public_prepared_result_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/results/public_root_happy_path_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/results/public_create_placement_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/results/public_prepared_result_realization_report_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/results/public_outcome_prepared_happy_path_helpers_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/results/public_prelude_happy_path_helpers_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_query_basis_preview_parity_report_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_realization_exhaustion_report_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_realization_diagnostics_bucket_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_intent_arbitration_report_bundle_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_intent_arbitration_hostility_suite_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_intent_arbitration_helper_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_authoring_bucket_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_authoring_runtime_basis_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_top_level_motion_intent_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_motion_intent_error_not_exported_from_intents.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_prelude_motion_intent_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_diagnostics_bucket_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_authoring_policy_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_construction_policy_assessment_bags_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_arbitration_diagnostics_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_preview_diagnostics_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_continuity_diagnostics_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_policy_diagnostics_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_motion_diagnostics_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_misclassified_surface_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_preview_report_bundle_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_preview_helper_exports_demoted.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_continuity_report_bundle_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_policy_profile_report_bundle_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_preview_continuity_hostility_suite_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_certification_bucket_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_verified_intent_arbitration_report_bundle_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_motion_certification_reports_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_preview_certification_reports_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_continuity_certification_reports_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_policy_certification_reports_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_arbitration_certification_reports_not_exported.rs",
+const BATCH_ADMISSION_EXECUTION_RECEIPT_FIXTURES: &[&str] = &[
+    "src/certification/public_facade_contracts/compile_fail/batch_admission_execution/public_execution_receipt_from_selected_plan_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/batch_admission_execution/public_execution_receipt_struct_literal_private.rs",
+];
+
+const ORDINARY_CONSUMER_CUTOVER_FIXTURES: &[&str] = &[
+    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/split_handoff_loop_wrapper_removed.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/split_handoff_chain_wrapper_removed.rs",
+];
+
+const TOUCHED_GRAPH_CONFLICT_CONSTRUCTOR_DENIAL_EXPECTED_ERRORS: &[(&str, &str)] = &[
+    (
+        "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/family_row_not_constructible.rs",
+        "private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/spatial_family_row_not_constructible.rs",
+        "private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/admitted_input_not_constructible.rs",
+        "private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/spatial_admitted_input_not_constructible.rs",
+        "private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/selected_plan_not_constructible.rs",
+        "private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/spatial_selected_plan_not_constructible.rs",
+        "private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/independence_proof_not_constructible.rs",
+        "private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/spatial_independence_proof_not_constructible.rs",
+        "private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/selected_batch_plan_not_constructible.rs",
+        "private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/closeout_product_not_constructible.rs",
+        "private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/public_closeout_product_not_constructible.rs",
+        "private",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/milestone_fourteen_seed_not_constructible.rs",
+        "private",
+    ),
 ];
 
 #[test]
@@ -309,6 +269,27 @@ fn kernel_public_boundary_rejects_planar_boolean_loop_reconstruction_constructor
 #[test]
 fn kernel_public_boundary_rejects_planar_boolean_summary_substitution_fixture() {
     assert_compile_fail_fixture(PLANAR_BOOLEAN_ENTRY_BASIS_KERNEL_SUMMARY_FIXTURE);
+}
+
+#[test]
+fn kernel_public_boundary_rejects_batch_admission_execution_receipt_constructor_bypass() {
+    for fixture in BATCH_ADMISSION_EXECUTION_RECEIPT_FIXTURES {
+        assert_compile_fail_fixture(fixture);
+    }
+}
+
+#[test]
+fn kernel_public_boundary_rejects_deleted_ordinary_consumer_wrapper_lane() {
+    for fixture in ORDINARY_CONSUMER_CUTOVER_FIXTURES {
+        assert_compile_fail_fixture(fixture);
+    }
+}
+
+#[test]
+fn kernel_public_boundary_rejects_touched_graph_conflict_constructor_bypass() {
+    for (fixture, expected_stderr) in TOUCHED_GRAPH_CONFLICT_CONSTRUCTOR_DENIAL_EXPECTED_ERRORS {
+        assert_compile_fail_fixture_with_stderr(fixture, expected_stderr);
+    }
 }
 
 fn assert_compile_fail_fixture(fixture: &str) {
@@ -403,10 +384,3 @@ fn compile_fail_target_dir(manifest_dir: &Path) -> PathBuf {
         .join("target")
         .join("worth-kernel-compile-fail")
 }
-const PLANAR_BOOLEAN_LOOP_RECONSTRUCTION_CORE_FIXTURES: &[&str] = &[
-    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/island_partition_not_forgeable.rs",
-    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/split_attribution_not_forgeable.rs",
-    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/role_outcome_boundary_not_forgeable.rs",
-    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/containment_posture_set_not_forgeable.rs",
-    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/degenerate_loop_boundary_not_forgeable.rs",
-];

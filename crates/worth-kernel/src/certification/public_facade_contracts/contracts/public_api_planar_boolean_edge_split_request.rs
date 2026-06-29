@@ -129,6 +129,7 @@ fn edge_split_request_lookup_execution_helper_accepts_workload_with_existing_eve
             projection: workload.projection().clone(),
             transform: workload.transform().clone(),
             retained_replay: workload.retained_replay().clone(),
+            batch_admission_execution: workload.batch_admission_execution().cloned(),
             diagnostics: workload.diagnostics().clone(),
             response: workload.response().clone(),
             evidence_ledger,

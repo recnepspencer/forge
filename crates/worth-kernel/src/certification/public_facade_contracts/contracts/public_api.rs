@@ -66,8 +66,9 @@ mod workload_vocabulary {
     };
     use worth_spatial::facade::workload_vocabulary::{
         DiagnosticWorkload, GeometryBindingWorkload, ProjectionWorkload, ResponseWorkload,
-        RetainedReplayWorkload, SurfaceSupportWorkload, TransformWorkload, WorkloadEvidenceLedger,
-        WorkloadEvidenceLedgerError, WorkloadEvidenceRow, WorkloadEvidenceStage,
+        RetainedReplayWorkload, SurfaceSupportWorkload, TransformWorkload,
+        WorkloadEvidenceLedger, WorkloadEvidenceLedgerError, WorkloadEvidenceRow,
+        WorkloadEvidenceStage,
     };
 
     #[test]
@@ -218,6 +219,7 @@ mod workload_vocabulary {
             projection: parts.projection,
             transform: parts.transform,
             retained_replay: parts.replay,
+            batch_admission_execution: parts.batch_admission_execution,
             diagnostics: parts.diagnostics,
             response: parts.response,
             evidence_ledger: ledger,
@@ -231,6 +233,7 @@ mod workload_vocabulary {
         projection: worth_spatial::facade::workload_vocabulary::ProjectionWorkloadReceipt,
         transform: worth_spatial::facade::workload_vocabulary::TransformWorkloadReceipt,
         replay: worth_spatial::facade::workload_vocabulary::RetainedReplayWorkloadReceipt,
+        batch_admission_execution: Option<worth_kernel::workload_composition::BatchAdmissionExecutionReceipt>,
         diagnostics: worth_spatial::facade::workload_vocabulary::DiagnosticWorkloadReceipt,
         response: worth_spatial::facade::workload_vocabulary::ResponseWorkloadReceipt,
     }
@@ -279,6 +282,7 @@ mod workload_vocabulary {
             projection,
             transform,
             replay,
+            batch_admission_execution: None,
             diagnostics,
             response,
         }

@@ -3,6 +3,7 @@ pub enum ReplayUndoDeclaredSourceIdentity {
     KernelWorthWorkloadRetainedReplay,
     KernelWorthWorkloadDiagnostics,
     KernelLookupConsumedWorkloadComposition,
+    KernelBooleanSplitReplayUndoBoundaryAdmission,
     SpatialEvidenceLookupConsumedWorkloadHandoff,
     SpatialEvidenceLookupPublicCloseout,
     SpatialEvidenceLookupPublicCloseoutAssemblyInput,
@@ -10,7 +11,6 @@ pub enum ReplayUndoDeclaredSourceIdentity {
     TopologyDerivedInvalidationExecutionReceipt,
     TopologyDerivedInvalidationMilestoneElevenSeed,
     TopologyDerivedInvalidationMilestoneElevenProductReceiptRef,
-    KernelUndoOrdinaryLaneGap,
 }
 
 impl ReplayUndoDeclaredSourceIdentity {
@@ -20,6 +20,9 @@ impl ReplayUndoDeclaredSourceIdentity {
             Self::KernelWorthWorkloadDiagnostics => "kernel.worth_workload.diagnostics",
             Self::KernelLookupConsumedWorkloadComposition => {
                 "kernel.lookup_consumed_workload_composition"
+            }
+            Self::KernelBooleanSplitReplayUndoBoundaryAdmission => {
+                "kernel.boolean_split_replay_undo_boundary_admission"
             }
             Self::SpatialEvidenceLookupConsumedWorkloadHandoff => {
                 "spatial.evidence_lookup_consumed_workload_handoff"
@@ -40,7 +43,6 @@ impl ReplayUndoDeclaredSourceIdentity {
             Self::TopologyDerivedInvalidationMilestoneElevenProductReceiptRef => {
                 "topology.derived_invalidation_milestone_eleven_product_receipt_ref"
             }
-            Self::KernelUndoOrdinaryLaneGap => "kernel.undo_ordinary_lane_gap",
         }
     }
 }

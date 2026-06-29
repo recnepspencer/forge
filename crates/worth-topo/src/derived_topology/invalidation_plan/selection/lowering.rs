@@ -21,6 +21,15 @@ pub(super) fn lower_selected_invalidation_plan(
     density_policy: DerivedInvalidationDensityPolicy,
 ) -> Result<DerivedInvalidationSelectedPlan, DerivedInvalidationSelectionError> {
     reject_empty_touched_closure(touched_closure)?;
+    let routing_contract = touched_closure.conflict_routing_contract().map_err(|error| {
+        DerivedInvalidationSelectionError::new(
+            DerivedInvalidationSelectionErrorKind::ConflictRoutingContractRejected,
+            format!(
+                "derived invalidation touched closure could not admit shared conflict routing contract: {}",
+                error.human_reason()
+            ),
+        )
+    })?;
     let mut selected_rows = Vec::new();
     let mut unaffected_rows = Vec::new();
     let mut denied_rows = Vec::new();
@@ -69,6 +78,7 @@ pub(super) fn lower_selected_invalidation_plan(
             denied_rows,
             residue_rows,
             counters,
+            routing_contract,
         },
     ))
 }

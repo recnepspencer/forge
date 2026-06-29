@@ -46,6 +46,8 @@ pub(crate) fn assert_loop_reconstruction_continuation_contract_preserves_real_ne
     let replay_report = replay_parity_report(&replay_subject);
     let completed_split_handoff = completed_split_handoff_for(&subject, &replay_subject);
     let downstream_consumption = completed_split_handoff
+        .admit_batch_execution_cluster()
+        .expect("real split evidence should admit batch execution cluster")
         .admit_downstream_split_consumption(
             replay_subject.original_decision_log.receipt(),
             &replay_subject.original_products.validation,

@@ -1,4 +1,6 @@
 mod admission;
+mod current_boundary;
+mod current_boundary_support;
 mod lowering;
 mod planning;
 mod scope_product;
@@ -17,6 +19,10 @@ pub use admission::{
     TopologyReplaySemanticGraphSelectedPlanIdentity, TopologyReplaySemanticGraphStageIdentity,
     TopologyReplaySemanticGraphStageReceiptAuthority, TopologyUndoSemanticGraphAdmissionError,
     TopologyUndoSemanticGraphAdmissionRequest, TopologyUndoSemanticGraphAdmittedInput,
+};
+pub use current_boundary::{
+    current_replay_undo_topology_boundary, CurrentReplayUndoTopologyBoundary,
+    CurrentReplayUndoTopologyBoundaryError,
 };
 pub use lowering::{
     lower_topology_replay_equivalence_basis,

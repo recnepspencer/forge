@@ -29,6 +29,7 @@ pub mod replay_undo_semantic_graph;
 pub mod runtime_support;
 mod test_support;
 mod topology_operators;
+pub mod touched_graph_conflict;
 pub mod undo_family_catalog;
 mod validation;
 pub mod validation_authority_inventory;

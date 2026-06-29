@@ -101,7 +101,8 @@ impl CompletedBooleanSplitHandoff {
         input: PlanarBooleanLoopReconstructionCloseoutInput<'_>,
         replay_undo_transaction_boundary_packet: Option<ReplayUndoTransactionBoundaryPacket>,
     ) -> Result<CompletedBooleanLoopReconstructionHandoff, WorkloadCompositionError> {
-        let downstream_consumption = self.admit_downstream_split_consumption(
+        let batch_execution_cluster = self.admit_batch_execution_cluster()?;
+        let downstream_consumption = batch_execution_cluster.admit_downstream_split_consumption(
             input.split_decision_log_receipt,
             input.split_validation_receipt,
             input.split_persistent_naming_receipt,

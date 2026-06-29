@@ -27,8 +27,19 @@ pub fn current_replay_undo_declared_source_catalog() -> ReplayUndoDeclaredSource
         ),
         ReplayUndoDeclaredSource::new(
             ReplayUndoDeclaredSourceIdentity::KernelLookupConsumedWorkloadComposition,
-            "crates/worth-kernel/src/workload_composition/worth_workload/lookup_consumed_workload.rs",
+            "crates/worth-kernel/src/workload_composition/worth_workload/lookup_consumed_workload/mod.rs",
             ReplayUndoDeclaredSourceKind::CompositionWrapper,
+            ReplayUndoDeclaredInputRoleSet::new(&[
+                ReplayUndoDeclaredInputRole::LookupConsumedWorkloadHandoff,
+            ]),
+            ReplayUndoDeclaredInputRoleSet::new(&[
+                ReplayUndoDeclaredInputRole::StageIndexIdentity,
+            ]),
+        ),
+        ReplayUndoDeclaredSource::new(
+            ReplayUndoDeclaredSourceIdentity::KernelBooleanSplitReplayUndoBoundaryAdmission,
+            "crates/worth-kernel/src/workload_composition/worth_workload/replay_undo_boundary/boolean_split_boundary_admission.rs",
+            ReplayUndoDeclaredSourceKind::PublicFunction,
             ReplayUndoDeclaredInputRoleSet::new(&[
                 ReplayUndoDeclaredInputRole::LookupConsumedWorkloadHandoff,
             ]),
@@ -109,15 +120,6 @@ pub fn current_replay_undo_declared_source_catalog() -> ReplayUndoDeclaredSource
             ]),
             ReplayUndoDeclaredInputRoleSet::new(&[
                 ReplayUndoDeclaredInputRole::InvalidationQueryReceiptDigest,
-            ]),
-        ),
-        ReplayUndoDeclaredSource::new(
-            ReplayUndoDeclaredSourceIdentity::KernelUndoOrdinaryLaneGap,
-            "crates/worth-kernel/src/workload_composition/worth_workload.rs",
-            ReplayUndoDeclaredSourceKind::CompositionWrapper,
-            ReplayUndoDeclaredInputRoleSet::new(&[]),
-            ReplayUndoDeclaredInputRoleSet::new(&[
-                ReplayUndoDeclaredInputRole::StageIndexIdentity,
             ]),
         ),
     ])

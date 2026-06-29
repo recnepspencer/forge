@@ -156,6 +156,8 @@ fn admit_real_downstream_split_consumption(
     completed_split_handoff: &CompletedBooleanSplitHandoff,
 ) -> PlanarBooleanDownstreamSplitConsumption {
     completed_split_handoff
+        .admit_batch_execution_cluster()
+        .expect("real split ledger receipt should admit batch execution cluster")
         .admit_downstream_split_consumption(
             replay_subject.original_decision_log.receipt(),
             &replay_subject.original_products.validation,

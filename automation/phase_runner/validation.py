@@ -4,8 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from state import PHASE_STATUSES, QA_STATUSES
-
-REQUIRED_NOTE_LISTS = ("plan", "done", "remaining", "findings", "verification")
+from state_normalization import REQUIRED_NOTE_LISTS
 
 
 def validate_state(state: dict[str, Any], state_path: Path) -> list[str]:

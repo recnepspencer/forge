@@ -178,6 +178,7 @@ fn rebuild_left_workload(
         projection: workload.projection().clone(),
         transform: workload.transform().clone(),
         retained_replay: workload.retained_replay().clone(),
+        batch_admission_execution: workload.batch_admission_execution().cloned(),
         diagnostics: workload.diagnostics().clone(),
         response: workload.response().clone(),
         evidence_ledger: ledger,

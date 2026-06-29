@@ -1,4 +1,7 @@
-use super::{CompletedBooleanLoopReconstructionProducts, WorkloadCompositionError, WorthWorkload};
+use super::{
+    CompletedBooleanLoopReconstructionProducts, ReplayUndoBoundaryDenial, WorkloadCompositionError,
+    WorthWorkload,
+};
 use crate::replay_undo_transaction_boundary::ReplayUndoTransactionBoundaryPacket;
 use topology::facade::{
     PlanarBooleanLoopBlueprintRegistryIdentity, PlanarBooleanLoopOperatorClassification as Class,
@@ -95,8 +98,7 @@ impl CompletedBooleanLoopReconstructionHandoff {
             .as_ref()
             .ok_or_else(|| {
                 WorkloadCompositionError::ReplayUndoBoundary(
-                    "loop reconstruction handoff does not carry a migrated replay/undo transaction boundary packet"
-                        .to_string(),
+                    ReplayUndoBoundaryDenial::MissingMigratedTransactionBoundaryPacket,
                 )
             })
     }

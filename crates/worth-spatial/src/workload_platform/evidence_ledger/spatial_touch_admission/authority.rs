@@ -2,21 +2,31 @@ use super::counter_honesty::{
     spatial_touch_counter_honesty, SpatialGeometryEvidenceTouchCounterHonesty,
 };
 use super::digest::{
-    spatial_geometry_evidence_touch_digest, SpatialGeometryEvidenceTouchDigest,
-    SpatialGeometryEvidenceTouchDigestParts,
+    spatial_geometry_evidence_touch_digest, SpatialGeometryEvidenceParticipantDigest,
+    SpatialGeometryEvidenceTouchDigest, SpatialGeometryEvidenceTouchDigestParts,
 };
 use super::operating_world::SpatialGeometryEvidenceTouchOperatingWorld;
 use crate::workload_platform::evidence_ledger::{
     BooleanEvidenceStageKind, WorkloadEvidenceRow, WorkloadEvidenceStage,
     WorkloadEvidenceStageCounters, WorkloadEvidenceStageLookupCounters, WorkloadEvidenceSupport,
 };
-
+use schema::facade::platform::authority::touched_graph_conflict::{
+    ConflictLocalityIdentity, ConflictParticipantIdentity, ConflictRoutingVocabularyError,
+};
+use schema::facade::platform::authority::touched_graph_conflict_internal::{
+    admit_conflict_evidence_participant_identity_from_digest,
+    admit_conflict_spatial_touch_authority_locality_identity_from_digest,
+};
+use crate::touched_graph_conflict::{
+    current_spatial_conflict_family_catalog_closeout, SpatialConflictFamilyApplicability,
+    SpatialConflictFamilyIdentity,
+};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SpatialGeometryEvidenceTouchAuthority {
     digest: SpatialGeometryEvidenceTouchDigest,
     boolean_stage: BooleanEvidenceStageKind,
     evidence_stage: WorkloadEvidenceStage,
-    evidence_identity: String,
+    evidence_identity: SpatialGeometryEvidenceParticipantDigest,
     support: WorkloadEvidenceSupport,
     evidence_counters: WorkloadEvidenceStageCounters,
     lookup_counters: WorkloadEvidenceStageLookupCounters,
@@ -30,7 +40,7 @@ pub struct SpatialGeometryEvidenceTouchAuthority {
 struct SpatialGeometryEvidenceTouchAuthorityParts {
     boolean_stage: BooleanEvidenceStageKind,
     evidence_stage: WorkloadEvidenceStage,
-    evidence_identity: String,
+    evidence_identity: SpatialGeometryEvidenceParticipantDigest,
     support: WorkloadEvidenceSupport,
     evidence_counters: WorkloadEvidenceStageCounters,
     lookup_counters: WorkloadEvidenceStageLookupCounters,
@@ -53,7 +63,7 @@ pub(super) fn admit_spatial_geometry_evidence_touch_authority(
     SpatialGeometryEvidenceTouchAuthority::from_parts(SpatialGeometryEvidenceTouchAuthorityParts {
         boolean_stage,
         evidence_stage,
-        evidence_identity,
+        evidence_identity: SpatialGeometryEvidenceParticipantDigest::new(evidence_identity),
         support,
         evidence_counters,
         lookup_counters,
@@ -72,7 +82,7 @@ impl SpatialGeometryEvidenceTouchAuthority {
             spatial_geometry_evidence_touch_digest(SpatialGeometryEvidenceTouchDigestParts {
                 boolean_stage: parts.boolean_stage,
                 evidence_stage: parts.evidence_stage,
-                evidence_identity: &parts.evidence_identity,
+                evidence_identity: parts.evidence_identity.as_str(),
                 support: parts.support,
                 evidence_counters: parts.evidence_counters,
                 lookup_counters: parts.lookup_counters,
@@ -110,7 +120,23 @@ impl SpatialGeometryEvidenceTouchAuthority {
     }
 
     pub fn evidence_identity(&self) -> &str {
+        self.evidence_identity.as_str()
+    }
+
+    pub fn evidence_authority_digest(&self) -> &SpatialGeometryEvidenceParticipantDigest {
         &self.evidence_identity
+    }
+
+    pub fn conflict_locality_identity(
+        &self,
+    ) -> Result<ConflictLocalityIdentity, ConflictRoutingVocabularyError> {
+        admit_conflict_spatial_touch_authority_locality_identity_from_digest(self.digest())
+    }
+
+    pub fn conflict_participant_identity(
+        &self,
+    ) -> Result<ConflictParticipantIdentity, ConflictRoutingVocabularyError> {
+        admit_conflict_evidence_participant_identity_from_digest(self.evidence_authority_digest())
     }
 
     pub fn support(&self) -> WorkloadEvidenceSupport {
@@ -148,9 +174,51 @@ impl SpatialGeometryEvidenceTouchAuthority {
     pub fn selected_receipt_row(&self) -> WorkloadEvidenceRow {
         WorkloadEvidenceRow::receipt_backed_with_support(
             self.evidence_stage,
-            self.evidence_identity.clone(),
+            self.evidence_identity.as_str().to_string(),
             self.support,
             self.evidence_counters,
         )
+    }
+
+    pub(crate) fn matching_conflict_family_identities(
+        &self,
+        declaration: &crate::workload_platform::evidence_lookup_family_catalog::EvidenceLookupFamilyDeclaration,
+    ) -> Result<Vec<SpatialConflictFamilyIdentity>, ConflictRoutingVocabularyError> {
+        let contract = declaration.conflict_routing_contract(self)?;
+        Ok(self.matching_conflict_family_identities_for_contract(&contract))
+    }
+
+    pub(crate) fn matching_conflict_family_identities_for_contract(
+        &self,
+        contract: &schema::facade::platform::authority::touched_graph_conflict::ConflictRoutingContract,
+    ) -> Vec<SpatialConflictFamilyIdentity> {
+        let closeout = current_spatial_conflict_family_catalog_closeout()
+            .expect("spatial conflict family catalog closes");
+        closeout
+            .catalog()
+            .matching_families(
+                contract,
+                SpatialConflictFamilyApplicability::EvidenceLookup { authority: self },
+            )
+            .into_iter()
+            .map(|declaration| declaration.identity())
+            .collect()
+    }
+
+    pub(crate) fn matching_replay_conflict_family_identities_for_contract(
+        &self,
+        contract: &schema::facade::platform::authority::touched_graph_conflict::ConflictRoutingContract,
+    ) -> Vec<SpatialConflictFamilyIdentity> {
+        let closeout = current_spatial_conflict_family_catalog_closeout()
+            .expect("spatial conflict family catalog closes");
+        closeout
+            .catalog()
+            .matching_families(
+                contract,
+                SpatialConflictFamilyApplicability::ReplayBoundary { authority: self },
+            )
+            .into_iter()
+            .map(|declaration| declaration.identity())
+            .collect()
     }
 }

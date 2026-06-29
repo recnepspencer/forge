@@ -178,7 +178,7 @@ mod tests {
     #[test]
     fn residue_audit_rejects_cap_row_without_cap() {
         let inventory = inventory_with_residue_row(
-            ReplayUndoInventorySourceIdentity::KernelUndoOrdinaryLaneGap,
+            ReplayUndoInventorySourceIdentity::KernelBooleanSplitReplayUndoBoundaryAdmission,
             ReplayUndoInventoryOwner::WorthKernel,
             ReplayUndoInventoryCategory::UndoScope,
             ReplayUndoInventoryDisposition::Cap,
@@ -199,7 +199,7 @@ mod tests {
     #[test]
     fn residue_audit_rejects_query_gap_without_cap() {
         let inventory = inventory_with_residue_row(
-            ReplayUndoInventorySourceIdentity::KernelUndoOrdinaryLaneGap,
+            ReplayUndoInventorySourceIdentity::KernelBooleanSplitReplayUndoBoundaryAdmission,
             ReplayUndoInventoryOwner::WorthKernel,
             ReplayUndoInventoryCategory::Residue,
             ReplayUndoInventoryDisposition::QueryGap,
@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn residue_audit_rejects_cap_row_without_removal_trigger() {
         let inventory = inventory_with_residue_row(
-            ReplayUndoInventorySourceIdentity::KernelUndoOrdinaryLaneGap,
+            ReplayUndoInventorySourceIdentity::KernelBooleanSplitReplayUndoBoundaryAdmission,
             ReplayUndoInventoryOwner::WorthKernel,
             ReplayUndoInventoryCategory::UndoScope,
             ReplayUndoInventoryDisposition::Cap,
@@ -241,7 +241,7 @@ mod tests {
     #[test]
     fn residue_audit_rejects_observed_residue_above_cap() {
         let inventory = inventory_with_residue_row(
-            ReplayUndoInventorySourceIdentity::KernelUndoOrdinaryLaneGap,
+            ReplayUndoInventorySourceIdentity::KernelBooleanSplitReplayUndoBoundaryAdmission,
             ReplayUndoInventoryOwner::WorthKernel,
             ReplayUndoInventoryCategory::UndoScope,
             ReplayUndoInventoryDisposition::Cap,

@@ -37,7 +37,6 @@ pub(crate) struct EvidenceLookupCurrentCoveredStageCutoverPath {
 }
 
 impl EvidenceLookupCurrentCoveredStageCutoverPath {
-    #[cfg(any(test, feature = "test-support-lowering"))]
     pub(crate) fn spatial_touch_authority(&self) -> &SpatialGeometryEvidenceTouchAuthority {
         &self.spatial_touch_authority
     }
