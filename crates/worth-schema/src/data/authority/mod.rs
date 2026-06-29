@@ -15,6 +15,7 @@ pub(crate) mod precision_fallback;
 pub(crate) mod replay_undo_semantic_graph;
 pub(crate) mod topology_class;
 pub(crate) mod touched_graph_basis;
+pub(crate) mod touched_graph_conflict;
 
 #[allow(unused_imports)]
 pub(crate) use commit_flow::{
@@ -63,4 +64,14 @@ pub use touched_graph_basis::{
     worth_topology_touched_graph_digest, WorthTopologyGraphLifecyclePosture,
     WorthTopologyTouchedAspect, WorthTopologyTouchedGraphCounters,
     WorthTopologyTouchedOperatingWorldPosture, WorthTopologyTouchedScope,
+};
+#[allow(unused_imports)]
+pub use touched_graph_conflict::{
+    admit_conflict_locality_identity, admit_conflict_overlap_identity,
+    admit_conflict_participant_identity, admit_conflict_routing_contract, ConflictAspectClass,
+    ConflictLocalityIdentity, ConflictOverlapCategory, ConflictOverlapIdentity,
+    ConflictOverlapIdentityInput, ConflictParticipantAuthority, ConflictParticipantIdentity,
+    ConflictParticipantIdentityInput, ConflictPriorProofIdentity, ConflictPriorProofInput,
+    ConflictRoutingContract, ConflictRoutingPosture, ConflictRoutingVocabularyError,
+    ConflictTransactionProofInput,
 };

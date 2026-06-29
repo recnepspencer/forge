@@ -1,4 +1,5 @@
 mod admission;
+mod current_boundary;
 mod lowering;
 mod planning;
 mod scope_product;
@@ -15,6 +16,11 @@ pub use admission::{
     SpatialReplaySemanticGraphAdmittedInput, SpatialReplaySemanticGraphPreparationRequest,
     SpatialReplaySemanticGraphPreparedRequest, SpatialUndoSemanticGraphAdmissionRequest,
     SpatialUndoSemanticGraphAdmittedInput,
+};
+pub use current_boundary::{
+    current_boolean_event_ledger_spatial_boundary, current_boolean_split_spatial_boundary,
+    current_projection_receipt_spatial_boundary, CurrentReplayUndoSpatialBoundary,
+    CurrentReplayUndoSpatialBoundaryError,
 };
 pub use lowering::{
     lower_spatial_replay_equivalence_basis,
@@ -42,6 +48,7 @@ pub use scope_product::{
 };
 #[cfg(any(test, feature = "test-support-lowering"))]
 pub use test_support::{
+    boolean_event_ledger_query_required_sibling_spatial_boundary_fixture,
     boolean_event_ledger_spatial_boundary_fixture, projection_receipt_spatial_boundary_fixture,
     ReplayUndoSpatialBoundaryFixture,
 };

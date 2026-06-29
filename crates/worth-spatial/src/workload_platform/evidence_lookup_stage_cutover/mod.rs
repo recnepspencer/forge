@@ -19,4 +19,5 @@ pub use topology_derived_state::{
 #[cfg(any(test, feature = "test-support-lowering"))]
 pub(crate) use current_path::admit_current_family_stage_cutover_path;
 #[cfg(any(test, feature = "test-support-lowering"))]
+pub(crate) use current_path::admit_current_family_stage_cutover_path_with_query_evidence;
 pub(crate) use current_world::current_retained_replay_receipt_for_stage;

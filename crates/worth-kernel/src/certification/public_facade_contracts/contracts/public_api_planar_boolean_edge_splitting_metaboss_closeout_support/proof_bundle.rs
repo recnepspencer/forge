@@ -91,6 +91,8 @@ pub(crate) fn emit_edge_split_metaboss_proof_bundle() -> EdgeSplitSummumBonumPro
     let replay_report = replay_parity_report(&replay_subject);
     let completed_split_handoff = completed_split_handoff_for(&subject, &replay_subject);
     let downstream = completed_split_handoff
+        .admit_batch_execution_cluster()
+        .expect("summum bonum split ledger must admit batch execution cluster")
         .admit_downstream_split_consumption(
             replay_subject.original_decision_log.receipt(),
             &replay_subject.original_products.validation,

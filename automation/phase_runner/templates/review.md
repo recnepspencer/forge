@@ -1,5 +1,5 @@
 [$qa-loop](C:\Users\Esther\.codex\skills\qa-loop\SKILL.md) first, make sure
-phase {phase.id}: {phase.title} is 100% done. Lets make sure that we didn't
+phase {phase.id}: {phase.title} is 100% done. Let's make sure that we didn't
 leave any gaps. Then make sure our approach was thorough and principled, that it
 follows our perf and arch laws, and look for missed edge cases.
 

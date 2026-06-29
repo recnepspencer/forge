@@ -1,4 +1,9 @@
-use super::legality_family_identity_digest;
+use schema::facade::platform::authority::touched_graph_conflict::{
+    ConflictParticipantIdentity, ConflictRoutingVocabularyError,
+};
+use schema::facade::platform::authority::touched_graph_conflict_internal::admit_conflict_validator_participant_identity_from_digest;
+
+use super::{legality_family_identity_digest, WorthTopologyLegalityFamilyIdentityDigest};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct WorthTopologyInvariantFamilyIdentity {
@@ -6,7 +11,7 @@ pub struct WorthTopologyInvariantFamilyIdentity {
     name: String,
     semantic_version: String,
     stable_key: String,
-    identity_digest: String,
+    identity_digest: WorthTopologyLegalityFamilyIdentityDigest,
 }
 
 impl WorthTopologyInvariantFamilyIdentity {
@@ -50,6 +55,16 @@ impl WorthTopologyInvariantFamilyIdentity {
     }
 
     pub fn identity_digest(&self) -> &str {
+        self.identity_digest.as_str()
+    }
+
+    pub fn authority_digest(&self) -> &WorthTopologyLegalityFamilyIdentityDigest {
         &self.identity_digest
+    }
+
+    pub fn conflict_participant_identity(
+        &self,
+    ) -> Result<ConflictParticipantIdentity, ConflictRoutingVocabularyError> {
+        admit_conflict_validator_participant_identity_from_digest(self.authority_digest())
     }
 }

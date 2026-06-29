@@ -12,8 +12,9 @@ use worth_spatial::facade::workload_vocabulary::WorkloadEvidenceStage;
 
 use super::{
     require_boolean_evidence, require_evidence_stage, CompletedBooleanLoopReconstructionHandoff,
-    CompletedBooleanSplitHandoff, PlanarBooleanLoopRuntimeRegistrationProof,
-    WorkloadCompositionError, WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
+    CompletedBooleanSplitHandoff, LookupConsumedWorkloadDenial,
+    PlanarBooleanLoopRuntimeRegistrationProof, WorkloadCompositionError, WorkloadStageRequirement,
+    WorthWorkload, WorthWorkloadParts,
 };
 use crate::workload_composition::boolean_evidence_requirement::map_boolean_ledger_error;
 use crate::workload_composition::{
@@ -239,6 +240,7 @@ impl WorthWorkload {
             projection: self.projection.clone(),
             transform: self.transform.clone(),
             retained_replay: self.retained_replay.clone(),
+            batch_admission_execution: self.batch_admission_execution.clone(),
             diagnostics: self.diagnostics.clone(),
             response: self.response.clone(),
             evidence_ledger,
@@ -262,12 +264,16 @@ impl WorthWorkload {
             event_ledger_lookup_packet.execution_receipt(),
         )
         .map_err(|error| {
-            WorkloadCompositionError::LookupConsumedWorkload(error.detail().to_string())
+            WorkloadCompositionError::LookupConsumedWorkload(
+                LookupConsumedWorkloadDenial::CutoverProof(error.detail().to_string()),
+            )
         })?;
         let lookup_consumed_workload_handoff = lookup_cutover_proof
             .lower_workload_handoff()
             .map_err(|error| {
-                WorkloadCompositionError::LookupConsumedWorkload(error.detail().to_string())
+                WorkloadCompositionError::LookupConsumedWorkload(
+                    LookupConsumedWorkloadDenial::CutoverProof(error.detail().to_string()),
+                )
             })?;
         require_split_lookup_lineage(split_ledger, event_ledger_lookup_packet)?;
         Ok(CompletedBooleanSplitHandoff::new(
@@ -299,6 +305,7 @@ impl WorthWorkload {
             projection: self.projection.clone(),
             transform: self.transform.clone(),
             retained_replay: self.retained_replay.clone(),
+            batch_admission_execution: self.batch_admission_execution.clone(),
             diagnostics: self.diagnostics.clone(),
             response: self.response.clone(),
             evidence_ledger,
@@ -339,8 +346,7 @@ fn require_split_lookup_lineage(
                 .lookup_product_output_digest()
     {
         return Err(WorkloadCompositionError::LookupConsumedWorkload(
-            "split ledger lookup lineage must match the admitted event-ledger lookup packet"
-                .to_string(),
+            LookupConsumedWorkloadDenial::SplitLookupLineageMismatch,
         ));
     }
     Ok(())

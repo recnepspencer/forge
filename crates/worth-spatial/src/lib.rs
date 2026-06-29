@@ -104,6 +104,7 @@ pub mod replay_undo_semantic_graph;
 mod structure_guard;
 #[cfg(test)]
 mod test_support;
+pub mod touched_graph_conflict;
 mod undo_family_catalog;
 mod witness_resolution;
 mod workload_platform;

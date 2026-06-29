@@ -15,6 +15,7 @@ use crate::derived_topology::invalidation_plan::catalog::{
     DerivedTopologyLegalityReceiptPosture, DerivedTopologyProductFamilyIdentity,
     DerivedTopologyQueryReceiptPosture,
 };
+use schema::facade::platform::authority::touched_graph_conflict::ConflictOverlapCategory;
 
 #[test]
 fn same_touched_closure_selects_same_plan_regardless_operator_family_name() {
@@ -100,6 +101,31 @@ fn capped_phase_two_residue_is_projected_into_selected_plan() {
     assert_eq!(
         residue.capped_count(),
         catalog.catalog().phase_two_seed().capped_residue_count()
+    );
+}
+
+#[test]
+fn selected_plan_carries_shared_locality_routing_contract() {
+    let plan = DerivedInvalidationSelectedPlan::lower(
+        &catalog_closeout(),
+        &loop_cycles_touched_closure("loop-touch"),
+        &admitted_query_support(),
+        &admitted_legality_support(),
+        DerivedInvalidationDensityPolicy::Sparse,
+    )
+    .unwrap();
+
+    assert_eq!(
+        plan.routing_contract().overlap_identity().category(),
+        ConflictOverlapCategory::Locality
+    );
+    assert_eq!(
+        plan.routing_contract()
+            .overlap_identity()
+            .locality_identity()
+            .expect("locality overlap carries locality")
+            .authority_digest(),
+        plan.touched_closure_digest()
     );
 }
 

@@ -3,10 +3,8 @@ use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanSplitEdge
 use worth_spatial::facade::planar_boolean_loop_reconstruction::PlanarBooleanLoopReconstructionLedgerReceipt;
 
 use super::{
-    BooleanChainReplayUndoBoundaryHandoff, BooleanSplitReplayUndoBoundaryRequest,
     CompletedBooleanLoopReconstructionHandoff, CompletedBooleanSplitHandoff,
-    PlanarBooleanLoopReconstructionCloseoutInput, PlanarBooleanLoopRuntimeRegistrationProof,
-    WorkloadCompositionError,
+    PlanarBooleanLoopRuntimeRegistrationProof, WorkloadCompositionError,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -274,20 +272,6 @@ impl BooleanChainResidueBoundary {
                 "typed Query proof accompaniment; not a split or loop ledger identity"
             }
         }
-    }
-}
-
-impl CompletedBooleanSplitHandoff {
-    pub fn complete_boolean_chain_integration_from_replay_undo_boundary(
-        &self,
-        boundary_request: BooleanSplitReplayUndoBoundaryRequest<'_>,
-        loop_closeout_input: PlanarBooleanLoopReconstructionCloseoutInput<'_>,
-    ) -> Result<BooleanChainReplayUndoBoundaryHandoff, WorkloadCompositionError> {
-        BooleanChainReplayUndoBoundaryHandoff::from_replay_undo_boundary(
-            self,
-            boundary_request,
-            loop_closeout_input,
-        )
     }
 }
 

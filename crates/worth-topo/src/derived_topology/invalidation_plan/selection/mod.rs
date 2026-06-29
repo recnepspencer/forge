@@ -8,6 +8,8 @@ mod selected_plan;
 mod support;
 mod touched_closure;
 
+#[cfg(test)]
+mod conflict_routing_tests;
 #[cfg(any(test, feature = "test-support-lowering"))]
 pub(crate) mod selection_test_fixtures;
 #[cfg(test)]
@@ -27,4 +29,7 @@ pub use support::{
     DerivedInvalidationExecutionAdmission, DerivedInvalidationLegalitySupportEvidence,
     DerivedInvalidationQuerySupportEvidence,
 };
-pub use touched_closure::DerivedInvalidationTouchedClosure;
+#[allow(unused_imports)]
+pub use touched_closure::{
+    DerivedInvalidationTouchedClosure, DerivedInvalidationTouchedClosureDigest,
+};

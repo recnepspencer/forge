@@ -1,15 +1,16 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SpatialWorkloadStage {
+pub enum WorkloadStage {
     GeometryBinding,
     SurfaceSupport,
     Projection,
     Transform,
     RetainedReplay,
+    BatchAdmissionExecution,
     Diagnostics,
     Response,
 }
 
-impl SpatialWorkloadStage {
+impl WorkloadStage {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::GeometryBinding => "geometry binding",
@@ -17,11 +18,14 @@ impl SpatialWorkloadStage {
             Self::Projection => "projection",
             Self::Transform => "transform",
             Self::RetainedReplay => "retained replay",
+            Self::BatchAdmissionExecution => "batch admission execution",
             Self::Diagnostics => "diagnostics",
             Self::Response => "response",
         }
     }
 }
+
+pub type SpatialWorkloadStage = WorkloadStage;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorkloadStageSupport {
@@ -32,26 +36,26 @@ pub enum WorkloadStageSupport {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkloadStagePosture {
-    stage: SpatialWorkloadStage,
+    stage: WorkloadStage,
     support: WorkloadStageSupport,
     reason: String,
 }
 
 impl WorkloadStagePosture {
-    pub fn admitted(stage: SpatialWorkloadStage, reason: impl Into<String>) -> Self {
+    pub fn admitted(stage: WorkloadStage, reason: impl Into<String>) -> Self {
         Self::new(stage, WorkloadStageSupport::Admitted, reason)
     }
 
-    pub fn unsupported(stage: SpatialWorkloadStage, reason: impl Into<String>) -> Self {
+    pub fn unsupported(stage: WorkloadStage, reason: impl Into<String>) -> Self {
         Self::new(stage, WorkloadStageSupport::Unsupported, reason)
     }
 
-    pub fn blocked(stage: SpatialWorkloadStage, reason: impl Into<String>) -> Self {
+    pub fn blocked(stage: WorkloadStage, reason: impl Into<String>) -> Self {
         Self::new(stage, WorkloadStageSupport::Blocked, reason)
     }
 
     pub(crate) fn new(
-        stage: SpatialWorkloadStage,
+        stage: WorkloadStage,
         support: WorkloadStageSupport,
         reason: impl Into<String>,
     ) -> Self {
@@ -63,7 +67,7 @@ impl WorkloadStagePosture {
         }
     }
 
-    pub fn stage(&self) -> SpatialWorkloadStage {
+    pub fn stage(&self) -> WorkloadStage {
         self.stage
     }
 
@@ -87,14 +91,14 @@ fn normalize_reason(reason: impl Into<String>) -> String {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkloadStageIdentity {
-    stage: SpatialWorkloadStage,
+    stage: WorkloadStage,
     declaration: String,
     upstream_receipt: String,
 }
 
 impl WorkloadStageIdentity {
     pub(crate) fn new(
-        stage: SpatialWorkloadStage,
+        stage: WorkloadStage,
         declaration: String,
         upstream_receipt: String,
     ) -> Self {
@@ -105,7 +109,7 @@ impl WorkloadStageIdentity {
         }
     }
 
-    pub fn stage(&self) -> SpatialWorkloadStage {
+    pub fn stage(&self) -> WorkloadStage {
         self.stage
     }
 
@@ -167,7 +171,7 @@ impl WorkloadStageDenial {
 }
 
 pub(crate) fn certify_stage(
-    stage: SpatialWorkloadStage,
+    stage: WorkloadStage,
     declaration: String,
     upstream_receipt: String,
     support: WorkloadStageSupport,

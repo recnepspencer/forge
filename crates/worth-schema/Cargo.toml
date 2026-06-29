@@ -8,6 +8,14 @@ description = "Topology truth vocabulary, aspects, and invariant declarations"
 [lib]
 name = "schema"
 
+[features]
+conflict-routing-internal-authority = []
+
+[[test]]
+name = "touched_graph_conflict_internal_authority"
+path = "tests/touched_graph_conflict_internal_authority.rs"
+required-features = ["conflict-routing-internal-authority"]
+
 [dependencies]
 forge-foundational.workspace = true
 forge-query.workspace = true
@@ -18,6 +26,7 @@ math = { package = "worth-math", path = "../worth-math" }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 sha2 = "0.10"
+worth-primitives.workspace = true
 
 [dev-dependencies]
 trybuild.workspace = true

@@ -1,17 +1,12 @@
 use worth_spatial::facade::evidence_lookup_workload_cutover::EvidenceLookupConsumedWorkloadHandoff;
-use worth_spatial::facade::planar_boolean_edge_splitting::{
-    PlanarBooleanDownstreamSplitConsumption, PlanarBooleanDownstreamSplitConsumptionInput,
-    PlanarBooleanEdgeSplitReplayParityReceipt, PlanarBooleanSplitChainValidationReceipt,
-    PlanarBooleanSplitDecisionLogReceipt, PlanarBooleanSplitEdgeChainLedgerReceipt,
-    PlanarBooleanSplitPersistentNamingReceipt,
-};
+use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanSplitEdgeChainLedgerReceipt;
 use worth_spatial::facade::workload_vocabulary::SpatialGeometryEvidenceTouchAuthority;
 
 use super::{
-    replay_undo_boundary::admit_boolean_split_replay_undo_boundary,
-    BooleanSplitReplayUndoBoundaryRequest, PlanarBooleanLoopReconstructionCloseoutInput,
-    WorkloadCompositionError, WorthWorkload,
+    CompletedBooleanSplitBatchExecutionCluster, LookupConsumedBatchExecutionCluster,
+    LookupConsumedWorkloadDenial, WorkloadCompositionError, WorthWorkload,
 };
+use crate::workload_composition::BatchAdmissionExecutionReceipt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CompletedBooleanSplitHandoff {
@@ -57,29 +52,43 @@ impl CompletedBooleanSplitHandoff {
             .require_boolean_split(&self.split_ledger_receipt)
     }
 
-    pub fn admit_downstream_split_consumption(
+    pub(crate) fn with_batch_admission_execution(
         &self,
-        decision_log_receipt: &PlanarBooleanSplitDecisionLogReceipt,
-        validation_receipt: &PlanarBooleanSplitChainValidationReceipt,
-        persistent_naming_receipt: &PlanarBooleanSplitPersistentNamingReceipt,
-        replay_parity_receipt: &PlanarBooleanEdgeSplitReplayParityReceipt,
-    ) -> Result<PlanarBooleanDownstreamSplitConsumption, WorkloadCompositionError> {
-        self.completed_workload
-            .admit_lookup_consumed_workload(&self.lookup_consumed_workload_handoff)?;
-        let spatial_touch_authority = self
+        batch_execution: &BatchAdmissionExecutionReceipt,
+    ) -> Result<Self, WorkloadCompositionError> {
+        Ok(Self::new(
+            self.completed_workload
+                .with_batch_admission_execution(batch_execution.clone())?,
+            self.split_ledger_receipt.clone(),
+            self.lookup_consumed_workload_handoff.clone(),
+        ))
+    }
+
+    pub(crate) fn admit_lookup_consumed_batch_execution_cluster(
+        &self,
+    ) -> Result<LookupConsumedBatchExecutionCluster, WorkloadCompositionError> {
+        let batch_execution = self
             .completed_workload
-            .admit_spatial_geometry_evidence_touch(&self.split_ledger_receipt)?;
-        PlanarBooleanDownstreamSplitConsumption::admit(
-            PlanarBooleanDownstreamSplitConsumptionInput::from_split_ledger_receipt(
-                &self.split_ledger_receipt,
-                decision_log_receipt,
-                validation_receipt,
-                persistent_naming_receipt,
-                replay_parity_receipt,
-                &spatial_touch_authority,
-            ),
-        )
-        .map_err(WorkloadCompositionError::DownstreamSplitConsumption)
+            .batch_admission_execution()
+            .ok_or_else(|| {
+                WorkloadCompositionError::LookupConsumedWorkload(
+                    LookupConsumedWorkloadDenial::MissingWorkloadAttachedBatchAdmissionExecutionReceipt,
+                )
+            })?;
+        self.completed_workload
+            .admit_lookup_consumed_batch_execution_cluster(
+                &self.lookup_consumed_workload_handoff,
+                batch_execution,
+            )
+    }
+
+    pub fn admit_batch_execution_cluster(
+        &self,
+    ) -> Result<CompletedBooleanSplitBatchExecutionCluster, WorkloadCompositionError> {
+        Ok(CompletedBooleanSplitBatchExecutionCluster::new(
+            self.clone(),
+            self.admit_lookup_consumed_batch_execution_cluster()?,
+        ))
     }
 
     pub fn admit_split_spatial_touch_authority(
@@ -87,21 +96,5 @@ impl CompletedBooleanSplitHandoff {
     ) -> Result<SpatialGeometryEvidenceTouchAuthority, WorkloadCompositionError> {
         self.completed_workload
             .admit_spatial_geometry_evidence_touch(&self.split_ledger_receipt)
-    }
-
-    pub fn admit_boolean_split_replay_undo_boundary(
-        &self,
-        request: BooleanSplitReplayUndoBoundaryRequest<'_>,
-    ) -> Result<super::AdmittedBooleanSplitReplayUndoBoundary, WorkloadCompositionError> {
-        admit_boolean_split_replay_undo_boundary(self, request)
-    }
-
-    pub fn complete_boolean_loop_reconstruction_from_replay_undo_boundary(
-        &self,
-        boundary_request: BooleanSplitReplayUndoBoundaryRequest<'_>,
-        input: PlanarBooleanLoopReconstructionCloseoutInput<'_>,
-    ) -> Result<super::CompletedBooleanLoopReconstructionHandoff, WorkloadCompositionError> {
-        self.admit_boolean_split_replay_undo_boundary(boundary_request)?
-            .complete_boolean_loop_reconstruction(input)
     }
 }

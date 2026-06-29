@@ -11,6 +11,9 @@ use crate::workload_platform::evidence_ledger::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SpatialGeometryEvidenceTouchDigest(String);
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SpatialGeometryEvidenceParticipantDigest(String);
+
 pub(super) struct SpatialGeometryEvidenceTouchDigestParts<'a> {
     pub boolean_stage: BooleanEvidenceStageKind,
     pub evidence_stage: WorkloadEvidenceStage,
@@ -77,5 +80,27 @@ fn lookup_counter_digest_key(counters: WorkloadEvidenceStageLookupCounters) -> S
 impl SpatialGeometryEvidenceTouchDigest {
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+}
+
+impl AsRef<str> for SpatialGeometryEvidenceTouchDigest {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl SpatialGeometryEvidenceParticipantDigest {
+    pub(super) fn new(identity: String) -> Self {
+        Self(identity)
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for SpatialGeometryEvidenceParticipantDigest {
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }

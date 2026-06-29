@@ -1,7 +1,7 @@
 mod lookup_handoff_lowering;
 mod public_closeout_lowering;
+mod replay_undo_boundary_lowering;
 mod topo_invalidation_lowering;
-mod undo_gap_lowering;
 mod workload_seed_lowering;
 
 use crate::replay_undo_inventory::inventory_lane::declaration::ReplayUndoDeclaredSourceCatalog;
@@ -14,9 +14,9 @@ pub fn lower_declared_sources(
     let mut rows = Vec::new();
     rows.extend(workload_seed_lowering::lower(catalog));
     rows.extend(lookup_handoff_lowering::lower(catalog));
+    rows.extend(replay_undo_boundary_lowering::lower(catalog));
     rows.extend(public_closeout_lowering::lower(catalog));
     rows.extend(topo_invalidation_lowering::lower(catalog));
-    rows.extend(undo_gap_lowering::lower(catalog));
     rows.sort_by_key(|row| row.source_identity());
     rows
 }

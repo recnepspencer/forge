@@ -54,7 +54,8 @@ pub use denial::{
     SpatialGeometryEvidenceTouchDenial, SpatialGeometryEvidenceTouchDenialKind,
     SpatialGeometryEvidenceTouchDenialPrecedence,
 };
-pub use digest::SpatialGeometryEvidenceTouchDigest;
+#[allow(unused_imports)]
+pub use digest::{SpatialGeometryEvidenceParticipantDigest, SpatialGeometryEvidenceTouchDigest};
 #[cfg(test)]
 pub(crate) use input::SpatialGeometryEvidenceTouchRejectedInput;
 pub(crate) use input::SpatialGeometryEvidenceTouchRejectedInputKind;

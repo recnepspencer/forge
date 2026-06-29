@@ -2,10 +2,17 @@ from __future__ import annotations
 
 import json
 import subprocess
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from state import now_iso
+
+
+@dataclass
+class CodexResult:
+    exit_code: int
+    capture: dict[str, Any] = field(default_factory=dict)
 
 
 def build_command(state: dict[str, Any]) -> list[str]:
@@ -53,7 +60,7 @@ def run_codex(
     state: dict[str, Any],
     prompt: str,
     log_path: Path | None,
-) -> tuple[int, dict[str, Any]]:
+) -> CodexResult:
     capture: dict[str, Any] = {}
     process = subprocess.Popen(
         build_command(state),
@@ -78,7 +85,7 @@ def run_codex(
                 log_file.write(line)
         capture_thread_id(capture, line)
 
-    return process.wait(), capture
+    return CodexResult(exit_code=process.wait(), capture=capture)
 
 
 def capture_thread_id(capture: dict[str, Any], line: str) -> None:

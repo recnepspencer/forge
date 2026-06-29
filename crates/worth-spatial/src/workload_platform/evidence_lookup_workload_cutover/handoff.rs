@@ -176,7 +176,7 @@ impl EvidenceLookupConsumedWorkloadHandoff {
         )
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support-lowering"))]
     pub(crate) fn with_test_stage_receipt_identity(
         mut self,
         stage_receipt_identity: impl Into<String>,
@@ -185,7 +185,7 @@ impl EvidenceLookupConsumedWorkloadHandoff {
         self
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support-lowering"))]
     pub(crate) fn with_test_workload_stage_index_identity(
         mut self,
         workload_stage_index_identity: impl Into<String>,
@@ -194,12 +194,57 @@ impl EvidenceLookupConsumedWorkloadHandoff {
         self
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support-lowering"))]
     pub(crate) fn with_test_lookup_execution_receipt_digest(
         mut self,
         lookup_execution_receipt_digest: impl Into<String>,
     ) -> Self {
         self.lookup_execution_receipt_digest = lookup_execution_receipt_digest.into();
+        self
+    }
+
+    #[cfg(any(test, feature = "test-support-lowering"))]
+    pub(crate) fn with_test_raw_row_scan_count(mut self, raw_row_scan_count: usize) -> Self {
+        self.counters = EvidenceLookupWorkloadCutoverCounters::new(
+            self.counters.covered_family_count(),
+            self.counters.indexed_lookup_count(),
+            self.counters.topology_receipt_ref_count(),
+            raw_row_scan_count,
+            self.counters.broad_receipt_scan_count(),
+            self.counters.caller_owned_scan_count(),
+        );
+        self
+    }
+
+    #[cfg(any(test, feature = "test-support-lowering"))]
+    pub(crate) fn with_test_broad_receipt_scan_count(
+        mut self,
+        broad_receipt_scan_count: usize,
+    ) -> Self {
+        self.counters = EvidenceLookupWorkloadCutoverCounters::new(
+            self.counters.covered_family_count(),
+            self.counters.indexed_lookup_count(),
+            self.counters.topology_receipt_ref_count(),
+            self.counters.raw_row_scan_count(),
+            broad_receipt_scan_count,
+            self.counters.caller_owned_scan_count(),
+        );
+        self
+    }
+
+    #[cfg(any(test, feature = "test-support-lowering"))]
+    pub(crate) fn with_test_caller_owned_scan_count(
+        mut self,
+        caller_owned_scan_count: usize,
+    ) -> Self {
+        self.counters = EvidenceLookupWorkloadCutoverCounters::new(
+            self.counters.covered_family_count(),
+            self.counters.indexed_lookup_count(),
+            self.counters.topology_receipt_ref_count(),
+            self.counters.raw_row_scan_count(),
+            self.counters.broad_receipt_scan_count(),
+            caller_owned_scan_count,
+        );
         self
     }
 

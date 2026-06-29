@@ -15,8 +15,8 @@ pub use projection::{ProjectionWorkload, ProjectionWorkloadReceipt};
 pub use response::{ResponseWorkload, ResponseWorkloadReceipt};
 pub use retained_replay::{RetainedReplayWorkload, RetainedReplayWorkloadReceipt};
 pub use stage_contract::{
-    SpatialWorkloadStage, WorkloadStageDenial, WorkloadStageEnvelope, WorkloadStageIdentity,
-    WorkloadStagePosture, WorkloadStageSupport,
+    SpatialWorkloadStage, WorkloadStage, WorkloadStageDenial, WorkloadStageEnvelope,
+    WorkloadStageIdentity, WorkloadStagePosture, WorkloadStageSupport,
 };
 pub use surface_support::{SurfaceSupportWorkload, SurfaceSupportWorkloadReceipt};
 pub use transform::{TransformWorkload, TransformWorkloadReceipt};

@@ -1,0 +1,510 @@
+{
+  "schema_version": 1,
+  "state_revision": 0,
+  "current": {
+    "phase": 1,
+    "turn": "plan"
+  },
+  "project": {
+    "name": "Worth Touched Graph Milestone 14 Unified Compiled Product Cache And Equivalence Contracts",
+    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "spec_file": "_docs/worth/touched-graph-milestone-14-unified-compiled-product-cache-and-equivalence-contracts.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "crates/forge-query/docs/AI_README.md",
+      "crates/forge-query/docs/foundations/consumer-kit.md",
+      "crates/forge-query/docs/foundations/support-matrix-and-admission.md",
+      "crates/forge-query/docs/foundations/downstream-runtime-integration.md",
+      "crates/forge-query/docs/domain-capabilities/support/lower-runtime-support-and-boundary-traceability.md",
+      "crates/forge-query/docs/domain-capabilities/support/declaration-scoped-support-and-traceability.md",
+      "crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md",
+      "_docs/worth/touched-graph-roadmap.md",
+      "_docs/worth/touched-graph-milestone-12-canonical-semantic-graph-contract-for-replay-and-undo.md",
+      "_docs/worth/touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.md",
+      "_docs/worth/touched-graph-milestone-14-unified-compiled-product-cache-and-equivalence-contracts.md",
+      "crates/worth-schema/src/data/authority/touched_graph_conflict/routing_contract.rs",
+      "crates/worth-schema/src/data/authority/replay_undo_semantic_graph/equivalence_basis.rs",
+      "crates/worth-schema/src/data/authority/replay_undo_semantic_graph/identity_digest.rs",
+      "crates/worth-kernel/src/workload_composition/worth_workload.rs",
+      "crates/worth-kernel/src/workload_composition/public_closeout/mod.rs",
+      "crates/worth-kernel/src/workload_composition/public_closeout/milestone_fourteen_seed.rs",
+      "crates/worth-kernel/src/workload_composition/source_firewall/mod.rs",
+      "crates/worth-kernel/src/workload_composition/worth_workload/ordinary_consumer_sweep/mod.rs",
+      "crates/worth-topo/src/derived_topology/invalidation_plan/catalog/mod.rs",
+      "crates/worth-topo/src/derived_topology/invalidation_plan/catalog/family_catalog.rs",
+      "crates/worth-topo/src/derived_topology/invalidation_plan/selection/touched_closure.rs",
+      "crates/worth-topo/src/projection/diagnostic_surfaces/equivalence_contract.rs",
+      "crates/worth-spatial/src/workload_platform/evidence_lookup_family_catalog/mod.rs",
+      "crates/worth-spatial/src/workload_platform/evidence_lookup_index_product/mod.rs",
+      "crates/worth-spatial/src/workload_platform/evidence_lookup_index_product/construction.rs",
+      "crates/worth-spatial/src/workload_platform/evidence_lookup_index_product/identity.rs",
+      "crates/worth-spatial/src/workload_platform/evidence_lookup_plan_selection/mod.rs",
+      "crates/worth-spatial/src/workload_platform/retained_replay_workload/mod.rs",
+      "crates/worth-spatial/src/workload_platform/retained_replay_workload/replay_parity.rs",
+      "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout/mod.rs"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md"
+  },
+  "contract_template": "templates/_contract_test_hardening.md",
+  "session": {
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    }
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Reuse And Pseudo-Reuse Folklore Inventory And Cut Line",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/derived_topology",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform",
+        "_docs/worth/touched-graph-milestone-14-unified-compiled-product-cache-and-equivalence-contracts.md"
+      ],
+      "acceptance": [
+        "typed inventory rows classify every ordinary reuse, pseudo-reuse, rebuild suppression, parity shortcut, retained-product carry-forward, and local equivalence helper as migrate, delete, cap, certification-only, or Query-gap",
+        "inventory rows name exact current authority surfaces for topology invalidation products, evidence lookup index products, retained replay workloads, workload-composition closeout consumers, and public/read-model reuse paths",
+        "closeout fails when a new ordinary cache key, row-count shortcut, rendered-shape equality path, pointer-identity path, or retained folklore helper appears without an inventory row",
+        "inventory distinguishes compiled-product identity, equivalence, compatibility, and authority truth rather than collapsing them into one residue category"
+      ],
+      "instructions": "Freeze the full reuse folklore surface before writing replacement lanes. Treat every ordinary compiled-product reuse claim as named migration pressure, not as an optimization detail hidden inside retained helpers or public closeout code.",
+      "qa_focus": "Exact current-surface naming, no grep-only theater, honest classification of pseudo-reuse, and no uncapped ordinary shortcut left outside the cut line.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Shared Compiled-Product Identity And Equivalence Vocabulary",
+      "owner": "worth-schema, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-schema",
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src"
+      ],
+      "acceptance": [
+        "one shared worth-schema contract family lands for compiled-product identity, equivalence-policy identity, reuse-decision identity, and rebuild-denial identity",
+        "the shared vocabulary distinguishes authoritative truth identity from compiled-product identity so a derived product cannot impersonate authority",
+        "stable-identity tests prove equivalence vocabulary stays rerun-stable while wrong-authority or raw rendered payload values cannot mint identity",
+        "topology and spatial lanes both consume the same shared identity contract rather than growing crate-local sameness ontologies"
+      ],
+      "instructions": "Freeze the core compiled-product semantics in worth-schema before product-family catalogs appear. Every later lane must lower through this vocabulary, not reinterpret cache or equivalence semantics locally.",
+      "qa_focus": "Real shared ownership, proof-bearing distinctions, no representation-equality shortcuts, and no crate-local vocabulary drift.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Topology Compiled-Product Family Catalog",
+      "owner": "worth-topo",
+      "scope": [
+        "crates/worth-topo/src/derived_topology",
+        "crates/worth-topo/src/projection",
+        "crates/worth-topo/src/certification"
+      ],
+      "acceptance": [
+        "a new topology compiled-product family catalog lands beside displaced invalidation/reuse helpers before broad cutover",
+        "family declarations state authority basis, locality footprint, prior-proof role, stage identity, validator/evidence role, and equivalence-policy identity explicitly",
+        "declared-once tests prove one family declaration can serve multiple topology consumers without consumer-local wiring",
+        "raw strings, pointer identity, or rendered payload comparisons cannot mint topology compiled-product family identity"
+      ],
+      "instructions": "Build the topology half of the architecture as a real parallel declarer lane. Catalog authority belongs here, not inside invalidation products, projection helpers, or certification-only reuse checks.",
+      "qa_focus": "Parallel folder cutover, explicit family fields, no callback-list catalog design, and no topology-local sameness language.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Spatial And Evidence Compiled-Product Family Catalog",
+      "owner": "worth-spatial",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform",
+        "crates/worth-spatial/src/planar_contracts",
+        "crates/worth-spatial/src/certification"
+      ],
+      "acceptance": [
+        "a new spatial compiled-product family catalog lands beside displaced evidence-index, retained-replay, retained-cancellation, and query-support reuse helpers before broad cutover",
+        "family declarations state source authority digest basis, locality footprint basis, prior-proof role, evidence support role, and equivalence-policy identity explicitly",
+        "declared-once tests prove one spatial family declaration can feed evidence lookup, retained replay, and public-closeout consumers without consumer-local cache semantics",
+        "raw evidence rows, rendered-support payloads, or retained helper conventions cannot mint spatial compiled-product family identity"
+      ],
+      "instructions": "Build the spatial half of the architecture in its own explicit lane. Evidence lookup, retained replay, and derived spatial products must learn one shared declared family model before cutover starts.",
+      "qa_focus": "Parallel declarer architecture, no product-local ontology drift, no retained helper shortcuts, and no undeclared evidence-family identity.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Kernel Consumer Dependency Matrix And Cutover Catalog",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-kernel/src/replay_undo_consumer_cutover",
+        "crates/worth-kernel/src/certification"
+      ],
+      "acceptance": [
+        "kernel-owned cutover matrices name every ordinary consumer cluster that currently relies on compiled-product reuse or pseudo-reuse semantics",
+        "the matrix classifies each consumer by topology-derived, spatial/evidence-derived, query-backed, public-closeout, retained-replay, or ordinary sweep responsibility",
+        "the matrix binds each cluster to one future cutover lane rather than leaving broad mixed-family migration buckets",
+        "closeout fails when a consumer surface participates in covered reuse semantics without a named cluster row"
+      ],
+      "instructions": "Make kernel cutover pressure explicit before any consumer migration. This is the roadmap map for the rest of the milestone and must prevent broad 'finish the rest' phases from hiding whole consumer families.",
+      "qa_focus": "Exact consumer clustering, no vague sink phases, and no hidden public-closeout or read-model dependency family.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "Topology Admitted Compiled-Product Input Lane",
+      "owner": "worth-topo",
+      "scope": [
+        "crates/worth-topo/src/derived_topology",
+        "crates/worth-topo/src/projection"
+      ],
+      "acceptance": [
+        "topology compiled-product admission accepts only typed touched/locality basis, authority digest basis, and required prior-proof products",
+        "admission denies broad invalidation scans, raw retained rows, caller-owned digest bridges, and stage-index mismatches before family selection",
+        "wrong-authority or wrong-proof values fail before selection rather than being compared later as cache misses",
+        "topology consumers cannot bypass the admitted-input lane on covered ordinary paths"
+      ],
+      "instructions": "Build the topology admitted-input lane as the only legal entry to topology compiled-product reuse and rebuild decisions. No local helper may rediscover authority basis or cache basis after this lands.",
+      "qa_focus": "Admission purity, denial before planning, no raw-row fallback, and no caller-owned digest or equivalence setup.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "Spatial Admitted Compiled-Product Input Lane",
+      "owner": "worth-spatial",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform",
+        "crates/worth-spatial/src/planar_contracts"
+      ],
+      "acceptance": [
+        "spatial compiled-product admission accepts only typed spatial touch authority, evidence/query support posture, authority digest basis, and required prior-proof products",
+        "admission denies raw evidence rows, retained artifact sets, query payload shortcuts, broad retained replay scans, and caller-owned basis assembly before family selection",
+        "wrong receipt family, wrong authority basis, and wrong support posture deny before selection rather than surfacing as soft cache misses",
+        "evidence lookup and retained replay consumers cannot bypass the admitted-input lane on covered ordinary paths"
+      ],
+      "instructions": "Build the spatial admitted-input lane as the only legal entry to evidence index, retained replay, retained cancellation, and related reuse decisions. Family selectors may consume admitted products only, never local raw basis assembly.",
+      "qa_focus": "Admission purity, no raw evidence fallback, exact support posture binding, and denial before selection.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 8,
+      "title": "Selected Equivalence Family And Comparator Contract",
+      "owner": "worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "selected equivalence-family products lower from admitted input plus declared family catalogs instead of consumer-local comparator helpers",
+        "comparators express family-declared equivalence dimensions and deny unsupported comparisons explicitly",
+        "compatibility remains distinct from equivalence and cannot be consumed as reuse authority",
+        "covered callers consume selected equivalence products rather than pointer identity, row-count, or payload-equality shortcuts"
+      ],
+      "instructions": "Create the planner-owned equivalence selection contract that all later reuse decisions must consume. Comparator authority belongs in selected products, not in consumer-local equality helpers.",
+      "qa_focus": "Planner ownership, explicit comparator policy, no broad payload comparison fallback, and no compatibility-equals-reuse collapse.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 9,
+      "title": "Reuse Decision Product And Rebuild Denial Product",
+      "owner": "worth-topo, worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "reuse decision and rebuild denial become first-class typed products instead of booleans, optionals, or implicit branch-local behavior",
+        "denials localize the mismatching basis dimension such as authority digest, locality footprint, prior-proof role, support posture, or equivalence policy",
+        "ordinary execution consumers can proceed from reuse or rebuild products without reopening local cache logic",
+        "silent fallback from denied reuse into local comparator or retained helper logic is impossible on covered paths"
+      ],
+      "instructions": "Make reuse itself a semantic product. A lane that proves rebuild is required is success, not a missed optimization, and every covered caller must consume that result rather than self-healing with folklore.",
+      "qa_focus": "Typed outcomes, localized denial reasons, no boolean flattening, and no silent fallback behavior.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 10,
+      "title": "First Vertical Migration Slice",
+      "owner": "worth-topo, worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "one end-to-end consumer path migrates through family catalog, admitted input, selected equivalence family, reuse or rebuild decision, and execution with no old helper semantics on the ordinary route",
+        "the migrated slice runs through real production APIs rather than fixture-only lanes or synthetic adapter shortcuts",
+        "the new lane lives beside the displaced lane and proves parallel cutover before wider consumer migration begins",
+        "cutover proof names the exact old surfaces displaced by the first slice and whether they are deleted now or capped as explicit residue"
+      ],
+      "instructions": "Use one real vertical slice to prove the architecture end to end before broad cluster migration. This phase must demonstrate parallel cutover discipline, not hidden in-place reshaping.",
+      "qa_focus": "Real end-to-end cutover, no synthetic adapter bridge, explicit displaced-surface accounting, and proof that new lanes own the path.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 11,
+      "title": "Topology-Derived Consumer Cluster Cutover",
+      "owner": "worth-topo, worth-kernel",
+      "scope": [
+        "crates/worth-topo/src/derived_topology",
+        "crates/worth-topo/src/projection",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "topology-derived consumer clusters migrate onto the new compiled-product lane through parallel folder cutover, not in-place helper reshaping",
+        "ordinary topology consumers no longer name local cache keys, comparator rules, reuse posture, or rendered-shape stability assumptions on covered routes",
+        "displaced topology-local reuse helpers are deleted or capped with explicit residue manifests and removal triggers",
+        "cluster closeout proves selected equivalence and reuse products serve multiple topology consumers without consumer-local semantics reopening"
+      ],
+      "instructions": "Cut the topology cluster over aggressively once the vertical slice proves the lane. The goal is to move a family of real consumers, not to polish one helper indefinitely.",
+      "qa_focus": "Parallel folder cutover, hard deletion discipline, no local reuse revival, and multi-consumer proof through the same lane.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 12,
+      "title": "Spatial, Evidence Index, And Retained-Replay Consumer Cluster Cutover",
+      "owner": "worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform",
+        "crates/worth-spatial/src/facade",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "spatial consumer clusters migrate onto the new compiled-product lane through new responsibility-named folders beside displaced index, retained replay, and retained cancellation helpers",
+        "evidence lookup index products, retained replay workloads, and related retained spatial products consume selected equivalence and reuse products instead of local stability folklore",
+        "displaced spatial-local cache and parity helpers are deleted or capped with exact residue manifests and removal triggers",
+        "cluster closeout proves one declared-family architecture can serve evidence index, retained replay, and adjacent consumers without separate sameness ontologies"
+      ],
+      "instructions": "Cut the spatial cluster over as a real family migration. Evidence index and retained replay surfaces must converge on the same semantic compiled-product contract rather than remaining separate local optimizations.",
+      "qa_focus": "Parallel cutover, no retained-helper fallback, no split ontology between index and replay products, and hard deletion honesty.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 13,
+      "title": "Query-Backed, Public Closeout, And Read-Model Consumer Cluster Cutover",
+      "owner": "worth-kernel, worth-spatial, worth-topo, forge-query",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/public_closeout",
+        "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout",
+        "crates/worth-topo/src/projection",
+        "crates/forge-query/docs"
+      ],
+      "acceptance": [
+        "query-backed and public-closeout consumers migrate onto the new compiled-product lane without reopening local cache or equivalence folklore",
+        "reuse claims that cross Query-backed read-product boundaries consume real Query support posture and boundary surfaces rather than local support folklore",
+        "public-closeout and read-model proofs explain reuse or rebuild decisions from typed products instead of rendered-row coincidence or historical stability assumptions",
+        "cluster closeout names and deletes displaced public/read-model reuse helpers or caps exact residue with owner, blocker, and removal trigger"
+      ],
+      "instructions": "Make Query-backed and public-read consumers first-class participants in the same architecture. If public proof still has to infer reuse from local stability after this phase, the milestone is off track.",
+      "qa_focus": "Real Query surface usage, no public-closeout folklore, no read-model coincidence equality, and exact residue accounting.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 14,
+      "title": "Ordinary Consumer Sweep Closeout",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/worth_workload/ordinary_consumer_sweep",
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-kernel/src/certification"
+      ],
+      "acceptance": [
+        "kernel ordinary-consumer sweep proves every covered ordinary path now routes through the new compiled-product lane or is explicitly classified as capped residue",
+        "the sweep includes topology-derived, spatial-derived, query-backed, retained replay, and public-closeout consumer clusters rather than only one crate-local family",
+        "bypass checks fail if a covered ordinary consumer can still consume displaced helper semantics directly",
+        "the sweep emits exact residue rows for any temporary exceptions with owner, count, blocker, and removal trigger"
+      ],
+      "instructions": "Run the aggressive ordinary sweep only after real cluster cutovers exist. This is the milestone-wide honesty pass that proves the new lane is actually the ordinary path.",
+      "qa_focus": "True milestone-wide sweep, no family omissions, no uncaught bypasses, and explicit residue classification instead of vague TODOs.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 15,
+      "title": "Source Firewalls, Constructor Denials, And Hard Deletion",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/source_firewall",
+        "crates/worth-topo/src/certification/public_facade_contracts/compile_fail",
+        "crates/worth-spatial/src/certification/public_facade_contracts/compile_fail"
+      ],
+      "acceptance": [
+        "source firewalls and compile-fail denials block revival of displaced cache keys, local comparators, raw compiled-product constructors, and caller-owned reuse decisions",
+        "hard deletion removes displaced ordinary-path helpers where migration is complete, with remaining residue explicitly capped and audited",
+        "public constructors cannot hand-fill compiled-product identity, equivalence-policy identity, reuse decision, or rebuild denial products",
+        "firewall closeout proves the old semantics cannot silently re-enter through topology, spatial, kernel, or public facade surfaces"
+      ],
+      "instructions": "Seal the migration. Once the new lanes exist and consumers move, the old semantics must become impossible to revive accidentally, both internally and at public boundaries.",
+      "qa_focus": "Real compile-fail fences, hard deletion honesty, no constructible authority leaks, and no leftover back doors.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 16,
+      "title": "Public Closeout And Milestone 15 Seed",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/public_closeout",
+        "crates/worth-topo/src/certification",
+        "crates/worth-spatial/src/certification",
+        "_docs/worth/touched-graph-roadmap.md"
+      ],
+      "acceptance": [
+        "public closeout proves compiled-product identity, equivalence policy, reuse decision, and rebuild denial are now part of one touched-graph architecture rather than local cache behavior",
+        "closeout exports honest residue, deletion, and proof surfaces for milestone-wide public inspection",
+        "the milestone emits an explicit seed for Milestone 15 showing how diagnostics and public proof will consume the compiled-product lane without reopening local reuse logic",
+        "closeout fails if any remaining ordinary product family still requires a second ontology for sameness, reuse, or semantic validity"
+      ],
+      "instructions": "Finish the milestone by proving the architecture, not merely the code motion. Public closeout must explain what was unified, what remains capped, and how Milestone 15 can consume this lane directly.",
+      "qa_focus": "Architectural honesty, residue visibility, real Milestone 15 seed utility, and no hidden second ontology left behind.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    }
+  ],
+  "completed_at": null,
+  "runner_history": []
+}

@@ -9,19 +9,17 @@ use super::super::inventory_row::ReplayUndoInventoryReportRow;
 
 pub fn lower(catalog: &ReplayUndoDeclaredSourceCatalog) -> Vec<ReplayUndoInventoryReportRow> {
     let source = catalog
-        .require_source(ReplayUndoDeclaredSourceIdentity::KernelUndoOrdinaryLaneGap)
+        .require_source(ReplayUndoDeclaredSourceIdentity::KernelBooleanSplitReplayUndoBoundaryAdmission)
         .expect("declared source");
-    vec![ReplayUndoInventoryReportRow::new_with_residue_count(
+    vec![ReplayUndoInventoryReportRow::new(
         source.identity(),
         source.source_path(),
         source.source_kind(),
         ReplayUndoInventoryOwner::WorthKernel,
         ReplayUndoInventoryCategory::UndoScope,
-        ReplayUndoInventoryDisposition::QueryGap,
+        ReplayUndoInventoryDisposition::Migrate,
         source.authority_roles().clone(),
         source.observability_roles().clone(),
-        Some("milestone12.undo_family_lane"),
-        Some(1),
-        1,
+        None,
     )]
 }

@@ -16,6 +16,7 @@ pub struct WorkloadEvidenceStageCounters {
     transform_cancellation_step_count: usize,
     retained_artifact_count: usize,
     replay_checkpoint_count: usize,
+    batch_admission_execution_count: usize,
     operator_input_count: usize,
     operator_receipt_count: usize,
     boolean_declaration_count: usize,
@@ -293,6 +294,10 @@ impl WorkloadEvidenceStageCounters {
         self.replay_checkpoint_count
     }
 
+    pub fn batch_admission_execution_count(self) -> usize {
+        self.batch_admission_execution_count
+    }
+
     pub fn operator_input_count(self) -> usize {
         self.operator_input_count
     }
@@ -386,6 +391,7 @@ impl WorkloadEvidenceStageCounters {
             + self.transform_cancellation_step_count
             + self.retained_artifact_count
             + self.replay_checkpoint_count
+            + self.batch_admission_execution_count
             + self.operator_input_count
             + self.operator_receipt_count
             + self.boolean_declaration_count

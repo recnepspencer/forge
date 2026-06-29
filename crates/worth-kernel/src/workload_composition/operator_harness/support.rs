@@ -6,6 +6,7 @@ use super::declaration::{
     OperatorDeclarationReceipt, UnsupportedOperatorFamily, WorkloadOperatorFamily,
 };
 use super::query::query_backed_operator_support;
+use crate::workload_composition::BatchAdmissionFamilyPosture;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperatorSupportReceipt {
@@ -91,11 +92,16 @@ pub type OperatorWorkloadReceipt = super::receipt_set::OperatorReceiptSet;
 pub enum OperatorWorkloadError {
     MissingQueryDeclaration,
     QueryAdmissionFailed(String),
+    BatchAdmissionExecutionAttachmentFailed(String),
     MissingRequiredStage(WorkloadEvidenceStage),
     UnsupportedRequirement(crate::workload_composition::WorkloadStageRequirement),
     EvidenceStageBindingFailed(WorkloadEvidenceLedgerError),
     EvidenceGuard(WorkloadEvidenceGuardError),
     SyntheticProjection,
+    MigratedGroupedExecutionRequiresBatchAdmissionExecution,
+    MissingBatchAdmissionExecution,
+    MismatchedBatchAdmissionExecution,
+    GroupedExecutionRequiresParallelBatchPosture(BatchAdmissionFamilyPosture),
     UnsupportedOperatorFamily {
         family: UnsupportedOperatorFamily,
         support: OperatorSupportReceipt,
@@ -116,6 +122,7 @@ impl OperatorWorkloadError {
             Self::QueryAdmissionFailed(reason) => {
                 format!("operator declaration could not be admitted by Forge Query: {reason}")
             }
+            Self::BatchAdmissionExecutionAttachmentFailed(reason) => reason.clone(),
             Self::MissingRequiredStage(stage) => {
                 format!("operator workload is missing {}", stage.human_name())
             }
@@ -128,6 +135,19 @@ impl OperatorWorkloadError {
             Self::SyntheticProjection => {
                 "operator workload requires projected entities and local-basis evidence".to_string()
             }
+            Self::MigratedGroupedExecutionRequiresBatchAdmissionExecution => {
+                "migrated grouped coplanar-overlap execution must admit through the batch-admission execution requirement".to_string()
+            }
+            Self::MissingBatchAdmissionExecution => {
+                "migrated grouped operator execution requires a real batch-admission execution receipt on the workload".to_string()
+            }
+            Self::MismatchedBatchAdmissionExecution => {
+                "migrated grouped operator execution requires the provided batch-admission execution receipt to match the workload".to_string()
+            }
+            Self::GroupedExecutionRequiresParallelBatchPosture(posture) => format!(
+                "migrated grouped operator execution requires parallel batch-admission posture, found {}",
+                posture.as_str()
+            ),
             Self::UnsupportedOperatorFamily { support, .. } => support.human_reason().to_string(),
             Self::WrongOperatorFamily { expected, actual } => format!(
                 "operator run for {} cannot execute as {}",

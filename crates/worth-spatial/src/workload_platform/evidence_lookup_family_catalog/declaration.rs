@@ -1,3 +1,9 @@
+use schema::facade::platform::authority::touched_graph_conflict::{
+    admit_conflict_overlap_identity, admit_conflict_routing_contract, ConflictOverlapIdentityInput,
+    ConflictPriorProofInput, ConflictRoutingContract, ConflictRoutingPosture,
+    ConflictRoutingVocabularyError,
+};
+use schema::facade::platform::authority::touched_graph_conflict_internal::admit_conflict_evidence_participant_identity_from_digest;
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use super::error::{EvidenceLookupFamilyCatalogError, EvidenceLookupFamilyCatalogErrorKind};
@@ -9,6 +15,11 @@ use super::posture::{
 };
 use super::source_pressure::EvidenceLookupFamilySourceInventoryPressure;
 use super::stage_applicability::EvidenceLookupStageApplicability;
+use crate::workload_platform::evidence_ledger::SpatialGeometryEvidenceTouchAuthority;
+use crate::touched_graph_conflict::{
+    current_spatial_conflict_family_catalog_closeout, SpatialConflictFamilyApplicability,
+    SpatialConflictFamilyIdentity,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EvidenceLookupSpatialTouchAuthorityRequirement {
@@ -19,6 +30,9 @@ pub enum EvidenceLookupSpatialTouchAuthorityRequirement {
 pub enum EvidenceLookupProductPosture {
     DeclarationOnlySelectionRequired,
 }
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EvidenceLookupFamilyDeclarationDigest(String);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EvidenceLookupFamilyDeclaration {
@@ -32,7 +46,7 @@ pub struct EvidenceLookupFamilyDeclaration {
     query_posture: EvidenceLookupFamilyQueryPosture,
     diagnostic_witness: EvidenceLookupDiagnosticWitnessShape,
     source_inventory_pressure: EvidenceLookupFamilySourceInventoryPressure,
-    declaration_digest: String,
+    declaration_digest: EvidenceLookupFamilyDeclarationDigest,
 }
 
 impl EvidenceLookupFamilyDeclaration {
@@ -81,7 +95,66 @@ impl EvidenceLookupFamilyDeclaration {
     }
 
     pub fn declaration_digest(&self) -> &str {
+        self.declaration_digest.as_str()
+    }
+
+    pub fn authority_digest(&self) -> &EvidenceLookupFamilyDeclarationDigest {
         &self.declaration_digest
+    }
+
+    pub fn conflict_participant_identity(
+        &self,
+    ) -> Result<
+        schema::facade::platform::authority::touched_graph_conflict::ConflictParticipantIdentity,
+        ConflictRoutingVocabularyError,
+    > {
+        admit_conflict_evidence_participant_identity_from_digest(self.authority_digest())
+    }
+
+    pub(crate) fn conflict_routing_contract(
+        &self,
+        authority: &SpatialGeometryEvidenceTouchAuthority,
+    ) -> Result<ConflictRoutingContract, ConflictRoutingVocabularyError> {
+        let locality = authority.conflict_locality_identity()?;
+        let participants = vec![
+            authority.conflict_participant_identity()?,
+            self.conflict_participant_identity()?,
+        ];
+        let overlap = admit_conflict_overlap_identity(ConflictOverlapIdentityInput::evidence(
+            locality,
+            participants,
+        ))?;
+        Ok(admit_conflict_routing_contract(
+            overlap,
+            ConflictPriorProofInput::none(),
+            ConflictRoutingPosture::RequiresFamilySelection,
+        ))
+    }
+
+    pub(crate) fn matching_conflict_family_identities(
+        &self,
+        authority: &SpatialGeometryEvidenceTouchAuthority,
+    ) -> Result<Vec<SpatialConflictFamilyIdentity>, ConflictRoutingVocabularyError> {
+        let contract = self.conflict_routing_contract(authority)?;
+        Ok(self.matching_conflict_family_identities_for_contract(authority, &contract))
+    }
+
+    pub(crate) fn matching_conflict_family_identities_for_contract(
+        &self,
+        authority: &SpatialGeometryEvidenceTouchAuthority,
+        contract: &ConflictRoutingContract,
+    ) -> Vec<SpatialConflictFamilyIdentity> {
+        let closeout = current_spatial_conflict_family_catalog_closeout()
+            .expect("spatial conflict family catalog closes");
+        closeout
+            .catalog()
+            .matching_families(
+                contract,
+                SpatialConflictFamilyApplicability::EvidenceLookup { authority },
+            )
+            .into_iter()
+            .map(|declaration| declaration.identity())
+            .collect()
     }
 }
 
@@ -198,7 +271,7 @@ impl EvidenceLookupFamilyDeclarationBuilder {
         let source_inventory_pressure = self.source_inventory_pressure.ok_or_else(|| {
             missing(EvidenceLookupFamilyCatalogErrorKind::MissingSourceInventoryPressure)
         })?;
-        let declaration_digest = declaration_digest(
+        let declaration_digest = EvidenceLookupFamilyDeclarationDigest::new(declaration_digest(
             &identity,
             &topology_input_posture,
             &stage_applicability,
@@ -207,7 +280,7 @@ impl EvidenceLookupFamilyDeclarationBuilder {
             &query_posture,
             &diagnostic_witness,
             &source_inventory_pressure,
-        );
+        ));
         Ok(EvidenceLookupFamilyDeclaration {
             identity,
             spatial_touch_authority,
@@ -221,6 +294,22 @@ impl EvidenceLookupFamilyDeclarationBuilder {
             source_inventory_pressure,
             declaration_digest,
         })
+    }
+}
+
+impl EvidenceLookupFamilyDeclarationDigest {
+    fn new(digest: String) -> Self {
+        Self(digest)
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for EvidenceLookupFamilyDeclarationDigest {
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }
 

@@ -1,3 +1,4 @@
+use schema::facade::platform::authority::touched_graph_conflict::ConflictRoutingContract;
 use serde::Serialize;
 
 use super::{
@@ -25,6 +26,7 @@ pub struct DerivedInvalidationSelectedPlan {
     denied_rows: Vec<DerivedInvalidationDenialRow>,
     residue_rows: Vec<DerivedInvalidationResidueRow>,
     counters: DerivedInvalidationSelectionCounters,
+    routing_contract: ConflictRoutingContract,
     execution_admission: DerivedInvalidationExecutionAdmission,
     phase_four_seed: DerivedInvalidationPhaseFourSeed,
     selected_plan_digest: String,
@@ -72,6 +74,7 @@ impl DerivedInvalidationSelectedPlan {
             denied_rows: input.denied_rows,
             residue_rows: input.residue_rows,
             counters: input.counters,
+            routing_contract: input.routing_contract,
             execution_admission,
             phase_four_seed,
             selected_plan_digest,
@@ -122,6 +125,10 @@ impl DerivedInvalidationSelectedPlan {
         &self.counters
     }
 
+    pub const fn routing_contract(&self) -> &ConflictRoutingContract {
+        &self.routing_contract
+    }
+
     pub const fn execution_admission(&self) -> DerivedInvalidationExecutionAdmission {
         self.execution_admission
     }
@@ -147,6 +154,7 @@ pub(super) struct DerivedInvalidationSelectedPlanInput {
     pub(super) denied_rows: Vec<DerivedInvalidationDenialRow>,
     pub(super) residue_rows: Vec<DerivedInvalidationResidueRow>,
     pub(super) counters: DerivedInvalidationSelectionCounters,
+    pub(super) routing_contract: ConflictRoutingContract,
 }
 
 fn selected_plan_digest(
@@ -161,6 +169,10 @@ fn selected_plan_digest(
         format!("query-support:{}", input.query_support_digest),
         format!("legality-support:{}", input.legality_support_digest),
         format!("density:{}", input.density_policy.as_str()),
+        format!(
+            "routing-contract:{}",
+            input.routing_contract.contract_digest()
+        ),
         format!("admission:{}", execution_admission.as_str()),
         format!("counters:{}", input.counters.counters_digest()),
     ];

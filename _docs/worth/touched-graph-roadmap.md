@@ -933,6 +933,10 @@ Operationally, this milestone must:
   executor-first behavior in place
 - make aspect-local overlap a named operational distinction so later teams do
   not collapse entity conflict and aspect conflict during implementation
+- publish one public closeout product that binds selected conflict plans,
+  independence proof, selected batch-admission plan, execution receipt,
+  ordinary-consumer residue posture, source-firewall proof, and the Milestone
+  14 seed surface without reopening local diagnostics or report strings
 
 This milestone is too narrow if:
 - it only adds a conflict enum or overlap helper without inventorying current
@@ -979,6 +983,11 @@ Operationally, this milestone must:
   products, evidence lookup index products, replay products, retained-workload
   products, and any public closeout/read-model helper that currently depends on
   stable identity claims
+- consume the phase-13 seed as the starting authority for overlap identity,
+  locality footprint identity, selected conflict plan identity, independence
+  proof identity, batch-admission plan identity, execution receipt identity,
+  residue digest, and firewall digest rather than rediscovering those facts
+  from topology, evidence, or local reports
 - define the compiled-product identity fields each family must expose before it
   may reuse prior work
 - cut all ordinary reuse through those identity contracts or classify the old

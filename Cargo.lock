@@ -2671,6 +2671,7 @@ dependencies = [
  "sha2",
  "trybuild",
  "worth-math",
+ "worth-primitives",
 ]
 
 [[package]]

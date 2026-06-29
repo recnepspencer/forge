@@ -136,6 +136,7 @@ pub(crate) fn build_catalog_workload(
         projection: projection_receipts.stage_receipt().clone(),
         transform: transform_receipts.stage_receipt().clone(),
         retained_replay: retained_replay.into_stage_receipt(),
+        batch_admission_execution: None,
         diagnostics,
         response,
         evidence_ledger,
