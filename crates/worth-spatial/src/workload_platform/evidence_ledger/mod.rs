@@ -1,9 +1,11 @@
 mod boolean_receipt;
 mod counters;
+mod current_authority_world;
 mod guard;
 mod ledger;
 mod receipt_backing;
 mod row;
+mod selected_lookup_slice_assembly;
 mod spatial_touch_admission;
 mod stage;
 mod stage_counters;
@@ -14,6 +16,9 @@ mod surface_inventory;
 pub(crate) use boolean_receipt::BooleanEvidenceReceiptSealed;
 pub use boolean_receipt::{BooleanEvidenceReceipt, BooleanEvidenceRowAuthority};
 pub use counters::WorkloadEvidenceCounters;
+pub(crate) use current_authority_world::{
+    current_complete_ledger_from_rows, current_workload_stage_rows,
+};
 pub use guard::{WorkloadEvidenceGuard, WorkloadEvidenceGuardError};
 pub use ledger::{
     CompleteWorkloadEvidenceLedger, WorkloadEvidenceLedger, WorkloadEvidenceLedgerError,
@@ -22,6 +27,9 @@ pub use row::{
     WorkloadEvidenceBacking, WorkloadEvidenceRow, WorkloadEvidenceStageBinding,
     WorkloadEvidenceSupport,
 };
+#[allow(unused_imports)]
+pub use selected_lookup_slice_assembly::SelectedLookupSliceLedgerAssembly;
+pub(crate) use spatial_touch_admission::SpatialGeometryEvidenceTouchRowRequest;
 pub use spatial_touch_admission::{
     deny_copied_receipt_fields_as_spatial_query_lowering_authority,
     deny_query_descriptor_as_spatial_query_lowering_authority,
@@ -41,6 +49,12 @@ pub use spatial_touch_admission::{
     SpatialGeometryEvidenceTouchDigest, SpatialGeometryEvidenceTouchOperatingWorld,
     SpatialGeometryEvidenceTouchReceiptOnlyPreview, SpatialGeometryEvidenceTouchRequest,
     SPATIAL_TOUCH_BOOLEAN_EVIDENCE_STAGE_KINDS,
+};
+#[cfg(test)]
+pub(crate) use spatial_touch_admission::{
+    receipt_backed_event_ledger_touch_authority_for_admission_tests,
+    receipt_backed_touch_authority_for_admission_tests,
+    receipt_backed_touch_authority_for_admission_tests_with_declared_world,
 };
 pub use stage::{BooleanEvidenceStageKind, WorkloadEvidenceStage};
 pub use stage_counters::WorkloadEvidenceStageCounters;

@@ -19,4 +19,6 @@ pub use seed_kind::{TopologySeedKind, TopologySeedTopologyPosture};
 pub use seed_neighborhood::TopologySeedNeighborhoodReceipt;
 pub use seed_query_receipts::TopologySeedQueryReceipts;
 pub use seed_recipe::TopologySeedRecipe;
-pub use seed_result::{TopologySeedReceipt, TopologySeedValidationReceipt};
+pub use seed_result::{
+    TopologySeedBuiltTopology, TopologySeedReceipt, TopologySeedValidationReceipt,
+};

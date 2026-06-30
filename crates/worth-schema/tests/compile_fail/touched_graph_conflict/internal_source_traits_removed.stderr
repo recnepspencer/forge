@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `schema::facade::platform::authority::touched_graph_conflict_internal::ConflictEvidenceParticipantSource`
+ --> tests/compile_fail/touched_graph_conflict/internal_source_traits_removed.rs:1:5
+  |
+1 | use schema::facade::platform::authority::touched_graph_conflict_internal::ConflictEvidenceParticipantSource;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ConflictEvidenceParticipantSource` in `facade::platform::authority::touched_graph_conflict_internal`

@@ -10,6 +10,7 @@ name = "topology"
 
 [features]
 slow-certification = []
+test-support-lowering = []
 
 [[test]]
 name = "public_api_contract"
@@ -28,7 +29,7 @@ worth-primitives.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 sha2 = "0.10"
-schema = { package = "worth-schema", path = "../worth-schema" }
+schema = { package = "worth-schema", path = "../worth-schema", features = ["conflict-routing-internal-authority"] }
 
 [dev-dependencies]
 trybuild.workspace = true

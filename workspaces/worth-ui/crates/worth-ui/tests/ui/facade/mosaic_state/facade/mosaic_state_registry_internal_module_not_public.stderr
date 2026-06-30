@@ -1,13 +1,5 @@
-error[E0603]: module `capability` is private
+error[E0433]: failed to resolve: could not find `capability` in `worth_ui`
  --> tests/ui/facade/mosaic_state/facade/mosaic_state_registry_internal_module_not_public.rs:1:15
   |
 1 | use worth_ui::capability::registry::mosaic_state;
-  |               ^^^^^^^^^^            ------------ module `mosaic_state` is not publicly re-exported
-  |               |
-  |               private module
-  |
-note: the module `capability` is defined here
- --> src/lib.rs
-  |
-  | mod capability;
-  | ^^^^^^^^^^^^^^
+  |               ^^^^^^^^^^ could not find `capability` in `worth_ui`

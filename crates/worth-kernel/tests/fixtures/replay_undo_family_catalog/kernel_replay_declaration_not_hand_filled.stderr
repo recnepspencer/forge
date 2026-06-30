@@ -1,0 +1,20 @@
+error[E0451]: fields `identity`, `domain`, `locality_posture`, `prior_proof_posture`, `stage_index_posture`, `workload_dependency_posture` and `scope_product_posture` of struct `ReplayFamilyDeclaration` are private
+  --> tests/fixtures/replay_undo_family_catalog/kernel_replay_declaration_not_hand_filled.rs:9:9
+   |
+ 8 |     let _ = ReplayFamilyDeclaration {
+   |             ----------------------- in this type
+ 9 |         identity: ReplayFamilyIdentity::TopologyTraversalViewsReplay,
+   |         ^^^^^^^^ private field
+10 |         domain: ReplayFamilyDomain::Topology,
+   |         ^^^^^^ private field
+11 |         locality_posture: ReplayFamilyLocalityPosture::RequiresTouchedClosure,
+   |         ^^^^^^^^^^^^^^^^ private field
+12 |         prior_proof_posture:
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+13 |             ReplayFamilyPriorProofPosture::RequiresInvalidationSelectedPlanAndExecutionReceipt,
+14 |         stage_index_posture: ReplayFamilyStageIndexPosture::RequiresStageIndexIdentity,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+15 |         workload_dependency_posture: ReplayFamilyWorkloadDependencyPosture::TopologyOnly,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         scope_product_posture: ReplayFamilyScopeProductPosture::RequiresTopologyReplayScopeProduct,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field

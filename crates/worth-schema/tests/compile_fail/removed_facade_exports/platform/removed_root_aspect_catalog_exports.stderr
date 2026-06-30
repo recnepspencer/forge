@@ -17,5 +17,7 @@ error[E0432]: unresolved imports `schema::facade::Aspect`, `schema::facade::Topo
           forge_signal::facade::Aspect
           schema::facade::QueryLiveField::Aspect
           schema::facade::platform::aspects::Aspect
-  = help: consider importing this enum instead:
+          schema::facade::platform::authority::touched_graph_conflict::ConflictOverlapCategory::Aspect
+  = help: consider importing one of these items instead:
           schema::facade::platform::aspects::TopologyAspect
+          schema::facade::platform::authority::replay_undo_semantic_graph::ReplayUndoSemanticGraphTouchedSubject::TopologyAspect

@@ -7,7 +7,7 @@ error[E0308]: mismatched types
    |      arguments to this method are incorrect
    |
 note: method defined here
-  --> src/capability/registry/mosaic_sizing/descriptor/mosaic_sizing_contract_descriptor.rs
+  --> $WORKSPACE/crates/worth-ui-runtime/src/capability/registry/mosaic_sizing/descriptor/mosaic_sizing_contract_descriptor.rs
    |
    |     pub fn with_named_measurement(mut self, measurement: NamedMeasurementDefinition) -> Self {
    |            ^^^^^^^^^^^^^^^^^^^^^^

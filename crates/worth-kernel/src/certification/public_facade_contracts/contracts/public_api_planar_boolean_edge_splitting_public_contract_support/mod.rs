@@ -129,11 +129,20 @@ pub(crate) fn completed_split_handoff_for(
     subject: &MetabossEventExtractionSubject,
     replay_subject: &EdgeSplitReplayParitySubject,
 ) -> CompletedBooleanSplitHandoff {
+    let event_ledger_lookup_packet = subject
+        .pair()
+        .left()
+        .workload()
+        .require_boolean_event_ledger_lookup_execution_packet(subject.ledger())
+        .expect("real workload should admit the event-ledger lookup execution packet");
     let completed_split_handoff = subject
         .pair()
         .left()
         .workload()
-        .complete_boolean_split_handoff(replay_subject.original_ledger.receipt())
+        .complete_boolean_split_handoff(
+            replay_subject.original_ledger.receipt(),
+            &event_ledger_lookup_packet,
+        )
         .expect("real workload should produce a proof-bearing split completion handoff");
     completed_split_handoff
         .require_boolean_split()
@@ -147,6 +156,8 @@ fn admit_real_downstream_split_consumption(
     completed_split_handoff: &CompletedBooleanSplitHandoff,
 ) -> PlanarBooleanDownstreamSplitConsumption {
     completed_split_handoff
+        .admit_batch_execution_cluster()
+        .expect("real split ledger receipt should admit batch execution cluster")
         .admit_downstream_split_consumption(
             replay_subject.original_decision_log.receipt(),
             &replay_subject.original_products.validation,
@@ -200,7 +211,7 @@ fn assert_downstream_consumption_preserves_real_split_authority(
         consumption.workload_stage_index_identity(),
         completed_split_handoff.workload_stage_index_identity()
     );
-    assert_downstream_consumption_matches_spatial_facade_lookup(
+    assert_downstream_consumption_matches_receipt_backed_lookup_lineage(
         consumption,
         replay_subject,
         completed_split_handoff,
@@ -212,40 +223,48 @@ fn assert_downstream_consumption_preserves_real_split_authority(
     );
 }
 
-fn assert_downstream_consumption_matches_spatial_facade_lookup(
+fn assert_downstream_consumption_matches_receipt_backed_lookup_lineage(
     consumption: &PlanarBooleanDownstreamSplitConsumption,
     replay_subject: &EdgeSplitReplayParitySubject,
     completed_split_handoff: &CompletedBooleanSplitHandoff,
 ) {
     let authority = completed_split_handoff
-        .completed_workload()
-        .admit_spatial_geometry_evidence_touch(replay_subject.original_ledger.receipt())
+        .admit_split_spatial_touch_authority()
         .expect("real split receipt should admit spatial touch authority");
-    let lookup = authority
-        .spatial_evidence_lookup(
-            completed_split_handoff
-                .completed_workload()
-                .evidence_ledger(),
-        )
-        .expect("real split authority should admit spatial evidence lookup");
     assert_eq!(authority.boolean_stage(), BooleanEvidenceStageKind::Split);
     assert_eq!(
         consumption.split_ledger_receipt_identity(),
         authority.evidence_identity()
     );
     assert_eq!(
-        consumption.spatial_lookup_key(),
-        lookup.lookup_key().as_str()
+        consumption.lookup_selected_plan_digest(),
+        replay_subject
+            .original_ledger
+            .receipt()
+            .event_ledger_lookup_selected_plan_digest()
     );
     assert_eq!(
-        consumption.spatial_lookup_product_digest().as_str(),
-        lookup.product_digest().as_str()
+        consumption.lookup_execution_receipt_digest(),
+        replay_subject
+            .original_ledger
+            .receipt()
+            .event_ledger_lookup_execution_receipt_digest()
     );
-    assert_eq!(consumption.spatial_support(), lookup.support());
-    assert_eq!(consumption.spatial_stage_counters(), lookup.counters());
+    assert_eq!(
+        consumption.lookup_product_output_digest(),
+        replay_subject
+            .original_ledger
+            .receipt()
+            .event_ledger_lookup_product_output_digest()
+    );
+    assert_eq!(consumption.spatial_support(), authority.support());
+    assert_eq!(
+        consumption.spatial_stage_counters(),
+        authority.evidence_counters()
+    );
     assert_eq!(
         consumption.spatial_lookup_counters(),
-        lookup.lookup_counters()
+        authority.lookup_counters()
     );
 }
 
@@ -390,9 +409,8 @@ fn assert_split_handoff_dependency_direction_uses_spatial_facade_proof() {
     let source =
         include_str!("../../../../workload_composition/worth_workload/boolean_split_handoff.rs");
     assert!(source.contains(".admit_spatial_geometry_evidence_touch(&self.split_ledger_receipt)"));
-    assert!(source.contains(".spatial_evidence_lookup(self.completed_workload.evidence_ledger())"));
     assert!(source.contains("&spatial_touch_authority"));
-    assert!(source.contains("&spatial_lookup"));
+    assert!(!source.contains(".spatial_evidence_lookup("));
     assert!(
         !source.contains("evidence_ledger().stage_index(),"),
         "migrated split consumer must not pass a raw stage index into downstream consumption"

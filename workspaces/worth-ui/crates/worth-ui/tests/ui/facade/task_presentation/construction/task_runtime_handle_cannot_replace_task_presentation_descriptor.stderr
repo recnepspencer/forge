@@ -7,7 +7,7 @@ error[E0308]: mismatched types
   |                               arguments to this method are incorrect
   |
 note: method defined here
- --> src/facade/builder.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/facade/app_builder.rs
   |
   |     pub fn register_task_presentation(mut self, descriptor: TaskPresentationDescriptor) -> Self {
   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^

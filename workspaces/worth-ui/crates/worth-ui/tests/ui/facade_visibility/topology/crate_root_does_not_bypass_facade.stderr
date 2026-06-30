@@ -7,9 +7,13 @@ error[E0432]: unresolved imports `worth_ui::CommandDescriptor`, `worth_ui::Comma
   |                |                  no `CommandId` in the root
   |                no `CommandDescriptor` in the root
   |
-  = help: consider importing this struct instead:
+  = help: consider importing one of these structs instead:
           worth_ui::facade::CommandDescriptor
-  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::CommandDescriptor
+  = help: consider importing one of these structs instead:
           worth_ui::facade::CommandId
-  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::CommandId
+  = help: consider importing one of these structs instead:
           worth_ui::facade::WorthUi
+          worth_ui::facade::app::WorthUi
+          worth_ui_runtime::facade::WorthUi

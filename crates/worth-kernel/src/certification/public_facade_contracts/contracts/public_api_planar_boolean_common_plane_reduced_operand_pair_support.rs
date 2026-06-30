@@ -59,6 +59,7 @@ pub(crate) fn event_carrier_projected_operand_requests_from_catalog(
     PlanarBooleanCommonPlaneOperandBProjectedRequest,
 ) {
     let pair = WorkloadCatalog::planar_boolean_event_carrier_clean_planar_body_pair()
+        .with_retained_replay_artifacts()
         .declared(readiness_scope)
         .build()
         .expect("event carrier pair should build");
@@ -187,6 +188,7 @@ pub(crate) fn rebuild_left_workload(
         projection: left.projection().clone(),
         transform: left.transform().clone(),
         retained_replay: left.retained_replay().clone(),
+        batch_admission_execution: left.batch_admission_execution().cloned(),
         diagnostics: left.diagnostics().clone(),
         response: left.response().clone(),
         evidence_ledger: ledger,

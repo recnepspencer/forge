@@ -4,7 +4,7 @@ error[E0624]: associated function `new` is private
 4 |     let _ = WorthUiAtomicPlanSwapCounters::new();
   |                                            ^^^ private associated function
   |
- ::: src/runtime/atomic_plan_swap/counters.rs
+ ::: $WORKSPACE/crates/worth-ui-runtime/src/runtime/atomic_plan_swap/counters.rs
   |
   |     pub(crate) fn new() -> Self {
   |     --------------------------- private associated function defined here

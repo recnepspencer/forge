@@ -1,9 +1,11 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 fn runtime_plan_swap_pass(path: &str) {
-    trybuild::TestCases::new().pass(path);
+    trybuild_support::new_test_cases().pass(path);
 }
 
 fn runtime_plan_swap_fail(path: &str) {
-    trybuild::TestCases::new().compile_fail(path);
+    trybuild_support::new_test_cases().compile_fail(path);
 }
 
 #[test]
@@ -43,3 +45,4 @@ fn injected_swap_denials_are_not_public_facade_variants() {
         "tests/ui/runtime_plan_swap/fail/injected_denial_variants_not_public.rs",
     );
 }
+

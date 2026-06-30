@@ -23,8 +23,28 @@ pub struct BooleanChainIntegrationCounters {
     declared_loop_ledger_breadth: usize,
     ledger_receipts_consumed: usize,
     query_graph_proofs_consumed: usize,
-    stage_index_lookups: usize,
+    completed_receipt_guards: usize,
     residue_rows: usize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BooleanChainCompletedReceiptGuard {
+    ReplayUndoTransactionBoundaryPacketAdmission,
+    SplitCompletedHandoffAdmission,
+    LoopCompletedHandoffAdmission,
+    RuntimeProofBoundToLoopReceiptAndStage,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BooleanChainResidueRemovalTrigger {
+    MilestoneSevenFiveConsumesIntegrationHandoff,
+    QueryGraphObligationExecutionReplacesRuntimeRegistrationCeremony,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BooleanChainResidueBoundary {
+    SnapshotOnlyNonAuthority,
+    QueryProofAccompanimentOnly,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -32,24 +52,33 @@ pub struct BooleanChainResidueRow {
     id: &'static str,
     owner: &'static str,
     cap: usize,
-    removal_trigger: &'static str,
-    boundary: &'static str,
+    removal_trigger: BooleanChainResidueRemovalTrigger,
+    boundary: BooleanChainResidueBoundary,
 }
+
+const BOOLEAN_CHAIN_COMPLETED_RECEIPT_GUARDS: &[BooleanChainCompletedReceiptGuard] = &[
+    BooleanChainCompletedReceiptGuard::ReplayUndoTransactionBoundaryPacketAdmission,
+    BooleanChainCompletedReceiptGuard::SplitCompletedHandoffAdmission,
+    BooleanChainCompletedReceiptGuard::LoopCompletedHandoffAdmission,
+    BooleanChainCompletedReceiptGuard::RuntimeProofBoundToLoopReceiptAndStage,
+];
 
 const BOOLEAN_CHAIN_RESIDUE: &[BooleanChainResidueRow] = &[
     BooleanChainResidueRow {
         id: "boolean-chain-prep-product-snapshot",
         owner: "cross-crate boolean chain",
         cap: 1,
-        removal_trigger: "Milestone 7.5 consumes BooleanChainIntegrationHandoff and no longer needs loop products as a diagnostic snapshot",
-        boundary: "non-authority snapshot; cannot satisfy BooleanChainIntegrationHandoff",
+        removal_trigger:
+            BooleanChainResidueRemovalTrigger::MilestoneSevenFiveConsumesIntegrationHandoff,
+        boundary: BooleanChainResidueBoundary::SnapshotOnlyNonAuthority,
     },
     BooleanChainResidueRow {
         id: "boolean-chain-runtime-registration-ceremony",
         owner: "worth-kernel/worth-topo",
         cap: 1,
-        removal_trigger: "Query graph obligation execution proof replaces the local loop operator and validator registration matrix ceremony",
-        boundary: "typed Query proof accompaniment; not a split or loop ledger identity",
+        removal_trigger:
+            BooleanChainResidueRemovalTrigger::QueryGraphObligationExecutionReplacesRuntimeRegistrationCeremony,
+        boundary: BooleanChainResidueBoundary::QueryProofAccompanimentOnly,
     },
 ];
 
@@ -58,11 +87,12 @@ impl BooleanChainIntegrationHandoff {
         split_handoff: &CompletedBooleanSplitHandoff,
         loop_handoff: &CompletedBooleanLoopReconstructionHandoff,
     ) -> Result<Self, WorkloadCompositionError> {
-        let split_lookup = split_handoff.require_boolean_split_lookup()?;
-        let loop_lookup = loop_handoff.require_boolean_loop_reconstruction_lookup()?;
-        let loop_workload_split_lookup = loop_handoff
+        loop_handoff.require_replay_undo_transaction_boundary_packet()?;
+        split_handoff.require_boolean_split()?;
+        loop_handoff.require_boolean_loop_reconstruction()?;
+        loop_handoff
             .completed_workload()
-            .require_boolean_split_lookup(split_handoff.split_ledger_receipt())?;
+            .require_boolean_split(split_handoff.split_ledger_receipt())?;
         require_runtime_proof_matches_loop_handoff(loop_handoff)?;
 
         let runtime_registration_proof = loop_handoff.runtime_registration_proof().clone();
@@ -71,11 +101,7 @@ impl BooleanChainIntegrationHandoff {
         let counters = BooleanChainIntegrationCounters::from_completed_handoffs(
             split_handoff,
             loop_handoff,
-            split_lookup.lookup_counters().indexed_lookup_count()
-                + loop_lookup.lookup_counters().indexed_lookup_count()
-                + loop_workload_split_lookup
-                    .lookup_counters()
-                    .indexed_lookup_count(),
+            BOOLEAN_CHAIN_COMPLETED_RECEIPT_GUARDS.len(),
             BOOLEAN_CHAIN_RESIDUE.len(),
         );
         let handoff_identity = truth_digest_parts(
@@ -144,6 +170,10 @@ impl BooleanChainIntegrationHandoff {
         self.counters
     }
 
+    pub fn completed_receipt_guard_manifest(&self) -> &'static [BooleanChainCompletedReceiptGuard] {
+        BOOLEAN_CHAIN_COMPLETED_RECEIPT_GUARDS
+    }
+
     pub fn residue_manifest(&self) -> &'static [BooleanChainResidueRow] {
         BOOLEAN_CHAIN_RESIDUE
     }
@@ -153,7 +183,7 @@ impl BooleanChainIntegrationCounters {
     fn from_completed_handoffs(
         split_handoff: &CompletedBooleanSplitHandoff,
         loop_handoff: &CompletedBooleanLoopReconstructionHandoff,
-        stage_index_lookups: usize,
+        completed_receipt_guards: usize,
         residue_rows: usize,
     ) -> Self {
         Self {
@@ -167,7 +197,7 @@ impl BooleanChainIntegrationCounters {
                 .ledger_rows_emitted(),
             ledger_receipts_consumed: 2,
             query_graph_proofs_consumed: 1,
-            stage_index_lookups,
+            completed_receipt_guards,
             residue_rows,
         }
     }
@@ -188,8 +218,8 @@ impl BooleanChainIntegrationCounters {
         self.query_graph_proofs_consumed
     }
 
-    pub fn stage_index_lookups(self) -> usize {
-        self.stage_index_lookups
+    pub fn completed_receipt_guards(self) -> usize {
+        self.completed_receipt_guards
     }
 
     pub fn residue_rows(self) -> usize {
@@ -210,21 +240,38 @@ impl BooleanChainResidueRow {
         self.cap
     }
 
-    pub fn removal_trigger(self) -> &'static str {
+    pub const fn removal_trigger(self) -> BooleanChainResidueRemovalTrigger {
         self.removal_trigger
     }
 
-    pub fn boundary(self) -> &'static str {
+    pub const fn boundary(self) -> BooleanChainResidueBoundary {
         self.boundary
     }
 }
 
-impl CompletedBooleanLoopReconstructionHandoff {
-    pub fn complete_boolean_chain_integration_handoff(
-        &self,
-        split_handoff: &CompletedBooleanSplitHandoff,
-    ) -> Result<BooleanChainIntegrationHandoff, WorkloadCompositionError> {
-        BooleanChainIntegrationHandoff::from_completed_handoffs(split_handoff, self)
+impl BooleanChainResidueRemovalTrigger {
+    pub const fn human_reason(self) -> &'static str {
+        match self {
+            Self::MilestoneSevenFiveConsumesIntegrationHandoff => {
+                "Milestone 7.5 consumes BooleanChainIntegrationHandoff and no longer needs loop products as a diagnostic snapshot"
+            }
+            Self::QueryGraphObligationExecutionReplacesRuntimeRegistrationCeremony => {
+                "Query graph obligation execution proof replaces the local loop operator and validator registration matrix ceremony"
+            }
+        }
+    }
+}
+
+impl BooleanChainResidueBoundary {
+    pub const fn human_reason(self) -> &'static str {
+        match self {
+            Self::SnapshotOnlyNonAuthority => {
+                "non-authority snapshot; cannot satisfy BooleanChainIntegrationHandoff"
+            }
+            Self::QueryProofAccompanimentOnly => {
+                "typed Query proof accompaniment; not a split or loop ledger identity"
+            }
+        }
     }
 }
 

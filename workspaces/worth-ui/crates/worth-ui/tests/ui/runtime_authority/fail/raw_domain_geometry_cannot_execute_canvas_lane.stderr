@@ -5,7 +5,7 @@ error[E0599]: no function or associated item named `from_domain_geometry` found 
   |                                            ^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthUiSpatialHitTestPlan`
   |
 note: if you're trying to build a new `WorthUiSpatialHitTestPlan`, consider using `WorthUiSpatialHitTestPlan::for_viewport_point` which returns `WorthUiSpatialHitTestPlan`
- --> src/runtime/canvas_spatial_lane/hit_test_plan.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/canvas_spatial_lane/hit_test_plan.rs
   |
   | /     pub fn for_viewport_point(
   | |         lane_handle: WorthUiLaneHandle,

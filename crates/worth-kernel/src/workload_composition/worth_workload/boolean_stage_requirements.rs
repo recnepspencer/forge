@@ -1,19 +1,20 @@
 use topology::facade::{
     PlanarBooleanLoopOperatorClassificationMatrix, PlanarBooleanLoopValidatorRegistrationPlan,
 };
+use worth_spatial::facade::evidence_lookup_stage_cutover::EvidenceLookupCoveredStageCutoverProof;
 use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanSplitEdgeChainLedgerReceipt;
 use worth_spatial::facade::planar_boolean_events::{
+    PlanarBooleanEventLedgerLookupExecutionPacket, PlanarBooleanEventLedgerLookupExecutionWitness,
     PlanarBooleanEventLedgerReceipt, PlanarBooleanSegmentPairEnumerationReceipt,
 };
 use worth_spatial::facade::planar_boolean_loop_reconstruction::PlanarBooleanLoopReconstructionLedgerReceipt;
-use worth_spatial::facade::workload_vocabulary::{
-    WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceStage,
-};
+use worth_spatial::facade::workload_vocabulary::WorkloadEvidenceStage;
 
 use super::{
     require_boolean_evidence, require_evidence_stage, CompletedBooleanLoopReconstructionHandoff,
-    CompletedBooleanSplitHandoff, PlanarBooleanLoopRuntimeRegistrationProof,
-    WorkloadCompositionError, WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
+    CompletedBooleanSplitHandoff, LookupConsumedWorkloadDenial,
+    PlanarBooleanLoopRuntimeRegistrationProof, WorkloadCompositionError, WorkloadStageRequirement,
+    WorthWorkload, WorthWorkloadParts,
 };
 use crate::workload_composition::boolean_evidence_requirement::map_boolean_ledger_error;
 use crate::workload_composition::{
@@ -171,41 +172,54 @@ impl WorthWorkload {
         )
     }
 
+    pub fn require_boolean_event_ledger_lookup_execution(
+        &self,
+        event_ledger: &PlanarBooleanEventLedgerReceipt,
+    ) -> Result<PlanarBooleanEventLedgerLookupExecutionWitness, WorkloadCompositionError> {
+        self.require_boolean_event_ledger_lookup_execution_packet(event_ledger)
+            .map(|packet| packet.witness().clone())
+    }
+
+    pub fn require_boolean_event_ledger_lookup_execution_packet(
+        &self,
+        event_ledger: &PlanarBooleanEventLedgerReceipt,
+    ) -> Result<PlanarBooleanEventLedgerLookupExecutionPacket, WorkloadCompositionError> {
+        let evidence_ledger = match self.require_boolean_event_ledger(event_ledger) {
+            Ok(()) => self.evidence_ledger.clone(),
+            Err(WorkloadCompositionError::MissingEvidenceStage(
+                WorkloadEvidenceStage::BooleanEventLedger,
+            )) => self
+                .evidence_ledger
+                .with_boolean_evidence_receipt(event_ledger)
+                .map_err(|error| {
+                    map_boolean_ledger_error(error, WorkloadStageRequirement::BooleanEventLedger)
+                })?,
+            Err(error) => return Err(error),
+        };
+        PlanarBooleanEventLedgerLookupExecutionPacket::admit(event_ledger, &evidence_ledger)
+            .map_err(WorkloadCompositionError::EventLedgerLookupExecutionPacket)
+    }
+
     pub fn require_boolean_split(
         &self,
         split_ledger: &PlanarBooleanSplitEdgeChainLedgerReceipt,
     ) -> Result<(), WorkloadCompositionError> {
-        self.require_boolean_split_lookup(split_ledger).map(|_| ())
-    }
-
-    pub fn require_boolean_split_lookup(
-        &self,
-        split_ledger: &PlanarBooleanSplitEdgeChainLedgerReceipt,
-    ) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadCompositionError> {
-        self.evidence_ledger
-            .require_boolean_receipt_lookup(split_ledger)
-            .map_err(|error| {
-                map_boolean_ledger_error(error, WorkloadStageRequirement::BooleanSplit)
-            })
+        require_boolean_evidence(
+            &self.evidence_ledger,
+            split_ledger,
+            WorkloadStageRequirement::BooleanSplit,
+        )
     }
 
     pub fn require_boolean_loop_reconstruction(
         &self,
         loop_ledger: &PlanarBooleanLoopReconstructionLedgerReceipt,
     ) -> Result<(), WorkloadCompositionError> {
-        self.require_boolean_loop_reconstruction_lookup(loop_ledger)
-            .map(|_| ())
-    }
-
-    pub fn require_boolean_loop_reconstruction_lookup(
-        &self,
-        loop_ledger: &PlanarBooleanLoopReconstructionLedgerReceipt,
-    ) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadCompositionError> {
-        self.evidence_ledger
-            .require_boolean_receipt_lookup(loop_ledger)
-            .map_err(|error| {
-                map_boolean_ledger_error(error, WorkloadStageRequirement::BooleanLoopReconstruction)
-            })
+        require_boolean_evidence(
+            &self.evidence_ledger,
+            loop_ledger,
+            WorkloadStageRequirement::BooleanLoopReconstruction,
+        )
     }
 
     pub fn with_completed_boolean_split_ledger(
@@ -226,6 +240,7 @@ impl WorthWorkload {
             projection: self.projection.clone(),
             transform: self.transform.clone(),
             retained_replay: self.retained_replay.clone(),
+            batch_admission_execution: self.batch_admission_execution.clone(),
             diagnostics: self.diagnostics.clone(),
             response: self.response.clone(),
             evidence_ledger,
@@ -235,11 +250,36 @@ impl WorthWorkload {
     pub fn complete_boolean_split_handoff(
         &self,
         split_ledger: &PlanarBooleanSplitEdgeChainLedgerReceipt,
+        event_ledger_lookup_packet: &PlanarBooleanEventLedgerLookupExecutionPacket,
     ) -> Result<CompletedBooleanSplitHandoff, WorkloadCompositionError> {
         let completed_workload = self.with_completed_boolean_split_ledger(split_ledger)?;
+        let spatial_touch_authority =
+            completed_workload.admit_spatial_geometry_evidence_touch(split_ledger)?;
+        let lookup_cutover_proof = EvidenceLookupCoveredStageCutoverProof::prove(
+            WorkloadEvidenceStage::BooleanSplit,
+            &spatial_touch_authority,
+            split_ledger.receipt_identity(),
+            event_ledger_lookup_packet.selected_family_identity(),
+            event_ledger_lookup_packet.selected_plan(),
+            event_ledger_lookup_packet.execution_receipt(),
+        )
+        .map_err(|error| {
+            WorkloadCompositionError::LookupConsumedWorkload(
+                LookupConsumedWorkloadDenial::CutoverProof(error.detail().to_string()),
+            )
+        })?;
+        let lookup_consumed_workload_handoff = lookup_cutover_proof
+            .lower_workload_handoff()
+            .map_err(|error| {
+                WorkloadCompositionError::LookupConsumedWorkload(
+                    LookupConsumedWorkloadDenial::CutoverProof(error.detail().to_string()),
+                )
+            })?;
+        require_split_lookup_lineage(split_ledger, event_ledger_lookup_packet)?;
         Ok(CompletedBooleanSplitHandoff::new(
             completed_workload,
             split_ledger.clone(),
+            lookup_consumed_workload_handoff,
         ))
     }
 
@@ -249,6 +289,7 @@ impl WorthWorkload {
         evidence_receipt: &worth_spatial::facade::planar_boolean_loop_reconstruction::PlanarBooleanLoopReconstructionEvidenceReceipt,
         operator_matrix: &PlanarBooleanLoopOperatorClassificationMatrix,
         validator_plan: &PlanarBooleanLoopValidatorRegistrationPlan,
+        lookup_consumed_workload_handoff: &worth_spatial::facade::evidence_lookup_workload_cutover::EvidenceLookupConsumedWorkloadHandoff,
     ) -> Result<CompletedBooleanLoopReconstructionHandoff, WorkloadCompositionError> {
         let evidence_ledger = self
             .evidence_ledger
@@ -264,6 +305,7 @@ impl WorthWorkload {
             projection: self.projection.clone(),
             transform: self.transform.clone(),
             retained_replay: self.retained_replay.clone(),
+            batch_admission_execution: self.batch_admission_execution.clone(),
             diagnostics: self.diagnostics.clone(),
             response: self.response.clone(),
             evidence_ledger,
@@ -280,6 +322,32 @@ impl WorthWorkload {
             loop_ledger.clone(),
             evidence_receipt.clone(),
             runtime_registration_proof,
+            lookup_consumed_workload_handoff.clone(),
+            None,
         ))
     }
+}
+
+fn require_split_lookup_lineage(
+    split_ledger: &PlanarBooleanSplitEdgeChainLedgerReceipt,
+    event_ledger_lookup_packet: &PlanarBooleanEventLedgerLookupExecutionPacket,
+) -> Result<(), WorkloadCompositionError> {
+    if split_ledger.event_ledger_lookup_selected_plan_digest()
+        != event_ledger_lookup_packet
+            .selected_plan()
+            .selected_plan_digest()
+        || split_ledger.event_ledger_lookup_execution_receipt_digest()
+            != event_ledger_lookup_packet
+                .execution_receipt()
+                .execution_receipt_digest()
+        || split_ledger.event_ledger_lookup_product_output_digest()
+            != event_ledger_lookup_packet
+                .execution_receipt()
+                .lookup_product_output_digest()
+    {
+        return Err(WorkloadCompositionError::LookupConsumedWorkload(
+            LookupConsumedWorkloadDenial::SplitLookupLineageMismatch,
+        ));
+    }
+    Ok(())
 }

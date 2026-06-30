@@ -1,0 +1,19 @@
+error[E0451]: fields `identity`, `domain`, `locality_posture`, `prior_proof_posture`, `stage_index_posture`, `workload_dependency_posture` and `scope_product_posture` of struct `UndoFamilyDeclaration` are private
+  --> tests/fixtures/replay_undo_family_catalog/kernel_undo_declaration_not_hand_filled.rs:9:9
+   |
+ 8 |     let _ = UndoFamilyDeclaration {
+   |             --------------------- in this type
+ 9 |         identity: UndoFamilyIdentity::TopologyTraversalViewsRollback,
+   |         ^^^^^^^^ private field
+10 |         domain: UndoFamilyDomain::Topology,
+   |         ^^^^^^ private field
+11 |         locality_posture: UndoFamilyLocalityPosture::RequiresTouchedClosure,
+   |         ^^^^^^^^^^^^^^^^ private field
+12 |         prior_proof_posture: UndoFamilyPriorProofPosture::RequiresInvalidationExecutionReceipt,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+13 |         stage_index_posture: UndoFamilyStageIndexPosture::RequiresStageIndexIdentity,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+14 |         workload_dependency_posture: UndoFamilyWorkloadDependencyPosture::TopologyOnly,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         scope_product_posture: UndoFamilyScopeProductPosture::RequiresTopologyUndoScopeProduct,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field

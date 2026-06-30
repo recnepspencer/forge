@@ -1,7 +1,9 @@
 use super::query::query_backed_operator_declaration;
-use super::run::OperatorRun;
+use super::run::{BatchAdmissionExecutionOperatorRun, OperatorRun};
 use super::support::{OperatorSupportPosture, OperatorSupportReceipt, OperatorWorkloadError};
-use crate::workload_composition::{WorkloadStageRequirement, WorthWorkload};
+use crate::workload_composition::{
+    BatchAdmissionExecutionReceipt, WorkloadStageRequirement, WorthWorkload,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkloadOperator {
@@ -40,6 +42,23 @@ impl WorkloadOperator {
             });
         }
         OperatorRun::from_admitted(workload, declaration, support)
+    }
+
+    pub fn admit_for_batch_execution(
+        self,
+        workload: &WorthWorkload,
+        batch_execution: &BatchAdmissionExecutionReceipt,
+    ) -> Result<BatchAdmissionExecutionOperatorRun, OperatorWorkloadError> {
+        let declaration =
+            OperatorDeclarationReceipt::new(self.family, self.requirement, self.query_intent)?;
+        let support = OperatorSupportReceipt::for_declaration(&declaration)?;
+        if support.posture() != OperatorSupportPosture::Admitted {
+            return Err(OperatorWorkloadError::UnsupportedOperatorFamily {
+                family: self.family.unsupported_family(),
+                support,
+            });
+        }
+        OperatorRun::from_batch_execution_admitted(workload, batch_execution, declaration, support)
     }
 }
 

@@ -10,5 +10,6 @@ error[E0432]: unresolved imports `schema::facade::RelationKind`, `schema::facade
           forge_relational::facade::merge::IdentityBasisScope::RelationKind
           forge_relational::facade::schema::SchemaElementKind::RelationKind
           schema::facade::platform::relations::RelationKind
-  = help: consider importing this enum instead:
+  = help: consider importing one of these items instead:
+          schema::facade::platform::authority::replay_undo_semantic_graph::ReplayUndoSemanticGraphTouchedSubject::TopologyRelationKind
           schema::facade::platform::relations::TopologyRelationKind

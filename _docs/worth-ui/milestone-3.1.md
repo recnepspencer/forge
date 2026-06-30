@@ -145,6 +145,26 @@ all AI-facing and human-facing inspection must enter through the same runtime
 inspection facade, even when a requested scope is not admitted yet
 ```
 
+## Query And Foundational Ownership Lock
+
+Worth UI inspection must not create a second Query runtime or prematurely lower
+runtime-local truth into Foundational vocabulary.
+
+Rules:
+
+- Query-backed facts must be consumed through admitted Query
+  projection-consumption receipts, not reconstructed from retained rows, bridge
+  internals, or local caches.
+- Cross-runtime causal explanation must route through Query's causal-inspection
+  lane when the cause crosses Worth UI / Query / bridge boundaries.
+- Query async/result posture must be preserved through typed Query artifacts
+  rather than rewritten into Worth-UI-local loading/error enums.
+- runtime-local Worth UI receipts, support rows, and closure posture remain
+  Worth-owned artifacts until they cross a real support, export, or reporting
+  boundary.
+- Foundational types are allowed only when the meaning is now shared boundary
+  meaning, not while the semantics remain Query-owned or Worth-runtime-owned.
+
 ## Phase Plan
 
 ### Required Implementation Surfaces By Phase
@@ -159,18 +179,20 @@ Exact file names may shift, but responsibility boundaries must remain intact.
   `workspaces/worth-ui/crates/worth-ui-host-contract/src/lib.rs`,
   `workspaces/worth-ui/crates/worth-ui-host-egui/src/lib.rs`, and workspace
   manifest propagation tests.
-- Phase 2 uses `workspaces/worth-ui/crates/worth-ui/src/facade/`,
+- Phase 2 uses workspace crate-disposition audits, migration shims where
+  necessary, and parallel-authority regression tests.
+- Phase 3 uses `workspaces/worth-ui/crates/worth-ui/src/facade/`,
   public builder/app entry points, and compile-fail lifecycle propagation
   tests.
-- Phase 3 uses `workspaces/worth-ui/crates/worth-ui-inspection/src/query/`,
+- Phase 4 uses `workspaces/worth-ui/crates/worth-ui-inspection/src/query/`,
   `.../receipt/`, `.../target/`, and inspection contract compile tests.
-- Phase 4 uses `workspaces/worth-ui/crates/worth-ui-inspection/src/posture/`
+- Phase 5 uses `workspaces/worth-ui/crates/worth-ui-inspection/src/posture/`
   and typed unsupported/admission tests.
-- Phase 5 uses crate visibility boundaries, dependency audit tests, and
+- Phase 6 uses crate visibility boundaries, dependency audit tests, and
   structural forbidden-import checks.
-- Phase 6 uses `workspaces/worth-ui/crates/worth-ui-inspection/src/facade/`,
+- Phase 7 uses `workspaces/worth-ui/crates/worth-ui-inspection/src/facade/`,
   `.../scopes/`, `.../budgets/`, and no-evidence-yet contract tests.
-- Phase 7 uses `workspaces/worth-ui/crates/worth-ui-certification/`,
+- Phase 8 uses `workspaces/worth-ui/crates/worth-ui-certification/`,
   compile-fail anti-bypass tests, and hostile boundary regression tests.
 
 ### Phase 1: Crate Topology and Ownership Split
@@ -238,7 +260,56 @@ back into a decorative “one crate plus helpers” layout.
 **Open questions**
 - None. The crate split is a product decision lock for the rest of 3.x.
 
-### Phase 2: Facade and Lifecycle Propagation Closure
+### Phase 2: Legacy Surface Residue Closure
+
+This phase maps the current workspace crates onto the target 3.1 ownership
+split so the new topology does not coexist with parallel public authorities.
+
+**Relevant subsystems**
+- existing `forge-ui-*` workspace crates
+- existing `worth-ui` public facade
+- migration shims
+- structural residue audits
+
+**Relevant APIs**
+- workspace `Cargo.toml` members for current and target crates
+- crate-level public exports
+- migration-only shim exports where explicitly justified
+- structural audit harnesses
+
+**Warnings**
+- Do not leave existing `forge-ui-*` crates as parallel public homes for
+  runtime, inspection, DSL, support, or host-neutral types after the new owners
+  exist.
+- Do not preserve migration convenience by keeping multiple public authority
+  paths alive.
+- Do not let shim crates become permanent unlabeled product surfaces.
+- Do not move names around without also closing residue in docs, exports, and
+  certification.
+
+**Test requirements**
+- Residue audit test: every pre-3.1 UI crate must have an explicit disposition:
+  owner, shim, deprecated, or removed.
+- Parallel-authority test: no legacy crate may continue exporting host-neutral
+  runtime, inspection, DSL, or support-truth types once a target 3.1 owner
+  exists.
+- Shim-honesty test: any temporary migration shim must forward only to the new
+  owner and must not reintroduce local semantics or hidden construction paths.
+- Public-surface diff test: moving responsibility into the new split must narrow
+  or retire the old surface rather than duplicating it under a new path.
+
+**Engineering decisions**
+- The current workspace shape is treated as migration residue, not as proof
+  that multiple UI crate families should survive into the target architecture.
+- Migration is allowed to use short-lived shims, but only when certification
+  can prove they are non-authoritative forwarding surfaces.
+- A crate is not considered retired until its public authority has been removed
+  or mechanically downgraded to a shim/deprecated surface.
+
+**Open questions**
+- None. Residue closure is required for the crate split to become real.
+
+### Phase 3: Facade and Lifecycle Propagation Closure
 
 This phase closes the public construction and propagation contract so later
 runtime subsystems cannot be added without compiler-visible updates.
@@ -272,6 +343,9 @@ runtime subsystems cannot be added without compiler-visible updates.
   aggregates without using the public facade/builder path.
 - Snapshot-isolation test: read-path facade calls for inspection setup must not
   require mutable access to future runtime write-path authority.
+- Inventory-propagation test: adding subsystem `N+1` must fail not only facade
+  construction but also support-row inventories, inspection-scope inventories,
+  and certification closure inventories until every owned registry updates.
 
 **Engineering decisions**
 - Public construction remains facade-driven even while internal runtime crates
@@ -285,7 +359,7 @@ runtime subsystems cannot be added without compiler-visible updates.
 - None. This milestone chooses compile-time lifecycle propagation over
   documentation or TODOs.
 
-### Phase 3: Inspection Authority Contract
+### Phase 4: Inspection Authority Contract
 
 This phase establishes the formal AI/human inspection entry point and contract
 shape without pretending later evidence families are already implemented.
@@ -305,6 +379,9 @@ shape without pretending later evidence families are already implemented.
 - `UiInspectionClosureReport`
 - `UiEvidenceBudget`
 - `UiEvidenceRichness`
+- `UiInspectionRelevance`
+- `UiInspectionSupportStatus`
+- `UiInspectionMilestoneExpectation`
 - `UiInspectionReceipt`
 - inspection facade entry method(s)
 
@@ -323,9 +400,16 @@ shape without pretending later evidence families are already implemented.
   receipts directly.
 - Scope-shape test: the initial contract must support target/scope/budget
   separation without requiring later phases to break the public API.
+- Relevance-shape test: the public query contract must carry first-class
+  relevance filtering so later evidence families do not require a breaking API
+  expansion or broad-scan fallback.
 - Support-report test: the inspection subsystem can report that a scope belongs
   architecturally but is not yet admitted, with machine-readable milestone
   expectation instead of a string-only explanation.
+- Query-boundary test: inspection contracts for Query-backed targets must name
+  whether the answer comes from Query inspection, Query projection consumption,
+  or Worth-local evidence, and must fail structural audit if they introduce a
+  UI-local pseudo-Query lane.
 
 **Engineering decisions**
 - The first milestone establishes contract shape, not rich evidence breadth.
@@ -340,7 +424,7 @@ shape without pretending later evidence families are already implemented.
 - None. The contract must exist now even if some scopes remain unsupported
   initially.
 
-### Phase 4: Unsupported Inspection Posture
+### Phase 5: Unsupported Inspection Posture
 
 This phase makes “not implemented yet” an admitted, typed runtime posture
 instead of missing APIs, panics, or string-only fallback behavior.
@@ -392,7 +476,7 @@ instead of missing APIs, panics, or string-only fallback behavior.
 - None. This is the mechanism that keeps 3.1 truthful while 3.2+ broaden
   support.
 
-### Phase 5: Dependency and Import Guards
+### Phase 6: Dependency and Import Guards
 
 This phase turns the crate split and inspection boundary into mechanical rules
 instead of architecture prose.
@@ -433,6 +517,13 @@ instead of architecture prose.
   runtime/inspection modules instead of facade-level exports.
 - Decorative-architecture test: moving a type into a new crate without
   narrowing exports must fail the structural audit.
+- Query-lane test: `worth-ui-runtime` and `worth-ui-inspection` must fail
+  structural audit if they recreate Query-owned support, async/result,
+  inspection, causal-explanation, or projection-fact lanes behind local public
+  types.
+- Foundational-lowering test: runtime-local receipts, support rows, and closure
+  posture must fail structural audit if they lower into Foundational vocabulary
+  before crossing a real export, report, or support boundary.
 - Lifecycle-cheating test: required subsystem aggregates must fail structural
   audit if they implement `Default`, store required subsystems as `Option`, or
   use builders/maps that silently omit owned subsystems.
@@ -449,7 +540,7 @@ instead of architecture prose.
 **Open questions**
 - None. Enforcement is mandatory for this boundary to mean anything.
 
-### Phase 6: Inspection Crate Seed Topology
+### Phase 7: Inspection Crate Seed Topology
 
 This phase gives `worth-ui-inspection` an honest internal structure so later
 evidence, replay, visual snapshot, and inspector work has a real home instead
@@ -499,7 +590,7 @@ of landing in one giant “inspection” file.
 **Open questions**
 - None. The structure must predict later work cleanly.
 
-### Phase 7: Certification and Anti-Bypass Proof
+### Phase 8: Certification and Anti-Bypass Proof
 
 This phase closes Milestone 3.1 with proof that the boundary is real, not
 ceremonial.

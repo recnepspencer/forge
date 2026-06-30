@@ -5,7 +5,9 @@ use worth_spatial::facade::workload_vocabulary::{
 use super::declaration::{OperatorDeclarationReceipt, WorkloadOperatorFamily};
 use super::evidence_binding::OperatorEvidenceBinding;
 use super::support::{OperatorSupportReceipt, OperatorWorkloadError};
-use crate::workload_composition::{WorkloadStageRequirement, WorthWorkload};
+use crate::workload_composition::{
+    BatchAdmissionExecutionReceipt, WorkloadStageRequirement, WorthWorkload,
+};
 
 pub trait OperatorReadyWorkload: private::Sealed {
     fn evidence_rows(&self) -> usize;
@@ -18,6 +20,13 @@ impl OperatorReadyWorkload for WorthWorkload {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BatchAdmissionExecutionOperatorRun {
+    migrated_workload: WorthWorkload,
+    batch_execution: BatchAdmissionExecutionReceipt,
+    run: OperatorRun,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperatorRun {
     family: WorkloadOperatorFamily,
     requirement: WorkloadStageRequirement,
@@ -27,14 +36,45 @@ pub struct OperatorRun {
 }
 
 impl OperatorRun {
+    pub(super) fn from_batch_execution_admitted(
+        workload: &WorthWorkload,
+        batch_execution: &BatchAdmissionExecutionReceipt,
+        declaration: OperatorDeclarationReceipt,
+        support: OperatorSupportReceipt,
+    ) -> Result<BatchAdmissionExecutionOperatorRun, OperatorWorkloadError> {
+        let migrated_workload = workload
+            .with_batch_admission_execution(batch_execution.clone())
+            .map_err(|error| {
+                OperatorWorkloadError::BatchAdmissionExecutionAttachmentFailed(error.human_reason())
+            })?;
+        let run = Self::from_admitted(&migrated_workload, declaration, support)?;
+        Ok(BatchAdmissionExecutionOperatorRun {
+            migrated_workload,
+            batch_execution: batch_execution.clone(),
+            run,
+        })
+    }
+
     pub(super) fn from_admitted(
         workload: &WorthWorkload,
         declaration: OperatorDeclarationReceipt,
         support: OperatorSupportReceipt,
     ) -> Result<Self, OperatorWorkloadError> {
         require_honest_evidence(workload)?;
+        if declaration.family() == super::declaration::WorkloadOperatorFamily::CoplanarOverlap
+            && workload.batch_admission_execution().is_some()
+            && declaration.requirement() != WorkloadStageRequirement::BatchAdmissionExecution
+        {
+            return Err(
+                OperatorWorkloadError::MigratedGroupedExecutionRequiresBatchAdmissionExecution,
+            );
+        }
         let stage = declaration.requirement().operator_evidence_stage()?;
-        if let Some(stage) = stage {
+        if declaration.requirement() == WorkloadStageRequirement::BatchAdmissionExecution {
+            if workload.batch_admission_execution().is_none() {
+                return Err(OperatorWorkloadError::MissingBatchAdmissionExecution);
+            }
+        } else if let Some(stage) = stage {
             workload
                 .evidence_ledger()
                 .link_required_stages(&[stage])
@@ -83,6 +123,20 @@ impl OperatorRun {
     }
 }
 
+impl BatchAdmissionExecutionOperatorRun {
+    pub fn workload(&self) -> &WorthWorkload {
+        &self.migrated_workload
+    }
+
+    pub fn batch_execution(&self) -> &BatchAdmissionExecutionReceipt {
+        &self.batch_execution
+    }
+
+    pub fn run(&self) -> &OperatorRun {
+        &self.run
+    }
+}
+
 fn require_honest_evidence(workload: &WorthWorkload) -> Result<(), OperatorWorkloadError> {
     workload
         .evidence_ledger()
@@ -125,6 +179,9 @@ fn required_operator_stage_links(
     requirement: WorkloadStageRequirement,
 ) -> Result<Vec<WorkloadEvidenceStage>, OperatorWorkloadError> {
     let mut stages = WorkloadEvidenceStage::AUTHORITY_STAGES.to_vec();
+    if requirement == WorkloadStageRequirement::BatchAdmissionExecution {
+        return Ok(stages);
+    }
     if let Some(stage) = requirement.operator_evidence_stage()? {
         if !stages.contains(&stage) {
             stages.push(stage);
@@ -144,6 +201,9 @@ impl WorkloadStageRequirement {
             Self::Projection => Ok(Some(WorkloadEvidenceStage::Projection)),
             Self::Transform => Ok(Some(WorkloadEvidenceStage::Transform)),
             Self::RetainedReplay => Ok(Some(WorkloadEvidenceStage::RetainedReplay)),
+            Self::BatchAdmissionExecution => {
+                Ok(Some(WorkloadEvidenceStage::BatchAdmissionExecution))
+            }
             Self::Diagnostics => Ok(Some(WorkloadEvidenceStage::Diagnostics)),
             Self::Response => Ok(Some(WorkloadEvidenceStage::Response)),
             Self::BooleanDeclarationEntry

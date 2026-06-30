@@ -1,7 +1,16 @@
-error[E0451]: field `capability_snapshot` of struct `WorthUiApp` is private
- --> tests/ui/facade/construction/sealed_lifecycle/direct_app_construction_fails.rs:5:9
+error: cannot construct `WorthUiApp` with struct literal syntax due to private fields
+ --> tests/ui/facade/construction/sealed_lifecycle/direct_app_construction_fails.rs:4:13
   |
 4 |     let _ = WorthUiApp {
-  |             ---------- in this type
+  |             ^^^^^^^^^^
 5 |         capability_snapshot: capability_snapshot(),
-  |         ^^^^^^^^^^^^^^^^^^^ private field
+  |         ------------------------------------------ private field
+  |
+  = note: ...and other private field `lifecycle` that was not provided
+help: you might have meant to use the `from_freeze_core` associated function
+  |
+4 -     let _ = WorthUiApp {
+5 -         capability_snapshot: capability_snapshot(),
+6 -     };
+4 +     let _ = WorthUiApp::from_freeze_core(_);
+  |

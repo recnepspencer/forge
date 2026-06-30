@@ -1,0 +1,27 @@
+error[E0451]: fields `seed_identity`, `transaction_packet_identity`, `replay_scope_identity`, `undo_scope_identity`, `residue_row_count`, `migrated_source_count`, `source_firewall_clean`, `hard_deletion_ledger_digest`, `residue_cap_audit_digest`, `hard_deletion_source_firewall_digest` and `posture` of struct `ReplayUndoMilestoneThirteenSeed` are private
+  --> tests/fixtures/replay_undo_semantic_graph/replay_undo_milestone_thirteen_seed_not_hand_filled.rs:7:9
+   |
+ 6 |     let _ = ReplayUndoMilestoneThirteenSeed {
+   |             ------------------------------- in this type
+ 7 |         seed_identity: String::new(),
+   |         ^^^^^^^^^^^^^ private field
+ 8 |         transaction_packet_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         replay_scope_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         undo_scope_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+11 |         residue_row_count: 0,
+   |         ^^^^^^^^^^^^^^^^^ private field
+12 |         migrated_source_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         source_firewall_clean: true,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         hard_deletion_ledger_digest: Some(String::new()),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         residue_cap_audit_digest: Some(String::new()),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         hard_deletion_source_firewall_digest: Some(String::new()),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         posture: ReplayUndoMilestoneThirteenSeedPosture::ReplayUndoOnlyNoConflictOrCacheClaim,
+   |         ^^^^^^^ private field

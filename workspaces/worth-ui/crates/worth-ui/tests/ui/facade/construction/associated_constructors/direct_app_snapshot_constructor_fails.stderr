@@ -1,10 +1,5 @@
-error[E0624]: associated function `from_registration_report` is private
+error[E0599]: no function or associated item named `from_registration_report` found for struct `WorthUiApp` in the current scope
  --> tests/ui/facade/construction/associated_constructors/direct_app_snapshot_constructor_fails.rs:4:25
   |
 4 |     let _ = WorthUiApp::from_registration_report(registration_report());
-  |                         ^^^^^^^^^^^^^^^^^^^^^^^^ private associated function
-  |
- ::: src/facade/app.rs
-  |
-  |     pub(crate) fn from_registration_report(report: CapabilityRegistrationReport) -> Self {
-  |     ------------------------------------------------------------------------------------ private associated function defined here
+  |                         ^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthUiApp`

@@ -3,6 +3,7 @@ pub enum DerivedInvalidationSelectionErrorKind {
     CatalogSeedMismatch,
     TouchedClosureEmpty,
     CounterLeakage,
+    ConflictRoutingContractRejected,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

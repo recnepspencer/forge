@@ -2631,6 +2631,7 @@ dependencies = [
  "worth-geom",
  "worth-math",
  "worth-primitives",
+ "worth-schema",
  "worth-spatial",
  "worth-topo",
 ]
@@ -2670,6 +2671,7 @@ dependencies = [
  "sha2",
  "trybuild",
  "worth-math",
+ "worth-primitives",
 ]
 
 [[package]]

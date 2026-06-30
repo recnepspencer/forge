@@ -1,0 +1,15 @@
+error[E0451]: fields `guard_report`, `rows`, `counters`, `catalog_validation_report` and `closeout_digest` of struct `EvidenceLookupInventoryCloseout` are private
+  --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_inventory/inventory_closeout_not_hand_filled.rs:7:9
+   |
+ 6 |     let _ = EvidenceLookupInventoryCloseout {
+   |             ------------------------------- in this type
+ 7 |         guard_report: unsafe { std::mem::zeroed() },
+   |         ^^^^^^^^^^^^ private field
+ 8 |         rows: Vec::new(),
+   |         ^^^^ private field
+ 9 |         counters: unsafe { std::mem::zeroed() },
+   |         ^^^^^^^^ private field
+10 |         catalog_validation_report: unsafe { std::mem::zeroed() },
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         closeout_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field

@@ -11,6 +11,7 @@ use forge_relational::facade::identity::{EntityId, RelationId};
 use crate::query_domain::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
 use crate::topology_operators::{
     TopologyDeclaredMutationSequence, TopologyDeclaredMutationSequenceBuilder,
+    TopologyDeclaredTouchedGraphBasisProof, TopologyTouchedOperatingWorld,
 };
 
 use super::super::shared::{canonical_entity_id, canonical_relation_id};
@@ -48,6 +49,21 @@ impl TopologySpliceRadialAdjacencyProgramDeclaration {
 
     pub fn splices(&self) -> &[TopologyRadialSpliceMember] {
         &self.splices
+    }
+
+    pub fn declared_touched_basis_proof(
+        &self,
+        semantic_family_key: &'static str,
+        operating_world: TopologyTouchedOperatingWorld,
+    ) -> Result<
+        TopologyDeclaredTouchedGraphBasisProof,
+        forge_query::facade::ForgeQueryGraphTouchDescriptorDenial,
+    > {
+        TopologyDeclaredTouchedGraphBasisProof::from_mutation_sequence(
+            semantic_family_key,
+            &self.clone().declared_mutation_sequence(),
+            operating_world,
+        )
     }
 
     pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
@@ -158,7 +174,9 @@ mod tests {
 
     use super::{TopologyRadialSpliceMember, TopologySpliceRadialAdjacencyProgramDeclaration};
     use crate::topology_operators::application::TopologyDeclarationMutationPayload;
-    use crate::topology_operators::TopologyDeclaredMutationSequenceBuilder;
+    use crate::topology_operators::{
+        TopologyDeclaredMutationSequenceBuilder, TopologyTouchedOperatingWorld,
+    };
 
     #[test]
     fn declaration_reauthors_to_the_expected_radial_splice_program_mutation_sequence() {
@@ -200,5 +218,29 @@ mod tests {
                 .map(|member| member.record().clone())
                 .collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn declaration_can_lower_declared_touched_basis_proof() {
+        let declaration = TopologySpliceRadialAdjacencyProgramDeclaration::new(vec![
+            TopologyRadialSpliceMember::new(
+                RelationId::new(PartitionId::main(), 20, 1),
+                EntityId::new(PartitionId::main(), 10, 1),
+                EntityId::new(PartitionId::main(), 11, 1),
+            ),
+        ]);
+
+        let proof = declaration
+            .declared_touched_basis_proof(
+                "topology.splice_radial_adjacency_program",
+                TopologyTouchedOperatingWorld::mainline(),
+            )
+            .expect("declared touch proof should lower");
+
+        assert_eq!(
+            proof.semantic_family_key(),
+            "topology.splice_radial_adjacency_program"
+        );
+        assert!(!proof.basis_digest().is_empty());
     }
 }

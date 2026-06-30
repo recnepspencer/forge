@@ -4,8 +4,8 @@ use crate::workload_platform::evidence_ledger::{
     WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
 };
 use crate::workload_platform::planar_boolean_edge_splitting::{
-    raw_interval_entry, raw_point_entry, raw_schedule, raw_set_from_schedules,
-    recover_source_edge_carriers_for_tests, source_carriers_for_tests,
+    event_ledger_lookup_execution_subject, raw_interval_entry, raw_point_entry, raw_schedule,
+    raw_set_from_schedules, recover_source_edge_carriers_for_tests, source_carriers_for_tests,
     split_subject_with_carriers_for_tests, PlanarBooleanCandidateIndexConsumptionGate,
     PlanarBooleanCandidateIndexConsumptionInput, PlanarBooleanDownstreamSplitConsumption,
     PlanarBooleanDownstreamSplitConsumptionInput, PlanarBooleanEdgeSplitReplayParityReceipt,
@@ -179,9 +179,6 @@ pub(crate) fn prepared_loop_reconstruction_subject_with_tag(
             .with_complete_ledger(&evidence_ledger)
             .admit()
             .expect("split receipt should admit spatial touch authority");
-    let spatial_lookup = spatial_touch_authority
-        .spatial_evidence_lookup(&evidence_ledger)
-        .expect("split receipt should admit spatial evidence lookup");
     let downstream_split_consumption = PlanarBooleanDownstreamSplitConsumption::admit(
         PlanarBooleanDownstreamSplitConsumptionInput::from_split_ledger_receipt(
             split_ledger_result.receipt(),
@@ -190,7 +187,6 @@ pub(crate) fn prepared_loop_reconstruction_subject_with_tag(
             &naming,
             &replay_parity,
             &spatial_touch_authority,
-            &spatial_lookup,
         ),
     )
     .expect("downstream split consumption should admit");
@@ -311,17 +307,24 @@ fn request_subject_with_replay_evidence(
         ),
     )
     .expect("candidate-index gate should admit with replay-backed evidence");
-    let event_ledger_lookup = evidence
-        .require_boolean_receipt_lookup(&subject.ledger)
-        .expect("typed event-ledger lookup should admit with replay-backed evidence");
-    let retained_replay_links = evidence
+    let event_ledger_lookup = event_ledger_lookup_execution_subject(
+        "loop-runtime",
+        &subject.ledger,
+        vec![
+            WorkloadEvidenceRow::from_boolean_evidence_receipt(&subject.segment_pairs),
+            WorkloadEvidenceRow::from_boolean_evidence_receipt(&subject.ledger),
+            WorkloadEvidenceRow::from_replay_receipt_set(replay_receipts),
+        ],
+    );
+    let retained_replay_links = event_ledger_lookup
+        .complete_ledger
         .stage_index()
         .link_required_stages(&[WorkloadEvidenceStage::RetainedReplay])
         .expect("retained replay stage link should admit");
     let request = PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
         &subject.ledger,
         &gate,
-        &event_ledger_lookup,
+        &event_ledger_lookup.witness,
         Some(&retained_replay_links),
     ))
     .expect("split request should admit with replay-backed evidence");

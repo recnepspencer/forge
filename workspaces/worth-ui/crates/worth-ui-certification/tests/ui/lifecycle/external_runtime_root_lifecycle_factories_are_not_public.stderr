@@ -1,0 +1,14 @@
+error[E0432]: unresolved import `worth_ui_inspection::runtime_inspection_scope_inventory`
+ --> tests/ui/lifecycle/external_runtime_root_lifecycle_factories_are_not_public.rs:1:5
+  |
+1 | use worth_ui_inspection::runtime_inspection_scope_inventory;
+  |     ^^^^^^^^^^^^^^^^^^^^^----------------------------------
+  |     |                    |
+  |     |                    help: a similar name exists in the module: `RUNTIME_INSPECTION_SCOPE_INVENTORY`
+  |     no `runtime_inspection_scope_inventory` in the root
+
+error[E0432]: unresolved import `worth_ui_runtime::phase3_facade_lifecycle_parts`
+ --> tests/ui/lifecycle/external_runtime_root_lifecycle_factories_are_not_public.rs:2:5
+  |
+2 | use worth_ui_runtime::phase3_facade_lifecycle_parts;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `phase3_facade_lifecycle_parts` in the root

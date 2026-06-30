@@ -9,7 +9,7 @@ note: if you're trying to build a new `WorthUiOrdinaryFrameTarget` consider usin
       WorthUiOrdinaryFrameTarget::component
       WorthUiOrdinaryFrameTarget::command
       WorthUiOrdinaryFrameTarget::token_support
- --> src/runtime/ordinary_lane/frame_target.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/ordinary_lane/frame_target.rs
   |
   |     pub fn root_shell() -> Self {
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^

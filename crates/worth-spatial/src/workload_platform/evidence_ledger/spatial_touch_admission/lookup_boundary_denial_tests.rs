@@ -63,6 +63,7 @@ fn lookup_boundary_denies_wrong_boolean_stage_identity_index_support_and_query_d
         authority.lookup_counters(),
         authority.stage_index_identity().to_string(),
         authority.stage_link_set_identity().to_string(),
+        Vec::new(),
     );
     let unsupported = unsupported_authority
         .spatial_evidence_lookup(&subject.complete)

@@ -7,7 +7,7 @@ error[E0308]: mismatched types
   |          arguments to this method are incorrect
   |
 note: method defined here
- --> src/capability/registry/command/command_descriptor.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/capability/registry/command/command_descriptor.rs
   |
   |     pub fn with_icon(mut self, icon: IconId) -> Self {
   |            ^^^^^^^^^

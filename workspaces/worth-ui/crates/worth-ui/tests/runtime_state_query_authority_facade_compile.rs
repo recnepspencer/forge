@@ -1,3 +1,5 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 #[test]
 fn durable_state_inventory_fields_are_not_publicly_mintable() {
     runtime_authority_compile_fail(
@@ -55,5 +57,6 @@ fn local_subscription_recovery_path_cannot_replace_query_rebind_plan() {
 }
 
 fn runtime_authority_compile_fail(path: &str) {
-    trybuild::TestCases::new().compile_fail(path);
+    trybuild_support::new_test_cases().compile_fail(path);
 }
+

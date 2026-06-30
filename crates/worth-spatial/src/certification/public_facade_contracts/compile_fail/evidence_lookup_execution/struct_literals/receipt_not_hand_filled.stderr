@@ -1,0 +1,47 @@
+warning: unreachable expression
+  --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_execution/struct_literals/receipt_not_hand_filled.rs:13:31
+   |
+12 |         topology_support_state: panic!(),
+   |                                 -------- any code following this expression is unreachable
+13 |         query_support_digest: String::new(),
+   |                               ^^^^^^^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `execution_receipt_digest`, `selected_plan_digest`, `index_product_digest`, `spatial_touch_digest`, `stage_receipt_digest`, `evidence_ledger_basis_digest`, `topology_support_digest`, `topology_support_state`, `query_support_digest`, `query_surface_contract_rows`, `index_lifecycle_posture`, `index_disposal_posture`, `outcome`, `counters`, `counter_digest` and `product_output` of struct `EvidenceLookupExecutionReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_execution/struct_literals/receipt_not_hand_filled.rs:5:9
+   |
+ 4 |     let _ = EvidenceLookupExecutionReceipt {
+   |             ------------------------------ in this type
+ 5 |         execution_receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 6 |         selected_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         index_product_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         spatial_touch_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         stage_receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+10 |         evidence_ledger_basis_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         topology_support_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         topology_support_state: panic!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         query_support_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+14 |         query_surface_contract_rows: panic!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         index_lifecycle_posture: panic!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         index_disposal_posture: panic!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         outcome: panic!(),
+   |         ^^^^^^^ private field
+18 |         counters: panic!(),
+   |         ^^^^^^^^ private field
+19 |         counter_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+20 |         product_output: panic!(),
+   |         ^^^^^^^^^^^^^^ private field

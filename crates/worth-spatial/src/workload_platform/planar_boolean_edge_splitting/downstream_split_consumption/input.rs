@@ -1,6 +1,4 @@
-use crate::workload_platform::evidence_ledger::{
-    SpatialEvidenceLookupProduct, SpatialGeometryEvidenceTouchAuthority,
-};
+use crate::workload_platform::evidence_ledger::SpatialGeometryEvidenceTouchAuthority;
 use crate::workload_platform::planar_boolean_edge_splitting::{
     PlanarBooleanEdgeSplitReplayParityReceipt, PlanarBooleanSplitChainValidationReceipt,
     PlanarBooleanSplitDecisionLogReceipt, PlanarBooleanSplitEdgeChainLedgerReceipt,
@@ -14,7 +12,6 @@ pub struct PlanarBooleanDownstreamSplitConsumptionInput<'a> {
     persistent_naming_receipt: &'a PlanarBooleanSplitPersistentNamingReceipt,
     replay_parity_receipt: &'a PlanarBooleanEdgeSplitReplayParityReceipt,
     spatial_touch_authority: &'a SpatialGeometryEvidenceTouchAuthority,
-    spatial_lookup: &'a SpatialEvidenceLookupProduct,
 }
 
 impl<'a> PlanarBooleanDownstreamSplitConsumptionInput<'a> {
@@ -25,7 +22,6 @@ impl<'a> PlanarBooleanDownstreamSplitConsumptionInput<'a> {
         persistent_naming_receipt: &'a PlanarBooleanSplitPersistentNamingReceipt,
         replay_parity_receipt: &'a PlanarBooleanEdgeSplitReplayParityReceipt,
         spatial_touch_authority: &'a SpatialGeometryEvidenceTouchAuthority,
-        spatial_lookup: &'a SpatialEvidenceLookupProduct,
     ) -> Self {
         Self {
             split_ledger_receipt,
@@ -34,7 +30,6 @@ impl<'a> PlanarBooleanDownstreamSplitConsumptionInput<'a> {
             persistent_naming_receipt,
             replay_parity_receipt,
             spatial_touch_authority,
-            spatial_lookup,
         }
     }
 
@@ -62,9 +57,5 @@ impl<'a> PlanarBooleanDownstreamSplitConsumptionInput<'a> {
 
     pub(crate) fn spatial_touch_authority(&self) -> &'a SpatialGeometryEvidenceTouchAuthority {
         self.spatial_touch_authority
-    }
-
-    pub(crate) fn spatial_lookup(&self) -> &'a SpatialEvidenceLookupProduct {
-        self.spatial_lookup
     }
 }

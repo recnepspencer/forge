@@ -46,6 +46,8 @@ pub(crate) fn assert_loop_reconstruction_continuation_contract_preserves_real_ne
     let replay_report = replay_parity_report(&replay_subject);
     let completed_split_handoff = completed_split_handoff_for(&subject, &replay_subject);
     let downstream_consumption = completed_split_handoff
+        .admit_batch_execution_cluster()
+        .expect("real split evidence should admit batch execution cluster")
         .admit_downstream_split_consumption(
             replay_subject.original_decision_log.receipt(),
             &replay_subject.original_products.validation,
@@ -150,11 +152,20 @@ pub(crate) fn completed_split_handoff_for(
     subject: &MetabossEventExtractionSubject,
     replay_subject: &super::edge_splitting_replay_parity_support::EdgeSplitReplayParitySubject,
 ) -> CompletedBooleanSplitHandoff {
+    let event_ledger_lookup_packet = subject
+        .pair()
+        .left()
+        .workload()
+        .require_boolean_event_ledger_lookup_execution_packet(subject.ledger())
+        .expect("real workload should admit the event-ledger lookup execution packet");
     let completed_split_handoff = subject
         .pair()
         .left()
         .workload()
-        .complete_boolean_split_handoff(replay_subject.original_ledger.receipt())
+        .complete_boolean_split_handoff(
+            replay_subject.original_ledger.receipt(),
+            &event_ledger_lookup_packet,
+        )
         .expect("real workload should produce a proof-bearing split completion handoff");
     completed_split_handoff
         .require_boolean_split()

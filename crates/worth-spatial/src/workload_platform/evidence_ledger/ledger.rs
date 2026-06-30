@@ -143,6 +143,17 @@ impl CompleteWorkloadEvidenceLedger {
         self.stage_index().require_boolean_receipt_lookup(receipt)
     }
 
+    pub(crate) fn require_boolean_row_lookup(
+        &self,
+        stage: WorkloadEvidenceStage,
+        evidence_identity: &str,
+        support: super::WorkloadEvidenceSupport,
+        counters: super::WorkloadEvidenceStageCounters,
+    ) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceLedgerError> {
+        self.stage_index()
+            .require_boolean_row_lookup(stage, evidence_identity, support, counters)
+    }
+
     pub fn link_required_stages(
         &self,
         stages: &[WorkloadEvidenceStage],

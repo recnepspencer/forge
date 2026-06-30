@@ -1,9 +1,11 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 fn facade_visibility_pass(path: &str) {
-    trybuild::TestCases::new().pass(path);
+    trybuild_support::new_test_cases().pass(path);
 }
 
 fn facade_visibility_fail(path: &str) {
-    trybuild::TestCases::new().compile_fail(path);
+    trybuild_support::new_test_cases().compile_fail(path);
 }
 
 #[test]
@@ -94,3 +96,4 @@ fn crate_root_does_not_export_snapshot_authority() {
         "tests/ui/facade_visibility/topology/crate_root_does_not_export_snapshot_authority.rs",
     );
 }
+

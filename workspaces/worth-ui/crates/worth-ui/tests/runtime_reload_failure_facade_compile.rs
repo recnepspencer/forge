@@ -1,9 +1,11 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 fn runtime_reload_failure_pass(path: &str) {
-    trybuild::TestCases::new().pass(path);
+    trybuild_support::new_test_cases().pass(path);
 }
 
 fn runtime_reload_failure_fail(path: &str) {
-    trybuild::TestCases::new().compile_fail(path);
+    trybuild_support::new_test_cases().compile_fail(path);
 }
 
 #[test]
@@ -40,3 +42,4 @@ fn fallback_runtime_failure_constructor_is_not_public_api() {
         "tests/ui/runtime_reload_failure/fail/fallback_runtime_constructor_not_public.rs",
     );
 }
+

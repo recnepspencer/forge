@@ -1,21 +1,31 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 #[test]
-fn facade_mosaic_region_registration_compiles() {
-    facade_compile_pass("tests/ui/facade/pass/mosaic_region_registration_uses_only_facade.rs");
+fn compat_root_mosaic_region_registration_compiles() {
+    facade_compile_pass(
+        "tests/ui/facade/compat_pass/mosaic_region_registration_uses_only_facade.rs",
+    );
 }
 
 #[test]
-fn facade_mosaic_placement_registration_compiles() {
-    facade_compile_pass("tests/ui/facade/pass/mosaic_placement_registration_uses_only_facade.rs");
+fn compat_root_mosaic_placement_registration_compiles() {
+    facade_compile_pass(
+        "tests/ui/facade/compat_pass/mosaic_placement_registration_uses_only_facade.rs",
+    );
 }
 
 #[test]
-fn facade_mosaic_sizing_registration_compiles() {
-    facade_compile_pass("tests/ui/facade/pass/mosaic_sizing_registration_uses_only_facade.rs");
+fn compat_root_mosaic_sizing_registration_compiles() {
+    facade_compile_pass(
+        "tests/ui/facade/compat_pass/mosaic_sizing_registration_uses_only_facade.rs",
+    );
 }
 
 #[test]
-fn facade_mosaic_state_registration_compiles() {
-    facade_compile_pass("tests/ui/facade/pass/mosaic_state_registration_uses_only_facade.rs");
+fn compat_root_mosaic_state_registration_compiles() {
+    facade_compile_pass(
+        "tests/ui/facade/compat_pass/mosaic_state_registration_uses_only_facade.rs",
+    );
 }
 
 #[test]
@@ -117,9 +127,10 @@ fn mosaic_state_registry_type_not_publicly_importable() {
 }
 
 fn facade_compile_pass(fixture_path: &str) {
-    trybuild::TestCases::new().pass(fixture_path);
+    trybuild_support::new_test_cases().pass(fixture_path);
 }
 
 fn facade_compile_fail(fixture_path: &str) {
-    trybuild::TestCases::new().compile_fail(fixture_path);
+    trybuild_support::new_test_cases().compile_fail(fixture_path);
 }
+

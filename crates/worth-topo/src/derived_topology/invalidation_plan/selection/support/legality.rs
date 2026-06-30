@@ -37,7 +37,7 @@ impl DerivedInvalidationLegalitySupportEvidence {
         )
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support-lowering"))]
     pub(crate) fn from_digests_for_tests(
         selected_legality_plan_digest: Option<String>,
         selected_validator_receipt_digest: Option<String>,

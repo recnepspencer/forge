@@ -1,15 +1,18 @@
+use super::{
+    CompletedBooleanLoopReconstructionProducts, ReplayUndoBoundaryDenial, WorkloadCompositionError,
+    WorthWorkload,
+};
+use crate::replay_undo_transaction_boundary::ReplayUndoTransactionBoundaryPacket;
 use topology::facade::{
     PlanarBooleanLoopBlueprintRegistryIdentity, PlanarBooleanLoopOperatorClassification as Class,
     PlanarBooleanLoopOperatorClassificationMatrix, PlanarBooleanLoopValidatorRegistrationPlan,
     PlanarBooleanLoopValidatorRuntimeLane as Lane,
 };
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
+use worth_spatial::facade::evidence_lookup_workload_cutover::EvidenceLookupConsumedWorkloadHandoff;
 use worth_spatial::facade::planar_boolean_loop_reconstruction::{
     PlanarBooleanLoopReconstructionEvidenceReceipt, PlanarBooleanLoopReconstructionLedgerReceipt,
 };
-use worth_spatial::facade::workload_vocabulary::WorkloadEvidenceBooleanReceiptLookupProduct;
-
-use super::{CompletedBooleanLoopReconstructionProducts, WorkloadCompositionError, WorthWorkload};
 
 const REQUIRED_PHASE_15_OPERATOR_NAMES: &[&str] = &[
     "RequireBooleanLoopReconstructionEvidence",
@@ -33,6 +36,8 @@ pub struct CompletedBooleanLoopReconstructionHandoff {
     loop_ledger_receipt: PlanarBooleanLoopReconstructionLedgerReceipt,
     evidence_receipt: PlanarBooleanLoopReconstructionEvidenceReceipt,
     runtime_registration_proof: PlanarBooleanLoopRuntimeRegistrationProof,
+    lookup_consumed_workload_handoff: EvidenceLookupConsumedWorkloadHandoff,
+    replay_undo_transaction_boundary_packet: Option<ReplayUndoTransactionBoundaryPacket>,
 }
 
 impl CompletedBooleanLoopReconstructionHandoff {
@@ -42,6 +47,8 @@ impl CompletedBooleanLoopReconstructionHandoff {
         loop_ledger_receipt: PlanarBooleanLoopReconstructionLedgerReceipt,
         evidence_receipt: PlanarBooleanLoopReconstructionEvidenceReceipt,
         runtime_registration_proof: PlanarBooleanLoopRuntimeRegistrationProof,
+        lookup_consumed_workload_handoff: EvidenceLookupConsumedWorkloadHandoff,
+        replay_undo_transaction_boundary_packet: Option<ReplayUndoTransactionBoundaryPacket>,
     ) -> Self {
         Self {
             completed_workload,
@@ -49,6 +56,8 @@ impl CompletedBooleanLoopReconstructionHandoff {
             loop_ledger_receipt,
             evidence_receipt,
             runtime_registration_proof,
+            lookup_consumed_workload_handoff,
+            replay_undo_transaction_boundary_packet,
         }
     }
 
@@ -72,6 +81,28 @@ impl CompletedBooleanLoopReconstructionHandoff {
         &self.runtime_registration_proof
     }
 
+    pub fn lookup_consumed_workload_handoff(&self) -> &EvidenceLookupConsumedWorkloadHandoff {
+        &self.lookup_consumed_workload_handoff
+    }
+
+    pub fn replay_undo_transaction_boundary_packet(
+        &self,
+    ) -> Option<&ReplayUndoTransactionBoundaryPacket> {
+        self.replay_undo_transaction_boundary_packet.as_ref()
+    }
+
+    pub fn require_replay_undo_transaction_boundary_packet(
+        &self,
+    ) -> Result<&ReplayUndoTransactionBoundaryPacket, WorkloadCompositionError> {
+        self.replay_undo_transaction_boundary_packet
+            .as_ref()
+            .ok_or_else(|| {
+                WorkloadCompositionError::ReplayUndoBoundary(
+                    ReplayUndoBoundaryDenial::MissingMigratedTransactionBoundaryPacket,
+                )
+            })
+    }
+
     pub fn workload_stage_index_identity(&self) -> &str {
         self.completed_workload
             .evidence_ledger()
@@ -80,15 +111,8 @@ impl CompletedBooleanLoopReconstructionHandoff {
     }
 
     pub fn require_boolean_loop_reconstruction(&self) -> Result<(), WorkloadCompositionError> {
-        self.require_boolean_loop_reconstruction_lookup()
-            .map(|_| ())
-    }
-
-    pub fn require_boolean_loop_reconstruction_lookup(
-        &self,
-    ) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadCompositionError> {
         self.completed_workload
-            .require_boolean_loop_reconstruction_lookup(&self.loop_ledger_receipt)
+            .require_boolean_loop_reconstruction(&self.loop_ledger_receipt)
     }
 }
 

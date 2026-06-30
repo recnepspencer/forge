@@ -107,12 +107,14 @@ has not closed.
 
 ## Declare-Once Routing Target
 
-The final architecture is not "run smaller local checks." It is:
+The final architecture is not "run smaller local checks." It is one canonical
+semantic-graph routing model:
 
 ```text
 domain/operator declares touched graph authority once
-registered catalogs declare applicability and requirements once
-runtime routing intersects touched graph facts with registered catalogs
+semantic graph vocabulary names entities, relations, aspects, and locality once
+registered catalogs and compiled products declare applicability once
+planner-owned routing intersects touched graph facts with catalogs/products once
 matching read plans, validators, invariants, invalidation, evidence lookup,
 replay, undo, conflict, cache, diagnostics, and public proof apply automatically
 ```
@@ -120,6 +122,16 @@ replay, undo, conflict, cache, diagnostics, and public proof apply automatically
 Operator code may produce touched authority. It may not carry manual read-plan
 lists, validator arrays, invariant packs, dirty lists, evidence lookup lists,
 replay scopes, conflict predicates, cache keys, or diagnostic choreographies.
+
+The remaining roadmap therefore does not treat touched graph, aspects,
+compiled products, replay, conflict, cache, and diagnostics as adjacent local
+systems. They are different lowered forms of the same semantic graph contract:
+
+- touched graph authority declares what changed
+- aspect vocabulary declares which dimensions of meaning exist on that graph
+- compiled products/indexes declare which read structures are maintained over
+  that graph
+- planner-owned routing lowers all remaining families from those same proofs
 
 Later milestones must treat each category as a registered catalog consumed by
 touched graph routing:
@@ -254,6 +266,217 @@ proof ownership.
 | 14 | touched proof plus source authority digest | cache/equivalence proof | owning product crate | pointer identity, row count, operator family | cache keys without touched authority |
 | 15 | executed proof products | public read-only authority proof and diagnostics | public facades | raw constructors, support pins, local ceremony | public escape hatches |
 | 16 | certified milestone products | cross-crate closeout matrix | `worth-kernel` closeout pressure | prose claims, untested residue | uncapped adapters and stale doc claims |
+
+## Remaining Family Coverage Ledger
+
+Milestones 12 through 16 are the architecture-convergence stretch of this
+roadmap. Each milestone must close both:
+
+- one explicit unification boundary
+- one explicit set of remaining family surfaces
+
+The remaining family coverage is:
+
+| Milestone | Unification boundary | Remaining family coverage |
+| --- | --- | --- |
+| 12 | canonical semantic graph contract for post-lookup work | replay scope, undo scope, transaction scope, transaction receipts |
+| 13 | aspects as a first-class routing axis | conflict classes, independence proof, batch admission, aspect-local overlap denial |
+| 14 | unified compiled-product and equivalence model | cache keys, reuse posture, equivalence comparators, compiled read-product identity |
+| 15 | planner-owned routing and public explainability | public proof/status APIs, diagnostics, explainers, routing-localization surfaces |
+| 16 | cross-family parity proof and residue collapse | cross-category closeout, representative family declare-once proof, hard-break reintroduction denial |
+
+No remaining milestone may be architecture-only theory, and no remaining
+family may be closed without being brought under the milestone's unification
+boundary.
+
+## Post-M11 Operational Seed Surfaces
+
+Milestone 11 did not leave abstract "future replay work." It left real
+operational seed surfaces that later milestones must consume, inventory, or
+delete honestly.
+
+The important current surfaces are:
+
+- `worth-spatial` current evidence lookup cutover path:
+  admitted input -> selected plan -> index product -> execution receipt
+- `worth-spatial` current public closeout assembly:
+  family catalog -> query surface matrix -> query consumer kit -> source
+  firewall -> family-stage proof rows
+- `worth-kernel` workload composition:
+  topology + geometry binding + surface support + projection + transform +
+  retained replay + diagnostics + response + evidence ledger
+- `worth-kernel` lookup-consumed workload handoff:
+  workload stage-index identity must match and raw-row, broad-receipt, and
+  caller-owned scan fallback must stay at zero
+
+Operationally, this means the remaining milestones cannot start from a blank
+speculation surface. When a milestone touches replay, conflict, cache,
+diagnostics, public proof, or closeout:
+
+- it must inventory the in-scope current consumers and producers of these seed
+  surfaces
+- it must either migrate those surfaces through the new lane, cap them as
+  residue with owner/blocker/removal trigger, or prove they are out of scope
+- it may not declare success by building only a fresh local subsystem while the
+  existing seed surfaces continue teaching older semantics beside it
+
+## Target Directory Skeleton
+
+The remaining milestones should not invent one-off module piles for replay,
+conflict, cache, diagnostics, or public proof. They should converge toward one
+shared lifecycle shape that is already visible in Milestones 10 and 11:
+
+```text
+family_catalog
+-> admitted_input
+-> selected_plan
+-> compiled_product or scope_product
+-> execution
+-> cutover / public_closeout / source_firewall
+```
+
+This is a target architecture skeleton, not a demand for one giant rename pass
+before work continues. New work should land in this shape; existing lanes
+should migrate toward it as milestones cut over.
+
+Proposed target layout:
+
+```text
+crates/
+  worth-schema/
+    src/
+      semantic_graph/
+        vocabulary/
+          entity.rs
+          relation.rs
+          aspect.rs
+          locality.rs
+          scope.rs
+        touch_authority/
+          topology_basis.rs
+          spatial_basis.rs
+          closure.rs
+        route_identity/
+          family_identity.rs
+          receipt_identity.rs
+          product_identity.rs
+          equivalence_identity.rs
+
+  worth-topo/
+    src/
+      semantic_graph_routing/
+        invalidation/
+          family_catalog/
+          admitted_input/
+          selected_plan/
+          compiled_product/
+          execution/
+          operator_cutover/
+          public_closeout/
+          source_firewall/
+        validator_invariant/
+          family_catalog/
+          admitted_input/
+          selected_plan/
+          execution/
+          public_closeout/
+        replay_scope/
+          family_catalog/
+          admitted_input/
+          selected_plan/
+          scope_product/
+          execution/
+        conflict_scope/
+          family_catalog/
+          admitted_input/
+          selected_plan/
+          execution/
+
+  worth-spatial/
+    src/
+      semantic_graph_routing/
+        evidence_lookup/
+          family_catalog/
+          admitted_input/
+          selected_plan/
+          compiled_product/
+          execution/
+          stage_cutover/
+          workload_cutover/
+          public_closeout/
+          source_firewall/
+          diagnostics/
+        replay_scope/
+          family_catalog/
+          admitted_input/
+          selected_plan/
+          scope_product/
+          execution/
+        conflict_scope/
+          family_catalog/
+          admitted_input/
+          selected_plan/
+          execution/
+        compiled_products/
+          equivalence/
+          reuse_policy/
+          product_identity/
+        diagnostics/
+          routing_explainers/
+          receipt_projections/
+
+  worth-kernel/
+    src/
+      semantic_graph_runtime/
+        workload/
+          admitted_workload/
+          receipt_set/
+          stage_index/
+          handoff_composition/
+        planner/
+          route_request/
+          admitted_request/
+          selected_route/
+          lowered_plan/
+        public_proof/
+          proof_surfaces/
+          diagnostics_surfaces/
+          closeout/
+        cross_family_parity/
+          representative_paths/
+          residue_matrix/
+          reintroduction_firewall/
+```
+
+This skeleton is meant to preserve crate authority:
+
+- `worth-schema` owns shared semantic-graph vocabulary and identity kinds, not
+  execution
+- `worth-topo` owns topology-native routing families and truth-adjacent
+  planning/execution
+- `worth-spatial` owns spatial evidence routing families and spatial compiled
+  products
+- `worth-kernel` owns cross-family workload composition, planner-facing public
+  proof, and parity/closeout pressure
+
+This skeleton also names what should not happen:
+
+- no remaining milestone should close by adding a single broad `replay.rs`,
+  `conflict.rs`, `diagnostics.rs`, or `cache.rs` file that collapses family
+  catalog, admission, planning, execution, and public proof into one place
+- no remaining milestone should hide a new family under generic buckets such as
+  `helpers`, `support`, `misc`, or `utils`
+- no remaining milestone should let diagnostics or public proof become an
+  alternate execution path
+
+Operational planning rule:
+
+- if a remaining milestone introduces a new family, that family should be
+  planned against this lifecycle skeleton
+- if a remaining milestone extends an existing family, it should identify which
+  step of this lifecycle it is adding, replacing, or deleting
+- if a milestone cannot map its work onto this skeleton honestly, the spec must
+  explain why instead of silently creating a parallel architecture
 
 ## Milestone 1: Inventory And Hard Break Plan
 
@@ -592,6 +815,9 @@ Done when:
 
 ## Milestone 11: Evidence Lookup And Boolean Stage Indexing
 
+Spec:
+[touched-graph-milestone-11-evidence-lookup-and-boolean-stage-indexing.md](./touched-graph-milestone-11-evidence-lookup-and-boolean-stage-indexing.md)
+
 Freeze spatial and boolean evidence lookup as registered lookup families over
 spatial touch authority and related topology touched graph identity.
 
@@ -611,102 +837,244 @@ Done when:
 - adding one lookup family once applies to every matching stage/touch authority
   without stage-local lookup wiring
 
-## Milestone 12: Replay, Undo, And Transaction Scope
+## Milestone 12: Canonical Semantic Graph Contract For Replay And Undo
 
-Freeze replay and undo boundaries as registered scope derivations from touched
-graph proof and effect receipts.
+Spec:
+[touched-graph-milestone-12-canonical-semantic-graph-contract-for-replay-and-undo.md](./touched-graph-milestone-12-canonical-semantic-graph-contract-for-replay-and-undo.md)
+
+Freeze the post-lookup routing language so replay, undo, and transaction scope
+become consumers of one explicit semantic-graph contract rather than
+family-local proof folklore.
 
 Closes:
-- replay scope derivation from touched graph closure
-- minimal reversible graph patch or named undo residue
-- transaction boundaries exposing touched graph digest, validators,
-  invalidation, and evidence receipts
-- undo-family catalog entries declaring scope, effect receipt requirements, and
-  rollback denial posture
+- one canonical post-lookup vocabulary for touched entities, relations,
+  aspects, locality scopes, receipt identity, and transaction-scope claims
+- replay-scope families lowered from touched closure plus prior milestone
+  receipts instead of operator-family rediscovery
+- undo-scope families lowered from the same contract with explicit effect
+  receipt requirements and rollback denial posture
+- transaction receipts that expose touched digest, validator/invariant outcome,
+  invalidation product receipts, evidence lookup receipts, and replay/undo
+  scope identity as one boundary packet
+- deletion of replay/undo helpers that rediscover scope from command names,
+  operation classes, broad topology reads, or post-hoc readback conventions
 
 Done when:
-- replay does not re-run global topology to prove local edits
-- rollback does not re-query authority already captured by proof products
-- hidden mutation outside undo scope fails closeout
-- replay and undo cannot rediscover scope from operator folklore, command
-  names, global topology scans, or post-hoc readbacks
+- replay scope, undo scope, and transaction scope all describe their inputs in
+  the same semantic-graph terms used by earlier read, validator, invalidation,
+  and lookup milestones
+- replay does not re-run global topology or broad evidence lookup to prove a
+  local edit boundary
+- rollback does not re-query authority already captured by touched proof,
+  invalidation receipts, evidence lookup receipts, or transaction receipts
+- hidden mutation outside admitted undo scope fails closeout with localized
+  proof instead of broad transaction failure
+- future replay/undo families can be added once and route from semantic-graph
+  proof without inventing a parallel scope language
 
-## Milestone 13: Conflict, Independence, And Batch Admission
+Operationally, this milestone must:
+- inventory every current replay-, retained-replay-, rollback-, and
+  transaction-scope consumer that already depends on workload receipts,
+  evidence-ledger stage identities, lookup receipts, invalidation receipts, or
+  public closeout seeds
+- define which of those consumers migrate in this milestone, which are capped
+  residue, and which remain explicit Query-gap or later-scope work
+- cut replay and undo entry only through typed scope products derived from the
+  current seed surfaces rather than local reconstruction helpers
 
-Freeze independence proof and conflict denial as registered overlap contracts
-over touched graph products.
+This milestone is too narrow if:
+- it only builds a replay packet or undo receipt type without classifying the
+  current replay/retained-replay/transaction consumers
+- it proves topology replay but leaves boolean ledger replay, retained replay,
+  or transaction rollback semantics on pre-existing local folklore
+- it treats "undo" as a UI-level command reversal instead of an authority- and
+  receipt-backed scope product
+
+## Milestone 13: Aspect-Routed Conflict, Independence, And Batch Admission
+
+Spec:
+[touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.md](./touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.md)
+
+Freeze aspects as a first-class routing axis for post-lookup concurrency so
+conflict, independence, and batch admission reason over the same graph meaning
+language rather than entity-only overlap heuristics.
 
 Closes:
-- disjointness and compatible aspect-level overlap proof over touched closures
-- conflict classes for entity, relation, aspect, closure, evidence, validators
-- batch admission before execution
-- batch-family catalog entries declaring compatible overlap, denied overlap,
+- aspect-aware overlap contracts over touched closures, replay/undo scope, and
+  evidence/validator receipts
+- conflict classes for entity, relation, aspect, locality scope, evidence,
+  validator pressure, and transaction-scope overlap
+- independence proof for disjoint closures and compatible aspect-local overlap
+- batch-admission families declaring compatible overlap, denied overlap,
   serialization posture, and diagnostic witness
+- deletion of speculative lock-first conflict discovery and caller-owned
+  "run both and see" admission folklore
 
 Done when:
-- conflict detection is structural, not speculative lock-first execution
-- disjoint operations batch-admit with separate proof products
-- closure conflicts deny or serialize with named reasons
-- no covered path uses "try it and see if conflict happens" execution as the
-  ordinary conflict detector
+- conflict detection is structural and aspect-routed, not speculative
+  execution plus rollback
+- disjoint operations batch-admit with separate proof products and no hidden
+  shared-scope broad scans
+- compatible aspect-local overlap is admitted or serialized from declared
+  overlap contracts rather than ad hoc stage knowledge
+- closure conflicts deny or serialize with named entity/relation/aspect/locality
+  reasons
+- future conflict or batch families can be declared once against the shared
+  aspect-aware routing model and apply to multiple operators or stages without
+  operator-local overlap logic
 
-## Milestone 14: Cache, Equivalence, And Reuse Contracts
+Operationally, this milestone must:
+- inventory every current conflict, independence, serialization, and
+  multi-operation admission surface that already consumes touched closures,
+  validator receipts, evidence lookup receipts, retained replay receipts, or
+  workload stage identities
+- classify each in-scope path as migrated structural conflict proof, capped
+  residue, or later Query-gap rather than leaving "temporary" lock-first or
+  executor-first behavior in place
+- make aspect-local overlap a named operational distinction so later teams do
+  not collapse entity conflict and aspect conflict during implementation
+- publish one public closeout product that binds selected conflict plans,
+  independence proof, selected batch-admission plan, execution receipt,
+  ordinary-consumer residue posture, source-firewall proof, and the Milestone
+  14 seed surface without reopening local diagnostics or report strings
 
-Freeze reuse as registered touched graph equivalence contracts.
+This milestone is too narrow if:
+- it only adds a conflict enum or overlap helper without inventorying current
+  batch-admission and serialization surfaces
+- it proves direct-touch disjointness but ignores closure-, validator-, replay-,
+  or evidence-derived overlap
+- it closes with entity-only conflict classes and leaves aspect-local overlap to
+  "future tuning"
+
+## Milestone 14: Unified Compiled Product, Cache, And Equivalence Contracts
+
+Freeze compiled read products, cache identity, and reuse posture as one
+contract family so indexes, projections, evidence products, replay products,
+and later read acceleration all live under the same equivalence model.
 
 Closes:
-- cache keys over touched digest, source authority digest, stage, equivalence
-  policy, validator set, and evidence set
-- equivalence-family catalog entries declaring source authority digest, touched
-  digest, invariant set, evidence set, stage, comparator, and reuse posture
-- separation of geometry-only and topology-touch equivalence
-- public denial of cache proof forgery
+- a compiled-product identity contract covering basis, touched digest, source
+  authority digest, stage, locality footprint, validator/evidence set, and
+  equivalence policy
+- cache/equivalence families declaring comparator, canonical ordering,
+  acceptable ordering noise, and reuse posture over that same product identity
+- separation of authoritative graph truth from compiled read-product truth so
+  reuse never promotes derived representation into authority
+- reuse denial for geometry-only, topology-touch, replay, and evidence products
+  whose semantic graph basis differs even if their rendered output looks
+  similar
+- deletion of operator-local cache-key code, pointer-identity shortcuts,
+  row-count heuristics, and provenance-based reuse folklore
 
 Done when:
-- operator family, pointer identity, row count, and filename provenance cannot
-  justify reuse
-- benign ordering noise preserves equivalence identity
-- different touched closures deny reuse
-- adding an equivalence family once enables reuse for every matching product
-  without operator-local cache-key code
+- every covered reuse surface is expressed as a compiled-product equivalence
+  claim rather than a family-specific helper convention
+- operator family, pointer identity, row count, filename provenance, or display
+  shape cannot justify reuse
+- benign ordering noise preserves equivalence only when the comparator and
+  canonical ordering contract say so
+- different touched closures, locality footprints, evidence sets, or validator
+  sets deny reuse even when product rows look superficially similar
+- future compiled products can opt into reuse by declaring one equivalence
+  family instead of inventing product-local cache identity
 
-## Milestone 15: Public API, Diagnostics, And Explainers
+Operationally, this milestone must:
+- inventory every current reuse or pseudo-reuse surface for topology-derived
+  products, evidence lookup index products, replay products, retained-workload
+  products, and any public closeout/read-model helper that currently depends on
+  stable identity claims
+- consume the phase-13 seed as the starting authority for overlap identity,
+  locality footprint identity, selected conflict plan identity, independence
+  proof identity, batch-admission plan identity, execution receipt identity,
+  residue digest, and firewall digest rather than rediscovering those facts
+  from topology, evidence, or local reports
+- define the compiled-product identity fields each family must expose before it
+  may reuse prior work
+- cut all ordinary reuse through those identity contracts or classify the old
+  path as residue with blocker and removal trigger
 
-Freeze public surfaces that expose touched graph proof without leaking
-constructors or internals.
+This milestone is too narrow if:
+- it only introduces cache keys for one family while other existing compiled
+  products still teach ad hoc identity
+- it treats index reuse as a local performance optimization instead of a proof
+  contract shared across product families
+- it closes without distinguishing authoritative truth identity from derived
+  product identity
+
+## Milestone 15: Planner-Owned Routing, Public Proof, And Diagnostics
+
+Freeze the ordinary public and diagnostic path so the planner is the single
+authority that explains why replay, conflict, cache, invalidation, evidence,
+and read-routing decisions happened.
 
 Closes:
-- read-only public proof/status APIs
-- selected obligation, validator, invalidation, evidence, conflict, and denial
-  diagnostics
-- diagnostics that identify the exact touched facts, registered family,
-  selected obligation, access receipt, witness, and denial/advisory posture
-- compile-fail fences against raw constructors and local ceremony
+- planner-owned lowering for remaining replay, undo, conflict, cache, and
+  diagnostic families so execution consumes lowered plans and receipts only
+- public read-only proof/status APIs over the same planner-owned products
+  instead of local explainers or support-ceremony wrappers
+- diagnostics that identify exact touched facts, aspects, locality scope,
+  selected family, selected product, receipt chain, witness, and
+  denial/advisory posture
+- explainers that localize why routing selected a read family, validator,
+  invalidation product, evidence lookup, replay scope, conflict class, or
+  cache/equivalence result without reopening lower-authority internals
+- compile-fail and source-firewall fences against raw constructors, support
+  pins, proof helpers, and local routing ceremony
 
 Done when:
-- public callers can inspect proof/status but cannot construct authority
-- diagnostics localize rejection to exact touched graph facts or Query gaps
-- public APIs do not expose support pins, raw rows, or proof helpers
-- public diagnostics explain why routing selected a read family, validator,
-  invariant, invalidation product, evidence lookup, replay scope, conflict
-  class, or cache/equivalence result
+- no covered executor re-decides replay scope, conflict class, cache posture,
+  or diagnostic route during execution
+- public callers can inspect proof/status and routing explanation but cannot
+  construct authority, plan identity, or proof products
+- diagnostics localize rejection to exact touched graph facts, aspects, or
+  Query/posture gaps instead of broad category labels
+- public APIs do not expose support pins, raw rows, proof fabrication helpers,
+  or family-local explainer shortcuts
+- future public proof or diagnostic families plug into planner-owned routing
+  once and become visible across matching operators or stages without custom
+  explain wiring
 
-## Milestone 16: Cross-Crate Closeout And 7.5 Readiness
+Operationally, this milestone must:
+- inventory every current public proof, closeout, diagnostic, explainer, and
+  workload-composition surface that already exposes receipt-backed status or
+  routing-localization claims
+- classify which surfaces become planner-owned public products, which remain
+  internal diagnostics, and which are deleted as local ceremony or duplicate
+  explanation lanes
+- preserve the current anti-theatre guards: operational receipts stay the
+  authority, while rich diagnostics remain derived projections selected by
+  artifact policy
 
-Close the touched graph program only when every category consumes touched graph
-authority or is explicitly deleted, capped residue, or Query-gap.
+This milestone is too narrow if:
+- it only adds nicer diagnostics without migrating the current receipt-backed
+  public proof surfaces
+- it centralizes diagnostics but leaves execution-time route rediscovery inside
+  family executors
+- it exposes public "why" APIs that can be satisfied by strings, local report
+  rows, or non-authoritative helpers rather than planner-owned proof products
+
+## Milestone 16: Cross-Family Parity Proof, Residue Collapse, And 7.5 Readiness
+
+Close the touched graph program only when the remaining families prove they are
+instances of one semantic-graph architecture and all ordinary residue that
+disagrees with that claim is deleted, capped, or Query-gap.
 
 Closes:
-- cross-category closeout matrix
-- declare-once routing proof across read families, validators, invariants,
-  invalidation, evidence lookup, replay, undo, conflict, cache, diagnostics,
-  and public proof
-- hard-break reintroduction tests
-- line-cap and composition proof
-- documentation consistency with certified counts
+- cross-category closeout matrix for read families, validators, invariants,
+  invalidation, evidence lookup, replay/undo, conflict, cache/equivalence,
+  diagnostics, and public proof
+- representative declare-once parity proof showing the same routing language
+  governs multiple families end to end
+- hard-break reintroduction tests for old family-local routing seams, broad
+  scans, proof fabrication, and support-ceremony escape hatches
+- residue collapse for any remaining slow-conversion adapter, compatibility
+  bridge, public raw constructor, or family-local routing helper
+- line-cap, composition, and documentation proof that the final architecture is
+  legible and matches certified counts
 
 Done when:
 - `Milestone 7.5` can consume touched graph proof for overlap extraction
+  without reviving local replay, conflict, cache, or diagnostic rules
 - one new representative registered read family, validator/invariant family,
   invalidation family, evidence lookup family, replay/undo family, conflict
   family, cache/equivalence family, and diagnostic family can each be declared
@@ -715,9 +1083,30 @@ Done when:
 - no operator names validator lists, invariant lists, dirty lists, evidence
   lookup lists, replay scopes, conflict predicates, cache keys, or diagnostic
   choreography on covered paths
+- no remaining ordinary path disagrees with the claim that touched graph,
+  aspects, compiled products, and planner-owned routing form one architecture
 - no slow-conversion adapter remains in production without cap and removal
   trigger
-- certified closeout counts match the roadmap and implementation state
+- certified closeout counts match the roadmap, implementation state, and
+  declared family coverage ledger
+
+Operationally, this milestone must:
+- inventory every remaining ordinary adapter, helper, compatibility bridge,
+  residue row, and source firewall exception still attached to replay, undo,
+  conflict, cache, public proof, diagnostics, or workload composition
+- prove at least one representative end-to-end path where one shared semantic
+  graph language drives read routing, validator selection, invalidation,
+  evidence lookup, replay/undo scope, conflict posture, reuse posture, and
+  diagnostic/public proof output
+- refuse closeout if any remaining ordinary path still requires a family-local
+  routing language, even if the path is small
+
+This milestone is too narrow if:
+- it is treated as documentation cleanup plus a few residue deletions
+- it proves parity only inside one family instead of across multiple family
+  kinds
+- it allows "mostly unified" ordinary paths to remain uncapped because they
+  feel operationally harmless
 
 ## Runner Policy
 
@@ -745,6 +1134,9 @@ The touched graph roadmap is complete only when:
 
 - every graph-affecting topology operator and boolean/spatial stage produces
   the correct touched authority product before execution
+- touched graph authority, aspect vocabulary, compiled read products, and
+  planner-owned routing behave as one semantic-graph architecture rather than
+  adjacent local systems
 - Query obligation selection consumes touched authority products
 - covered Worth graph reads have local folklore inventoried, lower from
   touched authority into Query graph-read declarations, and execute only
@@ -756,6 +1148,9 @@ The touched graph roadmap is complete only when:
   invalidation family, evidence lookup family, replay/undo family, conflict
   family, cache/equivalence family, or diagnostic family once applies to
   multiple matching operators or stages without editing them
+- the remaining family coverage ledger is honest: replay/undo/transaction
+  scope, aspect-routed conflict, compiled-product reuse, planner-owned public
+  proof, and cross-family parity are all closed under their named milestones
 - covered operators do not carry manual read plans, validator arrays, invariant
   packs, dirty lists, evidence lookup lists, replay scopes, conflict
   predicates, cache keys, or diagnostic choreography

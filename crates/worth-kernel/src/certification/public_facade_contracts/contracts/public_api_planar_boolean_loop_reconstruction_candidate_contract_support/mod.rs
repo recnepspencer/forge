@@ -113,6 +113,8 @@ fn real_loop_candidate_boundary(
             ),
         };
     let downstream_consumption = completed_split_handoff
+        .admit_batch_execution_cluster()
+        .expect("real split evidence should admit batch execution cluster")
         .admit_downstream_split_consumption(decision_log, validation, naming, replay_parity_receipt)
         .expect("real split evidence should admit downstream split consumption");
     let loop_split_consumption = PlanarBooleanLoopReconstructionSplitConsumption::admit(

@@ -16,7 +16,7 @@ pub use declared_basis::{
 pub use entity_relation::{TopologyTouchedEntity, TopologyTouchedRelation};
 pub use lowering::topology_operator_touch_descriptor_from_touched_graph_basis;
 pub(crate) use lowering::topology_touched_graph_basis_from_mutation_sequence;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 pub(crate) use lowering::{
     test_basis_from_parts, topology_rewire_loop_endpoint_touched_graph_basis,
     topology_splice_radial_adjacency_touched_graph_basis,

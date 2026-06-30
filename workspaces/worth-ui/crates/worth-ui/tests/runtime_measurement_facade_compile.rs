@@ -1,9 +1,11 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 fn runtime_measurement_pass(path: &str) {
-    trybuild::TestCases::new().pass(path);
+    trybuild_support::new_test_cases().pass(path);
 }
 
 fn runtime_measurement_fail(path: &str) {
-    trybuild::TestCases::new().compile_fail(path);
+    trybuild_support::new_test_cases().compile_fail(path);
 }
 
 #[test]
@@ -38,3 +40,4 @@ fn uncertified_counter_packet_cannot_lower_to_foundational() {
         "tests/ui/runtime_measurement/fail/uncertified_counter_packet_cannot_lower_to_foundational.rs",
     );
 }
+

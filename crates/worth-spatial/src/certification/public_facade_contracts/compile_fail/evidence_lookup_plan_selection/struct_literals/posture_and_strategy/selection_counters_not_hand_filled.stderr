@@ -1,0 +1,27 @@
+error: cannot construct `EvidenceLookupPlanSelectionCounters` with struct literal syntax due to private fields
+ --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_plan_selection/struct_literals/posture_and_strategy/selection_counters_not_hand_filled.rs:4:13
+  |
+4 |     let _ = EvidenceLookupPlanSelectionCounters {
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         candidate_family_count: 1,
+  |         ------------------------- private field
+6 |         selected_family_count: 1,
+  |         ------------------------ private field
+  |
+  = note: ...and other private fields that were not provided
+help: you might have meant to use the `with_candidate_family_count` associated function
+  |
+4 -     let _ = EvidenceLookupPlanSelectionCounters {
+5 -         candidate_family_count: 1,
+6 -         selected_family_count: 1,
+7 -     };
+4 +     let _ = EvidenceLookupPlanSelectionCounters::with_candidate_family_count(_);
+  |
+help: consider using the `Default` trait
+  |
+4 -     let _ = EvidenceLookupPlanSelectionCounters {
+5 -         candidate_family_count: 1,
+6 -         selected_family_count: 1,
+7 -     };
+4 +     let _ = <EvidenceLookupPlanSelectionCounters as std::default::Default>::default();
+  |

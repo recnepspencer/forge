@@ -18,7 +18,7 @@ error[E0599]: no function or associated item named `current_host` found for stru
   |                                                    ^^^^^^^^^^^^ function or associated item not found in `AmbientHostCheck`
   |
 note: if you're trying to build a new `AmbientHostCheck`, consider using `AmbientHostCheck::current_host_for_diagnostics` which returns `AmbientHostCheck`
- --> src/capability/registry/native_capability/descriptor/ambient_host_check.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/capability/registry/native_capability/descriptor/ambient_host_check.rs
   |
   |     pub fn current_host_for_diagnostics() -> Self {
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

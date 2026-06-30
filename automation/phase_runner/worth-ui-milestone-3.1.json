@@ -1,0 +1,1060 @@
+{
+  "schema_version": 1,
+  "state_revision": 125,
+  "current": {
+    "phase": 3,
+    "turn": "repair"
+  },
+  "project": {
+    "name": "Worth UI Milestone 3.1",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui",
+    "spec_file": "_docs\\worth-ui\\milestone-3.1.md",
+    "context_files": [
+      "_docs\\coding_guidelines\\MENTALITY.md",
+      "_docs\\coding_guidelines\\arch_laws.md",
+      "_docs\\coding_guidelines\\composition_laws.md",
+      "_docs\\coding_guidelines\\domain_structure_laws.md",
+      "_docs\\coding_guidelines\\perf_laws.md",
+      "crates\\forge-foundational\\docs\\FOUNDATIONAL_README.md",
+      "crates\\forge-query\\docs\\AI_README.md",
+      "workspaces\\worth-ui\\docs\\WORTH_UI_README.md",
+      "_docs\\worth-ui\\worth-ui-dsl-vision.md",
+      "_docs\\worth-ui\\ai-diagnostics.md",
+      "_docs\\worth-ui\\worth_ui_roadmap.md",
+      "_docs\\worth-ui\\milestone-3.1.md"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md"
+  },
+  "contract_template": "templates/_contract_test_hardening.md",
+  "session": {
+    "command": "C:\\nvm4w\\nodejs\\codex.cmd",
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    },
+    "thread_id": "019f05ce-8c17-7bb3-864c-adc8f8050dfe",
+    "thread_started_at": "2026-06-26T21:20:50.885842+00:00"
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Crate Topology and Ownership Split",
+      "owner": "worth-ui workspace",
+      "scope": [
+        "workspaces\\worth-ui\\Cargo.toml",
+        "workspaces\\worth-ui\\crates\\worth-ui",
+        "workspaces\\worth-ui\\crates\\worth-ui-dsl",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-host-contract",
+        "workspaces\\worth-ui\\crates\\worth-ui-host-egui",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "target crate topology exists for worth-ui, worth-ui-dsl, worth-ui-runtime, worth-ui-inspection, worth-ui-query-binding, worth-ui-host-contract, worth-ui-host-egui, and worth-ui-certification",
+        "compiler-enforced lifecycle propagation test fails when a new runtime subsystem field is not forwarded through every constructor or facade propagation site",
+        "worth-ui-host-egui cannot depend on runtime-internal modules except through admitted host-contract surfaces",
+        "topology audit proves no crate deep-imports another crate's internals across the new boundaries"
+      ],
+      "instructions": "Freeze the physical ownership map first. Do not treat this as a rename-only pass. Make the split reflect authority, lifecycle, and truth-source boundaries immediately.",
+      "qa_focus": "Real crate ownership, no shadow entry points left in worth-ui, replaceable host adapter boundary, no decorative split.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "harden lifecycle propagation through real facade/bootstrap seams and tighten host-boundary certification against worth-ui facade coupling"
+        ],
+        "done": [
+          "phase 1 closed with real ownership split, hardened lifecycle proof, and host-boundary certification"
+        ],
+        "remaining": [
+          "later cleanup should replace facade wildcard runtime re-export with a curated admitted surface"
+        ],
+        "findings": [
+          "code-quality QA: runtime facade still exposes a broad wildcard runtime mirror"
+        ],
+        "verification": [
+          "cargo check -p worth-ui-runtime exit 0; tail: finished dev profile with pre-existing dead-code warnings",
+          "cargo check -p worth-ui exit 0; tail: finished dev profile with runtime warning carry-through",
+          "cargo check -p worth-ui-host-egui exit 0; tail: finished dev profile with unused translation warnings",
+          "cargo test -p worth-ui-certification --test topology_audit exit 0; tail: 2 tests passed",
+          "cargo test -p worth-ui-certification --test lifecycle_propagation_compile exit 0; tail: 1 test passed and both trybuild lifecycle fixtures ok",
+          "cargo test -p worth-ui-certification --test host_replaceability_compile exit 0; tail: 2 tests passed including host-contract-only adapter fixture"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Legacy Surface Residue Closure",
+      "owner": "worth-ui workspace",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\forge-ui-adapters",
+        "workspaces\\worth-ui\\crates\\forge-ui-components",
+        "workspaces\\worth-ui\\crates\\forge-ui-state",
+        "workspaces\\worth-ui\\crates\\forge-ui-theme",
+        "workspaces\\worth-ui\\crates\\forge-ui-types",
+        "workspaces\\worth-ui\\crates\\worth-ui",
+        "workspaces\\worth-ui\\Cargo.toml"
+      ],
+      "acceptance": [
+        "every pre-3.1 UI crate has an explicit disposition: owner, shim, deprecated, or removed",
+        "no legacy crate continues exporting host-neutral runtime, inspection, DSL, or support-truth types once a target 3.1 owner exists",
+        "any temporary shim forwards only to the new owner and does not reintroduce local semantics or hidden construction paths",
+        "public-surface diff proves responsibility moved into the new split narrows or retires the old surface instead of duplicating it"
+      ],
+      "instructions": "Treat the current forge-ui-* workspace shape as migration residue, not precedent. Close parallel authority paths instead of preserving convenience exports.",
+      "qa_focus": "No parallel public homes survive, shims stay non-authoritative, docs/exports/certification agree on crate disposition.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "harden residue certification against surviving public-surface duplication and replace shim no-op with real absence proof"
+        ],
+        "done": [
+          "phase 2 closed with surviving public owners narrowed and legacy authority lanes materially removed"
+        ],
+        "remaining": [
+          "later cleanup should remove empty forge-ui-adapters/state/types directories so the tree teaches the retired topology directly"
+        ],
+        "findings": [
+          "code-quality QA: empty retired crate directories still remain under workspaces/worth-ui/crates"
+        ],
+        "verification": [
+          "cargo check -p forge-ui-components exit 0; tail: finished dev profile",
+          "cargo check -p forge-ui-theme exit 0; tail: finished dev profile",
+          "cargo check -p worth-ui exit 0; tail: finished dev profile with pre-existing worth-ui-runtime dead-code warnings",
+          "cargo test -p worth-ui-certification --test legacy_surface_residue_audit exit 0; tail: 4 tests passed"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "Facade and Lifecycle Propagation Closure",
+      "owner": "worth-ui facade",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification\\src"
+      ],
+      "acceptance": [
+        "facade-only runtime construction exists through WorthUiApp, WorthUiBuilder, and runtime/inspection bootstrap aggregates",
+        "external code cannot instantiate lifecycle-bearing runtime aggregates without the public facade or builder path",
+        "adding subsystem N+1 fails not only construction but also support-row inventories, inspection-scope inventories, and certification closure inventories until every registry updates",
+        "read-path inspection setup does not require mutable access to future runtime write-path authority"
+      ],
+      "instructions": "Make lifecycle propagation compiler-visible. Avoid optional late wiring, Default-based aggregates, or partially initialized runtime/inspection pairs escaping the facade.",
+      "qa_focus": "Exhaustive lifecycle propagation, no hidden implementation bucket in worth-ui, no facade escape hatches to raw subsystem constructors.",
+      "status": "regressed",
+      "qa_status": "failed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "Facade owns construction; lifecycle closure must fail across constructor and registry inventories."
+        ],
+        "done": [
+          "worth-ui now owns the public facade path; runtime exports only core construction and inspection aggregate construction is no longer public.",
+          "runtime facade authority narrowed to worth-ui-owned path; phase 3 ready for re-review",
+          "removed dead runtime-side facade/bootstrap residue so the tree matches the phase-3 authority boundary"
+        ],
+        "remaining": [],
+        "findings": [
+          "worth-ui facade still hand-owns lifecycle inventory assembly"
+        ],
+        "verification": [
+          "cargo check -p worth-ui",
+          "cargo check -p worth-ui-runtime",
+          "cargo test -p worth-ui-certification --test topology_audit",
+          "cargo test -p worth-ui-certification --test lifecycle_propagation_compile"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "title": "Inspection Authority Contract",
+      "owner": "worth-ui-inspection",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\query",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\target",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\scope",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\receipt",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\facade"
+      ],
+      "acceptance": [
+        "sealed inspection contract types exist: UiInspectionTarget, UiInspectionQuery, UiInspectionScope, UiEvidenceBudget, UiEvidenceRichness, UiInspectionRelevance, UiInspectionSupportStatus, UiInspectionMilestoneExpectation, and UiInspectionReceipt",
+        "AI-facing and human-facing callers compile against the same UiInspectionQuery and UiInspectionReceipt types and the same inspection facade entry point",
+        "inspection contract supports target, scope, budget, and relevance without requiring later API breakage",
+        "Query-backed targets structurally distinguish Query inspection, Query projection consumption, and Worth-local evidence without creating a UI-local pseudo-Query lane"
+      ],
+      "instructions": "Establish the contract shape only. Do not smuggle early evidence through JSON blobs or string maps. Preserve the Query and Foundational ownership lock from the spec literally.",
+      "qa_focus": "One inspection entry point, sealed-but-projectable receipts, first-class relevance, no pseudo-Query inspection lane, no premature Foundational lowering.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Unsupported Inspection Posture",
+      "owner": "worth-ui-inspection",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\posture",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\scope",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\receipt"
+      ],
+      "acceptance": [
+        "unsupported or not-yet-admitted inspection scopes return structured posture through UiInspectionReceipt instead of panics, None, or string-only fallbacks",
+        "support reports can state unsupported with reason belongs-architecturally-not-yet-admitted and machine-readable milestone expectation",
+        "unsupported measurement, mounting, or rebind scopes fail locally without implying the whole inspection substrate is unavailable",
+        "adding a new scope family later extends the same unsupported-posture system rather than inventing a second mechanism"
+      ],
+      "instructions": "Make not-yet-implemented a real runtime outcome. Keep support reporting separate from successful query receipts so the system can answer what should exist here before rich evidence lands.",
+      "qa_focus": "Typed unsupported posture, boundary-local failure, no feature-flag probing, no silent empty results.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "Dependency and Import Guards",
+      "owner": "worth-ui certification boundary",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-host-contract\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-host-egui\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification\\src",
+        "automation\\phase_runner"
+      ],
+      "acceptance": [
+        "host adapter fails structural audit if it reaches worth-ui-runtime or worth-ui-inspection internals directly",
+        "non-DSL crates fail structural audit if they expose or import private DSL-lowering internals instead of admitted DSL boundary types",
+        "structural audit rejects local recreation of Query-owned support, async/result, inspection, causal-explanation, or projection-fact lanes behind Worth-local public types",
+        "structural audit rejects runtime-local receipts, support rows, or closure posture lowering into Foundational vocabulary before a real export/report/support boundary"
+      ],
+      "instructions": "Turn the split into mechanical rules. Prefer visibility first, tests second. Do not accept social rules like 'we just won\u2019t import that.'",
+      "qa_focus": "Forbidden-import enforcement, Query-lane honesty, Foundational-lowering honesty, no Default/Option lifecycle cheating.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "Inspection Crate Seed Topology",
+      "owner": "worth-ui-inspection",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\facade",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\query",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\target",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\scope",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\receipt",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\posture"
+      ],
+      "acceptance": [
+        "worth-ui-inspection exposes no public module named internal, common, helpers, utils, data, manager, or debug",
+        "public modules separate contract types, sealed receipt/posture types, facade methods, support/admission types, or certification hooks instead of mixing responsibilities",
+        "adding the first real evidence family in 3.5 has an obvious home without reopening the public contract or renaming the crate",
+        "future human inspector UI remains excluded; this crate owns runtime inspection substrate only"
+      ],
+      "instructions": "Seed real internal structure now so later evidence, replay, and visual inspection land in honest homes instead of one giant inspection blob.",
+      "qa_focus": "Semantic module boundaries, no helper buckets, no chronology-shaped topology, no mixed public modules.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 8,
+      "title": "Certification and Anti-Bypass Proof",
+      "owner": "worth-ui-certification",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-certification\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-host-egui\\src"
+      ],
+      "acceptance": [
+        "compile-fail forgery tests prove external code cannot mint inspection receipts or unsupported-posture witnesses directly",
+        "repeated inspection queries against the same unsupported scope return equivalent typed posture rather than drifting through side effects or logs",
+        "anti-bypass regression proves a new adapter or consumer crate cannot avoid the inspection facade and still satisfy certification",
+        "the physical tree and certification surfaces teach where runtime truth, inspection authority, host mechanics, DSL ownership, Query binding, and certification live"
+      ],
+      "instructions": "Close the milestone with proof, not ceremony. Keep this architecture-focused and narrow; do not wait for later rich runtime feature scenarios to prove the boundary is real.",
+      "qa_focus": "Compile-fail proof, structural audit proof, anti-bypass behavior, no certification by documentation alone.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-06-26T22:06:18.689907+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:06:48.702046+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:08:52.189537+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:09:22.199708+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:09:43.709843+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:10:13.718985+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:10:59.616735+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:11:29.626169+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:12:13.931059+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:12:43.942831+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:13:17.380584+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:13:47.391094+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:14:08.952400+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:14:38.963248+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:15:11.760429+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:15:41.773725+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:16:04.075986+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:16:34.088683+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:16:55.307223+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:17:25.317091+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:17:46.639349+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:18:16.651923+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:18:37.662474+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:19:07.672345+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:19:28.057922+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:19:58.069378+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:20:19.720960+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:20:49.731426+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:21:09.952756+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:21:39.965212+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T16:23:17.3027212-06:00",
+      "event": "review_failed",
+      "detail": "phase 1 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:23:33.606211+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:24:03.622474+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T16:29:42.2687724-06:00",
+      "event": "repair_in_progress",
+      "detail": "phase 1 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:29:55.435528+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:30:25.451144+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:42:46.180741+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:48:42.989664+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0x92 in position 18775: invalid start byte: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:49:41.260860+00:00",
+      "event": "runner_recovery_repaired_state_encoding",
+      "detail": "normalized state and backup to utf-8; preserved phase 1 review cursor",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:49:59.430930+00:00",
+      "event": "runner_validate_passed",
+      "detail": "python automation\\phase_runner\\runner.py automation\\phase_runner\\worth-ui-milestone-3.1.json --validate",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:50:07.653207+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:50:37.664157+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:52:59.531510+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:53:29.542402+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:54:49.934519+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:55:19.947406+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:55:57.234232+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:56:27.244273+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T22:59:19.074643+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T22:59:49.085455+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:02:10.907313+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:02:40.934961+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:07:13.516441+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:07:43.536181+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:11:29.209136+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:11:59.219566+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:12:16.460157+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:12:46.472532+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:13:49.912262+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:14:19.925368+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:14:59.133226+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:15:29.143104+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:16:06.771035+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:16:36.785739+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:18:03.769888+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:18:33.781228+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:20:33.106402+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:21:03.123491+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:22:32.554501+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:23:02.565731+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:23:39.006156+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:24:09.016931+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:25:07.732004+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:25:37.742144+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:26:01.431982+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:26:31.454525+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:27:04.731766+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:27:34.751862+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:29:09.250594+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:29:39.266534+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 2 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:30:59.709886+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 2 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:31:29.728328+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:35:09.993339+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:35:40.003343+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:36:39.545308+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:38:22.463882+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0x92 in position 21436: invalid start byte: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:40:00.994081+00:00",
+      "event": "runner_recovery_state_repaired",
+      "detail": "re-encoded state as utf-8, recovered phase 3 plan marker from cp1252 backup, preserved plan cursor",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:40:17.462814+00:00",
+      "event": "runner_recovery_validation",
+      "detail": "python automation\\phase_runner\\runner.py automation\\phase_runner\\worth-ui-milestone-3.1.json --validate => state file is valid",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:40:24.665914+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:41:53.974008+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0x92 in position 21437: invalid start byte: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:43:13.550600+00:00",
+      "event": "runner_recovery_state_repaired",
+      "detail": "normalized state and backup to utf-8, preserved phase 3 plan cursor, kept standard note buckets as arrays",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:43:30.312199+00:00",
+      "event": "runner_recovery_validation",
+      "detail": "python automation\\phase_runner\\runner.py automation\\phase_runner\\worth-ui-milestone-3.1.json --validate => state file is valid",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:43:39.666400+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:45:13.108917+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0x92 in position 21437: invalid start byte: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:45:44.113864+00:00",
+      "event": "runner_recovery_state_repaired",
+      "detail": "normalized recovery source backup to utf-8 and preserved phase 3 plan cursor",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:45:56.683048+00:00",
+      "event": "runner_recovery_validation",
+      "detail": "python automation\\phase_runner\\runner.py automation\\phase_runner\\worth-ui-milestone-3.1.json --validate => state file is valid",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:46:05.177017+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:46:35.187666+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:47:30.942795+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:48:00.954973+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:53:39.344753+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:54:09.362483+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T23:57:57.611965+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-26T23:58:27.628312+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T00:11:56.211790+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T00:12:26.221082+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T00:14:38.186396+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T00:15:08.198162+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T00:24:12.885388+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T00:24:42.895205+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T00:27:47.910314+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T00:28:17.921190+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T00:29:15.688768+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T00:29:45.698579+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-26T18:32:51-06:00",
+      "phase": 3,
+      "turn": "review",
+      "event": "qa_failed",
+      "summary": "worth-ui facade still hand-owns lifecycle inventory assembly"
+    },
+    {
+      "at": "2026-06-27T00:33:06.593813+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T00:33:36.604788+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T00:33:43.118635+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 repair",
+      "exit_code": 1
+    },
+    {
+      "at": "2026-06-27T00:33:43.126383+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "RunnerFailure: codex exited with 1: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T00:33:49.334599+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 1
+    }
+  ],
+  "completed_at": null
+}

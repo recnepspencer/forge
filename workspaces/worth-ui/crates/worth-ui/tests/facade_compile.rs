@@ -1,26 +1,43 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
+// Preferred public architecture lives on named facade submodules.
+// Root-level `worth_ui::facade::*` coverage remains here only as compatibility residue.
+
 #[test]
-fn facade_only_empty_app_compiles() {
-    facade_compile_pass("tests/ui/facade/pass/empty_app_uses_only_facade.rs");
+fn named_app_surface_empty_app_compiles() {
+    facade_compile_pass("tests/ui/facade/named_surface_pass/empty_app_uses_named_app_surface.rs");
 }
 
 #[test]
-fn facade_identity_ids_compile() {
-    facade_compile_pass("tests/ui/facade/pass/identity_ids_use_only_facade.rs");
+fn named_inspection_surface_compiles() {
+    facade_compile_pass(
+        "tests/ui/facade/named_surface_pass/inspection_query_uses_named_inspection_surface.rs",
+    );
 }
 
 #[test]
-fn facade_command_registration_compiles() {
-    facade_compile_pass("tests/ui/facade/pass/command_registration_uses_only_facade.rs");
+fn compat_root_empty_app_compiles() {
+    facade_compile_pass("tests/ui/facade/compat_pass/empty_app_uses_only_facade.rs");
 }
 
 #[test]
-fn facade_component_registration_compiles() {
-    facade_compile_pass("tests/ui/facade/pass/component_registration_uses_only_facade.rs");
+fn compat_root_identity_ids_compile() {
+    facade_compile_pass("tests/ui/facade/compat_pass/identity_ids_use_only_facade.rs");
 }
 
 #[test]
-fn facade_surface_registration_compiles() {
-    facade_compile_pass("tests/ui/facade/pass/surface_registration_uses_only_facade.rs");
+fn compat_root_command_registration_compiles() {
+    facade_compile_pass("tests/ui/facade/compat_pass/command_registration_uses_only_facade.rs");
+}
+
+#[test]
+fn compat_root_component_registration_compiles() {
+    facade_compile_pass("tests/ui/facade/compat_pass/component_registration_uses_only_facade.rs");
+}
+
+#[test]
+fn compat_root_surface_registration_compiles() {
+    facade_compile_pass("tests/ui/facade/compat_pass/surface_registration_uses_only_facade.rs");
 }
 
 #[test]
@@ -104,13 +121,6 @@ fn direct_app_snapshot_constructor_fails() {
 fn internal_builder_module_import_fails() {
     facade_compile_fail(
         "tests/ui/facade/topology/internal_modules/internal_builder_module_import_fails.rs",
-    );
-}
-
-#[test]
-fn internal_app_module_import_fails() {
-    facade_compile_fail(
-        "tests/ui/facade/topology/internal_modules/internal_app_module_import_fails.rs",
     );
 }
 
@@ -316,11 +326,12 @@ fn surface_registry_type_not_publicly_importable() {
 }
 
 fn facade_compile_pass(fixture_path: &str) {
-    let tests = trybuild::TestCases::new();
+    let tests = trybuild_support::new_test_cases();
     tests.pass(fixture_path);
 }
 
 fn facade_compile_fail(fixture_path: &str) {
-    let tests = trybuild::TestCases::new();
+    let tests = trybuild_support::new_test_cases();
     tests.compile_fail(fixture_path);
 }
+

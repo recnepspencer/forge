@@ -1,0 +1,16 @@
+error[E0308]: mismatched types
+  --> tests/fixtures/replay_undo_semantic_graph/spatial_replay_scope_not_from_raw_stage_index_identity.rs:15:9
+   |
+12 |     let _ = lower_spatial_replay_scope_identity(
+   |             ----------------------------------- arguments to this function are incorrect
+...
+15 |         raw_stage_index_identity,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ expected `&WorkloadEvidenceStageIndexProduct`, found `&str`
+   |
+   = note: expected reference `&WorkloadEvidenceStageIndexProduct`
+              found reference `&str`
+note: function defined here
+  --> $WORKSPACE/crates/worth-spatial/src/replay_undo_semantic_graph/lowering/replay_lowering.rs
+   |
+   | pub fn lower_spatial_replay_scope_identity(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -60,6 +60,47 @@ pub mod platform {
             FallbackDisposition, FallbackProofClass, PrecisionBudgetFallbackRecord,
             PrecisionEscalationCause, PrecisionFallbackRecord, PrecisionRegime,
         };
+        pub mod replay_undo_semantic_graph {
+            pub use crate::data::authority::{
+                admit_replay_scope_identity, admit_undo_scope_identity, ReplayScopeIdentity,
+                ReplayScopeIdentityInput, ReplayUndoSemanticGraphEquivalenceBasis,
+                ReplayUndoSemanticGraphLocalityScope, ReplayUndoSemanticGraphPriorProofClass,
+                ReplayUndoSemanticGraphPriorProofIdentity,
+                ReplayUndoSemanticGraphStageIndexIdentity, ReplayUndoSemanticGraphTouchedSubject,
+                ReplayUndoTransactionScopeClaim, ReplayUndoTransactionScopeKind, UndoScopeIdentity,
+                UndoScopeIdentityInput,
+            };
+        }
+        pub mod touched_graph_conflict {
+            pub use crate::data::authority::{
+                admit_conflict_locality_identity, admit_conflict_overlap_identity,
+                admit_conflict_participant_identity, admit_conflict_routing_contract,
+                ConflictAspectClass, ConflictLocalityIdentity, ConflictOverlapCategory,
+                ConflictOverlapIdentity, ConflictOverlapIdentityInput,
+                ConflictParticipantAuthority, ConflictParticipantIdentity,
+                ConflictParticipantIdentityInput, ConflictPriorProofIdentity,
+                ConflictPriorProofInput, ConflictRoutingContract, ConflictRoutingPosture,
+                ConflictRoutingVocabularyError, ConflictTransactionProofInput,
+            };
+        }
+        #[cfg(feature = "conflict-routing-internal-authority")]
+        #[doc(hidden)]
+        pub mod touched_graph_conflict_internal {
+            pub use crate::data::authority::touched_graph_conflict::internal_sources::{
+                admit_conflict_evidence_participant_identity_from_digest,
+                admit_conflict_spatial_touch_authority_locality_identity_from_digest,
+                admit_conflict_topology_touched_closure_locality_identity_from_digest,
+                admit_conflict_validator_participant_identity_from_digest,
+            };
+        }
+        #[doc(hidden)]
+        pub mod replay_undo_semantic_graph_internal {
+            pub use crate::data::authority::{
+                admit_replay_undo_stage_index_identity,
+                admit_spatial_evidence_lookup_prior_proof_identity,
+                admit_topology_derived_invalidation_prior_proof_identity,
+            };
+        }
         pub use crate::data::authority::topology_class::TopologyClass;
         pub use crate::data::authority::touched_graph_basis::{
             worth_topology_touched_graph_digest, WorthTopologyGraphLifecyclePosture,

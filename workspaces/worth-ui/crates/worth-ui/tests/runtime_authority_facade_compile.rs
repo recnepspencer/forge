@@ -1,9 +1,11 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 fn runtime_authority_compile_pass(path: &str) {
-    trybuild::TestCases::new().pass(path);
+    trybuild_support::new_test_cases().pass(path);
 }
 
 fn runtime_authority_compile_fail(path: &str) {
-    trybuild::TestCases::new().compile_fail(path);
+    trybuild_support::new_test_cases().compile_fail(path);
 }
 
 #[test]
@@ -346,3 +348,4 @@ fn node_replacement_counters_are_not_publicly_mintable() {
         "tests/ui/runtime_authority/fail/node_replacement_counters_not_publicly_mintable.rs",
     );
 }
+

@@ -1,0 +1,22 @@
+error: cannot construct `EvidenceLookupInputAdmissionRequest<'_>` with struct literal syntax due to private fields
+ --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_input_admission/struct_literals/request_not_hand_filled.rs:4:13
+  |
+4 |     let _ = EvidenceLookupInputAdmissionRequest {
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         spatial_touch_authority: (),
+  |         --------------------------- private field
+  |
+  = note: ...and other private fields `stage`, `receipt_family`, `stage_receipt_digest`, `stage_receipt_spatial_touch_digest`, `topology_seed` and `query_evidence` that were not provided
+help: you might have meant to use the `from_spatial_touch_authority` associated function
+  |
+4 -     let _ = EvidenceLookupInputAdmissionRequest {
+5 -         spatial_touch_authority: (),
+6 -     };
+4 +     let _ = EvidenceLookupInputAdmissionRequest::from_spatial_touch_authority(_);
+  |
+
+error[E0308]: mismatched types
+ --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_input_admission/struct_literals/request_not_hand_filled.rs:5:34
+  |
+5 |         spatial_touch_authority: (),
+  |                                  ^^ expected `&SpatialGeometryEvidenceTouchAuthority`, found `()`

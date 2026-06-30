@@ -1,9 +1,11 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 fn runtime_reload_counter_boundary_pass(path: &str) {
-    trybuild::TestCases::new().pass(path);
+    trybuild_support::new_test_cases().pass(path);
 }
 
 fn runtime_reload_counter_boundary_fail(path: &str) {
-    trybuild::TestCases::new().compile_fail(path);
+    trybuild_support::new_test_cases().compile_fail(path);
 }
 
 #[test]
@@ -26,3 +28,4 @@ fn raw_reload_counter_receipt_cannot_lower_to_foundational() {
         "tests/ui/runtime_reload_counter_boundary/fail/raw_reload_counter_receipt_cannot_lower_to_foundational.rs",
     );
 }
+

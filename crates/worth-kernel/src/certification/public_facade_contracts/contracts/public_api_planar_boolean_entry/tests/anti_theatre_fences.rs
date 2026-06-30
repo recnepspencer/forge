@@ -144,6 +144,7 @@ fn rebuilt_workload(
             projection: harness.workload.projection().clone(),
             transform: harness.workload.transform().clone(),
             retained_replay: harness.workload.retained_replay().clone(),
+            batch_admission_execution: harness.workload.batch_admission_execution().cloned(),
             diagnostics: harness.workload.diagnostics().clone(),
             response: harness.workload.response().clone(),
             evidence_ledger: ledger,

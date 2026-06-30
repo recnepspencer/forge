@@ -10,13 +10,13 @@ categories = ["data-structures", "science"]
 
 [dependencies]
 arc-swap = "1"
-forge-foundational.workspace = true
-forge-proof.workspace = true
-forge-relational.workspace = true
-forge-runtime-bridge.workspace = true
-forge-signal.workspace = true
-serde.workspace = true
-serde_json.workspace = true
+forge-foundational = { path = "../forge-foundational" }
+forge-proof = { path = "../forge-proof" }
+forge-relational = { path = "../forge-relational" }
+forge-runtime-bridge = { path = "../forge-runtime-bridge" }
+forge-signal = { path = "../forge-signal" }
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = "1"
 sha2 = "0.10"
 proc-macro2 = { version = "1", features = ["span-locations"] }
 syn = { version = "2", features = ["full", "visit"] }

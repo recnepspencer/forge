@@ -8,7 +8,7 @@ note: if you're trying to build a new `WorthUiFrameCostCounter` consider using o
       WorthUiFrameCostCounter::count
       WorthUiFrameCostCounter::authoritative_mutation_count
       WorthUiFrameCostCounter::elapsed_time_auxiliary
- --> src/runtime/measurement/frame_cost_counter.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/measurement/frame_cost_counter.rs
   |
   |     pub fn count(name: &'static str, value: u64) -> Self {
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

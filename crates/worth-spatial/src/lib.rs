@@ -66,18 +66,46 @@
 #![forbid(unsafe_code)]
 #![cfg_attr(test, allow(dead_code, unused_imports))]
 
+#[cfg(test)]
+extern crate self as worth_spatial;
+
 mod anchor_selection;
 mod authored_refs;
 mod bindings;
 pub mod certification;
 mod placement;
 mod planar_contracts;
+#[cfg(test)]
+#[path = "certification/public_facade_contracts/contracts/evidence_lookup_diagnostics/mod.rs"]
+mod public_api_evidence_lookup_diagnostics;
+#[cfg(test)]
+#[path = "certification/public_facade_contracts/contracts/evidence_lookup_public_closeout/mod.rs"]
+mod public_api_evidence_lookup_public_closeout;
+#[cfg(test)]
+#[path = "certification/public_facade_contracts/contracts/evidence_lookup_query_consumer_kit/mod.rs"]
+mod public_api_evidence_lookup_query_consumer_kit;
+#[cfg(test)]
+#[path = "certification/public_facade_contracts/contracts/evidence_lookup_query_surface_matrix/mod.rs"]
+mod public_api_evidence_lookup_query_surface_matrix;
+#[cfg(test)]
+#[path = "certification/public_facade_contracts/contracts/evidence_lookup_source_firewall/mod.rs"]
+mod public_api_evidence_lookup_source_firewall;
+#[cfg(test)]
+#[path = "certification/public_facade_contracts/contracts/evidence_lookup_stage_cutover/mod.rs"]
+mod public_api_evidence_lookup_stage_cutover;
+#[cfg(test)]
+#[path = "certification/public_facade_contracts/contracts/evidence_lookup_workload_cutover/mod.rs"]
+mod public_api_evidence_lookup_workload_cutover;
 mod query_adoption;
 mod query_aspect_contract;
+mod replay_family_catalog;
+pub mod replay_undo_semantic_graph;
 #[cfg(test)]
 mod structure_guard;
 #[cfg(test)]
 mod test_support;
+pub mod touched_graph_conflict;
+mod undo_family_catalog;
 mod witness_resolution;
 mod workload_platform;
 

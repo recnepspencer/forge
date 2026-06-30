@@ -1,9 +1,11 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 fn runtime_source_ingress_pass(path: &str) {
-    trybuild::TestCases::new().pass(path);
+    trybuild_support::new_test_cases().pass(path);
 }
 
 fn runtime_source_ingress_fail(path: &str) {
-    trybuild::TestCases::new().compile_fail(path);
+    trybuild_support::new_test_cases().compile_fail(path);
 }
 
 #[test]
@@ -26,3 +28,4 @@ fn raw_watcher_event_cannot_declare_dependency_impact() {
         "tests/ui/runtime_source_ingress/fail/raw_watcher_event_cannot_declare_dependency_impact.rs",
     );
 }
+

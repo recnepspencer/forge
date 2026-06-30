@@ -8,7 +8,6 @@ license.workspace = true
 workspace = true
 
 [dependencies]
-forge-ui-types = { workspace = true }
 forge-ui-theme  = { workspace = true }
 egui            = { workspace = true }
 egui_extras     = { version = "0.31", features = ["svg", "image"] }

@@ -39,11 +39,11 @@ pub(crate) fn validate_loop_reconstruction_split_consumption_input(
         "loop reconstruction requires split request lineage",
     )?;
     reject_missing(
-        downstream.spatial_lookup_key(),
+        downstream.lookup_execution_receipt_digest(),
         Kind::MissingSpatialLookupProduct,
-        "spatial lookup product",
+        "lookup execution receipt",
         counters,
-        "loop reconstruction must preserve downstream spatial lookup authority",
+        "loop reconstruction must preserve downstream receipt-backed lookup execution proof",
     )
 }
 

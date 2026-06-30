@@ -9,7 +9,7 @@ error[E0308]: mismatched types
    = note: expected struct `SettingDescriptor`
               found struct `HashMap<String, String>`
 note: method defined here
-  --> src/facade/builder.rs
+  --> $WORKSPACE/crates/worth-ui-runtime/src/facade/app_builder.rs
    |
    |     pub fn register_setting(mut self, descriptor: SettingDescriptor) -> Self {
    |            ^^^^^^^^^^^^^^^^

@@ -2,6 +2,7 @@ use super::{
     TopologySeedCounters, TopologySeedEntityIdentities, TopologySeedKind,
     TopologySeedNeighborhoodReceipt, TopologySeedQueryReceipts, TopologySeedTopologyPosture,
 };
+use crate::brep::topology_graph::TopologyView;
 use crate::validation::TopologyValidationReport;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,5 +91,29 @@ impl TopologySeedReceipt {
 
     pub fn can_enter_spatial_binding(&self) -> bool {
         true
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TopologySeedBuiltTopology {
+    topology: TopologyView,
+    receipt: TopologySeedReceipt,
+}
+
+impl TopologySeedBuiltTopology {
+    pub fn new(topology: TopologyView, receipt: TopologySeedReceipt) -> Self {
+        Self { topology, receipt }
+    }
+
+    pub fn topology(&self) -> &TopologyView {
+        &self.topology
+    }
+
+    pub fn receipt(&self) -> &TopologySeedReceipt {
+        &self.receipt
+    }
+
+    pub fn into_parts(self) -> (TopologyView, TopologySeedReceipt) {
+        (self.topology, self.receipt)
     }
 }

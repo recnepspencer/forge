@@ -254,6 +254,7 @@ fn rebuild_right_workload(
         projection: right.projection().clone(),
         transform: right.transform().clone(),
         retained_replay: right.retained_replay().clone(),
+        batch_admission_execution: right.batch_admission_execution().cloned(),
         diagnostics: right.diagnostics().clone(),
         response: right.response().clone(),
         evidence_ledger: ledger,

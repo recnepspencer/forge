@@ -1,7 +1,9 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 #[test]
-fn facade_runtime_outcome_projection_registration_compiles() {
+fn compat_root_runtime_outcome_projection_registration_compiles() {
     facade_compile_pass(
-        "tests/ui/facade/pass/runtime_outcome_projection_registration_uses_only_facade.rs",
+        "tests/ui/facade/compat_pass/runtime_outcome_projection_registration_uses_only_facade.rs",
     );
 }
 
@@ -34,11 +36,12 @@ fn runtime_outcome_projection_registry_type_not_publicly_importable() {
 }
 
 fn facade_compile_pass(fixture_path: &str) {
-    let tests = trybuild::TestCases::new();
+    let tests = trybuild_support::new_test_cases();
     tests.pass(fixture_path);
 }
 
 fn facade_compile_fail(fixture_path: &str) {
-    let tests = trybuild::TestCases::new();
+    let tests = trybuild_support::new_test_cases();
     tests.compile_fail(fixture_path);
 }
+

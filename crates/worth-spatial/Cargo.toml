@@ -20,16 +20,16 @@ test-support-lowering = []
 forge-foundational.workspace = true
 forge-proof.workspace = true
 forge-query.workspace = true
+forge-relational.workspace = true
+forge-runtime-bridge.workspace = true
 worth-geom.workspace = true
 worth-math.workspace = true
 worth-primitives.workspace = true
 worth-topo = { workspace = true }
-schema = { package = "worth-schema", path = "../worth-schema" }
+schema = { package = "worth-schema", path = "../worth-schema", features = ["conflict-routing-internal-authority"] }
 serde_json.workspace = true
 
 [dev-dependencies]
-forge-relational.workspace = true
-forge-runtime-bridge.workspace = true
 trybuild.workspace = true
 worth-kernel.workspace = true
 

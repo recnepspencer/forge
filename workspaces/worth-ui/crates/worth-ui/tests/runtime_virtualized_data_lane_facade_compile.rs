@@ -1,9 +1,11 @@
+#[path = "trybuild_support.rs"]
+mod trybuild_support;
 fn runtime_virtualized_data_lane_compile_pass(path: &str) {
-    trybuild::TestCases::new().pass(path);
+    trybuild_support::new_test_cases().pass(path);
 }
 
 fn runtime_virtualized_data_lane_compile_fail(path: &str) {
-    trybuild::TestCases::new().compile_fail(path);
+    trybuild_support::new_test_cases().compile_fail(path);
 }
 
 #[test]
@@ -47,3 +49,4 @@ fn raw_query_string_cannot_execute_virtualized_data_lane() {
         "tests/ui/runtime_authority/fail/raw_query_string_cannot_execute_virtualized_data_lane.rs",
     );
 }
+

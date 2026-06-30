@@ -7,7 +7,7 @@ error[E0308]: mismatched types
    |      arguments to this method are incorrect
    |
 note: method defined here
-  --> src/capability/registry/component/component_descriptor.rs
+  --> $WORKSPACE/crates/worth-ui-runtime/src/capability/registry/component/component_descriptor.rs
    |
    |     pub fn with_theme_token_dependency(mut self, token_id: ThemeTokenId) -> Self {
    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^

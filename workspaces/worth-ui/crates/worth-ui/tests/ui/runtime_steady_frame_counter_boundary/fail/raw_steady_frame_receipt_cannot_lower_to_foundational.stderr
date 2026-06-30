@@ -9,7 +9,7 @@ error[E0308]: mismatched types
   = note: expected reference `&WorthUiCertifiedFrameExecutionReceipt`
              found reference `&WorthUiFrameExecutionReceipt`
 note: associated function defined here
- --> src/runtime/steady_frame_counter_boundary/foundational_bridge.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/steady_frame_counter_boundary/foundational_bridge.rs
   |
   |     pub fn lower_counter_receipts(
   |            ^^^^^^^^^^^^^^^^^^^^^^

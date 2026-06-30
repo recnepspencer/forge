@@ -1,4 +1,5 @@
-use worth_ui::facade::{CapabilitySnapshot, SnapshotMetrics, WorthUi};
+use worth_ui::facade::app::WorthUi;
+use worth_ui::facade::diagnostics::{CapabilitySnapshot, SnapshotMetrics};
 
 #[test]
 fn equivalent_builder_inputs_freeze_to_equivalent_snapshots() {

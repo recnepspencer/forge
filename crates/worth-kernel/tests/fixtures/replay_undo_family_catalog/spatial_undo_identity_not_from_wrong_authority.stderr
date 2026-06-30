@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/fixtures/replay_undo_family_catalog/spatial_undo_identity_not_from_wrong_authority.rs:6:48
+  |
+6 |     let _ = admit_spatial_undo_family_identity(authority);
+  |             ---------------------------------- ^^^^^^^^^ expected `SpatialUndoFamilyIdentityAuthority`, found `SpatialReplayFamilyIdentityAuthority`
+  |             |
+  |             arguments to this function are incorrect
+  |
+note: function defined here
+ --> $WORKSPACE/crates/worth-spatial/src/undo_family_catalog/family_identity.rs
+  |
+  | pub fn admit_spatial_undo_family_identity(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

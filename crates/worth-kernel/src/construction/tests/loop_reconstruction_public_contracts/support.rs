@@ -194,6 +194,8 @@ pub(super) fn real_loop_candidate_boundary(
         ),
     };
     let downstream_consumption = completed_split_handoff
+        .admit_batch_execution_cluster()
+        .expect("real split evidence should admit batch execution cluster")
         .admit_downstream_split_consumption(
             decision_log_receipt,
             validation,

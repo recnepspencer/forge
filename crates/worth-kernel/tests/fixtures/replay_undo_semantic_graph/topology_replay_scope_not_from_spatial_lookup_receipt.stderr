@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/fixtures/replay_undo_semantic_graph/topology_replay_scope_not_from_spatial_lookup_receipt.rs:10:71
+   |
+10 |     let _ = lower_topology_replay_scope_identity(touched_graph_basis, spatial_lookup_receipt);
+   |             ------------------------------------                      ^^^^^^^^^^^^^^^^^^^^^^ expected `&DerivedInvalidationExecutionReceipt`, found `&EvidenceLookupExecutionReceipt`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected reference `&DerivedInvalidationExecutionReceipt`
+              found reference `&EvidenceLookupExecutionReceipt`
+note: function defined here
+  --> $WORKSPACE/crates/worth-topo/src/replay_undo_semantic_graph/lowering.rs
+   |
+   | pub fn lower_topology_replay_scope_identity(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

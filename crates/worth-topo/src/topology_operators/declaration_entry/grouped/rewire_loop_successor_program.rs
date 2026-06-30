@@ -14,6 +14,7 @@ use forge_relational::facade::identity::{EntityId, RelationId};
 use crate::query_domain::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
 use crate::topology_operators::{
     LoopSuccessorKind, TopologyDeclaredMutationSequence, TopologyDeclaredMutationSequenceBuilder,
+    TopologyDeclaredTouchedGraphBasisProof, TopologyTouchedOperatingWorld,
 };
 
 use super::super::shared::{canonical_entity_id, canonical_relation_id};
@@ -73,6 +74,18 @@ impl TopologyRewireLoopSuccessorProgramDeclaration {
 
     pub fn rewires(&self) -> &[TopologyLoopSuccessorRewireMember] {
         &self.rewires
+    }
+
+    pub fn declared_touched_basis_proof(
+        &self,
+        semantic_family_key: &'static str,
+        operating_world: TopologyTouchedOperatingWorld,
+    ) -> Result<TopologyDeclaredTouchedGraphBasisProof, ForgeQueryGraphTouchDescriptorDenial> {
+        TopologyDeclaredTouchedGraphBasisProof::from_mutation_sequence(
+            semantic_family_key,
+            &self.clone().declared_mutation_sequence(),
+            operating_world,
+        )
     }
 
     pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
@@ -220,7 +233,9 @@ mod tests {
 
     use super::{TopologyLoopSuccessorRewireMember, TopologyRewireLoopSuccessorProgramDeclaration};
     use crate::topology_operators::application::TopologyDeclarationMutationPayload;
-    use crate::topology_operators::{LoopSuccessorKind, TopologyDeclaredMutationSequenceBuilder};
+    use crate::topology_operators::{
+        LoopSuccessorKind, TopologyDeclaredMutationSequenceBuilder, TopologyTouchedOperatingWorld,
+    };
 
     #[test]
     fn declaration_reauthors_to_the_expected_successor_program_mutation_sequence() {
@@ -266,5 +281,30 @@ mod tests {
                 .map(|member| member.record().clone())
                 .collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn declaration_can_lower_declared_touched_basis_proof() {
+        let declaration = TopologyRewireLoopSuccessorProgramDeclaration::new(vec![
+            TopologyLoopSuccessorRewireMember::new(
+                RelationId::new(PartitionId::main(), 20, 1),
+                LoopSuccessorKind::Next,
+                EntityId::new(PartitionId::main(), 10, 1),
+                EntityId::new(PartitionId::main(), 11, 1),
+            ),
+        ]);
+
+        let proof = declaration
+            .declared_touched_basis_proof(
+                "topology.rewire_loop_successor_program",
+                TopologyTouchedOperatingWorld::mainline(),
+            )
+            .expect("declared touch proof should lower");
+
+        assert_eq!(
+            proof.semantic_family_key(),
+            "topology.rewire_loop_successor_program"
+        );
+        assert!(!proof.basis_digest().is_empty());
     }
 }

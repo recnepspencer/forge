@@ -10,7 +10,7 @@ use crate::topology_operators::{
     TopologyDeclaredMutationActionRef, TopologyDeclaredMutationSequence, TopologyMutationFamily,
     TOPOLOGY_OPERATOR_RELATION_COLLECTION,
 };
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 use crate::topology_operators::{
     TopologyMutationChangedScope, TopologyRewireLoopEndpointDeclaration,
     TopologySpliceRadialAdjacencyDeclaration,
@@ -24,10 +24,10 @@ use super::{
     TopologyTouchedEntity, TopologyTouchedGraphBasis, TopologyTouchedOperatingWorld,
     TopologyTouchedRelation,
 };
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 use super::{TopologyTouchedAspect, TopologyTouchedScope};
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 pub(crate) fn topology_rewire_loop_endpoint_touched_graph_basis(
     declaration: &TopologyRewireLoopEndpointDeclaration,
     operating_world: TopologyTouchedOperatingWorld,
@@ -48,7 +48,7 @@ pub(crate) fn topology_rewire_loop_endpoint_touched_graph_basis(
     )
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 pub(crate) fn topology_splice_radial_adjacency_touched_graph_basis(
     declaration: &TopologySpliceRadialAdjacencyDeclaration,
     operating_world: TopologyTouchedOperatingWorld,
@@ -298,7 +298,7 @@ fn lifecycle_posture_for_families(
     TopologyGraphLifecyclePosture::ExistingRelationRetarget
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 fn retarget_relation_basis(
     relation_id: forge_relational::facade::identity::RelationId,
     relation_kind: TopologyRelationKind,
@@ -318,7 +318,7 @@ fn retarget_relation_basis(
     })
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 fn touched_aspects_for_family(family: TopologyMutationFamily) -> Vec<TopologyTouchedAspect> {
     match family {
         TopologyMutationFamily::RewireLoopEndpoint => vec![
@@ -374,7 +374,7 @@ fn lifecycle_family_for_lifecycle(
     }
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support-lowering"))]
 pub(crate) fn test_basis_from_parts(
     entities: Vec<TopologyTouchedEntity>,
     relations: Vec<TopologyTouchedRelation>,
