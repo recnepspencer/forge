@@ -27,10 +27,16 @@ If the tests need hardening, update the JSON state file directly:
 
 - short `notes.findings`
 - cursor turn `test_repair_plan`
+- do not mark the phase `complete/passed` and leave `current` on
+  `test_review`, `test_repair_plan`, or `test_repair_implement`
 
 If the tests are already honest enough, update the JSON state file directly:
 
 - short `notes.done`
 - cursor turn `code_quality_review`
+- if the phase row is `status: complete` and `qa_status: passed`, you must
+  advance to `code_quality_review` now
+- never leave `current` on any same-phase `test_*` turn after deciding the test
+  lane is honest enough
 
 {contract}

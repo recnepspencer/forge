@@ -33,5 +33,11 @@ After implementation, update the JSON state file directly:
 - short `notes.verification`
 - cursor turn `test_review` if the hardened tests need re-review
 - cursor turn `code_quality_review` if the test lane is ready to close
+- do not leave `current` on `test_repair_implement` after writing the state
+- if this implementation makes the test lane honest enough and the phase row is
+  `status: complete` and `qa_status: passed`, you must move to `test_review` or
+  `code_quality_review` in the same write
+- if `current` still points at `test_repair_implement` after you decide the
+  hardening work is complete, that is a stale cursor and you must repair it
 
 {contract}
