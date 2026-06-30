@@ -187,6 +187,7 @@ pub enum WorkloadEvidenceLedgerError {
     MissingBooleanStage(WorkloadEvidenceStage),
     ManualBooleanStage(WorkloadEvidenceStage),
     CounterlessBooleanStage(WorkloadEvidenceStage),
+    SelectedLookupSliceExceedsScope(WorkloadEvidenceStage),
     MismatchedBooleanStageCounters(WorkloadEvidenceStage),
     MismatchedBooleanStage(WorkloadEvidenceStage),
     UnsupportedBooleanStage(WorkloadEvidenceStage),
@@ -242,6 +243,12 @@ impl WorkloadEvidenceLedgerError {
             Self::CounterlessBooleanStage(stage) => {
                 format!(
                     "workload evidence ledger cannot count {} without receipt-backed counters",
+                    stage.human_name()
+                )
+            }
+            Self::SelectedLookupSliceExceedsScope(stage) => {
+                format!(
+                    "selected lookup slice cannot include unrelated {} evidence",
                     stage.human_name()
                 )
             }

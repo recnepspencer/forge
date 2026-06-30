@@ -2,7 +2,8 @@ use super::super::admit_evidence_lookup_index_product;
 use crate::workload_platform::evidence_ledger::{
     receipt_backed_event_ledger_touch_authority_for_admission_tests,
     receipt_backed_touch_authority_for_admission_tests, BooleanEvidenceStageKind,
-    CompleteWorkloadEvidenceLedger, SelectedLookupSliceLedgerAssembly, WorkloadEvidenceStage,
+    CompleteWorkloadEvidenceLedger, SelectedLookupSliceLedger, SelectedLookupSliceLedgerAssembly,
+    WorkloadEvidenceStage,
 };
 use crate::workload_platform::evidence_lookup_family_catalog::{
     current_evidence_lookup_family_catalog, EvidenceLookupFamilyCatalogCloseout,
@@ -51,6 +52,10 @@ impl IndexProductSubject {
     }
 
     pub(super) fn dense_projection_consumption() -> Self {
+        Self::dense_projection_consumption_with_world("phase-5-projection-consumption-receipt")
+    }
+
+    pub(super) fn dense_projection_consumption_with_world(world: &'static str) -> Self {
         Self {
             catalog: current_evidence_lookup_family_catalog().expect("catalog closes"),
             stage: WorkloadEvidenceStage::BooleanOperandAProjectionConsumption,
@@ -58,7 +63,7 @@ impl IndexProductSubject {
                 EvidenceLookupStageReceiptFamilyIdentity::boolean_operand_projection_consumption(),
             authority: receipt_backed_touch_authority_for_admission_tests(
                 BooleanEvidenceStageKind::OperandAProjectionConsumption,
-                "phase-5-projection-consumption-receipt",
+                world,
             ),
         }
     }
@@ -101,6 +106,19 @@ impl IndexProductSubject {
     }
 }
 
+pub(super) fn selected_lookup_slice_for_plan(
+    selected_plan: &EvidenceLookupSelectedPlan,
+) -> SelectedLookupSliceLedger {
+    let authority = authority_for_stage(selected_plan.stage());
+    let stage_receipt = EvidenceLookupStageReceiptAdmission::from_spatial_touch_authority(
+        &authority,
+        receipt_family_for_stage(selected_plan.stage()),
+    );
+    SelectedLookupSliceLedgerAssembly::from_touch_authority(&authority, &stage_receipt)
+        .assemble_selected_lookup_slice()
+        .expect("assembled selected lookup ledger closes")
+}
+
 pub(super) fn complete_ledger_for_plan(
     selected_plan: &EvidenceLookupSelectedPlan,
 ) -> CompleteWorkloadEvidenceLedger {
@@ -119,11 +137,81 @@ pub(super) fn complete_ledger_for_plan(
         .expect("assembled lookup ledger closes")
 }
 
+pub(super) fn selected_lookup_slice_scope_error_for_plan(
+    selected_plan: &EvidenceLookupSelectedPlan,
+) -> crate::workload_platform::evidence_ledger::WorkloadEvidenceLedgerError {
+    let authority = authority_for_stage(selected_plan.stage());
+    let stage_receipt = EvidenceLookupStageReceiptAdmission::from_spatial_touch_authority(
+        &authority,
+        receipt_family_for_stage(selected_plan.stage()),
+    );
+    let unrelated = receipt_backed_touch_authority_for_admission_tests(
+        BooleanEvidenceStageKind::SharedPlaneIdentity,
+        "phase-7-index-broad-scan-unrelated-shared-plane",
+    );
+    SelectedLookupSliceLedgerAssembly::from_touch_authority(&authority, &stage_receipt)
+        .with_additional_boolean_receipt(&UnrelatedBooleanReceipt::from_touch_authority(&unrelated))
+        .assemble_selected_lookup_slice()
+        .expect_err("selected lookup slice must deny broad-scan residue")
+}
+
 pub(super) fn admitted_index_product(
     selected_plan: &EvidenceLookupSelectedPlan,
 ) -> super::super::EvidenceLookupIndexProduct {
-    admit_evidence_lookup_index_product(selected_plan, &complete_ledger_for_plan(selected_plan))
-        .expect("index product admits")
+    admit_evidence_lookup_index_product(
+        selected_plan,
+        &selected_lookup_slice_for_plan(selected_plan),
+    )
+    .expect("index product admits")
+}
+
+struct UnrelatedBooleanReceipt {
+    boolean_stage: BooleanEvidenceStageKind,
+    evidence_identity: String,
+    support: crate::workload_platform::evidence_ledger::WorkloadEvidenceSupport,
+    counters: crate::workload_platform::evidence_ledger::WorkloadEvidenceStageCounters,
+}
+
+impl UnrelatedBooleanReceipt {
+    fn from_touch_authority(
+        authority: &crate::workload_platform::evidence_ledger::SpatialGeometryEvidenceTouchAuthority,
+    ) -> Self {
+        Self {
+            boolean_stage: authority.boolean_stage(),
+            evidence_identity: authority.evidence_identity().to_string(),
+            support: authority.support(),
+            counters: authority.evidence_counters(),
+        }
+    }
+}
+
+impl crate::workload_platform::evidence_ledger::BooleanEvidenceReceipt for UnrelatedBooleanReceipt {
+    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
+        self.boolean_stage
+    }
+
+    fn evidence_identity(&self) -> &str {
+        &self.evidence_identity
+    }
+
+    fn evidence_support(
+        &self,
+    ) -> crate::workload_platform::evidence_ledger::WorkloadEvidenceSupport {
+        self.support
+    }
+
+    fn evidence_counters(
+        &self,
+    ) -> crate::workload_platform::evidence_ledger::WorkloadEvidenceStageCounters {
+        self.counters
+    }
+}
+
+impl crate::trusted_boolean_evidence_authority::Seal for UnrelatedBooleanReceipt {}
+
+impl crate::workload_platform::evidence_ledger::BooleanEvidenceRowAuthority
+    for UnrelatedBooleanReceipt
+{
 }
 
 fn authority_for_stage(
@@ -197,53 +285,4 @@ pub(super) fn real_support_pin() -> ForgeQueryGraphObligationSupportPin {
         ForgeQueryGraphObligationKind::OperatingContextGate,
         ForgeQueryGraphObligationSupportLane::WorthKernelPhaseChain,
     )])
-}
-
-struct UnrelatedBooleanReceipt {
-    boolean_stage: BooleanEvidenceStageKind,
-    evidence_identity: String,
-    support: crate::workload_platform::evidence_ledger::WorkloadEvidenceSupport,
-    counters: crate::workload_platform::evidence_ledger::WorkloadEvidenceStageCounters,
-}
-
-impl UnrelatedBooleanReceipt {
-    fn from_touch_authority(
-        authority: &crate::workload_platform::evidence_ledger::SpatialGeometryEvidenceTouchAuthority,
-    ) -> Self {
-        Self {
-            boolean_stage: authority.boolean_stage(),
-            evidence_identity: authority.evidence_identity().to_string(),
-            support: authority.support(),
-            counters: authority.evidence_counters(),
-        }
-    }
-}
-
-impl crate::workload_platform::evidence_ledger::BooleanEvidenceReceipt for UnrelatedBooleanReceipt {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        self.boolean_stage
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.evidence_identity
-    }
-
-    fn evidence_support(
-        &self,
-    ) -> crate::workload_platform::evidence_ledger::WorkloadEvidenceSupport {
-        self.support
-    }
-
-    fn evidence_counters(
-        &self,
-    ) -> crate::workload_platform::evidence_ledger::WorkloadEvidenceStageCounters {
-        self.counters
-    }
-}
-
-impl crate::trusted_boolean_evidence_authority::Seal for UnrelatedBooleanReceipt {}
-
-impl crate::workload_platform::evidence_ledger::BooleanEvidenceRowAuthority
-    for UnrelatedBooleanReceipt
-{
 }

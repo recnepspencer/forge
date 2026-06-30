@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `topology::facade::topology_compiled_product_admission`
+ --> src/certification/public_facade_contracts/compile_fail/public_topology_compiled_product_admission_not_exported.rs:1:23
+  |
+1 | use topology::facade::topology_compiled_product_admission::{
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `topology_compiled_product_admission` in `facade`

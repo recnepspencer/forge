@@ -5,7 +5,59 @@ use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use schema::facade::QueryAspectPath;
 use serde::{Deserialize, Serialize};
 
-use crate::projection::runtime_boundary::declared_query_surfaces::TopologyQuerySurfaceError;
+use crate::projection::runtime_boundary::declared_query_surfaces::{
+    TopologyQuerySurfaceError, TopologyQuerySurfaceErrorKind,
+};
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub(crate) struct TopologyHistoricalReadBasisMetadata {
+    read_basis: DerivedTopologyReadBasis,
+}
+
+impl TopologyHistoricalReadBasisMetadata {
+    pub(crate) const fn metadata_key() -> &'static str {
+        ".topology.historical_read_basis"
+    }
+
+    pub(crate) fn from_read_basis(read_basis: &DerivedTopologyReadBasis) -> Self {
+        Self {
+            read_basis: read_basis.clone(),
+        }
+    }
+
+    pub(super) fn from_refresh(
+        refresh: &ForgeQueryRetainedRefreshContext,
+    ) -> Result<Self, TopologyQuerySurfaceError> {
+        let key = ForgeQueryMutationMetadataKey::new(Self::metadata_key()).map_err(|error| {
+            TopologyQuerySurfaceError::with_kind(
+                TopologyQuerySurfaceErrorKind::RefreshMetadataDecodeFailed,
+                format!("query-derived refresh metadata key failed to admit: {error}"),
+            )
+        })?;
+        let Some(value) = refresh.refresh_metadata().get(&key) else {
+            return Err(TopologyQuerySurfaceError::with_kind(
+                TopologyQuerySurfaceErrorKind::MissingHistoricalReadBasisMetadata,
+                format!(
+                    "query-derived refresh context is missing `{}` metadata",
+                    Self::metadata_key()
+                ),
+            ));
+        };
+        serde_json::from_str(value.terminal_digest_text()).map_err(|error| {
+            TopologyQuerySurfaceError::with_kind(
+                TopologyQuerySurfaceErrorKind::RefreshMetadataDecodeFailed,
+                format!(
+                    "query-derived refresh metadata `{}` failed to decode: {error}",
+                    Self::metadata_key()
+                ),
+            )
+        })
+    }
+
+    pub(crate) fn read_basis(&self) -> &DerivedTopologyReadBasis {
+        &self.read_basis
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct TopologyQueryMutationEvidence {
@@ -45,36 +97,17 @@ impl TopologyQueryMutationEvidence {
         }
     }
 
-    pub(super) fn from_refresh(
-        refresh: &ForgeQueryRetainedRefreshContext,
-    ) -> Result<Self, TopologyQuerySurfaceError> {
-        let key = ForgeQueryMutationMetadataKey::new(Self::metadata_key()).map_err(|error| {
-            TopologyQuerySurfaceError::new(format!(
-                "query-derived refresh metadata key failed to admit: {error}"
-            ))
-        })?;
-        let Some(value) = refresh.refresh_metadata().get(&key) else {
-            return Err(TopologyQuerySurfaceError::new(format!(
-                "query-derived refresh context is missing `{}` metadata",
-                Self::metadata_key()
-            )));
-        };
-        serde_json::from_str(value.terminal_digest_text()).map_err(|error| {
-            TopologyQuerySurfaceError::new(format!(
-                "query-derived refresh metadata `{}` failed to decode: {error}",
-                Self::metadata_key()
-            ))
-        })
-    }
-
     pub(super) fn touched_aspects(&self) -> Result<Vec<Aspect>, TopologyQuerySurfaceError> {
         self.touched_aspect_paths
             .iter()
             .map(|path| {
                 let path = QueryAspectPath::from_str(path).ok_or_else(|| {
-                    TopologyQuerySurfaceError::new(format!(
+                    TopologyQuerySurfaceError::with_kind(
+                        TopologyQuerySurfaceErrorKind::UnsupportedTouchedAspect,
+                        format!(
                         "query-derived mutation metadata declared unsupported touched aspect `{path}`"
-                    ))
+                        ),
+                    )
                 })?;
                 Ok(path.into_aspect())
             })

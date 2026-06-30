@@ -27,15 +27,15 @@ Use the qa-loop skill and review the real implementation against:
 Review only. Do not fix yet.
 
 If the phase is not actually done, report the findings in chat with file/line
-references and update the JSON state only with a short marker:
+references and commit a short phase outcome through `state_tool.py apply`:
 
 - `status: regressed`
 - `qa_status: failed`
 - a short `notes.findings` summary
 - cursor turn `repair`
 
-If the phase is actually done, say so in chat and update the JSON state only
-with a short marker:
+If the phase is actually done, say so in chat and commit a short phase outcome
+through `state_tool.py apply`:
 
 - `status: complete`
 - `qa_status: passed`

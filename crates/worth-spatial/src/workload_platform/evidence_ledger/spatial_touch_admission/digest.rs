@@ -40,7 +40,8 @@ pub(super) fn spatial_geometry_evidence_touch_digest(
             support_digest_key(parts.support),
             evidence_counter_digest_key(parts.evidence_counters),
             lookup_counter_digest_key(parts.lookup_counters),
-            format!("stage-index-identity:{}", parts.stage_index_identity),
+            // The touch digest must follow the linked locality basis, not unrelated
+            // complete-ledger residue that only perturbs the broader stage index.
             format!("stage-link-set-identity:{}", parts.stage_link_set_identity),
             parts.counter_honesty.digest_key(),
             parts.operating_world.digest_key(),

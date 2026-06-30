@@ -12,8 +12,9 @@ use forge_query::facade::{
     ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewHandle,
     ForgeQueryLiveArtifactTarget, ForgeQueryLiveView, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
-use serde_json::Value;
+use serde_json::{json, Value};
 const QUERY_SURFACE_FAILURE_ROW_KEY: &str = "query_surface_error";
+const QUERY_SURFACE_FAILURE_KIND_KEY: &str = "query_surface_error_kind";
 
 const ENTITY_SURFACE: &str = ".topology.entities";
 const RELATION_SURFACE: &str = ".topology.relations";
@@ -49,16 +50,84 @@ pub(crate) use truth_surfaces::{
     declare_topology_materialized_surface, declare_topology_relation_live_view,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TopologyQuerySurfaceErrorKind {
+    Generic,
+    MissingHistoricalReadBasisMetadata,
+    RefreshMetadataDecodeFailed,
+    RetainedPayloadDecodeFailed,
+    CompiledProductAdmissionDenied,
+    CompiledProductFamilySelectionFailed,
+    CompiledProductIdentityLoweringFailed,
+    UnregisteredValidationReport,
+    UnsupportedTouchedAspect,
+}
+
+impl TopologyQuerySurfaceErrorKind {
+    pub(crate) const fn as_str(self) -> &'static str {
+        match self {
+            Self::Generic => "generic",
+            Self::MissingHistoricalReadBasisMetadata => "missing_historical_read_basis_metadata",
+            Self::RefreshMetadataDecodeFailed => "refresh_metadata_decode_failed",
+            Self::RetainedPayloadDecodeFailed => "retained_payload_decode_failed",
+            Self::CompiledProductAdmissionDenied => "compiled_product_admission_denied",
+            Self::CompiledProductFamilySelectionFailed => {
+                "compiled_product_family_selection_failed"
+            }
+            Self::CompiledProductIdentityLoweringFailed => {
+                "compiled_product_identity_lowering_failed"
+            }
+            Self::UnregisteredValidationReport => "unregistered_validation_report",
+            Self::UnsupportedTouchedAspect => "unsupported_touched_aspect",
+        }
+    }
+
+    fn from_str(value: &str) -> Option<Self> {
+        Some(match value {
+            "generic" => Self::Generic,
+            "missing_historical_read_basis_metadata" => Self::MissingHistoricalReadBasisMetadata,
+            "refresh_metadata_decode_failed" => Self::RefreshMetadataDecodeFailed,
+            "retained_payload_decode_failed" => Self::RetainedPayloadDecodeFailed,
+            "compiled_product_admission_denied" => Self::CompiledProductAdmissionDenied,
+            "compiled_product_family_selection_failed" => {
+                Self::CompiledProductFamilySelectionFailed
+            }
+            "compiled_product_identity_lowering_failed" => {
+                Self::CompiledProductIdentityLoweringFailed
+            }
+            "unregistered_validation_report" => Self::UnregisteredValidationReport,
+            "unsupported_touched_aspect" => Self::UnsupportedTouchedAspect,
+            _ => return None,
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct TopologyQuerySurfaceError {
+    kind: TopologyQuerySurfaceErrorKind,
     message: String,
 }
 
 impl TopologyQuerySurfaceError {
     pub(crate) fn new(message: impl Into<String>) -> Self {
+        Self::with_kind(TopologyQuerySurfaceErrorKind::Generic, message)
+    }
+
+    pub(crate) fn with_kind(
+        kind: TopologyQuerySurfaceErrorKind,
+        message: impl Into<String>,
+    ) -> Self {
         Self {
+            kind,
             message: message.into(),
         }
+    }
+
+    pub(crate) fn failure_payload(&self) -> Value {
+        json!({
+            QUERY_SURFACE_FAILURE_ROW_KEY: self.message,
+            QUERY_SURFACE_FAILURE_KIND_KEY: self.kind.as_str(),
+        })
     }
 }
 
@@ -69,6 +138,22 @@ impl fmt::Display for TopologyQuerySurfaceError {
 }
 
 impl std::error::Error for TopologyQuerySurfaceError {}
+
+pub(crate) fn decode_query_surface_failure_payload(
+    payload: &Value,
+    surface_name: &str,
+) -> Option<TopologyQuerySurfaceError> {
+    let message = payload.get(QUERY_SURFACE_FAILURE_ROW_KEY)?.as_str()?;
+    let kind = payload
+        .get(QUERY_SURFACE_FAILURE_KIND_KEY)
+        .and_then(Value::as_str)
+        .and_then(TopologyQuerySurfaceErrorKind::from_str)
+        .unwrap_or(TopologyQuerySurfaceErrorKind::RetainedPayloadDecodeFailed);
+    Some(TopologyQuerySurfaceError::with_kind(
+        kind,
+        format!("retained surface `{surface_name}` declared failure payload: {message}"),
+    ))
+}
 
 pub(crate) fn declare_topology_query_surfaces(
     workspace: &mut ForgeQueryWorkspace,

@@ -243,3 +243,62 @@ fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
         verified.read_basis().precision_budget_fallbacks.len()
     );
 }
+
+#[test]
+fn diagnostics_surface_fails_closed_without_historical_read_basis_metadata() {
+    let mut runtime = milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
+        .build();
+    let verified = seed_milestone_one_primitive_through_schema_execution(
+        &mut runtime,
+        "query-native-surfaces-missing-historical-basis",
+        &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+    )
+    .expect("verified primitive");
+    let read_view =
+        open_topology_read_view(&runtime, &verified.read_basis()).expect("read view should open");
+    let adapters = TopologyRuntimeAdapters::snapshot_read_only(
+        read_view,
+        verified.read_basis().snapshot().clone(),
+    );
+    let mut workspace = topology_runtime(
+        adapters,
+        "topology-declared-query-surfaces-missing-historical-basis",
+    )
+    .expect("query workspace should build");
+    let surfaces =
+        declare_topology_query_surfaces(&mut workspace).expect("query surfaces should declare");
+
+    let diagnostics_row: serde_json::Value =
+        materialize_declared_query_surface_row(&mut workspace, surfaces.diagnostics())
+            .expect("diagnostics row should materialize as retained payload");
+    let equivalence_row: serde_json::Value =
+        materialize_declared_query_surface_row(&mut workspace, surfaces.equivalence_contract())
+            .expect("equivalence row should materialize as retained payload");
+
+    assert!(
+        diagnostics_row["query_surface_error_kind"]
+            .as_str()
+            .is_some_and(|kind| kind == "missing_historical_read_basis_metadata"),
+        "diagnostics surface should preserve the missing historical read-basis authority denial kind: {diagnostics_row:?}",
+    );
+    assert!(
+        diagnostics_row["query_surface_error"]
+            .as_str()
+            .is_some_and(|message| message.contains(".topology.historical_read_basis")),
+        "diagnostics surface should fail closed when runtime-owned historical read-basis metadata is absent instead of rebuilding authority from retained rows: {diagnostics_row:?}",
+    );
+    assert!(
+        equivalence_row["query_surface_error_kind"]
+            .as_str()
+            .is_some_and(|kind| kind == "missing_historical_read_basis_metadata"),
+        "equivalence surface should preserve the topology authority denial kind instead of flattening it into a generic payload decode failure: {equivalence_row:?}",
+    );
+    assert!(
+        equivalence_row["query_surface_error"].as_str().is_some_and(|message| {
+            message.contains("declared failure payload")
+                && message.contains(".topology.historical_read_basis")
+        }),
+        "equivalence surface should refuse diagnostics-carried failure payloads as admitted topology input for the original authority reason: {equivalence_row:?}",
+    );
+}

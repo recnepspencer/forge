@@ -8,6 +8,7 @@ use super::error::{EvidenceLookupPublicCloseoutError, EvidenceLookupPublicCloseo
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EvidenceLookupPublicCloseoutAssemblyInput {
+    spatial_compiled_product_family_digest: String,
     family_stage_rows: Vec<EvidenceLookupPublicCloseoutFamilyStageRow>,
     query_surface_matrix: EvidenceLookupQuerySurfaceMatrixCloseout,
     query_consumer_kit: EvidenceLookupQueryConsumerKitCloseout,
@@ -17,6 +18,7 @@ pub struct EvidenceLookupPublicCloseoutAssemblyInput {
 
 impl EvidenceLookupPublicCloseoutAssemblyInput {
     pub(crate) fn admit(
+        spatial_compiled_product_family_digest: String,
         family_stage_rows: Vec<EvidenceLookupPublicCloseoutFamilyStageRow>,
         query_surface_matrix: EvidenceLookupQuerySurfaceMatrixCloseout,
         query_consumer_kit: EvidenceLookupQueryConsumerKitCloseout,
@@ -30,6 +32,7 @@ impl EvidenceLookupPublicCloseoutAssemblyInput {
             ));
         }
         Ok(Self {
+            spatial_compiled_product_family_digest,
             family_stage_rows,
             query_surface_matrix,
             query_consumer_kit,
@@ -40,6 +43,10 @@ impl EvidenceLookupPublicCloseoutAssemblyInput {
 
     pub fn family_stage_rows(&self) -> &[EvidenceLookupPublicCloseoutFamilyStageRow] {
         &self.family_stage_rows
+    }
+
+    pub fn spatial_compiled_product_family_digest(&self) -> &str {
+        &self.spatial_compiled_product_family_digest
     }
 
     pub const fn query_surface_matrix(&self) -> &EvidenceLookupQuerySurfaceMatrixCloseout {

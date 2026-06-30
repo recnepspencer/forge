@@ -8,7 +8,8 @@ use crate::replay_undo_transaction_boundary::{
 };
 
 use super::current_replay_undo_boundary_proof::{
-    test_current_replay_undo_boundary_packet_input, test_lower_replay_undo_boundary_proof_from_packet,
+    test_current_replay_undo_boundary_packet_input,
+    test_lower_replay_undo_boundary_proof_from_packet,
 };
 use super::tests_support::{ordinary_completed_split_handoff, with_replay_undo_scope_products};
 
@@ -18,16 +19,15 @@ fn replay_undo_boundary_proof_rejects_foreign_packet_stage_identity() {
     let current_input = test_current_replay_undo_boundary_packet_input(&split_boundary)
         .expect("current replay/undo packet input");
     let foreign_input = foreign_packet_input("phase13 foreign replay-undo packet stage");
-    let packet = admit_replay_undo_transaction_boundary_packet(
-        replay_undo_input_with_overrides(
-            &current_input,
-            foreign_input.stage_index_identity().clone(),
-            current_input.evidence_lookup_receipt_identity().clone(),
-        ),
-    )
+    let packet = admit_replay_undo_transaction_boundary_packet(replay_undo_input_with_overrides(
+        &current_input,
+        foreign_input.stage_index_identity().clone(),
+        current_input.evidence_lookup_receipt_identity().clone(),
+    ))
     .expect("foreign-stage packet should remain structurally admissible");
 
-    let topology_boundary = current_replay_undo_topology_boundary().expect("current topology boundary");
+    let topology_boundary =
+        current_replay_undo_topology_boundary().expect("current topology boundary");
     let error = test_lower_replay_undo_boundary_proof_from_packet(
         &split_boundary,
         topology_boundary.boundary_digest(),
@@ -46,16 +46,15 @@ fn replay_undo_boundary_proof_rejects_foreign_packet_lookup_identity() {
     let current_input = test_current_replay_undo_boundary_packet_input(&split_boundary)
         .expect("current replay/undo packet input");
     let foreign_input = foreign_packet_input("phase13 foreign replay-undo packet lookup");
-    let packet = admit_replay_undo_transaction_boundary_packet(
-        replay_undo_input_with_overrides(
-            &current_input,
-            current_input.stage_index_identity().clone(),
-            foreign_input.evidence_lookup_receipt_identity().clone(),
-        ),
-    )
+    let packet = admit_replay_undo_transaction_boundary_packet(replay_undo_input_with_overrides(
+        &current_input,
+        current_input.stage_index_identity().clone(),
+        foreign_input.evidence_lookup_receipt_identity().clone(),
+    ))
     .expect("foreign-lookup packet should remain structurally admissible");
 
-    let topology_boundary = current_replay_undo_topology_boundary().expect("current topology boundary");
+    let topology_boundary =
+        current_replay_undo_topology_boundary().expect("current topology boundary");
     let error = test_lower_replay_undo_boundary_proof_from_packet(
         &split_boundary,
         topology_boundary.boundary_digest(),
@@ -70,7 +69,8 @@ fn replay_undo_boundary_proof_rejects_foreign_packet_lookup_identity() {
 
 fn foreign_packet_input(label: &'static str) -> ReplayUndoTransactionBoundaryInput {
     let completed_split_handoff = ordinary_completed_split_handoff(label);
-    let topology_boundary = current_replay_undo_topology_boundary().expect("current topology boundary");
+    let topology_boundary =
+        current_replay_undo_topology_boundary().expect("current topology boundary");
     let topology_undo_scope = topology_boundary
         .lower_undo_scope_product()
         .expect("current topology undo scope");

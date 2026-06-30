@@ -1,18 +1,25 @@
+use schema::facade::platform::authority::compiled_product_semantic_graph::{
+    CompiledProductAuthorityTruthIdentity, CompiledProductEquivalencePolicyIdentity,
+    CompiledProductIdentity, CompiledProductReuseDecisionIdentity,
+};
 use schema::facade::platform::authority::{DerivedInvalidationTarget, MutationOrigin};
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use serde::{Deserialize, Serialize};
 
+use crate::compiled_product_family::{
+    current_topology_compiled_product_family_catalog,
+    digest_derived_validation_report as family_digest_derived_validation_report,
+    digest_interpreted_topology_view as family_digest_interpreted_topology_view,
+    digest_materialized_topology_view as family_digest_materialized_topology_view,
+    select_topology_compiled_product_family, DeterministicDigest, TopologyCompiledProductConsumer,
+    TopologyCompiledProductFamilyIdentity, TopologyCompiledProductLoweredIdentity,
+};
+use crate::derived_invalidation_compiled_product_admission::{
+    admit_topology_compiled_product_input, TopologyCompiledProductAdmissionRequest,
+};
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
-use crate::projection::diagnostic_surfaces::derived_read_diagnostics::triggered_invalidation_targets;
 use crate::validation::DerivedTopologyValidationReport;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DeterministicDigest {
-    pub algorithm: String,
-    pub digest_hex: String,
-    pub row_count: usize,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DerivedEquivalenceContractReport {
@@ -25,6 +32,12 @@ pub struct DerivedEquivalenceContractReport {
     pub triggered_invalidation_targets: Vec<DerivedInvalidationTarget>,
     pub precision_fallback_count: usize,
     pub precision_budget_fallback_count: usize,
+    authority_truth_identity: Option<CompiledProductAuthorityTruthIdentity>,
+    compiled_product_identity: Option<CompiledProductIdentity>,
+    equivalence_policy_identity: Option<CompiledProductEquivalencePolicyIdentity>,
+    topology_compiled_product_family_identity: Option<TopologyCompiledProductFamilyIdentity>,
+    topology_compiled_product_family_digest: Option<String>,
+    reuse_decision_identity: Option<CompiledProductReuseDecisionIdentity>,
     pub materialized_topology_digest: DeterministicDigest,
     pub interpreted_topology_digest: DeterministicDigest,
     pub derived_validation_digest: DeterministicDigest,
@@ -44,19 +57,19 @@ pub struct DerivedParityComparisonReport {
 pub fn digest_materialized_topology_view(
     materialized: &MaterializedTopologyView,
 ) -> DeterministicDigest {
-    digest_structured_value(materialized)
+    family_digest_materialized_topology_view(materialized)
 }
 
 pub fn digest_interpreted_topology_view(
     interpreted: &InterpretedTopologyView,
 ) -> DeterministicDigest {
-    digest_structured_value(interpreted)
+    family_digest_interpreted_topology_view(interpreted)
 }
 
 pub fn digest_derived_validation_report(
     validation: &DerivedTopologyValidationReport,
 ) -> DeterministicDigest {
-    digest_structured_value(validation)
+    family_digest_derived_validation_report(validation)
 }
 
 pub fn build_derived_equivalence_contract(
@@ -65,30 +78,54 @@ pub fn build_derived_equivalence_contract(
     interpreted: &InterpretedTopologyView,
     validation: &DerivedTopologyValidationReport,
 ) -> DerivedEquivalenceContractReport {
+    let catalog = current_topology_compiled_product_family_catalog();
+    let admitted = admit_topology_compiled_product_input(
+        &catalog,
+        TopologyCompiledProductAdmissionRequest::for_historical_read_basis(
+            TopologyCompiledProductConsumer::DerivedEquivalenceContractProjection,
+            read_basis,
+        ),
+    )
+    .expect("derived topology compiled-product admission");
+    let selected = select_topology_compiled_product_family(
+        &catalog,
+        admitted.clone().into_family_admitted_input(),
+    )
+    .expect("derived topology compiled-product family selection");
+    let lowered = selected
+        .compile_product_identity(materialized, interpreted, validation)
+        .expect("derived topology compiled-product family lowering");
+
     build_derived_equivalence_contract_report(
-        read_basis.snapshot().snapshot_id.0,
-        read_basis.branch_id().0.clone(),
+        admitted.source_authority_basis().authority_snapshot_id(),
+        admitted
+            .source_authority_basis()
+            .authority_branch_id()
+            .to_string(),
         read_basis.authoritative_mutation_origin(),
         read_basis.derivation_origin(),
-        read_basis
-            .authority
-            .truth_basis_identity
-            .mutation_digest_hex
-            .clone(),
-        read_basis
-            .authority
-            .truth_basis_identity
-            .touched_aspect_count,
-        triggered_invalidation_targets(read_basis),
-        read_basis.precision_fallbacks.len(),
-        read_basis.precision_budget_fallbacks.len(),
+        admitted
+            .source_authority_basis()
+            .truth_basis_digest_hex()
+            .to_string(),
+        admitted.source_authority_basis().touched_aspect_count(),
+        admitted
+            .locality_basis()
+            .triggered_invalidation_targets()
+            .to_vec(),
+        admitted.source_authority_basis().precision_fallback_count(),
+        admitted
+            .source_authority_basis()
+            .precision_budget_fallback_count(),
+        Some(selected.declaration().identity()),
+        Some(&lowered),
         materialized,
         interpreted,
         validation,
     )
 }
 
-pub fn build_derived_equivalence_contract_report(
+pub(crate) fn build_derived_equivalence_contract_report(
     authority_snapshot_id: u64,
     authority_branch_id: String,
     authoritative_mutation_origin: MutationOrigin,
@@ -98,6 +135,8 @@ pub fn build_derived_equivalence_contract_report(
     triggered_invalidation_targets: Vec<DerivedInvalidationTarget>,
     precision_fallback_count: usize,
     precision_budget_fallback_count: usize,
+    topology_compiled_product_family_identity: Option<TopologyCompiledProductFamilyIdentity>,
+    lowered_identity: Option<&TopologyCompiledProductLoweredIdentity>,
     materialized: &MaterializedTopologyView,
     interpreted: &InterpretedTopologyView,
     validation: &DerivedTopologyValidationReport,
@@ -112,6 +151,17 @@ pub fn build_derived_equivalence_contract_report(
         triggered_invalidation_targets,
         precision_fallback_count,
         precision_budget_fallback_count,
+        authority_truth_identity: lowered_identity
+            .map(|identity| identity.authority_truth_identity().clone()),
+        compiled_product_identity: lowered_identity
+            .map(|identity| identity.compiled_product_identity().clone()),
+        equivalence_policy_identity: lowered_identity
+            .map(|identity| identity.equivalence_policy_identity().clone()),
+        topology_compiled_product_family_identity,
+        topology_compiled_product_family_digest: lowered_identity
+            .map(|identity| identity.family_digest().to_string()),
+        reuse_decision_identity: lowered_identity
+            .map(|identity| identity.reuse_decision_identity().clone()),
         materialized_topology_digest: digest_materialized_topology_view(materialized),
         interpreted_topology_digest: digest_interpreted_topology_view(interpreted),
         derived_validation_digest: digest_derived_validation_report(validation),
@@ -122,8 +172,17 @@ pub fn compare_derived_equivalence_contracts(
     lhs: &DerivedEquivalenceContractReport,
     rhs: &DerivedEquivalenceContractReport,
 ) -> DerivedParityComparisonReport {
-    let authority_identity_match = lhs.authority_snapshot_id == rhs.authority_snapshot_id
+    let shared_identity_basis_present =
+        has_shared_identity_basis(lhs) && has_shared_identity_basis(rhs);
+    let family_identity_match = lhs.topology_compiled_product_family_identity
+        == rhs.topology_compiled_product_family_identity
+        && lhs.topology_compiled_product_family_digest
+            == rhs.topology_compiled_product_family_digest;
+    let authority_identity_match = shared_identity_basis_present
+        && family_identity_match
+        && lhs.authority_snapshot_id == rhs.authority_snapshot_id
         && lhs.truth_basis_digest_hex == rhs.truth_basis_digest_hex
+        && lhs.authority_truth_identity == rhs.authority_truth_identity
         && lhs.authoritative_mutation_origin == rhs.authoritative_mutation_origin
         && lhs.touched_aspect_count == rhs.touched_aspect_count;
     let branch_identity_match = lhs.authority_branch_id == rhs.authority_branch_id;
@@ -143,32 +202,64 @@ pub fn compare_derived_equivalence_contracts(
         materialized_topology_digest_match,
         interpreted_topology_digest_match,
         derived_validation_digest_match,
-        equivalent_derived_meaning: materialized_topology_digest_match
+        equivalent_derived_meaning: shared_identity_basis_present
+            && family_identity_match
+            && lhs.compiled_product_identity == rhs.compiled_product_identity
+            && lhs.equivalence_policy_identity == rhs.equivalence_policy_identity
+            && materialized_topology_digest_match
             && interpreted_topology_digest_match
             && derived_validation_digest_match,
     }
 }
 
-fn digest_structured_value<T: serde::Serialize>(value: &T) -> DeterministicDigest {
-    let json = serde_json::to_string(value)
-        .expect(" derived parity serialization should be deterministic");
-    digest_rows(std::iter::once(json))
+fn has_shared_identity_basis(report: &DerivedEquivalenceContractReport) -> bool {
+    report.topology_compiled_product_family_identity.is_some()
+        && report
+            .topology_compiled_product_family_digest
+            .as_ref()
+            .is_some_and(|digest| !digest.trim().is_empty())
+        && report.reuse_decision_identity.is_some()
+        && report.authority_truth_identity.is_some()
+        && report.compiled_product_identity.is_some()
+        && report.equivalence_policy_identity.is_some()
 }
 
-fn digest_rows(rows: impl IntoIterator<Item = String>) -> DeterministicDigest {
-    let mut state: u64 = 0xcbf29ce484222325;
-    let mut row_count = 0usize;
-    for row in rows {
-        row_count += 1;
-        for byte in row.as_bytes() {
-            state ^= u64::from(*byte);
-            state = state.wrapping_mul(0x100000001b3);
-        }
+impl DerivedEquivalenceContractReport {
+    pub fn authority_truth_identity_digest(&self) -> Option<&str> {
+        self.authority_truth_identity
+            .as_ref()
+            .map(|identity| identity.identity_digest())
     }
 
-    DeterministicDigest {
-        algorithm: "fnv1a64".to_string(),
-        digest_hex: format!("{state:016x}"),
-        row_count,
+    pub fn compiled_product_identity_digest(&self) -> Option<&str> {
+        self.compiled_product_identity
+            .as_ref()
+            .map(|identity| identity.identity_digest())
+    }
+
+    pub fn equivalence_policy_identity_digest(&self) -> Option<&str> {
+        self.equivalence_policy_identity
+            .as_ref()
+            .map(|identity| identity.identity_digest())
+    }
+
+    pub fn topology_compiled_product_family_identity(
+        &self,
+    ) -> Option<TopologyCompiledProductFamilyIdentity> {
+        self.topology_compiled_product_family_identity
+    }
+
+    pub fn topology_compiled_product_family_digest(&self) -> Option<&str> {
+        self.topology_compiled_product_family_digest.as_deref()
+    }
+
+    pub fn reuse_decision_identity_digest(&self) -> Option<&str> {
+        self.reuse_decision_identity
+            .as_ref()
+            .map(|identity| identity.identity_digest())
     }
 }
+
+#[cfg(test)]
+#[path = "equivalence_contract_tests.rs"]
+mod tests;

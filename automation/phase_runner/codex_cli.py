@@ -23,7 +23,7 @@ def build_command(state: dict[str, Any]) -> list[str]:
     thread_id = session.get("thread_id")
     config_args: list[str] = []
 
-    for key, value in session.get("config", {}).items():
+    for key, value in session_config(session).items():
         config_args.extend(["-c", f"{key}={json.dumps(value)}"])
 
     if thread_id:
@@ -97,3 +97,23 @@ def capture_thread_id(capture: dict[str, Any], line: str) -> None:
     if isinstance(event, dict) and event.get("type") == "thread.started":
         capture["thread_id"] = event["thread_id"]
         capture["thread_started_at"] = now_iso()
+
+
+def session_config(session: dict[str, Any]) -> dict[str, Any]:
+    config = dict(session.get("config", {}))
+    service_tier = session.get("service_tier")
+    fast_mode = session.get("fast_mode")
+
+    if service_tier is not None and "service_tier" not in config:
+        config["service_tier"] = service_tier
+
+    if fast_mode is not None and "features.fast_mode" not in config:
+        config["features.fast_mode"] = fast_mode
+
+    # Codex fast mode requires both the service tier and the feature flag.
+    if config.get("service_tier") == "fast" and "features.fast_mode" not in config:
+        config["features.fast_mode"] = True
+    if config.get("features.fast_mode") is True and "service_tier" not in config:
+        config["service_tier"] = "fast"
+
+    return config

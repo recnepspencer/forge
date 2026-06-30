@@ -100,5 +100,7 @@ pub(crate) const fn public_facade_compile_fail_target_files() -> &'static [&'sta
         "public_traversal_views_topology_read_source_not_exported.rs",
         "public_traversal_views_topology_prefix_read_source_not_exported.rs",
         "public_traversal_views_read_stage_receipt_not_forgeable.rs",
+        "public_topology_compiled_product_family_declaration_constructor_not_exported.rs",
+        "public_topology_compiled_product_family_proof_products_not_deserializable.rs",
     ]
 }

@@ -1,6 +1,6 @@
 use super::milestone_fourteen_seed::WorthTouchedGraphConflictMilestoneFourteenSeed;
 use super::public_closeout::{
-    current_public_closeout_components,
+    current_public_closeout_components, current_public_closeout_components_with_matrix_loader,
     current_worth_touched_graph_conflict_milestone_fourteen_seed,
     current_worth_touched_graph_conflict_public_closeout, publish_from_parts,
     WorthTouchedGraphConflictPublicCloseoutErrorKind,
@@ -9,10 +9,12 @@ use super::residue_chain::{
     WorthTouchedGraphConflictResidueBoundaryPosture, WorthTouchedGraphConflictResidueChain,
     WorthTouchedGraphConflictResidueRow,
 };
+use crate::workload_composition::compiled_product_consumer_cutover::current_coverage_targets;
 use crate::workload_composition::{
     current_worth_touched_graph_conflict_deletion_closeout,
     current_worth_touched_graph_conflict_source_firewall_report,
     worth_workload::current_worth_workload_ordinary_consumer_cutover,
+    KernelCompiledProductConsumerDependencyError, KernelCompiledProductConsumerDependencyMatrix,
 };
 
 #[test]
@@ -20,8 +22,12 @@ fn milestone_thirteen_closeout_requires_real_cutover() {
     let components = current_public_closeout_components().expect("current closeout components");
     let residue_chain = with_covered_ordinary_dependency(components.residue_chain());
 
-    let error = publish_from_parts(components.input().expect("current closeout input"), components.cutover(), residue_chain)
-        .expect_err("public closeout must reject an open ordinary-consumer dependency");
+    let error = publish_from_parts(
+        components.input().expect("current closeout input"),
+        components.cutover(),
+        residue_chain,
+    )
+    .expect_err("public closeout must reject an open ordinary-consumer dependency");
 
     assert_eq!(
         error.kind(),
@@ -265,6 +271,47 @@ fn touched_graph_closeout_rejects_foreign_replay_undo_proof_identities() {
     assert!(error
         .detail()
         .contains("current replay/undo admitted-boundary proof identities"));
+}
+
+#[test]
+fn current_public_closeout_components_fail_when_kernel_consumer_matrix_is_incomplete() {
+    let targets = current_coverage_targets().expect("current coverage targets");
+    let retained_targets = targets
+        .iter()
+        .copied()
+        .filter(|target| {
+            !target
+                .covered_reuse_surfaces()
+                .contains(&crate::workload_composition::CompiledProductReuseSurfaceIdentity::CurrentEvidenceLookupPublicCloseout)
+        })
+        .collect::<Vec<_>>();
+    let rows = retained_targets
+        .iter()
+        .map(|target| target.lower_row())
+        .collect::<Result<Vec<_>, KernelCompiledProductConsumerDependencyError>>()
+        .expect("rows should still lower");
+    let matrix_error =
+        KernelCompiledProductConsumerDependencyMatrix::new(rows, &retained_targets).expect_err(
+            "dropping one covered public-closeout surface must fail matrix coverage before closeout publishes",
+        );
+
+    let error = match current_public_closeout_components_with_matrix_loader(|| Err(matrix_error)) {
+        Ok(_) => {
+            panic!(
+                "current public closeout components must fail when the kernel matrix is incomplete"
+            )
+        }
+        Err(error) => error,
+    };
+
+    assert_eq!(
+        error.kind(),
+        WorthTouchedGraphConflictPublicCloseoutErrorKind::CurrentProofUnavailable
+    );
+    assert!(error
+        .detail()
+        .contains("phase 14 kernel consumer dependency matrix did not assemble"));
+    assert!(error.detail().contains("missing covered reuse surface"));
 }
 
 fn with_covered_ordinary_dependency(

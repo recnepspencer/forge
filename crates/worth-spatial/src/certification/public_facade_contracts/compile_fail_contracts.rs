@@ -14,6 +14,14 @@ const PUBLIC_API_CANNOT_FORGE_LOOKUP_PRODUCTS_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/evidence_lookup_public_closeout/seed_not_hand_filled.rs",
     "src/certification/public_facade_contracts/compile_fail/evidence_lookup_inventory/inventory_closeout_not_hand_filled.rs",
     "src/certification/public_facade_contracts/compile_fail/evidence_lookup_index_product/struct_literals/product_not_hand_filled.rs",
+    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_index_product/complete_ledger_not_selected_lookup_slice.rs",
+    "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/admitted_input_not_hand_filled.rs",
+    "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/catalog_not_hand_filled.rs",
+    "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/declaration_not_hand_filled.rs",
+    "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/lowered_identity_not_hand_filled.rs",
+    "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/selected_family_not_hand_filled.rs",
+    "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/admission_not_public.rs",
+    "src/certification/public_facade_contracts/compile_fail/workload_vocabulary/diagnostic_receipt_not_retained_replay_input.rs",
 ];
 
 const GENERIC_DIGEST_WRAPPER_DENIAL_FIXTURES: &[&str] = &[

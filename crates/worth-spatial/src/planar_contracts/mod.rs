@@ -1,5 +1,7 @@
 pub(crate) mod admission;
 pub(crate) mod clean_fail_boundary;
+#[cfg(test)]
+mod compiled_product_admission_parity;
 pub(crate) mod contract_bundle;
 pub(crate) mod coplanar_overlap_contract;
 pub(crate) mod local_frame;

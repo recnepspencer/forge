@@ -1,5 +1,19 @@
 //! Public API boundary for topology.
 
+pub mod compiled_product_family {
+    pub use crate::compiled_product_family::{
+        current_topology_compiled_product_family_catalog, select_topology_compiled_product_family,
+        DeterministicDigest, SelectedTopologyCompiledProductFamily, TopologyAuthorityBasisPosture,
+        TopologyCompiledProductConsumer, TopologyCompiledProductFamilyAdmittedInput,
+        TopologyCompiledProductFamilyCatalog, TopologyCompiledProductFamilyCatalogCounters,
+        TopologyCompiledProductFamilyDeclaration, TopologyCompiledProductFamilyError,
+        TopologyCompiledProductFamilyErrorKind, TopologyCompiledProductFamilyIdentity,
+        TopologyCompiledProductLoweredIdentity, TopologyEquivalencePolicyPosture,
+        TopologyLocalityFootprintPosture, TopologyPriorProofPosture, TopologyStageIdentityPosture,
+        TopologyValidatorEvidenceRolePosture,
+    };
+}
+
 pub fn topology_half_edge_next_relation_name(
 ) -> Result<forge_query::facade::RelationName, forge_query::facade::AuthoringError> {
     forge_query::facade::RelationName::new(

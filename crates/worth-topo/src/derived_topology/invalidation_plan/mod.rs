@@ -1,4 +1,5 @@
 pub(crate) mod catalog;
+pub(crate) mod compiled_product_admission;
 pub(crate) mod deletion_closeout;
 pub(crate) mod execution;
 pub(crate) mod inventory;

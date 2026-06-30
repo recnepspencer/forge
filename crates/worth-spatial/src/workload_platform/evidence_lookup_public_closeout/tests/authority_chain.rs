@@ -35,6 +35,7 @@ fn closeout_digests_bind_lookup_authority_chain() {
         closeout.milestone_twelve_seed().family_coverage_digest(),
         closeout.family_coverage_digest()
     );
+    assert!(!closeout.spatial_compiled_product_family_digest().is_empty());
     assert_eq!(
         closeout.counters().firewall_forbidden_row_count(),
         closeout
@@ -51,9 +52,13 @@ fn closeout_digests_bind_lookup_authority_chain() {
         match row.disposition() {
             EvidenceLookupPublicCloseoutDisposition::ReceiptProof { .. } => {
                 assert!(row.spatial_touch_digest().is_some());
+                assert!(row.spatial_compiled_product_identity_digest().is_some());
+                assert!(row.spatial_equivalence_policy_identity_digest().is_some());
             }
             EvidenceLookupPublicCloseoutDisposition::NonOrdinaryResidue { .. } => {
                 assert!(row.spatial_touch_digest().is_none());
+                assert!(row.spatial_compiled_product_identity_digest().is_none());
+                assert!(row.spatial_equivalence_policy_identity_digest().is_none());
                 assert!(row
                     .topology_input_summary()
                     .contains("DerivedProductReceiptRequired"));

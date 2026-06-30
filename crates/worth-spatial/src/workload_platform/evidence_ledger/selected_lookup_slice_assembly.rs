@@ -7,6 +7,26 @@ use super::{
 };
 use crate::workload_platform::evidence_lookup_input_admission::EvidenceLookupStageReceiptAdmission;
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SelectedLookupSliceLedger {
+    ledger: CompleteWorkloadEvidenceLedger,
+}
+
+impl SelectedLookupSliceLedger {
+    #[cfg(test)]
+    pub(crate) fn from_complete_ledger(ledger: CompleteWorkloadEvidenceLedger) -> Self {
+        Self { ledger }
+    }
+
+    pub(crate) fn complete_ledger(&self) -> &CompleteWorkloadEvidenceLedger {
+        &self.ledger
+    }
+
+    pub fn counters(&self) -> super::WorkloadEvidenceCounters {
+        self.ledger.counters()
+    }
+}
+
 pub struct SelectedLookupSliceLedgerAssembly<'a> {
     authority: &'a SpatialGeometryEvidenceTouchAuthority,
     stage_receipt: &'a EvidenceLookupStageReceiptAdmission,
@@ -35,6 +55,23 @@ impl<'a> SelectedLookupSliceLedgerAssembly<'a> {
     }
 
     pub fn assemble(self) -> Result<CompleteWorkloadEvidenceLedger, WorkloadEvidenceLedgerError> {
+        Ok(self.assemble_complete_ledger()?)
+    }
+
+    pub fn assemble_selected_lookup_slice(
+        self,
+    ) -> Result<SelectedLookupSliceLedger, WorkloadEvidenceLedgerError> {
+        if let Some(row) = self.additional_boolean_rows.first() {
+            return Err(WorkloadEvidenceLedgerError::SelectedLookupSliceExceedsScope(row.stage()));
+        }
+        Ok(SelectedLookupSliceLedger {
+            ledger: self.assemble_complete_ledger()?,
+        })
+    }
+
+    fn assemble_complete_ledger(
+        self,
+    ) -> Result<CompleteWorkloadEvidenceLedger, WorkloadEvidenceLedgerError> {
         if self.stage_receipt.spatial_touch_digest() != self.authority.digest().as_str() {
             return Err(WorkloadEvidenceLedgerError::MismatchedBooleanStage(
                 self.stage_receipt.stage(),

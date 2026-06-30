@@ -12,12 +12,13 @@ use crate::derived_invalidation_family_catalog::{
     current_derived_invalidation_family_catalog, DerivedInvalidationFamilyCatalogCloseout,
 };
 use crate::facade::{
-    topology_runtime, TopologyRuntimeAdapters,
-    lower_topology_undo_scope_product_from_traversal_views_request,
+    lower_topology_undo_scope_product_from_traversal_views_request, topology_runtime,
     DerivedInvalidationDensityPolicy, DerivedInvalidationLegalitySupportEvidence,
-    DerivedInvalidationQuerySupportEvidence, DerivedInvalidationSelectedPlan, DerivedInvalidationTouchedClosure,
-    TopologyDeclaredTouchedGraphBasisProof, TopologyRewireLoopSuccessorProgramDeclaration,
-    TopologyTouchedOperatingWorld, TopologyUndoFamilyExecutionError, TopologyUndoScopeProduct, TraversalViewsRollbackRequest,
+    DerivedInvalidationQuerySupportEvidence, DerivedInvalidationSelectedPlan,
+    DerivedInvalidationTouchedClosure, TopologyDeclaredTouchedGraphBasisProof,
+    TopologyRewireLoopSuccessorProgramDeclaration, TopologyRuntimeAdapters,
+    TopologyTouchedOperatingWorld, TopologyUndoFamilyExecutionError, TopologyUndoScopeProduct,
+    TraversalViewsRollbackRequest,
 };
 use crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces;
 use crate::query_domain::{
@@ -161,11 +162,10 @@ impl CurrentReplayUndoTopologyBoundaryError {
 
 fn execute_current_replay_undo_topology_artifact(
 ) -> Result<TopologyRewireLoopSuccessorProgramDeclaration, CurrentReplayUndoTopologyBoundaryError> {
-    let mut runtime = crate::validation::reference_integrity::build_milestone_one_runtime().map_err(
-        |error| CurrentReplayUndoTopologyBoundaryError {
+    let mut runtime = crate::validation::reference_integrity::build_milestone_one_runtime()
+        .map_err(|error| CurrentReplayUndoTopologyBoundaryError {
             detail: format!("current replay/undo topology runtime did not build: {error:?}"),
-        },
-    )?;
+        })?;
     let _verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "phase13.current-replay-undo-topology-boundary",
@@ -173,10 +173,10 @@ fn execute_current_replay_undo_topology_artifact(
     )
     .map_err(current_runtime_error)?;
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace =
-        topology_runtime(adapters, "phase13.current-replay-undo-topology-boundary")
-            .map_err(current_runtime_error)?;
-    let surfaces = declare_topology_query_surfaces(&mut workspace).map_err(current_runtime_error)?;
+    let mut workspace = topology_runtime(adapters, "phase13.current-replay-undo-topology-boundary")
+        .map_err(current_runtime_error)?;
+    let surfaces =
+        declare_topology_query_surfaces(&mut workspace).map_err(current_runtime_error)?;
     let moved_half_edge_identity = first_source_identity_for_relation_kind(
         &workspace.read::<serde_json::Value>(surfaces.relations()),
         TopologyRelationKind::HalfEdgeNext,
@@ -203,9 +203,7 @@ fn execute_current_replay_undo_topology_artifact(
     successor_relocation_declaration(&local_rewire, &chosen_successor_identity)
 }
 
-fn current_runtime_error(
-    error: impl std::fmt::Debug,
-) -> CurrentReplayUndoTopologyBoundaryError {
+fn current_runtime_error(error: impl std::fmt::Debug) -> CurrentReplayUndoTopologyBoundaryError {
     CurrentReplayUndoTopologyBoundaryError {
         detail: format!("current replay/undo topology boundary did not assemble: {error:?}"),
     }
@@ -257,9 +255,9 @@ fn current_replay_undo_graph_obligation_digest(
         .admit()
         .map_err(current_runtime_error)?;
     let artifact = handle
-        .orchestrate_topology_operator_with_contributions(
-            topology_operator_contribution_workflow(declaration.clone()),
-        )
+        .orchestrate_topology_operator_with_contributions(topology_operator_contribution_workflow(
+            declaration.clone(),
+        ))
         .map_err(current_contribution_error)?;
     artifact
         .graph_obligation_dispatch()

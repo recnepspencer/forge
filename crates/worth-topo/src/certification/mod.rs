@@ -79,11 +79,9 @@ pub use requirements::{
     milestone_three_closeout_requirements, milestone_three_closeout_suite_definition,
     milestone_two_closeout_requirements, milestone_two_closeout_suite_definition,
 };
-pub use support::parity::{
+pub(crate) use support::parity::{
     build_derived_equivalence_contract, compare_derived_equivalence_contracts,
-    digest_derived_validation_report, digest_interpreted_topology_view,
-    digest_materialized_topology_view, DerivedEquivalenceContractReport,
-    DerivedParityComparisonReport,
+    DerivedEquivalenceContractReport,
 };
 pub use support::reporting::{
     AdmittedRangeSweepReport, AdmittedRangeSweepRow, BranchLocalTopologyReport,

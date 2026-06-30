@@ -41,6 +41,9 @@ pub(crate) fn match_boolean_row_lookup(
     support: WorkloadEvidenceSupport,
     counters: WorkloadEvidenceStageCounters,
 ) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceLedgerError> {
+    if !stage.is_boolean_stage() {
+        return Err(WorkloadEvidenceLedgerError::UnsupportedBooleanStage(stage));
+    }
     let row = product
         .row_for_stage(stage)
         .ok_or(WorkloadEvidenceLedgerError::MissingBooleanStage(stage))?;

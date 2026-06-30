@@ -1,5 +1,5 @@
 use crate::certification::BridgeTraceAnchor;
-pub use crate::projection::diagnostic_surfaces::DeterministicDigest;
+pub use crate::compiled_product_family::DeterministicDigest;
 use crate::projection::diagnostic_surfaces::{
     DerivedEquivalenceContractReport, DerivedFallbackReport, DerivedInvalidationReport,
     DerivedReadDiagnostics, DerivedRebuildReport,

@@ -1,5 +1,6 @@
 use crate::workload_platform::evidence_ledger::{
-    CompleteWorkloadEvidenceLedger, SpatialGeometryEvidenceTouchAuthority, WorkloadEvidenceStage,
+    SelectedLookupSliceLedger, SelectedLookupSliceLedgerAssembly,
+    SpatialGeometryEvidenceTouchAuthority, WorkloadEvidenceStage,
 };
 use crate::workload_platform::evidence_lookup_execution::{
     execute_evidence_lookup, EvidenceLookupExecutionReceipt, EvidenceLookupExecutionRequest,
@@ -7,6 +8,7 @@ use crate::workload_platform::evidence_lookup_execution::{
 use crate::workload_platform::evidence_lookup_family_catalog::{
     EvidenceLookupFamilyCatalogCloseout, EvidenceLookupFamilyDeclaration,
     EvidenceLookupProjectionFactFamily, EvidenceLookupQueryImportEvidence,
+    EvidenceLookupStageReceiptFamilyIdentity,
 };
 use crate::workload_platform::evidence_lookup_index_product::{
     admit_evidence_lookup_index_product, EvidenceLookupIndexProduct,
@@ -21,9 +23,7 @@ use crate::workload_platform::evidence_lookup_plan_selection::{
     select_evidence_lookup_plan, EvidenceLookupSelectedPlan,
 };
 
-use super::current_world::{
-    current_complete_ledger_for_authority, current_spatial_touch_authority,
-};
+use super::current_world::current_spatial_touch_authority;
 use super::{EvidenceLookupCoveredStageCutoverProof, EvidenceLookupStageCutoverError};
 
 #[derive(Debug)]
@@ -142,7 +142,13 @@ pub(crate) fn admit_current_family_stage_cutover_path_with_query_evidence(
         .map_err(EvidenceLookupCurrentPathError::from)?;
     let index_product = admit_evidence_lookup_index_product(
         &selected_plan,
-        &complete_ledger_for_plan(&spatial_touch_authority),
+        &complete_ledger_for_plan(
+            &spatial_touch_authority,
+            family
+                .stage_applicability()
+                .stage_receipt_family_identity()
+                .clone(),
+        ),
     )
     .map_err(EvidenceLookupCurrentPathError::from)?;
 
@@ -258,6 +264,13 @@ impl From<crate::workload_platform::evidence_lookup_execution::EvidenceLookupExe
 
 fn complete_ledger_for_plan(
     authority: &SpatialGeometryEvidenceTouchAuthority,
-) -> CompleteWorkloadEvidenceLedger {
-    current_complete_ledger_for_authority(authority)
+    receipt_family: EvidenceLookupStageReceiptFamilyIdentity,
+) -> SelectedLookupSliceLedger {
+    let stage_receipt = EvidenceLookupStageReceiptAdmission::from_spatial_touch_authority(
+        authority,
+        receipt_family,
+    );
+    SelectedLookupSliceLedgerAssembly::from_touch_authority(authority, &stage_receipt)
+        .assemble_selected_lookup_slice()
+        .expect("current covered-stage path selected lookup slice")
 }

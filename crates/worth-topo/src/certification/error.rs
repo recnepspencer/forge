@@ -56,7 +56,6 @@ impl From<TopologyQuerySurfaceError> for MilestoneOneCertificationError {
 impl From<TopologyReadStageError> for MilestoneOneCertificationError {
     fn from(value: TopologyReadStageError) -> Self {
         match value {
-            #[cfg(test)]
             TopologyReadStageError::ReadView(error) => Self::ReadView(error),
             TopologyReadStageError::Materialization(error) => Self::Materialization(error),
             TopologyReadStageError::Validation(error) => Self::Validation(error),

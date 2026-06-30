@@ -147,6 +147,10 @@ impl EvidenceLookupPublicCloseout {
             TruthDigestScope::ArtifactIdentity,
             &[
                 "worth-spatial:evidence-lookup-public-closeout:v1".to_string(),
+                format!(
+                    "spatial-compiled-product-family:{}",
+                    input.spatial_compiled_product_family_digest()
+                ),
                 format!("family-coverage:{family_coverage_digest}"),
                 format!(
                     "query-matrix:{}",
@@ -182,6 +186,9 @@ impl EvidenceLookupPublicCloseout {
         );
 
         Ok(Self {
+            spatial_compiled_product_family_digest: input
+                .spatial_compiled_product_family_digest()
+                .to_string(),
             family_stage_rows: input.family_stage_rows().to_vec(),
             query_surface_matrix: input.query_surface_matrix().clone(),
             query_consumer_kit: input.query_consumer_kit().clone(),

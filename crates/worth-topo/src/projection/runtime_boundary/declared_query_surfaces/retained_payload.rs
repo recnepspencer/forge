@@ -8,7 +8,7 @@ use serde::Serialize;
 
 use crate::query_native_runtime_boundary::{native_retained_field_path, native_string};
 
-use super::TopologyQuerySurfaceError;
+use super::{TopologyQuerySurfaceError, TopologyQuerySurfaceErrorKind};
 
 const PAYLOAD_FIELD: [&str; 2] = ["retained_payload", "json"];
 
@@ -20,7 +20,10 @@ where
 {
     let field_path = retained_payload_field_path()?;
     let encoded = serde_json::to_string(payload).map_err(|error| {
-        TopologyQuerySurfaceError::new(format!("failed to encode retained payload: {error}"))
+        TopologyQuerySurfaceError::with_kind(
+            TopologyQuerySurfaceErrorKind::RetainedPayloadDecodeFailed,
+            format!("failed to encode retained payload: {error}"),
+        )
     })?;
     Ok(vec![(field_path, native_string(encoded))])
 }
@@ -71,9 +74,10 @@ where
         }
     };
     serde_json::from_str(json).map_err(|error| {
-        TopologyQuerySurfaceError::new(format!(
-            "retained surface `{view_name}` payload failed to decode: {error}"
-        ))
+        TopologyQuerySurfaceError::with_kind(
+            TopologyQuerySurfaceErrorKind::RetainedPayloadDecodeFailed,
+            format!("retained surface `{view_name}` payload failed to decode: {error}"),
+        )
     })
 }
 

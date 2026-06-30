@@ -1,0 +1,25 @@
+warning: unreachable statement
+ --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_index_product/complete_ledger_not_selected_lookup_slice.rs:7:5
+  |
+6 |     let plan: EvidenceLookupSelectedPlan = todo!();
+  |                                            ------- any code following this expression is unreachable
+7 |     let ledger: CompleteWorkloadEvidenceLedger = todo!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+ --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_index_product/complete_ledger_not_selected_lookup_slice.rs:8:56
+  |
+8 |     let _ = admit_evidence_lookup_index_product(&plan, &ledger);
+  |             -----------------------------------        ^^^^^^^ expected `&SelectedLookupSliceLedger`, found `&CompleteWorkloadEvidenceLedger`
+  |             |
+  |             arguments to this function are incorrect
+  |
+  = note: expected reference `&SelectedLookupSliceLedger`
+             found reference `&CompleteWorkloadEvidenceLedger`
+note: function defined here
+ --> src/workload_platform/evidence_lookup_index_product/construction.rs
+  |
+  | pub fn admit_evidence_lookup_index_product(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

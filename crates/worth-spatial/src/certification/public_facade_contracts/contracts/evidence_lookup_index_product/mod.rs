@@ -7,24 +7,24 @@ use worth_spatial::facade::evidence_lookup_index_product::{
     EvidenceLookupIndexProductErrorKind,
 };
 use worth_spatial::facade::evidence_lookup_plan_selection::EvidenceLookupSelectedPlan;
-use worth_spatial::facade::workload_vocabulary::CompleteWorkloadEvidenceLedger;
+use worth_spatial::facade::workload_vocabulary::SelectedLookupSliceLedger;
 
 #[test]
 fn spatial_public_api_exports_lookup_index_product_boundary() {
     let _: fn(
         &EvidenceLookupSelectedPlan,
-        &CompleteWorkloadEvidenceLedger,
+        &SelectedLookupSliceLedger,
     ) -> Result<EvidenceLookupIndexProduct, EvidenceLookupIndexProductError> =
         admit_evidence_lookup_index_product;
     let _: fn(
         &EvidenceLookupSelectedPlan,
-        &CompleteWorkloadEvidenceLedger,
+        &SelectedLookupSliceLedger,
         &EvidenceLookupIndexProduct,
     ) -> Result<EvidenceLookupIndexProduct, EvidenceLookupIndexProductError> =
         reuse_evidence_lookup_index_product;
     let _: fn(
         &EvidenceLookupSelectedPlan,
-        &CompleteWorkloadEvidenceLedger,
+        &SelectedLookupSliceLedger,
     ) -> Result<EvidenceLookupIndexProduct, EvidenceLookupIndexProductError> =
         require_persistent_evidence_lookup_index_product;
 }

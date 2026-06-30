@@ -28,7 +28,9 @@ fn declarations_encode_explicit_requirement_digest_basis() {
 #[test]
 fn declaration_digest_changes_when_each_variable_field_changes() {
     let baseline = baseline_input();
-    let baseline_digest = admit_spatial_conflict_family_declaration(baseline).declaration_digest().to_string();
+    let baseline_digest = admit_spatial_conflict_family_declaration(baseline)
+        .declaration_digest()
+        .to_string();
 
     let variants = [
         SpatialConflictFamilyDeclarationInput {

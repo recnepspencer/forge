@@ -73,7 +73,8 @@ pub(super) fn successor_relocation_declaration(
     new_successor_identity: &str,
 ) -> Result<TopologyRewireLoopSuccessorProgramDeclaration, CurrentReplayUndoTopologyBoundaryError> {
     let moved = loop_neighbor_evidence(neighborhood, neighborhood.moved_half_edge_identity())?;
-    let old_successor = loop_neighbor_evidence(neighborhood, neighborhood.old_successor_identity())?;
+    let old_successor =
+        loop_neighbor_evidence(neighborhood, neighborhood.old_successor_identity())?;
     let old_predecessor =
         loop_neighbor_evidence(neighborhood, neighborhood.old_predecessor_identity())?;
     let new_successor = loop_neighbor_evidence(neighborhood, new_successor_identity)?;
@@ -154,7 +155,8 @@ fn entity_id_from_query_identity(
 
 fn relation_id_from_query_identity_label(
     identity: &str,
-) -> Result<forge_relational::facade::identity::RelationId, CurrentReplayUndoTopologyBoundaryError> {
+) -> Result<forge_relational::facade::identity::RelationId, CurrentReplayUndoTopologyBoundaryError>
+{
     let [partition_id, local_slot, generation] = query_identity_parts(identity, "relation")?;
     Ok(forge_relational::facade::identity::RelationId::new(
         forge_relational::facade::identity::PartitionId(partition_id as u32),

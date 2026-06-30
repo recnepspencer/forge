@@ -2,8 +2,8 @@ use super::super::request::EvidenceLookupExecutionRequest;
 use crate::workload_platform::evidence_ledger::{
     receipt_backed_event_ledger_touch_authority_for_admission_tests,
     receipt_backed_touch_authority_for_admission_tests, BooleanEvidenceRowAuthority,
-    BooleanEvidenceStageKind, CompleteWorkloadEvidenceLedger, SelectedLookupSliceLedgerAssembly,
-    WorkloadEvidenceStage,
+    BooleanEvidenceStageKind, CompleteWorkloadEvidenceLedger, SelectedLookupSliceLedger,
+    SelectedLookupSliceLedgerAssembly, WorkloadEvidenceStage,
 };
 use crate::workload_platform::evidence_lookup_family_catalog::{
     current_evidence_lookup_family_catalog, EvidenceLookupFamilyCatalogCloseout,
@@ -67,8 +67,11 @@ impl ExecutionSubject {
         &self,
         selected_plan: &EvidenceLookupSelectedPlan,
     ) -> EvidenceLookupIndexProduct {
-        admit_evidence_lookup_index_product(selected_plan, &complete_ledger_for_plan(selected_plan))
-            .expect("index product admits")
+        admit_evidence_lookup_index_product(
+            selected_plan,
+            &selected_lookup_slice_for_plan(selected_plan),
+        )
+        .expect("index product admits")
     }
 
     pub(super) fn execution_request<'a>(
@@ -141,6 +144,19 @@ pub(super) fn complete_ledger_for_plan(
         .with_additional_boolean_receipt(&UnrelatedBooleanReceipt::from_touch_authority(&unrelated))
         .assemble()
         .expect("assembled lookup ledger closes")
+}
+
+pub(super) fn selected_lookup_slice_for_plan(
+    selected_plan: &EvidenceLookupSelectedPlan,
+) -> SelectedLookupSliceLedger {
+    let authority = authority_for_stage(selected_plan.stage());
+    let stage_receipt = EvidenceLookupStageReceiptAdmission::from_spatial_touch_authority(
+        &authority,
+        receipt_family_for_stage(selected_plan.stage()),
+    );
+    SelectedLookupSliceLedgerAssembly::from_touch_authority(&authority, &stage_receipt)
+        .assemble_selected_lookup_slice()
+        .expect("assembled selected lookup ledger closes")
 }
 
 pub(super) fn projection_required_family_identity(

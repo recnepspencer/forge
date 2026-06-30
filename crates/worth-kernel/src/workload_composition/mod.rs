@@ -6,6 +6,8 @@ mod boolean_event_extraction;
 mod boolean_evidence;
 mod boolean_evidence_requirement;
 mod boolean_outcome;
+mod compiled_product_consumer_cutover;
+mod compiled_product_reuse_inventory;
 mod conflict_batch_admission_inventory;
 mod conflict_independence;
 mod conflict_input;
@@ -73,6 +75,25 @@ pub use boolean_evidence::{
 pub use boolean_outcome::{
     PlanarBooleanBlockerContext, PlanarBooleanOutcomeKind, PlanarBooleanOutcomeReceipt,
 };
+pub use compiled_product_consumer_cutover::{
+    current_kernel_compiled_product_consumer_dependency_matrix,
+    KernelCompiledProductConsumerClusterIdentity, KernelCompiledProductConsumerDependencyError,
+    KernelCompiledProductConsumerDependencyErrorKind,
+    KernelCompiledProductConsumerDependencyMatrix, KernelCompiledProductConsumerDependencyRow,
+    KernelCompiledProductConsumerResponsibility, KernelCompiledProductFamilyClass,
+    KernelCompiledProductFutureCutoverLane, KernelCompiledProductProofBasis,
+    KernelCompiledProductQueryBoundaryLane,
+};
+pub use compiled_product_reuse_inventory::{
+    current_compiled_product_reuse_inventory, CompiledProductReuseAuthorityKind,
+    CompiledProductReuseDisposition, CompiledProductReuseInventoryCloseout,
+    CompiledProductReuseInventoryCounters, CompiledProductReuseInventoryError,
+    CompiledProductReuseInventoryReport, CompiledProductReuseInventoryRow,
+    CompiledProductReuseOwner, CompiledProductReusePhaseTwoSeed,
+    CompiledProductReuseReplacementPhase, CompiledProductReuseScanPattern,
+    CompiledProductReuseSemanticCategory, CompiledProductReuseSemanticDistinction,
+    CompiledProductReuseSourceScanReport, CompiledProductReuseSurfaceIdentity,
+};
 pub use conflict_batch_admission_inventory::{
     current_conflict_batch_admission_inventory, ConflictBatchAdmissionAuthorityKind,
     ConflictBatchAdmissionCertificationPosture, ConflictBatchAdmissionCostPosture,
@@ -126,8 +147,9 @@ pub use public_closeout::{
     current_worth_touched_graph_conflict_public_closeout,
     WorthTouchedGraphConflictMilestoneFourteenSeed, WorthTouchedGraphConflictProofChain,
     WorthTouchedGraphConflictPublicCloseout, WorthTouchedGraphConflictPublicCloseoutError,
-    WorthTouchedGraphConflictPublicCloseoutErrorKind, WorthTouchedGraphConflictResidueBoundaryPosture,
-    WorthTouchedGraphConflictResidueChain, WorthTouchedGraphConflictResidueRow,
+    WorthTouchedGraphConflictPublicCloseoutErrorKind,
+    WorthTouchedGraphConflictResidueBoundaryPosture, WorthTouchedGraphConflictResidueChain,
+    WorthTouchedGraphConflictResidueRow,
 };
 pub use source_firewall::{
     current_worth_touched_graph_conflict_source_firewall_report,

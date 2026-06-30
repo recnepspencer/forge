@@ -32,6 +32,7 @@ fn assembly_rejects_missing_public_closeout_query_row() {
     )
     .expect("filtered matrix");
     let denied_input = EvidenceLookupPublicCloseoutAssemblyInput::admit(
+        input.spatial_compiled_product_family_digest().to_string(),
         input.family_stage_rows().to_vec(),
         filtered_matrix,
         input.query_consumer_kit().clone(),
@@ -75,6 +76,7 @@ fn assembly_rejects_residue_without_topology_blocker() {
         })
         .collect();
     let denied_input = EvidenceLookupPublicCloseoutAssemblyInput::admit(
+        input.spatial_compiled_product_family_digest().to_string(),
         mutated_rows,
         input.query_surface_matrix().clone(),
         input.query_consumer_kit().clone(),

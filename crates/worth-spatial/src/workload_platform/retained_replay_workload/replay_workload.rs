@@ -53,8 +53,11 @@ impl ReplayWorkload {
         let transformed_identity = transformed_replay_workload_identity(&self.transformed_workload);
         let retained_artifact_identity = retained_artifacts.retained_artifact_identity();
         let evidence = replay_evidence_set(&retained_artifact_identity, &historical, projection);
-        let parity_report =
-            ReplayParityReport::from_retained_projection_match(&historical, projection);
+        let parity_report = ReplayParityReport::from_retained_projection_match(
+            retained_artifacts.retained_planar_facts(),
+            &historical,
+            projection,
+        );
         let receipts = replay_receipts(
             stage_receipt,
             &transformed_identity,

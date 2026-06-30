@@ -38,14 +38,17 @@ Every note entry should be a compact pointer, not a report.
 
 ## State-mutation protocol
 
-The state file may be written by more than one process. Obey this exactly:
+Do not edit the JSON state file directly. Do not use ad hoc PowerShell, Python,
+or text replacement to patch runner state.
 
-1. Read the state file fresh from disk in the same command or script that writes
-   it. Never write from a stale copy.
-2. Mutate only the current phase row, the `current` cursor, `completed_at`, and
-   small history entries describing this turn.
-3. Preserve everything else exactly: all other phase rows, `session`, `project`,
-   `turn_templates`, prompt text, and existing history.
+The only legal mutation surface is:
+
+```powershell
+python automation\phase_runner\state_tool.py apply {state_file} -
+```
+
+Pass one JSON payload on stdin describing the semantic outcome of the turn.
+The model decides the phase truth. The state tool commits that truth safely.
 
 ## Status values
 
@@ -94,8 +97,7 @@ not resolved.
 Default phase turns advance like this:
 
 - after `plan`: same phase, turn `implement`
-- after `implement`: same phase, turn `review` if implementation is ready for
-  the phase-done check; otherwise stay on `implement`
+- after `implement`: same phase, turn `review`
 - after `review`: same phase, turn `repair` if the phase is not actually done;
   turn `close_qa` if the phase is actually done and this prompt set provides
   segmented close-hardening turns; otherwise turn `close`
@@ -114,3 +116,7 @@ Segmented close-hardening turns advance like this:
   `completed_at` if this was the last phase
 
 Only `close` or `close_quality_fix` advances to the next phase.
+
+Do not leave the cursor on the same turn you just finished. Commit the turn
+result through `state_tool.py apply`, with the next turn set explicitly. Never
+hand-edit `current`.

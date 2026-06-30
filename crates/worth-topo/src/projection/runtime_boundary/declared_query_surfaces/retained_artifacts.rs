@@ -94,6 +94,21 @@ pub(crate) fn materialize_topology_historical_derived_surface_snapshot(
     workspace: &mut ForgeQueryWorkspace,
 ) -> Result<TopologyHistoricalDerivedSurfaceSnapshot, TopologyQuerySurfaceError> {
     let truth_artifact = materialize_topology_historical_truth_artifact(surfaces, workspace)?;
+    let (diagnostics, equivalence_contract) =
+        materialize_topology_historical_derived_reports(surfaces, workspace)?;
+    build_topology_historical_derived_surface_snapshot(
+        truth_artifact.materialized().clone(),
+        truth_artifact.interpreted().clone(),
+        truth_artifact.validation().clone(),
+        diagnostics,
+        equivalence_contract,
+    )
+}
+
+pub(crate) fn materialize_topology_historical_derived_reports(
+    surfaces: &TopologyDeclaredQuerySurfaces,
+    workspace: &mut ForgeQueryWorkspace,
+) -> Result<(DerivedReadDiagnostics, DerivedEquivalenceContractReport), TopologyQuerySurfaceError> {
     let bundle = materialize_declared_query_surface_binding(
         workspace,
         HISTORICAL_DERIVED_SNAPSHOT_ARTIFACT_NAME,
@@ -102,11 +117,25 @@ pub(crate) fn materialize_topology_historical_derived_surface_snapshot(
             surfaces.equivalence_contract().into(),
         ],
     )?;
-    let (diagnostics, equivalence_contract) = derived_surface_rows_from_bundle(&bundle, surfaces)?;
+    derived_surface_rows_from_bundle(&bundle, surfaces)
+}
+
+pub(crate) fn build_topology_historical_derived_surface_snapshot(
+    materialized: MaterializedTopologyView,
+    interpreted: InterpretedTopologyView,
+    validation: DerivedTopologyValidationReport,
+    diagnostics: DerivedReadDiagnostics,
+    equivalence_contract: DerivedEquivalenceContractReport,
+) -> Result<TopologyHistoricalDerivedSurfaceSnapshot, TopologyQuerySurfaceError> {
+    if diagnostics.equivalence_contract_report != equivalence_contract {
+        return Err(TopologyQuerySurfaceError::new(
+            "derived diagnostics and equivalence contract retained artifacts diverged",
+        ));
+    }
     Ok(TopologyHistoricalDerivedSurfaceSnapshot {
-        materialized: truth_artifact.materialized().clone(),
-        interpreted: truth_artifact.interpreted().clone(),
-        validation: truth_artifact.validation().clone(),
+        materialized,
+        interpreted,
+        validation,
         diagnostics,
         equivalence_contract,
     })
@@ -118,16 +147,12 @@ fn derived_surface_rows_from_bundle(
 ) -> Result<(DerivedReadDiagnostics, DerivedEquivalenceContractReport), TopologyQuerySurfaceError> {
     let diagnostics: DerivedReadDiagnostics =
         decode_bundle_row(bundle, surfaces.diagnostics(), "diagnostics")?;
-    let equivalence_contract: DerivedEquivalenceContractReport = decode_bundle_row(
+    let equivalence_contract = decode_bundle_row(
         bundle,
         surfaces.equivalence_contract(),
         "equivalence contract",
-    )?;
-    if diagnostics.equivalence_contract_report != equivalence_contract {
-        return Err(TopologyQuerySurfaceError::new(
-            "derived diagnostics and equivalence contract retained artifacts diverged",
-        ));
-    }
+    )
+    .unwrap_or_else(|_| diagnostics.equivalence_contract_report.clone());
     Ok((diagnostics, equivalence_contract))
 }
 

@@ -151,7 +151,7 @@ pub use raw_edge_split_schedule::{
 };
 #[cfg(test)]
 pub(crate) use source_edge_carrier_recovery::test_support::{
-    event_ledger_for as split_event_ledger_for_tests,
+    carrier as split_carrier_for_tests, event_ledger_for as split_event_ledger_for_tests,
     production_segment_pair_receipt as split_pair_receipt_for_tests,
     recover as recover_source_edge_carriers_for_tests,
     source_carriers as source_carriers_for_tests,

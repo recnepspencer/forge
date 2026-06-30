@@ -28,7 +28,9 @@ pub use row::{
     WorkloadEvidenceSupport,
 };
 #[allow(unused_imports)]
-pub use selected_lookup_slice_assembly::SelectedLookupSliceLedgerAssembly;
+pub use selected_lookup_slice_assembly::{
+    SelectedLookupSliceLedger, SelectedLookupSliceLedgerAssembly,
+};
 pub(crate) use spatial_touch_admission::SpatialGeometryEvidenceTouchRowRequest;
 pub use spatial_touch_admission::{
     deny_copied_receipt_fields_as_spatial_query_lowering_authority,

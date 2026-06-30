@@ -1,3 +1,4 @@
+use crate::spatial_compiled_product_family::SpatialCompiledProductLoweredIdentity;
 use crate::workload_platform::evidence_ledger::WorkloadEvidenceRow;
 use crate::workload_platform::evidence_lookup_query_surface_contract::{
     EvidenceLookupProductQuerySurfaceContractRow, EvidenceLookupQuerySurfaceContract,
@@ -11,6 +12,9 @@ use super::lifecycle_posture::EvidenceLookupIndexLifecyclePosture;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EvidenceLookupIndexProduct {
     index_product_digest: String,
+    compiled_product_identity_digest: String,
+    equivalence_policy_identity_digest: String,
+    reuse_decision_identity_digest: Option<String>,
     selected_plan_digest: String,
     spatial_touch_digest: String,
     stage_receipt_digest: String,
@@ -26,12 +30,14 @@ pub struct EvidenceLookupIndexProduct {
 
 impl EvidenceLookupIndexProduct {
     pub(crate) fn new(
+        lowered_identity: &SpatialCompiledProductLoweredIdentity,
         selected_plan_digest: String,
         spatial_touch_digest: String,
         stage_receipt_digest: String,
         evidence_ledger_basis_digest: String,
         topology_support_digest: String,
         query_support_digest: String,
+        reuse_decision_identity_digest: Option<String>,
         query_surface_contract_rows: Vec<EvidenceLookupProductQuerySurfaceContractRow>,
         lifecycle_posture: EvidenceLookupIndexLifecyclePosture,
         disposal_posture: EvidenceLookupIndexDisposalPosture,
@@ -39,18 +45,23 @@ impl EvidenceLookupIndexProduct {
         rows: Vec<WorkloadEvidenceRow>,
     ) -> Self {
         let index_product_digest = index_product_digest(
-            &selected_plan_digest,
-            &spatial_touch_digest,
-            &stage_receipt_digest,
-            &evidence_ledger_basis_digest,
-            &topology_support_digest,
-            &query_support_digest,
+            lowered_identity.compiled_product_identity(),
+            lowered_identity.equivalence_policy_identity(),
             lifecycle_posture,
             disposal_posture,
             &counters,
         );
         Self {
             index_product_digest,
+            compiled_product_identity_digest: lowered_identity
+                .compiled_product_identity()
+                .identity_digest()
+                .to_string(),
+            equivalence_policy_identity_digest: lowered_identity
+                .equivalence_policy_identity()
+                .identity_digest()
+                .to_string(),
+            reuse_decision_identity_digest,
             selected_plan_digest,
             spatial_touch_digest,
             stage_receipt_digest,
@@ -67,6 +78,18 @@ impl EvidenceLookupIndexProduct {
 
     pub fn index_product_digest(&self) -> &str {
         &self.index_product_digest
+    }
+
+    pub fn compiled_product_identity_digest(&self) -> &str {
+        &self.compiled_product_identity_digest
+    }
+
+    pub fn equivalence_policy_identity_digest(&self) -> &str {
+        &self.equivalence_policy_identity_digest
+    }
+
+    pub fn reuse_decision_identity_digest(&self) -> Option<&str> {
+        self.reuse_decision_identity_digest.as_deref()
     }
 
     pub fn selected_plan_digest(&self) -> &str {

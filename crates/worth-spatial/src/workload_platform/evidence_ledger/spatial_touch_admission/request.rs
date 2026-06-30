@@ -186,6 +186,7 @@ fn map_lookup_denial(error: WorkloadEvidenceLedgerError) -> SpatialGeometryEvide
         | WorkloadEvidenceLedgerError::EmptyLedger
         | WorkloadEvidenceLedgerError::MissingEvidenceIdentity
         | WorkloadEvidenceLedgerError::DuplicateEvidenceStage(_)
+        | WorkloadEvidenceLedgerError::SelectedLookupSliceExceedsScope(_)
         | WorkloadEvidenceLedgerError::ManualAuthorityStage(_)
         | WorkloadEvidenceLedgerError::UnadmittedAuthorityStage(_)
         | WorkloadEvidenceLedgerError::MismatchedAuthorityStageBinding(_, _) => {

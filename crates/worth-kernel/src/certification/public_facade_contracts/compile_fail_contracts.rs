@@ -12,7 +12,8 @@ mod graph_read_access_inventory_contracts;
 mod loop_reconstruction_guard_coverage;
 
 use compile_fail_fixture_catalog::{
-    COMPILE_FAIL_FIXTURES, PLANAR_BOOLEAN_LOOP_RECONSTRUCTION_CORE_FIXTURES,
+    COMPILED_PRODUCT_CONSUMER_CUTOVER_EXPECTED_ERRORS, COMPILE_FAIL_FIXTURES,
+    PLANAR_BOOLEAN_LOOP_RECONSTRUCTION_CORE_FIXTURES,
 };
 use graph_read_access_inventory_contracts::graph_read_access_inventory_expected_compile_fail_fixtures;
 use loop_reconstruction_guard_coverage::loop_reconstruction_compile_fail_fixtures;
@@ -269,6 +270,13 @@ fn kernel_public_boundary_rejects_planar_boolean_loop_reconstruction_constructor
 #[test]
 fn kernel_public_boundary_rejects_planar_boolean_summary_substitution_fixture() {
     assert_compile_fail_fixture(PLANAR_BOOLEAN_ENTRY_BASIS_KERNEL_SUMMARY_FIXTURE);
+}
+
+#[test]
+fn kernel_public_boundary_rejects_compiled_product_consumer_cutover_forgery() {
+    for (fixture, expected_stderr) in COMPILED_PRODUCT_CONSUMER_CUTOVER_EXPECTED_ERRORS {
+        assert_compile_fail_fixture_with_stderr(fixture, expected_stderr);
+    }
 }
 
 #[test]

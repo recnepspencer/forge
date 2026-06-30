@@ -31,7 +31,8 @@ Repair rules:
 - Put the repair plan, implementation explanation, and any important evidence in
   chat, not in the JSON.
 
-After repair, update the JSON state only with short progress markers:
+After repair, commit the phase outcome through `state_tool.py apply` with short
+progress markers:
 
 - `status: complete`, `qa_status: needed`, and cursor turn `review` if the phase
   is ready to re-check.

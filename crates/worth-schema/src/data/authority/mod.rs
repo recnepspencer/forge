@@ -7,6 +7,7 @@
 
 pub(crate) mod aspect_field_patches;
 pub(crate) mod commit_flow;
+pub(crate) mod compiled_product_semantic_graph;
 pub(crate) mod derived_invalidation;
 pub(crate) mod gateway;
 pub(crate) mod geometry_binding;
@@ -23,6 +24,21 @@ pub(crate) use commit_flow::{
     DerivedTopologyReadBasis, DerivedTruthBasisIdentity, EntityReference, MutationOrigin,
     PersistedTopologyTruth, RawTopologyIntent, TopologyCommittedMutationSet, TopologyMutation,
     TopologyReadArtifact,
+};
+#[allow(unused_imports)]
+pub use compiled_product_semantic_graph::{
+    admit_compiled_product_authority_truth_identity,
+    admit_compiled_product_authority_truth_identity_with_coordinates,
+    admit_compiled_product_equivalence_policy_identity, admit_compiled_product_identity,
+    admit_compiled_product_prior_proof_identity, admit_compiled_product_rebuild_denial_identity,
+    admit_compiled_product_reuse_decision_identity, admit_compiled_product_stage_identity,
+    admit_locality_footprint_identity, CompiledProductAuthorityInstanceCoordinate,
+    CompiledProductAuthorityTruthIdentity, CompiledProductEquivalencePolicyIdentity,
+    CompiledProductIdentity, CompiledProductLocalityFootprintIdentity,
+    CompiledProductPriorProofIdentity, CompiledProductPriorProofRole,
+    CompiledProductRebuildDenialIdentity, CompiledProductReuseDecisionIdentity,
+    CompiledProductSemanticGraphVocabularyError, CompiledProductSemanticGraphVocabularyErrorKind,
+    CompiledProductStageIdentity,
 };
 #[allow(unused_imports)]
 pub use derived_invalidation::{

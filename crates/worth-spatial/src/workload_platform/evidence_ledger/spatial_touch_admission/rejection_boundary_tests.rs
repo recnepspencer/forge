@@ -107,3 +107,32 @@ fn manual_incomplete_unsupported_guard_and_copied_sources_deny_before_query() {
         SpatialGeometryEvidenceTouchDenialKind::SourceSubstitution
     );
 }
+
+#[test]
+fn diagnostic_rows_cannot_act_as_spatial_touch_authority() {
+    let complete = crate::workload_platform::evidence_ledger::current_complete_ledger_from_rows(
+        crate::workload_platform::evidence_ledger::current_workload_stage_rows(
+            "phase-7-diagnostic-row-authority-denial",
+        ),
+    );
+    let diagnostic_row = complete
+        .row_for_stage(WorkloadEvidenceStage::Diagnostics)
+        .expect("diagnostics row present in real authority world")
+        .clone();
+
+    let denial = SpatialGeometryEvidenceTouchRowRequest::from_boolean_row(&diagnostic_row)
+        .with_complete_ledger(&complete)
+        .admit()
+        .expect_err("diagnostics row must deny at the real spatial touch admission boundary");
+
+    assert_eq!(
+        diagnostic_row.stage(),
+        WorkloadEvidenceStage::Diagnostics,
+        "proof must use a real diagnostics-stage artifact"
+    );
+    assert_eq!(
+        denial.kind(),
+        SpatialGeometryEvidenceTouchDenialKind::SupportPosture
+    );
+    assert!(denial.detail().contains("diagnostic evidence"));
+}

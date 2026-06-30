@@ -4,14 +4,20 @@ use forge_query::facade::{
 #[cfg(test)]
 use serde_json::Value;
 
+use crate::compiled_product_family::{
+    current_topology_compiled_product_family_catalog, select_topology_compiled_product_family,
+    TopologyCompiledProductConsumer,
+};
+use crate::derived_invalidation_compiled_product_admission::{
+    admit_topology_compiled_product_input, TopologyCompiledProductAdmissionRequest,
+};
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
 use crate::projection::diagnostic_surfaces::{
     build_derived_equivalence_contract_report,
     derived_read_diagnostics::{
         build_derived_fallback_report_from_counts, build_derived_invalidation_report_from_aspects,
-        derived_validation_execution_report, triggered_invalidation_targets_from_aspects,
-        DerivedReadDiagnostics,
+        derived_validation_execution_report, DerivedReadDiagnostics,
     },
 };
 use crate::validation::{DerivedTopologyValidationReport, RegisteredTopologyValidationReport};
@@ -19,8 +25,8 @@ use crate::validation::{DerivedTopologyValidationReport, RegisteredTopologyValid
 #[cfg(test)]
 use super::super::derived_surfaces::decode_query_surface_row;
 use super::super::retained_payload::decode_single_retained_payload_row;
-use super::super::TopologyQuerySurfaceError;
-use super::TopologyQueryMutationEvidence;
+use super::super::{TopologyQuerySurfaceError, TopologyQuerySurfaceErrorKind};
+use super::{TopologyHistoricalReadBasisMetadata, TopologyQueryMutationEvidence};
 
 #[cfg(test)]
 #[allow(dead_code)]
@@ -30,7 +36,8 @@ pub(crate) fn derived_read_diagnostics_from_query_rows(
     interpreted_rows: &[Value],
     validation_rows: &[Value],
 ) -> Result<DerivedReadDiagnostics, TopologyQuerySurfaceError> {
-    let evidence = TopologyQueryMutationEvidence::from_refresh(refresh)?;
+    let read_basis_metadata = TopologyHistoricalReadBasisMetadata::from_refresh(refresh)?;
+    let evidence = TopologyQueryMutationEvidence::from_read_basis(read_basis_metadata.read_basis());
     let materialized: MaterializedTopologyView =
         decode_query_surface_row(materialized_rows, "materialized topology")?;
     let interpreted: InterpretedTopologyView =
@@ -38,7 +45,13 @@ pub(crate) fn derived_read_diagnostics_from_query_rows(
     let validation: DerivedTopologyValidationReport =
         decode_query_surface_row(validation_rows, "topology validation")?;
 
-    build_diagnostics_from_decoded_surfaces(evidence, materialized, interpreted, validation)
+    build_diagnostics_from_decoded_surfaces(
+        read_basis_metadata,
+        evidence,
+        materialized,
+        interpreted,
+        validation,
+    )
 }
 
 pub(super) fn derived_read_diagnostics_from_upstreams(
@@ -46,7 +59,8 @@ pub(super) fn derived_read_diagnostics_from_upstreams(
     view: &ForgeQueryDerivedView,
     upstreams: &ForgeQueryRetainedUpstreamInputs,
 ) -> Result<DerivedReadDiagnostics, TopologyQuerySurfaceError> {
-    let evidence = TopologyQueryMutationEvidence::from_refresh(refresh)?;
+    let read_basis_metadata = TopologyHistoricalReadBasisMetadata::from_refresh(refresh)?;
+    let evidence = TopologyQueryMutationEvidence::from_read_basis(read_basis_metadata.read_basis());
     let mut upstream_rows = upstreams.declared_retained_computed_row_sets(view);
     let materialized: MaterializedTopologyView = decode_single_retained_payload_row(
         upstream_rows.next().unwrap_or_default(),
@@ -61,10 +75,17 @@ pub(super) fn derived_read_diagnostics_from_upstreams(
         "topology validation",
     )?;
 
-    build_diagnostics_from_decoded_surfaces(evidence, materialized, interpreted, validation)
+    build_diagnostics_from_decoded_surfaces(
+        read_basis_metadata,
+        evidence,
+        materialized,
+        interpreted,
+        validation,
+    )
 }
 
 fn build_diagnostics_from_decoded_surfaces(
+    read_basis_metadata: TopologyHistoricalReadBasisMetadata,
     evidence: TopologyQueryMutationEvidence,
     materialized: MaterializedTopologyView,
     interpreted: InterpretedTopologyView,
@@ -73,7 +94,40 @@ fn build_diagnostics_from_decoded_surfaces(
     let touched_aspects = evidence.touched_aspects()?;
     let registered_validation = registered_validation_report(validation)?;
     let validation = registered_validation.report();
-
+    let catalog = current_topology_compiled_product_family_catalog();
+    let admitted = admit_topology_compiled_product_input(
+        &catalog,
+        TopologyCompiledProductAdmissionRequest::for_historical_read_basis(
+            TopologyCompiledProductConsumer::DerivedEquivalenceContractProjection,
+            read_basis_metadata.read_basis(),
+        ),
+    )
+    .map_err(|error| {
+        TopologyQuerySurfaceError::with_kind(
+            TopologyQuerySurfaceErrorKind::CompiledProductAdmissionDenied,
+            format!("query-derived diagnostics failed to admit topology compiled-product input: {error}"),
+        )
+    })?;
+    let selected = select_topology_compiled_product_family(
+        &catalog,
+        admitted.clone().into_family_admitted_input(),
+    )
+    .map_err(|error| {
+        TopologyQuerySurfaceError::with_kind(
+            TopologyQuerySurfaceErrorKind::CompiledProductFamilySelectionFailed,
+            format!("query-derived diagnostics failed to select topology compiled-product family: {error:?}"),
+        )
+    })?;
+    let lowered = selected
+        .compile_product_identity(&materialized, &interpreted, validation)
+        .map_err(|error| {
+            TopologyQuerySurfaceError::with_kind(
+                TopologyQuerySurfaceErrorKind::CompiledProductIdentityLoweringFailed,
+                format!(
+                    "query-derived diagnostics failed to lower topology compiled-product identity: {error:?}"
+                ),
+            )
+        })?;
     Ok(DerivedReadDiagnostics {
         invalidation_report: build_derived_invalidation_report_from_aspects(
             touched_aspects.iter().copied(),
@@ -93,15 +147,25 @@ fn build_diagnostics_from_decoded_surfaces(
             registered_validation.registered_rule_count(),
         ),
         equivalence_contract_report: build_derived_equivalence_contract_report(
-            evidence.authority_snapshot_id,
-            evidence.authority_branch_id,
+            admitted.source_authority_basis().authority_snapshot_id(),
+            admitted.source_authority_basis().authority_branch_id().to_string(),
             evidence.authoritative_mutation_origin,
             evidence.derivation_origin,
-            evidence.truth_basis_digest_hex,
-            touched_aspects.len(),
-            triggered_invalidation_targets_from_aspects(touched_aspects.iter().copied()),
-            evidence.precision_fallback_count,
-            evidence.precision_budget_fallback_count,
+            admitted
+                .source_authority_basis()
+                .truth_basis_digest_hex()
+                .to_string(),
+            admitted.source_authority_basis().touched_aspect_count(),
+            admitted
+                .locality_basis()
+                .triggered_invalidation_targets()
+                .to_vec(),
+            admitted.source_authority_basis().precision_fallback_count(),
+            admitted
+                .source_authority_basis()
+                .precision_budget_fallback_count(),
+            Some(selected.declaration().identity()),
+            Some(&lowered),
             &materialized,
             &interpreted,
             validation,
@@ -113,9 +177,12 @@ fn registered_validation_report(
     validation: DerivedTopologyValidationReport,
 ) -> Result<RegisteredTopologyValidationReport, TopologyQuerySurfaceError> {
     RegisteredTopologyValidationReport::from_report(validation).map_err(|error| {
-        TopologyQuerySurfaceError::new(format!(
-            "query-derived validation diagnostics rejected unregistered validation report: {error}"
-        ))
+        TopologyQuerySurfaceError::with_kind(
+            TopologyQuerySurfaceErrorKind::UnregisteredValidationReport,
+            format!(
+                "query-derived validation diagnostics rejected unregistered validation report: {error}"
+            ),
+        )
     })
 }
 

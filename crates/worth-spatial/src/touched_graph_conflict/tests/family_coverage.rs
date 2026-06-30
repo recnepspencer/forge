@@ -38,16 +38,15 @@ fn spatial_replay_family_is_selected_through_real_contract_route() {
         matches,
         vec![crate::touched_graph_conflict::SpatialConflictFamilyIdentity::ReplayBoundarySelection]
     );
-    assert!(
-        !matches.contains(&crate::touched_graph_conflict::SpatialConflictFamilyIdentity::EvidenceSelection)
-    );
+    assert!(!matches.contains(
+        &crate::touched_graph_conflict::SpatialConflictFamilyIdentity::EvidenceSelection
+    ));
 }
 
 #[test]
 fn spatial_evidence_family_does_not_claim_replay_route() {
     let fixture = boolean_event_ledger_spatial_boundary_fixture();
-    let catalog = current_evidence_lookup_family_catalog()
-        .expect("lookup catalog closes");
+    let catalog = current_evidence_lookup_family_catalog().expect("lookup catalog closes");
     let family = catalog
         .family_by_identity("spatial-touch.boolean.event-ledger-evidence.v1")
         .expect("event-ledger family exists");

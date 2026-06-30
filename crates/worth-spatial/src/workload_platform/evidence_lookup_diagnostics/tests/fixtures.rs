@@ -2,7 +2,7 @@ use crate::trusted_boolean_evidence_authority::Seal;
 use crate::workload_platform::evidence_ledger::{
     receipt_backed_touch_authority_for_admission_tests,
     receipt_backed_touch_authority_for_admission_tests_with_declared_world,
-    BooleanEvidenceRowAuthority, BooleanEvidenceStageKind, CompleteWorkloadEvidenceLedger,
+    BooleanEvidenceRowAuthority, BooleanEvidenceStageKind, SelectedLookupSliceLedger,
     SelectedLookupSliceLedgerAssembly, SpatialGeometryEvidenceTouchAuthority,
 };
 use crate::workload_platform::evidence_lookup_execution::{
@@ -181,7 +181,7 @@ fn build_path(
     let selected_plan = select_evidence_lookup_plan(catalog, &admitted).expect("selected plan");
     let index_product = admit_index_product(
         &selected_plan,
-        &projection_ledger(authority, extra_unrelated_receipt_count),
+        &projection_lookup_slice(authority, extra_unrelated_receipt_count),
     );
     let execution_receipt =
         execute_projection_request(&selected_plan, &index_product, include_projection_receipt);
@@ -193,7 +193,7 @@ fn build_path(
 
 fn admit_index_product(
     selected_plan: &EvidenceLookupSelectedPlan,
-    ledger: &CompleteWorkloadEvidenceLedger,
+    ledger: &SelectedLookupSliceLedger,
 ) -> EvidenceLookupIndexProduct {
     admit_evidence_lookup_index_product(selected_plan, ledger).expect("index product")
 }
@@ -218,10 +218,10 @@ fn execute_projection_request(
     execute_evidence_lookup(&request).expect("execution receipt")
 }
 
-fn projection_ledger(
+fn projection_lookup_slice(
     authority: &SpatialGeometryEvidenceTouchAuthority,
     extra_unrelated_receipt_count: usize,
-) -> CompleteWorkloadEvidenceLedger {
+) -> SelectedLookupSliceLedger {
     let stage_receipt = EvidenceLookupStageReceiptAdmission::from_spatial_touch_authority(
         authority,
         EvidenceLookupStageReceiptFamilyIdentity::boolean_operand_projection_consumption(),
@@ -232,21 +232,16 @@ fn projection_ledger(
         BooleanEvidenceStageKind::EventLedger,
         BooleanEvidenceStageKind::Split,
     ];
-    let unrelated_receipts = (0..extra_unrelated_receipt_count)
-        .map(|index| {
-            let unrelated_authority = receipt_backed_touch_authority_for_admission_tests(
-                unrelated_stage_kinds[index % unrelated_stage_kinds.len()],
-                Box::leak(format!("phase-12-unrelated-shared-plane-{index}").into_boxed_str()),
-            );
-            UnrelatedBooleanReceipt::from_touch_authority(&unrelated_authority)
-        })
-        .collect::<Vec<_>>();
-    let mut assembly =
-        SelectedLookupSliceLedgerAssembly::from_touch_authority(authority, &stage_receipt);
-    for unrelated_receipt in &unrelated_receipts {
-        assembly = assembly.with_additional_boolean_receipt(unrelated_receipt);
+    for index in 0..extra_unrelated_receipt_count {
+        let unrelated_authority = receipt_backed_touch_authority_for_admission_tests(
+            unrelated_stage_kinds[index % unrelated_stage_kinds.len()],
+            Box::leak(format!("phase-12-unrelated-shared-plane-{index}").into_boxed_str()),
+        );
+        let _ = UnrelatedBooleanReceipt::from_touch_authority(&unrelated_authority);
     }
-    assembly.assemble().expect("test ledger")
+    SelectedLookupSliceLedgerAssembly::from_touch_authority(authority, &stage_receipt)
+        .assemble_selected_lookup_slice()
+        .expect("test lookup slice")
 }
 
 struct UnrelatedBooleanReceipt {

@@ -6,11 +6,11 @@ use schema::facade::platform::authority::{
 };
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
+use crate::compiled_product_family::triggered_invalidation_targets_from_touched_aspects;
 use crate::derived_topology::materialized_graph::{
     MaterializationFallbackClass, MaterializedTopologyView,
 };
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
-#[cfg(test)]
 use crate::projection::diagnostic_surfaces::build_derived_equivalence_contract;
 use crate::projection::diagnostic_surfaces::DerivedEquivalenceContractReport;
 use crate::validation::{
@@ -75,7 +75,6 @@ pub struct DerivedReadDiagnostics {
     pub equivalence_contract_report: DerivedEquivalenceContractReport,
 }
 
-#[cfg(test)]
 pub(crate) fn build_derived_read_diagnostics(
     read_basis: &DerivedTopologyReadBasis,
     materialized: &MaterializedTopologyView,
@@ -117,7 +116,6 @@ pub(crate) fn derived_validation_execution_report(
     }
 }
 
-#[cfg(test)]
 pub(crate) fn build_derived_invalidation_report(
     read_basis: &DerivedTopologyReadBasis,
 ) -> DerivedInvalidationReport {
@@ -167,51 +165,19 @@ pub(crate) fn build_derived_invalidation_report_from_aspects(
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn triggered_invalidation_targets(
     read_basis: &DerivedTopologyReadBasis,
 ) -> Vec<DerivedInvalidationTarget> {
-    triggered_invalidation_targets_from_aspects(read_basis.touched_aspects().iter().copied())
+    triggered_invalidation_targets_from_touched_aspects(
+        read_basis.touched_aspects().iter().copied(),
+    )
 }
 
 pub(crate) fn triggered_invalidation_targets_from_aspects(
     touched_aspects: impl IntoIterator<Item = Aspect>,
 ) -> Vec<DerivedInvalidationTarget> {
-    let mut targets = Vec::new();
-    for aspect in touched_aspects {
-        match aspect {
-            Aspect::Topology(topology) => match topology {
-                schema::facade::platform::aspects::TopologyAspect::Structure => {
-                    push_unique_target(&mut targets, DerivedInvalidationTarget::TopologyStructure);
-                }
-                schema::facade::platform::aspects::TopologyAspect::Ownership => {
-                    push_unique_target(&mut targets, DerivedInvalidationTarget::TopologyOwnership);
-                }
-                schema::facade::platform::aspects::TopologyAspect::Boundary => {
-                    push_unique_target(&mut targets, DerivedInvalidationTarget::TopologyBoundary);
-                }
-                schema::facade::platform::aspects::TopologyAspect::Radial => {
-                    push_unique_target(&mut targets, DerivedInvalidationTarget::TopologyRadial);
-                }
-            },
-            Aspect::Naming(schema::facade::platform::aspects::NamingAspect::PersistentName) => {
-                push_unique_target(
-                    &mut targets,
-                    DerivedInvalidationTarget::NamingPersistentName,
-                );
-            }
-            _ => {}
-        }
-    }
-    targets
-}
-
-fn push_unique_target(
-    targets: &mut Vec<DerivedInvalidationTarget>,
-    target: DerivedInvalidationTarget,
-) {
-    if !targets.contains(&target) {
-        targets.push(target);
-    }
+    triggered_invalidation_targets_from_touched_aspects(touched_aspects)
 }
 
 pub(crate) fn build_derived_rebuild_report(
@@ -231,7 +197,6 @@ pub(crate) fn build_derived_rebuild_report(
     }
 }
 
-#[cfg(test)]
 pub(crate) fn build_derived_fallback_report(
     read_basis: &DerivedTopologyReadBasis,
     materialized: &MaterializedTopologyView,

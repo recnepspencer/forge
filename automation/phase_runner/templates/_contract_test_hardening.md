@@ -38,14 +38,36 @@ Every note entry should be a compact pointer, not a report.
 
 ## State-mutation protocol
 
-The state file may be written by more than one process. Obey this exactly:
+Do not edit the JSON state file directly. Do not use ad hoc PowerShell, Python,
+or text replacement to patch runner state.
 
-1. Read the state file fresh from disk in the same command or script that writes
-   it. Never write from a stale copy.
-2. Mutate only the current phase row, the `current` cursor, `completed_at`, and
-   small history entries describing this turn.
-3. Preserve everything else exactly: all other phase rows, `session`, `project`,
-   `turn_templates`, prompt text, and existing history.
+The only legal mutation surface is:
+
+```powershell
+python automation\phase_runner\state_tool.py apply {state_file} -
+```
+
+Pass one JSON payload on stdin describing the semantic outcome of the turn:
+
+```json
+{
+  "phase": {current.phase},
+  "completed_turn": "{current.turn}",
+  "status": "complete",
+  "qa_status": "needed",
+  "next_turn": "review",
+  "detail": "short human-readable marker",
+  "notes": {
+    "done": ["short marker"],
+    "remaining": ["short marker"],
+    "findings": ["short marker"],
+    "verification": ["short marker"]
+  }
+}
+```
+
+The model is the authority on what happened in the phase. The state tool is the
+only authority on how that semantic outcome is committed mechanically.
 
 ## Status values
 
@@ -89,16 +111,20 @@ not resolved.
 Advance like this:
 
 - after `plan`: same phase, turn `implement`
-- after `implement`: same phase, turn `review` if implementation is ready for
-  the phase-done check; otherwise stay on `implement`
+- after `implement`: same phase, turn `review`
 - after `review`: same phase, turn `repair` if the phase is not actually done;
   turn `test_review` if the phase is actually done
 - after `repair`: same phase, turn `review`
 - after `test_review`: same phase, turn `test_repair_plan` if test findings
   need fixes; turn `code_quality_review` if test hardening is not needed
 - after `test_repair_plan`: same phase, turn `test_repair_implement`
-- after `test_repair_implement`: same phase, turn `code_quality_review`
+- after `test_repair_implement`: same phase, turn `test_review` if fixes need
+  re-review; turn `code_quality_review` if tests are now honest enough
 - after `code_quality_review`: next phase at turn `plan`, or `current: null`
   and `completed_at` if this was the last phase
 
 Only `code_quality_review` advances to the next phase in this prompt set.
+
+Do not leave the cursor on the same turn you just finished. Commit the semantic
+result of the current turn through `state_tool.py apply`, with the next turn set
+explicitly. Never hand-edit `current`.

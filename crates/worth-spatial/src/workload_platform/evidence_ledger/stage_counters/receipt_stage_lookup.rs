@@ -14,9 +14,7 @@ impl WorkloadEvidenceStageCounters {
             WorkloadEvidenceStage::Projection => self.projected_entity_count,
             WorkloadEvidenceStage::Transform => self.transform_step_count,
             WorkloadEvidenceStage::RetainedReplay => self.retained_artifact_count,
-            WorkloadEvidenceStage::BatchAdmissionExecution => {
-                self.batch_admission_execution_count
-            }
+            WorkloadEvidenceStage::BatchAdmissionExecution => self.batch_admission_execution_count,
             WorkloadEvidenceStage::Diagnostics => self.diagnostic_count,
             WorkloadEvidenceStage::Response => self.user_outcome_count,
             WorkloadEvidenceStage::Operator => self.operator_receipt_count,

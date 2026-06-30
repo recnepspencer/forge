@@ -5,11 +5,11 @@ use forge_query::facade::{
     ForgeQueryRetainedUpstreamInputs, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
 use schema::facade::QueryAspectPath;
-use serde_json::json;
+use serde_json::{json, Value};
 
-use crate::projection::diagnostic_surfaces::derived_read_diagnostics::DerivedReadDiagnostics;
-#[cfg(test)]
-use crate::projection::diagnostic_surfaces::DerivedEquivalenceContractReport;
+use crate::projection::diagnostic_surfaces::{
+    derived_read_diagnostics::DerivedReadDiagnostics, DerivedEquivalenceContractReport,
+};
 use crate::query_native_runtime_boundary::query_aspect_touch;
 
 #[cfg(test)]
@@ -18,9 +18,10 @@ use super::super::retained_payload::{
     decode_single_retained_payload_row, incremental_patch_touches, publish_retained_payload,
     refresh_patch_touches,
 };
-#[cfg(test)]
-use super::super::TopologyQuerySurfaceError;
-use super::super::QUERY_SURFACE_FAILURE_ROW_KEY;
+use super::super::{
+    decode_query_surface_failure_payload, TopologyQuerySurfaceError, TopologyQuerySurfaceErrorKind,
+    QUERY_SURFACE_FAILURE_ROW_KEY,
+};
 
 #[derive(Debug, Clone)]
 pub(crate) struct TopologyEquivalenceContractMaintainer;
@@ -64,16 +65,10 @@ impl ForgeQueryDerivedViewMaintainer for TopologyEquivalenceContractMaintainer {
         upstreams: &ForgeQueryRetainedUpstreamInputs,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> Option<ForgeQueryDerivedPatch> {
-        let mut upstream_rows = upstreams.declared_retained_computed_row_sets(view);
-        let payload = match decode_single_retained_payload_row::<DerivedReadDiagnostics>(
-            upstream_rows.next().unwrap_or_default(),
-            "derived read diagnostics",
-        )
-        .map(|diagnostics| diagnostics.equivalence_contract_report)
-        {
+        let payload = match equivalence_contract_report_from_upstreams(view, upstreams) {
             Ok(report) => serde_json::to_value(report)
                 .expect("derived equivalence contract report must serialize"),
-            Err(error) => json!({ QUERY_SURFACE_FAILURE_ROW_KEY: error.to_string() }),
+            Err(error) => error.failure_payload(),
         };
         let patch_payload = publish_retained_payload(view.name(), materialization, &payload);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
@@ -88,10 +83,10 @@ impl ForgeQueryDerivedViewMaintainer for TopologyEquivalenceContractMaintainer {
     }
 }
 
-pub(crate) fn declare_topology_equivalence_contract_surface<T, D>(
+pub(crate) fn declare_topology_equivalence_contract_surface<T, V>(
     workspace: &mut ForgeQueryWorkspace,
     surface_name: impl Into<String>,
-    diagnostics_view: &ForgeQueryDerivedViewHandle<D>,
+    diagnostics_view: &ForgeQueryDerivedViewHandle<V>,
 ) -> Result<ForgeQueryDerivedViewHandle<T>, ForgeQueryRuntimeError> {
     let surface_name = surface_name.into();
     let view = ForgeQueryComputedBuilder::surface(surface_name)
@@ -103,6 +98,34 @@ pub(crate) fn declare_topology_equivalence_contract_surface<T, D>(
         .whole_refresh_fallback()
         .build()?;
     workspace.computed_view(view, TopologyEquivalenceContractMaintainer::new())
+}
+
+fn equivalence_contract_report_from_upstreams(
+    view: &ForgeQueryDerivedView,
+    upstreams: &ForgeQueryRetainedUpstreamInputs,
+) -> Result<DerivedEquivalenceContractReport, TopologyQuerySurfaceError> {
+    let diagnostics_payload: Value = decode_single_retained_payload_row(
+        upstreams
+            .declared_retained_computed_row_sets(view)
+            .next()
+            .unwrap_or_default(),
+        "topology diagnostics",
+    )?;
+    if let Some(error) =
+        decode_query_surface_failure_payload(&diagnostics_payload, "topology diagnostics")
+    {
+        return Err(error);
+    }
+    let diagnostics: DerivedReadDiagnostics =
+        serde_json::from_value(diagnostics_payload).map_err(|error| {
+            TopologyQuerySurfaceError::with_kind(
+                TopologyQuerySurfaceErrorKind::RetainedPayloadDecodeFailed,
+                format!(
+                    "retained surface `topology diagnostics` payload failed to decode: {error}"
+                ),
+            )
+        })?;
+    Ok(diagnostics.equivalence_contract_report)
 }
 
 #[cfg(test)]

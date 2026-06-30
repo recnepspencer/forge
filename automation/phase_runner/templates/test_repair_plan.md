@@ -23,7 +23,7 @@ The plan must distinguish clearly between:
 Make the plan specific enough that the next implementation turn can execute it
 literally.
 
-After posting the plan, update JSON only:
+After posting the plan, commit the phase outcome through `state_tool.py apply`:
 
 - short `notes.plan`
 - cursor turn `test_repair_implement`

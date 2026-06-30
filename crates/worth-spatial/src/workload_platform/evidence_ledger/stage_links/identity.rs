@@ -26,9 +26,9 @@ pub(crate) fn stage_link_set_identity(
     stage_index_identity: &str,
     links: &[WorkloadEvidenceStageLink],
 ) -> String {
+    let _ = stage_index_identity;
     let mut parts = vec![
         "workload-evidence-stage-link-set".to_string(),
-        format!("stage-index:{stage_index_identity}"),
         format!("links:{}", links.len()),
     ];
     parts.extend(links.iter().map(|link| {

@@ -1,6 +1,7 @@
 pub(crate) mod blocker_provenance;
 pub(crate) mod boolean_readiness_workload;
 pub(crate) mod certification_context;
+pub(crate) mod compiled_product_admission;
 pub(crate) mod coplanar_overlap_storm;
 pub(crate) mod dirty_planar_clean_fail;
 pub(crate) mod evidence_ledger;

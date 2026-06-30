@@ -16,6 +16,15 @@ fn mb_m6_4_retained_planar_history_cancellation_chain() {
     let subject = certify_retained_cancellation_chain("contract");
     let counters = subject.receipt.counters();
 
+    assert!(!subject.receipt.compiled_product_family_digest().is_empty());
+    assert!(!subject
+        .receipt
+        .compiled_product_identity_digest()
+        .is_empty());
+    assert!(!subject
+        .receipt
+        .equivalence_policy_identity_digest()
+        .is_empty());
     assert_eq!(counters.checkpoint_count(), 32);
     assert_eq!(counters.replayed_checkpoint_count(), 8);
     assert_eq!(counters.trigger_local_replay_count(), 0);
@@ -29,6 +38,21 @@ fn mb_m6_4_retained_planar_history_cancellation_chain() {
     assert_eq!(subject.receipt.checkpoints().len(), 32);
     assert_eq!(subject.user_outcome.kind(), WorthUserOutcomeKind::Admitted);
     assert_human_readable(subject.user_outcome.human_response().summary());
+
+    let repeated = certify_retained_cancellation_chain("contract");
+    assert_eq!(
+        subject.receipt.compiled_product_family_digest(),
+        repeated.receipt.compiled_product_family_digest()
+    );
+    assert_eq!(
+        subject.receipt.compiled_product_identity_digest(),
+        repeated.receipt.compiled_product_identity_digest()
+    );
+    assert_eq!(
+        subject.receipt.equivalence_policy_identity_digest(),
+        repeated.receipt.equivalence_policy_identity_digest()
+    );
+
     for checkpoint in subject.receipt.checkpoints() {
         assert_eq!(
             checkpoint.transform_stage_receipt_identity(),

@@ -6,7 +6,8 @@ use super::current_cutover::{
 use super::current_route_authority::{
     current_completed_split_route_authority, current_lookup_consumed_route_authority,
     current_replay_undo_boundary_route_authority, WorthWorkloadCurrentLookupConsumedRouteAuthority,
-    WorthWorkloadCurrentOrdinaryRouteAuthority, WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority,
+    WorthWorkloadCurrentOrdinaryRouteAuthority,
+    WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority,
 };
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]

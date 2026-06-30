@@ -2,6 +2,7 @@
 pub enum PlanarBooleanEventLedgerLookupExecutionDenialKind {
     SpatialTouchAuthority,
     FamilyCatalog,
+    BroadBooleanResidue,
     InputAdmission,
     PlanSelection,
     IndexProduct,

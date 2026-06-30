@@ -23,12 +23,14 @@ Your job is to produce a findings-first review of the tests:
 
 Be concrete. Use file/line references when possible.
 
-If the tests need hardening, update JSON only:
+If the tests need hardening, commit the phase outcome through
+`state_tool.py apply`:
 
 - short `notes.findings`
 - cursor turn `test_repair_plan`
 
-If the tests are already honest enough, update JSON only:
+If the tests are already honest enough, commit the phase outcome through
+`state_tool.py apply`:
 
 - short `notes.done`
 - cursor turn `code_quality_review`

@@ -8,8 +8,10 @@ use crate::workload_composition::worth_workload::{
     WorthWorkloadOrdinaryConsumerCutover,
 };
 use crate::workload_composition::{
+    current_kernel_compiled_product_consumer_dependency_matrix,
     current_worth_touched_graph_conflict_deletion_closeout,
     current_worth_touched_graph_conflict_source_firewall_report, BatchAdmissionExecutionReceipt,
+    KernelCompiledProductConsumerDependencyError, KernelCompiledProductConsumerDependencyMatrix,
     WorthTouchedGraphConflictDeletionCloseout, WorthTouchedGraphConflictSourceFirewallReport,
 };
 
@@ -224,13 +226,37 @@ pub(crate) fn publish_from_parts(
     })
 }
 
-pub(crate) fn current_public_closeout_components(
-) -> Result<CurrentWorthTouchedGraphConflictPublicCloseoutComponents, WorthTouchedGraphConflictPublicCloseoutError>
+pub(crate) fn current_public_closeout_components() -> Result<
+    CurrentWorthTouchedGraphConflictPublicCloseoutComponents,
+    WorthTouchedGraphConflictPublicCloseoutError,
+> {
+    current_public_closeout_components_with_matrix_loader(
+        current_kernel_compiled_product_consumer_dependency_matrix,
+    )
+}
+
+pub(crate) fn current_public_closeout_components_with_matrix_loader<F>(
+    load_matrix: F,
+) -> Result<
+    CurrentWorthTouchedGraphConflictPublicCloseoutComponents,
+    WorthTouchedGraphConflictPublicCloseoutError,
+>
+where
+    F: FnOnce() -> Result<
+        KernelCompiledProductConsumerDependencyMatrix,
+        KernelCompiledProductConsumerDependencyError,
+    >,
 {
     let cutover = current_worth_workload_ordinary_consumer_cutover().map_err(|error| {
         WorthTouchedGraphConflictPublicCloseoutError::new(
             WorthTouchedGraphConflictPublicCloseoutErrorKind::CurrentProofUnavailable,
             format!("phase 13 ordinary-consumer cutover did not assemble: {error:?}"),
+        )
+    })?;
+    load_matrix().map_err(|error| {
+        WorthTouchedGraphConflictPublicCloseoutError::new(
+            WorthTouchedGraphConflictPublicCloseoutErrorKind::CurrentProofUnavailable,
+            format!("phase 14 kernel consumer dependency matrix did not assemble: {error:?}"),
         )
     })?;
     let deletion_closeout =
@@ -261,8 +287,10 @@ impl CurrentWorthTouchedGraphConflictPublicCloseoutComponents {
 
     pub(crate) fn input(
         &self,
-    ) -> Result<WorthTouchedGraphConflictPublicCloseoutInput<'_>, WorthTouchedGraphConflictPublicCloseoutError>
-    {
+    ) -> Result<
+        WorthTouchedGraphConflictPublicCloseoutInput<'_>,
+        WorthTouchedGraphConflictPublicCloseoutError,
+    > {
         WorthTouchedGraphConflictPublicCloseoutInput::new(
             self.cutover.batch_execution_receipt(),
             &self.deletion_closeout,
@@ -283,16 +311,19 @@ fn require_current_replay_undo_proof_chain(
         return Ok(());
     }
 
-    let current_route_authority = current_replay_undo_boundary_route_authority().map_err(|error| {
-        WorthTouchedGraphConflictPublicCloseoutError::new(
-            WorthTouchedGraphConflictPublicCloseoutErrorKind::CurrentProofUnavailable,
-            format!("phase 13 replay/undo route authority did not assemble: {error:?}"),
-        )
-    })?;
+    let current_route_authority =
+        current_replay_undo_boundary_route_authority().map_err(|error| {
+            WorthTouchedGraphConflictPublicCloseoutError::new(
+                WorthTouchedGraphConflictPublicCloseoutErrorKind::CurrentProofUnavailable,
+                format!("phase 13 replay/undo route authority did not assemble: {error:?}"),
+            )
+        })?;
     if proof_chain.replay_undo_boundary_proof_digests()
         != [current_route_authority.boundary_proof_digest().to_string()]
         || proof_chain.transaction_packet_identities()
-            != [current_route_authority.transaction_packet_identity().to_string()]
+            != [current_route_authority
+                .transaction_packet_identity()
+                .to_string()]
         || proof_chain.replay_scope_identities()
             != [current_route_authority.replay_scope_identity().to_string()]
         || proof_chain.undo_scope_identities()

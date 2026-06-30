@@ -43,8 +43,7 @@ fn one_evidence_declaration_serves_multiple_consumers_without_local_wiring() {
     }
 
     let replay_fixture = boolean_event_ledger_spatial_boundary_fixture();
-    let replay_catalog = current_evidence_lookup_family_catalog()
-        .expect("lookup catalog closes");
+    let replay_catalog = current_evidence_lookup_family_catalog().expect("lookup catalog closes");
     let replay_family = replay_catalog
         .family_by_identity("spatial-touch.boolean.event-ledger-evidence.v1")
         .expect("event-ledger family exists");

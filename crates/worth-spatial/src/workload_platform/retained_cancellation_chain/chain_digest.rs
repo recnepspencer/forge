@@ -6,6 +6,8 @@ use super::{
 };
 
 pub(crate) fn retained_cancellation_chain_digest(
+    compiled_product_identity_digest: &str,
+    equivalence_policy_identity_digest: &str,
     workload_identity: &str,
     retained_basis_identity: &str,
     projection_consumed_identity: &str,
@@ -21,6 +23,8 @@ pub(crate) fn retained_cancellation_chain_digest(
         TruthDigestScope::ArtifactIdentity,
         &[
             "retained-cancellation-chain-workload".to_string(),
+            format!("compiled-product:{compiled_product_identity_digest}"),
+            format!("equivalence-policy:{equivalence_policy_identity_digest}"),
             format!("workload:{workload_identity}"),
             format!("retained_basis:{retained_basis_identity}"),
             format!("projection_consumed:{projection_consumed_identity}"),

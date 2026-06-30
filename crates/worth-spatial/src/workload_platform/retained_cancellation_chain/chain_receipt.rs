@@ -6,6 +6,9 @@ use super::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RetainedCancellationChainReceipt {
     chain_digest: String,
+    compiled_product_family_digest: String,
+    compiled_product_identity_digest: String,
+    equivalence_policy_identity_digest: String,
     workload_identity: String,
     retained_basis_identity: String,
     projection_consumed_identity: String,
@@ -16,6 +19,9 @@ pub struct RetainedCancellationChainReceipt {
 impl RetainedCancellationChainReceipt {
     pub(crate) fn new(
         chain_digest: String,
+        compiled_product_family_digest: String,
+        compiled_product_identity_digest: String,
+        equivalence_policy_identity_digest: String,
         workload_identity: String,
         retained_basis_identity: String,
         projection_consumed_identity: String,
@@ -24,6 +30,9 @@ impl RetainedCancellationChainReceipt {
     ) -> Self {
         Self {
             chain_digest,
+            compiled_product_family_digest,
+            compiled_product_identity_digest,
+            equivalence_policy_identity_digest,
             workload_identity,
             retained_basis_identity,
             projection_consumed_identity,
@@ -34,6 +43,18 @@ impl RetainedCancellationChainReceipt {
 
     pub fn chain_digest(&self) -> &str {
         &self.chain_digest
+    }
+
+    pub fn compiled_product_family_digest(&self) -> &str {
+        &self.compiled_product_family_digest
+    }
+
+    pub fn compiled_product_identity_digest(&self) -> &str {
+        &self.compiled_product_identity_digest
+    }
+
+    pub fn equivalence_policy_identity_digest(&self) -> &str {
+        &self.equivalence_policy_identity_digest
     }
 
     pub fn workload_identity(&self) -> &str {

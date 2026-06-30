@@ -1,3 +1,4 @@
+mod public_api_compiled_product_consumer_cutover;
 mod public_api_construction_branch_preview;
 mod public_api_graph_read_access_inventory_milestone_six_closeout;
 mod public_api_planar_boolean_7_0_closeout;
@@ -66,9 +67,8 @@ mod workload_vocabulary {
     };
     use worth_spatial::facade::workload_vocabulary::{
         DiagnosticWorkload, GeometryBindingWorkload, ProjectionWorkload, ResponseWorkload,
-        RetainedReplayWorkload, SurfaceSupportWorkload, TransformWorkload,
-        WorkloadEvidenceLedger, WorkloadEvidenceLedgerError, WorkloadEvidenceRow,
-        WorkloadEvidenceStage,
+        RetainedReplayWorkload, SurfaceSupportWorkload, TransformWorkload, WorkloadEvidenceLedger,
+        WorkloadEvidenceLedgerError, WorkloadEvidenceRow, WorkloadEvidenceStage,
     };
 
     #[test]
@@ -233,7 +233,8 @@ mod workload_vocabulary {
         projection: worth_spatial::facade::workload_vocabulary::ProjectionWorkloadReceipt,
         transform: worth_spatial::facade::workload_vocabulary::TransformWorkloadReceipt,
         replay: worth_spatial::facade::workload_vocabulary::RetainedReplayWorkloadReceipt,
-        batch_admission_execution: Option<worth_kernel::workload_composition::BatchAdmissionExecutionReceipt>,
+        batch_admission_execution:
+            Option<worth_kernel::workload_composition::BatchAdmissionExecutionReceipt>,
         diagnostics: worth_spatial::facade::workload_vocabulary::DiagnosticWorkloadReceipt,
         response: worth_spatial::facade::workload_vocabulary::ResponseWorkloadReceipt,
     }

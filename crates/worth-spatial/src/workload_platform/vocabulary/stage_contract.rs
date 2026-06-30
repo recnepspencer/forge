@@ -97,11 +97,7 @@ pub struct WorkloadStageIdentity {
 }
 
 impl WorkloadStageIdentity {
-    pub(crate) fn new(
-        stage: WorkloadStage,
-        declaration: String,
-        upstream_receipt: String,
-    ) -> Self {
+    pub(crate) fn new(stage: WorkloadStage, declaration: String, upstream_receipt: String) -> Self {
         Self {
             stage,
             declaration,

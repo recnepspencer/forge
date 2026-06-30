@@ -1,5 +1,4 @@
 use forge_relational::facade::identity::EntityId;
-#[cfg(test)]
 use forge_relational::facade::runtime::{EntityReadRecord, RelationReadRecord};
 use schema::facade::platform::entities::EntityKind;
 use schema::facade::platform::relations::RelationKind;
@@ -19,7 +18,6 @@ pub(crate) struct MaterializationRelationRow {
 }
 
 impl MaterializationEntityRow {
-    #[cfg(test)]
     pub(crate) fn from_truth_record(record: &EntityReadRecord) -> Option<Self> {
         let kind = EntityKind::from_kind_id(record.kind.kind_id)?;
         Some(Self {
@@ -31,7 +29,6 @@ impl MaterializationEntityRow {
 }
 
 impl MaterializationRelationRow {
-    #[cfg(test)]
     pub(crate) fn from_truth_record(record: &RelationReadRecord) -> Option<Self> {
         let kind = RelationKind::from_kind_id(record.kind.kind_id)?;
         Some(Self {

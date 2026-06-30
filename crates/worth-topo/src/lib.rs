@@ -9,8 +9,10 @@
 
 mod brep;
 pub mod certification;
+mod compiled_product_family;
 mod construction;
 pub mod derived_invalidation_authority_inventory;
+mod derived_invalidation_compiled_product_admission;
 pub mod derived_invalidation_deletion_closeout;
 pub mod derived_invalidation_execution;
 pub mod derived_invalidation_family_catalog;

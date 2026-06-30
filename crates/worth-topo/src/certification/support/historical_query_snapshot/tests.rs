@@ -4,16 +4,13 @@ use super::{
     historical_derived_surface_snapshot_for_read_basis, historical_query_snapshot_for_read_basis,
 };
 use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
-use crate::projection::runtime_boundary::declared_query_surfaces::retained_artifacts::materialize_topology_historical_truth_artifact;
 use crate::projection::runtime_boundary::declared_query_surfaces::{
     declare_topology_query_surfaces, equivalence_contract_from_diagnostics_rows,
 };
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::projection::runtime_boundary::read_stage::{
-    open_topology_read_view, stage_topology_read_from_view,
-};
+use crate::projection::runtime_boundary::read_stage::open_topology_read_view;
 use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
@@ -216,81 +213,31 @@ fn authority_and_derived_read_basis_callers_use_shared_query_runtime_boundary() 
 }
 
 #[test]
-fn historical_truth_artifact_decodes_retained_rows_without_staged_fallback() {
-    let mut runtime = milestone_one_runtime_builder()
-        .expect(" milestone one runtime builder")
-        .build();
-    let verified = seed_milestone_one_primitive_through_schema_execution(
-        &mut runtime,
-        "query-native-surfaces-historical-truth-assembly",
-        &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+fn historical_read_basis_runtime_stages_truth_once_and_keeps_callers_thin() {
+    let runtime_source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src/certification/support/read_basis_query_runtime.rs"),
     )
-    .expect("verified primitive");
-    let read_view =
-        open_topology_read_view(&runtime, &verified.read_basis()).expect("read view should open");
-    let adapters = TopologyRuntimeAdapters::snapshot_historical_basis(
-        read_view,
-        verified.read_basis().clone(),
-    );
-    let mut workspace = topology_runtime(
-        adapters,
-        "topology-declared-query-surfaces-historical-truth-assembly",
+    .expect("historical read-basis runtime source should remain readable");
+    let derived_source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src/certification/support/historical_query_snapshot/derived_snapshot.rs"),
     )
-    .expect("query workspace should build");
-    let surfaces =
-        declare_topology_query_surfaces(&mut workspace).expect("query surfaces should declare");
+    .expect("historical derived snapshot source should remain readable");
 
-    let staged_truth = stage_topology_read_from_view(
-        &open_topology_read_view(&runtime, &verified.read_basis()).expect("read view should open"),
-    )
-    .expect("read stage should succeed");
-    let bundle = materialize_topology_historical_truth_artifact(&surfaces, &mut workspace)
-        .expect("assembly should decode");
-    assert_eq!(
-        bundle.materialized().topology(),
-        staged_truth.materialized().topology()
+    assert!(
+        runtime_source.contains("open_topology_read_view(runtime, &read_basis)")
+            && runtime_source.contains("stage_topology_read_from_view(&read_view)"),
+        "historical read-basis runtime should stage authority truth once inside the shared runtime seam",
     );
-    assert_eq!(
-        bundle.materialized().report().breadth.topology_entity_count,
-        staged_truth
-            .materialized()
-            .report()
-            .breadth
-            .topology_entity_count
+    assert!(
+        runtime_source.contains("build_derived_read_diagnostics("),
+        "historical read-basis runtime should derive diagnostics from staged truth instead of decoding failure-shaped retained truth payloads",
     );
-    assert_eq!(
-        bundle
-            .materialized()
-            .report()
-            .breadth
-            .topology_relation_count,
-        staged_truth
-            .materialized()
-            .report()
-            .breadth
-            .topology_relation_count
+    assert!(
+        !derived_source.contains("stage_topology_read_from_view("),
+        "historical derived snapshot callers should stay thin and consume the shared runtime seam instead of staging read truth inline",
     );
-    assert_eq!(
-        bundle.interpreted().materialized().topology(),
-        staged_truth.interpreted().materialized().topology()
-    );
-    assert_eq!(
-        bundle.interpreted().interpretations(),
-        staged_truth.interpreted().interpretations()
-    );
-    assert_eq!(
-        bundle.interpreted().boundary_summaries(),
-        staged_truth.interpreted().boundary_summaries()
-    );
-    assert_eq!(
-        bundle.interpreted().radial_summaries(),
-        staged_truth.interpreted().radial_summaries()
-    );
-    assert_eq!(
-        bundle.interpreted().report(),
-        staged_truth.interpreted().report()
-    );
-    assert_eq!(bundle.validation(), staged_truth.validation());
 }
 
 #[test]

@@ -27,10 +27,11 @@ Rules:
   meaning.
 - Re-run the focused verification needed to prove the hardened tests are real.
 
-After implementation, update JSON only:
+After implementation, commit the phase outcome through `state_tool.py apply`:
 
 - short `notes.done`
 - short `notes.verification`
-- cursor turn `code_quality_review`
+- cursor turn `test_review` if the hardened tests need re-review
+- cursor turn `code_quality_review` if the test lane is ready to close
 
 {contract}

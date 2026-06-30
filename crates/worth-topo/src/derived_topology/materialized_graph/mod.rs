@@ -1,51 +1,36 @@
-#[cfg(test)]
 mod entity_catalog;
-#[cfg(test)]
 mod entity_labels;
 mod errors;
-#[cfg(test)]
 mod input_rows;
 pub(crate) mod query_input_decode;
-#[cfg(test)]
 mod relation_wiring;
-#[cfg(test)]
 mod relation_wiring_support;
-#[cfg(test)]
 mod traits;
 mod types;
-#[cfg(test)]
 mod view_builder;
 
 #[cfg(test)]
 mod tests;
 
 pub use errors::TopologyMaterializationError;
-#[cfg(test)]
 pub(crate) use types::MaterializationBreadthReport;
 pub use types::{MaterializationFallbackClass, MaterializationReport, MaterializedTopologyView};
 
-#[cfg(test)]
 use crate::derived_topology::materialized_graph::entity_catalog::collect_entity_kinds;
-#[cfg(test)]
 use crate::derived_topology::materialized_graph::input_rows::{
     MaterializationEntityRow, MaterializationRelationRow,
 };
-#[cfg(test)]
 use crate::derived_topology::materialized_graph::relation_wiring::{
     apply_relation, finalize_topology_membership,
 };
-#[cfg(test)]
 use crate::derived_topology::materialized_graph::view_builder::{
     has_topology_content, push_entity_row,
 };
-#[cfg(test)]
 use forge_relational::facade::runtime::RelationalReadView;
 
 #[derive(Debug, Default, Clone, Copy)]
-#[cfg(test)]
 pub struct TopologyMaterializer;
 
-#[cfg(test)]
 impl TopologyMaterializer {
     pub fn materialize_from_truth(
         read_view: &RelationalReadView,

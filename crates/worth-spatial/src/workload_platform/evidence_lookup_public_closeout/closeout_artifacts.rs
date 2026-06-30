@@ -1,3 +1,4 @@
+use crate::spatial_compiled_product_family::SpatialCompiledProductLoweredIdentity;
 use crate::workload_platform::evidence_ledger::{
     SpatialEvidenceSurfaceDeletionLedgerRow, WorkloadEvidenceStage,
 };
@@ -30,6 +31,8 @@ pub struct EvidenceLookupPublicCloseoutFamilyStageRow {
     pub(super) family_declaration_digest: String,
     pub(super) stage: WorkloadEvidenceStage,
     pub(super) stage_receipt_family_identity: String,
+    pub(super) spatial_compiled_product_identity_digest: Option<String>,
+    pub(super) spatial_equivalence_policy_identity_digest: Option<String>,
     pub(super) spatial_touch_digest: Option<String>,
     pub(super) topology_input_summary: String,
     pub(super) query_import_evidence_digest: Option<String>,
@@ -40,6 +43,7 @@ pub struct EvidenceLookupPublicCloseoutFamilyStageRow {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EvidenceLookupPublicCloseout {
+    pub(super) spatial_compiled_product_family_digest: String,
     pub(super) family_stage_rows: Vec<EvidenceLookupPublicCloseoutFamilyStageRow>,
     pub(super) query_surface_matrix: EvidenceLookupQuerySurfaceMatrixCloseout,
     pub(super) query_consumer_kit: EvidenceLookupQueryConsumerKitCloseout,
@@ -59,6 +63,7 @@ impl EvidenceLookupPublicCloseoutFamilyStageRow {
         stage: WorkloadEvidenceStage,
         query_surface_row_digest: &str,
         proof: &EvidenceLookupCoveredStageCutoverProof,
+        lowered_identity: &SpatialCompiledProductLoweredIdentity,
     ) -> Self {
         let disposition = EvidenceLookupPublicCloseoutDisposition::ReceiptProof {
             selected_lookup_plan_digest: proof.selected_lookup_plan_digest().to_string(),
@@ -74,6 +79,18 @@ impl EvidenceLookupPublicCloseoutFamilyStageRow {
                 .stage_receipt_family_identity()
                 .digest()
                 .to_string(),
+            spatial_compiled_product_identity_digest: Some(
+                lowered_identity
+                    .compiled_product_identity()
+                    .identity_digest()
+                    .to_string(),
+            ),
+            spatial_equivalence_policy_identity_digest: Some(
+                lowered_identity
+                    .equivalence_policy_identity()
+                    .identity_digest()
+                    .to_string(),
+            ),
             spatial_touch_digest: Some(proof.spatial_touch_digest().to_string()),
             topology_input_summary: topology_input_summary(family),
             query_import_evidence_digest: family
@@ -117,6 +134,8 @@ impl EvidenceLookupPublicCloseoutFamilyStageRow {
                 .stage_receipt_family_identity()
                 .digest()
                 .to_string(),
+            spatial_compiled_product_identity_digest: None,
+            spatial_equivalence_policy_identity_digest: None,
             spatial_touch_digest: None,
             topology_input_summary: topology_input_summary(family),
             query_import_evidence_digest: family
@@ -148,6 +167,14 @@ impl EvidenceLookupPublicCloseoutFamilyStageRow {
 
     pub fn spatial_touch_digest(&self) -> Option<&str> {
         self.spatial_touch_digest.as_deref()
+    }
+
+    pub fn spatial_compiled_product_identity_digest(&self) -> Option<&str> {
+        self.spatial_compiled_product_identity_digest.as_deref()
+    }
+
+    pub fn spatial_equivalence_policy_identity_digest(&self) -> Option<&str> {
+        self.spatial_equivalence_policy_identity_digest.as_deref()
     }
 
     pub fn topology_input_summary(&self) -> &str {
@@ -217,6 +244,10 @@ impl EvidenceLookupPublicCloseoutFamilyStageRow {
 }
 
 impl EvidenceLookupPublicCloseout {
+    pub fn spatial_compiled_product_family_digest(&self) -> &str {
+        &self.spatial_compiled_product_family_digest
+    }
+
     pub fn family_stage_rows(&self) -> &[EvidenceLookupPublicCloseoutFamilyStageRow] {
         &self.family_stage_rows
     }
@@ -294,6 +325,12 @@ fn row_digest(row: &EvidenceLookupPublicCloseoutFamilyStageRow) -> String {
             row.family_declaration_digest.clone(),
             row.stage.human_name().to_string(),
             row.stage_receipt_family_identity.clone(),
+            row.spatial_compiled_product_identity_digest
+                .clone()
+                .unwrap_or_else(|| "no-spatial-compiled-product-proof".to_string()),
+            row.spatial_equivalence_policy_identity_digest
+                .clone()
+                .unwrap_or_else(|| "no-spatial-equivalence-proof".to_string()),
             row.spatial_touch_digest
                 .clone()
                 .unwrap_or_else(|| "no-spatial-touch-proof".to_string()),

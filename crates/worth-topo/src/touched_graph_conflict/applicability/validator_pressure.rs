@@ -1,5 +1,5 @@
-use schema::facade::platform::authority::touched_graph_conflict::ConflictRoutingContract;
 use schema::facade::platform::authority::touched_graph_conflict::ConflictOverlapCategory;
+use schema::facade::platform::authority::touched_graph_conflict::ConflictRoutingContract;
 
 use crate::touched_graph_conflict::family_declaration::TopologyConflictFamilyDeclaration;
 
