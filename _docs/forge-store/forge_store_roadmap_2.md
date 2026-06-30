@@ -508,6 +508,8 @@ and recovery never relies on scanning backend residue as authority.
 
 ## S.5: Physical Isolation, Latches, Epochs, And Stable Read Plans
 
+Engineering spec: [storage-foundation-s5.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s5.md)
+
 ### Goal
 
 Provide physical byte stability without duplicating semantic MVCC.
