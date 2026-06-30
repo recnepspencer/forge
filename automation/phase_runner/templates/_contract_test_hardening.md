@@ -47,6 +47,30 @@ The state file may be written by more than one process. Obey this exactly:
 3. Preserve everything else exactly: all other phase rows, `session`, `project`,
    `turn_templates`, prompt text, and existing history.
 
+## Authority and reconciliation
+
+Phase rows are the source of truth. `current` is only the next-turn cursor.
+
+- If a phase row says `status: complete` and `qa_status: passed`, that phase is
+  already closed.
+- Never leave `current` on the same phase at `review`, `repair`,
+  `test_review`, `test_repair_plan`, `test_repair_implement`, or
+  `code_quality_review` after marking that phase `complete/passed`.
+- If `current` disagrees with the phase rows, repair `current` from the phase
+  rows before doing any other work.
+- `current.phase` should point at the first not-fully-finished phase unless the
+  milestone is complete, in which case set `current: null` and set
+  `completed_at`.
+
+Before every write, run this reconciliation check:
+
+1. Did I just mark this phase `complete/passed`?
+2. If yes, did I advance `current` to the next phase `plan`, or to `null` plus
+   `completed_at` if this was the last phase?
+3. Does `current` still point at a same-phase repair/test turn even though the
+   phase row is already `complete/passed`?
+4. If so, fix `current` now and record a short history note about the repair.
+
 ## Status values
 
 Phase `status` is one of: {status_values}
@@ -89,16 +113,33 @@ not resolved.
 Advance like this:
 
 - after `plan`: same phase, turn `implement`
-- after `implement`: same phase, turn `review` if implementation is ready for
-  the phase-done check; otherwise stay on `implement`
+- after `implement`: same phase, turn `review`
 - after `review`: same phase, turn `repair` if the phase is not actually done;
   turn `test_review` if the phase is actually done
 - after `repair`: same phase, turn `review`
 - after `test_review`: same phase, turn `test_repair_plan` if test findings
   need fixes; turn `code_quality_review` if test hardening is not needed
 - after `test_repair_plan`: same phase, turn `test_repair_implement`
-- after `test_repair_implement`: same phase, turn `code_quality_review`
+- after `test_repair_implement`: same phase, turn `test_review` if fixes need
+  re-review; turn `code_quality_review` if tests are now honest enough
 - after `code_quality_review`: next phase at turn `plan`, or `current: null`
   and `completed_at` if this was the last phase
 
 Only `code_quality_review` advances to the next phase in this prompt set.
+
+## Stale-cursor recovery example
+
+If you read the state and see:
+
+- phase 11 row -> `status: complete`, `qa_status: passed`
+- `current` -> `phase: 11`, `turn: test_repair_implement`
+
+that means the cursor is stale. Do not continue `test_repair_implement`.
+Repair `current` first:
+
+- set `current` to phase 12 at turn `plan` if phase 12 is the next unfinished
+  phase
+- or set `current: null` and `completed_at` if phase 11 was the final phase
+
+Then append a short history note describing the cursor repair, validate the
+state, and continue from the repaired cursor.
