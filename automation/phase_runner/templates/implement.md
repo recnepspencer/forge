@@ -33,8 +33,8 @@ Do not put logs, command output tails, artifacts, long plans, or review findings
 into the state payload. Put substantive implementation explanation in chat. The
 committed state is only progress tracking.
 
-When done, commit the phase outcome through `state_tool.py apply` with only
-short progress markers:
+When done, update the JSON state file directly with only short progress
+markers:
 
 - `status: complete` and `qa_status: needed` if implementation is ready for the
   phase-done check.

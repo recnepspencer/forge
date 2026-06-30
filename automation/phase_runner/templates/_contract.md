@@ -38,17 +38,38 @@ Every note entry should be a compact pointer, not a report.
 
 ## State-mutation protocol
 
-Do not edit the JSON state file directly. Do not use ad hoc PowerShell, Python,
-or text replacement to patch runner state.
+The state file may be written by more than one process. Obey this exactly:
 
-The only legal mutation surface is:
+1. Read the state file fresh from disk in the same command or script that writes
+   it. Never write from a stale copy.
+2. Mutate only the current phase row, the `current` cursor, `completed_at`, and
+   small history entries describing this turn.
+3. Preserve everything else exactly: all other phase rows, `session`, `project`,
+   `turn_templates`, prompt text, and existing history.
 
-```powershell
-python automation\phase_runner\state_tool.py apply {state_file} -
-```
+## Authority and reconciliation
 
-Pass one JSON payload on stdin describing the semantic outcome of the turn.
-The model decides the phase truth. The state tool commits that truth safely.
+Phase rows are the source of truth. `current` is only the next-turn cursor.
+
+- If a phase row says `status: complete` and `qa_status: passed`, that phase is
+  already closed.
+- Never leave `current` on the same phase at `review`, `repair`,
+  `test_review`, `test_repair_plan`, `test_repair_implement`, or
+  `code_quality_review` after marking that phase `complete/passed`.
+- If `current` disagrees with the phase rows, repair `current` from the phase
+  rows before doing any other work.
+- `current.phase` should point at the first not-fully-finished phase unless the
+  milestone is complete, in which case set `current: null` and set
+  `completed_at`.
+
+Before every write, run this reconciliation check:
+
+1. Did I just mark this phase `complete/passed`?
+2. If yes, did I advance `current` to the next phase `plan`, or to `null` plus
+   `completed_at` if this was the last phase?
+3. Does `current` still point at a same-phase repair/test turn even though the
+   phase row is already `complete/passed`?
+4. If so, fix `current` now and record a short history note about the repair.
 
 ## Status values
 
@@ -99,24 +120,31 @@ Default phase turns advance like this:
 - after `plan`: same phase, turn `implement`
 - after `implement`: same phase, turn `review`
 - after `review`: same phase, turn `repair` if the phase is not actually done;
-  turn `close_qa` if the phase is actually done and this prompt set provides
-  segmented close-hardening turns; otherwise turn `close`
+  turn `test_review` if the phase is actually done
 - after `repair`: same phase, turn `review`
-- after legacy `close`: next phase at turn `plan`, or `current: null` and
-  `completed_at` if this was the last phase
+- after `test_review`: same phase, turn `test_repair_plan` if test findings
+  need fixes; turn `code_quality_review` if test hardening is not needed
+- after `test_repair_plan`: same phase, turn `test_repair_implement`
+- after `test_repair_implement`: same phase, turn `test_review` if fixes need
+  re-review; turn `code_quality_review` if tests are now honest enough
+- after `code_quality_review`: next phase at turn `plan`, or `current: null`
+  and `completed_at` if this was the last phase
 
-Segmented close-hardening turns advance like this:
+Only `code_quality_review` advances to the next phase in this prompt set.
 
-- after `close_qa`: same phase, turn `close_plan`
-- after `close_plan`: same phase, turn `close_fix`
-- after `close_fix`: same phase, turn `close_quality_qa`
-- after `close_quality_qa`: same phase, turn `close_quality_plan`
-- after `close_quality_plan`: same phase, turn `close_quality_fix`
-- after `close_quality_fix`: next phase at turn `plan`, or `current: null` and
-  `completed_at` if this was the last phase
+## Stale-cursor recovery example
 
-Only `close` or `close_quality_fix` advances to the next phase.
+If you read the state and see:
 
-Do not leave the cursor on the same turn you just finished. Commit the turn
-result through `state_tool.py apply`, with the next turn set explicitly. Never
-hand-edit `current`.
+- phase 11 row -> `status: complete`, `qa_status: passed`
+- `current` -> `phase: 11`, `turn: test_repair_implement`
+
+that means the cursor is stale. Do not continue `test_repair_implement`.
+Repair `current` first:
+
+- set `current` to phase 12 at turn `plan` if phase 12 is the next unfinished
+  phase
+- or set `current: null` and `completed_at` if phase 11 was the final phase
+
+Then append a short history note describing the cursor repair, validate the
+state, and continue from the repaired cursor.

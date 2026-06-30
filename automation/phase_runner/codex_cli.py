@@ -2,17 +2,10 @@ from __future__ import annotations
 
 import json
 import subprocess
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from state import now_iso
-
-
-@dataclass
-class CodexResult:
-    exit_code: int
-    capture: dict[str, Any] = field(default_factory=dict)
 
 
 def build_command(state: dict[str, Any]) -> list[str]:
@@ -23,7 +16,7 @@ def build_command(state: dict[str, Any]) -> list[str]:
     thread_id = session.get("thread_id")
     config_args: list[str] = []
 
-    for key, value in session_config(session).items():
+    for key, value in session.get("config", {}).items():
         config_args.extend(["-c", f"{key}={json.dumps(value)}"])
 
     if thread_id:
@@ -60,7 +53,7 @@ def run_codex(
     state: dict[str, Any],
     prompt: str,
     log_path: Path | None,
-) -> CodexResult:
+) -> tuple[int, dict[str, Any]]:
     capture: dict[str, Any] = {}
     process = subprocess.Popen(
         build_command(state),
@@ -85,7 +78,7 @@ def run_codex(
                 log_file.write(line)
         capture_thread_id(capture, line)
 
-    return CodexResult(exit_code=process.wait(), capture=capture)
+    return process.wait(), capture
 
 
 def capture_thread_id(capture: dict[str, Any], line: str) -> None:
@@ -97,23 +90,3 @@ def capture_thread_id(capture: dict[str, Any], line: str) -> None:
     if isinstance(event, dict) and event.get("type") == "thread.started":
         capture["thread_id"] = event["thread_id"]
         capture["thread_started_at"] = now_iso()
-
-
-def session_config(session: dict[str, Any]) -> dict[str, Any]:
-    config = dict(session.get("config", {}))
-    service_tier = session.get("service_tier")
-    fast_mode = session.get("fast_mode")
-
-    if service_tier is not None and "service_tier" not in config:
-        config["service_tier"] = service_tier
-
-    if fast_mode is not None and "features.fast_mode" not in config:
-        config["features.fast_mode"] = fast_mode
-
-    # Codex fast mode requires both the service tier and the feature flag.
-    if config.get("service_tier") == "fast" and "features.fast_mode" not in config:
-        config["features.fast_mode"] = True
-    if config.get("features.fast_mode") is True and "service_tier" not in config:
-        config["service_tier"] = "fast"
-
-    return config

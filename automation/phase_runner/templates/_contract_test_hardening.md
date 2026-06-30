@@ -38,36 +38,38 @@ Every note entry should be a compact pointer, not a report.
 
 ## State-mutation protocol
 
-Do not edit the JSON state file directly. Do not use ad hoc PowerShell, Python,
-or text replacement to patch runner state.
+The state file may be written by more than one process. Obey this exactly:
 
-The only legal mutation surface is:
+1. Read the state file fresh from disk in the same command or script that writes
+   it. Never write from a stale copy.
+2. Mutate only the current phase row, the `current` cursor, `completed_at`, and
+   small history entries describing this turn.
+3. Preserve everything else exactly: all other phase rows, `session`, `project`,
+   `turn_templates`, prompt text, and existing history.
 
-```powershell
-python automation\phase_runner\state_tool.py apply {state_file} -
-```
+## Authority and reconciliation
 
-Pass one JSON payload on stdin describing the semantic outcome of the turn:
+Phase rows are the source of truth. `current` is only the next-turn cursor.
 
-```json
-{
-  "phase": {current.phase},
-  "completed_turn": "{current.turn}",
-  "status": "complete",
-  "qa_status": "needed",
-  "next_turn": "review",
-  "detail": "short human-readable marker",
-  "notes": {
-    "done": ["short marker"],
-    "remaining": ["short marker"],
-    "findings": ["short marker"],
-    "verification": ["short marker"]
-  }
-}
-```
+- If a phase row says `status: complete` and `qa_status: passed`, that phase is
+  already closed.
+- Never leave `current` on the same phase at `review`, `repair`,
+  `test_review`, `test_repair_plan`, `test_repair_implement`, or
+  `code_quality_review` after marking that phase `complete/passed`.
+- If `current` disagrees with the phase rows, repair `current` from the phase
+  rows before doing any other work.
+- `current.phase` should point at the first not-fully-finished phase unless the
+  milestone is complete, in which case set `current: null` and set
+  `completed_at`.
 
-The model is the authority on what happened in the phase. The state tool is the
-only authority on how that semantic outcome is committed mechanically.
+Before every write, run this reconciliation check:
+
+1. Did I just mark this phase `complete/passed`?
+2. If yes, did I advance `current` to the next phase `plan`, or to `null` plus
+   `completed_at` if this was the last phase?
+3. Does `current` still point at a same-phase repair/test turn even though the
+   phase row is already `complete/passed`?
+4. If so, fix `current` now and record a short history note about the repair.
 
 ## Status values
 
@@ -125,6 +127,19 @@ Advance like this:
 
 Only `code_quality_review` advances to the next phase in this prompt set.
 
-Do not leave the cursor on the same turn you just finished. Commit the semantic
-result of the current turn through `state_tool.py apply`, with the next turn set
-explicitly. Never hand-edit `current`.
+## Stale-cursor recovery example
+
+If you read the state and see:
+
+- phase 11 row -> `status: complete`, `qa_status: passed`
+- `current` -> `phase: 11`, `turn: test_repair_implement`
+
+that means the cursor is stale. Do not continue `test_repair_implement`.
+Repair `current` first:
+
+- set `current` to phase 12 at turn `plan` if phase 12 is the next unfinished
+  phase
+- or set `current: null` and `completed_at` if phase 11 was the final phase
+
+Then append a short history note describing the cursor repair, validate the
+state, and continue from the repaired cursor.

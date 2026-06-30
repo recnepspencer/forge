@@ -5,8 +5,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from state_normalization import normalize_state
-
 MAX_HISTORY_ENTRIES = 120
 PHASE_STATUSES = {"not_started", "in_progress", "complete", "regressed", "blocked"}
 QA_STATUSES = {"not_started", "needed", "in_progress", "passed", "failed"}
@@ -28,7 +26,6 @@ def public_state(state: dict[str, Any]) -> dict[str, Any]:
 
 
 def save_state(path: Path, state: dict[str, Any]) -> None:
-    normalize_state(state)
     state = public_state(state)
     trim_history(state)
     state["state_revision"] = int(state.get("state_revision", 0)) + 1

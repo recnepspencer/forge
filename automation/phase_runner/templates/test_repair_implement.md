@@ -27,7 +27,7 @@ Rules:
   meaning.
 - Re-run the focused verification needed to prove the hardened tests are real.
 
-After implementation, commit the phase outcome through `state_tool.py apply`:
+After implementation, update the JSON state file directly:
 
 - short `notes.done`
 - short `notes.verification`

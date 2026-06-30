@@ -24,14 +24,14 @@ Look for:
 - weak ownership boundaries
 - places where the implementation works but teaches the wrong architecture
 
-If you find issues, report them in chat with file/line references, commit the
-phase outcome through `state_tool.py apply` using only short `notes.findings` /
+If you find issues, report them in chat with file/line references, update the
+JSON state file directly using only short `notes.findings` /
 `notes.remaining` markers, and still close the phase honestly rather than
 pretending it is aerospace-grade.
 
 Re-run the acceptance checks and record command, exit code, and output tail in
-`notes.verification`. Then commit the lightweight final outcome through
-`state_tool.py apply`:
+`notes.verification`. Then update the lightweight final outcome directly in the
+JSON state file:
 
 - keep this phase `status: complete`
 - keep `qa_status: passed`
