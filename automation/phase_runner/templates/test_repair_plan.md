@@ -27,5 +27,10 @@ After posting the plan, update the JSON state file directly:
 
 - short `notes.plan`
 - cursor turn `test_repair_implement`
+- this turn is a planning turn only; do not leave `current` on
+  `test_repair_plan` after writing the plan
+- if the phase row is already `status: complete` and `qa_status: passed`, the
+  only valid same-phase next turn from this prompt is `test_repair_implement`
+  because you are explicitly planning remaining hardening work
 
 {contract}

@@ -38,5 +38,8 @@ JSON state file:
 - add at most short `notes.done` / `notes.remaining` markers
 - if a later phase exists, advance to that phase at turn `plan`
 - if this was the last phase, set `current` to null and set `completed_at`
+- never leave `current` on any same-phase `review`, `repair`, `test_review`,
+  `test_repair_plan`, `test_repair_implement`, or `code_quality_review` turn
+  once this closeout write marks the phase `complete/passed`
 
 {contract}
