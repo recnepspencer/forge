@@ -24,12 +24,14 @@ Look for:
 - weak ownership boundaries
 - places where the implementation works but teaches the wrong architecture
 
-If you find issues, report them in chat with file/line references, update JSON
-only with short `notes.findings` / `notes.remaining` markers, and still close
-the phase honestly rather than pretending it is aerospace-grade.
+If you find issues, report them in chat with file/line references, update the
+JSON state file directly using only short `notes.findings` /
+`notes.remaining` markers, and still close the phase honestly rather than
+pretending it is aerospace-grade.
 
 Re-run the acceptance checks and record command, exit code, and output tail in
-`notes.verification`. Then update only lightweight JSON state:
+`notes.verification`. Then update the lightweight final outcome directly in the
+JSON state file:
 
 - keep this phase `status: complete`
 - keep `qa_status: passed`

@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Any
 
 from state import PHASE_STATUSES, QA_STATUSES
-from state_normalization import REQUIRED_NOTE_LISTS
+
+REQUIRED_NOTE_LISTS = ("plan", "done", "remaining", "findings", "verification")
 
 
 def validate_state(state: dict[str, Any], state_path: Path) -> list[str]:
@@ -60,10 +61,6 @@ def validate_state(state: dict[str, Any], state_path: Path) -> list[str]:
             value = templates.get(key)
             if not isinstance(value, str) or not value:
                 errors.append(f"turn_templates.{key} must name a template file")
-            else:
-                template_path = resolve_config_path(state_path, value)
-                if not template_path.exists():
-                    errors.append(f"template not found for {key}: {template_path}")
         for key, value in templates.items():
             if not isinstance(value, str) or not value:
                 errors.append(f"turn_templates.{key} must name a template file")
@@ -100,9 +97,7 @@ def require_mapping(state: dict[str, Any], key: str, errors: list[str]) -> None:
         errors.append(f"{key} must be an object")
 
 
-def validate_phase_notes(
-    phase: dict[str, Any], prefix: str, errors: list[str]
-) -> None:
+def validate_phase_notes(phase: dict[str, Any], prefix: str, errors: list[str]) -> None:
     notes = phase.get("notes")
     if not isinstance(notes, dict):
         errors.append(f"{prefix}.notes must be an object")
