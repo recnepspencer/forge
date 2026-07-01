@@ -1,4 +1,3 @@
-use crate::workload_platform::evidence_ledger::WorkloadEvidenceStage;
 use crate::workload_platform::evidence_lookup_family_catalog::current_evidence_lookup_family_catalog;
 use crate::workload_platform::evidence_lookup_public_closeout::{
     current_evidence_lookup_public_closeout, EvidenceLookupPublicCloseoutDisposition,
@@ -10,8 +9,8 @@ fn milestone_eleven_closeout_requires_all_covered_lookup_families() {
     let family_catalog = current_evidence_lookup_family_catalog().expect("family catalog");
 
     assert_eq!(closeout.counters().family_stage_row_count(), 6);
-    assert_eq!(closeout.counters().receipt_proof_row_count(), 4);
-    assert_eq!(closeout.counters().non_ordinary_residue_row_count(), 2);
+    assert_eq!(closeout.counters().receipt_proof_row_count(), 6);
+    assert_eq!(closeout.counters().non_ordinary_residue_row_count(), 0);
 
     for row in closeout.family_stage_rows() {
         let family = family_catalog
@@ -34,18 +33,13 @@ fn milestone_eleven_closeout_requires_all_covered_lookup_families() {
                 assert!(!selected_lookup_plan_digest.is_empty());
                 assert!(!lookup_execution_receipt_digest.is_empty());
                 assert!(!lookup_product_output_digest.is_empty());
+                if family.topology_input_posture().requires_topology_receipt() {
+                    assert!(row.topology_query_backed_cutover_digest().is_some());
+                    assert!(row.topology_read_family_row_digest().is_some());
+                }
             }
-            EvidenceLookupPublicCloseoutDisposition::NonOrdinaryResidue {
-                reason,
-                removal_trigger,
-            } => {
-                assert!(matches!(
-                    row.stage(),
-                    WorkloadEvidenceStage::BooleanSharedPlaneIdentity
-                        | WorkloadEvidenceStage::BooleanLocalFrameSelection
-                ));
-                assert!(reason.contains("non-ordinary"));
-                assert!(!removal_trigger.is_empty());
+            EvidenceLookupPublicCloseoutDisposition::NonOrdinaryResidue { .. } => {
+                panic!("phase 13 topology-required public-closeout families must no longer publish residue rows");
             }
         }
     }

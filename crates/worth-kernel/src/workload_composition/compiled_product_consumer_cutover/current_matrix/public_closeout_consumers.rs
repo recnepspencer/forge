@@ -51,19 +51,19 @@ pub(super) fn current_public_closeout_consumer_rows() -> Result<
         KernelCompiledProductConsumerCoverageTarget::new(
             KernelCompiledProductConsumerClusterIdentity::ConflictPublicCloseoutSeed,
             "crates/worth-kernel/src/workload_composition/public_closeout/public_closeout.rs",
-            "current_worth_touched_graph_conflict_milestone_fourteen_seed",
+            "current_worth_touched_graph_conflict_milestone_fifteen_seed",
             KernelCompiledProductConsumerResponsibility::PublicCloseout,
             KernelCompiledProductFamilyClass::KernelPublicCloseoutSeed,
             KernelCompiledProductFutureCutoverLane::PublicCloseoutCompiledProductConsumerCutover,
             KernelCompiledProductProofBasis::new(
                 "public closeout proof chain and source-firewall authority",
-                "milestone fourteen public closeout seed footprint",
+                "Milestone 15 public closeout seed footprint",
                 "published public closeout chain lowered into one seed artifact",
                 "residue digest plus source-firewall digest preserved in seed lowering",
                 "kernel.public_closeout.seed:v1",
             ),
             None,
-            "milestone fourteen seed still reflects conflict-era closeout staging rather than compiled-product consumer closeout",
+            "Milestone 15 seed still reflects conflict-era closeout staging rather than compiled-product consumer closeout",
             &[Surface::CurrentWorthTouchedGraphConflictMilestoneFourteenSeed],
         ),
         KernelCompiledProductConsumerCoverageTarget::new(

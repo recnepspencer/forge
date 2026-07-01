@@ -1,15 +1,19 @@
 mod catalog;
 mod catalog_additions;
 mod closeout;
+mod compatibility_rows;
 mod counters;
 mod cut_line;
 mod discovery;
 mod error;
+mod phase_thirteen_firewall_rows;
 mod query_support_rows;
 mod row;
 mod row_builder;
 mod scan_pattern;
 mod source_firewall;
+mod spatial_compatibility_rows;
+mod topology_compatibility_rows;
 
 #[cfg(test)]
 mod phase_eleven_consumer_sweep_tests;

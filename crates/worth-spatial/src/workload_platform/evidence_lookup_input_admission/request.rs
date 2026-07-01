@@ -1,4 +1,5 @@
 use topology::derived_invalidation_milestone_ten_closeout::DerivedInvalidationMilestoneElevenSeed;
+use topology::facade::TopologyQueryBackedConsumerCutover;
 
 use crate::workload_platform::evidence_ledger::{
     SpatialGeometryEvidenceTouchAuthority, WorkloadEvidenceStage,
@@ -15,6 +16,7 @@ pub struct EvidenceLookupInputAdmissionRequest<'a> {
     stage_receipt_digest: Option<String>,
     stage_receipt_spatial_touch_digest: Option<String>,
     topology_seed: Option<&'a DerivedInvalidationMilestoneElevenSeed>,
+    topology_query_backed_cutover: Option<&'a TopologyQueryBackedConsumerCutover>,
     query_evidence: Option<EvidenceLookupQueryAdmissionEvidenceSet>,
 }
 
@@ -29,6 +31,7 @@ impl<'a> EvidenceLookupInputAdmissionRequest<'a> {
             stage_receipt_digest: None,
             stage_receipt_spatial_touch_digest: None,
             topology_seed: None,
+            topology_query_backed_cutover: None,
             query_evidence: None,
         }
     }
@@ -63,6 +66,14 @@ impl<'a> EvidenceLookupInputAdmissionRequest<'a> {
         self
     }
 
+    pub fn with_topology_query_backed_cutover(
+        mut self,
+        cutover: &'a TopologyQueryBackedConsumerCutover,
+    ) -> Self {
+        self.topology_query_backed_cutover = Some(cutover);
+        self
+    }
+
     pub fn with_query_import_evidence(
         mut self,
         evidence: EvidenceLookupQueryAdmissionEvidenceSet,
@@ -93,6 +104,12 @@ impl<'a> EvidenceLookupInputAdmissionRequest<'a> {
 
     pub(crate) const fn topology_seed(&self) -> Option<&'a DerivedInvalidationMilestoneElevenSeed> {
         self.topology_seed
+    }
+
+    pub(crate) const fn topology_query_backed_cutover(
+        &self,
+    ) -> Option<&'a TopologyQueryBackedConsumerCutover> {
+        self.topology_query_backed_cutover
     }
 
     pub(crate) const fn query_evidence(&self) -> Option<&EvidenceLookupQueryAdmissionEvidenceSet> {

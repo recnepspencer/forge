@@ -70,6 +70,7 @@ pub mod replay_family_catalog;
 pub mod replay_undo_semantic_graph;
 pub mod retained_cancellation_chain;
 pub mod retained_replay_workload;
+pub mod spatial_compiled_product_consumer_cutover;
 pub mod spatial_compiled_product_family;
 pub mod support;
 pub mod surface_support;

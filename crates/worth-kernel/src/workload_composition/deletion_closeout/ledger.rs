@@ -1,5 +1,6 @@
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
+use super::phase_fifteen_deleted_surfaces::current_phase_fifteen_deleted_surface_rows;
 use crate::workload_composition::{
     ConflictBatchAdmissionDisposition, ConflictBatchAdmissionInventory,
     ConflictBatchAdmissionInventoryError, ConflictBatchAdmissionOwner,
@@ -30,6 +31,24 @@ pub struct WorthTouchedGraphConflictDeletionLedger {
 }
 
 impl WorthTouchedGraphConflictDeletionLedgerRow {
+    pub(super) fn explicit(
+        source_path: String,
+        surface_name: String,
+        owner: ConflictBatchAdmissionOwner,
+        disposition: WorthTouchedGraphConflictDeletionDisposition,
+        blocker: String,
+        removal_trigger: String,
+    ) -> Self {
+        Self {
+            source_path,
+            surface_name,
+            owner,
+            disposition,
+            blocker,
+            removal_trigger,
+        }
+    }
+
     pub fn source_path(&self) -> &str {
         &self.source_path
     }
@@ -59,44 +78,7 @@ impl WorthTouchedGraphConflictDeletionLedger {
     pub(crate) fn from_inventory(
         inventory: &ConflictBatchAdmissionInventory,
     ) -> Result<Self, ConflictBatchAdmissionInventoryError> {
-        let mut rows = inventory
-            .rows()
-            .iter()
-            .filter(|row| {
-                row.replacement_phase()
-                    == ConflictBatchAdmissionReplacementPhase::PhaseTwelveFirewallDeletion
-            })
-            .map(|row| {
-                let disposition = match row.disposition() {
-                    ConflictBatchAdmissionDisposition::Migrate
-                    | ConflictBatchAdmissionDisposition::Delete => {
-                        WorthTouchedGraphConflictDeletionDisposition::DeletedAuthority
-                    }
-                    ConflictBatchAdmissionDisposition::Cap => {
-                        WorthTouchedGraphConflictDeletionDisposition::CappedResidue
-                    }
-                    ConflictBatchAdmissionDisposition::CertificationOnly => {
-                        WorthTouchedGraphConflictDeletionDisposition::CertificationOnlyFence
-                    }
-                    ConflictBatchAdmissionDisposition::QueryGap => {
-                        return Err(
-                            ConflictBatchAdmissionInventoryError::SourceFirewallViolation(format!(
-                                "phase 12 closeout cannot bind query gap `{}`",
-                                row.surface_name()
-                            )),
-                        )
-                    }
-                };
-                Ok(WorthTouchedGraphConflictDeletionLedgerRow {
-                    source_path: row.source_path().to_string(),
-                    surface_name: row.surface_name().to_string(),
-                    owner: row.owner(),
-                    disposition,
-                    blocker: row.blocker().to_string(),
-                    removal_trigger: row.removal_trigger().to_string(),
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut rows = expected_deletion_ledger_rows(inventory)?;
         rows.sort_by(|left, right| {
             left.source_path
                 .cmp(&right.source_path)
@@ -133,4 +115,49 @@ impl WorthTouchedGraphConflictDeletionLedger {
     pub fn ledger_digest(&self) -> &str {
         &self.ledger_digest
     }
+}
+
+pub(crate) fn expected_deletion_ledger_rows(
+    inventory: &ConflictBatchAdmissionInventory,
+) -> Result<Vec<WorthTouchedGraphConflictDeletionLedgerRow>, ConflictBatchAdmissionInventoryError> {
+    let mut rows = inventory
+        .rows()
+        .iter()
+        .filter(|row| {
+            row.replacement_phase()
+                == ConflictBatchAdmissionReplacementPhase::PhaseTwelveFirewallDeletion
+        })
+        .map(|row| {
+            let disposition = match row.disposition() {
+                ConflictBatchAdmissionDisposition::Migrate
+                | ConflictBatchAdmissionDisposition::Delete => {
+                    WorthTouchedGraphConflictDeletionDisposition::DeletedAuthority
+                }
+                ConflictBatchAdmissionDisposition::Cap => {
+                    WorthTouchedGraphConflictDeletionDisposition::CappedResidue
+                }
+                ConflictBatchAdmissionDisposition::CertificationOnly => {
+                    WorthTouchedGraphConflictDeletionDisposition::CertificationOnlyFence
+                }
+                ConflictBatchAdmissionDisposition::QueryGap => {
+                    return Err(
+                        ConflictBatchAdmissionInventoryError::SourceFirewallViolation(format!(
+                            "phase 12 closeout cannot bind query gap `{}`",
+                            row.surface_name()
+                        )),
+                    )
+                }
+            };
+            Ok(WorthTouchedGraphConflictDeletionLedgerRow::explicit(
+                row.source_path().to_string(),
+                row.surface_name().to_string(),
+                row.owner(),
+                disposition,
+                row.blocker().to_string(),
+                row.removal_trigger().to_string(),
+            ))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    rows.extend(current_phase_fifteen_deleted_surface_rows());
+    Ok(rows)
 }

@@ -10,6 +10,7 @@
 mod brep;
 pub mod certification;
 mod compiled_product_family;
+mod compiled_product_reuse_decision;
 mod construction;
 pub mod derived_invalidation_authority_inventory;
 mod derived_invalidation_compiled_product_admission;
@@ -29,6 +30,7 @@ mod relational_aspect_boundary;
 pub mod replay_family_catalog;
 pub mod replay_undo_semantic_graph;
 pub mod runtime_support;
+mod selected_equivalence_family;
 mod test_support;
 mod topology_operators;
 pub mod touched_graph_conflict;

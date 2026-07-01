@@ -1,5 +1,5 @@
 use crate::workload_platform::evidence_ledger::{
-    CompleteWorkloadEvidenceLedger, SelectedLookupSliceLedgerAssembly,
+    CompleteWorkloadEvidenceLedger, SelectedLookupSliceLedger, SelectedLookupSliceLedgerAssembly,
     SpatialGeometryEvidenceTouchAuthority, SpatialGeometryEvidenceTouchRequest,
     WorkloadEvidenceStage,
 };
@@ -10,7 +10,7 @@ use crate::workload_platform::evidence_lookup_family_catalog::{
     current_evidence_lookup_family_catalog, EvidenceLookupDiagnosticWitnessShape,
     EvidenceLookupStageReceiptFamilyIdentity,
 };
-use crate::workload_platform::evidence_lookup_index_product::admit_evidence_lookup_index_product;
+use crate::workload_platform::evidence_lookup_index_product::EvidenceLookupIndexProduct;
 use crate::workload_platform::evidence_lookup_input_admission::{
     admit_evidence_lookup_input, EvidenceLookupInputAdmissionRequest,
     EvidenceLookupStageReceiptAdmission,
@@ -18,6 +18,7 @@ use crate::workload_platform::evidence_lookup_input_admission::{
 use crate::workload_platform::evidence_lookup_plan_selection::{
     select_evidence_lookup_plan, EvidenceLookupPlanRowOutcome, EvidenceLookupSelectedPlan,
 };
+use crate::workload_platform::spatial_compiled_product_consumer_cutover::lower_evidence_lookup_index_product;
 
 use super::denial::{
     PlanarBooleanEventLedgerLookupExecutionDenial,
@@ -33,6 +34,8 @@ pub struct PlanarBooleanEventLedgerLookupExecutionPacket {
     selected_family_declaration_digest: String,
     selected_family_diagnostic_witness_shape: EvidenceLookupDiagnosticWitnessShape,
     selected_plan: EvidenceLookupSelectedPlan,
+    selected_lookup_slice: SelectedLookupSliceLedger,
+    index_product: EvidenceLookupIndexProduct,
     execution_receipt: EvidenceLookupExecutionReceipt,
 }
 
@@ -112,7 +115,7 @@ impl PlanarBooleanEventLedgerLookupExecutionPacket {
                 )
             })?;
         let index_product =
-            admit_evidence_lookup_index_product(&selected_plan, &selected_lookup_slice).map_err(
+            lower_evidence_lookup_index_product(&selected_plan, &selected_lookup_slice).map_err(
                 |error| {
                     PlanarBooleanEventLedgerLookupExecutionDenial::new(
                         PlanarBooleanEventLedgerLookupExecutionDenialKind::IndexProduct,
@@ -142,6 +145,8 @@ impl PlanarBooleanEventLedgerLookupExecutionPacket {
             selected_family_declaration_digest: selected_family.declaration_digest().to_string(),
             selected_family_diagnostic_witness_shape: selected_family.diagnostic_witness().clone(),
             selected_plan,
+            selected_lookup_slice,
+            index_product,
             execution_receipt,
         })
     }
@@ -166,6 +171,14 @@ impl PlanarBooleanEventLedgerLookupExecutionPacket {
 
     pub const fn selected_plan(&self) -> &EvidenceLookupSelectedPlan {
         &self.selected_plan
+    }
+
+    pub const fn selected_lookup_slice(&self) -> &SelectedLookupSliceLedger {
+        &self.selected_lookup_slice
+    }
+
+    pub const fn index_product(&self) -> &EvidenceLookupIndexProduct {
+        &self.index_product
     }
 
     pub const fn execution_receipt(&self) -> &EvidenceLookupExecutionReceipt {

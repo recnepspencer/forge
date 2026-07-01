@@ -23,6 +23,7 @@ fn closeout_digests_bind_lookup_authority_chain() {
             .query_consumer_kit_closeout_digest(),
         closeout.query_consumer_kit().closeout_digest()
     );
+    assert!(!closeout.query_boundary_support_digest().is_empty());
     assert_eq!(
         closeout.milestone_twelve_seed().source_firewall_digest(),
         closeout.source_firewall_report().firewall_digest()
@@ -52,16 +53,23 @@ fn closeout_digests_bind_lookup_authority_chain() {
         match row.disposition() {
             EvidenceLookupPublicCloseoutDisposition::ReceiptProof { .. } => {
                 assert!(row.spatial_touch_digest().is_some());
+                assert!(row.spatial_compiled_product_identity().is_some());
                 assert!(row.spatial_compiled_product_identity_digest().is_some());
+                assert!(row.spatial_equivalence_policy_identity().is_some());
                 assert!(row.spatial_equivalence_policy_identity_digest().is_some());
+                assert!(row
+                    .spatial_selected_equivalence_family_identity_kind()
+                    .is_some());
+                if row
+                    .topology_input_summary()
+                    .contains("DerivedProductReceiptRequired")
+                {
+                    assert!(row.topology_query_backed_cutover_digest().is_some());
+                    assert!(row.topology_read_family_row_digest().is_some());
+                }
             }
             EvidenceLookupPublicCloseoutDisposition::NonOrdinaryResidue { .. } => {
-                assert!(row.spatial_touch_digest().is_none());
-                assert!(row.spatial_compiled_product_identity_digest().is_none());
-                assert!(row.spatial_equivalence_policy_identity_digest().is_none());
-                assert!(row
-                    .topology_input_summary()
-                    .contains("DerivedProductReceiptRequired"));
+                panic!("phase 13 public closeout should not carry topology-seed residue on the ordinary path");
             }
         }
     }

@@ -12,6 +12,10 @@ use crate::workload_platform::compiled_product_admission::{
     admit_spatial_compiled_product_input, SpatialCompiledProductAdmissionRequest,
 };
 use crate::workload_platform::evidence_ledger::SelectedLookupSliceLedger;
+use crate::workload_platform::selected_equivalence_family::{
+    current_spatial_selected_equivalence_family_catalog, select_spatial_equivalence_family,
+    SelectedSpatialEquivalenceFamily,
+};
 
 use super::counters::EvidenceLookupIndexProductCounters;
 use super::error::{EvidenceLookupIndexProductError, EvidenceLookupIndexProductErrorKind};
@@ -19,6 +23,7 @@ use super::lifecycle_posture::EvidenceLookupIndexLifecyclePosture;
 
 pub(crate) struct AdmittedEvidenceLookupFamilyIdentity {
     lowered_identity: SpatialCompiledProductLoweredIdentity,
+    selected_equivalence_family: SelectedSpatialEquivalenceFamily,
     evidence_ledger_basis_digest: String,
     query_support_digest: String,
     topology_support_digest: String,
@@ -31,6 +36,10 @@ impl AdmittedEvidenceLookupFamilyIdentity {
 
     pub(crate) fn evidence_ledger_basis_digest(&self) -> &str {
         &self.evidence_ledger_basis_digest
+    }
+
+    pub(crate) fn selected_equivalence_family(&self) -> &SelectedSpatialEquivalenceFamily {
+        &self.selected_equivalence_family
     }
 
     pub(crate) fn query_support_digest(&self) -> &str {
@@ -68,6 +77,16 @@ pub(crate) fn lower_index_family_identity_from_basis(
     selected_plan: &crate::workload_platform::evidence_lookup_plan_selection::EvidenceLookupSelectedPlan,
     basis: &crate::workload_platform::evidence_lookup_index_product::EvidenceLookupLedgerBasis,
 ) -> SpatialCompiledProductLoweredIdentity {
+    admit_and_lower_index_family_identity_from_basis(selected_plan, basis)
+        .expect("audit evidence lookup index admitted spatial family identity")
+        .lowered_identity
+}
+
+#[cfg(test)]
+pub(crate) fn admit_and_lower_index_family_identity_from_basis(
+    selected_plan: &crate::workload_platform::evidence_lookup_plan_selection::EvidenceLookupSelectedPlan,
+    basis: &crate::workload_platform::evidence_lookup_index_product::EvidenceLookupLedgerBasis,
+) -> Result<AdmittedEvidenceLookupFamilyIdentity, EvidenceLookupIndexProductError> {
     let ledger = crate::workload_platform::evidence_ledger::WorkloadEvidenceLedger::from_rows(
         basis.rows().to_vec(),
     )
@@ -83,8 +102,6 @@ pub(crate) fn lower_index_family_identity_from_basis(
         ),
         "audit evidence lookup index",
     )
-    .expect("audit evidence lookup index admitted spatial family identity")
-    .lowered_identity
 }
 
 fn lower_index_family_identity_from_request(
@@ -92,6 +109,7 @@ fn lower_index_family_identity_from_request(
     expectation: &str,
 ) -> Result<AdmittedEvidenceLookupFamilyIdentity, EvidenceLookupIndexProductError> {
     let catalog = current_spatial_compiled_product_family_catalog();
+    let equivalence_catalog = current_spatial_selected_equivalence_family_catalog();
     let admitted_input =
         admit_spatial_compiled_product_input(&catalog, request).map_err(|error| {
             EvidenceLookupIndexProductError::new(
@@ -102,6 +120,18 @@ fn lower_index_family_identity_from_request(
     let evidence_lookup = admitted_input
         .evidence_lookup()
         .expect("evidence lookup admission materialization");
+    let selected_equivalence_family =
+        select_spatial_equivalence_family(&equivalence_catalog, &admitted_input).map_err(
+            |error| {
+                EvidenceLookupIndexProductError::new(
+                    EvidenceLookupIndexProductErrorKind::SpatialAdmissionDenied,
+                    format!(
+                        "{expectation} selected equivalence family failed: {:?}",
+                        error.kind()
+                    ),
+                )
+            },
+        )?;
     let lowered_identity =
         select_spatial_compiled_product_family(&catalog, admitted_input.family_admitted_input())
             .map_err(|error| {
@@ -120,6 +150,7 @@ fn lower_index_family_identity_from_request(
 
     Ok(AdmittedEvidenceLookupFamilyIdentity {
         lowered_identity,
+        selected_equivalence_family,
         evidence_ledger_basis_digest: evidence_lookup.evidence_ledger_basis_digest().to_string(),
         query_support_digest: evidence_lookup.query_support_digest().to_string(),
         topology_support_digest: evidence_lookup.topology_support_digest().to_string(),
@@ -157,7 +188,7 @@ pub(crate) fn rebuild_required_identity(
 
 pub(crate) fn index_product_digest(
     compiled_product_identity: &CompiledProductIdentity,
-    equivalence_policy_identity: &CompiledProductEquivalencePolicyIdentity,
+    selected_equivalence_family: &SelectedSpatialEquivalenceFamily,
     lifecycle_posture: EvidenceLookupIndexLifecyclePosture,
     disposal_posture: super::disposal_posture::EvidenceLookupIndexDisposalPosture,
     counters: &EvidenceLookupIndexProductCounters,
@@ -165,14 +196,20 @@ pub(crate) fn index_product_digest(
     truth_digest_parts(
         TruthDigestScope::ArtifactIdentity,
         &[
-            "worth-spatial:evidence-lookup-index-product:v2".to_string(),
+            "worth-spatial:evidence-lookup-index-product:v3".to_string(),
             format!(
                 "compiled-product:{}",
                 compiled_product_identity.identity_digest()
             ),
             format!(
-                "equivalence-policy:{}",
-                equivalence_policy_identity.identity_digest()
+                "selected-equivalence-family:{}",
+                selected_equivalence_family.family_identity().as_str()
+            ),
+            format!(
+                "selected-equivalence-basis:{}",
+                selected_equivalence_family
+                    .equivalence_basis_identity()
+                    .identity_digest()
             ),
             format!("lifecycle:{:?}", lifecycle_posture.kind()),
             format!("disposal:{:?}", disposal_posture.kind()),

@@ -3,6 +3,11 @@ use crate::workload_platform::evidence_ledger::WorkloadEvidenceRow;
 use crate::workload_platform::evidence_lookup_query_surface_contract::{
     EvidenceLookupProductQuerySurfaceContractRow, EvidenceLookupQuerySurfaceContract,
 };
+use crate::workload_platform::selected_equivalence_family::{
+    SelectedSpatialEquivalenceFamily, SpatialCompatibilityPosture,
+    SpatialFreshnessRequirementPosture, SpatialOrderingNoisePosture,
+    SpatialRenderedOutputComparisonPosture, SpatialSelectedEquivalenceFamilyIdentity,
+};
 
 use super::counters::EvidenceLookupIndexProductCounters;
 use super::disposal_posture::EvidenceLookupIndexDisposalPosture;
@@ -14,6 +19,14 @@ pub struct EvidenceLookupIndexProduct {
     index_product_digest: String,
     compiled_product_identity_digest: String,
     equivalence_policy_identity_digest: String,
+    selected_equivalence_family_identity: SpatialSelectedEquivalenceFamilyIdentity,
+    selected_equivalence_basis_identity_digest: String,
+    selected_compatibility_basis_identity_digest: String,
+    selected_reuse_basis_identity_digest: String,
+    selected_compatibility_posture: SpatialCompatibilityPosture,
+    selected_freshness_requirement_posture: SpatialFreshnessRequirementPosture,
+    selected_ordering_noise_posture: SpatialOrderingNoisePosture,
+    selected_rendered_output_comparison_posture: SpatialRenderedOutputComparisonPosture,
     reuse_decision_identity_digest: Option<String>,
     selected_plan_digest: String,
     spatial_touch_digest: String,
@@ -31,6 +44,7 @@ pub struct EvidenceLookupIndexProduct {
 impl EvidenceLookupIndexProduct {
     pub(crate) fn new(
         lowered_identity: &SpatialCompiledProductLoweredIdentity,
+        selected_equivalence_family: &SelectedSpatialEquivalenceFamily,
         selected_plan_digest: String,
         spatial_touch_digest: String,
         stage_receipt_digest: String,
@@ -46,7 +60,7 @@ impl EvidenceLookupIndexProduct {
     ) -> Self {
         let index_product_digest = index_product_digest(
             lowered_identity.compiled_product_identity(),
-            lowered_identity.equivalence_policy_identity(),
+            selected_equivalence_family,
             lifecycle_posture,
             disposal_posture,
             &counters,
@@ -61,6 +75,25 @@ impl EvidenceLookupIndexProduct {
                 .equivalence_policy_identity()
                 .identity_digest()
                 .to_string(),
+            selected_equivalence_family_identity: selected_equivalence_family.family_identity(),
+            selected_equivalence_basis_identity_digest: selected_equivalence_family
+                .equivalence_basis_identity()
+                .identity_digest()
+                .to_string(),
+            selected_compatibility_basis_identity_digest: selected_equivalence_family
+                .compatibility_basis_identity()
+                .identity_digest()
+                .to_string(),
+            selected_reuse_basis_identity_digest: selected_equivalence_family
+                .reuse_basis_identity()
+                .identity_digest()
+                .to_string(),
+            selected_compatibility_posture: selected_equivalence_family.compatibility_posture(),
+            selected_freshness_requirement_posture: selected_equivalence_family
+                .freshness_requirement_posture(),
+            selected_ordering_noise_posture: selected_equivalence_family.ordering_noise_posture(),
+            selected_rendered_output_comparison_posture: selected_equivalence_family
+                .rendered_output_comparison_posture(),
             reuse_decision_identity_digest,
             selected_plan_digest,
             spatial_touch_digest,
@@ -86,6 +119,44 @@ impl EvidenceLookupIndexProduct {
 
     pub fn equivalence_policy_identity_digest(&self) -> &str {
         &self.equivalence_policy_identity_digest
+    }
+
+    pub const fn selected_equivalence_family_identity(
+        &self,
+    ) -> SpatialSelectedEquivalenceFamilyIdentity {
+        self.selected_equivalence_family_identity
+    }
+
+    pub fn selected_equivalence_basis_identity_digest(&self) -> &str {
+        &self.selected_equivalence_basis_identity_digest
+    }
+
+    pub fn selected_compatibility_basis_identity_digest(&self) -> &str {
+        &self.selected_compatibility_basis_identity_digest
+    }
+
+    pub fn selected_reuse_basis_identity_digest(&self) -> &str {
+        &self.selected_reuse_basis_identity_digest
+    }
+
+    pub const fn selected_compatibility_posture(&self) -> SpatialCompatibilityPosture {
+        self.selected_compatibility_posture
+    }
+
+    pub const fn selected_freshness_requirement_posture(
+        &self,
+    ) -> SpatialFreshnessRequirementPosture {
+        self.selected_freshness_requirement_posture
+    }
+
+    pub const fn selected_ordering_noise_posture(&self) -> SpatialOrderingNoisePosture {
+        self.selected_ordering_noise_posture
+    }
+
+    pub const fn selected_rendered_output_comparison_posture(
+        &self,
+    ) -> SpatialRenderedOutputComparisonPosture {
+        self.selected_rendered_output_comparison_posture
     }
 
     pub fn reuse_decision_identity_digest(&self) -> Option<&str> {
@@ -156,5 +227,44 @@ impl EvidenceLookupIndexProduct {
 
     pub(crate) fn rows(&self) -> &[WorkloadEvidenceRow] {
         &self.rows
+    }
+
+    #[cfg(any(test, feature = "test-support-lowering"))]
+    pub fn with_test_selected_reuse_basis_identity_digest(
+        mut self,
+        selected_reuse_basis_identity_digest: impl Into<String>,
+    ) -> Self {
+        self.selected_reuse_basis_identity_digest = selected_reuse_basis_identity_digest.into();
+        self
+    }
+
+    #[cfg(any(test, feature = "test-support-lowering"))]
+    pub fn with_test_selected_plan_digest(
+        mut self,
+        selected_plan_digest: impl Into<String>,
+    ) -> Self {
+        self.selected_plan_digest = selected_plan_digest.into();
+        self
+    }
+
+    #[cfg(any(test, feature = "test-support-lowering"))]
+    pub fn with_test_selected_equivalence_family_identity(
+        mut self,
+        selected_equivalence_family_identity: impl AsRef<str>,
+    ) -> Self {
+        self.selected_equivalence_family_identity =
+            match selected_equivalence_family_identity.as_ref() {
+                "spatial.selected-equivalence.evidence-lookup-semantic-parity" => {
+                    SpatialSelectedEquivalenceFamilyIdentity::EvidenceLookupSemanticParity
+                }
+                "spatial.selected-equivalence.retained-cancellation-semantic-parity" => {
+                    SpatialSelectedEquivalenceFamilyIdentity::RetainedCancellationSemanticParity
+                }
+                "spatial.selected-equivalence.retained-replay-semantic-parity" => {
+                    SpatialSelectedEquivalenceFamilyIdentity::RetainedReplaySemanticParity
+                }
+                other => panic!("unknown test selected equivalence family identity {other}"),
+            };
+        self
     }
 }

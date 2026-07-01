@@ -392,3 +392,6 @@ fn require_replay_undo_boundary_row(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod test_support;

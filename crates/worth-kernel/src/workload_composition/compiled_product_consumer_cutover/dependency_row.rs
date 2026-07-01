@@ -9,6 +9,8 @@ use super::query_boundary_lane::KernelCompiledProductQueryBoundaryLane;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum KernelCompiledProductConsumerClusterIdentity {
+    TopologyDerivedProjectionEquivalence,
+    TopologyDerivedInvalidationDisposition,
     LookupConsumedWorkload,
     LookupConsumedBatchExecution,
     RetainedReplayBatchExecutionCarryForward,
@@ -24,6 +26,10 @@ pub enum KernelCompiledProductConsumerClusterIdentity {
 impl KernelCompiledProductConsumerClusterIdentity {
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::TopologyDerivedProjectionEquivalence => "topology-derived-projection-equivalence",
+            Self::TopologyDerivedInvalidationDisposition => {
+                "topology-derived-invalidation-disposition"
+            }
             Self::LookupConsumedWorkload => "lookup-consumed-workload",
             Self::LookupConsumedBatchExecution => "lookup-consumed-batch-execution",
             Self::RetainedReplayBatchExecutionCarryForward => {

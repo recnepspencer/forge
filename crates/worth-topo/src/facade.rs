@@ -120,6 +120,17 @@ pub use crate::derived_invalidation_selected_plan::{
     DerivedInvalidationSelectionErrorKind, DerivedInvalidationTouchedClosure,
     DerivedInvalidationUnaffectedRow,
 };
+pub use crate::derived_topology::compiled_product_consumer_cutover::{
+    current_topology_consumer_residue_manifest, TopologyConsumerResidueDisposition,
+    TopologyConsumerResidueOwner, TopologyConsumerResidueRow,
+};
+pub use crate::projection::planner_owned_routing::query_backed_read_family::{
+    admit_topology_query_backed_consumer_cutover, current_query_backed_consumer_residue_manifest,
+    current_topology_query_backed_consumer_cutover, QueryBackedConsumerResidueDisposition,
+    QueryBackedConsumerResidueOwner, QueryBackedConsumerResidueRow,
+    TopologyQueryBackedConsumerCutover, TopologyQueryBackedConsumerCutoverCurrentError,
+    TopologyQueryBackedConsumerFamilyRow, TopologyReadModelReusePosture,
+};
 pub use crate::projection::runtime_boundary::declared_query_surfaces::truth_surfaces::{
     NamingAttachmentReport, NamingAttachmentRow,
 };

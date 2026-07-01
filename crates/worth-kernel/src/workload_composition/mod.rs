@@ -14,6 +14,8 @@ mod conflict_input;
 mod conflict_plan;
 mod deletion_closeout;
 mod operator_harness;
+mod planner_owned_routing;
+mod planner_owned_routing_inventory;
 mod public_closeout;
 mod source_firewall;
 mod stage_requirements;
@@ -142,18 +144,40 @@ pub use operator_harness::{
     OperatorSupportReceipt, OperatorWorkloadError, OperatorWorkloadReceipt,
     UnsupportedOperatorFamily, WorkloadOperator, WorkloadOperatorFamily,
 };
+pub use planner_owned_routing_inventory::{
+    current_planner_owned_routing_inventory, PlannerOwnedRoutingCutLine,
+    PlannerOwnedRoutingDisplacedLane, PlannerOwnedRoutingDisposition,
+    PlannerOwnedRoutingInventoryCloseout, PlannerOwnedRoutingInventoryCounters,
+    PlannerOwnedRoutingInventoryError, PlannerOwnedRoutingInventoryReport,
+    PlannerOwnedRoutingInventoryRow, PlannerOwnedRoutingLifecycleRole, PlannerOwnedRoutingOwner,
+    PlannerOwnedRoutingQueryGapKind, PlannerOwnedRoutingReplacementLane,
+    PlannerOwnedRoutingReplacementLaneCount, PlannerOwnedRoutingSurfaceIdentity,
+};
+pub use planner_owned_routing::{
+    admit_worth_touched_graph_conflict_public_proof_input,
+    current_worth_touched_graph_conflict_public_proof_input,
+    current_worth_touched_graph_conflict_selected_route_packet, PlannerOwnedRoutingError,
+    PlannerOwnedRoutingErrorKind, WorthTouchedGraphConflictAdmittedPublicProofInput,
+    WorthTouchedGraphConflictSelectedRoutePacket,
+};
 pub use public_closeout::{
-    current_worth_touched_graph_conflict_milestone_fourteen_seed,
+    current_worth_touched_graph_conflict_milestone_fifteen_seed,
     current_worth_touched_graph_conflict_public_closeout,
-    WorthTouchedGraphConflictMilestoneFourteenSeed, WorthTouchedGraphConflictProofChain,
+    WorthTouchedGraphConflictArchitectureAlignmentReport,
+    WorthTouchedGraphConflictMilestoneFifteenPlannerProofInput,
+    WorthTouchedGraphConflictMilestoneFifteenSeed, WorthTouchedGraphConflictProofChain,
     WorthTouchedGraphConflictPublicCloseout, WorthTouchedGraphConflictPublicCloseoutError,
     WorthTouchedGraphConflictPublicCloseoutErrorKind,
     WorthTouchedGraphConflictResidueBoundaryPosture, WorthTouchedGraphConflictResidueChain,
     WorthTouchedGraphConflictResidueRow,
 };
 pub use source_firewall::{
+    current_worth_touched_graph_conflict_source_firewall_closeout,
     current_worth_touched_graph_conflict_source_firewall_report,
-    WorthTouchedGraphConflictForbiddenSurface, WorthTouchedGraphConflictSourceFirewallRegionReport,
+    WorthTouchedGraphConflictForbiddenSurface, WorthTouchedGraphConflictSourceFirewallCloseout,
+    WorthTouchedGraphConflictSourceFirewallCloseoutError,
+    WorthTouchedGraphConflictSourceFirewallCloseoutErrorKind,
+    WorthTouchedGraphConflictSourceFirewallRegionReport,
     WorthTouchedGraphConflictSourceFirewallReport,
     WorthTouchedGraphConflictSourceFirewallViolation,
 };
@@ -168,6 +192,7 @@ pub use workload_catalog::{
     WorkloadTopologyBreadth,
 };
 pub use worth_workload::{
+    current_worth_workload_ordinary_consumer_sweep_closeout,
     worth_workload_ordinary_consumer_residue_rows, AdmittedBooleanSplitReplayUndoBoundary,
     BooleanChainCompletedReceiptGuard, BooleanChainIntegrationCounters,
     BooleanChainIntegrationHandoff, BooleanChainReplayUndoBoundaryHandoff,
@@ -176,8 +201,13 @@ pub use worth_workload::{
     CompletedBooleanLoopReconstructionProducts, CompletedBooleanSplitBatchExecutionCluster,
     CompletedBooleanSplitHandoff, LookupConsumedBatchExecutionCluster,
     LookupConsumedWorkloadComposition, LookupConsumedWorkloadDenial,
+    LookupConsumedWorkloadReuseProduct, LookupConsumedWorkloadReuseResolutionDenied,
     PlanarBooleanLoopReconstructionCloseoutInput, PlanarBooleanLoopRuntimeRegistrationProof,
     ReplayUndoBoundaryDenial, WorkloadCompositionError, WorthWorkload,
+    WorthWorkloadOrdinaryConsumerClusterKind, WorthWorkloadOrdinaryConsumerClusterLedger,
+    WorthWorkloadOrdinaryConsumerClusterRowDisposition,
     WorthWorkloadOrdinaryConsumerResidueBoundary, WorthWorkloadOrdinaryConsumerResidueRow,
-    WorthWorkloadOrdinaryConsumerResidueSurface, WorthWorkloadParts,
+    WorthWorkloadOrdinaryConsumerResidueSurface, WorthWorkloadOrdinaryConsumerSweepCloseoutError,
+    WorthWorkloadOrdinaryConsumerSweepCloseoutErrorKind,
+    WorthWorkloadOrdinaryConsumerSweepResidueRow, WorthWorkloadParts,
 };

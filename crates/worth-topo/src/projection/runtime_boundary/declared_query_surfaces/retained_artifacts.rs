@@ -1,14 +1,16 @@
 use forge_query::facade::{ForgeQueryDerivedArtifactBinding, ForgeQueryWorkspace};
+use serde_json::Value;
 
+use crate::derived_topology::compiled_product_consumer_cutover::DerivedEquivalenceContractReport;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
-use crate::projection::diagnostic_surfaces::DerivedEquivalenceContractReport;
 use crate::projection::diagnostic_surfaces::DerivedReadDiagnostics;
 use crate::validation::DerivedTopologyValidationReport;
 
 use super::{
-    materialize_declared_query_surface_binding, retained_payload, TopologyDeclaredQuerySurfaces,
-    TopologyQuerySurfaceError,
+    decode_query_surface_failure_payload, materialize_declared_query_surface_binding,
+    retained_payload, TopologyDeclaredQuerySurfaces, TopologyQuerySurfaceError,
+    TopologyQuerySurfaceErrorKind,
 };
 
 const HISTORICAL_TRUTH_ARTIFACT_NAME: &str = "topology.historical.truth";
@@ -145,8 +147,17 @@ fn derived_surface_rows_from_bundle(
     bundle: &ForgeQueryDerivedArtifactBinding,
     surfaces: &TopologyDeclaredQuerySurfaces,
 ) -> Result<(DerivedReadDiagnostics, DerivedEquivalenceContractReport), TopologyQuerySurfaceError> {
+    let diagnostics_payload: Value = decode_bundle_row(bundle, surfaces.diagnostics(), "diagnostics")?;
+    if let Some(error) = decode_query_surface_failure_payload(&diagnostics_payload, "diagnostics") {
+        return Err(error);
+    }
     let diagnostics: DerivedReadDiagnostics =
-        decode_bundle_row(bundle, surfaces.diagnostics(), "diagnostics")?;
+        serde_json::from_value(diagnostics_payload).map_err(|error| {
+            TopologyQuerySurfaceError::with_kind(
+                TopologyQuerySurfaceErrorKind::RetainedPayloadDecodeFailed,
+                format!("retained surface `diagnostics` payload failed to decode: {error}"),
+            )
+        })?;
     let equivalence_contract = decode_bundle_row(
         bundle,
         surfaces.equivalence_contract(),

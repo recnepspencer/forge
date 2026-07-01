@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `schema::facade::platform::authority::planner_owned_routing_semantic_graph_internal`
+ --> tests/fixtures/planner_owned_routing_semantic_graph/internal_constructors_not_exported_without_feature.rs:1:42
+  |
+1 | use schema::facade::platform::authority::planner_owned_routing_semantic_graph_internal::admit_planner_admitted_explanation_input;
+  |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `planner_owned_routing_semantic_graph_internal` in `authority`

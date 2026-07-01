@@ -11,6 +11,9 @@ pub enum WorthTouchedGraphConflictForbiddenSurface {
     CallerOwnedSerialization,
     CallerOwnedCompatibility,
     GenericOverlapSecondAuthorityLane,
+    DisplacedCacheKeyCarrier,
+    LocalComparatorFolklore,
+    CallerOwnedReuseDecision,
 }
 
 impl WorthTouchedGraphConflictForbiddenSurface {
@@ -27,6 +30,19 @@ impl WorthTouchedGraphConflictForbiddenSurface {
         ]
     }
 
+    pub const fn phase_fifteen_relapse_categories() -> &'static [Self] {
+        &[
+            Self::BroadTopologyScan,
+            Self::BroadEvidenceScan,
+            Self::CallerOwnedSerialization,
+            Self::CallerOwnedCompatibility,
+            Self::GenericOverlapSecondAuthorityLane,
+            Self::DisplacedCacheKeyCarrier,
+            Self::LocalComparatorFolklore,
+            Self::CallerOwnedReuseDecision,
+        ]
+    }
+
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::EntityOnlyOverlapHelper => "entity-only overlap helper",
@@ -38,6 +54,9 @@ impl WorthTouchedGraphConflictForbiddenSurface {
             Self::CallerOwnedSerialization => "caller-owned serialization",
             Self::CallerOwnedCompatibility => "caller-owned compatibility",
             Self::GenericOverlapSecondAuthorityLane => "generic overlap second authority lane",
+            Self::DisplacedCacheKeyCarrier => "displaced cache-key carrier",
+            Self::LocalComparatorFolklore => "local comparator folklore",
+            Self::CallerOwnedReuseDecision => "caller-owned reuse decision",
         }
     }
 
@@ -105,11 +124,46 @@ impl WorthTouchedGraphConflictForbiddenSurface {
             | Surface::SpatialRollbackProjectionReceiptAdmission
             | Surface::TopologyRollbackTraversalViewsAdmission
             | Surface::TopologyRollbackMaterializedGraphAdmission => Some(Self::RollbackAdmission),
+            Surface::ConflictInputLookupRouteDenial
+            | Surface::LookupConsumedWorkloadReuseProductSerialization
+            | Surface::LookupConsumedWorkloadRequireResolutionProductSerialization
+            | Surface::LookupConsumedWorkloadMismatchLocusNameSerialization => {
+                Some(Self::CallerOwnedSerialization)
+            }
             Surface::HighValenceRebuildMotionCompatibilitySetter
             | Surface::HighValenceRequireRebuildMotionCompatibility
             | Surface::HighValenceRebuildMotionCompatibility
             | Surface::DuplicateSplitRejectContradictorySameParameterPoints
-            | Surface::PointSplitCompatibilityBasis => Some(Self::CallerOwnedCompatibility),
+            | Surface::PointSplitCompatibilityBasis
+            | Surface::LookupConsumedWorkloadReuseProductCompatibility
+            | Surface::LookupConsumedWorkloadRequireResolutionProductCompatibility
+            | Surface::LookupConsumedWorkloadMismatchLocusNameCompatibility => {
+                Some(Self::CallerOwnedCompatibility)
+            }
+            Surface::TopologySelectedCompatibilityBasisIdentityStruct
+            | Surface::TopologySelectedCompatibilityBasisIdentityIdentityDigest
+            | Surface::SelectedTopologyEquivalenceFamilyCompatibilityBasisIdentity
+            | Surface::SpatialSelectedCompatibilityBasisIdentityStruct
+            | Surface::SpatialSelectedCompatibilityBasisIdentityIdentityDigest
+            | Surface::SelectedSpatialEquivalenceFamilyCompatibilityBasisIdentity => {
+                Some(Self::DisplacedCacheKeyCarrier)
+            }
+            Surface::SelectedTopologyEquivalenceFamilyCompatibilityPosture
+            | Surface::TopologySelectedEquivalenceFamilyDeclarationCompatibilityPosture
+            | Surface::TopologySelectedEquivalenceComparatorContractCompatibilityPosture
+            | Surface::TopologyCompatibilityPostureEnum
+            | Surface::SelectedSpatialEquivalenceFamilyCompatibilityPosture
+            | Surface::SpatialSelectedEquivalenceFamilyDeclarationCompatibilityPosture
+            | Surface::SpatialCompatibilityPostureEnum => Some(Self::LocalComparatorFolklore),
+            Surface::TopologyDerivedReuseDecisionSelectedCompatibilityBasisIdentityDigest
+            | Surface::TopologyDerivedRebuildDenialSelectedCompatibilityBasisIdentityDigest
+            | Surface::TopologyDerivedReuseExecutionInputSelectedCompatibilityBasisIdentityDigest
+            | Surface::DerivedEquivalenceContractReportSelectedCompatibilityBasisIdentityDigest
+            | Surface::LookupConsumedReuseResolutionSelectedCompatibilityBasisIdentityDigest
+            | Surface::EvidenceLookupIndexReuseDecisionSelectedCompatibilityBasisIdentityDigest
+            | Surface::EvidenceLookupIndexRebuildDenialSelectedCompatibilityBasisIdentityDigest => {
+                Some(Self::CallerOwnedReuseDecision)
+            }
             _ => None,
         }
     }

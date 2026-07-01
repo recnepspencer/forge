@@ -58,6 +58,12 @@ pub fn current_worth_workload_ordinary_consumer_cutover(
             format!("phase 13 ordinary-consumer cutover inventory did not load: {error:?}"),
         )
     })?;
+    ordinary_consumer_cutover_from_inventory(&inventory)
+}
+
+pub(super) fn ordinary_consumer_cutover_from_inventory(
+    inventory: &crate::workload_composition::ConflictBatchAdmissionInventory,
+) -> Result<WorthWorkloadOrdinaryConsumerCutover, WorthWorkloadOrdinaryConsumerCutoverError> {
     let lowered_rows = inventory
         .rows()
         .iter()
@@ -308,6 +314,11 @@ impl WorthWorkloadOrdinaryConsumerSelectedPlanWitness {
 
 #[cfg(test)]
 mod test_support;
+#[cfg(test)]
+pub(super) use test_support::{
+    ordinary_consumer_cutover_from_inventory_for_tests,
+    ordinary_consumer_cutover_from_inventory_with_test_replay_undo_identity_override,
+};
 
 #[derive(Clone, Debug)]
 struct PendingWorthWorkloadOrdinaryConsumerCutoverRow {

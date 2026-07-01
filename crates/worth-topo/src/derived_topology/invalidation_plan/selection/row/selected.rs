@@ -1,32 +1,11 @@
 use serde::Serialize;
 
+use crate::derived_topology::compiled_product_consumer_cutover::topology_cutover_planned_disposition_from_update_posture;
+pub use crate::derived_topology::compiled_product_consumer_cutover::DerivedInvalidationPlannedDisposition;
 use crate::derived_topology::invalidation_plan::catalog::{
     DerivedTopologyLegalityReceiptPosture, DerivedTopologyProductFamilyIdentity,
     DerivedTopologyProductFamilyRecord, DerivedTopologyQueryReceiptPosture,
-    DerivedTopologyUpdatePosture,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-pub enum DerivedInvalidationPlannedDisposition {
-    IncrementalUpdate,
-    BoundedRebuild,
-}
-
-impl DerivedInvalidationPlannedDisposition {
-    pub const fn from_update_posture(posture: DerivedTopologyUpdatePosture) -> Self {
-        match posture {
-            DerivedTopologyUpdatePosture::IncrementalEligible => Self::IncrementalUpdate,
-            DerivedTopologyUpdatePosture::BoundedRebuildRequired => Self::BoundedRebuild,
-        }
-    }
-
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::IncrementalUpdate => "incremental_update",
-            Self::BoundedRebuild => "bounded_rebuild",
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct DerivedInvalidationSelectedRow {
@@ -47,7 +26,7 @@ impl DerivedInvalidationSelectedRow {
         legality_receipt_digest: Option<&str>,
     ) -> Self {
         let planned_disposition =
-            DerivedInvalidationPlannedDisposition::from_update_posture(family.update_posture());
+            topology_cutover_planned_disposition_from_update_posture(family.update_posture());
         let row_digest = super::super::super::catalog::catalog_digest([
             "worth-topo:derived-invalidation-selected-row:v1".to_string(),
             format!("family:{}", family.identity().as_str()),

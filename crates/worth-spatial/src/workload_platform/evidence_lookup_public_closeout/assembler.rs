@@ -161,6 +161,10 @@ impl EvidenceLookupPublicCloseout {
                     input.query_consumer_kit().closeout_digest()
                 ),
                 format!(
+                    "query-boundary-support:{}",
+                    input.query_boundary_support_digest()
+                ),
+                format!(
                     "source-firewall:{}",
                     input.source_firewall_report().firewall_digest()
                 ),
@@ -192,6 +196,7 @@ impl EvidenceLookupPublicCloseout {
             family_stage_rows: input.family_stage_rows().to_vec(),
             query_surface_matrix: input.query_surface_matrix().clone(),
             query_consumer_kit: input.query_consumer_kit().clone(),
+            query_boundary_support_digest: input.query_boundary_support_digest().to_string(),
             source_firewall_report: input.source_firewall_report().clone(),
             spatial_deletion_ledger_rows: input.spatial_deletion_ledger_rows().to_vec(),
             counters,
@@ -290,7 +295,10 @@ fn reject_mismatched_authority_chain(
         let topology_requires_receipt = family.topology_input_posture().requires_topology_receipt();
         match row.disposition() {
             EvidenceLookupPublicCloseoutDisposition::ReceiptProof { .. } => {
-                if topology_requires_receipt || row.spatial_touch_digest().is_none() {
+                let missing_topology_receipt_proof = topology_requires_receipt
+                    && (row.topology_query_backed_cutover_digest().is_none()
+                        || row.topology_read_family_row_digest().is_none());
+                if row.spatial_touch_digest().is_none() || missing_topology_receipt_proof {
                     return Err(EvidenceLookupPublicCloseoutError::new(
                         EvidenceLookupPublicCloseoutErrorKind::ImpossibleResidueSuccessMix,
                         format!(

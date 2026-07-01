@@ -33,14 +33,14 @@ pub fn current_worth_touched_graph_conflict_deletion_closeout(
     let inventory = current_conflict_batch_admission_inventory().map_err(|error| {
         WorthTouchedGraphConflictDeletionCloseoutError::new(
             WorthTouchedGraphConflictDeletionCloseoutErrorKind::MissingDeletionRows,
-            format!("phase 12 inventory did not load: {error:?}"),
+            format!("phase 15 deletion inventory did not load: {error:?}"),
         )
     })?;
     let firewall_report =
         current_worth_touched_graph_conflict_source_firewall_report().map_err(|error| {
             WorthTouchedGraphConflictDeletionCloseoutError::new(
                 WorthTouchedGraphConflictDeletionCloseoutErrorKind::SourceFirewallViolation,
-                format!("phase 12 source firewall did not load: {error:?}"),
+                format!("phase 15 source firewall did not load: {error:?}"),
             )
         })?;
     closeout_from_products(&inventory, &firewall_report)
@@ -86,20 +86,20 @@ pub(crate) fn closeout_from_products(
     if !firewall_report.violations().is_empty() {
         return Err(WorthTouchedGraphConflictDeletionCloseoutError::new(
             WorthTouchedGraphConflictDeletionCloseoutErrorKind::SourceFirewallViolation,
-            "phase 12 deletion closeout found forbidden source-firewall relapse".to_string(),
+            "phase 15 deletion closeout found forbidden source-firewall relapse".to_string(),
         ));
     }
     let deletion_ledger = WorthTouchedGraphConflictDeletionLedger::from_inventory(inventory)
         .map_err(|error| {
             WorthTouchedGraphConflictDeletionCloseoutError::new(
                 WorthTouchedGraphConflictDeletionCloseoutErrorKind::MissingDeletionRows,
-                format!("phase 12 deletion ledger could not bind inventory rows: {error:?}"),
+                format!("phase 15 deletion ledger could not bind inventory rows: {error:?}"),
             )
         })?;
     if deletion_ledger.rows().is_empty() {
         return Err(WorthTouchedGraphConflictDeletionCloseoutError::new(
             WorthTouchedGraphConflictDeletionCloseoutErrorKind::MissingDeletionRows,
-            "phase 12 deletion closeout requires concrete deleted or capped surfaces".to_string(),
+            "phase 15 deletion closeout requires concrete deleted or capped surfaces".to_string(),
         ));
     }
     let inventory_digest = truth_digest_parts(
@@ -117,7 +117,7 @@ pub(crate) fn closeout_from_products(
                 )
             })
             .chain(std::iter::once(
-                "worth-kernel:touched-graph-conflict-phase-twelve-inventory:v1".to_string(),
+                "worth-kernel:touched-graph-conflict-phase-fifteen-deletion-input:v1".to_string(),
             ))
             .collect::<Vec<_>>(),
     );

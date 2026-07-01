@@ -1,5 +1,7 @@
 use topology::derived_invalidation_family_catalog::DerivedTopologyProductFamilyIdentity;
 use topology::derived_invalidation_milestone_ten_closeout::DerivedInvalidationMilestoneElevenSeed;
+use topology::facade::TopologyQueryBackedConsumerCutover;
+use topology::query_domain::TopologyReadRequestFamily;
 
 use crate::workload_platform::evidence_lookup_family_catalog::EvidenceLookupTopologyInputPosture;
 
@@ -33,11 +35,17 @@ impl EvidenceLookupTopologyAdmissionSupport {
         family_identity: impl Into<String>,
         posture: &EvidenceLookupTopologyInputPosture,
         seed: Option<&DerivedInvalidationMilestoneElevenSeed>,
+        query_backed_cutover: Option<&TopologyQueryBackedConsumerCutover>,
     ) -> Result<Self, EvidenceLookupInputAdmissionError> {
         let family_identity = family_identity.into();
         let Some(required_family) = posture.required_family() else {
             return Ok(Self::not_required(family_identity));
         };
+        if let Some(support) =
+            query_backed_cutover_support(&family_identity, required_family, query_backed_cutover)
+        {
+            return Ok(support);
+        }
         let Some(seed) = seed else {
             return Err(EvidenceLookupInputAdmissionError::new(
                 EvidenceLookupInputAdmissionErrorKind::MissingTopologySeed,
@@ -94,4 +102,30 @@ impl EvidenceLookupTopologyAdmissionSupport {
             ),
         }
     }
+}
+
+fn query_backed_cutover_support(
+    family_identity: &str,
+    required_family: DerivedTopologyProductFamilyIdentity,
+    query_backed_cutover: Option<&TopologyQueryBackedConsumerCutover>,
+) -> Option<EvidenceLookupTopologyAdmissionSupport> {
+    let cutover = query_backed_cutover?;
+    let request_family = match required_family {
+        DerivedTopologyProductFamilyIdentity::LoopCycles => {
+            TopologyReadRequestFamily::LoopCycleNeighborhood
+        }
+        _ => return None,
+    };
+    let receipt_ref = cutover
+        .family_rows()
+        .iter()
+        .find(|row| row.request_family() == request_family)?;
+    Some(EvidenceLookupTopologyAdmissionSupport {
+        family_identity: family_identity.to_string(),
+        state: EvidenceLookupTopologySupportState::Satisfied {
+            seed_digest: cutover.closeout_digest().to_string(),
+            receipt_ref_digest: receipt_ref.row_digest().to_string(),
+            family_identity: required_family,
+        },
+    })
 }

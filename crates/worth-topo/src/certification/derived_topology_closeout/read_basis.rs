@@ -3,7 +3,7 @@ use super::*;
 #[cfg(test)]
 use crate::certification::support::commit_certification_input::TopologyCommitCertificationInput;
 use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
-use crate::projection::diagnostic_surfaces::build_derived_equivalence_contract;
+use crate::derived_topology::compiled_product_consumer_cutover::build_derived_equivalence_contract;
 
 pub(crate) fn certify_milestone_two_read_basis_runtime_traced_impl(
     runtime: &mut RelationalRuntime,

@@ -12,9 +12,7 @@ use crate::workload_platform::evidence_lookup_family_catalog::{
     current_evidence_lookup_family_catalog, EvidenceLookupFamilyCatalogCloseout,
     EvidenceLookupProjectionFactFamily, EvidenceLookupStageReceiptFamilyIdentity,
 };
-use crate::workload_platform::evidence_lookup_index_product::{
-    admit_evidence_lookup_index_product, EvidenceLookupIndexProduct,
-};
+use crate::workload_platform::evidence_lookup_index_product::EvidenceLookupIndexProduct;
 use crate::workload_platform::evidence_lookup_input_admission::{
     admit_evidence_lookup_input, real_projection_consumption_receipt,
     EvidenceLookupInputAdmissionRequest, EvidenceLookupQueryAdmissionEvidenceSet,
@@ -23,6 +21,7 @@ use crate::workload_platform::evidence_lookup_input_admission::{
 use crate::workload_platform::evidence_lookup_plan_selection::{
     select_evidence_lookup_plan, EvidenceLookupSelectedPlan,
 };
+use crate::workload_platform::spatial_compiled_product_consumer_cutover::lower_evidence_lookup_index_product;
 
 pub(super) struct ProjectionDiagnosticPath {
     selected_plan: EvidenceLookupSelectedPlan,
@@ -195,7 +194,7 @@ fn admit_index_product(
     selected_plan: &EvidenceLookupSelectedPlan,
     ledger: &SelectedLookupSliceLedger,
 ) -> EvidenceLookupIndexProduct {
-    admit_evidence_lookup_index_product(selected_plan, ledger).expect("index product")
+    lower_evidence_lookup_index_product(selected_plan, ledger).expect("index product")
 }
 
 fn execute_projection_request(

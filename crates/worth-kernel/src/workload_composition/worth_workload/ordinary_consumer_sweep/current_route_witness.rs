@@ -158,6 +158,11 @@ impl WorthWorkloadOrdinaryConsumerCurrentRouteWitness {
     }
 }
 
+#[cfg(test)]
+mod test_support;
+#[cfg(test)]
+pub(super) use test_support::current_replay_undo_boundary_batch_execution_cluster_witness_with_test_override;
+
 impl WorthWorkloadOrdinaryConsumerRouteKind {
     pub(crate) const fn as_str(self) -> &'static str {
         match self {

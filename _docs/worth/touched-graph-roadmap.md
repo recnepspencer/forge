@@ -1038,6 +1038,9 @@ Operationally, this milestone must:
 - inventory every current public proof, closeout, diagnostic, explainer, and
   workload-composition surface that already exposes receipt-backed status or
   routing-localization claims
+- start from the typed `WorthTouchedGraphConflictMilestoneFifteenSeed` and
+  `WorthTouchedGraphConflictArchitectureAlignmentReport` emitted by Milestone
+  14 phase 16 instead of reopening local reuse, cache, or support logic
 - classify which surfaces become planner-owned public products, which remain
   internal diagnostics, and which are deleted as local ceremony or duplicate
   explanation lanes
@@ -1075,6 +1078,9 @@ Closes:
 Done when:
 - `Milestone 7.5` can consume touched graph proof for overlap extraction
   without reviving local replay, conflict, cache, or diagnostic rules
+- the Milestone 15 seed and architecture-alignment report remain sufficient
+  typed entry points for later public proof and diagnostics without adding
+  local route-rediscovery helpers
 - one new representative registered read family, validator/invariant family,
   invalidation family, evidence lookup family, replay/undo family, conflict
   family, cache/equivalence family, and diagnostic family can each be declared

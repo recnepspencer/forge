@@ -6,12 +6,13 @@ use super::current_cutover::{
 use super::current_route_authority::WorthWorkloadCurrentLookupConsumedRouteAuthority;
 use super::current_route_witness::WorthWorkloadOrdinaryConsumerCurrentRouteWitness;
 use crate::workload_composition::{
-    admit_batch_admission_grouped_input, admit_spatial_conflict_input,
+    admit_batch_admission_grouped_input,
+    compiled_product_consumer_cutover::vertical_slice::lookup_consumed::LookupConsumedVerticalSlice,
     current_batch_admission_family_catalog_closeout, execute_selected_batch_admission_plan,
     lower_selected_batch_admission_plan, lower_selected_spatial_conflict_plan,
     prove_spatial_conflict_independence, BatchAdmissionCandidate, BatchAdmissionExecutionReceipt,
     BatchAdmissionGroupedInput, BatchAdmissionPairwiseIndependenceProof,
-    SpatialConflictIndependenceRequest, SpatialConflictInputRequest,
+    SpatialConflictIndependenceRequest,
 };
 
 pub(crate) fn current_worth_workload_ordinary_consumer_batch_execution_receipt(
@@ -29,16 +30,20 @@ fn lower_batch_execution_receipt_from_lookup_route(
 ) -> Result<BatchAdmissionExecutionReceipt, WorthWorkloadOrdinaryConsumerCutoverError> {
     let left = lookup_route_authority.left_boundary();
     let right = lookup_route_authority.right_boundary();
-    let left_input = admit_spatial_conflict_input(
-        SpatialConflictInputRequest::new(left.authority())
-            .with_evidence_lookup(left.workload_handoff(), left.execution_receipt()),
-    )
-    .map_err(current_proof_error)?;
-    let right_input = admit_spatial_conflict_input(
-        SpatialConflictInputRequest::new(right.authority())
-            .with_evidence_lookup(right.workload_handoff(), right.execution_receipt()),
-    )
-    .map_err(current_proof_error)?;
+    let left_slice = LookupConsumedVerticalSlice::admit(left).map_err(current_proof_error)?;
+    let left_resolved = left_slice
+        .resolve_prior_lookup_product(left.index_product())
+        .map_err(current_proof_error)?;
+    let left_input = left_resolved
+        .admit_spatial_conflict_input()
+        .map_err(current_proof_error)?;
+    let right_slice = LookupConsumedVerticalSlice::admit(right).map_err(current_proof_error)?;
+    let right_resolved = right_slice
+        .resolve_prior_lookup_product(right.index_product())
+        .map_err(current_proof_error)?;
+    let right_input = right_resolved
+        .admit_spatial_conflict_input()
+        .map_err(current_proof_error)?;
     let closeout =
         current_spatial_conflict_family_catalog_closeout().map_err(current_proof_error)?;
     let left_plan = lower_selected_spatial_conflict_plan(&closeout, &left_input);

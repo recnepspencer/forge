@@ -84,6 +84,8 @@ mod public_api_refs_boundary;
 mod public_api_resolution_boundary;
 #[path = "retained_replay_workload/mod.rs"]
 mod public_api_retained_replay_workload;
+#[path = "spatial_compiled_product_consumer_cutover/mod.rs"]
+mod public_api_spatial_compiled_product_consumer_cutover;
 #[path = "surface_support_workload/mod.rs"]
 mod public_api_surface_support_workload;
 mod public_api_tolerance_precision;

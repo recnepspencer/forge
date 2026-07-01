@@ -5,6 +5,7 @@ use worth_spatial::facade::workload_vocabulary::{
     SpatialGeometryEvidenceTouchDenialKind, WorkloadEvidenceStage,
 };
 
+use super::lookup_consumed_workload::LookupConsumedWorkloadReuseResolutionDenied;
 use crate::workload_composition::{
     conflict_input::ConflictInputAdmissionError, WorkloadStageRequirement,
 };
@@ -14,6 +15,10 @@ pub enum LookupConsumedWorkloadDenial {
     StageIndexIdentityMismatch,
     BroadEvidenceFallbackScan,
     CallerOwnedLookupScan,
+    ReuseResolutionDenied(LookupConsumedWorkloadReuseResolutionDenied),
+    ReuseResolutionSelectedPlanMismatch,
+    ReuseResolutionSelectedFamilyMismatch,
+    ReuseResolutionSelectedReuseBasisMismatch,
     SplitLookupLineageMismatch,
     MissingWorkloadAttachedBatchAdmissionExecutionReceipt,
     SuppliedBatchAdmissionExecutionReceiptMismatch,
@@ -33,6 +38,19 @@ impl LookupConsumedWorkloadDenial {
             }
             Self::CallerOwnedLookupScan => {
                 "lookup-consumed workload composition rejects caller-owned lookup scans".to_string()
+            }
+            Self::ReuseResolutionDenied(denial) => denial.human_reason(),
+            Self::ReuseResolutionSelectedPlanMismatch => {
+                "lookup-consumed workload composition requires reuse resolution whose selected plan matches the admitted lookup handoff"
+                    .to_string()
+            }
+            Self::ReuseResolutionSelectedFamilyMismatch => {
+                "lookup-consumed workload composition requires reuse resolution whose selected equivalence family matches the admitted lookup handoff"
+                    .to_string()
+            }
+            Self::ReuseResolutionSelectedReuseBasisMismatch => {
+                "lookup-consumed workload composition requires reuse resolution whose selected reuse basis matches the admitted lookup handoff"
+                    .to_string()
             }
             Self::SplitLookupLineageMismatch => {
                 "split ledger lookup lineage must match the admitted event-ledger lookup packet"

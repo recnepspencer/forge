@@ -16,7 +16,6 @@ use crate::workload_platform::evidence_lookup_family_catalog::{
     current_evidence_lookup_family_catalog, EvidenceLookupQueryImportEvidence,
     EvidenceLookupStageReceiptFamilyIdentity,
 };
-use crate::workload_platform::evidence_lookup_index_product::admit_evidence_lookup_index_product;
 use crate::workload_platform::evidence_lookup_input_admission::{
     admit_evidence_lookup_input, real_projection_consumption_receipt,
     EvidenceLookupInputAdmissionRequest, EvidenceLookupQueryAdmissionEvidenceSet,
@@ -25,6 +24,7 @@ use crate::workload_platform::evidence_lookup_input_admission::{
 use crate::workload_platform::evidence_lookup_plan_selection::{
     select_evidence_lookup_plan, EvidenceLookupSelectedPlan,
 };
+use crate::workload_platform::spatial_compiled_product_consumer_cutover::lower_evidence_lookup_index_product;
 
 #[test]
 fn spatial_family_declaration_applies_to_multiple_matching_products() {
@@ -364,7 +364,7 @@ fn real_evidence_lookup_basis_with_world(
     .assemble_selected_lookup_slice()
     .expect("selected lookup ledger");
     let product =
-        admit_evidence_lookup_index_product(&selected_plan, &ledger).expect("index product admits");
+        lower_evidence_lookup_index_product(&selected_plan, &ledger).expect("index product admits");
     (selected_plan, product)
 }
 

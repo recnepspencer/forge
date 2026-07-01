@@ -84,6 +84,24 @@ impl ReplayUndoSpatialBoundaryFixture {
             .with_test_caller_owned_scan_count(caller_owned_scan_count)
     }
 
+    pub fn workload_handoff_with_test_selected_reuse_basis_identity_digest(
+        &self,
+        selected_reuse_basis_identity_digest: impl Into<String>,
+    ) -> EvidenceLookupConsumedWorkloadHandoff {
+        self.workload_handoff
+            .clone()
+            .with_test_selected_reuse_basis_identity_digest(selected_reuse_basis_identity_digest)
+    }
+
+    pub fn workload_handoff_with_test_selected_equivalence_family_identity(
+        &self,
+        selected_equivalence_family_identity: impl AsRef<str>,
+    ) -> EvidenceLookupConsumedWorkloadHandoff {
+        self.workload_handoff
+            .clone()
+            .with_test_selected_equivalence_family_identity(selected_equivalence_family_identity)
+    }
+
     pub fn retained_replay_receipt(&self) -> Option<&RetainedReplayWorkloadReceipt> {
         self.retained_replay_receipt.as_ref()
     }

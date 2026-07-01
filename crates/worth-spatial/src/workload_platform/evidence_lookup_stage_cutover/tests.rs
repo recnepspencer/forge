@@ -57,6 +57,16 @@ fn covered_stage_closeout_requires_lookup_receipt() {
         proof.lookup_product_output_digest(),
         path.execution_receipt().lookup_product_output_digest()
     );
+    assert_eq!(
+        proof.selected_equivalence_family_identity(),
+        path.execution_receipt()
+            .selected_equivalence_family_identity()
+    );
+    assert_eq!(
+        proof.selected_reuse_basis_identity_digest(),
+        path.execution_receipt()
+            .selected_reuse_basis_identity_digest()
+    );
     assert_eq!(proof.counters().raw_row_scan_count(), 0);
     assert_eq!(proof.counters().broad_receipt_scan_count(), 0);
     assert_eq!(proof.counters().caller_owned_scan_count(), 0);
@@ -120,12 +130,13 @@ fn covered_stage_cutover_requires_exact_query_surface_for_projection_families() 
 }
 
 #[test]
-fn covered_stage_cutover_requires_topology_seed_for_support_pin_families() {
+fn covered_stage_cutover_admits_topology_required_support_pin_families_through_query_backed_cutover(
+) {
     let catalog = current_evidence_lookup_family_catalog().expect("family catalog");
     let family = catalog
         .family_by_identity("spatial-touch.boolean.overlap-evidence.v1")
         .expect("support-pin family");
-    let denial = admit_current_family_stage_cutover_path_with_query_evidence(
+    let path = admit_current_family_stage_cutover_path_with_query_evidence(
         &catalog,
         family,
         WorkloadEvidenceStage::BooleanSharedPlaneIdentity,
@@ -139,11 +150,13 @@ fn covered_stage_cutover_requires_topology_seed_for_support_pin_families() {
         ),
         None,
     )
-    .expect_err("support-pin families must not admit without topology seed");
-    assert!(
-        denial.detail().contains("MissingTopologySeed"),
-        "expected topology-seed denial, got {}",
-        denial.detail()
+    .expect("support-pin families should admit through current topology query-backed cutover");
+    let proof = path
+        .prove_for_family(family.identity().as_str())
+        .expect("topology-required covered family proof");
+    assert_eq!(
+        proof.stage(),
+        WorkloadEvidenceStage::BooleanSharedPlaneIdentity
     );
 }
 
@@ -153,21 +166,6 @@ fn all_covered_stage_lookups_have_current_cutover_paths() {
 
     for family in catalog.declarations() {
         for stage in family.stage_applicability().stages() {
-            if family.topology_input_posture().requires_topology_receipt() {
-                let denial = admit_current_family_stage_cutover_path(&catalog, family, *stage)
-                    .expect_err(
-                        "topology-seeded lookup families must stay explicit until a current seed path exists",
-                    );
-                assert!(
-                    denial.detail().contains("MissingTopologySeed"),
-                    "family `{}` at stage `{:?}` should deny on missing topology seed, got {}",
-                    family.identity().as_str(),
-                    stage,
-                    denial.detail()
-                );
-                continue;
-            }
-
             let path = admit_current_family_stage_cutover_path(&catalog, family, *stage)
                 .unwrap_or_else(|error| {
                     panic!(

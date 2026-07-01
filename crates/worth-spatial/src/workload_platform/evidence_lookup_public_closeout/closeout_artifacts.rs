@@ -8,6 +8,11 @@ use crate::workload_platform::evidence_lookup_query_surface_matrix::EvidenceLook
 use crate::workload_platform::evidence_lookup_source_firewall::EvidenceLookupSourceFirewallReport;
 use crate::workload_platform::evidence_lookup_stage_cutover::EvidenceLookupCoveredStageCutoverProof;
 use crate::workload_platform::evidence_lookup_workload_cutover::EvidenceLookupMilestoneTwelveSeed;
+use crate::workload_platform::selected_equivalence_family::SpatialSelectedEquivalenceFamilyIdentity;
+use schema::facade::platform::authority::compiled_product_semantic_graph::{
+    CompiledProductEquivalencePolicyIdentity, CompiledProductIdentity,
+};
+use topology::facade::TopologyQueryBackedConsumerFamilyRow;
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use super::counters::EvidenceLookupPublicCloseoutCounters;
@@ -31,9 +36,14 @@ pub struct EvidenceLookupPublicCloseoutFamilyStageRow {
     pub(super) family_declaration_digest: String,
     pub(super) stage: WorkloadEvidenceStage,
     pub(super) stage_receipt_family_identity: String,
-    pub(super) spatial_compiled_product_identity_digest: Option<String>,
-    pub(super) spatial_equivalence_policy_identity_digest: Option<String>,
+    pub(super) spatial_compiled_product_identity: Option<CompiledProductIdentity>,
+    pub(super) spatial_equivalence_policy_identity:
+        Option<CompiledProductEquivalencePolicyIdentity>,
+    pub(super) spatial_selected_equivalence_family_identity:
+        Option<SpatialSelectedEquivalenceFamilyIdentity>,
     pub(super) spatial_touch_digest: Option<String>,
+    pub(super) topology_query_backed_cutover_digest: Option<String>,
+    pub(super) topology_read_family_row_digest: Option<String>,
     pub(super) topology_input_summary: String,
     pub(super) query_import_evidence_digest: Option<String>,
     pub(super) query_surface_row_digest: String,
@@ -47,6 +57,7 @@ pub struct EvidenceLookupPublicCloseout {
     pub(super) family_stage_rows: Vec<EvidenceLookupPublicCloseoutFamilyStageRow>,
     pub(super) query_surface_matrix: EvidenceLookupQuerySurfaceMatrixCloseout,
     pub(super) query_consumer_kit: EvidenceLookupQueryConsumerKitCloseout,
+    pub(super) query_boundary_support_digest: String,
     pub(super) source_firewall_report: EvidenceLookupSourceFirewallReport,
     pub(super) spatial_deletion_ledger_rows: Vec<SpatialEvidenceSurfaceDeletionLedgerRow>,
     pub(super) counters: EvidenceLookupPublicCloseoutCounters,
@@ -79,19 +90,18 @@ impl EvidenceLookupPublicCloseoutFamilyStageRow {
                 .stage_receipt_family_identity()
                 .digest()
                 .to_string(),
-            spatial_compiled_product_identity_digest: Some(
-                lowered_identity
-                    .compiled_product_identity()
-                    .identity_digest()
-                    .to_string(),
+            spatial_compiled_product_identity: Some(
+                lowered_identity.compiled_product_identity().clone(),
             ),
-            spatial_equivalence_policy_identity_digest: Some(
-                lowered_identity
-                    .equivalence_policy_identity()
-                    .identity_digest()
-                    .to_string(),
+            spatial_equivalence_policy_identity: Some(
+                lowered_identity.equivalence_policy_identity().clone(),
+            ),
+            spatial_selected_equivalence_family_identity: Some(
+                proof.selected_equivalence_family_identity_kind(),
             ),
             spatial_touch_digest: Some(proof.spatial_touch_digest().to_string()),
+            topology_query_backed_cutover_digest: None,
+            topology_read_family_row_digest: None,
             topology_input_summary: topology_input_summary(family),
             query_import_evidence_digest: family
                 .query_posture()
@@ -104,26 +114,19 @@ impl EvidenceLookupPublicCloseoutFamilyStageRow {
         row.with_row_digest()
     }
 
-    pub(super) fn blocked_by_topology_seed(
+    pub(super) fn from_receipt_proof_with_topology_read_receipt(
         family: &EvidenceLookupFamilyDeclaration,
         stage: WorkloadEvidenceStage,
         query_surface_row_digest: &str,
+        proof: &EvidenceLookupCoveredStageCutoverProof,
+        lowered_identity: &SpatialCompiledProductLoweredIdentity,
+        topology_query_backed_cutover_digest: &str,
+        topology_read_family_row: &TopologyQueryBackedConsumerFamilyRow,
     ) -> Self {
-        let required_family = family
-            .topology_input_posture()
-            .required_family()
-            .expect("blocked topology residue requires topology family");
-        let disposition = EvidenceLookupPublicCloseoutDisposition::NonOrdinaryResidue {
-            reason: format!(
-                "family `{}` at stage `{}` remains non-ordinary until topology seed proves `{}`",
-                family.identity().as_str(),
-                stage.human_name(),
-                required_family.as_str()
-            ),
-            removal_trigger: format!(
-                "Milestone 10 seed consumption for `{}` is wired into the lookup lane",
-                required_family.as_str()
-            ),
+        let disposition = EvidenceLookupPublicCloseoutDisposition::ReceiptProof {
+            selected_lookup_plan_digest: proof.selected_lookup_plan_digest().to_string(),
+            lookup_execution_receipt_digest: proof.lookup_execution_receipt_digest().to_string(),
+            lookup_product_output_digest: proof.lookup_product_output_digest().to_string(),
         };
         let row = Self {
             family_identity: family.identity().as_str().to_string(),
@@ -134,9 +137,22 @@ impl EvidenceLookupPublicCloseoutFamilyStageRow {
                 .stage_receipt_family_identity()
                 .digest()
                 .to_string(),
-            spatial_compiled_product_identity_digest: None,
-            spatial_equivalence_policy_identity_digest: None,
-            spatial_touch_digest: None,
+            spatial_compiled_product_identity: Some(
+                lowered_identity.compiled_product_identity().clone(),
+            ),
+            spatial_equivalence_policy_identity: Some(
+                lowered_identity.equivalence_policy_identity().clone(),
+            ),
+            spatial_selected_equivalence_family_identity: Some(
+                proof.selected_equivalence_family_identity_kind(),
+            ),
+            spatial_touch_digest: Some(proof.spatial_touch_digest().to_string()),
+            topology_query_backed_cutover_digest: Some(
+                topology_query_backed_cutover_digest.to_string(),
+            ),
+            topology_read_family_row_digest: Some(
+                topology_read_family_row.row_digest().to_string(),
+            ),
             topology_input_summary: topology_input_summary(family),
             query_import_evidence_digest: family
                 .query_posture()
@@ -169,16 +185,50 @@ impl EvidenceLookupPublicCloseoutFamilyStageRow {
         self.spatial_touch_digest.as_deref()
     }
 
+    pub const fn spatial_compiled_product_identity(&self) -> Option<&CompiledProductIdentity> {
+        self.spatial_compiled_product_identity.as_ref()
+    }
+
     pub fn spatial_compiled_product_identity_digest(&self) -> Option<&str> {
-        self.spatial_compiled_product_identity_digest.as_deref()
+        self.spatial_compiled_product_identity
+            .as_ref()
+            .map(|identity| identity.identity_digest())
+    }
+
+    pub const fn spatial_equivalence_policy_identity(
+        &self,
+    ) -> Option<&CompiledProductEquivalencePolicyIdentity> {
+        self.spatial_equivalence_policy_identity.as_ref()
     }
 
     pub fn spatial_equivalence_policy_identity_digest(&self) -> Option<&str> {
-        self.spatial_equivalence_policy_identity_digest.as_deref()
+        self.spatial_equivalence_policy_identity
+            .as_ref()
+            .map(|identity| identity.identity_digest())
+    }
+
+    pub const fn spatial_selected_equivalence_family_identity_kind(
+        &self,
+    ) -> Option<SpatialSelectedEquivalenceFamilyIdentity> {
+        self.spatial_selected_equivalence_family_identity
+    }
+
+    pub fn spatial_selected_equivalence_family_identity(&self) -> Option<&str> {
+        self.spatial_selected_equivalence_family_identity
+            .as_ref()
+            .map(|identity| identity.as_str())
     }
 
     pub fn topology_input_summary(&self) -> &str {
         &self.topology_input_summary
+    }
+
+    pub fn topology_query_backed_cutover_digest(&self) -> Option<&str> {
+        self.topology_query_backed_cutover_digest.as_deref()
+    }
+
+    pub fn topology_read_family_row_digest(&self) -> Option<&str> {
+        self.topology_read_family_row_digest.as_deref()
     }
 
     pub fn query_import_evidence_digest(&self) -> Option<&str> {
@@ -260,6 +310,10 @@ impl EvidenceLookupPublicCloseout {
         &self.query_consumer_kit
     }
 
+    pub fn query_boundary_support_digest(&self) -> &str {
+        &self.query_boundary_support_digest
+    }
+
     pub const fn source_firewall_report(&self) -> &EvidenceLookupSourceFirewallReport {
         &self.source_firewall_report
     }
@@ -325,15 +379,27 @@ fn row_digest(row: &EvidenceLookupPublicCloseoutFamilyStageRow) -> String {
             row.family_declaration_digest.clone(),
             row.stage.human_name().to_string(),
             row.stage_receipt_family_identity.clone(),
-            row.spatial_compiled_product_identity_digest
-                .clone()
+            row.spatial_compiled_product_identity
+                .as_ref()
+                .map(|identity| identity.identity_digest().to_string())
                 .unwrap_or_else(|| "no-spatial-compiled-product-proof".to_string()),
-            row.spatial_equivalence_policy_identity_digest
-                .clone()
+            row.spatial_equivalence_policy_identity
+                .as_ref()
+                .map(|identity| identity.identity_digest().to_string())
                 .unwrap_or_else(|| "no-spatial-equivalence-proof".to_string()),
+            row.spatial_selected_equivalence_family_identity
+                .as_ref()
+                .map(|identity| identity.as_str().to_string())
+                .unwrap_or_else(|| "no-spatial-selected-family".to_string()),
             row.spatial_touch_digest
                 .clone()
                 .unwrap_or_else(|| "no-spatial-touch-proof".to_string()),
+            row.topology_query_backed_cutover_digest
+                .clone()
+                .unwrap_or_else(|| "no-topology-query-backed-cutover".to_string()),
+            row.topology_read_family_row_digest
+                .clone()
+                .unwrap_or_else(|| "no-topology-read-family-row".to_string()),
             row.topology_input_summary.clone(),
             row.query_import_evidence_digest
                 .clone()

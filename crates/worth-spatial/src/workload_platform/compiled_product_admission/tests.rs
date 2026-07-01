@@ -14,9 +14,7 @@ use crate::workload_platform::evidence_lookup_family_catalog::{
     current_evidence_lookup_family_catalog, EvidenceLookupQueryImportEvidence,
     EvidenceLookupStageReceiptFamilyIdentity,
 };
-use crate::workload_platform::evidence_lookup_index_product::{
-    admit_evidence_lookup_index_product, EvidenceLookupIndexProduct,
-};
+use crate::workload_platform::evidence_lookup_index_product::EvidenceLookupIndexProduct;
 use crate::workload_platform::evidence_lookup_input_admission::{
     admit_evidence_lookup_input, real_projection_consumption_receipt,
     EvidenceLookupInputAdmissionRequest, EvidenceLookupQueryAdmissionEvidenceSet,
@@ -25,7 +23,8 @@ use crate::workload_platform::evidence_lookup_input_admission::{
 use crate::workload_platform::evidence_lookup_plan_selection::{
     select_evidence_lookup_plan, EvidenceLookupSelectedPlan,
 };
-use crate::workload_platform::retained_replay_workload::ReplayParityReport;
+use crate::workload_platform::spatial_compiled_product_consumer_cutover::build_retained_replay_parity_report;
+use crate::workload_platform::spatial_compiled_product_consumer_cutover::lower_evidence_lookup_index_product;
 
 #[test]
 fn spatial_equivalent_inputs_admit_to_same_identity() {
@@ -64,6 +63,46 @@ fn spatial_equivalent_inputs_admit_to_same_identity() {
     assert_eq!(
         left_identity.compiled_product_identity().identity_digest(),
         right_identity.compiled_product_identity().identity_digest()
+    );
+}
+
+#[test]
+fn spatial_admission_witness_depends_on_boundary_request_shape_not_only_family_input() {
+    let catalog = current_spatial_compiled_product_family_catalog();
+    let (selected_plan, ledger, product) =
+        real_evidence_lookup_product("phase-7-spatial-admit-request-shaped-witness");
+    let ledger_admitted = admit_spatial_compiled_product_input(
+        &catalog,
+        SpatialCompiledProductAdmissionRequest::for_evidence_lookup_ledger(
+            SpatialCompiledProductConsumer::EvidenceLookupIndexProduct,
+            &selected_plan,
+            &ledger,
+        ),
+    )
+    .expect("ledger admission");
+    let product_admitted = admit_spatial_compiled_product_input(
+        &catalog,
+        SpatialCompiledProductAdmissionRequest::for_evidence_lookup_product(
+            SpatialCompiledProductConsumer::EvidenceLookupIndexProduct,
+            &selected_plan,
+            &product,
+        ),
+    )
+    .expect("product admission");
+
+    assert_eq!(
+        ledger_admitted.family_admitted_input(),
+        product_admitted.family_admitted_input(),
+        "ledger and product admission should lower to the same family input for the same selected slice"
+    );
+    assert_eq!(
+        ledger_admitted.witness().family_identity(),
+        product_admitted.witness().family_identity()
+    );
+    assert_ne!(
+        ledger_admitted.witness().admission_token(),
+        product_admitted.witness().admission_token(),
+        "admission witness must depend on the real request boundary, not only the lowered family input"
     );
 }
 
@@ -158,13 +197,14 @@ fn spatial_wrong_receipt_or_manual_support_is_rejected() {
         super::denial::SpatialCompiledProductAdmissionErrorKind::WrongAuthorityBasis
     );
 
-    let parity = ReplayParityReport::from_retained_projection_match(
+    let parity = build_retained_replay_parity_report(
         &retained,
         &retained
             .historical_replay(&retained.replay_subject())
             .expect("historical replay"),
         &projected,
-    );
+    )
+    .expect("retained replay parity report");
     assert_eq!(parity.row_count(), 1);
 }
 
@@ -202,7 +242,7 @@ fn real_evidence_lookup_product(
             .assemble_selected_lookup_slice()
             .expect("selected lookup ledger");
     let product =
-        admit_evidence_lookup_index_product(&selected_plan, &ledger).expect("index product");
+        lower_evidence_lookup_index_product(&selected_plan, &ledger).expect("index product");
     (selected_plan, ledger, product)
 }
 
@@ -272,6 +312,7 @@ fn rebuild_lookup_product(
         .expect("rebuild basis admits");
     EvidenceLookupIndexProduct::new(
         admitted_family.lowered_identity(),
+        admitted_family.selected_equivalence_family(),
         product.selected_plan_digest().to_string(),
         product.spatial_touch_digest().to_string(),
         stage_receipt_digest

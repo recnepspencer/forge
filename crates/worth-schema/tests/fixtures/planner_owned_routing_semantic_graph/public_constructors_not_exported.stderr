@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `schema::facade::platform::authority::planner_owned_routing_semantic_graph::admit_planner_admitted_explanation_input`
+ --> tests/fixtures/planner_owned_routing_semantic_graph/public_constructors_not_exported.rs:1:5
+  |
+1 | use schema::facade::platform::authority::planner_owned_routing_semantic_graph::admit_planner_admitted_explanation_input;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_planner_admitted_explanation_input` in `facade::platform::authority::planner_owned_routing_semantic_graph`

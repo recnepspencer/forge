@@ -1,3 +1,4 @@
+pub use crate::workload_platform::evidence_ledger::SelectedLookupSliceLedgerAssembly;
 pub use crate::workload_platform::evidence_ledger::{
     deny_copied_receipt_fields_as_spatial_query_lowering_authority,
     deny_manual_evidence_row_as_spatial_touch_authority,

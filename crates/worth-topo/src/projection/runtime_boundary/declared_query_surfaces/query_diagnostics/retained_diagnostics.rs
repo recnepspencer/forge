@@ -11,14 +11,16 @@ use crate::compiled_product_family::{
 use crate::derived_invalidation_compiled_product_admission::{
     admit_topology_compiled_product_input, TopologyCompiledProductAdmissionRequest,
 };
+use crate::derived_topology::compiled_product_consumer_cutover::build_derived_equivalence_contract_report;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
-use crate::projection::diagnostic_surfaces::{
-    build_derived_equivalence_contract_report,
-    derived_read_diagnostics::{
-        build_derived_fallback_report_from_counts, build_derived_invalidation_report_from_aspects,
-        derived_validation_execution_report, DerivedReadDiagnostics,
-    },
+use crate::projection::diagnostic_surfaces::derived_read_diagnostics::{
+    build_derived_fallback_report_from_counts, build_derived_invalidation_report_from_aspects,
+    derived_validation_execution_report, DerivedReadDiagnostics,
+};
+use crate::projection::planner_owned_routing::diagnostic_projection_input::topology_derived_diagnostic_projection_source;
+use crate::selected_equivalence_family::{
+    current_topology_selected_equivalence_family_catalog, select_topology_equivalence_family,
 };
 use crate::validation::{DerivedTopologyValidationReport, RegisteredTopologyValidationReport};
 
@@ -128,7 +130,51 @@ fn build_diagnostics_from_decoded_surfaces(
                 ),
             )
         })?;
+    let selected_equivalence_family = select_topology_equivalence_family(
+        &current_topology_selected_equivalence_family_catalog(),
+        &admitted,
+    )
+    .map_err(|error| {
+        TopologyQuerySurfaceError::with_kind(
+            TopologyQuerySurfaceErrorKind::CompiledProductFamilySelectionFailed,
+            format!(
+                "query-derived diagnostics failed to select topology equivalence family: {error:?}"
+            ),
+        )
+    })?;
+    let equivalence_contract_report = build_derived_equivalence_contract_report(
+        admitted.source_authority_basis().authority_snapshot_id(),
+        admitted
+            .source_authority_basis()
+            .authority_branch_id()
+            .to_string(),
+        evidence.authoritative_mutation_origin,
+        evidence.derivation_origin,
+        admitted
+            .source_authority_basis()
+            .truth_basis_digest_hex()
+            .to_string(),
+        admitted.source_authority_basis().touched_aspect_count(),
+        admitted
+            .locality_basis()
+            .triggered_invalidation_targets()
+            .to_vec(),
+        admitted.source_authority_basis().precision_fallback_count(),
+        admitted
+            .source_authority_basis()
+            .precision_budget_fallback_count(),
+        Some(&selected_equivalence_family),
+        Some(selected.declaration().identity()),
+        Some(&lowered),
+        &materialized,
+        &interpreted,
+        validation,
+    );
     Ok(DerivedReadDiagnostics {
+        diagnostic_projection_source: topology_derived_diagnostic_projection_source(
+            read_basis_metadata.read_basis(),
+            &equivalence_contract_report,
+        ),
         invalidation_report: build_derived_invalidation_report_from_aspects(
             touched_aspects.iter().copied(),
         ),
@@ -146,30 +192,7 @@ fn build_diagnostics_from_decoded_surfaces(
         validation_execution_report: derived_validation_execution_report(
             registered_validation.registered_rule_count(),
         ),
-        equivalence_contract_report: build_derived_equivalence_contract_report(
-            admitted.source_authority_basis().authority_snapshot_id(),
-            admitted.source_authority_basis().authority_branch_id().to_string(),
-            evidence.authoritative_mutation_origin,
-            evidence.derivation_origin,
-            admitted
-                .source_authority_basis()
-                .truth_basis_digest_hex()
-                .to_string(),
-            admitted.source_authority_basis().touched_aspect_count(),
-            admitted
-                .locality_basis()
-                .triggered_invalidation_targets()
-                .to_vec(),
-            admitted.source_authority_basis().precision_fallback_count(),
-            admitted
-                .source_authority_basis()
-                .precision_budget_fallback_count(),
-            Some(selected.declaration().identity()),
-            Some(&lowered),
-            &materialized,
-            &interpreted,
-            validation,
-        ),
+        equivalence_contract_report,
     })
 }
 
@@ -190,7 +213,12 @@ fn registered_validation_report(
 mod tests {
     use serde_json::json;
 
+    use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
+    use crate::projection::runtime_boundary::declared_query_surfaces::materialize_declared_query_surface_row;
+    use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
+    use crate::validation::reference_integrity::milestone_one_runtime_builder;
     use crate::validation::DerivedTopologyValidationReport;
+    use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
     use super::registered_validation_report;
 
@@ -256,6 +284,56 @@ mod tests {
         assert!(error
             .to_string()
             .contains("expected 5 registered validation rows"));
+    }
+
+    #[test]
+    fn retained_diagnostics_surface_fails_closed_through_real_retained_refresh_boundary() {
+        let mut runtime = milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
+            .build();
+        let verified = seed_milestone_one_primitive_through_schema_execution(
+            &mut runtime,
+            "phase-two-retained-diagnostics",
+            &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+        )
+        .expect("verified primitive");
+        let mut query_runtime = HistoricalReadBasisQueryRuntime::open(
+            &runtime,
+            verified.read_basis().clone(),
+            "retained-diagnostics-truth-basis-proof",
+        )
+        .expect("read-basis query runtime should open");
+        let materialized_surface = query_runtime.surfaces().materialized().clone();
+        let diagnostics_surface = query_runtime.surfaces().diagnostics().clone();
+        let materialized_row: serde_json::Value = materialize_declared_query_surface_row(
+            query_runtime.workspace(),
+            &materialized_surface,
+        )
+        .expect("materialized surface should return retained failure payload");
+        let diagnostics_row: serde_json::Value = materialize_declared_query_surface_row(
+            query_runtime.workspace(),
+            &diagnostics_surface,
+        )
+        .expect("diagnostics surface should return retained failure payload");
+
+        assert_eq!(materialized_row["query_surface_error_kind"].as_str(), None);
+        assert_eq!(
+            diagnostics_row["query_surface_error_kind"].as_str(),
+            Some("retained_payload_decode_failed")
+        );
+        assert!(
+            materialized_row["query_surface_error"]
+                .as_str()
+                .is_some_and(|message| message.contains("Query-native retained materialization support")),
+            "materialized surface should fail closed on the real retained runtime seam instead of silently rebuilding local truth: {materialized_row:?}",
+        );
+        assert!(
+            diagnostics_row["query_surface_error"].as_str().is_some_and(|message| {
+                message.contains("materialized topology")
+                    && message.contains("payload failed to decode")
+            }),
+            "diagnostics surface should expose the real retained upstream failure instead of bypassing the refresh seam with a helper path: {diagnostics_row:?}",
+        );
     }
 
     fn registered_row(name: &str, phase: &str, input_class: &str) -> serde_json::Value {

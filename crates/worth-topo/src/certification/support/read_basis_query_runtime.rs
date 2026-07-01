@@ -6,11 +6,11 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::MilestoneOneCertificationError;
+use crate::derived_topology::compiled_product_consumer_cutover::DerivedEquivalenceContractReport;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
 use crate::projection::diagnostic_surfaces::{
-    derived_read_diagnostics::build_derived_read_diagnostics, DerivedEquivalenceContractReport,
-    DerivedReadDiagnostics,
+    derived_read_diagnostics::build_derived_read_diagnostics, DerivedReadDiagnostics,
 };
 use crate::projection::runtime_boundary::declared_query_surfaces::retained_artifacts::{
     build_topology_historical_derived_surface_snapshot, TopologyHistoricalDerivedSurfaceSnapshot,
@@ -25,7 +25,6 @@ use crate::projection::runtime_boundary::read_stage::{
     open_topology_read_view, stage_topology_read_from_view,
 };
 use crate::validation::validate_named_topology_truth;
-use crate::validation::DerivedTopologyValidationReport;
 
 pub(crate) struct HistoricalReadBasisQueryRuntime {
     read_basis: DerivedTopologyReadBasis,
@@ -33,7 +32,7 @@ pub(crate) struct HistoricalReadBasisQueryRuntime {
     surfaces: TopologyDeclaredQuerySurfaces,
     materialized: MaterializedTopologyView,
     interpreted: InterpretedTopologyView,
-    validation: DerivedTopologyValidationReport,
+    validation: crate::validation::DerivedTopologyValidationReport,
 }
 
 pub(crate) struct HistoricalQuerySurfaceEvidence {

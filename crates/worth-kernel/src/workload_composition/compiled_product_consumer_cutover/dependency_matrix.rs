@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use super::closeout::require_complete_cluster_coverage;
+use super::coverage_target::KernelCompiledProductConsumerCoverageTarget;
 use super::current_matrix::current_coverage_targets;
 use super::dependency_row::{
     KernelCompiledProductConsumerClusterIdentity, KernelCompiledProductConsumerDependencyRow,
@@ -18,7 +19,24 @@ pub fn current_kernel_compiled_product_consumer_dependency_matrix() -> Result<
     KernelCompiledProductConsumerDependencyMatrix,
     KernelCompiledProductConsumerDependencyError,
 > {
-    let targets = current_coverage_targets()?;
+    current_kernel_compiled_product_consumer_dependency_matrix_with_targets_loader(
+        current_coverage_targets,
+    )
+}
+
+pub(crate) fn current_kernel_compiled_product_consumer_dependency_matrix_with_targets_loader<F>(
+    load_targets: F,
+) -> Result<
+    KernelCompiledProductConsumerDependencyMatrix,
+    KernelCompiledProductConsumerDependencyError,
+>
+where
+    F: FnOnce() -> Result<
+        Vec<KernelCompiledProductConsumerCoverageTarget>,
+        KernelCompiledProductConsumerDependencyError,
+    >,
+{
+    let targets = load_targets()?;
     let rows = targets
         .iter()
         .map(|target| target.lower_row())

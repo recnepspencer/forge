@@ -58,9 +58,10 @@ impl TopologyReadLedger {
     }
 
     pub fn proof_report(&self) -> TopologyReadProofReport {
+        let request_reports = self.request_reports.borrow();
         self.proof_ledger
             .build_report(TopologyReadAggregateReport::from_request_reports(
-                self.request_reports.borrow().as_slice(),
+                request_reports.as_slice(),
             ))
     }
 }

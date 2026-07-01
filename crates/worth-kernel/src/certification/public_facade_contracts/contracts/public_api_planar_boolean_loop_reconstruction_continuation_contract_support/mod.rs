@@ -166,7 +166,8 @@ pub(crate) fn completed_split_handoff_for(
             replay_subject.original_ledger.receipt(),
             &event_ledger_lookup_packet,
         )
-        .expect("real workload should produce a proof-bearing split completion handoff");
+        .expect("real workload should produce a proof-bearing split completion handoff")
+        .with_test_event_ledger_lookup_packet(event_ledger_lookup_packet.clone());
     completed_split_handoff
         .require_boolean_split()
         .expect("completed split handoff should require the exact split ledger receipt");

@@ -23,6 +23,18 @@ Your job is to produce a findings-first review of the tests:
 
 Be concrete. Use file/line references when possible.
 
+Aggression rules for this review:
+
+- Find the smallest set of load-bearing dishonest seams that explain the test
+  weakness. Do not produce a long list of cosmetic or sibling-level findings
+  when they collapse to one root cause.
+- Prefer "this test bypasses the real production seam" over weaker variants of
+  the same complaint.
+- If one real production surface is missing and would make several tests honest,
+  call that out as the primary finding instead of scattering the problem across
+  many test-only complaints.
+- Keep the review tight enough that the next turn can fix the seam directly.
+
 If the tests need hardening, update the JSON state file directly:
 
 - short `notes.findings`

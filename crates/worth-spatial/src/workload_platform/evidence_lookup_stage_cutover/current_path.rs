@@ -10,9 +10,7 @@ use crate::workload_platform::evidence_lookup_family_catalog::{
     EvidenceLookupProjectionFactFamily, EvidenceLookupQueryImportEvidence,
     EvidenceLookupStageReceiptFamilyIdentity,
 };
-use crate::workload_platform::evidence_lookup_index_product::{
-    admit_evidence_lookup_index_product, EvidenceLookupIndexProduct,
-};
+use crate::workload_platform::evidence_lookup_index_product::EvidenceLookupIndexProduct;
 use crate::workload_platform::evidence_lookup_input_admission::{
     admit_evidence_lookup_input, current_projection_consumption_receipt,
     EvidenceLookupAdmittedInput, EvidenceLookupInputAdmissionError,
@@ -22,6 +20,8 @@ use crate::workload_platform::evidence_lookup_input_admission::{
 use crate::workload_platform::evidence_lookup_plan_selection::{
     select_evidence_lookup_plan, EvidenceLookupSelectedPlan,
 };
+use crate::workload_platform::spatial_compiled_product_consumer_cutover::lower_evidence_lookup_index_product;
+use topology::facade::current_topology_query_backed_consumer_cutover;
 
 use super::current_world::current_spatial_touch_authority;
 use super::{EvidenceLookupCoveredStageCutoverProof, EvidenceLookupStageCutoverError};
@@ -32,6 +32,7 @@ pub(crate) struct EvidenceLookupCurrentCoveredStageCutoverPath {
     stage_receipt_identity: String,
     admitted_input: EvidenceLookupAdmittedInput,
     selected_plan: EvidenceLookupSelectedPlan,
+    selected_lookup_slice: SelectedLookupSliceLedger,
     index_product: EvidenceLookupIndexProduct,
     execution_receipt: EvidenceLookupExecutionReceipt,
 }
@@ -52,6 +53,10 @@ impl EvidenceLookupCurrentCoveredStageCutoverPath {
 
     pub(crate) fn selected_plan(&self) -> &EvidenceLookupSelectedPlan {
         &self.selected_plan
+    }
+
+    pub(crate) fn selected_lookup_slice(&self) -> &SelectedLookupSliceLedger {
+        &self.selected_lookup_slice
     }
 
     pub(crate) fn index_product(&self) -> &EvidenceLookupIndexProduct {
@@ -119,6 +124,17 @@ pub(crate) fn admit_current_family_stage_cutover_path_with_query_evidence(
     projection_receipt: Option<&forge_query::facade::ProjectionConsumptionReceipt>,
 ) -> Result<EvidenceLookupCurrentCoveredStageCutoverPath, EvidenceLookupCurrentPathError> {
     let spatial_touch_authority = current_spatial_touch_authority(stage)?;
+    let topology_query_backed_cutover = family
+        .topology_input_posture()
+        .requires_topology_receipt()
+        .then(current_topology_query_backed_consumer_cutover)
+        .transpose()
+        .map_err(|error| EvidenceLookupCurrentPathError {
+            detail: format!(
+                "topology query-backed cutover admission failed: {}",
+                error.detail()
+            ),
+        })?;
     let stage_receipt_identity = spatial_touch_authority.evidence_identity().to_string();
     let receipt_family = family
         .stage_applicability()
@@ -132,6 +148,9 @@ pub(crate) fn admit_current_family_stage_cutover_path_with_query_evidence(
                     receipt_family,
                 ),
             );
+    if let Some(topology_query_backed_cutover) = topology_query_backed_cutover.as_ref() {
+        request = request.with_topology_query_backed_cutover(topology_query_backed_cutover);
+    }
     if let Some(query_evidence) = query_evidence {
         request = request.with_query_import_evidence(query_evidence.clone());
     }
@@ -140,17 +159,15 @@ pub(crate) fn admit_current_family_stage_cutover_path_with_query_evidence(
         .map_err(EvidenceLookupCurrentPathError::from)?;
     let selected_plan = select_evidence_lookup_plan(catalog, &admitted_input)
         .map_err(EvidenceLookupCurrentPathError::from)?;
-    let index_product = admit_evidence_lookup_index_product(
-        &selected_plan,
-        &complete_ledger_for_plan(
-            &spatial_touch_authority,
-            family
-                .stage_applicability()
-                .stage_receipt_family_identity()
-                .clone(),
-        ),
-    )
-    .map_err(EvidenceLookupCurrentPathError::from)?;
+    let selected_lookup_slice = complete_ledger_for_plan(
+        &spatial_touch_authority,
+        family
+            .stage_applicability()
+            .stage_receipt_family_identity()
+            .clone(),
+    );
+    let index_product = lower_evidence_lookup_index_product(&selected_plan, &selected_lookup_slice)
+        .map_err(EvidenceLookupCurrentPathError::from)?;
 
     let mut execution_request = EvidenceLookupExecutionRequest::new(&selected_plan, &index_product);
     if selected_plan.rows().iter().any(|row| {
@@ -179,6 +196,7 @@ pub(crate) fn admit_current_family_stage_cutover_path_with_query_evidence(
         stage_receipt_identity,
         admitted_input,
         selected_plan,
+        selected_lookup_slice,
         index_product,
         execution_receipt,
     })

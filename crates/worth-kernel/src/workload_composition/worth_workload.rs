@@ -35,16 +35,29 @@ pub use boolean_loop_reconstruction_handoff::{
 pub use boolean_loop_reconstruction_products::CompletedBooleanLoopReconstructionProducts;
 pub use boolean_split_handoff::CompletedBooleanSplitHandoff;
 pub use error::{LookupConsumedWorkloadDenial, ReplayUndoBoundaryDenial, WorkloadCompositionError};
-pub use lookup_consumed_workload::LookupConsumedWorkloadComposition;
+pub use lookup_consumed_workload::{
+    LookupConsumedWorkloadComposition, LookupConsumedWorkloadReuseProduct,
+    LookupConsumedWorkloadReuseResolutionDenied,
+};
 pub(crate) use ordinary_consumer_sweep::{
     current_replay_undo_boundary_route_authority, current_worth_workload_ordinary_consumer_cutover,
     WorthWorkloadOrdinaryConsumerCutover, WorthWorkloadOrdinaryConsumerCutoverPosture,
     WorthWorkloadOrdinaryConsumerCutoverRow,
 };
 pub use ordinary_consumer_sweep::{
+    current_worth_workload_ordinary_consumer_sweep_closeout,
     worth_workload_ordinary_consumer_residue_rows, CompletedBooleanSplitBatchExecutionCluster,
-    LookupConsumedBatchExecutionCluster, WorthWorkloadOrdinaryConsumerResidueBoundary,
-    WorthWorkloadOrdinaryConsumerResidueRow, WorthWorkloadOrdinaryConsumerResidueSurface,
+    LookupConsumedBatchExecutionCluster, WorthWorkloadOrdinaryConsumerClusterKind,
+    WorthWorkloadOrdinaryConsumerClusterLedger, WorthWorkloadOrdinaryConsumerClusterRowDisposition,
+    WorthWorkloadOrdinaryConsumerResidueBoundary, WorthWorkloadOrdinaryConsumerResidueRow,
+    WorthWorkloadOrdinaryConsumerResidueSurface, WorthWorkloadOrdinaryConsumerSweepCloseoutError,
+    WorthWorkloadOrdinaryConsumerSweepCloseoutErrorKind,
+    WorthWorkloadOrdinaryConsumerSweepResidueRow,
+};
+#[cfg(test)]
+pub(crate) use ordinary_consumer_sweep::{
+    ordinary_consumer_cutover_from_inventory_for_tests,
+    ordinary_consumer_cutover_from_inventory_with_test_replay_undo_identity_override,
 };
 pub use replay_undo_boundary::{
     AdmittedBooleanSplitReplayUndoBoundary, BooleanSplitReplayUndoBoundaryRequest,

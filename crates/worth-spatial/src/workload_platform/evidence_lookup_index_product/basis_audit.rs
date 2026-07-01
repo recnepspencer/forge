@@ -7,7 +7,7 @@ use super::construction::{
     selected_plan_query_surface_contract_rows,
 };
 use super::error::{EvidenceLookupIndexProductError, EvidenceLookupIndexProductErrorKind};
-use super::identity::lower_index_family_identity_from_basis;
+use super::identity::admit_and_lower_index_family_identity_from_basis;
 use super::product::EvidenceLookupIndexProduct;
 use super::topology_support::topology_receipt_ref_count;
 use super::{counters::EvidenceLookupIndexProductCounters, query_support::query_support_row_count};
@@ -58,9 +58,11 @@ pub(crate) fn audit_evidence_lookup_index_product_basis(
         .with_counters(counters));
     }
 
-    let lowered_identity = lower_index_family_identity_from_basis(selected_plan, &basis);
+    let admitted_family = admit_and_lower_index_family_identity_from_basis(selected_plan, &basis)
+        .expect("basis audit family admission");
     Ok(EvidenceLookupIndexProduct::new(
-        &lowered_identity,
+        admitted_family.lowered_identity(),
+        admitted_family.selected_equivalence_family(),
         selected_plan.selected_plan_digest().to_string(),
         selected_plan.spatial_touch_digest().to_string(),
         selected_plan.stage_receipt_digest().to_string(),

@@ -1,4 +1,6 @@
 pub(crate) mod diagnostic_surfaces;
+pub(crate) mod planner_owned_routing;
+pub(crate) mod query_backed_consumer_cutover;
 pub(crate) mod read_views;
 pub(crate) mod runtime_boundary;
 

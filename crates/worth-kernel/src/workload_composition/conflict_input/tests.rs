@@ -14,13 +14,12 @@ use topology::facade::{
 use worth_spatial::facade::replay_family_catalog::current_spatial_replay_family_catalog;
 use worth_spatial::facade::replay_undo_semantic_graph::{
     admit_prepared_spatial_replay_semantic_graph_input,
-    boolean_event_ledger_spatial_boundary_fixture,
+    boolean_event_ledger_spatial_boundary_fixture, current_boolean_event_ledger_spatial_boundary,
     lower_spatial_replay_scope_product_from_admitted_input,
     lower_spatial_undo_scope_product_from_boolean_event_ledger_request,
     prepare_spatial_replay_semantic_graph_request, projection_receipt_spatial_boundary_fixture,
     BooleanEventLedgerRollbackRequest, SpatialReplaySemanticGraphPreparationRequest,
 };
-
 #[path = "../../certification/public_facade_contracts/contracts/public_api_planar_boolean_loop_reconstruction_workload_evidence_support/ordinary_topology_undo_support.rs"]
 mod ordinary_topology_undo_support;
 #[path = "../../certification/public_facade_contracts/contracts/public_api_planar_boolean_loop_reconstruction_workload_evidence_support.rs"]
@@ -161,8 +160,45 @@ fn spatial_conflict_input_evidence_route_uses_receipt_backed_lookup_proof() {
                 fixture.execution_receipt().execution_receipt_digest()
             );
         }
+        AdmittedSpatialConflictRoute::LookupCompiledProduct { .. } => {
+            panic!("receipt-backed admission must preserve the receipt-backed lookup route")
+        }
         AdmittedSpatialConflictRoute::ReplayBoundary(_) => {
             panic!("evidence-backed admission must preserve typed lookup proof")
+        }
+    }
+}
+
+#[test]
+fn spatial_conflict_input_lookup_compiled_product_route_uses_real_compiled_product_proof() {
+    let boundary = current_boolean_event_ledger_spatial_boundary().expect("current boundary");
+
+    let admitted = admit_spatial_conflict_input(
+        SpatialConflictInputRequest::new(boundary.authority())
+            .with_lookup_compiled_product(boundary.workload_handoff(), boundary.index_product()),
+    )
+    .expect("compiled-product-backed lookup proof should admit spatial conflict input");
+
+    assert_eq!(
+        admitted.routing_contract().overlap_identity().category(),
+        ConflictOverlapCategory::Evidence
+    );
+    match admitted.route() {
+        AdmittedSpatialConflictRoute::LookupCompiledProduct { handoff, product } => {
+            assert_eq!(
+                handoff.semantic_graph_identity(),
+                boundary.workload_handoff().semantic_graph_identity()
+            );
+            assert_eq!(
+                product.index_product_digest(),
+                boundary.index_product().index_product_digest()
+            );
+        }
+        AdmittedSpatialConflictRoute::EvidenceLookup { .. } => {
+            panic!("compiled-product-backed admission must preserve the compiled-product route")
+        }
+        AdmittedSpatialConflictRoute::ReplayBoundary(_) => {
+            panic!("compiled-product-backed admission must not degrade into replay proof")
         }
     }
 }
@@ -201,6 +237,100 @@ fn spatial_conflict_input_rejects_stage_index_mismatch_before_selection() {
     };
 
     assert_conflict_kind(error, ConflictInputAdmissionErrorKind::StageIndexMismatch);
+}
+
+#[test]
+fn spatial_conflict_input_lookup_compiled_product_route_rejects_selected_plan_mismatch_before_selection(
+) {
+    let boundary = current_boolean_event_ledger_spatial_boundary().expect("current boundary");
+    let hostile_product = boundary
+        .index_product()
+        .clone()
+        .with_test_selected_plan_digest("forged.selected-plan-digest");
+
+    assert_spatial_compiled_product_denial(
+        boundary.authority(),
+        boundary.workload_handoff(),
+        hostile_product,
+        ConflictInputAdmissionErrorKind::WrongReceiptFamily,
+    );
+}
+
+#[test]
+fn spatial_conflict_input_rejects_selected_family_mismatch_before_selection() {
+    let fixture = boolean_event_ledger_spatial_boundary_fixture();
+    let handoff = fixture.workload_handoff_with_test_selected_equivalence_family_identity(
+        "spatial.selected-equivalence.retained-replay-semantic-parity",
+    );
+
+    assert_spatial_handoff_denial(handoff, ConflictInputAdmissionErrorKind::WrongReceiptFamily);
+}
+
+#[test]
+fn spatial_conflict_input_lookup_compiled_product_route_rejects_selected_family_mismatch_before_selection(
+) {
+    let boundary = current_boolean_event_ledger_spatial_boundary().expect("current boundary");
+    let hostile_product = boundary
+        .index_product()
+        .clone()
+        .with_test_selected_equivalence_family_identity(
+            "spatial.selected-equivalence.retained-replay-semantic-parity",
+        );
+
+    assert_spatial_compiled_product_denial(
+        boundary.authority(),
+        boundary.workload_handoff(),
+        hostile_product,
+        ConflictInputAdmissionErrorKind::WrongReceiptFamily,
+    );
+}
+
+#[test]
+fn spatial_conflict_input_rejects_selected_reuse_basis_mismatch_before_selection() {
+    let fixture = boolean_event_ledger_spatial_boundary_fixture();
+    let handoff = fixture.workload_handoff_with_test_selected_reuse_basis_identity_digest(
+        "forged.selected-reuse-basis",
+    );
+
+    assert_spatial_handoff_denial(handoff, ConflictInputAdmissionErrorKind::WrongReceiptFamily);
+}
+
+#[test]
+fn spatial_conflict_input_lookup_compiled_product_route_rejects_selected_reuse_basis_mismatch_before_selection(
+) {
+    let boundary = current_boolean_event_ledger_spatial_boundary().expect("current boundary");
+    let hostile_product = boundary
+        .index_product()
+        .clone()
+        .with_test_selected_reuse_basis_identity_digest("forged.selected-reuse-basis");
+
+    assert_spatial_compiled_product_denial(
+        boundary.authority(),
+        boundary.workload_handoff(),
+        hostile_product,
+        ConflictInputAdmissionErrorKind::WrongReceiptFamily,
+    );
+}
+
+#[test]
+fn spatial_conflict_input_lookup_compiled_product_route_rejects_wrong_authority_before_selection() {
+    let boundary = current_boolean_event_ledger_spatial_boundary().expect("current boundary");
+    let forged_handoff = boundary
+        .workload_handoff()
+        .clone()
+        .with_test_stage_receipt_identity("forged-stage-receipt-identity");
+
+    let error = match admit_spatial_conflict_input(
+        SpatialConflictInputRequest::new(boundary.authority())
+            .with_lookup_compiled_product(&forged_handoff, boundary.index_product()),
+    ) {
+        Ok(_) => {
+            panic!("compiled-product-backed admission must reject foreign handoff authority before selection")
+        }
+        Err(error) => error,
+    };
+
+    assert_conflict_kind(error, ConflictInputAdmissionErrorKind::WrongAuthority);
 }
 
 #[test]
@@ -270,7 +400,8 @@ fn spatial_conflict_input_replay_route_accepts_typed_boundary_proof() {
                 boundary.packet_identity()
             );
         }
-        AdmittedSpatialConflictRoute::EvidenceLookup { .. } => {
+        AdmittedSpatialConflictRoute::EvidenceLookup { .. }
+        | AdmittedSpatialConflictRoute::LookupCompiledProduct { .. } => {
             panic!("replay admission must preserve typed replay boundary proof")
         }
     }
@@ -383,6 +514,21 @@ fn assert_spatial_handoff_denial(
             .with_evidence_lookup(&handoff, fixture.execution_receipt()),
     ) {
         Ok(_) => panic!("mutated lookup handoff must fail admission before selection"),
+        Err(error) => error,
+    };
+    assert_conflict_kind(error, expected);
+}
+
+fn assert_spatial_compiled_product_denial(
+    authority: &worth_spatial::facade::workload_vocabulary::SpatialGeometryEvidenceTouchAuthority,
+    handoff: &worth_spatial::facade::evidence_lookup_workload_cutover::EvidenceLookupConsumedWorkloadHandoff,
+    product: worth_spatial::facade::evidence_lookup_index_product::EvidenceLookupIndexProduct,
+    expected: ConflictInputAdmissionErrorKind,
+) {
+    let error = match admit_spatial_conflict_input(
+        SpatialConflictInputRequest::new(authority).with_lookup_compiled_product(handoff, &product),
+    ) {
+        Ok(_) => panic!("mutated compiled product must fail admission before selection"),
         Err(error) => error,
     };
     assert_conflict_kind(error, expected);

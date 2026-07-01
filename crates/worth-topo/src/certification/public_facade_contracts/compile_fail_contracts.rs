@@ -101,6 +101,24 @@ pub(crate) const fn public_facade_compile_fail_target_files() -> &'static [&'sta
         "public_traversal_views_topology_prefix_read_source_not_exported.rs",
         "public_traversal_views_read_stage_receipt_not_forgeable.rs",
         "public_topology_compiled_product_family_declaration_constructor_not_exported.rs",
+        "public_topology_compiled_product_admission_not_exported.rs",
+        "public_topology_compiled_product_reuse_decision_not_exported.rs",
+        "public_topology_compiled_product_rebuild_denial_not_exported.rs",
         "public_topology_compiled_product_family_proof_products_not_deserializable.rs",
     ]
+}
+
+#[test]
+fn public_api_cannot_forge_compiled_product_or_reuse_products() {
+    const COMPILE_FAIL_ROOT: &str = "src/certification/public_facade_contracts/compile_fail";
+    let test_cases = trybuild::TestCases::new();
+    for fence in
+        super::phase_fifteen_fixture_inventory::phase_fifteen_topology_compile_fail_fences()
+    {
+        let file_name = fence
+            .fixture_path()
+            .strip_prefix("src/certification/public_facade_contracts/compile_fail/")
+            .expect("phase 15 topology fixture must stay under compile_fail root");
+        test_cases.compile_fail(format!("{COMPILE_FAIL_ROOT}/{file_name}"));
+    }
 }

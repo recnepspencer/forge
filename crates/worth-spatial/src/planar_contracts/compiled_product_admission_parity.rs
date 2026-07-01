@@ -4,7 +4,7 @@ use crate::spatial_compiled_product_family::{
 use crate::workload_platform::compiled_product_admission::{
     admit_spatial_compiled_product_input, SpatialCompiledProductAdmissionRequest,
 };
-use crate::workload_platform::retained_replay_workload::ReplayParityReport;
+use crate::workload_platform::spatial_compiled_product_consumer_cutover::build_retained_replay_parity_report;
 
 #[test]
 fn retained_replay_consumer_routes_through_spatial_admission_lane() {
@@ -24,8 +24,8 @@ fn retained_replay_consumer_routes_through_spatial_admission_lane() {
         ),
     )
     .expect("retained replay admission");
-    let report =
-        ReplayParityReport::from_retained_projection_match(&retained, &historical, &projected);
+    let report = build_retained_replay_parity_report(&retained, &historical, &projected)
+        .expect("retained replay parity report");
 
     assert_eq!(
         report.admitted_consumer(),

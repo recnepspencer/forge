@@ -1,5 +1,7 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum KernelCompiledProductFamilyClass {
+    TopologyDerivedEquivalenceContract,
+    TopologyDerivedInvalidationDisposition,
     SpatialEvidenceLookupIndex,
     SpatialRetainedReplayWorkload,
     ReplayUndoBoundaryProof,
@@ -14,6 +16,10 @@ pub enum KernelCompiledProductFamilyClass {
 impl KernelCompiledProductFamilyClass {
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::TopologyDerivedEquivalenceContract => "topology-derived-equivalence-contract",
+            Self::TopologyDerivedInvalidationDisposition => {
+                "topology-derived-invalidation-disposition"
+            }
             Self::SpatialEvidenceLookupIndex => "spatial-evidence-lookup-index",
             Self::SpatialRetainedReplayWorkload => "spatial-retained-replay-workload",
             Self::ReplayUndoBoundaryProof => "replay-undo-boundary-proof",

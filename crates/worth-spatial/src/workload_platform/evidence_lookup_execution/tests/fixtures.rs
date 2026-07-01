@@ -10,9 +10,7 @@ use crate::workload_platform::evidence_lookup_family_catalog::{
     EvidenceLookupProjectionFactFamily, EvidenceLookupQueryImportEvidence,
     EvidenceLookupStageReceiptFamilyIdentity,
 };
-use crate::workload_platform::evidence_lookup_index_product::{
-    admit_evidence_lookup_index_product, EvidenceLookupIndexProduct,
-};
+use crate::workload_platform::evidence_lookup_index_product::EvidenceLookupIndexProduct;
 use crate::workload_platform::evidence_lookup_input_admission::{
     admit_evidence_lookup_input, real_projection_consumption_receipt,
     EvidenceLookupInputAdmissionRequest, EvidenceLookupQueryAdmissionEvidenceSet,
@@ -21,6 +19,7 @@ use crate::workload_platform::evidence_lookup_input_admission::{
 use crate::workload_platform::evidence_lookup_plan_selection::{
     select_evidence_lookup_plan, EvidenceLookupSelectedPlan,
 };
+use crate::workload_platform::spatial_compiled_product_consumer_cutover::lower_evidence_lookup_index_product;
 use forge_query::facade::consumer_kit::ForgeQueryGraphObligationSupportPin;
 use forge_query::facade::runtime::{
     ForgeQueryGraphObligationKind, ForgeQueryGraphObligationSupportLane,
@@ -67,7 +66,7 @@ impl ExecutionSubject {
         &self,
         selected_plan: &EvidenceLookupSelectedPlan,
     ) -> EvidenceLookupIndexProduct {
-        admit_evidence_lookup_index_product(
+        lower_evidence_lookup_index_product(
             selected_plan,
             &selected_lookup_slice_for_plan(selected_plan),
         )

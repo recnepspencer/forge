@@ -1,6 +1,6 @@
 use super::contract_subject::{captured_retained_workload, retained_replay_parts};
 use worth_spatial::facade::retained_replay_workload::{
-    ReplayEvidenceKind, ReplayParityKind, ReplayWorkload,
+    admit_retained_replay_capture, ReplayEvidenceKind, ReplayParityKind, ReplayWorkload,
 };
 use worth_spatial::facade::workload_vocabulary::SpatialWorkloadStage;
 
@@ -55,7 +55,7 @@ fn retained_replay_workload_consumes_retained_artifacts() {
 
     let replayed = ReplayWorkload::for_transformed_workload(parts.transformed)
         .declared("replay retained planar artifacts for overlap certification")
-        .with_captured_retained_workload(retained_capture)
+        .with_admitted_retained_replay_capture(admit_retained_replay_capture(retained_capture))
         .replay()
         .expect("retained replay workload should admit");
 

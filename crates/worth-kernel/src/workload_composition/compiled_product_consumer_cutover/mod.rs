@@ -9,6 +9,7 @@ mod family_class;
 mod future_cutover_lane;
 mod proof_basis;
 mod query_boundary_lane;
+pub(crate) mod vertical_slice;
 
 #[cfg(test)]
 mod tests;
@@ -29,4 +30,6 @@ pub use future_cutover_lane::KernelCompiledProductFutureCutoverLane;
 pub use proof_basis::KernelCompiledProductProofBasis;
 pub use query_boundary_lane::KernelCompiledProductQueryBoundaryLane;
 
+pub(crate) use coverage_target::KernelCompiledProductConsumerCoverageTarget;
 pub(crate) use current_matrix::current_coverage_targets;
+pub(crate) use dependency_matrix::current_kernel_compiled_product_consumer_dependency_matrix_with_targets_loader;

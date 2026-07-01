@@ -11,5 +11,6 @@ mod tests;
 
 pub(crate) use admitted_input::admit_spatial_compiled_product_input;
 pub(crate) use admitted_input::SpatialCompiledProductAdmissionWitness;
+pub(crate) use admitted_input::SpatialCompiledProductAdmittedInput;
 pub(crate) use denial::SpatialCompiledProductAdmissionErrorKind;
 pub(crate) use request::SpatialCompiledProductAdmissionRequest;

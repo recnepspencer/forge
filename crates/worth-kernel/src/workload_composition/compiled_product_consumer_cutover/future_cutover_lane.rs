@@ -1,5 +1,6 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum KernelCompiledProductFutureCutoverLane {
+    TopologyDerivedConsumerCutover,
     SpatialCompiledProductConsumerCutover,
     ReplayUndoCompiledProductConsumerCutover,
     OrdinarySweepConsumerCutover,
@@ -11,6 +12,7 @@ pub enum KernelCompiledProductFutureCutoverLane {
 impl KernelCompiledProductFutureCutoverLane {
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::TopologyDerivedConsumerCutover => "topology-derived-consumer-cutover",
             Self::SpatialCompiledProductConsumerCutover => {
                 "spatial-compiled-product-consumer-cutover"
             }

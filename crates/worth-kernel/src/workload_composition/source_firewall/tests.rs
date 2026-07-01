@@ -4,10 +4,15 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::{
+    current_worth_touched_graph_conflict_source_firewall_closeout,
     current_worth_touched_graph_conflict_source_firewall_report,
     scan_worth_touched_graph_conflict_source_firewall_region_for_tests,
-    WorthTouchedGraphConflictForbiddenSurface, WorthTouchedGraphConflictSourceFirewallReport,
+    WorthTouchedGraphConflictForbiddenSurface,
+    WorthTouchedGraphConflictSourceFirewallCloseoutErrorKind,
+    WorthTouchedGraphConflictSourceFirewallReport,
 };
+use topology::certification::current_topology_public_facade_compile_fail_closeout;
+use worth_spatial::certification::current_spatial_public_facade_compile_fail_closeout;
 
 #[test]
 fn source_firewall_scans_kernel_topo_and_spatial_regions() {
@@ -37,8 +42,12 @@ fn source_firewall_scans_kernel_topo_and_spatial_regions() {
             WorthTouchedGraphConflictForbiddenSurface::BroadTopologyScan,
             WorthTouchedGraphConflictForbiddenSurface::BroadEvidenceScan,
             WorthTouchedGraphConflictForbiddenSurface::RollbackAdmission,
+            WorthTouchedGraphConflictForbiddenSurface::CallerOwnedSerialization,
             WorthTouchedGraphConflictForbiddenSurface::CallerOwnedCompatibility,
             WorthTouchedGraphConflictForbiddenSurface::GenericOverlapSecondAuthorityLane,
+            WorthTouchedGraphConflictForbiddenSurface::DisplacedCacheKeyCarrier,
+            WorthTouchedGraphConflictForbiddenSurface::LocalComparatorFolklore,
+            WorthTouchedGraphConflictForbiddenSurface::CallerOwnedReuseDecision,
         ])
     );
 }
@@ -132,6 +141,36 @@ fn source_firewall_rejects_registered_overlap_and_scan_relapse() {
             "fn bridge_authority_digest() {}\n",
             WorthTouchedGraphConflictForbiddenSurface::EntityOnlyOverlapHelper,
         ),
+        (
+            "crates/worth-topo/src/compiled_product_reuse_decision/decision.rs",
+            "fn shadow_reuse_claim() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::CallerOwnedReuseDecision,
+        ),
+        (
+            "crates/worth-topo/src/selected_equivalence_family/comparator_contract.rs",
+            "fn shadow_report_row_comparator() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::LocalComparatorFolklore,
+        ),
+        (
+            "crates/worth-topo/src/selected_equivalence_family/basis_identity.rs",
+            "fn shadow_cache_key_string() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::DisplacedCacheKeyCarrier,
+        ),
+        (
+            "crates/worth-spatial/src/workload_platform/evidence_lookup_reuse_decision/decision.rs",
+            "fn shadow_lookup_reuse_claim() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::CallerOwnedReuseDecision,
+        ),
+        (
+            "crates/worth-spatial/src/workload_platform/selected_equivalence_family/posture.rs",
+            "fn shadow_local_posture_gate() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::LocalComparatorFolklore,
+        ),
+        (
+            "crates/worth-spatial/src/workload_platform/selected_equivalence_family/basis_identity.rs",
+            "fn shadow_lookup_cache_key() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::DisplacedCacheKeyCarrier,
+        ),
     ];
     for (relative_path, source, _) in hostile_sources {
         let path = workspace.join(relative_path);
@@ -156,6 +195,98 @@ fn source_firewall_rejects_registered_overlap_and_scan_relapse() {
     }
 
     let _ = fs::remove_dir_all(workspace);
+}
+
+#[test]
+fn source_firewall_closeout_binds_deletion_closeout_and_phase_fifteen_coverage() {
+    let closeout = current_worth_touched_graph_conflict_source_firewall_closeout()
+        .expect("phase 15 source firewall closeout should bind current products");
+
+    assert!(!closeout.source_firewall_report_digest().is_empty());
+    assert!(!closeout.deletion_closeout_digest().is_empty());
+    assert!(!closeout
+        .topology_public_facade_compile_fail_digest()
+        .is_empty());
+    assert!(!closeout
+        .spatial_public_facade_compile_fail_digest()
+        .is_empty());
+    assert!(!closeout.closeout_digest().is_empty());
+    assert!(closeout
+        .covered_forbidden_surfaces()
+        .contains(&WorthTouchedGraphConflictForbiddenSurface::CallerOwnedReuseDecision));
+    assert!(closeout
+        .covered_forbidden_surfaces()
+        .contains(&WorthTouchedGraphConflictForbiddenSurface::DisplacedCacheKeyCarrier));
+}
+
+#[test]
+fn source_firewall_closeout_rejects_reuse_folklore_revival() {
+    let workspace = temp_dir("tgc-source-firewall-closeout");
+    let hostile_path =
+        workspace.join("crates/worth-topo/src/compiled_product_reuse_decision/decision.rs");
+    fs::create_dir_all(hostile_path.parent().expect("hostile parent"))
+        .expect("create hostile parent");
+    fs::write(hostile_path, "fn shadow_reuse_claim() {}\n").expect("write hostile source");
+
+    let report = scan_worth_touched_graph_conflict_source_firewall_region_for_tests(
+        "synthetic_region",
+        "synthetic:root",
+        &workspace,
+    )
+    .expect("synthetic root should scan");
+    let deletion_closeout =
+        crate::workload_composition::current_worth_touched_graph_conflict_deletion_closeout()
+            .expect("current deletion closeout should load");
+    let topology_public_facade_closeout = current_topology_public_facade_compile_fail_closeout()
+        .expect("topology public-facade closeout should load");
+    let spatial_public_facade_closeout = current_spatial_public_facade_compile_fail_closeout()
+        .expect("spatial public-facade closeout should load");
+    let error = super::closeout::closeout_from_products(
+        &report,
+        &deletion_closeout,
+        &topology_public_facade_closeout,
+        &spatial_public_facade_closeout,
+    )
+    .expect_err("hostile relapse should fail phase 15 source firewall closeout");
+    assert_eq!(
+        error.kind(),
+        WorthTouchedGraphConflictSourceFirewallCloseoutErrorKind::SourceFirewallViolation
+    );
+
+    let _ = fs::remove_dir_all(workspace);
+}
+
+#[test]
+fn source_firewall_closeout_rejects_missing_public_facade_fence_class() {
+    let report = current_worth_touched_graph_conflict_source_firewall_report()
+        .expect("current source firewall report should load");
+    let deletion_closeout =
+        crate::workload_composition::current_worth_touched_graph_conflict_deletion_closeout()
+            .expect("current deletion closeout should load");
+    let topology_public_facade_closeout = current_topology_public_facade_compile_fail_closeout()
+        .expect("topology public-facade closeout should load");
+    let hostile_spatial_closeout =
+        worth_spatial::certification::spatial_public_facade_compile_fail_closeout_excluding_fence_class_for_tests(
+            "selected-equivalence-family",
+        )
+        .expect("hostile spatial public-facade closeout should lower");
+
+    let error = super::closeout::closeout_from_products(
+        &report,
+        &deletion_closeout,
+        &topology_public_facade_closeout,
+        &hostile_spatial_closeout,
+    )
+    .expect_err("missing public-facade fence class should fail phase 15 closeout");
+    assert_eq!(
+        error.kind(),
+        WorthTouchedGraphConflictSourceFirewallCloseoutErrorKind::PublicFacadeCertificationMismatch
+    );
+    assert!(
+        error.detail().contains("selected-equivalence-family"),
+        "expected missing fence class detail, got: {}",
+        error.detail()
+    );
 }
 
 fn assert_violation(

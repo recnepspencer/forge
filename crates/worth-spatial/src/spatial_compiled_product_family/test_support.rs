@@ -19,9 +19,8 @@ use crate::workload_platform::retained_cancellation_chain::{
     RetainedCancellationChainReceipt, RetainedCancellationChainWorkload,
     RetainedCancellationCheckpoint, RetainedReplaySampling,
 };
-use crate::workload_platform::retained_replay_workload::{
-    canonical_retained_cancellation_chain_capture, ReplayWorkload, ReplayedWorkload,
-};
+use crate::workload_platform::retained_replay_workload::{ReplayWorkload, ReplayedWorkload};
+use crate::workload_platform::spatial_compiled_product_consumer_cutover::admit_retained_replay_capture;
 use crate::workload_platform::surface_support::{
     CertifiedSurfaceSupport, SurfaceFamily, SurfaceSupportWorkload,
 };
@@ -62,10 +61,10 @@ pub(crate) fn real_retained_cancellation_receipt(
         .expect("transformed workload");
     let replayed = ReplayWorkload::for_transformed_workload(transformed.clone())
         .declared(format!("phase-four replay {world}"))
-        .with_captured_retained_workload(
-            canonical_retained_cancellation_chain_capture(world)
+        .with_admitted_retained_replay_capture(admit_retained_replay_capture(
+            crate::workload_platform::retained_replay_workload::canonical_retained_cancellation_chain_capture(world)
                 .expect("retained cancellation capture"),
-        )
+        ))
         .replay()
         .expect("replayed workload");
     let diagnostics = DiagnosticWorkload::for_retained_replay(replayed.receipts().stage_receipt())

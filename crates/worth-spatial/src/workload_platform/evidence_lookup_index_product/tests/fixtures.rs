@@ -1,4 +1,3 @@
-use super::super::admit_evidence_lookup_index_product;
 use crate::workload_platform::evidence_ledger::{
     receipt_backed_event_ledger_touch_authority_for_admission_tests,
     receipt_backed_touch_authority_for_admission_tests, BooleanEvidenceStageKind,
@@ -17,12 +16,13 @@ use crate::workload_platform::evidence_lookup_input_admission::{
 use crate::workload_platform::evidence_lookup_plan_selection::{
     select_evidence_lookup_plan, EvidenceLookupSelectedPlan,
 };
+use crate::workload_platform::spatial_compiled_product_consumer_cutover::lower_evidence_lookup_index_product;
 use forge_query::facade::consumer_kit::ForgeQueryGraphObligationSupportPin;
 use forge_query::facade::runtime::{
     ForgeQueryGraphObligationKind, ForgeQueryGraphObligationSupportLane,
 };
 
-pub(super) struct IndexProductSubject {
+pub(crate) struct IndexProductSubject {
     catalog: EvidenceLookupFamilyCatalogCloseout,
     stage: WorkloadEvidenceStage,
     receipt_family: EvidenceLookupStageReceiptFamilyIdentity,
@@ -30,7 +30,7 @@ pub(super) struct IndexProductSubject {
 }
 
 impl IndexProductSubject {
-    pub(super) fn overlap_common_plane() -> Self {
+    pub(crate) fn overlap_common_plane() -> Self {
         Self {
             catalog: current_evidence_lookup_family_catalog().expect("catalog closes"),
             stage: WorkloadEvidenceStage::BooleanSharedPlaneIdentity,
@@ -42,7 +42,7 @@ impl IndexProductSubject {
         }
     }
 
-    pub(super) fn sparse_event_ledger() -> Self {
+    pub(crate) fn sparse_event_ledger() -> Self {
         Self {
             catalog: current_evidence_lookup_family_catalog().expect("catalog closes"),
             stage: WorkloadEvidenceStage::BooleanEventLedger,
@@ -51,11 +51,11 @@ impl IndexProductSubject {
         }
     }
 
-    pub(super) fn dense_projection_consumption() -> Self {
+    pub(crate) fn dense_projection_consumption() -> Self {
         Self::dense_projection_consumption_with_world("phase-5-projection-consumption-receipt")
     }
 
-    pub(super) fn dense_projection_consumption_with_world(world: &'static str) -> Self {
+    pub(crate) fn dense_projection_consumption_with_world(world: &'static str) -> Self {
         Self {
             catalog: current_evidence_lookup_family_catalog().expect("catalog closes"),
             stage: WorkloadEvidenceStage::BooleanOperandAProjectionConsumption,
@@ -68,7 +68,7 @@ impl IndexProductSubject {
         }
     }
 
-    pub(super) fn select_plan(&self) -> EvidenceLookupSelectedPlan {
+    pub(crate) fn select_plan(&self) -> EvidenceLookupSelectedPlan {
         let admitted =
             admit_evidence_lookup_input(&self.catalog, self.request()).expect("input admits");
         select_evidence_lookup_plan(&self.catalog, &admitted).expect("plan selects")
@@ -106,7 +106,7 @@ impl IndexProductSubject {
     }
 }
 
-pub(super) fn selected_lookup_slice_for_plan(
+pub(crate) fn selected_lookup_slice_for_plan(
     selected_plan: &EvidenceLookupSelectedPlan,
 ) -> SelectedLookupSliceLedger {
     let authority = authority_for_stage(selected_plan.stage());
@@ -119,7 +119,7 @@ pub(super) fn selected_lookup_slice_for_plan(
         .expect("assembled selected lookup ledger closes")
 }
 
-pub(super) fn complete_ledger_for_plan(
+pub(crate) fn complete_ledger_for_plan(
     selected_plan: &EvidenceLookupSelectedPlan,
 ) -> CompleteWorkloadEvidenceLedger {
     let authority = authority_for_stage(selected_plan.stage());
@@ -137,7 +137,7 @@ pub(super) fn complete_ledger_for_plan(
         .expect("assembled lookup ledger closes")
 }
 
-pub(super) fn selected_lookup_slice_scope_error_for_plan(
+pub(crate) fn selected_lookup_slice_scope_error_for_plan(
     selected_plan: &EvidenceLookupSelectedPlan,
 ) -> crate::workload_platform::evidence_ledger::WorkloadEvidenceLedgerError {
     let authority = authority_for_stage(selected_plan.stage());
@@ -155,10 +155,10 @@ pub(super) fn selected_lookup_slice_scope_error_for_plan(
         .expect_err("selected lookup slice must deny broad-scan residue")
 }
 
-pub(super) fn admitted_index_product(
+pub(crate) fn admitted_index_product(
     selected_plan: &EvidenceLookupSelectedPlan,
 ) -> super::super::EvidenceLookupIndexProduct {
-    admit_evidence_lookup_index_product(
+    lower_evidence_lookup_index_product(
         selected_plan,
         &selected_lookup_slice_for_plan(selected_plan),
     )

@@ -76,51 +76,121 @@ impl SpatialCompiledProductAdmissionWitness {
         &self.admission_token
     }
 
-    fn from_family_input(
+    fn from_admission_request(
+        request_key: &str,
         family_admitted_input: &SpatialCompiledProductFamilyAdmittedInput,
     ) -> Self {
-        let admission_key = admission_key(family_admitted_input);
-
         Self {
             consumer: family_admitted_input.consumer(),
             family_identity: family_admitted_input.family_identity(),
-            admission_token: admission_token_for_key(&admission_key),
+            admission_token: admission_token_for_key(request_key),
         }
     }
 }
 
-fn admission_key(family_admitted_input: &SpatialCompiledProductFamilyAdmittedInput) -> String {
+fn admission_request_key(request: &SpatialCompiledProductAdmissionRequest<'_>) -> String {
     let mut parts = vec![
-        "worth-spatial:compiled-product-admission-key:v1".to_string(),
-        format!("consumer:{}", family_admitted_input.consumer().as_str()),
-        format!(
-            "family:{}",
-            family_admitted_input.family_identity().as_str()
-        ),
-        format!(
-            "source-authority:{}",
-            family_admitted_input.source_authority_digest()
-        ),
-        format!(
-            "locality-footprint:{}",
-            family_admitted_input.locality_footprint_digest()
-        ),
-        format!(
-            "evidence-support:{}",
-            family_admitted_input.evidence_support_digest()
-        ),
+        "worth-spatial:compiled-product-admission-request-key:v1".to_string(),
+        format!("consumer:{}", request.consumer().as_str()),
     ];
-    if let Some(prior_proof_digest) = family_admitted_input.prior_proof_digest() {
-        parts.push(format!("prior-proof:{prior_proof_digest}"));
-    }
-    if let Some(stage_receipt_digest) = family_admitted_input.stage_receipt_digest() {
-        parts.push(format!("stage-receipt:{stage_receipt_digest}"));
-    }
-    if let Some(grouped_support_digest) = family_admitted_input.grouped_support_digest() {
-        parts.push(format!("grouped-support:{grouped_support_digest}"));
+
+    match request {
+        SpatialCompiledProductAdmissionRequest::EvidenceLookupLedger {
+            selected_plan,
+            ledger,
+            ..
+        } => {
+            parts.push("request-kind:evidence-lookup-ledger".to_string());
+            parts.push(format!(
+                "selected-plan:{}",
+                selected_plan.selected_plan_digest()
+            ));
+            parts.push(format!(
+                "stage-receipt:{}",
+                selected_plan.stage_receipt_digest()
+            ));
+            parts.push(format!(
+                "ledger-rows:{}",
+                row_identity_digest(ledger.complete_ledger().rows())
+            ));
+        }
+        SpatialCompiledProductAdmissionRequest::EvidenceLookupProduct {
+            selected_plan,
+            product,
+            ..
+        } => {
+            parts.push("request-kind:evidence-lookup-product".to_string());
+            parts.push(format!(
+                "selected-plan:{}",
+                selected_plan.selected_plan_digest()
+            ));
+            parts.push(format!(
+                "stage-receipt:{}",
+                selected_plan.stage_receipt_digest()
+            ));
+            parts.push(format!("index-product:{}", product.index_product_digest()));
+        }
+        SpatialCompiledProductAdmissionRequest::RetainedReplay {
+            historical,
+            retained,
+            projection,
+        } => {
+            parts.push("request-kind:retained-replay".to_string());
+            parts.push(format!("historical:{}", historical.historical_digest()));
+            parts.push(format!(
+                "retained-facts:{}",
+                retained.retained_fact_digest()
+            ));
+            parts.push(format!(
+                "retained-declaration:{}",
+                retained.declaration_digest()
+            ));
+            parts.push(format!(
+                "retained-route-plan:{}",
+                retained.route_plan_digest()
+            ));
+            parts.push(format!(
+                "retained-query-receipt:{}",
+                retained.query_receipt_digest()
+            ));
+            parts.push(format!("retained-envelope:{}", retained.envelope_digest()));
+            parts.push(format!(
+                "projection-consumption:{}",
+                projection.projection_consumption_digest()
+            ));
+            parts.push(format!(
+                "projection-retained-facts:{}",
+                projection.retained_planar_fact_digest()
+            ));
+        }
+        SpatialCompiledProductAdmissionRequest::RetainedCancellation { receipt } => {
+            parts.push("request-kind:retained-cancellation".to_string());
+            parts.push(format!("chain-digest:{}", receipt.chain_digest()));
+            parts.push(format!("workload:{}", receipt.workload_identity()));
+            parts.push(format!(
+                "retained-basis:{}",
+                receipt.retained_basis_identity()
+            ));
+            parts.push(format!(
+                "projection-consumption:{}",
+                receipt.projection_consumed_identity()
+            ));
+        }
     }
 
     truth_digest_parts(TruthDigestScope::ArtifactIdentity, &parts)
+}
+
+fn row_identity_digest(
+    rows: &[crate::workload_platform::evidence_ledger::WorkloadEvidenceRow],
+) -> String {
+    truth_digest_parts(
+        TruthDigestScope::ArtifactIdentity,
+        &rows
+            .iter()
+            .map(|row| format!("{}:{}", row.stage().human_name(), row.evidence_identity()))
+            .collect::<Vec<_>>(),
+    )
 }
 
 fn admission_boundary_secret() -> &'static str {
@@ -159,6 +229,7 @@ pub(crate) fn admit_spatial_compiled_product_input(
     };
 
     let consumer = request.consumer();
+    let request_key = admission_request_key(&request);
     let mut evidence_lookup = None;
     let basis = match request {
         SpatialCompiledProductAdmissionRequest::EvidenceLookupLedger {
@@ -256,7 +327,10 @@ pub(crate) fn admit_spatial_compiled_product_input(
             )
         })?;
 
-    let witness = SpatialCompiledProductAdmissionWitness::from_family_input(&family_admitted_input);
+    let witness = SpatialCompiledProductAdmissionWitness::from_admission_request(
+        &request_key,
+        &family_admitted_input,
+    );
 
     Ok(SpatialCompiledProductAdmittedInput {
         witness,

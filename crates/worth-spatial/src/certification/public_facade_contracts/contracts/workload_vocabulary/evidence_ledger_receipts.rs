@@ -4,7 +4,7 @@ use worth_spatial::facade::projection_workload::{
     LocalFrameBasis, ProjectionReceiptSet, ProjectionWorkload as RichProjectionWorkload,
 };
 use worth_spatial::facade::retained_replay_workload::{
-    ReplayReceiptSet, ReplayWorkload, ReplayedWorkload,
+    admit_retained_replay_capture, ReplayReceiptSet, ReplayWorkload, ReplayedWorkload,
 };
 use worth_spatial::facade::surface_support::{
     CertifiedSurfaceSupport, SurfaceFamily, SurfaceSupportReceiptSet,
@@ -307,7 +307,7 @@ fn counter_backed_replay(
     let captured = captured_retained_workload("complete-ledger-retained-source", &retained_parts);
     ReplayWorkload::for_transformed_workload(transformed)
         .declared(format!("replay retained artifacts for {world}"))
-        .with_captured_retained_workload(captured)
+        .with_admitted_retained_replay_capture(admit_retained_replay_capture(captured))
         .replay()
         .expect("retained replay should admit")
 }

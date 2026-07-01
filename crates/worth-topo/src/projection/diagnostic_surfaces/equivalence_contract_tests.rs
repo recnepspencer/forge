@@ -1,11 +1,9 @@
-use serde_json::Value;
-
-use super::{
+use crate::certification::support::historical_query_snapshot::historical_query_snapshot_for_read_basis;
+use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
+use crate::derived_topology::compiled_product_consumer_cutover::{
     build_derived_equivalence_contract, compare_derived_equivalence_contracts,
     DerivedEquivalenceContractReport,
 };
-use crate::certification::support::historical_query_snapshot::historical_query_snapshot_for_read_basis;
-use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
 use crate::test_support::primitive_corpus::validated_topology::{
@@ -33,7 +31,17 @@ fn shared_identity_vocabulary_is_rerun_stable() {
         left.equivalence_policy_identity_digest(),
         right.equivalence_policy_identity_digest()
     );
-    assert!(compare_derived_equivalence_contracts(&left, &right).equivalent_derived_meaning);
+    assert_eq!(
+        left.selected_equivalence_family_identity(),
+        right.selected_equivalence_family_identity()
+    );
+    assert_eq!(
+        left.selected_equivalence_basis_identity_digest(),
+        right.selected_equivalence_basis_identity_digest()
+    );
+    let comparison = compare_derived_equivalence_contracts(&left, &right);
+    assert!(comparison.comparison_supported);
+    assert!(comparison.equivalent_derived_meaning);
 }
 
 #[test]
@@ -71,16 +79,39 @@ fn changed_authority_instance_cannot_impersonate_compiled_product_identity() {
 }
 
 #[test]
+fn changed_authority_instance_stays_typed_rebuild_required_at_consumer_seam() {
+    let inputs = real_equivalence_inputs();
+    let baseline = build_report(&inputs, 7, "branch-a", "authority-a");
+    let snapshot_changed = build_report(&inputs, 8, "branch-a", "authority-a");
+
+    let comparison = compare_derived_equivalence_contracts(&baseline, &snapshot_changed);
+
+    assert!(comparison.comparison_supported);
+    assert_eq!(
+        comparison.reuse_decision_posture,
+        Some(
+            crate::compiled_product_reuse_decision::TopologyDerivedReuseDecisionPosture::FreshRebuildRequired
+        )
+    );
+    assert!(comparison.rebuild_denial_identity_digest.is_some());
+    assert!(
+        comparison
+            .mismatch_loci
+            .contains(&crate::compiled_product_reuse_decision::TopologyDerivedReuseMismatchLocus::AuthorityTruthIdentity)
+    );
+    assert!(!comparison.authority_identity_match);
+    assert!(comparison.compared_basis_dimension_count > 0);
+    assert!(!comparison.equivalent_derived_meaning);
+}
+
+#[test]
 fn missing_shared_identity_fields_cannot_fallback_to_local_equivalence() {
     let inputs = real_equivalence_inputs();
     let left = build_report(&inputs, 7, "branch-a", "authority-a");
-    let right = report_from_retained_json(&left, |json| {
-        json["authority_truth_identity"] = Value::Null;
-        json["compiled_product_identity"] = Value::Null;
-        json["equivalence_policy_identity"] = Value::Null;
-    });
+    let right = left.clone().with_test_shared_identity_fields_removed();
 
     let comparison = compare_derived_equivalence_contracts(&left, &right);
+    assert!(comparison.comparison_supported);
     assert!(!comparison.authority_identity_match);
     assert!(!comparison.equivalent_derived_meaning);
 }
@@ -89,12 +120,12 @@ fn missing_shared_identity_fields_cannot_fallback_to_local_equivalence() {
 fn forged_family_digest_cannot_mint_equivalence_identity() {
     let inputs = real_equivalence_inputs();
     let left = build_report(&inputs, 7, "branch-a", "authority-a");
-    let right = report_from_retained_json(&left, |json| {
-        json["topology_compiled_product_family_digest"] =
-            Value::String("forged-family".to_string());
-    });
+    let right = left
+        .clone()
+        .with_test_topology_compiled_product_family_digest("forged-family");
 
     let comparison = compare_derived_equivalence_contracts(&left, &right);
+    assert!(comparison.comparison_supported);
     assert!(!comparison.authority_identity_match);
     assert!(!comparison.equivalent_derived_meaning);
 }
@@ -104,17 +135,45 @@ fn shared_payload_instance_cannot_substitute_for_family_identity() {
     let inputs = real_equivalence_inputs();
     let left = build_report(&inputs, 7, "branch-a", "authority-a");
     let baseline = build_report(&inputs, 8, "branch-a", "authority-a");
-    let right = report_from_retained_json(&baseline, |json| {
-        json["materialized_topology_digest"] =
-            serde_json::to_value(&left.materialized_topology_digest).expect("materialized digest");
-        json["interpreted_topology_digest"] =
-            serde_json::to_value(&left.interpreted_topology_digest).expect("interpreted digest");
-        json["derived_validation_digest"] =
-            serde_json::to_value(&left.derived_validation_digest).expect("validation digest");
-    });
+    let right = baseline.clone().with_test_surface_digests_from(&left);
 
     let comparison = compare_derived_equivalence_contracts(&left, &right);
+    assert!(comparison.comparison_supported);
     assert!(!comparison.authority_identity_match);
+    assert!(!comparison.equivalent_derived_meaning);
+}
+
+#[test]
+fn missing_selected_family_contract_cannot_fallback_to_rendered_output_equality() {
+    let inputs = real_equivalence_inputs();
+    let left = build_report(&inputs, 7, "branch-a", "authority-a");
+    let right = left.clone().with_test_selected_family_contract_removed();
+
+    let comparison = compare_derived_equivalence_contracts(&left, &right);
+    assert!(!comparison.comparison_supported);
+    assert!(comparison
+        .unsupported_comparison_reason
+        .as_deref()
+        .is_some_and(|reason| reason.contains("selected equivalence family contract")));
+    assert!(!comparison.equivalent_derived_meaning);
+}
+
+#[test]
+fn mismatched_comparator_contract_cannot_fallback_to_local_payload_parity() {
+    let inputs = real_equivalence_inputs();
+    let left = build_report(&inputs, 7, "branch-a", "authority-a");
+    let right = left
+        .clone()
+        .with_test_selected_comparator_dimensions(vec![
+            crate::selected_equivalence_family::TopologySelectedEquivalenceDimension::MaterializedTopologyDigest,
+        ]);
+
+    let comparison = compare_derived_equivalence_contracts(&left, &right);
+    assert!(!comparison.comparison_supported);
+    assert!(comparison
+        .unsupported_comparison_reason
+        .as_deref()
+        .is_some_and(|reason| reason.contains("different comparator contracts")));
     assert!(!comparison.equivalent_derived_meaning);
 }
 
@@ -183,11 +242,36 @@ fn rebound_read_basis(
     rebound
 }
 
-fn report_from_retained_json(
-    report: &DerivedEquivalenceContractReport,
-    mutate: impl FnOnce(&mut Value),
-) -> DerivedEquivalenceContractReport {
-    let mut json = serde_json::to_value(report).expect("equivalence report should serialize");
-    mutate(&mut json);
-    serde_json::from_value(json).expect("retained-equivalence report should deserialize")
+impl DerivedEquivalenceContractReport {
+    fn with_test_shared_identity_fields_removed(mut self) -> Self {
+        self.authority_truth_identity = None;
+        self.compiled_product_identity = None;
+        self.equivalence_policy_identity = None;
+        self
+    }
+
+    fn with_test_topology_compiled_product_family_digest(mut self, digest: &str) -> Self {
+        self.topology_compiled_product_family_digest = Some(digest.to_string());
+        self
+    }
+
+    fn with_test_surface_digests_from(mut self, other: &Self) -> Self {
+        self.materialized_topology_digest = other.materialized_topology_digest.clone();
+        self.interpreted_topology_digest = other.interpreted_topology_digest.clone();
+        self.derived_validation_digest = other.derived_validation_digest.clone();
+        self
+    }
+
+    fn with_test_selected_comparator_dimensions(
+        mut self,
+        dimensions: Vec<crate::selected_equivalence_family::TopologySelectedEquivalenceDimension>,
+    ) -> Self {
+        self.selected_comparator_contract = Some(
+            self.selected_comparator_contract
+                .take()
+                .expect("selected comparator contract")
+                .with_test_equivalence_dimensions(dimensions),
+        );
+        self
+    }
 }

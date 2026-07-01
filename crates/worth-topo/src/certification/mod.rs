@@ -10,6 +10,8 @@ mod historical_materialization_closeout;
 mod primitive_corpus;
 #[cfg(test)]
 mod projection_closeout;
+mod public_closeout_seed_support;
+pub mod public_facade_contracts;
 mod query_boundary_cleanup_closeout;
 mod rejections;
 mod requirements;
@@ -69,6 +71,19 @@ pub use facade::{
 pub use historical_materialization_closeout::{
     TopologyHistoricalMaterializationArea, TopologyHistoricalMaterializationCloseoutReport,
     TopologyHistoricalMaterializationRow, TopologyHistoricalMaterializationStatus,
+};
+pub use public_closeout_seed_support::{
+    current_topology_milestone_fifteen_planner_seed_support,
+    current_topology_milestone_fifteen_planner_seed_support_with_hostile_selected_reuse_basis_identity_digest,
+    current_topology_public_closeout_alignment_summary,
+    current_topology_query_backed_consumer_cutover_with_hostile_loop_cycle_selected_compatibility_basis,
+    TopologyMilestoneFifteenPlannerSeedSupport, TopologyPublicCloseoutAlignmentSummary,
+    TopologyPublicCloseoutFreshnessRequirementPosture,
+    TopologyPublicCloseoutRenderedOutputComparisonPosture, TopologyPublicCloseoutSeedSupportError,
+};
+pub use public_facade_contracts::{
+    current_topology_public_facade_compile_fail_closeout, TopologyPublicFacadeCompileFailCloseout,
+    TopologyPublicFacadeCompileFailCloseoutError, TopologyPublicFacadeCompileFailCloseoutErrorKind,
 };
 pub use query_boundary_cleanup_closeout::{
     TopologyQueryBoundaryCleanupArea, TopologyQueryBoundaryCleanupCloseoutReport,

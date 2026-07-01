@@ -32,7 +32,8 @@ pub(super) fn route_selection_context<'a>(
     admitted_input: &AdmittedSpatialConflictInput<'a>,
 ) -> SpatialSelectionContext<'a> {
     let (admitted_prior_proof, downstream_proof_category) = match admitted_input.route() {
-        AdmittedSpatialConflictRoute::EvidenceLookup { .. } => (
+        AdmittedSpatialConflictRoute::EvidenceLookup { .. }
+        | AdmittedSpatialConflictRoute::LookupCompiledProduct { .. } => (
             SpatialConflictPriorProofPosture::NoPriorProofRequired,
             ConflictPlanDownstreamProofCategory::ProjectionConsumption,
         ),
@@ -98,7 +99,8 @@ fn matches_spatial_route_shape(
     route: &AdmittedSpatialConflictRoute,
 ) -> bool {
     match route {
-        AdmittedSpatialConflictRoute::EvidenceLookup { .. } => matches!(
+        AdmittedSpatialConflictRoute::EvidenceLookup { .. }
+        | AdmittedSpatialConflictRoute::LookupCompiledProduct { .. } => matches!(
             (
                 declaration.locality_authority_requirement(),
                 declaration.primary_overlap_category(),

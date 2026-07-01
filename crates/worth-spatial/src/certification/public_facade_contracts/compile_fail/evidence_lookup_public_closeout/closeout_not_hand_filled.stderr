@@ -26,4 +26,4 @@ error: cannot construct `worth_spatial::facade::evidence_lookup_public_closeout:
 20 |         closeout_digest: String::new(),
    |         ------------------------------ private field
    |
-   = note: ...and other private field `spatial_compiled_product_family_digest` that was not provided
+   = note: ...and other private fields `spatial_compiled_product_family_digest` and `query_boundary_support_digest` that were not provided

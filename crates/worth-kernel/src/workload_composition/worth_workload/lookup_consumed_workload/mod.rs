@@ -1,16 +1,39 @@
+mod reuse_resolution_denial;
+
+#[cfg(test)]
+mod tests;
+
 use worth_spatial::facade::evidence_lookup_execution::EvidenceLookupExecutionReceipt;
+use worth_spatial::facade::evidence_lookup_index_product::{
+    EvidenceLookupIndexProduct, EvidenceLookupIndexReuseResolution,
+};
+use worth_spatial::facade::evidence_lookup_plan_selection::EvidenceLookupSelectedPlan;
 use worth_spatial::facade::evidence_lookup_workload_cutover::EvidenceLookupConsumedWorkloadHandoff;
+use worth_spatial::facade::planar_boolean_events::PlanarBooleanEventLedgerLookupExecutionPacket;
+use worth_spatial::facade::spatial_compiled_product_consumer_cutover::{
+    admit_lookup_product_handoff_match, SpatialLookupConsumerRouteDenialKind,
+};
 use worth_spatial::facade::workload_vocabulary::SpatialGeometryEvidenceTouchAuthority;
 
 use super::{LookupConsumedWorkloadDenial, WorkloadCompositionError, WorthWorkload};
 use crate::workload_composition::{
-    admit_spatial_conflict_input, AdmittedSpatialConflictInput, SpatialConflictInputRequest,
+    admit_spatial_conflict_input,
+    compiled_product_consumer_cutover::vertical_slice::lookup_consumed::resolve_lookup_reuse_for_handoff,
+    AdmittedSpatialConflictInput, SpatialConflictInputRequest,
 };
+
+pub use reuse_resolution_denial::LookupConsumedWorkloadReuseResolutionDenied;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LookupConsumedWorkloadComposition {
     workload: WorthWorkload,
     handoff: EvidenceLookupConsumedWorkloadHandoff,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LookupConsumedWorkloadReuseProduct<'a> {
+    Reused(&'a EvidenceLookupIndexProduct),
+    Rebuilt(&'a EvidenceLookupIndexProduct),
 }
 
 impl LookupConsumedWorkloadComposition {
@@ -52,6 +75,38 @@ impl LookupConsumedWorkloadComposition {
         &self.handoff
     }
 
+    pub fn admit_lookup_reuse_resolution<'a>(
+        &self,
+        resolution: &'a EvidenceLookupIndexReuseResolution,
+    ) -> Result<LookupConsumedWorkloadReuseProduct<'a>, WorkloadCompositionError> {
+        match resolution {
+            EvidenceLookupIndexReuseResolution::Denied { denial, .. } => {
+                Err(WorkloadCompositionError::LookupConsumedWorkload(
+                    LookupConsumedWorkloadDenial::ReuseResolutionDenied(
+                        LookupConsumedWorkloadReuseResolutionDenied::from_spatial_denial(denial),
+                    ),
+                ))
+            }
+            EvidenceLookupIndexReuseResolution::Reused { product, .. } => {
+                self.require_resolution_product(product)?;
+                Ok(LookupConsumedWorkloadReuseProduct::Reused(product))
+            }
+            EvidenceLookupIndexReuseResolution::Rebuilt { product, .. } => {
+                self.require_resolution_product(product)?;
+                Ok(LookupConsumedWorkloadReuseProduct::Rebuilt(product))
+            }
+        }
+    }
+
+    pub fn route_lookup_reuse_resolution(
+        &self,
+        selected_plan: &EvidenceLookupSelectedPlan,
+        packet: &PlanarBooleanEventLedgerLookupExecutionPacket,
+        prior_product: &EvidenceLookupIndexProduct,
+    ) -> Result<EvidenceLookupIndexReuseResolution, WorkloadCompositionError> {
+        resolve_lookup_reuse_for_handoff(self.handoff(), selected_plan, packet, prior_product)
+    }
+
     pub fn admit_spatial_conflict_input<'a>(
         &'a self,
         authority: &'a SpatialGeometryEvidenceTouchAuthority,
@@ -61,6 +116,29 @@ impl LookupConsumedWorkloadComposition {
             SpatialConflictInputRequest::new(authority)
                 .with_evidence_lookup(self.handoff(), execution_receipt),
         )
+    }
+
+    fn require_resolution_product(
+        &self,
+        product: &EvidenceLookupIndexProduct,
+    ) -> Result<(), WorkloadCompositionError> {
+        admit_lookup_product_handoff_match(&self.handoff, product).map_err(|denial| {
+            let mapped = match denial.kind() {
+                SpatialLookupConsumerRouteDenialKind::SelectedPlanMismatch => {
+                    LookupConsumedWorkloadDenial::ReuseResolutionSelectedPlanMismatch
+                }
+                SpatialLookupConsumerRouteDenialKind::SelectedEquivalenceFamilyMismatch => {
+                    LookupConsumedWorkloadDenial::ReuseResolutionSelectedFamilyMismatch
+                }
+                SpatialLookupConsumerRouteDenialKind::SelectedReuseBasisMismatch => {
+                    LookupConsumedWorkloadDenial::ReuseResolutionSelectedReuseBasisMismatch
+                }
+                SpatialLookupConsumerRouteDenialKind::LookupExecutionReceiptMismatch => {
+                    LookupConsumedWorkloadDenial::CutoverProof(denial.detail().to_string())
+                }
+            };
+            WorkloadCompositionError::LookupConsumedWorkload(mapped)
+        })
     }
 }
 

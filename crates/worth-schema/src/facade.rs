@@ -56,6 +56,16 @@ pub mod platform {
             ShellInterpretationClass, ShellInterpretationRecord, TopologyInterpretationRecordSet,
             WireInterpretationClass, WireInterpretationRecord,
         };
+        pub mod planner_owned_routing_semantic_graph {
+            pub use crate::data::authority::{
+                PlannerDecisionTraceIdentity, PlannerDerivedDiagnosticContractIdentity,
+                PlannerExplanationArtifactKind, PlannerMismatchLocus,
+                PlannerOwnedRoutingSemanticGraphVocabularyError,
+                PlannerOwnedRoutingSemanticGraphVocabularyErrorKind, PlannerPublicProofIdentity,
+                PlannerSelectedFamilyIdentity, PlannerSelectedProductIdentity,
+                PlannerSelectedRouteIdentity, PlannerWitnessIdentity, PlannerWitnessRole,
+            };
+        }
         pub use crate::data::authority::precision_fallback::{
             FallbackDisposition, FallbackProofClass, PrecisionBudgetFallbackRecord,
             PrecisionEscalationCause, PrecisionFallbackRecord, PrecisionRegime,

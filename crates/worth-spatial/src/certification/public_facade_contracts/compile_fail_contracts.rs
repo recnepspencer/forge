@@ -1,28 +1,7 @@
 use std::path::Path;
 
-const PUBLIC_API_CANNOT_FORGE_LOOKUP_PRODUCTS_FIXTURES: &[&str] = &[
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_family_catalog/struct_literals/catalog_closeout_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_family_catalog/struct_literals/family_declaration_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_input_admission/struct_literals/admitted_input_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_plan_selection/struct_literals/selected_plan_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_execution/struct_literals/receipt_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_diagnostics/struct_literals/row_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_source_firewall/struct_literals/report_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_source_firewall/struct_literals/row_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_query_consumer_kit/closeout_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_public_closeout/closeout_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_public_closeout/seed_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_inventory/inventory_closeout_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_index_product/struct_literals/product_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/evidence_lookup_index_product/complete_ledger_not_selected_lookup_slice.rs",
-    "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/admitted_input_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/catalog_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/declaration_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/lowered_identity_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/selected_family_not_hand_filled.rs",
-    "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/admission_not_public.rs",
-    "src/certification/public_facade_contracts/compile_fail/workload_vocabulary/diagnostic_receipt_not_retained_replay_input.rs",
-];
+#[path = "phase_fifteen_fixture_inventory.rs"]
+mod phase_fifteen_fixture_inventory;
 
 const GENERIC_DIGEST_WRAPPER_DENIAL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/spatial_evidence_lookup/generic_digest_bridge_denials/lookup_digest_is_not_query_descriptor_digest.rs",
@@ -45,8 +24,16 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
 }
 
 #[test]
-fn public_api_cannot_forge_lookup_products() {
-    run_explicit_compile_fail_fixture_inventory(PUBLIC_API_CANNOT_FORGE_LOOKUP_PRODUCTS_FIXTURES);
+fn public_api_cannot_forge_compiled_product_or_reuse_products() {
+    let test_cases = trybuild::TestCases::new();
+    for fence in phase_fifteen_fixture_inventory::phase_fifteen_spatial_compile_fail_fences() {
+        assert!(
+            Path::new(fence.fixture_path()).exists(),
+            "compile-fail fixture must exist: {}",
+            fence.fixture_path()
+        );
+        test_cases.compile_fail(fence.fixture_path());
+    }
 }
 
 #[test]

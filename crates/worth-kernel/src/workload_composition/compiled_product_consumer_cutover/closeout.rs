@@ -20,7 +20,7 @@ pub(super) fn require_complete_cluster_coverage(
     Ok(())
 }
 
-pub(super) fn current_required_phase_five_reuse_surfaces() -> Result<
+pub(super) fn current_required_consumer_reuse_surfaces() -> Result<
     BTreeSet<CompiledProductReuseSurfaceIdentity>,
     KernelCompiledProductConsumerDependencyError,
 > {
@@ -33,7 +33,7 @@ pub(super) fn current_required_phase_five_reuse_surfaces() -> Result<
     Ok(inventory
         .rows()
         .iter()
-        .filter(|row| phase_five_required_inventory_surface(row))
+        .filter(|row| current_required_inventory_surface(row))
         .map(CompiledProductReuseInventoryRow::surface_identity)
         .collect())
 }
@@ -66,7 +66,7 @@ fn require_inventory_surface_coverage(
     targets: &[KernelCompiledProductConsumerCoverageTarget],
 ) -> Result<(), KernelCompiledProductConsumerDependencyError> {
     let inventory = current_compiled_product_reuse_inventory().map_err(inventory_error)?;
-    let required_surfaces = current_required_phase_five_reuse_surfaces()?;
+    let required_surfaces = current_required_consumer_reuse_surfaces()?;
     let all_inventory_surfaces = inventory
         .rows()
         .iter()
@@ -111,7 +111,7 @@ fn inventory_error(error: impl std::fmt::Debug) -> KernelCompiledProductConsumer
     )
 }
 
-fn phase_five_required_inventory_surface(row: &CompiledProductReuseInventoryRow) -> bool {
+fn current_required_inventory_surface(row: &CompiledProductReuseInventoryRow) -> bool {
     matches!(
         row.disposition(),
         CompiledProductReuseDisposition::Migrate | CompiledProductReuseDisposition::Cap
@@ -123,6 +123,7 @@ fn phase_five_required_inventory_surface(row: &CompiledProductReuseInventoryRow)
         && (row
             .source_path()
             .starts_with("crates/worth-kernel/src/workload_composition/")
+            || (row.ordinary_path() && row.source_path().starts_with("crates/worth-topo/src/"))
             || row
                 .source_path()
                 .starts_with("crates/worth-kernel/src/replay_undo_consumer_cutover/")

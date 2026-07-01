@@ -12,6 +12,7 @@ pub struct EvidenceLookupPublicCloseoutAssemblyInput {
     family_stage_rows: Vec<EvidenceLookupPublicCloseoutFamilyStageRow>,
     query_surface_matrix: EvidenceLookupQuerySurfaceMatrixCloseout,
     query_consumer_kit: EvidenceLookupQueryConsumerKitCloseout,
+    query_boundary_support_digest: String,
     source_firewall_report: EvidenceLookupSourceFirewallReport,
     spatial_deletion_ledger_rows: Vec<SpatialEvidenceSurfaceDeletionLedgerRow>,
 }
@@ -22,6 +23,7 @@ impl EvidenceLookupPublicCloseoutAssemblyInput {
         family_stage_rows: Vec<EvidenceLookupPublicCloseoutFamilyStageRow>,
         query_surface_matrix: EvidenceLookupQuerySurfaceMatrixCloseout,
         query_consumer_kit: EvidenceLookupQueryConsumerKitCloseout,
+        query_boundary_support_digest: String,
         source_firewall_report: EvidenceLookupSourceFirewallReport,
         spatial_deletion_ledger_rows: Vec<SpatialEvidenceSurfaceDeletionLedgerRow>,
     ) -> Result<Self, EvidenceLookupPublicCloseoutError> {
@@ -36,6 +38,7 @@ impl EvidenceLookupPublicCloseoutAssemblyInput {
             family_stage_rows,
             query_surface_matrix,
             query_consumer_kit,
+            query_boundary_support_digest,
             source_firewall_report,
             spatial_deletion_ledger_rows,
         })
@@ -55,6 +58,10 @@ impl EvidenceLookupPublicCloseoutAssemblyInput {
 
     pub const fn query_consumer_kit(&self) -> &EvidenceLookupQueryConsumerKitCloseout {
         &self.query_consumer_kit
+    }
+
+    pub fn query_boundary_support_digest(&self) -> &str {
+        &self.query_boundary_support_digest
     }
 
     pub const fn source_firewall_report(&self) -> &EvidenceLookupSourceFirewallReport {

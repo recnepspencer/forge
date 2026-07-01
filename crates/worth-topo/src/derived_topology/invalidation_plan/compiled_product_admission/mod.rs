@@ -24,8 +24,10 @@ use self::denial::{
     TopologyCompiledProductAdmissionError as AdmissionError,
     TopologyCompiledProductAdmissionErrorKind as AdmissionErrorKind,
 };
-use self::prior_proof_basis::TopologyCompiledProductPriorProofBasis;
 use self::request::TopologyCompiledProductAdmissionRequest as AdmissionRequest;
+
+pub(crate) use admitted_input::TopologyCompiledProductAdmittedInput;
+pub(crate) use prior_proof_basis::TopologyCompiledProductPriorProofBasis;
 
 pub(crate) fn admit_topology_compiled_product_input(
     catalog: &TopologyCompiledProductFamilyCatalog,

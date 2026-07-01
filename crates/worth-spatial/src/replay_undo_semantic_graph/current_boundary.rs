@@ -2,6 +2,7 @@ use crate::replay_family_catalog::{
     admit_spatial_replay_family_identity, SpatialReplayFamilyIdentity,
     SpatialReplayFamilyIdentityAuthority,
 };
+use crate::workload_platform::evidence_ledger::SelectedLookupSliceLedger;
 use crate::workload_platform::evidence_ledger::{
     SelectedLookupSliceLedgerAssembly, SpatialGeometryEvidenceTouchAuthority,
     WorkloadEvidenceStage, WorkloadEvidenceStageIndexProduct,
@@ -10,7 +11,9 @@ use crate::workload_platform::evidence_lookup_execution::EvidenceLookupExecution
 use crate::workload_platform::evidence_lookup_family_catalog::{
     current_evidence_lookup_family_catalog, EvidenceLookupStageReceiptFamilyIdentity,
 };
+use crate::workload_platform::evidence_lookup_index_product::EvidenceLookupIndexProduct;
 use crate::workload_platform::evidence_lookup_input_admission::EvidenceLookupStageReceiptAdmission;
+use crate::workload_platform::evidence_lookup_plan_selection::EvidenceLookupSelectedPlan;
 use crate::workload_platform::evidence_lookup_stage_cutover::{
     current_path::{admit_current_family_stage_cutover_path, EvidenceLookupCurrentPathError},
     current_retained_replay_receipt_for_stage,
@@ -26,6 +29,9 @@ pub struct CurrentReplayUndoSpatialBoundary {
     authority: SpatialGeometryEvidenceTouchAuthority,
     execution_receipt: EvidenceLookupExecutionReceipt,
     workload_handoff: EvidenceLookupConsumedWorkloadHandoff,
+    selected_plan: EvidenceLookupSelectedPlan,
+    selected_lookup_slice: SelectedLookupSliceLedger,
+    index_product: EvidenceLookupIndexProduct,
     retained_replay_receipt: Option<RetainedReplayWorkloadReceipt>,
     stage_index_product: WorkloadEvidenceStageIndexProduct,
 }
@@ -84,6 +90,18 @@ impl CurrentReplayUndoSpatialBoundary {
 
     pub fn workload_handoff(&self) -> &EvidenceLookupConsumedWorkloadHandoff {
         &self.workload_handoff
+    }
+
+    pub fn selected_plan(&self) -> &EvidenceLookupSelectedPlan {
+        &self.selected_plan
+    }
+
+    pub fn selected_lookup_slice(&self) -> &SelectedLookupSliceLedger {
+        &self.selected_lookup_slice
+    }
+
+    pub fn index_product(&self) -> &EvidenceLookupIndexProduct {
+        &self.index_product
     }
 
     pub fn retained_replay_receipt(&self) -> Option<&RetainedReplayWorkloadReceipt> {
@@ -154,6 +172,9 @@ fn current_spatial_boundary(
         authority,
         execution_receipt: path.execution_receipt().clone(),
         workload_handoff,
+        selected_plan: path.selected_plan().clone(),
+        selected_lookup_slice: path.selected_lookup_slice().clone(),
+        index_product: path.index_product().clone(),
         retained_replay_receipt,
         stage_index_product,
     })

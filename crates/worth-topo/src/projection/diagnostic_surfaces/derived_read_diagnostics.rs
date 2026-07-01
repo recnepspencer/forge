@@ -7,12 +7,16 @@ use schema::facade::platform::authority::{
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::compiled_product_family::triggered_invalidation_targets_from_touched_aspects;
+use crate::derived_topology::compiled_product_consumer_cutover::{
+    build_derived_equivalence_contract, DerivedEquivalenceContractReport,
+};
 use crate::derived_topology::materialized_graph::{
     MaterializationFallbackClass, MaterializedTopologyView,
 };
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
-use crate::projection::diagnostic_surfaces::build_derived_equivalence_contract;
-use crate::projection::diagnostic_surfaces::DerivedEquivalenceContractReport;
+use crate::projection::planner_owned_routing::diagnostic_projection_input::{
+    topology_derived_diagnostic_projection_source, TopologyDerivedDiagnosticProjectionSource,
+};
 use crate::validation::{
     validate_interpreted_topology, DerivedTopologyValidationReport,
     RegisteredTopologyValidationReport, TopologyValidationError,
@@ -67,6 +71,7 @@ pub struct DerivedValidationExecutionReport {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DerivedReadDiagnostics {
+    pub(crate) diagnostic_projection_source: TopologyDerivedDiagnosticProjectionSource,
     pub invalidation_report: DerivedInvalidationReport,
     pub rebuild_report: DerivedRebuildReport,
     pub fallback_report: DerivedFallbackReport,
@@ -81,18 +86,19 @@ pub(crate) fn build_derived_read_diagnostics(
     interpreted: &InterpretedTopologyView,
     validation: &DerivedTopologyValidationReport,
 ) -> DerivedReadDiagnostics {
+    let equivalence_contract_report =
+        build_derived_equivalence_contract(read_basis, materialized, interpreted, validation);
     DerivedReadDiagnostics {
+        diagnostic_projection_source: topology_derived_diagnostic_projection_source(
+            read_basis,
+            &equivalence_contract_report,
+        ),
         invalidation_report: build_derived_invalidation_report(read_basis),
         rebuild_report: build_derived_rebuild_report(materialized, interpreted, validation),
         fallback_report: build_derived_fallback_report(read_basis, materialized),
         validation_report: validation.clone(),
         validation_execution_report: derived_validation_execution_report(validation.rows.len()),
-        equivalence_contract_report: build_derived_equivalence_contract(
-            read_basis,
-            materialized,
-            interpreted,
-            validation,
-        ),
+        equivalence_contract_report,
     }
 }
 
@@ -265,6 +271,22 @@ mod tests {
             &validation,
         );
 
+        assert_eq!(
+            diagnostics
+                .diagnostic_projection_source
+                .truth_basis_identity_digest(),
+            verified
+                .read_basis()
+                .authority
+                .truth_basis_identity
+                .mutation_digest_hex
+        );
+        assert_eq!(
+            diagnostics
+                .diagnostic_projection_source
+                .diagnostic_contract_name(),
+            "topology-derived-read-diagnostic-projection"
+        );
         assert!(diagnostics.invalidation_report.topology_touched);
         assert!(!diagnostics.invalidation_report.rows.is_empty());
         assert!(diagnostics

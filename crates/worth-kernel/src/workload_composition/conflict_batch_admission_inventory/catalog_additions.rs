@@ -13,13 +13,69 @@ pub(crate) fn additional_conflict_batch_admission_rows(
 ) -> Result<Vec<ConflictBatchAdmissionInventoryRow>, ConflictBatchAdmissionInventoryError> {
     let mut rows = Vec::new();
     rows.extend(workload_handoff_rows()?);
+    rows.extend(phase_fourteen_closeout_rows()?);
+    rows.extend(super::compatibility_rows::compatibility_inventory_rows()?);
+    rows.extend(super::phase_thirteen_firewall_rows::phase_thirteen_firewall_rows()?);
     rows.extend(spatial_overlap_rows()?);
     rows.extend(topo_certification_rows()?);
     rows.extend(residue_rows()?);
     rows.extend(broad_scan_counter_rows()?);
     rows.extend(rollback_admission_rows()?);
-    rows.extend(compatibility_posture_rows()?);
     Ok(rows)
+}
+
+fn phase_fourteen_closeout_rows(
+) -> Result<Vec<ConflictBatchAdmissionInventoryRow>, ConflictBatchAdmissionInventoryError> {
+    Ok(vec![
+        row(
+            Surface::WorthWorkloadOrdinaryConsumerSweepCloseout,
+            "crates/worth-kernel/src/workload_composition/worth_workload/ordinary_consumer_sweep/closeout.rs",
+            "current_worth_workload_ordinary_consumer_sweep_closeout",
+            Owner::WorthKernel,
+            "phase 14 ordinary consumer sweep QA and closeout",
+            AuthorityKind::SourceFirewallCloseout,
+            Disposition::CertificationOnly,
+            ReplacementPhase::NotReplacedCertificationOnly,
+            "phase-14 closeout is a certification surface over the ordinary compiled-product lane and must not become a hidden admission shortcut",
+            "later milestone QA and source-firewall consumers read the closeout artifact while ordinary runtime still consumes the routed compiled-product lane itself",
+            CertificationPosture::CertificationOnlyDeniedAsOrdinaryProof,
+            CostPosture::SourceFirewallOnly,
+            QuerySurface::NotQuery,
+            RowScope::ConcreteSource,
+        )?,
+        row(
+            Surface::WorthWorkloadOrdinaryConsumerSweepRequireAllCoveredConsumersOnCompiledProductLane,
+            "crates/worth-kernel/src/workload_composition/worth_workload/ordinary_consumer_sweep/closeout.rs",
+            "WorthWorkloadOrdinaryConsumerSweepCloseout::require_all_covered_consumers_on_compiled_product_lane",
+            Owner::WorthKernel,
+            "phase 14 ordinary consumer sweep QA and closeout",
+            AuthorityKind::SourceFirewallCloseout,
+            Disposition::CertificationOnly,
+            ReplacementPhase::NotReplacedCertificationOnly,
+            "phase-14 route gate certifies coverage and must not become ordinary workload admission authority",
+            "QA and source-firewall review consume the certification-only route gate while runtime stays on selected-plan and typed public/read-model consumers",
+            CertificationPosture::CertificationOnlyDeniedAsOrdinaryProof,
+            CostPosture::SourceFirewallOnly,
+            QuerySurface::NotQuery,
+            RowScope::ConcreteSource,
+        )?,
+        row(
+            Surface::WorthWorkloadOrdinaryConsumerSweepRequireZeroBroadScanFallbackOnOrdinaryPath,
+            "crates/worth-kernel/src/workload_composition/worth_workload/ordinary_consumer_sweep/closeout.rs",
+            "WorthWorkloadOrdinaryConsumerSweepCloseout::require_zero_broad_scan_fallback_on_ordinary_path",
+            Owner::WorthKernel,
+            "phase 14 ordinary consumer sweep QA and closeout",
+            AuthorityKind::SourceFirewallCloseout,
+            Disposition::CertificationOnly,
+            ReplacementPhase::NotReplacedCertificationOnly,
+            "phase-14 broad-scan denial gate is certification-only and must not become ordinary workload admission authority",
+            "QA and source-firewall review consume the broad-scan denial gate while runtime stays on routed compiled-product consumers",
+            CertificationPosture::CertificationOnlyDeniedAsOrdinaryProof,
+            CostPosture::SourceFirewallOnly,
+            QuerySurface::NotQuery,
+            RowScope::ConcreteSource,
+        )?,
+    ])
 }
 
 fn workload_handoff_rows(
@@ -98,7 +154,10 @@ fn broad_scan_counter_rows(
         row(Surface::EvidenceLookupWorkloadCutoverBroadReceiptScanCounter, "crates/worth-spatial/src/workload_platform/evidence_lookup_workload_cutover/counters.rs", "EvidenceLookupWorkloadCutoverCounters::broad_receipt_scan_count", Owner::WorthSpatial, "evidence lookup workload cutover counters", AuthorityKind::CutLineResidue, Disposition::Cap, ReplacementPhase::PhaseTwelveFirewallDeletion, "workload cutover exposes broad receipt scan pressure as a capped denial counter", "workload cutover consumes selected lookup proof without broad receipt scans", CertificationPosture::NonOrdinaryResidueDeniedAsOrdinaryProof, CostPosture::CappedResidue, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
         row(Surface::EvidenceLookupStageCutoverBroadReceiptScanCounter, "crates/worth-spatial/src/workload_platform/evidence_lookup_stage_cutover/counters.rs", "EvidenceLookupStageCutoverCounters::broad_receipt_scan_count", Owner::WorthSpatial, "evidence lookup stage cutover counters", AuthorityKind::CutLineResidue, Disposition::Cap, ReplacementPhase::PhaseTwelveFirewallDeletion, "stage cutover exposes broad receipt scan pressure as a capped denial counter", "stage cutover consumes selected lookup proof without broad receipt scans", CertificationPosture::NonOrdinaryResidueDeniedAsOrdinaryProof, CostPosture::CappedResidue, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
         row(Surface::EvidenceLookupStageCutoverWithTestBroadReceiptScanCount, "crates/worth-spatial/src/workload_platform/evidence_lookup_stage_cutover/covered_stage.rs", "EvidenceLookupCoveredStageCutoverProof::with_test_broad_receipt_scan_count", Owner::WorthSpatial, "evidence lookup stage cutover test support", AuthorityKind::CutLineResidue, Disposition::CertificationOnly, ReplacementPhase::NotReplacedCertificationOnly, "test-only broad receipt counter mutation must not become ordinary admission authority", "ordinary conflict admission consumes selected proof products and denies test-only counter mutation", CertificationPosture::CertificationOnlyDeniedAsOrdinaryProof, CostPosture::SourceFirewallOnly, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
+        row(Surface::TopologyQueryBackedConsumerCutoverWithTestLoopCycleSelectedCompatibilityBasisIdentityOverride, "crates/worth-topo/src/projection/planner_owned_routing/query_backed_read_family/selected_route.rs", "TopologyQueryBackedConsumerCutover::with_test_loop_cycle_selected_compatibility_basis_identity_override", Owner::WorthTopo, "topology query-backed cutover hostile proof tests", AuthorityKind::CutLineResidue, Disposition::CertificationOnly, ReplacementPhase::NotReplacedCertificationOnly, "test-only topology cutover compatibility-basis mutation must not become ordinary public-closeout authority", "kernel public closeout consumes current topology query-backed proof products and denies test-only compatibility-basis mutation", CertificationPosture::CertificationOnlyDeniedAsOrdinaryProof, CostPosture::SourceFirewallOnly, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
         row(Surface::EvidenceLookupPlanSelectionBroadReceiptScanCounter, "crates/worth-spatial/src/workload_platform/evidence_lookup_plan_selection/counters.rs", "EvidenceLookupPlanSelectionCounters::broad_receipt_scan_count", Owner::WorthSpatial, "evidence lookup plan selection counters", AuthorityKind::CutLineResidue, Disposition::Cap, ReplacementPhase::PhaseTwelveFirewallDeletion, "plan selection exposes broad receipt scan pressure but cannot rely on it as proof", "selected conflict plans consume evidence lookup selected plan identity and prior proof", CertificationPosture::NonOrdinaryResidueDeniedAsOrdinaryProof, CostPosture::CappedResidue, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
+        row(Surface::EvidenceLookupReuseDecisionBroadReceiptScanCounter, "crates/worth-spatial/src/workload_platform/evidence_lookup_reuse_decision/counters.rs", "EvidenceLookupReuseDecisionCounters::broad_receipt_scan_count", Owner::WorthSpatial, "evidence lookup reuse decision counters", AuthorityKind::CutLineResidue, Disposition::Cap, ReplacementPhase::PhaseTwelveFirewallDeletion, "reuse decisions still expose broad receipt scan pressure as a capped counter and cannot authorize fallback", "query-backed public closeout consumes typed reuse decisions while preserving zero-broad-scan denial posture", CertificationPosture::NonOrdinaryResidueDeniedAsOrdinaryProof, CostPosture::CappedResidue, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
+        row(Surface::EvidenceLookupReuseExecutionInputBroadReceiptScanCounter, "crates/worth-spatial/src/workload_platform/evidence_lookup_reuse_decision/execution_input.rs", "EvidenceLookupIndexReuseExecutionInput::broad_receipt_scan_count", Owner::WorthSpatial, "evidence lookup reuse execution input", AuthorityKind::CutLineResidue, Disposition::Cap, ReplacementPhase::PhaseTwelveFirewallDeletion, "reuse execution input still exposes broad receipt scan pressure as a lowered counter and cannot authorize fallback", "query-backed public closeout consumes typed reuse execution proof while preserving zero-broad-scan denial posture", CertificationPosture::NonOrdinaryResidueDeniedAsOrdinaryProof, CostPosture::CappedResidue, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
         row(Surface::ReplayUndoSpatialBoundaryFixtureWithTestBroadReceiptScanCount, "crates/worth-spatial/src/replay_undo_semantic_graph/test_support.rs", "ReplayUndoSpatialBoundaryFixture::workload_handoff_with_test_broad_receipt_scan_count", Owner::WorthSpatial, "replay/undo spatial boundary test support", AuthorityKind::CutLineResidue, Disposition::CertificationOnly, ReplacementPhase::NotReplacedCertificationOnly, "test-only replay/undo handoff broad-scan mutation must not become ordinary admission authority", "ordinary conflict admission consumes selected lookup proof products and denies replay/undo test-only broad-scan mutation", CertificationPosture::CertificationOnlyDeniedAsOrdinaryProof, CostPosture::SourceFirewallOnly, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
         row(Surface::EvidenceLookupConsumedWorkloadHandoffWithTestBroadReceiptScanCount, "crates/worth-spatial/src/workload_platform/evidence_lookup_workload_cutover/handoff.rs", "EvidenceLookupConsumedWorkloadHandoff::with_test_broad_receipt_scan_count", Owner::WorthSpatial, "evidence lookup workload handoff test support", AuthorityKind::CutLineResidue, Disposition::CertificationOnly, ReplacementPhase::NotReplacedCertificationOnly, "test-only lookup handoff broad-scan mutation must not become ordinary admission authority", "ordinary conflict admission consumes selected lookup proof products and denies lookup-handoff test-only broad-scan mutation", CertificationPosture::CertificationOnlyDeniedAsOrdinaryProof, CostPosture::SourceFirewallOnly, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
         row(Surface::SpatialTouchBroadLedgerScanCounter, "crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_lowering/counters.rs", "SpatialEvidenceQueryLoweringCounters::broad_ledger_scan_count", Owner::WorthSpatial, "spatial touch query lowering counters", AuthorityKind::CutLineResidue, Disposition::Cap, ReplacementPhase::PhaseTwelveFirewallDeletion, "spatial touch broad ledger scan counter is bounded denial evidence", "spatial conflict admission consumes sealed touch authority without ledger scans", CertificationPosture::NonOrdinaryResidueDeniedAsOrdinaryProof, CostPosture::CappedResidue, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
@@ -112,17 +171,6 @@ fn rollback_admission_rows(
         row(Surface::SpatialRollbackProjectionReceiptAdmission, "crates/worth-spatial/src/replay_undo_semantic_graph/undo_family_execution/rollback_admission.rs", "lower_spatial_undo_scope_product_from_projection_receipt_request", Owner::WorthSpatial, "spatial undo rollback execution", AuthorityKind::ReplayUndoBoundaryAdmission, Disposition::Migrate, ReplacementPhase::PhaseFourAdmittedConflictInput, "rollback admission lowers projection receipt requests into undo scope proof before conflict routing exists", "admitted conflict input consumes rollback scope product proof without projection-local rediscovery", CertificationPosture::OrdinaryProductionReachable, CostPosture::PriorProofBoundary, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
         row(Surface::TopologyRollbackTraversalViewsAdmission, "crates/worth-topo/src/replay_undo_semantic_graph/undo_family_execution/rollback_admission.rs", "lower_topology_undo_scope_product_from_traversal_views_request", Owner::WorthTopo, "topology undo rollback execution", AuthorityKind::ReplayUndoBoundaryAdmission, Disposition::Migrate, ReplacementPhase::PhaseFourAdmittedConflictInput, "rollback admission lowers traversal-view requests into topology undo scope proof before conflict routing exists", "admitted conflict input consumes topology rollback proof without traversal-local admission", CertificationPosture::OrdinaryProductionReachable, CostPosture::PriorProofBoundary, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
         row(Surface::TopologyRollbackMaterializedGraphAdmission, "crates/worth-topo/src/replay_undo_semantic_graph/undo_family_execution/rollback_admission.rs", "lower_topology_undo_scope_product_from_materialized_graph_request", Owner::WorthTopo, "topology undo rollback execution", AuthorityKind::ReplayUndoBoundaryAdmission, Disposition::Migrate, ReplacementPhase::PhaseFourAdmittedConflictInput, "rollback admission lowers materialized-graph requests into topology undo scope proof before conflict routing exists", "admitted conflict input consumes topology rollback proof without materialized-graph-local admission", CertificationPosture::OrdinaryProductionReachable, CostPosture::PriorProofBoundary, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
-    ])
-}
-
-fn compatibility_posture_rows(
-) -> Result<Vec<ConflictBatchAdmissionInventoryRow>, ConflictBatchAdmissionInventoryError> {
-    Ok(vec![
-        row(Surface::HighValenceRebuildMotionCompatibilitySetter, "crates/worth-spatial/src/workload_platform/high_valence_singularity/singularity_workload.rs", "HighValenceSingularityWorkload::requiring_rebuild_motion_compatibility", Owner::WorthSpatial, "high-valence singularity workload construction", AuthorityKind::CompatibilityPostureAdmission, Disposition::Migrate, ReplacementPhase::PhaseFiveSelectedConflictPlan, "builder method carries caller-selected rebuild-motion compatibility before selected conflict planning owns posture", "selected conflict plan consumes typed compatibility posture instead of workload-local caller selection", CertificationPosture::OrdinaryProductionReachable, CostPosture::PriorProofBoundary, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
-        row(Surface::HighValenceRequireRebuildMotionCompatibility, "crates/worth-spatial/src/workload_platform/high_valence_singularity/singularity_workload.rs", "HighValenceSingularityWorkload::require_rebuild_motion_compatibility", Owner::WorthSpatial, "HighValenceSingularityWorkload::certify", AuthorityKind::CompatibilityPostureAdmission, Disposition::Migrate, ReplacementPhase::PhaseFiveSelectedConflictPlan, "certification currently denies incompatible rebuild motion through workload-local compatibility checks", "selected conflict plan carries the compatibility denial as admitted conflict posture", CertificationPosture::OrdinaryProductionReachable, CostPosture::PriorProofBoundary, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
-        row(Surface::HighValenceRebuildMotionCompatibility, "crates/worth-spatial/src/workload_platform/high_valence_singularity/singularity_workload.rs", "HighValenceRebuildMotionCompatibility", Owner::WorthSpatial, "high-valence singularity workload certification", AuthorityKind::CompatibilityPostureAdmission, Disposition::Migrate, ReplacementPhase::PhaseFiveSelectedConflictPlan, "enum is the current rebuild-motion compatibility truth carrier for high-valence admission", "selected conflict plan owns compatibility proof identity and denial topology", CertificationPosture::OrdinaryProductionReachable, CostPosture::PriorProofBoundary, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
-        row(Surface::DuplicateSplitRejectContradictorySameParameterPoints, "crates/worth-spatial/src/workload_platform/planar_boolean_edge_splitting/duplicate_split_normalization/contradiction_basis.rs", "reject_contradictory_same_parameter_points", Owner::WorthSpatial, "duplicate split normalization", AuthorityKind::CompatibilityPostureAdmission, Disposition::Migrate, ReplacementPhase::PhaseFiveSelectedConflictPlan, "normalization currently rejects contradictory same-parameter compatibility as helper-local conflict denial", "selected conflict plan consumes duplicate-split compatibility basis before normalization executes", CertificationPosture::OrdinaryProductionReachable, CostPosture::OperationalOverlapExecution, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
-        row(Surface::PointSplitCompatibilityBasis, "crates/worth-spatial/src/workload_platform/planar_boolean_edge_splitting/duplicate_split_normalization/contradiction_basis.rs", "PointSplitCompatibilityBasis", Owner::WorthSpatial, "reject_contradictory_same_parameter_points", AuthorityKind::CompatibilityPostureAdmission, Disposition::Migrate, ReplacementPhase::PhaseFiveSelectedConflictPlan, "basis struct is the helper-local compatibility key used to deny contradictory duplicate split points", "selected conflict plan names duplicate-split compatibility basis explicitly", CertificationPosture::OrdinaryProductionReachable, CostPosture::OperationalOverlapExecution, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
     ])
 }
 

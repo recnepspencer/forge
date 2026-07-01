@@ -12,6 +12,7 @@ pub(crate) mod derived_invalidation;
 pub(crate) mod gateway;
 pub(crate) mod geometry_binding;
 pub(crate) mod interpretation;
+pub(crate) mod planner_owned_routing_semantic_graph;
 pub(crate) mod precision_fallback;
 pub(crate) mod replay_undo_semantic_graph;
 pub(crate) mod topology_class;
@@ -56,6 +57,18 @@ pub use geometry_binding::{
 pub use interpretation::{
     ShellInterpretationClass, ShellInterpretationRecord, TopologyInterpretationRecordSet,
     WireInterpretationClass, WireInterpretationRecord,
+};
+#[allow(unused_imports)]
+pub use planner_owned_routing_semantic_graph::{
+    admit_planner_decision_trace_identity, admit_planner_derived_diagnostic_contract_identity,
+    admit_planner_public_proof_identity, admit_planner_selected_family_identity,
+    admit_planner_selected_product_identity, admit_planner_selected_route_identity,
+    admit_planner_witness_identity, PlannerAdmittedExplanationInput, PlannerDecisionTraceIdentity,
+    PlannerDerivedDiagnosticContractIdentity, PlannerExplanationArtifactKind, PlannerMismatchLocus,
+    PlannerOwnedRoutingSemanticGraphVocabularyError,
+    PlannerOwnedRoutingSemanticGraphVocabularyErrorKind, PlannerPublicProofIdentity,
+    PlannerSelectedFamilyIdentity, PlannerSelectedProductIdentity, PlannerSelectedRouteIdentity,
+    PlannerWitnessIdentity, PlannerWitnessRole,
 };
 #[allow(unused_imports)]
 pub use precision_fallback::{

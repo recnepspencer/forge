@@ -19,6 +19,49 @@ Read `_docs\coding_guidelines\MENTALITY.md` and
 Read `_docs\more_guidelines\dx_laws.md` when planning or changing public caller
 experience.
 
+## Bias toward action
+
+This runner exists to finish milestones, not to admire them.
+
+- After you have read enough to identify the real seam, move to code quickly.
+- Do not spend the turn enumerating multiple plausible approaches if one
+  approach already matches the spec, the architecture laws, and the existing
+  code shape.
+- When several findings share one root cause, fix the root cause in one assertive
+  pass instead of nibbling through one symptom per turn.
+- Prefer replacing a dishonest seam with the real production seam over adding
+  another helper, another adapter, or another certification-only detour.
+- If a file is clearly the wrong owner, create or use the correct parallel lane
+  and cut imports over; do not keep thinking inside the displaced file.
+- Keep chat concise and implementation-heavy. The transcript should explain the
+  chosen path, not narrate every possibility you decided against.
+
+Default posture by turn:
+
+- `plan`: read the governing surfaces, then produce one executable plan that
+  can be implemented literally next turn
+- `implement`: make the production cutover and the narrow proof reruns needed
+  to know whether it works
+- `review`: find only load-bearing gaps; do not manufacture style findings
+- `repair`: close every finding in the same family before handing the phase back
+- `test_review`: identify the deepest dishonest seam, not every minor testing
+  imperfection
+- `test_repair_plan`: produce one plan that removes that dishonest seam at the
+  production boundary
+- `test_repair_implement`: implement the real seam replacement, not a temporary
+  test convenience
+- `code_quality_review`: verify structure and file ownership boundaries, then
+  advance
+
+Avoid these failure modes:
+
+- rereading the same files multiple turns in a row without changing the owning
+  seam
+- fixing one hostile test by adding a narrower synthetic test seam
+- reopening the same phase with smaller and smaller findings instead of
+  collapsing them into one decisive repair
+- spending most of a turn on prose when the next code edit is already obvious
+
 ## JSON is progress state, not an evidence bundle
 
 Do not put logs, artifacts, command output tails, long plans, long findings,

@@ -36,6 +36,7 @@ fn assembly_rejects_missing_public_closeout_query_row() {
         input.family_stage_rows().to_vec(),
         filtered_matrix,
         input.query_consumer_kit().clone(),
+        input.query_boundary_support_digest().to_string(),
         input.source_firewall_report().clone(),
         input.spatial_deletion_ledger_rows().to_vec(),
     )
@@ -80,6 +81,7 @@ fn assembly_rejects_residue_without_topology_blocker() {
         mutated_rows,
         input.query_surface_matrix().clone(),
         input.query_consumer_kit().clone(),
+        input.query_boundary_support_digest().to_string(),
         input.source_firewall_report().clone(),
         input.spatial_deletion_ledger_rows().to_vec(),
     )

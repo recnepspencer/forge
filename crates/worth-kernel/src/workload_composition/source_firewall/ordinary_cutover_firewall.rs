@@ -15,7 +15,7 @@ use super::report::{
     WorthTouchedGraphConflictSourceFirewallReport,
     WorthTouchedGraphConflictSourceFirewallViolation,
 };
-use super::semantic_source_registry::phase_twelve_semantic_source_coverages;
+use super::semantic_source_registry::phase_fifteen_semantic_source_coverages;
 use crate::workload_composition::{
     current_conflict_batch_admission_inventory, ConflictBatchAdmissionInventory,
     ConflictBatchAdmissionInventoryError,
@@ -148,7 +148,7 @@ fn scan_file(
     })?;
     let normalized_path = path.to_string_lossy().replace('\\', "/");
     let mut violations = Vec::new();
-    let coverages = phase_twelve_semantic_source_coverages()
+    let coverages = phase_fifteen_semantic_source_coverages()
         .iter()
         .copied()
         .filter(|coverage| coverage.matches_path(&normalized_path))
@@ -190,7 +190,20 @@ fn scan_file(
             impl_context.observe_closing(line);
             continue;
         };
-        if phase_twelve_private_surface_is_owned(&normalized_path, &identifier) {
+        let explicitly_allowed_private_surface = coverages.iter().any(|coverage| {
+            coverage_contains_allowed_surface(
+                coverage,
+                inventory,
+                &normalized_path,
+                coverage.forbidden_surface(),
+                &identifier,
+                true,
+            )
+        });
+        if explicitly_allowed_private_surface
+            || phase_twelve_private_surface_is_owned(&normalized_path, &identifier)
+            || inventory_contains_owned_surface(inventory, &normalized_path, &identifier, true)
+        {
             impl_context.observe_closing(line);
             continue;
         }
@@ -216,7 +229,9 @@ fn coverage_contains_allowed_surface(
     allow_owned_type_members: bool,
 ) -> bool {
     let normalized_source_path = source_path.replace('\\', "/");
-    if path_matches_any_owned_file(&normalized_source_path, coverage.explicit_owned_paths())
+    let explicitly_owned_path = coverage.matches_path(&normalized_source_path)
+        || path_matches_any_owned_file(&normalized_source_path, coverage.explicit_owned_paths());
+    if explicitly_owned_path
         && coverage.explicit_allowed_surfaces().iter().any(|allowed| {
             allowed_surface_matches_identifier(allowed, identifier, allow_owned_type_members)
         })
@@ -313,6 +328,7 @@ fn is_ignored_closeout_path(path: &Path) -> bool {
     let normalized = path.to_string_lossy().replace('\\', "/");
     normalized.contains("/conflict_batch_admission_inventory/")
         || normalized.contains("/compile_fail/")
+        || normalized.contains("/public_closeout_seed_support/")
         || normalized.contains("/test_support/")
         || normalized.contains("/tests/")
         || normalized.ends_with("_tests.rs")

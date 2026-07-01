@@ -7,6 +7,11 @@ mod precision_agreement;
 mod reduced_operand_pair;
 mod shared_plane_identity;
 
+#[cfg(test)]
+pub(crate) use local_frame_selection::{
+    readiness_receipt as common_plane_readiness_receipt_for_tests,
+    shared_plane_identity_receipt as common_plane_shared_plane_identity_receipt_for_tests,
+};
 pub use local_frame_selection::{
     PlanarBooleanCommonPlaneLocalFrameSelectionDenial,
     PlanarBooleanCommonPlaneLocalFrameSelectionDenialKind,

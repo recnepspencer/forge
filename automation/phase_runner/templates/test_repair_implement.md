@@ -26,6 +26,15 @@ Rules:
 - Do not add fake helper surfaces where the production runtime should own the
   meaning.
 - Re-run the focused verification needed to prove the hardened tests are real.
+- If several test findings share one missing production seam, implement that
+  seam once and migrate the tests in the same turn.
+- Do not stop after the first green test if adjacent tests still exercise the
+  old dishonest seam and can be repaired by the same change.
+- Bias toward direct file edits after the necessary reads. This turn is for
+  code motion and proof, not another exploratory analysis pass.
+- If a previous review exposed a local rebuild or local constructor shortcut,
+  replace it with the real runtime or planner boundary now instead of wrapping
+  it with another helper.
 
 After implementation, update the JSON state file directly:
 
