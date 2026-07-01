@@ -37,7 +37,7 @@ with a short marker:
 
 - `status: complete`
 - `qa_status: passed`
-- cursor turn `close`
+- cursor turn `test_review`
 
 Do not store logs, artifacts, command tails, long findings, or review prose in
 the JSON. The JSON is purely to keep track of where we are.

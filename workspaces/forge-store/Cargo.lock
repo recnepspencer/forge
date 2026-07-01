@@ -148,11 +148,13 @@ dependencies = [
  "forge-store-claim-boundaries",
  "forge-store-compatibility",
  "forge-store-contracts",
+ "forge-store-io-scheduler",
  "forge-store-maintenance",
  "forge-store-physical-backend",
  "forge-store-physical-certification",
  "forge-store-physical-format",
  "forge-store-physical-integrity",
+ "forge-store-physical-isolation",
  "forge-store-readiness",
  "forge-store-recovery-physics",
  "forge-store-replication",
@@ -271,13 +273,20 @@ dependencies = [
 name = "forge-store-physical-certification"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-proof",
+ "forge-store-aspect-native",
  "forge-store-blob-chunks",
  "forge-store-buffer-pool",
  "forge-store-contracts",
  "forge-store-io-scheduler",
  "forge-store-offline-verifier",
  "forge-store-operations",
+ "forge-store-physical-backend",
+ "forge-store-physical-format",
  "forge-store-physical-integrity",
+ "forge-store-physical-isolation",
+ "forge-store-readiness",
  "forge-store-recovery-physics",
  "forge-store-security",
 ]
@@ -412,7 +421,10 @@ dependencies = [
  "forge-proof",
  "forge-store-aspect-native",
  "forge-store-contracts",
+ "forge-store-physical-backend",
+ "forge-store-physical-certification",
  "forge-store-physical-format",
+ "forge-store-physical-integrity",
  "forge-store-recovery-physics",
 ]
 

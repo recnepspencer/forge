@@ -4,7 +4,7 @@ use forge_store_recovery_physics::{
     RecoveryPhysicsCloseoutEvidence, WalCheckpointLsnRecoveryPhysicsSuite, WalTailReplayBudget,
 };
 
-use super::crash_evidence::{crash_scheduler_evidence, required_crash_seams};
+use super::crash_evidence::{crash_scheduler_evidence_for_fixture, required_crash_seams};
 use super::executed_recovery::{
     executed_recovery_fixture, executed_recovery_receipt_with_cursor_lsn, CloseoutFixture,
 };
@@ -16,9 +16,69 @@ pub fn certify_complete_closeout() -> RecoveryPhysicsCertificationBundle {
         .unwrap()
 }
 
+pub fn certify_closeout_with_cursor_lsn(cursor_lsn: u64) -> RecoveryPhysicsCertificationBundle {
+    WalCheckpointLsnRecoveryPhysicsSuite::from_required_s4_lanes()
+        .certify(complete_closeout_evidence_with_cursor_lsn(cursor_lsn))
+        .unwrap()
+}
+
+pub fn certify_closeout_with_page_digest(page_digest: &str) -> RecoveryPhysicsCertificationBundle {
+    WalCheckpointLsnRecoveryPhysicsSuite::from_required_s4_lanes()
+        .certify(complete_closeout_evidence_with_page_digest(page_digest))
+        .unwrap()
+}
+
+pub fn certify_closeout_with_redo_lsn(redo_lsn: u64) -> RecoveryPhysicsCertificationBundle {
+    WalCheckpointLsnRecoveryPhysicsSuite::from_required_s4_lanes()
+        .certify(complete_closeout_evidence_with_redo_lsn(redo_lsn))
+        .unwrap()
+}
+
+pub fn certify_closeout_with_runtime_state_mismatch_artifacts() -> RecoveryPhysicsCertificationBundle
+{
+    WalCheckpointLsnRecoveryPhysicsSuite::from_required_s4_lanes()
+        .certify(complete_closeout_evidence_with_runtime_state_mismatch_artifacts())
+        .unwrap()
+}
+
+pub fn certify_closeout_from_reordered_evidence() -> RecoveryPhysicsCertificationBundle {
+    WalCheckpointLsnRecoveryPhysicsSuite::from_required_s4_lanes()
+        .certify(complete_closeout_evidence_from_reordered_evidence())
+        .unwrap()
+}
+
 pub fn complete_closeout_evidence() -> RecoveryPhysicsCloseoutEvidence {
     let fixture = executed_recovery_fixture();
     complete_closeout_collector(&fixture).finish().unwrap()
+}
+
+fn complete_closeout_evidence_with_cursor_lsn(cursor_lsn: u64) -> RecoveryPhysicsCloseoutEvidence {
+    let fixture = super::executed_recovery::executed_recovery_fixture_with_cursor_lsn(cursor_lsn);
+    complete_closeout_collector(&fixture).finish().unwrap()
+}
+
+fn complete_closeout_evidence_with_page_digest(
+    page_digest: &str,
+) -> RecoveryPhysicsCloseoutEvidence {
+    let fixture = super::executed_recovery::executed_recovery_fixture_with_page_digest(page_digest);
+    complete_closeout_collector(&fixture).finish().unwrap()
+}
+
+fn complete_closeout_evidence_with_redo_lsn(redo_lsn: u64) -> RecoveryPhysicsCloseoutEvidence {
+    let fixture = super::executed_recovery::executed_recovery_fixture_with_redo_lsn(redo_lsn);
+    complete_closeout_collector(&fixture).finish().unwrap()
+}
+
+fn complete_closeout_evidence_with_runtime_state_mismatch_artifacts(
+) -> RecoveryPhysicsCloseoutEvidence {
+    let fixture =
+        super::executed_recovery::executed_recovery_fixture_with_runtime_state_mismatch_artifacts();
+    complete_closeout_collector(&fixture).finish().unwrap()
+}
+
+fn complete_closeout_evidence_from_reordered_evidence() -> RecoveryPhysicsCloseoutEvidence {
+    let fixture = executed_recovery_fixture();
+    reordered_closeout_collector(&fixture).finish().unwrap()
 }
 
 pub fn evidence_with_missing_crash_seam() -> RecoveryPhysicsCloseoutEvidence {
@@ -29,7 +89,7 @@ pub fn evidence_with_missing_crash_seam() -> RecoveryPhysicsCloseoutEvidence {
         .filter(|seam| *seam != forge_store_recovery_physics::S4RecoveryCrashSeam::RenameDurability)
     {
         collector = collector
-            .record_crash_recovery(crash_scheduler_evidence(seam).unwrap())
+            .record_crash_recovery(crash_scheduler_evidence_for_fixture(seam, &fixture).unwrap())
             .unwrap();
     }
     for evidence in all_shortcut_evidence() {
@@ -43,7 +103,7 @@ pub fn evidence_with_missing_shortcut_rejection_denial() -> RecoveryPhysicsClose
     let mut collector = base_closeout_collector(&fixture);
     for seam in required_crash_seams() {
         collector = collector
-            .record_crash_recovery(crash_scheduler_evidence(seam).unwrap())
+            .record_crash_recovery(crash_scheduler_evidence_for_fixture(seam, &fixture).unwrap())
             .unwrap();
     }
     collector.finish().unwrap_err()
@@ -82,11 +142,24 @@ fn complete_closeout_collector(fixture: &CloseoutFixture) -> RecoveryPhysicsClos
     let mut collector = base_closeout_collector(fixture);
     for seam in required_crash_seams() {
         collector = collector
-            .record_crash_recovery(crash_scheduler_evidence(seam).unwrap())
+            .record_crash_recovery(crash_scheduler_evidence_for_fixture(seam, fixture).unwrap())
             .unwrap();
     }
     for evidence in all_shortcut_evidence() {
         collector = collector.record_synthetic_shortcut_denial(evidence);
+    }
+    collector
+}
+
+fn reordered_closeout_collector(fixture: &CloseoutFixture) -> RecoveryPhysicsCloseoutCollector {
+    let mut collector = base_closeout_collector(fixture);
+    for evidence in all_shortcut_evidence().into_iter().rev() {
+        collector = collector.record_synthetic_shortcut_denial(evidence);
+    }
+    for seam in required_crash_seams().into_iter().rev() {
+        collector = collector
+            .record_crash_recovery(crash_scheduler_evidence_for_fixture(seam, fixture).unwrap())
+            .unwrap();
     }
     collector
 }

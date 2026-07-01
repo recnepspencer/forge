@@ -101,6 +101,8 @@ mod s3_physical_integrity_readiness;
 mod s3_readiness_denial;
 mod s3_readiness_payload;
 mod s3_readiness_recap;
+mod s5_simulation_harness_denial;
+mod s5_simulation_harness_readiness;
 
 pub use adoption_denial::FoundationalAdoptionDenial;
 pub use aspect_native_vocabulary_readiness::{
@@ -138,3 +140,8 @@ pub use s3_readiness_recap::{
     BufferPoolAuthorityRecap, PhysicalAuthorityRecap, S2BoundedCounterRecap, S2DenialBehaviorRecap,
     S2DeniedBoundaryKind,
 };
+pub use s5_simulation_harness_denial::{
+    reject_copied_s5_simulation_harness_readiness_fields, reject_missing_s5_correctness_non_claim,
+    S5HarnessMaturityDependency, S5SimulationHarnessReadinessDenial,
+};
+pub use s5_simulation_harness_readiness::S5CorrectnessNonClaimEvidence;

@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod durability_profile;
+mod operation_boundary;
 
 use forge_store_physical_format::PhysicalReference;
 
@@ -18,6 +19,7 @@ pub use durability_profile::{
     PosixFileFsyncDirFsyncProfile, SimulatedStrictDurableProfile, WalDurabilityBarrier,
     WalDurabilityBarrierReceipt, WalDurabilityBarrierSet, WindowsFlushFileBuffersProfile,
 };
+pub use operation_boundary::ProductionStorageBoundarySeam;
 
 pub trait PhysicalStoreBackend {
     type Error;
