@@ -8,6 +8,12 @@ from typing import Any
 MAX_HISTORY_ENTRIES = 120
 PHASE_STATUSES = {"not_started", "in_progress", "complete", "regressed", "blocked"}
 QA_STATUSES = {"not_started", "needed", "in_progress", "passed", "failed"}
+DETERMINISTIC_TURN_ADVANCES = {
+    "plan": "implement",
+    "implement": "review",
+    "repair": "review",
+    "test_repair_plan": "test_repair_implement",
+}
 
 
 def now_iso() -> str:
@@ -95,3 +101,14 @@ def cursor_reason(state: dict[str, Any]) -> str:
     if cursor is None:
         return "all phases are complete"
     return f"phase {cursor['phase']} {cursor['turn']}"
+
+
+def phase_is_complete_and_passed(phase: dict[str, Any]) -> bool:
+    return phase.get("status") == "complete" and phase.get("qa_status") == "passed"
+
+
+def first_unfinished_phase(state: dict[str, Any]) -> dict[str, Any] | None:
+    for phase in state.get("phases", []):
+        if not phase_is_complete_and_passed(phase):
+            return phase
+    return None

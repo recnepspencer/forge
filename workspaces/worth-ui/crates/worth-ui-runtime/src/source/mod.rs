@@ -19,8 +19,8 @@ mod structured;
 #[allow(unused_imports)]
 pub(crate) use artifact::{
     WorthUiArtifact, WorthUiArtifactBindingHandle, WorthUiArtifactBindingNode,
-    WorthUiArtifactComponentHandle, WorthUiArtifactComponentNode, WorthUiArtifactEquivalentShape,
-    WorthUiArtifactHandle, WorthUiArtifactImportHandle, WorthUiArtifactImportNode,
+    WorthUiArtifactComponentHandle, WorthUiArtifactComponentNode, WorthUiArtifactHandle,
+    WorthUiArtifactImportHandle, WorthUiArtifactImportNode,
     WorthUiArtifactModule, WorthUiArtifactNode, WorthUiArtifactNodeKind,
     WorthUiArtifactSurfaceHandle, WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenHandle,
     WorthUiArtifactThemeTokenNode,

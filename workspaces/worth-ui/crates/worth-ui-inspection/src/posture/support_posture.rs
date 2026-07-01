@@ -9,6 +9,7 @@ pub enum UiInspectionSupportStatus {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiInspectionMilestoneExpectation {
     Milestone31,
+    Milestone32,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

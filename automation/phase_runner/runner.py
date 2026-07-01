@@ -11,10 +11,15 @@ from typing import Any
 from codex_cli import run_codex
 from prompts import render_prompt
 from state import (
+    DETERMINISTIC_TURN_ADVANCES,
     append_history,
     backup_path,
     cursor_reason,
+    current_cursor,
+    first_unfinished_phase,
     load_state,
+    now_iso,
+    phase_is_complete_and_passed,
     save_state,
 )
 from validation import validate_state
@@ -42,6 +47,7 @@ def run_once(
     if forced_turn is not None:
         state["current"]["turn"] = forced_turn
 
+    before_cursor = current_cursor(state)
     reason = cursor_reason(state)
 
     if state.get("current") is None:
@@ -74,7 +80,7 @@ def run_once(
     save_state(state_path, state)
 
     exit_code, capture = run_codex(state, prompt, log_path)
-    merge_after_codex(state_path, reason, exit_code, capture)
+    merge_after_codex(state_path, reason, exit_code, capture, before_cursor)
 
     if exit_code != 0:
         raise RunnerFailure(f"codex exited with {exit_code}")
@@ -143,7 +149,7 @@ def request_recovery(
 
     prompt = recovery_prompt(state, state_path, reason, details)
     exit_code, capture = run_codex(state, prompt, log_path)
-    merge_after_codex(state_path, "runner recovery", exit_code, capture)
+    merge_after_codex(state_path, "runner recovery", exit_code, capture, None)
     if exit_code != 0:
         print(f"codex recovery exited with {exit_code}", file=sys.stderr)
         return False
@@ -213,14 +219,92 @@ def merge_after_codex(
     reason: str,
     exit_code: int,
     capture: dict[str, str],
+    before_cursor: dict[str, Any] | None,
 ) -> None:
     fresh = load_state(state_path)
     session = fresh.setdefault("session", {})
     if capture.get("thread_id") and not session.get("thread_id"):
         session["thread_id"] = capture["thread_id"]
         session["thread_started_at"] = capture.get("thread_started_at")
+    enforce_cursor_progress(fresh, before_cursor, exit_code)
     append_history(fresh, "codex_turn_completed", reason, exit_code)
     save_state(state_path, fresh)
+
+
+def enforce_cursor_progress(
+    state: dict[str, Any],
+    before_cursor: dict[str, Any] | None,
+    exit_code: int,
+) -> None:
+    if before_cursor is None or exit_code != 0:
+        return
+
+    before_phase = int(before_cursor["phase"])
+    before_turn = str(before_cursor["turn"])
+    after_cursor = current_cursor(state)
+
+    if before_turn in DETERMINISTIC_TURN_ADVANCES:
+        expected_turn = DETERMINISTIC_TURN_ADVANCES[before_turn]
+        if not cursor_matches(after_cursor, before_phase, expected_turn):
+            state["current"] = {"phase": before_phase, "turn": expected_turn}
+            append_history(
+                state,
+                "runner_cursor_autofix",
+                (
+                    f"phase {before_phase} {before_turn} did not advance; "
+                    f"forced {expected_turn}"
+                ),
+            )
+        return
+
+    if before_turn == "code_quality_review":
+        if after_cursor is not None and (
+            int(after_cursor["phase"]) != before_phase
+            or str(after_cursor["turn"]) != before_turn
+        ):
+            return
+        advance_to_next_phase_or_complete(state, before_phase)
+        append_history(
+            state,
+            "runner_cursor_autofix",
+            f"phase {before_phase} code_quality_review did not advance; repaired cursor",
+        )
+        return
+
+    if cursor_matches(after_cursor, before_phase, before_turn):
+        raise RunnerFailure(
+            f"phase {before_phase} {before_turn} completed without advancing cursor"
+        )
+
+
+def cursor_matches(
+    cursor: dict[str, Any] | None,
+    phase_id: int,
+    turn: str,
+) -> bool:
+    if cursor is None:
+        return False
+    return int(cursor["phase"]) == phase_id and str(cursor["turn"]) == turn
+
+
+def advance_to_next_phase_or_complete(state: dict[str, Any], completed_phase_id: int) -> None:
+    phases = state.get("phases", [])
+    next_phase: dict[str, Any] | None = None
+    for phase in phases:
+        phase_id = int(phase["id"])
+        if phase_id <= completed_phase_id:
+            continue
+        if not phase_is_complete_and_passed(phase):
+            next_phase = phase
+            break
+    if next_phase is None:
+        if first_unfinished_phase(state) is None:
+            state["current"] = None
+            state["completed_at"] = now_iso()
+            return
+        next_phase = first_unfinished_phase(state)
+    state["current"] = {"phase": int(next_phase["id"]), "turn": "plan"}
+    state["completed_at"] = None
 
 
 def validate_or_raise(state: dict, state_path: Path) -> None:

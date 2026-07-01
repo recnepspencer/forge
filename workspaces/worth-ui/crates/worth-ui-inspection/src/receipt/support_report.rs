@@ -12,7 +12,7 @@ pub struct UiInspectionSupportReport {
 }
 
 impl UiInspectionSupportReport {
-    pub(crate) fn from_scope_rows(
+    pub fn from_scope_rows(
         scope: UiInspectionScope,
         rows: &[UiInspectionScopeSupportRow],
     ) -> Self {

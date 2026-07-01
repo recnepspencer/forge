@@ -858,9 +858,9 @@ must not pretend to have solved.
 
 **Relevant APIs**
 
-- declaration closeout report
-- sealed declaration handoff artifact for 3.3
-- 3.3 readiness handoff surface
+- `UiDeclarationCloseoutReport`
+- `UiDeclarationGraphHandoff`
+- the exact 3.3 graph-consumable declaration handoff surface
 
 **Warnings**
 
@@ -881,7 +881,7 @@ must not pretend to have solved.
 **Engineering decisions**
 
 - 3.2 closes at the declaration-authority boundary only.
-- The 3.3 handoff is one proof-bearing sealed declaration handoff artifact, not
+- `UiDeclarationGraphHandoff` is the one proof-bearing sealed declaration handoff artifact, not
   an open-ended set of ad hoc projections.
 - Closeout must make the remaining graph work explicit while preserving the
   truth that declaration meaning is already canonical.
@@ -919,7 +919,7 @@ must not pretend to have solved.
   - `query-binding`
   - `intent`
   - `diagnostic-surface`
-- graph-consumable declaration handoff surface for 3.3
+- `UiDeclarationGraphHandoff` as the graph-consumable declaration handoff surface for 3.3
 - exact 3.3 sealed handoff artifact carrying only admitted structural and
   declared posture contracts, never raw source or support-only authority
 - certification proof that declaration authority cannot be forged or replaced by

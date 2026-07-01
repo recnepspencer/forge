@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration/external_callers_cannot_construct_semantic_artifact.rs:6:36
+  |
+6 |       let _ = UiDslSemanticArtifact::new(
+  |                                      ^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-ui-dsl/src/semantic/ui_dsl_semantic_artifact.rs
+  |
+  | /     pub(crate) fn new(
+  | |         key: UiDslSemanticKey,
+  | |         family: UiDslSemanticFamily,
+  | |         provenance: UiDslSourceProvenance,
+... |
+  | |         renderer_label: Option<String>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

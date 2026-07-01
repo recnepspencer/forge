@@ -1,0 +1,44 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration_posture/external_callers_cannot_construct_declared_posture_contracts.rs:8:48
+  |
+8 |       let query_binding = UiDeclaredPostureLane::new(
+  |                                                  ^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-ui-runtime/src/declaration/declared_posture/declared_posture_contract.rs
+  |
+  | /     pub(crate) const fn new(
+  | |         applicability: UiDeclaredPostureApplicability,
+  | |         admitted: Option<T>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/declaration_posture/external_callers_cannot_construct_declared_posture_contracts.rs:12:48
+   |
+12 |       let _contract = UiDeclaredPostureContract::new(
+   |                                                  ^^^ private associated function
+   |
+  ::: $WORKSPACE/crates/worth-ui-runtime/src/declaration/declared_posture/declared_posture_contract.rs
+   |
+   | /     pub(crate) const fn new(
+   | |         query_binding: UiDeclaredPostureLane<UiDeclaredQueryBindingPosture>,
+   | |         service_usage: UiDeclaredPostureLane<UiDeclaredServiceUsagePosture>,
+   | |         touch_meaning: UiDeclaredPostureLane<UiDeclaredTouchMeaningPosture>,
+   | |         measurement_policy: UiDeclaredPostureLane<UiDeclaredMeasurementPolicyPosture>,
+   | |         host_capability: UiDeclaredPostureLane<UiDeclaredHostCapabilityPosture>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/declaration_posture/external_callers_cannot_construct_declared_posture_contracts.rs:20:18
+   |
+20 |         unsafe { std::mem::MaybeUninit::<UiDeclaredHostCapabilityPosture>::zeroed().assume_init() };
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `WorthUiHostContract`, found `UiDeclaredHostCapabilityPosture`
+
+error[E0308]: mismatched types
+  --> tests/ui/declaration_posture/external_callers_cannot_construct_declared_posture_contracts.rs:21:44
+   |
+21 |     let _inspection: UiInspectionPosture = WorthUiHostCapability::Ime;
+   |                      -------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `UiInspectionPosture`, found `WorthUiHostCapability`
+   |                      |
+   |                      expected due to this

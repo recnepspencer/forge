@@ -1,0 +1,13 @@
+error[E0599]: no method named `with_admitted_semantic_artifact` found for struct `WorthUiDslPackage` in the current scope
+  --> tests/ui/declaration/external_callers_cannot_seed_dsl_package_with_semantic_artifact.rs:15:10
+   |
+14 |       let _package = WorthUiDslPackage::named("worth-ui.certification.declaration")
+   |  ____________________-
+15 | |         .with_admitted_semantic_artifact(spec);
+   | |_________-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: there is a method `admit_semantic_artifact` with a similar name
+   |
+15 -         .with_admitted_semantic_artifact(spec);
+15 +         .admit_semantic_artifact(spec);
+   |
