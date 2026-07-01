@@ -1,0 +1,1375 @@
+{
+  "schema_version": 1,
+  "state_revision": 490,
+  "current": null,
+  "project": {
+    "name": "Forge Store Roadmap 2 S.4.5 Physical Database Simulation Harness",
+    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/forge",
+    "spec_file": "_docs/forge-store/storage-foundation-s4-5.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "_docs/forge-store/forge_store_roadmap_2.md",
+      "_docs/forge-store/test-requirements.md",
+      "_docs/forge-store/test-requirements-2.md",
+      "_docs/forge-store/storage-foundation-s4.md",
+      "_docs/forge-store/storage-foundation-s4-5.md",
+      "_docs/forge-store/storage-foundation-s5.md",
+      "crates/forge-foundational/docs/FOUNDATIONAL_README.md",
+      "crates/forge-proof/README.md",
+      "_docs/forge-proof/forge_proof_roadmap.md",
+      "workspaces/forge-store/README.md",
+      "workspaces/forge-store/Cargo.toml",
+      "workspaces/forge-store/crates/forge-store-test-support/src/lib.rs"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md"
+  },
+  "contract_template": "templates/_contract_store_harness.md",
+  "session": {
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.5",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    },
+    "thread_id": "019f1971-90d0-7ce1-b035-a2fa77e80cb5",
+    "thread_started_at": "2026-06-30T16:51:41.733146+00:00"
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Admit S.4 Closeout And Freeze The Harness Boundary",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-test-support",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-readiness",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "S.4.5 entry accepts only S.4 closeout and Roadmap 2 harness requirement evidence.",
+        "Copied reports, logs, old semantic harness labels, same-run self-comparison, and terminal projections cannot satisfy entry.",
+        "Existing harness surfaces are classified as reusable mechanics, milestone-local mechanics, certification meaning, or obsolete semantic context."
+      ],
+      "instructions": "Implement S.4.5 Phase 1 from the S.4.5 spec: Admit S.4 Closeout And Freeze The Harness Boundary. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "test hardening plan posted; compile-fail, identity sensitivity, exhaustive roadmap/inventory next"
+        ],
+        "done": [
+          "phase 1 closed after code-quality review"
+        ],
+        "remaining": [
+          "later cleanup: name admitted entry parts and remove/replace inconsistent redo-lsn fixture helper"
+        ],
+        "findings": [
+          "code-quality: admitted entry parts use tuple instead of named struct",
+          "code-quality: obsolete redo-lsn closeout fixture can mix receipt/artifacts"
+        ],
+        "verification": [
+          "cargo check -p forge-store-physical-certification --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: Finished dev profile target(s) in 0.10s",
+          "cargo check -p forge-store-certification --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: Finished dev profile target(s) in 0.09s",
+          "cargo test -p forge-store-certification --test s4_5_simulation_harness_entry_boundary --test s4_5_simulation_harness_entry_boundary_hardening --test s4_5_entry_boundary_compile_fail --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: 9 passed; 5 passed; compile-fail target passed"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Define Aspect-Native Scenario Definitions And Identity",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-aspect-native",
+        "workspaces/forge-store/crates/forge-store-test-support",
+        "workspaces/forge-store/crates/forge-store-certification"
+      ],
+      "acceptance": [
+        "Golden-path authoring lowers into native scenario definitions with canonical identity.",
+        "JSON, terminal projections, fixture labels, copied digest strings, and raw strings cannot satisfy scenario authority.",
+        "Ordinary authors do not hand-construct internal Proof, Foundational, evidence, or transcript types."
+      ],
+      "instructions": "Implement S.4.5 Phase 2 from the S.4.5 spec: Define Aspect-Native Scenario Definitions And Identity. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "test hardening plan posted; identity sensitivity and duplicate set denials next"
+        ],
+        "done": [
+          "phase 2 code-quality review closed; acceptance checks passed"
+        ],
+        "remaining": [
+          "hide raw builder, move facade enum, split broad scenario-definition test suite later"
+        ],
+        "findings": [
+          "code-quality: raw builder export/facade enum/test-suite breadth remain as cleanup"
+        ],
+        "verification": [
+          "cargo check -p forge-store-physical-certification --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: Finished dev profile in 0.10s",
+          "cargo test -p forge-store-certification --test s4_5_aspect_native_scenario_definition --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: 11 passed",
+          "cargo test -p forge-store-certification --test s4_5_scenario_authority_compile_fail --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: 1 passed",
+          "bash scripts/ci/check_workspace_rust_line_caps.sh | exit 1 | tail: bash unavailable in PowerShell environment",
+          "scoped PowerShell line-count audit for phase 2 Rust files | exit 0 | tail: all checked files <= 400 lines"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "Lower Scenarios Into Explicit Simulation Plans",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-test-support",
+        "workspaces/forge-store/crates/forge-store-certification"
+      ],
+      "acceptance": [
+        "Scenarios lower into plans naming capabilities, actors, drivers, observers, oracles, counter contracts, fixture classes, evidence policy, and forbidden shortcuts.",
+        "Missing capabilities or unsupported profile deny before execution.",
+        "Execution cannot rediscover plan meaning."
+      ],
+      "instructions": "Implement S.4.5 Phase 3 from the S.4.5 spec: Lower Scenarios Into Explicit Simulation Plans. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "test hardening plan posted; split file, extend denial matrix, broaden rediscovery compile-fail next"
+        ],
+        "done": [
+          "phase 3 code-quality review closed"
+        ],
+        "remaining": [
+          "split planning requirements by vocabulary, required sets, scenario shapes, and tokens"
+        ],
+        "findings": [
+          "requirements.rs mixes vocabulary, proof sets, shape policy, and token rendering"
+        ],
+        "verification": [
+          "cargo check -p forge-store-physical-certification --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | Finished dev profile",
+          "cargo test -p forge-store-certification --test s4_5_simulation_plan_lowering --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | 9 passed",
+          "cargo test -p forge-store-certification --test s4_5_simulation_plan_support_denials --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | 1 passed",
+          "cargo test -p forge-store-certification --test s4_5_simulation_plan_boundary_compile_fail --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | 1 passed",
+          "PowerShell line-count audit for touched Phase 3 Rust files | exit 0 | max 355 lines; bash guard unavailable on PATH"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "title": "Define Actors And Production-Facing Driver Contracts",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-physical-backend",
+        "workspaces/forge-store/crates/forge-store-test-support",
+        "workspaces/forge-store/crates/forge-store-offline-verifier"
+      ],
+      "acceptance": [
+        "Actors and drivers touch production-facing boundaries, not private state.",
+        "Drivers declare named deterministic yieldpoints for relevant production seams.",
+        "Private mutation, fake in-memory-only drivers, unbound yieldpoints, and sleep-based scheduling deny."
+      ],
+      "instructions": "Implement S.4.5 Phase 4 from the S.4.5 spec: Define Actors And Production-Facing Driver Contracts. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "test hardening plan posted; add parity trace, seam matrix, broader compile-fail, actor lowering next"
+        ],
+        "findings": [
+          "code quality: drivers/contract.rs mixes admitted set, concrete driver builders, trace receipt, and denial helpers; split later"
+        ],
+        "remaining": [
+          "non-blocking structure debt: split driver contract file by responsibility before it exceeds cap"
+        ],
+        "done": [
+          "phase 4 complete; focused acceptance checks rerun"
+        ],
+        "verification": [
+          "backend check: exit 0; tail:     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.05s",
+          "certification check: exit 0; tail:     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s",
+          "test-support check: exit 0; tail:     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s",
+          "offline-verifier check: exit 0; tail:     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.04s",
+          "production driver contracts: exit 0; tail: test phase_four_actor_contracts_admit_concrete_production_facing_roles ... ok | test production_storage_driver_declares_profile_faults_and_evidence_surfaces ... ok | test pressure_and_verifier_drivers_declare_first_class_contract_profiles ... ok | test admitted_production_driver_contract_binds_scenario_yieldpoint_before_execution ... ok | test equivalent_driver_contracts_preserve_plan_identity ... ok |  | test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s | ",
+          "yieldpoint matrix: exit 0; tail:      Running tests\\s4_5_production_driver_yieldpoint_matrix.rs (workspaces\\forge-store\\target\\debug\\deps\\s4_5_production_driver_yieldpoint_matrix-90d6b23dbabded96.exe) |  | running 2 tests | test non_production_drivers_do_not_emit_production_boundary_trace ... ok | test production_driver_trace_matches_backend_registered_boundary_seams ... ok |  | test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s | ",
+          "actor lowering: exit 0; tail:      Running tests\\s4_5_actor_contract_lowering.rs (workspaces\\forge-store\\target\\debug\\deps\\s4_5_actor_contract_lowering-d82df36fa3172758.exe) |  | running 2 tests | test future_actor_contract_still_denies_before_scenario_authoring ... ok | test admitted_actor_contracts_flow_through_scenario_lowering ... ok |  | test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s | ",
+          "driver denials: exit 0; tail: test production_driver_rejects_yieldpoints_owned_by_other_capabilities ... ok | test loose_supported_driver_set_cannot_replace_admitted_contracts ... ok | test admitted_non_required_driver_yieldpoint_cannot_satisfy_scenario_schedule ... ok | test admitted_driver_cannot_bind_registered_seam_it_did_not_declare ... ok | test schedule_with_no_admitted_yieldpoint_binding_denies_before_execution ... ok |  | test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s | ",
+          "compile fail: exit 0; tail: test driver_contract_boundary_rejects_receipt_minting_at_compile_time ... ok | test driver_contract_boundary_rejects_driver_struct_literal_minting ... ok | test driver_contract_boundary_rejects_schedule_binding_struct_literal_minting ... ok | test driver_contract_boundary_rejects_declaration_struct_literal_minting ... ok | test driver_contract_boundary_rejects_yieldpoint_struct_literal_minting ... ok |  | test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.25s | ",
+          "touched-file PowerShell line-cap audit: exit 0; tail: all touched files <= 400 lines"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "title": "Build Deterministic Schedules And Replay Identity",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-test-support"
+      ],
+      "acceptance": [
+        "Scenario, plan, seed, profile, actors, and budget reproduce the same schedule and digest.",
+        "Schedules depending on wall-clock time, unordered maps, ambient threads, missing seed, or unbounded exploration deny.",
+        "Shrink traces preserve failure class, fault locus, counter mismatch, and oracle verdict."
+      ],
+      "instructions": "Implement S.4.5 Phase 5 from the S.4.5 spec: Build Deterministic Schedules And Replay Identity. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "done": [
+          "phase 5 code-quality review closed"
+        ],
+        "remaining": [],
+        "findings": [],
+        "verification": [
+          "cargo check -p forge-store-physical-certification --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: Finished dev profile target(s) in 0.15s",
+          "cargo check -p forge-store-test-support --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: Finished dev profile target(s) in 0.08s",
+          "cargo test -p forge-store-certification --test s4_5_deterministic_schedule_replay --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: 2 passed; 0 failed",
+          "cargo test -p forge-store-certification --test s4_5_schedule_replay_denials --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: 4 passed; 0 failed",
+          "cargo test -p forge-store-certification --test s4_5_schedule_shrink_trace --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: 2 passed; 0 failed",
+          "scoped PowerShell line-cap audit for phase 5 Rust files | exit 0 | tail: all checked files <= 400 lines"
+        ],
+        "plan": [
+          "test hardening plan posted; replay variation, schedule authority admission, and exact cost proof next"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "title": "Define Fault, Corruption, Crash, And Interleaving Events",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-test-support",
+        "workspaces/forge-store/crates/forge-store-physical-integrity",
+        "workspaces/forge-store/crates/forge-store-recovery-physics"
+      ],
+      "acceptance": [
+        "Fault events name artifact kind, field kind, seam, expected localization, and actual observed boundary.",
+        "Private mutation, arbitrary byte scribbles, same-process crash, post-decode corruption, and ambiguous loci deny.",
+        "Crash events require fresh-runtime evidence."
+      ],
+      "instructions": "Implement S.4.5 Phase 6 from the S.4.5 spec: Define Fault, Corruption, Crash, And Interleaving Events. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "test hardening plan posted; crash delivery, event matrix, hostile public denials, boundary mismatch next"
+        ],
+        "done": [
+          "phase 6 done-check passed",
+          "phase 6 fault event implementation and test hardening completed"
+        ],
+        "remaining": [],
+        "findings": [
+          "test QA: crash delivery path, hostile denial surfaces, event matrix, and boundary mismatch proof need hardening"
+        ],
+        "verification": [
+          "focused fault delivery test and scoped phase crate checks passed",
+          "recovered from forge-store-s4-5.codex.log after reboot-corrupted state file"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "title": "Define Observers And Certification-Owned Oracles",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-offline-verifier"
+      ],
+      "acceptance": [
+        "Observers collect facts and certification-owned oracles judge verdicts.",
+        "Test-support verdicts, logs, expected error text, same-run self-comparison, and fixture labels cannot satisfy oracle APIs.",
+        "Reusable S.5 readiness-shape oracle families exist without claiming S.5 correctness."
+      ],
+      "instructions": "Implement S.4.5 Phase 7 from the S.4.5 spec: Define Observers And Certification-Owned Oracles. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "test hardening plan posted; API attacks, executed convergence, verdict topology, multi-family composition next"
+        ],
+        "done": [
+          "phase 7 code-quality review closed; acceptance checks passed"
+        ],
+        "remaining": [
+          "later cleanup: split planning requirements axes and centralize compile-fail harness"
+        ],
+        "findings": [
+          "code-quality: forbidden-source denial API and compile-fail harness shape remain structural cleanup"
+        ],
+        "verification": [
+          "cargo check -p forge-store-physical-certification --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: Finished dev profile target(s) in 0.19s",
+          "cargo check -p forge-store-offline-verifier --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: Finished dev profile target(s) in 0.27s",
+          "cargo test -p forge-store-certification --test s4_5_observer_oracle_boundaries --test s4_5_observer_oracle_fact_basis --test s4_5_observer_oracle_execution --test s4_5_observer_oracle_boundary_compile_fail --manifest-path workspaces/forge-store/Cargo.toml | exit 0 | tail: 7 passed; compile-fail passed; 4 passed; 2 passed"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "title": "Define Exact Counter Contracts And Resource Profiles",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-budgets",
+        "workspaces/forge-store/crates/forge-store-buffer-pool",
+        "workspaces/forge-store/crates/forge-store-io-scheduler"
+      ],
+      "acceptance": [
+        "Counter contracts use zero, positive, exact, monotonic, bounded, or profile-scoped expectations according to weakest-sufficient proof strength.",
+        "Forbidden behavior and deterministic event-structure counters use exactness where exactness is the claim.",
+        "Over-exact implementation-sensitive cost counters deny."
+      ],
+      "instructions": "Implement S.4.5 Phase 8 from the S.4.5 spec: Define Exact Counter Contracts And Resource Profiles. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "remaining": [],
+        "done": [
+          "code-quality review passed"
+        ],
+        "verification": [
+          "cargo check -p forge-store-physical-certification -p forge-store-buffer-pool -p forge-store-io-scheduler: exit 0; tail: Finished dev profile",
+          "cargo test -p forge-store-certification --test s4_5_counter_strength --test s4_5_counter_contract_profile --test s4_5_counter_execution_equivalence --test s4_5_counter_runtime_envelope: exit 0; tail: 8 passed in counter_strength",
+          "cargo test -p forge-store-buffer-pool buffer_pool_evidence_source: exit 0; tail: 2 passed",
+          "cargo test -p forge-store-io-scheduler: exit 0; tail: 2 passed; doc-tests 0 passed"
+        ],
+        "findings": [
+          "test QA: equivalence, profile matrix, over-exact coverage, and during-run envelope proof need hardening"
+        ],
+        "plan": [
+          "test hardening plan posted; equivalence, profile matrix, over-exact matrix, runtime envelope next"
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "title": "Build Production-Backed Fixture Builders",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-test-support",
+        "workspaces/forge-store/crates/forge-store-physical-format",
+        "workspaces/forge-store/crates/forge-store-buffer-pool",
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-physical-integrity"
+      ],
+      "acceptance": [
+        "Fixtures are built through production-facing paths and reopen through physical authority.",
+        "Hand-filled structs, private storage mutation, synthetic in-memory stores, copied receipts, and labels cannot satisfy fixture authority.",
+        "Fixture manifests declare scale and mutation boundaries."
+      ],
+      "instructions": "Implement S.4.5 Phase 9 from the S.4.5 spec: Build Production-Backed Fixture Builders. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "test hardening plan posted; real hostile compile-fail and capability equivalence next"
+        ],
+        "done": [
+          "test hardening implemented: real compile-fail hostile sources and exact capability equivalence"
+        ],
+        "findings": [
+          "code quality: stale runtime denial variants remain for compile-time shortcut sources"
+        ],
+        "remaining": [
+          "consider pruning impossible SyntheticFixtureAuthorityDenied variants in later cleanup"
+        ],
+        "verification": [
+          "cargo test -p forge-store-certification --test s4_5_production_backed_fixture_authority --test s4_5_fixture_authority_denials --test s4_5_fixture_authority_compile_fail: exit 0; tail: 1 compile-fail, 2 denial, 5 authority tests passed",
+          "cargo check scoped phase crates: exit 0; tail: Finished dev profile",
+          "cargo fmt --check: exit 0; scoped git diff --check: exit 0"
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "title": "Emit Replayable Transcripts And Evidence Bundles",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-certification"
+      ],
+      "acceptance": [
+        "Executed transcripts replay from scenario, plan, schedule, driver profiles, fault events, fixture manifest, and seed without original live runtime.",
+        "Loose logs, terminal JSON, missing seeds, copied transcript fields, same-run self-comparison, and missing oracle verdicts deny.",
+        "Foundational materialization remains evidence packaging, not Store authority."
+      ],
+      "instructions": "Implement S.4.5 Phase 10 from the S.4.5 spec: Emit Replayable Transcripts And Evidence Bundles. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "remaining": [],
+        "plan": [
+          "phase 10 plan posted; transcript, replay bundle, evidence bundle, denials next",
+          "test hardening plan posted; detached replay admission and hostile-source proof next"
+        ],
+        "done": [
+          "phase 10 repair adds generic transcript replay evidence family across executable plan shapes",
+          "S4 recovery replay/evidence proof added",
+          "plan-required oracle verdict coverage enforced",
+          "failure digest and terminal JSON evidence denial repaired",
+          "phase 10 done-check passed",
+          "test hardening added detached replay readmission and hostile source compile-fail proof",
+          "phase 10 code-quality review passed; no structural blockers"
+        ],
+        "verification": [
+          "focused phase 10 checks passed after oracle coverage repair",
+          "focused phase 10 repair checks passed",
+          "phase 10 focused QA checks passed",
+          "phase 10 focused checks passed: physical-certification check, certification check, transcript evidence/replay/denial/compile-fail tests",
+          "cargo check -p forge-store-physical-certification --manifest-path workspaces\\forge-store\\Cargo.toml; exit 0; tail: Finished dev profile",
+          "cargo check -p forge-store-certification --manifest-path workspaces\\forge-store\\Cargo.toml; exit 0; tail: Finished dev profile",
+          "cargo test -p forge-store-certification --test s4_5_transcript_evidence_bundle --manifest-path workspaces\\forge-store\\Cargo.toml; exit 0; tail: 6 passed",
+          "cargo test -p forge-store-certification --test s4_5_transcript_replay_oracle_authority --manifest-path workspaces\\forge-store\\Cargo.toml; exit 0; tail: 3 passed",
+          "cargo test -p forge-store-certification --test s4_5_transcript_evidence_denials --manifest-path workspaces\\forge-store\\Cargo.toml; exit 0; tail: 7 passed",
+          "cargo test -p forge-store-certification --test s4_5_transcript_evidence_compile_fail --manifest-path workspaces\\forge-store\\Cargo.toml; exit 0; tail: 1 passed",
+          "PowerShell focused phase 10 line-cap check; exit 0; tail: no transcript/evidence files over 400 lines"
+        ],
+        "findings": [
+          "test QA: replay proof is same-run; hostile evidence-source denials are stub-like"
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "title": "Define Coverage Matrix And Harness Maturity Ladder",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-readiness"
+      ],
+      "acceptance": [
+        "Coverage rows are generated from registered scenarios, yieldpoints, actors, drivers, oracles, counters, transcripts, and mutation results.",
+        "Manual coverage prose, edited matrix rows, unchecked maturity claims, and missing registration evidence deny.",
+        "S.5 CI readiness dependencies map to satisfied rows without claiming S.5 correctness."
+      ],
+      "instructions": "Implement S.4.5 Phase 11 from the S.4.5 spec: Define Coverage Matrix And Harness Maturity Ladder. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 11 plan posted; generated coverage and maturity next",
+          "test hardening plan posted; matrix dimensions, dependency mapping, mutation proof next"
+        ],
+        "done": [
+          "phase 11 code-quality pass closed with structural debt recorded"
+        ],
+        "remaining": [
+          "split subsystem maturity aggregation from S5 dependency row evidence selection",
+          "remove or wire registered row wrapper types into registry generation"
+        ],
+        "findings": [
+          "code quality: maturity evidence stores one subsystem source digest too early",
+          "code quality: exported typed row wrappers are unused authority-shaped shells"
+        ],
+        "verification": [
+          "exit 0: cargo check -p forge-store-physical-certification; cargo check -p forge-store-readiness; cargo test -p forge-store-certification --test s4_5_generated_coverage_matrix --test s4_5_coverage_maturity_denials --test s4_5_coverage_compile_fail; tail: compile-fail 1 passed, denials 16 passed, matrix 2 passed"
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "title": "Prove Forbidden Shortcut Rejection",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-test-support",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-aspect-native"
+      ],
+      "acceptance": [
+        "Raw JSON authority, terminal projection text, logs, same-run self-comparison, private mutation, fixture labels, test-support oracle meaning, copied evidence fields, and skipped Proof stages fail.",
+        "Positive controls prove legitimate native scenario-to-evidence lanes still close.",
+        "Foundational/Proof surfaces cannot substitute for Store-owned simulation authority."
+      ],
+      "instructions": "Implement S.4.5 Phase 12 from the S.4.5 spec: Prove Forbidden Shortcut Rejection. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "findings": [
+          "test QA: shortcut receipts and positive lane need real-boundary hardening; compile-fail coverage incomplete"
+        ],
+        "plan": [
+          "phase 12 test hardening plan posted; real-boundary receipts, positive lane, compile-fail aggregation next"
+        ],
+        "done": [
+          "phase 12 code-quality review complete; acceptance checks passed"
+        ],
+        "remaining": [
+          "structural debt: scenario hostile attempt placement and phase compile-fail runner composition"
+        ],
+        "verification": [
+          "exit 0: phase12 runtime+compile-fail tests, adjacent compile-fail tests, cargo check physical-certification/test-support/aspect-native"
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "title": "Publish S.5 Simulation Harness Readiness",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-physical-isolation",
+        "workspaces/forge-store/crates/forge-store-test-support",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-readiness"
+      ],
+      "acceptance": [
+        "S.5 receives deterministic schedules, maintenance actors, yieldpoints, production drivers, reusable oracle families, counters, transcripts, and shortcut denials.",
+        "S.5 readiness shape probe lowers and executes with explicit non-claim evidence, not S.5 correctness.",
+        "Generic runners or future-behavior slots cannot satisfy S5SimulationHarnessReadiness."
+      ],
+      "instructions": "Implement S.4.5 Phase 13 from the S.4.5 spec: Publish S.5 Simulation Harness Readiness. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "remaining": [
+          "none"
+        ],
+        "plan": [
+          "phase 13 plan posted; S5 readiness handoff next",
+          "phase 13 test hardening plan posted; complete handoff breadth proof next"
+        ],
+        "findings": [
+          "phase 13 QA: handoff omits required S5 capability/counter shape; isolation depends on certification internals",
+          "phase 13 QA: S5 readiness consumer contract remains forgeable by generic runners",
+          "phase 13 test QA: S5 handoff assertions omit required capability/counter/yieldpoint breadth"
+        ],
+        "done": [
+          "phase 13 code-quality review closed"
+        ],
+        "verification": [
+          "cargo test s5 readiness + compile-fail exit 0; cargo check scoped crates exit 0; boundary rg clean"
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "title": "Close The Physical Simulation Harness Milestone",
+      "owner": "`forge-store-physical-certification`, `forge-store-test-support`, `forge-store-certification`, and phase-specific Store crates named in scope",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-test-support",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-readiness",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "S.4 recovery slice and shortcut-rejection slice dogfood public authoring; S.5 readiness shape probe runs with non-claim evidence.",
+        "All S.4.5 acceptance suites map to scenario, plan, schedule, actors, drivers, observers, oracles, transcripts, counters, positive/hostile/shortcut/replay/mutation lanes.",
+        "Future S6-S12 extension slots are visible without future behavior or false readiness."
+      ],
+      "instructions": "Implement S.4.5 Phase 14 from the S.4.5 spec: Close The Physical Simulation Harness Milestone. Treat this as harness-substrate work, not S.5-S.12 product behavior. Prioritize the public golden-path authoring API when the phase touches authoring; keep strict Proof, Foundational, canonical, transcript, coverage, and evidence machinery underneath Store-owned authority. Preserve aspect-native authority: no JSON except terminal projection or hostile/readmission lanes. Test support owns mechanics and fixtures; certification owns oracle meaning and verdicts. Use typed extension slots or readiness shape probes with explicit non-claim evidence for future behavior. If the phase touches counters, apply Counter Strength Law. If it touches scheduling, use named production-boundary yieldpoints. If it touches coverage, generate coverage from registered surfaces.",
+      "qa_focus": "Check that this phase builds usable harness infrastructure, not ceremony. Reject private mutation, fake worlds, logs-as-proof, fixture labels, same-run self-comparison, test-support-owned verdicts, JSON authority, over-exact brittle counters, hand-authored coverage, and accidental S.5 correctness claims. Verify the runner state reflects the real phase/prompt/open-finding state if sync drift occurred.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 14 test hardening plan posted; add suite execution proof basis next"
+        ],
+        "findings": [
+          "phase 14 code-quality QA: closeout acceptance/support structure remains dense"
+        ],
+        "done": [
+          "phase 14 closed after code-quality QA"
+        ],
+        "verification": [
+          "cargo check scoped exit 0 tail: Finished dev; closeout test exit 0 tail: 8 passed; compile-fail exit 0 tail: 1 passed; generated coverage exit 0 tail: 2 passed"
+        ],
+        "remaining": [
+          "residual debt: split closeout acceptance/support responsibilities after milestone"
+        ]
+      }
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-07-01T08:49:07.875132+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 plan",
+      "exit_code": null
+    },
+    {
+      "phase": 12,
+      "turn": "plan",
+      "status": "in_progress",
+      "note": "phase 12 implementation plan posted; advance to implement"
+    },
+    {
+      "at": "2026-07-01T08:51:32.899559+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T08:52:02.909955+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 implement",
+      "exit_code": null
+    },
+    {
+      "phase": 12,
+      "turn": "implement",
+      "status": "complete",
+      "note": "phase 12 implementation ready for review"
+    },
+    {
+      "at": "2026-07-01T09:00:55.068502+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:01:25.083007+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "phase": 12,
+      "turn": "review",
+      "status": "regressed",
+      "note": "phase 12 QA found shortcut report authority gaps"
+    },
+    {
+      "at": "2026-07-01T09:05:23.704861+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:05:53.715210+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 12,
+      "turn": "repair",
+      "status": "complete",
+      "note": "phase 12 shortcut report authority repair ready for review"
+    },
+    {
+      "at": "2026-07-01T09:10:46.222618+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:11:16.234128+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "phase": 12,
+      "turn": "review",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "phase 12 done-check passed; advanced to test_review",
+      "at": "2026-07-01T03:16:18.0682050-06:00"
+    },
+    {
+      "at": "2026-07-01T09:16:36.498840+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:17:06.508962+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 test_review",
+      "exit_code": null
+    },
+    {
+      "phase": 12,
+      "turn": "test_review",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "test QA found hardening gaps; advanced to test_repair_plan",
+      "at": "2026-07-01T03:19:05.1867400-06:00"
+    },
+    {
+      "at": "2026-07-01T09:19:22.363708+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:19:52.373968+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:22:08.146266+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:22:38.157296+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:22:56.830386+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:23:26.840617+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "phase": 12,
+      "turn": "test_repair_plan",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "phase 12 test hardening plan posted; advanced to test_repair_implement",
+      "at": "2026-07-01T03:23:42.1342914-06:00"
+    },
+    {
+      "at": "2026-07-01T09:23:51.374603+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:24:21.386113+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "phase": 12,
+      "turn": "test_repair_implement",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "phase 12 test hardening implemented; advanced to code_quality_review",
+      "at": "2026-07-01T03:33:06.8538555-06:00"
+    },
+    {
+      "at": "2026-07-01T09:33:17.908557+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:33:47.920344+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "phase": 12,
+      "turn": "code_quality_review",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "phase 12 code-quality review closed with remaining structural markers; acceptance proof green",
+      "at": "2026-07-01T03:35:19.3565919-06:00"
+    },
+    {
+      "at": "2026-07-01T09:35:30.462417+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:36:00.475752+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T03:38:39.8657701-06:00",
+      "phase": 13,
+      "turn": "plan",
+      "note": "phase 13 implementation plan posted"
+    },
+    {
+      "at": "2026-07-01T09:39:20.890688+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:39:50.901545+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T03:48:16.4356583-06:00",
+      "phase": 13,
+      "turn": "implement",
+      "note": "implemented S5 simulation harness readiness handoff"
+    },
+    {
+      "at": "2026-07-01T09:48:30.934764+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:49:00.944585+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T03:51:14.1594006-06:00",
+      "phase": 13,
+      "turn": "review",
+      "note": "phase 13 QA found readiness handoff gaps"
+    },
+    {
+      "at": "2026-07-01T09:51:31.167974+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:52:01.178564+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T03:56:40.0495430-06:00",
+      "phase": 13,
+      "turn": "repair",
+      "note": "repaired S5 readiness dependency direction and capability shape"
+    },
+    {
+      "at": "2026-07-01T09:56:50.978158+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:57:20.988914+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T04:00:13.8557119-06:00",
+      "phase": 13,
+      "turn": "review",
+      "note": "phase 13 QA failed: forgeable S5 readiness consumer contract"
+    },
+    {
+      "at": "2026-07-01T10:00:27.930732+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:00:57.942929+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T04:05:48.2915458-06:00",
+      "phase": 13,
+      "turn": "repair",
+      "note": "repaired S5 readiness consumer contract forgeability"
+    },
+    {
+      "at": "2026-07-01T10:06:00.282713+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:06:30.292021+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T04:07:44.6112908-06:00",
+      "phase": 13,
+      "turn": "review",
+      "note": "phase 13 QA passed; advanced to test review"
+    },
+    {
+      "at": "2026-07-01T10:07:53.346731+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:08:23.357036+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T04:09:21.3634122-06:00",
+      "phase": 13,
+      "turn": "test_review",
+      "note": "phase 13 test QA found incomplete S5 handoff breadth proof"
+    },
+    {
+      "at": "2026-07-01T10:09:35.349766+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:10:05.360255+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:10:28.772712+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:10:58.783121+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T04:11:14.6173073-06:00",
+      "phase": 13,
+      "turn": "test_repair_plan",
+      "note": "phase 13 test hardening plan posted"
+    },
+    {
+      "at": "2026-07-01T10:11:19.841778+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:11:49.851910+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T04:16:02.3063381-06:00",
+      "phase": 13,
+      "turn": "test_repair_implement",
+      "note": "phase 13 test hardening implemented"
+    },
+    {
+      "at": "2026-07-01T10:16:11.241155+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:16:41.251075+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "code_quality_review",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": "Phase 13 code-quality review passed; advanced to phase 14 plan.",
+      "at": "2026-07-01T04:19:49.9057885-06:00"
+    },
+    {
+      "at": "2026-07-01T10:20:03.329543+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:20:33.339853+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 plan",
+      "exit_code": null
+    },
+    {
+      "phase": 14,
+      "turn": "plan",
+      "status": "in_progress",
+      "qa_status": "not_started",
+      "notes": "Phase 14 implementation plan posted; advanced to implement.",
+      "at": "2026-07-01T04:22:54.5873128-06:00"
+    },
+    {
+      "at": "2026-07-01T10:22:59.180468+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:23:29.193710+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:32:13.397849+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:32:43.407887+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:34:43.153620+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:35:13.164084+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:44:49.473890+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:45:19.486562+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:48:03.909440+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:48:33.919263+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:53:47.335160+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:54:17.348407+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:55:49.587644+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:56:19.599225+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:58:56.315967+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:59:26.328143+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:00:32.079301+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:01:02.091565+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:04:26.896708+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:04:56.908178+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:07:46.326748+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:08:16.336160+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:14:20.786181+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:14:50.796719+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:16:15.209645+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:16:45.220594+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:18:57.490972+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:19:27.501901+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:23:12.284629+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:23:42.293540+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:28:36.153127+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:29:06.164266+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:30:27.440960+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:30:57.451394+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:38:18.969085+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:38:48.979509+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "phase": 14,
+      "turn": "review",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "phase 14 done-check passed",
+      "at": "2026-07-01T11:43:39.6153237Z"
+    },
+    {
+      "at": "2026-07-01T11:43:52.696709+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:44:22.713327+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 test_review",
+      "exit_code": null
+    },
+    {
+      "phase": 14,
+      "turn": "test_review",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "phase 14 test QA found hardening work",
+      "at": "2026-07-01T11:45:41.3494392Z"
+    },
+    {
+      "at": "2026-07-01T11:45:55.204849+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:46:25.220917+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "phase": 14,
+      "turn": "test_repair_plan",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "phase 14 test hardening plan posted",
+      "at": "2026-07-01T11:48:02.7931146Z"
+    },
+    {
+      "at": "2026-07-01T11:48:06.903840+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:48:36.918133+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:57:27.6809349+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:57:50.013066+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:58:20.027775+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T12:00:06.2621029+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T12:00:20.9017655+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T12:00:43.203251+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T12:01:13.214358+00:00",
+      "event": "runner_stop",
+      "detail": "all phases are complete",
+      "exit_code": null
+    }
+  ],
+  "completed_at": "2026-07-01T12:00:20.8832622+00:00"
+}

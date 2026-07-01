@@ -1,6 +1,10 @@
 #![forbid(unsafe_code)]
 
+mod boundary;
+
 use forge_store_physical_format::PhysicalReference;
+
+pub use boundary::OfflineVerifierBoundarySeam;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OfflineLayoutReport {

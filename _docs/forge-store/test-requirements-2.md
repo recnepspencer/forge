@@ -886,6 +886,7 @@ Every Roadmap 2 sequence must identify which harness subsystems it depends on.
 | S.2 | memory/allocation pressure harness, workload generator, mutation-style harness validation |
 | S.3 | corruption injector, adversarial storage backend, offline verifier, coverage matrix, mutation-style harness validation |
 | S.4 | fault scheduler, storage-boundary interposer, crash harness, adversarial storage backend, offline verifier, recovery determinism harness, mutation-style harness validation |
+| S.4.5 | golden-path scenario authoring API, aspect-native scenario definitions, deterministic scheduler, named production-boundary yieldpoints, production-facing driver contracts, actor model, fault/corruption/crash event vocabulary, observer registry, reusable certification-owned oracle families, counter-strength contracts, production-backed fixtures, replayable transcripts, evidence bundle system, generated coverage matrix, maturity ladder, S.4 recovery public-authoring slice, shortcut-rejection public-authoring slice, S.5 readiness shape-probe with non-claim evidence, extension slots, mutation-style harness validation |
 | S.5 | fault scheduler, latency/I/O pressure harness, crash harness, recovery determinism harness, coverage matrix |
 | S.6 | adversarial storage backend, storage-boundary interposer, latency/I/O pressure harness, cross-backend qualification harness |
 | S.7 | blob-scale harness, corruption injector, memory/allocation pressure harness, storage-boundary interposer, coverage matrix |

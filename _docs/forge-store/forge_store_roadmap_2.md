@@ -33,8 +33,9 @@ Current critical path in the first roadmap says:
 Roadmap 2 inserts this required aspect-native and physical foundation gate:
 
 `Milestone 13.3` -> `Aspect-Native Workspace Gate` -> `S.0` -> `S.1`
--> `S.2` -> `S.3` -> `S.4` -> `S.5` -> `S.6` -> `S.7` -> `S.8`
--> `S.9` -> `S.10` -> `S.11` -> `S.12` -> `Milestone 14`
+-> `S.2` -> `S.3` -> `S.4` -> `S.4.5` -> `S.5` -> `S.6`
+-> `S.7` -> `S.8` -> `S.9` -> `S.10` -> `S.11` -> `S.12`
+-> `Milestone 14`
 
 The `S.*` numbers are storage-foundation sequence numbers, not ordinary feature
 milestones. They express dependency order for the physical database substrate.
@@ -506,6 +507,86 @@ WAL tail, every acknowledged write is recoverable exactly once, every
 unacknowledged partial publication is rejected or completed through typed rules,
 and recovery never relies on scanning backend residue as authority.
 
+## S.4.5: Physical Database Simulation Harness
+
+Engineering spec: [storage-foundation-s4-5.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s4-5.md)
+
+### Goal
+
+Turn Roadmap 2's physical adversarial harness doctrine into a reusable,
+aspect-native simulation and certification substrate before S.5 begins.
+
+### Boundary
+
+This is not physical isolation, compaction, checkpointing, reclaim, blob
+lifecycle, I/O QoS, backup, repair, security, or full S.12 certification. This
+is the typed harness foundation that lets later sequences express those
+behaviors through production-facing drivers, deterministic schedules,
+certification-owned oracles, replayable transcripts, exact counters, and
+Foundational/Proof-backed evidence.
+
+### Adversarial Constraint
+
+No S.5 through S.12 physical claim may close on logs, same-run
+self-comparison, timing luck, fixture labels, hand-mutated private structs,
+test-support-owned oracle meaning, synthetic in-memory stores, JSON scenario
+authority, or post-hoc broad assertions. Hostile physical claims must be
+replayable from typed aspect-native scenarios, deterministic schedules,
+production-boundary drivers, fault/corruption/interleaving events,
+certification-owned oracles, exact counters, transcripts, and evidence bundles.
+
+### Must Ship
+
+- public golden-path scenario authoring API backed by aspect-native scenario,
+  schedule, actor, fault, oracle, transcript, counter, fixture, and
+  evidence-bundle vocabulary
+- deterministic scheduler and replay identity for physical database simulations
+- production-facing driver contracts for storage, crash, corruption, memory,
+  I/O, offline verification, maintenance, named yieldpoints, and later
+  blob/security/repair lanes
+- reusable certification-owned oracle families and generated coverage matrix so
+  proof meaning never lives in test support or hand-authored coverage prose
+- counter-strength posture so exact counters are used for forbidden behavior
+  and deterministic event structure, while implementation-sensitive costs use
+  weakest-sufficient expectations
+- S.4 recovery and shortcut-rejection dogfood slices through the public
+  authoring API, plus an S.5 readiness shape-probe through the same API with
+  explicit non-claim evidence that the probe does not certify unbuilt S.5
+  isolation behavior
+- reusable profile lanes for smoke, CI certification, soak, release
+  certification, and hardware qualification
+- S.5 readiness handoff proving the harness can express protect-before-observe,
+  root swaps, byte guards, reclaim barriers, crash/restart, deterministic
+  interleavings, and forbidden shortcuts
+
+### Must Preserve
+
+- Store owns physical database behavior.
+- Test support owns mechanics, not proof meaning.
+- Certification owns oracle verdicts and closeout evidence.
+- Foundational owns shared boundary/evidence vocabulary, not Store authority.
+- Proof owns proof-bearing progression law, not simulation semantics.
+- JSON remains confined to terminal projection or hostile/readmission lanes.
+
+### Proof Obligations
+
+- scenario lowering is typed and cannot skip resolution, scheduling,
+  admission, execution, transcript, oracle, or evidence stages
+- deterministic replay reproduces actor steps, injected events, counters,
+  transcripts, and oracle verdicts across runs
+- production-backed fixtures and drivers exercise production-facing boundaries
+  rather than private state mutation
+- certification-owned oracles deny logs, same-run self-comparison, fixture
+  labels, test-support verdicts, and JSON-shaped authority
+- S.5 cannot start without `S5SimulationHarnessReadiness`
+
+### Closeout Gate
+
+`S.4.5` is not closed until the dedicated Store workspace has a reusable
+physical simulation harness that can run typed, aspect-native, deterministic,
+production-boundary-backed, adversarial scenarios with certification-owned
+oracles, exact counters, replayable transcripts, and an S.5 readiness handoff.
+
 ## S.5: Physical Isolation, Latches, Epochs, And Stable Read Plans
 
 Engineering spec: [storage-foundation-s5.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s5.md)
@@ -519,7 +600,8 @@ Provide physical byte stability without duplicating semantic MVCC.
 This is not rebuilding `forge-relational` MVCC in the store. This is physical
 isolation for bytes: latches, epochs, stable read plans, copy-on-write
 publication, and reachability barriers that keep page and chunk reads valid
-while maintenance moves storage underneath them.
+while maintenance moves storage underneath them. It consumes the S.4.5
+simulation harness rather than inventing one inside the isolation milestone.
 
 ### Adversarial Constraint
 
@@ -932,8 +1014,8 @@ work, blob scale, cross-backend parity, and hazard-analysis residual risk.
 
 - the Aspect-Native Workspace Gate is closed, proving JSON is confined to
   terminal projection or hostile/readmission boundaries
-- `S.0` through `S.12` are implemented or explicitly scoped with named,
-  non-platform-grade debt
+- `S.0` through `S.12`, including `S.4.5`, are implemented or explicitly
+  scoped with named, non-platform-grade debt
 - [test-requirements-2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements-2.md)
   adversarial harness requirements are satisfied for every closed `S.*`
   sequence
