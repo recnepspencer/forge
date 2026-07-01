@@ -1,7 +1,9 @@
+use std::panic::{catch_unwind, AssertUnwindSafe};
+
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
     UiDeclarationArtifact, UiDeclarationContainmentIntent, UiDeclarationFamilyKind,
-    UiDeclarationGraphHandoffDenial, UiDeclarationStructuralRole, UiDeclaredPostureApplicability,
+    UiDeclarationStructuralRole, UiDeclaredPostureApplicability,
     UiDeclaredQueryBindingPosture, UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture,
     WorthUiHostCapability,
 };
@@ -60,7 +62,7 @@ fn public_freeze_derives_exact_graph_handoff_from_canonical_declaration_authorit
 }
 
 #[test]
-fn support_or_aspect_noise_does_not_change_exact_graph_handoff() {
+fn support_noise_is_out_of_graph_but_aspect_contract_is_graph_relevant() {
     let baseline = WorthUi::app()
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.graph-handoff.equivalence")
@@ -98,22 +100,30 @@ fn support_or_aspect_noise_does_not_change_exact_graph_handoff() {
         baseline_handoff.declared_posture(),
         noisy_handoff.declared_posture()
     );
+    assert_ne!(
+        baseline_handoff.aspect_contract(),
+        noisy_handoff.aspect_contract()
+    );
 }
 
 #[test]
 fn invalid_declared_posture_denies_before_graph_handoff_promotion() {
-    let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-handoff.denial")
-                .with_semantic_artifact_spec(invalid_graph_input_spec()),
-        )
-        .freeze();
-    let artifact = artifact_from_file_provenance(&app, "app/graph_handoff_denial.wui", 0);
-
-    assert!(matches!(
-        artifact.graph_handoff(),
-        Err(UiDeclarationGraphHandoffDenial::DeclaredPostureNotAdmitted { .. })
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        let _ = WorthUi::app()
+            .with_dsl_package(
+                WorthUiDslPackage::named("worth-ui.certification.graph-handoff.denial")
+                    .with_semantic_artifact_spec(invalid_graph_input_spec()),
+            )
+            .freeze();
+    }));
+    let panic_message = panic_message(result.expect_err(
+        "freeze path must reject invalid declared posture before graph handoff promotion",
     ));
+
+    assert!(
+        panic_message.contains("DeclaredPostureNotAdmitted"),
+        "expected freeze panic to name graph handoff denial, got: {panic_message}"
+    );
 }
 
 fn artifact_from_file_provenance<'a>(
@@ -165,4 +175,14 @@ fn invalid_graph_input_spec() -> UiDslSemanticArtifactSpec {
     )
     .with_structural_token(UiDslStructuralToken::new("control:save"))
     .with_posture_token(UiDslPostureToken::new("service:unknown"))
+}
+
+fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
+    match payload.downcast::<String>() {
+        Ok(message) => *message,
+        Err(payload) => match payload.downcast::<&'static str>() {
+            Ok(message) => (*message).to_string(),
+            Err(_) => "<non-string panic payload>".to_string(),
+        },
+    }
 }

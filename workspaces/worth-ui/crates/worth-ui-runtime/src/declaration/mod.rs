@@ -14,6 +14,7 @@ pub use artifact::{
     UiDeclarationIdentity, UiDeclarationIdentityDigest, UiDeclarationPostureDigest,
     UiDeclarationProvenance, UiDeclarationStructuralDigest, UiDeclarationSupportDigest,
 };
+pub(crate) use artifact::stable_text_digest;
 pub(crate) use aspect_contract::UiAspectContractAdmission;
 pub use aspect_contract::{
     UiAspectContract, UiAspectContractAdmissionDenial, UiAspectCoverageEntry,
@@ -25,7 +26,9 @@ pub use closeout::{
     UiDeclarationCloseoutReport,
 };
 pub use declaration_handoff::{UiDeclarationGraphHandoff, UiDeclarationGraphHandoffDenial};
-pub(crate) use declaration_handoff::{UiDeclaredPosturePayload, UiStructuralDeclarationPayload};
+pub(crate) use declaration_handoff::{
+    UiDeclaredAspectPayload, UiDeclaredPosturePayload, UiStructuralDeclarationPayload,
+};
 pub(crate) use declared_posture::UiDeclaredPostureAdmission;
 pub use declared_posture::{
     UiDeclaredHostCapabilityPosture, UiDeclaredMeasurementPolicyPosture,

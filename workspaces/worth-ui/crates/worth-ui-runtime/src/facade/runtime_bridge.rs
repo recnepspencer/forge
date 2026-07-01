@@ -2,8 +2,10 @@ use worth_ui_inspection::{UiInspectionScopeInventory, RUNTIME_INSPECTION_SCOPE_I
 
 use crate::declaration::{
     derive_declaration_inspection_support_projection, UiDeclarationArtifact,
+    UiDeclarationGraphHandoff, UiDeclarationGraphHandoffDenial,
     UiDeclarationInspectionSupportProjection, UiDeclarationLowering,
 };
+use crate::graph::{admit_graph_handoffs, UiGraphSnapshot, UiGraphWorldProfile};
 use crate::facade::{
     inspection_observation::WorthUiInspectionObservationState, CapabilitySnapshot,
     UiInspectionScope, UiInspectionSupportReport, WorthUiDslPackage, WorthUiHostContract,
@@ -86,6 +88,7 @@ impl WorthUiFacadeLifecycleBootstrap {
 pub(crate) struct WorthUiCapabilityRegistrationFreezeCore {
     capability_snapshot: CapabilitySnapshot,
     declaration_artifacts: Vec<UiDeclarationArtifact>,
+    graph_snapshot: UiGraphSnapshot,
     lifecycle: WorthUiFacadeLifecycleBootstrap,
 }
 
@@ -94,8 +97,16 @@ impl WorthUiCapabilityRegistrationFreezeCore {
         capability_snapshot: CapabilitySnapshot,
         dsl_package: WorthUiDslPackage,
         host_contract: WorthUiHostContract,
+        graph_world_profile: UiGraphWorldProfile,
     ) -> Self {
         let declaration_artifacts = lower_declaration_artifacts(&dsl_package);
+        let graph_handoffs = lower_graph_handoffs(&declaration_artifacts)
+            .expect("freeze path must deny graph instantiation before mutation when sealed handoff lowering fails");
+        let graph_snapshot = admit_graph_handoffs(&graph_handoffs, &[])
+            .expect("sealed graph handoff freeze path should not admit contradictory runtime basis")
+            .commit_initial_generation(graph_world_profile)
+            .expect("freeze path must deny before publishing graph authority")
+            .into_committed_snapshot();
         let lifecycle = WorthUiFacadeLifecycleBootstrap::new(
             dsl_package,
             host_contract,
@@ -103,6 +114,7 @@ impl WorthUiCapabilityRegistrationFreezeCore {
         );
         Self {
             capability_snapshot,
+            graph_snapshot,
             lifecycle,
             declaration_artifacts,
         }
@@ -112,9 +124,17 @@ impl WorthUiCapabilityRegistrationFreezeCore {
         capability_snapshot: CapabilitySnapshot,
         dsl_package: WorthUiDslPackage,
         host_contract: WorthUiHostContract,
+        graph_world_profile: UiGraphWorldProfile,
         inspection_scope_inventory: UiInspectionScopeInventory,
     ) -> Self {
         let declaration_artifacts = lower_declaration_artifacts(&dsl_package);
+        let graph_handoffs = lower_graph_handoffs(&declaration_artifacts)
+            .expect("freeze path must deny graph instantiation before mutation when sealed handoff lowering fails");
+        let graph_snapshot = admit_graph_handoffs(&graph_handoffs, &[])
+            .expect("sealed graph handoff freeze path should not admit contradictory runtime basis")
+            .commit_initial_generation(graph_world_profile)
+            .expect("freeze path must deny before publishing graph authority")
+            .into_committed_snapshot();
         let lifecycle = WorthUiFacadeLifecycleBootstrap::new_with_inspection_scope_inventory(
             dsl_package,
             host_contract,
@@ -123,6 +143,7 @@ impl WorthUiCapabilityRegistrationFreezeCore {
         );
         Self {
             capability_snapshot,
+            graph_snapshot,
             declaration_artifacts,
             lifecycle,
         }
@@ -133,11 +154,13 @@ impl WorthUiCapabilityRegistrationFreezeCore {
     ) -> (
         CapabilitySnapshot,
         Vec<UiDeclarationArtifact>,
+        UiGraphSnapshot,
         WorthUiFacadeLifecycleBootstrap,
     ) {
         (
             self.capability_snapshot,
             self.declaration_artifacts,
+            self.graph_snapshot,
             self.lifecycle,
         )
     }
@@ -149,5 +172,14 @@ fn lower_declaration_artifacts(dsl_package: &WorthUiDslPackage) -> Vec<UiDeclara
         .iter()
         .cloned()
         .map(UiDeclarationLowering::lower)
+        .collect()
+}
+
+fn lower_graph_handoffs(
+    declaration_artifacts: &[UiDeclarationArtifact],
+) -> Result<Vec<UiDeclarationGraphHandoff>, UiDeclarationGraphHandoffDenial> {
+    declaration_artifacts
+        .iter()
+        .map(UiDeclarationArtifact::graph_handoff)
         .collect()
 }

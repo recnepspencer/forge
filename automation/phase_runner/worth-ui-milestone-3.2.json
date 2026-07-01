@@ -1,0 +1,1200 @@
+{
+  "schema_version": 1,
+  "state_revision": 218,
+  "current": null,
+  "project": {
+    "name": "Worth UI Milestone 3.2",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui",
+    "spec_file": "_docs\\worth-ui\\milestone-3.2.md",
+    "context_files": [
+      "_docs\\coding_guidelines\\MENTALITY.md",
+      "_docs\\coding_guidelines\\arch_laws.md",
+      "_docs\\coding_guidelines\\composition_laws.md",
+      "_docs\\coding_guidelines\\domain_structure_laws.md",
+      "_docs\\coding_guidelines\\perf_laws.md",
+      "crates\\forge-foundational\\docs\\FOUNDATIONAL_README.md",
+      "crates\\forge-query\\docs\\AI_README.md",
+      "workspaces\\worth-ui\\docs\\WORTH_UI_README.md",
+      "_docs\\worth-ui\\worth-ui-dsl-vision.md",
+      "_docs\\worth-ui\\ai-diagnostics.md",
+      "_docs\\worth-ui\\worth_ui_roadmap.md",
+      "_docs\\worth-ui\\milestone-3.2.md"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md"
+  },
+  "contract_template": "templates/_contract_test_hardening.md",
+  "session": {
+    "command": "C:\\nvm4w\\nodejs\\codex.cmd",
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    },
+    "thread_id": "019f19ec-5307-7213-8ef4-b5de620b9a2b",
+    "thread_started_at": "2026-06-30T19:05:47.919770+00:00"
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Freeze Canonical Artifact Envelope And Authored Identity Law",
+      "owner": "worth-ui declaration artifact authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-dsl",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration\\artifact",
+        "workspaces\\worth-ui\\crates\\worth-ui\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "one canonical UiDeclarationArtifact authority surface exists and external code cannot mint it from raw source fragments, strings, renderer labels, or graph-local identities",
+        "UiDeclarationIdentity follows an explicit equivalence contract where formatting, comments, parser-local ids, diagnostic wording, and non-semantic ordering noise do not change declaration identity",
+        "lane-specific declaration digest projections exist so artifact, identity, family, aspect, structural, posture, and support changes can be localized mechanically",
+        "runtime declaration lowering consumes a semantic DSL input artifact and lowering receipt instead of reopening raw source text"
+      ],
+      "instructions": "Build the authority envelope first. Do not start with family-specific semantics or graph handoff convenience. Freeze the canonical declaration artifact boundary, authored identity law, semantic DSL input artifact, and lane-specific digest structure before anything else widens the surface.",
+      "qa_focus": "Single authoritative artifact, real authored-semantic identity, no source reopening, no parser-result blob, and digest locality that makes future hot-reload continuity honest.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "authority-envelope-implemented",
+          "freeze-lane-test-hardening-planned"
+        ],
+        "done": [
+          "sealed-dsl-receipt-and-internal-lowering",
+          "facade-bypass-removed",
+          "source-equivalence-lane-capped",
+          "production-freeze-consumes-dsl-receipts",
+          "public-freeze-authority-bypass-sealed",
+          "runtime-bootstrap-receipt-lane-restored",
+          "freeze-lane-runtime-certification-hardened",
+          "bootstrap-receipt-public-seam-certified",
+          "phase-1-test-hardening-review-passed",
+          "phase-1-code-quality-reviewed"
+        ],
+        "remaining": [
+          "dsl-package-file-mixes-package-bootstrap-and-digesting",
+          "runtime-facade-still-owns-dsl-package-presentation"
+        ],
+        "findings": [
+          "test-proof-bypasses-freeze-lane-and-underasserts-bootstrap-seam",
+          "dsl-package-file-mixes-package-bootstrap-and-digesting",
+          "runtime-facade-still-owns-dsl-package-presentation"
+        ],
+        "verification": [
+          "runtime-declaration-tests-pass",
+          "declaration-compile-fail-certification-pass",
+          "dsl-receipt-runtime-certification-pass",
+          "app-freeze-declaration-runtime-certification-pass",
+          "public-freeze-no-artifact-promotion-certification-pass",
+          "package-seeding-compile-fail-certification-pass",
+          "runtime-bootstrap-production-lane-certification-pass",
+          "runtime-declaration-tests-pass-after-hardening",
+          "declaration-authority-compile-pass-after-hardening",
+          "declaration-authority-runtime-pass-after-hardening",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-runtime declaration::tests | exit 0 | tail: 3 tests passed; dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification declaration_authority_compile | exit 0 | tail: compile-fail declaration boundary suite passed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_authority_runtime | exit 0 | tail: 3 runtime authority tests passed; warnings remain"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Admit Closed Declaration Family Authority",
+      "owner": "worth-ui declaration family authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration\\family",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration",
+        "workspaces\\worth-ui\\crates\\worth-ui\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "the admitted family catalog closes the initial family set: page, page-set, region, mosaic, local-composition, control, query-binding, intent, and diagnostic-surface",
+        "unknown, contradictory, or partial family claims deny through typed runtime family admission rather than late downstream failure or generic fallback families",
+        "query-binding and intent are structurally distinguished when they act as standalone declaration families versus declared posture projections attached to structural or control families",
+        "public callers cannot bypass family admission by constructing family-owned contract wrappers directly"
+      ],
+      "instructions": "Do not widen UiDeclarationArtifact with nullable family blobs. Admit a closed family authority surface and force every family distinction through explicit runtime-owned contract shape.",
+      "qa_focus": "No catch-all declaration family, no duplicated authority between family and posture roles, and a catalog that teaches the real semantic family set instead of parser categories.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [
+          "family-admission-repair-complete",
+          "caller-authored-freeze-proof-hardened",
+          "family-wrapper-forgery-coverage-expanded",
+          "phase-2-code-quality-reviewed"
+        ],
+        "remaining": [
+          "family-admission-file-still-centralized",
+          "dsl-package-file-still-mixes-bootstrap-and-digesting"
+        ],
+        "findings": [
+          "caller-authored-freeze-proof-missing",
+          "compile-fail-wrapper-coverage-too-narrow",
+          "admission-rules-and-family-dispatch-still-collapsed",
+          "dsl-package-owns-package-bootstrap-and-digesting"
+        ],
+        "verification": [
+          "phase-2-review-proof-pass",
+          "runtime-declaration-tests-pass",
+          "family-runtime-certification-freeze-path-pass",
+          "family-compile-fail-certification-expanded-pass",
+          "declaration-authority-runtime-public-path-pass",
+          "cargo check -p worth-ui-runtime | exit 0 | tail: warnings only; Finished dev profile",
+          "cargo test -p worth-ui-runtime declaration::tests | exit 0 | tail: 11 passed; 0 failed",
+          "cargo test -p worth-ui-certification --test declaration_family_admission_runtime | exit 0 | tail: 4 passed; 0 failed",
+          "cargo test -p worth-ui-certification --test declaration_family_admission_compile | exit 0 | tail: 1 passed; compile-fail fixture ok"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "Define Typed Aspect Publication And Consumption Contracts",
+      "owner": "worth-ui declaration aspect contract authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration\\aspect_contract",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "UiAspectContract exists as typed declaration authority over semantic publication and semantic consumption, not freeform strings or renderer labels",
+        "equivalent publication or consumption semantics converge to equivalent aspect contracts regardless of authored spelling details",
+        "an aspect coverage report explains what a declaration publishes and consumes without reopening source text or consulting support-only mirrors",
+        "raw strings, ad hoc Query labels, and renderer-local semantic tags cannot satisfy aspect contract authority"
+      ],
+      "instructions": "Make aspect publication and consumption first-class and typed. This is the point where later graph, obligation, and inspection lanes stop being allowed to invent their own semantic tables.",
+      "qa_focus": "No stringly aspect truth, no support-row-only aspect semantics, and no hidden richer meaning in family helpers than the contract can express.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "typed-aspect-contract-plan-posted",
+          "aspect-coverage-denial-proof-hardening-planned"
+        ],
+        "done": [
+          "typed-aspect-contract-lane-implemented",
+          "coverage-report-and-anti-stringly-proof-added",
+          "aspect-contract-typed-shape-repaired",
+          "aspect-coverage-derivation-sealed",
+          "aspect-semantic-slice-authority-repaired",
+          "aspect-admission-denial-typed",
+          "aspect-coverage-derivation-runtime-owned",
+          "phase-3-review-passed",
+          "aspect-coverage-denial-proof-hardened",
+          "phase-3-code-quality-reviewed"
+        ],
+        "remaining": [
+          "aspect-contract-mod-should-aggregate-only",
+          "aspect-taxonomy-and-admission-need-cleaner-split"
+        ],
+        "findings": [
+          "aspect-contract-still-modeled-as-string-bags",
+          "aspect-coverage-report-is-forgeable-from-raw-strings",
+          "aspect-contract-still-path-string-driven",
+          "unsupported-aspect-admission-still-panics",
+          "unsupported-aspect-coverage-denial-not-proved",
+          "aspect-contract-mod-aggregation-mixes-helpers",
+          "aspect-name-file-owns-taxonomy-and-admission"
+        ],
+        "verification": [
+          "cargo check -p worth-ui-runtime exit 0",
+          "cargo test -p worth-ui-runtime declaration::tests exit 0",
+          "cargo test -p worth-ui-certification --test declaration_aspect_contract_runtime exit 0",
+          "cargo test -p worth-ui-certification --test declaration_aspect_contract_compile exit 0",
+          "python automation/phase_runner/runner.py automation/phase_runner/worth-ui-milestone-3.2.json --validate exit 0",
+          "cargo test -p worth-ui-runtime declaration::tests exit 0 after coverage-denial hardening",
+          "cargo test -p worth-ui-certification --test declaration_aspect_contract_runtime exit 0 after coverage-denial hardening",
+          "cargo check --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-runtime | exit 0 | tail: finished dev profile; unrelated dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-runtime declaration::tests | exit 0 | tail: 14 tests passed; unrelated dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_aspect_contract_runtime | exit 0 | tail: 4 tests passed; unrelated dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_aspect_contract_compile | exit 0 | tail: compile-fail aspect authority suite passed; unrelated dead_code warnings remain"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "title": "Carry Structural Declaration Semantics Without Fabricating Graph Truth",
+      "owner": "worth-ui declaration structural semantics",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration\\structural_semantics",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration\\declaration_handoff",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "declarations project authoritative structural intent for page, region, mosaic, local-composition, control, and related structural roles without instantiating graph node truth",
+        "a sealed 3.3 handoff artifact carries declaration identity, family, structural role, containment or membership intent, slot participation intent, authored ordering guarantee where semantically claimed, and repetition posture where admitted",
+        "3.3-facing structural handoff is derivable from declaration authority alone without source reopening or renderer-local interpretation",
+        "incomplete or contradictory structural declarations fail in 3.2 rather than escaping to 3.3 as half-formed graph truth"
+      ],
+      "instructions": "Keep the subtle line honest: 3.2 declares structure, 3.3 creates graph truth. Build the exact handoff payload 3.3 may consume, and no more.",
+      "qa_focus": "No graph fabrication, no repeated-instance identity, no participation truth, and no missing structural facts that would force 3.3 to reinterpret source.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "prove-full-handoff-family-contract-and-structural-localization"
+        ],
+        "done": [
+          "structural-handoff-now-carries-family-contract",
+          "structural-membership-and-slot-intent-tightened",
+          "full-handoff-family-proof-hardened",
+          "structural-localization-proof-hardened",
+          "phase-4-code-quality-reviewed"
+        ],
+        "remaining": [
+          "structural-admission-taxonomy-still-collapsed",
+          "structural-payload-public-surface-remains-too-broad"
+        ],
+        "findings": [
+          "structural-handoff-family-contract-not-fully-proved",
+          "structural-localization-proof-missing",
+          "structural-admission-taxonomy-still-collapsed",
+          "structural-payload-public-surface-remains-too-broad"
+        ],
+        "verification": [
+          "cargo check -p worth-ui-runtime exit 0",
+          "cargo test -p worth-ui-runtime declaration::tests exit 0",
+          "cargo test -p worth-ui-certification --test declaration_structural_semantics_runtime exit 0",
+          "cargo test -p worth-ui-certification --test declaration_structural_semantics_compile exit 0",
+          "python automation/phase_runner/runner.py automation/phase_runner/worth-ui-milestone-3.2.json --validate exit 0",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-runtime declaration::tests exit 0 after structural-test-hardening",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_structural_semantics_runtime exit 0 after structural-test-hardening",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_structural_semantics_compile exit 0 after structural-test-hardening",
+          "cargo check --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-runtime | exit 0 | tail: Finished dev profile; unrelated dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-runtime declaration::tests | exit 0 | tail: 17 tests passed; unrelated dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_structural_semantics_runtime | exit 0 | tail: 7 tests passed; unrelated dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_structural_semantics_compile | exit 0 | tail: compile-fail structural handoff suite passed; unrelated dead_code warnings remain"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "title": "Admit Declared Query, Service, Touch, Measurement, And Host-Capability Intent Contracts",
+      "owner": "worth-ui declaration posture authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration\\declared_posture",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration",
+        "workspaces\\worth-ui\\crates\\worth-ui-host-contract",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "typed declaration posture lanes exist for Query binding, service usage, touch or interaction meaning, measurement policy, and host capability posture",
+        "every admitted family classifies each posture lane as required, optional, not_applicable, or architecturally_owned_but_not_yet_admitted",
+        "declared posture cannot be promoted into executed Query receipts, host observations, allocation outcomes, or service execution surfaces",
+        "host capability requirements such as text input, IME, accessibility, font metrics, visual capture prerequisites, and similar gates appear first as declaration posture, not host-adapter inference"
+      ],
+      "instructions": "This phase is about declared intent contracts only. Do not drift into runtime planning or execution. Make posture applicability explicit so later milestones do not invent their own absent-vs-future semantics.",
+      "qa_focus": "No execution leakage, no host-local capability invention, and no ambiguity between optional, not applicable, and future-admitted posture.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "harden-family-lane-matrix-and-separation-boundary-proof"
+        ],
+        "done": [
+          "phase-5-code-quality-reviewed"
+        ],
+        "remaining": [
+          "declared-posture-admission-needs-named-lane-policy-split"
+        ],
+        "findings": [
+          "declared-posture-admission-policy-still-collapsed"
+        ],
+        "verification": [
+          "cargo check --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-runtime | exit 0 | tail: Finished dev profile; unrelated dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-runtime declaration::declared_posture_tests | exit 0 | tail: 7 passed; unrelated dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_declared_posture_runtime | exit 0 | tail: 4 passed; unrelated dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_declared_posture_compile | exit 0 | tail: 1 passed; trybuild fixtures ok; unrelated dead_code warnings remain"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "title": "Add Support Snapshot For Architecturally-Owned But Not-Yet-Admitted Semantics",
+      "owner": "worth-ui declaration support posture",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration\\support",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "typed support snapshot and support rows exist for architecturally-owned but not-yet-admitted declaration semantics",
+        "support rows are generated from a declared support-row schema and may project only admitted declaration facts, lane classification, roadmap-declared future lanes, and typed unsupported posture",
+        "support rows cannot be promoted into declaration authority, graph truth, runtime evidence, or richer family-local side channels",
+        "unsupported posture remains localized to the exact semantic lane and does not imply the whole declaration subsystem is unavailable"
+      ],
+      "instructions": "Make future declaration semantics visible without creating a second declaration model. Keep support derivative, schema-limited, and incapable of inventing richer truth than the admitted artifact carries.",
+      "qa_focus": "No support-row side channel, no ad hoc family formatting logic, and no alternate truth store disguised as support reporting.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "harden-inspection-facade-proof-and-family-support-matrix"
+        ],
+        "done": [
+          "phase-6-code-quality-reviewed"
+        ],
+        "remaining": [
+          "support-row-schema-and-row-derivation-policy-still-collapsed",
+          "support-snapshot-still-owns-inspection-projection-policy"
+        ],
+        "findings": [
+          "support-admission-still-collapses-schema-and-row-policy",
+          "support-snapshot-still-mixes-authority-and-inspection-projection"
+        ],
+        "verification": [
+          "cargo check --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-runtime | exit 0 | tail: Finished dev profile; 5 pre-existing dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-runtime declaration::support_tests | exit 0 | tail: 6 passed; 0 failed; 5 pre-existing dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_support_snapshot_runtime | exit 0 | tail: 4 passed; 0 failed; 5 pre-existing dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_support_snapshot_compile | exit 0 | tail: 1 passed; trybuild fixture ok; 5 pre-existing dead_code warnings remain"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "title": "Mechanize Boundary Enforcement And Residue Rejection",
+      "owner": "worth-ui certification boundary",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-dsl",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-host-contract",
+        "workspaces\\worth-ui\\crates\\worth-ui-host-egui",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "compile-fail suites prove public callers cannot mint artifacts, identities, families, aspect contracts, or family-owned contract wrappers from raw values",
+        "topology and dependency audits prove declaration public surfaces are facade-curated and do not mirror internal topology deeply enough to freeze refactors",
+        "residue scans prove runtime, host, renderer, and graph code do not reinterpret declaration meaning from raw source text or renderer-local tables after lowering",
+        "certification ownership is explicit for identity, family, aspect, structural, posture, support, facade-boundary, source-reopening, and 3.3 handoff proof families"
+      ],
+      "instructions": "Turn the declaration architecture into mechanical enforcement. Do not leave anti-forgery, source-reopening rejection, or deep-import boundaries as convention or prose.",
+      "qa_focus": "Compiler-enforced construction, real residue rejection, curated facade ownership, and no decorative topology boundaries.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "repair-curated-facade-and-source-reopening-proof"
+        ],
+        "done": [
+          "phase7 code-quality reviewed"
+        ],
+        "remaining": [
+          "split-parser-collectors-from-audit-policies",
+          "separate-source-reopening-from-host-layer-authority-audit"
+        ],
+        "findings": [
+          "dependency-audit-file-is-a-topology-bucket",
+          "declaration-residue-audit-mixes-source-reopening-and-host-import-proof"
+        ],
+        "verification": [
+          "cargo check --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-runtime | exit 0 | tail: Finished dev profile; pre-existing dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_boundary_compile | exit 0 | tail: 1 passed; runtime_facade_root_does_not_export_declaration_surface ok",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_topology_audit | exit 0 | tail: 6 passed including use-based deep-import fixture",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_residue_audit | exit 0 | tail: 3 passed including bad source reopening fixture",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_authority_compile | exit 0 | tail: authority compile fixtures passed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_family_admission_compile | exit 0 | tail: family wrapper forgery fixture passed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_aspect_contract_compile | exit 0 | tail: aspect contract compile fixture passed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_structural_semantics_compile | exit 0 | tail: structural handoff compile fixture passed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_declared_posture_compile | exit 0 | tail: posture compile fixtures passed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_support_snapshot_compile | exit 0 | tail: support snapshot compile fixture passed"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "title": "Close Declaration Authority And Hand 3.3 A Proof-Bearing Contract Surface",
+      "owner": "worth-ui declaration closeout",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification",
+        "_docs\\worth-ui\\milestone-3.2.md"
+      ],
+      "acceptance": [
+        "the milestone closes at the declaration-authority boundary with no claim of graph truth, mounted truth, measured truth, or runtime participation execution",
+        "one sealed 3.3 declaration handoff artifact exists and rejects raw source products, parser-local blobs, support-only rows, and graph-shaped receipts",
+        "acceptance evidence proves authored declarations lower once into stable canonical authority with lane-specific digest locality and no later source reopening",
+        "closeout enumerates the admitted family set and the exact declaration semantic lanes 3.2 closes, leaving no ambiguity about what 3.3 may consume"
+      ],
+      "instructions": "Close the milestone with proof, not ceremony. Make the 3.3 handoff exact, keep non-goals explicit, and do not certify anything beyond canonical declaration authority.",
+      "qa_focus": "Honest closeout, exact 3.3 handoff shape, no overclaiming runtime behavior, and no unresolved ambiguity about what this milestone actually owns.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase8-test-hardening-closeout-path-and-support-row-rejection"
+        ],
+        "done": [
+          "phase8-code-quality-reviewed"
+        ],
+        "verification": [
+          "cargo check --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-runtime | exit 0 | tail: Finished dev profile; pre-existing dead_code warnings remain",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_graph_handoff_runtime | exit 0 | tail: 3 passed; 0 failed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_closeout_runtime | exit 0 | tail: 2 passed; 0 failed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_graph_handoff_compile | exit 0 | tail: compile-fail handoff suite passed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_structural_semantics_runtime | exit 0 | tail: 7 passed; 0 failed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_structural_semantics_compile | exit 0 | tail: compile-fail structural suite passed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_support_snapshot_compile | exit 0 | tail: compile-fail support suite passed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_boundary_compile | exit 0 | tail: compile-fail boundary suite passed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_topology_audit | exit 0 | tail: 6 passed; 0 failed",
+          "python automation/phase_runner/runner.py automation/phase_runner/worth-ui-milestone-3.2.json --validate | exit 0 | tail: state file is valid"
+        ],
+        "remaining": [
+          "separate-milestone32-closeout-profile-from-report-carrier",
+          "move-global-closeout-surface-off-per-artifact-instance-method"
+        ],
+        "findings": [
+          "phase8-artifact-closeout-report-is-global-metadata-on-instance-surface",
+          "phase8-closeout-report-file-mixes-generic-carrier-and-milestone32-profile"
+        ]
+      }
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-06-30T21:52:55.866858+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T21:53:25.876616+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 3 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T21:54:51.322252+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 3 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T21:55:21.335825+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T21:57:06.243046+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 4 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T21:57:36.253901+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T16:10:41.350548-06:00",
+      "phase": 4,
+      "turn": "implement",
+      "note": "Implemented structural declaration semantics lane, sealed 3.3 handoff, and focused runtime plus compile-fail certification; advanced to review."
+    },
+    {
+      "at": "2026-06-30T22:10:59.794280+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 4 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T22:11:29.806287+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T16:13:11.128216-06:00",
+      "phase": 4,
+      "turn": "review",
+      "note": "Phase 4 review failed: structural handoff drops full declaration family contract and structural semantics still admit under-specified slot or membership intent; moved to repair."
+    },
+    {
+      "at": "2026-06-30T22:13:40.623511+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 4 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T22:14:10.634766+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T16:21:30.109905-06:00",
+      "phase": 4,
+      "turn": "repair",
+      "note": "Repaired phase 4 by carrying full family authority in structural handoff and tightening structural membership plus slot admission; advanced to review."
+    },
+    {
+      "at": "2026-06-30T22:21:51.491167+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 4 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T22:22:21.500768+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T16:23:00.983634-06:00",
+      "phase": 4,
+      "turn": "review",
+      "note": "Phase 4 hostile review passed after structural family handoff and structural intent repairs; advanced to test_review."
+    },
+    {
+      "at": "2026-06-30T22:23:09.962749+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 4 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T22:23:39.972207+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T16:24:19.622008-06:00",
+      "phase": 4,
+      "turn": "test_review",
+      "note": "Phase 4 test QA found weak proof for full handoff family preservation and missing structural localization proof; advanced to test_repair_plan."
+    },
+    {
+      "at": "2026-06-30T22:24:38.283549+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 4 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T22:25:08.299897+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T16:25:24.418930-06:00",
+      "phase": 4,
+      "turn": "test_repair_plan",
+      "note": "Planned phase 4 test hardening for full handoff family preservation and structural localization proof; advanced to test_repair_implement."
+    },
+    {
+      "at": "2026-06-30T22:25:44.401447+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 4 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T22:26:14.412188+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T22:30:31.744875+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 4 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T22:31:01.757317+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 4 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T22:33:54.505422+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 4 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T22:34:24.516398+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 5 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T22:36:08.262815+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 5 plan did not advance; forced implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T22:36:08.262815+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 5 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T22:36:38.272933+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 5 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T22:45:32.674968+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 5 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T22:46:02.686259+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 5 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T22:50:18.743089+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 5 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T22:50:48.753955+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 5 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T22:57:02.335278+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 5 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T22:57:32.345672+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 5 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T22:58:12.966732+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 5 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T22:58:42.977785+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 5 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T23:00:11.519931+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 5 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T23:00:41.531569+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 5 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T17:01:50.996581-06:00",
+      "phase": 5,
+      "turn": "test_repair_plan",
+      "note": "Planned phase 5 test hardening for full family-lane applicability coverage and stronger query or allocation or service separation proof; advanced to test_repair_implement."
+    },
+    {
+      "at": "2026-06-30T23:02:19.101331+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 5 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T23:02:49.118021+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 5 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T17:07:10.083289-06:00",
+      "phase": 5,
+      "turn": "test_repair_implement",
+      "note": "Hardened phase 5 family-lane applicability matrix and expanded compile-fail separation proof; advanced to code_quality_review."
+    },
+    {
+      "at": "2026-06-30T23:07:23.157060+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 5 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T23:07:53.169584+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 5 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T17:09:22.523301-06:00",
+      "phase": 5,
+      "turn": "code_quality_review",
+      "note": "Phase 5 closed with passing QA and explicit admission-file residue; advanced to phase 6 plan."
+    },
+    {
+      "at": "2026-06-30T23:09:38.333108+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 5 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T23:10:08.344844+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T17:11:04.603330-06:00",
+      "phase": 6,
+      "turn": "plan",
+      "note": "Posted phase 6 plan for declaration support snapshot derivative lane and advanced to implement."
+    },
+    {
+      "at": "2026-06-30T23:12:00.071886+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T23:12:30.083679+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T23:26:48.906450+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T23:27:18.919736+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T23:28:59.654306+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T23:29:29.678136+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T23:31:08.528962+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T23:31:38.539401+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T23:32:19.859231+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T23:32:49.872621+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T23:41:15.483372+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T23:41:45.494161+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T23:45:27.321597+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T23:45:57.331093+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T23:47:48.007252+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 7 plan did not advance; forced implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T23:47:48.007252+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-30T23:48:18.018581+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T23:59:37.736723+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T00:00:07.750190+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:05:07.811446+00:00",
+      "event": "phase_review_failed",
+      "detail": "phase 7 review found decorative facade audit and narrow residue scan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:05:38.481609+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T00:06:08.500464+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:22:33.837626+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T00:23:03.858236+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:25:55.659353+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T00:26:25.677762+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:28:11.665941+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T00:28:41.682212+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:29:14.065677+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 7 test_repair_plan did not advance; forced test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:29:14.065677+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T00:29:44.082473+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:38:11.564862+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T00:38:41.577336+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:39:32.441821+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T00:40:02.455611+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:40:43.973829+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 7 test_repair_plan did not advance; forced test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:40:43.973829+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T00:41:13.985895+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:43:06.990160+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T00:43:37.004412+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:44:18.313965+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T00:44:48.334354+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:47:38.048192+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T00:48:08.063823+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:49:17.378004+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 8 plan did not advance; forced implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:49:17.378004+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T00:49:47.395623+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T19:06:24.2087769-06:00",
+      "phase": 8,
+      "turn": "implement",
+      "note": "Implemented exact declaration graph handoff and milestone closeout report; focused proof passed."
+    },
+    {
+      "at": "2026-07-01T01:07:17.243829+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T01:07:47.255446+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T19:11:02.6167232-06:00",
+      "phase": 8,
+      "turn": "review",
+      "note": "Phase 8 hostile review passed; exact graph handoff and declaration closeout boundary are ready for test review."
+    },
+    {
+      "at": "2026-07-01T01:11:25.017986+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T01:11:55.028924+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T19:13:03.9503130-06:00",
+      "phase": 8,
+      "turn": "test_review",
+      "note": "Phase 8 test QA found static closeout-proof coverage and missing handoff-lane ownership for support-row rejection; advanced to test_repair_plan."
+    },
+    {
+      "at": "2026-07-01T01:13:25.450713+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T01:13:55.462955+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T19:14:12.8302105-06:00",
+      "phase": 8,
+      "turn": "test_repair_plan",
+      "note": "Planned phase 8 test hardening for real artifact closeout path proof and handoff-lane-owned support-row rejection proof."
+    },
+    {
+      "at": "2026-07-01T01:14:42.643112+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T01:15:12.653857+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T19:16:49.8143168-06:00",
+      "phase": 8,
+      "turn": "test_repair_implement",
+      "note": "Hardened phase 8 tests to prove artifact closeout path and handoff-lane-owned support-row rejection; focused verification passed."
+    },
+    {
+      "at": "2026-07-01T01:17:01.727514+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T01:17:31.738613+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T19:18:10.6829380-06:00",
+      "phase": 8,
+      "turn": "test_review",
+      "note": "Phase 8 test QA passed after closeout-path and support-row handoff hardening; advanced to code_quality_review."
+    },
+    {
+      "at": "2026-07-01T01:18:20.426402+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T01:18:50.437782+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-30T19:20:32.7121245-06:00",
+      "phase": 8,
+      "turn": "code_quality_review",
+      "note": "Phase 8 closed with passing QA and explicit closeout-surface structural residue; milestone marked complete."
+    },
+    {
+      "at": "2026-07-01T01:20:53.464778+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 8 code_quality_review did not advance; repaired cursor",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T01:20:53.464778+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T01:21:23.478546+00:00",
+      "event": "runner_stop",
+      "detail": "all phases are complete",
+      "exit_code": null
+    }
+  ],
+  "completed_at": "2026-07-01T01:20:53.464778+00:00"
+}

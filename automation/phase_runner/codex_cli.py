@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 import subprocess
 from pathlib import Path
 from typing import Any
-
-from state import now_iso
 
 
 def build_command(state: dict[str, Any]) -> list[str]:
@@ -54,7 +53,7 @@ def run_codex(
     prompt: str,
     log_path: Path | None,
 ) -> tuple[int, dict[str, Any]]:
-    capture: dict[str, Any] = {}
+    capture: dict[str, Any] = {"agent_messages": []}
     process = subprocess.Popen(
         build_command(state),
         cwd=state["project"]["cwd"],
@@ -90,3 +89,16 @@ def capture_thread_id(capture: dict[str, Any], line: str) -> None:
     if isinstance(event, dict) and event.get("type") == "thread.started":
         capture["thread_id"] = event["thread_id"]
         capture["thread_started_at"] = now_iso()
+        return
+
+    item = event.get("item") if isinstance(event, dict) else None
+    if not isinstance(item, dict):
+        return
+    if item.get("type") == "agent_message":
+        text = item.get("text")
+        if isinstance(text, str):
+            capture.setdefault("agent_messages", []).append(text)
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()

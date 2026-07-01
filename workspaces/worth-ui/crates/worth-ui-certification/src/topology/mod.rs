@@ -1,6 +1,7 @@
 mod declaration_public_surface_audit;
 mod declaration_residue_audit;
 mod dependency_audit;
+mod graph_mutation_boundary_audit;
 mod inspection_boundary_audit;
 mod inspection_boundary_certification;
 mod inspection_topology_audit;
@@ -21,6 +22,7 @@ pub use dependency_audit::{
     audit_host_egui_dependency_boundary, audit_no_cross_crate_deep_imports,
     audit_non_product_crates_route_declaration_through_worth_ui_facade,
 };
+pub use graph_mutation_boundary_audit::audit_graph_mutation_boundary_owns_snapshot_and_index_commit;
 pub use inspection_boundary_audit::audit_consumers_route_inspection_through_worth_ui_facade;
 pub use inspection_boundary_certification::certify_consumers_route_inspection_through_worth_ui_facade;
 pub use inspection_topology_audit::{

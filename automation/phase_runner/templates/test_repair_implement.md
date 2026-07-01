@@ -1,7 +1,10 @@
 Now implement the test hardening plan for phase {phase.id}: {phase.title}.
 
-State file: {state_file}
+Config file: {config_file}
+Projection file: {projection_file}
+Event log file: {event_log_file}
 Spec file: {spec_file}
+Run id: {run_id}
 Cursor: phase {current.phase}, turn {current.turn}
 
 Phase scope:
@@ -10,11 +13,11 @@ Phase scope:
 Acceptance evidence:
 {phase.acceptance}
 
-Open plan summary from JSON:
+Open plan summary from projection:
 {phase.notes.plan}
 
 Use the detailed plan from the previous chat turn as the real implementation
-input. The JSON summary is only a pointer, not the artifact of record.
+input. The projection summary is only a pointer, not the artifact of record.
 
 Implement the planned production and test changes needed to make the tests
 honest.
@@ -27,17 +30,12 @@ Rules:
   meaning.
 - Re-run the focused verification needed to prove the hardened tests are real.
 
-After implementation, update the JSON state file directly:
+After implementation, finish with one of:
 
-- short `notes.done`
-- short `notes.verification`
-- cursor turn `test_review` if the hardened tests need re-review
-- cursor turn `code_quality_review` if the test lane is ready to close
-- do not leave `current` on `test_repair_implement` after writing the state
-- if this implementation makes the test lane honest enough and the phase row is
-  `status: complete` and `qa_status: passed`, you must move to `test_review` or
-  `code_quality_review` in the same write
-- if `current` still points at `test_repair_implement` after you decide the
-  hardening work is complete, that is a stale cursor and you must repair it
+`RUNNER_EVENT: {"event_type":"test_repair_completed","payload":{"next_turn":"test_review","notes":{"done":["..."],"verification":["..."]}}}`
+
+or
+
+`RUNNER_EVENT: {"event_type":"test_repair_completed","payload":{"next_turn":"code_quality_review","notes":{"done":["..."],"verification":["..."]}}}`
 
 {contract}

@@ -4,6 +4,7 @@ use worth_ui_inspection::{
 };
 
 use crate::declaration::{UiDeclarationArtifact, UiDeclarationCloseoutReport};
+use crate::graph::{UiGraphAuthority, UiGraphCloseoutReport, UiGraphSnapshot};
 use crate::facade::{
     runtime_bridge::{WorthUiCapabilityRegistrationFreezeCore, WorthUiFacadeLifecycleBootstrap},
     CapabilitySnapshot, UiInspectionClosureReport, UiInspectionFacadeObservation,
@@ -27,16 +28,18 @@ impl WorthUi {
 pub struct WorthUiApp {
     capability_snapshot: CapabilitySnapshot,
     declaration_artifacts: Vec<UiDeclarationArtifact>,
+    graph_snapshot: UiGraphSnapshot,
     lifecycle: WorthUiFacadeLifecycleBootstrap,
 }
 
 impl WorthUiApp {
     pub(crate) fn from_freeze_core(core: WorthUiCapabilityRegistrationFreezeCore) -> Self {
-        let (capability_snapshot, declaration_artifacts, lifecycle) = core.into_parts();
+        let (capability_snapshot, declaration_artifacts, graph_snapshot, lifecycle) = core.into_parts();
 
         Self {
             capability_snapshot,
             declaration_artifacts,
+            graph_snapshot,
             lifecycle,
         }
     }
@@ -49,6 +52,20 @@ impl WorthUiApp {
     /// Inspect the canonical declaration artifacts admitted during app freeze.
     pub fn declaration_artifacts(&self) -> &[UiDeclarationArtifact] {
         &self.declaration_artifacts
+    }
+
+    /// Inspect the proof-bearing graph authority surface owned by this app.
+    pub fn graph(&self) -> UiGraphAuthority<'_> {
+        UiGraphAuthority::new(&self.graph_snapshot)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn graph_snapshot(&self) -> &UiGraphSnapshot {
+        &self.graph_snapshot
+    }
+
+    pub fn graph_closeout_report(&self) -> UiGraphCloseoutReport {
+        UiGraphCloseoutReport::milestone33()
     }
 
     /// Inspect milestone-closeout metadata owned by the declaration boundary.

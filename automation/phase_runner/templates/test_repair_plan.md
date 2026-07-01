@@ -1,15 +1,18 @@
 Now create an in-chat plan to fix the test QA findings for phase {phase.id}:
 {phase.title}.
 
-State file: {state_file}
+Config file: {config_file}
+Projection file: {projection_file}
+Event log file: {event_log_file}
 Spec file: {spec_file}
+Run id: {run_id}
 Cursor: phase {current.phase}, turn {current.turn}
 
-Open test QA summary from JSON:
+Open test QA summary from projection:
 {phase.notes.findings}
 
 Use the detailed findings from the previous chat turn as the real repair input.
-The JSON summary is only a pointer, not the artifact of record.
+The projection summary is only a pointer, not the artifact of record.
 
 Plan only. Do not implement yet.
 
@@ -23,14 +26,8 @@ The plan must distinguish clearly between:
 Make the plan specific enough that the next implementation turn can execute it
 literally.
 
-After posting the plan, update the JSON state file directly:
+After posting the plan, finish with:
 
-- short `notes.plan`
-- cursor turn `test_repair_implement`
-- this turn is a planning turn only; do not leave `current` on
-  `test_repair_plan` after writing the plan
-- if the phase row is already `status: complete` and `qa_status: passed`, the
-  only valid same-phase next turn from this prompt is `test_repair_implement`
-  because you are explicitly planning remaining hardening work
+`RUNNER_EVENT: {"event_type":"test_repair_plan_posted","payload":{"notes":{"plan":["..."]}}}`
 
 {contract}
