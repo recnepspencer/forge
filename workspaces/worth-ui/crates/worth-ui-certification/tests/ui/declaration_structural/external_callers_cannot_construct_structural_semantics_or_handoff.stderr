@@ -1,0 +1,37 @@
+error[E0432]: unresolved import `worth_ui::facade::declaration::UiStructuralDeclarationPayload`
+ --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs:5:68
+  |
+5 |     UiDeclarationStructuralRole, UiDeclarationStructuralSemantics, UiStructuralDeclarationPayload,
+  |                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `UiStructuralDeclarationPayload` in `facade::declaration`
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs:9:56
+  |
+9 |       let _semantics = UiDeclarationStructuralSemantics::new(
+  |                                                          ^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-ui-runtime/src/declaration/structural_semantics/structural_semantics.rs
+  |
+  | /     pub(crate) fn new(
+  | |         family_kind: UiDeclarationFamilyKind,
+  | |         role: UiDeclarationStructuralRole,
+  | |         containment_intent: UiDeclarationContainmentIntent,
+... |
+  | |         repetition_posture: UiDeclarationRepetitionPosture,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs:35:47
+   |
+35 |       let _handoff = UiDeclarationGraphHandoff::new(fake_identity, fake_payload, unsafe {
+   |                                                 ^^^ private associated function
+   |
+  ::: $WORKSPACE/crates/worth-ui-runtime/src/declaration/declaration_handoff/handoff_artifact.rs
+   |
+   | /     pub(crate) fn new(
+   | |         identity: UiDeclarationIdentity,
+   | |         structural: UiStructuralDeclarationPayload,
+   | |         declared_posture: UiDeclaredPosturePayload,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

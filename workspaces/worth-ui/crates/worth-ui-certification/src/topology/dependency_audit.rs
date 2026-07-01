@@ -96,6 +96,51 @@ pub(crate) fn collect_file_paths(path: &Path) -> Vec<Vec<String>> {
     path_collector.collected_paths
 }
 
+#[derive(Default)]
+struct UsePathCollector {
+    collected_paths: Vec<Vec<String>>,
+}
+
+impl Visit<'_> for UsePathCollector {
+    fn visit_item_use(&mut self, item_use: &ItemUse) {
+        collect_use_paths(&item_use.tree, Vec::new(), &mut self.collected_paths);
+        visit::visit_item_use(self, item_use);
+    }
+}
+
+pub(crate) fn collect_file_use_paths(path: &Path) -> Vec<Vec<String>> {
+    let parsed = parse_rust_file(path);
+    let mut collector = UsePathCollector::default();
+    collector.visit_file(&parsed);
+    collector.collected_paths
+}
+
+fn collect_use_paths(tree: &UseTree, prefix: Vec<String>, output: &mut Vec<Vec<String>>) {
+    match tree {
+        UseTree::Path(path) => {
+            let mut next = prefix;
+            next.push(path.ident.to_string());
+            collect_use_paths(&path.tree, next, output);
+        }
+        UseTree::Group(group) => {
+            for item in &group.items {
+                collect_use_paths(item, prefix.clone(), output);
+            }
+        }
+        UseTree::Name(name) => {
+            let mut next = prefix;
+            next.push(name.ident.to_string());
+            output.push(next);
+        }
+        UseTree::Rename(rename) => {
+            let mut next = prefix;
+            next.push(rename.ident.to_string());
+            output.push(next);
+        }
+        UseTree::Glob(_) => output.push(prefix),
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct ManifestDependency {
     pub(crate) key: String,
@@ -183,7 +228,10 @@ pub fn audit_no_cross_crate_deep_imports(workspace_root: &Path) -> Vec<String> {
     }
 
     for file in files {
-        for segments in collect_file_paths(&file) {
+        for segments in collect_file_paths(&file)
+            .into_iter()
+            .chain(collect_file_use_paths(&file))
+        {
             for (crate_name, internal_root) in forbidden_boundaries {
                 if path_matches(&segments, crate_name, internal_root) {
                     violations.push(format!(
@@ -191,6 +239,45 @@ pub fn audit_no_cross_crate_deep_imports(workspace_root: &Path) -> Vec<String> {
                         file.display()
                     ));
                 }
+            }
+        }
+    }
+
+    violations.sort();
+    violations.dedup();
+    violations
+}
+
+pub fn audit_non_product_crates_route_declaration_through_worth_ui_facade(
+    workspace_root: &Path,
+) -> Vec<String> {
+    let crate_paths = [
+        "crates/worth-ui-inspection/src",
+        "crates/worth-ui-host-contract/src",
+        "crates/worth-ui-host-egui/src",
+        "crates/worth-ui-query-binding/src",
+    ];
+    let mut violations = Vec::new();
+    let mut files = Vec::new();
+
+    for crate_path in crate_paths {
+        collect_rust_files(&workspace_root.join(crate_path), &mut files);
+    }
+
+    for file in files {
+        for segments in collect_file_paths(&file)
+            .into_iter()
+            .chain(collect_file_use_paths(&file))
+        {
+            if path_matches(&segments, "worth_ui_runtime", "facade")
+                && segments
+                    .get(2)
+                    .is_some_and(|segment| segment == "declaration")
+            {
+                violations.push(format!(
+                    "{} bypasses the product declaration facade and reaches `worth_ui_runtime::facade::declaration`; declaration consumers must enter through `worth_ui::facade::declaration`",
+                    file.display()
+                ));
             }
         }
     }

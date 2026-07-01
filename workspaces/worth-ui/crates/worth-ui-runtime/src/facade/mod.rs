@@ -3,6 +3,7 @@
 mod app;
 mod app_builder;
 mod builder;
+pub mod declaration;
 mod inspection_observation;
 mod inspection_receipt;
 mod runtime_bridge;
@@ -82,6 +83,7 @@ pub use inspection_observation::UiInspectionFacadeObservation;
 pub use inspection_receipt::UiInspectionReceipt;
 pub use worth_ui_dsl::WorthUiDslPackage;
 pub use worth_ui_host_contract::{WorthUiHostAdapter, WorthUiHostContract};
+pub use worth_ui_host_contract::WorthUiHostCapability;
 pub use worth_ui_inspection::{
     UiEvidenceBudget, UiEvidenceRichness, UiInspectionClosureReport, UiInspectionEvidenceSource,
     UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery,

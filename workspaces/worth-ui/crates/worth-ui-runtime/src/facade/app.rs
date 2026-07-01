@@ -3,6 +3,7 @@ use worth_ui_inspection::{
     UiInspectionSupportStatus,
 };
 
+use crate::declaration::{UiDeclarationArtifact, UiDeclarationCloseoutReport};
 use crate::facade::{
     runtime_bridge::{WorthUiCapabilityRegistrationFreezeCore, WorthUiFacadeLifecycleBootstrap},
     CapabilitySnapshot, UiInspectionClosureReport, UiInspectionFacadeObservation,
@@ -25,15 +26,17 @@ impl WorthUi {
 /// Worth UI application after capability registration has frozen.
 pub struct WorthUiApp {
     capability_snapshot: CapabilitySnapshot,
+    declaration_artifacts: Vec<UiDeclarationArtifact>,
     lifecycle: WorthUiFacadeLifecycleBootstrap,
 }
 
 impl WorthUiApp {
     pub(crate) fn from_freeze_core(core: WorthUiCapabilityRegistrationFreezeCore) -> Self {
-        let (capability_snapshot, lifecycle) = core.into_parts();
+        let (capability_snapshot, declaration_artifacts, lifecycle) = core.into_parts();
 
         Self {
             capability_snapshot,
+            declaration_artifacts,
             lifecycle,
         }
     }
@@ -41,6 +44,16 @@ impl WorthUiApp {
     /// Inspect the immutable capability snapshot owned by this app.
     pub fn capabilities(&self) -> &CapabilitySnapshot {
         &self.capability_snapshot
+    }
+
+    /// Inspect the canonical declaration artifacts admitted during app freeze.
+    pub fn declaration_artifacts(&self) -> &[UiDeclarationArtifact] {
+        &self.declaration_artifacts
+    }
+
+    /// Inspect milestone-closeout metadata owned by the declaration boundary.
+    pub fn declaration_closeout_report(&self) -> UiDeclarationCloseoutReport {
+        UiDeclarationCloseoutReport::milestone32()
     }
 
     /// Enter the runtime-owned inspection surface through one formal facade lane.

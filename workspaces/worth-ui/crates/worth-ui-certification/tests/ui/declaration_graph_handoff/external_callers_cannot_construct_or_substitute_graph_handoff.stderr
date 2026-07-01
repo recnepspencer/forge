@@ -1,0 +1,84 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs:15:40
+   |
+15 |       let _ = UiDeclarationGraphHandoff::new(
+   |                                          ^^^ private associated function
+   |
+  ::: $WORKSPACE/crates/worth-ui-runtime/src/declaration/declaration_handoff/handoff_artifact.rs
+   |
+   | /     pub(crate) fn new(
+   | |         identity: UiDeclarationIdentity,
+   | |         structural: UiStructuralDeclarationPayload,
+   | |         declared_posture: UiDeclaredPosturePayload,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs:30:27
+   |
+30 |     require_graph_handoff(semantic_artifact);
+   |     --------------------- ^^^^^^^^^^^^^^^^^ expected `UiDeclarationGraphHandoff`, found `UiDslSemanticArtifact`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs:8:4
+   |
+ 8 | fn require_graph_handoff(_: UiDeclarationGraphHandoff) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^ ----------------------------
+
+error[E0308]: mismatched types
+  --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs:31:27
+   |
+31 |     require_graph_handoff(lowering_receipt);
+   |     --------------------- ^^^^^^^^^^^^^^^^ expected `UiDeclarationGraphHandoff`, found `UiDslLoweringReceipt`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs:8:4
+   |
+ 8 | fn require_graph_handoff(_: UiDeclarationGraphHandoff) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^ ----------------------------
+
+error[E0308]: mismatched types
+  --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs:32:27
+   |
+32 |     require_graph_handoff(support_snapshot);
+   |     --------------------- ^^^^^^^^^^^^^^^^ expected `UiDeclarationGraphHandoff`, found `UiDeclarationSupportSnapshot`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs:8:4
+   |
+ 8 | fn require_graph_handoff(_: UiDeclarationGraphHandoff) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^ ----------------------------
+
+error[E0308]: mismatched types
+  --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs:33:27
+   |
+33 |     require_graph_handoff(support_row);
+   |     --------------------- ^^^^^^^^^^^ expected `UiDeclarationGraphHandoff`, found `UiDeclarationSupportRow`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs:8:4
+   |
+ 8 | fn require_graph_handoff(_: UiDeclarationGraphHandoff) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^ ----------------------------
+
+error[E0308]: mismatched types
+  --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs:34:27
+   |
+34 |     require_graph_handoff(ForgedGraphReceipt);
+   |     --------------------- ^^^^^^^^^^^^^^^^^^ expected `UiDeclarationGraphHandoff`, found `ForgedGraphReceipt`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: function defined here
+  --> tests/ui/declaration_graph_handoff/external_callers_cannot_construct_or_substitute_graph_handoff.rs:8:4
+   |
+ 8 | fn require_graph_handoff(_: UiDeclarationGraphHandoff) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^ ----------------------------

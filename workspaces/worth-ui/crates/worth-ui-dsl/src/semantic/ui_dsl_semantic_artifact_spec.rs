@@ -1,0 +1,113 @@
+use crate::semantic::{
+    UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifact, UiDslSemanticFamily,
+    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, UiDslSupportToken,
+};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UiDslSemanticArtifactSpec {
+    key: UiDslSemanticKey,
+    family: UiDslSemanticFamily,
+    provenance: UiDslSourceProvenance,
+    published_aspects: Vec<UiDslAspectName>,
+    consumed_aspects: Vec<UiDslAspectName>,
+    structural_tokens: Vec<UiDslStructuralToken>,
+    posture_tokens: Vec<UiDslPostureToken>,
+    support_tokens: Vec<UiDslSupportToken>,
+    authored_comments: Vec<String>,
+    formatting_profile: Option<String>,
+    parser_local_id: Option<String>,
+    diagnostic_label: Option<String>,
+    renderer_label: Option<String>,
+}
+
+impl UiDslSemanticArtifactSpec {
+    pub fn new(
+        key: UiDslSemanticKey,
+        family: UiDslSemanticFamily,
+        provenance: UiDslSourceProvenance,
+    ) -> Self {
+        Self {
+            key,
+            family,
+            provenance,
+            published_aspects: Vec::new(),
+            consumed_aspects: Vec::new(),
+            structural_tokens: Vec::new(),
+            posture_tokens: Vec::new(),
+            support_tokens: Vec::new(),
+            authored_comments: Vec::new(),
+            formatting_profile: None,
+            parser_local_id: None,
+            diagnostic_label: None,
+            renderer_label: None,
+        }
+    }
+
+    pub fn with_published_aspect(mut self, aspect: UiDslAspectName) -> Self {
+        self.published_aspects.push(aspect);
+        self
+    }
+
+    pub fn with_consumed_aspect(mut self, aspect: UiDslAspectName) -> Self {
+        self.consumed_aspects.push(aspect);
+        self
+    }
+
+    pub fn with_structural_token(mut self, token: UiDslStructuralToken) -> Self {
+        self.structural_tokens.push(token);
+        self
+    }
+
+    pub fn with_posture_token(mut self, token: UiDslPostureToken) -> Self {
+        self.posture_tokens.push(token);
+        self
+    }
+
+    pub fn with_support_token(mut self, token: UiDslSupportToken) -> Self {
+        self.support_tokens.push(token);
+        self
+    }
+
+    pub fn with_comment(mut self, comment: impl Into<String>) -> Self {
+        self.authored_comments.push(comment.into());
+        self
+    }
+
+    pub fn with_formatting_profile(mut self, formatting_profile: impl Into<String>) -> Self {
+        self.formatting_profile = Some(formatting_profile.into());
+        self
+    }
+
+    pub fn with_parser_local_id(mut self, parser_local_id: impl Into<String>) -> Self {
+        self.parser_local_id = Some(parser_local_id.into());
+        self
+    }
+
+    pub fn with_diagnostic_label(mut self, diagnostic_label: impl Into<String>) -> Self {
+        self.diagnostic_label = Some(diagnostic_label.into());
+        self
+    }
+
+    pub fn with_renderer_label(mut self, renderer_label: impl Into<String>) -> Self {
+        self.renderer_label = Some(renderer_label.into());
+        self
+    }
+
+    pub(crate) fn into_artifact(self) -> UiDslSemanticArtifact {
+        UiDslSemanticArtifact::new(
+            self.key,
+            self.family,
+            self.provenance,
+            self.published_aspects,
+            self.consumed_aspects,
+            self.structural_tokens,
+            self.posture_tokens,
+            self.support_tokens,
+            self.authored_comments,
+            self.formatting_profile,
+            self.parser_local_id,
+            self.diagnostic_label,
+            self.renderer_label,
+        )
+    }
+}

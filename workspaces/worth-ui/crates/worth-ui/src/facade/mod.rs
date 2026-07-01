@@ -1,5 +1,6 @@
 pub mod app;
 pub mod compat;
+pub mod declaration;
 pub mod diagnostics;
 pub mod dsl;
 mod entry;

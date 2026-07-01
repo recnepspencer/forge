@@ -1,3 +1,5 @@
+mod declaration_public_surface_audit;
+mod declaration_residue_audit;
 mod dependency_audit;
 mod inspection_boundary_audit;
 mod inspection_boundary_certification;
@@ -7,8 +9,17 @@ mod lifecycle_propagation;
 mod ownership_audit;
 mod public_surface_audit;
 
+pub use declaration_public_surface_audit::{
+    audit_declaration_facades_are_curated_and_glob_free,
+    audit_runtime_declaration_surface_routes_through_curated_submodule,
+};
+pub use declaration_residue_audit::{
+    audit_host_and_inspection_layers_do_not_import_declaration_authority,
+    audit_non_owner_code_does_not_reopen_declaration_source,
+};
 pub use dependency_audit::{
     audit_host_egui_dependency_boundary, audit_no_cross_crate_deep_imports,
+    audit_non_product_crates_route_declaration_through_worth_ui_facade,
 };
 pub use inspection_boundary_audit::audit_consumers_route_inspection_through_worth_ui_facade;
 pub use inspection_boundary_certification::certify_consumers_route_inspection_through_worth_ui_facade;
