@@ -1,9 +1,9 @@
 use crate::declaration::{
-    UiDeclarationContainmentIntent, UiDeclarationFamily, UiDeclarationFamilyKind,
+    UiAspectContract, UiDeclarationContainmentIntent, UiDeclarationFamily, UiDeclarationFamilyKind,
     UiDeclarationIdentity, UiDeclarationOrderingGuarantee, UiDeclarationRepetitionPosture,
     UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole,
     UiDeclaredHostCapabilityPosture, UiDeclaredMeasurementPolicyPosture, UiDeclaredPostureContract,
-    UiDeclaredPostureLane, UiDeclaredPosturePayload, UiDeclaredQueryBindingPosture,
+    UiDeclaredAspectPayload, UiDeclaredPostureLane, UiDeclaredPosturePayload, UiDeclaredQueryBindingPosture,
     UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture, UiStructuralDeclarationPayload,
 };
 
@@ -11,6 +11,7 @@ use crate::declaration::{
 pub struct UiDeclarationGraphHandoff {
     identity: UiDeclarationIdentity,
     structural: UiStructuralDeclarationPayload,
+    aspect_contract: UiDeclaredAspectPayload,
     declared_posture: UiDeclaredPosturePayload,
 }
 
@@ -18,11 +19,13 @@ impl UiDeclarationGraphHandoff {
     pub(crate) fn new(
         identity: UiDeclarationIdentity,
         structural: UiStructuralDeclarationPayload,
+        aspect_contract: UiDeclaredAspectPayload,
         declared_posture: UiDeclaredPosturePayload,
     ) -> Self {
         Self {
             identity,
             structural,
+            aspect_contract,
             declared_posture,
         }
     }
@@ -57,6 +60,10 @@ impl UiDeclarationGraphHandoff {
 
     pub const fn repetition_posture(&self) -> UiDeclarationRepetitionPosture {
         self.structural.repetition_posture()
+    }
+
+    pub const fn aspect_contract(&self) -> &UiAspectContract {
+        self.aspect_contract.contract()
     }
 
     pub const fn declared_posture(&self) -> &UiDeclaredPostureContract {

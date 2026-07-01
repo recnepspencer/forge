@@ -4,6 +4,7 @@ mod app;
 mod app_builder;
 mod builder;
 pub mod declaration;
+pub mod graph;
 mod inspection_observation;
 mod inspection_receipt;
 mod runtime_bridge;

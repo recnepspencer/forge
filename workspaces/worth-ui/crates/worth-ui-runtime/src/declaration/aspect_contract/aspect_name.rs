@@ -49,6 +49,10 @@ pub struct UiAspectName {
 }
 
 impl UiAspectName {
+    pub const fn from_semantic_slice(semantic_slice: UiAspectSemanticSlice) -> Self {
+        Self { semantic_slice }
+    }
+
     pub(crate) fn admit(
         authored: &UiDslAspectName,
     ) -> Result<Self, UiAspectContractAdmissionDenial> {

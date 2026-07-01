@@ -415,7 +415,14 @@ fn unsupported_structural_tokens_deny_before_handoff_derivation() {
         &UiDeclarationStructuralSemanticsAdmission::Denied(expected_denial.clone())
     );
     assert_eq!(artifact.structural_semantics(), Err(&expected_denial));
-    assert_eq!(artifact.structural_handoff(), Err(&expected_denial));
+    assert_eq!(
+        artifact.graph_handoff(),
+        Err(
+            crate::declaration::UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
+                denial: expected_denial.clone(),
+            },
+        ),
+    );
 }
 
 #[test]
@@ -440,5 +447,12 @@ fn slot_participation_not_admitted_for_page_structures() {
         &UiDeclarationStructuralSemanticsAdmission::Denied(expected_denial.clone())
     );
     assert_eq!(artifact.structural_semantics(), Err(&expected_denial));
-    assert_eq!(artifact.structural_handoff(), Err(&expected_denial));
+    assert_eq!(
+        artifact.graph_handoff(),
+        Err(
+            crate::declaration::UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
+                denial: expected_denial.clone(),
+            },
+        ),
+    );
 }
