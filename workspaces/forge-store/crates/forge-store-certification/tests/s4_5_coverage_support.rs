@@ -1,36 +1,55 @@
 #![allow(dead_code)]
 
+#[path = "s4_5_compaction_mutation_support.rs"]
+mod compaction_mutation_support;
 #[path = "s4_5_counter_strength/support.rs"]
 mod counter_support;
 
 use forge_store_physical_certification::{
-    CertifiedPhysicalScenario, CounterContractOracle, CoverageGapDenial,
-    DetachedSimulationReplayParts, ExecutedTranscriptParts, FaultDeliveryAttempt,
-    FixtureCapabilityDeclaration, FixtureMutationBoundary, LargeStoreFixtureProfile,
-    NoJsonAuthorityOracle, NoPrivateMutationOracle, ObservedPhysicalTrace, OracleFamilyKind,
+    BlockedReclaimUntilReleaseOracle, CertifiedPhysicalScenario, CounterContractOracle,
+    CoverageGapDenial, DetachedSimulationReplayParts, ExecutedTranscriptParts,
+    FaultDeliveryAttempt, FixtureCapabilityDeclaration, FixtureMutationBoundary,
+    LargeStoreFixtureProfile, NoJsonAuthorityOracle, NoMixedRootOracle, NoPrivateMutationOracle,
+    ObservedPhysicalTrace, OldReaderSeesOldRootOracle, OracleFamilyKind,
     PhysicalCertificationEvidenceBundle, PhysicalFixtureBuilder, PhysicalInterleavingSchedule,
     PhysicalMutationCoverageEvidence, PhysicalProofOracleVerdict, PhysicalSimulationCapabilitySet,
     PhysicalSimulationPlan, PhysicalSimulationProfile, PhysicalSimulationProfileSet,
-    ProductionBackedPhysicalFixture, ReusablePhysicalOracleFamily, Roadmap2CoverageRegistry,
-    Roadmap2HarnessSequence, ShortcutRejectionObservationKind, SimulationEvidencePolicy,
-    SimulationPlanDenial, SimulationPlanningContext, SimulationReplayBundle, StateSpaceBudget,
-    SupportedOracleFamilySet, SupportedPhysicalDriverSet,
+    PostSwapReaderSeesNewRootOracle, ProductionBackedPhysicalFixture, ReusablePhysicalOracleFamily,
+    Roadmap2CoverageRegistry, Roadmap2HarnessSequence, S5CompactionMutationKind,
+    S5CompactionMutationObservationSet, S5CompactionMutationReplayBinding,
+    S5CompactionMutationScheduledLaneOutput, ShortcutRejectionObservationKind,
+    SimulationEvidencePolicy, SimulationPlanDenial, SimulationPlanningContext,
+    SimulationReplayBundle, StateSpaceBudget, SupportedOracleFamilySet, SupportedPhysicalDriverSet,
 };
 use forge_store_test_support::{
     admitted_developer_smoke_driver_contracts, developer_smoke_replay_seed,
     production_backed_physical_fixture_materialization,
 };
 
+type ScheduledCompactionMutationLanes = Vec<S5CompactionMutationScheduledLaneOutput>;
+
 pub(crate) fn lowered_plan() -> PhysicalSimulationPlan {
-    counter_support::lower_s5_shortcut_plan_for_profile(PhysicalSimulationProfile::DeveloperSmoke)
+    forge_store_physical_certification::lower_physical_simulation_plan(
+        scenario(),
+        complete_context_for_profile(PhysicalSimulationProfile::DeveloperSmoke),
+    )
+    .unwrap()
 }
 
 pub(crate) fn lowered_ci_plan() -> PhysicalSimulationPlan {
-    counter_support::lower_s5_shortcut_plan_for_profile(PhysicalSimulationProfile::CiCertification)
+    forge_store_physical_certification::lower_physical_simulation_plan(
+        scenario(),
+        complete_context_for_profile(PhysicalSimulationProfile::CiCertification),
+    )
+    .unwrap()
 }
 
 pub(crate) fn shortcut_plan() -> PhysicalSimulationPlan {
-    counter_support::lower_shortcut_plan()
+    forge_store_physical_certification::lower_physical_simulation_plan(
+        shortcut_scenario(),
+        complete_context_for_profile(PhysicalSimulationProfile::DeveloperSmoke),
+    )
+    .unwrap()
 }
 
 pub(crate) fn ci_plan_without_supported_driver(
@@ -68,22 +87,53 @@ pub(crate) fn scenario() -> CertifiedPhysicalScenario {
 }
 
 pub(crate) fn replay_bundle(plan: &PhysicalSimulationPlan) -> SimulationReplayBundle {
-    replay_bundle_with_trace(plan, counter_support::shortcut_trace(plan))
+    replay_bundle_with_trace_builder(plan, shortcut_trace_with_complete_compaction_mutations)
+}
+
+pub(crate) fn replay_bundle_without_compaction_mutations(
+    plan: &PhysicalSimulationPlan,
+) -> SimulationReplayBundle {
+    replay_bundle_with_trace_builder(plan, |plan, _schedule| {
+        counter_support::shortcut_trace(plan)
+    })
 }
 
 pub(crate) fn replay_bundle_without_mutation_denial(
     plan: &PhysicalSimulationPlan,
 ) -> SimulationReplayBundle {
-    replay_bundle_with_trace(plan, counter_support::json_shortcut_trace(plan))
+    replay_bundle_with_trace_builder(plan, |plan, _schedule| {
+        counter_support::json_shortcut_trace(plan)
+    })
 }
 
-fn replay_bundle_with_trace(
+pub(crate) fn replay_bundle_with_unscheduled_compaction_mutations(
     plan: &PhysicalSimulationPlan,
-    trace: ObservedPhysicalTrace,
+) -> Result<SimulationReplayBundle, CoverageGapDenial> {
+    let other_plan = shortcut_plan();
+    let other_schedule = schedule(&other_plan);
+    let lanes = compaction_mutation_support::complete_scheduled_compaction_mutation_lanes(
+        &other_plan,
+        &other_schedule,
+    )?;
+    let binding = S5CompactionMutationReplayBinding::from_plan_and_schedule(plan, &other_schedule)?;
+    let observation = S5CompactionMutationObservationSet::from_scheduled_lanes(binding, lanes)?;
+    Ok(replay_bundle_with_trace_builder(plan, |plan, _schedule| {
+        counter_support::shortcut_trace(plan).with_scheduled_compaction_mutation_lanes(observation)
+    }))
+}
+
+fn replay_bundle_with_trace_builder(
+    plan: &PhysicalSimulationPlan,
+    trace_builder: impl FnOnce(
+        &PhysicalSimulationPlan,
+        &PhysicalInterleavingSchedule,
+    ) -> ObservedPhysicalTrace,
 ) -> SimulationReplayBundle {
+    let schedule = schedule(plan);
+    let trace = trace_builder(plan, &schedule);
     let transcript =
         forge_store_physical_certification::PhysicalSimulationTranscript::from_executed_parts(
-            executed_parts_with_trace(plan, trace)
+            executed_parts_with_schedule_and_trace(plan, schedule, trace)
                 .with_transcript_replay_verdict()
                 .unwrap(),
         )
@@ -97,6 +147,15 @@ pub(crate) fn evidence_bundle(
     plan: &PhysicalSimulationPlan,
 ) -> PhysicalCertificationEvidenceBundle {
     PhysicalCertificationEvidenceBundle::from_replay_bundle(replay_bundle(plan)).unwrap()
+}
+
+pub(crate) fn evidence_bundle_without_compaction_mutations(
+    plan: &PhysicalSimulationPlan,
+) -> PhysicalCertificationEvidenceBundle {
+    PhysicalCertificationEvidenceBundle::from_replay_bundle(
+        replay_bundle_without_compaction_mutations(plan),
+    )
+    .unwrap()
 }
 
 pub(crate) fn complete_registry(
@@ -127,7 +186,7 @@ pub(crate) fn complete_registry(
 pub(crate) fn mutation_evidence(
     replay: &SimulationReplayBundle,
 ) -> PhysicalMutationCoverageEvidence {
-    PhysicalMutationCoverageEvidence::from_replay_private_mutation_denial(
+    PhysicalMutationCoverageEvidence::from_replay_private_and_compaction_mutation_denials(
         Roadmap2HarnessSequence::S45,
         replay,
         FaultDeliveryAttempt::private_mutation(),
@@ -144,6 +203,57 @@ pub(crate) fn mutation_evidence_denial(replay: &SimulationReplayBundle) -> Cover
     .unwrap_err()
 }
 
+pub(crate) fn compaction_mutation_evidence(
+    replay: &SimulationReplayBundle,
+) -> Result<PhysicalMutationCoverageEvidence, CoverageGapDenial> {
+    PhysicalMutationCoverageEvidence::from_replay_private_and_compaction_mutation_denials(
+        Roadmap2HarnessSequence::S45,
+        replay,
+        FaultDeliveryAttempt::private_mutation(),
+    )
+}
+
+pub(crate) fn complete_compaction_mutation_lanes(
+    plan: &PhysicalSimulationPlan,
+    schedule: &PhysicalInterleavingSchedule,
+) -> Result<ScheduledCompactionMutationLanes, CoverageGapDenial> {
+    compaction_mutation_support::complete_scheduled_compaction_mutation_lanes(plan, schedule)
+}
+
+pub(crate) fn compaction_mutation_lanes_without(
+    plan: &PhysicalSimulationPlan,
+    schedule: &PhysicalInterleavingSchedule,
+    missing: S5CompactionMutationKind,
+) -> Result<ScheduledCompactionMutationLanes, CoverageGapDenial> {
+    Ok(complete_compaction_mutation_lanes(plan, schedule)?
+        .into_iter()
+        .filter(|lane| lane.kind() != missing)
+        .collect())
+}
+
+pub(crate) fn same_footprint_wrong_cutover_lanes(
+    plan: &PhysicalSimulationPlan,
+    schedule: &PhysicalInterleavingSchedule,
+) -> Result<ScheduledCompactionMutationLanes, CoverageGapDenial> {
+    compaction_mutation_support::same_footprint_wrong_cutover_lanes(plan, schedule)
+}
+
+pub(crate) fn detached_compaction_mutation_lanes(
+    plan: &PhysicalSimulationPlan,
+    schedule: &PhysicalInterleavingSchedule,
+) -> Result<ScheduledCompactionMutationLanes, CoverageGapDenial> {
+    compaction_mutation_support::detached_compaction_mutation_lanes(plan, schedule)
+}
+
+pub(crate) fn compaction_mutation_lane_observation_set(
+    plan: &PhysicalSimulationPlan,
+    schedule: &PhysicalInterleavingSchedule,
+    lanes: impl IntoIterator<Item = S5CompactionMutationScheduledLaneOutput>,
+) -> Result<S5CompactionMutationObservationSet, CoverageGapDenial> {
+    let binding = S5CompactionMutationReplayBinding::from_plan_and_schedule(plan, schedule)?;
+    S5CompactionMutationObservationSet::from_scheduled_lanes(binding, lanes)
+}
+
 pub(crate) fn schedule(plan: &PhysicalSimulationPlan) -> PhysicalInterleavingSchedule {
     PhysicalInterleavingSchedule::from_lowered_plan(
         plan,
@@ -155,22 +265,30 @@ pub(crate) fn schedule(plan: &PhysicalSimulationPlan) -> PhysicalInterleavingSch
 
 fn executed_parts(plan: &PhysicalSimulationPlan) -> ExecutedTranscriptParts {
     let trace = counter_support::observed_trace(plan);
-    executed_parts_with_trace(plan, trace)
+    executed_parts_with_schedule_and_trace(plan, schedule(plan), trace)
 }
 
-fn executed_parts_with_trace(
+fn shortcut_trace_with_complete_compaction_mutations(
     plan: &PhysicalSimulationPlan,
+    schedule: &PhysicalInterleavingSchedule,
+) -> ObservedPhysicalTrace {
+    let Ok(binding) = S5CompactionMutationReplayBinding::from_plan_and_schedule(plan, schedule)
+    else {
+        return counter_support::shortcut_trace(plan);
+    };
+    let lanes = complete_compaction_mutation_lanes(plan, schedule).unwrap();
+    counter_support::shortcut_trace(plan).with_scheduled_compaction_mutation_lanes(
+        S5CompactionMutationObservationSet::from_scheduled_lanes(binding, lanes).unwrap(),
+    )
+}
+
+fn executed_parts_with_schedule_and_trace(
+    plan: &PhysicalSimulationPlan,
+    schedule: PhysicalInterleavingSchedule,
     trace: ObservedPhysicalTrace,
 ) -> ExecutedTranscriptParts {
     let counter_receipt = counter_support::counter_receipt(plan, trace.clone());
-    let s5_verdict = if plan
-        .oracle_families()
-        .contains(OracleFamilyKind::S5ReadinessShape)
-    {
-        Some(s5_readiness_verdict(plan, &trace))
-    } else {
-        None
-    };
+    let s5_verdicts = s5_readiness_verdicts(plan, &trace);
     let shortcut_rejection_verdict = if plan
         .oracle_families()
         .contains(OracleFamilyKind::ForbiddenShortcutRejection)
@@ -181,13 +299,13 @@ fn executed_parts_with_trace(
     };
     let mut parts = ExecutedTranscriptParts::new(
         plan,
-        schedule(plan),
+        schedule,
         &production_fixture(),
         trace,
         counter_receipt,
     )
     .unwrap();
-    if let Some(verdict) = s5_verdict {
+    for verdict in s5_verdicts {
         parts = parts.with_oracle_verdict(verdict);
     }
     if let Some(verdict) = shortcut_rejection_verdict {
@@ -196,14 +314,36 @@ fn executed_parts_with_trace(
     parts
 }
 
-fn s5_readiness_verdict(
+fn s5_readiness_verdicts(
     plan: &PhysicalSimulationPlan,
     trace: &ObservedPhysicalTrace,
-) -> PhysicalProofOracleVerdict {
-    ReusablePhysicalOracleFamily::s5_readiness_shape()
-        .oracle(CounterContractOracle)
-        .judge(plan, trace)
-        .unwrap()
+) -> Vec<PhysicalProofOracleVerdict> {
+    if !plan
+        .oracle_families()
+        .contains(OracleFamilyKind::S5ReadinessShape)
+    {
+        return Vec::new();
+    }
+    let family = ReusablePhysicalOracleFamily::s5_readiness_shape();
+    vec![
+        family
+            .oracle(CounterContractOracle)
+            .judge(plan, trace)
+            .unwrap(),
+        family.oracle(NoMixedRootOracle).judge(plan, trace).unwrap(),
+        family
+            .oracle(OldReaderSeesOldRootOracle)
+            .judge(plan, trace)
+            .unwrap(),
+        family
+            .oracle(PostSwapReaderSeesNewRootOracle)
+            .judge(plan, trace)
+            .unwrap(),
+        family
+            .oracle(BlockedReclaimUntilReleaseOracle)
+            .judge(plan, trace)
+            .unwrap(),
+    ]
 }
 
 fn shortcut_rejection_verdict(
@@ -253,5 +393,8 @@ fn complete_context_for_profile(profile: PhysicalSimulationProfile) -> Simulatio
         .with_evidence_policy(SimulationEvidencePolicy::minimal_replayable())
         .with_forbidden_shortcuts(
             forge_store_physical_certification::ForbiddenShortcutSet::roadmap2_baseline(),
+        )
+        .with_s5_compaction_mutation_origin(
+            compaction_mutation_support::compaction_mutation_origin(),
         )
 }

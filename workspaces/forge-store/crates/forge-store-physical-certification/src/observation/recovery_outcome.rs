@@ -5,7 +5,7 @@ pub enum RecoveryOutcomeKind {
     MixedRoot,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RecoveryOutcomeObservation {
     kind: RecoveryOutcomeKind,
 }

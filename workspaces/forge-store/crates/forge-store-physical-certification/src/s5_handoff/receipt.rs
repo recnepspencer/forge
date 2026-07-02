@@ -1,15 +1,18 @@
 use forge_store_readiness::{S5CorrectnessNonClaimEvidence, S5SimulationHarnessReadinessDenial};
 
 use crate::{
-    CounterContractKind, CoverageSurfaceKind, GeneratedCoverageMatrix, HarnessMaturityLevel,
-    OracleFamilyKind, PhysicalCertificationEvidenceBundle, PhysicalDriverKind,
-    PhysicalOracleNonClaim, PhysicalProofOracleVerdictKind, PhysicalScenarioActorRole,
-    PhysicalSimulationProfile, Roadmap2HarnessSequence, S5ReadinessDependencySet,
-    S5SimulationHarnessReadiness, ShortcutRejectionObservationKind,
+    CoverageSurfaceKind, GeneratedCoverageMatrix, HarnessMaturityLevel, OracleFamilyKind,
+    PhysicalCertificationEvidenceBundle, PhysicalOracleNonClaim, PhysicalProofOracleVerdictKind,
+    PhysicalScenarioActorRole, PhysicalSimulationProfile, Roadmap2HarnessSequence,
+    S5ReadinessDependencySet, S5SimulationHarnessReadiness, ShortcutRejectionObservationKind,
     SyntheticHarnessShortcutRejectionReport,
 };
 
 use super::{
+    readiness_sets::{
+        satisfied_counter_contracts, satisfied_drivers, satisfied_interleaving_capabilities,
+        satisfied_maintenance_actor_capabilities, satisfied_oracle_families, satisfied_yieldpoints,
+    },
     S5CounterContractReadiness, S5InterleavingHarnessCapability, S5MaintenanceActorCapability,
     S5ProductionDriverCapability, S5RequiredYieldpoint, S5ReusableOracleReadiness,
 };
@@ -208,162 +211,6 @@ fn require_s5_oracle_non_claim(
     } else {
         Err(S5SimulationHarnessReadinessDenial::MissingS5CorrectnessNonClaim)
     }
-}
-
-fn satisfied_interleaving_capabilities() -> Vec<S5InterleavingHarnessCapability> {
-    vec![
-        S5InterleavingHarnessCapability::DeterministicReplaySchedule,
-        S5InterleavingHarnessCapability::ProtectBeforeObserveShapeProbe,
-        S5InterleavingHarnessCapability::RootKindSeparationShapeProbe,
-        S5InterleavingHarnessCapability::TraversalAdmissionShapeProbe,
-        S5InterleavingHarnessCapability::ByteGuardUsageShapeProbe,
-        S5InterleavingHarnessCapability::NoHiddenLatchIoShapeProbe,
-        S5InterleavingHarnessCapability::PublicationMemoryOrderingShapeProbe,
-        S5InterleavingHarnessCapability::LeaseExpiryNonAuthorityShapeProbe,
-        S5InterleavingHarnessCapability::FreeReuseGenerationFenceShapeProbe,
-        S5InterleavingHarnessCapability::RestartDuringCutoverShapeProbe,
-    ]
-}
-
-fn satisfied_maintenance_actor_capabilities() -> Vec<S5MaintenanceActorCapability> {
-    vec![
-        S5MaintenanceActorCapability::ReclaimBarrierParticipant,
-        S5MaintenanceActorCapability::RestartParticipant,
-    ]
-}
-
-fn satisfied_yieldpoints(
-    evidence: &PhysicalCertificationEvidenceBundle,
-) -> Result<Vec<S5RequiredYieldpoint>, S5SimulationHarnessReadinessDenial> {
-    let plan = evidence.replay().plan();
-    let mut yieldpoints = Vec::new();
-    match plan.yieldpoint_binding().scheduled_yieldpoint() {
-        "root-publication-before-observe" => {
-            yieldpoints.push(S5RequiredYieldpoint::RootPublicationBeforeObserve)
-        }
-        _ => return Err(S5SimulationHarnessReadinessDenial::MissingProductionBoundaryYieldpoint),
-    }
-    yieldpoints.extend([
-        S5RequiredYieldpoint::RootSwapPublication,
-        S5RequiredYieldpoint::ByteGuardAdmission,
-        S5RequiredYieldpoint::ReclaimBarrier,
-        S5RequiredYieldpoint::RestartDuringCutover,
-    ]);
-    if plan
-        .drivers()
-        .contains(PhysicalDriverKind::ShortcutRejectionBoundary)
-    {
-        yieldpoints.push(S5RequiredYieldpoint::ShortcutRejectionBoundary);
-    }
-    Ok(yieldpoints)
-}
-
-fn satisfied_drivers(
-    evidence: &PhysicalCertificationEvidenceBundle,
-) -> Result<Vec<S5ProductionDriverCapability>, S5SimulationHarnessReadinessDenial> {
-    let plan = evidence.replay().plan();
-    let mut drivers = Vec::new();
-    if plan
-        .drivers()
-        .contains(PhysicalDriverKind::ProductionBoundaryYieldpoint)
-    {
-        drivers.push(S5ProductionDriverCapability::ProductionBoundaryYieldpoint);
-    }
-    if plan
-        .drivers()
-        .contains(PhysicalDriverKind::ShortcutRejectionBoundary)
-    {
-        drivers.push(S5ProductionDriverCapability::ShortcutRejectionBoundary);
-    }
-    if drivers.len() == 2 {
-        Ok(drivers)
-    } else {
-        Err(S5SimulationHarnessReadinessDenial::MissingProductionDriverCapability)
-    }
-}
-
-fn satisfied_oracle_families(
-    evidence: &PhysicalCertificationEvidenceBundle,
-) -> Result<Vec<S5ReusableOracleReadiness>, S5SimulationHarnessReadinessDenial> {
-    let plan = evidence.replay().plan();
-    let required = [
-        (
-            OracleFamilyKind::S5ReadinessShape,
-            S5ReusableOracleReadiness::S5ReadinessShape,
-        ),
-        (
-            OracleFamilyKind::TranscriptReplayEvidence,
-            S5ReusableOracleReadiness::TranscriptReplayEvidence,
-        ),
-        (
-            OracleFamilyKind::ForbiddenShortcutRejection,
-            S5ReusableOracleReadiness::ForbiddenShortcutRejection,
-        ),
-    ];
-    let mut families = Vec::new();
-    for (family, readiness) in required {
-        if !plan.oracle_families().contains(family) {
-            return Err(S5SimulationHarnessReadinessDenial::MissingReusableOracleFamily);
-        }
-        families.push(readiness);
-    }
-    Ok(families)
-}
-
-fn satisfied_counter_contracts(
-    evidence: &PhysicalCertificationEvidenceBundle,
-) -> Result<Vec<S5CounterContractReadiness>, S5SimulationHarnessReadinessDenial> {
-    let plan = evidence.replay().plan();
-    let required = [
-        (
-            CounterContractKind::ActorStepExact,
-            S5CounterContractReadiness::ActorStepExact,
-        ),
-        (
-            CounterContractKind::ReplayIdentityExact,
-            S5CounterContractReadiness::ReplayIdentityExact,
-        ),
-        (
-            CounterContractKind::ForbiddenShortcutExact,
-            S5CounterContractReadiness::ForbiddenShortcutExact,
-        ),
-        (
-            CounterContractKind::ProfileResourceEnvelope,
-            S5CounterContractReadiness::ProfileResourceEnvelope,
-        ),
-        (
-            CounterContractKind::LatchWaits,
-            S5CounterContractReadiness::LatchWaits,
-        ),
-        (
-            CounterContractKind::EpochRetries,
-            S5CounterContractReadiness::EpochRetries,
-        ),
-        (
-            CounterContractKind::ProtectedReferences,
-            S5CounterContractReadiness::ProtectedReferences,
-        ),
-        (
-            CounterContractKind::BlockedReclaimAttempts,
-            S5CounterContractReadiness::BlockedReclaimAttempts,
-        ),
-        (
-            CounterContractKind::PublicationSwaps,
-            S5CounterContractReadiness::PublicationSwaps,
-        ),
-    ];
-    let mut contracts = Vec::new();
-    for (contract, readiness) in required {
-        if !plan.counter_contracts().contains(contract) {
-            return Err(S5SimulationHarnessReadinessDenial::MissingCounterContract);
-        }
-        contracts.push(readiness);
-    }
-    contracts.push(S5CounterContractReadiness::FutureS5SpecificCountersReserved);
-    if evidence.replay().counter_receipt().rows().is_empty() {
-        return Err(S5SimulationHarnessReadinessDenial::MissingCounterContract);
-    }
-    Ok(contracts)
 }
 
 fn dependency_for_surface(

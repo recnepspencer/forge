@@ -41,6 +41,7 @@ pub enum PhysicalProofOracleKind {
     CounterContract,
     TranscriptReplay,
     IndependentVerifierAgreement,
+    S5PhysicalIsolationInterleaving,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,6 +66,14 @@ pub enum OracleDenial {
     PlanTraceIdentityMismatch,
     MissingIndependentVerifierObservation,
     MissingRecoveryOutcomeObservation,
+    MissingCheckpointInterlockObservation,
+    MissingCompactionInterlockObservation,
+    CheckpointInterlockObservationDenied {
+        oracle: PhysicalProofOracleKind,
+    },
+    CompactionInterlockObservationDenied {
+        oracle: PhysicalProofOracleKind,
+    },
     MissingRequiredShortcutRejectionObservation {
         required: ShortcutRejectionObservationKind,
     },

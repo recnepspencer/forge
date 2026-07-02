@@ -1,4 +1,9 @@
-use super::{ObservationDenial, ObservedPhysicalTrace};
+use super::{
+    CheckpointCrashReplayObservation, CheckpointInterlockObservation,
+    CompactionInterlockObservation, ObservationDenial, ObservedPhysicalTrace,
+    S5CheckpointPublicationCrashLaneOutput, S5CheckpointPublicationScheduledLaneOutput,
+    S5CheckpointPublicationShortcutRejectionOutput, S5CompactionMutationObservationSet,
+};
 use crate::{
     ExecutedPhysicalSimulationObservation, IndependentVerifierObservation, ObserverKind,
     PhysicalSimulationPlan, ProductionBoundaryDriverTrace, RecoveryOutcomeObservation,
@@ -17,6 +22,10 @@ pub struct PhysicalObservationBuilder<'plan> {
     runtime_trace: Option<ProductionBoundaryDriverTrace>,
     independent_verifier: Option<IndependentVerifierObservation>,
     recovery_outcome: Option<RecoveryOutcomeObservation>,
+    checkpoint_crash_replay: Option<CheckpointCrashReplayObservation>,
+    checkpoint_interlock: Option<CheckpointInterlockObservation>,
+    compaction_interlock: Option<CompactionInterlockObservation>,
+    compaction_mutations: Option<S5CompactionMutationObservationSet>,
     shortcut_rejections: Vec<ShortcutRejectionObservation>,
 }
 
@@ -58,6 +67,10 @@ impl PhysicalSimulationObserver {
             runtime_trace: None,
             independent_verifier: None,
             recovery_outcome: None,
+            checkpoint_crash_replay: None,
+            checkpoint_interlock: None,
+            compaction_interlock: None,
+            compaction_mutations: None,
             shortcut_rejections: Vec::new(),
         })
     }
@@ -100,6 +113,64 @@ impl<'plan> PhysicalObservationBuilder<'plan> {
         self
     }
 
+    pub fn with_compaction_interlock_observation(
+        mut self,
+        observation: CompactionInterlockObservation,
+    ) -> Self {
+        self.compaction_interlock = Some(observation);
+        self
+    }
+
+    pub fn with_checkpoint_interlock_observation(
+        mut self,
+        observation: CheckpointInterlockObservation,
+    ) -> Self {
+        self.checkpoint_interlock = Some(observation);
+        self
+    }
+
+    pub fn with_scheduled_checkpoint_publication_lane(
+        mut self,
+        output: S5CheckpointPublicationScheduledLaneOutput,
+    ) -> Result<Self, ObservationDenial> {
+        if output.plan_identity() != self.plan.identity().digest_bytes() {
+            return Err(ObservationDenial::CheckpointPublicationLanePlanMismatch);
+        }
+        self.checkpoint_interlock = Some(output.observation());
+        Ok(self)
+    }
+
+    pub fn with_scheduled_checkpoint_crash_replay_lane(
+        mut self,
+        output: S5CheckpointPublicationCrashLaneOutput,
+    ) -> Result<Self, ObservationDenial> {
+        if output.plan_identity() != self.plan.identity().digest_bytes() {
+            return Err(ObservationDenial::CheckpointPublicationLanePlanMismatch);
+        }
+        self.recovery_outcome = Some(output.recovery_outcome());
+        self.checkpoint_crash_replay = Some(output.observation());
+        Ok(self)
+    }
+
+    pub fn with_scheduled_checkpoint_shortcut_rejection_lane(
+        mut self,
+        output: S5CheckpointPublicationShortcutRejectionOutput,
+    ) -> Result<Self, ObservationDenial> {
+        if output.plan_identity() != self.plan.identity().digest_bytes() {
+            return Err(ObservationDenial::CheckpointPublicationLanePlanMismatch);
+        }
+        self = self.with_shortcut_rejection_observation(output.observation());
+        Ok(self)
+    }
+
+    pub fn with_scheduled_compaction_mutation_lanes(
+        mut self,
+        observations: S5CompactionMutationObservationSet,
+    ) -> Self {
+        self.compaction_mutations = Some(observations);
+        self
+    }
+
     pub fn with_shortcut_rejection_observation(
         mut self,
         observation: ShortcutRejectionObservation,
@@ -135,6 +206,10 @@ impl<'plan> PhysicalObservationBuilder<'plan> {
             runtime_trace,
             self.independent_verifier,
             self.recovery_outcome,
+            self.checkpoint_crash_replay,
+            self.checkpoint_interlock,
+            self.compaction_interlock,
+            self.compaction_mutations,
             self.shortcut_rejections,
         ))
     }

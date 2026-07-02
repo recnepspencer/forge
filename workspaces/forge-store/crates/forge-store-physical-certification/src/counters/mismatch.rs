@@ -51,6 +51,7 @@ pub enum CounterMismatchEvidence {
         actual: u64,
     },
     ExecutedEvidencePlanMismatch,
+    MissingCompactionInterlockObservation,
     OverExactCounter {
         kind: CounterContractKind,
     },

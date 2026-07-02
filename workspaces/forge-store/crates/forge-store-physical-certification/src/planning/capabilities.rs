@@ -37,6 +37,10 @@ impl PhysicalSimulationCapabilitySet {
         Self::all_for_developer_smoke()
     }
 
+    pub fn s5_ci_certification() -> Self {
+        Self::all_for_developer_smoke()
+    }
+
     pub fn shortcut_rejection_dogfood() -> Self {
         Self::all_for_developer_smoke()
     }

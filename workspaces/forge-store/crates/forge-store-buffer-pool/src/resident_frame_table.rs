@@ -7,7 +7,7 @@ use crate::{
     ResidentFrameLoadRequest, ResidentFrameResidence, ResidentFrameSlot, ResidentFrameToken,
     ResidentGenerationSeparationProof,
 };
-use forge_store_physical_format::PhysicalPayloadViewAdmission;
+use forge_store_physical_format::{PhysicalPayloadViewAdmission, PhysicalReference};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -274,6 +274,19 @@ impl ResidentFrameTable {
         self.frames[slot.index() as usize].as_mut().ok_or_else(|| {
             ResidentFrameDenial::new(ResidentFrameDenialKind::ResidentFrameSlotNotResident)
         })
+    }
+
+    pub(crate) fn resident_physical_reference(
+        &self,
+        identity: ResidentFrameIdentity,
+    ) -> Result<PhysicalReference, ResidentFrameDenial> {
+        let record = self.record_at_slot(identity.slot())?;
+        if record.identity().generation() != identity.generation() {
+            return Err(ResidentFrameDenial::new(
+                ResidentFrameDenialKind::StaleResidentGeneration,
+            ));
+        }
+        Ok(record.request().reference().reference())
     }
 
     fn resident_bytes_after_reuse(

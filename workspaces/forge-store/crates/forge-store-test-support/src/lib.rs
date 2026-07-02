@@ -10,6 +10,7 @@ mod native_aspect_fixtures;
 mod physical_simulation;
 mod resident_pressure_fixtures;
 mod s4_recovery_physics;
+mod s5_physical_isolation;
 mod terminal_projection_json_fixtures;
 
 use forge_store_physical_format::{
@@ -27,13 +28,18 @@ pub use json_fixture_boundary::{
 };
 pub use large_record_streams::LargeRecordStreamPressure;
 pub use memory_pressure::MemoryPressureDriverInput;
-pub use native_aspect_fixtures::{require_native_store_aspect_fixture, NativeStoreAspectFixture};
+pub use native_aspect_fixtures::{
+    require_native_store_aspect_fixture, AspectDerivedSegmentReference,
+    NativeAspectPhysicalReferenceDenial, NativeStoreAspectFixture,
+};
 pub use physical_simulation::{
-    admitted_developer_smoke_driver_contracts, ambiguous_locus_fault_attempt_fixture,
-    arbitrary_byte_scribble_fault_attempt_fixture, crash_recovery_fault_locus,
-    deterministic_developer_smoke_schedule, developer_smoke_replay_seed,
-    developer_smoke_state_space_budget, fake_in_memory_only_driver_attempt,
-    io_pressure_fault_locus, observed_checksum_mismatch_boundary, observed_io_pressure_boundary,
+    admitted_ci_certification_driver_contracts, admitted_developer_smoke_driver_contracts,
+    ambiguous_locus_fault_attempt_fixture, arbitrary_byte_scribble_fault_attempt_fixture,
+    ci_certification_replay_seed, ci_certification_state_space_budget, crash_recovery_fault_locus,
+    deterministic_ci_certification_schedule, deterministic_developer_smoke_schedule,
+    developer_smoke_replay_seed, developer_smoke_state_space_budget,
+    fake_in_memory_only_driver_attempt, io_pressure_fault_locus,
+    observed_checksum_mismatch_boundary, observed_io_pressure_boundary,
     observed_torn_frame_boundary, page_generation_fault_locus,
     post_decode_corruption_fault_attempt_fixture, private_mutation_driver_attempt_fixture,
     private_mutation_fault_attempt_fixture, production_backed_physical_fixture_materialization,
@@ -47,10 +53,11 @@ pub use s4_recovery_physics::{
     duplicate_role_s4_recovery_artifacts, incomplete_s4_recovery_artifacts,
     malformed_s4_recovery_record, reordered_s4_recovery_artifacts,
     runtime_disagreement_s4_recovery_artifacts, runtime_state_mismatch_s4_recovery_artifacts,
-    ExecutedS4CrashHarnessDenial, ExecutedS4CrashHarnessTranscript, FaultSchedulerDriver,
-    FreshRuntimeRecoveryDriver, RecoveryRuntimePosture, ScheduledFault, StorageBoundaryEvent,
-    StorageBoundaryInterposerDriver,
+    s4_recovery_artifacts_with_operation_digest, ExecutedS4CrashHarnessDenial,
+    ExecutedS4CrashHarnessTranscript, FaultSchedulerDriver, FreshRuntimeRecoveryDriver,
+    RecoveryRuntimePosture, ScheduledFault, StorageBoundaryEvent, StorageBoundaryInterposerDriver,
 };
+pub use s5_physical_isolation::{s5_boundary_fact, s5_boundary_yieldpoint};
 pub use terminal_projection_json_fixtures::StoreTerminalProjectionJsonFixture;
 
 pub fn test_physical_reference(slot_index: u16) -> PhysicalReference {

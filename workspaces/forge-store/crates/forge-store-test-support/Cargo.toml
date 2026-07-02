@@ -13,6 +13,7 @@ forge-store-contracts.workspace = true
 forge-store-physical-certification.workspace = true
 forge-store-physical-backend.workspace = true
 forge-store-physical-format.workspace = true
+forge-store-physical-isolation.workspace = true
 forge-store-physical-integrity.workspace = true
 forge-store-recovery-physics.workspace = true
 

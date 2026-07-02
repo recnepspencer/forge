@@ -9,6 +9,8 @@ use forge_foundational::canonicalization_api::lower_lane::digest::{
 use forge_foundational::InternedString;
 use forge_proof::TransitionOutcome;
 
+use crate::PhysicalSimulationScenarioFamily;
+
 use super::capabilities::capability_token;
 use super::counter_contracts::{counter_contract_kind_token, counter_expectation_strength_token};
 use super::evidence_policy::evidence_policy_token;
@@ -81,6 +83,10 @@ fn canonical_plan_entries(parts: &PhysicalSimulationPlanParts) -> Vec<CanonicalB
             "plan.scenario.identity",
             hex_digest(parts.scenario_identity.digest_bytes()),
         ),
+        text_entry(
+            "plan.scenario.family",
+            scenario_family_token(parts.scenario_family),
+        ),
         text_entry("plan.profile", profile_token(parts.profile)),
         text_entry(
             "plan.resource_envelope.profile",
@@ -115,6 +121,7 @@ fn canonical_plan_entries(parts: &PhysicalSimulationPlanParts) -> Vec<CanonicalB
             evidence_policy_token(parts.evidence_policy),
         ),
     ];
+    entries.extend(s5_compaction_mutation_origin_entries(parts));
     entries.extend(
         parts
             .required_capabilities
@@ -232,6 +239,36 @@ fn canonical_plan_entries(parts: &PhysicalSimulationPlanParts) -> Vec<CanonicalB
     entries
 }
 
+fn s5_compaction_mutation_origin_entries(
+    parts: &PhysicalSimulationPlanParts,
+) -> Vec<CanonicalBasisEntry> {
+    match &parts.s5_compaction_mutation_origin {
+        Some(origin) => vec![
+            text_entry("plan.s5_compaction_mutation_origin.present", "true"),
+            text_entry(
+                "plan.s5_compaction_mutation_origin.source_epoch",
+                origin.source_epoch().get().to_string(),
+            ),
+            text_entry(
+                "plan.s5_compaction_mutation_origin.target_epoch",
+                origin.target_epoch().get().to_string(),
+            ),
+            text_entry(
+                "plan.s5_compaction_mutation_origin.protected",
+                format!("{:?}", origin.protected()),
+            ),
+            text_entry(
+                "plan.s5_compaction_mutation_origin.candidates",
+                format!("{:?}", origin.candidates()),
+            ),
+        ],
+        None => vec![text_entry(
+            "plan.s5_compaction_mutation_origin.present",
+            "false",
+        )],
+    }
+}
+
 fn text_entry(
     locus: impl Into<InternedString>,
     value: impl Into<InternedString>,
@@ -247,6 +284,26 @@ fn text_entry(
 fn plan_canonicalization_version() -> CanonicalizationRuleVersion {
     CanonicalizationRuleVersion::new("store.physical.simulation.plan.v1")
         .expect("plan canonicalization version is static and valid")
+}
+
+fn scenario_family_token(family: PhysicalSimulationScenarioFamily) -> &'static str {
+    match family {
+        PhysicalSimulationScenarioFamily::S4RecoveryDogfood => "s4-recovery-dogfood",
+        PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe => "s5-readiness-shape-probe",
+        PhysicalSimulationScenarioFamily::S5StableReadPlanAdmission => {
+            "s5-stable-read-plan-admission"
+        }
+        PhysicalSimulationScenarioFamily::S5CompactionInterlock => "s5-compaction-interlock",
+        PhysicalSimulationScenarioFamily::S5CheckpointPublicationInterlock => {
+            "s5-checkpoint-publication-interlock"
+        }
+        PhysicalSimulationScenarioFamily::S5ReclaimReachability => "s5-reclaim-reachability",
+        PhysicalSimulationScenarioFamily::S5TierMovementStability => "s5-tier-movement-stability",
+        PhysicalSimulationScenarioFamily::S5FutureChunkStability => "s5-future-chunk-stability",
+        PhysicalSimulationScenarioFamily::S5RestartDuringCutover => "s5-restart-during-cutover",
+        PhysicalSimulationScenarioFamily::ShortcutRejectionDogfood => "shortcut-rejection-dogfood",
+        PhysicalSimulationScenarioFamily::FutureExtensionSlot => "future-extension-slot",
+    }
 }
 
 fn hex_digest(bytes: &[u8; 32]) -> String {

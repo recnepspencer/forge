@@ -68,6 +68,21 @@ impl CheckpointCutoverReceipt {
         }
     }
 
+    #[cfg(feature = "certification-test-authority")]
+    pub fn recovered_corrupt_cutover_report_for_certification(
+        checkpoint_id: CheckpointId,
+        profile_id: BackendDurabilityProfileId,
+        covered_lsn_range: CheckpointCoveredLsnRange,
+        counters: CheckpointRecoveryCounterSnapshot,
+    ) -> Self {
+        Self {
+            checkpoint_id,
+            profile_id,
+            covered_lsn_range,
+            counters,
+        }
+    }
+
     pub fn checkpoint_id(&self) -> &CheckpointId {
         &self.checkpoint_id
     }

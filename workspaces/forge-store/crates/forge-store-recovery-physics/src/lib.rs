@@ -27,6 +27,7 @@ mod s4_integrity_handoff_admission;
 mod s4_integrity_handoff_denial;
 mod s4_integrity_handoff_payload;
 mod s4_recovery_physics_integrity_readiness;
+mod s5_publication_recovery;
 mod source_precedence;
 mod wal_durability;
 mod wal_topology;
@@ -159,6 +160,11 @@ pub use s4_integrity_handoff_payload::{
     S4IntegrityHandoffPayloadDeclaration,
 };
 pub use s4_recovery_physics_integrity_readiness::S4RecoveryPhysicsIntegrityReadiness;
+pub use s5_publication_recovery::{
+    ExecutedS5PublicationRecoveryReceipt, S5PublicationCrashStage,
+    S5PublicationRecoveryReplayInput, S5RecoveredPublicationStructure,
+    S5RecoveredPublicationStructureKind,
+};
 pub use source_precedence::{
     AdmittedCompactionCutoverDurability, AdmittedCompactionCutoverRecord, AdmittedRecoverySource,
     BackendResidueKind, BackendResidueRejection, CheckpointBaseAdmission,

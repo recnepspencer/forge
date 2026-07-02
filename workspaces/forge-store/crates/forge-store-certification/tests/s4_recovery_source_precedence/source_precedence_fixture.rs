@@ -72,6 +72,25 @@ pub(crate) fn wal_only_tail_denial_from_torn_frame(start: u64, end: u64) -> WalO
     wal_only_tail_fixture::wal_only_tail_denial_from_torn_frame(wal_range(start, end))
 }
 
+pub(crate) fn s3_integrity_readiness() -> forge_store_readiness::S3PhysicalIntegrityReadiness {
+    wal_only_tail_fixture::s3_readiness()
+}
+
+pub(crate) fn intact_wal_integrity_evidence(
+) -> forge_store_physical_integrity::PhysicalIntegrityEvidenceBundle {
+    wal_only_tail_fixture::intact_wal_integrity_evidence()
+}
+
+pub(crate) fn intact_wal_integrity_evidence_for_owner(
+    owner: forge_store_physical_format::PhysicalGenerationOwner,
+) -> forge_store_physical_integrity::PhysicalIntegrityEvidenceBundle {
+    wal_only_tail_fixture::intact_wal_integrity_evidence_for_owner(owner)
+}
+
+pub(crate) fn wal_tail_quarantine_record() -> forge_store_physical_integrity::QuarantineRecord {
+    wal_only_tail_fixture::wal_tail_quarantine_record(wal_range(30, 40))
+}
+
 pub(crate) fn compaction_visible_product_evidence(
     generation_value: u64,
 ) -> CompactionVisibleProductEvidence {

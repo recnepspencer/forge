@@ -2,6 +2,7 @@ mod basis;
 mod family;
 mod forbidden_sources;
 mod oracle_impls;
+mod s5_physical_isolation;
 mod s5_readiness;
 mod verdict;
 
@@ -16,6 +17,7 @@ pub use oracle_impls::{
     IndependentVerifierAgreementOracle, NoJsonAuthorityOracle, NoPrivateMutationOracle,
     TranscriptReplayOracle,
 };
+pub use s5_physical_isolation::S5PhysicalIsolationInterleavingOracle;
 pub use s5_readiness::{
     BlockedReclaimUntilReleaseOracle, NoMixedRootOracle, OldReaderSeesOldRootOracle,
     PostSwapReaderSeesNewRootOracle,

@@ -13,7 +13,10 @@ mod observation;
 mod oracles;
 mod planning;
 mod s45_entry;
+mod s5_executed_isolation_contract;
+mod s5_executed_isolation_source;
 mod s5_handoff;
+mod s5_physical_isolation_mutation;
 mod scenario;
 mod schedule;
 mod shortcut_rejection;
@@ -61,7 +64,8 @@ pub use coverage::{
     PhysicalCoverageMatrixRow, PhysicalMutationCoverageEvidence, RegisteredCounterCoverageRow,
     RegisteredOracleCoverageRow, RegisteredScenarioCoverageRow, RegisteredTranscriptCoverageRow,
     Roadmap2CoverageRegistry, Roadmap2HarnessReadinessReport, Roadmap2HarnessSequence,
-    Roadmap2PhysicalCoverageMatrix, S5HarnessMaturityDependencyEvidence, S5ReadinessDependencySet,
+    Roadmap2PhysicalCoverageMatrix, S5CompactionMutationCoverageRow, S5CompactionMutationKind,
+    S5HarnessMaturityDependencyEvidence, S5PhysicalIsolationMutationKind, S5ReadinessDependencySet,
     S5SimulationHarnessReadiness,
 };
 pub use drivers::{
@@ -86,14 +90,15 @@ pub use evidence::{
     TerminalProjectionOnlyEvidenceDenied,
 };
 pub use faults::{
-    BlockedReclaimEvent, ByteCorruptionEvent, CrashEvent, DelayedReleaseEvent, DroppedFlushEvent,
-    ExecutedFaultDeliveryRecipe, ExecutionReadyFaultDeliveryRecipe, ExpectedFaultLocalization,
-    FaultDeliveryAttempt, FaultDeliveryBoundaryProof, FaultDeliveryDenial, FaultDeliveryPlan,
-    FaultDeliveryReceipt, FaultObservedBoundaryKind, IoStallEvent, LoweredFaultDeliveryRecipe,
-    NoFaultControlEvent, NoFaultProductionBoundaryParity, ObservedFaultBoundary,
-    PhysicalArtifactFaultLocus, PhysicalArtifactKind, PhysicalFaultEvent, PhysicalFaultEventKind,
-    PhysicalFaultFieldKind, PhysicalFaultOffset, ReorderedPersistenceEvent, StaleGenerationEvent,
-    TornWriteEvent,
+    s5_stable_read_plan_fault_event, BlockedReclaimEvent, ByteCorruptionEvent, CrashEvent,
+    DelayedReleaseEvent, DroppedFlushEvent, ExecutedFaultDeliveryRecipe,
+    ExecutionReadyFaultDeliveryRecipe, ExecutionTimeReferenceDiscoveryEvent,
+    ExpectedFaultLocalization, FaultDeliveryAttempt, FaultDeliveryBoundaryProof,
+    FaultDeliveryDenial, FaultDeliveryPlan, FaultDeliveryReceipt, FaultObservedBoundaryKind,
+    IoStallEvent, LoweredFaultDeliveryRecipe, NoFaultControlEvent, NoFaultProductionBoundaryParity,
+    ObservedFaultBoundary, PhysicalArtifactFaultLocus, PhysicalArtifactKind, PhysicalFaultEvent,
+    PhysicalFaultEventKind, PhysicalFaultFieldKind, PhysicalFaultOffset, ReorderedPersistenceEvent,
+    StaleGenerationEvent, TornWriteEvent, UnboundedReadPlanFootprintEvent,
 };
 pub use fixtures::{
     FixtureAuthorityReceipt, FixtureCapabilityDeclaration, FixtureConstructionAuthority,
@@ -106,10 +111,17 @@ pub use fixtures::{
     SyntheticFixtureAuthorityDenied,
 };
 pub use observation::{
-    ExecutedPhysicalSimulationObservation, IndependentVerifierObservation,
-    IndependentVerifierObservationKind, ObservationDenial, ObservedPhysicalTrace,
-    PhysicalObservationBuilder, PhysicalSimulationObserver, RecoveryOutcomeKind,
-    RecoveryOutcomeObservation, ShortcutRejectionObservation, ShortcutRejectionObservationKind,
+    CheckpointCrashReplayObservation, CheckpointInterlockObservation,
+    CompactionInterlockObservation, ExecutedPhysicalSimulationObservation,
+    IndependentVerifierObservation, IndependentVerifierObservationKind, ObservationDenial,
+    ObservedPhysicalTrace, PhysicalObservationBuilder, PhysicalSimulationObserver,
+    RecoveryOutcomeKind, RecoveryOutcomeObservation, S5CheckpointPublicationCrashLaneOutput,
+    S5CheckpointPublicationLaneBinding, S5CheckpointPublicationRecoveryOutcomeLaneOutput,
+    S5CheckpointPublicationScheduledLaneOutput, S5CheckpointPublicationShortcutDenialLaneOutput,
+    S5CheckpointPublicationShortcutRejectionOutput, S5CompactionMutationLaneExecution,
+    S5CompactionMutationObservationSet, S5CompactionMutationReplayBinding,
+    S5CompactionMutationScheduledLaneOutput, ShortcutRejectionObservation,
+    ShortcutRejectionObservationKind,
 };
 pub use oracles::{
     expected_error_text_oracle_attempt, fixture_label_oracle_attempt, log_only_oracle_attempt,
@@ -120,7 +132,8 @@ pub use oracles::{
     OracleDenial, OracleVerdictBasis, PhysicalOracleJudgment, PhysicalOracleNonClaim,
     PhysicalOracleVerdictTopology, PhysicalOracleVerdictTopologyPosture, PhysicalProofOracle,
     PhysicalProofOracleKind, PhysicalProofOracleVerdict, PhysicalProofOracleVerdictKind,
-    PostSwapReaderSeesNewRootOracle, ReusablePhysicalOracleFamily, TranscriptReplayOracle,
+    PostSwapReaderSeesNewRootOracle, ReusablePhysicalOracleFamily,
+    S5PhysicalIsolationInterleavingOracle, TranscriptReplayOracle,
 };
 pub use planning::{
     lower_physical_simulation_plan, reject_unresolved_simulation_plan_recipe,
@@ -143,14 +156,29 @@ pub use s45_entry::{
     S45RoadmapHarnessRequirement, S45RoadmapHarnessRequirementSet, S45SimulationHarnessEntry,
     S45SimulationHarnessEntryIdentity,
 };
+pub use s5_executed_isolation_contract::{
+    S5EvidenceProfileCounterSet, S5ExecutedIsolationFinding, S5ExecutedIsolationOutcome,
+    S5ExecutedIsolationRequiredCounters, S5ExecutedIsolationSourceBasis,
+};
+pub use s5_executed_isolation_source::{
+    S5ExecutedIsolationEvidenceSource, S5ExecutedIsolationSourceDenial,
+};
 pub use s5_handoff::{
-    accept_store_owned_s5_harness_readiness,
+    accept_store_owned_s5_harness_readiness, register_s5_physical_isolation_certification_lane,
+    reject_copied_s45_readiness_rows_as_s5_lane_registration,
     reject_foundational_or_proof_projection_as_s5_harness_readiness,
     reject_future_slot_as_s5_harness_readiness, reject_generic_runner_as_s5_harness_readiness,
-    require_store_owned_s5_harness_receipt, AcceptedS5SimulationHarnessReadiness,
-    S5CounterContractReadiness, S5HarnessFutureExtensionReservation, S5HarnessFutureExtensionSlot,
-    S5HarnessReadinessReceipt, S5InterleavingHarnessCapability, S5MaintenanceActorCapability,
+    reject_generic_runner_as_s5_lane_registration,
+    reject_harness_projection_as_s5_lane_registration, require_store_owned_s5_harness_receipt,
+    AcceptedS5SimulationHarnessReadiness, S5CounterContractReadiness,
+    S5HarnessFutureExtensionReservation, S5HarnessFutureExtensionSlot, S5HarnessReadinessReceipt,
+    S5InterleavingHarnessCapability, S5MaintenanceActorCapability,
+    S5PhysicalIsolationCertificationLaneRegistration, S5PhysicalIsolationLaneRegistrationDenial,
     S5ProductionDriverCapability, S5RequiredYieldpoint, S5ReusableOracleReadiness,
+};
+pub use s5_physical_isolation_mutation::{
+    s5_physical_isolation_required_mutation_rows, S5MutationReplayBasis,
+    S5PhysicalIsolationMutationEvidence,
 };
 pub use scenario::{
     reject_raw_json_scenario_authority_attempt, CertifiedPhysicalScenario,
@@ -195,4 +223,5 @@ pub enum PhysicalCertificationLane {
     RecoveryTime,
     ForegroundLatency,
     BlobScale,
+    PhysicalIsolation,
 }

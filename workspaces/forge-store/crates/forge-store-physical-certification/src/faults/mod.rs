@@ -4,6 +4,7 @@ mod delivery;
 mod denial;
 mod event;
 mod locus;
+mod scenario_fault;
 
 pub use attempts::FaultDeliveryAttempt;
 pub use boundary::{NoFaultProductionBoundaryParity, ObservedFaultBoundary};
@@ -14,10 +15,12 @@ pub use delivery::{
 pub use denial::{FaultDeliveryDenial, FaultObservedBoundaryKind};
 pub use event::{
     BlockedReclaimEvent, ByteCorruptionEvent, CrashEvent, DelayedReleaseEvent, DroppedFlushEvent,
-    IoStallEvent, NoFaultControlEvent, PhysicalFaultEvent, PhysicalFaultEventKind,
-    ReorderedPersistenceEvent, StaleGenerationEvent, TornWriteEvent,
+    ExecutionTimeReferenceDiscoveryEvent, IoStallEvent, NoFaultControlEvent, PhysicalFaultEvent,
+    PhysicalFaultEventKind, ReorderedPersistenceEvent, StaleGenerationEvent, TornWriteEvent,
+    UnboundedReadPlanFootprintEvent,
 };
 pub use locus::{
     ExpectedFaultLocalization, PhysicalArtifactFaultLocus, PhysicalArtifactKind,
     PhysicalFaultFieldKind, PhysicalFaultOffset,
 };
+pub use scenario_fault::s5_stable_read_plan_fault_event;

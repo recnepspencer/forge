@@ -174,6 +174,7 @@ mod field_widths;
 mod format_identity;
 mod forward_compatibility;
 mod free_space_policy;
+mod future_chunk_reference;
 mod generation_authority;
 mod generation_cells;
 mod generation_owner;
@@ -291,6 +292,7 @@ pub use free_space_policy::{
     PhysicalForegroundBoundednessOutcome, PhysicalForegroundBoundednessReport,
     PhysicalFragmentationPressureReport, PhysicalFreeSpaceSearchPolicy,
 };
+pub use future_chunk_reference::{PhysicalFutureChunkId, PhysicalFutureChunkReference};
 pub use generation_authority::{PhysicalGenerationAuthority, PhysicalGenerationAuthorityScope};
 pub use generation_cells::{
     ExtentGenerationCell, ExtentGenerationCellBuilder, FreeSpaceReuseAddress, FreeSpaceReuseCell,

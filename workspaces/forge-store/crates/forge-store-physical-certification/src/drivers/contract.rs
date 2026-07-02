@@ -175,6 +175,10 @@ impl AdmittedDriverContractSet {
         ])
     }
 
+    pub fn ci_certification() -> Result<Self, DriverAdmissionDenial> {
+        Self::developer_smoke()
+    }
+
     pub fn without(mut self, driver: PhysicalDriverKind) -> Self {
         self.drivers.retain(|candidate| candidate.kind() != driver);
         self

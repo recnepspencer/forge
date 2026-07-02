@@ -75,6 +75,8 @@ const fn counter_strength_justification(kind: CounterContractKind) -> CounterStr
         | CounterContractKind::Retries
         | CounterContractKind::BlockedReclaimAttempts
         | CounterContractKind::ReplayedPages
+        | CounterContractKind::CompactionCandidateRanges
+        | CounterContractKind::CopiedPages
         | CounterContractKind::FutureS5SpecificCounters => {
             CounterStrengthJustification::ImplementationSensitiveCost
         }

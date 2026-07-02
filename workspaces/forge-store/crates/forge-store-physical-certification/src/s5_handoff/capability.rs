@@ -10,12 +10,15 @@ pub enum S5InterleavingHarnessCapability {
     LeaseExpiryNonAuthorityShapeProbe,
     FreeReuseGenerationFenceShapeProbe,
     RestartDuringCutoverShapeProbe,
+    ReadDuringCompactionShapeProbe,
+    CompactionRangeInterlockShapeProbe,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum S5MaintenanceActorCapability {
     ReclaimBarrierParticipant,
     RestartParticipant,
+    CompactionCutoverParticipant,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -25,6 +28,7 @@ pub enum S5RequiredYieldpoint {
     ByteGuardAdmission,
     ReclaimBarrier,
     RestartDuringCutover,
+    CompactionCutover,
     ShortcutRejectionBoundary,
 }
 
@@ -53,6 +57,8 @@ pub enum S5CounterContractReadiness {
     BlockedReclaimAttempts,
     PublicationSwaps,
     FutureS5SpecificCountersReserved,
+    CompactionCandidateRanges,
+    CopiedPages,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

@@ -272,13 +272,27 @@ impl Roadmap2CoverageRegistry {
             return Err(CoverageGapDenial::MutationPlanIdentityMismatch);
         }
         let identity = mutation_identity(mutation.posture());
+        let mut dimensions = vec![CoverageRowDimension::MutationValidationPosture(
+            mutation.posture(),
+        )];
+        dimensions.extend(
+            mutation
+                .compaction_mutations()
+                .iter()
+                .map(|row| CoverageRowDimension::CompactionMutation(row.kind())),
+        );
+        dimensions.extend(
+            mutation
+                .s5_physical_isolation_mutations()
+                .iter()
+                .copied()
+                .map(CoverageRowDimension::S5PhysicalIsolationMutation),
+        );
         self.rows.push(PhysicalCoverageMatrixRow::generated(
             self.sequence,
             CoverageSurfaceKind::MutationResult,
             identity,
-            [CoverageRowDimension::MutationValidationPosture(
-                mutation.posture(),
-            )],
+            dimensions,
         ));
         Ok(self)
     }

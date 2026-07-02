@@ -42,6 +42,7 @@ pub(crate) fn oracle_family_token(oracle_family: OracleFamilyKind) -> &'static s
     match oracle_family {
         OracleFamilyKind::TranscriptReplayEvidence => "transcript-replay-evidence",
         OracleFamilyKind::S5ReadinessShape => "s5-readiness-shape",
+        OracleFamilyKind::S5PhysicalIsolationInterleaving => "s5-physical-isolation-interleaving",
         OracleFamilyKind::S4RecoveryDogfood => "s4-recovery-dogfood",
         OracleFamilyKind::ForbiddenShortcutRejection => "forbidden-shortcut-rejection",
         OracleFamilyKind::FutureExtensionNonClaim => "future-extension-non-claim",

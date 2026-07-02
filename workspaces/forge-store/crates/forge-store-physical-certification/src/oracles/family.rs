@@ -1,7 +1,8 @@
 use crate::{
     CounterContractOracle, CrashRecoversOldOrNewNeverMixedOracle,
     IndependentVerifierAgreementOracle, NoJsonAuthorityOracle, NoPrivateMutationOracle,
-    ObservedPhysicalTrace, OracleFamilyKind, PhysicalSimulationPlan, TranscriptReplayOracle,
+    ObservedPhysicalTrace, OracleFamilyKind, PhysicalSimulationPlan,
+    S5PhysicalIsolationInterleavingOracle, TranscriptReplayOracle,
 };
 
 use super::{
@@ -34,6 +35,12 @@ impl ReusablePhysicalOracleFamily {
     pub const fn s5_readiness_shape() -> Self {
         Self {
             kind: OracleFamilyKind::S5ReadinessShape,
+        }
+    }
+
+    pub const fn s5_physical_isolation_interleaving() -> Self {
+        Self {
+            kind: OracleFamilyKind::S5PhysicalIsolationInterleaving,
         }
     }
 
@@ -83,6 +90,7 @@ impl CertificationOwnedOracle for NoJsonAuthorityOracle {}
 impl CertificationOwnedOracle for CounterContractOracle {}
 impl CertificationOwnedOracle for TranscriptReplayOracle {}
 impl CertificationOwnedOracle for IndependentVerifierAgreementOracle {}
+impl CertificationOwnedOracle for S5PhysicalIsolationInterleavingOracle {}
 
 impl<O: PhysicalProofOracle> PhysicalOracleJudgment<O> {
     pub fn judge(

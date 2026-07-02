@@ -1,0 +1,133 @@
+use forge_proof::{
+    AdmitRecipeTransition, AssumptionBasis, AuthorityMarker, AuthorityWitness, CapabilityMarker,
+    CapabilityWitness, ContextualTransition, CurrentValidity, FreshnessScopedBasis,
+    LowerRecipeTransition, Lowered, Recipe, RecipeResolutionContext, ResolveRecipeTransition,
+    Resolved, Transition, Unresolved,
+};
+
+use super::{PhysicalIsolationEntryIdentity, PhysicalIsolationRootEpochBasis};
+
+pub type PhysicalIsolationResolvedEntryRecipe = Recipe<
+    Resolved,
+    PhysicalIsolationEntryProofRequest,
+    FreshnessScopedBasis<CurrentValidity, AssumptionBasis<S4RecoveryReadinessBasis>>,
+>;
+pub type PhysicalIsolationLoweredEntryRecipe = Recipe<
+    Lowered,
+    PhysicalIsolationEntryProofRequest,
+    FreshnessScopedBasis<CurrentValidity, AssumptionBasis<S4RecoveryReadinessBasis>>,
+>;
+pub type PhysicalIsolationAdmittedEntryRecipe = Recipe<
+    forge_proof::Admitted,
+    PhysicalIsolationEntryProofRequest,
+    FreshnessScopedBasis<CurrentValidity, AssumptionBasis<S4RecoveryReadinessBasis>>,
+>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PhysicalIsolationEntryProofRequest {
+    identity: PhysicalIsolationEntryIdentity,
+}
+
+#[derive(Debug, Clone)]
+pub struct S4RecoveryReadinessBasis {
+    identity: PhysicalIsolationEntryIdentity,
+    root_epoch_basis: PhysicalIsolationRootEpochBasis,
+}
+
+#[derive(Debug, Clone)]
+pub struct PhysicalIsolationEntryProofProgression {
+    unresolved: Recipe<Unresolved, PhysicalIsolationEntryProofRequest>,
+    resolved: PhysicalIsolationResolvedEntryRecipe,
+    lowered: PhysicalIsolationLoweredEntryRecipe,
+    admitted: PhysicalIsolationAdmittedEntryRecipe,
+}
+
+pub struct S5EntryAuthority {
+    _private: (),
+}
+
+impl AuthorityMarker for S5EntryAuthority {}
+
+struct S5EntryLoweringCapability {
+    _private: (),
+}
+
+impl CapabilityMarker for S5EntryLoweringCapability {}
+
+impl PhysicalIsolationEntryProofProgression {
+    pub(crate) fn from_identity(identity: PhysicalIsolationEntryIdentity) -> Self {
+        let unresolved = Recipe::<Unresolved, _>::new(PhysicalIsolationEntryProofRequest {
+            identity: identity.clone(),
+        });
+        let resolved = ResolveRecipeTransition
+            .transition(
+                unresolved.clone(),
+                RecipeResolutionContext::new(
+                    S4RecoveryReadinessBasis {
+                        identity: identity.clone(),
+                        root_epoch_basis: identity.root_epoch_basis(),
+                    },
+                    s5_entry_authority_witness(),
+                ),
+            )
+            .into_value();
+        let lowered = LowerRecipeTransition::new(s5_entry_lowering_capability())
+            .transition(resolved.clone())
+            .into_value();
+        let admitted = AdmitRecipeTransition::new(s5_entry_authority_witness())
+            .transition(lowered.clone())
+            .into_value();
+        Self {
+            unresolved,
+            resolved,
+            lowered,
+            admitted,
+        }
+    }
+
+    pub const fn unresolved_recipe(
+        &self,
+    ) -> &Recipe<Unresolved, PhysicalIsolationEntryProofRequest> {
+        &self.unresolved
+    }
+
+    pub const fn resolved_recipe(&self) -> &PhysicalIsolationResolvedEntryRecipe {
+        &self.resolved
+    }
+
+    pub const fn lowered_recipe(&self) -> &PhysicalIsolationLoweredEntryRecipe {
+        &self.lowered
+    }
+
+    pub const fn admitted_recipe(&self) -> &PhysicalIsolationAdmittedEntryRecipe {
+        &self.admitted
+    }
+
+    pub const fn is_store_physical_stability_authority(&self) -> bool {
+        false
+    }
+}
+
+impl PhysicalIsolationEntryProofRequest {
+    pub const fn identity(&self) -> &PhysicalIsolationEntryIdentity {
+        &self.identity
+    }
+}
+
+impl S4RecoveryReadinessBasis {
+    pub const fn identity(&self) -> &PhysicalIsolationEntryIdentity {
+        &self.identity
+    }
+
+    pub const fn root_epoch_basis(&self) -> PhysicalIsolationRootEpochBasis {
+        self.root_epoch_basis
+    }
+}
+
+fn s5_entry_authority_witness() -> AuthorityWitness<S5EntryAuthority> {
+    AuthorityWitness::from_authority_marker(S5EntryAuthority { _private: () })
+}
+
+fn s5_entry_lowering_capability() -> CapabilityWitness<S5EntryLoweringCapability> {
+    CapabilityWitness::from_capability_marker(S5EntryLoweringCapability { _private: () })
+}

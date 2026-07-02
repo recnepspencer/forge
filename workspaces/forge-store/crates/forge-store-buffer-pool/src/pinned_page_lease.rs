@@ -1,9 +1,9 @@
 use crate::{
     PageLeaseId, PinnedFrameView, RecordViewAccess, RecordViewDenial,
     RecordViewMaterializationProfile, ResidentFrameDenial, ResidentFrameIdentity,
-    ResidentFrameTable, UnpinnedPageReceipt, ZeroCopyRecordView,
+    ResidentFrameTable, ResidentFrameToken, UnpinnedPageReceipt, ZeroCopyRecordView,
 };
-use forge_store_physical_format::FramedRecordView;
+use forge_store_physical_format::{FramedRecordView, PhysicalReference};
 
 #[derive(Debug)]
 pub struct PinnedPageLease<'table> {
@@ -67,6 +67,14 @@ impl<'table> PinnedPageLease<'table> {
 
     pub const fn lease_id(&self) -> PageLeaseId {
         self.lease_id
+    }
+
+    pub const fn resident_frame_token(&self) -> ResidentFrameToken {
+        self.identity.token()
+    }
+
+    pub fn physical_reference(&self) -> Result<PhysicalReference, ResidentFrameDenial> {
+        self.table.resident_physical_reference(self.identity)
     }
 }
 

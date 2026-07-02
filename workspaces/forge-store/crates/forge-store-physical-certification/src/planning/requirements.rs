@@ -9,7 +9,17 @@ use super::capabilities::{PhysicalSimulationCapability, PhysicalSimulationCapabi
 use super::counter_contracts::{
     CounterContractKind, PhysicalCounterContract, RequiredCounterContractSet,
 };
+use super::stable_read_plan_requirements::s5_stable_read_plan_shape;
 use super::SimulationPlanDenial;
+
+mod replay_requirements;
+mod s5_interleaving_families;
+use replay_requirements::{s4_recovery_shape, s5_checkpoint_publication_crash_replay_shape};
+use s5_interleaving_families::{
+    s5_checkpoint_publication_interlock_shape, s5_compaction_interlock_shape,
+    s5_future_chunk_stability_shape, s5_reclaim_reachability_shape,
+    s5_restart_during_cutover_shape, s5_tier_movement_stability_shape,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PhysicalDriverKind {
@@ -34,6 +44,7 @@ pub enum ObserverKind {
 pub enum OracleFamilyKind {
     TranscriptReplayEvidence,
     S5ReadinessShape,
+    S5PhysicalIsolationInterleaving,
     S4RecoveryDogfood,
     ForbiddenShortcutRejection,
     FutureExtensionNonClaim,
@@ -101,6 +112,50 @@ impl RequiredSimulationPlanShape {
                 PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe,
                 PhysicalScenarioExpectationKind::S5ReadinessWithShortcutRejectionProbe,
             ) => s5_readiness_with_shortcut_rejection_shape(actor_step_count),
+            (
+                PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe,
+                PhysicalScenarioExpectationKind::S5CheckpointPublicationCrashReplay,
+            ) => s5_checkpoint_publication_crash_replay_shape(actor_step_count),
+            (
+                PhysicalSimulationScenarioFamily::S5StableReadPlanAdmission,
+                PhysicalScenarioExpectationKind::StableReadPlanCounterContracts,
+            )
+            | (
+                PhysicalSimulationScenarioFamily::S5StableReadPlanAdmission,
+                PhysicalScenarioExpectationKind::StableReadPlanTranscriptReplay,
+            )
+            | (
+                PhysicalSimulationScenarioFamily::S5StableReadPlanAdmission,
+                PhysicalScenarioExpectationKind::StableReadPlanDenial,
+            ) => s5_stable_read_plan_shape(actor_step_count),
+            (
+                PhysicalSimulationScenarioFamily::S5CompactionInterlock,
+                PhysicalScenarioExpectationKind::S5PhysicalIsolationDenial,
+            ) => s5_compaction_interlock_shape(actor_step_count),
+            (
+                PhysicalSimulationScenarioFamily::S5CheckpointPublicationInterlock,
+                PhysicalScenarioExpectationKind::S5PhysicalIsolationInterleaving,
+            ) => s5_checkpoint_publication_interlock_shape(actor_step_count),
+            (
+                PhysicalSimulationScenarioFamily::S5ReclaimReachability,
+                PhysicalScenarioExpectationKind::S5PhysicalIsolationInterleaving,
+            )
+            | (
+                PhysicalSimulationScenarioFamily::S5ReclaimReachability,
+                PhysicalScenarioExpectationKind::S5PhysicalIsolationDenial,
+            ) => s5_reclaim_reachability_shape(actor_step_count),
+            (
+                PhysicalSimulationScenarioFamily::S5TierMovementStability,
+                PhysicalScenarioExpectationKind::S5PhysicalIsolationInterleaving,
+            ) => s5_tier_movement_stability_shape(actor_step_count),
+            (
+                PhysicalSimulationScenarioFamily::S5FutureChunkStability,
+                PhysicalScenarioExpectationKind::S5PhysicalIsolationInterleaving,
+            ) => s5_future_chunk_stability_shape(actor_step_count),
+            (
+                PhysicalSimulationScenarioFamily::S5RestartDuringCutover,
+                PhysicalScenarioExpectationKind::S5PhysicalIsolationInterleaving,
+            ) => s5_restart_during_cutover_shape(actor_step_count),
             (
                 PhysicalSimulationScenarioFamily::ShortcutRejectionDogfood,
                 PhysicalScenarioExpectationKind::ShortcutRejectionDogfood,
@@ -238,6 +293,8 @@ fn s5_readiness_shape(actor_step_count: u64) -> RequiredSimulationPlanShape {
             monotonic_contract(CounterContractKind::LatchWaits),
             monotonic_contract(CounterContractKind::EpochRetries),
             positive_contract(CounterContractKind::ProtectedReferences),
+            positive_contract(CounterContractKind::CompactionCandidateRanges),
+            positive_contract(CounterContractKind::CopiedPages),
             monotonic_contract(CounterContractKind::Retries),
         ]),
         fixture_classes: RequiredFixtureClassSet::from_fixture_classes([
@@ -278,6 +335,8 @@ fn s5_readiness_with_shortcut_rejection_shape(
             monotonic_contract(CounterContractKind::EpochRetries),
             positive_contract(CounterContractKind::ProtectedReferences),
             positive_contract(CounterContractKind::BlockedReclaimAttempts),
+            positive_contract(CounterContractKind::CompactionCandidateRanges),
+            positive_contract(CounterContractKind::CopiedPages),
         ]),
         fixture_classes: RequiredFixtureClassSet::from_fixture_classes([
             FixtureClassKind::AspectNativeBoundaryFact,
@@ -292,33 +351,6 @@ fn s5_readiness_drivers_for_yieldpoint(yieldpoint: &str) -> RequiredPhysicalDriv
         }
         _ => RequiredPhysicalDriverSet::from_drivers([
             PhysicalDriverKind::ProductionBoundaryYieldpoint,
-        ]),
-    }
-}
-
-fn s4_recovery_shape(actor_step_count: u64) -> RequiredSimulationPlanShape {
-    RequiredSimulationPlanShape {
-        capabilities: baseline_capabilities(),
-        actors: RequiredActorSet::from_actors([]),
-        drivers: RequiredPhysicalDriverSet::from_drivers([
-            PhysicalDriverKind::FreshRuntimeRecovery,
-        ]),
-        observers: RequiredObserverSet::from_observers([ObserverKind::RecoveryOutcomeObserver]),
-        oracle_families: RequiredOracleFamilySet::from_oracles([
-            OracleFamilyKind::TranscriptReplayEvidence,
-            OracleFamilyKind::S4RecoveryDogfood,
-        ]),
-        counter_contracts: RequiredCounterContractSet::from_contracts([
-            PhysicalCounterContract::exact(CounterContractKind::ActorStepExact, actor_step_count),
-            PhysicalCounterContract::exact(CounterContractKind::ReplayIdentityExact, 1),
-            PhysicalCounterContract::profile_scoped(CounterContractKind::ProfileResourceEnvelope),
-            bounded_contract(CounterContractKind::AllocationBytes, 64 * 1024),
-            bounded_contract(CounterContractKind::ReplayedPages, 128),
-            monotonic_contract(CounterContractKind::Retries),
-        ]),
-        fixture_classes: RequiredFixtureClassSet::from_fixture_classes([
-            FixtureClassKind::AspectNativeBoundaryFact,
-            FixtureClassKind::S4RecoveryArtifacts,
         ]),
     }
 }

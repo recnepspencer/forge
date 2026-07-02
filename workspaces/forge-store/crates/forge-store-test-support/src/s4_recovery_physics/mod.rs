@@ -13,6 +13,6 @@ pub use s4_persisted_recovery::{
     deterministic_s4_recovery_artifacts, duplicate_role_s4_recovery_artifacts,
     incomplete_s4_recovery_artifacts, malformed_s4_recovery_record,
     reordered_s4_recovery_artifacts, runtime_disagreement_s4_recovery_artifacts,
-    runtime_state_mismatch_s4_recovery_artifacts,
+    runtime_state_mismatch_s4_recovery_artifacts, s4_recovery_artifacts_with_operation_digest,
 };
 pub use s4_storage_interposer::{StorageBoundaryEvent, StorageBoundaryInterposerDriver};

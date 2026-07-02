@@ -4,7 +4,10 @@ mod fixture_builders;
 mod schedule_fixtures;
 mod shortcut_attempts;
 
-pub use driver_fixtures::{admitted_developer_smoke_driver_contracts, unbound_production_driver};
+pub use driver_fixtures::{
+    admitted_ci_certification_driver_contracts, admitted_developer_smoke_driver_contracts,
+    unbound_production_driver,
+};
 pub use fault_fixtures::{
     ambiguous_locus_fault_attempt_fixture, arbitrary_byte_scribble_fault_attempt_fixture,
     crash_recovery_fault_locus, io_pressure_fault_locus, observed_checksum_mismatch_boundary,
@@ -14,8 +17,9 @@ pub use fault_fixtures::{
 };
 pub use fixture_builders::production_backed_physical_fixture_materialization;
 pub use schedule_fixtures::{
-    deterministic_developer_smoke_schedule, developer_smoke_replay_seed,
-    developer_smoke_state_space_budget,
+    ci_certification_replay_seed, ci_certification_state_space_budget,
+    deterministic_ci_certification_schedule, deterministic_developer_smoke_schedule,
+    developer_smoke_replay_seed, developer_smoke_state_space_budget,
 };
 pub use shortcut_attempts::{
     fake_in_memory_only_driver_attempt, private_mutation_driver_attempt_fixture,

@@ -209,6 +209,10 @@ mod s4_recovery_blocking_damage_test_support;
 mod s4_recovery_entry_admission_tests;
 mod s4_recovery_harness;
 mod s4_recovery_harness_exports;
+mod s5_evidence_materialization;
+mod s5_physical_isolation_closeout;
+mod s5_physical_isolation_harness;
+mod s6_io_qos_readiness_handoff;
 mod scale_fixture;
 mod scale_property;
 mod scenario_definition;
@@ -360,10 +364,7 @@ pub use resident_frame_authority_evidence::{
     ResidentFrameAuthorityEvidenceDenial, ResidentFrameAuthorityEvidenceReport,
     ResidentFrameAuthorityEvidenceRow,
 };
-pub use runtime_verifier_comparison::{
-    PhysicalRuntimeVerifierComparison, RuntimeVerifierComparisonClassification,
-    RuntimeVerifierComparisonDenial, RuntimeVerifierComparisonReport,
-};
+pub use runtime_verifier_comparison::*;
 pub use runtime_verifier_diagnostics::{
     RuntimeVerifierDiagnosticDenial, RuntimeVerifierDiagnosticKind, RuntimeVerifierDiagnosticReport,
 };
@@ -377,21 +378,15 @@ pub use s2_entry_boundary_evidence::{
     S2ForbiddenEntryAttempt,
 };
 pub use s4_recovery_harness_exports::*;
-pub use scale_fixture::{
-    PhysicalHostileScaleCondition, PhysicalHostileScaleFixtureDenial,
-    PhysicalHostileScaleFixtureReport, PhysicalHostileScaleFixtureSource,
-};
+pub use s5_evidence_materialization::*;
+pub use s5_physical_isolation_closeout::*;
+pub use s5_physical_isolation_harness::*;
+pub use s6_io_qos_readiness_handoff::*;
+pub use scale_fixture::*;
 pub use scale_property::PhysicalScalePropertyEvidence;
-pub use scenario_definition::{
-    PhysicalScenarioDefinition, PhysicalScenarioDefinitionBuilder,
-    PhysicalScenarioDefinitionDenial, PhysicalStoryStep, ScenarioLane,
-};
+pub use scenario_definition::*;
 pub use scenario_execution::{PhysicalScenarioExecution, PhysicalScenarioExecutionReport};
-pub use scenario_plan::{
-    ArtifactPolicy, ExpectedPhysicalFootprint, PhysicalScenarioCapabilityTier,
-    PhysicalScenarioCostClass, PhysicalScenarioPlan, PhysicalScenarioPlanDenial,
-    PhysicalScenarioPlanIdentity, StorageBoundaryCrossing, WorkloadScale,
-};
+pub use scenario_plan::*;
 pub use scenario_planned_work_evidence::PhysicalScenarioPlannedWorkBoundaryReport;
 pub use speculative_work_evidence::{
     SpeculativeWorkEvidenceDenial, SpeculativeWorkEvidenceReport, SpeculativeWorkEvidenceRow,

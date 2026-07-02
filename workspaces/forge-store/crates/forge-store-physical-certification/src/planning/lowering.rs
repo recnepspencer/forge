@@ -5,7 +5,8 @@ use super::plan::PhysicalSimulationPlanParts;
 use super::proof_progression::admit_simulation_plan;
 use super::requirements::RequiredSimulationPlanShape;
 use super::{
-    ForbiddenShortcutSet, PhysicalSimulationPlan, SimulationPlanDenial, SimulationPlanningContext,
+    ForbiddenShortcutSet, OracleFamilyKind, PhysicalSimulationPlan, SimulationPlanDenial,
+    SimulationPlanningContext,
 };
 use crate::{AdmittedDriverContractSet, YieldpointScheduleBinding};
 
@@ -27,8 +28,10 @@ pub fn lower_physical_simulation_plan(
         .forbidden_shortcuts()
         .ok_or(SimulationPlanDenial::AbsentForbiddenShortcutSet)?;
     require_roadmap2_forbidden_shortcuts(forbidden_shortcuts)?;
+    require_s5_lane_registration(&context, &required_shape)?;
     let plan = PhysicalSimulationPlan::from_parts(PhysicalSimulationPlanParts {
         scenario_identity: scenario.identity().clone(),
+        scenario_family: scenario.definition().family(),
         profile: context.profile(),
         resource_envelope: context.resource_envelope(),
         required_capabilities: required_shape.capabilities,
@@ -42,8 +45,23 @@ pub fn lower_physical_simulation_plan(
         fixture_classes: required_shape.fixture_classes,
         evidence_policy,
         forbidden_shortcuts: forbidden_shortcuts.clone(),
+        s5_compaction_mutation_origin: context.s5_compaction_mutation_origin().cloned(),
     })?;
     admit_simulation_plan(plan)
+}
+
+fn require_s5_lane_registration(
+    context: &SimulationPlanningContext,
+    required_shape: &RequiredSimulationPlanShape,
+) -> Result<(), SimulationPlanDenial> {
+    if required_shape
+        .oracle_families
+        .contains(OracleFamilyKind::S5PhysicalIsolationInterleaving)
+        && context.s5_physical_isolation_lane_registration().is_none()
+    {
+        return Err(SimulationPlanDenial::MissingS5PhysicalIsolationLaneRegistration);
+    }
+    Ok(())
 }
 
 fn require_resource_envelope_profile(

@@ -1,40 +1,142 @@
-use crate::OracleFamilyKind;
+use crate::{CheckpointInterlockObservation, CompactionInterlockObservation, OracleFamilyKind};
 
 use super::{
     OracleDenial, OracleVerdictBasis, PhysicalOracleNonClaim, PhysicalProofOracle,
     PhysicalProofOracleKind, PhysicalProofOracleVerdict,
 };
 
-macro_rules! readiness_oracle {
-    ($name:ident, $kind:ident) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        pub struct $name;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NoMixedRootOracle;
 
-        impl PhysicalProofOracle for $name {
-            fn oracle_kind(&self) -> PhysicalProofOracleKind {
-                PhysicalProofOracleKind::$kind
-            }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OldReaderSeesOldRootOracle;
 
-            fn family_kind(&self) -> OracleFamilyKind {
-                OracleFamilyKind::S5ReadinessShape
-            }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PostSwapReaderSeesNewRootOracle;
 
-            fn judge_basis(
-                &self,
-                basis: OracleVerdictBasis,
-            ) -> Result<PhysicalProofOracleVerdict, OracleDenial> {
-                Ok(PhysicalProofOracleVerdict::satisfied(
-                    OracleFamilyKind::S5ReadinessShape,
-                    self.oracle_kind(),
-                    basis,
-                    [PhysicalOracleNonClaim::S5PhysicalIsolationCorrectness],
-                ))
-            }
-        }
-    };
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BlockedReclaimUntilReleaseOracle;
+
+impl PhysicalProofOracle for NoMixedRootOracle {
+    fn oracle_kind(&self) -> PhysicalProofOracleKind {
+        PhysicalProofOracleKind::NoMixedRoot
+    }
+
+    fn family_kind(&self) -> OracleFamilyKind {
+        OracleFamilyKind::S5ReadinessShape
+    }
+
+    fn judge_basis(
+        &self,
+        basis: OracleVerdictBasis,
+    ) -> Result<PhysicalProofOracleVerdict, OracleDenial> {
+        require_satisfied_read_interlock_fact(
+            self.oracle_kind(),
+            basis,
+            |observation| observation.no_mixed_root(),
+            |observation| observation.no_mixed_root(),
+        )
+    }
 }
 
-readiness_oracle!(NoMixedRootOracle, NoMixedRoot);
-readiness_oracle!(OldReaderSeesOldRootOracle, OldReaderSeesOldRoot);
-readiness_oracle!(PostSwapReaderSeesNewRootOracle, PostSwapReaderSeesNewRoot);
-readiness_oracle!(BlockedReclaimUntilReleaseOracle, BlockedReclaimUntilRelease);
+impl PhysicalProofOracle for OldReaderSeesOldRootOracle {
+    fn oracle_kind(&self) -> PhysicalProofOracleKind {
+        PhysicalProofOracleKind::OldReaderSeesOldRoot
+    }
+
+    fn family_kind(&self) -> OracleFamilyKind {
+        OracleFamilyKind::S5ReadinessShape
+    }
+
+    fn judge_basis(
+        &self,
+        basis: OracleVerdictBasis,
+    ) -> Result<PhysicalProofOracleVerdict, OracleDenial> {
+        require_satisfied_read_interlock_fact(
+            self.oracle_kind(),
+            basis,
+            |observation| observation.old_reader_retained_old_structure(),
+            |observation| observation.old_reader_retained_old_root(),
+        )
+    }
+}
+
+impl PhysicalProofOracle for PostSwapReaderSeesNewRootOracle {
+    fn oracle_kind(&self) -> PhysicalProofOracleKind {
+        PhysicalProofOracleKind::PostSwapReaderSeesNewRoot
+    }
+
+    fn family_kind(&self) -> OracleFamilyKind {
+        OracleFamilyKind::S5ReadinessShape
+    }
+
+    fn judge_basis(
+        &self,
+        basis: OracleVerdictBasis,
+    ) -> Result<PhysicalProofOracleVerdict, OracleDenial> {
+        require_satisfied_read_interlock_fact(
+            self.oracle_kind(),
+            basis,
+            |observation| observation.new_reader_observed_new_epoch(),
+            |observation| observation.post_publication_reader_observed_new_epoch(),
+        )
+    }
+}
+
+impl PhysicalProofOracle for BlockedReclaimUntilReleaseOracle {
+    fn oracle_kind(&self) -> PhysicalProofOracleKind {
+        PhysicalProofOracleKind::BlockedReclaimUntilRelease
+    }
+
+    fn family_kind(&self) -> OracleFamilyKind {
+        OracleFamilyKind::S5ReadinessShape
+    }
+
+    fn judge_basis(
+        &self,
+        basis: OracleVerdictBasis,
+    ) -> Result<PhysicalProofOracleVerdict, OracleDenial> {
+        require_satisfied_compaction_fact(self.oracle_kind(), basis, |observation| {
+            observation.blocked_reclaim_until_release()
+        })
+    }
+}
+
+fn require_satisfied_read_interlock_fact(
+    oracle: PhysicalProofOracleKind,
+    basis: OracleVerdictBasis,
+    compaction_predicate: impl FnOnce(CompactionInterlockObservation) -> bool,
+    checkpoint_predicate: impl FnOnce(CheckpointInterlockObservation) -> bool,
+) -> Result<PhysicalProofOracleVerdict, OracleDenial> {
+    if let Some(observation) = basis.checkpoint_interlock() {
+        if !checkpoint_predicate(observation) {
+            return Err(OracleDenial::CheckpointInterlockObservationDenied { oracle });
+        }
+        return Ok(PhysicalProofOracleVerdict::satisfied(
+            OracleFamilyKind::S5ReadinessShape,
+            oracle,
+            basis,
+            [PhysicalOracleNonClaim::S5PhysicalIsolationCorrectness],
+        ));
+    }
+    require_satisfied_compaction_fact(oracle, basis, compaction_predicate)
+}
+
+fn require_satisfied_compaction_fact(
+    oracle: PhysicalProofOracleKind,
+    basis: OracleVerdictBasis,
+    predicate: impl FnOnce(CompactionInterlockObservation) -> bool,
+) -> Result<PhysicalProofOracleVerdict, OracleDenial> {
+    let Some(observation) = basis.compaction_interlock() else {
+        return Err(OracleDenial::MissingCompactionInterlockObservation);
+    };
+    if !predicate(observation) {
+        return Err(OracleDenial::CompactionInterlockObservationDenied { oracle });
+    }
+    Ok(PhysicalProofOracleVerdict::satisfied(
+        OracleFamilyKind::S5ReadinessShape,
+        oracle,
+        basis,
+        [PhysicalOracleNonClaim::S5PhysicalIsolationCorrectness],
+    ))
+}

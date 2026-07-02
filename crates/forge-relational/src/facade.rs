@@ -1,6 +1,4 @@
 //! Public API boundary for `forge-relational`.
-//! External crates should import through this module rather than reaching into
-//! internal crate structure directly.
 
 mod runtime_validation_exports;
 
@@ -358,6 +356,10 @@ pub mod snapshots {
     pub use crate::snapshots::data::{
         SnapshotHandle, SnapshotId, SnapshotInspectionSummary, SnapshotReadPolicy,
     };
+}
+
+pub mod visibility {
+    pub use crate::visibility::store_correlation_reference::*;
 }
 
 pub mod storage {

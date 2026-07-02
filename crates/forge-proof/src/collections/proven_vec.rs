@@ -9,6 +9,18 @@ pub struct CanonicalVec<T> {
     proof: CanonicalOrderProof,
 }
 
+impl<T> Clone for CanonicalVec<T>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            items: self.items.clone(),
+            proof: Proof::<CanonicalOrder, StructuralProofAuthority>::mint(),
+        }
+    }
+}
+
 impl<T> CanonicalVec<T> {
     #[allow(dead_code)]
     pub(crate) fn new(items: Vec<T>, proof: CanonicalOrderProof) -> Self {
@@ -46,6 +58,18 @@ impl<T> CanonicalVec<T> {
 pub struct UniqueVec<T> {
     items: Vec<T>,
     proof: UniquenessProof,
+}
+
+impl<T> Clone for UniqueVec<T>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            items: self.items.clone(),
+            proof: Proof::<Uniqueness, StructuralProofAuthority>::mint(),
+        }
+    }
 }
 
 impl<T> UniqueVec<T> {

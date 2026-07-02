@@ -1,21 +1,200 @@
 #![forbid(unsafe_code)]
 
+mod byte_guard;
+mod checkpoint_interlock;
+mod compaction_interlock;
+mod epoch;
+mod executed_isolation_evidence;
+mod free_reuse_fence;
+mod generation;
+mod hazard_lease;
+mod latch;
+mod movable_stability;
+mod physical_read_plan;
+mod physical_semantic_boundary;
+mod publication;
+mod readiness;
+mod reclaim_reachability;
+mod root_protocol;
 mod s5_harness_readiness;
+mod s6_handoff;
+mod stable_read_execution;
 
+pub use byte_guard::{
+    ByteGuardReleaseReceipt, PhysicalByteGuard, PhysicalByteGuardDenial, PhysicalByteGuardScope,
+    PhysicalByteGuardScopeKind,
+};
+pub use checkpoint_interlock::{
+    reject_copied_checkpoint_report_as_checkpoint_interlock,
+    reject_same_run_self_comparison_as_checkpoint_interlock, CheckpointInterlockEvidenceOrigin,
+    CheckpointInterlockFoundationalEvidence, CheckpointPublicationReadmission,
+    CheckpointPublicationStabilityProof, CheckpointReadInterlockCounters,
+    CheckpointReadInterlockDenial, CheckpointReadInterlockPlan, CheckpointRootEpochTransition,
+    ReadDuringCheckpointVerdict,
+};
+pub use compaction_interlock::{
+    CompactionCandidateRangeSet, CompactionCutoverDelta, CompactionCutoverStabilityProof,
+    CompactionDeferredReclaimQueue, CompactionInterlockFoundationalEvidence,
+    CompactionMutationLaneOrigin, CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind,
+    CompactionProtectedReferenceSet, CompactionReadInterlockCounters,
+    CompactionReadInterlockDenial, CompactionReadInterlockPlan, CompactionRewritePublication,
+    CompactionSourceIntegrityEvidence, DrainedCompactionReclaim, ReadDuringCompactionVerdict,
+};
+pub use epoch::{
+    compare_physical_epoch_vectors_with_evidence, required_s5_ordering_contracts, ChunkEpoch,
+    EpochComparisonScope, EpochComparisonScopeMismatch, EpochRetryDecision,
+    EpochStabilityScopeKind, ExtentEpoch, ExtentPublicationEpochBasis,
+    FutureChunkPublicationEpochBasis, ManifestEpoch, PageEpoch, PagePublicationEpochBasis,
+    PhysicalEpochComparisonEvidence, PhysicalEpochComparisonEvidenceDenial, PhysicalEpochDriftKind,
+    PhysicalEpochFreshness, PhysicalEpochFreshnessBasis, PhysicalEpochFreshnessProofArtifact,
+    PhysicalEpochFreshnessProofEvidence, PhysicalEpochFreshnessProofPhase, PhysicalEpochVector,
+    PhysicalEpochVectorBuilder, PhysicalEpochVectorDenial, PhysicalOrderingContract,
+    PhysicalOrderingContractDenial, PhysicalOrderingSite, PhysicalOrderingStrength, RootEpoch,
+    SegmentEpoch, SegmentPublicationEpochBasis, StalePhysicalReadPlanDenial,
+};
+pub use executed_isolation_evidence::{
+    reject_foundational_projection_as_s5_store_authority,
+    reject_log_or_json_projection_as_s5_store_authority,
+    reject_planned_or_support_projection_as_s5_store_authority,
+    reject_projection_as_latch_order_proof_authority,
+    reject_projection_as_physical_epoch_basis_authority,
+    reject_projection_as_reclaim_eligibility_proof_authority,
+    reject_projection_as_stable_physical_read_plan_authority,
+    reject_proof_projection_as_s5_store_authority, ProjectionArtifactKind,
+    ProjectionAuthorityDenial, S5IsolationEvidenceProfile, S5IsolationEvidenceRichness,
+    StorePhysicalAuthoritySurface,
+};
+pub use free_reuse_fence::{
+    AllocatorPublicationReceipt, CrashStableReclaimReuseFence, FreeReuseFenceDenial,
+    GenerationAdvanceReceipt,
+};
+pub use generation::{
+    CurrentGenerationPhysicalReference, GenerationCountedPhysicalReference,
+    GenerationCountedReferenceDenial, PhysicalReferenceGenerationMismatch,
+    PhysicalReferenceGenerationMismatchKind,
+};
+pub use hazard_lease::{
+    ActiveHazardLease, HazardLeaseCounterSnapshot, HazardLeaseDenial,
+    HazardLeaseEpochIndexSnapshot, HazardLeaseGeneration, HazardLeaseKind, HazardLeaseOverlap,
+    HazardLeaseReleaseReceipt, HazardLeaseSlot, HazardLeaseTable, HazardLeaseTableCapacity,
+    LeaseExpiryPosture, OwnedCopyStableReadReceipt, ProtectedReferenceLease,
+    ReadHandleRevocationReceipt,
+};
+pub use latch::{
+    latch_counter_backed_performance_receipt, lower_latch_acquisition_plan,
+    pre_wait_denial_for_execution_time_latch_discovery, pre_wait_denial_for_hierarchy_inversion,
+    pre_wait_denial_for_unauthorized_latch_upgrade, pre_wait_denial_for_unordered_latch_set,
+    CanonicalLatchAcquisitionOrder, DeadlockDetectionReport, DeadlockPreventionDenial,
+    LatchAcquisitionDenial, LatchAcquisitionPlan, LatchAcquisitionRequest, LatchAcquisitionStep,
+    LatchCounterEvidenceDenial, LatchCounterPerformanceReceipt, LatchDeniedBeforeWaitEvidence,
+    LatchOrderProof, LatchUpgradeAuthority, LatchWaitCounterSnapshot, LatchWaitForGraph,
+    LatchWaitForGraphAdmissionDenial, LatchWaitForGraphDenial, PhysicalLatchClass,
+    PhysicalLatchDeadlockPolicy, PhysicalLatchFamilyDeadlockPolicy, PhysicalLatchKey,
+    PhysicalLatchMode, PhysicalLatchWaitEdge,
+};
+pub use movable_stability::{
+    tier_movement_stability_capability, ChunkMigrationReadInterlockPlan,
+    FoundationalTierMovementNonClaimEvidence, FutureBlobMigrationNonClaim,
+    FutureBlobMigrationNonClaimReport, FutureChunkStabilityBasis, FutureChunkStabilityRecipe,
+    MovablePhysicalRef, MovablePhysicalRefKind, PhysicalChunkStabilityPlaceholder,
+    TierMovementAdmissionLabel, TierMovementReadInterlockPlan, TierMovementStabilityCapability,
+    TierMovementStabilityCounterSnapshot, TierMovementStabilityDenial,
+    TierMovementStabilityVerdict, UnsupportedTierMovementClaim, UnsupportedTierMovementRequest,
+};
+pub use physical_read_plan::{
+    admit_seed_stable_read_plan, physical_epoch_vector_for_current_root,
+    CompactProtectedReferenceSet, PhysicalReadPlanAdmissionDenial, PhysicalReadPlanFootprint,
+    PhysicalReadPlanReleaseReceipt, PhysicalReadPlanReleaseSemantics, PhysicalReadPlanRetryPosture,
+    PhysicalReadProtectedFootprintBasis, PhysicalReadReachabilityBarrier,
+    PostProtectionPhysicalReadObservation, ProtectedPhysicalReference,
+    ProtectedPhysicalReferenceSet, ProtectedReferenceRange, ProtectedReferenceRangeSet,
+    ProtectedRootObservation, PublishedReaderHazard, ReadPlanAdmissionScratchArena,
+    ReadPlanCounterSnapshot, ReadPlanScratchUsage, SeedStableReadPlan, StablePhysicalReadHandle,
+    StablePhysicalReadPlan, StablePhysicalReadPlanAdmission, StepwiseStableReadCursor,
+    TraversalAdmissionGuard, TraversalAdmissionReceipt, UnprotectedReadIntent,
+    ValidatedRootObservation,
+};
+pub use physical_semantic_boundary::{
+    admit_physical_read_stability_authority, correlate_semantic_visibility_with_physical_snapshot,
+    deny_semantic_visibility_as_physical_stability, PhysicalReadStabilityAuthority,
+    PhysicalReadStabilityCorrelationBasis, PhysicalSemanticBoundaryDenial,
+    PhysicalSemanticBoundaryOutcome, PhysicalSemanticBoundaryRoleEvidence,
+    PhysicalSnapshotCorrelation, SemanticCorrelationCapability,
+    SemanticVisibilityCannotMintPhysicalStability, SemanticVisibilityReference,
+    SemanticVisibilityReferenceKind,
+};
+pub use publication::{
+    AllocatorPublicationFence, AtomicPhysicalRootSwap, CopyOnWritePublicationPlan,
+    CrashStableFreeReusePosture, LoweredCopyOnWritePublicationPlan, ManifestPublicationEpoch,
+    NewRootPublicationProof, OldReachabilityPreservation, PhysicalIdentityReuse,
+    PhysicalPublicationCounterSnapshot, PhysicalPublicationDenial,
+    PhysicalPublicationFoundationalEvidence, PhysicalPublicationIntent,
+    PhysicalPublicationIntentKind, PhysicalPublicationReadiness, PhysicalPublicationReceipt,
+    PhysicalPublicationReleasePosture, PublicationCrashRecoveryOutcome, PublicationEpochPair,
+    PublicationEpochReadiness, PublicationLatchReadiness, PublicationRootCandidate,
+    PublishedCopyOnWriteRootSwap, ReadCopyUpdateRootPublication, ReleasedOldReachability,
+    RootPublicationEpoch, RootSwapOrderingContract, ValidatedPhysicalPublicationIntent,
+};
+pub use readiness::{
+    admit_physical_isolation_entry, admit_physical_isolation_entry_checked,
+    reject_copied_recovery_fields_as_physical_isolation_entry,
+    reject_foundational_or_proof_projection_as_physical_isolation_entry,
+    reject_json_authority_as_physical_isolation_entry,
+    reject_live_runtime_state_as_physical_isolation_entry,
+    reject_semantic_snapshot_as_physical_isolation_entry,
+    reject_stale_recovery_readiness_as_physical_isolation_entry,
+    reject_terminal_projection_as_physical_isolation_entry,
+    require_rebound_s4_recovery_readiness_for_physical_isolation_entry,
+    PhysicalIsolationAdmittedEntryRecipe, PhysicalIsolationEntryAdmission,
+    PhysicalIsolationEntryCheckedOutcome, PhysicalIsolationEntryDenial,
+    PhysicalIsolationEntryEvidence, PhysicalIsolationEntryFoundationalEvidence,
+    PhysicalIsolationEntryIdentity, PhysicalIsolationEntryProofProgression,
+    PhysicalIsolationEntryProofRequest, PhysicalIsolationEntryRebindRequired,
+    PhysicalIsolationEntryRequest, PhysicalIsolationLoweredEntryRecipe,
+    PhysicalIsolationResolvedEntryRecipe, PhysicalIsolationRootEpochBasis,
+    S4RecoveryReadinessBasis,
+};
+pub use reclaim_reachability::{
+    reject_backend_residue_as_reclaim_authority,
+    reject_copied_read_plan_fields_as_reclaim_authority,
+    reject_current_root_absence_as_reclaim_authority, reject_lease_expiry_as_reclaim_authority,
+    reject_raw_reader_handle_scan_as_reclaim_authority, BlockedReclaimReport, DeferredReclaimQueue,
+    DeferredReclaimReceipt, ExecutedReachabilityEvidence, ReclaimCandidateSet,
+    ReclaimCounterSnapshot, ReclaimDecision, ReclaimDenial, ReclaimEligibilityProof,
+    ReclaimReachabilityRemovalReceipt,
+};
+pub use root_protocol::{
+    readmit_current_root_for_read_plan, reject_checkpoint_root_as_current_read_authority,
+    reject_manifest_locator_root_as_current_read_authority,
+    reject_recovery_root_as_current_read_authority, CheckpointPublicationIdentity,
+    CheckpointPublicationRoot, CheckpointPublicationRootBasis, CurrentPhysicalRoot,
+    CurrentPhysicalRootBasis, ManifestLocatorRoot, ManifestLocatorRootBasis, RecoveryRoot,
+    RecoveryRootBasis, RootKindMismatchDenial,
+};
 pub use s5_harness_readiness::{
     s5_simulation_harness_readiness_requirement, S5SimulationHarnessReadinessRequirement,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct PhysicalEpoch(pub u64);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StableReadPlan {
-    root_epoch: PhysicalEpoch,
-}
-
-impl StableReadPlan {
-    pub const fn new(root_epoch: PhysicalEpoch) -> Self {
-        Self { root_epoch }
-    }
-}
+pub use s6_handoff::{
+    publish_s6_io_qos_isolation_readiness_from_s5_closeout,
+    reject_copied_closeout_report_as_s6_readiness,
+    reject_log_or_terminal_projection_as_s6_readiness,
+    reject_missing_latch_counters_as_s6_readiness,
+    reject_missing_protected_byte_footprint_as_s6_readiness,
+    reject_missing_reclaim_counters_as_s6_readiness, reject_qos_claim_as_s5_readiness,
+    reject_synthetic_wait_label_as_s6_readiness, BackgroundMaintenanceIsolationAssumption,
+    ExecutedS5IsolationCloseout, ExecutedS5IsolationCloseoutReceipts,
+    ForegroundInterferenceSurface, PhysicalIsolationCounterSnapshot, PhysicalStabilityAssumption,
+    S5PhysicalIsolationCloseoutBasis, S6ExecutedIsolationCounterKind, S6HandoffProjectionEvidence,
+    S6IoQosIsolationReadiness, S6IoQosIsolationReadinessBasis, S6IoQosIsolationReadinessDenial,
+    S6IoQosIsolationReadinessProofRequest, S6ReadinessAdmittedRecipe, S6ReadinessAuthorityPosture,
+    S6ReadinessBoundaryBridgedRecipe, S6ReadinessFreshBasis, S6ReadinessLoweredRecipe,
+    S6ReadinessProofHandoff, S6ReadinessPublicationAuthority, S6ReadinessResolvedRecipe,
+    UnsupportedQoSClaim,
+};
+pub use stable_read_execution::{
+    ByteGuardedPhysicalRead, EpochRetryReceipt, PhysicalByteGuardAdmission,
+    PhysicalReadExecutionDenial, PhysicalReadIoAttempt, PhysicalReadIoPosture,
+    StablePhysicalReadEpochFreshnessOutcome, StablePhysicalReadExecution,
+    StablePhysicalReadExecutionCounters, StablePhysicalReadExecutionOutcome,
+    StablePhysicalReadFoundationalEvidence, StablePhysicalReadReceipt,
+};

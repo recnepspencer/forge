@@ -28,6 +28,16 @@ pub fn certify_closeout_with_page_digest(page_digest: &str) -> RecoveryPhysicsCe
         .unwrap()
 }
 
+pub fn certify_closeout_with_operation_digest(
+    operation_digest: &str,
+) -> RecoveryPhysicsCertificationBundle {
+    WalCheckpointLsnRecoveryPhysicsSuite::from_required_s4_lanes()
+        .certify(complete_closeout_evidence_with_operation_digest(
+            operation_digest,
+        ))
+        .unwrap()
+}
+
 pub fn certify_closeout_with_redo_lsn(redo_lsn: u64) -> RecoveryPhysicsCertificationBundle {
     WalCheckpointLsnRecoveryPhysicsSuite::from_required_s4_lanes()
         .certify(complete_closeout_evidence_with_redo_lsn(redo_lsn))
@@ -61,6 +71,14 @@ fn complete_closeout_evidence_with_page_digest(
     page_digest: &str,
 ) -> RecoveryPhysicsCloseoutEvidence {
     let fixture = super::executed_recovery::executed_recovery_fixture_with_page_digest(page_digest);
+    complete_closeout_collector(&fixture).finish().unwrap()
+}
+
+fn complete_closeout_evidence_with_operation_digest(
+    operation_digest: &str,
+) -> RecoveryPhysicsCloseoutEvidence {
+    let fixture =
+        super::executed_recovery::executed_recovery_fixture_with_operation_digest(operation_digest);
     complete_closeout_collector(&fixture).finish().unwrap()
 }
 

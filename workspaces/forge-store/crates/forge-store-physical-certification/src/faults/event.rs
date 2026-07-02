@@ -15,6 +15,8 @@ pub enum PhysicalFaultEventKind {
     StaleGeneration,
     DelayedRelease,
     BlockedReclaim,
+    ExecutionTimeReferenceDiscovery,
+    UnboundedReadPlanFootprint,
     IoStall,
     NoFaultControl,
 }
@@ -29,6 +31,8 @@ pub enum PhysicalFaultEvent {
     StaleGeneration(StaleGenerationEvent),
     DelayedRelease(DelayedReleaseEvent),
     BlockedReclaim(BlockedReclaimEvent),
+    ExecutionTimeReferenceDiscovery(ExecutionTimeReferenceDiscoveryEvent),
+    UnboundedReadPlanFootprint(UnboundedReadPlanFootprintEvent),
     IoStall(IoStallEvent),
     NoFaultControl(NoFaultControlEvent),
 }
@@ -78,6 +82,18 @@ pub struct DelayedReleaseEvent {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlockedReclaimEvent {
+    seam: ProductionStorageBoundarySeam,
+    locus: PhysicalArtifactFaultLocus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExecutionTimeReferenceDiscoveryEvent {
+    seam: ProductionStorageBoundarySeam,
+    locus: PhysicalArtifactFaultLocus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnboundedReadPlanFootprintEvent {
     seam: ProductionStorageBoundarySeam,
     locus: PhysicalArtifactFaultLocus,
 }
@@ -157,6 +173,26 @@ impl PhysicalFaultEvent {
         Ok(Self::BlockedReclaim(BlockedReclaimEvent { seam, locus }))
     }
 
+    pub fn execution_time_reference_discovery(
+        seam: ProductionStorageBoundarySeam,
+        locus: PhysicalArtifactFaultLocus,
+    ) -> Result<Self, FaultDeliveryDenial> {
+        require_unambiguous_locus(&locus)?;
+        Ok(Self::ExecutionTimeReferenceDiscovery(
+            ExecutionTimeReferenceDiscoveryEvent { seam, locus },
+        ))
+    }
+
+    pub fn unbounded_read_plan_footprint(
+        seam: ProductionStorageBoundarySeam,
+        locus: PhysicalArtifactFaultLocus,
+    ) -> Result<Self, FaultDeliveryDenial> {
+        require_unambiguous_locus(&locus)?;
+        Ok(Self::UnboundedReadPlanFootprint(
+            UnboundedReadPlanFootprintEvent { seam, locus },
+        ))
+    }
+
     pub fn io_stall(locus: PhysicalArtifactFaultLocus) -> Result<Self, FaultDeliveryDenial> {
         require_unambiguous_locus(&locus)?;
         Ok(Self::IoStall(IoStallEvent { locus }))
@@ -180,6 +216,12 @@ impl PhysicalFaultEvent {
             Self::StaleGeneration(_) => PhysicalFaultEventKind::StaleGeneration,
             Self::DelayedRelease(_) => PhysicalFaultEventKind::DelayedRelease,
             Self::BlockedReclaim(_) => PhysicalFaultEventKind::BlockedReclaim,
+            Self::ExecutionTimeReferenceDiscovery(_) => {
+                PhysicalFaultEventKind::ExecutionTimeReferenceDiscovery
+            }
+            Self::UnboundedReadPlanFootprint(_) => {
+                PhysicalFaultEventKind::UnboundedReadPlanFootprint
+            }
             Self::IoStall(_) => PhysicalFaultEventKind::IoStall,
             Self::NoFaultControl(_) => PhysicalFaultEventKind::NoFaultControl,
         }
@@ -195,6 +237,8 @@ impl PhysicalFaultEvent {
             Self::StaleGeneration(event) => Some(&event.locus),
             Self::DelayedRelease(event) => Some(&event.locus),
             Self::BlockedReclaim(event) => Some(&event.locus),
+            Self::ExecutionTimeReferenceDiscovery(event) => Some(&event.locus),
+            Self::UnboundedReadPlanFootprint(event) => Some(&event.locus),
             Self::IoStall(event) => Some(&event.locus),
             Self::NoFaultControl(event) => Some(&event.locus),
         }
@@ -212,6 +256,12 @@ impl PhysicalFaultEvent {
             Self::StaleGeneration(event) => PhysicalBoundarySeam::ProductionStorage(event.seam),
             Self::DelayedRelease(event) => PhysicalBoundarySeam::ProductionStorage(event.seam),
             Self::BlockedReclaim(event) => PhysicalBoundarySeam::ProductionStorage(event.seam),
+            Self::ExecutionTimeReferenceDiscovery(event) => {
+                PhysicalBoundarySeam::ProductionStorage(event.seam)
+            }
+            Self::UnboundedReadPlanFootprint(event) => {
+                PhysicalBoundarySeam::ProductionStorage(event.seam)
+            }
             Self::IoStall(_) => PhysicalBoundarySeam::IoPressure,
             Self::NoFaultControl(event) => PhysicalBoundarySeam::ProductionStorage(event.seam),
         }

@@ -10,7 +10,7 @@ use forge_store_test_support::{ExecutedS4CrashHarnessTranscript, FreshRuntimeRec
 
 use super::executed_recovery::{
     executed_reopened_recovery_from_admission,
-    executed_reopened_recovery_from_admission_with_operation_digest, CloseoutFixture,
+    executed_reopened_recovery_from_admission_with_redo_lsn_and_operation_digest, CloseoutFixture,
 };
 use super::foundational_evidence::{
     verified_fresh_runtime_driver, verified_fresh_runtime_driver_for_artifacts,
@@ -45,8 +45,9 @@ pub fn crash_scheduler_evidence_for_fixture(
     let admission = verified_reopened_artifact_admission_for_artifacts(&fixture.artifacts);
     let driver = verified_fresh_runtime_driver_for_artifacts(&admission, &fixture.artifacts);
     let (_crash_receipt, execution) =
-        executed_reopened_recovery_from_admission_with_operation_digest(
+        executed_reopened_recovery_from_admission_with_redo_lsn_and_operation_digest(
             &driver,
+            fixture.replay_redo_lsn,
             &fixture.operation_digest,
         )
         .unwrap();

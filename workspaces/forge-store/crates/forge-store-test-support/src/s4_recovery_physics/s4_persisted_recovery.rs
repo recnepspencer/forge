@@ -8,6 +8,12 @@ pub fn deterministic_s4_recovery_artifacts() -> PersistedRecoveryArtifacts {
     materialized_artifacts("op-20")
 }
 
+pub fn s4_recovery_artifacts_with_operation_digest(
+    operation_digest: &str,
+) -> PersistedRecoveryArtifacts {
+    materialized_artifacts(operation_digest)
+}
+
 pub fn reordered_s4_recovery_artifacts() -> PersistedRecoveryArtifacts {
     let artifacts = deterministic_s4_recovery_artifacts();
     let mut records = artifacts.records().to_vec();

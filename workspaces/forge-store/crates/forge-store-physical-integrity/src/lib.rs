@@ -14,6 +14,7 @@ mod chunk_integrity_counters;
 mod chunk_integrity_denials;
 mod chunk_integrity_reports;
 mod chunk_integrity_request;
+mod compaction_source_clearance;
 mod container_integrity;
 mod container_integrity_boundaries;
 mod container_integrity_counters;
@@ -114,6 +115,10 @@ pub use chunk_integrity_reports::{
     ChunkIntegrityInputIdentity, ChunkIntegrityLifecycleClaims, ChunkIntegrityReport,
 };
 pub use chunk_integrity_request::{ChunkIntegrityInspectionRequest, ChunkIntegrityStreamingWindow};
+pub use compaction_source_clearance::{
+    CompactionSourceClearanceDenial, CompactionSourceClearanceKind,
+    CompactionSourceIntegrityClearance,
+};
 pub use container_integrity::PhysicalContainerIntegrity;
 pub use container_integrity_boundaries::PhysicalBoundaryLocalization;
 pub use container_integrity_counters::ContainerIntegrityCounters;

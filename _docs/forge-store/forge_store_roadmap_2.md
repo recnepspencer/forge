@@ -33,9 +33,9 @@ Current critical path in the first roadmap says:
 Roadmap 2 inserts this required aspect-native and physical foundation gate:
 
 `Milestone 13.3` -> `Aspect-Native Workspace Gate` -> `S.0` -> `S.1`
--> `S.2` -> `S.3` -> `S.4` -> `S.4.5` -> `S.5` -> `S.6`
--> `S.7` -> `S.8` -> `S.9` -> `S.10` -> `S.11` -> `S.12`
--> `Milestone 14`
+-> `S.2` -> `S.3` -> `S.4` -> `S.4.5` -> `S.5` -> `S.5.1`
+-> `S.6` -> `S.7` -> `S.8` -> `S.9` -> `S.10` -> `S.11`
+-> `S.12` -> `Milestone 14`
 
 The `S.*` numbers are storage-foundation sequence numbers, not ordinary feature
 milestones. They express dependency order for the physical database substrate.
@@ -66,6 +66,8 @@ If any supported path:
 - treats artifact digests as substitutes for per-page or per-frame integrity
 - lets logical maintenance scheduling stand in for physical I/O isolation
 - makes blob storage a late sidecar rather than native physical storage
+- treats key scope, tenant scope, authenticity class, or custody posture as
+  deployment folklore instead of typed physical metadata
 - allows compaction, checkpointing, reclaim, or repair to observe unstable
   bytes
 - recovers by trusting backend residue instead of framed, checksummed,
@@ -639,6 +641,90 @@ checkpointing, reclaim, tier movement, and blob migration without observing
 half-published roots, missing pages, reused stale generations, or reclaimed
 chunks that were still protected by an admitted read plan.
 
+## S.5.1: Cryptographic Boundary Seeds And Tenant Scope Metadata
+
+Engineering spec: [storage-foundation-s5-1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s5-1.md)
+
+### Goal
+
+Backfill the cryptographic, authenticity, and tenant-scope metadata that later
+Roadmap 2 work must consume, without rewriting the already-planned `S.1`,
+`S.3`, or `S.4` milestone scopes.
+
+### Boundary
+
+This is not full encryption, full tenant isolation, an identity provider, or
+the `S.11` security/compliance program. This is the typed physical metadata
+foundation that makes those later claims structurally possible: key scope, key
+version, tenant scope, authenticity class, custody posture, encrypted-frame
+compatibility, and readiness witnesses for blobs, backup/export, repair, and
+certification.
+
+### Adversarial Constraint
+
+Later Store work must not be able to introduce encrypted pages, authenticated
+frames, tenant-scoped blobs, backup capsules, PITR bundles, export capsules, or
+repair plans through raw strings, ambient deployment assumptions, terminal JSON
+projections, or digest-only equivalence. Any page, frame, WAL record, manifest,
+stable read plan, blob chunk, backup/export bundle, or repair plan that lacks
+typed key scope, tenant scope, authenticity class, and custody posture must fail
+platform-grade admission.
+
+### Must Ship
+
+- Store-owned key scope, key version, tenant scope, authenticity class, and
+  custody posture vocabulary
+- physical metadata compatibility for page/frame headers, WAL/checkpoint
+  records, manifests, physical roots, and stable read plans
+- explicit separation between checksum/integrity success and authenticity
+  success
+- readiness witnesses for S.7 blob chunks, S.10 backup/PITR/repair, S.11 key
+  lifecycle, and Roadmap 1 replication/blob/repair milestones
+- S.4.5/S.5 harness scenarios for stale key versions, wrong tenant scopes,
+  missing authenticity requirements, unsupported capability posture, and
+  cross-scope repair rejection
+- typed `S.6` and `S.11` handoffs proving later physical I/O and security work
+  consume these metadata surfaces instead of inventing parallel ones
+
+### Must Preserve
+
+- Store owns physical byte survival and cryptographic boundary evidence
+- `forge-relational` owns semantic MVCC, transaction meaning, and identity
+  semantics
+- external identity systems may provide admission evidence, but Store does not
+  become an identity provider
+- this milestone backfills metadata for already-sequenced foundations rather
+  than pretending `S.1`, `S.3`, or `S.4` shipped it
+- JSON remains confined to terminal projection or hostile/readmission lanes
+
+### Proof Obligations
+
+- raw strings, semantic ids, JSON projections, lower-authority digests, and
+  terminal labels cannot satisfy key-scope, tenant-scope, authenticity, or
+  custody APIs
+- checksum-valid bytes can still be authenticity-failed,
+  authenticity-unavailable, or authenticity-unsupported, and those outcomes are
+  machine-distinguishable
+- stable read plans, manifests, WAL/checkpoint records, blob readiness,
+  backup/export readiness, and repair readiness preserve security scope through
+  hostile physical interleavings
+- identical blob or page content across tenant/key scopes does not collapse
+  into a shared physical claim unless an admitted equivalence policy proves it
+  safe
+- exact counters expose security-scope admissions, key-version observations,
+  tenant-scope drift, authenticity failures/unavailable results,
+  unsupported-capability denials, and cross-scope repair rejections
+
+### Closeout Gate
+
+`S.5.1` is not closed until the physical Store foundation can carry typed key
+scope, tenant scope, authenticity class, key-version posture, and custody
+posture through page/frame, WAL/checkpoint, manifest, stable-read-plan, blob
+readiness, backup/export readiness, and repair-readiness paths, with hostile
+tests proving wrong-scope, stale, missing, unsupported, and terminal-projection
+inputs are rejected before later `S.6`, `S.7`, `S.10`, or `S.11` work can
+consume them.
+
 ## S.6: Hardware-Aware I/O, QoS, And Background Work Pacing
 
 ### Goal
@@ -663,6 +749,8 @@ operating envelope.
 
 - backend capability tiers for buffered file, mmap, direct I/O, and optional
   async I/O
+- media capability tiers for encrypted/authenticated frame compatibility and
+  unsupported secure posture denial from `S.5.1`
 - fsync/fdatasync, directory sync, durable rename, alignment, and sector
   atomicity assumptions per backend
 - queue-depth, write-grouping, read-ahead, write-back, and flush scheduling
@@ -675,6 +763,8 @@ operating envelope.
 
 - backend capability changes may affect cost, not durability meaning
 - unsupported durability or QoS claims fail typed rather than silently degrading
+- I/O paths preserve `S.5.1` key scope, tenant scope, authenticity class, and
+  custody posture instead of treating them as side metadata
 
 ### Proof Obligations
 
@@ -682,6 +772,8 @@ operating envelope.
   checkpoint, scrub, blob ingest, and blob migration
 - exact foreground-wait, background-yield, flush, sync, queue-depth, and
   interference counters
+- encrypted/authenticated-frame readiness lanes proving unsupported secure I/O
+  posture is rejected before platform-grade admission
 
 ### Closeout Gate
 
@@ -713,6 +805,8 @@ beside Forge Store.
 ### Must Ship
 
 - content-addressed chunk trees
+- chunk metadata that carries `S.5.1` key scope, key version, tenant scope,
+  authenticity class, and custody posture
 - streaming ingest, read, verify, export, and import paths
 - resumable blob writes and interrupted-upload recovery
 - chunk checksums plus content digests
@@ -720,12 +814,16 @@ beside Forge Store.
 - chunk reachability, reference tracking, or equivalent retention-safe GC
 - inline, external, and cold chunk placement on the same physical foundation
 - partial replication and capsule-readiness for blob-bearing artifacts
+- explicit cross-tenant/cross-key dedupe admission policy; digest equality
+  alone is not enough to merge physical blob claims across security scopes
 
 ### Must Preserve
 
 - primary blobs may be authoritative artifacts
 - derived blobs remain rebuildable and accuracy-classed
 - blob storage is not a file-server sidecar with metadata in the database
+- blob chunks may not erase tenant/key/authenticity posture during streaming,
+  verification, dedupe, export, import, tier movement, or reclaim
 
 ### Proof Obligations
 
@@ -735,6 +833,8 @@ beside Forge Store.
   lanes
 - exact chunk-read, chunk-write, dedupe-hit, reachability, orphan, and
   streaming-memory counters
+- wrong-key-scope, wrong-tenant-scope, stale-key-version, and cross-scope
+  dedupe-rejection lanes consuming `S.5.1` readiness
 
 ### Closeout Gate
 
@@ -868,6 +968,8 @@ is trusted, what is degraded, what is rebuildable, and what is quarantined.
 
 - online backup and restore
 - point-in-time recovery over physical checkpoints plus WAL tail
+- backup, PITR, disaster-recovery, and forensic bundle declarations that carry
+  `S.5.1` key scope, tenant scope, authenticity class, and custody posture
 - replica/bootstrap recovery paths
 - disaster-recovery bundles
 - offline verifier that can inspect store files without trusting the live store
@@ -876,12 +978,16 @@ is trusted, what is degraded, what is rebuildable, and what is quarantined.
 - operator repair plans, rollback plans, forensic bundles, and audit trails
 - trusted-truth, degraded-derived, rebuildable, quarantined, and unrecoverable
   reporting
+- key-custody-unavailable, authenticity-unavailable, wrong-tenant-scope, and
+  unsupported-secure-posture reporting
 
 ### Must Preserve
 
 - repair tooling may not mutate authority implicitly
 - operator actions are auditable artifacts
 - recovery and verification do not require ambiguous log interpretation
+- repair, restore, and forensic plans may not cross tenant or key scope without
+  an admitted `S.5.1` custody and blast-radius witness
 
 ### Proof Obligations
 
@@ -889,6 +995,8 @@ is trusted, what is degraded, what is rebuildable, and what is quarantined.
   damaged-authority, damaged-derived, and operator-repair lanes
 - exact verifier-read, repaired-page, quarantined-page, restored-LSN,
   trusted-artifact, and degraded-artifact counters
+- key-custody-missing, tenant-scope-drift, authenticity-unavailable, and
+  cross-scope-repair-rejection lanes
 
 ### Closeout Gate
 
@@ -905,10 +1013,12 @@ Make platform trust a store contract rather than a deployment wish.
 
 ### Boundary
 
-This is not deferring encryption, tenancy, audit, deletion, and provenance to
-deployment policy. This is making those concerns explicit physical and
-operational contracts of the store, with typed behavior when a backend or
-deployment cannot satisfy them.
+This is not deferring encryption, tenancy, audit, deletion, key lifecycle,
+operator access, and provenance to deployment policy. This is making those
+concerns explicit physical and operational contracts of the store, with typed
+behavior when a backend or deployment cannot satisfy them. It consumes `S.5.1`
+security-scope metadata rather than inventing key, tenant, authenticity, or
+custody vocabulary locally.
 
 ### Adversarial Constraint
 
@@ -918,34 +1028,50 @@ behavior, not ambient assumptions above the database.
 
 ### Must Ship
 
-- encryption at rest and envelope encryption for blobs
-- key versioning, rotation, and recovery posture
+- native envelope-encryption hierarchy for deployment, tenant, artifact, page,
+  WAL/checkpoint, blob/chunk, backup, export, and repair scopes
+- key versioning, rotation, rewrap, recovery, compromise, and custody posture
+- BYOK, HYOK, KMS, HSM, local-keystore, and unsupported-key-management
+  capability tiers with typed admission and rejection
 - tenant-scoped physical placement, quota, and repair blast-radius accounting
 - tamper-evident audit logs for authority-path and operator actions
 - secure deletion policy with backend capability assumptions
 - authenticity surfaces distinct from checksums
 - provenance for store binary, format version, configuration, and certification
   bundle
+- workload identity and proof-of-possession admission evidence for service and
+  operator actions, without making Store an identity provider
+- cryptographic erasure posture for tenant offboarding, blob deletion, backup
+  retirement, and secure repair disposal
 
 ### Must Preserve
 
 - encryption and access control do not redefine canonical truth
 - checksum success is not authenticity success
 - tenant isolation survives repair, backup, restore, replication, and audit
+- key material and identity-provider assertions do not become semantic
+  authority
+- S.11 consumes the `S.5.1` typed metadata foundation instead of accepting raw
+  token strings, deployment labels, or terminal projections
 
 ### Proof Obligations
 
-- key-rotation, wrong-key, tenant-boundary, audit-tamper, secure-delete,
-  backup-restore-with-keys, and operator-action provenance lanes
-- exact encrypted-page, decrypted-page, key-version, tenant-scope, audit-chain,
-  and authenticity-failure counters
+- key-rotation, rewrap-without-semantic-rewrite, wrong-key, stale-key,
+  cross-tenant-decrypt, replayed-credential, tenant-boundary, audit-tamper,
+  secure-delete, cryptographic-erasure, backup-restore-with-keys,
+  export-capsule-key mismatch, and operator-action provenance lanes
+- exact encrypted-page, decrypted-page, rewrapped-page, encrypted-chunk,
+  decrypted-chunk, key-version, tenant-scope, key-custody, audit-chain,
+  proof-of-possession, and authenticity-failure counters
 
 ### Closeout Gate
 
-`S.11` is not closed until encrypted storage, key rotation, tenant-scoped
+`S.11` is not closed until encrypted storage, envelope key hierarchy, key
+rotation and rewrap, BYOK/HYOK/KMS/HSM capability admission, tenant-scoped
 physical boundaries, audit tamper evidence, authenticity checks, secure-delete
-capability declarations, and provenance survive backup, restore, repair,
-replication, and operator-action lanes.
+and cryptographic-erasure capability declarations, proof-of-possession
+operator/service admission, and provenance survive backup, restore, repair,
+replication, export/import, and operator-action lanes.
 
 ## S.12: Physical Database Certification And Performance Program
 
@@ -1014,8 +1140,8 @@ work, blob scale, cross-backend parity, and hazard-analysis residual risk.
 
 - the Aspect-Native Workspace Gate is closed, proving JSON is confined to
   terminal projection or hostile/readmission boundaries
-- `S.0` through `S.12`, including `S.4.5`, are implemented or explicitly
-  scoped with named, non-platform-grade debt
+- `S.0` through `S.12`, including `S.4.5` and `S.5.1`, are implemented or
+  explicitly scoped with named, non-platform-grade debt
 - [test-requirements-2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements-2.md)
   adversarial harness requirements are satisfied for every closed `S.*`
   sequence
@@ -1033,24 +1159,30 @@ work, blob scale, cross-backend parity, and hazard-analysis residual risk.
 - blob storage is native to the physical substrate
 - backup, PITR, repair, audit, tenant, security, and offline verification
   posture are explicit
+- key scope, tenant scope, authenticity class, key-version posture, and custody
+  posture are typed physical metadata from `S.5.1`, not late feature-local
+  strings
 - formal models exist for the crash/concurrency state machines named in `S.9`
 - Roadmap 2 physical certification passes
 
 ## Relationship To Existing Milestones
 
 - `Milestone 14` replication must consume Roadmap 2 physical integrity,
-  chunking, manifests, offline verification, and blob substrate instead of
-  defining replication over backend-local rows or files.
+  chunking, manifests, offline verification, `S.5.1` security-scope metadata,
+  `S.11` key lifecycle evidence, and blob substrate instead of defining
+  replication over backend-local rows or files.
 - `Milestone 15` extensibility must register storage strategies against the
-  physical layout, integrity, recovery, and certification contracts from
-  Roadmap 2.
+  physical layout, integrity, recovery, security-scope, key-lifecycle, and
+  certification contracts from Roadmap 2.
 - `Milestone 20` native blob storage should be rewritten as a product-layer
-  expansion over `S.7`, not as first introduction of the blob substrate.
+  expansion over `S.7` and `S.5.1`, not as first introduction of the blob
+  substrate or blob security-scope metadata.
 - `Milestone 21` budgets must include Roadmap 2 physical budgets: resident
   pages, dirty pages, WAL tail, chunk footprint, I/O queue depth, compaction
-  debt, recovery time, and latency interference.
-- `Milestone 22` operator repair must build on `S.10` and `S.11` rather than
-  inventing repair after platform features exist.
+  debt, recovery time, latency interference, key-version pressure, rewrap debt,
+  audit-chain growth, secure-delete backlog, and tenant export footprint.
+- `Milestone 22` operator repair must build on `S.10`, `S.5.1`, and `S.11`
+  rather than inventing repair after platform features exist.
 - `Milestone 23` and `Milestone 24` certification must include Roadmap 2
   physical certification outputs before the store can be called beta-ready,
   financial-platform grade, or aerospace-grade.
@@ -1071,7 +1203,8 @@ Roadmap 2 is complete only when `forge-store` can honestly say:
 - physical access paths are declared per artifact family
 - critical crash/concurrency protocols are formally modeled
 - backup, PITR, disaster recovery, repair, forensics, tenant isolation,
-  security, and auditability are platform contracts
+  security, key lifecycle, cryptographic erasure, and auditability are platform
+  contracts
 - certification evidence is machine-checkable, reproducible, and tied to
   declared hardware/backend assumptions
 

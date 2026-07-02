@@ -19,6 +19,13 @@ pub struct PhysicalCounterExecutionSources {
     plan_identity: PhysicalSimulationPlanIdentity,
     actor_step_count: u64,
     shortcut_rejection_count: u64,
+    protected_ranges: u64,
+    compaction_candidate_ranges: u64,
+    range_comparisons: u64,
+    overlapping_ranges: u64,
+    copied_pages: u64,
+    publication_swaps: u64,
+    blocked_reclaims: u64,
     allocation: AllocationCounterSnapshot,
     resident: ResidentFrameCounterSnapshot,
     io: IoQueueCounterSnapshot,
@@ -40,10 +47,20 @@ impl PhysicalCounterExecutionSources {
         let resource_observation =
             resource_observation_from_sources(plan, allocation, resident, io);
         require_resource_observation_within_envelope(plan, resource_observation)?;
+        let compaction = trace
+            .compaction_interlock()
+            .ok_or(CounterMismatchEvidence::MissingCompactionInterlockObservation)?;
         Ok(Self {
             plan_identity: plan.identity().clone(),
             actor_step_count: schedule.actor_steps().len() as u64,
             shortcut_rejection_count: trace.shortcut_rejections().len() as u64,
+            protected_ranges: compaction.protected_ranges(),
+            compaction_candidate_ranges: compaction.candidate_ranges(),
+            range_comparisons: compaction.range_comparisons(),
+            overlapping_ranges: compaction.overlapping_ranges(),
+            copied_pages: compaction.copied_pages(),
+            publication_swaps: compaction.publication_swaps(),
+            blocked_reclaims: compaction.blocked_reclaims(),
             allocation,
             resident,
             io,
@@ -141,11 +158,13 @@ fn observed_counter_count(
         CounterContractKind::IoInterferenceEvents => u64::from(sources.io.interference_events()),
         CounterContractKind::LatchWaits => 0,
         CounterContractKind::EpochRetries => 0,
-        CounterContractKind::ProtectedReferences => sources.actor_step_count,
+        CounterContractKind::ProtectedReferences => sources.protected_ranges,
         CounterContractKind::Retries => 0,
-        CounterContractKind::BlockedReclaimAttempts => sources.shortcut_rejection_count,
-        CounterContractKind::PublicationSwaps => 1,
+        CounterContractKind::BlockedReclaimAttempts => sources.blocked_reclaims,
+        CounterContractKind::PublicationSwaps => sources.publication_swaps,
         CounterContractKind::ReplayedPages => 0,
+        CounterContractKind::CompactionCandidateRanges => sources.compaction_candidate_ranges,
+        CounterContractKind::CopiedPages => sources.copied_pages,
         CounterContractKind::FutureS5SpecificCounters => 0,
     }
 }

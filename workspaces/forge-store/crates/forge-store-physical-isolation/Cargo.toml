@@ -6,9 +6,17 @@ license.workspace = true
 description = "Roadmap 2 S.5 latches, epochs, stable read plans, and reclaim barriers."
 
 [dependencies]
+forge-foundational = { path = "../../../../crates/forge-foundational" }
+forge-proof = { path = "../../../../crates/forge-proof" }
+forge-store-authority.workspace = true
 forge-store-buffer-pool.workspace = true
 forge-store-contracts.workspace = true
 forge-store-physical-format.workspace = true
+forge-store-physical-integrity.workspace = true
+forge-store-recovery-physics.workspace = true
+
+[features]
+certification-authority = []
 
 [lints]
 workspace = true

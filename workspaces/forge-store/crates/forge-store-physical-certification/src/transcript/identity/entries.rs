@@ -10,6 +10,7 @@ use crate::{
 };
 
 use super::super::ExecutedTranscriptParts;
+use super::observation_entries::observation_entries;
 
 pub(super) const TRANSCRIPT_DOMAIN: CanonicalBasisDomain =
     CanonicalBasisDomain::Future("store.physical.simulation.transcript");
@@ -153,36 +154,6 @@ fn runtime_trace_entries(parts: &ExecutedTranscriptParts) -> Vec<CanonicalBasisE
                 )
             }),
     );
-    entries
-}
-
-fn observation_entries(parts: &ExecutedTranscriptParts) -> Vec<CanonicalBasisEntry> {
-    let mut entries = vec![
-        text_entry(
-            "transcript.trace.independent_verifier",
-            parts
-                .trace()
-                .independent_verifier()
-                .map(|observation| format!("{:?}:{:?}", observation.seam(), observation.kind()))
-                .unwrap_or_else(|| "none".to_owned()),
-        ),
-        text_entry(
-            "transcript.trace.recovery_outcome",
-            parts
-                .trace()
-                .recovery_outcome()
-                .map(|observation| format!("{:?}", observation.kind()))
-                .unwrap_or_else(|| "none".to_owned()),
-        ),
-    ];
-    entries.extend(parts.trace().shortcut_rejections().iter().enumerate().map(
-        |(index, observation)| {
-            text_entry(
-                format!("transcript.trace.shortcut_rejection.{index:04}"),
-                format!("{:?}", observation.kind()),
-            )
-        },
-    ));
     entries
 }
 
@@ -333,7 +304,7 @@ fn oracle_basis_entries(index: usize, basis: &OracleVerdictBasis) -> Vec<Canonic
     entries
 }
 
-fn text_entry(
+pub(super) fn text_entry(
     locus: impl Into<InternedString>,
     value: impl Into<InternedString>,
 ) -> CanonicalBasisEntry {

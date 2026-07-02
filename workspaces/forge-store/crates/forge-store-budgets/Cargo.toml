@@ -7,7 +7,6 @@ description = "Roadmap 1 admission control and resource budget contracts."
 
 [dependencies]
 forge-store-contracts.workspace = true
-forge-store-io-scheduler.workspace = true
 
 [lints]
 workspace = true

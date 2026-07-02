@@ -1,27 +1,21 @@
 #[path = "s4_5_coverage_support.rs"]
 mod coverage_support;
+#[path = "s4_5_s5_readiness/shortcut_report.rs"]
+mod shortcut_report;
 
 use std::collections::BTreeSet;
 
-use forge_proof::{Recipe, Unresolved};
 use forge_store_physical_certification::{
-    accept_store_owned_s5_harness_readiness, fixture_label_oracle_attempt,
+    accept_store_owned_s5_harness_readiness,
     reject_foundational_or_proof_projection_as_s5_harness_readiness,
     reject_future_slot_as_s5_harness_readiness, reject_generic_runner_as_s5_harness_readiness,
-    reject_raw_json_scenario_authority_attempt, reject_same_run_self_comparison_evidence_attempt,
-    reject_terminal_json_evidence_attempt, reject_unresolved_simulation_plan_recipe,
-    shortcut_denial_from_evidence_bundle_denial, shortcut_denial_from_fault_delivery_denial,
-    shortcut_denial_from_oracle_denial, shortcut_denial_from_plan_denial,
-    shortcut_denial_from_scenario_denial, shortcut_denial_from_terminal_projection_denial,
-    shortcut_denial_from_transcript_denial, test_support_oracle_verdict_attempt,
-    CounterContractKind, CoverageGapDenial, FaultDeliveryAttempt, ForbiddenShortcutKind,
+    CounterContractKind, CoverageGapDenial, CoverageRowDimension, CoverageSurfaceKind,
     OracleFamilyKind, PhysicalCertificationEvidenceBundle, PhysicalDriverKind,
-    PhysicalScenarioActorRole, S5CounterContractReadiness, S5HarnessFutureExtensionReservation,
-    S5HarnessFutureExtensionSlot, S5HarnessReadinessReceipt, S5InterleavingHarnessCapability,
-    S5MaintenanceActorCapability, S5ProductionDriverCapability, S5RequiredYieldpoint,
-    S5ReusableOracleReadiness, ShortcutRejectionBoundary, ShortcutRejectionObservationKind,
-    SimulationPlanDenial, SyntheticHarnessShortcutDenialReceipt,
-    SyntheticHarnessShortcutRejectionReport,
+    PhysicalProofOracleKind, PhysicalScenarioActorRole, S5CompactionMutationKind,
+    S5CounterContractReadiness, S5HarnessFutureExtensionReservation, S5HarnessFutureExtensionSlot,
+    S5HarnessReadinessReceipt, S5InterleavingHarnessCapability, S5MaintenanceActorCapability,
+    S5ProductionDriverCapability, S5RequiredYieldpoint, S5ReusableOracleReadiness,
+    ShortcutRejectionObservationKind, SimulationPlanDenial,
 };
 use forge_store_readiness::{S5CorrectnessNonClaimEvidence, S5SimulationHarnessReadinessDenial};
 
@@ -33,7 +27,7 @@ fn s5_receives_store_owned_simulation_harness_readiness() {
         .generate_matrix()
         .unwrap();
     let evidence = PhysicalCertificationEvidenceBundle::from_replay_bundle(replay).unwrap();
-    let shortcut_report = complete_shortcut_report();
+    let shortcut_report = shortcut_report::complete_shortcut_report();
 
     let receipt = S5HarnessReadinessReceipt::from_store_harness_evidence(
         &matrix,
@@ -54,6 +48,7 @@ fn s5_receives_store_owned_simulation_harness_readiness() {
         evidence.primary().transcript_digest()
     );
     assert_eq!(receipt.shortcut_denial_count(), 9);
+    assert_compaction_mutation_rows(&matrix);
 
     let accepted = accept_store_owned_s5_harness_readiness(
         receipt,
@@ -99,6 +94,12 @@ fn readiness_shape_probe_lowers_and_executes_with_explicit_non_claim() {
     assert!(plan
         .counter_contracts()
         .contains(CounterContractKind::PublicationSwaps));
+    assert!(plan
+        .counter_contracts()
+        .contains(CounterContractKind::CompactionCandidateRanges));
+    assert!(plan
+        .counter_contracts()
+        .contains(CounterContractKind::CopiedPages));
     assert!(replay.schedule().replay_identity_matches_plan(&plan));
     assert!(replay
         .trace()
@@ -116,6 +117,22 @@ fn readiness_shape_probe_lowers_and_executes_with_explicit_non_claim() {
                         S5PhysicalIsolationCorrectness,
                 )
     }));
+    for oracle in [
+        PhysicalProofOracleKind::NoMixedRoot,
+        PhysicalProofOracleKind::OldReaderSeesOldRoot,
+        PhysicalProofOracleKind::PostSwapReaderSeesNewRoot,
+        PhysicalProofOracleKind::BlockedReclaimUntilRelease,
+    ] {
+        assert!(
+            replay
+                .oracle_verdicts()
+                .iter()
+                .any(|verdict| verdict.oracle() == oracle),
+            "missing compaction oracle {oracle:?}"
+        );
+    }
+    assert_counter_row(&replay, CounterContractKind::CompactionCandidateRanges, 1);
+    assert_counter_row(&replay, CounterContractKind::CopiedPages, 1);
 }
 
 #[test]
@@ -171,53 +188,6 @@ fn generic_runners_and_future_slots_cannot_satisfy_s5_readiness() {
     );
 }
 
-fn complete_shortcut_report() -> SyntheticHarnessShortcutRejectionReport {
-    SyntheticHarnessShortcutRejectionReport::from_denied_shortcuts(
-        complete_shortcut_denial_receipts(),
-    )
-    .unwrap()
-}
-
-fn complete_shortcut_denial_receipts() -> Vec<SyntheticHarnessShortcutDenialReceipt> {
-    vec![
-        shortcut_denial_from_evidence_bundle_denial(
-            forge_store_physical_certification::reject_loose_log_evidence_attempt().unwrap_err(),
-        )
-        .unwrap(),
-        shortcut_denial_from_scenario_denial(
-            reject_raw_json_scenario_authority_attempt(r#"{"scenario":"fake"}"#).unwrap_err(),
-        )
-        .unwrap(),
-        shortcut_denial_from_terminal_projection_denial(
-            reject_terminal_json_evidence_attempt().unwrap_err(),
-        ),
-        shortcut_denial_from_evidence_bundle_denial(
-            reject_same_run_self_comparison_evidence_attempt().unwrap_err(),
-        )
-        .unwrap(),
-        shortcut_denial_from_fault_delivery_denial(
-            FaultDeliveryAttempt::private_mutation()
-                .admit()
-                .unwrap_err(),
-        )
-        .unwrap(),
-        shortcut_denial_from_oracle_denial(fixture_label_oracle_attempt().unwrap_err()).unwrap(),
-        shortcut_denial_from_transcript_denial(
-            forge_store_physical_certification::reject_copied_transcript_fields().unwrap_err(),
-        )
-        .unwrap(),
-        shortcut_denial_from_plan_denial(
-            reject_unresolved_simulation_plan_recipe(Recipe::<Unresolved, _>::new(
-                coverage_support::shortcut_plan(),
-            ))
-            .unwrap_err(),
-        )
-        .unwrap(),
-        shortcut_denial_from_oracle_denial(test_support_oracle_verdict_attempt().unwrap_err())
-            .unwrap(),
-    ]
-}
-
 fn receipt_denial_for_developer_smoke_profile() -> S5SimulationHarnessReadinessDenial {
     let plan = coverage_support::lowered_plan();
     let replay = coverage_support::replay_bundle(&plan);
@@ -228,7 +198,7 @@ fn receipt_denial_for_developer_smoke_profile() -> S5SimulationHarnessReadinessD
     S5HarnessReadinessReceipt::from_store_harness_evidence(
         &matrix,
         &evidence,
-        &complete_shortcut_report(),
+        &shortcut_report::complete_shortcut_report(),
         S5CorrectnessNonClaimEvidence::shape_probe_only(),
     )
     .unwrap_err()
@@ -247,17 +217,17 @@ fn receipt_denial_for_matrix_evidence_identity_mismatch() -> S5SimulationHarness
         .generate_matrix()
         .unwrap();
     let evidence_plan = coverage_support::shortcut_plan();
-    let evidence = coverage_support::evidence_bundle(&evidence_plan);
+    let evidence = coverage_support::evidence_bundle_without_compaction_mutations(&evidence_plan);
     S5HarnessReadinessReceipt::from_store_harness_evidence(
         &matrix,
         &evidence,
-        &complete_shortcut_report(),
+        &shortcut_report::complete_shortcut_report(),
         S5CorrectnessNonClaimEvidence::shape_probe_only(),
     )
     .unwrap_err()
 }
 
-fn expected_interleaving_capabilities() -> [S5InterleavingHarnessCapability; 10] {
+fn expected_interleaving_capabilities() -> [S5InterleavingHarnessCapability; 12] {
     [
         S5InterleavingHarnessCapability::DeterministicReplaySchedule,
         S5InterleavingHarnessCapability::ProtectBeforeObserveShapeProbe,
@@ -269,23 +239,27 @@ fn expected_interleaving_capabilities() -> [S5InterleavingHarnessCapability; 10]
         S5InterleavingHarnessCapability::LeaseExpiryNonAuthorityShapeProbe,
         S5InterleavingHarnessCapability::FreeReuseGenerationFenceShapeProbe,
         S5InterleavingHarnessCapability::RestartDuringCutoverShapeProbe,
+        S5InterleavingHarnessCapability::ReadDuringCompactionShapeProbe,
+        S5InterleavingHarnessCapability::CompactionRangeInterlockShapeProbe,
     ]
 }
 
-fn expected_maintenance_actors() -> [S5MaintenanceActorCapability; 2] {
+fn expected_maintenance_actors() -> [S5MaintenanceActorCapability; 3] {
     [
         S5MaintenanceActorCapability::ReclaimBarrierParticipant,
         S5MaintenanceActorCapability::RestartParticipant,
+        S5MaintenanceActorCapability::CompactionCutoverParticipant,
     ]
 }
 
-fn expected_yieldpoints() -> [S5RequiredYieldpoint; 6] {
+fn expected_yieldpoints() -> [S5RequiredYieldpoint; 7] {
     [
         S5RequiredYieldpoint::RootPublicationBeforeObserve,
         S5RequiredYieldpoint::RootSwapPublication,
         S5RequiredYieldpoint::ByteGuardAdmission,
         S5RequiredYieldpoint::ReclaimBarrier,
         S5RequiredYieldpoint::RestartDuringCutover,
+        S5RequiredYieldpoint::CompactionCutover,
         S5RequiredYieldpoint::ShortcutRejectionBoundary,
     ]
 }
@@ -305,7 +279,7 @@ fn expected_oracle_families() -> [S5ReusableOracleReadiness; 3] {
     ]
 }
 
-fn expected_counter_contracts() -> [S5CounterContractReadiness; 10] {
+fn expected_counter_contracts() -> [S5CounterContractReadiness; 12] {
     [
         S5CounterContractReadiness::ActorStepExact,
         S5CounterContractReadiness::ReplayIdentityExact,
@@ -317,6 +291,8 @@ fn expected_counter_contracts() -> [S5CounterContractReadiness; 10] {
         S5CounterContractReadiness::BlockedReclaimAttempts,
         S5CounterContractReadiness::PublicationSwaps,
         S5CounterContractReadiness::FutureS5SpecificCountersReserved,
+        S5CounterContractReadiness::CompactionCandidateRanges,
+        S5CounterContractReadiness::CopiedPages,
     ]
 }
 
@@ -329,31 +305,28 @@ where
     assert_eq!(actual, expected);
 }
 
-#[test]
-fn shortcut_report_still_names_required_shortcut_boundaries() {
-    let report = complete_shortcut_report();
-    assert!(report.all_required_shortcuts_denied());
-    for boundary in [
-        ShortcutRejectionBoundary::EvidenceLooseLog,
-        ShortcutRejectionBoundary::ScenarioJsonAuthority,
-        ShortcutRejectionBoundary::EvidenceTerminalProjection,
-        ShortcutRejectionBoundary::EvidenceSameRunSelfComparison,
-        ShortcutRejectionBoundary::FaultDeliveryPrivateMutation,
-        ShortcutRejectionBoundary::OracleFixtureLabel,
-        ShortcutRejectionBoundary::TranscriptCopiedFields,
-        ShortcutRejectionBoundary::PlanProofProgressionSkipped,
-        ShortcutRejectionBoundary::OracleTestSupportVerdict,
-    ] {
+fn assert_counter_row(
+    replay: &forge_store_physical_certification::SimulationReplayBundle,
+    kind: CounterContractKind,
+    observed_count: u64,
+) {
+    assert!(replay
+        .counter_receipt()
+        .rows()
+        .iter()
+        .any(|row| row.kind() == kind && row.observed_count() == observed_count));
+}
+
+fn assert_compaction_mutation_rows(
+    matrix: &forge_store_physical_certification::GeneratedCoverageMatrix,
+) {
+    for kind in S5CompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING {
         assert!(
-            report
-                .receipts()
-                .iter()
-                .any(|receipt| receipt.boundary() == boundary),
-            "missing shortcut boundary {boundary:?}"
+            matrix.rows().iter().any(|row| {
+                row.surface() == CoverageSurfaceKind::MutationResult
+                    && row.has_dimension(&CoverageRowDimension::CompactionMutation(kind))
+            }),
+            "missing compaction mutation row {kind:?}"
         );
     }
-    assert!(report
-        .receipts()
-        .iter()
-        .any(|receipt| receipt.shortcut() == ForbiddenShortcutKind::PrivateMutation));
 }

@@ -8,19 +8,22 @@ use forge_store_contracts::{
 use forge_store_physical_format::{
     CheckpointAdjacencyPosture, ChecksumCoverageMap, ManifestMembershipProof,
     PhysicalBinaryEncodingWitness, PhysicalFormatDeclaration, PhysicalFrameKind,
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority,
-    PhysicalManifestUniverseBuilder, PhysicalPageId, PhysicalPublicationState, PhysicalRecordSlot,
-    PhysicalReferenceAuthority, PhysicalReferenceScope, PhysicalReferenceValidationWitness,
-    PhysicalRootReference, PhysicalSegmentId, RootManifestIntegrityPosture, PHYSICAL_HEADER_LENGTH,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalGenerationOwner,
+    PhysicalHeaderAuthority, PhysicalManifestUniverseBuilder, PhysicalPageId,
+    PhysicalPublicationState, PhysicalRecordSlot, PhysicalReferenceAuthority,
+    PhysicalReferenceScope, PhysicalReferenceValidationWitness, PhysicalRootReference,
+    PhysicalSegmentId, RootManifestIntegrityPosture, SlotGenerationCell, PHYSICAL_HEADER_LENGTH,
 };
 use forge_store_physical_integrity::{
     ChecksumAlgorithmClaim, ChecksumScopeDeclaration, DeclaredPhysicalChecksum,
-    IntegrityEntryAdmission, IntegrityEntryRequest, PhysicalIntegrityAdmission,
-    PhysicalIntegrityAdmissionRequest, PhysicalIntegrityEvidenceAuthority,
+    ExecutedQuarantineFinding, IntegrityEntryAdmission, IntegrityEntryRequest,
+    PhysicalIntegrityAdmission, PhysicalIntegrityAdmissionRequest,
+    PhysicalIntegrityEvidenceAuthority, PhysicalIntegrityEvidenceBundle,
     PhysicalIntegrityEvidenceProfile, PhysicalQuarantineAuthority, PhysicalScopeAdmission,
-    PhysicalScopeAdmissionRequest, ProtectedPhysicalByteView, QuarantineSealRequest,
-    ScopedPhysicalValidatorInput, StoreExecutedIntegrityEvidence, WalFrameDamageDenial,
-    WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest, WalFrameIntegrityReport,
+    PhysicalScopeAdmissionRequest, ProtectedPhysicalByteView, QuarantineRecord,
+    QuarantineSealRequest, ScopedPhysicalValidatorInput, StoreExecutedIntegrityEvidence,
+    WalFrameDamageDenial, WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
+    WalFrameIntegrityReport,
 };
 use forge_store_readiness::{
     close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
@@ -30,9 +33,10 @@ use forge_store_readiness::{
     S3PhysicalIntegrityReadinessPayload, ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
 };
 use forge_store_recovery_physics::{
-    IntegrityVettedWalFrame, RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt,
-    WalLsnRange, WalOnlyTailProof, WalOnlyTailProofDenial, WalSegmentGeneration, WalSegmentId,
-    WalSegmentScanRecord, WalTailIntegrityQuarantineHandoff, WalTopologyScan,
+    IntegrityVettedWalFrame, LogSequenceNumber, RecoveryBlockedByIntegrityDamage,
+    RecoveryIntegrityHandoffReceipt, WalLsnRange, WalOnlyTailProof, WalOnlyTailProofDenial,
+    WalSegmentGeneration, WalSegmentId, WalSegmentScanRecord, WalTailIntegrityQuarantineHandoff,
+    WalTopologyScan,
 };
 
 pub(crate) fn wal_only_tail_proof(range: WalLsnRange) -> WalOnlyTailProof {
@@ -60,53 +64,8 @@ pub(crate) fn wal_only_tail_denial_from_torn_frame(range: WalLsnRange) -> WalOnl
 
 fn vetted_wal_frame(range: WalLsnRange) -> IntegrityVettedWalFrame {
     let payload = intact_wal_payload(range);
-    let mut table = resident_frame_table();
-    let admission = admit_wal_payload_frame(&mut table, &payload);
-    let lease = table.lease_page(admission.resident_frame_token()).unwrap();
-    let pinned = lease.pin().unwrap();
-    let protected = ProtectedPhysicalByteView::from_pinned_frame(&pinned.view().unwrap());
-    let entry = IntegrityEntryAdmission::from_s3_readiness(s3_readiness()).unwrap();
-    let inspection_lease = entry.admit(IntegrityEntryRequest::new(protected)).unwrap();
-    let checksum_scope = checksum_scope();
-    let integrity_admission = PhysicalIntegrityAdmission::from_entry(inspection_lease)
-        .with_checksum_claim(
-            ChecksumAlgorithmClaim::declared_text("crc32c"),
-            checksum_scope.clone(),
-        )
-        .unwrap();
-    let checked = integrity_admission
-        .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
-            wal_reference(),
-            wal_header_witness(&frame_bytes(1, &payload)),
-            PhysicalFrameKind::RecordFrame,
-            DeclaredPhysicalChecksum::new(crc32c(&payload).into()),
-        ))
-        .unwrap();
-    let scoped = PhysicalScopeAdmission::admit_frame(
-        checked,
-        PhysicalScopeAdmissionRequest::frame(
-            PhysicalReferenceScope::wal_frame(wal_reference()),
-            manifest_membership(),
-            RootManifestIntegrityPosture::current_root_admitted(manifest_membership()),
-            CheckpointAdjacencyPosture::NotCheckpointAdjacent,
-            checksum_coverage_basis(),
-        ),
-    )
-    .unwrap();
-    let report = WalFrameIntegrityAuthority::s3()
-        .inspect(
-            WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(
-                ScopedPhysicalValidatorInput::wal_frame(scoped).unwrap(),
-            )
-            .unwrap(),
-        )
-        .unwrap();
-    let evidence = PhysicalIntegrityEvidenceAuthority::store_local()
-        .materialize(
-            StoreExecutedIntegrityEvidence::authoritative_wal_frame(&report),
-            PhysicalIntegrityEvidenceProfile::full(),
-        )
-        .unwrap();
+    let report = inspect_wal_payload(&payload).unwrap();
+    let evidence = integrity_evidence_from_report(&report);
     let receipt =
         forge_store_recovery_physics::RecoveryIntegrityHandoffReceipt::from_executed_evidence(
             &evidence,
@@ -118,34 +77,59 @@ fn vetted_wal_frame(range: WalLsnRange) -> IntegrityVettedWalFrame {
 pub(crate) fn quarantined_torn_wal_tail_handoff(
     range: WalLsnRange,
 ) -> WalTailIntegrityQuarantineHandoff {
-    let payload = torn_wal_payload(range);
-    let denial = inspect_wal_payload(&payload).unwrap_err();
-    let finding =
-        forge_store_physical_integrity::ExecutedQuarantineFinding::from_wal_frame_denial(&denial)
-            .unwrap();
-    let record =
-        PhysicalQuarantineAuthority::seal(QuarantineSealRequest::from_executed_finding(finding))
-            .unwrap();
+    let denial = inspect_wal_payload(&torn_wal_payload(range)).unwrap_err();
+    let record = wal_tail_quarantine_record(range);
     let evidence = PhysicalIntegrityEvidenceAuthority::store_local()
         .materialize(
             StoreExecutedIntegrityEvidence::receipt_evidence(&record),
             PhysicalIntegrityEvidenceProfile::full(),
         )
         .unwrap();
-    let receipt =
-        RecoveryIntegrityHandoffReceipt::from_quarantine_receipt_evidence(&evidence).unwrap();
-    WalTailIntegrityQuarantineHandoff::from_wal_tail_damage_quarantine(&denial, &record, receipt)
+    WalTailIntegrityQuarantineHandoff::from_wal_tail_damage_quarantine(
+        &denial,
+        &record,
+        RecoveryIntegrityHandoffReceipt::from_quarantine_receipt_evidence(&evidence).unwrap(),
+    )
+    .unwrap()
+}
+pub(crate) fn wal_tail_quarantine_record(range: WalLsnRange) -> QuarantineRecord {
+    let denial = inspect_wal_payload(&torn_wal_payload(range)).unwrap_err();
+    let finding = ExecutedQuarantineFinding::from_wal_frame_denial(&denial).unwrap();
+    PhysicalQuarantineAuthority::seal(QuarantineSealRequest::from_executed_finding(finding))
         .unwrap()
 }
 
-#[allow(dead_code)]
+pub(crate) fn intact_wal_integrity_evidence() -> PhysicalIntegrityEvidenceBundle {
+    let range = WalLsnRange::new(LogSequenceNumber::new(40), LogSequenceNumber::new(50)).unwrap();
+    let report = inspect_wal_payload(&intact_wal_payload(range)).unwrap();
+    integrity_evidence_from_report(&report)
+}
+
+pub(crate) fn intact_wal_integrity_evidence_for_owner(
+    owner: PhysicalGenerationOwner,
+) -> PhysicalIntegrityEvidenceBundle {
+    let range = WalLsnRange::new(LogSequenceNumber::new(40), LogSequenceNumber::new(50)).unwrap();
+    let report = inspect_wal_payload_for_owner(&intact_wal_payload(range), owner).unwrap();
+    integrity_evidence_from_report(&report)
+}
+
+fn integrity_evidence_from_report(
+    report: &WalFrameIntegrityReport,
+) -> PhysicalIntegrityEvidenceBundle {
+    PhysicalIntegrityEvidenceAuthority::store_local()
+        .materialize(
+            StoreExecutedIntegrityEvidence::authoritative_wal_frame(&report),
+            PhysicalIntegrityEvidenceProfile::full(),
+        )
+        .unwrap()
+}
+
 pub(crate) fn recovery_blocking_wal_frame_damage(
     range: WalLsnRange,
 ) -> RecoveryBlockedByIntegrityDamage {
     recovery_blocking_damage_from_payload(&wal_payload(range, 0, "checksum-fail"))
 }
 
-#[allow(dead_code)]
 pub(crate) fn recovery_blocking_torn_wal_frame_damage(
     range: WalLsnRange,
 ) -> RecoveryBlockedByIntegrityDamage {
@@ -158,8 +142,17 @@ fn recovery_blocking_damage_from_payload(payload: &[u8]) -> RecoveryBlockedByInt
 }
 
 fn inspect_wal_payload(payload: &[u8]) -> Result<WalFrameIntegrityReport, WalFrameDamageDenial> {
+    inspect_wal_payload_for_owner(payload, wal_slot_cell().owner())
+}
+
+fn inspect_wal_payload_for_owner(
+    payload: &[u8],
+    owner: PhysicalGenerationOwner,
+) -> Result<WalFrameIntegrityReport, WalFrameDamageDenial> {
+    let cell = wal_slot_cell_for_owner(owner);
+    let reference = wal_reference_for_cell(cell);
     let mut table = resident_frame_table();
-    let admission = admit_wal_payload_frame(&mut table, payload);
+    let admission = admit_wal_payload_frame(&mut table, payload, reference);
     let lease = table.lease_page(admission.resident_frame_token()).unwrap();
     let pinned = lease.pin().unwrap();
     let protected = ProtectedPhysicalByteView::from_pinned_frame(&pinned.view().unwrap());
@@ -174,8 +167,8 @@ fn inspect_wal_payload(payload: &[u8]) -> Result<WalFrameIntegrityReport, WalFra
         .unwrap();
     let checked = integrity_admission
         .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
-            wal_reference(),
-            wal_header_witness(&frame_bytes(1, payload)),
+            reference,
+            wal_header_witness(&frame_bytes(owner.generation().get(), payload), reference),
             PhysicalFrameKind::RecordFrame,
             DeclaredPhysicalChecksum::new(crc32c(payload).into()),
         ))
@@ -183,9 +176,12 @@ fn inspect_wal_payload(payload: &[u8]) -> Result<WalFrameIntegrityReport, WalFra
     let scoped = PhysicalScopeAdmission::admit_frame(
         checked,
         PhysicalScopeAdmissionRequest::frame(
-            PhysicalReferenceScope::wal_frame(wal_reference()),
-            manifest_membership(),
-            RootManifestIntegrityPosture::current_root_admitted(manifest_membership()),
+            PhysicalReferenceScope::wal_frame(reference),
+            manifest_membership_for_scope(PhysicalReferenceScope::wal_frame(reference), cell),
+            RootManifestIntegrityPosture::current_root_admitted(manifest_membership_for_scope(
+                PhysicalReferenceScope::wal_frame(reference),
+                cell,
+            )),
             CheckpointAdjacencyPosture::NotCheckpointAdjacent,
             checksum_coverage_basis(),
         ),
@@ -220,11 +216,12 @@ fn wal_payload(range: WalLsnRange, declared_extra: usize, status: &str) -> Vec<u
 fn admit_wal_payload_frame(
     table: &mut ResidentFrameTable,
     payload: &[u8],
+    reference: PhysicalReferenceValidationWitness,
 ) -> forge_store_buffer_pool::ResidentFrameAdmission {
-    let frame = frame_bytes(1, payload);
+    let frame = frame_bytes(reference.owner().generation().get(), payload);
     let request = ResidentFrameLoadRequest::from_s1_physical_frame(
-        wal_reference(),
-        wal_header_witness(&frame),
+        reference,
+        wal_header_witness(&frame, reference),
     )
     .unwrap();
     let payload = physical_header()
@@ -247,7 +244,7 @@ fn resident_frame_table() -> ResidentFrameTable {
     ResidentFrameTable::open(entry, ResidentFrameTableCapacity::frames(1).unwrap())
 }
 
-fn s3_readiness() -> S3PhysicalIntegrityReadiness {
+pub(crate) fn s3_readiness() -> S3PhysicalIntegrityReadiness {
     let s2 = s2_readiness();
     let facts = s2.facts();
     let payload = S3PhysicalIntegrityReadinessPayload::from_s2_closeout_evidence(
@@ -293,19 +290,28 @@ fn accepted_s1_readiness() -> AcceptedHandoffReadiness {
 }
 
 fn manifest_membership() -> ManifestMembershipProof {
+    manifest_membership_for_scope(
+        PhysicalReferenceScope::wal_frame(wal_reference()),
+        wal_slot_cell(),
+    )
+}
+
+fn manifest_membership_for_scope(
+    scope: PhysicalReferenceScope,
+    cell: SlotGenerationCell,
+) -> ManifestMembershipProof {
     let root_cell = PhysicalGenerationAuthority::s1()
         .root_publication_cell(PhysicalRootReference::from_raw(9).unwrap())
         .with_root_publication_generation(generation(1));
     let root = PhysicalManifestUniverseBuilder::s1(root_cell)
         .segment(
             PhysicalGenerationAuthority::s1()
-                .segment_cell(segment(1))
-                .with_segment_generation(generation(1)),
+                .segment_cell(cell.segment_id())
+                .with_segment_generation(cell.generation()),
         )
-        .ordinary_page(wal_slot_cell())
+        .ordinary_page(cell)
         .publish();
-    ManifestMembershipProof::from_root(&root, PhysicalReferenceScope::wal_frame(wal_reference()))
-        .unwrap()
+    ManifestMembershipProof::from_root(&root, scope).unwrap()
 }
 
 fn checksum_scope() -> ChecksumScopeDeclaration {
@@ -326,9 +332,12 @@ fn checksum_coverage_basis() -> forge_store_physical_integrity::ChecksumCoverage
         .clone()
 }
 
-fn wal_header_witness(frame: &[u8]) -> forge_store_physical_format::PhysicalHeaderDecodeWitness {
+fn wal_header_witness(
+    frame: &[u8],
+    reference: PhysicalReferenceValidationWitness,
+) -> forge_store_physical_format::PhysicalHeaderDecodeWitness {
     physical_header()
-        .decode_frame_header(wal_reference(), frame, PhysicalFrameKind::RecordFrame)
+        .decode_frame_header(reference, frame, PhysicalFrameKind::RecordFrame)
         .unwrap()
         .witness()
 }
@@ -338,18 +347,32 @@ fn physical_header() -> PhysicalHeaderAuthority {
 }
 
 fn wal_reference() -> PhysicalReferenceValidationWitness {
+    wal_reference_for_cell(wal_slot_cell())
+}
+
+fn wal_reference_for_cell(cell: SlotGenerationCell) -> PhysicalReferenceValidationWitness {
     PhysicalReferenceAuthority::s1()
-        .validate_page_slot(
-            PhysicalReferenceAuthority::s1().admit_page_slot(wal_slot_cell()),
-            wal_slot_cell(),
-        )
+        .validate_page_slot(PhysicalReferenceAuthority::s1().admit_page_slot(cell), cell)
         .unwrap()
 }
 
 fn wal_slot_cell() -> forge_store_physical_format::SlotGenerationCell {
+    wal_slot_cell_for_owner(
+        PhysicalGenerationAuthority::s1()
+            .slot_cell(segment(1), page(2), slot(3))
+            .with_slot_generation(generation(1))
+            .owner(),
+    )
+}
+
+fn wal_slot_cell_for_owner(owner: PhysicalGenerationOwner) -> SlotGenerationCell {
     PhysicalGenerationAuthority::s1()
-        .slot_cell(segment(1), page(2), slot(3))
-        .with_slot_generation(generation(1))
+        .slot_cell(
+            owner.segment_id().unwrap(),
+            owner.page_id().unwrap(),
+            owner.slot().unwrap(),
+        )
+        .with_slot_generation(owner.generation())
 }
 
 fn frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {

@@ -113,6 +113,10 @@ These are not optional add-ons. They are the capabilities that make
 - edge-first and local-first replication primitives
 - deterministic import/export capsules
 - cross-artifact digest graphs for integrity verification
+- typed key scope, tenant scope, authenticity, and cryptographic custody
+  evidence for durable artifacts
+- native key lifecycle posture for envelope encryption, rotation, rewrap,
+  backup/export custody, and cryptographic erasure
 - merge-assistance durable artifacts
 - store-native admission control and budget contracts
 - diagnostics artifact persistence for audit and certification
@@ -144,6 +148,9 @@ It must answer these questions as native storage responsibilities:
   know what schema was active at each commit boundary?
 - How does the storage engine remain pluggable so the same truth semantics
   can be backed by different physical stores?
+- How do key scope, tenant scope, authenticity, cryptographic custody, secure
+  deletion, backup/export key posture, and operator/service admission remain
+  durable Store contracts rather than deployment folklore?
 
 ## Architectural Model
 
@@ -194,6 +201,10 @@ through artifacts: commit envelopes, CDC patches, sync protocol messages.
 - retention-driven compaction and physical space reclaim
 - storage backend abstraction and pluggable implementations
 - storage-level diagnostics and integrity verification
+- typed cryptographic boundary evidence: key scope, tenant scope, authenticity
+  class, key-version posture, and custody posture
+- key lifecycle surfaces for encryption-at-rest, envelope encryption, rotation,
+  rewrap, backup/export custody, and cryptographic erasure
 - replication-ready artifact publishing
 - memory management: deciding what lives in memory vs on disk
 - runtime lifecycle in durable mode (owns the internal runtime instance)
@@ -209,6 +220,10 @@ through artifacts: commit envelopes, CDC patches, sync protocol messages.
 - application-level query planning or optimization
 - sync protocol delivery or subscription management
 - the runtime itself — store uses the runtime, it does not replace it
+- identity-provider behavior, login flows, user-account semantics, or
+  organization policy semantics. Store may consume typed admission evidence
+  from identity systems, but it owns only the durable cryptographic and
+  operational consequences.
 
 ### Structural rule
 
@@ -300,6 +315,18 @@ a design defect.
     check chains over authoritative artifacts.
 14. Durable artifact identity must be stable, unique, and sufficient for
     replay, recovery, and replication references.
+15. Integrity and authenticity are distinct. A checksum proves byte survival; it
+    does not prove key custody, tenant scope, operator authority, or trusted
+    origin.
+16. Security scope is durable metadata, not deployment context. Pages, frames,
+    WAL records, blob chunks, backups, exports, and repair plans must carry
+    typed key scope, tenant scope, authenticity class, key-version posture, and
+    custody posture wherever those facts affect trust.
+17. Store consumes identity evidence but does not become the identity provider.
+    Workload identity, proof-of-possession, passkey-backed operator access, or
+    federated login may authorize actions, but Store records the typed
+    admission evidence and durable consequences rather than owning user
+    identity semantics.
 
 ## Foundational Decisions
 
@@ -1310,6 +1337,60 @@ generated content (rendered thumbnails, compiled outputs, cached
 conversions). The classification determines retention priority and
 rebuild semantics.
 
+### Cryptographic Boundary and Tenant Scope Architecture
+
+#### Store-owned cryptographic boundary evidence
+
+Technical role:
+`forge-store` must make cryptographic boundary evidence native to durable
+artifacts. Key scope, tenant scope, authenticity class, key-version posture, and
+custody posture are not annotations for dashboards; they are part of the
+physical trust contract for pages, frames, WAL records, checkpoints, blob
+chunks, backup bundles, export capsules, and repair plans.
+
+This does not make Store an identity provider. Identity systems can issue
+federated assertions, workload identities, proof-of-possession credentials, or
+operator-admission evidence. Store consumes those as typed admission evidence
+when a durable action needs them, then records the durable consequence in Store
+terms: which key scope was used, which tenant scope was affected, which
+authenticity posture was proven, which custody posture was admitted, and which
+audit chain now includes the action.
+
+What this enables:
+
+- tenant-scoped durability that survives backup, restore, repair, replication,
+  and export
+- wrong-key, stale-key, cross-tenant, replayed-credential, and tampered-audit
+  failures that are typed instead of inferred from logs
+- encryption and authenticity to compose with physical pages, WAL/checkpoints,
+  blob chunks, and capsules without retrofitting metadata later
+- cryptographic erasure and secure deletion to become explicit Store
+  capabilities with backend capability declarations
+
+#### Envelope encryption and key lifecycle posture
+
+Technical role:
+Store should support a native envelope-encryption hierarchy: deployment,
+tenant, artifact, page/frame, WAL/checkpoint, blob/chunk, backup, export, and
+repair scopes. Key rotation and rewrap must be physical operations with bounded
+work evidence, not semantic rewrites of canonical truth.
+
+Key management can be backed by local keys, KMS, HSM, BYOK, HYOK, or other
+deployment-specific custody systems, but the Store API must expose typed
+capability posture. Unsupported secure claims must fail admission rather than
+silently degrading.
+
+What this enables:
+
+- companies with serious key-custody requirements can migrate without bolting a
+  second security model beside the database
+- tenant offboarding can map to cryptographic erasure and repair-safe deletion
+  posture instead of best-effort cleanup
+- backup/export/import can be verified against the key material and custody
+  posture they actually require
+- security evidence can join certification evidence without being reduced to
+  prose or operator logs
+
 ### Admission Control and Budget Architecture
 
 #### Store-native admission control and budget contracts
@@ -1477,6 +1558,11 @@ The highest-signal storage programs are:
 - store-native admission control and budget contracts
 - replication-ready artifact publishing
 - storage diagnostics and integrity verification
+- typed cryptographic boundary evidence and tenant-scope metadata
+- envelope-encryption key hierarchy, key rotation, rewrap, and custody posture
+- workload/operator admission evidence consumed as Store audit evidence, not as
+  Store-owned identity semantics
+- secure deletion and cryptographic-erasure posture
 - schema evolution boundary persistence
 - exact vs approximate derived artifact classification
 - native content-addressed blob and object storage

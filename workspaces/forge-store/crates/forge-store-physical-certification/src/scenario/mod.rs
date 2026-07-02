@@ -1,5 +1,6 @@
 mod authority;
 mod canonical_basis;
+mod canonical_tokens;
 mod certified;
 mod collections;
 mod definition;

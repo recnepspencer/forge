@@ -1,4 +1,4 @@
-use crate::PhysicalScenarioCanonicalIdentity;
+use crate::{PhysicalScenarioCanonicalIdentity, PhysicalSimulationScenarioFamily};
 
 use super::{
     PhysicalSimulationPlanIdentity, PhysicalSimulationProfile, RequiredActorSet,
@@ -9,10 +9,12 @@ use crate::{
     AdmittedDriverContractSet, ForbiddenShortcutSet, PhysicalResourceEnvelope,
     PhysicalSimulationCapabilitySet, RequiredCounterContractSet, YieldpointScheduleBinding,
 };
+use forge_store_physical_isolation::CompactionMutationLaneOrigin;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalSimulationPlan {
     scenario_identity: PhysicalScenarioCanonicalIdentity,
+    scenario_family: PhysicalSimulationScenarioFamily,
     identity: PhysicalSimulationPlanIdentity,
     profile: PhysicalSimulationProfile,
     resource_envelope: PhysicalResourceEnvelope,
@@ -27,6 +29,7 @@ pub struct PhysicalSimulationPlan {
     fixture_classes: RequiredFixtureClassSet,
     evidence_policy: SimulationEvidencePolicy,
     forbidden_shortcuts: ForbiddenShortcutSet,
+    s5_compaction_mutation_origin: Option<CompactionMutationLaneOrigin>,
 }
 
 impl PhysicalSimulationPlan {
@@ -36,6 +39,7 @@ impl PhysicalSimulationPlan {
         let identity = PhysicalSimulationPlanIdentity::from_parts(&parts)?;
         Ok(Self {
             scenario_identity: parts.scenario_identity,
+            scenario_family: parts.scenario_family,
             identity,
             profile: parts.profile,
             resource_envelope: parts.resource_envelope,
@@ -50,11 +54,16 @@ impl PhysicalSimulationPlan {
             fixture_classes: parts.fixture_classes,
             evidence_policy: parts.evidence_policy,
             forbidden_shortcuts: parts.forbidden_shortcuts,
+            s5_compaction_mutation_origin: parts.s5_compaction_mutation_origin,
         })
     }
 
     pub const fn scenario_identity(&self) -> &PhysicalScenarioCanonicalIdentity {
         &self.scenario_identity
+    }
+
+    pub const fn scenario_family(&self) -> PhysicalSimulationScenarioFamily {
+        self.scenario_family
     }
 
     pub const fn identity(&self) -> &PhysicalSimulationPlanIdentity {
@@ -112,6 +121,10 @@ impl PhysicalSimulationPlan {
     pub const fn forbidden_shortcuts(&self) -> &ForbiddenShortcutSet {
         &self.forbidden_shortcuts
     }
+
+    pub const fn s5_compaction_mutation_origin(&self) -> Option<&CompactionMutationLaneOrigin> {
+        self.s5_compaction_mutation_origin.as_ref()
+    }
 }
 
 pub const fn require_lowered_physical_simulation_plan(
@@ -123,6 +136,7 @@ pub const fn require_lowered_physical_simulation_plan(
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct PhysicalSimulationPlanParts {
     pub(crate) scenario_identity: PhysicalScenarioCanonicalIdentity,
+    pub(crate) scenario_family: PhysicalSimulationScenarioFamily,
     pub(crate) profile: PhysicalSimulationProfile,
     pub(crate) resource_envelope: PhysicalResourceEnvelope,
     pub(crate) required_capabilities: PhysicalSimulationCapabilitySet,
@@ -136,4 +150,5 @@ pub(crate) struct PhysicalSimulationPlanParts {
     pub(crate) fixture_classes: RequiredFixtureClassSet,
     pub(crate) evidence_policy: SimulationEvidencePolicy,
     pub(crate) forbidden_shortcuts: ForbiddenShortcutSet,
+    pub(crate) s5_compaction_mutation_origin: Option<CompactionMutationLaneOrigin>,
 }

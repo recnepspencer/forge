@@ -16,6 +16,12 @@ pub enum StoreLowerAuthoritySource {
     ExternalToken,
     DerivedEvidence,
     RetainedEvidence,
+    SemanticTransactionVisibility,
+    SemanticBranchVisibility,
+    SemanticSnapshotVisibility,
+    SemanticProjectionVisibility,
+    SemanticCurrentBasisExport,
+    SemanticCommitVisibility,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

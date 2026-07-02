@@ -1,7 +1,7 @@
 use crate::{
     CounterContractKind, FixtureClassKind, ObserverKind, OracleFamilyKind, PhysicalDriverKind,
     PhysicalProofOracleKind, PhysicalScenarioActorRole, PhysicalScenarioFaultKind,
-    PhysicalSimulationProfile,
+    PhysicalSimulationProfile, S5CompactionMutationKind, S5PhysicalIsolationMutationKind,
 };
 
 use super::{HarnessSubsystem, Roadmap2HarnessSequence};
@@ -33,6 +33,8 @@ pub enum CoverageRowDimension {
     CounterContract(CounterContractKind),
     TranscriptOutput,
     MutationValidationPosture(MutationValidationPosture),
+    CompactionMutation(S5CompactionMutationKind),
+    S5PhysicalIsolationMutation(S5PhysicalIsolationMutationKind),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

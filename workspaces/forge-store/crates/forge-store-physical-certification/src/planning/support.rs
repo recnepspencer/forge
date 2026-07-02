@@ -33,6 +33,10 @@ impl SupportedPhysicalDriverSet {
         ])
     }
 
+    pub fn all_for_ci_certification() -> Self {
+        Self::all_for_developer_smoke()
+    }
+
     pub fn without(mut self, driver: PhysicalDriverKind) -> Self {
         self.drivers.retain(|candidate| *candidate != driver);
         self
@@ -64,6 +68,10 @@ impl SupportedObserverSet {
         ])
     }
 
+    pub fn all_for_ci_certification() -> Self {
+        Self::all_for_developer_smoke()
+    }
+
     pub fn without(mut self, observer: ObserverKind) -> Self {
         self.observers.retain(|candidate| *candidate != observer);
         self
@@ -91,9 +99,14 @@ impl SupportedOracleFamilySet {
         Self::from_oracles([
             OracleFamilyKind::TranscriptReplayEvidence,
             OracleFamilyKind::S5ReadinessShape,
+            OracleFamilyKind::S5PhysicalIsolationInterleaving,
             OracleFamilyKind::S4RecoveryDogfood,
             OracleFamilyKind::ForbiddenShortcutRejection,
         ])
+    }
+
+    pub fn all_for_ci_certification() -> Self {
+        Self::all_for_developer_smoke()
     }
 
     pub fn without(mut self, oracle_family: OracleFamilyKind) -> Self {

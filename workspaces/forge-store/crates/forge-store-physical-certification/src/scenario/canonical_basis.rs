@@ -15,6 +15,9 @@ use forge_store_aspect_native::{
     StoreAspectBoundaryFact, StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily,
 };
 
+use super::canonical_tokens::{
+    actor_role_token, expectation_token, family_token, fault_token, intent_token, non_claim_token,
+};
 use super::definition::PhysicalSimulationScenarioDefinition;
 use super::denial::PhysicalScenarioDefinitionDenial;
 
@@ -215,100 +218,5 @@ fn interned_token(value: &InternedString) -> String {
     match value {
         InternedString::Raw(raw) => raw.clone(),
         InternedString::Symbol(symbol) => format!("symbol.{}", symbol.0),
-    }
-}
-
-fn family_token(family: super::vocabulary::PhysicalSimulationScenarioFamily) -> &'static str {
-    match family {
-        super::vocabulary::PhysicalSimulationScenarioFamily::S4RecoveryDogfood => {
-            "s4-recovery-dogfood"
-        }
-        super::vocabulary::PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe => {
-            "s5-readiness-shape-probe"
-        }
-        super::vocabulary::PhysicalSimulationScenarioFamily::ShortcutRejectionDogfood => {
-            "shortcut-rejection-dogfood"
-        }
-        super::vocabulary::PhysicalSimulationScenarioFamily::FutureExtensionSlot => {
-            "future-extension-slot"
-        }
-    }
-}
-
-fn intent_token(intent: super::vocabulary::PhysicalScenarioIntent) -> &'static str {
-    match intent {
-        super::vocabulary::PhysicalScenarioIntent::RecoveryReplayDogfood => {
-            "recovery-replay-dogfood"
-        }
-        super::vocabulary::PhysicalScenarioIntent::ProtectBeforeObserveShape => {
-            "protect-before-observe-shape"
-        }
-        super::vocabulary::PhysicalScenarioIntent::ForbiddenShortcutRejectionShape => {
-            "forbidden-shortcut-rejection-shape"
-        }
-        super::vocabulary::PhysicalScenarioIntent::FutureExtensionSlot => "future-extension-slot",
-    }
-}
-
-fn actor_role_token(role: super::vocabulary::PhysicalScenarioActorRole) -> &'static str {
-    match role {
-        super::vocabulary::PhysicalScenarioActorRole::ForegroundReader => "foreground-reader",
-        super::vocabulary::PhysicalScenarioActorRole::ForegroundWriter => "foreground-writer",
-        super::vocabulary::PhysicalScenarioActorRole::CheckpointDriver => "checkpoint-driver",
-        super::vocabulary::PhysicalScenarioActorRole::CompactionDriver => "compaction-driver",
-        super::vocabulary::PhysicalScenarioActorRole::MaintenanceReclaimer => {
-            "maintenance-reclaimer"
-        }
-        super::vocabulary::PhysicalScenarioActorRole::RecoveryDriver => "recovery-driver",
-        super::vocabulary::PhysicalScenarioActorRole::ScrubDriver => "scrub-driver",
-        super::vocabulary::PhysicalScenarioActorRole::OfflineVerifier => "offline-verifier",
-        super::vocabulary::PhysicalScenarioActorRole::ShortcutRejectionProbe => {
-            "shortcut-rejection-probe"
-        }
-        super::vocabulary::PhysicalScenarioActorRole::FutureExtensionSlot => {
-            "future-extension-slot"
-        }
-    }
-}
-
-fn fault_token(fault: super::vocabulary::PhysicalScenarioFaultKind) -> &'static str {
-    match fault {
-        super::vocabulary::PhysicalScenarioFaultKind::NoFault => "no-fault",
-        super::vocabulary::PhysicalScenarioFaultKind::FutureExtensionSlot => {
-            "future-extension-slot"
-        }
-    }
-}
-
-fn expectation_token(
-    expectation: super::vocabulary::PhysicalScenarioExpectationKind,
-) -> &'static str {
-    match expectation {
-        super::vocabulary::PhysicalScenarioExpectationKind::S4RecoveryDogfood => {
-            "s4-recovery-dogfood"
-        }
-        super::vocabulary::PhysicalScenarioExpectationKind::S5ReadinessShapeProbe => {
-            "s5-readiness-shape-probe"
-        }
-        super::vocabulary::PhysicalScenarioExpectationKind::S5ReadinessWithShortcutRejectionProbe => {
-            "s5-readiness-with-shortcut-rejection-probe"
-        }
-        super::vocabulary::PhysicalScenarioExpectationKind::ShortcutRejectionDogfood => {
-            "shortcut-rejection-dogfood"
-        }
-        super::vocabulary::PhysicalScenarioExpectationKind::FutureExtensionSlot => {
-            "future-extension-slot"
-        }
-    }
-}
-
-fn non_claim_token(non_claim: super::vocabulary::PhysicalScenarioNonClaim) -> &'static str {
-    match non_claim {
-        super::vocabulary::PhysicalScenarioNonClaim::NoS5PhysicalIsolationCorrectnessClaim => {
-            "no-s5-physical-isolation-correctness-claim"
-        }
-        super::vocabulary::PhysicalScenarioNonClaim::FutureExtensionSlotDoesNotImplementFutureBehavior => {
-            "future-extension-slot-does-not-implement-future-behavior"
-        }
     }
 }

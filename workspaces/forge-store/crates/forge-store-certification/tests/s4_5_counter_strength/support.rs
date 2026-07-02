@@ -1,21 +1,24 @@
 #![allow(dead_code)]
 
+#[path = "compaction_interlock_trace.rs"]
+mod compaction_interlock_trace;
+
 use forge_store_buffer_pool::{
     AllocationAdmission, AllocationRequest, AllocationScope, BufferPoolExecutedEvidenceSource,
 };
 use forge_store_io_scheduler::IoQueueExecutionRecorder;
 use forge_store_physical_certification::{
     admit_physical_counter_evidence, lower_physical_simulation_plan, physical_scenario,
-    CounterContractKind, CounterExpectationKind, CounterStrengthJustification,
-    CounterStrengthPosture, ExecutedPhysicalSimulationObservation, ForbiddenShortcutSet,
-    HostileCounterEvidenceRow, HostileResourceEnvelopeObservation, PhysicalCounterEvidenceReceipt,
-    PhysicalCounterExecutionSources, PhysicalExecutedCounterEvidence, PhysicalInterleavingSchedule,
-    PhysicalScenarioActor, PhysicalScenarioExpectation, PhysicalScenarioIntent,
-    PhysicalScenarioSchedule, PhysicalSimulationCapabilitySet, PhysicalSimulationObserver,
-    PhysicalSimulationPlan, PhysicalSimulationProfile, PhysicalSimulationProfileSet,
-    PhysicalSimulationScenarioFamily, ReplaySeed, ShortcutRejectionObservation,
-    SimulationEvidencePolicy, SimulationPlanningContext, StateSpaceBudget, SupportedObserverSet,
-    SupportedOracleFamilySet,
+    CompactionInterlockObservation, CounterContractKind, CounterExpectationKind,
+    CounterStrengthJustification, CounterStrengthPosture, ExecutedPhysicalSimulationObservation,
+    ForbiddenShortcutSet, HostileCounterEvidenceRow, HostileResourceEnvelopeObservation,
+    PhysicalCounterEvidenceReceipt, PhysicalCounterExecutionSources,
+    PhysicalExecutedCounterEvidence, PhysicalInterleavingSchedule, PhysicalScenarioActor,
+    PhysicalScenarioExpectation, PhysicalScenarioIntent, PhysicalScenarioSchedule,
+    PhysicalSimulationCapabilitySet, PhysicalSimulationObserver, PhysicalSimulationPlan,
+    PhysicalSimulationProfile, PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
+    ReplaySeed, ShortcutRejectionObservation, SimulationEvidencePolicy, SimulationPlanningContext,
+    StateSpaceBudget, SupportedObserverSet, SupportedOracleFamilySet,
 };
 use forge_store_test_support::{
     admitted_developer_smoke_driver_contracts, NativeStoreAspectFixture,
@@ -159,6 +162,21 @@ pub(crate) fn observed_trace(
     PhysicalSimulationObserver::independent_physical_trace()
         .observe_executed_plan(plan, &execution)
         .unwrap()
+        .with_compaction_interlock_observation(compaction_observation())
+        .complete()
+        .unwrap()
+}
+
+pub(crate) fn publication_only_trace(
+    plan: &PhysicalSimulationPlan,
+) -> forge_store_physical_certification::ObservedPhysicalTrace {
+    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(plan).unwrap();
+    PhysicalSimulationObserver::independent_physical_trace()
+        .observe_executed_plan(plan, &execution)
+        .unwrap()
+        .with_compaction_interlock_observation(
+            compaction_interlock_trace::publication_only_compaction_observation(),
+        )
         .complete()
         .unwrap()
 }
@@ -170,6 +188,7 @@ pub(crate) fn shortcut_trace(
     PhysicalSimulationObserver::shortcut_rejection()
         .observe_executed_plan(plan, &execution)
         .unwrap()
+        .with_compaction_interlock_observation(compaction_observation())
         .with_shortcut_rejection_observation(ShortcutRejectionObservation::private_mutation_denied())
         .complete()
         .unwrap()
@@ -182,9 +201,14 @@ pub(crate) fn json_shortcut_trace(
     PhysicalSimulationObserver::shortcut_rejection()
         .observe_executed_plan(plan, &execution)
         .unwrap()
+        .with_compaction_interlock_observation(compaction_observation())
         .with_shortcut_rejection_observation(ShortcutRejectionObservation::json_authority_denied())
         .complete()
         .unwrap()
+}
+
+fn compaction_observation() -> CompactionInterlockObservation {
+    compaction_interlock_trace::store_compaction_observation()
 }
 
 pub(crate) fn lower_s5_plan() -> PhysicalSimulationPlan {

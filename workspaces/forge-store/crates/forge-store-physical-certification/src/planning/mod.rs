@@ -10,6 +10,7 @@ mod plan;
 mod profiles;
 mod proof_progression;
 mod requirements;
+mod stable_read_plan_requirements;
 mod support;
 mod tokens;
 

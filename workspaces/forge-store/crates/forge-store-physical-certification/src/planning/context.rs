@@ -3,7 +3,11 @@ use super::{
     PhysicalSimulationProfileSet, SimulationEvidencePolicy, SupportedObserverSet,
     SupportedOracleFamilySet, SupportedPhysicalDriverSet,
 };
-use crate::{AdmittedDriverContractSet, PhysicalResourceEnvelope};
+use crate::{
+    AdmittedDriverContractSet, PhysicalResourceEnvelope,
+    S5PhysicalIsolationCertificationLaneRegistration,
+};
+use forge_store_physical_isolation::CompactionMutationLaneOrigin;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SimulationPlanningContext {
@@ -17,6 +21,8 @@ pub struct SimulationPlanningContext {
     supported_oracle_families: SupportedOracleFamilySet,
     evidence_policy: Option<SimulationEvidencePolicy>,
     forbidden_shortcuts: Option<ForbiddenShortcutSet>,
+    s5_compaction_mutation_origin: Option<CompactionMutationLaneOrigin>,
+    s5_physical_isolation_lane: Option<S5PhysicalIsolationCertificationLaneRegistration>,
 }
 
 impl SimulationPlanningContext {
@@ -36,6 +42,8 @@ impl SimulationPlanningContext {
             supported_oracle_families: SupportedOracleFamilySet::empty(),
             evidence_policy: None,
             forbidden_shortcuts: None,
+            s5_compaction_mutation_origin: None,
+            s5_physical_isolation_lane: None,
         }
     }
 
@@ -90,6 +98,22 @@ impl SimulationPlanningContext {
         self
     }
 
+    pub fn with_s5_compaction_mutation_origin(
+        mut self,
+        origin: CompactionMutationLaneOrigin,
+    ) -> Self {
+        self.s5_compaction_mutation_origin = Some(origin);
+        self
+    }
+
+    pub fn with_s5_physical_isolation_lane_registration(
+        mut self,
+        registration: S5PhysicalIsolationCertificationLaneRegistration,
+    ) -> Self {
+        self.s5_physical_isolation_lane = Some(registration);
+        self
+    }
+
     pub const fn profile(&self) -> PhysicalSimulationProfile {
         self.profile
     }
@@ -128,5 +152,15 @@ impl SimulationPlanningContext {
 
     pub const fn supported_profiles(&self) -> &PhysicalSimulationProfileSet {
         &self.supported_profiles
+    }
+
+    pub const fn s5_compaction_mutation_origin(&self) -> Option<&CompactionMutationLaneOrigin> {
+        self.s5_compaction_mutation_origin.as_ref()
+    }
+
+    pub const fn s5_physical_isolation_lane_registration(
+        &self,
+    ) -> Option<&S5PhysicalIsolationCertificationLaneRegistration> {
+        self.s5_physical_isolation_lane.as_ref()
     }
 }

@@ -48,6 +48,9 @@ If any supported path:
   platform behavior instead of a first-class verified contract
 - allows multi-tenant isolation, quota boundaries, or repair actions to become
   ambiguous under failure or operator pressure
+- lets key scope, tenant scope, authenticity, cryptographic custody, secure
+  deletion, or operator/service admission become application folklore rather
+  than typed Store evidence
 
 then the store has failed.
 
@@ -69,6 +72,11 @@ then the store has failed.
 - Security, authenticity, backup/restore, and disaster-recovery posture must
   appear as explicit milestone scope somewhere in the roadmap rather than
   remaining implied by integrity language.
+- Security posture must be split honestly: Roadmap 2 `S.5.1` provides
+  cryptographic boundary seeds and tenant-scope metadata; Roadmap 2 `S.11`
+  provides full key lifecycle, encryption, auditability, deletion, compliance,
+  and operator/service admission behavior. Later platform milestones must
+  consume those gates rather than redefine security locally.
 - The post-13.3 platform roadmap is gated by Roadmap 2. `Milestone 14` and
   later platform claims may not proceed as platform-grade work until the
   physical database foundation sequences `S.0` through `S.12` are closed or
@@ -104,8 +112,9 @@ Critical path:
   `Milestone 3.6` -> (`Milestone 4` and `Milestone 5`) -> `Milestone 6` ->
   `Milestone 7` -> (`Milestone 8` and `Milestone 10`) -> `Milestone 11` ->
   `Milestone 12` -> `Milestone 13` -> `Milestone 13.1` -> `Milestone 13.2` ->
-  `Milestone 13.3` -> `Roadmap 2 S.0-S.12` -> `Milestone 14` ->
-  `Milestone 15` -> `Milestone 20` -> `Milestone 22` -> certification
+  `Milestone 13.3` -> `Roadmap 2 S.0-S.12 including S.5.1` ->
+  `Milestone 14` -> `Milestone 15` -> `Milestone 20` ->
+  `Milestone 22` -> certification
 
 Parallel tracks:
 
@@ -1203,6 +1212,9 @@ and artifact identities as the original store, even for partial scopes.
   artifact ranges without depending on backend-local heap rows
 - replication verification that composes physical checksums with logical
   artifact digests
+- replication capsule admission that consumes Roadmap 2 `S.5.1` key scope,
+  tenant scope, authenticity class, custody posture, and Roadmap 2 `S.11` key
+  lifecycle evidence
 
 ### Must Preserve
 
@@ -1210,6 +1222,7 @@ and artifact identities as the original store, even for partial scopes.
 - partial replication stays explicit about what it includes and excludes
 - replication does not bypass Roadmap 2 chunk, manifest, integrity, and offline
   verification rules
+- replication does not flatten tenant/key scope into digest-only equivalence
 
 ### Complexity / Proof Obligations
 
@@ -1218,6 +1231,9 @@ and artifact identities as the original store, even for partial scopes.
   scope omissions
 - expose exact counters for physical chunks/pages verified, streamed bytes,
   omitted physical ranges, and target-side admission rejections
+- expose exact counters for tenant-scope omissions, key-version mismatches,
+  authenticity failures, custody-posture denials, and export-capsule key
+  mismatches
 
 ### Allowed Debt
 
@@ -1267,6 +1283,9 @@ skip retention policy, or evade compatibility and certification boundaries.
 - machine-checkable extension-family certification and rejection surfaces
 - storage-strategy registration against Roadmap 2 physical layout, integrity,
   recovery, I/O, security, and certification capability tiers
+- extension declarations for key scope, tenant scope, authenticity, export,
+  repair, and secure-delete participation where the extension stores or ships
+  durable bytes
 
 ### Must Preserve
 
@@ -1276,6 +1295,8 @@ skip retention policy, or evade compatibility and certification boundaries.
 - extensions may not weaken the physical database substrate, bypass buffer-pool
   budgets, skip page/frame/chunk integrity, or claim unsupported backend
   capabilities
+- extensions may not bypass Roadmap 2 `S.5.1` security-scope metadata or
+  `S.11` key-lifecycle capability gates
 
 ### Complexity / Proof Obligations
 
@@ -1285,6 +1306,9 @@ skip retention policy, or evade compatibility and certification boundaries.
   rejection, stale-extension detection, and extension-caused fallback breadth
 - expose exact counters for extension storage-strategy admission, physical
   capability rejection, and unsupported integrity/recovery/I/O posture
+- expose exact counters for extension security-scope admission,
+  extension-caused key/tenant/authenticity rejection, and unsupported
+  secure-delete posture
 
 ### Allowed Debt
 
@@ -1510,6 +1534,9 @@ references without creating a second retention or replication system.
 - authoritative-versus-derived blob classification
 - blob API, policy, and replication surfaces that preserve Roadmap 2 chunk-tree,
   streaming, checksum, reachability, and constant-memory guarantees
+- blob API, policy, and replication surfaces that preserve Roadmap 2 `S.5.1`
+  key scope, tenant scope, authenticity class, custody posture, and Roadmap 2
+  `S.11` key lifecycle guarantees
 
 ### Must Preserve
 
@@ -1517,6 +1544,8 @@ references without creating a second retention or replication system.
 - blob storage does not create a second replication or retention system
 - Milestone 20 does not introduce the physical blob substrate; it consumes the
   Roadmap 2 substrate and exposes the product-level artifact model
+- Milestone 20 does not introduce blob security metadata; it consumes Roadmap 2
+  `S.5.1` and `S.11`
 
 ### Complexity / Proof Obligations
 
@@ -1525,6 +1554,8 @@ references without creating a second retention or replication system.
   breadth
 - expose exact counters for chunk-tree traversals, streamed bytes, retained
   chunks, reclaimed chunks, referenced primary blobs, and derived blob rebuilds
+- expose exact counters for blob key-version mismatches, cross-tenant dedupe
+  rejections, authenticity failures, custody denials, and secure-delete backlog
 
 ### Allowed Debt
 
@@ -1567,8 +1598,13 @@ before they become silent correctness or performance failures.
   - compaction debt
   - rebuild debt
   - WAL growth
-  - blob footprint by tier
-  - resident pages and bytes
+- blob footprint by tier
+- key version count and rotation/rewrap debt
+- encrypted-page/chunk rewrite pressure
+- audit-chain growth
+- secure-delete and cryptographic-erasure backlog
+- tenant export, backup, and repair footprint
+- resident pages and bytes
   - pinned pages
   - dirty pages
   - WAL tail and recovery time
@@ -1594,6 +1630,9 @@ before they become silent correctness or performance failures.
 - expose exact counters for Roadmap 2 physical budget triggers, including
   resident-byte, dirty-page, pinned-page, WAL-tail, I/O-queue, chunk-footprint,
   and latency-interference triggers
+- expose exact counters for Roadmap 2 security budget triggers, including
+  key-version pressure, rewrap backlog, audit-chain growth, tenant export
+  footprint, secure-delete backlog, and cryptographic-erasure backlog
 
 ### Allowed Debt
 
@@ -1637,6 +1676,9 @@ admissible without reading ambiguous logs or improvising on production data.
 - authenticity-aware audit surfaces in addition to raw integrity reporting
 - backup, PITR, physical corruption, tenant, key, and audit-chain repair
   conclusions that consume Roadmap 2 operational safety and security evidence
+- key-compromise, key-loss, stale-key, wrong-tenant, custody-missing,
+  proof-of-possession failure, and cryptographic-erasure repair conclusions
+  that consume Roadmap 2 `S.5.1` and `S.11` evidence
 
 ### Must Preserve
 
@@ -1646,6 +1688,8 @@ admissible without reading ambiguous logs or improvising on production data.
   recovery
 - operator repair may not reinterpret damaged physical bytes after Roadmap 2
   has quarantined or rejected them
+- operator repair may not cross tenant/key scope without an admitted
+  cryptographic custody and blast-radius witness
 
 ### Complexity / Proof Obligations
 
@@ -1655,6 +1699,9 @@ admissible without reading ambiguous logs or improvising on production data.
 - expose exact counters for verified pages/chunks, offline verifier findings,
   PITR candidates, key-scope failures, audit-chain failures, and physical
   quarantine boundaries
+- expose exact counters for key-compromise repair plans, stale-key denials,
+  custody-missing denials, proof-of-possession failures, cryptographic-erasure
+  actions, and cross-tenant repair rejections
 
 ### Allowed Debt
 
@@ -1701,8 +1748,10 @@ mode, and admitted fast path the store claims to support.
 - replay-equivalence across recovery modes, not just within each mode
 - Roadmap 2 physical database certification, including bounded memory,
   page/frame/chunk integrity, LSN/checkpoint recovery, physical isolation,
-  I/O/QoS behavior, blob-scale streaming, operational safety, security, and
-  hazard-analysis evidence
+  I/O/QoS behavior, blob-scale streaming, operational safety, `S.5.1`
+  security-scope metadata, `S.11` key lifecycle, tenant isolation,
+  cryptographic erasure, operator/service admission, and hazard-analysis
+  evidence
 
 Each certification run must emit machine-checkable artifact bundles.
 
@@ -1725,7 +1774,8 @@ meant to serve.
   materialization
 - domain-scale physical evidence from Roadmap 2, including geometry/CAD blob
   streaming, web/data PITR and tenant isolation, AI workspace backup/restore,
-  and chip/simulation large-history recovery within declared envelopes
+  chip/simulation large-history recovery, key lifecycle, tenant-scoped
+  export/import, and cryptographic-erasure posture within declared envelopes
 
 ## Completion Standard
 
@@ -1748,8 +1798,8 @@ meant to serve.
   [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements.md)
   pass with machine-checkable evidence
 - Roadmap 2 `S.0` through `S.12` close with machine-checkable physical database
-  evidence, or any remaining gaps are explicitly named as non-platform-grade
-  debt
+  evidence, including `S.5.1`, or any remaining gaps are explicitly named as
+  non-platform-grade debt
 - beta readiness additionally requires all cross-cutting beta suites in
   [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements.md)
   to pass with machine-checkable evidence
@@ -1759,6 +1809,9 @@ meant to serve.
 - tenant isolation, quota boundaries, authenticity checks, backup/restore, and
   disaster-recovery posture are explicit platform contracts rather than
   implied side effects of lower-level integrity work
+- key scope, key lifecycle, cryptographic custody, proof-of-possession
+  admission, secure deletion, and cryptographic erasure are explicit Store
+  contracts rather than deployment wishes
 - no platform-grade backend depends on full-store heap materialization,
   serde-loaded domain objects, backend-private residue guessing, unbounded
   memory residency, or unverified OS writeback behavior

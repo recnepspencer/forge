@@ -16,7 +16,10 @@ pub use maturity::{
     HarnessMaturityEvidence, HarnessMaturityLevel, HarnessSubsystemMaturity,
     S5HarnessMaturityDependencyEvidence, S5SimulationHarnessReadiness,
 };
-pub use mutation::PhysicalMutationCoverageEvidence;
+pub use mutation::{
+    PhysicalMutationCoverageEvidence, S5CompactionMutationCoverageRow, S5CompactionMutationKind,
+    S5PhysicalIsolationMutationKind,
+};
 pub use registration::Roadmap2CoverageRegistry;
 pub use report::Roadmap2HarnessReadinessReport;
 pub use row::{

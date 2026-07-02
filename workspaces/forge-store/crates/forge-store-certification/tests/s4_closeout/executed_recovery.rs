@@ -6,7 +6,7 @@ use forge_store_recovery_physics::{
 };
 use forge_store_test_support::{
     deterministic_s4_recovery_artifacts, runtime_state_mismatch_s4_recovery_artifacts,
-    FreshRuntimeRecoveryDriver,
+    s4_recovery_artifacts_with_operation_digest, FreshRuntimeRecoveryDriver,
 };
 
 use super::memory_budget_fixture::recovery_memory_envelope;
@@ -21,6 +21,7 @@ pub struct CloseoutFixture {
     pub source_trace: RecoverySourceDecisionTrace,
     pub foundational_evidence: forge_store_recovery_physics::FoundationalRecoveryEvidenceBundle,
     pub artifacts: PersistedRecoveryArtifacts,
+    pub replay_redo_lsn: u64,
     pub operation_digest: String,
 }
 
@@ -35,6 +36,7 @@ pub fn executed_recovery_fixture_with_cursor_lsn(cursor_lsn: u64) -> CloseoutFix
         receipt,
         source_trace,
         deterministic_s4_recovery_artifacts(),
+        20,
         "op-20",
     )
 }
@@ -43,13 +45,26 @@ pub fn executed_recovery_fixture_with_runtime_state_mismatch_artifacts() -> Clos
     let artifacts = runtime_state_mismatch_s4_recovery_artifacts();
     let (receipt, source_trace) =
         executed_recovery_receipt_and_trace_with_operation_digest("op-21");
-    closeout_fixture(receipt, source_trace, artifacts, "op-21")
+    closeout_fixture(receipt, source_trace, artifacts, 20, "op-21")
+}
+
+pub fn executed_recovery_fixture_with_operation_digest(operation_digest: &str) -> CloseoutFixture {
+    let (receipt, source_trace) =
+        executed_recovery_receipt_and_trace_with_operation_digest(operation_digest);
+    closeout_fixture(
+        receipt,
+        source_trace,
+        s4_recovery_artifacts_with_operation_digest(operation_digest),
+        20,
+        operation_digest,
+    )
 }
 
 fn closeout_fixture(
     receipt: BoundedRecoveryReceipt,
     source_trace: RecoverySourceDecisionTrace,
     artifacts: PersistedRecoveryArtifacts,
+    replay_redo_lsn: u64,
     operation_digest: &str,
 ) -> CloseoutFixture {
     let foundational_evidence =
@@ -59,6 +74,7 @@ fn closeout_fixture(
         source_trace,
         foundational_evidence,
         artifacts,
+        replay_redo_lsn,
         operation_digest: operation_digest.to_string(),
     }
 }
@@ -70,6 +86,7 @@ pub fn executed_recovery_fixture_with_page_digest(page_digest: &str) -> Closeout
         receipt,
         source_trace,
         deterministic_s4_recovery_artifacts(),
+        20,
         "op-20",
     )
 }
@@ -82,6 +99,7 @@ pub fn executed_recovery_fixture_with_redo_lsn(redo_lsn: u64) -> CloseoutFixture
         receipt,
         source_trace,
         deterministic_s4_recovery_artifacts(),
+        redo_lsn,
         &operation_digest,
     )
 }
@@ -101,6 +119,16 @@ pub fn executed_reopened_recovery_from_admission_with_operation_digest(
     operation_digest: &str,
 ) -> Result<(BoundedRecoveryReceipt, FreshRuntimeRecoveryExecution), ReopenedRecoveryDenial> {
     let (plan, _) = bounded_recovery_plan_and_trace_with_operation_digest(20, operation_digest);
+    driver.execute_reopened_runtime_recovery(&plan)
+}
+
+pub fn executed_reopened_recovery_from_admission_with_redo_lsn_and_operation_digest(
+    driver: &FreshRuntimeRecoveryDriver,
+    redo_lsn: u64,
+    operation_digest: &str,
+) -> Result<(BoundedRecoveryReceipt, FreshRuntimeRecoveryExecution), ReopenedRecoveryDenial> {
+    let (plan, _) =
+        bounded_recovery_plan_and_trace_with_operation_digest(redo_lsn, operation_digest);
     driver.execute_reopened_runtime_recovery(&plan)
 }
 

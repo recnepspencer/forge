@@ -108,23 +108,36 @@ impl<'lease> ZeroCopyRecordView<'lease> {
             }
             _ => counters,
         };
-        Ok(BoundedCopyRecordView::new(copied, counters))
+        Ok(BoundedCopyRecordView::new(copied, self.admission, counters))
     }
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct BoundedCopyRecordView {
     bytes: Vec<u8>,
+    admission: RecordViewAdmission,
     counters: RecordCopyCounterSnapshot,
 }
 
 impl BoundedCopyRecordView {
-    const fn new(bytes: Vec<u8>, counters: RecordCopyCounterSnapshot) -> Self {
-        Self { bytes, counters }
+    const fn new(
+        bytes: Vec<u8>,
+        admission: RecordViewAdmission,
+        counters: RecordCopyCounterSnapshot,
+    ) -> Self {
+        Self {
+            bytes,
+            admission,
+            counters,
+        }
     }
 
     pub fn physical_record_bytes(&self) -> &[u8] {
         &self.bytes
+    }
+
+    pub const fn reference(&self) -> PhysicalReference {
+        self.admission.reference()
     }
 
     pub const fn counters(&self) -> RecordCopyCounterSnapshot {
@@ -133,6 +146,10 @@ impl BoundedCopyRecordView {
 
     pub const fn proves_semantic_domain_object(&self) -> bool {
         false
+    }
+
+    pub fn into_physical_record_bytes(self) -> (PhysicalReference, Vec<u8>) {
+        (self.admission.reference(), self.bytes)
     }
 }
 

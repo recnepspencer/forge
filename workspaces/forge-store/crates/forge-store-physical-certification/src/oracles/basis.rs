@@ -1,7 +1,8 @@
 use crate::{
-    IndependentVerifierObservation, ObservedPhysicalTrace, ObserverKind,
-    PhysicalScenarioCanonicalIdentity, PhysicalSimulationPlan, PhysicalSimulationPlanIdentity,
-    RecoveryOutcomeObservation, ShortcutRejectionObservation, ShortcutRejectionObservationKind,
+    CheckpointInterlockObservation, CompactionInterlockObservation, IndependentVerifierObservation,
+    ObservedPhysicalTrace, ObserverKind, PhysicalScenarioCanonicalIdentity, PhysicalSimulationPlan,
+    PhysicalSimulationPlanIdentity, PhysicalSimulationScenarioFamily, RecoveryOutcomeObservation,
+    ShortcutRejectionObservation, ShortcutRejectionObservationKind,
 };
 
 use super::OracleDenial;
@@ -9,11 +10,14 @@ use super::OracleDenial;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OracleVerdictBasis {
     scenario_identity: PhysicalScenarioCanonicalIdentity,
+    scenario_family: PhysicalSimulationScenarioFamily,
     plan_identity: PhysicalSimulationPlanIdentity,
     observer: ObserverKind,
     runtime_trace_present: bool,
     independent_verifier: Option<IndependentVerifierObservation>,
     recovery_outcome: Option<RecoveryOutcomeObservation>,
+    checkpoint_interlock: Option<CheckpointInterlockObservation>,
+    compaction_interlock: Option<CompactionInterlockObservation>,
     shortcut_rejections: Vec<ShortcutRejectionObservation>,
 }
 
@@ -29,17 +33,24 @@ impl OracleVerdictBasis {
         }
         Ok(Self {
             scenario_identity: plan.scenario_identity().clone(),
+            scenario_family: plan.scenario_family(),
             plan_identity: plan.identity().clone(),
             observer: trace.observer(),
             runtime_trace_present: true,
             independent_verifier: trace.independent_verifier().cloned(),
             recovery_outcome: trace.recovery_outcome().cloned(),
+            checkpoint_interlock: trace.checkpoint_interlock(),
+            compaction_interlock: trace.compaction_interlock(),
             shortcut_rejections: trace.shortcut_rejections().to_vec(),
         })
     }
 
     pub const fn scenario_identity(&self) -> &PhysicalScenarioCanonicalIdentity {
         &self.scenario_identity
+    }
+
+    pub const fn scenario_family(&self) -> PhysicalSimulationScenarioFamily {
+        self.scenario_family
     }
 
     pub const fn plan_identity(&self) -> &PhysicalSimulationPlanIdentity {
@@ -64,6 +75,22 @@ impl OracleVerdictBasis {
 
     pub fn recovery_outcome(&self) -> Option<&RecoveryOutcomeObservation> {
         self.recovery_outcome.as_ref()
+    }
+
+    pub const fn checkpoint_interlock_present(&self) -> bool {
+        self.checkpoint_interlock.is_some()
+    }
+
+    pub const fn checkpoint_interlock(&self) -> Option<CheckpointInterlockObservation> {
+        self.checkpoint_interlock
+    }
+
+    pub const fn compaction_interlock_present(&self) -> bool {
+        self.compaction_interlock.is_some()
+    }
+
+    pub const fn compaction_interlock(&self) -> Option<CompactionInterlockObservation> {
+        self.compaction_interlock
     }
 
     pub fn has_shortcut_rejection(&self, kind: ShortcutRejectionObservationKind) -> bool {

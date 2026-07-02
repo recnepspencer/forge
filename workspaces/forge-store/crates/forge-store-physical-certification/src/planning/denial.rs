@@ -27,6 +27,7 @@ pub enum SimulationPlanDenial {
         expectation: PhysicalScenarioExpectationKind,
     },
     MissingEvidencePolicy,
+    MissingS5PhysicalIsolationLaneRegistration,
     AbsentForbiddenShortcutSet,
     MissingForbiddenShortcut(ForbiddenShortcutKind),
     AmbiguousFaultScope,

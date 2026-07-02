@@ -1,3 +1,7 @@
+use super::{
+    CheckpointCrashReplayObservation, CheckpointInterlockObservation,
+    CompactionInterlockObservation, S5CompactionMutationObservationSet,
+};
 use crate::{
     IndependentVerifierObservation, ObserverKind, PhysicalScenarioCanonicalIdentity,
     PhysicalSimulationPlan, PhysicalSimulationPlanIdentity, ProductionBoundaryDriverTrace,
@@ -12,6 +16,10 @@ pub struct ObservedPhysicalTrace {
     runtime_trace: ProductionBoundaryDriverTrace,
     independent_verifier: Option<IndependentVerifierObservation>,
     recovery_outcome: Option<RecoveryOutcomeObservation>,
+    checkpoint_crash_replay: Option<CheckpointCrashReplayObservation>,
+    checkpoint_interlock: Option<CheckpointInterlockObservation>,
+    compaction_interlock: Option<CompactionInterlockObservation>,
+    compaction_mutations: Option<S5CompactionMutationObservationSet>,
     shortcut_rejections: Vec<ShortcutRejectionObservation>,
 }
 
@@ -22,6 +30,10 @@ impl ObservedPhysicalTrace {
         runtime_trace: ProductionBoundaryDriverTrace,
         independent_verifier: Option<IndependentVerifierObservation>,
         recovery_outcome: Option<RecoveryOutcomeObservation>,
+        checkpoint_crash_replay: Option<CheckpointCrashReplayObservation>,
+        checkpoint_interlock: Option<CheckpointInterlockObservation>,
+        compaction_interlock: Option<CompactionInterlockObservation>,
+        compaction_mutations: Option<S5CompactionMutationObservationSet>,
         shortcut_rejections: Vec<ShortcutRejectionObservation>,
     ) -> Self {
         Self {
@@ -31,6 +43,10 @@ impl ObservedPhysicalTrace {
             runtime_trace,
             independent_verifier,
             recovery_outcome,
+            checkpoint_crash_replay,
+            checkpoint_interlock,
+            compaction_interlock,
+            compaction_mutations,
             shortcut_rejections,
         }
     }
@@ -57,6 +73,30 @@ impl ObservedPhysicalTrace {
 
     pub const fn recovery_outcome(&self) -> Option<&RecoveryOutcomeObservation> {
         self.recovery_outcome.as_ref()
+    }
+
+    pub const fn checkpoint_crash_replay(&self) -> Option<&CheckpointCrashReplayObservation> {
+        self.checkpoint_crash_replay.as_ref()
+    }
+
+    pub const fn checkpoint_interlock(&self) -> Option<CheckpointInterlockObservation> {
+        self.checkpoint_interlock
+    }
+
+    pub const fn compaction_interlock(&self) -> Option<CompactionInterlockObservation> {
+        self.compaction_interlock
+    }
+
+    pub const fn compaction_mutations(&self) -> Option<&S5CompactionMutationObservationSet> {
+        self.compaction_mutations.as_ref()
+    }
+
+    pub fn with_scheduled_compaction_mutation_lanes(
+        mut self,
+        observations: S5CompactionMutationObservationSet,
+    ) -> Self {
+        self.compaction_mutations = Some(observations);
+        self
     }
 
     pub fn shortcut_rejections(&self) -> &[ShortcutRejectionObservation] {

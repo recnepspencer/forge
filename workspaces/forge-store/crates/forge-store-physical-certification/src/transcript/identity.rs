@@ -1,4 +1,5 @@
 mod entries;
+mod observation_entries;
 
 use forge_foundational::canonicalization_api::lower_lane::basis::{
     prepare_canonical_basis_sequence, CanonicalBasisEntry,

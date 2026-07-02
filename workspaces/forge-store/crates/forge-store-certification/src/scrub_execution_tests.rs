@@ -9,10 +9,10 @@ use forge_store_buffer_pool::{
 };
 use forge_store_maintenance::PhysicalIntegrityScrubWorkflow;
 use forge_store_physical_integrity::{
-    ChunkIntegrityStreamingWindow, OfflineScrubInspectionInput, ScrubCounterSnapshot,
-    ScrubExecution, ScrubExecutionDenialKind, ScrubMode, ScrubPlan, ScrubPlanBudget,
-    ScrubPlanDenialKind, ScrubPlanRequest, ScrubPlanningMemoryEnvelope, ScrubWindow,
-    ScrubWindowOrdinal,
+    ChunkIntegrityStreamingWindow, CompactionSourceIntegrityClearance, OfflineScrubInspectionInput,
+    ScrubCounterSnapshot, ScrubExecution, ScrubExecutionDenialKind, ScrubMode, ScrubPlan,
+    ScrubPlanBudget, ScrubPlanDenialKind, ScrubPlanRequest, ScrubPlanningMemoryEnvelope,
+    ScrubWindow, ScrubWindowOrdinal,
 };
 
 #[test]
@@ -47,6 +47,10 @@ fn online_and_offline_scrub_converge_on_overlapping_integrity_evidence() {
             assert!(!online_receipt.proves_recovery_behavior());
             assert!(!online_receipt.proves_repair_behavior());
             assert!(!online_receipt.proves_blob_lifecycle());
+            let clearance =
+                CompactionSourceIntegrityClearance::from_scrub_execution(&online_receipt).unwrap();
+            assert!(!clearance.permits_compaction_movement());
+            assert_eq!(clearance.locality_owner(), None);
         });
     });
 }

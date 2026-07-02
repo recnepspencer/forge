@@ -19,9 +19,9 @@ mod shortcut_evidence;
 #[allow(unused_imports)]
 pub use closeout_collectors::{
     certify_closeout_from_reordered_evidence, certify_closeout_with_cursor_lsn,
-    certify_closeout_with_page_digest, certify_closeout_with_redo_lsn,
-    certify_closeout_with_runtime_state_mismatch_artifacts, certify_complete_closeout,
-    complete_closeout_evidence, evidence_with_missing_crash_seam,
+    certify_closeout_with_operation_digest, certify_closeout_with_page_digest,
+    certify_closeout_with_redo_lsn, certify_closeout_with_runtime_state_mismatch_artifacts,
+    certify_complete_closeout, complete_closeout_evidence, evidence_with_missing_crash_seam,
     evidence_with_missing_shortcut_rejection_denial, mixed_authority_closeout_denial,
     unbounded_closeout_denial,
 };
