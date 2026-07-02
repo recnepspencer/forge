@@ -9,6 +9,7 @@ EVENT_TYPES = {
     "run_resumed",
     "run_stopped",
     "run_completed",
+    "turn_outcome_recorded",
     "prompt_selected",
     "codex_turn_completed",
     "codex_turn_failed",
@@ -69,6 +70,7 @@ def validate_event_shape(event: dict[str, Any]) -> list[str]:
 
 def validate_payload(event_type: str | None, payload: dict[str, Any]) -> list[str]:
     errors: list[str] = []
+    errors.extend(validate_turn_instance_id(payload))
     if event_type in PHASE_PROGRESS_EVENTS:
         errors.extend(validate_note_updates(payload.get("notes", {})))
         summary = payload.get("summary")
@@ -96,7 +98,29 @@ def validate_payload(event_type: str | None, payload: dict[str, Any]) -> list[st
         reason = payload.get("reason")
         if reason is not None and not isinstance(reason, str):
             errors.append(f"{event_type} payload.reason must be a string when present")
+    if event_type == "turn_outcome_recorded":
+        outcome_event_type = payload.get("outcome_event_type")
+        if not isinstance(outcome_event_type, str) or not outcome_event_type:
+            errors.append("turn_outcome_recorded payload.outcome_event_type is required")
     return errors
+
+
+def validate_runner_outcome(event_type: str, payload: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if event_type not in EVENT_TYPES:
+        errors.append(f"unknown event_type: {event_type!r}")
+        return errors
+    errors.extend(validate_payload(event_type, payload))
+    return errors
+
+
+def validate_turn_instance_id(payload: dict[str, Any]) -> list[str]:
+    turn_instance_id = payload.get("turn_instance_id")
+    if turn_instance_id is None:
+        return []
+    if not isinstance(turn_instance_id, str) or not turn_instance_id:
+        return ["payload.turn_instance_id must be a non-empty string when present"]
+    return []
 
 
 def validate_note_updates(notes: Any) -> list[str]:

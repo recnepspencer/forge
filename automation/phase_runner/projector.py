@@ -7,6 +7,19 @@ from typing import Any
 from event_types import NOTE_BUCKETS
 from transition_rules import apply_phase_progress, validate_projected_transition
 
+PHASE_CURSOR_ADVANCING_EVENTS = {
+    "plan_posted",
+    "implementation_completed",
+    "review_failed",
+    "review_passed",
+    "repair_completed",
+    "test_review_failed",
+    "test_review_passed",
+    "test_repair_plan_posted",
+    "test_repair_completed",
+    "code_quality_review_passed",
+}
+
 
 def project_run(
     config: dict[str, Any],
@@ -20,6 +33,18 @@ def project_run(
     for event in events:
         if event.get("thread_id") and not projection["session"]["thread_id"]:
             projection["session"]["thread_id"] = event["thread_id"]
+        if event["event_type"] == "prompt_selected":
+            turn_instance_id = event["payload"].get("turn_instance_id")
+            current = projection.get("current")
+            if (
+                isinstance(current, dict)
+                and current.get("phase") == event.get("phase_id")
+                and current.get("turn") == event.get("turn")
+                and isinstance(turn_instance_id, str)
+                and turn_instance_id
+            ):
+                projection["current_turn_instance_id"] = turn_instance_id
+            continue
         if event["event_type"] == "run_started":
             projection["started_at"] = event["at"]
             continue
@@ -33,10 +58,12 @@ def project_run(
             continue
         if event["event_type"] == "run_completed":
             projection["current"] = None
+            projection["current_turn_instance_id"] = None
             projection["completed_at"] = event["at"]
             continue
         if event["event_type"] == "operator_override":
             projection["current"] = event["payload"]["current"]
+            projection["current_turn_instance_id"] = None
             projection["latest_summary"] = event["payload"]["reason"]
             continue
         if event["event_type"] in {"runner_fault", "recovery_requested", "recovery_completed"}:
@@ -46,6 +73,8 @@ def project_run(
             continue
         validate_projected_transition(projection, event)
         apply_phase_progress(projection, config, event)
+        if event["event_type"] in PHASE_CURSOR_ADVANCING_EVENTS:
+            projection["current_turn_instance_id"] = None
 
     if projection["current"] is None and projection["completed_at"] is None and projection["phases"]:
         first_unfinished = find_first_unfinished_phase(projection)
@@ -73,6 +102,7 @@ def empty_projection(config: dict[str, Any], run_id: str) -> dict[str, Any]:
         },
         "phases": [project_phase(phase) for phase in config["phases"]],
         "current": None,
+        "current_turn_instance_id": None,
         "started_at": None,
         "completed_at": None,
         "stopped": False,

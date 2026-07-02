@@ -143,6 +143,7 @@ impl UiDeclarationArtifact {
 
         Ok(derive_declaration_graph_handoff(
             &self.identity,
+            &self.provenance,
             aspect_contract,
             family,
             semantics,

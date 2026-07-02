@@ -15,6 +15,7 @@ def render_prompt(
     config_path: Path,
     projection_path: Path,
     event_log_path: Path,
+    expected_turn_instance_id: str | None = None,
 ) -> str:
     phase = current_phase_required(projection)
     turn = current_turn_required(projection)
@@ -22,7 +23,17 @@ def render_prompt(
     context["contract"] = render_contract(config, config_path, context)
     template_path = resolve_config_path(config_path, config["turn_templates"][turn])
     template = template_path.read_text(encoding="utf-8")
-    return render_template(template, context)
+    rendered = render_template(template, context)
+    if not expected_turn_instance_id:
+        return rendered
+    return (
+        rendered
+        + "\n\nRunner turn instance id: "
+        + expected_turn_instance_id
+        + "\nYour RUNNER_EVENT payload must include exactly "
+        + json_turn_instance_snippet(expected_turn_instance_id)
+        + "\n"
+    )
 
 
 def render_contract(
@@ -63,6 +74,7 @@ def build_context(
         "status_values": "not_started, in_progress, complete, regressed, blocked",
         "qa_status_values": "not_started, needed, in_progress, passed, failed",
         "run_id": projection["run_id"],
+        "current_turn_instance_id": projection.get("current_turn_instance_id"),
     }
 
 
@@ -95,6 +107,10 @@ def stringify(value: Any) -> str:
             return "- none"
         return "\n".join(f"- {key}: {stringify(item)}" for key, item in value.items())
     return str(value)
+
+
+def json_turn_instance_snippet(turn_instance_id: str) -> str:
+    return f'"turn_instance_id":"{turn_instance_id}"'
 
 
 def current_phase_required(projection: dict[str, Any]) -> dict[str, Any]:

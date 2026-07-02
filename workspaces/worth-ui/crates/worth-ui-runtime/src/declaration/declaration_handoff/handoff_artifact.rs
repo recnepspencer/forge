@@ -10,6 +10,7 @@ use crate::declaration::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiDeclarationGraphHandoff {
     identity: UiDeclarationIdentity,
+    authored_provenance_digest: u64,
     structural: UiStructuralDeclarationPayload,
     aspect_contract: UiDeclaredAspectPayload,
     declared_posture: UiDeclaredPosturePayload,
@@ -18,12 +19,14 @@ pub struct UiDeclarationGraphHandoff {
 impl UiDeclarationGraphHandoff {
     pub(crate) fn new(
         identity: UiDeclarationIdentity,
+        authored_provenance_digest: u64,
         structural: UiStructuralDeclarationPayload,
         aspect_contract: UiDeclaredAspectPayload,
         declared_posture: UiDeclaredPosturePayload,
     ) -> Self {
         Self {
             identity,
+            authored_provenance_digest,
             structural,
             aspect_contract,
             declared_posture,
@@ -32,6 +35,10 @@ impl UiDeclarationGraphHandoff {
 
     pub fn identity(&self) -> &UiDeclarationIdentity {
         &self.identity
+    }
+
+    pub fn authored_provenance_digest(&self) -> u64 {
+        self.authored_provenance_digest
     }
 
     pub fn family(&self) -> &UiDeclarationFamily {

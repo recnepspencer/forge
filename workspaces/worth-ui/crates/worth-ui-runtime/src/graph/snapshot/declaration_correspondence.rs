@@ -7,16 +7,22 @@ use crate::graph::UiGraphNodeIdentity;
 pub struct UiGraphDeclarationCorrespondence {
     declaration_to_nodes: BTreeMap<u64, Vec<UiGraphNodeIdentity>>,
     node_to_declaration: BTreeMap<UiGraphNodeIdentity, UiDeclarationIdentity>,
+    authored_provenance_to_nodes: BTreeMap<u64, Vec<UiGraphNodeIdentity>>,
+    node_to_authored_provenance: BTreeMap<UiGraphNodeIdentity, u64>,
 }
 
 impl UiGraphDeclarationCorrespondence {
     pub(crate) fn new(
         declaration_to_nodes: BTreeMap<u64, Vec<UiGraphNodeIdentity>>,
         node_to_declaration: BTreeMap<UiGraphNodeIdentity, UiDeclarationIdentity>,
+        authored_provenance_to_nodes: BTreeMap<u64, Vec<UiGraphNodeIdentity>>,
+        node_to_authored_provenance: BTreeMap<UiGraphNodeIdentity, u64>,
     ) -> Self {
         Self {
             declaration_to_nodes,
             node_to_declaration,
+            authored_provenance_to_nodes,
+            node_to_authored_provenance,
         }
     }
 
@@ -45,6 +51,23 @@ impl UiGraphDeclarationCorrespondence {
         graph_node_identity: UiGraphNodeIdentity,
     ) -> Option<&UiDeclarationIdentity> {
         self.node_to_declaration.get(&graph_node_identity)
+    }
+
+    pub fn graph_node_ids_for_authored_provenance(
+        &self,
+        authored_provenance_digest: u64,
+    ) -> &[UiGraphNodeIdentity] {
+        self.authored_provenance_to_nodes
+            .get(&authored_provenance_digest)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
+    pub fn authored_provenance_digest_for(
+        &self,
+        graph_node_identity: UiGraphNodeIdentity,
+    ) -> Option<u64> {
+        self.node_to_authored_provenance.get(&graph_node_identity).copied()
     }
 
     pub fn declaration_instance_count(

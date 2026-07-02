@@ -1,12 +1,13 @@
 use worth_ui_inspection::{
     UiInspectionMilestoneExpectation, UiInspectionScope, UiInspectionScopeSupportRow,
-    UiInspectionSupportReason,
+    UiInspectionSupportWorld,
 };
 
 use super::{
     support_row_schema::DECLARATION_SUPPORT_ROW_SCHEMA, UiDeclarationSupportMilestoneExpectation,
     UiDeclarationSupportRow, UiDeclarationSupportRowSchemaKind, UiDeclarationUnsupportedPosture,
 };
+use crate::declaration::UiDeclaredPostureApplicability;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiDeclarationSupportSnapshot {
@@ -50,15 +51,29 @@ fn inspection_row_for_support_row(
     Some(match row.unsupported_posture() {
         Some(UiDeclarationUnsupportedPosture::ArchitecturallyOwnedButNotYetAdmitted {
             expected_in,
-        }) => UiInspectionScopeSupportRow::unsupported(
+        }) => UiInspectionScopeSupportRow::deferred(
             row.schema_kind().as_support_subsystem(),
             scope,
-            UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted,
-            Some(map_milestone_expectation(expected_in)),
+            map_milestone_expectation(expected_in),
+            UiInspectionSupportWorld::Authoritative,
         ),
-        None => {
-            UiInspectionScopeSupportRow::supported(row.schema_kind().as_support_subsystem(), scope)
-        }
+        None => match row.applicability() {
+            UiDeclaredPostureApplicability::DiagnosticOnly =>
+                UiInspectionScopeSupportRow::diagnostic_only(
+                    row.schema_kind().as_support_subsystem(),
+                    scope,
+                    UiInspectionSupportWorld::Authoritative,
+                ),
+            UiDeclaredPostureApplicability::Required
+            | UiDeclaredPostureApplicability::Optional
+            | UiDeclaredPostureApplicability::NotApplicable
+            | UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted =>
+                UiInspectionScopeSupportRow::supported(
+                    row.schema_kind().as_support_subsystem(),
+                    scope,
+                    UiInspectionSupportWorld::Authoritative,
+                ),
+        },
     })
 }
 

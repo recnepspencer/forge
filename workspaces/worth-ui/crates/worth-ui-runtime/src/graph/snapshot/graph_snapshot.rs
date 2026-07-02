@@ -113,37 +113,38 @@ impl UiGraphSnapshot {
         prior_mounted_axis_participation: UiGraphAxisParticipation,
         next_mounted_axis_participation: UiGraphAxisParticipation,
     ) -> Option<UiGraphMountedReceiptTransition> {
-        self.mounted_receipt_slot_for_node(graph_node_identity).and_then(|slot| {
-            UiGraphMountedReceiptTransition::from_slot_axis_transition(
-                *slot,
-                prior_mounted_axis_participation,
-                next_mounted_axis_participation,
-            )
-        })
+        self.mounted_receipt_slot_for_node(graph_node_identity)
+            .and_then(|slot| {
+                UiGraphMountedReceiptTransition::from_slot_axis_transition(
+                    *slot,
+                    prior_mounted_axis_participation,
+                    next_mounted_axis_participation,
+                )
+            })
     }
 
     pub fn compare_to(&self, other: &Self) -> UiGraphSnapshotComparable {
         let generation_relation = self.generation.relation_to(other.generation);
-        let kind =
-            if self.declaration_authority_digest == other.declaration_authority_digest {
-                if self.world_profile.identity_digest() == other.world_profile.identity_digest() {
-                    same_world_difference_kind(
-                        self.snapshot_authority_digest,
-                        other.snapshot_authority_digest,
-                        generation_relation,
-                    )
-                } else if self.world_profile.comparison_family()
-                    == other.world_profile.comparison_family()
-                {
-                    UiGraphWorldDifferenceKind::SameDeclarationDifferentWorld
-                } else {
-                    UiGraphWorldDifferenceKind::NotComparable
-                }
-            } else if self.world_profile.comparison_family() == other.world_profile.comparison_family() {
-                UiGraphWorldDifferenceKind::DifferentDeclarationAuthority
+        let kind = if self.declaration_authority_digest == other.declaration_authority_digest {
+            if self.world_profile.identity_digest() == other.world_profile.identity_digest() {
+                same_world_difference_kind(
+                    self.snapshot_authority_digest,
+                    other.snapshot_authority_digest,
+                    generation_relation,
+                )
+            } else if self.world_profile.comparison_family()
+                == other.world_profile.comparison_family()
+            {
+                UiGraphWorldDifferenceKind::SameDeclarationDifferentWorld
             } else {
                 UiGraphWorldDifferenceKind::NotComparable
-            };
+            }
+        } else if self.world_profile.comparison_family() == other.world_profile.comparison_family()
+        {
+            UiGraphWorldDifferenceKind::DifferentDeclarationAuthority
+        } else {
+            UiGraphWorldDifferenceKind::NotComparable
+        };
 
         UiGraphSnapshotComparable::new(kind, generation_relation, self.generation, other.generation)
     }
@@ -153,11 +154,10 @@ fn declaration_authority_digest(
     declaration_correspondence: &UiGraphDeclarationCorrespondence,
     world_profile: &UiGraphWorldProfile,
 ) -> u64 {
-    declaration_correspondence
-        .declaration_digests()
-        .fold(world_profile.comparison_family().rotate_left(7), |digest, declaration_digest| {
-            digest.rotate_left(5) ^ declaration_digest
-        })
+    declaration_correspondence.declaration_digests().fold(
+        world_profile.comparison_family().rotate_left(7),
+        |digest, declaration_digest| digest.rotate_left(5) ^ declaration_digest,
+    )
 }
 
 fn same_world_difference_kind(
@@ -198,10 +198,8 @@ fn snapshot_authority_digest(
 
 #[cfg(test)]
 mod tests {
-    use crate::facade::app::WorthUi;
-    use crate::graph::{
-        UiGraphGeneration, UiGraphWorldDifferenceKind, UiGraphWorldProfile,
-    };
+    use crate::facade::WorthUi;
+    use crate::graph::{UiGraphGeneration, UiGraphWorldDifferenceKind, UiGraphWorldProfile};
     use worth_ui_dsl::{
         UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
         UiDslStructuralToken, WorthUiDslPackage,
@@ -232,14 +230,15 @@ mod tests {
     fn committed_snapshot_fixture() -> UiGraphSnapshot {
         WorthUi::app()
             .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.runtime.graph.tests").with_semantic_artifact_spec(
-                    UiDslSemanticArtifactSpec::new(
-                        UiDslSemanticKey::new("ui.graph.snapshot.successor"),
-                        UiDslSemanticFamily::Control,
-                        UiDslSourceProvenance::file_authored("app/graph_snapshot_tests.wui", 0),
-                    )
-                    .with_structural_token(UiDslStructuralToken::new("control:test")),
-                ),
+                WorthUiDslPackage::named("worth-ui.runtime.graph.tests")
+                    .with_semantic_artifact_spec(
+                        UiDslSemanticArtifactSpec::new(
+                            UiDslSemanticKey::new("ui.graph.snapshot.successor"),
+                            UiDslSemanticFamily::Control,
+                            UiDslSourceProvenance::file_authored("app/graph_snapshot_tests.wui", 0),
+                        )
+                        .with_structural_token(UiDslStructuralToken::new("control:test")),
+                    ),
             )
             .freeze()
             .graph_snapshot()

@@ -1,11 +1,13 @@
 use crate::declaration::{
-    UiAspectContract, UiDeclarationFamily, UiDeclarationGraphHandoff, UiDeclarationIdentity,
-    UiDeclarationStructuralSemantics, UiDeclaredAspectPayload, UiDeclaredPostureContract,
-    UiDeclaredPosturePayload, UiStructuralDeclarationPayload,
+    stable_text_digest, UiAspectContract, UiDeclarationFamily, UiDeclarationGraphHandoff,
+    UiDeclarationIdentity, UiDeclarationProvenance, UiDeclarationStructuralSemantics,
+    UiDeclaredAspectPayload, UiDeclaredPostureContract, UiDeclaredPosturePayload,
+    UiStructuralDeclarationPayload,
 };
 
 pub(crate) fn derive_declaration_graph_handoff(
     identity: &UiDeclarationIdentity,
+    provenance: &UiDeclarationProvenance,
     aspect_contract: &UiAspectContract,
     family: &UiDeclarationFamily,
     structural_semantics: &UiDeclarationStructuralSemantics,
@@ -13,6 +15,8 @@ pub(crate) fn derive_declaration_graph_handoff(
 ) -> UiDeclarationGraphHandoff {
     UiDeclarationGraphHandoff::new(
         identity.clone(),
+        stable_text_digest(provenance.source_provenance().module_path())
+            ^ (provenance.source_provenance().declaration_index() as u64).rotate_left(13),
         UiStructuralDeclarationPayload::new(
             family.clone(),
             structural_semantics.role(),

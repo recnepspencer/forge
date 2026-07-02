@@ -14,6 +14,21 @@ pub enum UiGraphWorldProfile {
     PreviewSessionIdentity {
         preview_session_identity: BridgePreviewSessionIdentity,
     },
+    BranchSessionLabel {
+        session_label: ForgeQuerySessionLabel,
+    },
+    HotReloadCandidate {
+        session_label: ForgeQuerySessionLabel,
+    },
+    Diagnostic {
+        session_label: ForgeQuerySessionLabel,
+    },
+    HostObservation {
+        session_label: ForgeQuerySessionLabel,
+    },
+    TestCertification {
+        session_label: ForgeQuerySessionLabel,
+    },
     QuerySnapshotBasis {
         basis: ResolvedSnapshotBasis,
         resolution_report: SnapshotResolutionReport,
@@ -38,6 +53,26 @@ impl UiGraphWorldProfile {
         Self::PreviewSessionIdentity {
             preview_session_identity,
         }
+    }
+
+    pub fn branch_session_label(session_label: ForgeQuerySessionLabel) -> Self {
+        Self::BranchSessionLabel { session_label }
+    }
+
+    pub fn hot_reload_candidate(session_label: ForgeQuerySessionLabel) -> Self {
+        Self::HotReloadCandidate { session_label }
+    }
+
+    pub fn diagnostic(session_label: ForgeQuerySessionLabel) -> Self {
+        Self::Diagnostic { session_label }
+    }
+
+    pub fn host_observation(session_label: ForgeQuerySessionLabel) -> Self {
+        Self::HostObservation { session_label }
+    }
+
+    pub fn test_certification(session_label: ForgeQuerySessionLabel) -> Self {
+        Self::TestCertification { session_label }
     }
 
     pub fn query_snapshot_basis(
@@ -67,6 +102,22 @@ impl UiGraphWorldProfile {
                     preview_session_identity.terminal_projection_for_reporting(),
                 )
                 .rotate_left(19),
+            Self::BranchSessionLabel { session_label } => stable_text_digest("graph-world:branch-label")
+                ^ stable_text_digest(session_label.display()).rotate_left(23),
+            Self::HotReloadCandidate { session_label } => {
+                stable_text_digest("graph-world:hot-reload-candidate")
+                    ^ stable_text_digest(session_label.display()).rotate_left(29)
+            }
+            Self::Diagnostic { session_label } => stable_text_digest("graph-world:diagnostic")
+                ^ stable_text_digest(session_label.display()).rotate_left(31),
+            Self::HostObservation { session_label } => {
+                stable_text_digest("graph-world:host-observation")
+                    ^ stable_text_digest(session_label.display()).rotate_left(37)
+            }
+            Self::TestCertification { session_label } => {
+                stable_text_digest("graph-world:test-certification")
+                    ^ stable_text_digest(session_label.display()).rotate_left(41)
+            }
             Self::QuerySnapshotBasis {
                 basis,
                 resolution_report,
@@ -85,6 +136,17 @@ impl UiGraphWorldProfile {
             Self::PreviewSessionLabel { .. } => stable_text_digest("graph-world-family:preview-label"),
             Self::PreviewSessionIdentity { .. } => {
                 stable_text_digest("graph-world-family:preview-session")
+            }
+            Self::BranchSessionLabel { .. } => stable_text_digest("graph-world-family:branch-label"),
+            Self::HotReloadCandidate { .. } => {
+                stable_text_digest("graph-world-family:hot-reload-candidate")
+            }
+            Self::Diagnostic { .. } => stable_text_digest("graph-world-family:diagnostic"),
+            Self::HostObservation { .. } => {
+                stable_text_digest("graph-world-family:host-observation")
+            }
+            Self::TestCertification { .. } => {
+                stable_text_digest("graph-world-family:test-certification")
             }
             Self::QuerySnapshotBasis { basis, .. } => stable_text_digest("graph-world-family:query")
                 ^ stable_text_digest(match basis.identity().authority_family() {

@@ -13,7 +13,7 @@ pub struct UiGraphMountedReceiptTransition {
 }
 
 impl UiGraphMountedReceiptTransition {
-    pub fn from_slot_axis_transition(
+    pub(crate) fn from_slot_axis_transition(
         slot: UiGraphMountedReceiptSlot,
         prior_mounted_axis_participation: UiGraphAxisParticipation,
         next_mounted_axis_participation: UiGraphAxisParticipation,

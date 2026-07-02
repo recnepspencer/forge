@@ -1,4 +1,7 @@
-use crate::{UiEvidenceBudget, UiInspectionRelevance, UiInspectionScope, UiInspectionTarget};
+use crate::{
+    UiEvidenceBudget, UiInspectionObligationEvidenceQuery, UiInspectionRelevance,
+    UiInspectionScope, UiInspectionTarget,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiInspectionQuery {
@@ -6,6 +9,7 @@ pub struct UiInspectionQuery {
     scope: UiInspectionScope,
     budget: UiEvidenceBudget,
     relevance: UiInspectionRelevance,
+    obligation_evidence: Option<UiInspectionObligationEvidenceQuery>,
 }
 
 impl UiInspectionQuery {
@@ -15,6 +19,7 @@ impl UiInspectionQuery {
             scope,
             budget: UiEvidenceBudget::default(),
             relevance: UiInspectionRelevance::default(),
+            obligation_evidence: None,
         }
     }
 
@@ -25,6 +30,14 @@ impl UiInspectionQuery {
 
     pub fn with_relevance(mut self, relevance: UiInspectionRelevance) -> Self {
         self.relevance = relevance;
+        self
+    }
+
+    pub fn with_obligation_evidence(
+        mut self,
+        obligation_evidence: UiInspectionObligationEvidenceQuery,
+    ) -> Self {
+        self.obligation_evidence = Some(obligation_evidence);
         self
     }
 
@@ -42,5 +55,9 @@ impl UiInspectionQuery {
 
     pub fn relevance(&self) -> UiInspectionRelevance {
         self.relevance
+    }
+
+    pub fn obligation_evidence(&self) -> Option<UiInspectionObligationEvidenceQuery> {
+        self.obligation_evidence
     }
 }

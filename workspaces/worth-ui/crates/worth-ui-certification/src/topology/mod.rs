@@ -1,3 +1,6 @@
+mod admission_boundary_audit;
+mod admission_boundary_certification;
+mod admission_public_surface_audit;
 mod declaration_public_surface_audit;
 mod declaration_residue_audit;
 mod dependency_audit;
@@ -7,9 +10,17 @@ mod inspection_boundary_certification;
 mod inspection_topology_audit;
 mod legacy_surface_residue;
 mod lifecycle_propagation;
+mod obligation_boundary_audit;
+mod obligation_residue_audit;
 mod ownership_audit;
 mod public_surface_audit;
 
+pub use admission_boundary_audit::audit_consumers_route_admission_through_worth_ui_facade;
+pub use admission_boundary_certification::certify_consumers_route_admission_through_worth_ui_facade;
+pub use admission_public_surface_audit::{
+    audit_admission_facades_are_curated_and_glob_free,
+    audit_runtime_admission_surface_routes_through_curated_submodule,
+};
 pub use declaration_public_surface_audit::{
     audit_declaration_facades_are_curated_and_glob_free,
     audit_runtime_declaration_surface_routes_through_curated_submodule,
@@ -36,6 +47,11 @@ pub use legacy_surface_residue::{
 pub use lifecycle_propagation::{
     audit_phase3_lifecycle_public_surface, expected_phase3_lifecycle_subsystems,
     lifecycle_propagation_fixture_paths,
+};
+pub use obligation_boundary_audit::audit_consumers_route_obligations_through_worth_ui_facade;
+pub use obligation_residue_audit::{
+    audit_legality_resolution_stays_in_admission_owner_lane,
+    audit_non_owner_code_does_not_reopen_obligation_declaration_source,
 };
 pub use ownership_audit::{
     audit_non_dsl_crates_do_not_reach_dsl_internals,

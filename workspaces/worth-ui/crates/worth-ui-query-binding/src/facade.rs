@@ -7,4 +7,9 @@ impl WorthUiQueryBindingSubsystem {
     pub fn bootstrap() -> Self {
         Self { _sealed: () }
     }
+
+    pub fn prerequisites(self) -> crate::WorthUiQueryPrerequisiteBoundary {
+        let _ = self;
+        crate::WorthUiQueryPrerequisiteBoundary::new()
+    }
 }

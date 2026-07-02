@@ -103,6 +103,17 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
         if not isinstance(config_map, dict):
             errors.append("session_defaults.config must be an object")
 
+    runner_control = config.get("runner_control", {})
+    if runner_control is not None and not isinstance(runner_control, dict):
+        errors.append("runner_control must be an object when present")
+    elif isinstance(runner_control, dict):
+        validate_optional_positive_int(runner_control, "stop_before_phase", errors)
+        validate_optional_positive_int(runner_control, "turn_timeout_seconds", errors)
+        validate_optional_positive_int(runner_control, "idle_timeout_seconds", errors)
+        stop_reason = runner_control.get("stop_reason")
+        if stop_reason is not None and (not isinstance(stop_reason, str) or not stop_reason):
+            errors.append("runner_control.stop_reason must be a non-empty string when present")
+
     phases = config.get("phases")
     if not isinstance(phases, list) or not phases:
         errors.append("phases must be a non-empty list")
@@ -132,6 +143,12 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
 def require_mapping(config: dict[str, Any], key: str, errors: list[str]) -> None:
     if not isinstance(config.get(key), dict):
         errors.append(f"{key} must be an object")
+
+
+def validate_optional_positive_int(config: dict[str, Any], key: str, errors: list[str]) -> None:
+    value = config.get(key)
+    if value is not None and (not isinstance(value, int) or value <= 0):
+        errors.append(f"runner_control.{key} must be a positive integer when present")
 
 
 def resolve_config_path(config_path: Path, value: str) -> Path:

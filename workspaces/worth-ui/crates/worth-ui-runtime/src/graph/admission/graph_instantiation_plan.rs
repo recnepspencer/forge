@@ -49,6 +49,7 @@ impl UiGraphInstantiationPlan {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiGraphNodeInstantiationEntry {
     declaration_identity: UiDeclarationIdentity,
+    authored_provenance_digest: u64,
     aspect_contract: UiAspectContract,
     repeated_instance_basis: UiRepeatedInstanceBasis,
     topology_seed: UiGraphTopologySeed,
@@ -61,6 +62,7 @@ pub struct UiGraphNodeInstantiationEntry {
 impl UiGraphNodeInstantiationEntry {
     pub(crate) fn new(
         declaration_identity: UiDeclarationIdentity,
+        authored_provenance_digest: u64,
         aspect_contract: UiAspectContract,
         repeated_instance_basis: UiRepeatedInstanceBasis,
         topology_seed: UiGraphTopologySeed,
@@ -71,6 +73,7 @@ impl UiGraphNodeInstantiationEntry {
     ) -> Self {
         Self {
             declaration_identity,
+            authored_provenance_digest,
             aspect_contract,
             repeated_instance_basis,
             topology_seed,
@@ -83,6 +86,10 @@ impl UiGraphNodeInstantiationEntry {
 
     pub fn declaration_identity(&self) -> &UiDeclarationIdentity {
         &self.declaration_identity
+    }
+
+    pub fn authored_provenance_digest(&self) -> u64 {
+        self.authored_provenance_digest
     }
 
     pub fn aspect_contract(&self) -> &UiAspectContract {

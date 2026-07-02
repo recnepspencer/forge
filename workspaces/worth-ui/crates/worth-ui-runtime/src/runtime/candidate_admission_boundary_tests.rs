@@ -379,6 +379,7 @@ fn import_node(
             node_index,
         )),
         WorthUiArtifactInputReference::new(target),
+        0,
         WorthUiArtifactIdentitySeed::structural_fallback(format!(
             "module:{}|import:{}",
             module_id.as_str(),

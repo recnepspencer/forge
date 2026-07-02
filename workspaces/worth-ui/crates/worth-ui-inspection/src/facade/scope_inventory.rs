@@ -1,6 +1,6 @@
 use crate::{
     UiInspectionClosureReport, UiInspectionMilestoneExpectation, UiInspectionScope,
-    UiInspectionScopeSupportRow, UiInspectionSupportReport,
+    UiInspectionScopeSupportRow, UiInspectionSupportReport, UiInspectionSupportWorld,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -109,6 +109,32 @@ const fn unsupported_scope_rows(scope: UiInspectionScope) -> [UiInspectionScopeS
             "host_contract",
             scope,
             UiInspectionMilestoneExpectation::Milestone31,
+        ),
+    ]
+}
+
+#[allow(dead_code)]
+const fn supported_scope_rows(scope: UiInspectionScope) -> [UiInspectionScopeSupportRow; 4] {
+    [
+        UiInspectionScopeSupportRow::supported(
+            "dsl_package",
+            scope,
+            UiInspectionSupportWorld::Authoritative,
+        ),
+        UiInspectionScopeSupportRow::supported(
+            "inspection",
+            scope,
+            UiInspectionSupportWorld::Authoritative,
+        ),
+        UiInspectionScopeSupportRow::supported(
+            "query_binding",
+            scope,
+            UiInspectionSupportWorld::Authoritative,
+        ),
+        UiInspectionScopeSupportRow::supported(
+            "host_contract",
+            scope,
+            UiInspectionSupportWorld::Authoritative,
         ),
     ]
 }

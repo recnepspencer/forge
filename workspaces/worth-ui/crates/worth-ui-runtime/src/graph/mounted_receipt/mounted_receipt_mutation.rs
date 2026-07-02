@@ -21,7 +21,7 @@ pub struct UiGraphMountedReceiptMutation {
 }
 
 impl UiGraphMountedReceiptMutation {
-    pub fn from_transition(transition: UiGraphMountedReceiptTransition) -> Self {
+    pub(crate) fn from_transition(transition: UiGraphMountedReceiptTransition) -> Self {
         let slot = transition.authority_record();
         Self {
             graph_node_identity: slot.graph_node_identity(),

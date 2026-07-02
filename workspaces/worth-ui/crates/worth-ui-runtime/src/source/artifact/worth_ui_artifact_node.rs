@@ -21,6 +21,7 @@ pub(crate) enum WorthUiArtifactNode {
 pub(crate) struct WorthUiArtifactImportNode {
     handle: WorthUiArtifactHandle,
     target: WorthUiArtifactInputReference,
+    authored_provenance_digest: u64,
     identity_seed: WorthUiArtifactIdentitySeed,
     durable_state_eligibility: WorthUiDurableStateEligibility,
 }
@@ -31,6 +32,7 @@ pub(crate) struct WorthUiArtifactComponentNode {
     component: AdmittedCapability<ComponentId>,
     descriptor: ComponentDescriptor,
     structure: WorthUiMosaicStructureFacts,
+    authored_provenance_digest: u64,
     identity_seed: WorthUiArtifactIdentitySeed,
     durable_state_eligibility: WorthUiDurableStateEligibility,
 }
@@ -42,6 +44,7 @@ pub(crate) struct WorthUiArtifactSurfaceNode {
     descriptor: SurfaceDescriptor,
     structure: WorthUiMosaicStructureFacts,
     semantics: WorthUiBoundSurfaceSemantics,
+    authored_provenance_digest: u64,
     identity_seed: WorthUiArtifactIdentitySeed,
     durable_state_eligibility: WorthUiDurableStateEligibility,
 }
@@ -51,6 +54,7 @@ pub(crate) struct WorthUiArtifactBindingNode {
     handle: WorthUiArtifactHandle,
     view_binding_reference: WorthUiBoundViewBindingReference,
     structure: WorthUiMosaicStructureFacts,
+    authored_provenance_digest: u64,
     identity_seed: WorthUiArtifactIdentitySeed,
     durable_state_eligibility: WorthUiDurableStateEligibility,
 }
@@ -61,6 +65,7 @@ pub(crate) struct WorthUiArtifactThemeTokenNode {
     theme_token: AdmittedCapability<ThemeTokenId>,
     entry: FrozenThemeTokenEntry,
     semantics: WorthUiBoundThemeTokenSemantics,
+    authored_provenance_digest: u64,
     identity_seed: WorthUiArtifactIdentitySeed,
     durable_state_eligibility: WorthUiDurableStateEligibility,
 }
@@ -74,6 +79,10 @@ macro_rules! artifact_node_common_accessors {
 
             pub(crate) fn identity_seed(&self) -> &WorthUiArtifactIdentitySeed {
                 &self.identity_seed
+            }
+
+            pub(crate) fn authored_provenance_digest(&self) -> u64 {
+                self.authored_provenance_digest
             }
 
             pub(crate) fn durable_state_eligibility(&self) -> &WorthUiDurableStateEligibility {
@@ -99,18 +108,30 @@ impl WorthUiArtifactNode {
             Self::Token(node) => node.handle(),
         }
     }
+
+    pub(crate) fn authored_provenance_digest(&self) -> u64 {
+        match self {
+            Self::Import(node) => node.authored_provenance_digest(),
+            Self::Component(node) => node.authored_provenance_digest(),
+            Self::Surface(node) => node.authored_provenance_digest(),
+            Self::Binding(node) => node.authored_provenance_digest(),
+            Self::Token(node) => node.authored_provenance_digest(),
+        }
+    }
 }
 
 impl WorthUiArtifactImportNode {
     pub(crate) fn new(
         handle: WorthUiArtifactHandle,
         target: WorthUiArtifactInputReference,
+        authored_provenance_digest: u64,
         identity_seed: WorthUiArtifactIdentitySeed,
         durable_state_eligibility: WorthUiDurableStateEligibility,
     ) -> Self {
         Self {
             handle,
             target,
+            authored_provenance_digest,
             identity_seed,
             durable_state_eligibility,
         }
@@ -127,6 +148,7 @@ impl WorthUiArtifactComponentNode {
         component: AdmittedCapability<ComponentId>,
         descriptor: ComponentDescriptor,
         structure: WorthUiMosaicStructureFacts,
+        authored_provenance_digest: u64,
         identity_seed: WorthUiArtifactIdentitySeed,
         durable_state_eligibility: WorthUiDurableStateEligibility,
     ) -> Self {
@@ -135,6 +157,7 @@ impl WorthUiArtifactComponentNode {
             component,
             descriptor,
             structure,
+            authored_provenance_digest,
             identity_seed,
             durable_state_eligibility,
         }
@@ -160,6 +183,7 @@ impl WorthUiArtifactSurfaceNode {
         descriptor: SurfaceDescriptor,
         structure: WorthUiMosaicStructureFacts,
         semantics: WorthUiBoundSurfaceSemantics,
+        authored_provenance_digest: u64,
         identity_seed: WorthUiArtifactIdentitySeed,
         durable_state_eligibility: WorthUiDurableStateEligibility,
     ) -> Self {
@@ -169,6 +193,7 @@ impl WorthUiArtifactSurfaceNode {
             descriptor,
             structure,
             semantics,
+            authored_provenance_digest,
             identity_seed,
             durable_state_eligibility,
         }
@@ -196,6 +221,7 @@ impl WorthUiArtifactBindingNode {
         handle: WorthUiArtifactHandle,
         view_binding_reference: WorthUiBoundViewBindingReference,
         structure: WorthUiMosaicStructureFacts,
+        authored_provenance_digest: u64,
         identity_seed: WorthUiArtifactIdentitySeed,
         durable_state_eligibility: WorthUiDurableStateEligibility,
     ) -> Self {
@@ -203,6 +229,7 @@ impl WorthUiArtifactBindingNode {
             handle,
             view_binding_reference,
             structure,
+            authored_provenance_digest,
             identity_seed,
             durable_state_eligibility,
         }
@@ -223,6 +250,7 @@ impl WorthUiArtifactThemeTokenNode {
         theme_token: AdmittedCapability<ThemeTokenId>,
         entry: FrozenThemeTokenEntry,
         semantics: WorthUiBoundThemeTokenSemantics,
+        authored_provenance_digest: u64,
         identity_seed: WorthUiArtifactIdentitySeed,
         durable_state_eligibility: WorthUiDurableStateEligibility,
     ) -> Self {
@@ -231,6 +259,7 @@ impl WorthUiArtifactThemeTokenNode {
             theme_token,
             entry,
             semantics,
+            authored_provenance_digest,
             identity_seed,
             durable_state_eligibility,
         }

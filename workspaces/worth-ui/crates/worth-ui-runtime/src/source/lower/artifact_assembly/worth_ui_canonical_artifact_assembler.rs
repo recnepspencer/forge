@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::declaration::stable_text_digest;
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactAssemblyDiagnostic, WorthUiArtifactAssemblyMetrics,
     WorthUiArtifactAssemblyReport, WorthUiArtifactBindingHandle, WorthUiArtifactBindingNode,
@@ -110,6 +111,7 @@ fn assemble_node(
                     node_index,
                 )),
                 node.target().clone(),
+                authored_provenance_digest(node.provenance()),
                 node.identity_seed().clone(),
                 node.durable_state_eligibility().clone(),
             ))
@@ -123,6 +125,7 @@ fn assemble_node(
                 node.component().clone(),
                 node.bound_node().descriptor().clone(),
                 node.bound_node().structure().clone(),
+                authored_provenance_digest(node.provenance()),
                 node.identity_seed().clone(),
                 node.durable_state_eligibility().clone(),
             ))
@@ -137,6 +140,7 @@ fn assemble_node(
                 node.bound_node().descriptor().clone(),
                 node.bound_node().structure().clone(),
                 node.bound_node().semantics().clone(),
+                authored_provenance_digest(node.provenance()),
                 node.identity_seed().clone(),
                 node.durable_state_eligibility().clone(),
             ))
@@ -149,6 +153,7 @@ fn assemble_node(
                 )),
                 node.view_binding_reference().clone(),
                 node.bound_node().structure().clone(),
+                authored_provenance_digest(node.provenance()),
                 node.identity_seed().clone(),
                 node.durable_state_eligibility().clone(),
             ))
@@ -162,11 +167,19 @@ fn assemble_node(
                 node.theme_token().clone(),
                 node.bound_node().entry().clone(),
                 node.bound_node().semantics().clone(),
+                authored_provenance_digest(node.provenance()),
                 node.identity_seed().clone(),
                 node.durable_state_eligibility().clone(),
             ))
         }
     }
+}
+
+fn authored_provenance_digest(
+    provenance: &crate::source::WorthUiArtifactInputProvenance,
+) -> u64 {
+    stable_text_digest(provenance.module_path())
+        ^ (provenance.declaration_index() as u64).rotate_left(13)
 }
 
 fn node_order_keys<'a>(

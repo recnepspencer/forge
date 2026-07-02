@@ -199,10 +199,7 @@ fn contains_qualified_forbidden_call(
 ) -> bool {
     tokens.windows(4).any(|window| {
         aliases.iter().any(|alias| {
-            window[0] == *alias
-                && window[1] == "::"
-                && window[2] == method_name
-                && window[3] == "("
+            window[0] == *alias && window[1] == "::" && window[2] == method_name && window[3] == "("
         })
     })
 }
@@ -219,7 +216,11 @@ fn contains_qualified_forbidden_reference(
     })
 }
 
-fn binding_invokes_forbidden_call(tokens: &[String], aliases: &[String], method_name: &str) -> bool {
+fn binding_invokes_forbidden_call(
+    tokens: &[String],
+    aliases: &[String],
+    method_name: &str,
+) -> bool {
     let mut rebound_names = Vec::new();
     let mut index = 0;
 

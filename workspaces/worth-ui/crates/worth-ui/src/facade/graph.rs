@@ -37,4 +37,9 @@ pub use worth_ui_runtime::facade::graph::{
     UiRepeatedInstanceBasis, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
     UiRuntimeDataInstanceKeyKind, UiRuntimeDataInstanceKeyToken,
     UiRuntimeInstanceBasisAdmission,
+    UiGraphTouchAspectFact, UiGraphTouchAspectPosture, UiGraphTouchAspects,
+    UiGraphTouchAttachmentLane, UiGraphTouchAuthority, UiGraphTouchDenial,
+    UiGraphTouchDescriptor, UiGraphTouchOriginClass, UiGraphTouchOriginReceipt,
+    UiGraphTouchOriginWitness, UiGraphTouchRuntimeLane, UiGraphTouchTarget,
+    UiGraphTouchTargetClass, UiGraphTouchTiming, UiGraphTouchWorld,
 };

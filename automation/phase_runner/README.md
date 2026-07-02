@@ -72,3 +72,10 @@ Its architectural contract is:
 - projection is derived
 - Codex chat is the artifact of record for plans, findings, and explanations
 - operator commands append lifecycle events instead of patching progress state
+
+The runner also enforces a few operational guards:
+
+- one active runner process per `run_id`
+- serialized event-log appends per `run_id`
+- recovery instead of blind rerun when a prior Codex turn finished but its outcome was not recorded
+- idle and wall-clock turn timeouts through optional `runner_control.idle_timeout_seconds` and `runner_control.turn_timeout_seconds`

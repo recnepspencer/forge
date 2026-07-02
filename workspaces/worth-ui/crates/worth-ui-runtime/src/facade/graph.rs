@@ -40,3 +40,10 @@ pub use crate::graph::{
     UiRuntimeDataInstanceKeyKind, UiRuntimeDataInstanceKeyToken,
     UiRuntimeInstanceBasisAdmission,
 };
+pub use crate::obligations::touch::{
+    UiGraphTouchAspectFact, UiGraphTouchAspectPosture, UiGraphTouchAspects,
+    UiGraphTouchAttachmentLane, UiGraphTouchAuthority, UiGraphTouchDenial,
+    UiGraphTouchDescriptor, UiGraphTouchOriginClass, UiGraphTouchOriginReceipt,
+    UiGraphTouchOriginWitness, UiGraphTouchRuntimeLane, UiGraphTouchTarget,
+    UiGraphTouchTargetClass, UiGraphTouchTiming, UiGraphTouchWorld,
+};

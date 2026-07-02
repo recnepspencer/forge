@@ -43,6 +43,7 @@ pub(crate) fn admit_graph_handoffs(
 
         node_entries.push(UiGraphNodeInstantiationEntry::new(
             declaration_identity,
+            handoff.authored_provenance_digest(),
             handoff.aspect_contract().clone(),
             repeated_instance_basis,
             UiGraphTopologySeed::new(

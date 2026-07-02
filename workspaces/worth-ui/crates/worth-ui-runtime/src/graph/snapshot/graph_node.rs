@@ -8,6 +8,7 @@ use crate::graph::{
 pub struct UiGraphNode {
     graph_node_identity: UiGraphNodeIdentity,
     declaration_identity: UiDeclarationIdentity,
+    authored_provenance_digest: u64,
     repeated_instance_basis: UiRepeatedInstanceBasis,
     attachment_posture: UiGraphAttachmentPosture,
     participation_posture: UiGraphParticipationPosture,
@@ -17,6 +18,7 @@ impl UiGraphNode {
     pub(crate) fn new(
         graph_node_identity: UiGraphNodeIdentity,
         declaration_identity: UiDeclarationIdentity,
+        authored_provenance_digest: u64,
         repeated_instance_basis: UiRepeatedInstanceBasis,
         attachment_posture: UiGraphAttachmentPosture,
         participation_posture: UiGraphParticipationPosture,
@@ -24,6 +26,7 @@ impl UiGraphNode {
         Self {
             graph_node_identity,
             declaration_identity,
+            authored_provenance_digest,
             repeated_instance_basis,
             attachment_posture,
             participation_posture,
@@ -40,6 +43,10 @@ impl UiGraphNode {
 
     pub fn repeated_instance_basis(&self) -> &UiRepeatedInstanceBasis {
         &self.repeated_instance_basis
+    }
+
+    pub fn authored_provenance_digest(&self) -> u64 {
+        self.authored_provenance_digest
     }
 
     pub fn attachment_posture(&self) -> UiGraphAttachmentPosture {

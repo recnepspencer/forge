@@ -1,6 +1,7 @@
 mod evidence_budget;
 mod evidence_richness;
 mod inspection_evidence_source;
+pub(crate) mod obligation_evidence_query;
 mod inspection_query;
 mod inspection_relevance;
 

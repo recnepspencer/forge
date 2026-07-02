@@ -4,6 +4,7 @@ use crate::graph::{
     UiGraphMountedReceiptTransition, UiGraphNodeIdentity, UiGraphSnapshot,
     UiGraphSnapshotComparable, UiGraphWorldProfile,
 };
+use crate::obligations::touch::UiGraphTouchAuthority;
 
 #[derive(Clone, Copy)]
 pub struct UiGraphAuthority<'a> {
@@ -37,6 +38,10 @@ impl<'a> UiGraphAuthority<'a> {
 
     pub fn inspection(self) -> UiGraphInspectionSupport<'a> {
         self.snapshot.inspection()
+    }
+
+    pub fn touches(self) -> UiGraphTouchAuthority<'a> {
+        UiGraphTouchAuthority::new(self.snapshot)
     }
 
     pub fn compare_to(self, other: Self) -> UiGraphSnapshotComparable {

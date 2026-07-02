@@ -1,0 +1,15 @@
+error[E0432]: unresolved imports `worth_ui::facade::obligations::UiSelectedObligation`, `worth_ui::facade::obligations::UiSelectedObligationIdentity`, `worth_ui::facade::obligations::UiSelectedObligationSet`
+ --> tests/ui/obligation_selection/external_callers_cannot_mint_selected_obligation_artifacts.rs:2:5
+  |
+2 |     UiSelectedObligation, UiSelectedObligationIdentity, UiSelectedObligationSet,
+  |     ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^ no `UiSelectedObligationSet` in `facade::obligations`
+  |     |                     |
+  |     |                     no `UiSelectedObligationIdentity` in `facade::obligations`
+  |     no `UiSelectedObligation` in `facade::obligations`
+  |
+  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::obligations::UiSelectedObligation
+  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::obligations::UiSelectedObligationIdentity
+  = help: consider importing this struct instead:
+          worth_ui_runtime::facade::obligations::UiSelectedObligationSet

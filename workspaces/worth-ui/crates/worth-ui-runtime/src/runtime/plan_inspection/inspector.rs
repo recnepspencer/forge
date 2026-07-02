@@ -55,9 +55,13 @@ impl WorthUiExecutionPlanInspector {
             })
             .collect();
         counters.record_plan_digest();
+        let active_artifact_digest = plan_input.basis().active_artifact_digest();
+        let handle_basis_digest = plan.handle_receipt().basis_digest();
         let plan_digest = WorthUiExecutionPlanDigestor::digest(plan).0;
 
         Ok(WorthUiExecutionPlanInspection::new(
+            active_artifact_digest,
+            handle_basis_digest,
             plan_digest,
             nodes,
             lanes,
@@ -123,6 +127,7 @@ fn provenance_for_node(
     WorthUiArtifactToPlanProvenance::new(
         node.runtime_handle().plan_index(),
         node_input.identity_basis().to_owned(),
+        node_input.authored_provenance_digest(),
         node_input.family(),
         provenance_source_for_node_input(node_input),
         capability_reference_for_node_input(node_input),

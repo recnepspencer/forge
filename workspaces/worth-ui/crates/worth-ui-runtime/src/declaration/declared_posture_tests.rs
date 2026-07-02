@@ -225,10 +225,10 @@ fn declared_posture_classifies_every_lane_for_admitted_families() {
             UiDslSemanticFamily::DiagnosticSurface,
             [
                 UiDeclaredPostureApplicability::NotApplicable,
-                UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted,
-                UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted,
+                UiDeclaredPostureApplicability::DiagnosticOnly,
+                UiDeclaredPostureApplicability::DiagnosticOnly,
                 UiDeclaredPostureApplicability::Optional,
-                UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted,
+                UiDeclaredPostureApplicability::DiagnosticOnly,
             ],
         ),
     ];
