@@ -1,0 +1,38 @@
+use topology::facade::TopologyDerivedReuseDecisionPosture;
+use worth_spatial::facade::planner_owned_routing::evidence_lookup_reuse_route::EvidenceLookupReuseDecisionPosture;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct RoutePacketProofChainLowering {
+    pub authority_digests: Vec<String>,
+    pub route_trace_markers: Vec<String>,
+    pub locality_footprint_digests: Vec<String>,
+    pub selected_conflict_plan_digests: Vec<String>,
+    pub independence_proof_digests: Vec<String>,
+    pub selected_batch_plan_digest: String,
+    pub batch_execution_receipt_digest: String,
+    pub replay_undo_boundary_proof_digests: Vec<String>,
+    pub transaction_packet_identities: Vec<String>,
+    pub replay_scope_identities: Vec<String>,
+    pub undo_scope_identities: Vec<String>,
+    pub evidence_lookup_public_closeout_digest: String,
+    pub evidence_lookup_family_coverage_digest: String,
+    pub evidence_lookup_query_surface_matrix_digest: String,
+    pub evidence_lookup_query_consumer_kit_digest: String,
+    pub evidence_lookup_query_boundary_support_digest: String,
+    pub topology_query_backed_consumer_cutover_digest: String,
+    pub topology_query_public_read_family_row_digest: String,
+    pub topology_query_handle_identity_digest: String,
+    pub topology_query_operating_context_identity_digest: String,
+    pub topology_query_support_snapshot_digest: String,
+    pub topology_query_compiled_product_identity_digest: String,
+    pub topology_query_equivalence_policy_identity_digest: String,
+    pub topology_query_selected_equivalence_family_identity: String,
+    pub topology_query_selected_equivalence_basis_identity_digest: String,
+    pub topology_query_selected_route_gate_basis_identity_digest: String,
+    pub topology_query_selected_reuse_basis_identity_digest: String,
+    pub compiled_product_reuse_route_packet_identity: String,
+    pub topology_reuse_posture: TopologyDerivedReuseDecisionPosture,
+    pub spatial_reuse_posture: EvidenceLookupReuseDecisionPosture,
+    pub topology_query_reuse_decision_identity_digest: Option<String>,
+    pub topology_query_rebuild_denial_identity_digest: Option<String>,
+}

@@ -13,36 +13,35 @@ fn spatial_residue_rows_are_exact_and_non_authoritative() {
     require_exact_spatial_consumer_closeout();
     let residue = current_spatial_consumer_residue_manifest();
 
-    assert_eq!(residue.len(), 2);
+    assert_eq!(residue.len(), 1);
     assert_eq!(
         residue[0].source_path(),
-        "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout/current_source.rs"
+        "crates/worth-spatial/src/workload_platform/planner_owned_routing/public_closeout_route/current.rs"
     );
     assert_eq!(
         residue[0].current_surface(),
-        "current_evidence_lookup_public_closeout"
-    );
-    assert_eq!(
-        residue[0].disposition(),
-        SpatialConsumerResidueDisposition::ExplicitResidue
-    );
-    assert_eq!(
-        residue[1].current_surface(),
         "current_evidence_lookup_public_closeout_assembly_input"
     );
     assert_eq!(
-        residue[1].disposition(),
+        residue[0].disposition(),
         SpatialConsumerResidueDisposition::CertificationOnly
     );
     assert!(residue.iter().all(|row| !row.blocker().is_empty()));
     assert!(residue.iter().all(|row| !row.removal_trigger().is_empty()));
 
-    let public_closeout_source =
-        include_str!("../../evidence_lookup_public_closeout/current_source.rs");
-    assert!(public_closeout_source.contains("current_evidence_lookup_public_closeout"));
     assert!(
-        public_closeout_source.contains("current_evidence_lookup_public_closeout_assembly_input")
+        !std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/workload_platform/evidence_lookup_public_closeout/current_source.rs"
+        ))
+        .exists(),
+        "phase 8 removes the displaced public-closeout current_source entrypoint",
     );
+    let public_closeout_route_source =
+        include_str!("../../planner_owned_routing/public_closeout_route/current.rs");
+    assert!(public_closeout_route_source.contains("current_evidence_lookup_public_closeout"));
+    assert!(public_closeout_route_source
+        .contains("current_evidence_lookup_public_closeout_assembly_input"));
     assert!(
         !include_str!("../../../facade/evidence_lookup_index_product/mod.rs")
             .contains("reuse_evidence_lookup_index_product"),
@@ -111,7 +110,7 @@ fn spatial_residue_rows_are_exact_and_non_authoritative() {
             ),
             (
                 "crates/worth-spatial/src/workload_platform/spatial_compiled_product_consumer_cutover/tests/residue_tests.rs",
-                2,
+                1,
                 DisplacedEvidenceIndexHelperSurfaceDisposition::TestSupport,
             ),
         ],

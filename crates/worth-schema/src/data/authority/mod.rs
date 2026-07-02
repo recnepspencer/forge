@@ -80,11 +80,12 @@ pub use replay_undo_semantic_graph::{
     admit_replay_scope_identity, admit_replay_undo_stage_index_identity,
     admit_spatial_evidence_lookup_prior_proof_identity,
     admit_topology_derived_invalidation_prior_proof_identity, admit_undo_scope_identity,
-    ReplayScopeIdentity, ReplayScopeIdentityInput, ReplayUndoSemanticGraphEquivalenceBasis,
-    ReplayUndoSemanticGraphLocalityScope, ReplayUndoSemanticGraphPriorProofClass,
-    ReplayUndoSemanticGraphPriorProofIdentity, ReplayUndoSemanticGraphStageIndexIdentity,
-    ReplayUndoSemanticGraphTouchedSubject, ReplayUndoTransactionScopeClaim,
-    ReplayUndoTransactionScopeKind, UndoScopeIdentity, UndoScopeIdentityInput,
+    ReplayScopeIdentity, ReplayScopeIdentityInput, ReplayUndoPlannerRouteFamily,
+    ReplayUndoSemanticGraphEquivalenceBasis, ReplayUndoSemanticGraphLocalityScope,
+    ReplayUndoSemanticGraphPriorProofClass, ReplayUndoSemanticGraphPriorProofIdentity,
+    ReplayUndoSemanticGraphStageIndexIdentity, ReplayUndoSemanticGraphTouchedSubject,
+    ReplayUndoTransactionScopeClaim, ReplayUndoTransactionScopeKind, UndoScopeIdentity,
+    UndoScopeIdentityInput,
 };
 #[allow(unused_imports)]
 pub use topology_class::TopologyClass;
@@ -97,10 +98,13 @@ pub use touched_graph_basis::{
 #[allow(unused_imports)]
 pub use touched_graph_conflict::{
     admit_conflict_locality_identity, admit_conflict_overlap_identity,
-    admit_conflict_participant_identity, admit_conflict_routing_contract, ConflictAspectClass,
-    ConflictLocalityIdentity, ConflictOverlapCategory, ConflictOverlapIdentity,
-    ConflictOverlapIdentityInput, ConflictParticipantAuthority, ConflictParticipantIdentity,
-    ConflictParticipantIdentityInput, ConflictPriorProofIdentity, ConflictPriorProofInput,
-    ConflictRoutingContract, ConflictRoutingPosture, ConflictRoutingVocabularyError,
-    ConflictTransactionProofInput,
+    admit_conflict_participant_identity, admit_conflict_routing_contract,
+    BatchAdmissionPlannerRouteFamily, BatchAdmissionPlannerRouteWitness,
+    BatchAdmissionPlannerRouteWitnessKind, ConflictAspectClass,
+    ConflictIndependencePlannerRouteFamily, ConflictIndependencePlannerRouteWitness,
+    ConflictIndependencePlannerRouteWitnessKind, ConflictLocalityIdentity, ConflictOverlapCategory,
+    ConflictOverlapIdentity, ConflictOverlapIdentityInput, ConflictParticipantAuthority,
+    ConflictParticipantIdentity, ConflictParticipantIdentityInput, ConflictPriorProofIdentity,
+    ConflictPriorProofInput, ConflictRoutingContract, ConflictRoutingPosture,
+    ConflictRoutingVocabularyError, ConflictTransactionProofInput,
 };

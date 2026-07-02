@@ -57,6 +57,7 @@ pub mod planar_signed_area;
 pub mod planar_structural_identity;
 pub mod planar_topology_contract;
 pub mod planar_winding;
+pub mod planner_owned_routing;
 pub mod projected_overlap_faces;
 pub mod projection;
 pub mod projection_fact_parity;

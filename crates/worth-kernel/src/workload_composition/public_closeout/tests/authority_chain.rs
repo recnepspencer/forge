@@ -139,41 +139,42 @@ fn closeout_binds_full_conflict_authority_chain() {
             .expect("current deletion closeout")
             .closeout_digest()
     );
-    let lookup_public_closeout =
-        current_evidence_lookup_public_closeout().expect("current lookup public closeout");
+    let spatial_route_packet =
+        worth_spatial::facade::planner_owned_routing::evidence_lookup_route::current_evidence_lookup_route_packet()
+            .expect("current planner-owned evidence lookup route packet");
+    let spatial_route_projection_markers =
+        crate::workload_composition::planner_owned_routing::SpatialRouteProjectionMarkers::from_route_packet(
+            &spatial_route_packet,
+        );
     assert_eq!(
         closeout
             .proof_chain()
             .evidence_lookup_public_closeout_digest(),
-        lookup_public_closeout.closeout_digest()
+        spatial_route_projection_markers.evidence_lookup_public_closeout_digest()
     );
     assert_eq!(
         closeout
             .proof_chain()
             .evidence_lookup_family_coverage_digest(),
-        lookup_public_closeout.family_coverage_digest()
+        spatial_route_projection_markers.evidence_lookup_family_coverage_digest()
     );
     assert_eq!(
         closeout
             .proof_chain()
             .evidence_lookup_query_surface_matrix_digest(),
-        lookup_public_closeout
-            .query_surface_matrix()
-            .matrix_digest()
+        spatial_route_projection_markers.evidence_lookup_query_surface_matrix_digest()
     );
     assert_eq!(
         closeout
             .proof_chain()
             .evidence_lookup_query_consumer_kit_digest(),
-        lookup_public_closeout
-            .query_consumer_kit()
-            .closeout_digest()
+        spatial_route_projection_markers.evidence_lookup_query_consumer_kit_digest()
     );
     assert_eq!(
         closeout
             .proof_chain()
             .evidence_lookup_query_boundary_support_digest(),
-        lookup_public_closeout.query_boundary_support_digest()
+        spatial_route_projection_markers.evidence_lookup_query_boundary_support_digest()
     );
     let topology_query_backed_cutover = current_topology_query_backed_consumer_cutover()
         .expect("current topology query-backed cutover");
@@ -281,13 +282,13 @@ fn closeout_binds_full_conflict_authority_chain() {
 #[test]
 fn public_closeout_rejects_foreign_admitted_public_proof_input() {
     let components = current_public_closeout_components().expect("current closeout components");
-    let hostile_public_proof_input =
-        hostile_public_proof_input_with_foreign_reuse_basis("foreign-topology-selected-reuse-basis");
+    let hostile_public_proof_input = hostile_public_proof_input_with_foreign_reuse_basis(
+        "foreign-topology-selected-reuse-basis",
+    );
 
     let error = publish_from_parts(
         components.input().expect("current closeout input"),
         components.cutover(),
-        components.residue_chain(),
         components.selected_route_packet(),
         &hostile_public_proof_input,
     )
@@ -297,7 +298,7 @@ fn public_closeout_rejects_foreign_admitted_public_proof_input() {
         error.kind(),
         WorthTouchedGraphConflictPublicCloseoutErrorKind::IncompleteProofChain
     );
-    assert!(error
-        .detail()
-        .contains("Milestone 15 planner proof input must preserve selected-route packet topology authority"));
+    assert!(error.detail().contains(
+        "Milestone 15 planner proof input must preserve selected-route packet topology authority"
+    ));
 }

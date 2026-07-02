@@ -1,12 +1,21 @@
+use super::admission_error::{
+    require_optional_match, require_string_match, TopologyQueryBackedReadFamilyAdmissionError,
+};
 use super::route_input::TopologyQueryBackedReadFamilyRouteInput;
-use super::selected_route::{TopologyQueryBackedConsumerCutover, TopologyQueryBackedConsumerFamilyRow};
+use super::selected_route::{
+    TopologyQueryBackedConsumerCutover, TopologyQueryBackedConsumerFamilyRow,
+};
+use super::selected_route_authority::{
+    require_selected_route_authority_matches, TopologyQueryBackedReadFamilySelectedRouteAuthority,
+};
 use crate::derived_topology::compiled_product_consumer_cutover::DerivedEquivalenceContractReport;
 use crate::projection::read_views::domain::TopologyCurrentHeadReadSession;
 use crate::query_domain::TopologyCurrentHeadQueryBasisEvidence;
 use crate::selected_equivalence_family::TopologySelectedEquivalenceFamilyIdentity;
 use schema::facade::platform::authority::compiled_product_semantic_graph::{
-    admit_compiled_product_rebuild_denial_identity, CompiledProductEquivalencePolicyIdentity, CompiledProductIdentity,
-    CompiledProductRebuildDenialIdentity, CompiledProductReuseDecisionIdentity,
+    admit_compiled_product_rebuild_denial_identity, CompiledProductEquivalencePolicyIdentity,
+    CompiledProductIdentity, CompiledProductRebuildDenialIdentity,
+    CompiledProductReuseDecisionIdentity,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -25,57 +34,58 @@ pub(crate) struct TopologyQueryBackedReadFamilyAdmissionAuthority {
     rebuild_denial_identity: Option<CompiledProductRebuildDenialIdentity>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct TopologyQueryBackedReadFamilyAdmissionError {
-    detail: String,
-}
-
 pub fn admit_topology_query_backed_consumer_cutover(
     session: &TopologyCurrentHeadReadSession<'_>,
     basis_evidence: &TopologyCurrentHeadQueryBasisEvidence,
     equivalence_contract: &DerivedEquivalenceContractReport,
 ) -> TopologyQueryBackedConsumerCutover {
-    let route_input = TopologyQueryBackedReadFamilyRouteInput::new(
-        session,
-        basis_evidence,
-        equivalence_contract,
-    );
-    admit_topology_query_backed_read_family_route(&route_input)
-        .expect("query-backed route admission built mismatched authority from the same admitted input")
+    let route_input =
+        TopologyQueryBackedReadFamilyRouteInput::new(session, basis_evidence, equivalence_contract);
+    admit_topology_query_backed_read_family_route(&route_input).expect(
+        "query-backed route admission built mismatched authority from the same admitted input",
+    )
 }
 
 pub(crate) fn admit_topology_query_backed_read_family_route(
     route_input: &TopologyQueryBackedReadFamilyRouteInput<'_>,
 ) -> Result<TopologyQueryBackedConsumerCutover, TopologyQueryBackedReadFamilyAdmissionError> {
-    admit_topology_query_backed_read_family_route_with_authority(
+    admit_topology_query_backed_read_family_route_with_selected_route_authority(
         route_input,
         &TopologyQueryBackedReadFamilyAdmissionAuthority::from_route_input(route_input),
     )
 }
 
-pub(crate) fn admit_topology_query_backed_read_family_route_with_authority(
+pub(crate) fn admit_topology_query_backed_read_family_route_with_selected_route_authority<
+    A: TopologyQueryBackedReadFamilySelectedRouteAuthority,
+>(
     route_input: &TopologyQueryBackedReadFamilyRouteInput<'_>,
-    authority: &TopologyQueryBackedReadFamilyAdmissionAuthority,
+    authority: &A,
 ) -> Result<TopologyQueryBackedConsumerCutover, TopologyQueryBackedReadFamilyAdmissionError> {
-    authority.require_matches(route_input)?;
+    require_selected_route_authority_matches(route_input, authority)?;
+    let admitted_authority =
+        TopologyQueryBackedReadFamilyAdmissionAuthority::from_route_input(route_input);
     let family_rows = route_input
         .observed_family_rows()
         .iter()
-        .map(|row| TopologyQueryBackedConsumerFamilyRow::from_observed_route_row(row, authority))
+        .map(|row| {
+            TopologyQueryBackedConsumerFamilyRow::from_observed_route_row(row, &admitted_authority)
+        })
         .collect::<Vec<_>>();
     Ok(TopologyQueryBackedConsumerCutover::new(
-        authority.handle_identity_digest.clone(),
-        authority.operating_context_identity_digest.clone(),
-        authority.support_snapshot_digest.clone(),
+        admitted_authority.handle_identity_digest.clone(),
+        admitted_authority.operating_context_identity_digest.clone(),
+        admitted_authority.support_snapshot_digest.clone(),
         route_input.query_executed_debt_free_family_count(),
         route_input.debt_family_count(),
-        authority.parity_verified_count,
+        admitted_authority.parity_verified_count,
         family_rows,
     ))
 }
 
 impl TopologyQueryBackedReadFamilyAdmissionAuthority {
-    pub(crate) fn from_route_input(route_input: &TopologyQueryBackedReadFamilyRouteInput<'_>) -> Self {
+    pub(crate) fn from_route_input(
+        route_input: &TopologyQueryBackedReadFamilyRouteInput<'_>,
+    ) -> Self {
         let equivalence_contract = route_input.equivalence_contract();
         Self {
             handle_identity_digest: route_input.handle_identity_digest().to_string(),
@@ -84,7 +94,9 @@ impl TopologyQueryBackedReadFamilyAdmissionAuthority {
                 .operating_context_identity_digest()
                 .to_string(),
             parity_verified_count: route_input.parity_verified_count(),
-            compiled_product_identity: equivalence_contract.compiled_product_identity_ref().cloned(),
+            compiled_product_identity: equivalence_contract
+                .compiled_product_identity_ref()
+                .cloned(),
             equivalence_policy_identity: equivalence_contract
                 .equivalence_policy_identity_ref()
                 .cloned(),
@@ -112,15 +124,13 @@ impl TopologyQueryBackedReadFamilyAdmissionAuthority {
 
     pub(super) fn compiled_product_identity_for_admission(
         &self,
-    ) -> Option<&CompiledProductIdentity>
-    {
+    ) -> Option<&CompiledProductIdentity> {
         self.compiled_product_identity.as_ref()
     }
 
     pub(super) fn equivalence_policy_identity_for_admission(
         &self,
-    ) -> Option<&CompiledProductEquivalencePolicyIdentity>
-    {
+    ) -> Option<&CompiledProductEquivalencePolicyIdentity> {
         self.equivalence_policy_identity.as_ref()
     }
 
@@ -156,8 +166,7 @@ impl TopologyQueryBackedReadFamilyAdmissionAuthority {
 
     pub(super) fn reuse_decision_identity_for_admission(
         &self,
-    ) -> Option<&CompiledProductReuseDecisionIdentity>
-    {
+    ) -> Option<&CompiledProductReuseDecisionIdentity> {
         self.reuse_decision_identity.as_ref()
     }
 
@@ -191,12 +200,16 @@ impl TopologyQueryBackedReadFamilyAdmissionAuthority {
         )?;
         require_optional_match(
             "compiled product identity",
-            route_input.equivalence_contract().compiled_product_identity_digest(),
+            route_input
+                .equivalence_contract()
+                .compiled_product_identity_digest(),
             self.compiled_product_digest_for_admission(),
         )?;
         require_optional_match(
             "equivalence policy identity",
-            route_input.equivalence_contract().equivalence_policy_identity_digest(),
+            route_input
+                .equivalence_contract()
+                .equivalence_policy_identity_digest(),
             self.equivalence_policy_digest_for_admission(),
         )?;
         require_optional_match(
@@ -257,41 +270,59 @@ impl TopologyQueryBackedReadFamilyAdmissionAuthority {
     }
 }
 
-impl TopologyQueryBackedReadFamilyAdmissionError {
-    pub(crate) fn new(detail: impl Into<String>) -> Self {
-        Self {
-            detail: detail.into(),
-        }
+impl TopologyQueryBackedReadFamilySelectedRouteAuthority
+    for TopologyQueryBackedReadFamilyAdmissionAuthority
+{
+    fn topology_query_handle_identity_digest(&self) -> &str {
+        &self.handle_identity_digest
     }
 
-    pub(crate) fn detail(&self) -> &str {
-        &self.detail
+    fn topology_query_support_snapshot_digest(&self) -> &str {
+        &self.support_snapshot_digest
     }
-}
 
-fn require_optional_match(
-    label: &str,
-    observed: Option<&str>,
-    expected: Option<&str>,
-) -> Result<(), TopologyQueryBackedReadFamilyAdmissionError> {
-    if observed != expected {
-        return Err(TopologyQueryBackedReadFamilyAdmissionError::new(format!(
-            "query-backed route admission rejected mismatched {label}: expected {:?}, observed {:?}",
-            expected, observed
-        )));
+    fn topology_query_operating_context_identity_digest(&self) -> &str {
+        &self.operating_context_identity_digest
     }
-    Ok(())
-}
 
-fn require_string_match(
-    label: &str,
-    observed: &str,
-    expected: &str,
-) -> Result<(), TopologyQueryBackedReadFamilyAdmissionError> {
-    if observed != expected {
-        return Err(TopologyQueryBackedReadFamilyAdmissionError::new(format!(
-            "query-backed route admission rejected mismatched {label}: expected {expected}, observed {observed}",
-        )));
+    fn topology_query_parity_verified_count(&self) -> usize {
+        self.parity_verified_count
     }
-    Ok(())
+
+    fn topology_query_compiled_product_identity_digest(&self) -> Option<&str> {
+        self.compiled_product_digest_for_admission()
+    }
+
+    fn topology_query_equivalence_policy_identity_digest(&self) -> Option<&str> {
+        self.equivalence_policy_digest_for_admission()
+    }
+
+    fn topology_query_selected_equivalence_family_identity(&self) -> Option<&str> {
+        self.selected_equivalence_family_identity
+            .map(TopologySelectedEquivalenceFamilyIdentity::as_str)
+    }
+
+    fn topology_query_selected_equivalence_basis_identity_digest(&self) -> Option<&str> {
+        self.selected_equivalence_basis_digest_for_admission()
+    }
+
+    fn topology_query_selected_compatibility_basis_identity_digest(&self) -> Option<&str> {
+        self.selected_compatibility_basis_digest_for_admission()
+    }
+
+    fn topology_query_selected_reuse_basis_identity_digest(&self) -> Option<&str> {
+        self.selected_reuse_basis_digest_for_admission()
+    }
+
+    fn topology_query_reuse_decision_identity_digest(&self) -> Option<&str> {
+        self.reuse_decision_identity
+            .as_ref()
+            .map(CompiledProductReuseDecisionIdentity::identity_digest)
+    }
+
+    fn topology_query_rebuild_denial_identity_digest(&self) -> Option<&str> {
+        self.rebuild_denial_identity
+            .as_ref()
+            .map(CompiledProductRebuildDenialIdentity::identity_digest)
+    }
 }

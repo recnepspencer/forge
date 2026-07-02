@@ -5,6 +5,10 @@ use super::counters::EvidenceLookupPublicCloseoutCounters;
 
 pub(super) fn lower_milestone_twelve_seed(
     closeout_digest: &str,
+    selected_route_family_identity: &str,
+    selected_compiled_product_identity_digest: &str,
+    selected_equivalence_family_identity: &str,
+    selected_reuse_basis_identity_digest: &str,
     query_surface_matrix_digest: &str,
     query_consumer_kit_closeout_digest: &str,
     source_firewall_digest: &str,
@@ -35,6 +39,10 @@ pub(super) fn lower_milestone_twelve_seed(
 
     EvidenceLookupMilestoneTwelveSeed::new_public_closeout(
         closeout_digest.to_string(),
+        selected_route_family_identity.to_string(),
+        selected_compiled_product_identity_digest.to_string(),
+        selected_equivalence_family_identity.to_string(),
+        selected_reuse_basis_identity_digest.to_string(),
         selected_lookup_plan_digest,
         lookup_execution_receipt_digest,
         lookup_product_output_digest,

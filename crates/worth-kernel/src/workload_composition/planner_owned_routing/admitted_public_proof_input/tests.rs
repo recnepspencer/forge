@@ -12,7 +12,10 @@ fn admitted_public_proof_input_lowers_from_selected_route_packet() {
         input.selected_route_identity_digest(),
         packet.selected_route_identity_digest()
     );
-    assert_eq!(input.selected_family_identity(), packet.selected_family_identity());
+    assert_eq!(
+        input.selected_family_identity(),
+        packet.selected_family_identity()
+    );
     assert_eq!(
         input.selected_product_identity_digest(),
         packet.selected_product_identity_digest()
@@ -21,5 +24,12 @@ fn admitted_public_proof_input_lowers_from_selected_route_packet() {
         input.selected_witness_identity_digest(),
         packet.selected_witness_identity_digest()
     );
+    assert_eq!(
+        input.replay_undo_route_packet_identity(),
+        packet.replay_undo_route_packet_identity()
+    );
+    assert_eq!(
+        input.replay_undo_route_family(),
+        packet.replay_undo_route_family()
+    );
 }
-

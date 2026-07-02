@@ -6,8 +6,9 @@ use schema::facade::platform::authority::compiled_product_semantic_graph::{
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TopologyReadModelReusePosture {
-    Reused,
-    Rebuilt,
+    ReuseAdmitted,
+    FreshRebuildRequired,
+    CompatibilityWithoutReuse,
     Denied,
 }
 
@@ -21,8 +22,9 @@ pub(crate) struct TopologyReadModelTypedReuseDecision {
 impl TopologyReadModelReusePosture {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Reused => "reused",
-            Self::Rebuilt => "rebuilt",
+            Self::ReuseAdmitted => "reused",
+            Self::FreshRebuildRequired => "fresh_rebuild_required",
+            Self::CompatibilityWithoutReuse => "compatibility_without_reuse",
             Self::Denied => "denied",
         }
     }
@@ -49,14 +51,17 @@ impl TopologyReadModelTypedReuseDecision {
             || row.row_scan_fallback_count() > 0
             || row.whole_view_fallback_count() > 0
             || row.repeated_rediscovery_denied_count() > 0;
+        let has_reuse_identity = authority.reuse_decision_identity_for_admission().is_some();
         let posture = if has_execution_gap || !has_selected_family_contract {
             TopologyReadModelReusePosture::Denied
         } else if has_runtime_debt {
-            TopologyReadModelReusePosture::Rebuilt
+            TopologyReadModelReusePosture::CompatibilityWithoutReuse
+        } else if has_reuse_identity {
+            TopologyReadModelReusePosture::ReuseAdmitted
         } else {
-            TopologyReadModelReusePosture::Reused
+            TopologyReadModelReusePosture::FreshRebuildRequired
         };
-        let rebuild_denial_identity = if posture == TopologyReadModelReusePosture::Reused {
+        let rebuild_denial_identity = if posture == TopologyReadModelReusePosture::ReuseAdmitted {
             None
         } else {
             authority
@@ -69,13 +74,12 @@ impl TopologyReadModelTypedReuseDecision {
                     } else {
                         "topology-query-backed-read-family-runtime-debt"
                     };
-                    authority
-                        .rebuild_required_identity(compiled_product_identity, denial_reason)
+                    authority.rebuild_required_identity(compiled_product_identity, denial_reason)
                 })
         };
         Self {
             posture,
-            reuse_decision_identity: if posture == TopologyReadModelReusePosture::Reused {
+            reuse_decision_identity: if posture == TopologyReadModelReusePosture::ReuseAdmitted {
                 authority.reuse_decision_identity_for_admission().cloned()
             } else {
                 None

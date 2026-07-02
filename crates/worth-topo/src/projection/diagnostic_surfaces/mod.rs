@@ -4,6 +4,7 @@ pub(crate) mod derived_read_diagnostics;
 pub use crate::compiled_product_family::DeterministicDigest;
 pub use derived_read_diagnostics::{
     DerivedFallbackReport, DerivedInvalidationReport, DerivedReadDiagnostics, DerivedRebuildReport,
+    DerivedValidationExecutionReport,
 };
 
 #[cfg(test)]

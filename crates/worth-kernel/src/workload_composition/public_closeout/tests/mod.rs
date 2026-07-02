@@ -2,6 +2,7 @@ mod architecture_alignment;
 mod authority_chain;
 mod failure_guards;
 mod milestone_fifteen_seed;
+mod milestone_fifteen_seed_spatial_authority;
 
 use super::architecture_alignment_report::build_architecture_alignment_report;
 use super::public_closeout::{
@@ -40,7 +41,6 @@ use crate::workload_composition::{
 };
 use topology::facade::current_topology_query_backed_consumer_cutover;
 use topology::query_domain::TopologyReadRequestFamily;
-use worth_spatial::facade::evidence_lookup_public_closeout::current_evidence_lookup_public_closeout;
 
 fn inventory_with_replaced_row(
     inventory: &ConflictBatchAdmissionInventory,
@@ -104,7 +104,7 @@ fn hostile_inventory_with_open_ordinary_dependency() -> ConflictBatchAdmissionIn
     )
 }
 
-fn hostile_public_proof_input_with_foreign_reuse_basis(
+pub(crate) fn hostile_public_proof_input_with_foreign_reuse_basis(
     foreign_reuse_basis_identity_digest: &str,
 ) -> WorthTouchedGraphConflictAdmittedPublicProofInput {
     let packet = current_worth_touched_graph_conflict_selected_route_packet()
@@ -114,14 +114,47 @@ fn hostile_public_proof_input_with_foreign_reuse_basis(
     WorthTouchedGraphConflictAdmittedPublicProofInput::from_parts(
         current_input.selected_route_packet_digest().to_string(),
         current_input.selected_route_identity_digest().to_string(),
+        current_input
+            .batch_admission_route_packet_identity()
+            .to_string(),
+        current_input
+            .batch_admission_denial_witness_identity()
+            .map(str::to_string),
+        current_input.batch_admission_denial_witness_kind(),
+        current_input
+            .conflict_independence_route_packet_identity()
+            .to_string(),
+        current_input
+            .conflict_independence_denial_witness_identity()
+            .map(str::to_string),
+        current_input.conflict_independence_denial_witness_kind(),
+        current_input
+            .replay_undo_route_packet_identity()
+            .to_string(),
+        current_input.replay_undo_route_family(),
         current_input.selected_family_identity().to_string(),
         current_input.selected_product_identity_digest().to_string(),
+        current_input
+            .compiled_product_reuse_route_packet_identity()
+            .to_string(),
+        current_input
+            .topology_reuse_posture()
+            .expect("current topology reuse posture"),
+        current_input
+            .spatial_reuse_posture()
+            .expect("current spatial reuse posture"),
         foreign_reuse_basis_identity_digest.to_string(),
         current_input
             .selected_witness_identity_digest()
             .map(str::to_string),
         current_input
+            .spatial_reuse_decision_identity_digest()
+            .map(str::to_string),
+        current_input
             .rebuild_denial_identity_digest()
+            .map(str::to_string),
+        current_input
+            .spatial_rebuild_denial_identity_digest()
             .map(str::to_string),
         current_input.spatial_selected_family_identity().to_string(),
         current_input

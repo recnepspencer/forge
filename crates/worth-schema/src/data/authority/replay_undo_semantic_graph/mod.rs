@@ -3,6 +3,7 @@ mod identity_digest;
 mod locality_scope;
 mod prior_proof_identity;
 mod replay_scope_identity;
+mod route_family;
 mod stage_index_identity;
 mod touched_subject;
 mod transaction_scope_claim;
@@ -18,6 +19,7 @@ pub use prior_proof_identity::{
 pub use replay_scope_identity::{
     admit_replay_scope_identity, ReplayScopeIdentity, ReplayScopeIdentityInput,
 };
+pub use route_family::ReplayUndoPlannerRouteFamily;
 pub use stage_index_identity::{
     admit_replay_undo_stage_index_identity, ReplayUndoSemanticGraphStageIndexIdentity,
 };

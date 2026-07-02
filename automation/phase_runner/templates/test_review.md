@@ -13,6 +13,14 @@ Acceptance evidence:
 
 This turn is test QA only. Do not code yet. Do not make a repair plan yet.
 
+Cutover gate for test review:
+
+Do not perform deep hostile test review against a mechanically incomplete
+migration. If the new lane does not yet fully own ordinary behavior, the honest
+conclusion is that test review is premature. Call out the incomplete cutover as
+the load-bearing issue and return the phase to repair/implement instead of
+hardening tests around a mixed state.
+
 Your job is to produce a findings-first review of the tests:
 
 - everything weak, synthetic, overly mocked, or proof-light

@@ -69,7 +69,7 @@ pub struct EvidenceLookupPublicCloseout {
 }
 
 impl EvidenceLookupPublicCloseoutFamilyStageRow {
-    pub(super) fn from_receipt_proof(
+    pub(crate) fn from_receipt_proof(
         family: &EvidenceLookupFamilyDeclaration,
         stage: WorkloadEvidenceStage,
         query_surface_row_digest: &str,
@@ -114,7 +114,7 @@ impl EvidenceLookupPublicCloseoutFamilyStageRow {
         row.with_row_digest()
     }
 
-    pub(super) fn from_receipt_proof_with_topology_read_receipt(
+    pub(crate) fn from_receipt_proof_with_topology_read_receipt(
         family: &EvidenceLookupFamilyDeclaration,
         stage: WorkloadEvidenceStage,
         query_surface_row_digest: &str,

@@ -1,13 +1,13 @@
+use super::admitted_route::{
+    admit_topology_query_backed_read_family_route_with_selected_route_authority,
+    TopologyQueryBackedReadFamilyAdmissionAuthority,
+};
 use super::{
     admit_topology_query_backed_consumer_cutover, admit_topology_query_backed_read_family_route,
     current_query_backed_consumer_residue_manifest, current_topology_query_backed_consumer_cutover,
     current_topology_query_backed_read_family_route_input, QueryBackedConsumerResidueDisposition,
     QueryBackedConsumerResidueOwner, TopologyQueryBackedConsumerCutover,
     TopologyReadModelReusePosture,
-};
-use super::admitted_route::{
-    admit_topology_query_backed_read_family_route_with_authority,
-    TopologyQueryBackedReadFamilyAdmissionAuthority,
 };
 use crate::certification::support::historical_query_snapshot::historical_query_snapshot_for_read_basis;
 use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
@@ -58,7 +58,9 @@ fn query_backed_read_route_explanation_uses_real_query_artifacts() {
         route_input.parity_verified_count()
     );
     assert!(cutover.query_executed_debt_free_family_count() > 0);
-    assert!(observed_row.selected_equivalence_family_identity().is_some());
+    assert!(observed_row
+        .selected_equivalence_family_identity()
+        .is_some());
     assert!(observed_row
         .selected_compatibility_basis_identity_digest()
         .is_some());
@@ -68,7 +70,7 @@ fn query_backed_read_route_explanation_uses_real_query_artifacts() {
 fn foreign_query_posture_cannot_explain_read_route() {
     let route_input =
         current_topology_query_backed_read_family_route_input().expect("route input should build");
-    let error = admit_topology_query_backed_read_family_route_with_authority(
+    let error = admit_topology_query_backed_read_family_route_with_selected_route_authority(
         &route_input,
         &TopologyQueryBackedReadFamilyAdmissionAuthority::from_route_input(&route_input)
             .with_support_snapshot_digest("foreign-support-snapshot"),
@@ -76,55 +78,6 @@ fn foreign_query_posture_cannot_explain_read_route() {
     .expect_err("foreign query posture should be rejected");
 
     assert!(error.detail().contains("query support snapshot"));
-}
-
-#[test]
-fn query_backed_and_public_consumers_route_through_reuse_decision_products() {
-    let fixture =
-        build_real_query_backed_cutover("phase13.query-backed-consumer-cutover", |report| report);
-    let radial_row = fixture
-        .cutover
-        .family_rows()
-        .iter()
-        .find(|row| {
-            row.request_family()
-                == crate::projection::read_views::domain::TopologyReadRequestFamily::HalfEdgeRadialNeighborhood
-        })
-        .expect("radial family row");
-
-    assert_eq!(
-        radial_row.reuse_posture(),
-        TopologyReadModelReusePosture::Reused
-    );
-    assert!(radial_row.compiled_product_identity().is_some());
-    assert!(radial_row.equivalence_policy_identity().is_some());
-    assert!(radial_row.compiled_product_identity_digest().is_some());
-    assert!(radial_row.equivalence_policy_identity_digest().is_some());
-    assert!(radial_row
-        .selected_equivalence_family_identity_kind()
-        .is_some());
-    assert!(radial_row.selected_equivalence_family_identity().is_some());
-    assert!(radial_row
-        .selected_equivalence_basis_identity_digest()
-        .is_some());
-    assert!(radial_row.selected_reuse_basis_identity_digest().is_some());
-    assert!(radial_row.reuse_decision_identity_digest().is_some());
-    assert!(radial_row.rebuild_denial_identity_digest().is_none());
-    assert_eq!(radial_row.query_execution_count(), 1);
-    assert_eq!(radial_row.row_scan_fallback_count(), 0);
-    assert_eq!(radial_row.whole_view_fallback_count(), 0);
-    assert_eq!(radial_row.repeated_rediscovery_denied_count(), 0);
-    assert_eq!(
-        fixture.cutover.handle_identity_digest(),
-        fixture.handle_identity_digest
-    );
-    assert_eq!(
-        fixture.cutover.support_snapshot_digest(),
-        fixture.support_snapshot_digest
-    );
-    assert_eq!(fixture.cutover.query_executed_debt_free_family_count(), 1);
-    assert_eq!(fixture.cutover.debt_family_count(), 0);
-    assert!(!fixture.cutover.closeout_digest().is_empty());
 }
 
 #[test]
@@ -161,12 +114,11 @@ fn current_public_closeout_cutover_exposes_loop_cycle_row_with_typed_authority()
 
 #[test]
 fn hostile_query_backed_cutover_carries_typed_rebuild_denial_for_forced_non_reuse() {
-    let fixture = build_real_query_backed_cutover(
+    let cutover = build_hostile_query_backed_cutover(
         "phase13.query-backed-consumer-cutover.denied",
         DerivedEquivalenceContractReport::with_test_selected_family_contract_removed,
     );
-    let denied_row = fixture
-        .cutover
+    let denied_row = cutover
         .family_rows()
         .iter()
         .find(|row| {
@@ -219,10 +171,10 @@ fn query_boundary_residue_rows_are_exact() {
     }));
 }
 
-fn build_real_query_backed_cutover(
+fn build_hostile_query_backed_cutover(
     scenario: &str,
     mutate_contract: impl FnOnce(DerivedEquivalenceContractReport) -> DerivedEquivalenceContractReport,
-) -> QueryBackedCutoverFixture {
+) -> TopologyQueryBackedConsumerCutover {
     let mut runtime = build_milestone_one_runtime().expect("runtime should build");
     let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
@@ -267,19 +219,9 @@ fn build_real_query_backed_cutover(
         .radial_half_edge_neighborhood(&anchor)
         .expect("radial neighborhood should execute through Query");
 
-    QueryBackedCutoverFixture {
-        handle_identity_digest: basis_evidence.handle_identity_digest().to_string(),
-        support_snapshot_digest: basis_evidence.support_snapshot_digest().to_string(),
-        cutover: admit_topology_query_backed_consumer_cutover(
-            &reads,
-            &basis_evidence,
-            &mutate_contract(historical_snapshot.equivalence_contract().clone()),
-        ),
-    }
-}
-
-struct QueryBackedCutoverFixture {
-    handle_identity_digest: String,
-    support_snapshot_digest: String,
-    cutover: TopologyQueryBackedConsumerCutover,
+    admit_topology_query_backed_consumer_cutover(
+        &reads,
+        &basis_evidence,
+        &mutate_contract(historical_snapshot.equivalence_contract().clone()),
+    )
 }

@@ -24,6 +24,18 @@ const PHASE_FIFTEEN_TOPOLOGY_COMPILE_FAIL_FENCES: &[PhaseFifteenTopologyCompileF
         "src/certification/public_facade_contracts/compile_fail/public_topology_compiled_product_rebuild_denial_not_exported.rs",
         "rebuild-denial",
     ),
+    PhaseFifteenTopologyCompileFailFence::new(
+        "src/certification/public_facade_contracts/compile_fail/public_invalidation_route_input_not_mintable_from_milestone_ten_summary_row.rs",
+        "invalidation-route-input-summary-row",
+    ),
+    PhaseFifteenTopologyCompileFailFence::new(
+        "src/certification/public_facade_contracts/compile_fail/public_invalidation_route_input_not_mintable_from_projection_read_stage_receipt.rs",
+        "invalidation-route-input-projection-receipt",
+    ),
+    PhaseFifteenTopologyCompileFailFence::new(
+        "src/certification/public_facade_contracts/compile_fail/public_derived_read_diagnostic_support_not_exported.rs",
+        "derived-read-diagnostic-support",
+    ),
 ];
 
 impl PhaseFifteenTopologyCompileFailFence {

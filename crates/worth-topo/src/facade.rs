@@ -25,6 +25,7 @@ pub use crate::brep::topology_graph::{
     TopologyBody, TopologyEdge, TopologyFace, TopologyHalfEdge, TopologyLoop, TopologyLump,
     TopologyModel, TopologyRegion, TopologyShell, TopologyVertex, TopologyView, TopologyWire,
 };
+pub use crate::compiled_product_reuse_decision::TopologyDerivedReuseDecisionPosture;
 pub use crate::construction::{
     prepare_primitive_construction_query_admitted_handoff,
     prepare_primitive_construction_query_admitted_handoff_from_synopsis,
@@ -120,16 +121,24 @@ pub use crate::derived_invalidation_selected_plan::{
     DerivedInvalidationSelectionErrorKind, DerivedInvalidationTouchedClosure,
     DerivedInvalidationUnaffectedRow,
 };
+pub use crate::derived_read_diagnostic_input::{
+    TopologyDerivedReadDiagnosticInput, TopologyDerivedReadDiagnosticInputAdmissionError,
+};
 pub use crate::derived_topology::compiled_product_consumer_cutover::{
     current_topology_consumer_residue_manifest, TopologyConsumerResidueDisposition,
     TopologyConsumerResidueOwner, TopologyConsumerResidueRow,
 };
+pub use crate::projection::planner_owned_routing::compiled_product_reuse_route::{
+    current_topology_compiled_product_reuse_route_packet, TopologyCompiledProductReuseRoutePacket,
+};
 pub use crate::projection::planner_owned_routing::query_backed_read_family::{
+    admit_current_topology_query_backed_consumer_cutover_with_selected_route_authority,
     admit_topology_query_backed_consumer_cutover, current_query_backed_consumer_residue_manifest,
     current_topology_query_backed_consumer_cutover, QueryBackedConsumerResidueDisposition,
     QueryBackedConsumerResidueOwner, QueryBackedConsumerResidueRow,
     TopologyQueryBackedConsumerCutover, TopologyQueryBackedConsumerCutoverCurrentError,
-    TopologyQueryBackedConsumerFamilyRow, TopologyReadModelReusePosture,
+    TopologyQueryBackedConsumerFamilyRow, TopologyQueryBackedReadFamilySelectedRouteAuthority,
+    TopologyReadModelReusePosture,
 };
 pub use crate::projection::runtime_boundary::declared_query_surfaces::truth_surfaces::{
     NamingAttachmentReport, NamingAttachmentRow,

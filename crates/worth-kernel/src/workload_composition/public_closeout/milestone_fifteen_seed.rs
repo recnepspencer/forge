@@ -1,12 +1,10 @@
 use super::milestone_fifteen_planner_proof_input::WorthTouchedGraphConflictMilestoneFifteenPlannerProofInput;
 use super::milestone_fifteen_seed_support::{
-    build_milestone_fifteen_seed_digest,
-    require_planner_proof_input_matches_selected_route_packet,
+    build_milestone_fifteen_seed_digest, require_planner_proof_input_matches_selected_route_packet,
 };
 use super::public_closeout_types::WorthTouchedGraphConflictPublicCloseoutError;
 use crate::workload_composition::{
-    WorthTouchedGraphConflictAdmittedPublicProofInput,
-    WorthTouchedGraphConflictSelectedRoutePacket,
+    WorthTouchedGraphConflictAdmittedPublicProofInput, WorthTouchedGraphConflictSelectedRoutePacket,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -33,9 +31,12 @@ pub struct WorthTouchedGraphConflictMilestoneFifteenSeed {
     topology_query_selected_reuse_basis_identity_digest: String,
     topology_query_reuse_decision_identity_digest: Option<String>,
     topology_query_rebuild_denial_identity_digest: Option<String>,
+    compiled_product_reuse_route_packet_identity: String,
     spatial_compiled_product_identity_digest: String,
     spatial_equivalence_policy_identity_digest: String,
     spatial_selected_equivalence_family_identity: String,
+    spatial_reuse_decision_identity_digest: Option<String>,
+    spatial_rebuild_denial_identity_digest: Option<String>,
     residue_digest: String,
     source_firewall_digest: String,
     planner_proof_input: WorthTouchedGraphConflictMilestoneFifteenPlannerProofInput,
@@ -66,21 +67,48 @@ impl WorthTouchedGraphConflictMilestoneFifteenSeed {
             transaction_packet_identities: lowering.transaction_packet_identities,
             replay_scope_identities: lowering.replay_scope_identities,
             undo_scope_identities: lowering.undo_scope_identities,
-            topology_compiled_product_identity_digest: lowering.topology_query_compiled_product_identity_digest,
-            topology_equivalence_policy_identity_digest: lowering.topology_query_equivalence_policy_identity_digest,
+            topology_compiled_product_identity_digest: lowering
+                .topology_query_compiled_product_identity_digest,
+            topology_equivalence_policy_identity_digest: lowering
+                .topology_query_equivalence_policy_identity_digest,
             evidence_lookup_public_closeout_digest: lowering.evidence_lookup_public_closeout_digest,
-            evidence_lookup_query_boundary_support_digest: lowering.evidence_lookup_query_boundary_support_digest,
-            topology_query_backed_consumer_cutover_digest: lowering.topology_query_backed_consumer_cutover_digest,
-            topology_query_public_read_family_row_digest: lowering.topology_query_public_read_family_row_digest,
-            topology_query_selected_equivalence_family_identity: packet.selected_family_identity().to_string(),
-            topology_query_selected_equivalence_basis_identity_digest: lowering.topology_query_selected_equivalence_basis_identity_digest,
-            topology_query_selected_compatibility_basis_identity_digest: lowering.topology_query_selected_route_gate_basis_identity_digest,
-            topology_query_selected_reuse_basis_identity_digest: lowering.topology_query_selected_reuse_basis_identity_digest,
-            topology_query_reuse_decision_identity_digest: lowering.topology_query_reuse_decision_identity_digest,
-            topology_query_rebuild_denial_identity_digest: lowering.topology_query_rebuild_denial_identity_digest,
-            spatial_compiled_product_identity_digest: planner_proof_input.spatial_compiled_product_identity_digest().to_string(),
-            spatial_equivalence_policy_identity_digest: planner_proof_input.spatial_equivalence_policy_identity_digest().to_string(),
-            spatial_selected_equivalence_family_identity: planner_proof_input.spatial_selected_equivalence_family_identity().to_string(),
+            evidence_lookup_query_boundary_support_digest: lowering
+                .evidence_lookup_query_boundary_support_digest,
+            topology_query_backed_consumer_cutover_digest: lowering
+                .topology_query_backed_consumer_cutover_digest,
+            topology_query_public_read_family_row_digest: lowering
+                .topology_query_public_read_family_row_digest,
+            topology_query_selected_equivalence_family_identity: packet
+                .selected_family_identity()
+                .to_string(),
+            topology_query_selected_equivalence_basis_identity_digest: lowering
+                .topology_query_selected_equivalence_basis_identity_digest,
+            topology_query_selected_compatibility_basis_identity_digest: lowering
+                .topology_query_selected_route_gate_basis_identity_digest,
+            topology_query_selected_reuse_basis_identity_digest: lowering
+                .topology_query_selected_reuse_basis_identity_digest,
+            topology_query_reuse_decision_identity_digest: lowering
+                .topology_query_reuse_decision_identity_digest,
+            topology_query_rebuild_denial_identity_digest: lowering
+                .topology_query_rebuild_denial_identity_digest,
+            compiled_product_reuse_route_packet_identity: planner_proof_input
+                .compiled_product_reuse_route_packet_identity()
+                .to_string(),
+            spatial_compiled_product_identity_digest: planner_proof_input
+                .spatial_compiled_product_identity_digest()
+                .to_string(),
+            spatial_equivalence_policy_identity_digest: planner_proof_input
+                .spatial_equivalence_policy_identity_digest()
+                .to_string(),
+            spatial_selected_equivalence_family_identity: planner_proof_input
+                .spatial_selected_equivalence_family_identity()
+                .to_string(),
+            spatial_reuse_decision_identity_digest: planner_proof_input
+                .spatial_reuse_decision_identity_digest()
+                .map(str::to_string),
+            spatial_rebuild_denial_identity_digest: planner_proof_input
+                .spatial_rebuild_denial_identity_digest()
+                .map(str::to_string),
             residue_digest: residue_digest.to_string(),
             source_firewall_digest: source_firewall_digest.to_string(),
             planner_proof_input: planner_proof_input.clone(),
@@ -162,6 +190,9 @@ impl WorthTouchedGraphConflictMilestoneFifteenSeed {
         self.topology_query_rebuild_denial_identity_digest
             .as_deref()
     }
+    pub fn compiled_product_reuse_route_packet_identity(&self) -> &str {
+        &self.compiled_product_reuse_route_packet_identity
+    }
     pub fn spatial_compiled_product_identity_digest(&self) -> &str {
         &self.spatial_compiled_product_identity_digest
     }
@@ -170,6 +201,12 @@ impl WorthTouchedGraphConflictMilestoneFifteenSeed {
     }
     pub fn spatial_selected_equivalence_family_identity(&self) -> &str {
         &self.spatial_selected_equivalence_family_identity
+    }
+    pub fn spatial_reuse_decision_identity_digest(&self) -> Option<&str> {
+        self.spatial_reuse_decision_identity_digest.as_deref()
+    }
+    pub fn spatial_rebuild_denial_identity_digest(&self) -> Option<&str> {
+        self.spatial_rebuild_denial_identity_digest.as_deref()
     }
     pub fn residue_digest(&self) -> &str {
         &self.residue_digest

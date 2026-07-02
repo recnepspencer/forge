@@ -9,9 +9,8 @@ use crate::certification::MilestoneOneCertificationError;
 use crate::derived_topology::compiled_product_consumer_cutover::DerivedEquivalenceContractReport;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
-use crate::projection::diagnostic_surfaces::{
-    derived_read_diagnostics::build_derived_read_diagnostics, DerivedReadDiagnostics,
-};
+use crate::projection::diagnostic_surfaces::DerivedReadDiagnostics;
+use crate::projection::planner_owned_routing::diagnostic_projection_input::build_derived_read_diagnostics;
 use crate::projection::runtime_boundary::declared_query_surfaces::retained_artifacts::{
     build_topology_historical_derived_surface_snapshot, TopologyHistoricalDerivedSurfaceSnapshot,
 };

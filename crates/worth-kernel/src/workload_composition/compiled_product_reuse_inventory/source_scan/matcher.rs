@@ -137,7 +137,7 @@ fn matches_line(
             path_contains_any(
                 path,
                 &[
-                    "/evidence_lookup_public_closeout/current_source.rs",
+                    "/planner_owned_routing/public_closeout_route/current.rs",
                     "/worth_workload/ordinary_consumer_sweep/current_cutover.rs",
                     "/public_closeout/public_closeout.rs",
                 ],

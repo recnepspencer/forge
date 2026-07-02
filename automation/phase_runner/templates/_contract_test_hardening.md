@@ -62,6 +62,21 @@ Avoid these failure modes:
   collapsing them into one decisive repair
 - spending most of a turn on prose when the next code edit is already obvious
 
+## Cutover-first rule
+
+For parallel-lane migration phases, do not stop in a mixed state and then spend
+turns reviewing or hardening that mixed state. First finish the mechanical
+cutover so the new lane is the only ordinary behavior path and the displaced
+lane is wrapper-only, capped, or disconnected from ordinary callers.
+
+During this cutover work:
+
+- let compiler errors, import failures, and type-boundary failures lead you
+- prefer finishing the cutover over proving an intermediate state
+- do not treat a partially migrated lane as ready for deep QA just because some
+  focused tests pass
+- mixed states should be finished, not reviewed
+
 ## JSON is progress state, not an evidence bundle
 
 Do not put logs, artifacts, command output tails, long plans, long findings,
@@ -169,6 +184,20 @@ Advance like this:
   and `completed_at` if this was the last phase
 
 Only `code_quality_review` advances to the next phase in this prompt set.
+
+## Turn-completion rule
+
+This runner cannot infer your intent from chat alone. A turn is only complete if
+you leave the JSON state in the next correct position before you finish.
+
+- Do not end a turn with the same cursor unless the template explicitly told you
+  to keep the same turn, which these milestone prompts do not.
+- If you found the fix and implemented it, write the status and cursor advance
+  now.
+- If you concluded the phase still has findings, write the regressed/failed
+  state and move to the required repair turn now.
+- If you only wrote analysis in chat and did not advance the JSON, the runner
+  will treat that as an incomplete turn and send you back to repair it.
 
 ## Stale-cursor recovery example
 

@@ -90,9 +90,9 @@ pub mod platform {
         pub mod replay_undo_semantic_graph {
             pub use crate::data::authority::{
                 admit_replay_scope_identity, admit_undo_scope_identity, ReplayScopeIdentity,
-                ReplayScopeIdentityInput, ReplayUndoSemanticGraphEquivalenceBasis,
-                ReplayUndoSemanticGraphLocalityScope, ReplayUndoSemanticGraphPriorProofClass,
-                ReplayUndoSemanticGraphPriorProofIdentity,
+                ReplayScopeIdentityInput, ReplayUndoPlannerRouteFamily,
+                ReplayUndoSemanticGraphEquivalenceBasis, ReplayUndoSemanticGraphLocalityScope,
+                ReplayUndoSemanticGraphPriorProofClass, ReplayUndoSemanticGraphPriorProofIdentity,
                 ReplayUndoSemanticGraphStageIndexIdentity, ReplayUndoSemanticGraphTouchedSubject,
                 ReplayUndoTransactionScopeClaim, ReplayUndoTransactionScopeKind, UndoScopeIdentity,
                 UndoScopeIdentityInput,
@@ -102,8 +102,11 @@ pub mod platform {
             pub use crate::data::authority::{
                 admit_conflict_locality_identity, admit_conflict_overlap_identity,
                 admit_conflict_participant_identity, admit_conflict_routing_contract,
-                ConflictAspectClass, ConflictLocalityIdentity, ConflictOverlapCategory,
-                ConflictOverlapIdentity, ConflictOverlapIdentityInput,
+                BatchAdmissionPlannerRouteFamily, BatchAdmissionPlannerRouteWitness,
+                BatchAdmissionPlannerRouteWitnessKind, ConflictAspectClass,
+                ConflictIndependencePlannerRouteFamily, ConflictIndependencePlannerRouteWitness,
+                ConflictIndependencePlannerRouteWitnessKind, ConflictLocalityIdentity,
+                ConflictOverlapCategory, ConflictOverlapIdentity, ConflictOverlapIdentityInput,
                 ConflictParticipantAuthority, ConflictParticipantIdentity,
                 ConflictParticipantIdentityInput, ConflictPriorProofIdentity,
                 ConflictPriorProofInput, ConflictRoutingContract, ConflictRoutingPosture,

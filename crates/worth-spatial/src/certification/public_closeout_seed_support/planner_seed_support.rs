@@ -1,8 +1,8 @@
 use super::alignment_summary::{
-    current_spatial_public_closeout_alignment_summary, SpatialPublicCloseoutAlignmentSummary,
     SpatialPublicCloseoutFreshnessRequirementPosture,
     SpatialPublicCloseoutRenderedOutputComparisonPosture, SpatialPublicCloseoutSeedSupportError,
 };
+use crate::workload_platform::planner_owned_routing::evidence_lookup_route::current_evidence_lookup_route_source;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SpatialMilestoneFifteenPlannerSeedSupport {
@@ -17,26 +17,43 @@ pub struct SpatialMilestoneFifteenPlannerSeedSupport {
 
 pub fn current_spatial_milestone_fifteen_planner_seed_support(
 ) -> Result<SpatialMilestoneFifteenPlannerSeedSupport, SpatialPublicCloseoutSeedSupportError> {
-    let summary = current_spatial_public_closeout_alignment_summary()?;
-    Ok(SpatialMilestoneFifteenPlannerSeedSupport::from_alignment_summary(&summary))
+    let route_source = current_evidence_lookup_route_source().map_err(|error| {
+        SpatialPublicCloseoutSeedSupportError::new(format!(
+            "spatial planner seed support requires planner-owned evidence lookup route: {}",
+            error.detail()
+        ))
+    })?;
+    Ok(SpatialMilestoneFifteenPlannerSeedSupport::from_current_route_source(&route_source))
 }
 
 impl SpatialMilestoneFifteenPlannerSeedSupport {
-    fn from_alignment_summary(summary: &SpatialPublicCloseoutAlignmentSummary) -> Self {
+    fn from_current_route_source(
+        route_source: &crate::workload_platform::planner_owned_routing::evidence_lookup_route::CurrentEvidenceLookupRouteSource,
+    ) -> Self {
+        let boundary = route_source.left_boundary();
+        let handoff = boundary.workload_handoff();
+        let index_product = boundary.index_product();
         Self {
-            selected_equivalence_family_identity: summary
+            selected_equivalence_family_identity: index_product
                 .selected_equivalence_family_identity()
+                .as_str()
                 .to_string(),
-            compiled_product_identity_digest: summary
+            compiled_product_identity_digest: index_product
                 .compiled_product_identity_digest()
                 .to_string(),
-            equivalence_policy_identity_digest: summary
+            equivalence_policy_identity_digest: index_product
                 .equivalence_policy_identity_digest()
                 .to_string(),
-            freshness_requirement_posture: summary.freshness_requirement_posture(),
-            rendered_output_comparison_posture: summary.rendered_output_comparison_posture(),
-            receipt_proof_row_count: summary.receipt_proof_row_count(),
-            non_ordinary_residue_row_count: summary.non_ordinary_residue_row_count(),
+            freshness_requirement_posture: index_product
+                .selected_freshness_requirement_posture()
+                .into(),
+            rendered_output_comparison_posture: index_product
+                .selected_rendered_output_comparison_posture()
+                .into(),
+            receipt_proof_row_count: handoff.milestone_twelve_seed().receipt_proof_row_count(),
+            non_ordinary_residue_row_count: handoff
+                .milestone_twelve_seed()
+                .non_ordinary_residue_row_count(),
         }
     }
 

@@ -39,6 +39,9 @@ After repair, update the JSON state file directly with short progress markers:
   implementation remains.
 - `status: blocked` only for a precise blocker.
 
+Do not stop at architectural analysis. If you can name the real seam, implement
+it in this turn and advance the JSON cursor before finishing.
+
 Phase-specific instructions:
 {phase.instructions}
 

@@ -33,6 +33,9 @@ def run_once(
 ) -> bool:
     state = load_state(state_path)
     validate_or_raise(state, state_path)
+    before_revision = int(state.get("state_revision", 0))
+    before_cursor = normalized_cursor(state)
+    before_status = normalized_phase_status(state)
 
     if forced_phase is not None or forced_turn is not None:
         if not isinstance(state.get("current"), dict):
@@ -78,6 +81,8 @@ def run_once(
 
     if exit_code != 0:
         raise RunnerFailure(f"codex exited with {exit_code}")
+
+    detect_stalled_progress(state_path, before_revision, before_cursor, before_status)
 
     return True
 
@@ -223,10 +228,60 @@ def merge_after_codex(
     save_state(state_path, fresh)
 
 
+def detect_stalled_progress(
+    state_path: Path,
+    before_revision: int,
+    before_cursor: tuple[int, str] | None,
+    before_status: tuple[str | None, str | None] | None,
+) -> None:
+    fresh = load_state(state_path)
+    after_revision = int(fresh.get("state_revision", 0))
+    after_cursor = normalized_cursor(fresh)
+    after_status = normalized_phase_status(fresh)
+    if after_revision <= before_revision:
+        raise RunnerFailure(
+            "codex turn did not update the JSON state file; runner cannot continue"
+        )
+    if before_cursor is not None and after_cursor == before_cursor and after_status == before_status:
+        raise RunnerFailure(
+            f"codex turn left the runner on the same cursor {before_cursor[0]} {before_cursor[1]}"
+        )
+
+
 def validate_or_raise(state: dict, state_path: Path) -> None:
     errors = validate_state(state, state_path)
     if errors:
         raise RunnerFailure("\n".join(f"validation error: {error}" for error in errors))
+
+
+def normalized_cursor(state: dict[str, Any]) -> tuple[int, str] | None:
+    current = state.get("current")
+    if not isinstance(current, dict):
+        return None
+    phase = current.get("phase")
+    turn = current.get("turn")
+    if phase is None or turn is None:
+        return None
+    try:
+        return (int(phase), str(turn))
+    except (TypeError, ValueError):
+        return None
+
+
+def normalized_phase_status(state: dict[str, Any]) -> tuple[str | None, str | None] | None:
+    current = state.get("current")
+    phases = state.get("phases")
+    if not isinstance(current, dict) or not isinstance(phases, list):
+        return None
+    phase_id = current.get("phase")
+    try:
+        target_phase = int(phase_id)
+    except (TypeError, ValueError):
+        return None
+    for phase in phases:
+        if isinstance(phase, dict) and int(phase.get("id")) == target_phase:
+            return (phase.get("status"), phase.get("qa_status"))
+    return None
 
 
 def validate_command(state_path: Path) -> int:

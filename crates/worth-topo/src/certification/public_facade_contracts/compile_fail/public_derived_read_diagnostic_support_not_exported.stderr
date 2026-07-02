@@ -1,0 +1,14 @@
+error[E0432]: unresolved import `topology::derived_read_diagnostic_input::support`
+ --> src/certification/public_facade_contracts/compile_fail/public_derived_read_diagnostic_support_not_exported.rs:1:46
+  |
+1 | use topology::derived_read_diagnostic_input::support::{
+  |                                              ^^^^^^^ could not find `support` in `derived_read_diagnostic_input`
+  |
+note: found an item that was configured out
+ --> src/derived_read_diagnostic_input/mod.rs
+  |
+  | #[cfg(any(feature = "kernel-diagnostic-support", test))]
+  |          --------------------------------------------- the item is gated here
+  | #[doc(hidden)]
+  | pub mod support {
+  |         ^^^^^^^

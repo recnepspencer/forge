@@ -5,7 +5,7 @@ use crate::certification::topology_operator_closeout::report::{
 use crate::certification::{DeterministicDigest, ReplayParityStatus};
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::bootstrap_topology_interpretation;
-use crate::projection::diagnostic_surfaces::derived_read_diagnostics::derive_topology_validation_report;
+use crate::projection::planner_owned_routing::diagnostic_projection_input::derive_topology_validation_report;
 use crate::query_native_runtime_boundary::query_entity_identity_reporting_label;
 use crate::query_native_runtime_boundary::{row_text_at, TopologyNativeQueryRowField};
 use crate::validation::DerivedTopologyValidationReport;

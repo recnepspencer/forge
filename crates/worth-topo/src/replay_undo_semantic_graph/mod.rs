@@ -1,6 +1,7 @@
 mod admission;
 mod current_boundary;
-mod current_boundary_support;
+mod current_declaration_support;
+pub(crate) mod current_invalidation_proof;
 mod lowering;
 mod planning;
 mod scope_product;
@@ -23,6 +24,9 @@ pub use admission::{
 pub use current_boundary::{
     current_replay_undo_topology_boundary, CurrentReplayUndoTopologyBoundary,
     CurrentReplayUndoTopologyBoundaryError,
+};
+pub(crate) use current_invalidation_proof::{
+    current_topology_invalidation_proof, CurrentTopologyInvalidationProofError,
 };
 pub use lowering::{
     lower_topology_replay_equivalence_basis,

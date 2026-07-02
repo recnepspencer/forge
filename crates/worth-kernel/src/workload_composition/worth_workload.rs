@@ -39,6 +39,11 @@ pub use lookup_consumed_workload::{
     LookupConsumedWorkloadComposition, LookupConsumedWorkloadReuseProduct,
     LookupConsumedWorkloadReuseResolutionDenied,
 };
+#[cfg(test)]
+pub(crate) use ordinary_consumer_sweep::{
+    current_replay_undo_boundary_proof, ordinary_consumer_cutover_from_inventory_for_tests,
+    ordinary_consumer_cutover_from_inventory_with_test_replay_undo_identity_override,
+};
 pub(crate) use ordinary_consumer_sweep::{
     current_replay_undo_boundary_route_authority, current_worth_workload_ordinary_consumer_cutover,
     WorthWorkloadOrdinaryConsumerCutover, WorthWorkloadOrdinaryConsumerCutoverPosture,
@@ -53,11 +58,6 @@ pub use ordinary_consumer_sweep::{
     WorthWorkloadOrdinaryConsumerResidueSurface, WorthWorkloadOrdinaryConsumerSweepCloseoutError,
     WorthWorkloadOrdinaryConsumerSweepCloseoutErrorKind,
     WorthWorkloadOrdinaryConsumerSweepResidueRow,
-};
-#[cfg(test)]
-pub(crate) use ordinary_consumer_sweep::{
-    ordinary_consumer_cutover_from_inventory_for_tests,
-    ordinary_consumer_cutover_from_inventory_with_test_replay_undo_identity_override,
 };
 pub use replay_undo_boundary::{
     AdmittedBooleanSplitReplayUndoBoundary, BooleanSplitReplayUndoBoundaryRequest,

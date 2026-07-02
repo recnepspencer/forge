@@ -1,4 +1,8 @@
 mod aspect_class;
+mod batch_admission_route_family;
+mod batch_admission_route_witness;
+mod conflict_independence_route_family;
+mod conflict_independence_route_witness;
 mod error;
 mod locality_identity;
 mod overlap_category;
@@ -8,6 +12,14 @@ mod prior_proof_input;
 mod routing_contract;
 
 pub use aspect_class::ConflictAspectClass;
+pub use batch_admission_route_family::BatchAdmissionPlannerRouteFamily;
+pub use batch_admission_route_witness::{
+    BatchAdmissionPlannerRouteWitness, BatchAdmissionPlannerRouteWitnessKind,
+};
+pub use conflict_independence_route_family::ConflictIndependencePlannerRouteFamily;
+pub use conflict_independence_route_witness::{
+    ConflictIndependencePlannerRouteWitness, ConflictIndependencePlannerRouteWitnessKind,
+};
 pub use error::ConflictRoutingVocabularyError;
 pub use locality_identity::{admit_conflict_locality_identity, ConflictLocalityIdentity};
 pub use overlap_category::ConflictOverlapCategory;

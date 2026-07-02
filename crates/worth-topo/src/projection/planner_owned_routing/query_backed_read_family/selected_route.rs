@@ -1,8 +1,10 @@
 use super::admitted_route::TopologyQueryBackedReadFamilyAdmissionAuthority;
 use super::digest::{closeout_digest, family_row_digest};
-use super::route_input::TopologyObservedQueryBackedReadFamilyRow;
 use super::reuse_posture::{TopologyReadModelReusePosture, TopologyReadModelTypedReuseDecision};
-use crate::projection::read_views::domain::{TopologyReadCloseoutStatus, TopologyReadRequestFamily};
+use super::route_input::TopologyObservedQueryBackedReadFamilyRow;
+use crate::projection::read_views::domain::{
+    TopologyReadCloseoutStatus, TopologyReadRequestFamily,
+};
 use crate::selected_equivalence_family::TopologySelectedEquivalenceFamilyIdentity;
 use schema::facade::platform::authority::compiled_product_semantic_graph::{
     CompiledProductEquivalencePolicyIdentity, CompiledProductIdentity,
@@ -90,8 +92,11 @@ impl TopologyQueryBackedConsumerFamilyRow {
             closeout_status: row.closeout_status(),
             reuse_posture: typed_decision.posture(),
             compiled_product_identity: authority.compiled_product_identity_for_admission().cloned(),
-            equivalence_policy_identity: authority.equivalence_policy_identity_for_admission().cloned(),
-            selected_equivalence_family_identity: authority.selected_equivalence_family_for_admission(),
+            equivalence_policy_identity: authority
+                .equivalence_policy_identity_for_admission()
+                .cloned(),
+            selected_equivalence_family_identity: authority
+                .selected_equivalence_family_for_admission(),
             selected_equivalence_basis_identity_digest: authority
                 .selected_equivalence_basis_digest_for_admission()
                 .map(str::to_string),

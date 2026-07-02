@@ -5,7 +5,11 @@ pub enum EvidenceLookupPublicCloseoutErrorKind {
     MissingPublicCloseoutQueryRow,
     ForbiddenSourceFirewallAuthority,
     MissingFamilyCoverageDisposition,
+    MissingSelectedRouteFamilyRow,
     MismatchedFamilyAuthorityChain,
+    MismatchedSelectedRouteFamily,
+    MismatchedSelectedRouteProduct,
+    MismatchedSelectedRouteSupport,
     ImpossibleResidueSuccessMix,
     SourceFirewallDeletionPressureMismatch,
 }

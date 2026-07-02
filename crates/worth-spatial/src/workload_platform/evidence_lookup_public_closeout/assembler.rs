@@ -1,14 +1,8 @@
-use std::collections::BTreeSet;
-
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use crate::workload_platform::evidence_ledger::SpatialEvidenceSurfaceCloseoutPosture;
-use crate::workload_platform::evidence_lookup_family_catalog::{
-    current_evidence_lookup_family_catalog, EvidenceLookupFamilyDeclaration,
-};
-use crate::workload_platform::evidence_lookup_query_surface_matrix::EvidenceLookupQuerySurfaceTouchpoint;
+use crate::workload_platform::planner_owned_routing::public_closeout_route::EvidenceLookupPublicCloseoutRouteInput;
 
-use super::assembly_input::EvidenceLookupPublicCloseoutAssemblyInput;
 use super::closeout_artifacts::{
     EvidenceLookupPublicCloseout, EvidenceLookupPublicCloseoutDisposition,
 };
@@ -17,22 +11,10 @@ use super::error::{EvidenceLookupPublicCloseoutError, EvidenceLookupPublicCloseo
 use super::milestone_twelve_seed_lowering::lower_milestone_twelve_seed;
 
 impl EvidenceLookupPublicCloseout {
-    pub fn assemble_from_proof_products(
-        input: &EvidenceLookupPublicCloseoutAssemblyInput,
+    pub(crate) fn assemble_from_route_input(
+        route_input: &EvidenceLookupPublicCloseoutRouteInput,
     ) -> Result<Self, EvidenceLookupPublicCloseoutError> {
-        let family_catalog = current_evidence_lookup_family_catalog().map_err(|error| {
-            EvidenceLookupPublicCloseoutError::new(
-                EvidenceLookupPublicCloseoutErrorKind::MissingFamilyCoverageDisposition,
-                format!(
-                    "family catalog failed during closeout assembly: {:?}",
-                    error.kind()
-                ),
-            )
-        })?;
-
-        reject_duplicate_family_stage_rows(input)?;
-        reject_mismatched_authority_chain(input, family_catalog.declarations())?;
-        reject_firewall_without_deletion_pressure(input)?;
+        let input = route_input.admitted_assembly_input().assembly_input();
 
         let counters = EvidenceLookupPublicCloseoutCounters::new(
             input.family_stage_rows().len(),
@@ -180,6 +162,10 @@ impl EvidenceLookupPublicCloseout {
         );
         let milestone_twelve_seed = lower_milestone_twelve_seed(
             &closeout_digest,
+            route_input.selected_route_family_identity(),
+            route_input.selected_compiled_product_identity_digest(),
+            route_input.selected_equivalence_family_identity(),
+            route_input.selected_reuse_basis_identity_digest(),
             input.query_surface_matrix().matrix_digest(),
             input.query_consumer_kit().closeout_digest(),
             input.source_firewall_report().firewall_digest(),
@@ -207,139 +193,4 @@ impl EvidenceLookupPublicCloseout {
             closeout_digest,
         })
     }
-}
-
-fn reject_duplicate_family_stage_rows(
-    input: &EvidenceLookupPublicCloseoutAssemblyInput,
-) -> Result<(), EvidenceLookupPublicCloseoutError> {
-    let mut identities = BTreeSet::new();
-    for row in input.family_stage_rows() {
-        let identity = format!("{}::{:?}", row.family_identity(), row.stage());
-        if !identities.insert(identity) {
-            return Err(EvidenceLookupPublicCloseoutError::new(
-                EvidenceLookupPublicCloseoutErrorKind::DuplicateFamilyStageRow,
-                format!(
-                    "duplicate public closeout family-stage row for `{}` at stage `{:?}`",
-                    row.family_identity(),
-                    row.stage()
-                ),
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn reject_mismatched_authority_chain(
-    input: &EvidenceLookupPublicCloseoutAssemblyInput,
-    families: &[EvidenceLookupFamilyDeclaration],
-) -> Result<(), EvidenceLookupPublicCloseoutError> {
-    for row in input.family_stage_rows() {
-        let query_row = input
-            .query_surface_matrix()
-            .require_family_stage_touchpoint_row(
-                row.family_identity(),
-                row.stage(),
-                EvidenceLookupQuerySurfaceTouchpoint::PublicCloseoutProof,
-            )
-            .map_err(|_| {
-                EvidenceLookupPublicCloseoutError::new(
-                    EvidenceLookupPublicCloseoutErrorKind::MissingPublicCloseoutQueryRow,
-                    format!(
-                        "missing public-closeout query matrix row for family `{}` at stage `{}`",
-                        row.family_identity(),
-                        row.stage().human_name()
-                    ),
-                )
-            })?;
-        if query_row.row_digest() != row.query_surface_row_digest() {
-            return Err(EvidenceLookupPublicCloseoutError::new(
-                EvidenceLookupPublicCloseoutErrorKind::MismatchedFamilyAuthorityChain,
-                format!(
-                    "family `{}` at stage `{}` carries a mismatched public-closeout query row digest",
-                    row.family_identity(),
-                    row.stage().human_name()
-                ),
-            ));
-        }
-
-        let family = families
-            .iter()
-            .find(|family| family.identity().as_str() == row.family_identity())
-            .ok_or_else(|| {
-                EvidenceLookupPublicCloseoutError::new(
-                    EvidenceLookupPublicCloseoutErrorKind::MissingFamilyCoverageDisposition,
-                    format!(
-                        "closeout row references undeclared family `{}`",
-                        row.family_identity()
-                    ),
-                )
-            })?;
-        if family.declaration_digest() != row.family_declaration_digest()
-            || family
-                .stage_applicability()
-                .stage_receipt_family_identity()
-                .digest()
-                != row.stage_receipt_family_identity()
-            || family.query_posture().imported_evidence_digest()
-                != row.query_import_evidence_digest()
-        {
-            return Err(EvidenceLookupPublicCloseoutError::new(
-                EvidenceLookupPublicCloseoutErrorKind::MismatchedFamilyAuthorityChain,
-                format!(
-                    "family `{}` at stage `{}` is not bound to the current catalog authority chain",
-                    row.family_identity(),
-                    row.stage().human_name()
-                ),
-            ));
-        }
-        let topology_requires_receipt = family.topology_input_posture().requires_topology_receipt();
-        match row.disposition() {
-            EvidenceLookupPublicCloseoutDisposition::ReceiptProof { .. } => {
-                let missing_topology_receipt_proof = topology_requires_receipt
-                    && (row.topology_query_backed_cutover_digest().is_none()
-                        || row.topology_read_family_row_digest().is_none());
-                if row.spatial_touch_digest().is_none() || missing_topology_receipt_proof {
-                    return Err(EvidenceLookupPublicCloseoutError::new(
-                        EvidenceLookupPublicCloseoutErrorKind::ImpossibleResidueSuccessMix,
-                        format!(
-                            "family `{}` at stage `{}` cannot publish receipt proof with the current topology/spatial-touch posture",
-                            row.family_identity(),
-                            row.stage().human_name()
-                        ),
-                    ));
-                }
-            }
-            EvidenceLookupPublicCloseoutDisposition::NonOrdinaryResidue { .. } => {
-                if !topology_requires_receipt {
-                    return Err(EvidenceLookupPublicCloseoutError::new(
-                        EvidenceLookupPublicCloseoutErrorKind::ImpossibleResidueSuccessMix,
-                        format!(
-                            "family `{}` at stage `{}` cannot publish residue without a topology-backed blocker",
-                            row.family_identity(),
-                            row.stage().human_name()
-                        ),
-                    ));
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
-fn reject_firewall_without_deletion_pressure(
-    input: &EvidenceLookupPublicCloseoutAssemblyInput,
-) -> Result<(), EvidenceLookupPublicCloseoutError> {
-    if input
-        .source_firewall_report()
-        .counters()
-        .forbidden_row_count()
-        > 0
-        && input.spatial_deletion_ledger_rows().is_empty()
-    {
-        return Err(EvidenceLookupPublicCloseoutError::new(
-            EvidenceLookupPublicCloseoutErrorKind::SourceFirewallDeletionPressureMismatch,
-            "forbidden source-firewall authority requires concrete deletion-ledger pressure",
-        ));
-    }
-    Ok(())
 }

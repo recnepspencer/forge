@@ -1,28 +1,15 @@
-use std::collections::BTreeMap;
-
-use schema::facade::platform::aspects::Aspect;
+use crate::compiled_product_reuse_decision::TopologyDerivedReuseDecisionPosture;
 use schema::facade::platform::authority::{
-    milestone_two_invalidation_declarations, DerivedInvalidationTarget,
-};
-use schema::facade::topology_authoring::DerivedTopologyReadBasis;
-
-use crate::compiled_product_family::triggered_invalidation_targets_from_touched_aspects;
-use crate::derived_topology::compiled_product_consumer_cutover::{
-    build_derived_equivalence_contract, DerivedEquivalenceContractReport,
-};
-use crate::derived_topology::materialized_graph::{
-    MaterializationFallbackClass, MaterializedTopologyView,
-};
-use crate::derived_topology::traversal_views::InterpretedTopologyView;
-use crate::projection::planner_owned_routing::diagnostic_projection_input::{
-    topology_derived_diagnostic_projection_source, TopologyDerivedDiagnosticProjectionSource,
-};
-use crate::validation::{
-    validate_interpreted_topology, DerivedTopologyValidationReport,
-    RegisteredTopologyValidationReport, TopologyValidationError,
+    touched_graph_conflict::{
+        BatchAdmissionPlannerRouteWitnessKind, ConflictIndependencePlannerRouteWitnessKind,
+    },
+    DerivedInvalidationTarget,
 };
 
-const DERIVED_READ_VALIDATION_SOURCE: &str = "worth.topo.derived_read.validation";
+use crate::derived_topology::compiled_product_consumer_cutover::DerivedEquivalenceContractReport;
+use crate::derived_topology::materialized_graph::MaterializationFallbackClass;
+use crate::projection::planner_owned_routing::diagnostic_projection_input::TopologyDerivedDiagnosticProjectionSource;
+use crate::validation::DerivedTopologyValidationReport;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DerivedInvalidationTargetRow {
@@ -72,6 +59,18 @@ pub struct DerivedValidationExecutionReport {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DerivedReadDiagnostics {
     pub(crate) diagnostic_projection_source: TopologyDerivedDiagnosticProjectionSource,
+    pub compiled_product_reuse_route_packet_identity: Option<String>,
+    pub topology_reuse_posture: Option<TopologyDerivedReuseDecisionPosture>,
+    pub spatial_reuse_posture: Option<String>,
+    pub spatial_reuse_decision_identity_digest: Option<String>,
+    pub spatial_rebuild_denial_identity_digest: Option<String>,
+    pub batch_admission_route_packet_identity: Option<String>,
+    pub batch_admission_denial_witness_identity: Option<String>,
+    pub batch_admission_denial_witness_kind: Option<BatchAdmissionPlannerRouteWitnessKind>,
+    pub conflict_independence_route_packet_identity: Option<String>,
+    pub conflict_independence_denial_witness_identity: Option<String>,
+    pub conflict_independence_denial_witness_kind:
+        Option<ConflictIndependencePlannerRouteWitnessKind>,
     pub invalidation_report: DerivedInvalidationReport,
     pub rebuild_report: DerivedRebuildReport,
     pub fallback_report: DerivedFallbackReport,
@@ -80,168 +79,16 @@ pub struct DerivedReadDiagnostics {
     pub equivalence_contract_report: DerivedEquivalenceContractReport,
 }
 
-pub(crate) fn build_derived_read_diagnostics(
-    read_basis: &DerivedTopologyReadBasis,
-    materialized: &MaterializedTopologyView,
-    interpreted: &InterpretedTopologyView,
-    validation: &DerivedTopologyValidationReport,
-) -> DerivedReadDiagnostics {
-    let equivalence_contract_report =
-        build_derived_equivalence_contract(read_basis, materialized, interpreted, validation);
-    DerivedReadDiagnostics {
-        diagnostic_projection_source: topology_derived_diagnostic_projection_source(
-            read_basis,
-            &equivalence_contract_report,
-        ),
-        invalidation_report: build_derived_invalidation_report(read_basis),
-        rebuild_report: build_derived_rebuild_report(materialized, interpreted, validation),
-        fallback_report: build_derived_fallback_report(read_basis, materialized),
-        validation_report: validation.clone(),
-        validation_execution_report: derived_validation_execution_report(validation.rows.len()),
-        equivalence_contract_report,
-    }
-}
-
-pub(crate) fn derive_topology_validation_report(
-    materialized: &MaterializedTopologyView,
-    interpreted: &InterpretedTopologyView,
-) -> Result<DerivedTopologyValidationReport, TopologyValidationError> {
-    let report = validate_interpreted_topology(materialized, interpreted)?;
-    RegisteredTopologyValidationReport::from_report(report.clone())
-        .map_err(|error| TopologyValidationError::new("validation_registry", error))?;
-    Ok(report)
-}
-
-pub(crate) fn derived_validation_execution_report(
-    registered_rule_count: usize,
-) -> DerivedValidationExecutionReport {
-    DerivedValidationExecutionReport {
-        source: DERIVED_READ_VALIDATION_SOURCE.to_string(),
-        execution_count: 1,
-        registered_rule_count,
-    }
-}
-
-pub(crate) fn build_derived_invalidation_report(
-    read_basis: &DerivedTopologyReadBasis,
-) -> DerivedInvalidationReport {
-    build_derived_invalidation_report_from_aspects(read_basis.touched_aspects().iter().copied())
-}
-
-pub(crate) fn build_derived_invalidation_report_from_aspects(
-    touched_aspects: impl IntoIterator<Item = Aspect>,
-) -> DerivedInvalidationReport {
-    let touched_aspects = touched_aspects.into_iter().collect::<Vec<_>>();
-    let topology_touched = touched_aspects
-        .iter()
-        .any(|aspect| matches!(aspect, Aspect::Topology(_)));
-    let naming_touched = touched_aspects
-        .iter()
-        .any(|aspect| matches!(aspect, Aspect::Naming(_)));
-
-    let mut grouped = BTreeMap::<DerivedInvalidationTarget, Vec<String>>::new();
-    for declaration in milestone_two_invalidation_declarations() {
-        grouped
-            .entry(declaration.target)
-            .or_default()
-            .push(declaration.declaration_id.to_string());
-    }
-
-    let triggered_targets =
-        triggered_invalidation_targets_from_aspects(touched_aspects.iter().copied());
-    let rows = grouped
-        .into_iter()
-        .map(|(target, declaration_ids)| {
-            let triggered = triggered_targets.contains(&target);
-            DerivedInvalidationTargetRow {
-                target,
-                bridge_scope: target.bridge_scope().to_string(),
-                declaration_ids,
-                triggered,
-            }
-        })
-        .collect::<Vec<_>>();
-
-    DerivedInvalidationReport {
-        touched_aspect_count: touched_aspects.len(),
-        topology_touched,
-        naming_touched,
-        triggered_target_count: rows.iter().filter(|row| row.triggered).count(),
-        rows,
-    }
-}
-
-#[allow(dead_code)]
-pub(crate) fn triggered_invalidation_targets(
-    read_basis: &DerivedTopologyReadBasis,
-) -> Vec<DerivedInvalidationTarget> {
-    triggered_invalidation_targets_from_touched_aspects(
-        read_basis.touched_aspects().iter().copied(),
-    )
-}
-
-pub(crate) fn triggered_invalidation_targets_from_aspects(
-    touched_aspects: impl IntoIterator<Item = Aspect>,
-) -> Vec<DerivedInvalidationTarget> {
-    triggered_invalidation_targets_from_touched_aspects(touched_aspects)
-}
-
-pub(crate) fn build_derived_rebuild_report(
-    materialized: &MaterializedTopologyView,
-    interpreted: &InterpretedTopologyView,
-    validation: &DerivedTopologyValidationReport,
-) -> DerivedRebuildReport {
-    DerivedRebuildReport {
-        whole_view_rebuild: materialized.report().whole_view_materialization,
-        topology_entity_count: materialized.report().breadth.topology_entity_count,
-        topology_relation_count: materialized.report().breadth.topology_relation_count,
-        interpreted_wire_count: interpreted.report().interpreted_wire_count,
-        interpreted_shell_count: interpreted.report().interpreted_shell_count,
-        boundary_interpretation_count: interpreted.report().boundary_interpretation_count,
-        radial_interpretation_count: interpreted.report().radial_interpretation_count,
-        validation_row_count: validation.rows.len(),
-    }
-}
-
-pub(crate) fn build_derived_fallback_report(
-    read_basis: &DerivedTopologyReadBasis,
-    materialized: &MaterializedTopologyView,
-) -> DerivedFallbackReport {
-    build_derived_fallback_report_from_counts(
-        read_basis.precision_fallbacks.len(),
-        read_basis.precision_budget_fallbacks.len(),
-        materialized,
-    )
-}
-
-pub(crate) fn build_derived_fallback_report_from_counts(
-    precision_fallback_count: usize,
-    precision_budget_fallback_count: usize,
-    materialized: &MaterializedTopologyView,
-) -> DerivedFallbackReport {
-    let explicit_fallback_count = precision_fallback_count
-        + precision_budget_fallback_count
-        + usize::from(materialized.report().fallback_class.is_some());
-
-    DerivedFallbackReport {
-        whole_view_materialization: materialized.report().whole_view_materialization,
-        materialization_fallback_class: materialized.report().fallback_class,
-        precision_fallback_count,
-        precision_budget_fallback_count,
-        explicit_fallback_count,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
     use crate::derived_topology::materialized_graph::TopologyMaterializer;
     use crate::derived_topology::traversal_views::bootstrap_topology_interpretation;
+    use crate::projection::planner_owned_routing::diagnostic_projection_input::build_derived_read_diagnostics;
+    use crate::projection::planner_owned_routing::diagnostic_projection_input::derive_topology_validation_report;
     use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
     use crate::validation::reference_integrity::milestone_one_runtime_builder;
-
-    use super::{build_derived_read_diagnostics, derive_topology_validation_report};
 
     #[test]
     fn derived_diagnostics_reports_are_explicit_and_deterministic() {

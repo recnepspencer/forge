@@ -23,6 +23,8 @@ pub(crate) use current_cutover::{
     current_worth_workload_ordinary_consumer_cutover, WorthWorkloadOrdinaryConsumerCutover,
     WorthWorkloadOrdinaryConsumerCutoverPosture, WorthWorkloadOrdinaryConsumerCutoverRow,
 };
+#[cfg(test)]
+pub(crate) use current_replay_undo_boundary_proof::current_replay_undo_boundary_proof;
 pub(crate) use current_route_authority::current_replay_undo_boundary_route_authority;
 pub use error::{
     WorthWorkloadOrdinaryConsumerSweepCloseoutError,

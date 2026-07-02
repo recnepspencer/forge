@@ -14,11 +14,12 @@ use crate::derived_invalidation_compiled_product_admission::{
 use crate::derived_topology::compiled_product_consumer_cutover::build_derived_equivalence_contract_report;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
-use crate::projection::diagnostic_surfaces::derived_read_diagnostics::{
+use crate::projection::diagnostic_surfaces::DerivedReadDiagnostics;
+use crate::projection::planner_owned_routing::diagnostic_projection_input::{
     build_derived_fallback_report_from_counts, build_derived_invalidation_report_from_aspects,
-    derived_validation_execution_report, DerivedReadDiagnostics,
+    build_derived_rebuild_report, derived_validation_execution_report,
+    topology_derived_diagnostic_projection_source,
 };
-use crate::projection::planner_owned_routing::diagnostic_projection_input::topology_derived_diagnostic_projection_source;
 use crate::selected_equivalence_family::{
     current_topology_selected_equivalence_family_catalog, select_topology_equivalence_family,
 };
@@ -175,14 +176,21 @@ fn build_diagnostics_from_decoded_surfaces(
             read_basis_metadata.read_basis(),
             &equivalence_contract_report,
         ),
+        compiled_product_reuse_route_packet_identity: None,
+        topology_reuse_posture: None,
+        spatial_reuse_posture: None,
+        spatial_reuse_decision_identity_digest: None,
+        spatial_rebuild_denial_identity_digest: None,
+        batch_admission_route_packet_identity: None,
+        batch_admission_denial_witness_identity: None,
+        batch_admission_denial_witness_kind: None,
+        conflict_independence_route_packet_identity: None,
+        conflict_independence_denial_witness_identity: None,
+        conflict_independence_denial_witness_kind: None,
         invalidation_report: build_derived_invalidation_report_from_aspects(
             touched_aspects.iter().copied(),
         ),
-        rebuild_report: crate::projection::diagnostic_surfaces::derived_read_diagnostics::build_derived_rebuild_report(
-            &materialized,
-            &interpreted,
-            validation,
-        ),
+        rebuild_report: build_derived_rebuild_report(&materialized, &interpreted, validation),
         fallback_report: build_derived_fallback_report_from_counts(
             evidence.precision_fallback_count,
             evidence.precision_budget_fallback_count,
@@ -310,11 +318,9 @@ mod tests {
             &materialized_surface,
         )
         .expect("materialized surface should return retained failure payload");
-        let diagnostics_row: serde_json::Value = materialize_declared_query_surface_row(
-            query_runtime.workspace(),
-            &diagnostics_surface,
-        )
-        .expect("diagnostics surface should return retained failure payload");
+        let diagnostics_row: serde_json::Value =
+            materialize_declared_query_surface_row(query_runtime.workspace(), &diagnostics_surface)
+                .expect("diagnostics surface should return retained failure payload");
 
         assert_eq!(materialized_row["query_surface_error_kind"].as_str(), None);
         assert_eq!(

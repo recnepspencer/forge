@@ -39,7 +39,9 @@ impl<'a> TopologyQueryBackedReadFamilyRouteInput<'a> {
         let observed_family_rows = observed_family_rows(proof_report.request_aggregate());
         let query_executed_debt_free_family_count = observed_family_rows
             .iter()
-            .filter(|row| row.closeout_status() == TopologyReadCloseoutStatus::QueryExecutedDebtFree)
+            .filter(|row| {
+                row.closeout_status() == TopologyReadCloseoutStatus::QueryExecutedDebtFree
+            })
             .count();
         let debt_family_count = observed_family_rows
             .iter()
@@ -154,12 +156,11 @@ fn observed_family_row(
         .find(|row| row.request_family() == request_family);
     let request_count = family_aggregate.map_or(0, |row| row.request_count());
     let query_execution_count = family_aggregate.map_or(0, |row| row.query_execution_count());
-    let row_scan_fallback_count =
-        family_aggregate.map_or(0, |row| row.row_scan_fallback_count());
+    let row_scan_fallback_count = family_aggregate.map_or(0, |row| row.row_scan_fallback_count());
     let whole_view_fallback_count =
         family_aggregate.map_or(0, |row| row.whole_view_fallback_count());
-    let repeated_rediscovery_denied_count = family_aggregate
-        .map_or(0, |row| row.repeated_rediscovery_denied_count());
+    let repeated_rediscovery_denied_count =
+        family_aggregate.map_or(0, |row| row.repeated_rediscovery_denied_count());
     let debt_row_count = request_aggregate
         .debt_rows()
         .iter()

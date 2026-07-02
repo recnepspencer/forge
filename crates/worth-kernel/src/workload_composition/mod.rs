@@ -144,6 +144,14 @@ pub use operator_harness::{
     OperatorSupportReceipt, OperatorWorkloadError, OperatorWorkloadReceipt,
     UnsupportedOperatorFamily, WorkloadOperator, WorkloadOperatorFamily,
 };
+pub use planner_owned_routing::{
+    admit_worth_touched_graph_conflict_public_proof_input,
+    current_worth_touched_graph_conflict_derived_read_diagnostic_input,
+    current_worth_touched_graph_conflict_public_proof_input,
+    current_worth_touched_graph_conflict_selected_route_packet, PlannerOwnedRoutingError,
+    PlannerOwnedRoutingErrorKind, WorthTouchedGraphConflictAdmittedPublicProofInput,
+    WorthTouchedGraphConflictSelectedRoutePacket,
+};
 pub use planner_owned_routing_inventory::{
     current_planner_owned_routing_inventory, PlannerOwnedRoutingCutLine,
     PlannerOwnedRoutingDisplacedLane, PlannerOwnedRoutingDisposition,
@@ -152,13 +160,6 @@ pub use planner_owned_routing_inventory::{
     PlannerOwnedRoutingInventoryRow, PlannerOwnedRoutingLifecycleRole, PlannerOwnedRoutingOwner,
     PlannerOwnedRoutingQueryGapKind, PlannerOwnedRoutingReplacementLane,
     PlannerOwnedRoutingReplacementLaneCount, PlannerOwnedRoutingSurfaceIdentity,
-};
-pub use planner_owned_routing::{
-    admit_worth_touched_graph_conflict_public_proof_input,
-    current_worth_touched_graph_conflict_public_proof_input,
-    current_worth_touched_graph_conflict_selected_route_packet, PlannerOwnedRoutingError,
-    PlannerOwnedRoutingErrorKind, WorthTouchedGraphConflictAdmittedPublicProofInput,
-    WorthTouchedGraphConflictSelectedRoutePacket,
 };
 pub use public_closeout::{
     current_worth_touched_graph_conflict_milestone_fifteen_seed,

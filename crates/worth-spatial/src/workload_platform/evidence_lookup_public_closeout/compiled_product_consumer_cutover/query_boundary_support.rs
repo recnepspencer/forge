@@ -4,7 +4,7 @@ use crate::workload_platform::evidence_lookup_public_closeout::EvidenceLookupPub
 use crate::workload_platform::evidence_lookup_query_consumer_kit::EvidenceLookupQueryConsumerKitCloseout;
 use crate::workload_platform::evidence_lookup_query_surface_matrix::EvidenceLookupQuerySurfaceMatrixCloseout;
 
-pub(super) fn compose_query_boundary_support_digest(
+pub(crate) fn compose_query_boundary_support_digest(
     family_stage_rows: &[EvidenceLookupPublicCloseoutFamilyStageRow],
     query_surface_matrix: &EvidenceLookupQuerySurfaceMatrixCloseout,
     query_consumer_kit: &EvidenceLookupQueryConsumerKitCloseout,

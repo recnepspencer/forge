@@ -15,6 +15,7 @@ use super::current_cutover::{
     WorthWorkloadOrdinaryConsumerCutoverError, WorthWorkloadOrdinaryConsumerCutoverErrorKind,
 };
 use super::current_replay_undo_boundary_proof::current_replay_undo_boundary_proof;
+use crate::workload_composition::planner_owned_routing::current_replay_undo_transaction_route_packet;
 
 #[derive(Clone, Debug)]
 pub(crate) enum WorthWorkloadCurrentOrdinaryRouteAuthority {
@@ -41,6 +42,8 @@ pub(crate) struct WorthWorkloadCurrentCompletedSplitRouteAuthority {
 pub(crate) struct WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority {
     lookup_route_authority: WorthWorkloadCurrentLookupConsumedRouteAuthority,
     route_authority_digest: String,
+    route_packet_identity: String,
+    route_family: String,
     boundary_proof_digest: String,
     transaction_packet_identity: String,
     replay_scope_identity: String,
@@ -211,6 +214,8 @@ impl WorthWorkloadCurrentCompletedSplitRouteAuthority {
 impl WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority {
     fn current() -> Result<Self, WorthWorkloadOrdinaryConsumerCutoverError> {
         let completed_split_route_authority = current_completed_split_route_authority()?;
+        let replay_undo_route_packet =
+            current_replay_undo_transaction_route_packet().map_err(current_route_error)?;
         let replay_undo_boundary_proof =
             current_replay_undo_boundary_proof(completed_split_route_authority.split_boundary())?;
         let inventory = current_replay_undo_inventory_report().map_err(current_route_error)?;
@@ -241,6 +246,14 @@ impl WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority {
                 format!(
                     "completed-split-authority:{}",
                     completed_split_route_authority.route_authority_digest()
+                ),
+                format!(
+                    "planner-route-packet:{}",
+                    replay_undo_route_packet.route_packet_identity()
+                ),
+                format!(
+                    "planner-route-family:{}",
+                    replay_undo_route_packet.family().as_str()
                 ),
                 format!(
                     "boundary-proof:{}",
@@ -278,6 +291,8 @@ impl WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority {
                 .lookup_route_authority()
                 .clone(),
             route_authority_digest,
+            route_packet_identity: replay_undo_route_packet.route_packet_identity().to_string(),
+            route_family: replay_undo_route_packet.family().as_str().to_string(),
             boundary_proof_digest: replay_undo_boundary_proof
                 .boundary_proof_digest()
                 .to_string(),
@@ -307,6 +322,14 @@ impl WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority {
 
     pub(crate) fn boundary_proof_digest(&self) -> &str {
         &self.boundary_proof_digest
+    }
+
+    pub(crate) fn route_packet_identity(&self) -> &str {
+        &self.route_packet_identity
+    }
+
+    pub(crate) fn route_family(&self) -> &str {
+        &self.route_family
     }
 
     pub(crate) fn transaction_packet_identity(&self) -> &str {

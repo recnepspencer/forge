@@ -68,7 +68,7 @@ pub(super) fn current_public_closeout_consumer_rows() -> Result<
         ),
         KernelCompiledProductConsumerCoverageTarget::new(
             KernelCompiledProductConsumerClusterIdentity::SpatialEvidenceLookupPublicCloseout,
-            "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout/current_source.rs",
+            "crates/worth-spatial/src/workload_platform/planner_owned_routing/public_closeout_route/current.rs",
             "current_evidence_lookup_public_closeout",
             KernelCompiledProductConsumerResponsibility::PublicCloseout,
             KernelCompiledProductFamilyClass::SpatialEvidenceLookupPublicCloseout,

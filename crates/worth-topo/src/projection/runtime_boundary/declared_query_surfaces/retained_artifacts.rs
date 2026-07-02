@@ -147,7 +147,8 @@ fn derived_surface_rows_from_bundle(
     bundle: &ForgeQueryDerivedArtifactBinding,
     surfaces: &TopologyDeclaredQuerySurfaces,
 ) -> Result<(DerivedReadDiagnostics, DerivedEquivalenceContractReport), TopologyQuerySurfaceError> {
-    let diagnostics_payload: Value = decode_bundle_row(bundle, surfaces.diagnostics(), "diagnostics")?;
+    let diagnostics_payload: Value =
+        decode_bundle_row(bundle, surfaces.diagnostics(), "diagnostics")?;
     if let Some(error) = decode_query_surface_failure_payload(&diagnostics_payload, "diagnostics") {
         return Err(error);
     }

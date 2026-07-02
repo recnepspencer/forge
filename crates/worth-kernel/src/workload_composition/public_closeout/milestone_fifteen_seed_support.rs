@@ -111,6 +111,10 @@ pub(super) fn build_milestone_fifteen_seed_digest(
                     .unwrap_or("not-applicable")
             )))
             .chain(std::iter::once(format!(
+                "compiled-product-reuse-route-packet:{}",
+                seed.compiled_product_reuse_route_packet_identity()
+            )))
+            .chain(std::iter::once(format!(
                 "spatial-compiled-product:{}",
                 seed.spatial_compiled_product_identity_digest()
             )))
@@ -122,7 +126,20 @@ pub(super) fn build_milestone_fifteen_seed_digest(
                 "spatial-selected-equivalence-family:{}",
                 seed.spatial_selected_equivalence_family_identity()
             )))
-            .chain(std::iter::once(format!("residue:{}", seed.residue_digest())))
+            .chain(std::iter::once(format!(
+                "spatial-reuse-decision:{}",
+                seed.spatial_reuse_decision_identity_digest()
+                    .unwrap_or("not-applicable")
+            )))
+            .chain(std::iter::once(format!(
+                "spatial-rebuild-denial:{}",
+                seed.spatial_rebuild_denial_identity_digest()
+                    .unwrap_or("not-applicable")
+            )))
+            .chain(std::iter::once(format!(
+                "residue:{}",
+                seed.residue_digest()
+            )))
             .chain(std::iter::once(format!(
                 "firewall:{}",
                 seed.source_firewall_digest()
@@ -142,14 +159,26 @@ pub(super) fn require_planner_proof_input_matches_selected_route_packet(
         != Some(packet.selected_family_identity())
         || planner_proof_input.reuse_basis_identity_digest()
             != Some(packet.selected_reuse_basis_identity_digest())
+        || planner_proof_input.compiled_product_reuse_route_packet_identity()
+            != packet.compiled_product_reuse_route_packet_identity()
         || planner_proof_input.reuse_decision_identity_digest()
             != packet.selected_witness_identity_digest()
+        || planner_proof_input.spatial_reuse_decision_identity_digest()
+            != packet.spatial_reuse_decision_identity_digest()
         || planner_proof_input.rebuild_denial_identity_digest()
             != packet.rebuild_denial_identity_digest()
+        || planner_proof_input.spatial_rebuild_denial_identity_digest()
+            != packet.spatial_rebuild_denial_identity_digest()
+        || planner_proof_input.spatial_selected_equivalence_family_identity()
+            != packet.spatial_selected_family_identity()
+        || planner_proof_input.spatial_compiled_product_identity_digest()
+            != packet.spatial_selected_product_identity_digest()
+        || planner_proof_input.spatial_equivalence_policy_identity_digest()
+            != packet.spatial_equivalence_policy_identity_digest()
     {
         return Err(WorthTouchedGraphConflictPublicCloseoutError::new(
             WorthTouchedGraphConflictPublicCloseoutErrorKind::IncompleteProofChain,
-            "Milestone 15 planner proof input must preserve selected-route packet topology authority",
+            "Milestone 15 planner proof input must preserve selected-route packet reuse authority",
         ));
     }
     Ok(())

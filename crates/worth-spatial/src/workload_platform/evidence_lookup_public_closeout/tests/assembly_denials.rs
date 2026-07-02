@@ -1,10 +1,12 @@
+use crate::workload_platform::evidence_lookup_family_catalog::current_evidence_lookup_family_catalog;
 use crate::workload_platform::evidence_lookup_public_closeout::{
-    current_evidence_lookup_public_closeout_assembly_input, EvidenceLookupPublicCloseout,
+    current_evidence_lookup_public_closeout_assembly_input,
     EvidenceLookupPublicCloseoutAssemblyInput, EvidenceLookupPublicCloseoutDisposition,
     EvidenceLookupPublicCloseoutErrorKind,
 };
 use crate::workload_platform::evidence_lookup_query_surface_matrix::EvidenceLookupQuerySurfaceMatrixCloseout;
 use crate::workload_platform::evidence_lookup_query_surface_matrix::EvidenceLookupQuerySurfaceTouchpoint;
+use crate::workload_platform::planner_owned_routing::public_closeout_route::admit_evidence_lookup_public_closeout_assembly_input;
 
 #[test]
 fn assembly_rejects_missing_public_closeout_query_row() {
@@ -42,8 +44,10 @@ fn assembly_rejects_missing_public_closeout_query_row() {
     )
     .expect("assembly input");
 
-    let error = EvidenceLookupPublicCloseout::assemble_from_proof_products(&denied_input)
-        .expect_err("missing query row must deny");
+    let catalog = current_evidence_lookup_family_catalog().expect("family catalog");
+    let error =
+        admit_evidence_lookup_public_closeout_assembly_input(denied_input, catalog.declarations())
+            .expect_err("missing query row must deny");
     assert_eq!(
         error.kind(),
         EvidenceLookupPublicCloseoutErrorKind::MissingPublicCloseoutQueryRow
@@ -87,8 +91,10 @@ fn assembly_rejects_residue_without_topology_blocker() {
     )
     .expect("assembly input");
 
-    let error = EvidenceLookupPublicCloseout::assemble_from_proof_products(&denied_input)
-        .expect_err("residue without topology blocker must deny");
+    let catalog = current_evidence_lookup_family_catalog().expect("family catalog");
+    let error =
+        admit_evidence_lookup_public_closeout_assembly_input(denied_input, catalog.declarations())
+            .expect_err("residue without topology blocker must deny");
     assert_eq!(
         error.kind(),
         EvidenceLookupPublicCloseoutErrorKind::ImpossibleResidueSuccessMix

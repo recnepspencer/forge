@@ -9,7 +9,7 @@ mod public_closeout_types;
 mod residue_chain;
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
 pub use architecture_alignment_report::{
     WorthTouchedGraphConflictArchitectureAlignmentReport,
@@ -35,4 +35,10 @@ pub use public_closeout_types::{
 pub use residue_chain::{
     WorthTouchedGraphConflictResidueBoundaryPosture, WorthTouchedGraphConflictResidueChain,
     WorthTouchedGraphConflictResidueRow,
+};
+
+pub(crate) use architecture_alignment_report::build_architecture_alignment_report;
+pub(crate) use public_closeout_types::{
+    CurrentWorthTouchedGraphConflictPublicCloseoutComponents,
+    WorthTouchedGraphConflictPublicCloseoutInput,
 };

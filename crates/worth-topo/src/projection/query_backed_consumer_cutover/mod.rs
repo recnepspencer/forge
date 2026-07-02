@@ -2,6 +2,8 @@ mod closeout;
 mod current_closeout;
 mod read_model_reuse_posture;
 mod residue_manifest;
+#[cfg(test)]
+mod tests;
 
 pub use closeout::{
     admit_topology_query_backed_consumer_cutover, TopologyQueryBackedConsumerCutover,

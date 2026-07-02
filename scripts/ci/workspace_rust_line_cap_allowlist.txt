@@ -279,6 +279,9 @@ crates/worth-topo/src/certification/report.rs
 crates/worth-topo/src/derived_topology/traversal_views/tests.rs
 crates/worth-topo/src/validation/reference_integrity/tests.rs
 crates/worth-topo/src/validation/tests.rs
+# Owner: worth milestone 15 phase 9 replay/undo route packet cutover.
+# Removal trigger: split selected-route packet data from lowering/accessors without introducing new source-firewall inventory surfaces.
+crates/worth-kernel/src/workload_composition/planner_owned_routing/selected_route/packet.rs
 # Owner: forge-query aspect-native live builder field-key migration.
 # Removal trigger: split mutation bridge verification scenarios by bridge support family.
 crates/forge-query/src/runtime/tests/mutation/bridge_backed_verification_support.rs

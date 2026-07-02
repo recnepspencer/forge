@@ -117,6 +117,16 @@ impl WorthWorkloadOrdinaryConsumerCurrentRouteWitness {
             .map(|authority| authority.boundary_proof_digest())
     }
 
+    pub(crate) fn replay_undo_route_packet_identity(&self) -> Option<&str> {
+        self.replay_undo_route_authority()
+            .map(|authority| authority.route_packet_identity())
+    }
+
+    pub(crate) fn replay_undo_route_family(&self) -> Option<&str> {
+        self.replay_undo_route_authority()
+            .map(|authority| authority.route_family())
+    }
+
     pub(crate) fn transaction_packet_identity(&self) -> Option<&str> {
         self.replay_undo_route_authority()
             .map(|authority| authority.transaction_packet_identity())

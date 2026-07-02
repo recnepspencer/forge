@@ -6,8 +6,9 @@ use super::*;
 fn milestone_fifteen_seed_carries_product_identity_without_rediscovery() {
     let closeout = current_worth_touched_graph_conflict_public_closeout()
         .expect("current public closeout should publish from real proof products");
-    let packet = crate::workload_composition::current_worth_touched_graph_conflict_selected_route_packet()
-        .expect("current selected-route packet should build");
+    let packet =
+        crate::workload_composition::current_worth_touched_graph_conflict_selected_route_packet()
+            .expect("current selected-route packet should build");
     let seed = current_worth_touched_graph_conflict_milestone_fifteen_seed()
         .expect("current Milestone 15 seed should derive from the canonical closeout");
     let topology_support =
@@ -88,6 +89,30 @@ fn milestone_fifteen_seed_carries_product_identity_without_rediscovery() {
             .topology_query_rebuild_denial_identity_digest()
     );
     assert_eq!(
+        planner_input.compiled_product_reuse_route_packet_identity(),
+        seed.compiled_product_reuse_route_packet_identity()
+    );
+    assert_eq!(
+        planner_input.spatial_reuse_decision_identity_digest(),
+        seed.spatial_reuse_decision_identity_digest()
+    );
+    assert_eq!(
+        planner_input.spatial_rebuild_denial_identity_digest(),
+        seed.spatial_rebuild_denial_identity_digest()
+    );
+    assert_eq!(
+        planner_input.spatial_selected_equivalence_family_identity(),
+        seed.spatial_selected_equivalence_family_identity()
+    );
+    assert_eq!(
+        planner_input.spatial_compiled_product_identity_digest(),
+        seed.spatial_compiled_product_identity_digest()
+    );
+    assert_eq!(
+        planner_input.spatial_equivalence_policy_identity_digest(),
+        seed.spatial_equivalence_policy_identity_digest()
+    );
+    assert_eq!(
         planner_input.topology_freshness_requirement_posture(),
         topology_support.freshness_requirement_posture()
     );
@@ -134,10 +159,12 @@ fn milestone_fifteen_seed_carries_product_identity_without_rediscovery() {
 #[test]
 fn milestone_fifteen_seed_rejects_foreign_topology_planner_support_before_seed_construction() {
     let components = current_public_closeout_components().expect("current closeout components");
-    let packet = crate::workload_composition::current_worth_touched_graph_conflict_selected_route_packet()
-        .expect("current selected-route packet should build");
-    let hostile_public_proof_input =
-        hostile_public_proof_input_with_foreign_reuse_basis("foreign-topology-selected-reuse-basis");
+    let packet =
+        crate::workload_composition::current_worth_touched_graph_conflict_selected_route_packet()
+            .expect("current selected-route packet should build");
+    let hostile_public_proof_input = hostile_public_proof_input_with_foreign_reuse_basis(
+        "foreign-topology-selected-reuse-basis",
+    );
 
     let error = WorthTouchedGraphConflictMilestoneFifteenSeed::from_selected_route_packet(
         &packet,
@@ -151,9 +178,9 @@ fn milestone_fifteen_seed_rejects_foreign_topology_planner_support_before_seed_c
         error.kind(),
         WorthTouchedGraphConflictPublicCloseoutErrorKind::IncompleteProofChain
     );
-    assert!(error
-        .detail()
-        .contains("Milestone 15 planner proof input must preserve selected-route packet topology authority"));
+    assert!(error.detail().contains(
+        "Milestone 15 planner proof input must preserve selected-route packet reuse authority"
+    ));
 }
 
 #[test]

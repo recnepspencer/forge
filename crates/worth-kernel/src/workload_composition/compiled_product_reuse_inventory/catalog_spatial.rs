@@ -148,7 +148,7 @@ pub(super) fn spatial_rows() -> Vec<CompiledProductReuseInventoryRow> {
         ),
         row(
             Surface::CurrentEvidenceLookupPublicCloseout,
-            "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout/current_source.rs",
+            "crates/worth-spatial/src/workload_platform/planner_owned_routing/public_closeout_route/current.rs",
             "current_evidence_lookup_public_closeout",
             "EvidenceLookupPublicCloseout",
             Category::PseudoReuse,
@@ -167,7 +167,7 @@ pub(super) fn spatial_rows() -> Vec<CompiledProductReuseInventoryRow> {
         ),
         row(
             Surface::CurrentEvidenceLookupPublicCloseoutAssemblyInput,
-            "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout/current_source.rs",
+            "crates/worth-spatial/src/workload_platform/planner_owned_routing/public_closeout_route/current.rs",
             "current_evidence_lookup_public_closeout_assembly_input",
             "EvidenceLookupPublicCloseoutAssemblyInput",
             Category::PseudoReuse,

@@ -4,7 +4,11 @@ use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde_json::Value;
 
 use super::route_input::TopologyQueryBackedReadFamilyRouteInput;
-use super::{admit_topology_query_backed_read_family_route, TopologyQueryBackedConsumerCutover};
+use super::{
+    admit_topology_query_backed_read_family_route,
+    admit_topology_query_backed_read_family_route_with_selected_route_authority,
+    TopologyQueryBackedConsumerCutover, TopologyQueryBackedReadFamilySelectedRouteAuthority,
+};
 use crate::certification::support::historical_query_snapshot::historical_query_snapshot_for_read_basis;
 use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
 use crate::compiled_product_family::{
@@ -32,6 +36,14 @@ use crate::selected_equivalence_family::{
 use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
+#[derive(Clone, Debug)]
+pub(crate) struct CurrentTopologyQueryBackedReadFamilyArtifacts {
+    read_basis: schema::facade::topology_authoring::DerivedTopologyReadBasis,
+    materialized: crate::derived_topology::materialized_graph::MaterializedTopologyView,
+    interpreted: crate::derived_topology::traversal_views::InterpretedTopologyView,
+    validation: crate::validation::DerivedTopologyValidationReport,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TopologyQueryBackedConsumerCutoverCurrentError {
     detail: String,
@@ -39,13 +51,29 @@ pub struct TopologyQueryBackedConsumerCutoverCurrentError {
 
 pub fn current_topology_query_backed_consumer_cutover(
 ) -> Result<TopologyQueryBackedConsumerCutover, TopologyQueryBackedConsumerCutoverCurrentError> {
-    admit_topology_query_backed_read_family_route(&current_topology_query_backed_read_family_route_input()?)
-        .map_err(current_runtime_error)
+    admit_topology_query_backed_read_family_route(
+        &current_topology_query_backed_read_family_route_input()?,
+    )
+    .map_err(current_runtime_error)
 }
 
-pub(crate) fn current_topology_query_backed_read_family_route_input(
-) -> Result<TopologyQueryBackedReadFamilyRouteInput<'static>, TopologyQueryBackedConsumerCutoverCurrentError>
-{
+pub fn admit_current_topology_query_backed_consumer_cutover_with_selected_route_authority<
+    A: TopologyQueryBackedReadFamilySelectedRouteAuthority,
+>(
+    authority: &A,
+) -> Result<TopologyQueryBackedConsumerCutover, TopologyQueryBackedConsumerCutoverCurrentError> {
+    let route_input = current_topology_query_backed_read_family_route_input()?;
+    admit_topology_query_backed_read_family_route_with_selected_route_authority(
+        &route_input,
+        authority,
+    )
+    .map_err(current_runtime_error)
+}
+
+pub(crate) fn current_topology_query_backed_read_family_route_input() -> Result<
+    TopologyQueryBackedReadFamilyRouteInput<'static>,
+    TopologyQueryBackedConsumerCutoverCurrentError,
+> {
     current_topology_query_backed_read_family_route_input_with_hostile_selected_basis_overrides(
         None, None,
     )
@@ -67,24 +95,12 @@ pub(crate) fn current_topology_query_backed_consumer_cutover_with_hostile_select
 fn current_topology_query_backed_read_family_route_input_with_hostile_selected_basis_overrides(
     selected_compatibility_basis_identity_digest: Option<&str>,
     selected_reuse_basis_identity_digest: Option<&str>,
-) -> Result<TopologyQueryBackedReadFamilyRouteInput<'static>, TopologyQueryBackedConsumerCutoverCurrentError>
-{
-    let mut runtime = build_milestone_one_runtime().map_err(current_runtime_error)?;
-    let verified = seed_milestone_one_primitive_through_schema_execution(
-        &mut runtime,
-        "phase13.current-topology-query-backed-consumer-cutover",
-        &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
-    )
-    .map_err(current_runtime_error)?;
-    let mut historical_query_runtime = HistoricalReadBasisQueryRuntime::open(
-        &runtime,
-        verified.read_basis().clone(),
-        "phase13.current-topology-query-backed-consumer-cutover.historical",
-    )
-    .map_err(current_runtime_error)?;
-    let historical_snapshot =
-        historical_query_snapshot_for_read_basis(&mut historical_query_runtime)
-            .map_err(current_runtime_error)?;
+) -> Result<
+    TopologyQueryBackedReadFamilyRouteInput<'static>,
+    TopologyQueryBackedConsumerCutoverCurrentError,
+> {
+    let (runtime, historical_artifacts) =
+        current_topology_query_backed_read_family_runtime_and_artifacts()?;
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(
         adapters,
@@ -135,8 +151,10 @@ fn current_topology_query_backed_read_family_route_input_with_hostile_selected_b
         .loop_cycle(&anchor, 5)
         .map_err(current_runtime_error)?;
     let equivalence_contract = build_query_backed_equivalence_contract_from_raw_inputs(
-        verified.read_basis(),
-        &historical_snapshot,
+        historical_artifacts.read_basis(),
+        historical_artifacts.materialized(),
+        historical_artifacts.interpreted(),
+        historical_artifacts.validation(),
         selected_compatibility_basis_identity_digest,
         selected_reuse_basis_identity_digest,
     )?;
@@ -148,9 +166,19 @@ fn current_topology_query_backed_read_family_route_input_with_hostile_selected_b
     ))
 }
 
+pub(crate) fn current_topology_query_backed_read_family_artifacts() -> Result<
+    CurrentTopologyQueryBackedReadFamilyArtifacts,
+    TopologyQueryBackedConsumerCutoverCurrentError,
+> {
+    let (_, artifacts) = current_topology_query_backed_read_family_runtime_and_artifacts()?;
+    Ok(artifacts)
+}
+
 fn build_query_backed_equivalence_contract_from_raw_inputs(
     read_basis: &schema::facade::topology_authoring::DerivedTopologyReadBasis,
-    historical_snapshot: &crate::certification::support::historical_query_snapshot::HistoricalTopologyQuerySnapshot,
+    materialized: &crate::derived_topology::materialized_graph::MaterializedTopologyView,
+    interpreted: &crate::derived_topology::traversal_views::InterpretedTopologyView,
+    validation: &crate::validation::DerivedTopologyValidationReport,
     selected_compatibility_basis_identity_digest: Option<&str>,
     selected_reuse_basis_identity_digest: Option<&str>,
 ) -> Result<DerivedEquivalenceContractReport, TopologyQueryBackedConsumerCutoverCurrentError> {
@@ -178,11 +206,7 @@ fn build_query_backed_equivalence_contract_from_raw_inputs(
     )
     .map_err(current_runtime_error)?;
     let lowered_identity = selected_family
-        .compile_product_identity(
-            historical_snapshot.materialized(),
-            historical_snapshot.interpreted(),
-            historical_snapshot.validation(),
-        )
+        .compile_product_identity(materialized, interpreted, validation)
         .map_err(current_runtime_error)?;
     Ok(build_derived_equivalence_contract_report(
         admitted.source_authority_basis().authority_snapshot_id(),
@@ -208,10 +232,68 @@ fn build_query_backed_equivalence_contract_from_raw_inputs(
         Some(&selected_equivalence_family),
         Some(selected_family.declaration().identity()),
         Some(&lowered_identity),
-        historical_snapshot.materialized(),
-        historical_snapshot.interpreted(),
-        historical_snapshot.validation(),
+        materialized,
+        interpreted,
+        validation,
     ))
+}
+
+fn current_topology_query_backed_read_family_runtime_and_artifacts() -> Result<
+    (
+        forge_relational::facade::runtime::RelationalRuntime,
+        CurrentTopologyQueryBackedReadFamilyArtifacts,
+    ),
+    TopologyQueryBackedConsumerCutoverCurrentError,
+> {
+    let mut runtime = build_milestone_one_runtime().map_err(current_runtime_error)?;
+    let verified = seed_milestone_one_primitive_through_schema_execution(
+        &mut runtime,
+        "phase13.current-topology-query-backed-consumer-cutover",
+        &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
+    )
+    .map_err(current_runtime_error)?;
+    let mut historical_query_runtime = HistoricalReadBasisQueryRuntime::open(
+        &runtime,
+        verified.read_basis().clone(),
+        "phase13.current-topology-query-backed-consumer-cutover.historical",
+    )
+    .map_err(current_runtime_error)?;
+    let historical_snapshot =
+        historical_query_snapshot_for_read_basis(&mut historical_query_runtime)
+            .map_err(current_runtime_error)?;
+    Ok((
+        runtime,
+        CurrentTopologyQueryBackedReadFamilyArtifacts {
+            read_basis: verified.read_basis().clone(),
+            materialized: historical_snapshot.materialized().clone(),
+            interpreted: historical_snapshot.interpreted().clone(),
+            validation: historical_snapshot.validation().clone(),
+        },
+    ))
+}
+
+impl CurrentTopologyQueryBackedReadFamilyArtifacts {
+    pub(crate) fn read_basis(
+        &self,
+    ) -> &schema::facade::topology_authoring::DerivedTopologyReadBasis {
+        &self.read_basis
+    }
+
+    pub(crate) fn materialized(
+        &self,
+    ) -> &crate::derived_topology::materialized_graph::MaterializedTopologyView {
+        &self.materialized
+    }
+
+    pub(crate) fn interpreted(
+        &self,
+    ) -> &crate::derived_topology::traversal_views::InterpretedTopologyView {
+        &self.interpreted
+    }
+
+    pub(crate) fn validation(&self) -> &crate::validation::DerivedTopologyValidationReport {
+        &self.validation
+    }
 }
 
 impl TopologyQueryBackedConsumerCutoverCurrentError {

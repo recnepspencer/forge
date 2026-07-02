@@ -104,6 +104,9 @@ pub(crate) const fn public_facade_compile_fail_target_files() -> &'static [&'sta
         "public_topology_compiled_product_admission_not_exported.rs",
         "public_topology_compiled_product_reuse_decision_not_exported.rs",
         "public_topology_compiled_product_rebuild_denial_not_exported.rs",
+        "public_derived_read_diagnostic_support_not_exported.rs",
+        "public_invalidation_route_input_not_mintable_from_milestone_ten_summary_row.rs",
+        "public_invalidation_route_input_not_mintable_from_projection_read_stage_receipt.rs",
         "public_topology_compiled_product_family_proof_products_not_deserializable.rs",
     ]
 }
@@ -119,6 +122,18 @@ fn public_api_cannot_forge_compiled_product_or_reuse_products() {
             .fixture_path()
             .strip_prefix("src/certification/public_facade_contracts/compile_fail/")
             .expect("phase 15 topology fixture must stay under compile_fail root");
+        test_cases.compile_fail(format!("{COMPILE_FAIL_ROOT}/{file_name}"));
+    }
+}
+
+#[test]
+fn public_api_cannot_mint_invalidation_route_input_from_projection_or_summary_rows() {
+    const COMPILE_FAIL_ROOT: &str = "src/certification/public_facade_contracts/compile_fail";
+    let test_cases = trybuild::TestCases::new();
+    for file_name in [
+        "public_invalidation_route_input_not_mintable_from_milestone_ten_summary_row.rs",
+        "public_invalidation_route_input_not_mintable_from_projection_read_stage_receipt.rs",
+    ] {
         test_cases.compile_fail(format!("{COMPILE_FAIL_ROOT}/{file_name}"));
     }
 }

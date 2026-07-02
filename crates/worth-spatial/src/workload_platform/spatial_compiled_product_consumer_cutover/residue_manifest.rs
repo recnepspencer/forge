@@ -64,22 +64,14 @@ impl SpatialConsumerResidueRow {
     }
 }
 
-const SPATIAL_RESIDUE: [SpatialConsumerResidueRow; 2] = [
+const SPATIAL_RESIDUE: [SpatialConsumerResidueRow; 1] = [
     SpatialConsumerResidueRow::new(
-        "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout/current_source.rs",
-        "current_evidence_lookup_public_closeout",
-        SpatialConsumerResidueOwner::WorthSpatial,
-        SpatialConsumerResidueDisposition::ExplicitResidue,
-        "public closeout still belongs to phase 13 boundary-crossing consumer cutover",
-        "replace once public closeout lowers selected equivalence and reuse products through the phase 13 boundary lane",
-    ),
-    SpatialConsumerResidueRow::new(
-        "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout/current_source.rs",
+        "crates/worth-spatial/src/workload_platform/planner_owned_routing/public_closeout_route/current.rs",
         "current_evidence_lookup_public_closeout_assembly_input",
         SpatialConsumerResidueOwner::WorthSpatial,
         SpatialConsumerResidueDisposition::CertificationOnly,
-        "assembly input remains closeout-only support and must not survive as ordinary consumer authority",
-        "remove once phase 13 public closeout lowerings no longer need a direct assembly proof surface",
+        "assembly input remains an internal denial-proof seam and must not survive as ordinary consumer authority",
+        "remove once public closeout denial coverage no longer needs a direct admitted-assembly proof surface",
     ),
 ];
 

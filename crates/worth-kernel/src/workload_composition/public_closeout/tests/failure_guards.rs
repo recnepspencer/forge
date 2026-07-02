@@ -6,13 +6,9 @@ fn public_closeout_rejects_remaining_second_ontology_dependency() {
     let hostile_cutover = ordinary_consumer_cutover_from_inventory_for_tests(&hostile_inventory)
         .expect("hostile cutover should lower from the real inventory path");
     let components = current_public_closeout_components().expect("current closeout components");
-    let residue_chain =
-        WorthTouchedGraphConflictResidueChain::from_cutover_rows(hostile_cutover.rows());
-
     let error = publish_from_parts(
         components.input().expect("current closeout input"),
         &hostile_cutover,
-        residue_chain,
         components.selected_route_packet(),
         components.admitted_public_proof_input(),
     )
@@ -42,7 +38,6 @@ fn touched_graph_closeout_rejects_foreign_replay_undo_proof_identities() {
     let error = publish_from_parts(
         components.input().expect("current closeout input"),
         &foreign_cutover,
-        components.residue_chain(),
         components.selected_route_packet(),
         components.admitted_public_proof_input(),
     )
@@ -54,7 +49,7 @@ fn touched_graph_closeout_rejects_foreign_replay_undo_proof_identities() {
     );
     assert!(error
         .detail()
-        .contains("current replay/undo admitted-boundary proof identities"));
+        .contains("selected-route packet and cutover proof"));
 }
 
 #[test]

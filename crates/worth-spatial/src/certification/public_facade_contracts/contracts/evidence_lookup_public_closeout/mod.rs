@@ -1,9 +1,8 @@
 use worth_spatial::facade::evidence_lookup_public_closeout::{
-    current_evidence_lookup_public_closeout,
-    current_evidence_lookup_public_closeout_assembly_input, EvidenceLookupPublicCloseout,
-    EvidenceLookupPublicCloseoutAssemblyInput, EvidenceLookupPublicCloseoutCounters,
-    EvidenceLookupPublicCloseoutDisposition, EvidenceLookupPublicCloseoutError,
-    EvidenceLookupPublicCloseoutErrorKind, EvidenceLookupPublicCloseoutFamilyStageRow,
+    current_evidence_lookup_public_closeout, EvidenceLookupPublicCloseout,
+    EvidenceLookupPublicCloseoutCounters, EvidenceLookupPublicCloseoutDisposition,
+    EvidenceLookupPublicCloseoutError, EvidenceLookupPublicCloseoutErrorKind,
+    EvidenceLookupPublicCloseoutFamilyStageRow,
 };
 use worth_spatial::facade::evidence_lookup_workload_cutover::{
     EvidenceLookupMilestoneTwelveReplayReadinessPosture, EvidenceLookupMilestoneTwelveSeed,
@@ -11,14 +10,8 @@ use worth_spatial::facade::evidence_lookup_workload_cutover::{
 
 #[test]
 fn spatial_public_api_exports_lookup_public_closeout_contract() {
-    let _: fn(
-        &EvidenceLookupPublicCloseoutAssemblyInput,
-    ) -> &[EvidenceLookupPublicCloseoutFamilyStageRow] =
-        EvidenceLookupPublicCloseoutAssemblyInput::family_stage_rows;
     let _: fn(&EvidenceLookupPublicCloseout) -> &[EvidenceLookupPublicCloseoutFamilyStageRow] =
         EvidenceLookupPublicCloseout::family_stage_rows;
-    let _: fn(&EvidenceLookupPublicCloseoutAssemblyInput) -> &worth_spatial::facade::evidence_lookup_query_surface_matrix::EvidenceLookupQuerySurfaceMatrixCloseout =
-        EvidenceLookupPublicCloseoutAssemblyInput::query_surface_matrix;
     let _: fn(&EvidenceLookupPublicCloseout) -> &EvidenceLookupPublicCloseoutCounters =
         EvidenceLookupPublicCloseout::counters;
     let _: fn(&EvidenceLookupPublicCloseout) -> &str =
@@ -31,14 +24,6 @@ fn spatial_public_api_exports_lookup_public_closeout_contract() {
         EvidenceLookupPublicCloseout::milestone_twelve_seed;
     let _: fn(&EvidenceLookupPublicCloseout) -> &str =
         EvidenceLookupPublicCloseout::closeout_digest;
-    let _: fn(
-        &EvidenceLookupPublicCloseoutAssemblyInput,
-    ) -> &worth_spatial::facade::evidence_lookup_query_consumer_kit::EvidenceLookupQueryConsumerKitCloseout =
-        EvidenceLookupPublicCloseoutAssemblyInput::query_consumer_kit;
-    let _: fn(
-        &EvidenceLookupPublicCloseoutAssemblyInput,
-    ) -> &worth_spatial::facade::evidence_lookup_source_firewall::EvidenceLookupSourceFirewallReport =
-        EvidenceLookupPublicCloseoutAssemblyInput::source_firewall_report;
 }
 
 #[test]
@@ -77,8 +62,6 @@ fn spatial_public_api_exports_lookup_public_closeout_support_types() {
 
 #[test]
 fn spatial_public_api_reads_current_lookup_public_closeout() {
-    let _assembly_input =
-        current_evidence_lookup_public_closeout_assembly_input().expect("assembly input");
     let closeout = current_evidence_lookup_public_closeout().expect("current public closeout");
     assert!(!closeout.closeout_digest().is_empty());
 }
