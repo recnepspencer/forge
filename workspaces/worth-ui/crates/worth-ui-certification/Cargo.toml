@@ -20,5 +20,6 @@ trybuild = { workspace = true }
 worth-ui-dsl = { path = "../worth-ui-dsl" }
 worth-ui-host-contract = { path = "../worth-ui-host-contract" }
 worth-ui-inspection = { path = "../worth-ui-inspection" }
+worth-ui-query-binding = { path = "../worth-ui-query-binding" }
 worth-ui-runtime = { path = "../worth-ui-runtime" }
 worth-ui = { path = "../worth-ui" }

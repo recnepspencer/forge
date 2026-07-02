@@ -4,7 +4,7 @@ use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::inspection::{
     UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery,
     UiInspectionScope, UiInspectionSupportReason, UiInspectionSupportStatus,
-    UiInspectionTarget,
+    UiInspectionSupportWorld, UiInspectionTarget,
 };
 use worth_ui_certification::topology::{
     audit_host_egui_dependency_boundary, audit_no_cross_crate_deep_imports,
@@ -324,17 +324,12 @@ fn facade_inspection_from_immutable_app_reference_uses_lifecycle_owned_support_p
         support_report.status(),
         UiInspectionSupportStatus::Unsupported
     );
-    let unsupported = receipt
-        .posture()
-        .unsupported_posture()
-        .expect("unsupported graph inspection should carry a sealed unsupported posture witness");
-    assert_eq!(receipt.posture(), UiInspectionPosture::Unsupported(unsupported));
+    assert_eq!(receipt.support_report(), Some(support_report));
     assert_eq!(
-        unsupported.reason(),
-        UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted
-    );
-    assert_eq!(
-        unsupported.expected_in(),
-        Some(UiInspectionMilestoneExpectation::Milestone31)
+        receipt.posture(),
+        Some(UiInspectionPosture::deferred(
+            Some(UiInspectionMilestoneExpectation::Milestone31),
+            UiInspectionSupportWorld::Authoritative,
+        ))
     );
 }

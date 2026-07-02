@@ -4,8 +4,11 @@ our perf laws, and respects our current APIs.
 
 Then go implement that plan.
 
-State file: {state_file}
+Config file: {config_file}
+Projection file: {projection_file}
+Event log file: {event_log_file}
 Spec file: {spec_file}
+Run id: {run_id}
 Cursor: phase {current.phase}, turn {current.turn}
 
 Phase scope:
@@ -14,11 +17,11 @@ Phase scope:
 Acceptance evidence:
 {phase.acceptance}
 
-Open done-check summary from JSON:
+Open done-check summary from projection:
 {phase.notes.findings}
 
 Use the detailed findings from the previous chat turn as the real repair input.
-The JSON summary is only a pointer, not the artifact of record.
+The projection summary is only a pointer, not the artifact of record.
 
 Repair rules:
 
@@ -29,15 +32,11 @@ Repair rules:
   production authority.
 - Keep the repair scoped to making this phase actually done.
 - Put the repair plan, implementation explanation, and any important evidence in
-  chat, not in the JSON.
+  chat, not in runner authority files.
 
-After repair, update the JSON state file directly with short progress markers:
+After repair, finish with:
 
-- `status: complete`, `qa_status: needed`, and cursor turn `review` if the phase
-  is ready to re-check.
-- `status: in_progress` and cursor turn `implement` only if substantial
-  implementation remains.
-- `status: blocked` only for a precise blocker.
+`RUNNER_EVENT: {"event_type":"repair_completed","payload":{"notes":{"done":["..."],"verification":["..."]}}}`
 
 Phase-specific instructions:
 {phase.instructions}

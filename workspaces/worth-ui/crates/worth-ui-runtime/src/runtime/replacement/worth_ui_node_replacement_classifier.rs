@@ -251,6 +251,7 @@ fn classify_matched_identities(
         );
         accumulator.record_matched_classification(WorthUiNodeReplacementClassification::new(
             identity_basis.to_owned(),
+            Some(candidate_node.authored_provenance_digest()),
             transition,
             Some(active_node.kind()),
             Some(candidate_node.kind()),
@@ -326,6 +327,7 @@ fn classify_dropped_identities(
         }
         accumulator.record_dropped_classification(WorthUiNodeReplacementClassification::new(
             identity_basis.to_owned(),
+            Some(active_node.authored_provenance_digest()),
             WorthUiNodeLifecycleTransition::Drop,
             Some(active_node.kind()),
             None,
@@ -347,6 +349,7 @@ fn classify_created_identities(
         }
         accumulator.record_created_classification(WorthUiNodeReplacementClassification::new(
             identity_basis.to_owned(),
+            Some(candidate_node.authored_provenance_digest()),
             WorthUiNodeLifecycleTransition::Create,
             None,
             Some(candidate_node.kind()),

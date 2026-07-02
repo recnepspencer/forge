@@ -7,6 +7,7 @@ use crate::source::{
 
 pub(crate) fn lower_parsed_source_declaration(
     declaration: &WorthUiParsedSourceDeclaration,
+    declaration_index: usize,
 ) -> WorthUiArtifactInputNode {
     match declaration {
         WorthUiParsedSourceDeclaration::Import(import_declaration) => {
@@ -15,17 +16,27 @@ pub(crate) fn lower_parsed_source_declaration(
                 WorthUiArtifactInputProvenance::parsed_source(
                     import_declaration.span().clone(),
                     None,
+                    declaration_index,
                 ),
             ))
         }
         WorthUiParsedSourceDeclaration::Component(block_declaration) => {
-            WorthUiArtifactInputNode::Component(lower_parsed_block_declaration(block_declaration))
+            WorthUiArtifactInputNode::Component(lower_parsed_block_declaration(
+                block_declaration,
+                declaration_index,
+            ))
         }
         WorthUiParsedSourceDeclaration::Surface(block_declaration) => {
-            WorthUiArtifactInputNode::Surface(lower_parsed_block_declaration(block_declaration))
+            WorthUiArtifactInputNode::Surface(lower_parsed_block_declaration(
+                block_declaration,
+                declaration_index,
+            ))
         }
         WorthUiParsedSourceDeclaration::Binding(block_declaration) => {
-            WorthUiArtifactInputNode::Binding(lower_parsed_block_declaration(block_declaration))
+            WorthUiArtifactInputNode::Binding(lower_parsed_block_declaration(
+                block_declaration,
+                declaration_index,
+            ))
         }
         WorthUiParsedSourceDeclaration::Token(token_declaration) => {
             WorthUiArtifactInputNode::Token(WorthUiArtifactInputTokenNode::new(
@@ -35,6 +46,7 @@ pub(crate) fn lower_parsed_source_declaration(
                 WorthUiArtifactInputProvenance::parsed_source(
                     token_declaration.span().clone(),
                     Some(token_declaration.value_span().clone()),
+                    declaration_index,
                 ),
             ))
         }
@@ -43,12 +55,17 @@ pub(crate) fn lower_parsed_source_declaration(
 
 fn lower_parsed_block_declaration(
     block_declaration: &crate::source::WorthUiParsedBlockDeclaration,
+    declaration_index: usize,
 ) -> WorthUiArtifactInputBlockNode {
     WorthUiArtifactInputBlockNode::new(
         block_declaration.name_text(),
         None,
         lower_parsed_block_body(block_declaration.body()),
-        WorthUiArtifactInputProvenance::parsed_source(block_declaration.span().clone(), None),
+        WorthUiArtifactInputProvenance::parsed_source(
+            block_declaration.span().clone(),
+            None,
+            declaration_index,
+        ),
     )
 }
 

@@ -200,6 +200,7 @@ pub(super) fn ambiguous_plan_with_inventory() -> (
         base_plan.candidate_artifact_digest(),
         vec![WorthUiNodeReplacementClassification::new(
             "component:ambiguous".to_owned(),
+            None,
             WorthUiNodeLifecycleTransition::Preserve,
             Some(WorthUiIdentityMatchNodeKind::Component),
             Some(WorthUiIdentityMatchNodeKind::Component),
@@ -296,6 +297,7 @@ fn plan_from_single_transition(
         candidate_artifact_digest,
         vec![WorthUiNodeReplacementClassification::new(
             identity_basis.to_owned(),
+            None,
             transition,
             active_kind,
             candidate_kind,

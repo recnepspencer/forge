@@ -3,4 +3,6 @@ pub enum UiInspectionEvidenceSource {
     WorthLocal,
     QueryInspection,
     QueryProjectionConsumption,
+    QueryCausalExplanation,
+    HostCapability,
 }

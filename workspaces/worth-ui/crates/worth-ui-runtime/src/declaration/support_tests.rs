@@ -5,7 +5,8 @@ use worth_ui_dsl::{
 use worth_ui_host_contract::WorthUiHostCapability;
 use worth_ui_inspection::{
     UiInspectionMilestoneExpectation, UiInspectionQuery, UiInspectionScope,
-    UiInspectionSupportReason, UiInspectionSupportStatus, UiInspectionTarget,
+    UiInspectionSupportPosture, UiInspectionSupportReason, UiInspectionSupportStatus,
+    UiInspectionSupportWorld, UiInspectionTarget,
 };
 
 use crate::declaration::artifact::ui_declaration_lowering::UiDeclarationLowering;
@@ -284,10 +285,10 @@ fn support_snapshot_classifies_every_row_for_admitted_families() {
             UiDslSemanticFamily::DiagnosticSurface,
             [
                 UiDeclaredPostureApplicability::NotApplicable,
-                UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted,
-                UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted,
+                UiDeclaredPostureApplicability::DiagnosticOnly,
+                UiDeclaredPostureApplicability::DiagnosticOnly,
                 UiDeclaredPostureApplicability::Optional,
-                UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted,
+                UiDeclaredPostureApplicability::DiagnosticOnly,
             ],
         ),
     ];
@@ -363,6 +364,7 @@ fn support_snapshot_inspection_projection_keeps_unsupported_posture_scope_local(
     assert_eq!(mounting_rows.len(), 3);
     for row in mounting_rows.iter() {
         assert_eq!(row.scope(), UiInspectionScope::Mounting);
+        assert_eq!(row.posture(), UiInspectionSupportPosture::Deferred);
         assert_eq!(
             row.reason(),
             Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted),
@@ -371,14 +373,17 @@ fn support_snapshot_inspection_projection_keeps_unsupported_posture_scope_local(
             row.expected_in(),
             Some(UiInspectionMilestoneExpectation::Milestone32),
         );
+        assert_eq!(row.current_world(), UiInspectionSupportWorld::Authoritative);
     }
 
     let measurement_rows = snapshot.inspection_rows(UiInspectionScope::Measurement);
     assert_eq!(measurement_rows.len(), 1);
+    assert_eq!(measurement_rows[0].posture(), UiInspectionSupportPosture::Supported);
     assert_eq!(measurement_rows[0].reason(), None);
 
     let rebind_rows = snapshot.inspection_rows(UiInspectionScope::Rebind);
     assert_eq!(rebind_rows.len(), 1);
+    assert_eq!(rebind_rows[0].posture(), UiInspectionSupportPosture::Supported);
     assert_eq!(rebind_rows[0].reason(), None);
 }
 
@@ -396,6 +401,7 @@ fn app_inspection_support_report_uses_declaration_support_projection() {
         mounting_report.status(),
         UiInspectionSupportStatus::Unsupported
     );
+    assert_eq!(mounting_report.posture(), UiInspectionSupportPosture::Deferred);
     assert_eq!(
         mounting_report.reason(),
         Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted),
@@ -410,6 +416,7 @@ fn app_inspection_support_report_uses_declaration_support_projection() {
         measurement_report.status(),
         UiInspectionSupportStatus::Supported
     );
+    assert_eq!(measurement_report.posture(), UiInspectionSupportPosture::Supported);
     assert_eq!(measurement_report.reason(), None);
     assert_eq!(measurement_report.expected_in(), None);
 

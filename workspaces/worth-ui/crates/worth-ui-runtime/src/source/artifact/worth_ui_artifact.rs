@@ -41,6 +41,21 @@ impl WorthUiArtifact {
             .and_then(|module| module.node(handle.node_index()))
     }
 
+    pub(crate) fn authored_provenance_digests(&self) -> Vec<u64> {
+        let mut digests = Vec::new();
+        for module_id in &self.canonical_module_order {
+            let Some(module) = self.module(module_id) else {
+                continue;
+            };
+            for node in module.nodes() {
+                digests.push(node.authored_provenance_digest());
+            }
+        }
+        digests.sort_unstable();
+        digests.dedup();
+        digests
+    }
+
     #[cfg(test)]
     pub(crate) fn equivalent_shape(&self, other: &Self) -> bool {
         WorthUiArtifactEquivalenceComparator::compare(

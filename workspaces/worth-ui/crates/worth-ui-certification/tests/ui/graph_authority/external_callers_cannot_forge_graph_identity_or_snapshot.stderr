@@ -1,0 +1,28 @@
+error[E0432]: unresolved imports `worth_ui::facade::graph::UiGraphCoreIndexes`, `worth_ui::facade::graph::UiGraphMountedReceiptAuthoritySeedStore`, `worth_ui::facade::graph::UiGraphNode`, `worth_ui::facade::graph::UiGraphNodeTopology`, `worth_ui::facade::graph::UiGraphSnapshot`, `worth_ui::facade::graph::UiGraphTopology`
+ --> tests/ui/graph_authority/external_callers_cannot_forge_graph_identity_or_snapshot.rs:2:5
+  |
+2 |     UiGraphCoreIndexes, UiGraphMountedReceiptAuthoritySeedStore, UiGraphNode,
+  |     ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^ no `UiGraphNode` in `facade::graph`
+  |     |                   |
+  |     |                   no `UiGraphMountedReceiptAuthoritySeedStore` in `facade::graph`
+  |     no `UiGraphCoreIndexes` in `facade::graph`
+3 |     UiGraphNodeTopology, UiGraphSnapshot, UiGraphTopology,
+  |     ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^ no `UiGraphTopology` in `facade::graph`
+  |     |                    |
+  |     |                    no `UiGraphSnapshot` in `facade::graph`
+  |     no `UiGraphNodeTopology` in `facade::graph`
+  |
+help: a similar name exists in the module
+  |
+2 -     UiGraphCoreIndexes, UiGraphMountedReceiptAuthoritySeedStore, UiGraphNode,
+2 +     UiGraphCoreIndexes, UiGraphMountedReceiptAuthoritySeed, UiGraphNode,
+  |
+help: a similar name exists in the module
+  |
+3 -     UiGraphNodeTopology, UiGraphSnapshot, UiGraphTopology,
+3 +     UiGraphSlotTopology, UiGraphSnapshot, UiGraphTopology,
+  |
+help: a similar name exists in the module
+  |
+3 |     UiGraphNodeTopology, UiGraphSnapshot, UiGraphSlotTopology,
+  |                                                  ++++

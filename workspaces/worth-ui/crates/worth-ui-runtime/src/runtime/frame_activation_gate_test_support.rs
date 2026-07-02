@@ -258,6 +258,7 @@ fn lane_change_plan(plan: &WorthUiNodeReplacementPlan) -> WorthUiNodeReplacement
             counters.record_transition(WorthUiNodeLifecycleTransition::LaneChange);
             WorthUiNodeReplacementClassification::new(
                 classification.identity_basis().to_owned(),
+                classification.authored_provenance_digest(),
                 WorthUiNodeLifecycleTransition::LaneChange,
                 classification.active_kind(),
                 classification.candidate_kind(),

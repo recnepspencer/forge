@@ -116,10 +116,10 @@ fn admit_service_usage_lane(
         | UiDeclarationFamilyKind::PageSet
         | UiDeclarationFamilyKind::Region
         | UiDeclarationFamilyKind::Mosaic
-        | UiDeclarationFamilyKind::LocalComposition
-        | UiDeclarationFamilyKind::DiagnosticSurface => {
+        | UiDeclarationFamilyKind::LocalComposition => {
             UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted
         }
+        UiDeclarationFamilyKind::DiagnosticSurface => UiDeclaredPostureApplicability::DiagnosticOnly,
         UiDeclarationFamilyKind::QueryBinding | UiDeclarationFamilyKind::Intent => {
             UiDeclaredPostureApplicability::NotApplicable
         }
@@ -134,6 +134,7 @@ fn admit_service_usage_lane(
             "service:portal" => Some(UiDeclaredServiceUsagePosture::Portal),
             "service:scroll" => Some(UiDeclaredServiceUsagePosture::Scroll),
             "service:focus-routing" => Some(UiDeclaredServiceUsagePosture::FocusRouting),
+            "service:motion" => Some(UiDeclaredServiceUsagePosture::Motion),
             _ => None,
         },
     )
@@ -155,10 +156,10 @@ fn admit_touch_meaning_lane(
         | UiDeclarationFamilyKind::PageSet
         | UiDeclarationFamilyKind::Region
         | UiDeclarationFamilyKind::Mosaic
-        | UiDeclarationFamilyKind::LocalComposition
-        | UiDeclarationFamilyKind::DiagnosticSurface => {
+        | UiDeclarationFamilyKind::LocalComposition => {
             UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted
         }
+        UiDeclarationFamilyKind::DiagnosticSurface => UiDeclaredPostureApplicability::DiagnosticOnly,
         UiDeclarationFamilyKind::QueryBinding | UiDeclarationFamilyKind::Intent => {
             UiDeclaredPostureApplicability::NotApplicable
         }
@@ -233,10 +234,10 @@ fn admit_host_capability_lane(
         | UiDeclarationFamilyKind::PageSet
         | UiDeclarationFamilyKind::Region
         | UiDeclarationFamilyKind::Mosaic
-        | UiDeclarationFamilyKind::LocalComposition
-        | UiDeclarationFamilyKind::DiagnosticSurface => {
+        | UiDeclarationFamilyKind::LocalComposition => {
             UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted
         }
+        UiDeclarationFamilyKind::DiagnosticSurface => UiDeclaredPostureApplicability::DiagnosticOnly,
         UiDeclarationFamilyKind::QueryBinding | UiDeclarationFamilyKind::Intent => {
             UiDeclaredPostureApplicability::NotApplicable
         }
@@ -264,6 +265,13 @@ fn admit_host_capability_lane(
                     observed: observed.iter().map(|claim| (*claim).to_owned()).collect(),
                 },
             )
+        }
+        observed if matches!(applicability, UiDeclaredPostureApplicability::DiagnosticOnly) => {
+            Err(UiDeclaredPostureAdmissionDenial::LaneNotApplicableForFamily {
+                family,
+                lane: UiDeclaredPostureLaneKind::HostCapability,
+                observed: observed.iter().map(|claim| (*claim).to_owned()).collect(),
+            })
         }
         observed => {
             let mut capabilities = Vec::with_capacity(observed.len());
@@ -330,6 +338,13 @@ where
                 },
             )
         }
+        observed if matches!(applicability, UiDeclaredPostureApplicability::DiagnosticOnly) => Err(
+            UiDeclaredPostureAdmissionDenial::LaneNotApplicableForFamily {
+                family,
+                lane,
+                observed: observed.iter().map(|claim| (*claim).to_owned()).collect(),
+            },
+        ),
         [claim] => match parse(claim) {
             Some(posture) => Ok(UiDeclaredPostureLane::new(applicability, Some(posture))),
             None => Err(UiDeclaredPostureAdmissionDenial::InvalidLaneClaim {

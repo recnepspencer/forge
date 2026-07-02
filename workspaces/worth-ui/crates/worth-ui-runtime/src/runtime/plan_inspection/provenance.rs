@@ -14,6 +14,7 @@ pub enum WorthUiPlanProvenanceSource {
 pub struct WorthUiArtifactToPlanProvenance {
     plan_index: u32,
     identity_basis: String,
+    authored_provenance_digest: Option<u64>,
     input_family: WorthUiPlanNodeInputFamily,
     source: WorthUiPlanProvenanceSource,
     capability_reference: Option<String>,
@@ -24,6 +25,7 @@ impl WorthUiArtifactToPlanProvenance {
     pub(crate) fn new(
         plan_index: u32,
         identity_basis: String,
+        authored_provenance_digest: Option<u64>,
         input_family: WorthUiPlanNodeInputFamily,
         source: WorthUiPlanProvenanceSource,
         capability_reference: Option<String>,
@@ -32,6 +34,7 @@ impl WorthUiArtifactToPlanProvenance {
         Self {
             plan_index,
             identity_basis,
+            authored_provenance_digest,
             input_family,
             source,
             capability_reference,
@@ -49,6 +52,10 @@ impl WorthUiArtifactToPlanProvenance {
 
     pub fn input_family(&self) -> WorthUiPlanNodeInputFamily {
         self.input_family
+    }
+
+    pub fn authored_provenance_digest(&self) -> Option<u64> {
+        self.authored_provenance_digest
     }
 
     pub fn source(&self) -> WorthUiPlanProvenanceSource {

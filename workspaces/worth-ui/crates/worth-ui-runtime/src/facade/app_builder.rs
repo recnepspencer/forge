@@ -8,6 +8,7 @@ use crate::facade::{
     TaskPresentationDescriptor, ThemeTokenDescriptor, ViewBindingDescriptor, WorthUiApp,
     WorthUiDslPackage, WorthUiHostAdapter, WorthUiHostContract,
 };
+use crate::graph::UiGraphWorldProfile;
 use worth_ui_inspection::UiInspectionScopeInventory;
 
 /// Builder for a Worth UI application definition.
@@ -15,6 +16,7 @@ pub struct WorthUiBuilder {
     inner: CapabilityRegistrationBuilder,
     dsl_package: WorthUiDslPackage,
     host_contract: WorthUiHostContract,
+    graph_world_profile: UiGraphWorldProfile,
 }
 
 pub type WorthUiAppBuilder = WorthUiBuilder;
@@ -25,6 +27,7 @@ impl WorthUiBuilder {
             inner: CapabilityRegistrationBuilder::new(),
             dsl_package: WorthUiDslPackage::empty(),
             host_contract: WorthUiHostContract::headless(),
+            graph_world_profile: UiGraphWorldProfile::authoritative(),
         }
     }
 
@@ -38,6 +41,11 @@ impl WorthUiBuilder {
         Host: WorthUiHostAdapter,
     {
         self.host_contract = host.host_contract();
+        self
+    }
+
+    pub fn with_graph_world_profile(mut self, graph_world_profile: UiGraphWorldProfile) -> Self {
+        self.graph_world_profile = graph_world_profile;
         self
     }
 
@@ -139,6 +147,7 @@ impl WorthUiBuilder {
             capability_snapshot,
             self.dsl_package,
             self.host_contract,
+            self.graph_world_profile,
         ))
     }
 
@@ -169,6 +178,7 @@ impl WorthUiBuilder {
                 capability_snapshot,
                 self.dsl_package,
                 self.host_contract,
+                self.graph_world_profile,
                 inspection_scope_inventory,
             ),
         )

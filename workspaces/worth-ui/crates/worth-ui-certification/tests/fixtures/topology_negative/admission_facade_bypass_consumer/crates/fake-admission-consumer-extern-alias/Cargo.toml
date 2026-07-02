@@ -1,0 +1,7 @@
+[package]
+name = "fake-admission-consumer-extern-alias"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+worth-ui-runtime = { path = "../../../../../../../worth-ui-runtime" }

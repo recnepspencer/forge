@@ -119,6 +119,11 @@ impl UiDeclarationArtifact {
     pub fn graph_handoff(
         &self,
     ) -> Result<UiDeclarationGraphHandoff, UiDeclarationGraphHandoffDenial> {
+        let aspect_contract = self.aspect_contract().map_err(|denial| {
+            UiDeclarationGraphHandoffDenial::AspectContractNotAdmitted {
+                denial: denial.clone(),
+            }
+        })?;
         let family =
             self.family().map_err(
                 |denial| UiDeclarationGraphHandoffDenial::FamilyNotAdmitted {
@@ -138,6 +143,8 @@ impl UiDeclarationArtifact {
 
         Ok(derive_declaration_graph_handoff(
             &self.identity,
+            &self.provenance,
+            aspect_contract,
             family,
             semantics,
             declared_posture,

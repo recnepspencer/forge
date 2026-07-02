@@ -1326,6 +1326,7 @@ dependencies = [
  "worth-ui-dsl",
  "worth-ui-host-contract",
  "worth-ui-inspection",
+ "worth-ui-query-binding",
  "worth-ui-runtime",
 ]
 

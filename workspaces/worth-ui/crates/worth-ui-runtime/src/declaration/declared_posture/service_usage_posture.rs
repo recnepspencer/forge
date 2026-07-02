@@ -3,4 +3,5 @@ pub enum UiDeclaredServiceUsagePosture {
     Portal,
     Scroll,
     FocusRouting,
+    Motion,
 }

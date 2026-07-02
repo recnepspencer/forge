@@ -1,34 +1,44 @@
 use crate::declaration::{
-    UiDeclarationContainmentIntent, UiDeclarationFamily, UiDeclarationFamilyKind,
+    UiAspectContract, UiDeclarationContainmentIntent, UiDeclarationFamily, UiDeclarationFamilyKind,
     UiDeclarationIdentity, UiDeclarationOrderingGuarantee, UiDeclarationRepetitionPosture,
     UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole,
     UiDeclaredHostCapabilityPosture, UiDeclaredMeasurementPolicyPosture, UiDeclaredPostureContract,
-    UiDeclaredPostureLane, UiDeclaredPosturePayload, UiDeclaredQueryBindingPosture,
+    UiDeclaredAspectPayload, UiDeclaredPostureLane, UiDeclaredPosturePayload, UiDeclaredQueryBindingPosture,
     UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture, UiStructuralDeclarationPayload,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiDeclarationGraphHandoff {
     identity: UiDeclarationIdentity,
+    authored_provenance_digest: u64,
     structural: UiStructuralDeclarationPayload,
+    aspect_contract: UiDeclaredAspectPayload,
     declared_posture: UiDeclaredPosturePayload,
 }
 
 impl UiDeclarationGraphHandoff {
     pub(crate) fn new(
         identity: UiDeclarationIdentity,
+        authored_provenance_digest: u64,
         structural: UiStructuralDeclarationPayload,
+        aspect_contract: UiDeclaredAspectPayload,
         declared_posture: UiDeclaredPosturePayload,
     ) -> Self {
         Self {
             identity,
+            authored_provenance_digest,
             structural,
+            aspect_contract,
             declared_posture,
         }
     }
 
     pub fn identity(&self) -> &UiDeclarationIdentity {
         &self.identity
+    }
+
+    pub fn authored_provenance_digest(&self) -> u64 {
+        self.authored_provenance_digest
     }
 
     pub fn family(&self) -> &UiDeclarationFamily {
@@ -57,6 +67,10 @@ impl UiDeclarationGraphHandoff {
 
     pub const fn repetition_posture(&self) -> UiDeclarationRepetitionPosture {
         self.structural.repetition_posture()
+    }
+
+    pub const fn aspect_contract(&self) -> &UiAspectContract {
+        self.aspect_contract.contract()
     }
 
     pub const fn declared_posture(&self) -> &UiDeclaredPostureContract {

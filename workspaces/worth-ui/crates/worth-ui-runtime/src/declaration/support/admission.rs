@@ -141,6 +141,7 @@ const fn unsupported_posture_for(
             },
         ),
         UiDeclaredPostureApplicability::Required
+        | UiDeclaredPostureApplicability::DiagnosticOnly
         | UiDeclaredPostureApplicability::Optional
         | UiDeclaredPostureApplicability::NotApplicable => None,
     }

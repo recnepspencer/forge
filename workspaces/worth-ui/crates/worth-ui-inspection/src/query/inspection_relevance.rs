@@ -36,6 +36,7 @@ impl UiInspectionRelevance {
                     source,
                     UiInspectionEvidenceSource::QueryInspection
                         | UiInspectionEvidenceSource::QueryProjectionConsumption
+                        | UiInspectionEvidenceSource::QueryCausalExplanation
                 )
             }
             Self::AllSources => true,
@@ -52,6 +53,10 @@ impl UiInspectionRelevance {
 
     pub fn includes_query_projection_consumption(self) -> bool {
         self.includes(UiInspectionEvidenceSource::QueryProjectionConsumption)
+    }
+
+    pub fn includes_query_causal_explanation(self) -> bool {
+        self.includes(UiInspectionEvidenceSource::QueryCausalExplanation)
     }
 }
 

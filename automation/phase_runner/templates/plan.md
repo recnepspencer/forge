@@ -1,7 +1,10 @@
 Now lets create an implementation plan for phase {phase.id}: {phase.title}.
 
-State file: {state_file}
+Config file: {config_file}
+Projection file: {projection_file}
+Event log file: {event_log_file}
 Spec file: {spec_file}
+Run id: {run_id}
 Cursor: phase {current.phase}, turn {current.turn}
 
 Phase scope:
@@ -36,8 +39,8 @@ The plan should cover:
 Phase-specific instructions:
 {phase.instructions}
 
-After posting the plan in chat, update the JSON state file directly: set this
-phase to `in_progress`, keep only a short `notes.plan` marker, and advance the
-cursor to `implement`.
+After posting the plan in chat, finish with:
+
+`RUNNER_EVENT: {"event_type":"plan_posted","payload":{"notes":{"plan":["..."]}}}`
 
 {contract}

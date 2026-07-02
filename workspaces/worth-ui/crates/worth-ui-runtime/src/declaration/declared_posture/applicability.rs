@@ -2,6 +2,7 @@
 pub enum UiDeclaredPostureApplicability {
     Required,
     Optional,
+    DiagnosticOnly,
     NotApplicable,
     ArchitecturallyOwnedButNotYetAdmitted,
 }
