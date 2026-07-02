@@ -1,8 +1,11 @@
 [$code-quality-qa](C:\Users\Esther\.codex\skills\code-quality-qa\SKILL.md) now
 review the code quality of phase {phase.id}: {phase.title}.
 
-State file: {state_file}
+Config file: {config_file}
+Projection file: {projection_file}
+Event log file: {event_log_file}
 Spec file: {spec_file}
+Run id: {run_id}
 Cursor: phase {current.phase}, turn {current.turn}
 
 Phase scope:
@@ -24,22 +27,16 @@ Look for:
 - weak ownership boundaries
 - places where the implementation works but teaches the wrong architecture
 
-If you find issues, report them in chat with file/line references, update the
-JSON state file directly using only short `notes.findings` /
-`notes.remaining` markers, and still close the phase honestly rather than
-pretending it is aerospace-grade.
+This turn does not reopen the phase loop. It is the closeout honesty pass for
+directory shape, file size discipline, and ownership boundaries after the phase
+is already functionally done.
 
-Re-run the acceptance checks and record command, exit code, and output tail in
-`notes.verification`. Then update the lightweight final outcome directly in the
-JSON state file:
+If you find issues, report them in chat with file/line references, but still
+close the phase honestly rather than pretending it is aerospace-grade.
 
-- keep this phase `status: complete`
-- keep `qa_status: passed`
-- add at most short `notes.done` / `notes.remaining` markers
-- if a later phase exists, advance to that phase at turn `plan`
-- if this was the last phase, set `current` to null and set `completed_at`
-- never leave `current` on any same-phase `review`, `repair`, `test_review`,
-  `test_repair_plan`, `test_repair_implement`, or `code_quality_review` turn
-  once this closeout write marks the phase `complete/passed`
+Re-run the acceptance checks and record concise command evidence in
+`payload.notes.verification`. Then finish with:
+
+`RUNNER_EVENT: {"event_type":"code_quality_review_passed","payload":{"notes":{"done":["..."],"remaining":["..."],"verification":["..."]}}}`
 
 {contract}

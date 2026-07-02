@@ -6,7 +6,7 @@
 >
 > **Primary prerequisite:** `S.3 Physical Integrity, Scrub, Quarantine, And Corruption Localization`
 >
-> **Follow-on storage-foundation sequence:** `S.5 Physical Isolation, Latches, Epochs, And Stable Read Plans`
+> **Follow-on storage-foundation sequence:** `S.4.5 Physical Database Simulation Harness`
 >
 > **Primary architectural driver:** make acknowledged physical durability
 > recover through WAL, pageLSN, checkpoint, flush ordering, and deterministic
@@ -2099,15 +2099,21 @@ S.4 may not mark these as debt:
 ## Sequencing Notes
 
 S.4 belongs immediately after S.3 because recovery must consume
-integrity-vetted records and typed damage maps. It belongs before S.5 because
-physical isolation needs recovered roots, pageLSN frontiers, replay receipts,
-and source-precedence evidence before it can protect stable read plans during
-maintenance.
+integrity-vetted records and typed damage maps. It belongs before S.4.5 because
+the shared physical simulation harness needs S.4's crash/fault mechanics,
+fresh-runtime recovery discipline, and S.5 readiness evidence before it can
+generalize the Roadmap 2 harness substrate. It belongs before S.5 through S.4.5
+because physical isolation needs both recovered roots/pageLSN frontiers and the
+deterministic hostile interleaving harness that will exercise stable read plans
+during maintenance.
 
 Later sequences consume S.4 as follows:
 
-- S.5 consumes recovered roots, pageLSN frontiers, replay receipts, and
-  recovery stability assumptions.
+- S.4.5 consumes S.4 crash/fault harness lessons, recovered roots, pageLSN
+  frontiers, replay receipts, source-precedence traces, and recovery stability
+  assumptions to build the reusable physical simulation harness.
+- S.5 consumes recovered roots, pageLSN frontiers, replay receipts, recovery
+  stability assumptions, and S.4.5 simulation harness readiness.
 - S.6 consumes durability-barrier and backend-profile facts before expanding
   hardware-aware I/O and QoS.
 - S.7 consumes recovery ordering for chunk-tree and blob-publication recovery

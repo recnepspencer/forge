@@ -21,6 +21,7 @@ pub struct WorthUiIdentityMatchNode {
     kind: WorthUiIdentityMatchNodeKind,
     handle: WorthUiArtifactHandle,
     identity_basis: String,
+    authored_provenance_digest: u64,
     stable_identity: bool,
     durable_state_eligible: bool,
 }
@@ -30,6 +31,7 @@ impl WorthUiIdentityMatchNode {
         side: WorthUiIdentityMatchNodeSide,
         handle: WorthUiArtifactHandle,
         identity_basis: String,
+        authored_provenance_digest: u64,
         stable_identity: bool,
         durable_state_eligible: bool,
     ) -> Self {
@@ -39,6 +41,7 @@ impl WorthUiIdentityMatchNode {
             kind,
             handle,
             identity_basis,
+            authored_provenance_digest,
             stable_identity,
             durable_state_eligible,
         }
@@ -54,6 +57,10 @@ impl WorthUiIdentityMatchNode {
 
     pub fn identity_basis(&self) -> &str {
         &self.identity_basis
+    }
+
+    pub fn authored_provenance_digest(&self) -> u64 {
+        self.authored_provenance_digest
     }
 
     pub fn stable_identity(&self) -> bool {

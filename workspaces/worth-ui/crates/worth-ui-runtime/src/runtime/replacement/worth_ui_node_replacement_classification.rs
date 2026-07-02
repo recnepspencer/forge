@@ -3,6 +3,7 @@ use crate::runtime::{WorthUiIdentityMatchNodeKind, WorthUiNodeLifecycleTransitio
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiNodeReplacementClassification {
     identity_basis: String,
+    authored_provenance_digest: Option<u64>,
     transition: WorthUiNodeLifecycleTransition,
     active_kind: Option<WorthUiIdentityMatchNodeKind>,
     candidate_kind: Option<WorthUiIdentityMatchNodeKind>,
@@ -13,6 +14,7 @@ pub struct WorthUiNodeReplacementClassification {
 impl WorthUiNodeReplacementClassification {
     pub(crate) fn new(
         identity_basis: String,
+        authored_provenance_digest: Option<u64>,
         transition: WorthUiNodeLifecycleTransition,
         active_kind: Option<WorthUiIdentityMatchNodeKind>,
         candidate_kind: Option<WorthUiIdentityMatchNodeKind>,
@@ -21,6 +23,7 @@ impl WorthUiNodeReplacementClassification {
     ) -> Self {
         Self {
             identity_basis,
+            authored_provenance_digest,
             transition,
             active_kind,
             candidate_kind,
@@ -31,6 +34,10 @@ impl WorthUiNodeReplacementClassification {
 
     pub fn identity_basis(&self) -> &str {
         &self.identity_basis
+    }
+
+    pub fn authored_provenance_digest(&self) -> Option<u64> {
+        self.authored_provenance_digest
     }
 
     pub fn transition(&self) -> WorthUiNodeLifecycleTransition {

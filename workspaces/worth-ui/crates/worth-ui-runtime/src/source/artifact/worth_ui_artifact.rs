@@ -1,8 +1,11 @@
 use std::collections::BTreeMap;
 
 use crate::source::{
-    WorthUiArtifactEquivalentShape, WorthUiArtifactHandle, WorthUiArtifactModule,
-    WorthUiArtifactNode, WorthUiSourceModuleId,
+    WorthUiArtifactHandle, WorthUiArtifactModule, WorthUiArtifactNode, WorthUiSourceModuleId,
+};
+#[cfg(test)]
+use crate::source::{
+    WorthUiArtifactEquivalenceBasis, WorthUiArtifactEquivalenceComparator,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -38,7 +41,28 @@ impl WorthUiArtifact {
             .and_then(|module| module.node(handle.node_index()))
     }
 
+    pub(crate) fn authored_provenance_digests(&self) -> Vec<u64> {
+        let mut digests = Vec::new();
+        for module_id in &self.canonical_module_order {
+            let Some(module) = self.module(module_id) else {
+                continue;
+            };
+            for node in module.nodes() {
+                digests.push(node.authored_provenance_digest());
+            }
+        }
+        digests.sort_unstable();
+        digests.dedup();
+        digests
+    }
+
+    #[cfg(test)]
     pub(crate) fn equivalent_shape(&self, other: &Self) -> bool {
-        WorthUiArtifactEquivalentShape::artifacts_are_equivalent(self, other)
+        WorthUiArtifactEquivalenceComparator::compare(
+            self,
+            other,
+            WorthUiArtifactEquivalenceBasis::semantic(),
+        )
+        .is_equivalent()
     }
 }

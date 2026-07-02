@@ -117,11 +117,25 @@ pub(crate) fn grammar_for(
     redo_lsn: u64,
     page_lsn_basis: PageLsn,
 ) -> Result<RedoRecordGrammar, RedoRecordGrammarDenial> {
+    grammar_for_operation_digest(
+        eligibility,
+        redo_lsn,
+        page_lsn_basis,
+        &format!("op-{redo_lsn}"),
+    )
+}
+
+pub(crate) fn grammar_for_operation_digest(
+    eligibility: &PageRedoEligibility,
+    redo_lsn: u64,
+    page_lsn_basis: PageLsn,
+    operation_digest: &str,
+) -> Result<RedoRecordGrammar, RedoRecordGrammarDenial> {
     RedoRecordGrammar::from_materialized_record(RedoRecordMaterializedForm::new(
         eligibility.page_generation().page_id(),
         RedoRecordTargetGeneration::new(eligibility.page_generation()),
         lsn(redo_lsn),
-        RedoRecordOperationForm::declared_digest(format!("op-{redo_lsn}")),
+        RedoRecordOperationForm::declared_digest(operation_digest),
         RedoRecordIntegrityBinding::declared_digest(format!("integrity-{redo_lsn}")),
         RedoRecordIdempotenceBasis::declared_digest(format!("idem-{redo_lsn}")),
         page_lsn_basis,

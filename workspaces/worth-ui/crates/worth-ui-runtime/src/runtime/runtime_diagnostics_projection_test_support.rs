@@ -106,6 +106,7 @@ fn artifact_from_import_target(target: &str) -> WorthUiArtifact {
     let node = WorthUiArtifactNode::Import(WorthUiArtifactImportNode::new(
         WorthUiArtifactHandle::Import(WorthUiArtifactImportHandle::new(module_id.clone(), 0)),
         WorthUiArtifactInputReference::new(target),
+        0,
         WorthUiArtifactIdentitySeed::structural_fallback(format!(
             "module:{}|import:{}",
             module_id.as_str(),

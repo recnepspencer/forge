@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use syn::visit::{self, Visit};
-use syn::{File, ItemUse, UseTree};
+use syn::{File, ItemExternCrate, ItemUse, UseTree};
 
 pub(crate) fn collect_rust_files(root: &Path, output: &mut Vec<PathBuf>) {
     for entry in fs::read_dir(root).expect("read_dir should succeed") {
@@ -26,12 +26,24 @@ fn parse_rust_file(path: &Path) -> File {
 
 #[derive(Default)]
 struct AliasCollector {
-    crate_aliases: HashMap<String, String>,
+    use_aliases: HashMap<String, Vec<String>>,
 }
 
 impl Visit<'_> for AliasCollector {
+    fn visit_item_extern_crate(&mut self, item_extern_crate: &ItemExternCrate) {
+        let alias = item_extern_crate
+            .rename
+            .as_ref()
+            .map(|(_, ident)| ident)
+            .unwrap_or(&item_extern_crate.ident)
+            .to_string();
+        self.use_aliases
+            .insert(alias, vec![item_extern_crate.ident.to_string()]);
+        visit::visit_item_extern_crate(self, item_extern_crate);
+    }
+
     fn visit_item_use(&mut self, item_use: &ItemUse) {
-        collect_use_aliases(&item_use.tree, &mut Vec::new(), &mut self.crate_aliases);
+        collect_use_aliases(&item_use.tree, &mut Vec::new(), &mut self.use_aliases);
         visit::visit_item_use(self, item_use);
     }
 }
@@ -39,7 +51,7 @@ impl Visit<'_> for AliasCollector {
 fn collect_use_aliases(
     tree: &UseTree,
     prefix: &mut Vec<String>,
-    aliases: &mut HashMap<String, String>,
+    aliases: &mut HashMap<String, Vec<String>>,
 ) {
     match tree {
         UseTree::Path(path) => {
@@ -52,34 +64,60 @@ fn collect_use_aliases(
                 collect_use_aliases(item, prefix, aliases);
             }
         }
-        UseTree::Rename(rename) => {
-            if prefix.len() == 1 {
-                aliases.insert(rename.rename.to_string(), prefix[0].clone());
+        UseTree::Name(name) => {
+            if !prefix.is_empty() {
+                let mut full_path = prefix.clone();
+                full_path.push(name.ident.to_string());
+                aliases.insert(name.ident.to_string(), full_path);
             }
+        }
+        UseTree::Rename(rename) => {
+            let mut full_path = prefix.clone();
+            full_path.push(rename.ident.to_string());
+            aliases.insert(rename.rename.to_string(), full_path);
         }
         _ => {}
     }
 }
 
 struct PathCollector<'a> {
-    crate_aliases: &'a HashMap<String, String>,
+    use_aliases: &'a HashMap<String, Vec<String>>,
     collected_paths: Vec<Vec<String>>,
 }
 
 impl<'a> Visit<'_> for PathCollector<'a> {
     fn visit_path(&mut self, path: &syn::Path) {
-        let mut segments = path
+        let segments = path
             .segments
             .iter()
             .map(|segment| segment.ident.to_string())
             .collect::<Vec<_>>();
-        if let Some(first) = segments.first_mut() {
-            if let Some(crate_name) = self.crate_aliases.get(first) {
-                *first = crate_name.clone();
-            }
-        }
-        self.collected_paths.push(segments);
+        self.collected_paths
+            .push(expand_use_alias_path(segments, self.use_aliases));
         visit::visit_path(self, path);
+    }
+}
+
+fn expand_use_alias_path(
+    mut segments: Vec<String>,
+    use_aliases: &HashMap<String, Vec<String>>,
+) -> Vec<String> {
+    let mut expanded_aliases = HashSet::new();
+
+    loop {
+        let Some(first) = segments.first().cloned() else {
+            return segments;
+        };
+        let Some(alias_path) = use_aliases.get(&first) else {
+            return segments;
+        };
+        if !expanded_aliases.insert(first) {
+            return segments;
+        }
+
+        let mut expanded = alias_path.clone();
+        expanded.extend(segments.into_iter().skip(1));
+        segments = expanded;
     }
 }
 
@@ -89,11 +127,56 @@ pub(crate) fn collect_file_paths(path: &Path) -> Vec<Vec<String>> {
     alias_collector.visit_file(&parsed);
 
     let mut path_collector = PathCollector {
-        crate_aliases: &alias_collector.crate_aliases,
+        use_aliases: &alias_collector.use_aliases,
         collected_paths: Vec::new(),
     };
     path_collector.visit_file(&parsed);
     path_collector.collected_paths
+}
+
+#[derive(Default)]
+struct UsePathCollector {
+    collected_paths: Vec<Vec<String>>,
+}
+
+impl Visit<'_> for UsePathCollector {
+    fn visit_item_use(&mut self, item_use: &ItemUse) {
+        collect_use_paths(&item_use.tree, Vec::new(), &mut self.collected_paths);
+        visit::visit_item_use(self, item_use);
+    }
+}
+
+pub(crate) fn collect_file_use_paths(path: &Path) -> Vec<Vec<String>> {
+    let parsed = parse_rust_file(path);
+    let mut collector = UsePathCollector::default();
+    collector.visit_file(&parsed);
+    collector.collected_paths
+}
+
+fn collect_use_paths(tree: &UseTree, prefix: Vec<String>, output: &mut Vec<Vec<String>>) {
+    match tree {
+        UseTree::Path(path) => {
+            let mut next = prefix;
+            next.push(path.ident.to_string());
+            collect_use_paths(&path.tree, next, output);
+        }
+        UseTree::Group(group) => {
+            for item in &group.items {
+                collect_use_paths(item, prefix.clone(), output);
+            }
+        }
+        UseTree::Name(name) => {
+            let mut next = prefix;
+            next.push(name.ident.to_string());
+            output.push(next);
+        }
+        UseTree::Rename(rename) => {
+            let mut next = prefix;
+            next.push(rename.ident.to_string());
+            output.push(next);
+        }
+        UseTree::Glob(_) => output.push(prefix),
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -183,7 +266,10 @@ pub fn audit_no_cross_crate_deep_imports(workspace_root: &Path) -> Vec<String> {
     }
 
     for file in files {
-        for segments in collect_file_paths(&file) {
+        for segments in collect_file_paths(&file)
+            .into_iter()
+            .chain(collect_file_use_paths(&file))
+        {
             for (crate_name, internal_root) in forbidden_boundaries {
                 if path_matches(&segments, crate_name, internal_root) {
                     violations.push(format!(
@@ -191,6 +277,45 @@ pub fn audit_no_cross_crate_deep_imports(workspace_root: &Path) -> Vec<String> {
                         file.display()
                     ));
                 }
+            }
+        }
+    }
+
+    violations.sort();
+    violations.dedup();
+    violations
+}
+
+pub fn audit_non_product_crates_route_declaration_through_worth_ui_facade(
+    workspace_root: &Path,
+) -> Vec<String> {
+    let crate_paths = [
+        "crates/worth-ui-inspection/src",
+        "crates/worth-ui-host-contract/src",
+        "crates/worth-ui-host-egui/src",
+        "crates/worth-ui-query-binding/src",
+    ];
+    let mut violations = Vec::new();
+    let mut files = Vec::new();
+
+    for crate_path in crate_paths {
+        collect_rust_files(&workspace_root.join(crate_path), &mut files);
+    }
+
+    for file in files {
+        for segments in collect_file_paths(&file)
+            .into_iter()
+            .chain(collect_file_use_paths(&file))
+        {
+            if path_matches(&segments, "worth_ui_runtime", "facade")
+                && segments
+                    .get(2)
+                    .is_some_and(|segment| segment == "declaration")
+            {
+                violations.push(format!(
+                    "{} bypasses the product declaration facade and reaches `worth_ui_runtime::facade::declaration`; declaration consumers must enter through `worth_ui::facade::declaration`",
+                    file.display()
+                ));
             }
         }
     }

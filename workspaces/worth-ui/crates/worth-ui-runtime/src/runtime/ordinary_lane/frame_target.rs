@@ -56,6 +56,10 @@ impl WorthUiOrdinaryFrameTarget {
         self.kind
     }
 
+    pub(crate) const fn is_command(self) -> bool {
+        matches!(self.kind, WorthUiOrdinaryFrameTargetKind::Command(_))
+    }
+
     #[cfg(test)]
     pub(crate) fn virtualized_data_for_test(plan_index: u32) -> Self {
         Self {

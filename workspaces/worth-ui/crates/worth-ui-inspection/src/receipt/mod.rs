@@ -1,5 +1,5 @@
 mod closure_report;
-mod evidence;
+pub(crate) mod evidence;
 mod replay;
 mod scope_support_row;
 mod snapshot;

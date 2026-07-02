@@ -66,11 +66,17 @@ pub fn audit_inspection_public_module_role_purity(workspace_root: &Path) -> Vec<
         (
             "posture/mod.rs",
             BTreeSet::from([
+                "UiInspectionAdmissionPosture".to_string(),
+                "UiInspectionDeferredPosture".to_string(),
+                "UiInspectionDiagnosticOnlyPosture".to_string(),
                 "UiInspectionMilestoneExpectation".to_string(),
                 "UiInspectionPosture".to_string(),
+                "UiInspectionSupportPosture".to_string(),
                 "UiInspectionSupportReason".to_string(),
                 "UiInspectionSupportStatus".to_string(),
+                "UiInspectionSupportWorld".to_string(),
                 "UiInspectionUnsupportedPosture".to_string(),
+                "UiInspectionWrongWorldPosture".to_string(),
             ]),
         ),
     ];

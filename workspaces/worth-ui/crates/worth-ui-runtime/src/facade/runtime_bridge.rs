@@ -1,5 +1,11 @@
 use worth_ui_inspection::{UiInspectionScopeInventory, RUNTIME_INSPECTION_SCOPE_INVENTORY};
 
+use crate::declaration::{
+    derive_declaration_inspection_support_projection, UiDeclarationArtifact,
+    UiDeclarationGraphHandoff, UiDeclarationGraphHandoffDenial,
+    UiDeclarationInspectionSupportProjection, UiDeclarationLowering,
+};
+use crate::graph::{admit_graph_handoffs, UiGraphSnapshot, UiGraphWorldProfile};
 use crate::facade::{
     inspection_observation::WorthUiInspectionObservationState, CapabilitySnapshot,
     UiInspectionScope, UiInspectionSupportReport, WorthUiDslPackage, WorthUiHostContract,
@@ -8,6 +14,7 @@ use crate::facade::{
 
 pub(crate) struct WorthUiFacadeLifecycleBootstrap {
     inspection_scope_inventory: UiInspectionScopeInventory,
+    declaration_inspection_support: UiDeclarationInspectionSupportProjection,
     inspection_observation: WorthUiInspectionObservationState,
     runtime_support_inventory: WorthUiRuntimeSupportInventory,
     _dsl_package: WorthUiDslPackage,
@@ -15,10 +22,15 @@ pub(crate) struct WorthUiFacadeLifecycleBootstrap {
 }
 
 impl WorthUiFacadeLifecycleBootstrap {
-    fn new(dsl_package: WorthUiDslPackage, host_contract: WorthUiHostContract) -> Self {
+    fn new(
+        dsl_package: WorthUiDslPackage,
+        host_contract: WorthUiHostContract,
+        declaration_artifacts: &[UiDeclarationArtifact],
+    ) -> Self {
         Self::new_with_inspection_scope_inventory(
             dsl_package,
             host_contract,
+            declaration_artifacts,
             RUNTIME_INSPECTION_SCOPE_INVENTORY,
         )
     }
@@ -26,10 +38,14 @@ impl WorthUiFacadeLifecycleBootstrap {
     pub(crate) fn new_with_inspection_scope_inventory(
         dsl_package: WorthUiDslPackage,
         host_contract: WorthUiHostContract,
+        declaration_artifacts: &[UiDeclarationArtifact],
         inspection_scope_inventory: UiInspectionScopeInventory,
     ) -> Self {
         Self {
             inspection_scope_inventory,
+            declaration_inspection_support: derive_declaration_inspection_support_projection(
+                declaration_artifacts,
+            ),
             inspection_observation: WorthUiInspectionObservationState::new(),
             runtime_support_inventory: PHASE3_RUNTIME_SUPPORT_INVENTORY,
             _dsl_package: dsl_package,
@@ -42,6 +58,9 @@ impl WorthUiFacadeLifecycleBootstrap {
         scope: UiInspectionScope,
     ) -> UiInspectionSupportReport {
         self.inspection_observation.record_support_report();
+        if let Some(report) = self.declaration_inspection_support.support_report(scope) {
+            return report;
+        }
         self.inspection_scope_inventory.support_report(scope)
     }
 
@@ -68,6 +87,8 @@ impl WorthUiFacadeLifecycleBootstrap {
 
 pub(crate) struct WorthUiCapabilityRegistrationFreezeCore {
     capability_snapshot: CapabilitySnapshot,
+    declaration_artifacts: Vec<UiDeclarationArtifact>,
+    graph_snapshot: UiGraphSnapshot,
     lifecycle: WorthUiFacadeLifecycleBootstrap,
 }
 
@@ -76,10 +97,26 @@ impl WorthUiCapabilityRegistrationFreezeCore {
         capability_snapshot: CapabilitySnapshot,
         dsl_package: WorthUiDslPackage,
         host_contract: WorthUiHostContract,
+        graph_world_profile: UiGraphWorldProfile,
     ) -> Self {
+        let declaration_artifacts = lower_declaration_artifacts(&dsl_package);
+        let graph_handoffs = lower_graph_handoffs(&declaration_artifacts)
+            .expect("freeze path must deny graph instantiation before mutation when sealed handoff lowering fails");
+        let graph_snapshot = admit_graph_handoffs(&graph_handoffs, &[])
+            .expect("sealed graph handoff freeze path should not admit contradictory runtime basis")
+            .commit_initial_generation(graph_world_profile)
+            .expect("freeze path must deny before publishing graph authority")
+            .into_committed_snapshot();
+        let lifecycle = WorthUiFacadeLifecycleBootstrap::new(
+            dsl_package,
+            host_contract,
+            &declaration_artifacts,
+        );
         Self {
             capability_snapshot,
-            lifecycle: WorthUiFacadeLifecycleBootstrap::new(dsl_package, host_contract),
+            graph_snapshot,
+            lifecycle,
+            declaration_artifacts,
         }
     }
 
@@ -87,19 +124,62 @@ impl WorthUiCapabilityRegistrationFreezeCore {
         capability_snapshot: CapabilitySnapshot,
         dsl_package: WorthUiDslPackage,
         host_contract: WorthUiHostContract,
+        graph_world_profile: UiGraphWorldProfile,
         inspection_scope_inventory: UiInspectionScopeInventory,
     ) -> Self {
+        let declaration_artifacts = lower_declaration_artifacts(&dsl_package);
+        let graph_handoffs = lower_graph_handoffs(&declaration_artifacts)
+            .expect("freeze path must deny graph instantiation before mutation when sealed handoff lowering fails");
+        let graph_snapshot = admit_graph_handoffs(&graph_handoffs, &[])
+            .expect("sealed graph handoff freeze path should not admit contradictory runtime basis")
+            .commit_initial_generation(graph_world_profile)
+            .expect("freeze path must deny before publishing graph authority")
+            .into_committed_snapshot();
+        let lifecycle = WorthUiFacadeLifecycleBootstrap::new_with_inspection_scope_inventory(
+            dsl_package,
+            host_contract,
+            &declaration_artifacts,
+            inspection_scope_inventory,
+        );
         Self {
             capability_snapshot,
-            lifecycle: WorthUiFacadeLifecycleBootstrap::new_with_inspection_scope_inventory(
-                dsl_package,
-                host_contract,
-                inspection_scope_inventory,
-            ),
+            graph_snapshot,
+            declaration_artifacts,
+            lifecycle,
         }
     }
 
-    pub(crate) fn into_parts(self) -> (CapabilitySnapshot, WorthUiFacadeLifecycleBootstrap) {
-        (self.capability_snapshot, self.lifecycle)
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        CapabilitySnapshot,
+        Vec<UiDeclarationArtifact>,
+        UiGraphSnapshot,
+        WorthUiFacadeLifecycleBootstrap,
+    ) {
+        (
+            self.capability_snapshot,
+            self.declaration_artifacts,
+            self.graph_snapshot,
+            self.lifecycle,
+        )
     }
+}
+
+fn lower_declaration_artifacts(dsl_package: &WorthUiDslPackage) -> Vec<UiDeclarationArtifact> {
+    dsl_package
+        .runtime_lowering_receipts()
+        .iter()
+        .cloned()
+        .map(UiDeclarationLowering::lower)
+        .collect()
+}
+
+fn lower_graph_handoffs(
+    declaration_artifacts: &[UiDeclarationArtifact],
+) -> Result<Vec<UiDeclarationGraphHandoff>, UiDeclarationGraphHandoffDenial> {
+    declaration_artifacts
+        .iter()
+        .map(UiDeclarationArtifact::graph_handoff)
+        .collect()
 }

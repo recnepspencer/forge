@@ -18,6 +18,7 @@ impl WorthUiArtifactSourceOrigin {
             WorthUiArtifactInputProvenance::ParsedSourceDeclaration {
                 declaration_span,
                 detail_span,
+                ..
             } => Self::ParsedSourceDeclaration {
                 declaration_span: declaration_span.clone(),
                 detail_span: detail_span.clone(),

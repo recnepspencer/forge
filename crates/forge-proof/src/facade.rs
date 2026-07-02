@@ -1,3 +1,4 @@
+pub use crate::collections::{CanonicalVec, NonEmpty, UniqueVec};
 pub use crate::dx::{
     compose_ready, create, family_pair, gate_ready, join_ready, member, non_empty, pair,
     proof_flow, ready_now, recipe, retire, rewrite, supersede, sym, AdmittedBridgedRecipeDxExt,

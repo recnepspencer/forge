@@ -21,6 +21,9 @@ impl BufferPoolCounterSnapshot {
             allocation,
             copy_materialization,
         };
+        if allocation_denial_total(snapshot.allocation) > 0 {
+            return Err(BufferPoolEvidenceSourceDenial::ExecutionContainedDeniedAllocation);
+        }
         if snapshot.is_empty() {
             return Err(BufferPoolEvidenceSourceDenial::NoExecutedStoreCounters);
         }
@@ -64,6 +67,16 @@ impl BufferPoolExecutedEvidenceSource {
         )?)
     }
 
+    pub fn from_allocation_execution(
+        allocation: &AllocationAdmission,
+    ) -> Result<Self, BufferPoolEvidenceSourceDenial> {
+        Self::from_counters(BufferPoolCounterSnapshot::from_executed_store_counters(
+            ResidentFrameCounterSnapshot::empty(),
+            allocation.counters(),
+            RecordCopyCounterSnapshot::empty(),
+        )?)
+    }
+
     pub(crate) fn from_counters(
         counters: BufferPoolCounterSnapshot,
     ) -> Result<Self, BufferPoolEvidenceSourceDenial> {
@@ -81,6 +94,7 @@ impl BufferPoolExecutedEvidenceSource {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BufferPoolEvidenceSourceDenial {
     NoExecutedStoreCounters,
+    ExecutionContainedDeniedAllocation,
 }
 
 fn resident_memory_counter_total(counters: ResidentFrameCounterSnapshot) -> u64 {
@@ -114,6 +128,15 @@ fn allocation_counter_total(counters: AllocationCounterSnapshot) -> u64 {
             + scope.copied_bytes()
             + scope.denied_bytes()
             + scope.denial_count() as u64;
+    }
+    total
+}
+
+fn allocation_denial_total(counters: AllocationCounterSnapshot) -> u64 {
+    let mut total = counters.fixed_metadata_denied_bytes();
+    for scope in AllocationScope::ALL {
+        let scope = counters.scope(scope);
+        total += scope.denied_bytes() + scope.denial_count() as u64;
     }
     total
 }

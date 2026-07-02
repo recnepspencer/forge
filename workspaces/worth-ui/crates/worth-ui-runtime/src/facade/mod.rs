@@ -1,8 +1,13 @@
 //! Public Worth UI runtime capability and inspection surfaces.
 
+pub mod admission;
 mod app;
 mod app_builder;
 mod builder;
+pub mod declaration;
+pub mod graph;
+pub mod obligations;
+pub mod query_binding;
 mod inspection_observation;
 mod inspection_receipt;
 mod runtime_bridge;
@@ -81,11 +86,24 @@ pub use builder::CapabilityRegistrationBuilder;
 pub use inspection_observation::UiInspectionFacadeObservation;
 pub use inspection_receipt::UiInspectionReceipt;
 pub use worth_ui_dsl::WorthUiDslPackage;
-pub use worth_ui_host_contract::{WorthUiHostAdapter, WorthUiHostContract};
+pub use worth_ui_host_contract::{
+    WorthUiHostAdapter, WorthUiHostCapability, WorthUiHostCapabilityPosture,
+    WorthUiHostCapabilityReport, WorthUiHostContract,
+};
 pub use worth_ui_inspection::{
+    UiInspectionAdmissionHostCapability, UiInspectionAdmissionPosture,
+    UiInspectionAdmissionQueryBasis, UiInspectionAdmissionStaleEvidence,
+    UiInspectionDeferredPosture, UiInspectionDiagnosticOnlyPosture, UiInspectionSupportPosture,
     UiEvidenceBudget, UiEvidenceRichness, UiInspectionClosureReport, UiInspectionEvidenceSource,
-    UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery,
-    UiInspectionRelevance, UiInspectionScope, UiInspectionScopeSupportRow,
-    UiInspectionSupportReason, UiInspectionSupportReport, UiInspectionSupportStatus,
-    UiInspectionTarget, UiInspectionUnsupportedPosture,
+    UiInspectionMilestoneExpectation, UiInspectionObligationDecision,
+    UiInspectionObligationDenialPosture, UiInspectionObligationEvidenceQuery,
+    UiInspectionObligationEvidenceReceipt, UiInspectionObligationFamily,
+    UiInspectionObligationLegalityReason, UiInspectionObligationNonSelectionReason,
+    UiInspectionObligationReasonProjection, UiInspectionObligationSelectionReason,
+    UiInspectionPosture, UiInspectionQuery, UiInspectionRelevance, UiInspectionScope,
+    UiInspectionScopeSupportRow, UiInspectionSupportReason, UiInspectionSupportReport,
+    UiInspectionSupportRowSchemaKind, UiInspectionSupportStatus, UiInspectionSupportWorld,
+    UiInspectionTarget, UiInspectionTouchAspectPosture, UiInspectionTouchOriginClass,
+    UiInspectionTouchRuntimeLane, UiInspectionTouchTargetClass, UiInspectionUnsupportedPosture,
+    UiInspectionWrongWorldPosture,
 };

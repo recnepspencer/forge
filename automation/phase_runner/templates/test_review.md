@@ -1,8 +1,11 @@
 [$qa-tests](C:\Users\Esther\.codex\skills\qa-tests\SKILL.md) now review the
 tests for phase {phase.id}: {phase.title}.
 
-State file: {state_file}
+Config file: {config_file}
+Projection file: {projection_file}
+Event log file: {event_log_file}
 Spec file: {spec_file}
+Run id: {run_id}
 Cursor: phase {current.phase}, turn {current.turn}
 
 Phase scope:
@@ -43,20 +46,12 @@ Aggression rules for this review:
   many test-only complaints.
 - Keep the review tight enough that the next turn can fix the seam directly.
 
-If the tests need hardening, update the JSON state file directly:
+If the tests need hardening, finish with:
 
-- short `notes.findings`
-- cursor turn `test_repair_plan`
-- do not mark the phase `complete/passed` and leave `current` on
-  `test_review`, `test_repair_plan`, or `test_repair_implement`
+`RUNNER_EVENT: {"event_type":"test_review_failed","payload":{"notes":{"findings":["..."]}}}`
 
-If the tests are already honest enough, update the JSON state file directly:
+If the tests are already honest enough, finish with:
 
-- short `notes.done`
-- cursor turn `code_quality_review`
-- if the phase row is `status: complete` and `qa_status: passed`, you must
-  advance to `code_quality_review` now
-- never leave `current` on any same-phase `test_*` turn after deciding the test
-  lane is honest enough
+`RUNNER_EVENT: {"event_type":"test_review_passed","payload":{"notes":{"done":["..."]}}}`
 
 {contract}

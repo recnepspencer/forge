@@ -97,6 +97,7 @@ pub(super) fn component_node(seed: &str, index: usize) -> WorthUiArtifactNode {
         ),
         component("workspace.component.dashboard"),
         empty_structure(),
+        0,
         WorthUiArtifactIdentitySeed::authored(seed.to_owned()),
         durable_eligible(),
     ))
@@ -113,6 +114,7 @@ pub(super) fn component_node_with_descriptor(
         AdmittedCapability::from_checked_id(ComponentId::new(component_id).unwrap()),
         component(component_id),
         empty_structure(),
+        0,
         WorthUiArtifactIdentitySeed::authored(seed.to_owned()),
         durable_eligible(),
     ))
@@ -126,6 +128,7 @@ pub(super) fn surface_node(seed: &str, surface_id: &str, index: usize) -> WorthU
         surface(surface_id, "workspace.component.dashboard"),
         empty_structure(),
         WorthUiBoundSurfaceSemantics::default(),
+        0,
         WorthUiArtifactIdentitySeed::authored(seed.to_owned()),
         durable_eligible(),
     ))
@@ -152,6 +155,7 @@ fn rehandle_node(
             WorthUiArtifactNode::Import(WorthUiArtifactImportNode::new(
                 WorthUiArtifactHandle::Import(WorthUiArtifactImportHandle::new(module_id, index)),
                 node.target().clone(),
+                node.authored_provenance_digest(),
                 node.identity_seed().clone(),
                 node.durable_state_eligibility().clone(),
             ))
@@ -164,6 +168,7 @@ fn rehandle_node(
                 node.component().clone(),
                 node.descriptor().clone(),
                 node.structure().clone(),
+                node.authored_provenance_digest(),
                 node.identity_seed().clone(),
                 node.durable_state_eligibility().clone(),
             ))
@@ -175,6 +180,7 @@ fn rehandle_node(
                 node.descriptor().clone(),
                 node.structure().clone(),
                 node.semantics().clone(),
+                node.authored_provenance_digest(),
                 node.identity_seed().clone(),
                 node.durable_state_eligibility().clone(),
             ))
@@ -184,6 +190,7 @@ fn rehandle_node(
                 WorthUiArtifactHandle::Binding(WorthUiArtifactBindingHandle::new(module_id, index)),
                 node.view_binding_reference().clone(),
                 node.structure().clone(),
+                node.authored_provenance_digest(),
                 node.identity_seed().clone(),
                 node.durable_state_eligibility().clone(),
             ))
@@ -196,6 +203,7 @@ fn rehandle_node(
                 node.theme_token().clone(),
                 node.entry().clone(),
                 node.semantics().clone(),
+                node.authored_provenance_digest(),
                 node.identity_seed().clone(),
                 node.durable_state_eligibility().clone(),
             ))

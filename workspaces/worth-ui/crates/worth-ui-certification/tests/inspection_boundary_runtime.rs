@@ -1,7 +1,7 @@
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::inspection::{
     UiInspectionMilestoneExpectation, UiInspectionQuery, UiInspectionScope,
-    UiInspectionSupportReason, UiInspectionTarget,
+    UiInspectionSupportWorld, UiInspectionTarget,
 };
 
 #[test]
@@ -11,19 +11,20 @@ fn repeated_unsupported_inspection_queries_stay_typed_and_equivalent() {
         .freeze();
     let query = UiInspectionQuery::new(
         UiInspectionTarget::product_root(),
-        UiInspectionScope::measurement(),
+        UiInspectionScope::graph(),
     );
     let observation_before = app.inspection_observation();
 
     let first_receipt = app.inspect(query.clone());
     let second_receipt = app.inspect(query.clone());
     let third_receipt = app.inspect(query.clone());
-    let first_support_report = app.inspection_support_report(UiInspectionScope::measurement());
-    let second_support_report = app.inspection_support_report(UiInspectionScope::measurement());
+    let first_support_report = app.inspection_support_report(UiInspectionScope::graph());
+    let second_support_report = app.inspection_support_report(UiInspectionScope::graph());
     let observation_after = app.inspection_observation();
 
     assert_eq!(first_receipt, second_receipt);
     assert_eq!(second_receipt, third_receipt);
+    assert_eq!(first_receipt.support_report(), Some(first_support_report));
     assert_eq!(first_support_report, second_support_report);
     assert_eq!(
         observation_after.total_query_count() - observation_before.total_query_count(),
@@ -47,16 +48,11 @@ fn repeated_unsupported_inspection_queries_stay_typed_and_equivalent() {
         0
     );
 
-    let unsupported = first_receipt
-        .posture()
-        .unsupported_posture()
-        .expect("unsupported measurement inspection should return a sealed unsupported posture");
     assert_eq!(
-        unsupported.reason(),
-        UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted
-    );
-    assert_eq!(
-        unsupported.expected_in(),
-        Some(UiInspectionMilestoneExpectation::Milestone31)
+        first_receipt.posture(),
+        Some(worth_ui::facade::UiInspectionPosture::deferred(
+            Some(UiInspectionMilestoneExpectation::Milestone31),
+            UiInspectionSupportWorld::Authoritative,
+        ))
     );
 }

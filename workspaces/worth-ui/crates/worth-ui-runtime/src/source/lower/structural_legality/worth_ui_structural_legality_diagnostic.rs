@@ -97,13 +97,16 @@ fn stable_provenance_cmp(
             WorthUiArtifactInputProvenance::ParsedSourceDeclaration {
                 declaration_span: left_declaration,
                 detail_span: left_detail,
+                declaration_index: left_index,
             },
             WorthUiArtifactInputProvenance::ParsedSourceDeclaration {
                 declaration_span: right_declaration,
                 detail_span: right_detail,
+                declaration_index: right_index,
             },
         ) => stable_span_cmp(left_declaration, right_declaration)
-            .then_with(|| stable_optional_span_cmp(left_detail.as_ref(), right_detail.as_ref())),
+            .then_with(|| stable_optional_span_cmp(left_detail.as_ref(), right_detail.as_ref()))
+            .then_with(|| left_index.cmp(right_index)),
         (
             WorthUiArtifactInputProvenance::RustAuthoredDeclaration {
                 authored_module_path: left_path,

@@ -11,6 +11,7 @@ pub(super) fn expected_provenance_for_node_input(
     WorthUiArtifactToPlanProvenance::new(
         plan_index,
         node_input.identity_basis().to_owned(),
+        node_input.authored_provenance_digest(),
         node_input.family(),
         expected_provenance_source_for_node_input(node_input),
         expected_capability_reference_for_node_input(node_input),

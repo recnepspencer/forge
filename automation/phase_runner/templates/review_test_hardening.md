@@ -3,8 +3,11 @@ phase {phase.id}: {phase.title} is 100% done. Let's make sure that we didn't
 leave any gaps. Then make sure our approach was thorough and principled, that it
 follows our perf and arch laws, and look for missed edge cases.
 
-State file: {state_file}
+Config file: {config_file}
+Projection file: {projection_file}
+Event log file: {event_log_file}
 Spec file: {spec_file}
+Run id: {run_id}
 Cursor: phase {current.phase}, turn {current.turn}
 
 Phase scope:
@@ -35,23 +38,13 @@ Use the qa-loop skill and review the real implementation against:
 
 Review only. Do not fix yet.
 
-If the phase is not actually done, report the findings in chat with file/line
-references and update the JSON state file directly:
+If the phase is not actually done, finish with:
 
-- `status: regressed`
-- `qa_status: failed`
-- a short `notes.findings` summary
-- cursor turn `repair`
+`RUNNER_EVENT: {"event_type":"review_failed","payload":{"notes":{"findings":["..."]}}}`
 
-If the phase is actually done, say so in chat and update the JSON state file
-directly:
+If the phase is actually done, finish with:
 
-- `status: complete`
-- `qa_status: passed`
-- cursor turn `test_review`
-
-Do not store logs, artifacts, command tails, long findings, or review prose in
-the JSON. The JSON is purely to keep track of where we are.
+`RUNNER_EVENT: {"event_type":"review_passed","payload":{"notes":{"done":["..."],"verification":["..."]}}}`
 
 Phase-specific review focus:
 {phase.qa_focus}

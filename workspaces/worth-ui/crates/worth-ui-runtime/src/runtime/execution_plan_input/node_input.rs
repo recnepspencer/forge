@@ -9,6 +9,7 @@ use crate::runtime::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiPlanNodeInput {
     identity_basis: String,
+    authored_provenance_digest: Option<u64>,
     family: WorthUiPlanNodeInputFamily,
     transition: Option<WorthUiNodeLifecycleTransition>,
     query_binding_identity: Option<WorthUiQueryBindingIdentity>,
@@ -27,6 +28,7 @@ impl WorthUiPlanNodeInput {
         let family = family_for_classification(classification);
         Self {
             identity_basis: classification.identity_basis().to_owned(),
+            authored_provenance_digest: classification.authored_provenance_digest(),
             family,
             transition: Some(classification.transition()),
             query_binding_identity: None,
@@ -47,6 +49,7 @@ impl WorthUiPlanNodeInput {
         let query_preservation_receipt = preservation_receipt_for_query_rebind_entry(entry);
         Self {
             identity_basis: entry.identity().view_binding_id().to_owned(),
+            authored_provenance_digest: None,
             family: WorthUiPlanNodeInputFamily::QueryViewBinding,
             transition: None,
             query_binding_identity: Some(entry.identity().clone()),
@@ -64,6 +67,7 @@ impl WorthUiPlanNodeInput {
     ) -> Self {
         Self {
             identity_basis: hook.hook_id().to_owned(),
+            authored_provenance_digest: None,
             family,
             transition: None,
             query_binding_identity: None,
@@ -81,6 +85,10 @@ impl WorthUiPlanNodeInput {
 
     pub fn family(&self) -> WorthUiPlanNodeInputFamily {
         self.family
+    }
+
+    pub fn authored_provenance_digest(&self) -> Option<u64> {
+        self.authored_provenance_digest
     }
 
     pub fn transition(&self) -> Option<WorthUiNodeLifecycleTransition> {
@@ -145,6 +153,15 @@ impl WorthUiPlanNodeInput {
     pub(crate) fn with_family_for_test(mut self, family: WorthUiPlanNodeInputFamily) -> Self {
         self.family = family;
         self.egui_boundary_input = egui_boundary_for_family(family);
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_authored_provenance_digest_for_test(
+        mut self,
+        authored_provenance_digest: Option<u64>,
+    ) -> Self {
+        self.authored_provenance_digest = authored_provenance_digest;
         self
     }
 

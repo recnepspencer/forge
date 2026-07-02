@@ -51,6 +51,7 @@ mod replacement;
 mod source_ingress;
 mod state_inventory;
 mod steady_frame_counter_boundary;
+mod touch_origin_certification_support;
 mod virtualized_data_lane;
 
 pub use activation_staging::{
@@ -306,6 +307,10 @@ pub use steady_frame_counter_boundary::{
     WorthUiSteadyFrameDiagnosticPolicy, WorthUiSteadyFrameFoundationalBridge,
     WorthUiSteadyFrameFoundationalEvidence, WorthUiSteadyFrameReportPlan,
     WorthUiSteadyFrameReportPlanner,
+};
+pub use touch_origin_certification_support::{
+    runtime_origin_fixture, WorthUiTouchOriginCertificationFixture,
+    WorthUiTouchOriginFixtureVariant,
 };
 pub use virtualized_data_lane::{
     WorthUiQueryPatchPosture, WorthUiVirtualizedDataCertification, WorthUiVirtualizedDataCounters,

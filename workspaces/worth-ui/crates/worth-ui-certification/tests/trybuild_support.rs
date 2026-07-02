@@ -7,4 +7,3 @@ pub fn new_test_cases() -> trybuild::TestCases {
 
     trybuild::TestCases::new()
 }
-

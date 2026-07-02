@@ -119,6 +119,7 @@ fn index_artifact_nodes(
                 side,
                 node.handle().clone(),
                 identity_seed.basis().to_owned(),
+                node.authored_provenance_digest(),
                 identity_seed.is_stable(),
                 durable_state_is_eligible(node_durable_state_eligibility(node)),
             );

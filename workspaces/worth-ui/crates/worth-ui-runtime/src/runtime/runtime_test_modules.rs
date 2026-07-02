@@ -132,6 +132,8 @@ mod steady_frame_counter_forbidden_work_tests;
 mod steady_frame_counter_schema_tests;
 #[path = "steady_frame_report_planning_tests.rs"]
 mod steady_frame_report_planning_tests;
+#[path = "touch_origin_receipt_boundary_tests.rs"]
+mod touch_origin_receipt_boundary_tests;
 #[path = "virtualized_data_lane_boundary_tests.rs"]
 mod virtualized_data_lane_boundary_tests;
 #[path = "virtualized_data_lane_test_support.rs"]

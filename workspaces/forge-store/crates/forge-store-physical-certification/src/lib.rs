@@ -1,5 +1,191 @@
 #![forbid(unsafe_code)]
 
+mod actors;
+mod authoring;
+mod closeout;
+mod counters;
+mod coverage;
+mod drivers;
+mod evidence;
+mod faults;
+mod fixtures;
+mod observation;
+mod oracles;
+mod planning;
+mod s45_entry;
+mod s5_handoff;
+mod scenario;
+mod schedule;
+mod shortcut_rejection;
+mod transcript;
+
+pub use forge_store_offline_verifier::OfflineVerifierBoundarySeam;
+
+pub use actors::{
+    CheckpointActor, CompactionActor, ForegroundReadActor, ForegroundWriteActor,
+    OfflineVerifierActor, PhysicalSimulationActor, PhysicalSimulationActorAdmissionDenial,
+    ReclaimActor, RecoveryActor, ScrubActor,
+};
+pub use authoring::{
+    physical_scenario, PhysicalScenarioBuilder, ScenarioBuilderActorStep,
+    ScenarioBuilderExpectationStep, ScenarioBuilderFixtureStep, ScenarioBuilderScheduleStep,
+};
+pub use closeout::{
+    FutureHarnessExtensionSlotInventory, FutureHarnessExtensionSlotReport,
+    FuturePhysicalHarnessExtensionFamily, PhysicalSimulationHarnessCertificationBundle,
+    PhysicalSimulationHarnessCloseoutDenial, PhysicalSimulationHarnessCloseoutReport,
+    PhysicalSimulationHarnessCloseoutSuite, S45AcceptanceEvidenceLane, S45AcceptanceSuiteCoverage,
+    S45AcceptanceSuiteEvidence, S45AcceptanceSuiteEvidenceSource, S45AcceptanceSuiteExecutionProof,
+    S45AcceptanceSuiteMap, S45AcceptanceSuiteName, S45AcceptanceSuiteReceipt,
+    S45AcceptanceSuiteReceiptSet, S45CloseoutCoverageReport, S45DogfoodSliceKind,
+    S45ExecutedAcceptanceSuiteEvidence, S45ExecutedAcceptanceSuiteEvidenceSet,
+    S45HarnessDogfoodEvidence, S45HarnessDogfoodReport, S4RecoveryDogfoodScenario,
+    S4RecoveryDogfoodSliceEvidence, S5ReadinessShapeProbeScenario,
+    S5ReadinessShapeProbeSliceEvidence, ShortcutRejectionDogfoodScenario,
+    ShortcutRejectionDogfoodSliceEvidence,
+};
+pub use counters::{
+    admit_physical_counter_evidence, reject_hostile_counter_evidence_for_readmission,
+    CounterContractDenial, CounterContractKind, CounterExpectationDenial, CounterExpectationKind,
+    CounterExpectationStrength, CounterMismatchEvidence, CounterStrengthJustification,
+    CounterStrengthPosture, HostileCounterEvidenceRow, HostileResourceEnvelopeObservation,
+    OverExactCounterDenied, PhysicalCounterContract, PhysicalCounterEvidenceReceipt,
+    PhysicalCounterEvidenceRow, PhysicalCounterExecutionSources, PhysicalCounterExpectation,
+    PhysicalExecutedCounterEvidence, PhysicalResourceEnvelope, RequiredCounterContractSet,
+};
+pub use coverage::{
+    reject_edited_matrix_row, reject_manual_coverage_prose, reject_unchecked_maturity_claim,
+    CoverageGapDenial, CoverageRowDimension, CoverageRowSatisfiedReceipt, CoverageSurfaceKind,
+    GeneratedCoverageMatrix, HarnessMaturityEvidence, HarnessMaturityLevel, HarnessSubsystem,
+    HarnessSubsystemMaturity, MutationResultCoverageRow, MutationValidationPosture,
+    PhysicalCoverageMatrixRow, PhysicalMutationCoverageEvidence, RegisteredCounterCoverageRow,
+    RegisteredOracleCoverageRow, RegisteredScenarioCoverageRow, RegisteredTranscriptCoverageRow,
+    Roadmap2CoverageRegistry, Roadmap2HarnessReadinessReport, Roadmap2HarnessSequence,
+    Roadmap2PhysicalCoverageMatrix, S5HarnessMaturityDependencyEvidence, S5ReadinessDependencySet,
+    S5SimulationHarnessReadiness,
+};
+pub use drivers::{
+    private_mutation_driver_attempt, test_support_verdict_driver_attempt,
+    AdmittedDriverContractSet, AdversarialStorageBoundaryDriver, CrashRuntimeIsolationDriver,
+    DriverAdmissionDenial, DriverBoundaryKind, DriverCapabilityProfile, DriverEvidenceSurface,
+    DriverFaultClass, IoPressureDriver, MemoryPressureDriver, OfflineVerifierDriver,
+    PhysicalBoundarySeam, PhysicalBoundaryYieldpoint, PhysicalSimulationDriver,
+    ProductionBoundaryDriverTrace, ProductionStorageBoundaryDriver, YieldpointDeclaration,
+    YieldpointObservationReceipt, YieldpointPauseReceipt, YieldpointResumeReceipt,
+    YieldpointScheduleBinding,
+};
+pub use evidence::{
+    readmit_foundational_physical_evidence_after_boundary,
+    reject_foundational_materialization_as_store_authority, reject_loose_log_evidence_attempt,
+    reject_same_run_self_comparison_evidence_attempt, reject_terminal_json_evidence_attempt,
+    BoundaryBridgedPhysicalCertificationEvidenceBundle, EvidenceBundleAuthority,
+    EvidenceBundleReadmissionAuthority, FoundationalPhysicalCertificationEvidenceBundle,
+    PhysicalCertificationEvidenceBundle, PhysicalEvidenceBundleDenial,
+    PhysicalEvidenceBundlePrimary, PhysicalEvidenceReportRow,
+    ReadmittedPhysicalCertificationEvidenceBundle, SimulationFailureDigest,
+    TerminalProjectionOnlyEvidenceDenied,
+};
+pub use faults::{
+    BlockedReclaimEvent, ByteCorruptionEvent, CrashEvent, DelayedReleaseEvent, DroppedFlushEvent,
+    ExecutedFaultDeliveryRecipe, ExecutionReadyFaultDeliveryRecipe, ExpectedFaultLocalization,
+    FaultDeliveryAttempt, FaultDeliveryBoundaryProof, FaultDeliveryDenial, FaultDeliveryPlan,
+    FaultDeliveryReceipt, FaultObservedBoundaryKind, IoStallEvent, LoweredFaultDeliveryRecipe,
+    NoFaultControlEvent, NoFaultProductionBoundaryParity, ObservedFaultBoundary,
+    PhysicalArtifactFaultLocus, PhysicalArtifactKind, PhysicalFaultEvent, PhysicalFaultEventKind,
+    PhysicalFaultFieldKind, PhysicalFaultOffset, ReorderedPersistenceEvent, StaleGenerationEvent,
+    TornWriteEvent,
+};
+pub use fixtures::{
+    FixtureAuthorityReceipt, FixtureCapabilityDeclaration, FixtureConstructionAuthority,
+    FixtureConstructionBasis, FixtureConstructionProofBasis, FixtureMutationBoundary,
+    FixtureMutationBoundarySet, FixtureNeedsBoundary, FixtureNeedsMaterialization,
+    FixtureProfileNonClaim, FixtureProvenance, FixtureScaleDeclaration, LargeStoreFixtureProfile,
+    PersistedStoreFixtureManifest, PhysicalArtifactFixtureCatalog, PhysicalFixtureBuilder,
+    ProductionBackedFixtureMaterialization, ProductionBackedFixtureSource,
+    ProductionBackedPhysicalFixture, ResolvedFixtureConstructionRecipe, StoreFixtureAuthority,
+    SyntheticFixtureAuthorityDenied,
+};
+pub use observation::{
+    ExecutedPhysicalSimulationObservation, IndependentVerifierObservation,
+    IndependentVerifierObservationKind, ObservationDenial, ObservedPhysicalTrace,
+    PhysicalObservationBuilder, PhysicalSimulationObserver, RecoveryOutcomeKind,
+    RecoveryOutcomeObservation, ShortcutRejectionObservation, ShortcutRejectionObservationKind,
+};
+pub use oracles::{
+    expected_error_text_oracle_attempt, fixture_label_oracle_attempt, log_only_oracle_attempt,
+    phase7_verdict_topology, same_run_self_comparison_oracle_attempt,
+    test_support_oracle_verdict_attempt, BlockedReclaimUntilReleaseOracle, CounterContractOracle,
+    CrashRecoversOldOrNewNeverMixedOracle, IndependentVerifierAgreementOracle,
+    NoJsonAuthorityOracle, NoMixedRootOracle, NoPrivateMutationOracle, OldReaderSeesOldRootOracle,
+    OracleDenial, OracleVerdictBasis, PhysicalOracleJudgment, PhysicalOracleNonClaim,
+    PhysicalOracleVerdictTopology, PhysicalOracleVerdictTopologyPosture, PhysicalProofOracle,
+    PhysicalProofOracleKind, PhysicalProofOracleVerdict, PhysicalProofOracleVerdictKind,
+    PostSwapReaderSeesNewRootOracle, ReusablePhysicalOracleFamily, TranscriptReplayOracle,
+};
+pub use planning::{
+    lower_physical_simulation_plan, reject_unresolved_simulation_plan_recipe,
+    require_lowered_physical_simulation_plan, FixtureClassKind, ForbiddenShortcutKind,
+    ForbiddenShortcutSet, ObserverKind, OracleFamilyKind, PhysicalDriverKind,
+    PhysicalSimulationCapability, PhysicalSimulationCapabilitySet, PhysicalSimulationPlan,
+    PhysicalSimulationPlanIdentity, PhysicalSimulationProfile, PhysicalSimulationProfileSet,
+    RequiredActorSet, RequiredFixtureClassSet, RequiredObserverSet, RequiredOracleFamilySet,
+    RequiredPhysicalDriverSet, SimulationEvidencePolicy, SimulationPlanDenial,
+    SimulationPlanningContext, SupportedObserverSet, SupportedOracleFamilySet,
+    SupportedPhysicalDriverSet,
+};
+pub use s45_entry::{
+    admit_s45_simulation_harness_entry, reject_s45_copied_recovery_report,
+    reject_s45_foundational_projection_authority, reject_s45_log_output,
+    reject_s45_old_semantic_harness_label, reject_s45_s5_isolation_authority_attempt,
+    reject_s45_same_run_self_comparison, reject_s45_terminal_projection,
+    S45ExistingHarnessInventory, S45ExistingHarnessSurface, S45HarnessBoundaryDenial,
+    S45HarnessNonClaim, S45HarnessSurfaceClassification, S45RegisteredHarnessSurface,
+    S45RoadmapHarnessRequirement, S45RoadmapHarnessRequirementSet, S45SimulationHarnessEntry,
+    S45SimulationHarnessEntryIdentity,
+};
+pub use s5_handoff::{
+    accept_store_owned_s5_harness_readiness,
+    reject_foundational_or_proof_projection_as_s5_harness_readiness,
+    reject_future_slot_as_s5_harness_readiness, reject_generic_runner_as_s5_harness_readiness,
+    require_store_owned_s5_harness_receipt, AcceptedS5SimulationHarnessReadiness,
+    S5CounterContractReadiness, S5HarnessFutureExtensionReservation, S5HarnessFutureExtensionSlot,
+    S5HarnessReadinessReceipt, S5InterleavingHarnessCapability, S5MaintenanceActorCapability,
+    S5ProductionDriverCapability, S5RequiredYieldpoint, S5ReusableOracleReadiness,
+};
+pub use scenario::{
+    reject_raw_json_scenario_authority_attempt, CertifiedPhysicalScenario,
+    JsonScenarioAuthorityDenied, PhysicalScenarioActor, PhysicalScenarioActorRole,
+    PhysicalScenarioActorSet, PhysicalScenarioAuthorityWitness, PhysicalScenarioCanonicalIdentity,
+    PhysicalScenarioDefinitionDenial, PhysicalScenarioExpectation, PhysicalScenarioExpectationKind,
+    PhysicalScenarioFault, PhysicalScenarioFaultKind, PhysicalScenarioFixtureSet,
+    PhysicalScenarioIntent, PhysicalScenarioNonClaim, PhysicalScenarioSchedule,
+    PhysicalSimulationScenarioDefinition, PhysicalSimulationScenarioFamily,
+    TerminalProjectionScenarioDenied,
+};
+pub use schedule::{
+    AdmittedScheduleOrderingAuthority, CounterMismatchSummary, OracleVerdictKind,
+    OracleVerdictSummary, PartialOrderReductionPosture, PhysicalActorId, PhysicalActorStep,
+    PhysicalActorStepSequence, PhysicalFaultLocus, PhysicalInterleavingSchedule, ReplaySeed,
+    ScheduleExplorationCost, ScheduleFailureClass, ScheduleOrderingAuthorityAttempt,
+    ScheduleOrderingAuthorityKind, ScheduleReplayDenial, ScheduleReplayIdentity,
+    ScheduleShrinkTrace, StateSpaceBudget,
+};
+pub use shortcut_rejection::{
+    shortcut_denial_from_evidence_bundle_denial, shortcut_denial_from_fault_delivery_denial,
+    shortcut_denial_from_harness_boundary_denial, shortcut_denial_from_oracle_denial,
+    shortcut_denial_from_plan_denial, shortcut_denial_from_scenario_denial,
+    shortcut_denial_from_terminal_projection_denial, shortcut_denial_from_transcript_denial,
+    ShortcutRejectionBoundary, SyntheticHarnessShortcutDenialReceipt,
+    SyntheticHarnessShortcutRejectionDenial, SyntheticHarnessShortcutRejectionReport,
+};
+pub use transcript::{
+    reject_copied_transcript_fields, reject_loose_log_transcript_attempt,
+    reject_same_run_self_comparison_transcript_attempt, reject_terminal_json_transcript_attempt,
+    DetachedSimulationReplayParts, ExecutedTranscriptParts, PhysicalSimulationTranscript,
+    PhysicalSimulationTranscriptIdentity, PhysicalStoryTranscript, SimulationReplayBundle,
+    SimulationRunIdentity, TranscriptReplayDenial, TranscriptReplayEvidenceIdentity,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalCertificationLane {
     PowerLoss,

@@ -3,7 +3,7 @@ use worth_ui::facade::inspection::{
     UiEvidenceBudget, UiEvidenceRichness, UiInspectionEvidenceSource,
     UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery,
     UiInspectionRelevance, UiInspectionScope, UiInspectionSupportReason, UiInspectionSupportStatus,
-    UiInspectionTarget,
+    UiInspectionSupportPosture, UiInspectionSupportWorld, UiInspectionTarget,
 };
 
 #[test]
@@ -49,6 +49,10 @@ fn inspection_inventory_projects_typed_support_and_closure_reports() {
         UiInspectionSupportStatus::Unsupported
     );
     assert_eq!(
+        graph_report.posture(),
+        UiInspectionSupportPosture::Deferred
+    );
+    assert_eq!(
         graph_report.reason(),
         Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted)
     );
@@ -57,22 +61,9 @@ fn inspection_inventory_projects_typed_support_and_closure_reports() {
         Some(UiInspectionMilestoneExpectation::Milestone31)
     );
     assert_eq!(measurement_report.scope(), UiInspectionScope::Measurement);
-    assert_eq!(
-        measurement_report.reason(),
-        Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted)
-    );
-    assert_eq!(
-        mounting_report.reason(),
-        Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted)
-    );
-    assert_eq!(
-        rebind_report.reason(),
-        Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted)
-    );
-    assert_eq!(
-        measurement_report.expected_in(),
-        Some(UiInspectionMilestoneExpectation::Milestone31)
-    );
+    assert_eq!(measurement_report.current_world(), UiInspectionSupportWorld::Authoritative);
+    assert_eq!(mounting_report.current_world(), UiInspectionSupportWorld::Authoritative);
+    assert_eq!(rebind_report.current_world(), UiInspectionSupportWorld::Authoritative);
     assert_eq!(closure_report.rows().len(), 16);
 }
 
@@ -82,32 +73,21 @@ fn unsupported_scope_families_fail_locally_through_runtime_receipts() {
         .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
         .freeze();
 
-    for scope in [
-        UiInspectionScope::measurement(),
-        UiInspectionScope::mounting(),
-        UiInspectionScope::rebind(),
-    ] {
+    for scope in [UiInspectionScope::graph()] {
         let receipt = app.inspect(UiInspectionQuery::new(
             UiInspectionTarget::product_root(),
             scope,
         ));
-        let unsupported = receipt
-            .posture()
-            .unsupported_posture()
-            .expect("unsupported scope should project a sealed unsupported posture witness");
+        let support_report = app.inspection_support_report(scope);
 
         assert_eq!(receipt.query().scope(), scope);
+        assert_eq!(receipt.support_report(), Some(support_report));
         assert_eq!(
             receipt.posture(),
-            UiInspectionPosture::Unsupported(unsupported)
-        );
-        assert_eq!(
-            unsupported.reason(),
-            UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted
-        );
-        assert_eq!(
-            unsupported.expected_in(),
-            Some(UiInspectionMilestoneExpectation::Milestone31)
+            Some(UiInspectionPosture::deferred(
+                Some(UiInspectionMilestoneExpectation::Milestone31),
+                UiInspectionSupportWorld::Authoritative,
+            ))
         );
     }
 }

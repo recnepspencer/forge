@@ -1,7 +1,10 @@
 Now go implement the phase {phase.id}: {phase.title} plan.
 
-State file: {state_file}
+Config file: {config_file}
+Projection file: {projection_file}
+Event log file: {event_log_file}
 Spec file: {spec_file}
+Run id: {run_id}
 Cursor: phase {current.phase}, turn {current.turn}
 
 Phase scope:
@@ -32,21 +35,13 @@ Implementation rules:
   Use `cargo check`, focused compile-fail fences, import breakage, and type
   errors as the main guide until the new lane fully owns ordinary behavior.
 
-Do not put logs, command output tails, artifacts, long plans, or review findings
-into the state payload. Put substantive implementation explanation in chat. The
-committed state is only progress tracking.
+Do not put logs, command output tails, artifacts, long plans, or review
+findings into the runner payload. Put substantive implementation explanation in
+chat.
 
-When done, update the JSON state file directly with only short progress
-markers:
+When done, finish with:
 
-- `status: complete` and `qa_status: needed` if implementation is ready for the
-  phase-done check.
-- `status: in_progress` if implementation remains, with a short `notes.remaining`
-  marker.
-- `status: blocked` only for a precise blocker.
-
-Advance the cursor to `review` only when implementation is ready for the
-phase-done check; otherwise stay on `implement`.
+`RUNNER_EVENT: {"event_type":"implementation_completed","payload":{"notes":{"done":["..."],"verification":["..."]}}}`
 
 Phase-specific instructions:
 {phase.instructions}

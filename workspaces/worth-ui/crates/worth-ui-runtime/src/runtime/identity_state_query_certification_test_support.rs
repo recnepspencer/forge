@@ -102,6 +102,7 @@ pub(super) fn ambiguous_plan_for_same_active(
         base_plan.candidate_artifact_digest(),
         vec![WorthUiNodeReplacementClassification::new(
             "binding:ambiguous-query-state".to_owned(),
+            None,
             WorthUiNodeLifecycleTransition::Preserve,
             Some(WorthUiIdentityMatchNodeKind::Binding),
             Some(WorthUiIdentityMatchNodeKind::Binding),

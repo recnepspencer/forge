@@ -130,6 +130,10 @@ impl CanonicalResultShapeDigest {
 pub struct SchemaBasisDigest(String);
 
 impl SchemaBasisDigest {
+    pub fn from_domain_parts(parts: &[String]) -> Self {
+        Self(digest_hash_parts(parts))
+    }
+
     pub(crate) fn from_parts(parts: &[String]) -> Self {
         Self(digest_hash_parts(parts))
     }

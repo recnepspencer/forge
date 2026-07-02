@@ -118,6 +118,7 @@ fn file_authored_lowering_preserves_source_span_provenance() {
             WorthUiArtifactInputProvenance::ParsedSourceDeclaration {
                 declaration_span,
                 detail_span,
+                ..
             } => {
                 assert_eq!(declaration_span.module_id().as_str(), "app/main.wui");
                 assert!(detail_span.is_some());

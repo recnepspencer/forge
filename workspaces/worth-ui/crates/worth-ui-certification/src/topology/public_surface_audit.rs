@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use syn::{File, Item, UseTree, Visibility};
 
-pub(super) fn collect_public_names(path: &Path) -> BTreeSet<String> {
+pub(crate) fn collect_public_names(path: &Path) -> BTreeSet<String> {
     let parsed = parse_rust_file(path);
     let mut names = BTreeSet::new();
 
@@ -32,7 +32,7 @@ pub(super) fn collect_public_names(path: &Path) -> BTreeSet<String> {
     names
 }
 
-pub(super) fn collect_query_lane_public_surface_names(entrypoint: &Path) -> Vec<(String, PathBuf)> {
+pub(crate) fn collect_query_lane_public_surface_names(entrypoint: &Path) -> Vec<(String, PathBuf)> {
     let mut visited = BTreeSet::new();
     let mut output = Vec::new();
     collect_query_lane_public_surface_names_from_file(entrypoint, &mut visited, &mut output);

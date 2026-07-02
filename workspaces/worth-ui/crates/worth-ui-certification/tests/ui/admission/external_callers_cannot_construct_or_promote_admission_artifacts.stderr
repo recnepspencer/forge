@@ -1,0 +1,88 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:7:32
+  |
+7 |     let _ = UiSupportSnapshot::new(todo!(), UiSupportPosture::Supported);
+  |                                ^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-ui-runtime/src/admission/support/ui_support_snapshot.rs
+  |
+  |     pub(crate) fn new(target: UiAdmissionTarget, posture: UiSupportPosture) -> Self {
+  |     ------------------------------------------------------------------------------- private associated function defined here
+
+warning: unreachable expression
+ --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:7:45
+  |
+7 |     let _ = UiSupportSnapshot::new(todo!(), UiSupportPosture::Supported);
+  |                                    -------  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+  |                                    |
+  |                                    any code following this expression is unreachable
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0533]: expected value, found struct variant `UiSupportPosture::Supported`
+ --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:7:45
+  |
+7 |     let _ = UiSupportSnapshot::new(todo!(), UiSupportPosture::Supported);
+  |                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a value
+  |
+help: you might have meant to create a new value of the struct
+  |
+7 -     let _ = UiSupportSnapshot::new(todo!(), UiSupportPosture::Supported);
+7 +     let _ = UiSupportSnapshot::new(todo!(), UiSupportPosture::Supported { family: /* value */, world: /* value */ };
+  |
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:9:34
+  |
+9 |     let _ = UiAdmissionDecision::new(support_snapshot.clone(), todo!());
+  |                                  ^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-ui-runtime/src/admission/report/ui_admission_decision.rs
+  |
+  |     pub(crate) fn new(support_snapshot: UiSupportSnapshot, outcome: UiAdmissionOutcome) -> Self {
+  |     ------------------------------------------------------------------------------------------- private associated function defined here
+
+warning: unreachable call
+ --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:9:13
+  |
+9 |     let _ = UiAdmissionDecision::new(support_snapshot.clone(), todo!());
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^ unreachable call          ------- any code following this expression is unreachable
+
+error[E0624]: associated function `from_decision` is private
+  --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:10:32
+   |
+10 |     let _ = UiAdmissionReport::from_decision(todo!());
+   |                                ^^^^^^^^^^^^^ private associated function
+   |
+  ::: $WORKSPACE/crates/worth-ui-runtime/src/admission/report/ui_admission_report.rs
+   |
+   |     pub(crate) fn from_decision(decision: UiAdmissionDecision) -> Self {
+   |     ------------------------------------------------------------------ private associated function defined here
+
+warning: unreachable call
+  --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:10:13
+   |
+10 |     let _ = UiAdmissionReport::from_decision(todo!());
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ------- any code following this expression is unreachable
+   |             |
+   |             unreachable call
+
+error[E0599]: no function or associated item named `declaration` found for struct `UiAdmissionTarget` in the current scope
+  --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:11:32
+   |
+11 |     let _ = UiAdmissionTarget::declaration(todo!(), UiAdmissionWorld::authoritative());
+   |                                ^^^^^^^^^^^ function or associated item not found in `UiAdmissionTarget`
+   |
+note: if you're trying to build a new `UiAdmissionTarget`, consider using `UiAdmissionTarget::graph_node` which returns `UiAdmissionTarget`
+  --> $WORKSPACE/crates/worth-ui-runtime/src/admission/boundary/ui_admission_target.rs
+   |
+   |     pub fn graph_node(graph_node_identity: UiGraphNodeIdentity, world: UiAdmissionWorld) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unreachable expression
+  --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:11:53
+   |
+11 |     let _ = UiAdmissionTarget::declaration(todo!(), UiAdmissionWorld::authoritative());
+   |                                            -------  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+   |                                            |
+   |                                            any code following this expression is unreachable

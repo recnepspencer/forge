@@ -24,7 +24,10 @@ impl WorthUiParsedSourceToArtifactInputLowerer {
             let nodes = parsed_module
                 .declarations()
                 .iter()
-                .map(lower_parsed_source_declaration)
+                .enumerate()
+                .map(|(declaration_index, declaration)| {
+                    lower_parsed_source_declaration(declaration, declaration_index)
+                })
                 .collect();
             modules.insert(
                 module_id.clone(),
