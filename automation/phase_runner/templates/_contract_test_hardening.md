@@ -15,7 +15,7 @@ The durable runner contract is:
 
 Never edit the config file, event log, or projection file directly from a Codex
 turn. The only state transition you are allowed to make is the final
-`RUNNER_EVENT: {...}` marker that the orchestrator will validate and append.
+`RUNNER_EVENT:` marker that the orchestrator will validate and append.
 
 ## Load before you act
 
@@ -124,7 +124,7 @@ not resolved.
 
 Your final line must be exactly one compact JSON marker:
 
-`RUNNER_EVENT: {"event_type":"...","payload":{...}}`
+`RUNNER_EVENT: {"event_type":"name","payload":{"notes":{"done":["short marker"]}}}`
 
 The event type must match the current turn:
 
