@@ -101,6 +101,9 @@ mod s3_physical_integrity_readiness;
 mod s3_readiness_denial;
 mod s3_readiness_payload;
 mod s3_readiness_recap;
+mod s5_1_security_scope_admission;
+mod s5_1_later_milestone_handoffs;
+mod s5_1_security_scope_vocabulary;
 mod s5_simulation_harness_denial;
 mod s5_simulation_harness_readiness;
 
@@ -139,6 +142,17 @@ pub use s3_readiness_payload::{
 pub use s3_readiness_recap::{
     BufferPoolAuthorityRecap, PhysicalAuthorityRecap, S2BoundedCounterRecap, S2DenialBehaviorRecap,
     S2DeniedBoundaryKind,
+};
+pub use s5_1_security_scope_admission::{
+    accept_s5_1_admitted_security_scope_readiness, S51AdmittedSecurityScopeReadiness,
+};
+pub use s5_1_later_milestone_handoffs::{
+    S51LaterMilestoneHandoffCounterSnapshot, S51LaterMilestoneHandoffDenial,
+    S51SecurityFoundationHandoff, S51SecurityFoundationLifecyclePermission,
+    S51SecurityFoundationNonClaim,
+};
+pub use s5_1_security_scope_vocabulary::{
+    S51SecurityScopeReadinessFamily, S51SecurityScopeReadinessReservation,
 };
 pub use s5_simulation_harness_denial::{
     reject_copied_s5_simulation_harness_readiness_fields, reject_missing_s5_correctness_non_claim,

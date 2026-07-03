@@ -1,7 +1,9 @@
 use crate::{
-    ChecksumAlgorithmMismatchDenial, PreDecodeAdmissionCounters, ProtectedPhysicalByteView,
+    AuthenticityRequiredDecodeCounters, ChecksumAlgorithmMismatchDenial,
+    PreDecodeAdmissionCounters, ProtectedPhysicalByteView,
 };
 use forge_store_physical_format::{PhysicalGenerationOwner, PhysicalHeaderKind};
+use forge_store_security::StoreAuthenticityCheckDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PreDecodePhysicalDenialKind {
@@ -10,6 +12,8 @@ pub enum PreDecodePhysicalDenialKind {
     TruncatedPhysicalPage,
     TruncatedPhysicalFrame,
     ChecksumMismatch,
+    AuthenticityRequiredPhysicalDenial,
+    AuthenticityResultPhysicalIdentityMismatch,
     StaleGeneration,
     PhysicalHeaderDenied,
     PoisonedPhysicalInput,
@@ -25,6 +29,8 @@ pub struct PreDecodePhysicalDenial {
     protected_byte_count: u64,
     counters: PreDecodeAdmissionCounters,
     checksum_denial: Option<ChecksumAlgorithmMismatchDenial>,
+    authenticity_denial: Option<StoreAuthenticityCheckDenial>,
+    authenticity_required_counters: Option<AuthenticityRequiredDecodeCounters>,
 }
 
 impl PreDecodePhysicalDenial {
@@ -42,6 +48,8 @@ impl PreDecodePhysicalDenial {
             protected_byte_count,
             counters: PreDecodeAdmissionCounters::denied_before_decode(protected_byte_count),
             checksum_denial: None,
+            authenticity_denial: None,
+            authenticity_required_counters: None,
         }
     }
 
@@ -80,6 +88,21 @@ impl PreDecodePhysicalDenial {
         self
     }
 
+    pub(crate) const fn with_authenticity_denial(
+        mut self,
+        denial: StoreAuthenticityCheckDenial,
+    ) -> Self {
+        self.authenticity_required_counters = Some(AuthenticityRequiredDecodeCounters::denied(
+            self.counters,
+            denial.counters(),
+            denial.is_checksum_valid_authenticity_failed(),
+            denial.is_checksum_valid_authenticity_unavailable(),
+            denial.is_checksum_valid_authenticity_unsupported(),
+        ));
+        self.authenticity_denial = Some(denial);
+        self
+    }
+
     pub const fn kind(&self) -> PreDecodePhysicalDenialKind {
         self.kind
     }
@@ -110,5 +133,15 @@ impl PreDecodePhysicalDenial {
 
     pub const fn checksum_denial(&self) -> Option<ChecksumAlgorithmMismatchDenial> {
         self.checksum_denial
+    }
+
+    pub const fn authenticity_denial(&self) -> Option<StoreAuthenticityCheckDenial> {
+        self.authenticity_denial
+    }
+
+    pub const fn authenticity_required_counters(
+        &self,
+    ) -> Option<AuthenticityRequiredDecodeCounters> {
+        self.authenticity_required_counters
     }
 }

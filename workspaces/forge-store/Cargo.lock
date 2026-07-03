@@ -228,11 +228,17 @@ dependencies = [
 name = "forge-store-blob-chunks"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-proof",
+ "forge-store-aspect-native",
+ "forge-store-authority",
  "forge-store-buffer-pool",
  "forge-store-contracts",
  "forge-store-physical-backend",
  "forge-store-physical-format",
  "forge-store-physical-integrity",
+ "forge-store-readiness",
+ "forge-store-security",
 ]
 
 [[package]]
@@ -288,6 +294,8 @@ dependencies = [
  "forge-store-contracts",
  "forge-store-io-scheduler",
  "forge-store-maintenance",
+ "forge-store-offline-verifier",
+ "forge-store-operations",
  "forge-store-physical-backend",
  "forge-store-physical-certification",
  "forge-store-physical-format",
@@ -297,8 +305,10 @@ dependencies = [
  "forge-store-recovery-physics",
  "forge-store-replication",
  "forge-store-s0-reclassification",
+ "forge-store-security",
  "forge-store-subscription-support",
  "forge-store-test-support",
+ "forge-store-wal",
  "serde_json",
 ]
 
@@ -344,6 +354,8 @@ version = "0.1.0"
 dependencies = [
  "forge-store-contracts",
  "forge-store-physical-isolation",
+ "forge-store-readiness",
+ "forge-store-security",
 ]
 
 [[package]]
@@ -386,18 +398,29 @@ dependencies = [
 name = "forge-store-offline-verifier"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-proof",
+ "forge-store-aspect-native",
+ "forge-store-authority",
  "forge-store-contracts",
  "forge-store-physical-format",
+ "forge-store-security",
 ]
 
 [[package]]
 name = "forge-store-operations"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-proof",
+ "forge-store-aspect-native",
+ "forge-store-authority",
  "forge-store-contracts",
  "forge-store-offline-verifier",
  "forge-store-physical-integrity",
+ "forge-store-readiness",
  "forge-store-recovery-physics",
+ "forge-store-security",
 ]
 
 [[package]]
@@ -450,6 +473,7 @@ dependencies = [
  "forge-store-offline-verifier",
  "forge-store-physical-format",
  "forge-store-readiness",
+ "forge-store-security",
 ]
 
 [[package]]
@@ -464,6 +488,7 @@ dependencies = [
  "forge-store-physical-format",
  "forge-store-physical-integrity",
  "forge-store-recovery-physics",
+ "forge-store-security",
 ]
 
 [[package]]
@@ -476,6 +501,7 @@ dependencies = [
  "forge-store-contracts",
  "forge-store-physical-format",
  "forge-store-s0-reclassification",
+ "forge-store-security",
 ]
 
 [[package]]
@@ -485,6 +511,7 @@ dependencies = [
  "forge-foundational",
  "forge-proof",
  "forge-store-aspect-native",
+ "forge-store-authority",
  "forge-store-budgets",
  "forge-store-buffer-pool",
  "forge-store-contracts",
@@ -492,6 +519,8 @@ dependencies = [
  "forge-store-physical-format",
  "forge-store-physical-integrity",
  "forge-store-readiness",
+ "forge-store-security",
+ "forge-store-wal",
 ]
 
 [[package]]
@@ -534,6 +563,10 @@ dependencies = [
 name = "forge-store-security"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-proof",
+ "forge-store-aspect-native",
+ "forge-store-authority",
  "forge-store-contracts",
  "forge-store-physical-format",
 ]
@@ -565,13 +598,16 @@ dependencies = [
  "forge-foundational",
  "forge-proof",
  "forge-store-aspect-native",
+ "forge-store-authority",
  "forge-store-contracts",
  "forge-store-physical-backend",
  "forge-store-physical-certification",
  "forge-store-physical-format",
  "forge-store-physical-integrity",
  "forge-store-physical-isolation",
+ "forge-store-readiness",
  "forge-store-recovery-physics",
+ "forge-store-security",
 ]
 
 [[package]]
@@ -587,10 +623,14 @@ dependencies = [
 name = "forge-store-wal"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-proof",
+ "forge-store-aspect-native",
  "forge-store-authority",
  "forge-store-contracts",
  "forge-store-modes",
- "forge-store-recovery-physics",
+ "forge-store-physical-format",
+ "forge-store-security",
 ]
 
 [[package]]

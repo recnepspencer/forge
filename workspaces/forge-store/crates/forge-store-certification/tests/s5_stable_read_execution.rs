@@ -1,5 +1,7 @@
 #[path = "s4_closeout/fixture.rs"]
 mod closeout_fixture;
+#[path = "s5_stable_read_execution/security_scope.rs"]
+mod execution_security_scope;
 #[path = "s5_stable_read_execution/support.rs"]
 mod execution_support;
 #[path = "s5_stable_read_execution/plan_admission.rs"]
@@ -8,6 +10,7 @@ mod plan_admission;
 #[allow(dead_code)]
 mod support;
 
+use execution_security_scope::logical_decode_entry_for_handle;
 use execution_support::{
     admit_payload_frame_for_reference, bounded_copy_for_record, bounded_copy_for_reference,
     payload_admission_for_frame, payload_admission_for_reference, resident_frame_table,
@@ -35,10 +38,10 @@ fn execution_consumes_handle_admits_guard_and_releases_plan() {
     let reference = current_generation_page_reference(101);
     let plan = admit_plan(&authority, root, protected_set([reference], 4), 8, 4);
     let footprint_basis = plan.footprint().declared_footprint_basis();
-    let mut execution = StablePhysicalReadExecution::from_execution_ready_handle(
-        plan.into_execution_ready_handle(),
-    );
+    let handle = plan.into_execution_ready_handle();
     let scope = PhysicalByteGuardScope::for_owned_read_buffer(reference);
+    let decode_entry = logical_decode_entry_for_handle(&handle, scope, "execution-consumes-handle");
+    let mut execution = StablePhysicalReadExecution::from_execution_ready_handle(handle);
     let guard_admission = execution.admit_byte_guard(scope).unwrap();
     let guard = PhysicalByteGuard::from_bounded_copy(
         guard_admission,
@@ -46,7 +49,9 @@ fn execution_consumes_handle_admits_guard_and_releases_plan() {
     )
     .unwrap();
 
-    let guarded = execution.read_guarded_bytes(&guard).unwrap();
+    let guarded = execution
+        .read_guarded_bytes_with_security_scope(&guard, decode_entry)
+        .unwrap();
     assert_eq!(guarded.scope(), scope);
     assert_eq!(guarded.physical_bytes(), b"copy");
 
@@ -187,9 +192,14 @@ fn execution_rejects_guard_admitted_by_different_protected_footprint() {
     let mut left_execution = StablePhysicalReadExecution::from_execution_ready_handle(
         left_plan.into_execution_ready_handle(),
     );
-    let mut right_execution = StablePhysicalReadExecution::from_execution_ready_handle(
-        right_plan.into_execution_ready_handle(),
+    let right_handle = right_plan.into_execution_ready_handle();
+    let right_decode_entry = logical_decode_entry_for_handle(
+        &right_handle,
+        PhysicalByteGuardScope::for_owned_read_buffer(right),
+        "different-protected-footprint",
     );
+    let mut right_execution =
+        StablePhysicalReadExecution::from_execution_ready_handle(right_handle);
     let admission = left_execution
         .admit_byte_guard(PhysicalByteGuardScope::for_owned_read_buffer(left))
         .unwrap();
@@ -197,11 +207,13 @@ fn execution_rejects_guard_admitted_by_different_protected_footprint() {
         PhysicalByteGuard::from_bounded_copy(admission, bounded_copy_for_reference(left, b"left"))
             .unwrap();
 
-    let denial = right_execution.read_guarded_bytes(&guard).unwrap_err();
+    let denial = right_execution
+        .read_guarded_bytes_with_security_scope(&guard, right_decode_entry)
+        .unwrap_err();
 
     assert!(matches!(
         denial,
-        PhysicalReadExecutionDenial::GuardScopeNotInPlan { .. }
+        PhysicalReadExecutionDenial::LogicalDecodeScopeFootprintMismatch { .. }
     ));
     assert_eq!(right_execution.counters().guarded_byte_reads(), 0);
     assert_eq!(right_execution.counters().broad_footprint_scans(), 0);
@@ -240,13 +252,15 @@ fn extent_and_mmap_guards_require_matching_scope_kind() {
     let root = current_root_from_authority(&authority);
     let reference = current_generation_page_reference(119);
     let plan = admit_plan(&authority, root, protected_set([reference], 4), 8, 4);
-    let mut execution = StablePhysicalReadExecution::from_execution_ready_handle(
-        plan.into_execution_ready_handle(),
-    );
+    let handle = plan.into_execution_ready_handle();
+    let extent_scope = PhysicalByteGuardScope::for_extent_window(reference);
+    let mmap_scope = PhysicalByteGuardScope::for_mmap_view(reference);
+    let extent_decode_entry =
+        logical_decode_entry_for_handle(&handle, extent_scope, "extent-and-mmap");
+    let mmap_decode_entry = logical_decode_entry_for_handle(&handle, mmap_scope, "extent-and-mmap");
+    let mut execution = StablePhysicalReadExecution::from_execution_ready_handle(handle);
 
-    let extent = execution
-        .admit_byte_guard(PhysicalByteGuardScope::for_extent_window(reference))
-        .unwrap();
+    let extent = execution.admit_byte_guard(extent_scope).unwrap();
     let extent_guard = PhysicalByteGuard::from_extent_window(
         extent,
         payload_admission_for_reference(reference, b"extent"),
@@ -254,23 +268,28 @@ fn extent_and_mmap_guards_require_matching_scope_kind() {
     .unwrap();
     assert_eq!(
         execution
-            .read_guarded_bytes(&extent_guard)
+            .read_guarded_bytes_with_security_scope(&extent_guard, extent_decode_entry)
             .unwrap()
             .physical_bytes(),
         b"extent"
     );
 
-    let mmap = execution
-        .admit_byte_guard(PhysicalByteGuardScope::for_mmap_view(reference))
-        .unwrap();
+    let mmap = execution.admit_byte_guard(mmap_scope).unwrap();
     let mmap_guard = PhysicalByteGuard::from_mmap_view(
         mmap,
         payload_admission_for_reference(reference, b"mmap"),
     )
     .unwrap();
+    let denial = execution
+        .read_guarded_bytes_with_security_scope(&mmap_guard, extent_decode_entry)
+        .unwrap_err();
+    assert!(matches!(
+        denial,
+        PhysicalReadExecutionDenial::ByteGuardScopeMismatch { .. }
+    ));
     assert_eq!(
         execution
-            .read_guarded_bytes(&mmap_guard)
+            .read_guarded_bytes_with_security_scope(&mmap_guard, mmap_decode_entry)
             .unwrap()
             .physical_bytes(),
         b"mmap"
@@ -338,12 +357,11 @@ fn ordinary_execution_denies_hidden_structural_latch_io() {
     let root = current_root_from_authority(&authority);
     let reference = current_generation_page_reference(127);
     let plan = admit_plan(&authority, root, protected_set([reference], 4), 8, 4);
-    let mut execution = StablePhysicalReadExecution::from_execution_ready_handle(
-        plan.into_execution_ready_handle(),
-    );
-    let admission = execution
-        .admit_byte_guard(PhysicalByteGuardScope::for_owned_read_buffer(reference))
-        .unwrap();
+    let handle = plan.into_execution_ready_handle();
+    let scope = PhysicalByteGuardScope::for_owned_read_buffer(reference);
+    let decode_entry = logical_decode_entry_for_handle(&handle, scope, "blocking-io");
+    let mut execution = StablePhysicalReadExecution::from_execution_ready_handle(handle);
+    let admission = execution.admit_byte_guard(scope).unwrap();
     let guard = PhysicalByteGuard::from_bounded_copy(
         admission,
         bounded_copy_for_reference(reference, b"copy"),
@@ -353,6 +371,7 @@ fn ordinary_execution_denies_hidden_structural_latch_io() {
         .read_guarded_bytes_after_io_attempt(
             PhysicalReadIoAttempt::blocking_storage_io_while_structural_latch_held(),
             &guard,
+            decode_entry,
         )
         .unwrap_err();
 

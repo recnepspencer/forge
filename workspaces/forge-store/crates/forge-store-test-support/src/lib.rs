@@ -10,6 +10,7 @@ mod native_aspect_fixtures;
 mod physical_simulation;
 mod resident_pressure_fixtures;
 mod s4_recovery_physics;
+mod s5_1_security_scope_harness;
 mod s5_physical_isolation;
 mod terminal_projection_json_fixtures;
 
@@ -56,6 +57,16 @@ pub use s4_recovery_physics::{
     s4_recovery_artifacts_with_operation_digest, ExecutedS4CrashHarnessDenial,
     ExecutedS4CrashHarnessTranscript, FaultSchedulerDriver, FreshRuntimeRecoveryDriver,
     RecoveryRuntimePosture, ScheduledFault, StorageBoundaryEvent, StorageBoundaryInterposerDriver,
+};
+pub use s5_1_security_scope_harness::{
+    execute_s5_1_security_scope_harness_replay_with_physical_replay,
+    execute_s5_1_security_scope_harness_scenario, s5_1_security_scope_drift_scenario,
+    s5_1_security_scope_metadata_preservation_scenarios,
+    s5_1_security_scope_metadata_preserved_scenario,
+    s5_1_security_scope_missing_authenticity_scenario,
+    s5_1_security_scope_replayed_custody_scenario, s5_1_security_scope_stale_key_scenario,
+    s5_1_security_scope_wrong_tenant_scenario, S51SecurityScopeHarnessExecution,
+    S51SecurityScopeHarnessReplayExecution,
 };
 pub use s5_physical_isolation::{s5_boundary_fact, s5_boundary_yieldpoint};
 pub use terminal_projection_json_fixtures::StoreTerminalProjectionJsonFixture;

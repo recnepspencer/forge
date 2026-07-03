@@ -39,6 +39,18 @@ fn compile_fail_fixtures() -> Vec<CompileFailFixture> {
             name: "guarded_bytes_cannot_outlive_execution_completion.rs",
             expected_stderr: &["cannot move out of", "borrowed"],
         },
+        CompileFailFixture {
+            name: "root_witness_cannot_satisfy_logical_decode_scope.rs",
+            expected_stderr: &["LogicalDecodeSecurityScopeEntry", "CurrentPhysicalRoot"],
+        },
+        CompileFailFixture {
+            name: "raw_bytes_cannot_enter_scoped_logical_decode.rs",
+            expected_stderr: &["PhysicalByteGuard", "[u8"],
+        },
+        CompileFailFixture {
+            name: "logical_decode_scope_entry_cannot_be_constructed.rs",
+            expected_stderr: &["from_observed_scope", "private"],
+        },
     ]
 }
 

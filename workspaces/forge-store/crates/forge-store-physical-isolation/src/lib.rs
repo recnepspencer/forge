@@ -18,6 +18,7 @@ mod reclaim_reachability;
 mod root_protocol;
 mod s5_harness_readiness;
 mod s6_handoff;
+mod security_scope_propagation;
 mod stable_read_execution;
 
 pub use byte_guard::{
@@ -190,6 +191,12 @@ pub use s6_handoff::{
     S6ReadinessBoundaryBridgedRecipe, S6ReadinessFreshBasis, S6ReadinessLoweredRecipe,
     S6ReadinessProofHandoff, S6ReadinessPublicationAuthority, S6ReadinessResolvedRecipe,
     UnsupportedQoSClaim,
+};
+pub use security_scope_propagation::{
+    LogicalDecodeSecurityScopeEntry, StableReadObservedSecurityScope,
+    StableReadSecurityScopeCarrierBasis, StableReadSecurityScopePropagation,
+    StableReadSecurityScopePropagationCounters, StableReadSecurityScopePropagationDenial,
+    StableReadSecurityScopePropagationInput,
 };
 pub use stable_read_execution::{
     ByteGuardedPhysicalRead, EpochRetryReceipt, PhysicalByteGuardAdmission,

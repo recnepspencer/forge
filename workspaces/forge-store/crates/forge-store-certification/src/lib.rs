@@ -91,6 +91,7 @@ mod lanes;
 mod large_store_pressure_evidence;
 #[cfg(test)]
 mod large_store_pressure_tests;
+mod late_milestone_exports;
 mod layout_observers;
 mod manifest_discovery_evidence;
 #[cfg(test)]
@@ -209,6 +210,15 @@ mod s4_recovery_blocking_damage_test_support;
 mod s4_recovery_entry_admission_tests;
 mod s4_recovery_harness;
 mod s4_recovery_harness_exports;
+#[cfg(test)]
+mod s5_1_authenticity_integrity_separation_tests;
+#[cfg(test)]
+mod s5_1_authenticity_integrity_test_support;
+#[cfg(test)]
+mod s5_1_blob_chunk_scope_dedupe_tests;
+mod s5_1_closeout;
+#[cfg(test)]
+mod s5_1_recovery_scope_propagation_tests;
 mod s5_evidence_materialization;
 mod s5_physical_isolation_closeout;
 mod s5_physical_isolation_harness;
@@ -306,6 +316,7 @@ pub use lanes::{LaneFamilyExtension, PhysicalSubstrateLane, RoadmapLaneFamily};
 pub use large_store_pressure_evidence::{
     LargeStorePressureEvidenceBundle, LargeStorePressureEvidenceDenial, LargeStoreShortcutAttempt,
 };
+pub use late_milestone_exports::*;
 pub use layout_observers::{
     OfflineVerifierObserver, PhysicalLayoutParity, PhysicalLayoutParityDenial,
     PhysicalLayoutParityReport, RuntimeLayoutObserver,
@@ -377,11 +388,6 @@ pub use s2_entry_boundary_evidence::{
     S2EntryBoundaryEvidenceDenial, S2EntryBoundaryEvidenceReport, S2EntryBoundaryEvidenceRow,
     S2ForbiddenEntryAttempt,
 };
-pub use s4_recovery_harness_exports::*;
-pub use s5_evidence_materialization::*;
-pub use s5_physical_isolation_closeout::*;
-pub use s5_physical_isolation_harness::*;
-pub use s6_io_qos_readiness_handoff::*;
 pub use scale_fixture::*;
 pub use scale_property::PhysicalScalePropertyEvidence;
 pub use scenario_definition::*;
@@ -394,4 +400,3 @@ pub use speculative_work_evidence::{
 pub use store_certification_program::StoreCertificationProgram;
 pub use store_json_residue_exports::*;
 pub use story_transcript::PhysicalStoryTranscript;
-pub use synthetic_closeout_exports::*;

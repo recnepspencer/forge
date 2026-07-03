@@ -6,6 +6,10 @@ license.workspace = true
 description = "Roadmap 2 S.11 security, compliance, tenant boundaries, and auditability."
 
 [dependencies]
+forge-foundational = { path = "../../../../crates/forge-foundational" }
+forge-proof = { path = "../../../../crates/forge-proof" }
+forge-store-aspect-native.workspace = true
+forge-store-authority.workspace = true
 forge-store-contracts.workspace = true
 forge-store-physical-format.workspace = true
 

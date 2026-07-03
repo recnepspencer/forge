@@ -9,13 +9,16 @@ description = "Narrow test fixtures and builders for the Forge Store rebuild wor
 forge-foundational = { path = "../../../../crates/forge-foundational" }
 forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-aspect-native.workspace = true
+forge-store-authority.workspace = true
 forge-store-contracts.workspace = true
 forge-store-physical-certification.workspace = true
 forge-store-physical-backend.workspace = true
 forge-store-physical-format.workspace = true
 forge-store-physical-isolation.workspace = true
 forge-store-physical-integrity.workspace = true
+forge-store-readiness.workspace = true
 forge-store-recovery-physics.workspace = true
+forge-store-security.workspace = true
 
 [lints]
 workspace = true

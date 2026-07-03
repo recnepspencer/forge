@@ -5,8 +5,8 @@ use super::{
     StablePhysicalReadReceipt,
 };
 use crate::{
-    CurrentPhysicalRoot, PhysicalByteGuard, PhysicalByteGuardScope, PhysicalReadPlanRetryPosture,
-    StablePhysicalReadHandle,
+    CurrentPhysicalRoot, LogicalDecodeSecurityScopeEntry, PhysicalByteGuard,
+    PhysicalByteGuardScope, PhysicalReadPlanRetryPosture, StablePhysicalReadHandle,
 };
 use forge_proof::TransitionOutcome;
 
@@ -57,7 +57,7 @@ impl StablePhysicalReadExecution {
         }
     }
 
-    pub fn read_guarded_bytes<'a>(
+    pub(crate) fn read_guarded_bytes<'a>(
         &'a mut self,
         guard: &'a PhysicalByteGuard<'a>,
     ) -> Result<ByteGuardedPhysicalRead<'a>, PhysicalReadExecutionDenial> {
@@ -71,15 +71,25 @@ impl StablePhysicalReadExecution {
         })
     }
 
+    pub fn read_guarded_bytes_with_security_scope<'a>(
+        &'a mut self,
+        guard: &'a PhysicalByteGuard<'a>,
+        logical_decode_entry: LogicalDecodeSecurityScopeEntry,
+    ) -> Result<ByteGuardedPhysicalRead<'a>, PhysicalReadExecutionDenial> {
+        self.reject_logical_decode_scope_mismatch(logical_decode_entry, guard)?;
+        self.read_guarded_bytes(guard)
+    }
+
     pub fn read_guarded_bytes_after_io_attempt<'a>(
         &'a mut self,
         attempt: PhysicalReadIoAttempt,
         guard: &'a PhysicalByteGuard<'a>,
+        logical_decode_entry: LogicalDecodeSecurityScopeEntry,
     ) -> Result<ByteGuardedPhysicalRead<'a>, PhysicalReadExecutionDenial> {
         if attempt.requires_declared_structural_latch_io_cost() {
             self.reject_blocking_io_while_holding_structural_latch()?;
         }
-        self.read_guarded_bytes(guard)
+        self.read_guarded_bytes_with_security_scope(guard, logical_decode_entry)
     }
 
     pub fn observe_epoch_freshness(
@@ -160,6 +170,62 @@ impl StablePhysicalReadExecution {
                 counters: self.counters,
             })
         }
+    }
+
+    fn reject_logical_decode_scope_mismatch(
+        &self,
+        logical_decode_entry: LogicalDecodeSecurityScopeEntry,
+        guard: &PhysicalByteGuard<'_>,
+    ) -> Result<(), PhysicalReadExecutionDenial> {
+        let expected_root = self.handle.plan().root();
+        if logical_decode_entry.observed_root() != expected_root {
+            return Err(
+                PhysicalReadExecutionDenial::LogicalDecodeScopeRootMismatch {
+                    admitted: expected_root,
+                    observed: logical_decode_entry.observed_root(),
+                },
+            );
+        }
+
+        let expected_footprint = self.handle.plan().footprint().declared_footprint_basis();
+        if logical_decode_entry.footprint_basis() != expected_footprint {
+            return Err(
+                PhysicalReadExecutionDenial::LogicalDecodeScopeFootprintMismatch {
+                    admitted: expected_footprint,
+                    observed: logical_decode_entry.footprint_basis(),
+                },
+            );
+        }
+
+        if logical_decode_entry.footprint_basis() != guard.footprint_basis() {
+            return Err(
+                PhysicalReadExecutionDenial::LogicalDecodeScopeFootprintMismatch {
+                    admitted: logical_decode_entry.footprint_basis(),
+                    observed: guard.footprint_basis(),
+                },
+            );
+        }
+
+        if logical_decode_entry.guard_scope() != guard.scope() {
+            return Err(PhysicalReadExecutionDenial::ByteGuardScopeMismatch {
+                admitted: logical_decode_entry.guard_scope(),
+                observed: guard.scope(),
+            });
+        }
+
+        if !logical_decode_entry
+            .carrier_basis()
+            .matches_guard_scope(guard.scope())
+        {
+            return Err(
+                PhysicalReadExecutionDenial::LogicalDecodeScopeCarrierMismatch {
+                    admitted: logical_decode_entry.carrier_basis(),
+                    observed: guard.scope(),
+                },
+            );
+        }
+
+        Ok(())
     }
 }
 

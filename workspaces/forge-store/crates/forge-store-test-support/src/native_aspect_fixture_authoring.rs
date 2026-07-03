@@ -10,7 +10,11 @@ use forge_store_aspect_native::{
     StoreAspectFieldBoundaryLocator, StoreAspectIdentity, StoreAspectPatchAuthorityInput,
     StoreAspectPatchBoundaryFact, StoreAspectValueBoundaryLocator, StorePhysicalBoundaryWitness,
 };
-use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
+use forge_store_contracts::{
+    PhysicalAuthorityBoundaryInstance, StorePhysicalAuthorityWitness,
+    ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE, ROADMAP_2_PRIMARY_PHYSICAL_BOUNDARY,
+    ROADMAP_2_REPLAY_PHYSICAL_BOUNDARY,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct AuthoredNativeStoreAspectFixture {
@@ -54,10 +58,23 @@ pub(crate) fn authored_segment_header_fixture(
 }
 
 pub(crate) fn authored_scalar_string_fixture(value: &str) -> AuthoredNativeStoreAspectFixture {
+    authored_scalar_string_fixture_on_boundary(value, ROADMAP_2_PRIMARY_PHYSICAL_BOUNDARY)
+}
+
+pub(crate) fn authored_replay_boundary_scalar_string_fixture(
+    value: &str,
+) -> AuthoredNativeStoreAspectFixture {
+    authored_scalar_string_fixture_on_boundary(value, ROADMAP_2_REPLAY_PHYSICAL_BOUNDARY)
+}
+
+fn authored_scalar_string_fixture_on_boundary(
+    value: &str,
+    boundary_instance: PhysicalAuthorityBoundaryInstance,
+) -> AuthoredNativeStoreAspectFixture {
     let aspect_key = aspect_key("store.physical.segment.identity");
     let contract = scalar_string_contract(aspect_key.clone());
     let scalar_value = AspectValue::String(InternedString::from(value));
-    let physical_witness = physical_witness();
+    let physical_witness = physical_witness_for_boundary(boundary_instance);
 
     authored_fixture_from_parts(
         StoreAspectIdentity::from_aspect_key(aspect_key),
@@ -237,9 +254,16 @@ fn store_field_locator(
 }
 
 fn physical_witness() -> StorePhysicalBoundaryWitness {
+    physical_witness_for_boundary(ROADMAP_2_PRIMARY_PHYSICAL_BOUNDARY)
+}
+
+fn physical_witness_for_boundary(
+    boundary_instance: PhysicalAuthorityBoundaryInstance,
+) -> StorePhysicalBoundaryWitness {
     StorePhysicalBoundaryWitness::from_physical_authority(
-        StorePhysicalAuthorityWitness::for_aspect_native_boundary(
+        StorePhysicalAuthorityWitness::for_aspect_native_boundary_instance(
             ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
+            boundary_instance,
         )
         .unwrap(),
     )

@@ -1,5 +1,9 @@
 use super::StablePhysicalReadExecutionCounters;
-use crate::{PhysicalByteGuardDenial, PhysicalByteGuardScope, PhysicalReadPlanAdmissionDenial};
+use crate::{
+    CurrentPhysicalRoot, PhysicalByteGuardDenial, PhysicalByteGuardScope,
+    PhysicalReadPlanAdmissionDenial, PhysicalReadProtectedFootprintBasis,
+    StableReadSecurityScopeCarrierBasis,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PhysicalReadExecutionDenial {
@@ -11,6 +15,18 @@ pub enum PhysicalReadExecutionDenial {
     },
     ByteGuardScopeMismatch {
         admitted: PhysicalByteGuardScope,
+        observed: PhysicalByteGuardScope,
+    },
+    LogicalDecodeScopeRootMismatch {
+        admitted: CurrentPhysicalRoot,
+        observed: CurrentPhysicalRoot,
+    },
+    LogicalDecodeScopeFootprintMismatch {
+        admitted: PhysicalReadProtectedFootprintBasis,
+        observed: PhysicalReadProtectedFootprintBasis,
+    },
+    LogicalDecodeScopeCarrierMismatch {
+        admitted: StableReadSecurityScopeCarrierBasis,
         observed: PhysicalByteGuardScope,
     },
     HiddenStructuralLatchIoWithoutDeclaredCost {

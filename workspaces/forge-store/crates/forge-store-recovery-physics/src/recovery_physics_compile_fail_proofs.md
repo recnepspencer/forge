@@ -91,15 +91,16 @@ let _forged = RecoveryEntryAdmission {
 };
 ```
 
-Replay planning entry points must require admitted S.4 recovery entry state:
+Replay planning entry points must require admitted S.4 recovery entry state and
+admitted recovery security-scope propagation:
 
 ```compile_fail
 use forge_store_recovery_physics::{
-    RecoveryReplayEntryGate, S4RecoveryPhysicsIntegrityReadiness,
+    RecoveryEntryAdmission, RecoveryReplayEntryGate,
 };
 
-let readiness: S4RecoveryPhysicsIntegrityReadiness = todo!();
-let _gate = RecoveryReplayEntryGate::before_source_precedence(readiness);
+let admission: RecoveryEntryAdmission = todo!();
+let _gate = RecoveryReplayEntryGate::before_source_precedence(admission);
 ```
 
 S.4 recovery entry admission cannot consume S.3 protected-view capability as

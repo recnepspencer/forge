@@ -6,10 +6,18 @@ license.workspace = true
 description = "Roadmap 2 S.10 operational safety, backup, PITR, repair, and forensics."
 
 [dependencies]
+forge-proof = { path = "../../../../crates/forge-proof" }
+forge-store-authority.workspace = true
 forge-store-contracts.workspace = true
 forge-store-offline-verifier.workspace = true
 forge-store-physical-integrity.workspace = true
 forge-store-recovery-physics.workspace = true
+forge-store-readiness.workspace = true
+forge-store-security.workspace = true
+
+[dev-dependencies]
+forge-foundational = { path = "../../../../crates/forge-foundational" }
+forge-store-aspect-native.workspace = true
 
 [lints]
 workspace = true

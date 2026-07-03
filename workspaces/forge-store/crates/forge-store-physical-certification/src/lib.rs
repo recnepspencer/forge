@@ -13,6 +13,7 @@ mod observation;
 mod oracles;
 mod planning;
 mod s45_entry;
+mod s5_1_security_scope_harness;
 mod s5_executed_isolation_contract;
 mod s5_executed_isolation_source;
 mod s5_handoff;
@@ -155,6 +156,15 @@ pub use s45_entry::{
     S45HarnessNonClaim, S45HarnessSurfaceClassification, S45RegisteredHarnessSurface,
     S45RoadmapHarnessRequirement, S45RoadmapHarnessRequirementSet, S45SimulationHarnessEntry,
     S45SimulationHarnessEntryIdentity,
+};
+pub use s5_1_security_scope_harness::{
+    S51SecurityScopeFailureKind, S51SecurityScopeHarnessCounterSnapshot,
+    S51SecurityScopeHarnessEvidence, S51SecurityScopeHarnessObservation,
+    S51SecurityScopeHarnessOutcomeKind, S51SecurityScopeHarnessReplayCounterSnapshot,
+    S51SecurityScopeHarnessReplayTranscript, S51SecurityScopeHarnessScenario,
+    S51SecurityScopeHarnessSchedule, S51SecurityScopeOracleVerdict,
+    S51SecurityScopePhysicalReplayDenial, S51SecurityScopePhysicalReplayEvidence,
+    S51SecurityScopePhysicalScheduleBinding, S51SecurityScopeReplayMutationKind,
 };
 pub use s5_executed_isolation_contract::{
     S5EvidenceProfileCounterSet, S5ExecutedIsolationFinding, S5ExecutedIsolationOutcome,

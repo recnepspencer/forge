@@ -14,6 +14,7 @@ forge-store-aspect-native.workspace = true
 forge-store-offline-verifier.workspace = true
 forge-store-physical-format.workspace = true
 forge-store-readiness.workspace = true
+forge-store-security.workspace = true
 
 [lints]
 workspace = true

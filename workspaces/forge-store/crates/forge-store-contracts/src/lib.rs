@@ -26,7 +26,10 @@ pub use contract_error::{StoreContractError, StoreContractResult};
 pub use handoff_readiness::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, S0HandoffArtifactKind,
 };
-pub use physical_authority::{PhysicalAuthorityScope, StorePhysicalAuthorityWitness};
+pub use physical_authority::{
+    PhysicalAuthorityBoundaryInstance, PhysicalAuthorityScope, StorePhysicalAuthorityWitness,
+    ROADMAP_2_PRIMARY_PHYSICAL_BOUNDARY, ROADMAP_2_REPLAY_PHYSICAL_BOUNDARY,
+};
 pub use roadmap_scope::{
     RoadmapScope, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE, ROADMAP_2_S1_SCOPE, ROADMAP_2_SCOPE,
 };

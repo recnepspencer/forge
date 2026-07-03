@@ -1,5 +1,6 @@
 mod admission;
 mod denial;
+mod security_scope_handoff;
 
 pub use admission::{
     admit_s6_io_qos_isolation_readiness, admit_store_published_s6_io_qos_isolation_readiness,
@@ -11,3 +12,7 @@ pub use admission::{
     IoSchedulerUnsupportedQosNonClaim,
 };
 pub use denial::IoSchedulerS6ReadinessDenial;
+pub use security_scope_handoff::{
+    admit_s5_1_security_scope_for_s6_io_qos, IoSchedulerS6SecurityScopeAdmission,
+    S6IoQosSecurityScopeHandoff, S6IoQosSecurityScopePermission,
+};

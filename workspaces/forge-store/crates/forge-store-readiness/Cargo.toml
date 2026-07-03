@@ -12,6 +12,7 @@ forge-store-aspect-native.workspace = true
 forge-store-contracts.workspace = true
 forge-store-physical-format.workspace = true
 forge-store-s0-reclassification.workspace = true
+forge-store-security.workspace = true
 
 [lints]
 workspace = true

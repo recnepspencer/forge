@@ -1,10 +1,23 @@
 #![forbid(unsafe_code)]
 
 mod boundary;
+mod custody_capsule_observation;
+#[cfg(test)]
+mod custody_capsule_observation_tests;
+mod repair_blast_radius_observation;
+#[cfg(test)]
+mod repair_blast_radius_observation_tests;
 
 use forge_store_physical_format::PhysicalReference;
 
 pub use boundary::OfflineVerifierBoundarySeam;
+pub use custody_capsule_observation::{
+    OfflineCustodyCapsuleObservation, OfflineCustodyCapsuleObservationDenial,
+};
+pub use repair_blast_radius_observation::{
+    OfflineRepairBlastRadiusObservation, OfflineRepairBlastRadiusObservationDenial,
+    OfflineRepairEvidenceKind,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OfflineLayoutReport {

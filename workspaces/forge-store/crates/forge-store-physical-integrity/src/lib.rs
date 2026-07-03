@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 #![doc = include_str!("physical_integrity_compile_fail_proofs.md")]
 
+mod authenticity_decode_gate;
+mod authenticity_integrity_counters;
 mod checksum_algorithm;
 mod checksum_compatibility;
 mod checksum_declaration;
@@ -90,6 +92,12 @@ mod wal_frame_integrity_denials;
 mod wal_frame_integrity_reports;
 mod wal_frame_integrity_request;
 
+pub use authenticity_decode_gate::{
+    AuthenticityPolicyPhysicalDecodeGate, AuthenticityRequiredPhysicalDecodeGate,
+};
+pub use authenticity_integrity_counters::{
+    AuthenticityPolicyDecodeCounters, AuthenticityRequiredDecodeCounters,
+};
 pub use checksum_algorithm::{ChecksumAlgorithmClaim, ChecksumAlgorithmId};
 pub use checksum_compatibility::ChecksumCompatibilityPosture;
 pub use checksum_declaration::{

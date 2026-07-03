@@ -8,6 +8,8 @@ description = "Roadmap 2 S.6 hardware-aware I/O, QoS, and background pacing."
 [dependencies]
 forge-store-contracts.workspace = true
 forge-store-physical-isolation.workspace = true
+forge-store-readiness.workspace = true
+forge-store-security.workspace = true
 
 [lints]
 workspace = true

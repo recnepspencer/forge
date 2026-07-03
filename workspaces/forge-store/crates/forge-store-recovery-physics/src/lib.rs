@@ -28,6 +28,10 @@ mod s4_integrity_handoff_denial;
 mod s4_integrity_handoff_payload;
 mod s4_recovery_physics_integrity_readiness;
 mod s5_publication_recovery;
+mod security_metadata_admission;
+#[cfg(test)]
+mod security_metadata_tests;
+mod security_scope_propagation;
 mod source_precedence;
 mod wal_durability;
 mod wal_topology;
@@ -164,6 +168,14 @@ pub use s5_publication_recovery::{
     ExecutedS5PublicationRecoveryReceipt, S5PublicationCrashStage,
     S5PublicationRecoveryReplayInput, S5RecoveredPublicationStructure,
     S5RecoveredPublicationStructureKind,
+};
+pub use security_metadata_admission::RecoveryRootSecurityMetadataAdmission;
+pub use security_scope_propagation::{
+    RecoveryCheckpointRecordSecurityMetadataEnvelope,
+    RecoveryCheckpointRecordSecurityMetadataIdentity, RecoveryRootSecurityMetadataEnvelope,
+    RecoverySecurityScopePropagation, RecoverySecurityScopePropagationCounters,
+    RecoverySecurityScopePropagationDenial, RecoverySecurityScopePropagationInput,
+    RecoveryWalRecordSecurityMetadataEnvelope, RecoveryWalRecordSecurityMetadataIdentity,
 };
 pub use source_precedence::{
     AdmittedCompactionCutoverDurability, AdmittedCompactionCutoverRecord, AdmittedRecoverySource,

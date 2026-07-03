@@ -18,6 +18,8 @@ forge-store-claim-boundaries.workspace = true
 forge-store-compatibility.workspace = true
 forge-store-contracts.workspace = true
 forge-store-maintenance.workspace = true
+forge-store-offline-verifier.workspace = true
+forge-store-operations.workspace = true
 forge-store-physical-backend.workspace = true
 forge-store-physical-format.workspace = true
 forge-store-physical-integrity.workspace = true
@@ -28,8 +30,10 @@ forge-store-readiness.workspace = true
 forge-store-recovery-physics.workspace = true
 forge-store-replication.workspace = true
 forge-store-s0-reclassification.workspace = true
+forge-store-security.workspace = true
 forge-store-subscription-support.workspace = true
 forge-store-test-support.workspace = true
+forge-store-wal.workspace = true
 
 [lints]
 workspace = true

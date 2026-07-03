@@ -234,6 +234,13 @@ mod reference_witnesses;
 mod references;
 mod reserved_fields;
 mod runtime_layout_observation;
+mod security_metadata_carrier;
+mod security_metadata_denials;
+mod security_metadata_envelope;
+#[cfg(test)]
+mod security_metadata_tests;
+mod security_metadata_vocabulary;
+mod security_scope_propagation_denials;
 mod shortcut_boundary_denials;
 mod slot_directory;
 mod slot_state;
@@ -375,6 +382,20 @@ pub use reference_witnesses::{
 pub use references::{PhysicalReference, PhysicalReferenceKind};
 pub use reserved_fields::{PhysicalReservedFieldPolicy, PhysicalReservedFieldPolicyDeclaration};
 pub use runtime_layout_observation::{RuntimeLayoutObservation, RuntimeLayoutObservationSource};
+pub use security_metadata_carrier::PhysicalRawSecurityMetadataProjectionSource;
+pub use security_metadata_denials::PhysicalSecurityMetadataDenial;
+pub use security_metadata_envelope::{
+    AllocationClassSecurityMetadataEnvelope, ExtentSecurityMetadataEnvelope,
+    FreeSpaceSecurityMetadataEnvelope, PhysicalSecurityMetadataEnvelope,
+    SegmentPageSecurityMetadataEnvelope, SegmentSecurityMetadataEnvelope,
+};
+pub use security_metadata_vocabulary::{
+    PhysicalSecurityMetadataDeclaration, PhysicalSecurityMetadataDeclarationKind,
+    PhysicalSecurityMetadataResultExclusion,
+};
+pub use security_scope_propagation_denials::{
+    PhysicalSecurityScopePropagationDenial, PhysicalSecurityScopePropagationDenialKind,
+};
 pub use shortcut_boundary_denials::{PhysicalShortcutBoundary, PhysicalShortcutBoundaryDenial};
 pub use slot_directory::{SlotDirectory, SlotDirectoryEntry};
 pub use slot_state::SlotDirectoryEntryState;

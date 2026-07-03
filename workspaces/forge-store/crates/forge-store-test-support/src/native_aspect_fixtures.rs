@@ -16,8 +16,8 @@ use forge_store_physical_isolation::{
 };
 
 use crate::native_aspect_fixture_authoring::{
-    authored_scalar_string_fixture, authored_segment_header_fixture,
-    AuthoredNativeStoreAspectFixture,
+    authored_replay_boundary_scalar_string_fixture, authored_scalar_string_fixture,
+    authored_segment_header_fixture, AuthoredNativeStoreAspectFixture,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,6 +56,12 @@ impl NativeStoreAspectFixture {
     pub fn scalar_string(value: &str) -> Self {
         Self {
             authored: authored_scalar_string_fixture(value),
+        }
+    }
+
+    pub(crate) fn replay_boundary_scalar_string(value: &str) -> Self {
+        Self {
+            authored: authored_replay_boundary_scalar_string_fixture(value),
         }
     }
 
