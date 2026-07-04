@@ -50,30 +50,27 @@ impl UiGraphConsumedAspectIndex {
 
         for (aspect_contract, graph_node_identity) in node_aspects {
             for aspect in aspect_contract.consumed().aspects() {
-                consumers_by_aspect
-                    .entry(aspect.clone())
-                    .or_default()
-                    .push(UiGraphAspectConsumer::new(UiGraphAspectConsumerKind::GraphNode(
+                consumers_by_aspect.entry(aspect.clone()).or_default().push(
+                    UiGraphAspectConsumer::new(UiGraphAspectConsumerKind::GraphNode(
                         *graph_node_identity,
-                    )));
+                    )),
+                );
 
-                if let Some(slot) = mounted_receipt_index.slot_for_node(
-                    mounted_receipts,
-                    *graph_node_identity,
-                ) {
-                    consumers_by_aspect
-                        .entry(aspect.clone())
-                        .or_default()
-                        .push(UiGraphAspectConsumer::new(
-                            UiGraphAspectConsumerKind::MountedReceiptSlot(
-                                slot.mounted_receipt_identity(),
-                            ),
-                        ));
+                if let Some(slot) =
+                    mounted_receipt_index.slot_for_node(mounted_receipts, *graph_node_identity)
+                {
+                    consumers_by_aspect.entry(aspect.clone()).or_default().push(
+                        UiGraphAspectConsumer::new(UiGraphAspectConsumerKind::MountedReceiptSlot(
+                            slot.mounted_receipt_identity(),
+                        )),
+                    );
                 }
             }
         }
 
-        Self { consumers_by_aspect }
+        Self {
+            consumers_by_aspect,
+        }
     }
 
     pub fn consumers_for(&self, aspect: &UiAspectName) -> &[UiGraphAspectConsumer] {
@@ -81,5 +78,11 @@ impl UiGraphConsumedAspectIndex {
             .get(aspect)
             .map(Vec::as_slice)
             .unwrap_or(&EMPTY_CONSUMERS)
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (&UiAspectName, &[UiGraphAspectConsumer])> {
+        self.consumers_by_aspect
+            .iter()
+            .map(|(aspect, consumers)| (aspect, consumers.as_slice()))
     }
 }

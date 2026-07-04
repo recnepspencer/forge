@@ -25,7 +25,9 @@ impl UiGraphMountedReceiptIndex {
         &self,
         graph_node_identity: UiGraphNodeIdentity,
     ) -> Option<UiMountedReceiptIdentity> {
-        self.graph_node_to_receipt.get(&graph_node_identity).copied()
+        self.graph_node_to_receipt
+            .get(&graph_node_identity)
+            .copied()
     }
 
     pub fn slot_for_node<'a>(

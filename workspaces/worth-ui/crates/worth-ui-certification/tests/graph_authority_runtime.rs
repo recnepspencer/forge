@@ -122,10 +122,7 @@ fn graph_world_profile_compare_distinguishes_preview_session_identity_worlds() {
         .freeze();
 
     assert_eq!(
-        alpha
-            .graph()
-            .compare_to(alpha_again.graph())
-            .kind(),
+        alpha.graph().compare_to(alpha_again.graph()).kind(),
         UiGraphWorldDifferenceKind::SameWorldEquivalent
     );
     assert_eq!(
@@ -164,10 +161,7 @@ fn graph_world_profile_compare_distinguishes_query_snapshot_basis_worlds() {
         .freeze();
 
     assert_eq!(
-        alpha
-            .graph()
-            .compare_to(alpha_again.graph())
-            .kind(),
+        alpha.graph().compare_to(alpha_again.graph()).kind(),
         UiGraphWorldDifferenceKind::SameWorldEquivalent
     );
     assert_eq!(

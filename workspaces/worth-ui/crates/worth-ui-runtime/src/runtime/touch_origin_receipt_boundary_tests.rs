@@ -1,8 +1,8 @@
-use crate::runtime::{runtime_origin_fixture, WorthUiTouchOriginFixtureVariant};
 use crate::obligations::touch::{
     UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDenial, UiGraphTouchOriginClass,
     UiGraphTouchTiming,
 };
+use crate::runtime::{runtime_origin_fixture, WorthUiTouchOriginFixtureVariant};
 
 #[test]
 fn owner_derived_touch_receipts_cover_runtime_origin_lanes_without_target_remixing() {
@@ -66,10 +66,22 @@ fn owner_derived_touch_receipts_cover_runtime_origin_lanes_without_target_remixi
         )
         .expect("diagnostic touch should target authored control node");
 
-    assert_eq!(host_touch.origin().class(), UiGraphTouchOriginClass::HostObservation);
-    assert_eq!(service_touch.origin().class(), UiGraphTouchOriginClass::ServiceEvent);
-    assert_eq!(intent_touch.origin().class(), UiGraphTouchOriginClass::IntentSubmission);
-    assert_eq!(diagnostic_touch.origin().class(), UiGraphTouchOriginClass::DiagnosticOnly);
+    assert_eq!(
+        host_touch.origin().class(),
+        UiGraphTouchOriginClass::HostObservation
+    );
+    assert_eq!(
+        service_touch.origin().class(),
+        UiGraphTouchOriginClass::ServiceEvent
+    );
+    assert_eq!(
+        intent_touch.origin().class(),
+        UiGraphTouchOriginClass::IntentSubmission
+    );
+    assert_eq!(
+        diagnostic_touch.origin().class(),
+        UiGraphTouchOriginClass::DiagnosticOnly
+    );
 
     for (origin, origin_class) in [
         (host_origin, UiGraphTouchOriginClass::HostObservation),
@@ -107,8 +119,10 @@ fn runtime_origin_receipts_deny_cross_plan_or_cross_artifact_owner_mixing() {
     let graph = fixture.app.graph();
 
     assert_owner_mismatch(
-        graph.touches()
-            .host_observation_receipt(fixture.runtime.inspect_active(), &same_artifact_different_plan.inspection),
+        graph.touches().host_observation_receipt(
+            fixture.runtime.inspect_active(),
+            &same_artifact_different_plan.inspection,
+        ),
         UiGraphTouchOriginClass::HostObservation,
     );
     assert_owner_mismatch(
@@ -127,12 +141,15 @@ fn runtime_origin_receipts_deny_cross_plan_or_cross_artifact_owner_mixing() {
     );
 
     assert_owner_mismatch(
-        graph.touches()
-            .host_observation_receipt(fixture.runtime.inspect_active(), &different_artifact.inspection),
+        graph.touches().host_observation_receipt(
+            fixture.runtime.inspect_active(),
+            &different_artifact.inspection,
+        ),
         UiGraphTouchOriginClass::HostObservation,
     );
     assert_owner_mismatch(
-        graph.touches()
+        graph
+            .touches()
             .service_event_receipt(&fixture.frame_receipt, &different_artifact.inspection),
         UiGraphTouchOriginClass::ServiceEvent,
     );

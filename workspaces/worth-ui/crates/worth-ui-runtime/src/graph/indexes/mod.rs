@@ -1,7 +1,7 @@
 mod aspect;
-mod graph_participation_indexes;
 mod graph_core_indexes;
 mod graph_node_identity_index;
+mod graph_participation_indexes;
 mod graph_topology_indexes;
 mod lookup;
 mod mosaic_membership_index;

@@ -13,7 +13,7 @@ pub use crate::obligations::inspection::{
     UiObligationEvidenceDecision, UiObligationEvidenceDenialPosture, UiObligationEvidenceHandle,
     UiObligationEvidenceHandleKind, UiObligationEvidenceIndex,
     UiObligationEvidencePrerequisiteSource, UiObligationEvidenceQuery, UiObligationEvidenceRecord,
-    UiObligationNonSelectionReason,
+    UiObligationNonSelectionReason, UiSelectedObligationEvidenceProjection,
 };
 pub use crate::obligations::prerequisites::UiObligationPrerequisiteEvidenceRef;
 pub use crate::obligations::selection::{

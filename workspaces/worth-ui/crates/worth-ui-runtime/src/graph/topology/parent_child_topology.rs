@@ -112,7 +112,10 @@ impl UiGraphTopology {
         Self { node_topologies }
     }
 
-    pub fn node_topology(&self, node_identity: UiGraphNodeIdentity) -> Option<&UiGraphNodeTopology> {
+    pub fn node_topology(
+        &self,
+        node_identity: UiGraphNodeIdentity,
+    ) -> Option<&UiGraphNodeTopology> {
         self.node_topologies.get(&node_identity)
     }
 
@@ -138,9 +141,7 @@ impl UiGraphTopology {
                     .map(|page| page.page_node_identity().digest())
                     .unwrap_or_else(|| stable_text_digest("graph-topology:no-page"));
                 let parent_resolution_digest = topology.parent_resolution_claim().identity_digest();
-                let claim_digest = topology
-                    .containment_claim()
-                    .identity_digest();
+                let claim_digest = topology.containment_claim().identity_digest();
                 let region_digest = topology
                     .membership_facts()
                     .region_membership()

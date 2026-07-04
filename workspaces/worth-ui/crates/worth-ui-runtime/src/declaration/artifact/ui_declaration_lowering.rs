@@ -65,6 +65,7 @@ impl UiDeclarationLowering {
         let provenance = UiDeclarationProvenance::new(
             semantic_receipt.source_provenance().clone(),
             semantic_input_digest,
+            semantic_receipt.source_artifact_generation(),
         );
         UiDeclarationArtifact::new(
             identity,

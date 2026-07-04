@@ -1,16 +1,14 @@
+use super::admit_graph_handoffs;
 use crate::declaration::{
     UiAspectContract, UiDeclarationIdentity, UiDeclarationOrderingGuarantee,
     UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole,
 };
-use super::admit_graph_handoffs;
 use crate::graph::{
-    UiGraphAttachmentPosture, UiGraphContainmentClaim, UiGraphInstantiationDenial,
-    UiGraphAxisParticipation, UiGraphMountedReceiptAuthoritySeed, UiGraphParentResolutionClaim,
-    UiGraphParticipationAxis, UiGraphParticipationEvidenceHandle,
-    UiGraphParticipationPosture, UiGraphParticipationReasonCode,
-    UiGraphParticipationReasonSource, UiGraphParticipationStatus, UiRepeatedInstanceBasis,
-    UiRepeatedInstanceBasisDenial,
-    UiRuntimeInstanceBasisAdmission,
+    UiGraphAttachmentPosture, UiGraphAxisParticipation, UiGraphContainmentClaim,
+    UiGraphInstantiationDenial, UiGraphMountedReceiptAuthoritySeed, UiGraphParentResolutionClaim,
+    UiGraphParticipationAxis, UiGraphParticipationEvidenceHandle, UiGraphParticipationPosture,
+    UiGraphParticipationReasonCode, UiGraphParticipationReasonSource, UiGraphParticipationStatus,
+    UiRepeatedInstanceBasis, UiRepeatedInstanceBasisDenial, UiRuntimeInstanceBasisAdmission,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]

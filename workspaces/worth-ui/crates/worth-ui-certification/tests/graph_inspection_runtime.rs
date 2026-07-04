@@ -200,9 +200,10 @@ fn graph_truth_is_inspectable_through_formal_graph_inspection_support() {
     assert!(!aspect_inspection
         .evidence_refs()
         .contains(&UiGraphEvidenceRef::GraphNode(competing_control_id)));
-    assert!(aspect_inspection.evidence_refs().iter().any(|evidence_ref| {
-        matches!(evidence_ref, UiGraphEvidenceRef::MountedReceipt(_))
-    }));
+    assert!(aspect_inspection
+        .evidence_refs()
+        .iter()
+        .any(|evidence_ref| { matches!(evidence_ref, UiGraphEvidenceRef::MountedReceipt(_)) }));
 
     assert_eq!(
         aspect_consumer_inspection.target(),
@@ -225,9 +226,10 @@ fn graph_truth_is_inspectable_through_formal_graph_inspection_support() {
     assert!(!aspect_consumer_inspection
         .evidence_refs()
         .contains(&UiGraphEvidenceRef::GraphNode(competing_consumer_id)));
-    assert!(aspect_consumer_inspection.evidence_refs().iter().any(|evidence_ref| {
-        matches!(evidence_ref, UiGraphEvidenceRef::MountedReceipt(_))
-    }));
+    assert!(aspect_consumer_inspection
+        .evidence_refs()
+        .iter()
+        .any(|evidence_ref| { matches!(evidence_ref, UiGraphEvidenceRef::MountedReceipt(_)) }));
 
     assert_eq!(
         competing_aspect_inspection.target(),
@@ -256,11 +258,15 @@ fn graph_truth_is_inspectable_through_formal_graph_inspection_support() {
         &UiGraphInspectionTarget::ConsumedAspect(competing_aspect.clone())
     );
     assert_eq!(
-        competing_aspect_consumer_inspection.lookup_receipt().family(),
+        competing_aspect_consumer_inspection
+            .lookup_receipt()
+            .family(),
         UiGraphLookupFamily::ConsumedAspect
     );
     assert_eq!(
-        competing_aspect_consumer_inspection.lookup_receipt().cost_class(),
+        competing_aspect_consumer_inspection
+            .lookup_receipt()
+            .cost_class(),
         UiGraphLookupCostClass::IndexedNeighborhood
     );
     assert!(competing_aspect_consumer_inspection
@@ -285,9 +291,9 @@ fn graph_truth_is_inspectable_through_formal_graph_inspection_support() {
         mounted_receipt_inspection.lookup_receipt().cost_class(),
         UiGraphLookupCostClass::IndexedScalar
     );
-    assert!(mounted_receipt_inspection
-        .evidence_refs()
-        .contains(&UiGraphEvidenceRef::MountedReceipt(mounted_receipt_identity)));
+    assert!(mounted_receipt_inspection.evidence_refs().contains(
+        &UiGraphEvidenceRef::MountedReceipt(mounted_receipt_identity)
+    ));
     assert!(mounted_receipt_inspection
         .evidence_refs()
         .contains(&UiGraphEvidenceRef::GraphNode(control_id)));
@@ -325,7 +331,8 @@ fn root_page_artifact(app: &worth_ui::facade::app::WorthUiApp) -> &UiDeclaration
             artifact
                 .graph_handoff()
                 .map(|handoff| {
-                    handoff.role() == worth_ui::facade::declaration::UiDeclarationStructuralRole::Page
+                    handoff.role()
+                        == worth_ui::facade::declaration::UiDeclarationStructuralRole::Page
                 })
                 .unwrap_or(false)
         })

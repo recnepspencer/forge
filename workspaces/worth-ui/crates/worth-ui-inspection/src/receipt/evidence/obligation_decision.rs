@@ -2,6 +2,7 @@
 pub enum UiInspectionObligationDecision {
     Selected,
     NotSelected,
+    Dispatch,
     Verdict,
     Admission,
 }

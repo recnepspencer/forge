@@ -110,9 +110,7 @@ pub struct UiGraphParticipationPosture {
 }
 
 impl UiGraphParticipationPosture {
-    pub const fn new(
-        axes: [UiGraphAxisParticipation; UiGraphParticipationAxis::COUNT],
-    ) -> Self {
+    pub const fn new(axes: [UiGraphAxisParticipation; UiGraphParticipationAxis::COUNT]) -> Self {
         Self { axes }
     }
 

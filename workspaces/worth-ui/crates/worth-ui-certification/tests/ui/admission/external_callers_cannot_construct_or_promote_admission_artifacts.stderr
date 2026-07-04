@@ -51,13 +51,32 @@ warning: unreachable call
 error[E0624]: associated function `from_decision` is private
   --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:10:32
    |
-10 |     let _ = UiAdmissionReport::from_decision(todo!());
-   |                                ^^^^^^^^^^^^^ private associated function
+10 |       let _ = UiAdmissionReport::from_decision(todo!());
+   |                                  ^^^^^^^^^^^^^ private associated function
    |
   ::: $WORKSPACE/crates/worth-ui-runtime/src/admission/report/ui_admission_report.rs
    |
-   |     pub(crate) fn from_decision(decision: UiAdmissionDecision) -> Self {
-   |     ------------------------------------------------------------------ private associated function defined here
+   | /     pub(crate) fn from_decision(
+   | |         decision: UiAdmissionDecision,
+   | |         authority_generation: UiEvidenceAuthorityGeneration,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0061]: this function takes 2 arguments but 1 argument was supplied
+  --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:10:13
+   |
+10 |     let _ = UiAdmissionReport::from_decision(todo!());
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------- argument #2 of type `UiEvidenceAuthorityGeneration` is missing
+   |
+note: associated function defined here
+  --> $WORKSPACE/crates/worth-ui-runtime/src/admission/report/ui_admission_report.rs
+   |
+   |     pub(crate) fn from_decision(
+   |                   ^^^^^^^^^^^^^
+help: provide the argument
+   |
+10 |     let _ = UiAdmissionReport::from_decision(todo!(), /* UiEvidenceAuthorityGeneration */);
+   |                                                     +++++++++++++++++++++++++++++++++++++
 
 warning: unreachable call
   --> tests/ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs:10:13

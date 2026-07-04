@@ -1,12 +1,12 @@
-use crate::declaration::UiDeclarationGraphHandoff;
 use super::runtime_basis_assignment::UiRuntimeBasisAssignments;
+use crate::declaration::UiDeclarationGraphHandoff;
 use crate::graph::{
-    UiGraphAttachmentPosture, UiGraphCoreIndexContributionSeed, UiGraphInstantiationDenial,
-    UiGraphContainmentClaim, UiGraphInstantiationLocalDenial, UiGraphInstantiationPlan,
-    UiGraphMountedReceiptAuthoritySeed, UiGraphNodeInstantiationEntry, UiGraphParticipationSeed,
-    UiGraphParentResolutionClaim, UiGraphTopologyLocalDenial, UiGraphTopologySeed,
-    UiRepeatedInstanceBasis,
-    UiRepeatedInstanceBasisDenial, UiRuntimeInstanceBasisAdmission,
+    UiGraphAttachmentPosture, UiGraphContainmentClaim, UiGraphCoreIndexContributionSeed,
+    UiGraphInstantiationDenial, UiGraphInstantiationLocalDenial, UiGraphInstantiationPlan,
+    UiGraphMountedReceiptAuthoritySeed, UiGraphNodeInstantiationEntry,
+    UiGraphParentResolutionClaim, UiGraphParticipationSeed, UiGraphTopologyLocalDenial,
+    UiGraphTopologySeed, UiRepeatedInstanceBasis, UiRepeatedInstanceBasisDenial,
+    UiRuntimeInstanceBasisAdmission,
 };
 
 pub(crate) fn admit_graph_handoffs(
@@ -30,9 +30,12 @@ pub(crate) fn admit_graph_handoffs(
         let repeated_instance_basis = runtime_basis_assignments
             .basis_for(declaration_digest, *occurrence_index)
             .cloned()
-            .unwrap_or_else(|| UiRepeatedInstanceBasis::declaration_keyed(declaration_identity.digest()));
+            .unwrap_or_else(|| {
+                UiRepeatedInstanceBasis::declaration_keyed(declaration_identity.digest())
+            });
 
-        if repeated_instance_basis.denial() == Some(&UiRepeatedInstanceBasisDenial::BasisFreeRuntimeIdentityDenied)
+        if repeated_instance_basis.denial()
+            == Some(&UiRepeatedInstanceBasisDenial::BasisFreeRuntimeIdentityDenied)
         {
             local_denials.push(UiGraphInstantiationLocalDenial::repeated_instance_basis(
                 declaration_identity,
@@ -98,7 +101,9 @@ fn localize_unresolved_root_topology(
         return;
     }
 
-    let denial = UiGraphTopologyLocalDenial::RootPageCardinality { observed_root_pages };
+    let denial = UiGraphTopologyLocalDenial::RootPageCardinality {
+        observed_root_pages,
+    };
     local_denials.extend(node_entries.drain(..).map(|entry| {
         UiGraphInstantiationLocalDenial::topology(
             entry.declaration_identity().clone(),
@@ -118,12 +123,12 @@ mod tests {
     };
 
     use super::admit_graph_handoffs;
+    use crate::declaration::UiDeclarationArtifact;
     use crate::facade::{WorthUi, WorthUiDslPackage};
     use crate::graph::{
         UiGraphInstantiationDenial, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
         UiRuntimeInstanceBasisAdmission,
     };
-    use crate::declaration::UiDeclarationArtifact;
 
     #[test]
     fn runtime_data_basis_admits_only_through_internal_typed_boundary() {
@@ -223,7 +228,9 @@ mod tests {
         let baseline = WorthUi::app()
             .with_dsl_package(
                 WorthUiDslPackage::named("worth-ui.runtime.graph-instantiation.invariance")
-                    .with_semantic_artifact_spec(control_graph_input_without_non_graph_obligations()),
+                    .with_semantic_artifact_spec(
+                        control_graph_input_without_non_graph_obligations(),
+                    ),
             )
             .freeze();
         let enriched = WorthUi::app()
@@ -232,22 +239,27 @@ mod tests {
                     .with_semantic_artifact_spec(control_graph_input_spec()),
             )
             .freeze();
-        let baseline_handoff = artifact_from_file_provenance(&baseline, "app/graph_instantiation.wui", 0)
-            .graph_handoff()
-            .expect("baseline declaration should lower to graph handoff");
+        let baseline_handoff =
+            artifact_from_file_provenance(&baseline, "app/graph_instantiation.wui", 0)
+                .graph_handoff()
+                .expect("baseline declaration should lower to graph handoff");
         let baseline_root_handoff = root_page_artifact(&baseline)
             .graph_handoff()
             .expect("baseline bootstrap root page should lower to graph handoff");
-        let enriched_handoff = artifact_from_file_provenance(&enriched, "app/graph_instantiation.wui", 0)
-            .graph_handoff()
-            .expect("enriched declaration should lower to graph handoff");
+        let enriched_handoff =
+            artifact_from_file_provenance(&enriched, "app/graph_instantiation.wui", 0)
+                .graph_handoff()
+                .expect("enriched declaration should lower to graph handoff");
         let enriched_root_handoff = root_page_artifact(&enriched)
             .graph_handoff()
             .expect("enriched bootstrap root page should lower to graph handoff");
-        let baseline_plan = admit_graph_handoffs(&[baseline_root_handoff, baseline_handoff.clone()], &[])
-            .expect("baseline graph handoff should admit internal graph instantiation");
-        let enriched_plan = admit_graph_handoffs(&[enriched_root_handoff, enriched_handoff.clone()], &[])
-            .expect("touch and measurement posture should not alter internal graph instantiation");
+        let baseline_plan =
+            admit_graph_handoffs(&[baseline_root_handoff, baseline_handoff.clone()], &[])
+                .expect("baseline graph handoff should admit internal graph instantiation");
+        let enriched_plan =
+            admit_graph_handoffs(&[enriched_root_handoff, enriched_handoff.clone()], &[]).expect(
+                "touch and measurement posture should not alter internal graph instantiation",
+            );
         let baseline_entry = baseline_plan
             .node_entries()
             .iter()

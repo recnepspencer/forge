@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::collections::BTreeSet;
+use std::sync::Arc;
 
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
@@ -36,7 +36,10 @@ fn ordinary_graph_lookup_is_bounded_and_receipt_backed() {
         .mounted_receipt_slot_for_node(control_id)
         .expect("mounted receipt lookup should resolve the committed slot");
 
-    assert_eq!(node_lookup.receipt().family(), UiGraphLookupFamily::NodeIdentity);
+    assert_eq!(
+        node_lookup.receipt().family(),
+        UiGraphLookupFamily::NodeIdentity
+    );
     assert_eq!(
         node_lookup.receipt().cost_class(),
         UiGraphLookupCostClass::IndexedScalar
@@ -53,14 +56,20 @@ fn ordinary_graph_lookup_is_bounded_and_receipt_backed() {
     );
     assert_eq!(declaration_lookup.value(), &[control_id]);
 
-    assert_eq!(child_lookup.receipt().family(), UiGraphLookupFamily::ParentChild);
+    assert_eq!(
+        child_lookup.receipt().family(),
+        UiGraphLookupFamily::ParentChild
+    );
     assert_eq!(
         child_lookup.receipt().cost_class(),
         UiGraphLookupCostClass::IndexedSet
     );
     assert!(child_lookup.value().contains(&control_id));
 
-    assert_eq!(slot_lookup.receipt().family(), UiGraphLookupFamily::SlotOccupancy);
+    assert_eq!(
+        slot_lookup.receipt().family(),
+        UiGraphLookupFamily::SlotOccupancy
+    );
     assert_eq!(
         slot_lookup.receipt().cost_class(),
         UiGraphLookupCostClass::IndexedSet
@@ -131,18 +140,16 @@ fn declaration_correspondence_lookup_handles_zero_one_many_nodes_honestly() {
     let control_handoff = control
         .graph_handoff()
         .expect("control declaration should lower to graph handoff");
-    let runtime_basis_alpha =
-        UiRuntimeInstanceBasisAdmission::admit_runtime_data_keyed(
-            control.identity(),
-            UiRuntimeDataInstanceKeyToken::new(Arc::<str>::from("row:user-7")),
-        )
-        .expect("runtime-keyed repeated instance should admit");
-    let runtime_basis_beta =
-        UiRuntimeInstanceBasisAdmission::admit_runtime_data_keyed(
-            control.identity(),
-            UiRuntimeDataInstanceKeyToken::new(Arc::<str>::from("row:user-8")),
-        )
-        .expect("runtime-keyed repeated instance should admit");
+    let runtime_basis_alpha = UiRuntimeInstanceBasisAdmission::admit_runtime_data_keyed(
+        control.identity(),
+        UiRuntimeDataInstanceKeyToken::new(Arc::<str>::from("row:user-7")),
+    )
+    .expect("runtime-keyed repeated instance should admit");
+    let runtime_basis_beta = UiRuntimeInstanceBasisAdmission::admit_runtime_data_keyed(
+        control.identity(),
+        UiRuntimeDataInstanceKeyToken::new(Arc::<str>::from("row:user-8")),
+    )
+    .expect("runtime-keyed repeated instance should admit");
     let repeated_plan = UiGraphInstantiationPlan::admit_handoffs(
         &[root_page_handoff, control_handoff.clone(), control_handoff],
         &[runtime_basis_beta, runtime_basis_alpha],
@@ -179,7 +186,10 @@ fn declaration_correspondence_lookup_handles_zero_one_many_nodes_honestly() {
             .lookup()
             .graph_node(*graph_node_identity)
             .expect("declared repeated instance should resolve through bounded node lookup");
-        assert_eq!(node_lookup.value().declaration_identity(), control.identity());
+        assert_eq!(
+            node_lookup.value().declaration_identity(),
+            control.identity()
+        );
     }
 }
 
@@ -221,7 +231,8 @@ fn root_page_artifact(app: &worth_ui::facade::app::WorthUiApp) -> &UiDeclaration
             artifact
                 .graph_handoff()
                 .map(|handoff| {
-                    handoff.role() == worth_ui::facade::declaration::UiDeclarationStructuralRole::Page
+                    handoff.role()
+                        == worth_ui::facade::declaration::UiDeclarationStructuralRole::Page
                 })
                 .unwrap_or(false)
         })

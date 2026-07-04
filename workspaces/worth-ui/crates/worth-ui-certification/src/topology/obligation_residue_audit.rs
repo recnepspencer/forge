@@ -32,6 +32,7 @@ const LEGALITY_OWNER_FILES: &[&str] = &[
     "crates/worth-ui-runtime/src/admission/legality/ui_legality_decision.rs",
     "crates/worth-ui-runtime/src/admission/report/evidence_index_builders.rs",
     "crates/worth-ui-runtime/src/admission/report/ui_admission_report.rs",
+    "crates/worth-ui-runtime/src/obligations/inspection/admission_evidence_records.rs",
 ];
 const LEGALITY_RESOLUTION_ROOTS: &[&str] = &[
     "crates/worth-ui-runtime/src",

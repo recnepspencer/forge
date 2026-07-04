@@ -5,12 +5,12 @@ use crate::declaration::{
     UiDeclarationGraphHandoff, UiDeclarationGraphHandoffDenial,
     UiDeclarationInspectionSupportProjection, UiDeclarationLowering,
 };
-use crate::graph::{admit_graph_handoffs, UiGraphSnapshot, UiGraphWorldProfile};
 use crate::facade::{
     inspection_observation::WorthUiInspectionObservationState, CapabilitySnapshot,
     UiInspectionScope, UiInspectionSupportReport, WorthUiDslPackage, WorthUiHostContract,
     WorthUiRuntimeSupportInventory, PHASE3_RUNTIME_SUPPORT_INVENTORY,
 };
+use crate::graph::{admit_graph_handoffs, UiGraphSnapshot, UiGraphWorldProfile};
 
 pub(crate) struct WorthUiFacadeLifecycleBootstrap {
     inspection_scope_inventory: UiInspectionScopeInventory,
@@ -82,6 +82,25 @@ impl WorthUiFacadeLifecycleBootstrap {
 
     pub(crate) fn record_unsupported_inspection_query(&self) {
         self.inspection_observation.record_unsupported_query();
+    }
+
+    pub(crate) fn record_rich_artifact_materialization(&self) {
+        self.inspection_observation
+            .record_rich_artifact_materialization();
+    }
+
+    pub(crate) fn record_authored_lookup(&self) {
+        self.inspection_observation.record_authored_lookup();
+    }
+
+    pub(crate) fn record_graph_node_evidence_index_rebuild(&self) {
+        self.inspection_observation
+            .record_graph_node_evidence_index_rebuild();
+    }
+
+    pub(crate) fn record_graph_aspect_evidence_index_rebuild(&self) {
+        self.inspection_observation
+            .record_graph_aspect_evidence_index_rebuild();
     }
 }
 

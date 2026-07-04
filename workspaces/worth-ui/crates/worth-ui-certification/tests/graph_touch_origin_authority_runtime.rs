@@ -3,10 +3,9 @@ use std::sync::Arc;
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
-    resolve_runtime_current_snapshot_basis, snapshot_resolution_report,
-    QueryExternalIdentityToken, SchemaBasisDigest, UiGraphTouchAspectPosture,
-    UiGraphTouchAspects, UiGraphTouchDenial, UiGraphTouchOriginClass, UiGraphTouchTiming,
-    UiGraphWorldProfile,
+    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, QueryExternalIdentityToken,
+    SchemaBasisDigest, UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDenial,
+    UiGraphTouchOriginClass, UiGraphTouchTiming, UiGraphWorldProfile,
 };
 use worth_ui_dsl::{
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
@@ -134,9 +133,10 @@ fn query_snapshot_world_profile(
     snapshot_label: &str,
     schema_basis_parts: [&str; 3],
 ) -> UiGraphWorldProfile {
-    let snapshot_identity = worth_ui::facade::graph::ForgeQuerySnapshotIdentity::admit_external_token(
-        QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
-    );
+    let snapshot_identity =
+        worth_ui::facade::graph::ForgeQuerySnapshotIdentity::admit_external_token(
+            QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
+        );
     let basis = resolve_runtime_current_snapshot_basis(
         snapshot_identity.evidence_identity(),
         SchemaBasisDigest::from_domain_parts(

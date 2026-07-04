@@ -1,6 +1,7 @@
 mod admission;
 mod capability;
 mod declaration;
+mod evidence;
 pub mod facade;
 mod graph;
 mod lifecycle;

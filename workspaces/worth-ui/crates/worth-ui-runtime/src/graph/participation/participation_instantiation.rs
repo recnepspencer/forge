@@ -1,6 +1,4 @@
-use crate::graph::{
-    UiGraphNodeInstantiationEntry, UiGraphParticipationPosture,
-};
+use crate::graph::{UiGraphNodeInstantiationEntry, UiGraphParticipationPosture};
 
 pub(crate) fn materialize_graph_participation_posture(
     entry: &UiGraphNodeInstantiationEntry,

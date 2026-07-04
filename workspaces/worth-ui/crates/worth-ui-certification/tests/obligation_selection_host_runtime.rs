@@ -8,8 +8,7 @@ use worth_ui::facade::graph::{
 };
 use worth_ui::facade::obligations::{
     UiObligationCheckKind, UiObligationFamily, UiObligationSelectionReason,
-    UiObligationSupportBasis, UiObligationSupportSelectionPosture,
-    UiObligationWorldProfileClass,
+    UiObligationSupportBasis, UiObligationSupportSelectionPosture, UiObligationWorldProfileClass,
 };
 use worth_ui_runtime::facade::{runtime_origin_fixture, WorthUiTouchOriginFixtureVariant};
 
@@ -57,9 +56,16 @@ fn host_observation_selection_is_stable_and_keeps_measurement_and_host_requireme
     let right = fixture.app.admission().select_obligations(&touch);
 
     assert_eq!(left, right);
-    assert_eq!(touch.origin().class(), UiGraphTouchOriginClass::HostObservation);
     assert_eq!(
-        touch.aspects().iter().map(|fact| fact.lane()).collect::<Vec<_>>(),
+        touch.origin().class(),
+        UiGraphTouchOriginClass::HostObservation
+    );
+    assert_eq!(
+        touch
+            .aspects()
+            .iter()
+            .map(|fact| fact.lane())
+            .collect::<Vec<_>>(),
         vec![
             UiGraphTouchRuntimeLane::Measurement,
             UiGraphTouchRuntimeLane::HostCapability,
@@ -103,9 +109,7 @@ fn host_observation_selection_is_stable_and_keeps_measurement_and_host_requireme
         [
             UiObligationSelectionReason::TouchTargetClass(UiGraphTouchTargetClass::Node),
             UiObligationSelectionReason::TouchOriginClass(UiGraphTouchOriginClass::HostObservation),
-            UiObligationSelectionReason::WorldProfile(
-                UiObligationWorldProfileClass::Authoritative,
-            ),
+            UiObligationSelectionReason::WorldProfile(UiObligationWorldProfileClass::Authoritative,),
             UiObligationSelectionReason::SupportPosture(
                 UiObligationSupportSelectionPosture::Supported,
             ),
@@ -139,9 +143,7 @@ fn host_observation_selection_is_stable_and_keeps_measurement_and_host_requireme
         [
             UiObligationSelectionReason::TouchTargetClass(UiGraphTouchTargetClass::Node),
             UiObligationSelectionReason::TouchOriginClass(UiGraphTouchOriginClass::HostObservation),
-            UiObligationSelectionReason::WorldProfile(
-                UiObligationWorldProfileClass::Authoritative,
-            ),
+            UiObligationSelectionReason::WorldProfile(UiObligationWorldProfileClass::Authoritative,),
             UiObligationSelectionReason::SupportPosture(
                 UiObligationSupportSelectionPosture::Deferred,
             ),

@@ -41,10 +41,17 @@ pub fn audit_inspection_public_module_role_purity(workspace_root: &Path) -> Vec<
             "query/mod.rs",
             BTreeSet::from([
                 "UiEvidenceBudget".to_string(),
+                "UiEvidenceLinkKind".to_string(),
                 "UiEvidenceRichness".to_string(),
                 "UiInspectionEvidenceSource".to_string(),
+                "UiInspectionObligationRelevanceDetail".to_string(),
                 "UiInspectionQuery".to_string(),
                 "UiInspectionRelevance".to_string(),
+                "UiInspectionRelevanceAdmission".to_string(),
+                "UiInspectionRelevanceOutcome".to_string(),
+                "UiInspectionTargetClass".to_string(),
+                "UiRelevanceFamily".to_string(),
+                "UiRelevanceFilter".to_string(),
             ]),
         ),
         (
@@ -58,8 +65,18 @@ pub fn audit_inspection_public_module_role_purity(workspace_root: &Path) -> Vec<
         (
             "receipt/mod.rs",
             BTreeSet::from([
+                "UiInspectionAiHarnessLane".to_string(),
+                "UiInspectionClosedSemanticLane".to_string(),
                 "UiInspectionClosureReport".to_string(),
+                "UiInspectionCloseoutGuarantee".to_string(),
+                "UiInspectionCloseoutNonGoal".to_string(),
+                "UiInspectionCloseoutReport".to_string(),
+                "UiInspectionCostLane".to_string(),
+                "UiInspectionCostReceipt".to_string(),
+                "UiInspectionDerivedIndexLane".to_string(),
+                "UiInspectionRefLifecycleLane".to_string(),
                 "UiInspectionScopeSupportRow".to_string(),
+                "UiInspectionSliceLane".to_string(),
                 "UiInspectionSupportReport".to_string(),
             ]),
         ),
@@ -116,6 +133,12 @@ pub fn audit_inspection_future_artifact_seed_topology(workspace_root: &Path) -> 
         ("replay", inspection_root.join("receipt/replay/mod.rs")),
         ("snapshot", inspection_root.join("receipt/snapshot/mod.rs")),
     ];
+    let evidence_mod = inspection_root.join("receipt/evidence/mod.rs");
+    let expected_evidence_seed_modules = [
+        ("measurement", inspection_root.join("receipt/evidence/measurement/mod.rs")),
+        ("mounting", inspection_root.join("receipt/evidence/mounting/mod.rs")),
+        ("inspector", inspection_root.join("receipt/evidence/inspector/mod.rs")),
+    ];
     let mut violations = Vec::new();
 
     for (module_name, module_path) in &expected_seed_modules {
@@ -139,6 +162,31 @@ pub fn audit_inspection_future_artifact_seed_topology(workspace_root: &Path) -> 
             violations.push(format!(
                 "{} must declare a private `{module_name}` child module as the future {module_name} inspection landing zone",
                 receipt_mod.display()
+            ));
+        }
+    }
+
+    for (module_name, module_path) in &expected_evidence_seed_modules {
+        if !module_path.exists() {
+            violations.push(format!(
+                "{} is missing; future {module_name} evidence lacks one obvious typed substrate home",
+                module_path.display()
+            ));
+        }
+    }
+
+    let parsed_evidence = parse_rust_file(&evidence_mod);
+    for (module_name, _) in &expected_evidence_seed_modules {
+        let has_private_module = parsed_evidence.items.iter().any(|item| match item {
+            Item::Mod(item_mod) => {
+                item_mod.ident == *module_name && !matches!(item_mod.vis, Visibility::Public(_))
+            }
+            _ => false,
+        });
+        if !has_private_module {
+            violations.push(format!(
+                "{} must declare a private `{module_name}` child module as the future {module_name} evidence landing zone",
+                evidence_mod.display()
             ));
         }
     }

@@ -53,7 +53,8 @@ impl UiGraphMutationStage {
                 .or_default()
                 .push(graph_node_identity);
             node_to_declaration.insert(graph_node_identity, entry.declaration_identity().clone());
-            node_to_authored_provenance.insert(graph_node_identity, entry.authored_provenance_digest());
+            node_to_authored_provenance
+                .insert(graph_node_identity, entry.authored_provenance_digest());
             node_identities.push(graph_node_identity);
             nodes.push(node);
         }
@@ -82,6 +83,15 @@ impl UiGraphMutationStage {
             mounted_receipts,
             core_indexes,
         }
+    }
+
+    pub(crate) fn from_successor_plan(
+        prior_snapshot: &UiGraphSnapshot,
+        plan: &UiGraphInstantiationPlan,
+    ) -> Self {
+        let mut stage = Self::from_initial_plan(plan, prior_snapshot.world_profile().clone());
+        stage.generation = UiGraphGeneration::successor_of(prior_snapshot.generation());
+        stage
     }
 
     pub(crate) fn commit(self) -> UiGraphSnapshot {

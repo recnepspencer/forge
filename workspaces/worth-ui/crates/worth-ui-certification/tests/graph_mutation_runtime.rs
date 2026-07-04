@@ -20,10 +20,11 @@ fn initial_graph_commit_publishes_one_coherent_generation_transition() {
     let root_page_handoff = root_page_artifact(&app)
         .graph_handoff()
         .expect("bootstrap root page should lower to graph handoff");
-    let commit = UiGraphInstantiationPlan::admit_handoffs(&[root_page_handoff, handoff.clone()], &[])
-        .expect("sealed handoffs should admit graph mutation plan")
-        .commit_initial_generation(UiGraphWorldProfile::authoritative())
-        .expect("admitted graph mutation should commit coherently");
+    let commit =
+        UiGraphInstantiationPlan::admit_handoffs(&[root_page_handoff, handoff.clone()], &[])
+            .expect("sealed handoffs should admit graph mutation plan")
+            .commit_initial_generation(UiGraphWorldProfile::authoritative())
+            .expect("admitted graph mutation should commit coherently");
     let graph = commit.graph();
     let declaration_lookup = graph.lookup().declaration_instances(handoff.identity());
     let graph_node_identity = declaration_lookup
@@ -38,10 +39,22 @@ fn initial_graph_commit_publishes_one_coherent_generation_transition() {
 
     assert_eq!(commit.committed_generation(), graph.generation());
     assert_eq!(graph.generation().as_u64(), 1);
-    assert_eq!(declaration_lookup.receipt().family(), UiGraphLookupFamily::DeclarationCorrespondence);
-    assert_eq!(declaration_lookup.receipt().cost_class(), UiGraphLookupCostClass::IndexedSet);
-    assert_eq!(node_lookup.receipt().family(), UiGraphLookupFamily::NodeIdentity);
-    assert_eq!(node_lookup.receipt().cost_class(), UiGraphLookupCostClass::IndexedScalar);
+    assert_eq!(
+        declaration_lookup.receipt().family(),
+        UiGraphLookupFamily::DeclarationCorrespondence
+    );
+    assert_eq!(
+        declaration_lookup.receipt().cost_class(),
+        UiGraphLookupCostClass::IndexedSet
+    );
+    assert_eq!(
+        node_lookup.receipt().family(),
+        UiGraphLookupFamily::NodeIdentity
+    );
+    assert_eq!(
+        node_lookup.receipt().cost_class(),
+        UiGraphLookupCostClass::IndexedScalar
+    );
 }
 
 #[test]
@@ -76,9 +89,10 @@ fn public_freeze_denies_graph_commit_before_publishing_graph_authority() {
             .freeze();
     }));
 
-    let panic_message = panic_message(result.expect_err(
-        "public freeze path must panic when graph commit denies before publication",
-    ));
+    let panic_message =
+        panic_message(result.expect_err(
+            "public freeze path must panic when graph commit denies before publication",
+        ));
     assert!(
         panic_message.contains("freeze path must deny before publishing graph authority"),
         "expected freeze denial panic to name graph publication boundary, got: {panic_message}"

@@ -5,11 +5,11 @@ mod handoff_admission;
 mod repeated_instance_basis_admission;
 mod runtime_basis_assignment;
 
-pub(crate) use handoff_admission::admit_graph_handoffs;
 pub use graph_instantiation_denial::UiGraphInstantiationDenial;
 pub use graph_instantiation_plan::{
-    UiGraphCoreIndexContributionSeed, UiGraphInstantiationLocalDenial, UiGraphInstantiationPlan,
-    UiGraphInstantiationLocalDenialKind, UiGraphNodeInstantiationEntry, UiGraphParticipationSeed,
-    UiGraphTopologyLocalDenial, UiGraphTopologySeed,
+    UiGraphCoreIndexContributionSeed, UiGraphInstantiationLocalDenial,
+    UiGraphInstantiationLocalDenialKind, UiGraphInstantiationPlan, UiGraphNodeInstantiationEntry,
+    UiGraphParticipationSeed, UiGraphTopologyLocalDenial, UiGraphTopologySeed,
 };
+pub(crate) use handoff_admission::admit_graph_handoffs;
 pub use repeated_instance_basis_admission::UiRuntimeInstanceBasisAdmission;

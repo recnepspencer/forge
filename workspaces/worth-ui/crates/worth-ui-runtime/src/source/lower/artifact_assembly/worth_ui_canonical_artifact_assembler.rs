@@ -175,9 +175,7 @@ fn assemble_node(
     }
 }
 
-fn authored_provenance_digest(
-    provenance: &crate::source::WorthUiArtifactInputProvenance,
-) -> u64 {
+fn authored_provenance_digest(provenance: &crate::source::WorthUiArtifactInputProvenance) -> u64 {
     stable_text_digest(provenance.module_path())
         ^ (provenance.declaration_index() as u64).rotate_left(13)
 }

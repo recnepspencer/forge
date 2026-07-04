@@ -12,7 +12,7 @@ error: cannot construct `WorthUiPlanNodeInput` with struct literal syntax due to
 8 |         query_binding_identity: None,
   |         ---------------------------- private field
   |
-  = note: ...and other private fields `query_binding_posture`, `query_required_surfaces`, `query_preservation_receipt`, `egui_boundary_input` and `topology_input` that were not provided
+  = note: ...and other private fields `authored_provenance_digest`, `query_binding_posture`, `query_required_surfaces`, `query_preservation_receipt`, `egui_boundary_input` and `topology_input` that were not provided
 help: you might have meant to use an associated function to build this type
   |
 4 -     let _ = WorthUiPlanNodeInput {

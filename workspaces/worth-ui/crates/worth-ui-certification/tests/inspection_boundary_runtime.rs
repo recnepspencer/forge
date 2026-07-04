@@ -25,6 +25,7 @@ fn repeated_unsupported_inspection_queries_stay_typed_and_equivalent() {
     assert_eq!(first_receipt, second_receipt);
     assert_eq!(second_receipt, third_receipt);
     assert_eq!(first_receipt.support_report(), Some(first_support_report));
+    assert!(first_receipt.evidence_slice().is_none());
     assert_eq!(first_support_report, second_support_report);
     assert_eq!(
         observation_after.total_query_count() - observation_before.total_query_count(),

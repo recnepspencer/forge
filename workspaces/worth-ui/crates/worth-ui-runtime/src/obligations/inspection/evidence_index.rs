@@ -1,4 +1,5 @@
-use worth_ui_inspection::UiInspectionObligationEvidenceReceipt;
+use crate::evidence::UiInspectionObligationEvidenceReceipt;
+use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use super::{UiObligationEvidenceHandle, UiObligationEvidenceQuery, UiObligationEvidenceRecord};
 
@@ -36,8 +37,9 @@ impl UiObligationEvidenceIndex {
     pub fn inspect(
         &self,
         query: &UiObligationEvidenceQuery,
+        authority_generation: UiEvidenceAuthorityGeneration,
     ) -> UiInspectionObligationEvidenceReceipt {
-        let projections = self
+        let filtered = self
             .records
             .iter()
             .filter(|record| {
@@ -60,10 +62,19 @@ impl UiObligationEvidenceIndex {
                         .prerequisite_source()
                         .is_none_or(|source| record.prerequisite_sources().contains(&source))
             })
+            .collect::<Vec<_>>();
+
+        let refs = filtered
+            .iter()
+            .map(|record| record.evidence_ref(authority_generation))
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
+        let projections = filtered
+            .into_iter()
             .map(UiObligationEvidenceRecord::to_projection)
             .collect::<Vec<_>>()
             .into_boxed_slice();
 
-        UiInspectionObligationEvidenceReceipt::new(projections)
+        UiInspectionObligationEvidenceReceipt::new(refs, projections)
     }
 }

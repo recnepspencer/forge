@@ -52,12 +52,18 @@ fn only_sealed_graph_handoffs_instantiate_graph_truth_through_public_plan() {
         .value();
 
     assert!(plan.local_denials().is_empty());
-    assert_eq!(entry.declaration_identity().digest().raw(), handoff.identity().digest().raw());
+    assert_eq!(
+        entry.declaration_identity().digest().raw(),
+        handoff.identity().digest().raw()
+    );
     assert_eq!(
         entry.repeated_instance_basis().kind(),
         UiRepeatedInstanceBasisKind::DeclarationKeyed
     );
-    assert_eq!(entry.topology_seed().role(), UiDeclarationStructuralRole::Control);
+    assert_eq!(
+        entry.topology_seed().role(),
+        UiDeclarationStructuralRole::Control
+    );
     assert_eq!(
         entry.topology_seed().containment_claim(),
         &UiGraphContainmentClaim::Control {
@@ -115,15 +121,19 @@ fn only_sealed_graph_handoffs_instantiate_graph_truth_through_public_plan() {
         UiGraphParticipationEvidenceHandle::DiagnosticContainmentClaim,
     );
     assert!(entry.mounted_receipt_seed().graph_owned_slot_reserved());
-    assert!(entry.core_index_contribution_seed().declaration_correspondence());
+    assert!(entry
+        .core_index_contribution_seed()
+        .declaration_correspondence());
     assert!(entry.core_index_contribution_seed().node_identity_lookup());
     assert_eq!(graph.node_count(), 2);
-    assert!(graph
-        .lookup()
-        .declaration_instances(handoff.identity())
-        .value()
-        .len()
-        == 1);
+    assert!(
+        graph
+            .lookup()
+            .declaration_instances(handoff.identity())
+            .value()
+            .len()
+            == 1
+    );
     assert_eq!(
         entry.participation_seed().posture(),
         committed_node.participation_posture()
@@ -162,16 +172,18 @@ fn freeze_path_panics_instead_of_silently_dropping_graph_handoff_denials() {
     let result = catch_unwind(AssertUnwindSafe(|| {
         let _ = WorthUi::app()
             .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.certification.graph-instantiation.freeze-denial")
-                    .with_semantic_artifact_spec(control_graph_input_spec())
-                    .with_semantic_artifact_spec(invalid_graph_input_spec()),
+                WorthUiDslPackage::named(
+                    "worth-ui.certification.graph-instantiation.freeze-denial",
+                )
+                .with_semantic_artifact_spec(control_graph_input_spec())
+                .with_semantic_artifact_spec(invalid_graph_input_spec()),
             )
             .freeze();
     }));
 
-    let panic_message = panic_message(result.expect_err(
-        "freeze path must panic when sealed graph handoff lowering is denied",
-    ));
+    let panic_message = panic_message(
+        result.expect_err("freeze path must panic when sealed graph handoff lowering is denied"),
+    );
     assert!(
         panic_message.contains(
             "freeze path must deny graph instantiation before mutation when sealed handoff lowering fails"
@@ -195,15 +207,17 @@ fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
         )
         .freeze();
 
-    let baseline_handoff = artifact_from_file_provenance(&baseline, "app/graph_instantiation.wui", 0)
-        .graph_handoff()
-        .expect("baseline declaration should lower to graph handoff");
+    let baseline_handoff =
+        artifact_from_file_provenance(&baseline, "app/graph_instantiation.wui", 0)
+            .graph_handoff()
+            .expect("baseline declaration should lower to graph handoff");
     let baseline_root_handoff = root_page_artifact(&baseline)
         .graph_handoff()
         .expect("baseline bootstrap root page should lower to graph handoff");
-    let enriched_handoff = artifact_from_file_provenance(&enriched, "app/graph_instantiation.wui", 0)
-        .graph_handoff()
-        .expect("enriched declaration should lower to graph handoff");
+    let enriched_handoff =
+        artifact_from_file_provenance(&enriched, "app/graph_instantiation.wui", 0)
+            .graph_handoff()
+            .expect("enriched declaration should lower to graph handoff");
     let enriched_root_handoff = root_page_artifact(&enriched)
         .graph_handoff()
         .expect("enriched bootstrap root page should lower to graph handoff");
@@ -211,12 +225,12 @@ fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
         &[baseline_root_handoff, baseline_handoff.clone()],
         &[],
     )
-        .expect("baseline sealed handoff should admit graph instantiation");
+    .expect("baseline sealed handoff should admit graph instantiation");
     let enriched_plan = UiGraphInstantiationPlan::admit_handoffs(
         &[enriched_root_handoff, enriched_handoff.clone()],
         &[],
     )
-        .expect("touch and measurement posture should not block graph instantiation");
+    .expect("touch and measurement posture should not block graph instantiation");
     let baseline_entry = baseline_plan
         .node_entries()
         .iter()
@@ -232,7 +246,10 @@ fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
         baseline_entry.repeated_instance_basis().kind(),
         enriched_entry.repeated_instance_basis().kind()
     );
-    assert_eq!(baseline_entry.topology_seed(), enriched_entry.topology_seed());
+    assert_eq!(
+        baseline_entry.topology_seed(),
+        enriched_entry.topology_seed()
+    );
     assert_eq!(
         baseline_entry.participation_seed(),
         enriched_entry.participation_seed()
@@ -284,9 +301,18 @@ fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
         .value();
 
     assert_eq!(baseline_graph.node_count(), enriched_graph.node_count());
-    assert_eq!(baseline_node.attachment_posture(), enriched_node.attachment_posture());
-    assert_eq!(baseline_node.repeated_instance_basis().kind(), UiRepeatedInstanceBasisKind::DeclarationKeyed);
-    assert_eq!(enriched_node.repeated_instance_basis().kind(), UiRepeatedInstanceBasisKind::DeclarationKeyed);
+    assert_eq!(
+        baseline_node.attachment_posture(),
+        enriched_node.attachment_posture()
+    );
+    assert_eq!(
+        baseline_node.repeated_instance_basis().kind(),
+        UiRepeatedInstanceBasisKind::DeclarationKeyed
+    );
+    assert_eq!(
+        enriched_node.repeated_instance_basis().kind(),
+        UiRepeatedInstanceBasisKind::DeclarationKeyed
+    );
 }
 
 fn artifact_from_file_provenance<'a>(
@@ -338,8 +364,8 @@ fn graph_input_without_non_graph_obligations() -> UiDslSemanticArtifactSpec {
 
 fn graph_input_with_non_graph_obligations() -> UiDslSemanticArtifactSpec {
     graph_input_without_non_graph_obligations()
-    .with_posture_token(UiDslPostureToken::new("touch:press"))
-    .with_posture_token(UiDslPostureToken::new("measurement:hug-height"))
+        .with_posture_token(UiDslPostureToken::new("touch:press"))
+        .with_posture_token(UiDslPostureToken::new("measurement:hug-height"))
 }
 
 fn invalid_graph_input_spec() -> UiDslSemanticArtifactSpec {

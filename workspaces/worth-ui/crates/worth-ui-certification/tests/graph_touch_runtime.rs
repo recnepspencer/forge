@@ -3,12 +3,11 @@ use std::sync::Arc;
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
-    resolve_runtime_current_snapshot_basis, snapshot_resolution_report,
-    ForgeQuerySessionLabel, QueryExternalIdentityToken, SchemaBasisDigest,
-    UiGraphAxisParticipation, UiGraphParticipationAxis, UiGraphParticipationStatus,
-    UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDenial,
-    UiGraphTouchOriginClass, UiGraphTouchRuntimeLane, UiGraphTouchTargetClass, UiGraphTouchTiming,
-    UiGraphWorldProfile,
+    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, ForgeQuerySessionLabel,
+    QueryExternalIdentityToken, SchemaBasisDigest, UiGraphAxisParticipation,
+    UiGraphParticipationAxis, UiGraphParticipationStatus, UiGraphTouchAspectPosture,
+    UiGraphTouchAspects, UiGraphTouchDenial, UiGraphTouchOriginClass, UiGraphTouchRuntimeLane,
+    UiGraphTouchTargetClass, UiGraphTouchTiming, UiGraphWorldProfile,
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
@@ -51,7 +50,10 @@ fn equivalent_touches_converge_to_one_canonical_descriptor() {
 
     assert_eq!(left, right);
     assert_eq!(left.identity_digest(), right.identity_digest());
-    assert_eq!(left.origin().class(), UiGraphTouchOriginClass::DeclarationChange);
+    assert_eq!(
+        left.origin().class(),
+        UiGraphTouchOriginClass::DeclarationChange
+    );
     assert_eq!(
         left.aspects()
             .iter()
@@ -169,19 +171,46 @@ fn ordinary_touch_authority_supports_precise_target_classes_and_origin_receipts(
         )
         .expect("mosaic membership touches should derive from graph topology");
 
-    assert_eq!(node_touch.origin().class(), UiGraphTouchOriginClass::DeclarationChange);
+    assert_eq!(
+        node_touch.origin().class(),
+        UiGraphTouchOriginClass::DeclarationChange
+    );
     assert_eq!(node_touch.target().class(), UiGraphTouchTargetClass::Node);
-    assert_eq!(slot_touch.origin().class(), UiGraphTouchOriginClass::DeclarationChange);
-    assert_eq!(slot_touch.target().class(), UiGraphTouchTargetClass::SlotOccupancy);
+    assert_eq!(
+        slot_touch.origin().class(),
+        UiGraphTouchOriginClass::DeclarationChange
+    );
+    assert_eq!(
+        slot_touch.target().class(),
+        UiGraphTouchTargetClass::SlotOccupancy
+    );
     assert_eq!(slot_touch.target().slot_name(), Some("footer"));
-    assert_eq!(page_touch.origin().class(), UiGraphTouchOriginClass::DeclarationChange);
-    assert_eq!(page_touch.target().class(), UiGraphTouchTargetClass::PageMembership);
+    assert_eq!(
+        page_touch.origin().class(),
+        UiGraphTouchOriginClass::DeclarationChange
+    );
+    assert_eq!(
+        page_touch.target().class(),
+        UiGraphTouchTargetClass::PageMembership
+    );
     assert!(page_touch.target().page_node_identity().is_some());
-    assert_eq!(region_touch.origin().class(), UiGraphTouchOriginClass::DeclarationChange);
-    assert_eq!(region_touch.target().class(), UiGraphTouchTargetClass::RegionMembership);
+    assert_eq!(
+        region_touch.origin().class(),
+        UiGraphTouchOriginClass::DeclarationChange
+    );
+    assert_eq!(
+        region_touch.target().class(),
+        UiGraphTouchTargetClass::RegionMembership
+    );
     assert_eq!(region_touch.target().region_name(), Some("sidebar"));
-    assert_eq!(mosaic_touch.origin().class(), UiGraphTouchOriginClass::DeclarationChange);
-    assert_eq!(mosaic_touch.target().class(), UiGraphTouchTargetClass::MosaicMembership);
+    assert_eq!(
+        mosaic_touch.origin().class(),
+        UiGraphTouchOriginClass::DeclarationChange
+    );
+    assert_eq!(
+        mosaic_touch.target().class(),
+        UiGraphTouchTargetClass::MosaicMembership
+    );
     assert_eq!(mosaic_touch.target().mosaic_name(), Some("workspace"));
 }
 
@@ -202,7 +231,9 @@ fn query_origin_and_world_are_explicit_on_the_ordinary_touch_path() {
                 .graph()
                 .touches()
                 .query_fact_change_receipt()
-                .expect("query-backed worlds should mint query touch receipts from basis authority"),
+                .expect(
+                    "query-backed worlds should mint query touch receipts from basis authority",
+                ),
             UiGraphTouchTiming::PostMutation,
             mounted_receipt_transition(&query_world, control_artifact(&query_world)),
             UiGraphTouchAspects::new().query_binding(UiGraphTouchAspectPosture::Invalidated),
@@ -213,7 +244,10 @@ fn query_origin_and_world_are_explicit_on_the_ordinary_touch_path() {
         denied,
         Err(UiGraphTouchDenial::QueryFactChangeUnavailableInCurrentWorld)
     ));
-    assert_eq!(query_touch.origin().class(), UiGraphTouchOriginClass::QueryFactChange);
+    assert_eq!(
+        query_touch.origin().class(),
+        UiGraphTouchOriginClass::QueryFactChange
+    );
     assert_eq!(
         query_touch.world().world_profile(),
         query_world.graph().world_profile()
@@ -246,26 +280,26 @@ fn unavailable_target_classes_deny_instead_of_broadening_touch_authority() {
 #[test]
 fn touch_world_preserves_specialized_operating_world_families() {
     let worlds = [
-        UiGraphWorldProfile::branch_session_label(ForgeQuerySessionLabel::scoped_strs(
-            "worth-ui",
-            ["branch", "touch"],
-        ).expect("branch session label should admit")),
-        UiGraphWorldProfile::hot_reload_candidate(ForgeQuerySessionLabel::scoped_strs(
-            "worth-ui",
-            ["hot-reload", "touch"],
-        ).expect("hot-reload session label should admit")),
-        UiGraphWorldProfile::diagnostic(ForgeQuerySessionLabel::scoped_strs(
-            "worth-ui",
-            ["diagnostic", "touch"],
-        ).expect("diagnostic session label should admit")),
-        UiGraphWorldProfile::host_observation(ForgeQuerySessionLabel::scoped_strs(
-            "worth-ui",
-            ["host-observation", "touch"],
-        ).expect("host-observation session label should admit")),
-        UiGraphWorldProfile::test_certification(ForgeQuerySessionLabel::scoped_strs(
-            "worth-ui",
-            ["test-certification", "touch"],
-        ).expect("test-certification session label should admit")),
+        UiGraphWorldProfile::branch_session_label(
+            ForgeQuerySessionLabel::scoped_strs("worth-ui", ["branch", "touch"])
+                .expect("branch session label should admit"),
+        ),
+        UiGraphWorldProfile::hot_reload_candidate(
+            ForgeQuerySessionLabel::scoped_strs("worth-ui", ["hot-reload", "touch"])
+                .expect("hot-reload session label should admit"),
+        ),
+        UiGraphWorldProfile::diagnostic(
+            ForgeQuerySessionLabel::scoped_strs("worth-ui", ["diagnostic", "touch"])
+                .expect("diagnostic session label should admit"),
+        ),
+        UiGraphWorldProfile::host_observation(
+            ForgeQuerySessionLabel::scoped_strs("worth-ui", ["host-observation", "touch"])
+                .expect("host-observation session label should admit"),
+        ),
+        UiGraphWorldProfile::test_certification(
+            ForgeQuerySessionLabel::scoped_strs("worth-ui", ["test-certification", "touch"])
+                .expect("test-certification session label should admit"),
+        ),
     ];
 
     for world in worlds {
@@ -399,9 +433,10 @@ fn query_snapshot_world_profile(
     snapshot_label: &str,
     schema_basis_parts: [&str; 3],
 ) -> UiGraphWorldProfile {
-    let snapshot_identity = worth_ui::facade::graph::ForgeQuerySnapshotIdentity::admit_external_token(
-        QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
-    );
+    let snapshot_identity =
+        worth_ui::facade::graph::ForgeQuerySnapshotIdentity::admit_external_token(
+            QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
+        );
     let basis = resolve_runtime_current_snapshot_basis(
         snapshot_identity.evidence_identity(),
         SchemaBasisDigest::from_domain_parts(

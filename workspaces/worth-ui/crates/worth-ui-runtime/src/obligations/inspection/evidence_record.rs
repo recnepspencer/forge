@@ -2,23 +2,61 @@ use crate::admission::{
     UiAdmissionHostCapability, UiAdmissionQueryBasis, UiAdmissionSelectionBudget,
     UiAdmissionStaleEvidence,
 };
+use crate::evidence::{
+    evidence_ref, UiEvidenceFamily, UiEvidenceRef, UiInspectionObligationReasonProjection,
+};
 use crate::obligations::catalog::UiObligationFamily;
 use crate::obligations::selection::UiObligationSelectionReason;
-use worth_ui_inspection::UiInspectionObligationReasonProjection;
+use crate::obligations::verdict::{UiObligationDispatchStopPosture, UiObligationVerdictClass};
+use worth_ui_inspection::{
+    UiEvidenceAuthorityGeneration, UiEvidenceMaterializationPosture, UiEvidenceRetentionPosture,
+};
+use worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence;
 
 use super::projection_mapping::{
-    inspection_decision, inspection_denial_posture, inspection_family, inspection_legality_reason,
-    inspection_non_selection_reason, inspection_source,
+    inspection_decision, inspection_denial_posture, inspection_dispatch_posture,
+    inspection_family, inspection_legality_reason, inspection_non_selection_reason,
+    inspection_source, inspection_verdict_class, inspection_verdict_posture,
 };
 use super::selection_reason_mapping::inspection_selection_reason;
-use super::UiObligationEvidenceHandle;
+use super::{UiObligationEvidenceAuthoritySource, UiObligationEvidenceHandle};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiObligationEvidenceDecision {
     Selected,
     NotSelected,
+    Dispatch,
     Verdict,
     Admission,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiObligationEvidenceDispatchPosture {
+    ImmediateCheck,
+    TypedStop(UiObligationDispatchStopPosture),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UiObligationEvidenceVerdictPosture {
+    class: UiObligationVerdictClass,
+    stop_posture: UiObligationDispatchStopPosture,
+}
+
+impl UiObligationEvidenceVerdictPosture {
+    pub const fn new(
+        class: UiObligationVerdictClass,
+        stop_posture: UiObligationDispatchStopPosture,
+    ) -> Self {
+        Self { class, stop_posture }
+    }
+
+    pub const fn class(self) -> UiObligationVerdictClass {
+        self.class
+    }
+
+    pub const fn stop_posture(self) -> UiObligationDispatchStopPosture {
+        self.stop_posture
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -107,13 +145,18 @@ pub enum UiObligationLegalityReasonEvidence {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiObligationEvidenceRecord {
     handle: UiObligationEvidenceHandle,
+    authority_source: UiObligationEvidenceAuthoritySource,
+    authority_digest: u64,
     graph_node_digest: u64,
     touch_identity_digest: Option<u64>,
     family: Option<UiObligationFamily>,
     decision: UiObligationEvidenceDecision,
+    dispatch_posture: Option<UiObligationEvidenceDispatchPosture>,
+    verdict_posture: Option<UiObligationEvidenceVerdictPosture>,
     denial_posture: Option<UiObligationEvidenceDenialPosture>,
     selection_reasons: Box<[UiObligationSelectionReason]>,
     prerequisite_sources: Box<[UiObligationEvidencePrerequisiteSource]>,
+    query_prerequisite_evidence: Box<[WorthUiQueryPrerequisiteEvidence]>,
     non_selection_reason: Option<UiObligationNonSelectionReason>,
     legality_reason: Option<UiObligationLegalityReasonEvidence>,
 }
@@ -121,25 +164,35 @@ pub struct UiObligationEvidenceRecord {
 impl UiObligationEvidenceRecord {
     pub(crate) fn new(
         handle: UiObligationEvidenceHandle,
+        authority_source: UiObligationEvidenceAuthoritySource,
+        authority_digest: u64,
         graph_node_digest: u64,
         touch_identity_digest: Option<u64>,
         family: Option<UiObligationFamily>,
         decision: UiObligationEvidenceDecision,
+        dispatch_posture: Option<UiObligationEvidenceDispatchPosture>,
+        verdict_posture: Option<UiObligationEvidenceVerdictPosture>,
         denial_posture: Option<UiObligationEvidenceDenialPosture>,
         selection_reasons: Box<[UiObligationSelectionReason]>,
         prerequisite_sources: Box<[UiObligationEvidencePrerequisiteSource]>,
+        query_prerequisite_evidence: Box<[WorthUiQueryPrerequisiteEvidence]>,
         non_selection_reason: Option<UiObligationNonSelectionReason>,
         legality_reason: Option<UiObligationLegalityReasonEvidence>,
     ) -> Self {
         Self {
             handle,
+            authority_source,
+            authority_digest,
             graph_node_digest,
             touch_identity_digest,
             family,
             decision,
+            dispatch_posture,
+            verdict_posture,
             denial_posture,
             selection_reasons,
             prerequisite_sources,
+            query_prerequisite_evidence,
             non_selection_reason,
             legality_reason,
         }
@@ -151,6 +204,21 @@ impl UiObligationEvidenceRecord {
 
     pub fn graph_node_digest(&self) -> u64 {
         self.graph_node_digest
+    }
+
+    pub fn evidence_ref(
+        &self,
+        authority_generation: UiEvidenceAuthorityGeneration,
+    ) -> UiEvidenceRef {
+        evidence_ref(
+            UiEvidenceFamily::Obligation,
+            self.handle.public_identity(),
+            self.authority_source
+                .into_public_binding(self.authority_digest, authority_generation),
+            UiEvidenceMaterializationPosture::DetailAvailable,
+            UiEvidenceRetentionPosture::CurrentGenerationOnly,
+            self.handle.public_handle(),
+        )
     }
 
     pub fn touch_identity_digest(&self) -> Option<u64> {
@@ -165,6 +233,14 @@ impl UiObligationEvidenceRecord {
         self.decision
     }
 
+    pub fn dispatch_posture(&self) -> Option<UiObligationEvidenceDispatchPosture> {
+        self.dispatch_posture
+    }
+
+    pub fn verdict_posture(&self) -> Option<UiObligationEvidenceVerdictPosture> {
+        self.verdict_posture
+    }
+
     pub fn denial_posture(&self) -> Option<UiObligationEvidenceDenialPosture> {
         self.denial_posture
     }
@@ -175,6 +251,10 @@ impl UiObligationEvidenceRecord {
 
     pub fn prerequisite_sources(&self) -> &[UiObligationEvidencePrerequisiteSource] {
         &self.prerequisite_sources
+    }
+
+    pub fn query_prerequisite_evidence(&self) -> &[WorthUiQueryPrerequisiteEvidence] {
+        &self.query_prerequisite_evidence
     }
 
     pub fn non_selection_reason(&self) -> Option<UiObligationNonSelectionReason> {
@@ -192,6 +272,11 @@ impl UiObligationEvidenceRecord {
             self.touch_identity_digest,
             self.family.map(inspection_family),
             inspection_decision(self.decision),
+            self.dispatch_posture.map(inspection_dispatch_posture),
+            self.verdict_posture
+                .map(|posture| inspection_verdict_class(posture.class())),
+            self.verdict_posture
+                .map(|posture| inspection_verdict_posture(posture.stop_posture())),
             self.denial_posture.map(inspection_denial_posture),
             self.selection_reasons
                 .iter()

@@ -87,6 +87,9 @@ impl UiObligationEvidenceQuery {
             UiInspectionTarget::ObligationGraphNode { graph_node_digest } => {
                 evidence_query = evidence_query.for_graph_node_digest(*graph_node_digest);
             }
+            UiInspectionTarget::GraphNodeIdentity { graph_node_digest } => {
+                evidence_query = evidence_query.for_graph_node_digest(*graph_node_digest);
+            }
             UiInspectionTarget::ObligationTouch {
                 graph_node_digest,
                 touch_identity_digest,
@@ -102,15 +105,15 @@ impl UiObligationEvidenceQuery {
             _ => {}
         }
 
-        if let Some(obligation_evidence) = query.obligation_evidence() {
-            if let Some(family) = obligation_evidence.family() {
+        if let Some(obligation_detail) = query.relevance().obligation_detail() {
+            if let Some(family) = obligation_detail.family() {
                 evidence_query = evidence_query.with_family(runtime_family(family));
             }
-            if let Some(denial_posture) = obligation_evidence.denial_posture() {
+            if let Some(denial_posture) = obligation_detail.denial_posture() {
                 evidence_query =
                     evidence_query.with_denial_posture(runtime_denial_posture(denial_posture));
             }
-            if let Some(prerequisite_source) = obligation_evidence.prerequisite_source() {
+            if let Some(prerequisite_source) = obligation_detail.prerequisite_source() {
                 evidence_query = evidence_query
                     .with_prerequisite_source(runtime_prerequisite_source(prerequisite_source));
             }

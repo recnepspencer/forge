@@ -14,7 +14,20 @@ fn canonical_artifact_discards_pre_artifact_provenance() {
     .expect("phase 8 artifact assembly should succeed");
 
     assert!(left.equivalent_shape(&right));
-    assert_eq!(left, right);
+    assert_ne!(left, right);
+
+    let left_module = left
+        .module(left.module_ids().first().expect("left module id"))
+        .expect("left module");
+    let right_module = right
+        .module(right.module_ids().first().expect("right module id"))
+        .expect("right module");
+    assert_eq!(left_module.nodes().len(), 1);
+    assert_eq!(right_module.nodes().len(), 1);
+    assert_ne!(
+        left_module.nodes()[0].authored_provenance_digest(),
+        right_module.nodes()[0].authored_provenance_digest()
+    );
 }
 
 #[test]

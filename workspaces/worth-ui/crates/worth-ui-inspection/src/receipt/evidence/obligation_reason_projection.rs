@@ -1,7 +1,3 @@
-use crate::UiInspectionEvidenceSource;
-
-use super::UiInspectionObligationDecision;
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiInspectionObligationFamily {
     StructuralLegality,
@@ -169,6 +165,77 @@ pub enum UiInspectionObligationDenialPosture {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiInspectionObligationDispatchPosture {
+    ImmediateCheck,
+    Unsupported,
+    Deferred,
+    DiagnosticOnly,
+    WrongWorld,
+    WrongQueryBasis {
+        required: UiInspectionAdmissionQueryBasis,
+        observed: UiInspectionAdmissionQueryBasis,
+    },
+    WrongHostCapability {
+        required: UiInspectionAdmissionHostCapability,
+        observed: UiInspectionAdmissionHostCapability,
+    },
+    Stale {
+        required: UiInspectionAdmissionQueryBasis,
+        observed: UiInspectionAdmissionQueryBasis,
+        evidence: UiInspectionAdmissionStaleEvidence,
+    },
+    Ambiguous {
+        required_query_basis: Option<UiInspectionAdmissionQueryBasis>,
+        observed_query_basis: Option<UiInspectionAdmissionQueryBasis>,
+        required_host_capability: Option<UiInspectionAdmissionHostCapability>,
+        observed_host_capability: Option<UiInspectionAdmissionHostCapability>,
+    },
+    BudgetExceeded {
+        budget: UiInspectionSelectionBudget,
+        attempted_lane_cost: u8,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiInspectionObligationVerdictClass {
+    Success,
+    Advisory,
+    Violation,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiInspectionObligationVerdictPosture {
+    None,
+    Unsupported,
+    Deferred,
+    DiagnosticOnly,
+    WrongWorld,
+    WrongQueryBasis {
+        required: UiInspectionAdmissionQueryBasis,
+        observed: UiInspectionAdmissionQueryBasis,
+    },
+    WrongHostCapability {
+        required: UiInspectionAdmissionHostCapability,
+        observed: UiInspectionAdmissionHostCapability,
+    },
+    Stale {
+        required: UiInspectionAdmissionQueryBasis,
+        observed: UiInspectionAdmissionQueryBasis,
+        evidence: UiInspectionAdmissionStaleEvidence,
+    },
+    Ambiguous {
+        required_query_basis: Option<UiInspectionAdmissionQueryBasis>,
+        observed_query_basis: Option<UiInspectionAdmissionQueryBasis>,
+        required_host_capability: Option<UiInspectionAdmissionHostCapability>,
+        observed_host_capability: Option<UiInspectionAdmissionHostCapability>,
+    },
+    BudgetExceeded {
+        budget: UiInspectionSelectionBudget,
+        attempted_lane_cost: u8,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiInspectionObligationLegalityReason {
     MissingDeclarationArtifact,
     MissingQueryPrerequisiteEvidence,
@@ -202,86 +269,4 @@ pub enum UiInspectionObligationLegalityReason {
         budget: UiInspectionSelectionBudget,
         attempted_lane_cost: u8,
     },
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UiInspectionObligationReasonProjection {
-    handle_digest: u64,
-    graph_node_digest: u64,
-    touch_identity_digest: Option<u64>,
-    family: Option<UiInspectionObligationFamily>,
-    decision: UiInspectionObligationDecision,
-    denial_posture: Option<UiInspectionObligationDenialPosture>,
-    selection_reasons: Box<[UiInspectionObligationSelectionReason]>,
-    prerequisite_sources: Box<[UiInspectionEvidenceSource]>,
-    non_selection_reason: Option<UiInspectionObligationNonSelectionReason>,
-    legality_reason: Option<UiInspectionObligationLegalityReason>,
-}
-
-impl UiInspectionObligationReasonProjection {
-    pub fn new(
-        handle_digest: u64,
-        graph_node_digest: u64,
-        touch_identity_digest: Option<u64>,
-        family: Option<UiInspectionObligationFamily>,
-        decision: UiInspectionObligationDecision,
-        denial_posture: Option<UiInspectionObligationDenialPosture>,
-        selection_reasons: Box<[UiInspectionObligationSelectionReason]>,
-        prerequisite_sources: Box<[UiInspectionEvidenceSource]>,
-        non_selection_reason: Option<UiInspectionObligationNonSelectionReason>,
-        legality_reason: Option<UiInspectionObligationLegalityReason>,
-    ) -> Self {
-        Self {
-            handle_digest,
-            graph_node_digest,
-            touch_identity_digest,
-            family,
-            decision,
-            denial_posture,
-            selection_reasons,
-            prerequisite_sources,
-            non_selection_reason,
-            legality_reason,
-        }
-    }
-
-    pub fn handle_digest(&self) -> u64 {
-        self.handle_digest
-    }
-
-    pub fn graph_node_digest(&self) -> u64 {
-        self.graph_node_digest
-    }
-
-    pub fn touch_identity_digest(&self) -> Option<u64> {
-        self.touch_identity_digest
-    }
-
-    pub fn family(&self) -> Option<UiInspectionObligationFamily> {
-        self.family
-    }
-
-    pub fn decision(&self) -> UiInspectionObligationDecision {
-        self.decision
-    }
-
-    pub fn denial_posture(&self) -> Option<UiInspectionObligationDenialPosture> {
-        self.denial_posture
-    }
-
-    pub fn selection_reasons(&self) -> &[UiInspectionObligationSelectionReason] {
-        &self.selection_reasons
-    }
-
-    pub fn prerequisite_sources(&self) -> &[UiInspectionEvidenceSource] {
-        &self.prerequisite_sources
-    }
-
-    pub fn non_selection_reason(&self) -> Option<UiInspectionObligationNonSelectionReason> {
-        self.non_selection_reason
-    }
-
-    pub fn legality_reason(&self) -> Option<UiInspectionObligationLegalityReason> {
-        self.legality_reason
-    }
 }

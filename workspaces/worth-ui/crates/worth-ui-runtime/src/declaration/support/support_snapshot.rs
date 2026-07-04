@@ -58,21 +58,23 @@ fn inspection_row_for_support_row(
             UiInspectionSupportWorld::Authoritative,
         ),
         None => match row.applicability() {
-            UiDeclaredPostureApplicability::DiagnosticOnly =>
+            UiDeclaredPostureApplicability::DiagnosticOnly => {
                 UiInspectionScopeSupportRow::diagnostic_only(
                     row.schema_kind().as_support_subsystem(),
                     scope,
                     UiInspectionSupportWorld::Authoritative,
-                ),
+                )
+            }
             UiDeclaredPostureApplicability::Required
             | UiDeclaredPostureApplicability::Optional
             | UiDeclaredPostureApplicability::NotApplicable
-            | UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted =>
+            | UiDeclaredPostureApplicability::ArchitecturallyOwnedButNotYetAdmitted => {
                 UiInspectionScopeSupportRow::supported(
                     row.schema_kind().as_support_subsystem(),
                     scope,
                     UiInspectionSupportWorld::Authoritative,
-                ),
+                )
+            }
         },
     })
 }

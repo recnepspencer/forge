@@ -1,9 +1,13 @@
 use crate::declaration::stable_text_digest;
+use crate::evidence::{
+    evidence_handle, evidence_identity, UiEvidenceFamily, UiEvidenceHandle, UiEvidenceIdentity,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiObligationEvidenceHandleKind {
     Selected,
     NotSelected,
+    Dispatch,
     Verdict,
     Admission,
 }
@@ -19,8 +23,9 @@ impl UiObligationEvidenceHandle {
         let kind_digest = match kind {
             UiObligationEvidenceHandleKind::Selected => 1_u64,
             UiObligationEvidenceHandleKind::NotSelected => 2_u64,
-            UiObligationEvidenceHandleKind::Verdict => 3_u64,
-            UiObligationEvidenceHandleKind::Admission => 4_u64,
+            UiObligationEvidenceHandleKind::Dispatch => 3_u64,
+            UiObligationEvidenceHandleKind::Verdict => 4_u64,
+            UiObligationEvidenceHandleKind::Admission => 5_u64,
         };
 
         Self {
@@ -37,5 +42,17 @@ impl UiObligationEvidenceHandle {
 
     pub fn digest(&self) -> u64 {
         self.digest
+    }
+
+    pub(crate) fn public_identity(&self) -> UiEvidenceIdentity {
+        evidence_identity(UiEvidenceFamily::Obligation, self.digest)
+    }
+
+    pub(crate) fn public_handle(&self) -> UiEvidenceHandle {
+        evidence_handle(
+            UiEvidenceFamily::Obligation,
+            self.public_identity(),
+            self.digest,
+        )
     }
 }

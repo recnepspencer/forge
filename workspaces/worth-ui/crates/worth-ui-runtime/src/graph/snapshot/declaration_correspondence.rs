@@ -67,7 +67,9 @@ impl UiGraphDeclarationCorrespondence {
         &self,
         graph_node_identity: UiGraphNodeIdentity,
     ) -> Option<u64> {
-        self.node_to_authored_provenance.get(&graph_node_identity).copied()
+        self.node_to_authored_provenance
+            .get(&graph_node_identity)
+            .copied()
     }
 
     pub fn declaration_instance_count(

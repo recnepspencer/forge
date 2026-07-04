@@ -16,20 +16,23 @@ fn match_scope(scope: UiInspectionScope) -> &'static str {
 
 fn match_budget(budget: UiEvidenceBudget) -> &'static str {
     match budget {
-        UiEvidenceBudget::Bounded { richness } => match_richness(richness),
-        UiEvidenceBudget::Exhaustive => "exhaustive",
+        UiEvidenceBudget::Narrow => "narrow",
+        UiEvidenceBudget::Ordinary => "ordinary",
+        UiEvidenceBudget::Expanded => "expanded",
     }
 }
 
 fn match_richness(richness: UiEvidenceRichness) -> &'static str {
     match richness {
+        UiEvidenceRichness::RefsOnly => "refs-only",
         UiEvidenceRichness::Summary => "summary",
-        UiEvidenceRichness::Full => "full",
+        UiEvidenceRichness::MaterializedDetail => "materialized-detail",
     }
 }
 
 fn main() {
     let _ = match_target(UiInspectionTarget::product_root());
     let _ = match_scope(UiInspectionScope::graph());
-    let _ = match_budget(UiEvidenceBudget::bounded(UiEvidenceRichness::summary()));
+    let _ = match_budget(UiEvidenceBudget::ordinary());
+    let _ = match_richness(UiEvidenceRichness::summary());
 }

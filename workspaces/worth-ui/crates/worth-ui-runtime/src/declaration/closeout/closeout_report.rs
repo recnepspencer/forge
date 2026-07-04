@@ -1,8 +1,8 @@
+use crate::declaration::closeout::milestone32_closeout_profile::MILESTONE32_CLOSEOUT_PROFILE;
 use crate::declaration::{
     UiDeclarationClosedSemanticLane, UiDeclarationCloseoutGuarantee, UiDeclarationCloseoutNonGoal,
     UiDeclarationFamilyKind,
 };
-use crate::declaration::closeout::milestone32_closeout_profile::MILESTONE32_CLOSEOUT_PROFILE;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiDeclarationCloseoutReport {

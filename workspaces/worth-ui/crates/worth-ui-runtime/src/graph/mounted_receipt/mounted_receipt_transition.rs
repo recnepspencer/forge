@@ -1,7 +1,6 @@
 use crate::graph::{
-    UiGraphMountedReceiptAuthorityRecord,
-    UiGraphAxisParticipation, UiGraphMountedReceiptMutation, UiGraphMountedReceiptMutationKind,
-    UiGraphMountedReceiptSlot,
+    UiGraphAxisParticipation, UiGraphMountedReceiptAuthorityRecord, UiGraphMountedReceiptMutation,
+    UiGraphMountedReceiptMutationKind, UiGraphMountedReceiptSlot,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

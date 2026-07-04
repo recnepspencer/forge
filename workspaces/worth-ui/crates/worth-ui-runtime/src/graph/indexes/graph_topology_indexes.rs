@@ -17,7 +17,8 @@ pub struct UiGraphTopologyIndexes {
 
 impl UiGraphTopologyIndexes {
     pub(crate) fn build(topology: &UiGraphTopology) -> Self {
-        let mut children_by_parent = BTreeMap::<UiGraphNodeIdentity, Vec<UiGraphNodeIdentity>>::new();
+        let mut children_by_parent =
+            BTreeMap::<UiGraphNodeIdentity, Vec<UiGraphNodeIdentity>>::new();
         let mut occupants_by_parent_and_slot =
             BTreeMap::<UiGraphNodeIdentity, BTreeMap<Box<str>, Vec<UiGraphNodeIdentity>>>::new();
         let mut members_by_page = BTreeMap::<UiGraphNodeIdentity, Vec<UiGraphNodeIdentity>>::new();

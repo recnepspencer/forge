@@ -11,14 +11,16 @@ impl UiGraphInstantiationPlan {
     ) -> Vec<UiGraphMountedReceiptReservation> {
         self.node_entries()
             .iter()
-            .map(|entry| UiGraphMountedReceiptReservation::graph_owned_seed_slot(
-                graph_node_identity(
-                    entry.declaration_identity(),
-                    entry.repeated_instance_basis(),
-                    &world_profile,
-                ),
-                entry.mounted_receipt_seed(),
-            ))
+            .map(|entry| {
+                UiGraphMountedReceiptReservation::graph_owned_seed_slot(
+                    graph_node_identity(
+                        entry.declaration_identity(),
+                        entry.repeated_instance_basis(),
+                        &world_profile,
+                    ),
+                    entry.mounted_receipt_seed(),
+                )
+            })
             .collect()
     }
 }

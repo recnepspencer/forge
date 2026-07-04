@@ -1,30 +1,4 @@
-error[E0432]: unresolved imports `worth_ui::facade::admission::UiAdmissionReport`, `worth_ui::facade::admission::UiLegalityDecision`, `worth_ui::facade::admission::UiSupportSnapshot`
- --> tests/ui/obligation_boundary/external_callers_cannot_import_raw_later_slice_authority.rs:1:35
-  |
-1 | use worth_ui::facade::admission::{UiAdmissionReport, UiLegalityDecision, UiSupportSnapshot};
-  |                                   ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^ no `UiSupportSnapshot` in `facade::admission`
-  |                                   |                  |
-  |                                   |                  no `UiLegalityDecision` in `facade::admission`
-  |                                   no `UiAdmissionReport` in `facade::admission`
-  |
-  = help: consider importing this struct instead:
-          worth_ui_runtime::facade::admission::UiAdmissionReport
-  = help: consider importing this struct instead:
-          worth_ui_runtime::facade::admission::UiLegalityDecision
-  = help: consider importing this struct instead:
-          worth_ui_runtime::facade::admission::UiSupportSnapshot
-help: a similar name exists in the module
-  |
-1 - use worth_ui::facade::admission::{UiAdmissionReport, UiLegalityDecision, UiSupportSnapshot};
-1 + use worth_ui::facade::admission::{UiAdmissionTarget, UiLegalityDecision, UiSupportSnapshot};
-  |
-help: a similar name exists in the module
-  |
-1 - use worth_ui::facade::admission::{UiAdmissionReport, UiLegalityDecision, UiSupportSnapshot};
-1 + use worth_ui::facade::admission::{UiAdmissionReport, UiLegalityDecision, UiSupportReason};
-  |
-
-error[E0432]: unresolved imports `worth_ui::facade::obligations::UiObligationDispatchPlan`, `worth_ui::facade::obligations::UiObligationEvidenceIndex`, `worth_ui::facade::obligations::UiObligationEvidenceRecord`, `worth_ui::facade::obligations::UiObligationVerdict`, `worth_ui::facade::obligations::UiSelectedObligation`, `worth_ui::facade::obligations::UiSelectedObligationIdentity`, `worth_ui::facade::obligations::UiSelectedObligationSet`
+error[E0432]: unresolved imports `worth_ui::facade::obligations::UiObligationDispatchPlan`, `worth_ui::facade::obligations::UiObligationEvidenceIndex`, `worth_ui::facade::obligations::UiObligationEvidenceRecord`, `worth_ui::facade::obligations::UiObligationVerdict`, `worth_ui::facade::obligations::UiSelectedObligationIdentity`, `worth_ui::facade::obligations::UiSelectedObligationSet`
  --> tests/ui/obligation_boundary/external_callers_cannot_import_raw_later_slice_authority.rs:3:5
   |
 3 |     UiObligationDispatchPlan, UiObligationEvidenceIndex, UiObligationEvidenceRecord,
@@ -33,9 +7,8 @@ error[E0432]: unresolved imports `worth_ui::facade::obligations::UiObligationDis
   |     |                         no `UiObligationEvidenceIndex` in `facade::obligations`
   |     no `UiObligationDispatchPlan` in `facade::obligations`
 4 |     UiObligationVerdict, UiSelectedObligation, UiSelectedObligationIdentity,
-  |     ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `UiSelectedObligationIdentity` in `facade::obligations`
-  |     |                    |
-  |     |                    no `UiSelectedObligation` in `facade::obligations`
+  |     ^^^^^^^^^^^^^^^^^^^                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `UiSelectedObligationIdentity` in `facade::obligations`
+  |     |
   |     no `UiObligationVerdict` in `facade::obligations`
 5 |     UiSelectedObligationSet,
   |     ^^^^^^^^^^^^^^^^^^^^^^^ no `UiSelectedObligationSet` in `facade::obligations`
@@ -48,8 +21,6 @@ error[E0432]: unresolved imports `worth_ui::facade::obligations::UiObligationDis
           worth_ui_runtime::facade::obligations::UiObligationEvidenceRecord
   = help: consider importing this struct instead:
           worth_ui_runtime::facade::obligations::UiObligationVerdict
-  = help: consider importing this struct instead:
-          worth_ui_runtime::facade::obligations::UiSelectedObligation
   = help: consider importing this struct instead:
           worth_ui_runtime::facade::obligations::UiSelectedObligationIdentity
   = help: consider importing this struct instead:
@@ -73,3 +44,13 @@ help: a similar name exists in the module
   |
 4 |     UiObligationVerdictClass, UiSelectedObligation, UiSelectedObligationIdentity,
   |                        +++++
+help: a similar name exists in the module
+  |
+4 -     UiObligationVerdict, UiSelectedObligation, UiSelectedObligationIdentity,
+4 +     UiObligationVerdict, UiSelectedObligation, UiSelectedObligation,
+  |
+help: a similar name exists in the module
+  |
+5 -     UiSelectedObligationSet,
+5 +     UiSelectedObligation,
+  |

@@ -57,7 +57,8 @@ fn single_root_page_identity(
         .iter()
         .zip(node_identities.iter().copied())
         .filter_map(|(entry, node_identity)| {
-            entry.topology_seed()
+            entry
+                .topology_seed()
                 .containment_claim()
                 .is_root_page()
                 .then_some(node_identity)

@@ -1,5 +1,5 @@
 use crate::{
-    UiEvidenceBudget, UiInspectionObligationEvidenceQuery, UiInspectionRelevance,
+    UiEvidenceBudget, UiEvidenceRichness, UiInspectionRelevance, UiInspectionRelevanceAdmission,
     UiInspectionScope, UiInspectionTarget,
 };
 
@@ -7,9 +7,9 @@ use crate::{
 pub struct UiInspectionQuery {
     target: UiInspectionTarget,
     scope: UiInspectionScope,
+    richness: UiEvidenceRichness,
     budget: UiEvidenceBudget,
     relevance: UiInspectionRelevance,
-    obligation_evidence: Option<UiInspectionObligationEvidenceQuery>,
 }
 
 impl UiInspectionQuery {
@@ -17,10 +17,15 @@ impl UiInspectionQuery {
         Self {
             target,
             scope,
+            richness: UiEvidenceRichness::summary(),
             budget: UiEvidenceBudget::default(),
             relevance: UiInspectionRelevance::default(),
-            obligation_evidence: None,
         }
+    }
+
+    pub fn with_richness(mut self, richness: UiEvidenceRichness) -> Self {
+        self.richness = richness;
+        self
     }
 
     pub fn with_budget(mut self, budget: UiEvidenceBudget) -> Self {
@@ -33,20 +38,16 @@ impl UiInspectionQuery {
         self
     }
 
-    pub fn with_obligation_evidence(
-        mut self,
-        obligation_evidence: UiInspectionObligationEvidenceQuery,
-    ) -> Self {
-        self.obligation_evidence = Some(obligation_evidence);
-        self
-    }
-
     pub fn target(&self) -> &UiInspectionTarget {
         &self.target
     }
 
     pub fn scope(&self) -> UiInspectionScope {
         self.scope
+    }
+
+    pub fn richness(&self) -> UiEvidenceRichness {
+        self.richness
     }
 
     pub fn budget(&self) -> UiEvidenceBudget {
@@ -57,7 +58,7 @@ impl UiInspectionQuery {
         self.relevance
     }
 
-    pub fn obligation_evidence(&self) -> Option<UiInspectionObligationEvidenceQuery> {
-        self.obligation_evidence
+    pub fn admit_relevance(&self) -> UiInspectionRelevanceAdmission {
+        UiInspectionRelevanceAdmission::from_query(self)
     }
 }

@@ -2,20 +2,22 @@ use std::path::{Path, PathBuf};
 
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::inspection::{
-    UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery,
-    UiInspectionScope, UiInspectionSupportReason, UiInspectionSupportStatus,
-    UiInspectionSupportWorld, UiInspectionTarget,
+    UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery, UiInspectionScope,
+    UiInspectionSupportReason, UiInspectionSupportStatus, UiInspectionSupportWorld,
+    UiInspectionTarget,
 };
 use worth_ui_certification::topology::{
-    audit_host_egui_dependency_boundary, audit_no_cross_crate_deep_imports,
-    audit_non_dsl_crates_do_not_reach_dsl_internals,
-    audit_consumers_route_inspection_through_worth_ui_facade,
+    audit_consumers_route_inspection_through_worth_ui_facade, audit_evidence_family_storage_homes,
+    audit_host_egui_dependency_boundary,
+    audit_inspection_crate_does_not_export_runtime_owned_evidence_surface,
     audit_inspection_future_artifact_seed_topology, audit_inspection_public_module_names,
-    audit_inspection_public_module_role_purity,
-    audit_phase3_lifecycle_public_surface, expected_phase3_lifecycle_subsystems,
+    audit_inspection_public_module_role_purity, audit_no_cross_crate_deep_imports,
+    audit_non_dsl_crates_do_not_reach_dsl_internals, audit_phase3_lifecycle_public_surface,
     audit_preboundary_receipt_and_posture_files_do_not_lower_to_foundational,
+    audit_public_inspection_facades_do_not_export_family_local_records,
     audit_public_surfaces_do_not_recreate_query_owned_lanes,
     audit_required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_option,
+    expected_phase3_lifecycle_subsystems,
 };
 
 fn workspace_root() -> &'static Path {
@@ -55,10 +57,9 @@ fn host_egui_only_uses_host_contract_surfaces() {
 
 #[test]
 fn host_egui_boundary_audit_rejects_known_bad_runtime_import_fixture() {
-    let violations =
-        audit_host_egui_dependency_boundary(&topology_negative_fixture_root(
-            "host_egui_forbidden_runtime_import",
-        ));
+    let violations = audit_host_egui_dependency_boundary(&topology_negative_fixture_root(
+        "host_egui_forbidden_runtime_import",
+    ));
     assert_has_violation(
         &violations,
         "worth-ui-host-egui",
@@ -83,11 +84,7 @@ fn non_dsl_audit_rejects_known_bad_dsl_internal_import_fixture() {
     let violations = audit_non_dsl_crates_do_not_reach_dsl_internals(
         &topology_negative_fixture_root("non_dsl_deep_import"),
     );
-    assert_has_violation(
-        &violations,
-        "lib.rs",
-        "reaches worth-ui-dsl internals",
-    );
+    assert_has_violation(&violations, "lib.rs", "reaches worth-ui-dsl internals");
 }
 
 #[test]
@@ -99,6 +96,13 @@ fn public_surfaces_do_not_recreate_query_owned_lanes() {
 #[test]
 fn inspection_crate_exposes_no_forbidden_public_module_names() {
     let violations = audit_inspection_public_module_names(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn inspection_crate_does_not_export_runtime_owned_evidence_surface() {
+    let violations =
+        audit_inspection_crate_does_not_export_runtime_owned_evidence_surface(workspace_root());
     assert!(violations.is_empty(), "{}", violations.join("\n"));
 }
 
@@ -140,10 +144,9 @@ fn inspection_crate_seeds_private_future_artifact_homes() {
 
 #[test]
 fn inspection_artifact_seed_audit_rejects_missing_or_public_seed_fixture() {
-    let violations =
-        audit_inspection_future_artifact_seed_topology(&topology_negative_fixture_root(
-            "inspection_missing_artifact_seed_homes",
-        ));
+    let violations = audit_inspection_future_artifact_seed_topology(
+        &topology_negative_fixture_root("inspection_missing_artifact_seed_homes"),
+    );
     assert_has_violation(
         &violations,
         "receipt/replay/mod.rs",
@@ -171,6 +174,19 @@ fn query_lane_audit_rejects_nested_public_surface_fixture() {
 #[test]
 fn consumers_route_inspection_through_the_worth_ui_facade() {
     let violations = audit_consumers_route_inspection_through_worth_ui_facade(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn evidence_families_keep_owner_local_record_homes() {
+    let violations = audit_evidence_family_storage_homes(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn public_inspection_facades_do_not_export_family_local_records() {
+    let violations =
+        audit_public_inspection_facades_do_not_export_family_local_records(workspace_root());
     assert!(violations.is_empty(), "{}", violations.join("\n"));
 }
 
@@ -227,9 +243,10 @@ fn required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_option() {
 
 #[test]
 fn lifecycle_aggregate_audit_rejects_known_bad_default_and_option_fixture() {
-    let violations = audit_required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_option(
-        &topology_negative_fixture_root("lifecycle_aggregate_cheat"),
-    );
+    let violations =
+        audit_required_runtime_lifecycle_aggregates_do_not_cheat_with_default_or_option(
+            &topology_negative_fixture_root("lifecycle_aggregate_cheat"),
+        );
     assert_has_violation(
         &violations,
         "worth_ui_runtime_bootstrap.rs",
@@ -317,14 +334,24 @@ fn facade_inspection_from_immutable_app_reference_uses_lifecycle_owned_support_p
     let app_ref = &app;
     let scope = UiInspectionScope::graph();
     let support_report = app_ref.inspection_support_report(scope);
-    let receipt = app_ref.inspect(UiInspectionQuery::new(UiInspectionTarget::product_root(), scope));
+    let receipt = app_ref.inspect(UiInspectionQuery::new(
+        UiInspectionTarget::product_root(),
+        scope,
+    ));
 
     assert_eq!(receipt.query().scope(), UiInspectionScope::Graph);
     assert_eq!(
         support_report.status(),
         UiInspectionSupportStatus::Unsupported
     );
+    assert_eq!(
+        receipt.relevance_outcome(),
+        worth_ui::facade::inspection::UiInspectionRelevanceOutcome::UnsupportedScope {
+            scope: UiInspectionScope::Graph,
+        }
+    );
     assert_eq!(receipt.support_report(), Some(support_report));
+    assert_eq!(app_ref.inspection_support_report(scope), support_report);
     assert_eq!(
         receipt.posture(),
         Some(UiInspectionPosture::deferred(

@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use worth_ui_certification::topology::{
+    audit_phase4_authored_lookup_lane_is_indexed_not_scan_first,
+    audit_phase4_authored_lookup_lane_does_not_reopen_declaration_source,
     audit_host_and_inspection_layers_do_not_import_declaration_authority,
     audit_non_owner_code_does_not_reopen_declaration_source,
 };
@@ -37,6 +39,19 @@ fn assert_has_violation(
 #[test]
 fn non_owner_code_does_not_reopen_declaration_source() {
     let violations = audit_non_owner_code_does_not_reopen_declaration_source(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn phase4_authored_lookup_lane_does_not_reopen_declaration_source() {
+    let violations =
+        audit_phase4_authored_lookup_lane_does_not_reopen_declaration_source(workspace_root());
+    assert!(violations.is_empty(), "{}", violations.join("\n"));
+}
+
+#[test]
+fn phase4_authored_lookup_lane_is_indexed_not_scan_first() {
+    let violations = audit_phase4_authored_lookup_lane_is_indexed_not_scan_first(workspace_root());
     assert!(violations.is_empty(), "{}", violations.join("\n"));
 }
 

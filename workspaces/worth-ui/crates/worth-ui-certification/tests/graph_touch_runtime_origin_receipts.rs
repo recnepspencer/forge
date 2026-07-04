@@ -15,25 +15,29 @@ fn certification_runtime_origins_require_real_owner_receipts_and_deny_unrelated_
     for (origin_class, origin) in [
         (
             UiGraphTouchOriginClass::HostObservation,
-            graph.touches()
+            graph
+                .touches()
                 .host_observation_receipt(fixture.runtime.inspect_active(), &fixture.inspection)
                 .expect("host observation should admit from active runtime observation"),
         ),
         (
             UiGraphTouchOriginClass::ServiceEvent,
-            graph.touches()
+            graph
+                .touches()
                 .service_event_receipt(&fixture.frame_receipt, &fixture.inspection)
                 .expect("service event should admit from ordinary frame receipt"),
         ),
         (
             UiGraphTouchOriginClass::IntentSubmission,
-            graph.touches()
+            graph
+                .touches()
                 .intent_submission_receipt(&fixture.intent_candidate)
                 .expect("intent submission should admit from replacement candidate"),
         ),
         (
             UiGraphTouchOriginClass::DiagnosticOnly,
-            graph.touches()
+            graph
+                .touches()
                 .diagnostic_only_report_receipt(&fixture.diagnostic_report, &fixture.inspection)
                 .expect("diagnostic-only should admit from diagnostic report and inspection"),
         ),

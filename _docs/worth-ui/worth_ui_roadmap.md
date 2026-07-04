@@ -489,17 +489,17 @@ truth already established by declarations, graph topology, and admission.
 - no renderer-local debug helper is required to explain declaration, admission,
   graph, or aspect posture
 
-### Milestone 3.6: Measurement and Allocation Kernel
+### Milestone 3.6: Measurement Semantics, Host Evidence Exchange, and Allocation Planning
 
-This slice makes runtime-owned space allocation real before shell/layout
-features broaden.
+This slice closes the planning side of measurement before continuous
+interaction, committed allocation receipts, and churn-heavy replanning broaden
+the runtime.
 
 **Must ship**
 
 - `UiMeasurementRequest`
 - `UiMeasurementResult`
 - `UiAllocationPlan`
-- `UiAllocationReceipt`
 - measurement vocabulary for:
   - `available-space`
   - `fixed`
@@ -513,15 +513,54 @@ features broaden.
   - `viewport-relative`
   - `scroll-owned`
   - `portal-anchored`
+- typed host measurement-evidence exchange for intrinsic measurement, text
+  measurement, viewport facts, and native sizing observations
+- allocation-neighborhood planning semantics for parent/child constraint flow
+  and sibling negotiation
+
+**Acceptance evidence**
+
+- host supplies measurement evidence only; it does not decide layout meaning
+- intrinsic measurement stays evidence and does not become host-owned or
+  cache-owned layout truth
+- equivalent declaration + graph + measurement evidence inputs converge to the
+  same allocation plan
+- unsupported, cyclic, or not-yet-admitted measurement modes deny through typed
+  posture instead of heuristic fallback
+
+### Milestone 3.7: Allocation Receipts, Incremental Replanning, Scroll, Portal, And Continuous Interaction Measurement
+
+This slice closes committed allocation truth and churn-heavy measurement
+behavior after planning semantics already exist.
+
+**Must ship**
+
+- `UiAllocationReceipt`
+- allocation equivalence and reuse basis
+- invalidation and affected-neighborhood replanning rules for:
+  - viewport resize
+  - local resize and splitter drag
+  - content growth
+  - scroll-owned extent changes
+  - portal-anchor changes
+- committed runtime semantics for:
+  - `viewport-relative`
+  - `scroll-owned`
+  - `portal-anchored`
+- measurement inspection evidence and allocation closeout receipts strong enough
+  for later mounting and rebind milestones
 
 **Acceptance evidence**
 
 - viewport resize enters as host observation and replans only the affected
   allocation neighborhood
-- host supplies measurement evidence only; it does not decide layout meaning
 - mosaic resize and local composition allocation use the same measurement lane
+- scroll-owned and portal-anchored measurement remain runtime-owned rather than
+  adapter-owned
+- continuous resize and drag pressure stay bounded without broad unrelated
+  replanning
 
-### Milestone 3.7: Execution-Plan Lowering, Equivalence, and Frame-Cost Surfaces
+### Milestone 3.8: Execution-Plan Lowering, Equivalence, and Frame-Cost Surfaces
 
 This slice ensures execution consumes lowered plans instead of reconstructing
 strategy from graph or declaration artifacts every frame.
@@ -545,7 +584,7 @@ strategy from graph or declaration artifacts every frame.
 - steady-state frame execution proves source parsing, artifact validation,
   registry string lookup, and broad artifact scans remain absent
 
-### Milestone 3.8: Mounted Receipts and Host Contract
+### Milestone 3.9: Mounted Receipts and Host Contract
 
 This slice closes the host boundary: host code may render and observe, but may
 not own visible UI meaning.
@@ -567,7 +606,7 @@ not own visible UI meaning.
 - host cannot receive authored declarations directly
 - host cannot decide visible/disabled/valid/layout meaning
 
-### Milestone 3.9: Visual Snapshot Receipts and Hit-Test Identity Bridge
+### Milestone 3.10: Visual Snapshot Receipts and Hit-Test Identity Bridge
 
 This slice makes screenshots, hit testing, and visible-region targeting
 identity-backed runtime evidence instead of loose image bytes.
@@ -593,7 +632,7 @@ identity-backed runtime evidence instead of loose image bytes.
   declaration, and evidence
 - screenshot support is tied to frame identity rather than loose PNG bytes
 
-### Milestone 3.10: Observation Intake and Hot Rebind Planner
+### Milestone 3.11: Observation Intake and Hot Rebind Planner
 
 This slice makes hot reload real as bounded rebind rather than renderer
 refresh.

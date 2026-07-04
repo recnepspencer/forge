@@ -1,6 +1,7 @@
-use worth_ui::facade::inspection::{UiInspectionQuery, UiInspectionScope, UiInspectionTarget};
-use worth_ui::facade::obligations::UiObligationEvidenceDecision;
-use worth_ui_runtime::facade::admission::UiAdmissionReport;
+use worth_ui::facade::inspection::{
+    UiEvidenceMaterializedDetail, UiEvidenceRef, UiEvidenceRichness,
+    UiInspectionObligationDecision, UiInspectionQuery, UiInspectionScope, UiInspectionTarget,
+};
 
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
 mod obligation_dispatch_prerequisite_support;
@@ -21,31 +22,38 @@ fn diagnostic_projection_derives_from_the_same_evidence_as_inspection() {
             touch.identity_digest(),
         ),
         UiInspectionScope::graph(),
-    ));
+    )
+    .with_richness(UiEvidenceRichness::materialized_detail()));
     let diagnostics = report.diagnostic_projection();
 
     let inspection_rows = inspection
-        .obligation_evidence()
-        .expect("obligation evidence receipt should be present")
+        .evidence_slice()
+        .and_then(|slice| slice.materialized_detail())
+        .and_then(obligation_detail)
+        .expect("obligation evidence receipt should be materialized through the evidence slice")
         .projections();
+    let inspection_refs = inspection
+        .evidence_slice()
+        .expect("inspection should expose a public evidence slice")
+        .refs();
 
     assert_parity_for_decision(
+        inspection_refs,
         inspection_rows,
         diagnostics.rows(),
-        &report,
-        UiObligationEvidenceDecision::Selected,
+        UiInspectionObligationDecision::Selected,
     );
     assert_parity_for_decision(
+        inspection_refs,
         inspection_rows,
         diagnostics.rows(),
-        &report,
-        UiObligationEvidenceDecision::NotSelected,
+        UiInspectionObligationDecision::NotSelected,
     );
     assert_parity_for_decision(
+        inspection_refs,
         inspection_rows,
         diagnostics.rows(),
-        &report,
-        UiObligationEvidenceDecision::Verdict,
+        UiInspectionObligationDecision::Verdict,
     );
 
     let denied_report = app
@@ -54,41 +62,51 @@ fn diagnostic_projection_derives_from_the_same_evidence_as_inspection() {
     let denied_inspection = denied_report.inspect(UiInspectionQuery::new(
         UiInspectionTarget::obligation_graph_node(touch.target().graph_node_identity().digest()),
         UiInspectionScope::graph(),
-    ));
+    )
+    .with_richness(UiEvidenceRichness::materialized_detail()));
     let denied_projection = denied_report.diagnostic_projection();
     assert_parity_for_decision(
         denied_inspection
-            .obligation_evidence()
-            .expect("obligation evidence receipt should be present")
+            .evidence_slice()
+            .expect("denied inspection should expose a public evidence slice")
+            .refs(),
+        denied_inspection
+            .evidence_slice()
+            .and_then(|slice| slice.materialized_detail())
+            .and_then(obligation_detail)
+            .expect("obligation evidence receipt should be materialized through the evidence slice")
             .projections(),
         denied_projection.rows(),
-        &denied_report,
-        UiObligationEvidenceDecision::Admission,
+        UiInspectionObligationDecision::Admission,
     );
 }
 
+fn obligation_detail(
+    detail: &UiEvidenceMaterializedDetail,
+) -> Option<&worth_ui::facade::inspection::UiInspectionObligationEvidenceReceipt> {
+    match detail {
+        UiEvidenceMaterializedDetail::Obligation(receipt) => Some(receipt),
+        _ => None,
+    }
+}
+
 fn assert_parity_for_decision(
+    inspection_refs: &[UiEvidenceRef],
     inspection_rows: &[worth_ui::facade::inspection::UiInspectionObligationReasonProjection],
     diagnostic_rows: &[worth_ui::facade::obligations::UiObligationDiagnosticRow],
-    report: &UiAdmissionReport,
-    decision: UiObligationEvidenceDecision,
+    decision: UiInspectionObligationDecision,
 ) {
-    let handle = report
-        .evidence_index()
-        .records()
-        .iter()
-        .find(|record| record.decision() == decision)
-        .unwrap_or_else(|| panic!("{decision:?} evidence should exist"))
-        .handle()
-        .digest();
-
     let inspection_row = inspection_rows
         .iter()
-        .find(|projection| projection.handle_digest() == handle)
+        .find(|projection| projection.decision() == decision)
         .unwrap_or_else(|| panic!("{decision:?} inspection row should exist"));
+    let inspection_ref = inspection_refs
+        .iter()
+        .find(|reference| reference.handle().handle_digest() == inspection_row.handle_digest())
+        .unwrap_or_else(|| panic!("{decision:?} public evidence ref should exist"));
     let diagnostic_row = diagnostic_rows
         .iter()
-        .find(|row| row.handle_digest() == handle)
+        .find(|row| row.handle_digest() == inspection_ref.handle().handle_digest())
         .unwrap_or_else(|| panic!("{decision:?} diagnostic row should exist"));
 
     assert_eq!(inspection_row.family(), diagnostic_row.family());

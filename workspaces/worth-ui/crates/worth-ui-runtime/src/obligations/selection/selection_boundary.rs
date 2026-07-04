@@ -3,11 +3,12 @@ use crate::declaration::{
     UiDeclarationArtifact, UiDeclarationSupportRowSchemaKind, UiDeclaredPostureApplicability,
     UiDeclaredServiceUsagePosture,
 };
+use crate::evidence::UiEvidenceAuthorityGeneration;
 use crate::graph::UiGraphSnapshot;
 use crate::obligations::catalog::{UiObligationCheckKind, UiObligationFamilyCatalog};
 use crate::obligations::inspection::{
-    UiObligationEvidenceDecision, UiObligationEvidenceHandle, UiObligationEvidenceHandleKind,
-    UiObligationEvidenceIndex, UiObligationEvidencePrerequisiteSource, UiObligationEvidenceRecord,
+    not_selected_obligation_evidence_record, selected_obligation_evidence_records,
+    UiObligationEvidenceHandle, UiObligationEvidenceIndex, UiObligationEvidenceRecord,
     UiObligationNonSelectionReason,
 };
 use crate::obligations::prerequisites::UiObligationPrerequisiteEvidenceRef;
@@ -41,7 +42,7 @@ impl<'a> UiObligationSelectionBoundary<'a> {
         touch: &UiGraphTouchDescriptor,
         support_snapshot: UiSupportSnapshot,
     ) -> UiSelectedObligationSet {
-        let (obligations, evidence_records) = match support_snapshot.posture() {
+        let (obligations, non_selected_records) = match support_snapshot.posture() {
             UiSupportPosture::WrongWorld { .. } => (Vec::new(), Vec::new()),
             UiSupportPosture::Supported { .. }
             | UiSupportPosture::Unsupported { .. }
@@ -51,12 +52,17 @@ impl<'a> UiObligationSelectionBoundary<'a> {
             }
         };
 
-        UiSelectedObligationSet::new(
+        let selected = UiSelectedObligationSet::new(
+            UiEvidenceAuthorityGeneration::new(self.graph_snapshot.generation().as_u64()),
             touch.clone(),
             support_snapshot,
             obligations.into_boxed_slice(),
-            UiObligationEvidenceIndex::new(evidence_records.into_boxed_slice()),
-        )
+            UiObligationEvidenceIndex::empty(),
+        );
+        let evidence_index = UiObligationEvidenceIndex::new(non_selected_records.into_boxed_slice())
+            .with_appended(selected_obligation_evidence_records(&selected));
+
+        selected.with_evidence_index(evidence_index)
     }
 
     fn select_supported_matrix(
@@ -64,6 +70,8 @@ impl<'a> UiObligationSelectionBoundary<'a> {
         touch: &UiGraphTouchDescriptor,
         support_snapshot: &UiSupportSnapshot,
     ) -> (Vec<UiSelectedObligation>, Vec<UiObligationEvidenceRecord>) {
+        let selection_authority_digest =
+            UiSelectedObligationSet::identity_digest_for(touch, support_snapshot);
         let node_record = self
             .graph_snapshot
             .lookup()
@@ -83,44 +91,31 @@ impl<'a> UiObligationSelectionBoundary<'a> {
                 node_record.as_ref(),
                 support_snapshot.posture(),
             );
-            let graph_node_digest = touch.target().graph_node_identity().digest();
             let base_reasons = row
                 .selection_reasons(touch, row_support_posture)
                 .into_boxed_slice();
             if !row.matches(touch, node_record.as_ref(), row_support_posture) {
-                evidence_records.push(UiObligationEvidenceRecord::new(
-                    UiObligationEvidenceHandle::new(
-                        UiObligationEvidenceHandleKind::NotSelected,
-                        touch.identity_digest() ^ (ordinal as u64).rotate_left(17),
-                    ),
-                    graph_node_digest,
-                    Some(touch.identity_digest()),
-                    Some(row.family()),
-                    UiObligationEvidenceDecision::NotSelected,
-                    None,
+                evidence_records.push(not_selected_obligation_evidence_record(
+                    touch,
+                    selection_authority_digest,
+                    ordinal,
+                    row.family(),
                     base_reasons,
-                    prerequisite_sources(row.support_basis(), target),
-                    Some(UiObligationNonSelectionReason::RuleDidNotMatch),
-                    None,
+                    &prerequisite_evidence_refs(row.support_basis(), target),
+                    UiObligationNonSelectionReason::RuleDidNotMatch,
                 ));
                 continue;
             }
 
             let Some(family) = self.family_for_row(row, node_record.as_ref()) else {
-                evidence_records.push(UiObligationEvidenceRecord::new(
-                    UiObligationEvidenceHandle::new(
-                        UiObligationEvidenceHandleKind::NotSelected,
-                        touch.identity_digest() ^ (ordinal as u64).rotate_left(23),
-                    ),
-                    graph_node_digest,
-                    Some(touch.identity_digest()),
-                    Some(row.family()),
-                    UiObligationEvidenceDecision::NotSelected,
-                    None,
+                evidence_records.push(not_selected_obligation_evidence_record(
+                    touch,
+                    selection_authority_digest,
+                    ordinal,
+                    row.family(),
                     base_reasons,
-                    prerequisite_sources(row.support_basis(), target),
-                    Some(UiObligationNonSelectionReason::FamilyUnavailable),
-                    None,
+                    &prerequisite_evidence_refs(row.support_basis(), target),
+                    UiObligationNonSelectionReason::FamilyUnavailable,
                 ));
                 continue;
             };
@@ -131,25 +126,13 @@ impl<'a> UiObligationSelectionBoundary<'a> {
                 | UiObligationSupportSelectionPosture::Deferred
                 | UiObligationSupportSelectionPosture::DiagnosticOnly => {
                     let evidence_handle = UiObligationEvidenceHandle::new(
-                        UiObligationEvidenceHandleKind::Selected,
+                        crate::obligations::inspection::UiObligationEvidenceHandleKind::Selected,
                         touch.identity_digest()
                             ^ (family as u64).rotate_left(11)
                             ^ (ordinal as u64).rotate_left(29),
                     );
                     let prerequisite_evidence_refs =
                         prerequisite_evidence_refs(row.support_basis(), target);
-                    evidence_records.push(UiObligationEvidenceRecord::new(
-                        evidence_handle,
-                        graph_node_digest,
-                        Some(touch.identity_digest()),
-                        Some(family),
-                        UiObligationEvidenceDecision::Selected,
-                        None,
-                        base_reasons.clone(),
-                        prerequisite_sources(row.support_basis(), target),
-                        None,
-                        None,
-                    ));
                     obligations.push(self.obligation(
                         touch,
                         family,
@@ -162,20 +145,14 @@ impl<'a> UiObligationSelectionBoundary<'a> {
                     ));
                 }
                 UiObligationSupportSelectionPosture::WrongWorld => {
-                    evidence_records.push(UiObligationEvidenceRecord::new(
-                        UiObligationEvidenceHandle::new(
-                            UiObligationEvidenceHandleKind::NotSelected,
-                            touch.identity_digest() ^ (ordinal as u64).rotate_left(31),
-                        ),
-                        graph_node_digest,
-                        Some(touch.identity_digest()),
-                        Some(family),
-                        UiObligationEvidenceDecision::NotSelected,
-                        None,
+                    evidence_records.push(not_selected_obligation_evidence_record(
+                        touch,
+                        selection_authority_digest,
+                        ordinal,
+                        family,
                         base_reasons,
-                        prerequisite_sources(row.support_basis(), target),
-                        Some(UiObligationNonSelectionReason::WrongWorld),
-                        None,
+                        &prerequisite_evidence_refs(row.support_basis(), target),
+                        UiObligationNonSelectionReason::WrongWorld,
                     ));
                 }
             }
@@ -342,35 +319,4 @@ fn prerequisite_evidence_refs(
         }
     }
     refs.into_boxed_slice()
-}
-
-fn prerequisite_sources(
-    support_basis: UiObligationSupportBasis,
-    target: &crate::admission::UiAdmissionTarget,
-) -> Box<[UiObligationEvidencePrerequisiteSource]> {
-    let mut sources = Vec::new();
-    if matches!(support_basis, UiObligationSupportBasis::QueryBinding) {
-        if let Some(query_prerequisites) = target.query_prerequisites() {
-            sources.push(UiObligationEvidencePrerequisiteSource::QueryBasis);
-            sources.push(UiObligationEvidencePrerequisiteSource::QueryProjectionConsumption);
-            if query_prerequisites.inspection_lane()
-                == worth_ui_query_binding::WorthUiQueryInspectionLane::WorkspaceInspect
-            {
-                sources.push(UiObligationEvidencePrerequisiteSource::QueryInspection);
-            }
-            if query_prerequisites.causal_explanation_lane()
-                == worth_ui_query_binding::WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection
-            {
-                sources.push(UiObligationEvidencePrerequisiteSource::QueryCausalExplanation);
-            }
-        }
-    }
-    if matches!(
-        support_basis,
-        UiObligationSupportBasis::HostCapability | UiObligationSupportBasis::ServiceUsage
-    ) && target.host_capability_report().is_some()
-    {
-        sources.push(UiObligationEvidencePrerequisiteSource::HostCapability);
-    }
-    sources.into_boxed_slice()
 }

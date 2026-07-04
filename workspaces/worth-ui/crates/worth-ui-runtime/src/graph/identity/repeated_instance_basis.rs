@@ -109,20 +109,26 @@ impl UiRepeatedInstanceBasis {
         match self {
             Self::DeclarationKeyed {
                 declaration_identity_digest,
-            } => stable_text_digest("graph-basis:declaration")
-                ^ declaration_identity_digest.raw().rotate_left(17),
-            Self::RuntimeDataKeyed { runtime_data_key } => stable_text_digest("graph-basis:runtime")
-                ^ stable_text_digest(runtime_data_key.as_str()).rotate_left(31),
-            Self::Denied { denial } => stable_text_digest("graph-basis:denied")
-                ^ stable_text_digest(match denial {
-                    UiRepeatedInstanceBasisDenial::MissingBasis => "missing-basis",
-                    UiRepeatedInstanceBasisDenial::BasisFreeRuntimeIdentityDenied => {
-                        "basis-free-runtime-identity-denied"
-                    }
-                    UiRepeatedInstanceBasisDenial::PositionBasedBasis => "position-based-basis",
-                    UiRepeatedInstanceBasisDenial::ContradictoryBasis => "contradictory-basis",
-                })
-                .rotate_left(37),
+            } => {
+                stable_text_digest("graph-basis:declaration")
+                    ^ declaration_identity_digest.raw().rotate_left(17)
+            }
+            Self::RuntimeDataKeyed { runtime_data_key } => {
+                stable_text_digest("graph-basis:runtime")
+                    ^ stable_text_digest(runtime_data_key.as_str()).rotate_left(31)
+            }
+            Self::Denied { denial } => {
+                stable_text_digest("graph-basis:denied")
+                    ^ stable_text_digest(match denial {
+                        UiRepeatedInstanceBasisDenial::MissingBasis => "missing-basis",
+                        UiRepeatedInstanceBasisDenial::BasisFreeRuntimeIdentityDenied => {
+                            "basis-free-runtime-identity-denied"
+                        }
+                        UiRepeatedInstanceBasisDenial::PositionBasedBasis => "position-based-basis",
+                        UiRepeatedInstanceBasisDenial::ContradictoryBasis => "contradictory-basis",
+                    })
+                    .rotate_left(37)
+            }
             Self::Unavailable => stable_text_digest("graph-basis:unavailable"),
         }
     }

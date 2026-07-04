@@ -5,8 +5,11 @@ mod declaration_public_surface_audit;
 mod declaration_residue_audit;
 mod dependency_audit;
 mod graph_mutation_boundary_audit;
+mod graph_residue_audit;
 mod inspection_boundary_audit;
 mod inspection_boundary_certification;
+mod inspection_evidence_topology_audit;
+mod inspection_growth_posture_audit;
 mod inspection_topology_audit;
 mod legacy_surface_residue;
 mod lifecycle_propagation;
@@ -26,6 +29,8 @@ pub use declaration_public_surface_audit::{
     audit_runtime_declaration_surface_routes_through_curated_submodule,
 };
 pub use declaration_residue_audit::{
+    audit_phase4_authored_lookup_lane_is_indexed_not_scan_first,
+    audit_phase4_authored_lookup_lane_does_not_reopen_declaration_source,
     audit_host_and_inspection_layers_do_not_import_declaration_authority,
     audit_non_owner_code_does_not_reopen_declaration_source,
 };
@@ -34,8 +39,22 @@ pub use dependency_audit::{
     audit_non_product_crates_route_declaration_through_worth_ui_facade,
 };
 pub use graph_mutation_boundary_audit::audit_graph_mutation_boundary_owns_snapshot_and_index_commit;
+pub use graph_residue_audit::{
+    audit_phase5_graph_lookup_lane_does_not_reopen_declaration_source,
+    audit_phase5_graph_lookup_lane_is_indexed_not_scan_first,
+    audit_phase6_aspect_lookup_lane_does_not_reopen_declaration_source,
+    audit_phase6_aspect_lookup_lane_is_indexed_not_scan_first,
+};
 pub use inspection_boundary_audit::audit_consumers_route_inspection_through_worth_ui_facade;
 pub use inspection_boundary_certification::certify_consumers_route_inspection_through_worth_ui_facade;
+pub use inspection_evidence_topology_audit::{
+    audit_evidence_family_storage_homes,
+    audit_inspection_crate_does_not_export_runtime_owned_evidence_surface,
+    audit_public_inspection_facades_do_not_export_family_local_records,
+};
+pub use inspection_growth_posture_audit::{
+    audit_dummy_future_family_extension_home, audit_inspection_materialized_detail_growth_posture,
+};
 pub use inspection_topology_audit::{
     audit_inspection_future_artifact_seed_topology, audit_inspection_public_module_names,
     audit_inspection_public_module_role_purity,

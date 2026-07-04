@@ -43,6 +43,7 @@ impl WorthUiDslPackage {
     ) -> Self {
         let receipt = self.admit_semantic_artifact(semantic_spec);
         self.admitted_declarations.push(receipt);
+        rebuild_source_artifact_generations(&mut self.admitted_declarations);
         self
     }
 
@@ -52,10 +53,16 @@ impl WorthUiDslPackage {
     ) -> UiDslLoweringReceipt {
         let semantic_artifact = semantic_spec.into_artifact();
         let semantic_input_digest = semantic_input_digest(&semantic_artifact);
+        let source_artifact_generation = package_source_artifact_generation(
+            &self.admitted_declarations,
+            semantic_artifact.provenance(),
+            semantic_input_digest,
+        );
 
         UiDslLoweringReceipt::new(
             semantic_artifact.clone(),
             semantic_input_digest,
+            source_artifact_generation,
             semantic_artifact.provenance().clone(),
         )
     }
@@ -73,12 +80,81 @@ fn runtime_bootstrap_receipt() -> UiDslLoweringReceipt {
     .with_support_token(UiDslSupportToken::new("support:runtime-bootstrap"))
     .into_artifact();
     let semantic_input_digest = semantic_input_digest(&semantic_artifact);
+    let source_artifact_generation = source_artifact_generation(
+        semantic_artifact.provenance(),
+        [semantic_input_digest],
+    );
 
     UiDslLoweringReceipt::new(
         semantic_artifact.clone(),
         semantic_input_digest,
+        source_artifact_generation,
         semantic_artifact.provenance().clone(),
     )
+}
+
+fn rebuild_source_artifact_generations(receipts: &mut [UiDslLoweringReceipt]) {
+    let generations = receipts
+        .iter()
+        .map(|receipt| {
+            (
+                source_artifact_key(receipt.source_provenance()),
+                receipt.semantic_input_digest(),
+            )
+        })
+        .fold(std::collections::BTreeMap::new(), |mut groups, (key, digest)| {
+            groups.entry(key).or_insert_with(Vec::new).push(digest);
+            groups
+        });
+
+    for receipt in receipts {
+        let key = source_artifact_key(receipt.source_provenance());
+        let digests = generations
+            .get(&key)
+            .expect("grouped source generation should exist for every lowering receipt");
+        *receipt = UiDslLoweringReceipt::new(
+            receipt.semantic_artifact().clone(),
+            receipt.semantic_input_digest(),
+            source_artifact_generation(receipt.source_provenance(), digests.iter().copied()),
+            receipt.source_provenance().clone(),
+        );
+    }
+}
+
+fn package_source_artifact_generation(
+    admitted_declarations: &[UiDslLoweringReceipt],
+    provenance: &UiDslSourceProvenance,
+    incoming_semantic_input_digest: u64,
+) -> u64 {
+    let artifact_key = source_artifact_key(provenance);
+    let semantic_input_digests = admitted_declarations
+        .iter()
+        .filter(|receipt| source_artifact_key(receipt.source_provenance()) == artifact_key)
+        .map(UiDslLoweringReceipt::semantic_input_digest)
+        .chain(std::iter::once(incoming_semantic_input_digest));
+
+    source_artifact_generation(provenance, semantic_input_digests)
+}
+
+fn source_artifact_generation(
+    provenance: &UiDslSourceProvenance,
+    semantic_input_digests: impl IntoIterator<Item = u64>,
+) -> u64 {
+    semantic_input_digests.into_iter().fold(
+        stable_text_digest(source_artifact_key(provenance).as_str()),
+        |digest, semantic_input_digest| digest.rotate_left(9) ^ semantic_input_digest,
+    )
+}
+
+fn source_artifact_key(provenance: &UiDslSourceProvenance) -> String {
+    match provenance {
+        UiDslSourceProvenance::FileAuthored { module_path, .. } => {
+            format!("file:{module_path}")
+        }
+        UiDslSourceProvenance::RustAuthored { module_path, .. } => {
+            format!("rust:{module_path}")
+        }
+    }
 }
 
 fn semantic_input_digest(semantic_artifact: &UiDslSemanticArtifact) -> u64 {
@@ -139,5 +215,52 @@ impl DslDigestText for UiDslPostureToken {
 impl DslDigestText for UiDslSupportToken {
     fn digest_text(&self) -> &str {
         self.as_str()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::WorthUiDslPackage;
+    use crate::{
+        UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
+        UiDslStructuralToken,
+    };
+
+    #[test]
+    fn admitted_semantic_artifact_uses_package_authoritative_source_generation() {
+        let package = WorthUiDslPackage::named("worth-ui.dsl.package.authoritative-generation")
+            .with_semantic_artifact_spec(spec("ui.workflow.editor", "control:workflow", 0));
+        let admitted = package.admit_semantic_artifact(spec(
+            "ui.workflow.sidebar",
+            "control:sidebar",
+            1,
+        ));
+        let authoritative = package
+            .clone()
+            .with_semantic_artifact_spec(spec(
+                "ui.workflow.sidebar",
+                "control:sidebar",
+                1,
+            ))
+            .admitted_declarations()[1]
+            .clone();
+
+        assert_eq!(
+            admitted.source_artifact_generation(),
+            authoritative.source_artifact_generation()
+        );
+    }
+
+    fn spec(
+        semantic_key: &str,
+        structural_token: &str,
+        declaration_index: usize,
+    ) -> UiDslSemanticArtifactSpec {
+        UiDslSemanticArtifactSpec::new(
+            UiDslSemanticKey::new(semantic_key),
+            UiDslSemanticFamily::Control,
+            UiDslSourceProvenance::file_authored("app/source_package.wui", declaration_index),
+        )
+        .with_structural_token(UiDslStructuralToken::new(structural_token))
     }
 }

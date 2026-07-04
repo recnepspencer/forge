@@ -1,17 +1,31 @@
-error[E0451]: fields `plan_index`, `identity_basis`, `input_family`, `source`, `capability_reference` and `query_links` of struct `WorthUiArtifactToPlanProvenance` are private
-  --> tests/ui/runtime_authority/fail/artifact_to_plan_provenance_fields_not_public.rs:9:9
+error: cannot construct `WorthUiArtifactToPlanProvenance` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authority/fail/artifact_to_plan_provenance_fields_not_public.rs:8:23
    |
  8 |     let _provenance = WorthUiArtifactToPlanProvenance {
-   |                       ------------------------------- in this type
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  9 |         plan_index: 0,
-   |         ^^^^^^^^^^ private field
+   |         ------------- private field
 10 |         identity_basis: String::new(),
-   |         ^^^^^^^^^^^^^^ private field
+   |         ----------------------------- private field
 11 |         input_family: uninhabited(),
-   |         ^^^^^^^^^^^^ private field
+   |         --------------------------- private field
 12 |         source: uninhabited(),
-   |         ^^^^^^ private field
+   |         --------------------- private field
 13 |         capability_reference: None,
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------- private field
 14 |         query_links: None,
-   |         ^^^^^^^^^^^ private field
+   |         ----------------- private field
+   |
+   = note: ...and other private field `authored_provenance_digest` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+ 8 -     let _provenance = WorthUiArtifactToPlanProvenance {
+ 9 -         plan_index: 0,
+10 -         identity_basis: String::new(),
+11 -         input_family: uninhabited(),
+12 -         source: uninhabited(),
+13 -         capability_reference: None,
+14 -         query_links: None,
+15 -     };
+ 8 +     let _provenance = WorthUiArtifactToPlanProvenance::new(_, _, _, _, _, _, _);
+   |

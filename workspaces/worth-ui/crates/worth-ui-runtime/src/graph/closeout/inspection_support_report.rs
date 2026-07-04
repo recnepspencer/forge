@@ -1,4 +1,6 @@
-use crate::graph::{UiGraphEvidenceRefKind, UiGraphInspectionTargetKind, UiGraphInspectionStopPoint};
+use crate::graph::{
+    UiGraphEvidenceRefKind, UiGraphInspectionStopPoint, UiGraphInspectionTargetKind,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiGraphInspectionSupportReport {
