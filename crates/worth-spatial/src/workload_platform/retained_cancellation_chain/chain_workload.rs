@@ -1,5 +1,5 @@
 use super::{
-    chain_checkpoint::{RetainedCancellationCheckpoint, RetainedCancellationCheckpointTrigger},
+    chain_checkpoint::RetainedCancellationCheckpoint,
     chain_counters::{RetainedCancellationChainCounterInput, RetainedCancellationChainCounters},
     chain_digest::retained_cancellation_chain_digest,
     chain_evidence_guard,
@@ -9,31 +9,22 @@ use super::{
         RetainedCancellationChainTransformPosture,
     },
     chain_receipt::RetainedCancellationChainReceipt,
+    chain_sampling::RetainedReplaySampling,
+    chain_stop_trigger::stop_trigger_error,
+};
+use crate::spatial_compiled_product_family::{
+    current_spatial_compiled_product_family_catalog, select_spatial_compiled_product_family,
+};
+use crate::workload_platform::compiled_product_admission::{
+    admit_spatial_compiled_product_input, SpatialCompiledProductAdmissionRequest,
 };
 use crate::workload_platform::evidence_ledger::{
     CompleteWorkloadEvidenceLedger, WorkloadEvidenceStage,
 };
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct RetainedReplaySampling {
-    checkpoint_stride: usize,
-}
-
-impl RetainedReplaySampling {
-    pub fn every_fourth_checkpoint_plus_trigger_steps() -> Self {
-        Self {
-            checkpoint_stride: 4,
-        }
-    }
-
-    pub fn checkpoint_stride(self) -> usize {
-        self.checkpoint_stride
-    }
-}
+use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 pub struct RetainedCancellationChainWorkload<'a> {
     evidence_ledger: &'a CompleteWorkloadEvidenceLedger,
-    declaration: String,
     required_checkpoints: usize,
     replay_sampling: RetainedReplaySampling,
     checkpoints: Vec<RetainedCancellationCheckpoint>,
@@ -47,7 +38,6 @@ impl<'a> RetainedCancellationChainWorkload<'a> {
     pub fn from_platform_evidence(evidence_ledger: &'a CompleteWorkloadEvidenceLedger) -> Self {
         Self {
             evidence_ledger,
-            declaration: "retained cancellation chain workload".to_string(),
             required_checkpoints: 32,
             replay_sampling: RetainedReplaySampling::every_fourth_checkpoint_plus_trigger_steps(),
             checkpoints: Vec::new(),
@@ -58,8 +48,7 @@ impl<'a> RetainedCancellationChainWorkload<'a> {
         }
     }
 
-    pub fn declared(mut self, declaration: impl Into<String>) -> Self {
-        self.declaration = declaration.into();
+    pub fn declared(self, _declaration: impl Into<String>) -> Self {
         self
     }
 
@@ -128,21 +117,74 @@ impl<'a> RetainedCancellationChainWorkload<'a> {
         let counters = self.counters()?;
         let workload_identity = self.workload_identity()?;
         let projection_consumed_identity = self.projection_consumed_identity()?;
+        let provisional_receipt = RetainedCancellationChainReceipt::new(
+            String::new(),
+            String::new(),
+            String::new(),
+            String::new(),
+            workload_identity.clone(),
+            retained_basis_identity.clone(),
+            projection_consumed_identity.clone(),
+            self.checkpoints.clone(),
+            counters,
+        );
+        let catalog = current_spatial_compiled_product_family_catalog();
+        let lowered_identity = select_spatial_compiled_product_family(
+            &catalog,
+            admit_spatial_compiled_product_input(
+                &catalog,
+                SpatialCompiledProductAdmissionRequest::for_retained_cancellation(
+                    &provisional_receipt,
+                ),
+            )
+            .map(|admitted| admitted.family_admitted_input())
+            .map_err(|error| {
+                RetainedCancellationChainError::CompiledProductFamilyLowering {
+                    detail: format!("retained cancellation admission failed: {:?}", error.kind()),
+                }
+            })?,
+        )
+        .map_err(
+            |error| RetainedCancellationChainError::CompiledProductFamilyLowering {
+                detail: format!("retained cancellation selection failed: {:?}", error.kind()),
+            },
+        )?
+        .compile_product_identity()
+        .map_err(|error| {
+            RetainedCancellationChainError::CompiledProductFamilyLowering {
+                detail: format!("retained cancellation lowering failed: {:?}", error.kind()),
+            }
+        })?;
         let chain_digest = retained_cancellation_chain_digest(
+            lowered_identity
+                .compiled_product_identity()
+                .identity_digest(),
+            lowered_identity
+                .equivalence_policy_identity()
+                .identity_digest(),
             &workload_identity,
             &retained_basis_identity,
             &projection_consumed_identity,
             &self.checkpoints,
-            counters,
+            provisional_receipt.counters(),
         );
 
         Ok(RetainedCancellationChainReceipt::new(
             chain_digest,
+            lowered_identity.family_digest().to_string(),
+            lowered_identity
+                .compiled_product_identity()
+                .identity_digest()
+                .to_string(),
+            lowered_identity
+                .equivalence_policy_identity()
+                .identity_digest()
+                .to_string(),
             workload_identity,
             retained_basis_identity,
             projection_consumed_identity,
             self.checkpoints,
-            counters,
+            provisional_receipt.counters(),
         ))
     }
 
@@ -323,14 +365,32 @@ impl<'a> RetainedCancellationChainWorkload<'a> {
     }
 
     fn workload_identity(&self) -> Result<String, RetainedCancellationChainError> {
-        Ok(format!(
-            "retained-cancellation-chain:{}:{}",
-            self.declaration,
+        let stage_identities = [
+            WorkloadEvidenceStage::Topology,
+            WorkloadEvidenceStage::GeometryBinding,
+            WorkloadEvidenceStage::SurfaceSupport,
+            WorkloadEvidenceStage::Projection,
+            WorkloadEvidenceStage::Transform,
+            WorkloadEvidenceStage::RetainedReplay,
+            WorkloadEvidenceStage::Diagnostics,
+            WorkloadEvidenceStage::Response,
+        ]
+        .into_iter()
+        .map(|stage| {
             self.evidence_ledger
-                .evidence_for_stage(WorkloadEvidenceStage::RetainedReplay)
+                .row_for_stage(stage)
+                .map(|row| format!("{}:{}", stage.human_name(), row.evidence_identity()))
                 .ok_or(RetainedCancellationChainError::MissingReceiptBackedStage(
-                    WorkloadEvidenceStage::RetainedReplay
-                ))?
+                    stage,
+                ))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+        Ok(truth_digest_parts(
+            TruthDigestScope::ArtifactIdentity,
+            &[
+                "worth-spatial:retained-cancellation-workload-authority:v1".to_string(),
+                stage_identities.join("|"),
+            ],
         ))
     }
 
@@ -346,31 +406,5 @@ impl<'a> RetainedCancellationChainWorkload<'a> {
             .first()
             .map(|checkpoint| checkpoint.projection_consumed_identity().to_string())
             .ok_or(RetainedCancellationChainError::MissingCheckpointHistory)
-    }
-}
-
-fn stop_trigger_error(
-    step_index: usize,
-    trigger: RetainedCancellationCheckpointTrigger,
-) -> RetainedCancellationChainError {
-    match trigger {
-        RetainedCancellationCheckpointTrigger::NearGrazePolicyRequired => {
-            RetainedCancellationChainError::PolicyRequired {
-                step_index,
-                trigger,
-            }
-        }
-        RetainedCancellationCheckpointTrigger::PredicateUncertain => {
-            RetainedCancellationChainError::PredicateUncertain { step_index }
-        }
-        RetainedCancellationCheckpointTrigger::RetainedReplayMismatch => {
-            RetainedCancellationChainError::RetainedReplayMismatch { step_index }
-        }
-        RetainedCancellationCheckpointTrigger::TransformInvalidation => {
-            RetainedCancellationChainError::TransformInvalidation { step_index }
-        }
-        RetainedCancellationCheckpointTrigger::ProjectionConsumedFactMismatch => {
-            RetainedCancellationChainError::ProjectionConsumedFactMismatch { step_index }
-        }
     }
 }

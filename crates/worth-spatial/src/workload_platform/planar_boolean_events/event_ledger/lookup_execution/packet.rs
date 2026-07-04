@@ -1,5 +1,7 @@
 use crate::workload_platform::evidence_ledger::{
-    CompleteWorkloadEvidenceLedger, SpatialGeometryEvidenceTouchRequest,
+    CompleteWorkloadEvidenceLedger, SelectedLookupSliceLedger, SelectedLookupSliceLedgerAssembly,
+    SpatialGeometryEvidenceTouchAuthority, SpatialGeometryEvidenceTouchRequest,
+    WorkloadEvidenceStage,
 };
 use crate::workload_platform::evidence_lookup_execution::{
     execute_evidence_lookup, EvidenceLookupExecutionReceipt, EvidenceLookupExecutionRequest,
@@ -8,7 +10,7 @@ use crate::workload_platform::evidence_lookup_family_catalog::{
     current_evidence_lookup_family_catalog, EvidenceLookupDiagnosticWitnessShape,
     EvidenceLookupStageReceiptFamilyIdentity,
 };
-use crate::workload_platform::evidence_lookup_index_product::admit_evidence_lookup_index_product;
+use crate::workload_platform::evidence_lookup_index_product::EvidenceLookupIndexProduct;
 use crate::workload_platform::evidence_lookup_input_admission::{
     admit_evidence_lookup_input, EvidenceLookupInputAdmissionRequest,
     EvidenceLookupStageReceiptAdmission,
@@ -16,6 +18,7 @@ use crate::workload_platform::evidence_lookup_input_admission::{
 use crate::workload_platform::evidence_lookup_plan_selection::{
     select_evidence_lookup_plan, EvidenceLookupPlanRowOutcome, EvidenceLookupSelectedPlan,
 };
+use crate::workload_platform::spatial_compiled_product_consumer_cutover::lower_evidence_lookup_index_product;
 
 use super::denial::{
     PlanarBooleanEventLedgerLookupExecutionDenial,
@@ -31,6 +34,8 @@ pub struct PlanarBooleanEventLedgerLookupExecutionPacket {
     selected_family_declaration_digest: String,
     selected_family_diagnostic_witness_shape: EvidenceLookupDiagnosticWitnessShape,
     selected_plan: EvidenceLookupSelectedPlan,
+    selected_lookup_slice: SelectedLookupSliceLedger,
+    index_product: EvidenceLookupIndexProduct,
     execution_receipt: EvidenceLookupExecutionReceipt,
 }
 
@@ -59,6 +64,18 @@ impl PlanarBooleanEventLedgerLookupExecutionPacket {
             &spatial_touch_authority,
             EvidenceLookupStageReceiptFamilyIdentity::boolean_event_ledger(),
         );
+        let selected_lookup_slice = SelectedLookupSliceLedgerAssembly::from_touch_authority(
+            &spatial_touch_authority,
+            &stage_receipt,
+        )
+        .assemble_selected_lookup_slice()
+        .map_err(|error| {
+            PlanarBooleanEventLedgerLookupExecutionDenial::new(
+                PlanarBooleanEventLedgerLookupExecutionDenialKind::IndexProduct,
+                error.human_reason(),
+            )
+        })?;
+        deny_unrelated_boolean_residue(event_ledger, evidence_ledger, &spatial_touch_authority)?;
         let admitted_input = admit_evidence_lookup_input(
             &catalog,
             EvidenceLookupInputAdmissionRequest::from_spatial_touch_authority(
@@ -97,13 +114,15 @@ impl PlanarBooleanEventLedgerLookupExecutionPacket {
                     "event-ledger lookup packet requires the selected family declaration to remain present in the catalog",
                 )
             })?;
-        let index_product = admit_evidence_lookup_index_product(&selected_plan, evidence_ledger)
-            .map_err(|error| {
-                PlanarBooleanEventLedgerLookupExecutionDenial::new(
-                    PlanarBooleanEventLedgerLookupExecutionDenialKind::IndexProduct,
-                    error.detail(),
-                )
-            })?;
+        let index_product =
+            lower_evidence_lookup_index_product(&selected_plan, &selected_lookup_slice).map_err(
+                |error| {
+                    PlanarBooleanEventLedgerLookupExecutionDenial::new(
+                        PlanarBooleanEventLedgerLookupExecutionDenialKind::IndexProduct,
+                        error.detail(),
+                    )
+                },
+            )?;
         let execution_receipt = execute_evidence_lookup(&EvidenceLookupExecutionRequest::new(
             &selected_plan,
             &index_product,
@@ -126,6 +145,8 @@ impl PlanarBooleanEventLedgerLookupExecutionPacket {
             selected_family_declaration_digest: selected_family.declaration_digest().to_string(),
             selected_family_diagnostic_witness_shape: selected_family.diagnostic_witness().clone(),
             selected_plan,
+            selected_lookup_slice,
+            index_product,
             execution_receipt,
         })
     }
@@ -152,7 +173,51 @@ impl PlanarBooleanEventLedgerLookupExecutionPacket {
         &self.selected_plan
     }
 
+    pub const fn selected_lookup_slice(&self) -> &SelectedLookupSliceLedger {
+        &self.selected_lookup_slice
+    }
+
+    pub const fn index_product(&self) -> &EvidenceLookupIndexProduct {
+        &self.index_product
+    }
+
     pub const fn execution_receipt(&self) -> &EvidenceLookupExecutionReceipt {
         &self.execution_receipt
     }
+}
+
+fn deny_unrelated_boolean_residue(
+    event_ledger: &PlanarBooleanEventLedgerReceipt,
+    evidence_ledger: &CompleteWorkloadEvidenceLedger,
+    spatial_touch_authority: &SpatialGeometryEvidenceTouchAuthority,
+) -> Result<(), PlanarBooleanEventLedgerLookupExecutionDenial> {
+    if let Some(unrelated_row) = evidence_ledger.rows().iter().find(|row| {
+        if !row.stage().is_boolean_stage() {
+            return false;
+        }
+
+        if row.stage() == spatial_touch_authority.evidence_stage()
+            && row.evidence_identity() == spatial_touch_authority.evidence_identity()
+        {
+            return false;
+        }
+
+        if row.stage() == WorkloadEvidenceStage::BooleanSegmentPairEnumeration
+            && row.evidence_identity() == event_ledger.segment_pair_enumeration_identity()
+        {
+            return false;
+        }
+
+        true
+    }) {
+        return Err(PlanarBooleanEventLedgerLookupExecutionDenial::new(
+            PlanarBooleanEventLedgerLookupExecutionDenialKind::BroadBooleanResidue,
+            format!(
+                "ordinary event-ledger lookup cannot admit unrelated {} before family selection",
+                unrelated_row.stage().human_name()
+            ),
+        ));
+    }
+
+    Ok(())
 }

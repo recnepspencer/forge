@@ -13,7 +13,10 @@ fn replay_undo_boundary_admission_row_is_migrated() {
         .expect("replay/undo boundary row");
     assert_eq!(row.category(), ReplayUndoInventoryCategory::UndoScope);
     assert_eq!(row.disposition(), ReplayUndoInventoryDisposition::Migrate);
-    assert_eq!(row.source_kind(), ReplayUndoDeclaredSourceKind::PublicFunction);
+    assert_eq!(
+        row.source_kind(),
+        ReplayUndoDeclaredSourceKind::PublicFunction
+    );
     assert!(row
         .source_path()
         .ends_with("replay_undo_boundary/boolean_split_boundary_admission.rs"));

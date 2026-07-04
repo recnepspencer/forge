@@ -26,7 +26,7 @@ error: cannot construct `EvidenceLookupMilestoneTwelveSeed` with struct literal 
 20 |         replay_readiness_posture: fake(),
    |         -------------------------------- private field
    |
-   = note: ...and other private fields `family_stage_row_count`, `receipt_proof_row_count`, `non_ordinary_residue_row_count`, `query_imported_family_count` and `topology_required_family_count` that were not provided
+   = note: ...and other private fields that were not provided
 help: you might have meant to use an associated function to build this type
    |
  9 -     requires_seed(EvidenceLookupMilestoneTwelveSeed {
@@ -57,5 +57,5 @@ help: you might have meant to use an associated function to build this type
 19 -         family_coverage_digest: String::new(),
 20 -         replay_readiness_posture: fake(),
 21 -     });
- 9 +     requires_seed(EvidenceLookupMilestoneTwelveSeed::new_public_closeout(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _));
+ 9 +     requires_seed(EvidenceLookupMilestoneTwelveSeed::new_public_closeout(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _));
    |

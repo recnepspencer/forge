@@ -53,4 +53,11 @@ impl EvidenceLookupIndexLifecyclePosture {
             EvidenceLookupIndexLifecyclePostureKind::PersistentCapabilityRequired
         )
     }
+
+    pub const fn claims_equivalent_reuse(&self) -> bool {
+        matches!(
+            self.kind,
+            EvidenceLookupIndexLifecyclePostureKind::EquivalentReuse
+        )
+    }
 }

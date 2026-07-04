@@ -5,11 +5,11 @@ mod validator_family_identity;
 pub(super) use identity_digest::legality_family_identity_digest;
 pub use identity_digest::WorthTopologyLegalityFamilyIdentityDigest;
 pub use invariant_family_identity::WorthTopologyInvariantFamilyIdentity;
-pub use validator_family_identity::WorthTopologyValidatorFamilyIdentity;
 use schema::facade::platform::authority::touched_graph_conflict::{
     admit_conflict_overlap_identity, admit_conflict_routing_contract, ConflictOverlapIdentityInput,
     ConflictPriorProofInput, ConflictRoutingPosture, ConflictRoutingVocabularyError,
 };
+pub use validator_family_identity::WorthTopologyValidatorFamilyIdentity;
 
 use crate::derived_topology::invalidation_plan::selection::DerivedInvalidationTouchedClosure;
 use crate::touched_graph_conflict::{

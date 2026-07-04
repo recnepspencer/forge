@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use topology::touched_graph_conflict::WorthTopologyTouchedGraphConflictSourceFirewallRegion;
 use worth_spatial::touched_graph_conflict::WorthSpatialTouchedGraphConflictSourceFirewallRegion;
@@ -15,7 +16,7 @@ use super::report::{
     WorthTouchedGraphConflictSourceFirewallReport,
     WorthTouchedGraphConflictSourceFirewallViolation,
 };
-use super::semantic_source_registry::phase_twelve_semantic_source_coverages;
+use super::semantic_source_registry::phase_fifteen_semantic_source_coverages;
 use crate::workload_composition::{
     current_conflict_batch_admission_inventory, ConflictBatchAdmissionInventory,
     ConflictBatchAdmissionInventoryError,
@@ -24,10 +25,20 @@ use crate::workload_composition::{
 const KERNEL_REGION_LABEL: &str = "kernel_workload_composition";
 const KERNEL_ROOT_IDENTITY: &str = "worth-kernel:workload-composition";
 
+#[derive(Default)]
+struct SourceFirewallScanResult {
+    covered_forbidden_surfaces: BTreeSet<WorthTouchedGraphConflictForbiddenSurface>,
+    violations: Vec<WorthTouchedGraphConflictSourceFirewallViolation>,
+}
+
 pub fn current_worth_touched_graph_conflict_source_firewall_report(
 ) -> Result<WorthTouchedGraphConflictSourceFirewallReport, ConflictBatchAdmissionInventoryError> {
+    static CACHE: OnceLock<WorthTouchedGraphConflictSourceFirewallReport> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
     let inventory = current_conflict_batch_admission_inventory()?;
-    scan_roots(
+    let report = scan_roots(
         [
             (
                 KERNEL_REGION_LABEL,
@@ -46,7 +57,9 @@ pub fn current_worth_touched_graph_conflict_source_firewall_report(
             ),
         ],
         &inventory,
-    )
+    )?;
+    let _ = CACHE.set(report.clone());
+    Ok(report)
 }
 
 pub(crate) fn scan_worth_touched_graph_conflict_source_firewall_region_for_tests(
@@ -69,14 +82,18 @@ fn scan_roots<'a, const N: usize>(
     let mut violations = Vec::new();
     for (label, root_identity, absolute_root) in roots {
         let mut scanned_source_count = 0;
-        let local_violations = scan_dir(&absolute_root, &mut scanned_source_count, inventory)?;
+        let scan_result = scan_dir(&absolute_root, &mut scanned_source_count, inventory)?;
         let covered_forbidden_surfaces =
-            inventory_covered_forbidden_surfaces(inventory, root_identity);
-        let forbidden_surfaces = local_violations
+            inventory_covered_forbidden_surfaces(inventory, root_identity)
+                .into_iter()
+                .chain(scan_result.covered_forbidden_surfaces.into_iter())
+                .collect::<BTreeSet<_>>();
+        let forbidden_surfaces = scan_result
+            .violations
             .iter()
             .map(WorthTouchedGraphConflictSourceFirewallViolation::forbidden_surface)
             .collect::<BTreeSet<_>>();
-        violations.extend(local_violations.iter().cloned().map(|violation| {
+        violations.extend(scan_result.violations.iter().cloned().map(|violation| {
             WorthTouchedGraphConflictSourceFirewallViolation::new(
                 label,
                 violation.source_path(),
@@ -90,7 +107,7 @@ fn scan_roots<'a, const N: usize>(
             scanned_source_count,
             covered_forbidden_surfaces,
             forbidden_surfaces,
-            local_violations.len(),
+            scan_result.violations.len(),
         ));
     }
     Ok(WorthTouchedGraphConflictSourceFirewallReport::new(
@@ -103,11 +120,8 @@ fn scan_dir(
     dir: &Path,
     scanned_source_count: &mut usize,
     inventory: &ConflictBatchAdmissionInventory,
-) -> Result<
-    Vec<WorthTouchedGraphConflictSourceFirewallViolation>,
-    ConflictBatchAdmissionInventoryError,
-> {
-    let mut violations = Vec::new();
+) -> Result<SourceFirewallScanResult, ConflictBatchAdmissionInventoryError> {
+    let mut result = SourceFirewallScanResult::default();
     let entries = fs::read_dir(dir).map_err(|error| {
         ConflictBatchAdmissionInventoryError::SourceFirewallViolation(format!(
             "cannot scan {}: {error}",
@@ -121,25 +135,30 @@ fn scan_dir(
             })?
             .path();
         if path.is_dir() {
-            violations.extend(scan_dir(&path, scanned_source_count, inventory)?);
+            let nested = scan_dir(&path, scanned_source_count, inventory)?;
+            result
+                .covered_forbidden_surfaces
+                .extend(nested.covered_forbidden_surfaces);
+            result.violations.extend(nested.violations);
         } else if path.extension().is_some_and(|extension| extension == "rs") {
             *scanned_source_count += 1;
             if is_ignored_closeout_path(&path) {
                 continue;
             }
-            violations.extend(scan_file(&path, inventory)?);
+            let file_result = scan_file(&path, inventory)?;
+            result
+                .covered_forbidden_surfaces
+                .extend(file_result.covered_forbidden_surfaces);
+            result.violations.extend(file_result.violations);
         }
     }
-    Ok(violations)
+    Ok(result)
 }
 
 fn scan_file(
     path: &Path,
     inventory: &ConflictBatchAdmissionInventory,
-) -> Result<
-    Vec<WorthTouchedGraphConflictSourceFirewallViolation>,
-    ConflictBatchAdmissionInventoryError,
-> {
+) -> Result<SourceFirewallScanResult, ConflictBatchAdmissionInventoryError> {
     let text = fs::read_to_string(path).map_err(|error| {
         ConflictBatchAdmissionInventoryError::SourceFirewallViolation(format!(
             "cannot read {}: {error}",
@@ -147,15 +166,20 @@ fn scan_file(
         ))
     })?;
     let normalized_path = path.to_string_lossy().replace('\\', "/");
-    let mut violations = Vec::new();
-    let coverages = phase_twelve_semantic_source_coverages()
+    let coverages = phase_fifteen_semantic_source_coverages()
         .iter()
         .copied()
         .filter(|coverage| coverage.matches_path(&normalized_path))
         .collect::<Vec<_>>();
     if coverages.is_empty() {
-        return Ok(violations);
+        return Ok(SourceFirewallScanResult::default());
     }
+    let mut result = SourceFirewallScanResult::default();
+    result.covered_forbidden_surfaces.extend(
+        coverages
+            .iter()
+            .map(|coverage| coverage.forbidden_surface()),
+    );
     let mut impl_context = ImplContext::default();
     for line in text.lines() {
         impl_context.observe_opening(line);
@@ -178,33 +202,50 @@ fn scan_file(
                 ) {
                     continue;
                 }
-                violations.push(WorthTouchedGraphConflictSourceFirewallViolation::new(
-                    "scanned_region",
-                    normalized_path.clone(),
-                    identifier.clone(),
-                    coverage.forbidden_surface(),
-                ));
+                result
+                    .violations
+                    .push(WorthTouchedGraphConflictSourceFirewallViolation::new(
+                        "scanned_region",
+                        normalized_path.clone(),
+                        identifier.clone(),
+                        coverage.forbidden_surface(),
+                    ));
             }
         }
         let Some(identifier) = private_identifier else {
             impl_context.observe_closing(line);
             continue;
         };
-        if phase_twelve_private_surface_is_owned(&normalized_path, &identifier) {
+        let explicitly_allowed_private_surface = coverages.iter().any(|coverage| {
+            coverage_contains_allowed_surface(
+                coverage,
+                inventory,
+                &normalized_path,
+                coverage.forbidden_surface(),
+                &identifier,
+                true,
+            )
+        });
+        if explicitly_allowed_private_surface
+            || phase_twelve_private_surface_is_owned(&normalized_path, &identifier)
+            || inventory_contains_owned_surface(inventory, &normalized_path, &identifier, true)
+        {
             impl_context.observe_closing(line);
             continue;
         }
         for coverage in &coverages {
-            violations.push(WorthTouchedGraphConflictSourceFirewallViolation::new(
-                "scanned_region",
-                normalized_path.clone(),
-                identifier.clone(),
-                coverage.forbidden_surface(),
-            ));
+            result
+                .violations
+                .push(WorthTouchedGraphConflictSourceFirewallViolation::new(
+                    "scanned_region",
+                    normalized_path.clone(),
+                    identifier.clone(),
+                    coverage.forbidden_surface(),
+                ));
         }
         impl_context.observe_closing(line);
     }
-    Ok(violations)
+    Ok(result)
 }
 
 fn coverage_contains_allowed_surface(
@@ -216,7 +257,9 @@ fn coverage_contains_allowed_surface(
     allow_owned_type_members: bool,
 ) -> bool {
     let normalized_source_path = source_path.replace('\\', "/");
-    if path_matches_any_owned_file(&normalized_source_path, coverage.explicit_owned_paths())
+    let explicitly_owned_path = coverage.matches_path(&normalized_source_path)
+        || path_matches_any_owned_file(&normalized_source_path, coverage.explicit_owned_paths());
+    if explicitly_owned_path
         && coverage.explicit_allowed_surfaces().iter().any(|allowed| {
             allowed_surface_matches_identifier(allowed, identifier, allow_owned_type_members)
         })
@@ -313,6 +356,7 @@ fn is_ignored_closeout_path(path: &Path) -> bool {
     let normalized = path.to_string_lossy().replace('\\', "/");
     normalized.contains("/conflict_batch_admission_inventory/")
         || normalized.contains("/compile_fail/")
+        || normalized.contains("/public_closeout_seed_support/")
         || normalized.contains("/test_support/")
         || normalized.contains("/tests/")
         || normalized.ends_with("_tests.rs")

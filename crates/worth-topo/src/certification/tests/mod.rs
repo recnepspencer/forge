@@ -39,6 +39,7 @@ use crate::test_support::primitive_corpus::validated_topology::{
 mod closeout;
 mod parameter_sweeps;
 mod primitive_corpus;
+mod public_facade_compile_fail;
 mod public_facade_contracts;
 mod query_runtime;
 mod read_surfaces;

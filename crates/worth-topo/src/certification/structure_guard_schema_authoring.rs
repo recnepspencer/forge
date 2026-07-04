@@ -197,7 +197,6 @@ fn topology_read_core_proof_seeding_stays_quarantined() {
         "certification/projection_closeout/tests/topology_reads/handle_entry.rs",
         "certification/projection_closeout/tests/topology_reads/closeout.rs",
         "certification/projection_closeout/tests/topology_reads/lowering.rs",
-        "projection/diagnostic_surfaces/mod.rs",
     ];
     let mut violations = Vec::new();
     for relative in targets {

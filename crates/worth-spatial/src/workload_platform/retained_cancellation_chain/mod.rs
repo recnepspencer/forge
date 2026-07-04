@@ -4,6 +4,8 @@ mod chain_digest;
 mod chain_evidence_guard;
 mod chain_policy;
 mod chain_receipt;
+mod chain_sampling;
+mod chain_stop_trigger;
 mod chain_workload;
 
 pub use chain_checkpoint::{RetainedCancellationCheckpoint, RetainedCancellationCheckpointTrigger};
@@ -14,4 +16,5 @@ pub use chain_policy::{
     RetainedCancellationChainTransformPosture,
 };
 pub use chain_receipt::RetainedCancellationChainReceipt;
-pub use chain_workload::{RetainedCancellationChainWorkload, RetainedReplaySampling};
+pub use chain_sampling::RetainedReplaySampling;
+pub use chain_workload::RetainedCancellationChainWorkload;

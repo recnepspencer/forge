@@ -1,5 +1,10 @@
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
+use crate::workload_platform::evidence_ledger::{
+    BooleanEvidenceReceipt, BooleanEvidenceReceiptSealed, BooleanEvidenceRowAuthority,
+    BooleanEvidenceStageKind, WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+};
+
 use super::PlanarBooleanCommonPlaneAgreementReceipt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -56,3 +61,25 @@ impl PlanarBooleanCommonPlaneSharedPlaneIdentityReceipt {
         &self.right_surface_support_identity
     }
 }
+
+impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneSharedPlaneIdentityReceipt {
+    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
+        BooleanEvidenceStageKind::SharedPlaneIdentity
+    }
+
+    fn evidence_identity(&self) -> &str {
+        self.shared_plane_receipt_identity()
+    }
+
+    fn evidence_support(&self) -> WorkloadEvidenceSupport {
+        WorkloadEvidenceSupport::Admitted
+    }
+
+    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
+        WorkloadEvidenceStageCounters::boolean_shared_plane_identity()
+    }
+}
+
+impl BooleanEvidenceReceiptSealed for PlanarBooleanCommonPlaneSharedPlaneIdentityReceipt {}
+
+impl BooleanEvidenceRowAuthority for PlanarBooleanCommonPlaneSharedPlaneIdentityReceipt {}

@@ -11,7 +11,7 @@ if str(RUNNER_DIR) not in sys.path:
     sys.path.insert(0, str(RUNNER_DIR))
 
 import runtime_paths
-from codex_cli import runner_timeouts, timeout_reason
+from agent_cli import runner_timeouts, timeout_reason
 from config_schema import load_config, validate_config
 from event_log import load_events, validate_event_log
 from orchestrator import (
@@ -46,6 +46,48 @@ class DurableRunnerTests(unittest.TestCase):
         second = project_run(config, events, "run123")
         self.assertEqual(first, second)
         self.assertEqual(first["current"], {"phase": 2, "turn": "plan"})
+
+    def test_projection_repairs_stale_cursor_after_phase_is_complete(self) -> None:
+        config = minimal_config()
+        events = [
+            event("run_started", 1),
+            event("plan_posted", 2, 1, "plan"),
+            event("implementation_completed", 3, 1, "implement"),
+            event("review_passed", 4, 1, "review"),
+            event("test_review_passed", 5, 1, "test_review"),
+            event("code_quality_review_passed", 6, 1, "code_quality_review"),
+            event(
+                "prompt_selected",
+                7,
+                1,
+                "test_repair_implement",
+                payload={"turn_instance_id": "stale-1"},
+            ),
+        ]
+        projection = project_run(config, events, "run123")
+        self.assertEqual(projection["current"], {"phase": 2, "turn": "plan"})
+        self.assertIsNone(projection["current_turn_instance_id"])
+
+    def test_projection_keeps_prompt_instance_after_cursor_repairs_to_next_phase(self) -> None:
+        config = minimal_config()
+        events = [
+            event("run_started", 1),
+            event("plan_posted", 2, 1, "plan"),
+            event("implementation_completed", 3, 1, "implement"),
+            event("review_passed", 4, 1, "review"),
+            event("test_review_passed", 5, 1, "test_review"),
+            event("code_quality_review_passed", 6, 1, "code_quality_review"),
+            event(
+                "prompt_selected",
+                7,
+                2,
+                "plan",
+                payload={"turn_instance_id": "phase-2-plan-1"},
+            ),
+        ]
+        projection = project_run(config, events, "run123")
+        self.assertEqual(projection["current"], {"phase": 2, "turn": "plan"})
+        self.assertEqual(projection["current_turn_instance_id"], "phase-2-plan-1")
 
     def test_validate_event_log_rejects_unknown_event(self) -> None:
         events = [event("made_up_event", 1)]
@@ -101,7 +143,7 @@ class DurableRunnerTests(unittest.TestCase):
         ]
         self.assertEqual(
             pending_recovery_reason(events, current, "review-1"),
-            "prior Codex turn completed but outcome was not recorded",
+            "prior agent turn completed but outcome was not recorded",
         )
 
     def test_pending_recovery_reason_ignores_stale_same_turn_from_prior_attempt(self) -> None:
@@ -183,11 +225,11 @@ class DurableRunnerTests(unittest.TestCase):
         self.assertEqual(timeouts, {"turn_timeout_seconds": 12, "idle_timeout_seconds": 3})
         self.assertEqual(
             timeout_reason(2.0, 3.5, timeouts),
-            "codex turn produced no output for 3 seconds",
+            "agent turn produced no output for 3 seconds",
         )
         self.assertEqual(
             timeout_reason(12.5, 1.0, timeouts),
-            "codex turn timed out after 12 seconds",
+            "agent turn timed out after 12 seconds",
         )
 
     def test_stop_request_marker_round_trips(self) -> None:
@@ -241,7 +283,7 @@ class DurableRunnerTests(unittest.TestCase):
             self.assertEqual(projection["phases"][0]["status"], "regressed")
             self.assertEqual(projection["phases"][0]["qa_status"], "failed")
 
-    def test_import_legacy_preserves_test_repair_implement_cursor(self) -> None:
+    def test_import_legacy_repairs_stale_test_repair_implement_cursor(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
             original_root = runtime_paths.RUNTIME_ROOT
@@ -255,7 +297,7 @@ class DurableRunnerTests(unittest.TestCase):
                 projection = refresh_projection(config_path, run_id)
             finally:
                 runtime_paths.RUNTIME_ROOT = original_root
-            self.assertEqual(projection["current"], {"phase": 1, "turn": "test_repair_implement"})
+            self.assertEqual(projection["current"], {"phase": 2, "turn": "plan"})
             self.assertEqual(projection["phases"][0]["status"], "complete")
             self.assertEqual(projection["phases"][0]["qa_status"], "passed")
 

@@ -28,28 +28,42 @@ pub(crate) fn catalog_closeout_with_loop_cycles_postures(
     query_receipt_posture: DerivedTopologyQueryReceiptPosture,
     legality_receipt_posture: DerivedTopologyLegalityReceiptPosture,
 ) -> DerivedInvalidationFamilyCatalogCloseout {
+    catalog_closeout_with_loop_cycles_contract(
+        query_receipt_posture,
+        legality_receipt_posture,
+        DerivedTopologyUpdatePosture::IncrementalEligible,
+    )
+}
+
+pub(crate) fn catalog_closeout_with_loop_cycles_contract(
+    query_receipt_posture: DerivedTopologyQueryReceiptPosture,
+    legality_receipt_posture: DerivedTopologyLegalityReceiptPosture,
+    update_posture: DerivedTopologyUpdatePosture,
+) -> DerivedInvalidationFamilyCatalogCloseout {
     let inventory = current_derived_invalidation_authority_inventory();
     let inventory_closeout =
         DerivedInvalidationAuthorityInventoryCloseout::close(inventory).unwrap();
-    let families = DerivedTopologyProductFamilyIdentity::REQUIRED
+    let current_catalog =
+        current_derived_invalidation_family_catalog(inventory_closeout.phase_two_seed().clone())
+            .unwrap();
+    let families = current_catalog
+        .families()
         .iter()
-        .copied()
-        .map(|identity| {
-            let is_loop_cycles = identity == DerivedTopologyProductFamilyIdentity::LoopCycles;
-            product_family_for_posture_fixture(
-                identity,
-                if is_loop_cycles {
-                    query_receipt_posture
-                } else {
-                    DerivedTopologyQueryReceiptPosture::NotRequiredForFamilyDeclaration
-                },
-                if is_loop_cycles {
-                    legality_receipt_posture
-                } else {
-                    DerivedTopologyLegalityReceiptPosture::NotRequiredForFamilyDeclaration
-                },
-                is_loop_cycles,
-            )
+        .cloned()
+        .map(|family| {
+            if family.identity() == DerivedTopologyProductFamilyIdentity::LoopCycles {
+                product_family_record(
+                    family.identity(),
+                    family.consumed_graph_facts().clone(),
+                    family.invalidation_predicate(),
+                    query_receipt_posture,
+                    legality_receipt_posture,
+                    update_posture,
+                    family.spatial_evidence_posture(),
+                )
+            } else {
+                family
+            }
         })
         .collect::<Vec<_>>();
     let catalog = DerivedInvalidationFamilyCatalog::new(
@@ -63,6 +77,7 @@ fn product_family_for_posture_fixture(
     identity: DerivedTopologyProductFamilyIdentity,
     query_receipt_posture: DerivedTopologyQueryReceiptPosture,
     legality_receipt_posture: DerivedTopologyLegalityReceiptPosture,
+    update_posture: DerivedTopologyUpdatePosture,
     should_match_loop_touch: bool,
 ) -> DerivedTopologyProductFamilyRecord {
     let (relation_kinds, aspects) = if should_match_loop_touch {
@@ -76,19 +91,32 @@ fn product_family_for_posture_fixture(
             vec![TopologyTouchedAspect::GeometryBinding],
         )
     };
+    product_family_record(
+        identity,
+        DerivedTopologyConsumedGraphFacts::new(relation_kinds, aspects),
+        DerivedTopologyInvalidationPredicate::ConsumedGraphFactsIntersectTouchedClosure,
+        query_receipt_posture,
+        legality_receipt_posture,
+        update_posture,
+        DerivedTopologySpatialEvidencePosture::NoSpatialEvidenceConsumed,
+    )
+}
+
+fn product_family_record(
+    identity: DerivedTopologyProductFamilyIdentity,
+    consumed_graph_facts: DerivedTopologyConsumedGraphFacts,
+    invalidation_predicate: DerivedTopologyInvalidationPredicate,
+    query_receipt_posture: DerivedTopologyQueryReceiptPosture,
+    legality_receipt_posture: DerivedTopologyLegalityReceiptPosture,
+    update_posture: DerivedTopologyUpdatePosture,
+    spatial_evidence_posture: DerivedTopologySpatialEvidencePosture,
+) -> DerivedTopologyProductFamilyRecord {
     DerivedTopologyProductFamilyRecord::from_input(DerivedTopologyProductFamilyRecordInput {
         identity,
-        consumed_graph_facts: Some(DerivedTopologyConsumedGraphFacts::new(
-            relation_kinds,
-            aspects,
-        )),
-        invalidation_predicate: Some(
-            DerivedTopologyInvalidationPredicate::ConsumedGraphFactsIntersectTouchedClosure,
-        ),
-        update_posture: Some(DerivedTopologyUpdatePosture::IncrementalEligible),
-        spatial_evidence_posture: Some(
-            DerivedTopologySpatialEvidencePosture::NoSpatialEvidenceConsumed,
-        ),
+        consumed_graph_facts: Some(consumed_graph_facts),
+        invalidation_predicate: Some(invalidation_predicate),
+        update_posture: Some(update_posture),
+        spatial_evidence_posture: Some(spatial_evidence_posture),
         query_receipt_posture: Some(query_receipt_posture),
         legality_receipt_posture: Some(legality_receipt_posture),
         diagnostic_posture: Some(DerivedTopologyDiagnosticPosture::ProductFamilyWitnessRequired),

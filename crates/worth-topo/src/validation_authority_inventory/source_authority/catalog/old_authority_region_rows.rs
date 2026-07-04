@@ -94,9 +94,9 @@ const OLD_AUTHORITY_REGIONS: [OldAuthorityRegion; 15] = [
     ),
     whole_view_validation_region(
         "diagnostic_surface_validation",
-        "crates/worth-topo/src/projection/diagnostic_surfaces/derived_read_diagnostics.rs",
+        "crates/worth-topo/src/projection/planner_owned_routing/diagnostic_projection_input/source.rs",
         "validate_interpreted_topology",
-        "worth-topo.projection.diagnostic_surfaces",
+        "worth-topo.projection.planner_owned_routing.diagnostic_projection_input",
     ),
     whole_view_validation_region(
         "certification_support_parity_validation",

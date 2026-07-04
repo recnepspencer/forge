@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+  --> src/certification/public_facade_contracts/compile_fail/public_topology_compiled_product_family_declaration_constructor_not_exported.rs:10:55
+   |
+10 |       let _ = TopologyCompiledProductFamilyDeclaration::new(
+   |                                                         ^^^ private associated function
+   |
+  ::: src/compiled_product_family/declaration.rs
+   |
+   | /     pub(crate) fn new(
+   | |         identity: TopologyCompiledProductFamilyIdentity,
+   | |         mut supported_consumers: Vec<TopologyCompiledProductConsumer>,
+   | |         authority_basis: TopologyAuthorityBasisPosture,
+...  |
+   | |         equivalence_dimensions: &'static [&'static str],
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

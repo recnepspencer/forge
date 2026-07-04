@@ -31,6 +31,9 @@ Implementation rules:
   explicit exemption already exists.
 - Verify what you changed enough to know whether the phase implementation is
   actually ready for done-check QA.
+- For parallel cutover phases, finish the mechanical cutover before broad proof.
+  Use `cargo check`, focused compile-fail fences, import breakage, and type
+  errors as the main guide until the new lane fully owns ordinary behavior.
 
 Do not put logs, command output tails, artifacts, long plans, or review
 findings into the runner payload. Put substantive implementation explanation in

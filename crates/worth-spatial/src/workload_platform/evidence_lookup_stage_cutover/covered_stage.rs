@@ -8,6 +8,7 @@ use crate::workload_platform::evidence_lookup_plan_selection::{
 use crate::workload_platform::evidence_lookup_workload_cutover::{
     EvidenceLookupConsumedWorkloadHandoff, EvidenceLookupWorkloadCutoverError,
 };
+use crate::workload_platform::selected_equivalence_family::SpatialSelectedEquivalenceFamilyIdentity;
 
 use super::counters::EvidenceLookupStageCutoverCounters;
 use super::error::{EvidenceLookupStageCutoverError, EvidenceLookupStageCutoverErrorKind};
@@ -23,6 +24,8 @@ pub struct EvidenceLookupCoveredStageCutoverProof {
     selected_lookup_plan_digest: String,
     lookup_execution_receipt_digest: String,
     lookup_product_output_digest: String,
+    selected_equivalence_family_identity: SpatialSelectedEquivalenceFamilyIdentity,
+    selected_reuse_basis_identity_digest: String,
     topology_derived_receipt_state: EvidenceLookupTopologyDerivedReceiptState,
     covered_family_identities: Vec<String>,
     counters: EvidenceLookupStageCutoverCounters,
@@ -36,6 +39,8 @@ pub struct EvidenceLookupCoveredStageCutoverExplanation {
     selected_lookup_plan_digest: String,
     lookup_execution_receipt_digest: String,
     lookup_product_output_digest: String,
+    selected_equivalence_family_identity: SpatialSelectedEquivalenceFamilyIdentity,
+    selected_reuse_basis_identity_digest: String,
     covered_family_count: usize,
 }
 
@@ -111,6 +116,11 @@ impl EvidenceLookupCoveredStageCutoverProof {
             lookup_product_output_digest: execution_receipt
                 .lookup_product_output_digest()
                 .to_string(),
+            selected_equivalence_family_identity: execution_receipt
+                .selected_equivalence_family_identity_kind(),
+            selected_reuse_basis_identity_digest: execution_receipt
+                .selected_reuse_basis_identity_digest()
+                .to_string(),
             topology_derived_receipt_state,
             covered_family_identities,
             counters,
@@ -149,6 +159,20 @@ impl EvidenceLookupCoveredStageCutoverProof {
         &self.lookup_product_output_digest
     }
 
+    pub fn selected_equivalence_family_identity(&self) -> &str {
+        self.selected_equivalence_family_identity.as_str()
+    }
+
+    pub(crate) const fn selected_equivalence_family_identity_kind(
+        &self,
+    ) -> SpatialSelectedEquivalenceFamilyIdentity {
+        self.selected_equivalence_family_identity
+    }
+
+    pub fn selected_reuse_basis_identity_digest(&self) -> &str {
+        &self.selected_reuse_basis_identity_digest
+    }
+
     pub const fn topology_derived_receipt_state(
         &self,
     ) -> &EvidenceLookupTopologyDerivedReceiptState {
@@ -171,6 +195,8 @@ impl EvidenceLookupCoveredStageCutoverProof {
             selected_lookup_plan_digest: self.selected_lookup_plan_digest.clone(),
             lookup_execution_receipt_digest: self.lookup_execution_receipt_digest.clone(),
             lookup_product_output_digest: self.lookup_product_output_digest.clone(),
+            selected_equivalence_family_identity: self.selected_equivalence_family_identity,
+            selected_reuse_basis_identity_digest: self.selected_reuse_basis_identity_digest.clone(),
             covered_family_count: self.covered_family_identities.len(),
         }
     }
@@ -253,6 +279,14 @@ impl EvidenceLookupCoveredStageCutoverExplanation {
 
     pub fn lookup_product_output_digest(&self) -> &str {
         &self.lookup_product_output_digest
+    }
+
+    pub fn selected_equivalence_family_identity(&self) -> &str {
+        self.selected_equivalence_family_identity.as_str()
+    }
+
+    pub fn selected_reuse_basis_identity_digest(&self) -> &str {
+        &self.selected_reuse_basis_identity_digest
     }
 
     pub const fn covered_family_count(&self) -> usize {

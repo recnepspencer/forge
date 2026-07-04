@@ -52,6 +52,11 @@ pub fn execute_evidence_lookup(
         EvidenceLookupExecutionReceiptParts {
             selected_plan_digest: selected_plan.selected_plan_digest().to_string(),
             index_product_digest: index_product.index_product_digest().to_string(),
+            selected_equivalence_family_identity: index_product
+                .selected_equivalence_family_identity(),
+            selected_reuse_basis_identity_digest: index_product
+                .selected_reuse_basis_identity_digest()
+                .to_string(),
             spatial_touch_digest: selected_plan.spatial_touch_digest().to_string(),
             stage_receipt_digest: selected_plan.stage_receipt_digest().to_string(),
             evidence_ledger_basis_digest: index_product.evidence_ledger_basis_digest().to_string(),

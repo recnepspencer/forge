@@ -60,7 +60,6 @@ impl WorthTopologyLoopWiringWitnessInput {
 }
 
 impl WorthTopologyLoopWiringLoopWitnessRow {
-    #[cfg(test)]
     pub(in crate::validator_invariant_catalog) fn new(
         loop_id: EntityId,
         half_edge_ids: Vec<EntityId>,
@@ -95,7 +94,6 @@ impl WorthTopologyLoopWiringLoopWitnessRow {
 }
 
 impl WorthTopologyLoopWiringHalfEdgeWitnessRow {
-    #[cfg(test)]
     pub(in crate::validator_invariant_catalog) fn new(
         half_edge_id: EntityId,
         loop_id: Option<EntityId>,

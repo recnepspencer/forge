@@ -11,9 +11,52 @@ pub enum WorthTouchedGraphConflictForbiddenSurface {
     CallerOwnedSerialization,
     CallerOwnedCompatibility,
     GenericOverlapSecondAuthorityLane,
+    DisplacedCacheKeyCarrier,
+    LocalComparatorFolklore,
+    CallerOwnedReuseDecision,
+    PlannerRouteConstruction,
+    LocalPublicProofFabrication,
+    LocalDiagnosticAuthorityFabrication,
+    SupportWrapperShortcut,
+    LegacyExplainerImport,
 }
 
 impl WorthTouchedGraphConflictForbiddenSurface {
+    pub const fn phase_fourteen_reintroduction_categories() -> &'static [Self] {
+        &[
+            Self::EntityOnlyOverlapHelper,
+            Self::GenericOverlapSecondAuthorityLane,
+            Self::PlannerRouteConstruction,
+            Self::SupportWrapperShortcut,
+            Self::LegacyExplainerImport,
+        ]
+    }
+
+    pub const fn phase_fourteen_raw_construction_categories() -> &'static [Self] {
+        &[
+            Self::DisplacedCacheKeyCarrier,
+            Self::LocalComparatorFolklore,
+            Self::CallerOwnedReuseDecision,
+            Self::LocalPublicProofFabrication,
+            Self::LocalDiagnosticAuthorityFabrication,
+        ]
+    }
+
+    pub const fn phase_fourteen_relapse_categories() -> &'static [Self] {
+        &[
+            Self::EntityOnlyOverlapHelper,
+            Self::GenericOverlapSecondAuthorityLane,
+            Self::DisplacedCacheKeyCarrier,
+            Self::LocalComparatorFolklore,
+            Self::CallerOwnedReuseDecision,
+            Self::PlannerRouteConstruction,
+            Self::LocalPublicProofFabrication,
+            Self::LocalDiagnosticAuthorityFabrication,
+            Self::SupportWrapperShortcut,
+            Self::LegacyExplainerImport,
+        ]
+    }
+
     pub const fn phase_twelve_relapse_categories() -> &'static [Self] {
         &[
             Self::EntityOnlyOverlapHelper,
@@ -24,6 +67,24 @@ impl WorthTouchedGraphConflictForbiddenSurface {
             Self::SpeculativeRollbackAdmission,
             Self::CallerOwnedCompatibility,
             Self::CallerOwnedSerialization,
+        ]
+    }
+
+    pub const fn phase_fifteen_relapse_categories() -> &'static [Self] {
+        &[
+            Self::BroadTopologyScan,
+            Self::BroadEvidenceScan,
+            Self::CallerOwnedSerialization,
+            Self::CallerOwnedCompatibility,
+            Self::GenericOverlapSecondAuthorityLane,
+            Self::DisplacedCacheKeyCarrier,
+            Self::LocalComparatorFolklore,
+            Self::CallerOwnedReuseDecision,
+            Self::PlannerRouteConstruction,
+            Self::LocalPublicProofFabrication,
+            Self::LocalDiagnosticAuthorityFabrication,
+            Self::SupportWrapperShortcut,
+            Self::LegacyExplainerImport,
         ]
     }
 
@@ -38,6 +99,14 @@ impl WorthTouchedGraphConflictForbiddenSurface {
             Self::CallerOwnedSerialization => "caller-owned serialization",
             Self::CallerOwnedCompatibility => "caller-owned compatibility",
             Self::GenericOverlapSecondAuthorityLane => "generic overlap second authority lane",
+            Self::DisplacedCacheKeyCarrier => "displaced cache-key carrier",
+            Self::LocalComparatorFolklore => "local comparator folklore",
+            Self::CallerOwnedReuseDecision => "caller-owned reuse decision",
+            Self::PlannerRouteConstruction => "planner route construction",
+            Self::LocalPublicProofFabrication => "local public-proof fabrication",
+            Self::LocalDiagnosticAuthorityFabrication => "local diagnostic-authority fabrication",
+            Self::SupportWrapperShortcut => "support-wrapper shortcut",
+            Self::LegacyExplainerImport => "legacy explainer import",
         }
     }
 
@@ -105,11 +174,55 @@ impl WorthTouchedGraphConflictForbiddenSurface {
             | Surface::SpatialRollbackProjectionReceiptAdmission
             | Surface::TopologyRollbackTraversalViewsAdmission
             | Surface::TopologyRollbackMaterializedGraphAdmission => Some(Self::RollbackAdmission),
+            Surface::ConflictInputLookupRouteDenial
+            | Surface::LookupConsumedWorkloadReuseProductSerialization
+            | Surface::LookupConsumedWorkloadRequireResolutionProductSerialization
+            | Surface::LookupConsumedWorkloadMismatchLocusNameSerialization => {
+                Some(Self::CallerOwnedSerialization)
+            }
             Surface::HighValenceRebuildMotionCompatibilitySetter
             | Surface::HighValenceRequireRebuildMotionCompatibility
             | Surface::HighValenceRebuildMotionCompatibility
             | Surface::DuplicateSplitRejectContradictorySameParameterPoints
-            | Surface::PointSplitCompatibilityBasis => Some(Self::CallerOwnedCompatibility),
+            | Surface::PointSplitCompatibilityBasis
+            | Surface::LookupConsumedWorkloadReuseProductCompatibility
+            | Surface::LookupConsumedWorkloadRequireResolutionProductCompatibility
+            | Surface::LookupConsumedWorkloadMismatchLocusNameCompatibility => {
+                Some(Self::CallerOwnedCompatibility)
+            }
+            Surface::TopologySelectedCompatibilityBasisIdentityStruct
+            | Surface::TopologySelectedCompatibilityBasisIdentityIdentityDigest
+            | Surface::SelectedTopologyEquivalenceFamilyCompatibilityBasisIdentity
+            | Surface::SpatialSelectedCompatibilityBasisIdentityStruct
+            | Surface::SpatialSelectedCompatibilityBasisIdentityIdentityDigest
+            | Surface::SelectedSpatialEquivalenceFamilyCompatibilityBasisIdentity => {
+                Some(Self::DisplacedCacheKeyCarrier)
+            }
+            Surface::SelectedTopologyEquivalenceFamilyCompatibilityPosture
+            | Surface::TopologySelectedEquivalenceFamilyDeclarationCompatibilityPosture
+            | Surface::TopologySelectedEquivalenceComparatorContractCompatibilityPosture
+            | Surface::TopologyCompatibilityPostureEnum
+            | Surface::SelectedSpatialEquivalenceFamilyCompatibilityPosture
+            | Surface::SpatialSelectedEquivalenceFamilyDeclarationCompatibilityPosture
+            | Surface::SpatialCompatibilityPostureEnum => Some(Self::LocalComparatorFolklore),
+            Surface::TopologyDerivedReuseDecisionSelectedCompatibilityBasisIdentityDigest
+            | Surface::TopologyDerivedRebuildDenialSelectedCompatibilityBasisIdentityDigest
+            | Surface::TopologyDerivedReuseExecutionInputSelectedCompatibilityBasisIdentityDigest
+            | Surface::DerivedEquivalenceContractReportSelectedCompatibilityBasisIdentityDigest
+            | Surface::LookupConsumedReuseResolutionSelectedCompatibilityBasisIdentityDigest
+            | Surface::EvidenceLookupIndexReuseDecisionSelectedCompatibilityBasisIdentityDigest
+            | Surface::EvidenceLookupIndexRebuildDenialSelectedCompatibilityBasisIdentityDigest => {
+                Some(Self::CallerOwnedReuseDecision)
+            }
+            Surface::TopologyQueryBackedReadFamilyAdmissionAuthoritySelectedCompatibilityBasisDigestForAdmission
+            | Surface::TopologyQueryBackedReadFamilySelectedRouteAuthorityCompatibilityBasisTraitMethod
+            | Surface::TopologyQuerySelectedCompatibilityBasisIdentityDigestTraitMethod => {
+                Some(Self::PlannerRouteConstruction)
+            }
+            Surface::WorthTouchedGraphConflictProofChainTopologyQuerySelectedCompatibilityBasisIdentityDigest
+            | Surface::WorthTouchedGraphConflictMilestoneFourteenSeedTopologyQuerySelectedCompatibilityBasisIdentityDigest => {
+                Some(Self::LocalPublicProofFabrication)
+            }
             _ => None,
         }
     }

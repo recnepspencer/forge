@@ -2,7 +2,6 @@
 fn declared_query_surfaces_mod_does_not_inline_snapshot_row_fallback_logic() {
     let source = include_str!("mod.rs");
     let projection_mod = include_str!("../../mod.rs");
-    let diagnostic_surfaces_mod = include_str!("../../diagnostic_surfaces/mod.rs");
     let certification_snapshot_support =
         include_str!("../../../certification/support/historical_query_snapshot/mod.rs");
     let certification_snapshot_derived_support = include_str!(
@@ -141,22 +140,36 @@ fn declared_query_surfaces_mod_does_not_inline_snapshot_row_fallback_logic() {
         "query surfaces entry surface should decode declared derived rows through the Query-owned materialization floor",
     );
     assert!(
-        declared_computed_views.contains("declared_retained_computed_row_sets(view)")
-            && declared_computed_views.contains("decode_single_retained_payload_row("),
-        "interpreted and validation maintainers should decode retained upstream rows through the Query-owned upstream-input seam",
+        declared_computed_views
+            .contains("topology interpreted surface requires Query-native traversal product receipts")
+            && declared_computed_views
+                .contains("topology validation surface requires selected validator enforcement receipts"),
+        "interpreted and validation maintainers should deny local fallback and require Query-owned upstream proof receipts",
     );
     assert!(
-        declared_computed_views.contains("interpreted_topology_from_upstreams(")
-            && declared_computed_views.contains("validation_report_from_upstreams("),
-        "interpreted and validation maintainers should route through explicit retained-upstream helpers instead of rebuilding synthetic bags inline",
+        !declared_computed_views.contains("interpreted_topology_from_upstreams(")
+            && !declared_computed_views.contains("validation_report_from_upstreams("),
+        "interpreted and validation maintainers should not keep synthetic retained-upstream rebuild helpers in production",
     );
     assert!(
         declared_retained_diagnostics.contains("declared_retained_computed_row_sets(view)")
             && declared_retained_diagnostics.contains("decode_single_retained_payload_row(")
-            && declared_equivalence_contract
-                .contains("decode_single_retained_payload_row::<DerivedReadDiagnostics>"),
+            && declared_equivalence_contract.contains("decode_single_retained_payload_row("),
         "diagnostics maintainers should decode retained upstream rows through the Query-owned upstream-input seam",
     );
+    assert!(
+        declared_retained_diagnostics.contains("TopologyHistoricalReadBasisMetadata::from_refresh("),
+        "diagnostics maintainers should admit retained topology authority through the runtime-owned historical read-basis metadata seam",
+    );
+    for forbidden in [
+        "synthetic_read_basis_from_evidence(",
+        "TopologyQueryMutationEvidence::from_refresh(",
+    ] {
+        assert!(
+            !declared_retained_diagnostics.contains(forbidden),
+            "diagnostics maintainers should not rebuild or decode authority through legacy helper `{forbidden}`",
+        );
+    }
     assert!(
         certification_snapshot_derived_support.contains("HistoricalReadBasisQueryRuntime"),
         "derived historical snapshot seam should consume the shared read-basis query runtime boundary",
@@ -214,7 +227,7 @@ fn declared_query_surfaces_mod_does_not_inline_snapshot_row_fallback_logic() {
         );
     }
     assert!(
-        !diagnostic_surfaces_mod.contains("pub(crate) mod query_diagnostics;"),
-        "diagnostic surfaces should not keep the internal query-diagnostics declaration lane after runtime-boundary rehome",
+        !projection_mod.contains("mod diagnostic_surfaces;"),
+        "projection root should not keep the deleted diagnostic_surfaces lane mounted after runtime-boundary rehome",
     );
 }

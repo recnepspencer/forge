@@ -18,7 +18,16 @@ pub use closeout::{
 };
 pub use counters::EvidenceLookupQueryConsumerKitCounters;
 pub use error::{EvidenceLookupQueryConsumerKitError, EvidenceLookupQueryConsumerKitErrorKind};
+pub(crate) use requirement_row::EvidenceLookupQuerySupportRequirementRow;
+pub(crate) use residue_audit::{
+    audit_evidence_lookup_query_consumer_residue_for_roots, residue_rows_from_report,
+};
 pub use row::{
     EvidenceLookupQueryConsumerKitBindingRow, EvidenceLookupQueryConsumerResidueRow,
     EvidenceLookupQuerySupportPinRow,
 };
+pub(crate) use source_set::evidence_lookup_query_consumer_kit_residue_roots;
+pub(crate) use support_pinning::{
+    derived_support_requirements, evidence_lookup_query_support_pinning_contract,
+};
+pub(crate) use support_snapshot::project_evidence_lookup_query_support_snapshot;

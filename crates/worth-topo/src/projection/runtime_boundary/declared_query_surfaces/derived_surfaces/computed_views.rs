@@ -15,7 +15,7 @@ use crate::derived_topology::traversal_views::{
     bootstrap_topology_interpretation, InterpretedTopologyView,
 };
 #[cfg(test)]
-use crate::projection::diagnostic_surfaces::derived_read_diagnostics::derive_topology_validation_report;
+use crate::projection::runtime_boundary::diagnostic_projection::derive_topology_validation_report;
 #[cfg(test)]
 use crate::validation::{DerivedTopologyValidationReport, TopologyValidationError};
 

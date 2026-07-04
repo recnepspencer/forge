@@ -2,6 +2,7 @@ mod equivalence_contract;
 mod evidence;
 mod retained_diagnostics;
 
+use crate::query_native_runtime_boundary::query_aspect_touch;
 use forge_query::facade::{
     ForgeQueryComputedBuilder, ForgeQueryDerivedPatch, ForgeQueryDerivedView,
     ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
@@ -11,8 +12,6 @@ use forge_query::facade::{
 use schema::facade::QueryAspectPath;
 use serde_json::json;
 
-use crate::query_native_runtime_boundary::query_aspect_touch;
-
 use super::retained_payload::{
     incremental_patch_touches, publish_retained_payload, refresh_patch_touches,
 };
@@ -20,6 +19,7 @@ use super::QUERY_SURFACE_FAILURE_ROW_KEY;
 pub(crate) use equivalence_contract::declare_topology_equivalence_contract_surface;
 #[cfg(test)]
 pub(crate) use equivalence_contract::equivalence_contract_from_diagnostics_rows;
+pub(crate) use evidence::TopologyHistoricalReadBasisMetadata;
 pub(crate) use evidence::TopologyQueryMutationEvidence;
 use retained_diagnostics::derived_read_diagnostics_from_upstreams;
 
@@ -69,7 +69,7 @@ impl ForgeQueryDerivedViewMaintainer for TopologyDiagnosticsMaintainer {
             Ok(diagnostics) => {
                 serde_json::to_value(diagnostics).expect("derived diagnostics must serialize")
             }
-            Err(error) => json!({ QUERY_SURFACE_FAILURE_ROW_KEY: error.to_string() }),
+            Err(error) => error.failure_payload(),
         };
         let patch_payload = publish_retained_payload(view.name(), materialization, &payload);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(

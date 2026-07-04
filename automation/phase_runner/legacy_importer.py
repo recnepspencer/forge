@@ -51,7 +51,7 @@ def import_legacy_run(
 
         projection = refresh_projection(config_path, active_run_id)
         legacy_current = legacy.get("current")
-        if projection["current"] != legacy_current:
+        if not imported_current_is_compatible(projection, legacy_current):
             raise ValueError(
                 f"import projected current {projection['current']!r} but legacy current was {legacy_current!r}"
             )
@@ -134,3 +134,33 @@ def phase_payload(notes: dict[str, Any]) -> dict[str, Any]:
         if isinstance(value, list) and value:
             payload_notes[bucket] = [str(entry) for entry in value]
     return {"notes": payload_notes}
+
+
+def imported_current_is_compatible(
+    projection: dict[str, Any], legacy_current: dict[str, Any] | None
+) -> bool:
+    if projection["current"] == legacy_current:
+        return True
+    if not isinstance(legacy_current, dict):
+        return False
+    legacy_phase = phase_by_id(projection, legacy_current.get("phase"))
+    if legacy_phase is None:
+        return False
+    if legacy_phase["status"] != "complete" or legacy_phase["qa_status"] != "passed":
+        return False
+    first_unfinished = first_unfinished_phase(projection)
+    return projection["current"] == first_unfinished
+
+
+def phase_by_id(projection: dict[str, Any], phase_id: Any) -> dict[str, Any] | None:
+    for phase in projection["phases"]:
+        if phase["id"] == phase_id:
+            return phase
+    return None
+
+
+def first_unfinished_phase(projection: dict[str, Any]) -> dict[str, Any] | None:
+    for phase in projection["phases"]:
+        if phase["status"] != "complete" or phase["qa_status"] != "passed":
+            return {"phase": phase["id"], "turn": "plan"}
+    return None

@@ -1,13 +1,17 @@
-use super::fixtures::{complete_ledger_for_plan, IndexProductSubject};
-use crate::workload_platform::evidence_lookup_index_product::admit_evidence_lookup_index_product;
+use super::fixtures::{selected_lookup_slice_for_plan, IndexProductSubject};
+use crate::workload_platform::evidence_lookup_index_product::identity::lower_index_family_identity;
+use crate::workload_platform::selected_equivalence_family::{
+    SpatialCompatibilityPosture, SpatialRenderedOutputComparisonPosture,
+};
+use crate::workload_platform::spatial_compiled_product_consumer_cutover::lower_evidence_lookup_index_product;
 
 #[test]
 fn index_product_identity_depends_on_selected_plan_and_basis() {
     let selected_plan = IndexProductSubject::sparse_event_ledger().select_plan();
-    let ledger = complete_ledger_for_plan(&selected_plan);
+    let ledger = selected_lookup_slice_for_plan(&selected_plan);
 
-    let left = admit_evidence_lookup_index_product(&selected_plan, &ledger).expect("left index");
-    let right = admit_evidence_lookup_index_product(&selected_plan, &ledger).expect("right index");
+    let left = lower_evidence_lookup_index_product(&selected_plan, &ledger).expect("left index");
+    let right = lower_evidence_lookup_index_product(&selected_plan, &ledger).expect("right index");
 
     assert_eq!(left.index_product_digest(), right.index_product_digest());
     assert_eq!(
@@ -27,10 +31,100 @@ fn index_product_identity_depends_on_selected_plan_and_basis() {
         left.disposal_posture().kind(),
         right.disposal_posture().kind()
     );
+    assert_eq!(
+        left.compiled_product_identity_digest(),
+        right.compiled_product_identity_digest()
+    );
+    assert_eq!(
+        left.equivalence_policy_identity_digest(),
+        right.equivalence_policy_identity_digest()
+    );
+    assert_eq!(
+        left.selected_equivalence_family_identity(),
+        right.selected_equivalence_family_identity()
+    );
+    assert_eq!(
+        left.selected_equivalence_basis_identity_digest(),
+        right.selected_equivalence_basis_identity_digest()
+    );
+    assert_eq!(
+        left.selected_compatibility_basis_identity_digest(),
+        right.selected_compatibility_basis_identity_digest()
+    );
+    assert_eq!(
+        left.selected_reuse_basis_identity_digest(),
+        right.selected_reuse_basis_identity_digest()
+    );
+    assert_eq!(
+        left.selected_compatibility_posture(),
+        SpatialCompatibilityPosture::DistinctFromEquivalence
+    );
+    assert_eq!(
+        left.selected_rendered_output_comparison_posture(),
+        SpatialRenderedOutputComparisonPosture::NotPartOfBasis
+    );
+    assert_eq!(left.reuse_decision_identity_digest(), None);
+    assert_eq!(right.reuse_decision_identity_digest(), None);
+    let lowered_identity = lower_index_family_identity(&selected_plan, &ledger);
+    assert_eq!(
+        left.compiled_product_identity_digest(),
+        lowered_identity
+            .compiled_product_identity()
+            .identity_digest()
+    );
+    assert_eq!(
+        left.equivalence_policy_identity_digest(),
+        lowered_identity
+            .equivalence_policy_identity()
+            .identity_digest()
+    );
 
     let changed_plan = IndexProductSubject::dense_projection_consumption().select_plan();
-    let changed_ledger = complete_ledger_for_plan(&changed_plan);
-    let changed = admit_evidence_lookup_index_product(&changed_plan, &changed_ledger)
+    let changed_ledger = selected_lookup_slice_for_plan(&changed_plan);
+    let changed = lower_evidence_lookup_index_product(&changed_plan, &changed_ledger)
         .expect("changed subject index");
     assert_ne!(left.index_product_digest(), changed.index_product_digest());
+    assert_ne!(
+        left.compiled_product_identity_digest(),
+        changed.compiled_product_identity_digest()
+    );
+    assert_ne!(
+        left.selected_equivalence_basis_identity_digest(),
+        changed.selected_equivalence_basis_identity_digest()
+    );
+}
+
+#[test]
+fn index_product_identity_changes_with_real_stage_authority_change() {
+    let baseline_subject = IndexProductSubject::dense_projection_consumption();
+    let changed_subject = IndexProductSubject::dense_projection_consumption_with_world(
+        "phase-5-foreign-projection-consumption-receipt",
+    );
+    let baseline_plan = baseline_subject.select_plan();
+    let changed_plan = changed_subject.select_plan();
+    let baseline_ledger = selected_lookup_slice_for_plan(&baseline_plan);
+    let changed_ledger = selected_lookup_slice_for_plan(&changed_plan);
+
+    let baseline = lower_evidence_lookup_index_product(&baseline_plan, &baseline_ledger)
+        .expect("baseline admitted index");
+    let changed = lower_evidence_lookup_index_product(&changed_plan, &changed_ledger)
+        .expect("changed admitted index");
+
+    assert_eq!(baseline_plan.stage(), changed_plan.stage());
+    assert_ne!(
+        baseline.stage_receipt_digest(),
+        changed.stage_receipt_digest()
+    );
+    assert_ne!(
+        baseline.compiled_product_identity_digest(),
+        changed.compiled_product_identity_digest()
+    );
+    assert_ne!(
+        baseline.selected_equivalence_basis_identity_digest(),
+        changed.selected_equivalence_basis_identity_digest()
+    );
+    assert_ne!(
+        baseline.index_product_digest(),
+        changed.index_product_digest()
+    );
 }

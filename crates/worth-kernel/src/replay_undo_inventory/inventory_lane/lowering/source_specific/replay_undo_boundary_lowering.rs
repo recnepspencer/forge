@@ -9,7 +9,9 @@ use super::super::inventory_row::ReplayUndoInventoryReportRow;
 
 pub fn lower(catalog: &ReplayUndoDeclaredSourceCatalog) -> Vec<ReplayUndoInventoryReportRow> {
     let source = catalog
-        .require_source(ReplayUndoDeclaredSourceIdentity::KernelBooleanSplitReplayUndoBoundaryAdmission)
+        .require_source(
+            ReplayUndoDeclaredSourceIdentity::KernelBooleanSplitReplayUndoBoundaryAdmission,
+        )
         .expect("declared source");
     vec![ReplayUndoInventoryReportRow::new(
         source.identity(),

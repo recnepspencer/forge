@@ -23,6 +23,17 @@ The plan must distinguish clearly between:
 - proof upgrades needed in verification lanes
 - any residue that should remain explicit debt instead of being faked
 
+Aggression rules for this plan:
+
+- Produce one implementation path, not a menu.
+- Collapse sibling findings into one root-cause repair sequence wherever
+  possible.
+- Prefer adding or cutting over to a real production seam over inventing a
+  certification-only helper.
+- If the correct fix is obvious after reading the findings and touched APIs,
+  keep the plan short and executable instead of expanding it into another
+  review.
+
 Make the plan specific enough that the next implementation turn can execute it
 literally.
 

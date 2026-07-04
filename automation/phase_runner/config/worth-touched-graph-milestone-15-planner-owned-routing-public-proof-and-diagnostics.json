@@ -1,0 +1,425 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "Worth Touched Graph Milestone 15 Planner Owned Routing Public Proof And Diagnostics",
+    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "spec_file": "_docs/worth/touched-graph-milestone-15-planner-owned-routing-public-proof-and-diagnostics.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "_docs/worth/touched-graph-roadmap.md",
+      "_docs/worth/touched-graph-milestone-12-canonical-semantic-graph-contract-for-replay-and-undo.md",
+      "_docs/worth/touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.md",
+      "_docs/worth/touched-graph-milestone-14-unified-compiled-product-cache-and-equivalence-contracts.md",
+      "_docs/worth/touched-graph-milestone-15-planner-owned-routing-public-proof-and-diagnostics.md",
+      "crates/forge-query/docs/AI_README.md",
+      "crates/forge-query/docs/foundations/consumer-kit.md",
+      "crates/forge-query/docs/foundations/support-matrix-and-admission.md",
+      "crates/forge-query/docs/foundations/downstream-runtime-integration.md",
+      "crates/forge-query/docs/domain-capabilities/support/lower-runtime-support-and-boundary-traceability.md",
+      "crates/forge-query/docs/domain-capabilities/support/declaration-scoped-support-and-traceability.md",
+      "crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md",
+      "crates/worth-kernel/src/workload_composition/public_closeout/mod.rs",
+      "crates/worth-kernel/src/workload_composition/source_firewall/mod.rs",
+      "crates/worth-topo/src/projection/diagnostic_surfaces/mod.rs",
+      "crates/worth-topo/src/projection/query_backed_consumer_cutover/closeout.rs",
+      "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout/mod.rs"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md"
+  },
+  "contract_template": "templates/_contract_test_hardening.md",
+  "session_defaults": {
+    "provider": "codex",
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium",
+    "reuse_session": false,
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access",
+      "service_tier": "fast",
+      "features.fast_mode": true
+    }
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Public Proof, Diagnostic, And Explainer Inventory Cut Line",
+      "owner": "worth-kernel, worth-topo, worth-spatial, forge-query",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform",
+        "crates/forge-query/docs",
+        "_docs/worth/touched-graph-milestone-15-planner-owned-routing-public-proof-and-diagnostics.md"
+      ],
+      "acceptance": [
+        "every covered public proof, explainer, and diagnostic surface has an exact inventory row with migrate, delete, cap, or Query-gap posture",
+        "inventory rows classify each surface as prior-proof consumer, family-route product, selected-route consumer, public-proof projection, derived-diagnostic projection, or forbidden legacy explainer",
+        "inventory rows name the exact new parallel folder lane that will replace the displaced surface"
+      ],
+      "instructions": "Freeze every current receipt-backed status, public closeout, diagnostic, explainer, and route-localization surface before introducing replacement lanes.",
+      "qa_focus": "No grep-only theater, no vague grouped rows, and no unnamed current public-proof lane hidden behind polished existing helpers."
+    },
+    {
+      "id": 2,
+      "title": "Shared Planner-Owned Explanation Vocabulary",
+      "owner": "worth-schema, worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-schema",
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform"
+      ],
+      "acceptance": [
+        "shared contracts distinguish selected route identity, selected product identity, witness identity, decision-trace identity, public-proof identity, and diagnostic contract identity",
+        "rendered strings and lower-authority report rows cannot mint planner-owned explanation artifacts",
+        "the shared vocabulary preserves authority versus derivation semantics for planner packets, public proof, and diagnostics"
+      ],
+      "instructions": "Land one shared contract lane for route explanation identity before any family tries to explain itself locally.",
+      "qa_focus": "Shared ownership only, no crate-local sameness ontologies, and no collapsing of route, product, and public-proof identities."
+    },
+    {
+      "id": 3,
+      "title": "Planner Route Trace And Public-Proof Input Packet",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-kernel/src/workload_composition/source_firewall",
+        "crates/worth-kernel/src/workload_composition/public_closeout"
+      ],
+      "acceptance": [
+        "a sealed selected-route packet carries prior-proof identities, selected route identity, selected family and product identity, witness identity, Query posture where applicable, and residue or firewall references",
+        "public proof can assemble from the selected-route packet without reopening topology, evidence, or reuse internals",
+        "later phases consume the same packet rather than rebuilding a second packet from the same facts"
+      ],
+      "instructions": "Create the planner-owned route packet that later execution, public proof, and diagnostics all consume unchanged.",
+      "qa_focus": "No executor-side reconstruction, no projection formatting mixed into selection logic, and no second packet minted downstream."
+    },
+    {
+      "id": 4,
+      "title": "Query-Backed Read Routing Explanation Lane",
+      "owner": "worth-topo, forge-query",
+      "scope": [
+        "crates/worth-topo/src/projection/query_backed_consumer_cutover",
+        "crates/worth-topo/src/projection",
+        "crates/forge-query/docs"
+      ],
+      "acceptance": [
+        "query-backed route explanation consumes admitted Query support posture and boundary evidence rather than Worth-local support folklore",
+        "foreign or mismatched Query posture cannot satisfy the selected route packet",
+        "ordinary route logic lives under a new planner-owned routing lane rather than continuing in query_backed_consumer_cutover"
+      ],
+      "instructions": "Move query-backed read-family explanation out of local closeout and read-model helpers into a dedicated planner-consumable route lane.",
+      "qa_focus": "Real Query artifacts only, no Worth-local summary enums, and no in-place continuation inside legacy closeout folders."
+    },
+    {
+      "id": 5,
+      "title": "Invalidation Route Input Lane",
+      "owner": "worth-topo, worth-kernel",
+      "scope": [
+        "crates/worth-topo/src/derived_topology/invalidation_plan",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "planner input preserves exact touched fact identity, aspect scope, and selected invalidation family",
+        "report rows alone cannot mint invalidation route input",
+        "invalidation explanation becomes a typed planner input rather than a local report reconstruction"
+      ],
+      "instructions": "Make invalidation explanation consumable as typed planner inputs instead of local report reconstruction.",
+      "qa_focus": "Exact touched scope retention, no broad summary collapse, and no projection rows promoted to authority."
+    },
+    {
+      "id": 6,
+      "title": "Derived-Read Diagnostic Input Lane",
+      "owner": "worth-topo, worth-kernel",
+      "scope": [
+        "crates/worth-topo/src/projection/diagnostic_surfaces",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "diagnostic inputs preserve touched fact identity, aspect scope, selected route identity, and selected family",
+        "diagnostic inputs require real invalidation and selected-route products",
+        "route-input construction stays separate from human-facing projection formatting"
+      ],
+      "instructions": "Build the derived-read diagnostic input lane as a separate consumer of prior planner and invalidation products instead of mixing it with invalidation-route authority.",
+      "qa_focus": "No authority drift into diagnostics and no merged route-localization formatter lane."
+    },
+    {
+      "id": 7,
+      "title": "Evidence Lookup Route Lane",
+      "owner": "worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/evidence_lookup_family_catalog",
+        "crates/worth-spatial/src/workload_platform/evidence_lookup_index_product",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "evidence lookup route explanation consumes milestone 14 products without rescanning evidence rows",
+        "denial localizes exact route mismatch rather than broad lookup failure",
+        "the evidence lookup route-authority lane closes before public closeout projection"
+      ],
+      "instructions": "Move evidence lookup explanation onto the planner-owned route vocabulary instead of crate-local closeout assembly.",
+      "qa_focus": "No retained-product folklore, no evidence rows as explanation authority, and no merged counter semantics."
+    },
+    {
+      "id": 8,
+      "title": "Spatial Public-Closeout Route Lane",
+      "owner": "worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "spatial public closeout proves selected family, selected product, and reuse posture from planner route products without rescanning evidence rows",
+        "denial localizes exact family or support mismatch rather than broad lookup failure",
+        "ordinary-path explanation moves into a new planner-owned routing lane instead of current-source assembly"
+      ],
+      "instructions": "Move spatial public-closeout explanation onto the planner-owned route vocabulary instead of crate-local current-source assembly.",
+      "qa_focus": "No current-source linger, no local retained semantics reopening, and no ordinary-path logic added under displaced assembler folders."
+    },
+    {
+      "id": 9,
+      "title": "Replay, Undo, And Transaction Explanation Route Lane",
+      "owner": "worth-kernel, worth-schema",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-schema/src/data/authority/replay_undo_semantic_graph"
+      ],
+      "acceptance": [
+        "execution and public proof both consume the same replay or undo route product",
+        "foreign or stale replay-scope packets deny before public proof assembly",
+        "transaction and undo explanation remain distinct planner route families"
+      ],
+      "instructions": "Lower replay, undo, and transaction-scope explanation into planner-consumable route products so no caller or executor reclassifies scope semantics locally.",
+      "qa_focus": "No same-scope folklore, no helper-summary reconstruction, and no folding of transaction meaning into generic diagnostic text."
+    },
+    {
+      "id": 10,
+      "title": "Conflict And Independence Route Lane",
+      "owner": "worth-kernel, worth-schema",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-schema/src/data/authority/touched_graph_conflict"
+      ],
+      "acceptance": [
+        "conflict and independence explanation share the same selected route chain",
+        "diagnostics distinguish conflict-route denial from independence denial with typed witness identity",
+        "public proof does not reinvent grouped conflict meaning from operator shape or row overlap"
+      ],
+      "instructions": "Lower conflict and independence meaning into planner-consumable route products without letting public proof or diagnostics rebuild grouped-routing semantics locally.",
+      "qa_focus": "No generic blocked posture collapse and no second local grouped-routing ontology."
+    },
+    {
+      "id": 11,
+      "title": "Batch-Admission Route Lane",
+      "owner": "worth-kernel, worth-schema",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-schema/src/data/authority/touched_graph_conflict"
+      ],
+      "acceptance": [
+        "batch explanation binds selected route identity and batch-admission identity together",
+        "diagnostics distinguish batch denial from conflict or independence denial with separate witness identity",
+        "batch-admission explanation remains a separate family-route lane"
+      ],
+      "instructions": "Lower batch-admission meaning into its own planner-consumable route products instead of treating it as a side-effect of conflict explanation.",
+      "qa_focus": "No batch piggybacking on conflict wording and no reconstruction from executor-local bookkeeping."
+    },
+    {
+      "id": 12,
+      "title": "Compiled-Product Reuse Explanation Route Lane",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src/workload_platform"
+      ],
+      "acceptance": [
+        "public proof and diagnostics explain reuse, rebuild, or denial from typed milestone 14 products only",
+        "compatibility-without-reuse stays distinct from successful reuse",
+        "public proof does not compare rendered outputs or helper summaries to explain reuse"
+      ],
+      "instructions": "Lower compiled-product reuse, rebuild-required, compatibility-without-reuse, and denial posture into planner-consumable route meaning instead of reopening milestone 14 cache or equivalence logic locally.",
+      "qa_focus": "No local cache folklore and no silent promotion of compatibility-without-reuse into reuse."
+    },
+    {
+      "id": 13,
+      "title": "Planner-Owned Public Proof Assembly Lane",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/public_closeout",
+        "crates/worth-kernel/src/workload_composition/source_firewall"
+      ],
+      "acceptance": [
+        "public proof assembly fails if covered meaning is provided as local report data instead of a planner-owned route product",
+        "foreign route, firewall, or residue identities cannot be combined into a plausible public proof",
+        "public proof remains a derived artifact-policy consumer rather than a new planning lane"
+      ],
+      "instructions": "Build the public proof lane as a dedicated derived assembly boundary that consumes selected route packets and family route products only.",
+      "qa_focus": "No raw constructor input, no route-policy decisions inside public proof, and no mixing of proof assembly with facade export or diagnostics formatting."
+    },
+    {
+      "id": 14,
+      "title": "Derived Diagnostic Projection Lane",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform"
+      ],
+      "acceptance": [
+        "diagnostics localize exact selected family, selected product, touched or aspect scope, witness identity, and denial posture",
+        "artifact policy can suppress rich diagnostics without losing minimal operational truth",
+        "diagnostics remain derived projections rather than the sole carrier of machine denial truth"
+      ],
+      "instructions": "Build a separate planner-owned derived diagnostics lane that localizes exact route meaning without becoming the authority for that meaning.",
+      "qa_focus": "No diagnostic authority drift, no merged human-facing formatting with machine identity, and no broad labels where exact mismatch data exists."
+    },
+    {
+      "id": 15,
+      "title": "Public Read-Only Facade Boundary",
+      "owner": "worth-kernel, forge-query",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/forge-query/docs"
+      ],
+      "acceptance": [
+        "callers can inspect proof and diagnostics but cannot construct planner route or proof products",
+        "public callers cannot satisfy the facade through support wrappers, raw rows, or local explainer helpers",
+        "public facade files aggregate but do not implement route policy"
+      ],
+      "instructions": "Expose planner-owned proof and diagnostics through a narrow public facade that allows inspection but not fabrication, mutation, or route-local rediscovery.",
+      "qa_focus": "No raw planner constructors, no test-only shortcut exports, and no mirror of internal directory topology on the public facade."
+    },
+    {
+      "id": 16,
+      "title": "Kernel Public-Closeout Cutover",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/public_closeout",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "covered public-closeout entry points fail if planner-owned route products are absent and cannot silently reopen legacy helper logic",
+        "no covered ordinary kernel public-closeout helper lane remains outside the planner-owned cutover or explicit residue ledger",
+        "ordinary callers cut imports to new planner-owned lanes instead of continuing to author behavior under legacy public_closeout modules"
+      ],
+      "instructions": "Cut kernel public-closeout callers from mixed local closeout helpers onto the planner-owned proof and diagnostics lanes.",
+      "qa_focus": "No wrapper-based pseudo-cutover, no current-source continuation, and no legacy public-closeout helper left as the real ordinary authority path."
+    },
+    {
+      "id": 17,
+      "title": "Workload-Composition Explainer Cutover",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "workload-composition explanation surfaces import planner-owned proof or diagnostic lanes directly",
+        "no ordinary workload-composition explainer surface remains outside the new lane or explicit residue ledger",
+        "kernel workload-composition explainer debt is counted independently from public-closeout debt"
+      ],
+      "instructions": "Cut workload-composition explainers and route-local status surfaces off legacy kernel helper lanes and onto planner-owned proof or diagnostic imports.",
+      "qa_focus": "No second local explanation language after cutover and no route-local status helpers kept as harmless convenience."
+    },
+    {
+      "id": 18,
+      "title": "Topology Explainer Cutover",
+      "owner": "worth-topo",
+      "scope": [
+        "crates/worth-topo/src/projection",
+        "crates/worth-topo/src/derived_topology"
+      ],
+      "acceptance": [
+        "ordinary topology callers resolve through the new planner-owned route lanes instead of displaced legacy modules",
+        "compile-fail or source firewall proof rejects imports of displaced topology explainer and closeout helper lanes",
+        "topology cutover happens through real parallel folders and named new imports"
+      ],
+      "instructions": "Cut topology callers off displaced local explainers, report builders, and closeout-local route logic, then delete or cap the old topo lanes.",
+      "qa_focus": "No in-place reshaping of legacy modules and no broad mixed topo lanes hidden as residue."
+    },
+    {
+      "id": 19,
+      "title": "Spatial Explainer Cutover And Hard Deletion",
+      "owner": "worth-spatial",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform"
+      ],
+      "acceptance": [
+        "ordinary spatial callers resolve through the new planner-owned route lanes instead of displaced legacy modules",
+        "compile-fail or source firewall proof rejects imports of displaced spatial explainer and closeout helper lanes",
+        "displaced spatial folders stop being the normal authoring home for route meaning"
+      ],
+      "instructions": "Cut spatial callers off displaced local explainers and closeout-local route logic, then delete or cap the old spatial lanes.",
+      "qa_focus": "No current-source linger, no broad mixed spatial residue, and no pseudo-cutover that keeps old folders as ordinary path owners."
+    },
+    {
+      "id": 20,
+      "title": "Source Firewalls, Constructor Denials, And Compile-Fail Fences",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/source_firewall",
+        "crates/worth-topo/src/certification",
+        "crates/worth-spatial/src/certification"
+      ],
+      "acceptance": [
+        "callers cannot fabricate planner route, public proof, or diagnostic authority from raw collections, strings, or copied digests",
+        "compile-fail fixtures reject imports of forbidden helper lanes, support wrappers, and route-local construction seams",
+        "constructor visibility forces covered callers through planner-owned admission or derived public facade lanes"
+      ],
+      "instructions": "Seal the planner-owned route, proof, and diagnostics boundaries so local explanation ceremony cannot come back.",
+      "qa_focus": "No comments-as-firewalls, no test-only raw constructors left public, and no import firewall without a real replacement lane."
+    },
+    {
+      "id": 21,
+      "title": "Residue Ledger, Query-Gap Ledger, And Honest Public Debt",
+      "owner": "worth-kernel, worth-topo, worth-spatial, forge-query",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform",
+        "crates/forge-query/docs"
+      ],
+      "acceptance": [
+        "every remaining unmigrated public or diagnostic surface is counted exactly with owner, blocker, and removal trigger",
+        "Query-backed support gaps are not mixed with Worth-local architecture residue",
+        "the ledger remains mechanically derivable from live surfaces rather than hand-edited prose"
+      ],
+      "instructions": "Any public or diagnostic path not fully migrated must be explicit residue, explicit Query-gap, or deleted.",
+      "qa_focus": "No future-cleanup euphemisms, no hidden ordinary-path debt, and no false claims of Query support admission."
+    },
+    {
+      "id": 22,
+      "title": "Milestone 15 Closeout And Milestone 16 Handoff",
+      "owner": "worth-kernel, worth-topo, worth-spatial, forge-query",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform",
+        "crates/forge-query/docs",
+        "_docs/worth/touched-graph-roadmap.md"
+      ],
+      "acceptance": [
+        "execution, public proof, and diagnostics consume the same planner-owned selected-route chain on at least one representative path",
+        "milestone 16 handoff products carry route identity, family identity, witness identity, residue posture, and Query posture without local rediscovery",
+        "final closeout proves the migration law was honored: new lanes created beside old ones, ordinary callers cut over, displaced lanes deleted or capped, and no ordinary path depends on local route rediscovery"
+      ],
+      "instructions": "Close the milestone only when public proof and diagnostics are visibly derived from the same planner-owned route authority execution consumed, and emit the handoff products milestone 16 needs for cross-family parity.",
+      "qa_focus": "No closeout by polished diagnostics alone and no milestone 16 handoff that still requires rediscovery from helpers, rows, or strings."
+    }
+  ]
+}

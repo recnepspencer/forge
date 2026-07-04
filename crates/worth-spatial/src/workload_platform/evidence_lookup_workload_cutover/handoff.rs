@@ -1,6 +1,7 @@
 use crate::workload_platform::evidence_lookup_stage_cutover::{
     EvidenceLookupCoveredStageCutoverProof, EvidenceLookupTopologyDerivedReceiptState,
 };
+use crate::workload_platform::selected_equivalence_family::SpatialSelectedEquivalenceFamilyIdentity;
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use super::counters::EvidenceLookupWorkloadCutoverCounters;
@@ -14,6 +15,8 @@ pub struct EvidenceLookupConsumedWorkloadHandoff {
     selected_lookup_plan_digest: String,
     lookup_execution_receipt_digest: String,
     lookup_product_output_digest: String,
+    selected_equivalence_family_identity: SpatialSelectedEquivalenceFamilyIdentity,
+    selected_reuse_basis_identity_digest: String,
     topology_derived_receipt_state: EvidenceLookupTopologyDerivedReceiptState,
     covered_family_identities: Vec<String>,
     counters: EvidenceLookupWorkloadCutoverCounters,
@@ -60,6 +63,10 @@ impl EvidenceLookupConsumedWorkloadHandoff {
             selected_lookup_plan_digest: proof.selected_lookup_plan_digest().to_string(),
             lookup_execution_receipt_digest: proof.lookup_execution_receipt_digest().to_string(),
             lookup_product_output_digest: proof.lookup_product_output_digest().to_string(),
+            selected_equivalence_family_identity: proof.selected_equivalence_family_identity_kind(),
+            selected_reuse_basis_identity_digest: proof
+                .selected_reuse_basis_identity_digest()
+                .to_string(),
             topology_derived_receipt_state: proof.topology_derived_receipt_state().clone(),
             covered_family_identities: proof.covered_family_identities().to_vec(),
             counters,
@@ -85,6 +92,14 @@ impl EvidenceLookupConsumedWorkloadHandoff {
 
     pub fn lookup_product_output_digest(&self) -> &str {
         &self.lookup_product_output_digest
+    }
+
+    pub fn selected_equivalence_family_identity(&self) -> &str {
+        self.selected_equivalence_family_identity.as_str()
+    }
+
+    pub fn selected_reuse_basis_identity_digest(&self) -> &str {
+        &self.selected_reuse_basis_identity_digest
     }
 
     pub const fn topology_derived_receipt_state(
@@ -121,6 +136,14 @@ impl EvidenceLookupConsumedWorkloadHandoff {
                 format!("selected-plan:{}", self.selected_lookup_plan_digest),
                 format!("lookup-execution:{}", self.lookup_execution_receipt_digest),
                 format!("lookup-product:{}", self.lookup_product_output_digest),
+                format!(
+                    "selected-equivalence-family:{}",
+                    self.selected_equivalence_family_identity.as_str()
+                ),
+                format!(
+                    "selected-reuse-basis:{}",
+                    self.selected_reuse_basis_identity_digest
+                ),
                 topology_derived_receipt_state_digest_part(&self.topology_derived_receipt_state),
                 format!("covered-families:{}", covered_family_identities.join("|")),
                 format!(
@@ -177,7 +200,7 @@ impl EvidenceLookupConsumedWorkloadHandoff {
     }
 
     #[cfg(any(test, feature = "test-support-lowering"))]
-    pub(crate) fn with_test_stage_receipt_identity(
+    pub fn with_test_stage_receipt_identity(
         mut self,
         stage_receipt_identity: impl Into<String>,
     ) -> Self {
@@ -200,6 +223,36 @@ impl EvidenceLookupConsumedWorkloadHandoff {
         lookup_execution_receipt_digest: impl Into<String>,
     ) -> Self {
         self.lookup_execution_receipt_digest = lookup_execution_receipt_digest.into();
+        self
+    }
+
+    #[cfg(any(test, feature = "test-support-lowering"))]
+    pub fn with_test_selected_equivalence_family_identity(
+        mut self,
+        selected_equivalence_family_identity: impl AsRef<str>,
+    ) -> Self {
+        self.selected_equivalence_family_identity =
+            match selected_equivalence_family_identity.as_ref() {
+                "spatial.selected-equivalence.evidence-lookup-semantic-parity" => {
+                    SpatialSelectedEquivalenceFamilyIdentity::EvidenceLookupSemanticParity
+                }
+                "spatial.selected-equivalence.retained-cancellation-semantic-parity" => {
+                    SpatialSelectedEquivalenceFamilyIdentity::RetainedCancellationSemanticParity
+                }
+                "spatial.selected-equivalence.retained-replay-semantic-parity" => {
+                    SpatialSelectedEquivalenceFamilyIdentity::RetainedReplaySemanticParity
+                }
+                other => panic!("unknown selected equivalence family identity: {other}"),
+            };
+        self
+    }
+
+    #[cfg(any(test, feature = "test-support-lowering"))]
+    pub fn with_test_selected_reuse_basis_identity_digest(
+        mut self,
+        selected_reuse_basis_identity_digest: impl Into<String>,
+    ) -> Self {
+        self.selected_reuse_basis_identity_digest = selected_reuse_basis_identity_digest.into();
         self
     }
 

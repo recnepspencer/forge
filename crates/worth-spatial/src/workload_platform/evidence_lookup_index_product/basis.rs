@@ -19,6 +19,9 @@ use super::topology_support::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct EvidenceLookupLedgerBasis {
     basis_digest: String,
+    selected_plan_digest: String,
+    spatial_touch_digest: String,
+    stage_receipt_digest: String,
     topology_support_digest: String,
     query_support_digest: String,
     rows: Vec<WorkloadEvidenceRow>,
@@ -44,6 +47,9 @@ impl EvidenceLookupLedgerBasis {
         let basis_digest = basis_digest(selected_plan, &rows, selected_scope_row_limit);
         Self {
             basis_digest,
+            selected_plan_digest: selected_plan.selected_plan_digest().to_string(),
+            spatial_touch_digest: selected_plan.spatial_touch_digest().to_string(),
+            stage_receipt_digest: selected_plan.stage_receipt_digest().to_string(),
             topology_support_digest,
             query_support_digest,
             rows,
@@ -52,7 +58,7 @@ impl EvidenceLookupLedgerBasis {
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn from_complete_ledger_scope(
         selected_plan: &EvidenceLookupSelectedPlan,
         ledger: &CompleteWorkloadEvidenceLedger,
@@ -65,6 +71,9 @@ impl EvidenceLookupLedgerBasis {
         let basis_digest = basis_digest(selected_plan, &rows, selected_scope_row_limit);
         Self {
             basis_digest,
+            selected_plan_digest: selected_plan.selected_plan_digest().to_string(),
+            spatial_touch_digest: selected_plan.spatial_touch_digest().to_string(),
+            stage_receipt_digest: selected_plan.stage_receipt_digest().to_string(),
             topology_support_digest,
             query_support_digest,
             rows,
@@ -79,6 +88,18 @@ impl EvidenceLookupLedgerBasis {
 
     pub(crate) fn rows(&self) -> &[WorkloadEvidenceRow] {
         &self.rows
+    }
+
+    pub(crate) fn selected_plan_digest(&self) -> &str {
+        &self.selected_plan_digest
+    }
+
+    pub(crate) fn spatial_touch_digest(&self) -> &str {
+        &self.spatial_touch_digest
+    }
+
+    pub(crate) fn stage_receipt_digest(&self) -> &str {
+        &self.stage_receipt_digest
     }
 
     pub(crate) fn topology_support_digest(&self) -> &str {

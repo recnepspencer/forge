@@ -2,6 +2,10 @@ use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use crate::facade::planar_boolean_common_plane::PlanarBooleanCommonPlaneSharedPlaneIdentityReceipt;
 use crate::planar_contracts::contract_bundle::PlanarM7ReadinessReceipt;
+use crate::workload_platform::evidence_ledger::{
+    BooleanEvidenceReceipt, BooleanEvidenceReceiptSealed, BooleanEvidenceRowAuthority,
+    BooleanEvidenceStageKind, WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+};
 use crate::workload_platform::projection_workload::common_plane_projection_local_basis_identity;
 
 use super::denial::PlanarBooleanCommonPlaneLocalFrameSelectionDenial;
@@ -94,6 +98,28 @@ impl PlanarBooleanCommonPlaneLocalFrameSelectionReceipt {
     }
 }
 
+impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneLocalFrameSelectionReceipt {
+    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
+        BooleanEvidenceStageKind::LocalFrameSelection
+    }
+
+    fn evidence_identity(&self) -> &str {
+        self.local_frame_selection_receipt_identity()
+    }
+
+    fn evidence_support(&self) -> WorkloadEvidenceSupport {
+        WorkloadEvidenceSupport::Admitted
+    }
+
+    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
+        WorkloadEvidenceStageCounters::boolean_local_frame_selection()
+    }
+}
+
+impl BooleanEvidenceReceiptSealed for PlanarBooleanCommonPlaneLocalFrameSelectionReceipt {}
+
+impl BooleanEvidenceRowAuthority for PlanarBooleanCommonPlaneLocalFrameSelectionReceipt {}
+
 fn local_frame_selection_receipt_identity(
     receipt: &PlanarBooleanCommonPlaneLocalFrameSelectionReceipt,
 ) -> String {
@@ -122,6 +148,8 @@ fn local_frame_selection_receipt_identity(
 #[cfg(test)]
 #[path = "receipt_test_support.rs"]
 mod receipt_test_support;
+#[cfg(test)]
+pub(crate) use receipt_test_support::{readiness_receipt, shared_plane_identity_receipt};
 #[cfg(test)]
 #[path = "receipt_tests.rs"]
 mod receipt_tests;

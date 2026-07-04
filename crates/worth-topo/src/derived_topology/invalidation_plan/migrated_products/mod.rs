@@ -5,7 +5,6 @@ pub(crate) mod loop_cycles;
 pub(crate) mod materialized_graph;
 #[allow(dead_code)]
 pub(crate) mod radial_rings;
-#[cfg(test)]
 pub(crate) mod required_sweep;
 #[allow(dead_code)]
 pub(crate) mod shell_views;
@@ -48,6 +47,10 @@ pub use radial_rings::{
     RadialRingMigrationCounters, RadialRingMigrationError, RadialRingOldAuthorityResidue,
     RadialRingOldAuthorityResidueRow, RadialRingProductRow, RadialRingReadSource,
     RadialRingReadStageCounters, RadialRingReadStageExecutor, RadialRingReadStageReceipt,
+};
+pub use required_sweep::{
+    close_required_product_migration_sweep_from_execution_receipt,
+    RequiredProductMigrationSweepError,
 };
 #[allow(unused_imports)]
 pub use shell_views::{

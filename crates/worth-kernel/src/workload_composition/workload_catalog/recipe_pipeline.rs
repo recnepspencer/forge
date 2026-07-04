@@ -5,7 +5,8 @@ use worth_spatial::facade::projection_workload::{
     LocalFrameBasis, ProjectedPlanarWorkload, ProjectionReceiptSet, ProjectionWorkload,
 };
 use worth_spatial::facade::retained_replay_workload::{
-    canonical_retained_cancellation_chain_capture, ReplayReceiptSet, ReplayWorkload,
+    admit_retained_replay_capture, canonical_retained_cancellation_chain_capture, ReplayReceiptSet,
+    ReplayWorkload,
 };
 use worth_spatial::facade::surface_support::{
     CertifiedSurfaceSupport, SurfaceFamily, SurfaceSupportReceiptSet, SurfaceSupportWorkload,
@@ -260,7 +261,7 @@ fn replay_transformed_geometry(
             )?;
             let replayed = ReplayWorkload::for_transformed_workload(transformed)
                 .declared(format!("catalog retained replay for {declaration}"))
-                .with_captured_retained_workload(captured)
+                .with_admitted_retained_replay_capture(admit_retained_replay_capture(captured))
                 .replay()?;
             Ok(CatalogRetainedReplay::from_replay_receipts(
                 replayed.receipts().clone(),

@@ -6,17 +6,22 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::MilestoneOneCertificationError;
-use crate::projection::diagnostic_surfaces::DerivedEquivalenceContractReport;
+use crate::derived_topology::compiled_product_consumer_cutover::DerivedEquivalenceContractReport;
+use crate::derived_topology::materialized_graph::MaterializedTopologyView;
+use crate::derived_topology::traversal_views::InterpretedTopologyView;
+use crate::projection::planner_owned_routing::diagnostic_projection_input::report_types::DerivedReadDiagnostics;
+use crate::projection::planner_owned_routing::diagnostic_projection_input::source::build_derived_read_diagnostics;
 use crate::projection::runtime_boundary::declared_query_surfaces::retained_artifacts::{
-    materialize_topology_historical_derived_surface_snapshot,
-    TopologyHistoricalDerivedSurfaceSnapshot,
+    build_topology_historical_derived_surface_snapshot, TopologyHistoricalDerivedSurfaceSnapshot,
 };
 use crate::projection::runtime_boundary::declared_query_surfaces::{
-    declare_topology_query_surfaces, materialize_declared_query_surface_row,
-    TopologyDeclaredQuerySurfaces, TopologyQuerySurfaceError,
+    declare_topology_query_surfaces, TopologyDeclaredQuerySurfaces, TopologyQuerySurfaceError,
 };
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
+};
+use crate::projection::runtime_boundary::read_stage::{
+    open_topology_read_view, stage_topology_read_from_view,
 };
 use crate::validation::validate_named_topology_truth;
 
@@ -24,6 +29,9 @@ pub(crate) struct HistoricalReadBasisQueryRuntime {
     read_basis: DerivedTopologyReadBasis,
     workspace: ForgeQueryWorkspace,
     surfaces: TopologyDeclaredQuerySurfaces,
+    materialized: MaterializedTopologyView,
+    interpreted: InterpretedTopologyView,
+    validation: crate::validation::DerivedTopologyValidationReport,
 }
 
 pub(crate) struct HistoricalQuerySurfaceEvidence {
@@ -61,16 +69,11 @@ impl HistoricalReadBasisQueryRuntime {
         read_basis: DerivedTopologyReadBasis,
         workspace_name: &str,
     ) -> Result<Self, MilestoneOneCertificationError> {
-        let read_view = runtime
-            .read_truth()
-            .read_snapshot(read_basis.snapshot())
-            .ok_or_else(|| {
-                MilestoneOneCertificationError::ReadView(format!(
-                    " certification could not open snapshot {:?}",
-                    read_basis.snapshot()
-                ))
-            })?;
+        let read_view = open_topology_read_view(runtime, &read_basis)
+            .map_err(|error| MilestoneOneCertificationError::ReadView(error.to_string()))?;
         validate_named_topology_truth(&read_view)?;
+        let staged = stage_topology_read_from_view(&read_view)
+            .map_err(|error| MilestoneOneCertificationError::ReadView(error.to_string()))?;
         let adapters =
             TopologyRuntimeAdapters::snapshot_historical_basis(read_view, read_basis.clone());
         let mut workspace = topology_runtime(adapters, workspace_name)
@@ -81,6 +84,9 @@ impl HistoricalReadBasisQueryRuntime {
             read_basis,
             workspace,
             surfaces,
+            materialized: staged.materialized().clone(),
+            interpreted: staged.interpreted().clone(),
+            validation: staged.validation().clone(),
         })
     }
 
@@ -99,19 +105,23 @@ impl HistoricalReadBasisQueryRuntime {
     pub(crate) fn historical_derived_surface_snapshot(
         &mut self,
     ) -> Result<TopologyHistoricalDerivedSurfaceSnapshot, TopologyQuerySurfaceError> {
-        materialize_topology_historical_derived_surface_snapshot(
-            &self.surfaces,
-            &mut self.workspace,
+        let diagnostics = self.local_derived_read_diagnostics();
+        let equivalence_contract = diagnostics.equivalence_contract_report.clone();
+        build_topology_historical_derived_surface_snapshot(
+            self.materialized.clone(),
+            self.interpreted.clone(),
+            self.validation.clone(),
+            diagnostics,
+            equivalence_contract,
         )
     }
 
     pub(crate) fn historical_equivalence_read_basis_facts(
         &mut self,
     ) -> Result<DerivedEquivalenceContractReport, TopologyQuerySurfaceError> {
-        materialize_declared_query_surface_row(
-            &mut self.workspace,
-            self.surfaces.equivalence_contract(),
-        )
+        Ok(self
+            .local_derived_read_diagnostics()
+            .equivalence_contract_report)
     }
 
     pub(crate) fn query_surface_evidence(
@@ -135,6 +145,17 @@ impl HistoricalReadBasisQueryRuntime {
             equivalence_state: equivalence.0,
             equivalence_inspection: equivalence.1,
         })
+    }
+}
+
+impl HistoricalReadBasisQueryRuntime {
+    fn local_derived_read_diagnostics(&self) -> DerivedReadDiagnostics {
+        build_derived_read_diagnostics(
+            &self.read_basis,
+            &self.materialized,
+            &self.interpreted,
+            &self.validation,
+        )
     }
 }
 

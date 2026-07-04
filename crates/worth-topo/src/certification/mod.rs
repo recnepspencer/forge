@@ -10,6 +10,8 @@ mod historical_materialization_closeout;
 mod primitive_corpus;
 #[cfg(test)]
 mod projection_closeout;
+mod public_closeout_seed_support;
+pub mod public_facade_contracts;
 mod query_boundary_cleanup_closeout;
 mod rejections;
 mod requirements;
@@ -70,6 +72,26 @@ pub use historical_materialization_closeout::{
     TopologyHistoricalMaterializationArea, TopologyHistoricalMaterializationCloseoutReport,
     TopologyHistoricalMaterializationRow, TopologyHistoricalMaterializationStatus,
 };
+#[cfg(any(test, feature = "test-support-lowering"))]
+pub use public_closeout_seed_support::{
+    admit_current_topology_query_backed_consumer_cutover_with_selected_route_authority,
+    TopologyQueryBackedReadFamilySelectedRouteAuthority,
+};
+pub use public_closeout_seed_support::{
+    current_topology_milestone_fifteen_planner_seed_support,
+    current_topology_milestone_fifteen_planner_seed_support_with_hostile_selected_reuse_basis_identity_digest,
+    current_topology_public_closeout_alignment_summary,
+    current_topology_query_backed_consumer_cutover_with_hostile_loop_cycle_selected_compatibility_basis,
+    TopologyMilestoneFifteenPlannerSeedSupport, TopologyPublicCloseoutAlignmentSummary,
+    TopologyPublicCloseoutFreshnessRequirementPosture,
+    TopologyPublicCloseoutRenderedOutputComparisonPosture, TopologyPublicCloseoutSeedSupportError,
+};
+pub use public_facade_contracts::{
+    current_topology_public_facade_compile_fail_closeout,
+    topology_public_facade_compile_fail_closeout_excluding_fence_class_for_tests,
+    TopologyPublicFacadeCompileFailCloseout, TopologyPublicFacadeCompileFailCloseoutError,
+    TopologyPublicFacadeCompileFailCloseoutErrorKind,
+};
 pub use query_boundary_cleanup_closeout::{
     TopologyQueryBoundaryCleanupArea, TopologyQueryBoundaryCleanupCloseoutReport,
     TopologyQueryBoundaryCleanupRow, TopologyQueryBoundaryCleanupStatus,
@@ -79,11 +101,9 @@ pub use requirements::{
     milestone_three_closeout_requirements, milestone_three_closeout_suite_definition,
     milestone_two_closeout_requirements, milestone_two_closeout_suite_definition,
 };
-pub use support::parity::{
+pub(crate) use support::parity::{
     build_derived_equivalence_contract, compare_derived_equivalence_contracts,
-    digest_derived_validation_report, digest_interpreted_topology_view,
-    digest_materialized_topology_view, DerivedEquivalenceContractReport,
-    DerivedParityComparisonReport,
+    DerivedEquivalenceContractReport,
 };
 pub use support::reporting::{
     AdmittedRangeSweepReport, AdmittedRangeSweepRow, BranchLocalTopologyReport,

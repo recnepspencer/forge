@@ -1,7 +1,7 @@
 use super::*;
 use crate::certification::support::parity::build_derived_equivalence_contract;
 use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
-use crate::projection::diagnostic_surfaces::derived_read_diagnostics::build_derived_read_diagnostics;
+use crate::projection::planner_owned_routing::diagnostic_projection_input::source::build_derived_read_diagnostics;
 use crate::projection::runtime_boundary::read_stage::stage_topology_read_from_view;
 
 #[test]

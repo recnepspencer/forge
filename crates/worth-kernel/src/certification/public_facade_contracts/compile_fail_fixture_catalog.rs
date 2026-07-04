@@ -119,3 +119,18 @@ pub(super) const PLANAR_BOOLEAN_LOOP_RECONSTRUCTION_CORE_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/containment_posture_set_not_forgeable.rs",
     "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/degenerate_loop_boundary_not_forgeable.rs",
 ];
+
+pub(super) const COMPILED_PRODUCT_CONSUMER_CUTOVER_EXPECTED_ERRORS: &[(&str, &str)] = &[
+    (
+        "src/certification/public_facade_contracts/compile_fail/compiled_product_consumer_cutover/rejects_dependency_row_struct_literal.rs",
+        "private field",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/compiled_product_consumer_cutover/rejects_dependency_matrix_struct_literal.rs",
+        "private field",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/compiled_product_consumer_cutover/rejects_raw_query_boundary_label.rs",
+        "expected `KernelCompiledProductQueryBoundaryLane`",
+    ),
+];

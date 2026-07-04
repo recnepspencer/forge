@@ -2,6 +2,8 @@ use worth_primitives::{truth_digest_parts, TruthDigestScope};
 use worth_spatial::facade::workload_vocabulary::WorkloadEvidenceStage;
 
 use super::BatchAdmissionExecutionCounters;
+#[cfg(test)]
+use crate::workload_composition::BatchAdmissionPlanDenialKind;
 use crate::workload_composition::{
     BatchAdmissionFamilyPosture, BatchAdmissionPlanAdvisory, BatchAdmissionPlanDenial,
     BatchAdmissionSelectedFamilyRow, BatchAdmissionSupportingConflictFamilyRow,
@@ -171,5 +173,42 @@ impl BatchAdmissionExecutionReceipt {
     }
     pub fn evidence_stage(&self) -> WorkloadEvidenceStage {
         WorkloadEvidenceStage::BatchAdmissionExecution
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_test_denial_kind(mut self, kind: BatchAdmissionPlanDenialKind) -> Self {
+        self.denial = Some(BatchAdmissionPlanDenial::new(
+            kind,
+            "batch admission hostile denial override",
+        ));
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_test_selected_conflict_plan_digests(mut self, digests: Vec<String>) -> Self {
+        self.selected_conflict_plan_digests = digests.clone();
+        self.selected_conflict_plan_identities = digests;
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_test_independence_proof_identities(
+        mut self,
+        identities: Vec<String>,
+    ) -> Self {
+        self.independence_proof_identities = identities;
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_test_overlap_identity_digests(mut self, digests: Vec<String>) -> Self {
+        self.overlap_identity_digests = digests;
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_test_locality_footprint_digests(mut self, digests: Vec<String>) -> Self {
+        self.locality_footprint_digests = digests;
+        self
     }
 }

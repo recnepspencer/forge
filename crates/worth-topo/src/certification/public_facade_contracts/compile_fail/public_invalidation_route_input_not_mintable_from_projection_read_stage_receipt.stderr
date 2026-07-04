@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+ --> src/certification/public_facade_contracts/compile_fail/public_invalidation_route_input_not_mintable_from_projection_read_stage_receipt.rs:7:9
+  |
+6 |     let _ = admit_topology_invalidation_route_input(
+  |             --------------------------------------- arguments to this function are incorrect
+7 |         fake_projection_read_stage_receipt(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&DerivedInvalidationTouchedClosure`, found `&...`
+  |
+  = note: expected reference `&DerivedInvalidationTouchedClosure`
+             found reference `&'static DerivedInvalidationProjectionReadStageReceipt`
+note: function defined here
+ --> src/projection/planner_owned_routing/invalidation_route/route_input.rs
+  |
+  | pub fn admit_topology_invalidation_route_input(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

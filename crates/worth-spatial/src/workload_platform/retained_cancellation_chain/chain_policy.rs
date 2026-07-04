@@ -65,6 +65,9 @@ pub enum RetainedCancellationChainError {
     ProjectionConsumedFactMismatch {
         step_index: usize,
     },
+    CompiledProductFamilyLowering {
+        detail: String,
+    },
     LiveExtractionForbidden,
 }
 
@@ -133,6 +136,11 @@ impl RetainedCancellationChainError {
             Self::ProjectionConsumedFactMismatch { step_index } => {
                 format!(
                     "projection-consumed facts do not match the retained basis at checkpoint {step_index}"
+                )
+            }
+            Self::CompiledProductFamilyLowering { detail } => {
+                format!(
+                    "retained cancellation chain could not lower through the spatial compiled-product family lane: {detail}"
                 )
             }
             Self::LiveExtractionForbidden => {

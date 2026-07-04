@@ -4,7 +4,9 @@ use forge_query::facade::{
 };
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
-use crate::projection::runtime_boundary::declared_query_surfaces::query_diagnostics::TopologyQueryMutationEvidence;
+use crate::projection::runtime_boundary::declared_query_surfaces::query_diagnostics::{
+    TopologyHistoricalReadBasisMetadata, TopologyQueryMutationEvidence,
+};
 
 #[derive(Debug, Clone)]
 pub(crate) enum TopologyRuntimeDeclarationInitialization {
@@ -46,11 +48,22 @@ impl ForgeQueryRuntimeDeclarationInitializationAdapter
             TopologyRuntimeDeclarationInitialization::HistoricalReadBasis(read_basis) => {
                 let mut metadata = ForgeQueryMutationMetadata::default();
                 metadata.insert(
-                    TopologyQueryMutationEvidence::metadata_key().to_string(),
-                    serde_json::to_string(&TopologyQueryMutationEvidence::from_read_basis(read_basis))
+                    TopologyHistoricalReadBasisMetadata::metadata_key().to_string(),
+                    serde_json::to_string(&TopologyHistoricalReadBasisMetadata::from_read_basis(
+                        read_basis,
+                    ))
                         .map_err(|error| {
                             ForgeQueryWorkspaceError::new(format!(
                                 "topology declaration initialization failed to encode historical read-basis evidence: {error}"
+                            ))
+                        })?,
+                )?;
+                metadata.insert(
+                    ".topology.read_basis".to_string(),
+                    serde_json::to_string(&TopologyQueryMutationEvidence::from_read_basis(read_basis))
+                        .map_err(|error| {
+                            ForgeQueryWorkspaceError::new(format!(
+                                "topology declaration initialization failed to encode historical read-basis summary: {error}"
                             ))
                         })?,
                 )?;

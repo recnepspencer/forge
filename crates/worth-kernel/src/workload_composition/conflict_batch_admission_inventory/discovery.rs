@@ -189,6 +189,7 @@ fn is_ignored_closeout_path(path: &Path) -> bool {
     let normalized = normalized_path(path);
     normalized.contains("/conflict_batch_admission_inventory/")
         || normalized.contains("/compile_fail/")
+        || normalized.contains("/public_closeout_seed_support/")
         || normalized.contains("/test_support/")
         || normalized.contains("/tests/")
         || normalized.ends_with("_tests.rs")

@@ -46,6 +46,7 @@ pub use family_record::{
     WorthTopologyValidatorFamilyRecord,
 };
 pub use milestone_nine_closeout::{
+    current_topology_validator_invariant_milestone_nine_closeout,
     WorthTopologyMilestoneNineAuthorityOccurrenceInventory,
     WorthTopologyMilestoneNineAuthorityOccurrenceInventoryRow,
     WorthTopologyMilestoneNineAuthorityOccurrenceStatus, WorthTopologyMilestoneNineCloseout,
@@ -120,6 +121,8 @@ pub use selected_validator_enforcement::{
     WorthTopologySelectedValidatorEnforcementSourceFirewallReport,
 };
 pub use selection_from_touched_closure::{
+    current_topology_validator_invariant_selection_closeout,
+    current_topology_validator_invariant_selection_closeout_for_declared_touch,
     WorthTopologyLegalitySelectionCloseout, WorthTopologyLegalitySelectionCounters,
     WorthTopologyLegalitySelectionDenial, WorthTopologyLegalitySelectionDenialKind,
     WorthTopologyLegalitySelectionPhaseFourSeed, WorthTopologySelectedLegalityObligationPlan,

@@ -1,15 +1,38 @@
-use worth_kernel::workload_composition::WorthTouchedGraphConflictMilestoneFourteenSeed;
+use worth_kernel::workload_composition::WorthTouchedGraphConflictMilestoneFifteenSeed;
 
 fn main() {
-    let _ = WorthTouchedGraphConflictMilestoneFourteenSeed {
+    let _ = WorthTouchedGraphConflictMilestoneFifteenSeed {
         overlap_identity_digests: todo!(),
         locality_footprint_digests: todo!(),
         selected_conflict_plan_digests: todo!(),
         independence_proof_digests: todo!(),
         selected_batch_plan_digest: todo!(),
         batch_execution_receipt_digest: todo!(),
+        replay_undo_boundary_proof_digests: todo!(),
+        transaction_packet_identities: todo!(),
+        replay_scope_identities: todo!(),
+        undo_scope_identities: todo!(),
+        topology_compiled_product_identity_digest: todo!(),
+        topology_equivalence_policy_identity_digest: todo!(),
+        evidence_lookup_public_closeout_digest: todo!(),
+        evidence_lookup_query_boundary_support_digest: todo!(),
+        topology_query_backed_consumer_cutover_digest: todo!(),
+        topology_query_public_read_family_row_digest: todo!(),
+        topology_query_selected_equivalence_family_identity: todo!(),
+        topology_query_selected_equivalence_basis_identity_digest: todo!(),
+        topology_query_selected_compatibility_basis_identity_digest: todo!(),
+        topology_query_selected_reuse_basis_identity_digest: todo!(),
+        topology_query_reuse_decision_identity_digest: todo!(),
+        topology_query_rebuild_denial_identity_digest: todo!(),
+        compiled_product_reuse_route_packet_identity: todo!(),
+        spatial_compiled_product_identity_digest: todo!(),
+        spatial_equivalence_policy_identity_digest: todo!(),
+        spatial_selected_equivalence_family_identity: todo!(),
+        spatial_reuse_decision_identity_digest: todo!(),
+        spatial_rebuild_denial_identity_digest: todo!(),
         residue_digest: todo!(),
         source_firewall_digest: todo!(),
+        planner_proof_input: todo!(),
         seed_digest: todo!(),
     };
 }

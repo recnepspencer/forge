@@ -76,6 +76,14 @@ fn milestone_twelve_seed_has_lookup_scope_without_rescan() {
             .selected_lookup_plan_digest(),
         proof.selected_lookup_plan_digest()
     );
+    assert_eq!(
+        handoff.selected_equivalence_family_identity(),
+        proof.selected_equivalence_family_identity()
+    );
+    assert_eq!(
+        handoff.selected_reuse_basis_identity_digest(),
+        proof.selected_reuse_basis_identity_digest()
+    );
     assert_eq!(handoff.counters().raw_row_scan_count(), 0);
     assert_eq!(handoff.counters().broad_receipt_scan_count(), 0);
     assert_eq!(handoff.counters().caller_owned_scan_count(), 0);

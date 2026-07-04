@@ -1,0 +1,28 @@
+warning: unreachable expression
+ --> src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/lowered_identity_not_hand_filled.rs:6:24
+  |
+5 |         family_identity: todo!(),
+  |                          ------- any code following this expression is unreachable
+6 |         family_digest: todo!(),
+  |                        ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `family_identity`, `family_digest`, `authority_truth_identity`, `compiled_product_identity`, `prior_proof_identity` and `equivalence_policy_identity` of struct `SpatialCompiledProductLoweredIdentity` are private
+  --> src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/lowered_identity_not_hand_filled.rs:5:9
+   |
+ 4 |     let _ = SpatialCompiledProductLoweredIdentity {
+   |             ------------------------------------- in this type
+ 5 |         family_identity: todo!(),
+   |         ^^^^^^^^^^^^^^^ private field
+ 6 |         family_digest: todo!(),
+   |         ^^^^^^^^^^^^^ private field
+ 7 |         authority_truth_identity: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         compiled_product_identity: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         prior_proof_identity: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+10 |         equivalence_policy_identity: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

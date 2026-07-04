@@ -5,6 +5,7 @@ use super::lifecycle_posture::EvidenceLookupIndexLifecyclePosture;
 pub enum EvidenceLookupIndexProductErrorKind {
     MissingSelectedStageLedgerRow,
     LedgerBasisExceedsSelectedScope,
+    SpatialAdmissionDenied,
     ReusedIndexBasisMismatch,
     PersistentCapabilitySupportRequired,
 }
@@ -15,6 +16,7 @@ pub struct EvidenceLookupIndexProductError {
     detail: String,
     counters: EvidenceLookupIndexProductCounters,
     required_lifecycle_posture: Option<EvidenceLookupIndexLifecyclePosture>,
+    rebuild_denial_identity_digest: Option<String>,
 }
 
 impl EvidenceLookupIndexProductError {
@@ -27,6 +29,7 @@ impl EvidenceLookupIndexProductError {
             detail: detail.into(),
             counters: EvidenceLookupIndexProductCounters::default(),
             required_lifecycle_posture: None,
+            rebuild_denial_identity_digest: None,
         }
     }
 
@@ -40,6 +43,11 @@ impl EvidenceLookupIndexProductError {
         posture: EvidenceLookupIndexLifecyclePosture,
     ) -> Self {
         self.required_lifecycle_posture = Some(posture);
+        self
+    }
+
+    pub(crate) fn with_rebuild_denial_identity_digest(mut self, digest: impl Into<String>) -> Self {
+        self.rebuild_denial_identity_digest = Some(digest.into());
         self
     }
 
@@ -57,5 +65,9 @@ impl EvidenceLookupIndexProductError {
 
     pub const fn required_lifecycle_posture(&self) -> Option<EvidenceLookupIndexLifecyclePosture> {
         self.required_lifecycle_posture
+    }
+
+    pub fn rebuild_denial_identity_digest(&self) -> Option<&str> {
+        self.rebuild_denial_identity_digest.as_deref()
     }
 }

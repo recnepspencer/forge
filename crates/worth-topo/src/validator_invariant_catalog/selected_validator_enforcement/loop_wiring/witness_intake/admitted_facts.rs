@@ -1,7 +1,6 @@
 use crate::validator_invariant_catalog::selected_validator_enforcement::loop_wiring::{
     WorthTopologyLoopWiringHalfEdgeWitnessRow, WorthTopologyLoopWiringLoopWitnessRow,
 };
-#[cfg(test)]
 use crate::validator_invariant_catalog::selection_from_touched_closure::WorthTopologySelectedLegalityObligationRow;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -17,7 +16,6 @@ pub struct WorthTopologyLoopWiringAdmittedLocalFacts {
 }
 
 impl WorthTopologyLoopWiringAdmittedLocalFacts {
-    #[cfg(test)]
     pub(in crate::validator_invariant_catalog) fn from_selected_obligation_and_rows(
         selected_obligation: &WorthTopologySelectedLegalityObligationRow,
         admitted_fact_receipt_digest: impl Into<String>,
@@ -34,7 +32,6 @@ impl WorthTopologyLoopWiringAdmittedLocalFacts {
         )
     }
 
-    #[cfg(test)]
     pub(in crate::validator_invariant_catalog) fn from_selected_obligation_rows_and_rejected_counts(
         selected_obligation: &WorthTopologySelectedLegalityObligationRow,
         admitted_fact_receipt_digest: impl Into<String>,

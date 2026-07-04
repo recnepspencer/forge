@@ -30,7 +30,6 @@ pub struct MaterializedTopologyView {
 }
 
 impl MaterializedTopologyView {
-    #[cfg(test)]
     pub(crate) fn new(topology: TopologyView, report: MaterializationReport) -> Self {
         Self { topology, report }
     }
@@ -62,7 +61,6 @@ impl MaterializedTopologyView {
         }
     }
 
-    #[cfg(test)]
     pub(crate) fn whole_view(topology: TopologyView) -> Self {
         Self::from_complete_topology_view(topology)
     }

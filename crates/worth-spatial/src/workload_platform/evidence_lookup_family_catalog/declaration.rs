@@ -15,11 +15,11 @@ use super::posture::{
 };
 use super::source_pressure::EvidenceLookupFamilySourceInventoryPressure;
 use super::stage_applicability::EvidenceLookupStageApplicability;
-use crate::workload_platform::evidence_ledger::SpatialGeometryEvidenceTouchAuthority;
 use crate::touched_graph_conflict::{
     current_spatial_conflict_family_catalog_closeout, SpatialConflictFamilyApplicability,
     SpatialConflictFamilyIdentity,
 };
+use crate::workload_platform::evidence_ledger::SpatialGeometryEvidenceTouchAuthority;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EvidenceLookupSpatialTouchAuthorityRequirement {

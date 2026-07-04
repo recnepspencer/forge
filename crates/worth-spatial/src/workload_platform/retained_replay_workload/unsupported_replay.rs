@@ -6,6 +6,7 @@ use crate::workload_platform::vocabulary::{
 pub enum UnsupportedReplayReasonCode {
     MissingDeclaration,
     MissingRetainedArtifacts,
+    MissingRetainedCaptureReceipt,
     MissingProjectionConsumedFacts,
     RetainedProjectionDrift,
     RetainedHistoricalReplayDenied,

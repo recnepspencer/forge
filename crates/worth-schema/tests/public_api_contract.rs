@@ -1,5 +1,13 @@
 use schema::facade::platform::aspects::Aspect;
 use schema::facade::platform::authority::{
+    planner_owned_routing_semantic_graph::{
+        PlannerDecisionTraceIdentity, PlannerDerivedDiagnosticContractIdentity,
+        PlannerExplanationArtifactKind, PlannerMismatchLocus,
+        PlannerOwnedRoutingSemanticGraphVocabularyError,
+        PlannerOwnedRoutingSemanticGraphVocabularyErrorKind, PlannerPublicProofIdentity,
+        PlannerSelectedFamilyIdentity, PlannerSelectedProductIdentity,
+        PlannerSelectedRouteIdentity, PlannerWitnessIdentity, PlannerWitnessRole,
+    },
     CreateKey, EntityReference, MutationOrigin, RawTopologyIntent,
 };
 use schema::facade::platform::entities::EntityKind;
@@ -55,6 +63,23 @@ fn _truth_vocab_contract(
         mutation_origin,
         intent,
         committed_mutation_set,
+    );
+}
+
+fn _planner_owned_routing_contract() {
+    let _ = (
+        std::mem::size_of::<PlannerSelectedFamilyIdentity>(),
+        std::mem::size_of::<PlannerSelectedRouteIdentity>(),
+        std::mem::size_of::<PlannerSelectedProductIdentity>(),
+        std::mem::size_of::<PlannerWitnessIdentity>(),
+        std::mem::size_of::<PlannerDecisionTraceIdentity>(),
+        std::mem::size_of::<PlannerPublicProofIdentity>(),
+        std::mem::size_of::<PlannerDerivedDiagnosticContractIdentity>(),
+        std::mem::size_of::<PlannerOwnedRoutingSemanticGraphVocabularyError>(),
+        PlannerOwnedRoutingSemanticGraphVocabularyErrorKind::EmptySelectedRouteName,
+        PlannerExplanationArtifactKind::DerivedPublicProjection,
+        PlannerMismatchLocus::SelectedRoute,
+        PlannerWitnessRole::DenialOrAdvisory,
     );
 }
 
@@ -128,6 +153,7 @@ fn schema_public_surface_stays_vocabulary_first() {
     let _ = _query_vocab_contract;
     let _ = _truth_vocab_contract;
     let _ = _bootstrap_contract;
+    let _ = _planner_owned_routing_contract;
     let _ = _topology_authoring_contract;
     let _ = _topology_authoring_support_contract;
 }

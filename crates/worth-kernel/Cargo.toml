@@ -22,7 +22,7 @@ worth-geom.workspace = true
 worth-math.workspace = true
 worth-spatial.workspace = true
 worth-topo.workspace = true
-worth-schema.workspace = true
+worth-schema = { workspace = true, features = ["conflict-routing-internal-authority", "touched-graph-parity-internal-authority"] }
 sha2 = "0.10"
 
 [dev-dependencies]

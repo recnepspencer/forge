@@ -2,7 +2,10 @@ mod catalog;
 mod support_evidence;
 mod touched_closure;
 
-pub(crate) use catalog::{catalog_closeout, catalog_closeout_with_loop_cycles_postures};
+pub(crate) use catalog::{
+    catalog_closeout, catalog_closeout_with_loop_cycles_contract,
+    catalog_closeout_with_loop_cycles_postures,
+};
 pub(crate) use support_evidence::{
     admitted_legality_support, admitted_query_support,
     legality_support_missing_selected_legality_plan,

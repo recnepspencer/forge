@@ -1,0 +1,36 @@
+warning: unreachable expression
+ --> src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/declaration_not_hand_filled.rs:6:30
+  |
+5 |         identity: todo!(),
+  |                   ------- any code following this expression is unreachable
+6 |         supported_consumers: todo!(),
+  |                              ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `identity`, `supported_consumers`, `source_authority_digest_basis`, `locality_footprint_basis`, `prior_proof_role`, `evidence_support_role`, `equivalence_policy`, `equivalence_policy_name`, `equivalence_dimensions` and `family_digest` of struct `SpatialCompiledProductFamilyDeclaration` are private
+  --> src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/declaration_not_hand_filled.rs:5:9
+   |
+ 4 |     let _ = SpatialCompiledProductFamilyDeclaration {
+   |             --------------------------------------- in this type
+ 5 |         identity: todo!(),
+   |         ^^^^^^^^ private field
+ 6 |         supported_consumers: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         source_authority_digest_basis: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         locality_footprint_basis: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         prior_proof_role: todo!(),
+   |         ^^^^^^^^^^^^^^^^ private field
+10 |         evidence_support_role: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         equivalence_policy: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+12 |         equivalence_policy_name: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         equivalence_dimensions: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         family_digest: todo!(),
+   |         ^^^^^^^^^^^^^ private field

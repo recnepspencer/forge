@@ -39,7 +39,6 @@ pub(crate) fn certify_snapshot_surfaces_row(
         "src/projection/runtime_boundary/declared_query_surfaces/derived_surfaces/computed_views.rs",
     )?;
     let projection_mod = source_text("src/projection/mod.rs")?;
-    let diagnostic_surfaces_mod = source_text("src/projection/diagnostic_surfaces/mod.rs")?;
     let read_views_domain_mod = source_text("src/projection/read_views/domain/mod.rs")?;
     let materialized_graph = source_text("src/derived_topology/materialized_graph/mod.rs")?;
     let persistent_naming = source_text(
@@ -66,8 +65,7 @@ pub(crate) fn certify_snapshot_surfaces_row(
     ensure(!declared_query_surfaces_mod.contains("mod snapshot_decode;"))?;
     ensure(!projection_mod.contains("pub(crate) mod truth_surfaces;"))?;
     ensure(!projection_mod.contains("pub(crate) mod derived_surfaces;"))?;
-    ensure(!diagnostic_surfaces_mod.contains("pub(crate) mod query_diagnostics;"))?;
-    ensure(!diagnostic_surfaces_mod.contains("pub(crate) mod read_proof;"))?;
+    ensure(!projection_mod.contains("mod diagnostic_surfaces;"))?;
     ensure(read_views_domain_mod.contains("pub(crate) mod read_proof;"))?;
     ensure(declared_derived_surfaces.contains("declare_topology_interpreted_surface"))?;
     ensure(declared_query_diagnostics.contains("declare_topology_diagnostics_surface"))?;

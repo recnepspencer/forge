@@ -1,3 +1,4 @@
+pub use crate::workload_platform::evidence_ledger::SelectedLookupSliceLedgerAssembly;
 pub use crate::workload_platform::evidence_ledger::{
     deny_copied_receipt_fields_as_spatial_query_lowering_authority,
     deny_manual_evidence_row_as_spatial_touch_authority,
@@ -10,10 +11,10 @@ pub use crate::workload_platform::evidence_ledger::{
     deny_topology_touched_graph_basis_as_spatial_touch_authority,
     lower_spatial_touch_authority_to_query_descriptor, spatial_evidence_surface_deletion_ledger,
     spatial_touch_workload_evidence_stage, BooleanEvidenceReceipt, BooleanEvidenceRowAuthority,
-    BooleanEvidenceStageKind, CompleteWorkloadEvidenceLedger, SpatialEvidenceLookupDenial,
-    SpatialEvidenceLookupDenialKind, SpatialEvidenceLookupExpectation, SpatialEvidenceLookupKey,
-    SpatialEvidenceLookupProduct, SpatialEvidenceLookupProductDigest, SpatialEvidenceQueryGapKind,
-    SpatialEvidenceQueryGapRow, SpatialEvidenceQueryLoweringCounters,
+    BooleanEvidenceStageKind, CompleteWorkloadEvidenceLedger, SelectedLookupSliceLedger,
+    SpatialEvidenceLookupDenial, SpatialEvidenceLookupDenialKind, SpatialEvidenceLookupExpectation,
+    SpatialEvidenceLookupKey, SpatialEvidenceLookupProduct, SpatialEvidenceLookupProductDigest,
+    SpatialEvidenceQueryGapKind, SpatialEvidenceQueryGapRow, SpatialEvidenceQueryLoweringCounters,
     SpatialEvidenceQueryLoweringDenial, SpatialEvidenceQueryLoweringDenialKind,
     SpatialEvidenceQueryTouchDescriptor, SpatialEvidenceQueryTouchDescriptorDigest,
     SpatialEvidenceSubstitutionDenial, SpatialEvidenceSurfaceAuthorityCategory,
@@ -38,7 +39,7 @@ pub use crate::workload_platform::vocabulary::{
     GeometryBindingWorkloadReceipt, ProjectionWorkload, ProjectionWorkloadReceipt,
     ResponseWorkload, ResponseWorkloadReceipt, RetainedReplayWorkload,
     RetainedReplayWorkloadReceipt, SpatialWorkloadStage, SurfaceSupportWorkload,
-    SurfaceSupportWorkloadReceipt, TransformWorkload, TransformWorkloadReceipt,
-    WorkloadStage, WorkloadStageDenial, WorkloadStageEnvelope, WorkloadStageIdentity,
-    WorkloadStagePosture, WorkloadStageSupport,
+    SurfaceSupportWorkloadReceipt, TransformWorkload, TransformWorkloadReceipt, WorkloadStage,
+    WorkloadStageDenial, WorkloadStageEnvelope, WorkloadStageIdentity, WorkloadStagePosture,
+    WorkloadStageSupport,
 };

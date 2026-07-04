@@ -7,6 +7,10 @@ pub enum EvidenceLookupMilestoneTwelveReplayReadinessPosture {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EvidenceLookupMilestoneTwelveSeed {
     milestone_eleven_closeout_digest: String,
+    selected_route_family_identity: String,
+    selected_compiled_product_identity_digest: String,
+    selected_equivalence_family_identity: String,
+    selected_reuse_basis_identity_digest: String,
     selected_lookup_plan_digest: String,
     lookup_execution_receipt_digest: String,
     lookup_product_output_digest: String,
@@ -34,6 +38,10 @@ impl EvidenceLookupMilestoneTwelveSeed {
         let covered_family_count = covered_family_identities.len();
         Self {
             milestone_eleven_closeout_digest: "not-closed".to_string(),
+            selected_route_family_identity: "not-bound".to_string(),
+            selected_compiled_product_identity_digest: "not-bound".to_string(),
+            selected_equivalence_family_identity: "not-bound".to_string(),
+            selected_reuse_basis_identity_digest: "not-bound".to_string(),
             selected_lookup_plan_digest,
             lookup_execution_receipt_digest,
             lookup_product_output_digest,
@@ -55,6 +63,10 @@ impl EvidenceLookupMilestoneTwelveSeed {
 
     pub(crate) fn new_public_closeout(
         milestone_eleven_closeout_digest: String,
+        selected_route_family_identity: String,
+        selected_compiled_product_identity_digest: String,
+        selected_equivalence_family_identity: String,
+        selected_reuse_basis_identity_digest: String,
         selected_lookup_plan_digest: String,
         lookup_execution_receipt_digest: String,
         lookup_product_output_digest: String,
@@ -72,6 +84,10 @@ impl EvidenceLookupMilestoneTwelveSeed {
     ) -> Self {
         Self {
             milestone_eleven_closeout_digest,
+            selected_route_family_identity,
+            selected_compiled_product_identity_digest,
+            selected_equivalence_family_identity,
+            selected_reuse_basis_identity_digest,
             selected_lookup_plan_digest,
             lookup_execution_receipt_digest,
             lookup_product_output_digest,
@@ -93,6 +109,22 @@ impl EvidenceLookupMilestoneTwelveSeed {
 
     pub fn milestone_eleven_closeout_digest(&self) -> &str {
         &self.milestone_eleven_closeout_digest
+    }
+
+    pub fn selected_route_family_identity(&self) -> &str {
+        &self.selected_route_family_identity
+    }
+
+    pub fn selected_compiled_product_identity_digest(&self) -> &str {
+        &self.selected_compiled_product_identity_digest
+    }
+
+    pub fn selected_equivalence_family_identity(&self) -> &str {
+        &self.selected_equivalence_family_identity
+    }
+
+    pub fn selected_reuse_basis_identity_digest(&self) -> &str {
+        &self.selected_reuse_basis_identity_digest
     }
 
     pub fn selected_lookup_plan_digest(&self) -> &str {

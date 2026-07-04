@@ -6,7 +6,7 @@ use serde_json::json;
 
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
-use crate::projection::diagnostic_surfaces::DerivedReadDiagnostics;
+use crate::projection::planner_owned_routing::diagnostic_projection_input::report_types::DerivedReadDiagnostics;
 use crate::projection::runtime_boundary::declared_query_surfaces::derived_surfaces::{
     interpreted_topology_from_materialized_rows, validation_report_from_query_rows,
 };

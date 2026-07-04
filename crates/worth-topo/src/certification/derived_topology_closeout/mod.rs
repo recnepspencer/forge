@@ -17,7 +17,6 @@ use crate::certification::error::MilestoneOneCertificationError;
 use crate::certification::primitive_corpus::certify_milestone_one_default_primitive_corpus_impl;
 use crate::certification::requirements::milestone_two_closeout_requirements;
 use crate::certification::shared::digest_rows;
-use crate::certification::support::parity::build_derived_equivalence_contract_report;
 use crate::certification::support::reporting::{
     DerivedEquivalenceContractAggregateReport, DerivedEquivalenceContractAggregateRow,
     DerivedFallbackAggregateReport, DerivedFallbackAggregateRow, DerivedFamilyCoverageMatrix,

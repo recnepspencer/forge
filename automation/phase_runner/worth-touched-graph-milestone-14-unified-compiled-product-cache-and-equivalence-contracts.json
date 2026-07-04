@@ -1,10 +1,7 @@
 {
   "schema_version": 1,
-  "state_revision": 0,
-  "current": {
-    "phase": 1,
-    "turn": "plan"
-  },
+  "state_revision": 850,
+  "current": null,
   "project": {
     "name": "Worth Touched Graph Milestone 14 Unified Compiled Product Cache And Equivalence Contracts",
     "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
@@ -32,13 +29,13 @@
       "crates/worth-schema/src/data/authority/replay_undo_semantic_graph/identity_digest.rs",
       "crates/worth-kernel/src/workload_composition/worth_workload.rs",
       "crates/worth-kernel/src/workload_composition/public_closeout/mod.rs",
-      "crates/worth-kernel/src/workload_composition/public_closeout/milestone_fourteen_seed.rs",
+      "crates/worth-kernel/src/workload_composition/public_closeout/milestone_fifteen_seed.rs",
       "crates/worth-kernel/src/workload_composition/source_firewall/mod.rs",
       "crates/worth-kernel/src/workload_composition/worth_workload/ordinary_consumer_sweep/mod.rs",
       "crates/worth-topo/src/derived_topology/invalidation_plan/catalog/mod.rs",
       "crates/worth-topo/src/derived_topology/invalidation_plan/catalog/family_catalog.rs",
       "crates/worth-topo/src/derived_topology/invalidation_plan/selection/touched_closure.rs",
-      "crates/worth-topo/src/projection/diagnostic_surfaces/equivalence_contract.rs",
+      "crates/worth-topo/src/projection/diagnostic_surfaces/mod.rs",
       "crates/worth-spatial/src/workload_platform/evidence_lookup_family_catalog/mod.rs",
       "crates/worth-spatial/src/workload_platform/evidence_lookup_index_product/mod.rs",
       "crates/worth-spatial/src/workload_platform/evidence_lookup_index_product/construction.rs",
@@ -64,10 +61,16 @@
     "command": "C:/nvm4w/nodejs/codex.cmd",
     "model": "gpt-5.4",
     "reasoning_effort": "medium",
+    "service_tier": "fast",
+    "fast_mode": true,
     "config": {
       "approval_policy": "never",
-      "sandbox_mode": "danger-full-access"
-    }
+      "sandbox_mode": "danger-full-access",
+      "service_tier": "fast",
+      "features.fast_mode": true
+    },
+    "thread_id": "019f15d8-9c2f-7021-a528-052fe4031d27",
+    "thread_started_at": "2026-06-30T00:05:45.874694+00:00"
   },
   "phases": [
     {
@@ -89,14 +92,22 @@
       ],
       "instructions": "Freeze the full reuse folklore surface before writing replacement lanes. Treat every ordinary compiled-product reuse claim as named migration pressure, not as an optimization detail hidden inside retained helpers or public closeout code.",
       "qa_focus": "Exact current-surface naming, no grep-only theater, honest classification of pseudo-reuse, and no uncapped ordinary shortcut left outside the cut line.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
+        "plan": [
+          "test hardening plan posted in chat"
+        ],
+        "done": [
+          "phase-1 code-quality review found no structural blockers"
+        ],
         "remaining": [],
-        "findings": [],
-        "verification": []
+        "findings": [
+          "tests miss explicit inventory completeness proof and rely on overly synthetic root-scan fixtures"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel compiled_product_reuse_inventory => exit 0; tail: 4 phase tests passed, 0 failed"
+        ]
       }
     },
     {
@@ -116,14 +127,27 @@
       ],
       "instructions": "Freeze the core compiled-product semantics in worth-schema before product-family catalogs appear. Every later lane must lower through this vocabulary, not reinterpret cache or equivalence semantics locally.",
       "qa_focus": "Real shared ownership, proof-bearing distinctions, no representation-equality shortcuts, and no crate-local vocabulary drift.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "phase-2 test hardening plan posted in chat"
+        ],
+        "done": [
+          "phase-2 closes; shared identity lane and consumer cutovers stay structurally coherent"
+        ],
+        "remaining": [
+          "later cleanup: gather certification test-only roots behind one narrower test facade instead of expanding crate root aliases"
+        ],
+        "findings": [
+          "carry forward: worth-spatial lib.rs test-only public_api root aliases are becoming a structural sink"
+        ],
+        "verification": [
+          "cargo test -p worth-schema --test compiled_product_semantic_graph | exit 0 | tail: 4 passed, 0 failed",
+          "cargo test -p worth-topo --lib projection::diagnostic_surfaces::equivalence_contract::tests | exit 0 | tail: 3 passed, 0 failed",
+          "cargo test -p worth-spatial --lib retained_replay_workload::replay_parity::tests | exit 0 | tail: 2 passed, 0 failed",
+          "cargo test -p worth-spatial --lib evidence_lookup_index_product | exit 0 | tail: 5 passed, 0 failed"
+        ]
       }
     },
     {
@@ -143,14 +167,25 @@
       ],
       "instructions": "Build the topology half of the architecture as a real parallel declarer lane. Catalog authority belongs here, not inside invalidation products, projection helpers, or certification-only reuse checks.",
       "qa_focus": "Parallel folder cutover, explicit family fields, no callback-list catalog design, and no topology-local sameness language.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
+        "plan": [
+          "phase-3 test hardening plan posted in chat"
+        ],
+        "done": [
+          "focused parity proof restored without reopening public facade"
+        ],
         "remaining": [],
-        "findings": [],
-        "verification": []
+        "verification": [
+          "cargo check -p worth-topo",
+          "cargo test -p worth-topo compiled_product_family --lib",
+          "cargo test -p worth-topo equivalence_contract --lib",
+          "cargo test -p worth-topo public_facade_contracts --lib"
+        ],
+        "findings": [
+          "phase-3 tests rely on synthetic same-package forging and string-registered compile-fail fixtures"
+        ]
       }
     },
     {
@@ -170,14 +205,27 @@
       ],
       "instructions": "Build the spatial half of the architecture in its own explicit lane. Evidence lookup, retained replay, and derived spatial products must learn one shared declared family model before cutover starts.",
       "qa_focus": "Parallel declarer architecture, no product-local ontology drift, no retained helper shortcuts, and no undeclared evidence-family identity.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "replace forged stage/projection/retained-cancellation artifacts with receipt-driven fixtures, add closeout-to-lowering proof parity assertions, and add public-boundary certification for facade::spatial_compiled_product_family re-exports"
+        ],
+        "done": [
+          "phase 4 code-quality review closed"
+        ],
+        "remaining": [
+          "closeout assembly and facade-boundary structure still need cleanup"
+        ],
+        "findings": [
+          "current-source closeout assembly and identity lanes remain too broad"
+        ],
+        "verification": [
+          "cargo test -p worth-spatial evidence_lookup_index_product::tests::identity --lib => exit 0 | tail: 2 passed; 0 failed",
+          "cargo test -p worth-spatial evidence_lookup_public_closeout --lib => exit 0 | tail: 10 passed; 0 failed",
+          "cargo test -p worth-spatial public_api_spatial_compiled_product_family --lib => exit 0 | tail: 4 passed; 0 failed",
+          "cargo test -p worth-spatial spatial_compiled_product_family::tests --lib => exit 0 | tail: 4 passed; 0 failed"
+        ]
       }
     },
     {
@@ -197,14 +245,28 @@
       ],
       "instructions": "Make kernel cutover pressure explicit before any consumer migration. This is the roadmap map for the rest of the milestone and must prevent broad 'finish the rest' phases from hiding whole consumer families.",
       "qa_focus": "Exact consumer clustering, no vague sink phases, and no hidden public-closeout or read-model dependency family.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "phase-5 test hardening plan posted in chat"
+        ],
+        "done": [
+          "phase 5 closes with focused acceptance proof rerun"
+        ],
+        "remaining": [
+          "cutover coverage gate and compile-fail certification lane still need structural cleanup"
+        ],
+        "findings": [
+          "compiled_product_consumer_cutover closeout gate naming is too broad",
+          "public_closeout_consumers mixes ordinary cutover summary into a public-closeout file",
+          "compile_fail_contracts remains a certification sink"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel compiled_product_consumer_cutover --lib => exit 0; tail: 9 passed, 0 failed",
+          "cargo test -p worth-kernel workload_composition::public_closeout::tests --lib => exit 0; tail: 5 passed, 0 failed",
+          "cargo test -p worth-kernel kernel_public_boundary_rejects_compiled_product_consumer_cutover_forgery --lib => exit 0; tail: 1 passed, 0 failed"
+        ]
       }
     },
     {
@@ -223,14 +285,26 @@
       ],
       "instructions": "Build the topology admitted-input lane as the only legal entry to topology compiled-product reuse and rebuild decisions. No local helper may rediscover authority basis or cache basis after this lands.",
       "qa_focus": "Admission purity, denial before planning, no raw-row fallback, and no caller-owned digest or equivalence setup.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "replace remaining synthetic denial proofs with runtime-backed phase-6 tests"
+        ],
+        "done": [
+          "phase 6 accepted; admitted-input lane and runtime denial boundary hold"
+        ],
+        "remaining": [
+          "query-diagnostics retained boundary still needs finer file split"
+        ],
+        "findings": [
+          "retained_diagnostics.rs remains a mixed-responsibility runtime sink"
+        ],
+        "verification": [
+          "cargo test -p worth-topo compiled_product_admission --lib => 0; 4 passed, warnings only",
+          "cargo test -p worth-topo projection::runtime_boundary::declared_query_surfaces::tests --lib => 0; 2 passed, warnings only",
+          "cargo test -p worth-topo topology_compiled_product_family_public_boundary_compile_fail_fixtures_execute --lib => 0; 1 passed, compile-fail fixtures ok"
+        ]
       }
     },
     {
@@ -249,14 +323,30 @@
       ],
       "instructions": "Build the spatial admitted-input lane as the only legal entry to evidence index, retained replay, retained cancellation, and related reuse decisions. Family selectors may consume admitted products only, never local raw basis assembly.",
       "qa_focus": "Admission purity, no raw evidence fallback, exact support posture binding, and denial before selection.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "replace replay keyed witness proof with boundary-usage proof",
+          "broaden ordinary hostile residue proof beyond curated synthetic denial"
+        ],
+        "done": [
+          "phase-7 closes; acceptance checks rerun cleanly with minor structural debt logged"
+        ],
+        "remaining": [
+          "split retained replay parity production and tests into narrower files",
+          "move common-plane fixture exports behind dedicated test-support boundaries"
+        ],
+        "findings": [
+          "replay_parity.rs exceeds 400 lines and mixes production with in-file test harness",
+          "common-plane facade modules re-export test-only receipt helpers through production aggregation surfaces"
+        ],
+        "verification": [
+          "cargo test -p worth-spatial compiled_product_admission --lib => exit 0; tail: 4 passed, 0 failed",
+          "cargo test -p worth-spatial ordinary_index_path_uses_selected_slice_only_even_with_surrounding_broad_scan_residue --lib => exit 0; tail: 1 passed, 0 failed",
+          "cargo test -p worth-spatial proof_parity --lib => exit 0; tail: 1 passed, 0 failed",
+          "cargo test -p worth-spatial public_api_cannot_forge_lookup_products --lib => exit 0; tail: compile-fail contract passed"
+        ]
       }
     },
     {
@@ -276,14 +366,27 @@
       ],
       "instructions": "Create the planner-owned equivalence selection contract that all later reuse decisions must consume. Comparator authority belongs in selected products, not in consumer-local equality helpers.",
       "qa_focus": "Planner ownership, explicit comparator policy, no broad payload comparison fallback, and no compatibility-equals-reuse collapse.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "add hostile selected-family mismatch proof through downstream conflict admission"
+        ],
+        "done": [
+          "phase 8 closes; selected-family and selected-reuse authority are both consumed on covered ordinary paths"
+        ],
+        "remaining": [
+          "later cleanup: replace string-keyed selected-family test-support promotion with a typed facade-owned hostile mutation surface"
+        ],
+        "findings": [
+          "minor residue: spatial selected-family hostile proof still relies on a string-keyed test-support mutator on the real handoff type"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel spatial_conflict_input_rejects_selected_family_mismatch_before_selection --lib => exit 0 | tail: 1 passed; downstream selected-family mismatch denied before selection; warnings only",
+          "cargo test -p worth-kernel lookup_consumed_workload_caller_path_rejects_forged_selected_family_downstream --lib => exit 0 | tail: 1 passed; hostile caller path denied downstream after 224s; warnings only",
+          "cargo test -p worth-spatial evidence_lookup_workload_cutover --lib => exit 0 | tail: 3 passed; workload cutover contract and no-rescan seed proof hold",
+          "cargo test -p worth-topo equivalence_contract --lib => exit 0 | tail: 9 passed; comparator-contract fallback denials still hold"
+        ]
       }
     },
     {
@@ -303,14 +406,30 @@
       ],
       "instructions": "Make reuse itself a semantic product. A lane that proves rebuild is required is success, not a missed optimization, and every covered caller must consume that result rather than self-healing with folklore.",
       "qa_focus": "Typed outcomes, localized denial reasons, no boolean flattening, and no silent fallback behavior.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "add topology consumer-path rebuild-required proof through compare_derived_equivalence_contracts and assert typed posture plus localized denial identity"
+        ],
+        "done": [
+          "phase-9 closeout passed; typed reuse/rebuild consumer seams reverified in focused lanes"
+        ],
+        "remaining": [
+          "carry forward: worth-topo equivalence_contract diagnostic surface is still an over-cap mixed-responsibility file"
+        ],
+        "findings": [
+          "code-quality residue: topology equivalence_contract.rs remains 422 lines and mixes report model, lowering, and comparison"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel denied_reuse_resolution_preserves_localized_kernel_boundary_meaning --lib => exit 0; tail: 1 passed, 0 failed, 770 filtered out",
+          "cargo test -p worth-kernel rebuild_required_resolution_stays_a_real_consumer_success_posture --lib => exit 0; tail: 1 passed, 0 failed, 770 filtered out",
+          "cargo test -p worth-kernel lookup_consumed_workload_consumer_accepts_reused_resolution_without_local_fallback --lib => exit 0; tail: 1 passed, 0 failed, 770 filtered out",
+          "cargo test -p worth-kernel lookup_consumed_workload_consumer_rejects_hostile_resolution_without_self_healing --lib => exit 0; tail: 1 passed, 0 failed, 770 filtered out",
+          "cargo test -p worth-topo compiled_product_reuse_decision --lib => exit 0; tail: 4 passed, 0 failed, 736 filtered out",
+          "cargo test -p worth-topo equivalence_contract --lib => exit 0; tail: 10 passed, 0 failed, 730 filtered out",
+          "cargo test -p worth-spatial evidence_lookup_reuse_decision --lib => exit 0; tail: 4 passed, 0 failed, 571 filtered out"
+        ]
       }
     },
     {
@@ -330,14 +449,30 @@
       ],
       "instructions": "Use one real vertical slice to prove the architecture end to end before broad cluster migration. This phase must demonstrate parallel cutover discipline, not hidden in-place reshaping.",
       "qa_focus": "Real end-to-end cutover, no synthetic adapter bridge, explicit displaced-surface accounting, and proof that new lanes own the path.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "add discriminating rebuilt-product proof so runtime route cannot hide current-boundary fallback"
+        ],
+        "done": [
+          "phase 10 closes; first vertical slice is real and acceptance proofs reran cleanly"
+        ],
+        "remaining": [
+          "split spatial conflict-input admission by route responsibility in a later cleanup",
+          "move displaced-surface ledger ownership to closeout or certification support when that lane matures"
+        ],
+        "findings": [
+          "carry-forward: conflict_input/spatial.rs remains a mixed route-admission sink",
+          "carry-forward: lookup_consumed/displaced_surface.rs is closeout-style data living in a runtime lane"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel vertical_slice_matches_or_strengthens_old_reuse_posture --lib | exit 0 | tail: 1 passed, 0 failed",
+          "cargo test -p worth-kernel vertical_slice_rebuilt_posture_owns_runtime_lookup_compiled_product_route --lib | exit 0 | tail: 1 passed, 0 failed",
+          "cargo test -p worth-kernel old_reuse_helper_cannot_satisfy_migrated_slice --lib | exit 0 | tail: 1 passed, 0 failed",
+          "cargo test -p worth-kernel slice_preserves_authority_vs_derived_distinction --lib | exit 0 | tail: 1 passed, 0 failed",
+          "cargo check -p worth-kernel --lib | exit 0 | tail: Finished dev profile target(s) in 1.17s"
+        ]
       }
     },
     {
@@ -357,14 +492,22 @@
       ],
       "instructions": "Cut the topology cluster over aggressively once the vertical slice proves the lane. The goal is to move a family of real consumers, not to polish one helper indefinitely.",
       "qa_focus": "Parallel folder cutover, hard deletion discipline, no local reuse revival, and multi-consumer proof through the same lane.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
+        "plan": [
+          "bind both topology consumers to one shared authority witness and replace selected-row parity with posture-shift proof"
+        ],
+        "done": [
+          "caller-owned topology cutover proofs and exact residue assertions landed"
+        ],
         "remaining": [],
-        "findings": [],
-        "verification": []
+        "findings": [
+          "multi-consumer proof still self-compares diagnostics and selected-row proof remains same-authority parity"
+        ],
+        "verification": [
+          "focused worth-topo cutover tests, kernel matrix proof, and worth-topo check passed"
+        ]
       }
     },
     {
@@ -384,14 +527,30 @@
       ],
       "instructions": "Cut the spatial cluster over as a real family migration. Evidence index and retained replay surfaces must converge on the same semantic compiled-product contract rather than remaining separate local optimizations.",
       "qa_focus": "Parallel cutover, no retained-helper fallback, no split ontology between index and replay products, and hard deletion honesty.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
+        "plan": [
+          "replace curated residue path checks with scope-complete ordinary caller proof"
+        ],
+        "done": [
+          "code-quality review closed; phase-12 boundaries remain acceptable"
+        ],
         "remaining": [],
-        "findings": [],
-        "verification": []
+        "findings": [
+          "residue test still relies on curated import-path checks instead of full ordinary caller proof"
+        ],
+        "verification": [
+          "cargo test -p worth-spatial spatial_consumers_route_through_reuse_decision_products --lib => 0 | 1 passed",
+          "cargo test -p worth-spatial spatial_cutover_preserves_zero_broad_scan_fallback --lib => 0 | 1 passed",
+          "cargo test -p worth-spatial spatial_residue_rows_are_exact_and_non_authoritative --lib => 0 | 1 passed",
+          "cargo test -p worth-kernel kernel_consumer_matrix_classifies_every_current_consumer --lib => 0 | 1 passed",
+          "cargo test -p worth-kernel lookup_consumed_workload_caller_path_ --lib => 0 | 3 passed; finished in 214.43s",
+          "cargo test -p worth-kernel lookup_consumed_workload_consumer_ --lib => 0 | 2 passed; finished in 201.64s",
+          "cargo test -p worth-kernel denied_reuse_resolution_preserves_localized_kernel_boundary_meaning --lib => 0 | 1 passed; finished in 195.14s",
+          "cargo test -p worth-kernel rebuild_required_resolution_stays_a_real_consumer_success_posture --lib => 0 | 1 passed; finished in 192.84s",
+          "cargo test -p worth-spatial public_api_cannot_forge_lookup_products --lib => 0 | 1 compile-fail lane passed"
+        ]
       }
     },
     {
@@ -412,14 +571,32 @@
       ],
       "instructions": "Make Query-backed and public-read consumers first-class participants in the same architecture. If public proof still has to infer reuse from local stability after this phase, the milestone is off track.",
       "qa_focus": "Real Query surface usage, no public-closeout folklore, no read-model coincidence equality, and exact residue accounting.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "test hardening plan: force topo non-reuse through real Query-backed cutover path, add only minimal typed seam if hostile basis/input change is otherwise inexpressible"
+        ],
+        "done": [
+          "code-quality QA closed phase 13; acceptance proof rerun passed",
+          "advanced cursor to phase 14 plan after same-phase code-quality closeout"
+        ],
+        "remaining": [
+          "split kernel public closeout authority sink into input/admission/current-source modules",
+          "split topo query-backed cutover lowering from row artifact/test seam and remove ordinary visibility from test mutator"
+        ],
+        "findings": [
+          "structural debt: public_closeout.rs mixes boundary contract, current-source assembly, and publish proof checks and sits over line cap",
+          "structural debt: topo query-backed closeout.rs mixes row/cutover lowering with public test-only seam and sits over line cap"
+        ],
+        "verification": [
+          "cmd=cargo test -p worth-kernel public_cutover_does_not_reopen_local_equivalence_logic --lib exit=0 tail=1 passed; finished in 67.65s",
+          "cmd=cargo test -p worth-topo query_backed_and_public_consumers_route_through_reuse_decision_products --lib exit=0 tail=1 passed; finished in 6.54s",
+          "cmd=cargo test -p worth-topo hostile_query_backed_cutover_carries_typed_rebuild_denial_for_forced_non_reuse --lib exit=0 tail=1 passed; finished in 6.64s",
+          "cmd=cargo test -p worth-topo query_boundary_residue_rows_are_exact --lib exit=0 tail=1 passed; finished in 0.00s",
+          "cmd=cargo test -p worth-kernel touched_graph_closeout_rejects_foreign_topology_query_proof_identities --lib exit=0 tail=1 passed; finished in 60.35s",
+          "cmd=cargo test -p worth-spatial exported_residue_manifest_matches_live_public_closeout_residue --lib exit=0 tail=1 passed; finished in 21.03s"
+        ]
       }
     },
     {
@@ -439,14 +616,32 @@
       ],
       "instructions": "Run the aggressive ordinary sweep only after real cluster cutovers exist. This is the milestone-wide honesty pass that proves the new lane is actually the ordinary path.",
       "qa_focus": "True milestone-wide sweep, no family omissions, no uncaught bypasses, and explicit residue classification instead of vague TODOs.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "Harden test lane by driving hostile inventory and topology fallback mutations through assembled ordinary-sweep closeout validation."
+        ],
+        "done": [
+          "phase 14 closed with live ordinary-sweep boundary proof and hostile assembled closeout tests",
+          "code-quality review recorded remaining structural debt without reopening phase semantics"
+        ],
+        "remaining": [
+          "split ordinary_consumer_sweep into honest child boundaries for closeout, cutover proof, residue, and tests",
+          "split closeout current-world loading and ordinary-path denial policy away from the closeout artifact file",
+          "split topo query-backed closeout row artifact from cutover artifact and move test mutation behind a test-only boundary"
+        ],
+        "findings": [
+          "structure debt: ordinary_consumer_sweep stays a flat mixed prod/test directory with 20+ files and mod.rs acting as a broad export bucket",
+          "structure debt: closeout.rs still mixes current-world loading, closeout assembly, broad-scan denial policy, and test seam",
+          "structure debt: topo query_backed_consumer_cutover/closeout.rs remains over cap and carries test mutation wiring in production space"
+        ],
+        "verification": [
+          "cmd=cargo test -p worth-kernel current_closeout_matches_exact_live_cluster_ledgers --lib exit=0 tail=\"test result: ok. 1 passed; finished in 456.27s\"",
+          "cmd=cargo test -p worth-kernel broad_scan_gate_rejects_downgraded_exact_denied_surface_in_live_inventory --lib exit=0 tail=\"test result: ok. 1 passed; finished in 247.09s\"",
+          "cmd=cargo test -p worth-kernel phase_eleven_bypass_guard_rejects_hostile_live_cutover_inventory --lib exit=0 tail=\"test result: ok. 1 passed; finished in 228.84s\"",
+          "cmd=cargo test -p worth-kernel topology_fallback_counts_fail_the_assembled_broad_scan_boundary --lib exit=0 tail=\"test result: ok. 1 passed; finished in 247.84s\""
+        ]
       }
     },
     {
@@ -466,14 +661,38 @@
       ],
       "instructions": "Seal the migration. Once the new lanes exist and consumers move, the old semantics must become impossible to revive accidentally, both internally and at public boundaries.",
       "qa_focus": "Real compile-fail fences, hard deletion honesty, no constructible authority leaks, and no leftover back doors.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "test hardening plan posted: exact deletion ledger proof, shared topo fence execution, hostile kernel public-facade mismatch denial",
+          "test hardening follow-up plan posted: topology certified fence set must match distinct executed compile-fail denial edges"
+        ],
+        "done": [
+          "bound public compile-fail closeouts to executed fence artifacts",
+          "test hardening landed: exact deletion proof, shared topo compile-fail execution, hostile facade mismatch denial",
+          "topology certified fence set aligned with distinct executed compile-fail denial edges",
+          "test QA cleared: phase-15 fences, deletion proof, and hostile closeout mismatch lanes are honest enough",
+          "phase 15 code-quality review closed; acceptance reruns clean"
+        ],
+        "remaining": [
+          "source_firewall phase_twelve semantic source registry remains over 400-line cap and too broad",
+          "worth-topo compile_fail_contracts remains a broad certification sink inventory"
+        ],
+        "verification": [
+          "focused phase-15 executed-fence proofs rerun",
+          "phase-15 hostile review reran focused proof lanes; all passed",
+          "focused phase-15 hardening proofs rerun cleanly",
+          "focused topology and kernel phase-15 hardening proof lanes rerun cleanly",
+          "cargo test -p worth-kernel workload_composition::source_firewall::tests::source_firewall_closeout_binds_deletion_closeout_and_phase_fifteen_coverage --lib -- --exact => exit 0; tail: 1 passed, 0 failed; finished in 3.56s",
+          "cargo test -p worth-kernel workload_composition::source_firewall::tests::source_firewall_closeout_rejects_reuse_folklore_revival --lib -- --exact => exit 0; tail: 1 passed, 0 failed; finished in 3.30s",
+          "cargo test -p worth-kernel workload_composition::deletion_closeout::tests::deletion_closeout_binds_firewall_report_to_exact_phase_fifteen_rows --lib -- --exact => exit 0; tail: 1 passed, 0 failed; finished in 3.14s"
+        ],
+        "findings": [
+          "test QA: deletion proof is sample-based; topology compile-fail fence inventory drifts from executed lane; kernel closeout lacks hostile public-facade mismatch denial proof",
+          "test QA: topology compile-fail inventory still aliases equivalence-policy identity to the admission fixture, so executed proof covers fewer real denial edges than the certified fence-class set",
+          "code-quality review: explicit structural debt remains in kernel semantic registry and topo certification inventory sink"
+        ]
       }
     },
     {
@@ -494,17 +713,776 @@
       ],
       "instructions": "Finish the milestone by proving the architecture, not merely the code motion. Public closeout must explain what was unified, what remains capped, and how Milestone 15 can consume this lane directly.",
       "qa_focus": "Architectural honesty, residue visibility, real Milestone 15 seed utility, and no hidden second ontology left behind.",
-      "status": "not_started",
-      "qa_status": "not_started",
+      "status": "complete",
+      "qa_status": "passed",
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
-        "findings": [],
-        "verification": []
+        "plan": [
+          "replace finished-report topology hostile override with raw selected-basis hostile admission before equivalence-report construction"
+        ],
+        "done": [
+          "phase 16 code-quality review closed; acceptance proof reran cleanly"
+        ],
+        "remaining": [
+          "public_closeout boundary still mixes current-source loading, publish proof, and seed assembly responsibilities",
+          "topology query_backed_consumer_cutover closeout remains over 400 lines and still hosts a production-adjacent test mutation seam"
+        ],
+        "findings": [
+          "public_closeout.rs remains a mixed-responsibility kernel boundary",
+          "query_backed_consumer_cutover/closeout.rs remains an over-cap mixed artifact plus test-seam file",
+          "proof_chain.rs stays near-cap as a broad aggregation-plus-digest sink"
+        ],
+        "verification": [
+          "cmd=cargo test -p worth-kernel workload_composition::public_closeout::tests::failure_guards::touched_graph_closeout_rejects_foreign_topology_query_proof_identities --lib -- --exact exit=0 tail=\"1 passed; finished in 67.04s\"",
+          "cmd=cargo test -p worth-kernel workload_composition::public_closeout::tests::milestone_fifteen_seed::milestone_fifteen_seed_rejects_foreign_topology_planner_support_before_seed_construction --lib -- --exact exit=0 tail=\"1 passed; finished in 128.03s\"",
+          "cmd=cargo test -p worth-kernel workload_composition::public_closeout::tests::milestone_fifteen_seed::milestone_fifteen_seed_carries_product_identity_without_rediscovery --lib -- --exact exit=0 tail=\"1 passed; finished in 247.69s\"",
+          "cmd=cargo test -p worth-kernel workload_composition::public_closeout::tests::authority_chain::closeout_binds_full_conflict_authority_chain --lib -- --exact exit=0 tail=\"1 passed; finished in 141.74s\""
+        ]
       }
     }
   ],
-  "completed_at": null,
-  "runner_history": []
+  "runner_history": [
+    {
+      "at": "2026-06-29T09:27:02.1989368-06:00",
+      "event": "plan_posted",
+      "detail": "phase 1 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T09:50:14.8202239-06:00",
+      "event": "implement_completed",
+      "detail": "phase 1 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T09:52:25.6155583-06:00",
+      "event": "review_failed",
+      "detail": "phase 1 repair",
+      "exit_code": null
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-07-01T04:43:12.444610+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T04:43:42.456436+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T04:46:28.123076+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T04:46:58.136361+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T05:06:08.698676+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T05:06:38.711108+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T05:10:13.789344+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T05:10:43.800194+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T05:23:06.617382+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T05:23:36.629206+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T05:24:29.585195+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T05:24:59.596468+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T05:27:44.131123+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T05:28:14.141710+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T05:30:23.111079+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T05:30:53.123050+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T05:36:01.211752+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T05:36:31.223202+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T05:36:37.705664+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 review",
+      "exit_code": 1
+    },
+    {
+      "at": "2026-07-01T05:36:37.715663+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "RunnerFailure: codex exited with 1: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T05:36:44.519913+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 1
+    },
+    {
+      "at": "2026-07-01T06:34:38.511679+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T06:36:04.633212+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T06:36:34.646099+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T06:37:54.429047+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T06:38:24.441534+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T06:38:47.859781+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T06:39:17.879758+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T06:39:52.013412+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T06:40:22.025672+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T06:47:12.550276+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T06:47:42.560983+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T06:48:43.533132+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T06:49:13.545090+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T06:49:57.781364+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T06:50:27.792189+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T06:50:59.291930+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T06:51:29.302716+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:53:37.334012-06:00",
+      "phase": 15,
+      "turn": "test_repair_implement",
+      "note": "Topology certified fence set corrected to match distinct executed compile-fail proof; advanced to test_review"
+    },
+    {
+      "at": "2026-07-01T06:53:50.286124+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T06:54:20.298313+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:55:48.752583-06:00",
+      "phase": 15,
+      "turn": "test_review",
+      "note": "phase 15 test QA passed; advanced to code_quality_review"
+    },
+    {
+      "at": "2026-07-01T06:56:01.692754+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T06:56:31.703161+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:58:47.933463-06:00",
+      "phase": 15,
+      "turn": "code_quality_review",
+      "note": "phase 15 code-quality review closed; advanced to phase 16 plan with explicit structural debt markers"
+    },
+    {
+      "at": "2026-07-01T06:59:03.648047+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T06:59:33.661520+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T07:01:52.369263+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T07:02:22.382465+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T01:02:50.780685-06:00",
+      "phase": 16,
+      "turn": "plan",
+      "note": "phase 16 implementation plan posted; advanced to implement"
+    },
+    {
+      "at": "2026-07-01T07:03:51.153788+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T07:04:21.166076+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T07:49:55.627024+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T07:50:25.638985+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T01:55:11.429274-06:00",
+      "phase": 16,
+      "turn": "review",
+      "note": "phase 16 hostile review failed; architecture report and Milestone 15 seed support still under-prove public closeout honesty"
+    },
+    {
+      "at": "2026-07-01T07:56:34.970369+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T07:57:04.981501+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T02:18:43-06:00",
+      "event": "phase_repair",
+      "detail": "phase 16 repair restored honest architecture legacy rows and typed milestone 15 seed support",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T08:18:58.800959+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T08:19:28.811504+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T02:25:33-06:00",
+      "event": "phase_review",
+      "detail": "phase 16 review regressed: second-ontology closeout guard is unreachable behind ordinary dependency rejection",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T08:25:50.735875+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T08:26:20.747285+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T08:43:45.363564+00:00",
+      "phase": 16,
+      "turn": "repair",
+      "note": "Repaired dead second-ontology guard and returned phase 16 to review."
+    },
+    {
+      "at": "2026-07-01T08:43:58.794740+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T08:44:28.807765+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T08:45:53.611474+00:00",
+      "phase": 16,
+      "turn": "review",
+      "note": "Phase 16 regressed in review: public closeout and Milestone 15 seed files still violate the workspace line-cap boundary."
+    },
+    {
+      "at": "2026-07-01T08:46:11.893064+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T08:46:41.904592+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:11:08.665518+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:11:38.675987+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:13:00.360090+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:13:30.371719+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:16:07.176639+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:16:37.188269+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:17:20.226044+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:17:50.238662+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:22:42.627582+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:23:12.638786+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:28:02.004434+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:28:32.016489+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T03:40:12.061528-06:00",
+      "phase": 16,
+      "turn": "review",
+      "note": "Phase 16 review passed after focused proof rerun; repaired stale phase row and advanced to test_review."
+    },
+    {
+      "at": "2026-07-01T09:40:20.305234+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:40:50.316908+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T03:42:03.244311-06:00",
+      "phase": 16,
+      "turn": "test_review",
+      "note": "Phase 16 test QA found circular proof and synthetic hostile-input seams; advanced to test_repair_plan."
+    },
+    {
+      "at": "2026-07-01T09:42:28.999811+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:42:59.011549+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T03:43:19.561158-06:00",
+      "phase": 16,
+      "turn": "test_repair_plan",
+      "note": "Phase 16 test hardening plan posted; advanced to test_repair_implement."
+    },
+    {
+      "at": "2026-07-01T09:43:35.103764+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:44:05.115849+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T04:13:18.493801-06:00",
+      "phase": 16,
+      "turn": "test_repair_implement",
+      "note": "Phase 16 test hardening implemented with hostile pre-construction builders and exact public-surface set proofs; advanced to test_review."
+    },
+    {
+      "at": "2026-07-01T10:13:32.651002+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:14:02.662969+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:00:00Z",
+      "phase": 16,
+      "turn": "test_review",
+      "kind": "note",
+      "summary": "Phase 16 test review found remaining synthetic hostile seams in topology/planner denial and matrix-loader coverage; advanced to test_repair_plan."
+    },
+    {
+      "at": "2026-07-01T10:16:49.624037+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:17:19.636882+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:00:00Z",
+      "phase": 16,
+      "turn": "test_repair_plan",
+      "kind": "note",
+      "summary": "Phase 16 test hardening plan posted for topology/planner/matrix hostile assembly repairs; advanced to test_repair_implement."
+    },
+    {
+      "at": "2026-07-01T10:17:55.178312+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:18:25.189472+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:00:00Z",
+      "phase": 16,
+      "turn": "test_repair_implement",
+      "note": "Hardened hostile topology/planner/matrix proof lanes and advanced to test_review."
+    },
+    {
+      "at": "2026-07-01T10:39:57.563875+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:40:27.587979+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:00:00Z",
+      "phase": 16,
+      "turn": "test_review",
+      "note": "Test QA found remaining synthetic topology/planner hostile seam; returned to test_repair_plan."
+    },
+    {
+      "at": "2026-07-01T10:41:30.612899+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:42:00.629896+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T00:00:00Z",
+      "phase": 16,
+      "turn": "test_repair_plan",
+      "note": "Planned raw-proof hostile builder repair for topology/planner test seam and advanced to test_repair_implement."
+    },
+    {
+      "at": "2026-07-01T10:42:31.578160+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:43:01.593774+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:07:12.605589+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:07:42.618250+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:08:54.750648+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:09:24.763077+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:09:57.947815+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:10:27.958664+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:19:47.210061+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:20:17.222316+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:21:36.023984+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:22:06.040861+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 16 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:33:28.551217+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 16 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:33:58.563672+00:00",
+      "event": "runner_stop",
+      "detail": "all phases are complete",
+      "exit_code": null
+    }
+  ],
+  "completed_at": "2026-07-01T05:32:55.059962-06:00"
 }

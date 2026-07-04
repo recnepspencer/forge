@@ -3,6 +3,7 @@ use super::*;
 #[cfg(test)]
 use crate::certification::support::commit_certification_input::TopologyCommitCertificationInput;
 use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
+use crate::derived_topology::compiled_product_consumer_cutover::build_derived_equivalence_contract;
 
 pub(crate) fn certify_milestone_two_read_basis_runtime_traced_impl(
     runtime: &mut RelationalRuntime,
@@ -129,23 +130,8 @@ fn certify_milestone_two_query_read_basis(
     let certified_interpretation =
         certify_topology_view(read_basis.clone(), snapshot.interpreted());
     let replay_basis = read_basis.replay_of();
-    let replay_equivalence_contract = build_derived_equivalence_contract_report(
-        replay_basis.snapshot().snapshot_id.0,
-        replay_basis.branch_id().0.clone(),
-        replay_basis.authoritative_mutation_origin(),
-        replay_basis.derivation_origin(),
-        replay_basis
-            .authority
-            .truth_basis_identity
-            .mutation_digest_hex
-            .clone(),
-        replay_basis
-            .authority
-            .truth_basis_identity
-            .touched_aspect_count,
-        crate::projection::diagnostic_surfaces::derived_read_diagnostics::triggered_invalidation_targets(&replay_basis),
-        replay_basis.precision_fallbacks.len(),
-        replay_basis.precision_budget_fallbacks.len(),
+    let replay_equivalence_contract = build_derived_equivalence_contract(
+        &replay_basis,
         snapshot.materialized(),
         snapshot.interpreted(),
         snapshot.validation(),

@@ -5,7 +5,12 @@ use schema::facade::platform::authority::touched_graph_conflict::{
 };
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 use worth_spatial::facade::evidence_lookup_execution::EvidenceLookupExecutionReceipt;
+use worth_spatial::facade::evidence_lookup_index_product::EvidenceLookupIndexProduct;
 use worth_spatial::facade::evidence_lookup_workload_cutover::EvidenceLookupConsumedWorkloadHandoff;
+use worth_spatial::facade::spatial_compiled_product_consumer_cutover::{
+    admit_lookup_execution_handoff_match, admit_lookup_product_handoff_match,
+    SpatialLookupConsumerRouteDenial,
+};
 use worth_spatial::facade::workload_vocabulary::SpatialGeometryEvidenceTouchAuthority;
 
 use crate::workload_composition::worth_workload::AdmittedBooleanSplitReplayUndoBoundary;
@@ -21,6 +26,10 @@ enum SpatialConflictRoute<'a> {
         handoff: &'a EvidenceLookupConsumedWorkloadHandoff,
         execution_receipt: &'a EvidenceLookupExecutionReceipt,
     },
+    LookupCompiledProduct {
+        handoff: &'a EvidenceLookupConsumedWorkloadHandoff,
+        product: &'a EvidenceLookupIndexProduct,
+    },
     ReplayBoundary(&'a AdmittedBooleanSplitReplayUndoBoundary),
 }
 
@@ -29,6 +38,10 @@ pub enum AdmittedSpatialConflictRoute<'a> {
     EvidenceLookup {
         handoff: &'a EvidenceLookupConsumedWorkloadHandoff,
         execution_receipt: &'a EvidenceLookupExecutionReceipt,
+    },
+    LookupCompiledProduct {
+        handoff: &'a EvidenceLookupConsumedWorkloadHandoff,
+        product: &'a EvidenceLookupIndexProduct,
     },
     ReplayBoundary(&'a AdmittedBooleanSplitReplayUndoBoundary),
 }
@@ -78,6 +91,17 @@ impl<'a> SpatialConflictInputRequest<'a> {
             route: SpatialConflictRoute::ReplayBoundary(boundary),
         }
     }
+
+    pub fn with_lookup_compiled_product(
+        self,
+        handoff: &'a EvidenceLookupConsumedWorkloadHandoff,
+        product: &'a EvidenceLookupIndexProduct,
+    ) -> Self {
+        Self {
+            authority: self.authority,
+            route: SpatialConflictRoute::LookupCompiledProduct { handoff, product },
+        }
+    }
 }
 
 impl<'a> AdmittedSpatialConflictInput<'a> {
@@ -120,24 +144,8 @@ pub fn admit_spatial_conflict_input<'a>(
         } => {
             require_honest_lookup_handoff(request.authority, handoff)
                 .map_err(WorkloadCompositionError::ConflictInput)?;
-            if execution_receipt.execution_receipt_digest()
-                != handoff.lookup_execution_receipt_digest()
-            {
-                return Err(WorkloadCompositionError::ConflictInput(
-                    ConflictInputAdmissionError::new(
-                        ConflictInputAdmissionErrorKind::WrongReceiptFamily,
-                        "spatial conflict input requires one matching lookup execution receipt for the admitted lookup handoff",
-                    ),
-                ));
-            }
-            if execution_receipt.selected_plan_digest() != handoff.selected_lookup_plan_digest() {
-                return Err(WorkloadCompositionError::ConflictInput(
-                    ConflictInputAdmissionError::new(
-                        ConflictInputAdmissionErrorKind::WrongReceiptFamily,
-                        "spatial conflict input requires lookup execution proof whose selected family plan agrees with the admitted lookup handoff",
-                    ),
-                ));
-            }
+            admit_lookup_execution_handoff_match(handoff, execution_receipt)
+                .map_err(conflict_lookup_route_denial)?;
             let authority_participant = request
                 .authority
                 .conflict_participant_identity()
@@ -161,6 +169,34 @@ pub fn admit_spatial_conflict_input<'a>(
                     "evidence-lookup:{}:{}",
                     handoff.semantic_graph_identity(),
                     execution_receipt.execution_receipt_digest()
+                ),
+            )
+        }
+        SpatialConflictRoute::LookupCompiledProduct { handoff, product } => {
+            require_honest_lookup_handoff(request.authority, handoff)
+                .map_err(WorkloadCompositionError::ConflictInput)?;
+            admit_lookup_product_handoff_match(handoff, product)
+                .map_err(conflict_lookup_route_denial)?;
+            let authority_participant = request
+                .authority
+                .conflict_participant_identity()
+                .map_err(conflict_vocabulary_error)?;
+            let overlap = admit_conflict_overlap_identity(ConflictOverlapIdentityInput::evidence(
+                locality,
+                vec![authority_participant],
+            ))
+            .map_err(conflict_vocabulary_error)?;
+            (
+                AdmittedSpatialConflictRoute::LookupCompiledProduct { handoff, product },
+                admit_conflict_routing_contract(
+                    overlap,
+                    ConflictPriorProofInput::none(),
+                    ConflictRoutingPosture::RequiresFamilySelection,
+                ),
+                format!(
+                    "lookup-compiled-product:{}:{}",
+                    handoff.semantic_graph_identity(),
+                    product.index_product_digest()
                 ),
             )
         }
@@ -232,5 +268,14 @@ fn conflict_vocabulary_error(
     WorkloadCompositionError::ConflictInput(ConflictInputAdmissionError::new(
         ConflictInputAdmissionErrorKind::WrongAuthority,
         error.human_reason(),
+    ))
+}
+
+fn conflict_lookup_route_denial(
+    denial: SpatialLookupConsumerRouteDenial,
+) -> WorkloadCompositionError {
+    WorkloadCompositionError::ConflictInput(ConflictInputAdmissionError::new(
+        ConflictInputAdmissionErrorKind::WrongReceiptFamily,
+        denial.detail(),
     ))
 }

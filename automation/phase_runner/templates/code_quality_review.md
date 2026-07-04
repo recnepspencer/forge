@@ -27,6 +27,10 @@ Look for:
 - weak ownership boundaries
 - places where the implementation works but teaches the wrong architecture
 
+This turn does not reopen the phase loop. It is the closeout honesty pass for
+directory shape, file size discipline, and ownership boundaries after the phase
+is already functionally done.
+
 If you find issues, report them in chat with file/line references, but still
 close the phase honestly rather than pretending it is aerospace-grade.
 

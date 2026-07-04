@@ -76,6 +76,7 @@ pub fn admit_evidence_lookup_input(
                 family_identity,
                 family.topology_input_posture(),
                 request.topology_seed(),
+                request.topology_query_backed_cutover(),
             )
             .map_err(|error| error.with_counters(counters))?;
             counters.count_topology_satisfied();

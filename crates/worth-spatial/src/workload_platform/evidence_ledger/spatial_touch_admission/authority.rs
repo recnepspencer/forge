@@ -6,6 +6,10 @@ use super::digest::{
     SpatialGeometryEvidenceTouchDigest, SpatialGeometryEvidenceTouchDigestParts,
 };
 use super::operating_world::SpatialGeometryEvidenceTouchOperatingWorld;
+use crate::touched_graph_conflict::{
+    current_spatial_conflict_family_catalog_closeout, SpatialConflictFamilyApplicability,
+    SpatialConflictFamilyIdentity,
+};
 use crate::workload_platform::evidence_ledger::{
     BooleanEvidenceStageKind, WorkloadEvidenceRow, WorkloadEvidenceStage,
     WorkloadEvidenceStageCounters, WorkloadEvidenceStageLookupCounters, WorkloadEvidenceSupport,
@@ -16,10 +20,6 @@ use schema::facade::platform::authority::touched_graph_conflict::{
 use schema::facade::platform::authority::touched_graph_conflict_internal::{
     admit_conflict_evidence_participant_identity_from_digest,
     admit_conflict_spatial_touch_authority_locality_identity_from_digest,
-};
-use crate::touched_graph_conflict::{
-    current_spatial_conflict_family_catalog_closeout, SpatialConflictFamilyApplicability,
-    SpatialConflictFamilyIdentity,
 };
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SpatialGeometryEvidenceTouchAuthority {

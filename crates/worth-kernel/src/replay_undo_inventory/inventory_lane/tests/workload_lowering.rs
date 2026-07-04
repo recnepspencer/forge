@@ -1,8 +1,8 @@
 use topology::facade::TopologyWorkload;
 use worth_spatial::facade::workload_vocabulary::{
     DiagnosticWorkload, GeometryBindingWorkload, ProjectionWorkload, ResponseWorkload,
-    RetainedReplayWorkload, SurfaceSupportWorkload, TransformWorkload,
-    WorkloadEvidenceLedger, WorkloadEvidenceRow,
+    RetainedReplayWorkload, SurfaceSupportWorkload, TransformWorkload, WorkloadEvidenceLedger,
+    WorkloadEvidenceRow,
 };
 
 use super::super::closeout::current_replay_undo_inventory_report;

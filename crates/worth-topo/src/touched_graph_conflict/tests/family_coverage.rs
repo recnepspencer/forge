@@ -5,9 +5,9 @@ use schema::facade::platform::authority::replay_undo_semantic_graph::{
 };
 use schema::facade::platform::authority::replay_undo_semantic_graph_internal::admit_topology_derived_invalidation_prior_proof_identity;
 use schema::facade::platform::authority::touched_graph_conflict::{
-    admit_conflict_overlap_identity, admit_conflict_participant_identity, admit_conflict_routing_contract,
-    ConflictAspectClass, ConflictOverlapIdentityInput, ConflictParticipantIdentityInput,
-    ConflictPriorProofInput, ConflictRoutingPosture,
+    admit_conflict_overlap_identity, admit_conflict_participant_identity,
+    admit_conflict_routing_contract, ConflictAspectClass, ConflictOverlapIdentityInput,
+    ConflictParticipantIdentityInput, ConflictPriorProofInput, ConflictRoutingPosture,
 };
 use schema::facade::platform::authority::WorthTopologyTouchedAspect;
 
@@ -22,25 +22,28 @@ fn topology_aspect_family_is_selected_through_real_contract_route() {
             locality
                 .conflict_locality_identity()
                 .expect("topology locality admits"),
-            vec![admit_conflict_participant_identity(ConflictParticipantIdentityInput::entity(
-                EntityId::new(PartitionId::main(), 91, 1),
-            ))
-            .expect("entity participant admits")],
+            vec![
+                admit_conflict_participant_identity(ConflictParticipantIdentityInput::entity(
+                    EntityId::new(PartitionId::main(), 91, 1),
+                ))
+                .expect("entity participant admits"),
+            ],
         ))
         .expect("aspect overlap admits"),
         ConflictPriorProofInput::none(),
         ConflictRoutingPosture::RequiresFamilySelection,
     );
 
-    let matches = locality.matching_aspect_or_locality_conflict_family_identities_for_contract(&contract);
+    let matches =
+        locality.matching_aspect_or_locality_conflict_family_identities_for_contract(&contract);
 
     assert_eq!(
         matches,
         vec![crate::touched_graph_conflict::TopologyConflictFamilyIdentity::AspectSelection]
     );
-    assert!(
-        !matches.contains(&crate::touched_graph_conflict::TopologyConflictFamilyIdentity::ValidatorSelection)
-    );
+    assert!(!matches.contains(
+        &crate::touched_graph_conflict::TopologyConflictFamilyIdentity::ValidatorSelection
+    ));
 }
 
 #[test]
@@ -72,9 +75,10 @@ fn topology_replay_family_is_selected_through_real_contract_route() {
 
     assert_eq!(
         matches,
-        vec![crate::touched_graph_conflict::TopologyConflictFamilyIdentity::ReplayBoundarySelection]
+        vec![
+            crate::touched_graph_conflict::TopologyConflictFamilyIdentity::ReplayBoundarySelection
+        ]
     );
-    assert!(
-        !matches.contains(&crate::touched_graph_conflict::TopologyConflictFamilyIdentity::AspectSelection)
-    );
+    assert!(!matches
+        .contains(&crate::touched_graph_conflict::TopologyConflictFamilyIdentity::AspectSelection));
 }

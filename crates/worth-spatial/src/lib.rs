@@ -96,15 +96,32 @@ mod public_api_evidence_lookup_stage_cutover;
 #[cfg(test)]
 #[path = "certification/public_facade_contracts/contracts/evidence_lookup_workload_cutover/mod.rs"]
 mod public_api_evidence_lookup_workload_cutover;
+#[cfg(test)]
+#[path = "certification/public_facade_contracts/contracts/planar_contract_bundle/mod.rs"]
+mod public_api_planar_contract_bundle;
+#[cfg(test)]
+#[path = "certification/public_facade_contracts/contracts/planar_diagnostics/mod.rs"]
+mod public_api_planar_diagnostics;
+#[cfg(test)]
+#[path = "certification/public_facade_contracts/contracts/planar_motion_posture/mod.rs"]
+mod public_api_planar_motion_posture;
+#[cfg(test)]
+#[path = "certification/public_facade_contracts/contracts/planar_projection_consumption/mod.rs"]
+mod public_api_planar_projection_consumption;
+#[cfg(test)]
+#[path = "certification/public_facade_contracts/contracts/spatial_compiled_product_family/mod.rs"]
+mod public_api_spatial_compiled_product_family;
 mod query_adoption;
 mod query_aspect_contract;
 mod replay_family_catalog;
 pub mod replay_undo_semantic_graph;
+mod spatial_compiled_product_family;
 #[cfg(test)]
 mod structure_guard;
 #[cfg(test)]
 mod test_support;
 pub mod touched_graph_conflict;
+pub mod touched_graph_parity_closeout;
 mod undo_family_catalog;
 mod witness_resolution;
 mod workload_platform;

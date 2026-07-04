@@ -1,3 +1,10 @@
+#[path = "phase_fifteen_fixture_inventory.rs"]
+mod phase_fifteen_fixture_inventory;
+#[path = "phase_fourteen_fixture_inventory.rs"]
+mod phase_fourteen_fixture_inventory;
+
+use std::collections::BTreeSet;
+
 pub(crate) fn public_facade_compile_fail_targets() -> Vec<String> {
     const COMPILE_FAIL_ROOT: &str = "src/certification/public_facade_contracts/compile_fail";
     public_facade_compile_fail_target_files()
@@ -100,5 +107,76 @@ pub(crate) const fn public_facade_compile_fail_target_files() -> &'static [&'sta
         "public_traversal_views_topology_read_source_not_exported.rs",
         "public_traversal_views_topology_prefix_read_source_not_exported.rs",
         "public_traversal_views_read_stage_receipt_not_forgeable.rs",
+        "public_topology_compiled_product_family_declaration_constructor_not_exported.rs",
+        "public_topology_compiled_product_admission_not_exported.rs",
+        "public_topology_compiled_product_reuse_decision_not_exported.rs",
+        "public_topology_compiled_product_rebuild_denial_not_exported.rs",
+        "public_derived_read_diagnostic_support_not_exported.rs",
+        "public_topology_selected_route_authority_not_exported.rs",
+        "public_topology_selected_route_admission_not_exported.rs",
+        "public_invalidation_route_input_not_mintable_from_milestone_ten_summary_row.rs",
+        "public_invalidation_route_input_not_mintable_from_projection_read_stage_receipt.rs",
+        "public_topology_compiled_product_family_proof_products_not_deserializable.rs",
     ]
+}
+
+#[test]
+fn public_api_cannot_forge_compiled_product_or_reuse_products() {
+    const COMPILE_FAIL_ROOT: &str = "src/certification/public_facade_contracts/compile_fail";
+    let test_cases = trybuild::TestCases::new();
+    for fence in phase_fifteen_fixture_inventory::phase_fifteen_topology_compile_fail_fences() {
+        let file_name = fence
+            .fixture_path()
+            .strip_prefix("src/certification/public_facade_contracts/compile_fail/")
+            .expect("phase 15 topology fixture must stay under compile_fail root");
+        test_cases.compile_fail(format!("{COMPILE_FAIL_ROOT}/{file_name}"));
+    }
+}
+
+#[test]
+fn public_api_cannot_mint_invalidation_route_input_from_projection_or_summary_rows() {
+    const COMPILE_FAIL_ROOT: &str = "src/certification/public_facade_contracts/compile_fail";
+    let test_cases = trybuild::TestCases::new();
+    for file_name in [
+        "public_invalidation_route_input_not_mintable_from_milestone_ten_summary_row.rs",
+        "public_invalidation_route_input_not_mintable_from_projection_read_stage_receipt.rs",
+    ] {
+        test_cases.compile_fail(format!("{COMPILE_FAIL_ROOT}/{file_name}"));
+    }
+}
+
+#[test]
+fn phase_fourteen_topology_reintroduction_and_raw_part_fixtures_hold() {
+    let test_cases = trybuild::TestCases::new();
+    for fence in phase_fourteen_fixture_inventory::phase_fourteen_topology_compile_fail_fences() {
+        test_cases.compile_fail(fence.fixture_path());
+    }
+}
+
+#[test]
+fn phase_fifteen_topology_compile_fail_fixtures_are_unique_per_fence_class() {
+    let unique_fixtures: BTreeSet<_> =
+        phase_fifteen_fixture_inventory::phase_fifteen_topology_compile_fail_fences()
+            .iter()
+            .map(|fence| fence.fixture_path())
+            .collect();
+    assert_eq!(
+        unique_fixtures.len(),
+        phase_fifteen_fixture_inventory::phase_fifteen_topology_compile_fail_fences().len(),
+        "each certified topology fence class must map to its own executed compile-fail fixture",
+    );
+}
+
+#[test]
+fn phase_fourteen_topology_compile_fail_fixtures_are_unique_per_path() {
+    let unique_fixtures: BTreeSet<_> =
+        phase_fourteen_fixture_inventory::phase_fourteen_topology_compile_fail_fences()
+            .iter()
+            .map(|fence| fence.fixture_path())
+            .collect();
+    assert_eq!(
+        unique_fixtures.len(),
+        phase_fourteen_fixture_inventory::phase_fourteen_topology_compile_fail_fences().len(),
+        "each phase 14 topology fence fixture should be executed exactly once",
+    );
 }

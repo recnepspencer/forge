@@ -19,7 +19,10 @@ pub(crate) fn matches_routing_contract(
         && matches_category(declaration, overlap.category())
 }
 
-fn matches_category(declaration: &TopologyConflictFamilyDeclaration, category: ConflictOverlapCategory) -> bool {
+fn matches_category(
+    declaration: &TopologyConflictFamilyDeclaration,
+    category: ConflictOverlapCategory,
+) -> bool {
     category == declaration.primary_overlap_category()
         || declaration.secondary_overlap_category() == Some(category)
 }

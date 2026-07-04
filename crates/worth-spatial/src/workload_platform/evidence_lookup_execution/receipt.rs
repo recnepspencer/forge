@@ -9,6 +9,7 @@ use crate::workload_platform::evidence_lookup_plan_selection::{
 use crate::workload_platform::evidence_lookup_query_surface_contract::{
     EvidenceLookupProductQuerySurfaceContractRow, EvidenceLookupQuerySurfaceContract,
 };
+use crate::workload_platform::selected_equivalence_family::SpatialSelectedEquivalenceFamilyIdentity;
 
 use super::counters::EvidenceLookupExecutionCounters;
 use super::outcome::EvidenceLookupExecutionOutcome;
@@ -27,6 +28,8 @@ pub struct EvidenceLookupExecutionReceipt {
     execution_receipt_digest: String,
     selected_plan_digest: String,
     index_product_digest: String,
+    selected_equivalence_family_identity: SpatialSelectedEquivalenceFamilyIdentity,
+    selected_reuse_basis_identity_digest: String,
     spatial_touch_digest: String,
     stage_receipt_digest: String,
     evidence_ledger_basis_digest: String,
@@ -45,6 +48,8 @@ pub struct EvidenceLookupExecutionReceipt {
 pub(crate) struct EvidenceLookupExecutionReceiptParts {
     pub(crate) selected_plan_digest: String,
     pub(crate) index_product_digest: String,
+    pub(crate) selected_equivalence_family_identity: SpatialSelectedEquivalenceFamilyIdentity,
+    pub(crate) selected_reuse_basis_identity_digest: String,
     pub(crate) spatial_touch_digest: String,
     pub(crate) stage_receipt_digest: String,
     pub(crate) evidence_ledger_basis_digest: String,
@@ -68,6 +73,14 @@ impl EvidenceLookupExecutionReceipt {
                 "worth-spatial:evidence-lookup-execution-receipt-provisional:v1".to_string(),
                 format!("selected-plan:{}", parts.selected_plan_digest),
                 format!("index-product:{}", parts.index_product_digest),
+                format!(
+                    "selected-equivalence-family:{}",
+                    parts.selected_equivalence_family_identity.as_str()
+                ),
+                format!(
+                    "selected-reuse-basis:{}",
+                    parts.selected_reuse_basis_identity_digest
+                ),
                 format!("spatial-touch:{}", parts.spatial_touch_digest),
                 format!("stage-receipt:{}", parts.stage_receipt_digest),
                 format!("ledger-basis:{}", parts.evidence_ledger_basis_digest),
@@ -94,6 +107,14 @@ impl EvidenceLookupExecutionReceipt {
                 "worth-spatial:evidence-lookup-execution-receipt:v1".to_string(),
                 format!("selected-plan:{}", parts.selected_plan_digest),
                 format!("index-product:{}", parts.index_product_digest),
+                format!(
+                    "selected-equivalence-family:{}",
+                    parts.selected_equivalence_family_identity.as_str()
+                ),
+                format!(
+                    "selected-reuse-basis:{}",
+                    parts.selected_reuse_basis_identity_digest
+                ),
                 format!("spatial-touch:{}", parts.spatial_touch_digest),
                 format!("stage-receipt:{}", parts.stage_receipt_digest),
                 format!("ledger-basis:{}", parts.evidence_ledger_basis_digest),
@@ -119,6 +140,8 @@ impl EvidenceLookupExecutionReceipt {
             execution_receipt_digest,
             selected_plan_digest: parts.selected_plan_digest,
             index_product_digest: parts.index_product_digest,
+            selected_equivalence_family_identity: parts.selected_equivalence_family_identity,
+            selected_reuse_basis_identity_digest: parts.selected_reuse_basis_identity_digest,
             spatial_touch_digest: parts.spatial_touch_digest,
             stage_receipt_digest: parts.stage_receipt_digest,
             evidence_ledger_basis_digest: parts.evidence_ledger_basis_digest,
@@ -145,6 +168,20 @@ impl EvidenceLookupExecutionReceipt {
 
     pub fn index_product_digest(&self) -> &str {
         &self.index_product_digest
+    }
+
+    pub fn selected_equivalence_family_identity(&self) -> &str {
+        self.selected_equivalence_family_identity.as_str()
+    }
+
+    pub(crate) const fn selected_equivalence_family_identity_kind(
+        &self,
+    ) -> SpatialSelectedEquivalenceFamilyIdentity {
+        self.selected_equivalence_family_identity
+    }
+
+    pub fn selected_reuse_basis_identity_digest(&self) -> &str {
+        &self.selected_reuse_basis_identity_digest
     }
 
     pub fn spatial_touch_digest(&self) -> &str {
@@ -240,6 +277,8 @@ impl EvidenceLookupExecutionReceipt {
             selected_plan_digest: selected_plan_digest
                 .unwrap_or_else(|| self.selected_plan_digest.clone()),
             index_product_digest: self.index_product_digest.clone(),
+            selected_equivalence_family_identity: self.selected_equivalence_family_identity,
+            selected_reuse_basis_identity_digest: self.selected_reuse_basis_identity_digest.clone(),
             spatial_touch_digest: self.spatial_touch_digest.clone(),
             stage_receipt_digest: self.stage_receipt_digest.clone(),
             evidence_ledger_basis_digest: self.evidence_ledger_basis_digest.clone(),

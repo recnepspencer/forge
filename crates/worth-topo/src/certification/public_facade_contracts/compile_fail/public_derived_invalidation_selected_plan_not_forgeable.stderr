@@ -1,33 +1,55 @@
-error[E0451]: fields `phase_three_seed_digest`, `catalog_digest`, `touched_closure_digest`, `query_support_digest`, `legality_support_digest`, `density_policy`, `selected_rows`, `unaffected_rows`, `denied_rows`, `residue_rows`, `counters`, `execution_admission`, `phase_four_seed` and `selected_plan_digest` of struct `DerivedInvalidationSelectedPlan` are private
-  --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_selected_plan_not_forgeable.rs:9:9
+error: cannot construct `topology::derived_invalidation_selected_plan::DerivedInvalidationSelectedPlan` with struct literal syntax due to private fields
+  --> src/certification/public_facade_contracts/compile_fail/public_derived_invalidation_selected_plan_not_forgeable.rs:8:13
    |
  8 |     let _ = DerivedInvalidationSelectedPlan {
-   |             ------------------------------- in this type
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  9 |         phase_three_seed_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------------- private field
 10 |         catalog_digest: String::new(),
-   |         ^^^^^^^^^^^^^^ private field
+   |         ----------------------------- private field
 11 |         touched_closure_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------- private field
 12 |         query_support_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------------------- private field
 13 |         legality_support_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------------- private field
 14 |         density_policy: DerivedInvalidationDensityPolicy::Sparse,
-   |         ^^^^^^^^^^^^^^ private field
+   |         -------------------------------------------------------- private field
 15 |         selected_rows: Vec::new(),
-   |         ^^^^^^^^^^^^^ private field
+   |         ------------------------- private field
 16 |         unaffected_rows: Vec::new(),
-   |         ^^^^^^^^^^^^^^^ private field
+   |         --------------------------- private field
 17 |         denied_rows: Vec::new(),
-   |         ^^^^^^^^^^^ private field
+   |         ----------------------- private field
 18 |         residue_rows: Vec::new(),
-   |         ^^^^^^^^^^^^ private field
+   |         ------------------------ private field
 19 |         counters: fake_counters(),
-   |         ^^^^^^^^ private field
+   |         ------------------------- private field
 20 |         execution_admission: DerivedInvalidationExecutionAdmission::Admitted,
-   |         ^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------------------------------------------- private field
 21 |         phase_four_seed: fake_phase_four_seed(),
-   |         ^^^^^^^^^^^^^^^ private field
+   |         --------------------------------------- private field
 22 |         selected_plan_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------------------- private field
+   |
+   = note: ...and other private field `routing_contract` that was not provided
+help: you might have meant to use the `from_parts` associated function
+   |
+ 8 -     let _ = DerivedInvalidationSelectedPlan {
+ 9 -         phase_three_seed_digest: String::new(),
+10 -         catalog_digest: String::new(),
+11 -         touched_closure_digest: String::new(),
+12 -         query_support_digest: String::new(),
+13 -         legality_support_digest: String::new(),
+14 -         density_policy: DerivedInvalidationDensityPolicy::Sparse,
+15 -         selected_rows: Vec::new(),
+16 -         unaffected_rows: Vec::new(),
+17 -         denied_rows: Vec::new(),
+18 -         residue_rows: Vec::new(),
+19 -         counters: fake_counters(),
+20 -         execution_admission: DerivedInvalidationExecutionAdmission::Admitted,
+21 -         phase_four_seed: fake_phase_four_seed(),
+22 -         selected_plan_digest: String::new(),
+23 -     };
+ 8 +     let _ = DerivedInvalidationSelectedPlan::from_parts(_);
+   |

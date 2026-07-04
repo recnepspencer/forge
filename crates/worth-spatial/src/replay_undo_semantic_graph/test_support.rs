@@ -11,6 +11,7 @@ use crate::workload_platform::evidence_lookup_family_catalog::{
     current_evidence_lookup_family_catalog, EvidenceLookupFamilyDeclaration,
     EvidenceLookupFamilyIdentity, EvidenceLookupStageReceiptFamilyIdentity, TestCatalogCloseout,
 };
+use crate::workload_platform::evidence_lookup_input_admission::EvidenceLookupQueryAdmissionEvidenceSet;
 use crate::workload_platform::evidence_lookup_input_admission::EvidenceLookupStageReceiptAdmission;
 use crate::workload_platform::evidence_lookup_stage_cutover::{
     admit_current_family_stage_cutover_path,
@@ -18,7 +19,6 @@ use crate::workload_platform::evidence_lookup_stage_cutover::{
     current_retained_replay_receipt_for_stage,
 };
 use crate::workload_platform::evidence_lookup_workload_cutover::EvidenceLookupConsumedWorkloadHandoff;
-use crate::workload_platform::evidence_lookup_input_admission::EvidenceLookupQueryAdmissionEvidenceSet;
 use crate::workload_platform::vocabulary::RetainedReplayWorkloadReceipt;
 
 #[derive(Clone)]
@@ -82,6 +82,24 @@ impl ReplayUndoSpatialBoundaryFixture {
         self.workload_handoff
             .clone()
             .with_test_caller_owned_scan_count(caller_owned_scan_count)
+    }
+
+    pub fn workload_handoff_with_test_selected_reuse_basis_identity_digest(
+        &self,
+        selected_reuse_basis_identity_digest: impl Into<String>,
+    ) -> EvidenceLookupConsumedWorkloadHandoff {
+        self.workload_handoff
+            .clone()
+            .with_test_selected_reuse_basis_identity_digest(selected_reuse_basis_identity_digest)
+    }
+
+    pub fn workload_handoff_with_test_selected_equivalence_family_identity(
+        &self,
+        selected_equivalence_family_identity: impl AsRef<str>,
+    ) -> EvidenceLookupConsumedWorkloadHandoff {
+        self.workload_handoff
+            .clone()
+            .with_test_selected_equivalence_family_identity(selected_equivalence_family_identity)
     }
 
     pub fn retained_replay_receipt(&self) -> Option<&RetainedReplayWorkloadReceipt> {
@@ -156,8 +174,8 @@ fn replay_undo_spatial_boundary_fixture(
     let family = catalog
         .family_by_identity(family_identity)
         .expect("covered family declaration");
-    let path =
-        admit_current_family_stage_cutover_path(&catalog, family, stage).expect("current cutover path");
+    let path = admit_current_family_stage_cutover_path(&catalog, family, stage)
+        .expect("current cutover path");
     replay_undo_fixture_from_path(
         replay_family_identity_authority,
         family.identity().as_str(),
@@ -172,7 +190,9 @@ fn replay_undo_fixture_from_path(
     path: crate::workload_platform::evidence_lookup_stage_cutover::current_path::EvidenceLookupCurrentCoveredStageCutoverPath,
     retained_replay_receipt: Option<RetainedReplayWorkloadReceipt>,
 ) -> ReplayUndoSpatialBoundaryFixture {
-    let proof = path.prove_for_family(family_identity).expect("covered family proof");
+    let proof = path
+        .prove_for_family(family_identity)
+        .expect("covered family proof");
     let authority = path.spatial_touch_authority().clone();
     let execution_receipt = path.execution_receipt().clone();
     let workload_handoff =

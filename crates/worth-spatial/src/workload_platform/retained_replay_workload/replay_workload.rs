@@ -1,18 +1,45 @@
 use super::{
-    CapturedRetainedWorkload, ReplayEvidenceSet, ReplayParityReport, ReplayReceiptSet,
-    ReplayWorkloadCounters, RetainedArtifactCaptureReceipt, RetainedArtifactSet,
-    UnsupportedReplayReasonCode, UnsupportedReplayWorkload,
+    ReplayEvidenceSet, ReplayParityReport, ReplayReceiptSet, ReplayWorkloadCounters,
+    RetainedArtifactCaptureReceipt, RetainedArtifactSet, UnsupportedReplayReasonCode,
+    UnsupportedReplayWorkload,
 };
 use crate::planar_contracts::projection_consumed_facts::ProjectionConsumedPlanarFactsReceipt;
 use crate::planar_contracts::retained_planar_facts::RetainedPlanarHistoricalInspection;
+use crate::workload_platform::spatial_compiled_product_consumer_cutover::{
+    build_retained_replay_parity_report, require_retained_capture_receipt,
+};
 use crate::workload_platform::transform_workload::TransformedWorkload;
 use crate::workload_platform::vocabulary::RetainedReplayWorkloadReceipt;
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AdmittedRetainedReplayCapture {
+    retained_artifacts: RetainedArtifactSet,
+    capture_receipt: RetainedArtifactCaptureReceipt,
+}
+
+impl AdmittedRetainedReplayCapture {
+    pub(crate) fn from_captured_retained_workload(
+        captured_retained_workload: super::CapturedRetainedWorkload,
+    ) -> Self {
+        Self {
+            capture_receipt: captured_retained_workload.capture_receipt().clone(),
+            retained_artifacts: captured_retained_workload.into_retained_artifacts(),
+        }
+    }
+
+    fn capture_receipt(&self) -> &RetainedArtifactCaptureReceipt {
+        &self.capture_receipt
+    }
+
+    fn into_retained_artifacts(self) -> RetainedArtifactSet {
+        self.retained_artifacts
+    }
+}
 
 pub struct ReplayWorkload {
     transformed_workload: TransformedWorkload,
     declaration: String,
-    retained_artifacts: Option<RetainedArtifactSet>,
-    retained_capture_receipt: Option<RetainedArtifactCaptureReceipt>,
+    admitted_capture: Option<AdmittedRetainedReplayCapture>,
 }
 
 impl ReplayWorkload {
@@ -20,8 +47,7 @@ impl ReplayWorkload {
         Self {
             transformed_workload,
             declaration: "retained replay workload".to_string(),
-            retained_artifacts: None,
-            retained_capture_receipt: None,
+            admitted_capture: None,
         }
     }
 
@@ -30,20 +56,21 @@ impl ReplayWorkload {
         self
     }
 
-    pub fn with_captured_retained_workload(
+    pub fn with_admitted_retained_replay_capture(
         mut self,
-        captured_retained_workload: CapturedRetainedWorkload,
+        admitted_capture: AdmittedRetainedReplayCapture,
     ) -> Self {
-        self.retained_capture_receipt = Some(captured_retained_workload.capture_receipt().clone());
-        self.retained_artifacts = Some(captured_retained_workload.into_retained_artifacts());
+        self.admitted_capture = Some(admitted_capture);
         self
     }
 
     pub fn replay(mut self) -> Result<ReplayedWorkload, UnsupportedReplayWorkload> {
         reject_blank_replay_declaration(&self.declaration)?;
-        let retained_artifacts = require_retained_replay_artifacts(&mut self.retained_artifacts)?;
+        let admitted_capture =
+            require_admitted_retained_replay_capture(&mut self.admitted_capture)?;
         let capture_receipt =
-            replay_capture_receipt(&mut self.retained_capture_receipt, &retained_artifacts);
+            require_retained_capture_receipt(Some(admitted_capture.capture_receipt().clone()))?;
+        let retained_artifacts = admitted_capture.into_retained_artifacts();
         let projection = retained_artifacts.require_projection_consumed_facts()?;
         let historical = replay_retained_historical_subject(&retained_artifacts)?;
         let stage_receipt = admit_retained_replay_stage_receipt(
@@ -53,8 +80,12 @@ impl ReplayWorkload {
         let transformed_identity = transformed_replay_workload_identity(&self.transformed_workload);
         let retained_artifact_identity = retained_artifacts.retained_artifact_identity();
         let evidence = replay_evidence_set(&retained_artifact_identity, &historical, projection);
-        let parity_report =
-            ReplayParityReport::from_retained_projection_match(&historical, projection);
+        let parity_report = build_retained_replay_parity_report(
+            retained_artifacts.retained_planar_facts(),
+            &historical,
+            projection,
+        )
+        .map_err(replay_parity_unsupported_workload)?;
         let receipts = replay_receipts(
             stage_receipt,
             &transformed_identity,
@@ -117,25 +148,13 @@ fn reject_blank_replay_declaration(declaration: &str) -> Result<(), UnsupportedR
     }
 }
 
-fn require_retained_replay_artifacts(
-    retained_artifacts: &mut Option<RetainedArtifactSet>,
-) -> Result<RetainedArtifactSet, UnsupportedReplayWorkload> {
-    retained_artifacts.take().ok_or_else(|| {
+fn require_admitted_retained_replay_capture(
+    admitted_capture: &mut Option<AdmittedRetainedReplayCapture>,
+) -> Result<AdmittedRetainedReplayCapture, UnsupportedReplayWorkload> {
+    admitted_capture.take().ok_or_else(|| {
         UnsupportedReplayWorkload::new(
             UnsupportedReplayReasonCode::MissingRetainedArtifacts,
-            "Retained replay workload requires retained artifacts captured before replay.",
-        )
-    })
-}
-
-fn replay_capture_receipt(
-    retained_capture_receipt: &mut Option<RetainedArtifactCaptureReceipt>,
-    retained_artifacts: &RetainedArtifactSet,
-) -> RetainedArtifactCaptureReceipt {
-    retained_capture_receipt.take().unwrap_or_else(|| {
-        RetainedArtifactCaptureReceipt::from_artifacts(
-            "internal retained capture receipt unavailable",
-            retained_artifacts,
+            "Retained replay workload requires retained artifacts admitted through the shared cutover lane before replay.",
         )
     })
 }
@@ -232,5 +251,17 @@ fn replay_evidence_identity(
 ) -> String {
     format!(
         "replay-evidence:{transformed_identity}:{retained_artifact_identity}:{historical_digest}:{projection_consumption_digest}"
+    )
+}
+
+fn replay_parity_unsupported_workload(
+    error: crate::workload_platform::retained_replay_workload::ReplayParityError,
+) -> UnsupportedReplayWorkload {
+    UnsupportedReplayWorkload::new(
+        UnsupportedReplayReasonCode::RetainedProjectionDrift,
+        format!(
+            "Retained replay workload requires parity admitted through the shared consumer cutover lane: {}",
+            error.detail()
+        ),
     )
 }
