@@ -1,10 +1,8 @@
-error[E0624]: associated function `new` is private
+error[E0599]: no function or associated item named `new` found for struct `UiInspectionReceipt` in the current scope
   --> tests/ui/inspection/external_callers_cannot_mint_inspection_receipts.rs:11:34
    |
 11 |     let _ = UiInspectionReceipt::new(query, UiInspectionPosture::Available);
-   |                                  ^^^ private associated function
+   |                                  ^^^ function or associated item not found in `UiInspectionReceipt`
    |
-  ::: $WORKSPACE/crates/worth-ui-runtime/src/facade/inspection_receipt.rs
-   |
-   |     pub(crate) fn new(query: UiInspectionQuery, posture: UiInspectionPosture) -> Self {
-   |     --------------------------------------------------------------------------------- private associated function defined here
+help: there is a method `ne` with a similar name, but with different arguments
+  --> $RUST/core/src/cmp.rs

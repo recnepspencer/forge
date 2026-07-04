@@ -1,9 +1,10 @@
 use crate::obligations::inspection::UiObligationEvidenceIndex;
 use worth_ui_inspection::{
     UiInspectionEvidenceSource, UiInspectionObligationDecision,
-    UiInspectionObligationDenialPosture, UiInspectionObligationFamily,
-    UiInspectionObligationLegalityReason, UiInspectionObligationNonSelectionReason,
-    UiInspectionObligationSelectionReason,
+    UiInspectionObligationDenialPosture, UiInspectionObligationDispatchPosture,
+    UiInspectionObligationFamily, UiInspectionObligationLegalityReason,
+    UiInspectionObligationNonSelectionReason, UiInspectionObligationSelectionReason,
+    UiInspectionObligationVerdictClass, UiInspectionObligationVerdictPosture,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -11,6 +12,9 @@ pub struct UiObligationDiagnosticRow {
     handle_digest: u64,
     family: Option<UiInspectionObligationFamily>,
     decision: UiInspectionObligationDecision,
+    dispatch_posture: Option<UiInspectionObligationDispatchPosture>,
+    verdict_class: Option<UiInspectionObligationVerdictClass>,
+    verdict_posture: Option<UiInspectionObligationVerdictPosture>,
     denial_posture: Option<UiInspectionObligationDenialPosture>,
     selection_reasons: Box<[UiInspectionObligationSelectionReason]>,
     non_selection_reason: Option<UiInspectionObligationNonSelectionReason>,
@@ -23,6 +27,9 @@ impl UiObligationDiagnosticRow {
         handle_digest: u64,
         family: Option<UiInspectionObligationFamily>,
         decision: UiInspectionObligationDecision,
+        dispatch_posture: Option<UiInspectionObligationDispatchPosture>,
+        verdict_class: Option<UiInspectionObligationVerdictClass>,
+        verdict_posture: Option<UiInspectionObligationVerdictPosture>,
         denial_posture: Option<UiInspectionObligationDenialPosture>,
         selection_reasons: Box<[UiInspectionObligationSelectionReason]>,
         non_selection_reason: Option<UiInspectionObligationNonSelectionReason>,
@@ -33,6 +40,9 @@ impl UiObligationDiagnosticRow {
             handle_digest,
             family,
             decision,
+            dispatch_posture,
+            verdict_class,
+            verdict_posture,
             denial_posture,
             selection_reasons,
             non_selection_reason,
@@ -51,6 +61,18 @@ impl UiObligationDiagnosticRow {
 
     pub fn decision(&self) -> UiInspectionObligationDecision {
         self.decision
+    }
+
+    pub fn dispatch_posture(&self) -> Option<UiInspectionObligationDispatchPosture> {
+        self.dispatch_posture
+    }
+
+    pub fn verdict_class(&self) -> Option<UiInspectionObligationVerdictClass> {
+        self.verdict_class
+    }
+
+    pub fn verdict_posture(&self) -> Option<UiInspectionObligationVerdictPosture> {
+        self.verdict_posture
     }
 
     pub fn denial_posture(&self) -> Option<UiInspectionObligationDenialPosture> {
@@ -90,6 +112,9 @@ impl UiObligationDiagnosticProjection {
                     projection.handle_digest(),
                     projection.family(),
                     projection.decision(),
+                    projection.dispatch_posture(),
+                    projection.verdict_class(),
+                    projection.verdict_posture(),
                     projection.denial_posture(),
                     projection.selection_reasons().to_vec().into_boxed_slice(),
                     projection.non_selection_reason(),

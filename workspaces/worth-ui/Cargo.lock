@@ -1349,6 +1349,9 @@ dependencies = [
 [[package]]
 name = "worth-ui-inspection"
 version = "0.1.0"
+dependencies = [
+ "worth-ui-query-binding",
+]
 
 [[package]]
 name = "worth-ui-query-binding"

@@ -29,7 +29,8 @@ fn structural_selected_obligations_lower_to_stable_dispatch_and_success_verdicts
     let touch = graph
         .touches()
         .from_slot_occupancy(
-            graph.touches()
+            graph
+                .touches()
                 .declaration_change_receipt(artifact)
                 .expect("declaration change should admit"),
             UiGraphTouchTiming::PostMutation,
@@ -81,7 +82,8 @@ fn query_selected_obligations_lower_to_narrow_dispatch_without_widening_families
     let touch = graph
         .touches()
         .from_mounted_receipt_transition(
-            graph.touches()
+            graph
+                .touches()
                 .query_fact_change_receipt()
                 .expect("query world should admit query receipt"),
             UiGraphTouchTiming::PostMutation,
@@ -133,7 +135,10 @@ fn query_selected_obligations_lower_to_narrow_dispatch_without_widening_families
             ),
         ]
     );
-    assert_eq!(report.aggregation(), UiAdmissionAggregation::AdmittedWithAdvisory);
+    assert_eq!(
+        report.aggregation(),
+        UiAdmissionAggregation::AdmittedWithAdvisory
+    );
     assert_eq!(report.dispatch_plan(), Some(&dispatch));
 }
 
@@ -173,7 +178,8 @@ fn graph_node_identity(
     graph: worth_ui::facade::graph::UiGraphAuthority<'_>,
     artifact: &UiDeclarationArtifact,
 ) -> worth_ui::facade::graph::UiGraphNodeIdentity {
-    graph.lookup()
+    graph
+        .lookup()
         .declaration_instances(artifact.identity())
         .value()
         .first()
@@ -187,7 +193,8 @@ fn mounted_receipt_transition(
 ) -> worth_ui::facade::graph::UiGraphMountedReceiptTransition {
     let graph = app.graph();
     let graph_node_identity = graph_node_identity(graph, artifact);
-    let control_node = graph.lookup()
+    let control_node = graph
+        .lookup()
         .graph_node(graph_node_identity)
         .expect("graph should resolve node")
         .value();

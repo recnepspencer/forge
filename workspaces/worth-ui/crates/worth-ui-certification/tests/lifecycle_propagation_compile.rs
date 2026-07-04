@@ -9,4 +9,3 @@ fn runtime_bootstrap_requires_every_subsystem_field() {
         tests.compile_fail(*fixture_path);
     }
 }
-

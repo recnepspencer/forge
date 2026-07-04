@@ -58,14 +58,22 @@ fn structural_hot_reload_touch_selects_closed_structural_matrix_with_stable_iden
             UiObligationFamily::StructuralLegality,
             UiObligationFamily::SlotContract,
             UiObligationFamily::ParticipationLegality,
+            UiObligationFamily::PortalHostRequirement,
         ]
     );
-    assert!(left
-        .obligations()
-        .iter()
-        .all(|obligation| obligation.check_kind() == UiObligationCheckKind::BlockingInvariant));
     assert!(left.obligations().iter().all(|obligation| {
-        obligation.identity().support_basis() == UiObligationSupportBasis::TouchMeaning
+        if obligation.family() == UiObligationFamily::PortalHostRequirement {
+            obligation.check_kind() == UiObligationCheckKind::PrerequisiteRequirement
+        } else {
+            obligation.check_kind() == UiObligationCheckKind::BlockingInvariant
+        }
+    }));
+    assert!(left.obligations().iter().all(|obligation| {
+        if obligation.family() == UiObligationFamily::PortalHostRequirement {
+            obligation.identity().support_basis() == UiObligationSupportBasis::ServiceUsage
+        } else {
+            obligation.identity().support_basis() == UiObligationSupportBasis::TouchMeaning
+        }
     }));
     assert!(left.obligations().iter().all(|obligation| {
         obligation
@@ -74,6 +82,21 @@ fn structural_hot_reload_touch_selects_closed_structural_matrix_with_stable_iden
                 UiObligationWorldProfileClass::HotReloadCandidate,
             ))
     }));
+
+    let portal = obligation_by_family(&left, UiObligationFamily::PortalHostRequirement);
+    assert_eq!(
+        portal.identity().support_basis(),
+        UiObligationSupportBasis::ServiceUsage
+    );
+    assert_eq!(
+        portal.identity().aspect_scope(),
+        &[UiGraphTouchRuntimeLane::Structural]
+    );
+    assert_eq!(portal.identity().world(), touch.world());
+    assert_eq!(
+        portal.check_kind(),
+        UiObligationCheckKind::PrerequisiteRequirement
+    );
 }
 
 #[test]

@@ -7,6 +7,7 @@ use crate::admission::{
 use crate::declaration::{
     UiDeclarationArtifact, UiDeclarationSupportRowSchemaKind, UiDeclaredPostureApplicability,
 };
+use crate::evidence::UiEvidenceAuthorityGeneration;
 use crate::graph::{UiGraphNodeRecord, UiGraphSnapshot};
 use crate::obligations::dispatch::{UiObligationDispatchBoundary, UiObligationDispatchPlan};
 use crate::obligations::selection::{UiObligationSelectionBoundary, UiSelectedObligationSet};
@@ -143,7 +144,10 @@ impl<'a> UiAdmissionBoundary<'a> {
     }
 
     pub fn report(&self, target: UiAdmissionTarget) -> UiAdmissionReport {
-        self.admit(target).into_report()
+        self.admit(target)
+            .into_report(UiEvidenceAuthorityGeneration::new(
+                self.graph_snapshot.generation().as_u64(),
+            ))
     }
 
     pub fn select_obligations(&self, touch: &UiGraphTouchDescriptor) -> UiSelectedObligationSet {
@@ -388,11 +392,13 @@ fn selection_target_for_touch(
     }
 
     if let Some(host_capability_report) = target.host_capability_report() {
-        selection_target = selection_target.with_host_capability_report(host_capability_report.clone());
+        selection_target =
+            selection_target.with_host_capability_report(host_capability_report.clone());
     }
 
     selection_target
 }
 
 #[cfg(test)]
+#[path = "ui_admission_boundary_tests.rs"]
 mod ui_admission_boundary_tests;

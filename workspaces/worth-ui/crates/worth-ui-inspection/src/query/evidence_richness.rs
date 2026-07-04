@@ -1,16 +1,21 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum UiEvidenceRichness {
+    RefsOnly,
     Summary,
-    Full,
+    MaterializedDetail,
 }
 
 impl UiEvidenceRichness {
+    pub fn refs_only() -> Self {
+        Self::RefsOnly
+    }
+
     pub fn summary() -> Self {
         Self::Summary
     }
 
-    pub fn full() -> Self {
-        Self::Full
+    pub fn materialized_detail() -> Self {
+        Self::MaterializedDetail
     }
 }

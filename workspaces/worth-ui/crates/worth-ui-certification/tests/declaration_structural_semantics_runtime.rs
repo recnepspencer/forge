@@ -1,9 +1,10 @@
+use std::panic::{catch_unwind, AssertUnwindSafe};
+
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
     UiDeclarationArtifact, UiDeclarationContainmentIntent, UiDeclarationFamily,
     UiDeclarationFamilyKind, UiDeclarationOrderingGuarantee, UiDeclarationRepetitionPosture,
     UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole,
-    UiDeclarationStructuralSemanticsAdmissionDenial,
 };
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
@@ -199,78 +200,66 @@ fn every_admitted_structural_family_projects_declared_structural_intent() {
 
 #[test]
 fn slot_participation_not_admitted_for_page_structures_on_freeze_path() {
-    let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.structural.invalid_slot")
-                .with_semantic_artifact_spec(page_with_slot_spec()),
-        )
-        .freeze();
-    let artifact = artifact_from_file_provenance(&app, "app/structural_invalid_slot.wui", 0);
-    let expected_denial =
-        UiDeclarationStructuralSemanticsAdmissionDenial::SlotParticipationNotAdmittedForFamily {
-            family: UiDeclarationFamilyKind::Page,
-            observed: vec!["slot:footer".to_owned()],
-        };
-
-    assert_eq!(artifact.structural_semantics(), Err(&expected_denial));
-    assert_eq!(
-        artifact.graph_handoff(),
-        Err(
-            worth_ui::facade::declaration::UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                denial: expected_denial.clone(),
-            },
-        ),
+    let freeze = catch_unwind(AssertUnwindSafe(|| {
+        let _ = WorthUi::app()
+            .with_dsl_package(
+                WorthUiDslPackage::named("worth-ui.certification.structural.invalid_slot")
+                    .with_semantic_artifact_spec(page_with_slot_spec()),
+            )
+            .freeze();
+    }));
+    let panic_message = panic_message(
+        freeze.expect_err("freeze path must reject page slot participation before graph publication"),
+    );
+    assert!(
+        panic_message.contains("StructuralSemanticsNotAdmitted")
+            && panic_message.contains("SlotParticipationNotAdmittedForFamily")
+            && panic_message.contains("Page")
+            && panic_message.contains("slot:footer"),
+        "expected page slot-participation denial to remain typed on the freeze path, got: {panic_message}"
     );
 }
 
 #[test]
 fn unsupported_structural_tokens_deny_through_public_freeze_path() {
-    let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.structural.unsupported")
-                .with_semantic_artifact_spec(unsupported_structural_spec()),
-        )
-        .freeze();
-    let artifact = artifact_from_file_provenance(&app, "app/structural_denials.wui", 0);
-    let expected_denial =
-        UiDeclarationStructuralSemanticsAdmissionDenial::UnsupportedStructuralTokens {
-            family: UiDeclarationFamilyKind::Control,
-            observed: vec!["repeat:many".to_owned()],
-        };
-
-    assert_eq!(artifact.structural_semantics(), Err(&expected_denial));
-    assert_eq!(
-        artifact.graph_handoff(),
-        Err(
-            worth_ui::facade::declaration::UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                denial: expected_denial.clone(),
-            },
-        ),
+    let freeze = catch_unwind(AssertUnwindSafe(|| {
+        let _ = WorthUi::app()
+            .with_dsl_package(
+                WorthUiDslPackage::named("worth-ui.certification.structural.unsupported")
+                    .with_semantic_artifact_spec(unsupported_structural_spec()),
+            )
+            .freeze();
+    }));
+    let panic_message = panic_message(
+        freeze.expect_err("freeze path must reject unsupported structural tokens before graph publication"),
+    );
+    assert!(
+        panic_message.contains("StructuralSemanticsNotAdmitted")
+            && panic_message.contains("UnsupportedStructuralTokens")
+            && panic_message.contains("Control")
+            && panic_message.contains("repeat:many"),
+        "expected unsupported structural token denial to remain typed on the freeze path, got: {panic_message}"
     );
 }
 
 #[test]
 fn non_structural_families_cannot_smuggle_graph_handoff_authority() {
-    let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.structural.non_structural")
-                .with_semantic_artifact_spec(standalone_query_binding_spec()),
-        )
-        .freeze();
-    let artifact = artifact_from_file_provenance(&app, "app/structural_non_structural.wui", 0);
-    let expected_denial =
-        UiDeclarationStructuralSemanticsAdmissionDenial::FamilyDoesNotProjectStructuralSemantics {
-            family: UiDeclarationFamilyKind::QueryBinding,
-        };
-
-    assert_eq!(artifact.structural_semantics(), Err(&expected_denial));
-    assert_eq!(
-        artifact.graph_handoff(),
-        Err(
-            worth_ui::facade::declaration::UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                denial: expected_denial.clone(),
-            },
-        ),
+    let freeze = catch_unwind(AssertUnwindSafe(|| {
+        let _ = WorthUi::app()
+            .with_dsl_package(
+                WorthUiDslPackage::named("worth-ui.certification.structural.non_structural")
+                    .with_semantic_artifact_spec(standalone_query_binding_spec()),
+            )
+            .freeze();
+    }));
+    let panic_message = panic_message(
+        freeze.expect_err("freeze path must reject non-structural families before graph publication"),
+    );
+    assert!(
+        panic_message.contains("StructuralSemanticsNotAdmitted")
+            && panic_message.contains("FamilyDoesNotProjectStructuralSemantics")
+            && panic_message.contains("QueryBinding"),
+        "expected non-structural family denial to remain typed on the freeze path, got: {panic_message}"
     );
 }
 
@@ -414,4 +403,14 @@ fn standalone_query_binding_spec() -> UiDslSemanticArtifactSpec {
         UiDslSourceProvenance::file_authored("app/structural_non_structural.wui", 0),
     )
     .with_posture_token(UiDslPostureToken::new("query-binding:standalone"))
+}
+
+fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
+    match payload.downcast::<String>() {
+        Ok(message) => *message,
+        Err(payload) => match payload.downcast::<&'static str>() {
+            Ok(message) => (*message).to_string(),
+            Err(_) => "<non-string panic payload>".to_string(),
+        },
+    }
 }

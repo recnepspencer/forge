@@ -1,6 +1,7 @@
 use crate::graph::{
-    UiGraphAxisParticipation, UiGraphMountedPostureRelationship, UiGraphMountedReceiptAuthoritySeed,
-    UiGraphMountedReceiptTransition, UiGraphNodeIdentity, UiMountedReceiptIdentity,
+    UiGraphAxisParticipation, UiGraphMountedPostureRelationship,
+    UiGraphMountedReceiptAuthoritySeed, UiGraphMountedReceiptTransition, UiGraphNodeIdentity,
+    UiMountedReceiptIdentity,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

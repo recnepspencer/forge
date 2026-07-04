@@ -1,11 +1,9 @@
 use std::collections::BTreeMap;
 
+#[cfg(test)]
+use crate::source::{WorthUiArtifactEquivalenceBasis, WorthUiArtifactEquivalenceComparator};
 use crate::source::{
     WorthUiArtifactHandle, WorthUiArtifactModule, WorthUiArtifactNode, WorthUiSourceModuleId,
-};
-#[cfg(test)]
-use crate::source::{
-    WorthUiArtifactEquivalenceBasis, WorthUiArtifactEquivalenceComparator,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

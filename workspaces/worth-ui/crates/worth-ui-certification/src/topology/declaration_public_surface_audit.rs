@@ -223,20 +223,7 @@ fn contains_glob_use(tree: &UseTree) -> bool {
 }
 
 fn looks_like_declaration_surface(name: &str) -> bool {
-    name.starts_with("UiDeclaration")
-        || name.starts_with("UiDeclared")
-        || name.starts_with("UiAspect")
-        || name.starts_with("UiStructuralDeclaration")
-        || name.starts_with("UiControlDeclarationFamily")
-        || name.starts_with("UiPage")
-        || name.starts_with("UiRegion")
-        || name.starts_with("UiMosaic")
-        || name.starts_with("UiQueryBindingDeclarationFamily")
-        || name.starts_with("UiDiagnosticSurfaceDeclarationFamily")
-        || name.starts_with("UiIntentDeclarationFamily")
-        || name.starts_with("UiLocalCompositionDeclarationFamily")
-        || name.starts_with("UiPublishedAspectContract")
-        || name.starts_with("UiConsumedAspectContract")
+    name != "WorthUiHostCapability" && CURATED_DECLARATION_PUBLIC_NAMES.contains(&name)
 }
 
 fn parse_rust_file(path: &Path) -> File {

@@ -1,31 +1,27 @@
-use crate::UiEvidenceRichness;
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum UiEvidenceBudget {
-    Bounded { richness: UiEvidenceRichness },
-    Exhaustive,
+    Narrow,
+    Ordinary,
+    Expanded,
 }
 
 impl UiEvidenceBudget {
-    pub fn bounded(richness: UiEvidenceRichness) -> Self {
-        Self::Bounded { richness }
+    pub fn narrow() -> Self {
+        Self::Narrow
     }
 
-    pub fn exhaustive() -> Self {
-        Self::Exhaustive
+    pub fn ordinary() -> Self {
+        Self::Ordinary
     }
 
-    pub fn richness(self) -> UiEvidenceRichness {
-        match self {
-            Self::Bounded { richness } => richness,
-            Self::Exhaustive => UiEvidenceRichness::full(),
-        }
+    pub fn expanded() -> Self {
+        Self::Expanded
     }
 }
 
 impl Default for UiEvidenceBudget {
     fn default() -> Self {
-        Self::bounded(UiEvidenceRichness::summary())
+        Self::ordinary()
     }
 }

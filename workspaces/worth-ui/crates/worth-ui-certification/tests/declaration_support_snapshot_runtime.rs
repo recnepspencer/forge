@@ -1,13 +1,12 @@
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
-    UiDeclarationArtifact, UiDeclarationSupportMilestoneExpectation, UiDeclarationSupportRowSchemaKind,
-    UiDeclarationUnsupportedPosture,
+    UiDeclarationArtifact, UiDeclarationSupportMilestoneExpectation,
+    UiDeclarationSupportRowSchemaKind, UiDeclarationUnsupportedPosture,
 };
 use worth_ui::facade::{
     UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery, UiInspectionScope,
     UiInspectionSupportPosture, UiInspectionSupportReason, UiInspectionSupportStatus,
-    UiInspectionSupportWorld, UiInspectionTarget,
-    WorthUiHostCapability,
+    UiInspectionSupportWorld, UiInspectionTarget, WorthUiHostCapability,
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
@@ -34,10 +33,7 @@ fn public_freeze_derives_support_snapshot_from_admitted_declaration_authority() 
             .expect("host row should exist")
             .declared_host_capability_posture()
             .map(|posture| posture.required_capabilities()),
-        Some(&[
-            WorthUiHostCapability::Ime,
-            WorthUiHostCapability::TextInput,
-        ][..]),
+        Some(&[WorthUiHostCapability::Ime, WorthUiHostCapability::TextInput,][..]),
     );
 }
 
@@ -122,10 +118,7 @@ fn public_freeze_preserves_representative_support_shapes_across_family_classes()
             .expect("host row should exist")
             .declared_host_capability_posture()
             .map(|posture| posture.required_capabilities()),
-        Some(&[
-            WorthUiHostCapability::Ime,
-            WorthUiHostCapability::TextInput,
-        ][..]),
+        Some(&[WorthUiHostCapability::Ime, WorthUiHostCapability::TextInput,][..]),
     );
     assert_eq!(
         diagnostic
@@ -156,8 +149,14 @@ fn public_app_inspection_surfaces_use_declaration_support_projection() {
         )
         .freeze();
     let mounting_report = app.inspection_support_report(UiInspectionScope::Mounting);
-    assert_eq!(mounting_report.status(), UiInspectionSupportStatus::Unsupported);
-    assert_eq!(mounting_report.posture(), UiInspectionSupportPosture::Deferred);
+    assert_eq!(
+        mounting_report.status(),
+        UiInspectionSupportStatus::Unsupported
+    );
+    assert_eq!(
+        mounting_report.posture(),
+        UiInspectionSupportPosture::Deferred
+    );
     assert_eq!(
         mounting_report.reason(),
         Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted),
@@ -168,8 +167,14 @@ fn public_app_inspection_surfaces_use_declaration_support_projection() {
     );
 
     let measurement_report = app.inspection_support_report(UiInspectionScope::Measurement);
-    assert_eq!(measurement_report.status(), UiInspectionSupportStatus::Supported);
-    assert_eq!(measurement_report.posture(), UiInspectionSupportPosture::Supported);
+    assert_eq!(
+        measurement_report.status(),
+        UiInspectionSupportStatus::Supported
+    );
+    assert_eq!(
+        measurement_report.posture(),
+        UiInspectionSupportPosture::Supported
+    );
     assert_eq!(measurement_report.reason(), None);
     assert_eq!(measurement_report.expected_in(), None);
     assert_eq!(
@@ -195,8 +200,10 @@ fn public_app_inspection_surfaces_use_declaration_support_projection() {
 fn public_app_inspection_receipts_keep_diagnostic_only_support_visible() {
     let app = WorthUi::app()
         .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.declaration-support.receipt-diagnostic")
-                .with_semantic_artifact_spec(diagnostic_surface_spec()),
+            WorthUiDslPackage::named(
+                "worth-ui.certification.declaration-support.receipt-diagnostic",
+            )
+            .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
         .freeze();
     let query = UiInspectionQuery::new(
@@ -208,9 +215,15 @@ fn public_app_inspection_receipts_keep_diagnostic_only_support_visible() {
 
     assert_eq!(report.posture(), UiInspectionSupportPosture::DiagnosticOnly);
     assert_eq!(report.status(), UiInspectionSupportStatus::Unsupported);
-    assert_eq!(report.reason(), Some(UiInspectionSupportReason::DiagnosticOnly));
+    assert_eq!(
+        report.reason(),
+        Some(UiInspectionSupportReason::DiagnosticOnly)
+    );
     assert_eq!(report.expected_in(), None);
-    assert_eq!(report.current_world(), UiInspectionSupportWorld::Authoritative);
+    assert_eq!(
+        report.current_world(),
+        UiInspectionSupportWorld::Authoritative
+    );
     assert_eq!(report.expected_world(), None);
 
     assert_eq!(receipt.support_report(), Some(report));
@@ -240,7 +253,10 @@ fn public_declaration_support_projection_keeps_diagnostic_only_rows_visible() {
     for row in rows.iter() {
         assert_eq!(row.posture(), UiInspectionSupportPosture::DiagnosticOnly);
         assert_eq!(row.status(), UiInspectionSupportStatus::Unsupported);
-        assert_eq!(row.reason(), Some(UiInspectionSupportReason::DiagnosticOnly));
+        assert_eq!(
+            row.reason(),
+            Some(UiInspectionSupportReason::DiagnosticOnly)
+        );
         assert_eq!(row.current_world(), UiInspectionSupportWorld::Authoritative);
         assert_eq!(row.expected_in(), None);
     }

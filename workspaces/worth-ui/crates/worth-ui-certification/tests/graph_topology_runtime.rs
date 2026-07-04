@@ -35,7 +35,10 @@ fn public_freeze_materializes_parent_child_slot_topology_as_graph_truth() {
         .value();
 
     assert_eq!(root_topology.parent_node_identity(), None);
-    assert_eq!(root_topology.containment_claim(), &UiGraphContainmentClaim::RootPage);
+    assert_eq!(
+        root_topology.containment_claim(),
+        &UiGraphContainmentClaim::RootPage
+    );
     assert_eq!(
         root_topology.parent_resolution_claim(),
         &UiGraphParentResolutionClaim::RootPage
@@ -202,8 +205,7 @@ fn graph_topology_keeps_root_contained_claims_explicit_without_generic_membershi
     let graph = app.graph();
     let root_page = root_page_artifact(&app);
     let page_set = artifact_from_file_provenance(&app, "app/graph_topology_claims.wui", 0);
-    let local_composition =
-        artifact_from_file_provenance(&app, "app/graph_topology_claims.wui", 1);
+    let local_composition = artifact_from_file_provenance(&app, "app/graph_topology_claims.wui", 1);
     let diagnostic_surface =
         artifact_from_file_provenance(&app, "app/graph_topology_claims.wui", 2);
     let root_page_id = graph_node_identity(graph, root_page);
@@ -274,9 +276,10 @@ fn freeze_panics_when_topology_cannot_resolve_to_one_root_page() {
             .freeze();
     }));
 
-    let panic_message = panic_message(result.expect_err(
-        "freeze path must panic when graph topology cannot resolve to one root page",
-    ));
+    let panic_message =
+        panic_message(result.expect_err(
+            "freeze path must panic when graph topology cannot resolve to one root page",
+        ));
     assert!(
         panic_message.contains("freeze path must deny before publishing graph authority"),
         "expected topology denial panic to name unresolved topology path, got: {panic_message}"
@@ -302,7 +305,10 @@ fn root_page_artifact(app: &worth_ui::facade::app::WorthUiApp) -> &UiDeclaration
         .find(|artifact| {
             artifact
                 .graph_handoff()
-                .map(|handoff| handoff.role() == worth_ui::facade::declaration::UiDeclarationStructuralRole::Page)
+                .map(|handoff| {
+                    handoff.role()
+                        == worth_ui::facade::declaration::UiDeclarationStructuralRole::Page
+                })
                 .unwrap_or(false)
         })
         .expect("bootstrap root page artifact should exist")

@@ -1,10 +1,9 @@
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{UiDeclarationArtifact, UiDeclarationStructuralRole};
 use worth_ui::facade::graph::{
-    UiGraphAxisParticipation, UiGraphParticipationAxis, UiGraphParticipationEvidenceHandle,
-    UiGraphParticipationMutation, UiGraphParticipationReasonCode,
-    UiGraphParticipationReasonSource, UiGraphParticipationStatus,
-    UiGraphPageParticipationMutationKind,
+    UiGraphAxisParticipation, UiGraphPageParticipationMutationKind, UiGraphParticipationAxis,
+    UiGraphParticipationEvidenceHandle, UiGraphParticipationMutation,
+    UiGraphParticipationReasonCode, UiGraphParticipationReasonSource, UiGraphParticipationStatus,
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
@@ -154,9 +153,8 @@ fn participation_mutation_surface_preserves_axis_specific_page_effects() {
         .graph_node(control_node_identity)
         .expect("control declaration should admit one graph node");
     let control_node = control_node.value();
-    let visible_admission = UiGraphAxisParticipation::runtime_mutation(
-        UiGraphParticipationStatus::Admitted,
-    );
+    let visible_admission =
+        UiGraphAxisParticipation::runtime_mutation(UiGraphParticipationStatus::Admitted);
     let visible_mutation = UiGraphParticipationMutation::axis_transition(
         control_node_identity,
         root_page_id,
@@ -164,9 +162,8 @@ fn participation_mutation_surface_preserves_axis_specific_page_effects() {
         UiGraphParticipationAxis::Visible,
         visible_admission,
     );
-    let query_withdrawal = UiGraphAxisParticipation::runtime_mutation(
-        UiGraphParticipationStatus::Withheld,
-    );
+    let query_withdrawal =
+        UiGraphAxisParticipation::runtime_mutation(UiGraphParticipationStatus::Withheld);
     let query_mutation = UiGraphParticipationMutation::axis_transition(
         control_node_identity,
         root_page_id,

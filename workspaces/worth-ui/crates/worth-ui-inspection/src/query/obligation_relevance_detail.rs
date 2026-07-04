@@ -1,16 +1,15 @@
 use crate::{
-    UiInspectionEvidenceSource, UiInspectionObligationDenialPosture,
-    UiInspectionObligationFamily,
+    UiInspectionEvidenceSource, UiInspectionObligationDenialPosture, UiInspectionObligationFamily,
 };
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct UiInspectionObligationEvidenceQuery {
+pub struct UiInspectionObligationRelevanceDetail {
     family: Option<UiInspectionObligationFamily>,
     denial_posture: Option<UiInspectionObligationDenialPosture>,
     prerequisite_source: Option<UiInspectionEvidenceSource>,
 }
 
-impl UiInspectionObligationEvidenceQuery {
+impl UiInspectionObligationRelevanceDetail {
     pub fn new() -> Self {
         Self::default()
     }

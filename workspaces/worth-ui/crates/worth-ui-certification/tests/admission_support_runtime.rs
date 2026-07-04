@@ -182,7 +182,6 @@ fn deferred_diagnostic_surface_spec() -> UiDslSemanticArtifactSpec {
     .with_structural_token(UiDslStructuralToken::new("region:sidebar"))
 }
 
-
 fn foreign_control_spec() -> UiDslSemanticArtifactSpec {
     UiDslSemanticArtifactSpec::new(
         UiDslSemanticKey::new("workflow_editor.inspector.foreign"),

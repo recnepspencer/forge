@@ -31,8 +31,7 @@ fn aspect_indexes_are_many_to_many_and_graph_owned() {
     let second_consumer = artifact_from_file_provenance(&app, "app/graph_aspect_runtime.wui", 3);
     let competing_publisher =
         artifact_from_file_provenance(&app, "app/graph_aspect_runtime.wui", 4);
-    let competing_consumer =
-        artifact_from_file_provenance(&app, "app/graph_aspect_runtime.wui", 5);
+    let competing_consumer = artifact_from_file_provenance(&app, "app/graph_aspect_runtime.wui", 5);
     let text_aspect = first_publisher
         .aspect_contract()
         .expect("publishing declaration should admit aspect contract")
@@ -73,15 +72,20 @@ fn aspect_indexes_are_many_to_many_and_graph_owned() {
     let competing_publisher_receipt_id =
         mounted_receipt_identity(graph, competing_publisher_node_id);
     let competing_consumer_node_id = graph_node_identity(graph, competing_consumer);
-    let competing_consumer_receipt_id =
-        mounted_receipt_identity(graph, competing_consumer_node_id);
+    let competing_consumer_receipt_id = mounted_receipt_identity(graph, competing_consumer_node_id);
 
-    assert_eq!(published.receipt().family(), UiGraphLookupFamily::PublishedAspect);
+    assert_eq!(
+        published.receipt().family(),
+        UiGraphLookupFamily::PublishedAspect
+    );
     assert_eq!(
         published.receipt().cost_class(),
         UiGraphLookupCostClass::IndexedNeighborhood
     );
-    assert_eq!(consumed.receipt().family(), UiGraphLookupFamily::ConsumedAspect);
+    assert_eq!(
+        consumed.receipt().family(),
+        UiGraphLookupFamily::ConsumedAspect
+    );
     assert_eq!(
         consumed.receipt().cost_class(),
         UiGraphLookupCostClass::IndexedNeighborhood
@@ -121,9 +125,8 @@ fn aspect_indexes_are_many_to_many_and_graph_owned() {
         publisher_receipts(competing_published.value()),
         BTreeSet::from([competing_publisher_receipt_id])
     );
-    assert!(!publisher_graph_nodes(competing_published.value()).contains(
-        &graph_node_identity(graph, first_publisher)
-    ));
+    assert!(!publisher_graph_nodes(competing_published.value())
+        .contains(&graph_node_identity(graph, first_publisher)));
 
     assert_eq!(
         competing_consumed.receipt().family(),
@@ -141,9 +144,8 @@ fn aspect_indexes_are_many_to_many_and_graph_owned() {
         consumer_receipts(competing_consumed.value()),
         BTreeSet::from([competing_consumer_receipt_id])
     );
-    assert!(!consumer_graph_nodes(competing_consumed.value()).contains(
-        &graph_node_identity(graph, first_consumer)
-    ));
+    assert!(!consumer_graph_nodes(competing_consumed.value())
+        .contains(&graph_node_identity(graph, first_consumer)));
 }
 
 fn publisher_graph_nodes(

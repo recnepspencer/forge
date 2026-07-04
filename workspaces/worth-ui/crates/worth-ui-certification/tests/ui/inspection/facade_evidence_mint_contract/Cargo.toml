@@ -1,0 +1,9 @@
+[package]
+name = "worth-ui-facade-evidence-mint-contract"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+worth-ui = { path = "../../../../../worth-ui" }

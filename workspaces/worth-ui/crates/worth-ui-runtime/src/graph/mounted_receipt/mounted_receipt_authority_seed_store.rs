@@ -20,10 +20,13 @@ impl UiGraphMountedReceiptReservation {
         authority_seed: UiGraphMountedReceiptAuthoritySeed,
     ) -> Self {
         Self {
-            mounted_receipt_identity: UiMountedReceiptIdentity::graph_owned_seed_slot(graph_node_identity),
+            mounted_receipt_identity: UiMountedReceiptIdentity::graph_owned_seed_slot(
+                graph_node_identity,
+            ),
             graph_node_identity,
             authority_seed,
-            mounted_posture_relationship: UiGraphMountedPostureRelationship::ReservedMountedAuthoritySlot,
+            mounted_posture_relationship:
+                UiGraphMountedPostureRelationship::ReservedMountedAuthoritySlot,
         }
     }
 

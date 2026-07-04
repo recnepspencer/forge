@@ -4,17 +4,19 @@ mod closeout;
 mod declaration_handoff;
 mod declared_posture;
 mod family;
+mod inspection;
 mod structural_semantics;
 mod support;
 
+pub(crate) use artifact::stable_text_digest;
 pub(crate) use artifact::ui_declaration_lowering::UiDeclarationLowering;
+pub(crate) use inspection::{UiDeclarationAuthoredEvidenceIndex, UiDeclarationEvidenceRecord};
 pub use artifact::{
     UiDeclarationArtifact, UiDeclarationArtifactDigest, UiDeclarationAspectDigest,
     UiDeclarationDigestProjection, UiDeclarationEquivalenceContract, UiDeclarationFamilyDigest,
     UiDeclarationIdentity, UiDeclarationIdentityDigest, UiDeclarationPostureDigest,
     UiDeclarationProvenance, UiDeclarationStructuralDigest, UiDeclarationSupportDigest,
 };
-pub(crate) use artifact::stable_text_digest;
 pub(crate) use aspect_contract::UiAspectContractAdmission;
 pub use aspect_contract::{
     UiAspectContract, UiAspectContractAdmissionDenial, UiAspectCoverageEntry,

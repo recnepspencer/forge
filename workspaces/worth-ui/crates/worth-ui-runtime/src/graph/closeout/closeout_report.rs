@@ -1,8 +1,8 @@
+use crate::graph::closeout::milestone33_closeout_profile::MILESTONE33_CLOSEOUT_PROFILE;
 use crate::graph::{
     UiGraphClosedSemanticLane, UiGraphCloseoutGuarantee, UiGraphCloseoutNonGoal,
     UiGraphInspectionSupportReport,
 };
-use crate::graph::closeout::milestone33_closeout_profile::MILESTONE33_CLOSEOUT_PROFILE;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiGraphCloseoutReport {

@@ -47,10 +47,17 @@ impl<'a> UiGraphLookupSurface<'a> {
         )
     }
 
-    pub fn child_nodes(self, parent_node_identity: UiGraphNodeIdentity) -> UiGraphLookup<&'a [UiGraphNodeIdentity]> {
+    pub fn child_nodes(
+        self,
+        parent_node_identity: UiGraphNodeIdentity,
+    ) -> UiGraphLookup<&'a [UiGraphNodeIdentity]> {
         UiGraphLookup::new(
             set(UiGraphLookupFamily::ParentChild),
-            self.snapshot.core_indexes().topology().parent_child().children_of(parent_node_identity),
+            self.snapshot
+                .core_indexes()
+                .topology()
+                .parent_child()
+                .children_of(parent_node_identity),
         )
     }
 
@@ -84,7 +91,10 @@ impl<'a> UiGraphLookupSurface<'a> {
             })
     }
 
-    pub fn page_members(self, page_node_identity: UiGraphNodeIdentity) -> UiGraphLookup<&'a [UiGraphNodeIdentity]> {
+    pub fn page_members(
+        self,
+        page_node_identity: UiGraphNodeIdentity,
+    ) -> UiGraphLookup<&'a [UiGraphNodeIdentity]> {
         UiGraphLookup::new(
             set(UiGraphLookupFamily::PageMembership),
             self.snapshot
@@ -132,7 +142,10 @@ impl<'a> UiGraphLookupSurface<'a> {
         )
     }
 
-    pub fn published_aspect(self, aspect: &UiAspectName) -> UiGraphLookup<&'a [UiGraphAspectPublisher]> {
+    pub fn published_aspect(
+        self,
+        aspect: &UiAspectName,
+    ) -> UiGraphLookup<&'a [UiGraphAspectPublisher]> {
         UiGraphLookup::new(
             neighborhood(UiGraphLookupFamily::PublishedAspect),
             self.snapshot
@@ -142,7 +155,10 @@ impl<'a> UiGraphLookupSurface<'a> {
         )
     }
 
-    pub fn consumed_aspect(self, aspect: &UiAspectName) -> UiGraphLookup<&'a [UiGraphAspectConsumer]> {
+    pub fn consumed_aspect(
+        self,
+        aspect: &UiAspectName,
+    ) -> UiGraphLookup<&'a [UiGraphAspectConsumer]> {
         UiGraphLookup::new(
             neighborhood(UiGraphLookupFamily::ConsumedAspect),
             self.snapshot

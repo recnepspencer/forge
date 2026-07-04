@@ -34,7 +34,10 @@ fn mounted_receipt_authority_seeds_correspond_explicitly_to_graph_nodes() {
             slot.mounted_receipt_identity(),
             reservation.mounted_receipt_identity()
         );
-        assert_eq!(slot.graph_node_identity(), reservation.graph_node_identity());
+        assert_eq!(
+            slot.graph_node_identity(),
+            reservation.graph_node_identity()
+        );
         assert_eq!(slot.authority_seed(), reservation.authority_seed());
         assert_eq!(
             slot.mounted_posture_relationship(),
@@ -98,12 +101,10 @@ fn mounted_axis_changes_and_mounted_receipt_mutation_stay_aligned() {
         .graph_node(control_id)
         .expect("control declaration should admit one graph node");
     let control_node = control_node.value();
-    let mounted_admission = UiGraphAxisParticipation::runtime_mutation(
-        UiGraphParticipationStatus::Admitted,
-    );
-    let mounted_withdrawal = UiGraphAxisParticipation::runtime_mutation(
-        UiGraphParticipationStatus::Withheld,
-    );
+    let mounted_admission =
+        UiGraphAxisParticipation::runtime_mutation(UiGraphParticipationStatus::Admitted);
+    let mounted_withdrawal =
+        UiGraphAxisParticipation::runtime_mutation(UiGraphParticipationStatus::Withheld);
 
     let create_transition = graph
         .mounted_receipt_transition_for_node(
@@ -117,11 +118,8 @@ fn mounted_axis_changes_and_mounted_receipt_mutation_stay_aligned() {
     let remove_transition = graph
         .mounted_receipt_transition_for_node(control_id, mounted_admission, mounted_withdrawal)
         .expect("mounted withdrawal should remove one mounted receipt transition");
-    let no_mutation = graph.mounted_receipt_transition_for_node(
-        control_id,
-        mounted_admission,
-        mounted_admission,
-    );
+    let no_mutation =
+        graph.mounted_receipt_transition_for_node(control_id, mounted_admission, mounted_admission);
     let no_withdrawal = graph.mounted_receipt_transition_for_node(
         control_id,
         mounted_withdrawal,
@@ -166,8 +164,11 @@ fn mounted_receipt_plan(app: &worth_ui::facade::app::WorthUiApp) -> UiGraphInsta
         .graph_handoff()
         .expect("region declaration should lower to graph handoff");
 
-    UiGraphInstantiationPlan::admit_handoffs(&[root_page_handoff, control_handoff, region_handoff], &[])
-        .expect("mounted receipt certification app should admit graph instantiation")
+    UiGraphInstantiationPlan::admit_handoffs(
+        &[root_page_handoff, control_handoff, region_handoff],
+        &[],
+    )
+    .expect("mounted receipt certification app should admit graph instantiation")
 }
 
 fn graph_node_identity(

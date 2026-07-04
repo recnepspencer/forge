@@ -1,5 +1,6 @@
 mod admission;
 mod boundary;
+mod inspection;
 mod legality;
 mod report;
 mod support;

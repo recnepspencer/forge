@@ -99,7 +99,9 @@ impl SupportTruth {
         match self {
             Self::Supported { .. } => UiInspectionSupportPosture::Supported,
             Self::DiagnosticOnly { .. } => UiInspectionSupportPosture::DiagnosticOnly,
-            Self::Unsupported { .. } | Self::Conflict { .. } => UiInspectionSupportPosture::Unsupported,
+            Self::Unsupported { .. } | Self::Conflict { .. } => {
+                UiInspectionSupportPosture::Unsupported
+            }
             Self::WrongWorld { .. } => UiInspectionSupportPosture::WrongWorld,
             Self::Deferred { .. } => UiInspectionSupportPosture::Deferred,
         }
@@ -162,8 +164,12 @@ fn aggregate_support_truth(
     for row in remaining_rows {
         let row_truth = support_truth_from_row(row);
         support_truth = match (support_truth, row_truth) {
-            (SupportTruth::Conflict { current_world }, _) => SupportTruth::Conflict { current_world },
-            (_, SupportTruth::Conflict { current_world }) => SupportTruth::Conflict { current_world },
+            (SupportTruth::Conflict { current_world }, _) => {
+                SupportTruth::Conflict { current_world }
+            }
+            (_, SupportTruth::Conflict { current_world }) => {
+                SupportTruth::Conflict { current_world }
+            }
             (SupportTruth::Supported { .. }, other) => other,
             (other, SupportTruth::Supported { .. }) => other,
             (left, right) if left == right => left,
@@ -281,7 +287,10 @@ mod tests {
             UiInspectionSupportReport::from_scope_rows(UiInspectionScope::Measurement, &rows);
 
         assert_eq!(report.posture(), UiInspectionSupportPosture::DiagnosticOnly);
-        assert_eq!(report.reason(), Some(UiInspectionSupportReason::DiagnosticOnly));
+        assert_eq!(
+            report.reason(),
+            Some(UiInspectionSupportReason::DiagnosticOnly)
+        );
     }
 
     #[test]

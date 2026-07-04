@@ -54,14 +54,13 @@ impl UiGraphPublishedAspectIndex {
                 publishers_by_aspect
                     .entry(aspect.clone())
                     .or_default()
-                    .push(UiGraphAspectPublisher::new(UiGraphAspectPublisherKind::GraphNode(
-                        *graph_node_identity,
-                    )));
+                    .push(UiGraphAspectPublisher::new(
+                        UiGraphAspectPublisherKind::GraphNode(*graph_node_identity),
+                    ));
 
-                if let Some(slot) = mounted_receipt_index.slot_for_node(
-                    mounted_receipts,
-                    *graph_node_identity,
-                ) {
+                if let Some(slot) =
+                    mounted_receipt_index.slot_for_node(mounted_receipts, *graph_node_identity)
+                {
                     publishers_by_aspect
                         .entry(aspect.clone())
                         .or_default()
@@ -74,7 +73,9 @@ impl UiGraphPublishedAspectIndex {
             }
         }
 
-        Self { publishers_by_aspect }
+        Self {
+            publishers_by_aspect,
+        }
     }
 
     pub fn publishers_for(&self, aspect: &UiAspectName) -> &[UiGraphAspectPublisher] {
@@ -82,5 +83,11 @@ impl UiGraphPublishedAspectIndex {
             .get(aspect)
             .map(Vec::as_slice)
             .unwrap_or(&EMPTY_PUBLISHERS)
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (&UiAspectName, &[UiGraphAspectPublisher])> {
+        self.publishers_by_aspect
+            .iter()
+            .map(|(aspect, publishers)| (aspect, publishers.as_slice()))
     }
 }

@@ -109,7 +109,10 @@ fn public_app_freeze_returns_the_expected_bootstrap_declaration_contract() {
         "worth-ui.runtime.bootstrap"
     );
     assert_eq!(
-        artifact.provenance().source_provenance().declaration_index(),
+        artifact
+            .provenance()
+            .source_provenance()
+            .declaration_index(),
         0
     );
     assert_eq!(
@@ -142,9 +145,11 @@ fn digest_string_slice<const N: usize>(values: [&str; N]) -> u64 {
     canonical.sort();
     canonical.dedup();
 
-    canonical.into_iter().fold(0x9E37_79B9_7F4A_7C15, |digest, value| {
-        digest.rotate_left(5) ^ stable_text_digest(value)
-    })
+    canonical
+        .into_iter()
+        .fold(0x9E37_79B9_7F4A_7C15, |digest, value| {
+            digest.rotate_left(5) ^ stable_text_digest(value)
+        })
 }
 
 fn stable_text_digest(text: &str) -> u64 {

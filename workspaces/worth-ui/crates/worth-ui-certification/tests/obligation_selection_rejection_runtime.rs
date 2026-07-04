@@ -70,7 +70,14 @@ fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection(
             world: UiAdmissionWorld::authoritative(),
         }
     );
-    assert!(deferred_selection.obligations().is_empty());
+    assert_eq!(
+        deferred_selection
+            .obligations()
+            .iter()
+            .map(|obligation| obligation.family())
+            .collect::<Vec<_>>(),
+        vec![worth_ui::facade::obligations::UiObligationFamily::StructuralLegality]
+    );
 
     assert_eq!(
         unsupported_selection.support_snapshot().posture(),
@@ -80,7 +87,14 @@ fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection(
             world: UiAdmissionWorld::authoritative(),
         }
     );
-    assert!(unsupported_selection.obligations().is_empty());
+    assert_eq!(
+        unsupported_selection
+            .obligations()
+            .iter()
+            .map(|obligation| obligation.family())
+            .collect::<Vec<_>>(),
+        vec![worth_ui::facade::obligations::UiObligationFamily::StructuralLegality]
+    );
 
     assert_eq!(
         wrong_world_selection.support_snapshot().posture(),

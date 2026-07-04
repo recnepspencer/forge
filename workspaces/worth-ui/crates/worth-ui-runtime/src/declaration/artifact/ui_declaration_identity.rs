@@ -43,6 +43,10 @@ impl UiDeclarationIdentity {
     pub fn digest(&self) -> UiDeclarationIdentityDigest {
         self.digest
     }
+
+    pub fn inspection_identity(&self) -> worth_ui_inspection::UiInspectionDeclarationIdentity {
+        worth_ui_inspection::UiInspectionDeclarationIdentity::new(self.digest.raw())
+    }
 }
 
 pub(crate) fn stable_text_digest(text: &str) -> u64 {

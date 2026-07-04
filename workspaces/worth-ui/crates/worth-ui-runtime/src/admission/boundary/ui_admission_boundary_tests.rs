@@ -77,7 +77,9 @@ fn artifact_from_file_provenance<'a>(
             provenance.module_path() == module_path
                 && provenance.declaration_index() == declaration_index
         })
-        .unwrap_or_else(|| panic!("expected declaration artifact for {module_path}#{declaration_index}"))
+        .unwrap_or_else(|| {
+            panic!("expected declaration artifact for {module_path}#{declaration_index}")
+        })
 }
 
 fn graph_node_identity(

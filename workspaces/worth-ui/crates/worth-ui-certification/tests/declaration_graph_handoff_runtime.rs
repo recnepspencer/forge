@@ -3,9 +3,8 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
     UiDeclarationArtifact, UiDeclarationContainmentIntent, UiDeclarationFamilyKind,
-    UiDeclarationStructuralRole, UiDeclaredPostureApplicability,
-    UiDeclaredQueryBindingPosture, UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture,
-    WorthUiHostCapability,
+    UiDeclarationStructuralRole, UiDeclaredPostureApplicability, UiDeclaredQueryBindingPosture,
+    UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture, WorthUiHostCapability,
 };
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,

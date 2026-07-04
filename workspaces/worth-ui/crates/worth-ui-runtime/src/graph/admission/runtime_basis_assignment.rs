@@ -16,8 +16,7 @@ impl UiRuntimeBasisAssignments {
         runtime_basis_admissions: &[UiRuntimeInstanceBasisAdmission],
     ) -> Result<Self, UiGraphInstantiationDenial> {
         let handoff_counts = handoff_counts(handoffs);
-        let runtime_basis_groups =
-            runtime_basis_groups(runtime_basis_admissions, &handoff_counts)?;
+        let runtime_basis_groups = runtime_basis_groups(runtime_basis_admissions, &handoff_counts)?;
         let mut bases_by_declaration = BTreeMap::new();
 
         for handoff in handoffs {
@@ -27,24 +26,32 @@ impl UiRuntimeBasisAssignments {
                 continue;
             }
 
-            let matching_handoffs = handoff_counts.get(&declaration_digest).copied().unwrap_or(0);
+            let matching_handoffs = handoff_counts
+                .get(&declaration_digest)
+                .copied()
+                .unwrap_or(0);
             let repeated_instance_bases = match runtime_basis_groups.get(&declaration_digest) {
-                Some(admissions) => assign_runtime_bases(
-                    declaration_identity,
-                    admissions,
-                    matching_handoffs,
-                )?,
-                None if matching_handoffs > 1 => {
-                    vec![UiRepeatedInstanceBasis::denied(
-                        UiRepeatedInstanceBasisDenial::BasisFreeRuntimeIdentityDenied,
-                    ); matching_handoffs]
+                Some(admissions) => {
+                    assign_runtime_bases(declaration_identity, admissions, matching_handoffs)?
                 }
-                None => vec![UiRepeatedInstanceBasis::declaration_keyed(handoff.identity().digest())],
+                None if matching_handoffs > 1 => {
+                    vec![
+                        UiRepeatedInstanceBasis::denied(
+                            UiRepeatedInstanceBasisDenial::BasisFreeRuntimeIdentityDenied,
+                        );
+                        matching_handoffs
+                    ]
+                }
+                None => vec![UiRepeatedInstanceBasis::declaration_keyed(
+                    handoff.identity().digest(),
+                )],
             };
             bases_by_declaration.insert(declaration_digest, repeated_instance_bases);
         }
 
-        Ok(Self { bases_by_declaration })
+        Ok(Self {
+            bases_by_declaration,
+        })
     }
 
     pub(super) fn basis_for(
@@ -64,9 +71,11 @@ fn assign_runtime_bases(
     matching_handoffs: usize,
 ) -> Result<Vec<UiRepeatedInstanceBasis>, UiGraphInstantiationDenial> {
     if admissions.len() != matching_handoffs {
-        return Err(UiGraphInstantiationDenial::ContradictoryRuntimeBasisAdmission {
-            declaration_identity,
-        });
+        return Err(
+            UiGraphInstantiationDenial::ContradictoryRuntimeBasisAdmission {
+                declaration_identity,
+            },
+        );
     }
 
     admissions
@@ -91,9 +100,11 @@ fn runtime_basis_groups(
         let declaration_identity = admission.declaration_identity().clone();
         let declaration_digest = declaration_identity.digest().raw();
         if !handoff_counts.contains_key(&declaration_digest) {
-            return Err(UiGraphInstantiationDenial::RuntimeBasisTargetsUnknownDeclaration {
-                declaration_identity,
-            });
+            return Err(
+                UiGraphInstantiationDenial::RuntimeBasisTargetsUnknownDeclaration {
+                    declaration_identity,
+                },
+            );
         }
         basis_by_declaration
             .entry(declaration_digest)

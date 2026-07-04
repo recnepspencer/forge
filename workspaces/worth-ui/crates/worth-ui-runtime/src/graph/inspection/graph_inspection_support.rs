@@ -19,14 +19,17 @@ impl<'a> UiGraphInspectionSupport<'a> {
         self,
         graph_node_identity: UiGraphNodeIdentity,
     ) -> Option<UiGraphInspection<UiGraphNodeRecord>> {
-        self.snapshot.lookup().graph_node(graph_node_identity).map(|lookup| {
-            scalar(
-                self.snapshot,
-                UiGraphInspectionTarget::GraphNode(graph_node_identity),
-                lookup,
-                vec![UiGraphEvidenceRef::GraphNode(graph_node_identity)],
-            )
-        })
+        self.snapshot
+            .lookup()
+            .graph_node(graph_node_identity)
+            .map(|lookup| {
+                scalar(
+                    self.snapshot,
+                    UiGraphInspectionTarget::GraphNode(graph_node_identity),
+                    lookup,
+                    vec![UiGraphEvidenceRef::GraphNode(graph_node_identity)],
+                )
+            })
     }
 
     pub fn inspect_topology_node(
@@ -50,7 +53,10 @@ impl<'a> UiGraphInspectionSupport<'a> {
         self,
         declaration_identity: &UiDeclarationIdentity,
     ) -> UiGraphInspection<&'a [UiGraphNodeIdentity]> {
-        let lookup = self.snapshot.lookup().declaration_instances(declaration_identity);
+        let lookup = self
+            .snapshot
+            .lookup()
+            .declaration_instances(declaration_identity);
         let mut evidence_refs = vec![UiGraphEvidenceRef::Declaration(
             declaration_identity.clone(),
         )];
@@ -97,7 +103,10 @@ impl<'a> UiGraphInspectionSupport<'a> {
         parent_node_identity: UiGraphNodeIdentity,
         slot_name: &str,
     ) -> UiGraphInspection<&'a [UiGraphNodeIdentity]> {
-        let lookup = self.snapshot.lookup().slot_occupants(parent_node_identity, slot_name);
+        let lookup = self
+            .snapshot
+            .lookup()
+            .slot_occupants(parent_node_identity, slot_name);
         let mut evidence_refs = vec![UiGraphEvidenceRef::GraphNode(parent_node_identity)];
         evidence_refs.extend(
             lookup
@@ -123,7 +132,10 @@ impl<'a> UiGraphInspectionSupport<'a> {
         page_node_identity: UiGraphNodeIdentity,
         axis: UiGraphParticipationAxis,
     ) -> UiGraphInspection<&'a [UiGraphPageParticipationMember]> {
-        let lookup = self.snapshot.lookup().page_participation(page_node_identity, axis);
+        let lookup = self
+            .snapshot
+            .lookup()
+            .page_participation(page_node_identity, axis);
         let mut evidence_refs = vec![UiGraphEvidenceRef::Page(page_node_identity)];
         evidence_refs.extend(
             lookup
@@ -149,16 +161,22 @@ impl<'a> UiGraphInspectionSupport<'a> {
     ) -> UiGraphInspection<&'a [crate::graph::UiGraphAspectPublisher]> {
         let lookup = self.snapshot.lookup().published_aspect(aspect);
         let mut evidence_refs = vec![UiGraphEvidenceRef::Aspect(aspect.clone())];
-        evidence_refs.extend(lookup.value().iter().flat_map(|publisher| match publisher.kind() {
-            UiGraphAspectPublisherKind::GraphNode(node_identity) => {
-                [Some(UiGraphEvidenceRef::GraphNode(node_identity)), None]
-            }
-            UiGraphAspectPublisherKind::MountedReceiptSlot(receipt_identity) => [
-                Some(UiGraphEvidenceRef::MountedReceipt(receipt_identity)),
-                None,
-            ],
-            UiGraphAspectPublisherKind::FutureReceipt => [None, None],
-        }).flatten());
+        evidence_refs.extend(
+            lookup
+                .value()
+                .iter()
+                .flat_map(|publisher| match publisher.kind() {
+                    UiGraphAspectPublisherKind::GraphNode(node_identity) => {
+                        [Some(UiGraphEvidenceRef::GraphNode(node_identity)), None]
+                    }
+                    UiGraphAspectPublisherKind::MountedReceiptSlot(receipt_identity) => [
+                        Some(UiGraphEvidenceRef::MountedReceipt(receipt_identity)),
+                        None,
+                    ],
+                    UiGraphAspectPublisherKind::FutureReceipt => [None, None],
+                })
+                .flatten(),
+        );
 
         scalar(
             self.snapshot,

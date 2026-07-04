@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use worth_ui::facade::admission::{
     UiAdmissionAggregation, UiAdmissionHostCapability, UiAdmissionQueryBasis,
     UiAdmissionSelectionBudget, UiAdmissionStaleEvidence, UiAdmissionTarget, UiAdmissionWorld,
@@ -19,7 +20,6 @@ use worth_ui_query_binding::{
     WorthUiQueryBasisPosture, WorthUiQueryBindingSubsystem, WorthUiQueryCausalExplanationLane,
     WorthUiQueryInspectionLane, WorthUiQueryProjectionConsumptionLane,
 };
-use std::sync::Arc;
 
 #[test]
 fn query_basis_and_host_capability_denials_depend_on_attached_runtime_lanes() {
@@ -91,7 +91,10 @@ fn query_basis_and_host_capability_denials_depend_on_attached_runtime_lanes() {
             observed: UiAdmissionQueryBasis::WrongWorldProjection,
         })
     );
-    assert_eq!(query_basis_ignored.aggregation(), UiAdmissionAggregation::Admitted);
+    assert_eq!(
+        query_basis_ignored.aggregation(),
+        UiAdmissionAggregation::Admitted
+    );
     assert_eq!(
         query_basis_ignored.inspection_posture(),
         UiInspectionAdmissionPosture::Admitted
@@ -111,7 +114,10 @@ fn query_basis_and_host_capability_denials_depend_on_attached_runtime_lanes() {
             observed: UiAdmissionHostCapability::Missing,
         })
     );
-    assert_eq!(host_capability_ignored.aggregation(), UiAdmissionAggregation::Admitted);
+    assert_eq!(
+        host_capability_ignored.aggregation(),
+        UiAdmissionAggregation::Admitted
+    );
     assert_eq!(
         host_capability_ignored.inspection_posture(),
         UiInspectionAdmissionPosture::Admitted
@@ -250,7 +256,10 @@ fn attached_runtime_lanes_fail_closed_without_owner_bound_prerequisite_evidence(
     ));
 
     assert_eq!(query_report.aggregation(), UiAdmissionAggregation::Denied);
-    assert_eq!(query_report.inspection_posture(), UiInspectionAdmissionPosture::Unsupported);
+    assert_eq!(
+        query_report.inspection_posture(),
+        UiInspectionAdmissionPosture::Unsupported
+    );
     assert_eq!(
         query_report
             .legality_decision()
@@ -267,10 +276,12 @@ fn attached_runtime_lanes_fail_closed_without_owner_bound_prerequisite_evidence(
         .freeze();
     let service_artifact =
         artifact_from_file_provenance(&service_app, "app/admission_denials.wui", 2);
-    let service_report = service_app.admission().report(UiAdmissionTarget::graph_node(
-        graph_node_identity(&service_app, service_artifact),
-        UiAdmissionWorld::authoritative(),
-    ));
+    let service_report = service_app
+        .admission()
+        .report(UiAdmissionTarget::graph_node(
+            graph_node_identity(&service_app, service_artifact),
+            UiAdmissionWorld::authoritative(),
+        ));
 
     assert_eq!(service_report.aggregation(), UiAdmissionAggregation::Denied);
     assert_eq!(
@@ -389,9 +400,7 @@ fn query_prerequisites(
                 UiAdmissionQueryBasis::WrongWorldProjection => {
                     WorthUiQueryBasisPosture::WrongWorldProjection
                 }
-                UiAdmissionQueryBasis::RebindRequired => {
-                    WorthUiQueryBasisPosture::RebindRequired
-                }
+                UiAdmissionQueryBasis::RebindRequired => WorthUiQueryBasisPosture::RebindRequired,
                 UiAdmissionQueryBasis::StaleReceipt => WorthUiQueryBasisPosture::StaleReceipt,
                 UiAdmissionQueryBasis::AmbiguousSources => {
                     WorthUiQueryBasisPosture::AmbiguousSources

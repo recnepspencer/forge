@@ -59,7 +59,9 @@ fn graph_closeout_report_enumerates_shipped_graph_lanes_and_explicit_non_goals()
         UiGraphEvidenceRefKind::MountedReceipt,
         UiGraphEvidenceRefKind::Aspect,
     ] {
-        assert!(inspection_support.evidence_ref_kinds().contains(&evidence_ref));
+        assert!(inspection_support
+            .evidence_ref_kinds()
+            .contains(&evidence_ref));
     }
 
     for stop_point in [
@@ -105,7 +107,9 @@ fn graph_handoff_surface_derives_phase_34_inputs_without_declaration_reopening()
     let page_participation = graph
         .inspection()
         .inspect_page_participation(page_node_identity, UiGraphParticipationAxis::QueryBound);
-    let declaration_lookup = graph.lookup().declaration_instances(node.declaration_identity());
+    let declaration_lookup = graph
+        .lookup()
+        .declaration_instances(node.declaration_identity());
     let mounted_receipt_slot = graph
         .lookup()
         .mounted_receipt_slot_for_node(publisher)
@@ -116,7 +120,10 @@ fn graph_handoff_surface_derives_phase_34_inputs_without_declaration_reopening()
         .inspect_mounted_receipt_slot(mounted_receipt_slot.mounted_receipt_identity())
         .expect("graph handoff should inspect mounted receipt authority");
 
-    assert_eq!(publisher_lookup.receipt().family(), UiGraphLookupFamily::PublishedAspect);
+    assert_eq!(
+        publisher_lookup.receipt().family(),
+        UiGraphLookupFamily::PublishedAspect
+    );
     assert_eq!(declaration_lookup.value(), &[publisher]);
     assert!(node.attachment_posture().query_binding_attached());
     assert_eq!(
@@ -129,7 +136,9 @@ fn graph_handoff_surface_derives_phase_34_inputs_without_declaration_reopening()
         .value()
         .iter()
         .any(|member| member.member_node_identity() == publisher));
-    assert!(mounted_receipt_slot.authority_seed().graph_owned_slot_reserved());
+    assert!(mounted_receipt_slot
+        .authority_seed()
+        .graph_owned_slot_reserved());
     assert!(mounted_receipt_inspection
         .evidence_refs()
         .iter()

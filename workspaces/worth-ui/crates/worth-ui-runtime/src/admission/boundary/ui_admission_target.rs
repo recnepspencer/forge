@@ -69,10 +69,7 @@ impl UiAdmissionTarget {
         self.host_capability_report.as_ref()
     }
 
-    pub fn with_selection_budget(
-        mut self,
-        selection_budget: UiAdmissionSelectionBudget,
-    ) -> Self {
+    pub fn with_selection_budget(mut self, selection_budget: UiAdmissionSelectionBudget) -> Self {
         self.selection_budget = selection_budget;
         self
     }
@@ -94,7 +91,9 @@ impl UiAdmissionTarget {
     }
 }
 
-fn query_prerequisites_for_world(world: &UiAdmissionWorld) -> Option<WorthUiQueryPrerequisiteEvidence> {
+fn query_prerequisites_for_world(
+    world: &UiAdmissionWorld,
+) -> Option<WorthUiQueryPrerequisiteEvidence> {
     let UiGraphWorldProfile::QuerySnapshotBasis {
         basis,
         resolution_report,
@@ -109,9 +108,7 @@ fn query_prerequisites_for_world(world: &UiAdmissionWorld) -> Option<WorthUiQuer
         .ok()
 }
 
-fn query_basis_from_evidence(
-    evidence: &WorthUiQueryPrerequisiteEvidence,
-) -> UiAdmissionQueryBasis {
+fn query_basis_from_evidence(evidence: &WorthUiQueryPrerequisiteEvidence) -> UiAdmissionQueryBasis {
     match evidence.basis_posture() {
         WorthUiQueryBasisPosture::GraphAligned => UiAdmissionQueryBasis::GraphAligned,
         WorthUiQueryBasisPosture::WrongWorldProjection => {
@@ -127,7 +124,8 @@ fn host_capability_from_report(report: &WorthUiHostCapabilityReport) -> UiAdmiss
     match report.posture() {
         WorthUiHostCapabilityPosture::Available => UiAdmissionHostCapability::Available,
         WorthUiHostCapabilityPosture::Missing => UiAdmissionHostCapability::Missing,
-        WorthUiHostCapabilityPosture::Ambiguous
-        | WorthUiHostCapabilityPosture::DiagnosticOnly => UiAdmissionHostCapability::Ambiguous,
+        WorthUiHostCapabilityPosture::Ambiguous | WorthUiHostCapabilityPosture::DiagnosticOnly => {
+            UiAdmissionHostCapability::Ambiguous
+        }
     }
 }

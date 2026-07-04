@@ -49,8 +49,10 @@ impl UiGraphPageParticipationMember {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiGraphPageParticipationIndex {
-    members_by_page_and_axis:
-        BTreeMap<UiGraphNodeIdentity, BTreeMap<UiGraphParticipationAxis, Vec<UiGraphPageParticipationMember>>>,
+    members_by_page_and_axis: BTreeMap<
+        UiGraphNodeIdentity,
+        BTreeMap<UiGraphParticipationAxis, Vec<UiGraphPageParticipationMember>>,
+    >,
 }
 
 impl UiGraphPageParticipationIndex {
@@ -68,7 +70,8 @@ impl UiGraphPageParticipationIndex {
             let Some(page_membership) = node_topology.membership_facts().page_membership() else {
                 continue;
             };
-            let Some(node_participation) = node_lookup.get(&node_topology.owner_node_identity()) else {
+            let Some(node_participation) = node_lookup.get(&node_topology.owner_node_identity())
+            else {
                 continue;
             };
 

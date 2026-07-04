@@ -31,7 +31,30 @@ error[E0624]: associated function `new` is private
    |
    | /     pub(crate) fn new(
    | |         identity: UiDeclarationIdentity,
+   | |         authored_provenance_digest: u64,
    | |         structural: UiStructuralDeclarationPayload,
+   | |         aspect_contract: UiDeclaredAspectPayload,
    | |         declared_posture: UiDeclaredPosturePayload,
    | |     ) -> Self {
    | |_____________- private associated function defined here
+
+error[E0061]: this function takes 5 arguments but 3 arguments were supplied
+  --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs:35:20
+   |
+35 |       let _handoff = UiDeclarationGraphHandoff::new(fake_identity, fake_payload, unsafe {
+   |  ____________________^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-
+36 | |         std::mem::MaybeUninit::zeroed().assume_init()
+37 | |     });
+   | |______- two arguments of type `worth_ui_runtime::declaration::declaration_handoff::aspect_payload::UiDeclaredAspectPayload` and `worth_ui_runtime::declaration::declaration_handoff::posture_payload::UiDeclaredPosturePayload` are missing
+   |
+note: associated function defined here
+  --> $WORKSPACE/crates/worth-ui-runtime/src/declaration/declaration_handoff/handoff_artifact.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
+help: provide the arguments
+   |
+35 |     let _handoff = UiDeclarationGraphHandoff::new(fake_identity, fake_payload, unsafe {
+36 |         std::mem::MaybeUninit::zeroed().assume_init()
+37 ~     }, /* worth_ui_runtime::declaration::declaration_handoff::aspect_payload::UiDeclaredAspectPayload */, /* worth_ui_runtime::declaration::declaration_handoff::posture_payload::UiDeclaredPosturePayload */);
+   |

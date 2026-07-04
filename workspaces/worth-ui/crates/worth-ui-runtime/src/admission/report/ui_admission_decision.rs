@@ -1,4 +1,5 @@
 use crate::admission::{UiLegalityDecision, UiSupportSnapshot};
+use crate::evidence::UiEvidenceAuthorityGeneration;
 
 use super::UiAdmissionReport;
 
@@ -72,7 +73,10 @@ impl UiAdmissionDecision {
         }
     }
 
-    pub fn into_report(self) -> UiAdmissionReport {
-        UiAdmissionReport::from_decision(self)
+    pub fn into_report(
+        self,
+        authority_generation: UiEvidenceAuthorityGeneration,
+    ) -> UiAdmissionReport {
+        UiAdmissionReport::from_decision(self, authority_generation)
     }
 }

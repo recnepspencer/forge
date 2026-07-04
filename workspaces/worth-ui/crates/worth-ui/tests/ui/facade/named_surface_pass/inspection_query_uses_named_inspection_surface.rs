@@ -1,7 +1,7 @@
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::inspection::{
     UiEvidenceBudget, UiEvidenceRichness, UiInspectionQuery, UiInspectionRelevance,
-    UiInspectionScope, UiInspectionTarget,
+    UiInspectionScope, UiInspectionTarget, UiRelevanceFamily, UiRelevanceFilter,
 };
 
 fn main() {
@@ -12,8 +12,11 @@ fn main() {
         UiInspectionTarget::product_root(),
         UiInspectionScope::graph(),
     )
-    .with_budget(UiEvidenceBudget::bounded(UiEvidenceRichness::summary()))
-    .with_relevance(UiInspectionRelevance::worth_local_only());
+    .with_richness(UiEvidenceRichness::summary())
+    .with_budget(UiEvidenceBudget::ordinary())
+    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::family(
+        UiRelevanceFamily::Declaration,
+    )));
 
     let _ = app.inspect(query);
 }

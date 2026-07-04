@@ -6,6 +6,9 @@ pub struct UiInspectionFacadeObservation {
     unsupported_query_count: u64,
     support_report_count: u64,
     rich_artifact_materialization_count: u64,
+    authored_lookup_count: u64,
+    graph_node_evidence_index_rebuild_count: u64,
+    graph_aspect_evidence_index_rebuild_count: u64,
     log_emission_count: u64,
 }
 
@@ -15,6 +18,9 @@ impl UiInspectionFacadeObservation {
         unsupported_query_count: u64,
         support_report_count: u64,
         rich_artifact_materialization_count: u64,
+        authored_lookup_count: u64,
+        graph_node_evidence_index_rebuild_count: u64,
+        graph_aspect_evidence_index_rebuild_count: u64,
         log_emission_count: u64,
     ) -> Self {
         Self {
@@ -22,6 +28,9 @@ impl UiInspectionFacadeObservation {
             unsupported_query_count,
             support_report_count,
             rich_artifact_materialization_count,
+            authored_lookup_count,
+            graph_node_evidence_index_rebuild_count,
+            graph_aspect_evidence_index_rebuild_count,
             log_emission_count,
         }
     }
@@ -42,6 +51,18 @@ impl UiInspectionFacadeObservation {
         self.rich_artifact_materialization_count
     }
 
+    pub fn authored_lookup_count(self) -> u64 {
+        self.authored_lookup_count
+    }
+
+    pub fn graph_node_evidence_index_rebuild_count(self) -> u64 {
+        self.graph_node_evidence_index_rebuild_count
+    }
+
+    pub fn graph_aspect_evidence_index_rebuild_count(self) -> u64 {
+        self.graph_aspect_evidence_index_rebuild_count
+    }
+
     pub fn log_emission_count(self) -> u64 {
         self.log_emission_count
     }
@@ -52,6 +73,9 @@ pub(crate) struct WorthUiInspectionObservationState {
     unsupported_query_count: Cell<u64>,
     support_report_count: Cell<u64>,
     rich_artifact_materialization_count: Cell<u64>,
+    authored_lookup_count: Cell<u64>,
+    graph_node_evidence_index_rebuild_count: Cell<u64>,
+    graph_aspect_evidence_index_rebuild_count: Cell<u64>,
     log_emission_count: Cell<u64>,
 }
 
@@ -62,6 +86,9 @@ impl WorthUiInspectionObservationState {
             unsupported_query_count: Cell::new(0),
             support_report_count: Cell::new(0),
             rich_artifact_materialization_count: Cell::new(0),
+            authored_lookup_count: Cell::new(0),
+            graph_node_evidence_index_rebuild_count: Cell::new(0),
+            graph_aspect_evidence_index_rebuild_count: Cell::new(0),
             log_emission_count: Cell::new(0),
         }
     }
@@ -86,7 +113,30 @@ impl WorthUiInspectionObservationState {
             self.unsupported_query_count.get(),
             self.support_report_count.get(),
             self.rich_artifact_materialization_count.get(),
+            self.authored_lookup_count.get(),
+            self.graph_node_evidence_index_rebuild_count.get(),
+            self.graph_aspect_evidence_index_rebuild_count.get(),
             self.log_emission_count.get(),
         )
+    }
+
+    pub(crate) fn record_rich_artifact_materialization(&self) {
+        self.rich_artifact_materialization_count
+            .set(self.rich_artifact_materialization_count.get() + 1);
+    }
+
+    pub(crate) fn record_authored_lookup(&self) {
+        self.authored_lookup_count
+            .set(self.authored_lookup_count.get() + 1);
+    }
+
+    pub(crate) fn record_graph_node_evidence_index_rebuild(&self) {
+        self.graph_node_evidence_index_rebuild_count
+            .set(self.graph_node_evidence_index_rebuild_count.get() + 1);
+    }
+
+    pub(crate) fn record_graph_aspect_evidence_index_rebuild(&self) {
+        self.graph_aspect_evidence_index_rebuild_count
+            .set(self.graph_aspect_evidence_index_rebuild_count.get() + 1);
     }
 }

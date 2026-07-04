@@ -1,9 +1,9 @@
 use crate::declaration::{
     UiAspectContract, UiDeclarationContainmentIntent, UiDeclarationFamily, UiDeclarationFamilyKind,
     UiDeclarationIdentity, UiDeclarationOrderingGuarantee, UiDeclarationRepetitionPosture,
-    UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole,
+    UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole, UiDeclaredAspectPayload,
     UiDeclaredHostCapabilityPosture, UiDeclaredMeasurementPolicyPosture, UiDeclaredPostureContract,
-    UiDeclaredAspectPayload, UiDeclaredPostureLane, UiDeclaredPosturePayload, UiDeclaredQueryBindingPosture,
+    UiDeclaredPostureLane, UiDeclaredPosturePayload, UiDeclaredQueryBindingPosture,
     UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture, UiStructuralDeclarationPayload,
 };
 

@@ -1,8 +1,9 @@
+use crate::evidence::{preflight_evidence_expansion, UiEvidenceExpansion, UiEvidenceRef};
+use crate::graph::inspection::UiGraphEvidenceRecord;
 use crate::graph::{
-    UiGraphAxisParticipation, UiGraphCloseoutReport, UiGraphGeneration,
-    UiGraphInspectionSupport, UiGraphLookupSurface, UiGraphMountedReceiptMutation,
-    UiGraphMountedReceiptTransition, UiGraphNodeIdentity, UiGraphSnapshot,
-    UiGraphSnapshotComparable, UiGraphWorldProfile,
+    UiGraphAxisParticipation, UiGraphCloseoutReport, UiGraphGeneration, UiGraphInspectionSupport,
+    UiGraphLookupSurface, UiGraphMountedReceiptMutation, UiGraphMountedReceiptTransition,
+    UiGraphNodeIdentity, UiGraphSnapshot, UiGraphSnapshotComparable, UiGraphWorldProfile,
 };
 use crate::obligations::touch::UiGraphTouchAuthority;
 
@@ -38,6 +39,43 @@ impl<'a> UiGraphAuthority<'a> {
 
     pub fn inspection(self) -> UiGraphInspectionSupport<'a> {
         self.snapshot.inspection()
+    }
+
+    pub fn evidence_ref_for_node(
+        self,
+        graph_node_identity: UiGraphNodeIdentity,
+    ) -> Option<UiEvidenceRef> {
+        self.lookup().graph_node(graph_node_identity).map(|lookup| {
+            UiGraphEvidenceRecord::for_snapshot(
+                self.snapshot,
+                lookup.value().graph_node_identity().digest(),
+            )
+            .reference()
+            })
+    }
+
+    pub fn expand_evidence_ref(
+        self,
+        evidence_ref: UiEvidenceRef,
+        requested_richness: worth_ui_inspection::UiEvidenceRichness,
+    ) -> UiEvidenceExpansion {
+        let current_generation = worth_ui_inspection::UiEvidenceAuthorityGeneration::new(
+            self.generation().as_u64(),
+        );
+        if let Some(preflight) =
+            preflight_evidence_expansion(current_generation, evidence_ref, requested_richness)
+        {
+            return preflight;
+        }
+
+        UiEvidenceExpansion::new(
+            evidence_ref,
+            requested_richness,
+            worth_ui_inspection::UiEvidenceExpansionOutcome::Unsupported,
+            None,
+            Box::new([]),
+            None,
+        )
     }
 
     pub fn touches(self) -> UiGraphTouchAuthority<'a> {
@@ -76,5 +114,9 @@ impl<'a> UiGraphAuthority<'a> {
 
     pub fn closeout_report(self) -> UiGraphCloseoutReport {
         UiGraphCloseoutReport::milestone33()
+    }
+
+    pub(crate) fn snapshot(self) -> &'a UiGraphSnapshot {
+        self.snapshot
     }
 }

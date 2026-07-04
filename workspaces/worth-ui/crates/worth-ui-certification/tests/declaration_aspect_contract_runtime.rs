@@ -1,3 +1,5 @@
+use std::panic::{catch_unwind, AssertUnwindSafe};
+
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
     UiAspectContractAdmissionDenial, UiAspectFamily, UiAspectSemanticSlice, UiDeclarationArtifact,
@@ -74,11 +76,15 @@ fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
                 )),
         )
         .freeze();
-    let baseline_artifact = artifact_from_file_provenance(&baseline, "app/aspect_equivalence.wui", 0);
+    let baseline_artifact =
+        artifact_from_file_provenance(&baseline, "app/aspect_equivalence.wui", 0);
     let equivalent_artifact =
         artifact_from_file_provenance(&equivalent, "app/aspect_equivalence.wui", 0);
 
-    assert_eq!(baseline_artifact.aspect_contract(), equivalent_artifact.aspect_contract());
+    assert_eq!(
+        baseline_artifact.aspect_contract(),
+        equivalent_artifact.aspect_contract()
+    );
     assert_eq!(
         baseline_artifact.digest_projection().aspect(),
         equivalent_artifact.digest_projection().aspect()
@@ -113,38 +119,43 @@ fn renderer_labels_and_queryish_noise_do_not_satisfy_aspect_contract_authority()
             .is_empty(),
         "query-ish noise labels must not create consumed aspect authority"
     );
-    assert!(
-        artifact
-            .aspect_coverage_report()
-            .expect("noise-only artifact should still admit an empty report")
-            .published()
-            .is_empty()
-    );
-    assert!(
-        artifact
-            .aspect_coverage_report()
-            .expect("noise-only artifact should still admit an empty report")
-            .consumed()
-            .is_empty()
-    );
+    assert!(artifact
+        .aspect_coverage_report()
+        .expect("noise-only artifact should still admit an empty report")
+        .published()
+        .is_empty());
+    assert!(artifact
+        .aspect_coverage_report()
+        .expect("noise-only artifact should still admit an empty report")
+        .consumed()
+        .is_empty());
 }
 
 #[test]
 fn unsupported_authored_aspects_deny_through_public_freeze_path() {
-    let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.aspect.unsupported")
-                .with_semantic_artifact_spec(unsupported_aspect_spec()),
-        )
-        .freeze();
-    let artifact = artifact_from_file_provenance(&app, "app/aspect_unsupported.wui", 0);
-    let expected_denial = UiAspectContractAdmissionDenial::UnsupportedAspectSemanticSlice {
-        family: UiAspectFamily::Appearance,
-        canonical_label: "appearance.border".to_owned(),
-    };
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        let _ = WorthUi::app()
+            .with_dsl_package(
+                WorthUiDslPackage::named("worth-ui.certification.aspect.unsupported")
+                    .with_semantic_artifact_spec(unsupported_aspect_spec()),
+            )
+            .freeze();
+    }));
 
-    assert_eq!(artifact.aspect_contract(), Err(&expected_denial));
-    assert_eq!(artifact.aspect_coverage_report(), Err(&expected_denial));
+    let panic_message = panic_message(
+        result.expect_err("freeze path must panic when unsupported aspect slices deny handoff lowering"),
+    );
+    assert!(
+        panic_message.contains(
+            "freeze path must deny graph instantiation before mutation when sealed handoff lowering fails"
+        ),
+        "expected freeze panic to name sealed handoff denial path, got: {panic_message}"
+    );
+    assert!(
+        panic_message.contains("UnsupportedAspectSemanticSlice")
+            && panic_message.contains("appearance.border"),
+        "expected freeze panic to preserve the typed aspect denial, got: {panic_message}"
+    );
 }
 
 fn artifact_from_file_provenance<'a>(
@@ -211,4 +222,14 @@ fn unsupported_aspect_spec() -> UiDslSemanticArtifactSpec {
     )
     .with_published_aspect(UiDslAspectName::new("appearance.border"))
     .with_structural_token(UiDslStructuralToken::new("control:save"))
+}
+
+fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
+    match payload.downcast::<String>() {
+        Ok(message) => *message,
+        Err(payload) => match payload.downcast::<&'static str>() {
+            Ok(message) => (*message).to_string(),
+            Err(_) => "<non-string panic payload>".to_string(),
+        },
+    }
 }

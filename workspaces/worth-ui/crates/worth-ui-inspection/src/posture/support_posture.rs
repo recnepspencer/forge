@@ -44,10 +44,7 @@ impl UiInspectionPosture {
         expected_in: Option<UiInspectionMilestoneExpectation>,
         current_world: UiInspectionSupportWorld,
     ) -> Self {
-        Self::Deferred(UiInspectionDeferredPosture::new(
-            expected_in,
-            current_world,
-        ))
+        Self::Deferred(UiInspectionDeferredPosture::new(expected_in, current_world))
     }
 
     pub const fn unsupported(
@@ -89,10 +86,9 @@ impl UiInspectionPosture {
 
     pub fn unsupported_posture(self) -> Option<UiInspectionUnsupportedPosture> {
         match self {
-            Self::Available
-            | Self::DiagnosticOnly(_)
-            | Self::WrongWorld(_)
-            | Self::Deferred(_) => None,
+            Self::Available | Self::DiagnosticOnly(_) | Self::WrongWorld(_) | Self::Deferred(_) => {
+                None
+            }
             Self::Unsupported(posture) => Some(posture),
         }
     }

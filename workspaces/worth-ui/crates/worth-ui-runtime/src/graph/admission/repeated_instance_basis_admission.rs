@@ -1,6 +1,6 @@
 use crate::declaration::UiDeclarationIdentity;
-use crate::graph::UiRepeatedInstanceBasisDenial;
 use crate::graph::identity::{UiRuntimeDataInstanceKey, UiRuntimeDataInstanceKeyToken};
+use crate::graph::UiRepeatedInstanceBasisDenial;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiRuntimeInstanceBasisAdmission {

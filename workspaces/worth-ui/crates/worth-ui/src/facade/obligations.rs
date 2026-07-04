@@ -9,4 +9,5 @@ pub use worth_ui_runtime::facade::obligations::{
     UiObligationSelectionReason, UiObligationStarterMatrixRowTopology,
     UiObligationStarterMatrixTopology, UiObligationSupportBasis,
     UiObligationSupportSelectionPosture, UiObligationVerdictClass, UiObligationWorldProfileClass,
+    UiSelectedObligation,
 };

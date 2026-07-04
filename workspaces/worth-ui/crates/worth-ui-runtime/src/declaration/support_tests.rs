@@ -378,12 +378,18 @@ fn support_snapshot_inspection_projection_keeps_unsupported_posture_scope_local(
 
     let measurement_rows = snapshot.inspection_rows(UiInspectionScope::Measurement);
     assert_eq!(measurement_rows.len(), 1);
-    assert_eq!(measurement_rows[0].posture(), UiInspectionSupportPosture::Supported);
+    assert_eq!(
+        measurement_rows[0].posture(),
+        UiInspectionSupportPosture::Supported
+    );
     assert_eq!(measurement_rows[0].reason(), None);
 
     let rebind_rows = snapshot.inspection_rows(UiInspectionScope::Rebind);
     assert_eq!(rebind_rows.len(), 1);
-    assert_eq!(rebind_rows[0].posture(), UiInspectionSupportPosture::Supported);
+    assert_eq!(
+        rebind_rows[0].posture(),
+        UiInspectionSupportPosture::Supported
+    );
     assert_eq!(rebind_rows[0].reason(), None);
 }
 
@@ -392,7 +398,7 @@ fn app_inspection_support_report_uses_declaration_support_projection() {
     let app = crate::facade::WorthUi::app()
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.runtime.declaration-support.app")
-                .with_semantic_artifact_spec(page_spec()),
+                .with_semantic_artifact_spec(family_spec(UiDslSemanticFamily::Region, 200)),
         )
         .freeze();
 
@@ -401,7 +407,10 @@ fn app_inspection_support_report_uses_declaration_support_projection() {
         mounting_report.status(),
         UiInspectionSupportStatus::Unsupported
     );
-    assert_eq!(mounting_report.posture(), UiInspectionSupportPosture::Deferred);
+    assert_eq!(
+        mounting_report.posture(),
+        UiInspectionSupportPosture::Deferred
+    );
     assert_eq!(
         mounting_report.reason(),
         Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted),
@@ -416,7 +425,10 @@ fn app_inspection_support_report_uses_declaration_support_projection() {
         measurement_report.status(),
         UiInspectionSupportStatus::Supported
     );
-    assert_eq!(measurement_report.posture(), UiInspectionSupportPosture::Supported);
+    assert_eq!(
+        measurement_report.posture(),
+        UiInspectionSupportPosture::Supported
+    );
     assert_eq!(measurement_report.reason(), None);
     assert_eq!(measurement_report.expected_in(), None);
 
@@ -426,16 +438,14 @@ fn app_inspection_support_report_uses_declaration_support_projection() {
     ));
     assert_eq!(
         receipt
-            .posture()
-            .unsupported_posture()
-            .map(|posture| posture.reason()),
+            .support_report()
+            .and_then(|report| report.reason()),
         Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted),
     );
     assert_eq!(
         receipt
-            .posture()
-            .unsupported_posture()
-            .and_then(|posture| posture.expected_in()),
+            .support_report()
+            .and_then(|report| report.expected_in()),
         Some(UiInspectionMilestoneExpectation::Milestone32),
     );
 }

@@ -6,11 +6,16 @@ error: cannot construct `WorthUiApp` with struct literal syntax due to private f
 5 |         capability_snapshot: capability_snapshot(),
   |         ------------------------------------------ private field
   |
-  = note: ...and other private field `lifecycle` that was not provided
-help: you might have meant to use the `from_freeze_core` associated function
+  = note: ...and other private fields that were not provided
+help: you might have meant to use an associated function to build this type
   |
 4 -     let _ = WorthUiApp {
 5 -         capability_snapshot: capability_snapshot(),
 6 -     };
 4 +     let _ = WorthUiApp::from_freeze_core(_);
+  |
+4 -     let _ = WorthUiApp {
+5 -         capability_snapshot: capability_snapshot(),
+6 -     };
+4 +     let _ = WorthUiApp::from_authority_parts(_, _, _, _);
   |

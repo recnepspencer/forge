@@ -4,5 +4,6 @@ mod dispatch_execution;
 mod dispatch_plan;
 
 pub(crate) use dispatch_boundary::UiObligationDispatchBoundary;
+pub(crate) use dispatch_execution::UiObligationDispatchExecution;
 pub use dispatch_entry::UiObligationDispatchEntry;
 pub use dispatch_plan::UiObligationDispatchPlan;

@@ -69,6 +69,7 @@ impl UiObligationDispatchPlan {
             && self.plan_stop_posture != UiObligationDispatchStopPosture::None
         {
             return vec![UiObligationVerdict::global_stop(
+                self.shape_digest,
                 verdict_class_for_stop(self.plan_stop_posture),
                 self.plan_stop_posture,
             )]

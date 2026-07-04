@@ -1,12 +1,19 @@
 mod evidence_budget;
 mod evidence_richness;
 mod inspection_evidence_source;
-pub(crate) mod obligation_evidence_query;
 mod inspection_query;
 mod inspection_relevance;
+mod obligation_relevance_detail;
+mod relevance_admission;
+mod relevance_filter;
+mod relevance_outcome;
 
 pub use evidence_budget::UiEvidenceBudget;
 pub use evidence_richness::UiEvidenceRichness;
 pub use inspection_evidence_source::UiInspectionEvidenceSource;
 pub use inspection_query::UiInspectionQuery;
 pub use inspection_relevance::UiInspectionRelevance;
+pub use obligation_relevance_detail::UiInspectionObligationRelevanceDetail;
+pub use relevance_admission::UiInspectionRelevanceAdmission;
+pub use relevance_filter::{UiEvidenceLinkKind, UiRelevanceFamily, UiRelevanceFilter};
+pub use relevance_outcome::{UiInspectionRelevanceOutcome, UiInspectionTargetClass};

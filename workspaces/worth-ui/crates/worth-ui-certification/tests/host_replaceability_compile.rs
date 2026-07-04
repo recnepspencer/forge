@@ -26,4 +26,3 @@ fn alternate_adapter_crate_compiles_with_host_contract_only_dependency() {
         String::from_utf8_lossy(&output.stderr)
     );
 }
-

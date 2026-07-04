@@ -49,7 +49,9 @@ impl UiGraphWorldProfile {
         Self::PreviewSessionLabel { session_label }
     }
 
-    pub fn preview_session_identity(preview_session_identity: BridgePreviewSessionIdentity) -> Self {
+    pub fn preview_session_identity(
+        preview_session_identity: BridgePreviewSessionIdentity,
+    ) -> Self {
         Self::PreviewSessionIdentity {
             preview_session_identity,
         }
@@ -93,23 +95,31 @@ impl UiGraphWorldProfile {
     pub(crate) fn identity_digest(&self) -> u64 {
         match self {
             Self::Authoritative => stable_text_digest("graph-world:authoritative"),
-            Self::PreviewSessionLabel { session_label } => stable_text_digest("graph-world:preview-label")
-                ^ stable_text_digest(session_label.display()).rotate_left(13),
+            Self::PreviewSessionLabel { session_label } => {
+                stable_text_digest("graph-world:preview-label")
+                    ^ stable_text_digest(session_label.display()).rotate_left(13)
+            }
             Self::PreviewSessionIdentity {
                 preview_session_identity,
-            } => stable_text_digest("graph-world:preview-session")
-                ^ stable_text_digest(
-                    preview_session_identity.terminal_projection_for_reporting(),
-                )
-                .rotate_left(19),
-            Self::BranchSessionLabel { session_label } => stable_text_digest("graph-world:branch-label")
-                ^ stable_text_digest(session_label.display()).rotate_left(23),
+            } => {
+                stable_text_digest("graph-world:preview-session")
+                    ^ stable_text_digest(
+                        preview_session_identity.terminal_projection_for_reporting(),
+                    )
+                    .rotate_left(19)
+            }
+            Self::BranchSessionLabel { session_label } => {
+                stable_text_digest("graph-world:branch-label")
+                    ^ stable_text_digest(session_label.display()).rotate_left(23)
+            }
             Self::HotReloadCandidate { session_label } => {
                 stable_text_digest("graph-world:hot-reload-candidate")
                     ^ stable_text_digest(session_label.display()).rotate_left(29)
             }
-            Self::Diagnostic { session_label } => stable_text_digest("graph-world:diagnostic")
-                ^ stable_text_digest(session_label.display()).rotate_left(31),
+            Self::Diagnostic { session_label } => {
+                stable_text_digest("graph-world:diagnostic")
+                    ^ stable_text_digest(session_label.display()).rotate_left(31)
+            }
             Self::HostObservation { session_label } => {
                 stable_text_digest("graph-world:host-observation")
                     ^ stable_text_digest(session_label.display()).rotate_left(37)
@@ -121,23 +131,29 @@ impl UiGraphWorldProfile {
             Self::QuerySnapshotBasis {
                 basis,
                 resolution_report,
-            } => stable_text_digest("graph-world:query-basis")
-                ^ stable_text_digest(
-                    basis.proof().identity().terminal_projection_for_reporting(),
-                )
-                .rotate_left(29)
-                ^ stable_text_digest(resolution_report.basis_digest().as_str()).rotate_left(41),
+            } => {
+                stable_text_digest("graph-world:query-basis")
+                    ^ stable_text_digest(
+                        basis.proof().identity().terminal_projection_for_reporting(),
+                    )
+                    .rotate_left(29)
+                    ^ stable_text_digest(resolution_report.basis_digest().as_str()).rotate_left(41)
+            }
         }
     }
 
     pub(crate) fn comparison_family(&self) -> u64 {
         match self {
             Self::Authoritative => stable_text_digest("graph-world-family:authoritative"),
-            Self::PreviewSessionLabel { .. } => stable_text_digest("graph-world-family:preview-label"),
+            Self::PreviewSessionLabel { .. } => {
+                stable_text_digest("graph-world-family:preview-label")
+            }
             Self::PreviewSessionIdentity { .. } => {
                 stable_text_digest("graph-world-family:preview-session")
             }
-            Self::BranchSessionLabel { .. } => stable_text_digest("graph-world-family:branch-label"),
+            Self::BranchSessionLabel { .. } => {
+                stable_text_digest("graph-world-family:branch-label")
+            }
             Self::HotReloadCandidate { .. } => {
                 stable_text_digest("graph-world-family:hot-reload-candidate")
             }
@@ -148,12 +164,14 @@ impl UiGraphWorldProfile {
             Self::TestCertification { .. } => {
                 stable_text_digest("graph-world-family:test-certification")
             }
-            Self::QuerySnapshotBasis { basis, .. } => stable_text_digest("graph-world-family:query")
-                ^ stable_text_digest(match basis.identity().authority_family() {
-                    forge_query::facade::BasisAuthorityFamily::Runtime => "runtime",
-                    forge_query::facade::BasisAuthorityFamily::Store => "store",
-                })
-                .rotate_left(11),
+            Self::QuerySnapshotBasis { basis, .. } => {
+                stable_text_digest("graph-world-family:query")
+                    ^ stable_text_digest(match basis.identity().authority_family() {
+                        forge_query::facade::BasisAuthorityFamily::Runtime => "runtime",
+                        forge_query::facade::BasisAuthorityFamily::Store => "store",
+                    })
+                    .rotate_left(11)
+            }
         }
     }
 }
